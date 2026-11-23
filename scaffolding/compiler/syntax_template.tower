@@ -11,6 +11,7 @@ import syntax_emission_lexical;
 import syntax_reader;
 import syntax_validation;
 import .library.vector;
+import .library.work_budget_types;
 
 fn template_hole(value: SyntaxEmission*, category: u8*, id: u32, append: bool): void {
     var name = emission_cname(value, category);
@@ -34,12 +35,21 @@ export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
 }
 
 export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision: SyntaxEmission*): bool {
+    var error = WorkBudgetError.None;
+    return syntax_template_holes_revision_result(input, revision, &error);
+}
+
+export fn syntax_template_holes_revision_result(input: SyntaxTemplateGrammar*, revision: SyntaxEmission*, error: WorkBudgetError*): bool {
+    *error = WorkBudgetError.Invalid;
+    if input is null || input.emission.root is null { return false; }
+    *error = WorkBudgetError.Memory;
     var value = alloc(SyntaxEmission, 1);
     var missing = value == null;
     if missing {
         return false;
     }
     *value = default;
+    value.resource_error = WorkBudgetError.Memory;
     value.input = &input.emission;
     var index: usize = 0;
     loop {
@@ -57,8 +67,7 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
         }
         var term = emission_node(value, capture.source);
         var ordinal = index &4294967295;
-        var id = convert(u32, ordinal);
-        id = id + 3145728;
+        var id = convert(u32, ordinal) + convert(u32, SyntaxTokenId.Hole);
         if term.repetition == 0 {
             var category = capture.wrapper;
             missing = category == null;
@@ -101,6 +110,7 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
         index++;
     }
     var ok = !value.failed;
+    *error = ok ? WorkBudgetError.None : value.resource_error;
     syntax_emission_destroy(value);
     return ok;
 }
@@ -209,10 +219,10 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
     }
 }
 
-fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: SyntaxEmission*, destination: SyntaxEmission*): bool {
+fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: SyntaxEmission*, destination: SyntaxEmission*, error: WorkBudgetError*): bool {
     var data = lr_tree_match(node, input.match_kind);
-    var ordinal = data.id -3145728;
-    var hole = data.id >= 3145728;
+    var ordinal = data.id - convert(u32, SyntaxTokenId.Hole);
+    var hole = data.id >= convert(u32, SyntaxTokenId.Hole);
     hole &&= convert(usize, ordinal) < input.count;
     if hole {
         input.uses[ordinal] = input.uses[ordinal] + 1;
@@ -247,12 +257,16 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: Synta
     var id = lr_grammar_lookup(bits(LRGrammar*, input.grammar), label, lr_name_hash(label));
     var missing = id == lr_none();
     if missing {
-        data.id = 4294967294;
+        data.id = convert(u32, SyntaxTokenId.End);
     } else {
         id = id & 4294967295;
         data.id = convert(u32, id);
     }
-    return node_match_set_label(data, label);
+    if !node_match_set_label(data, label) {
+        *error = WorkBudgetError.Memory;
+        return false;
+    }
+    return true;
 }
 
 export fn syntax_template_remap(input: SyntaxTemplateRemap*): bool {
@@ -268,11 +282,22 @@ export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destina
 // Both owners and their source entities stay pinned for this private-tree write.
 // Helper identity comes from the shared entity, never a caller-owned alias map.
 export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*): bool {
+    var error = WorkBudgetError.None;
+    return syntax_template_remap_revisions_result(input, source, destination, &error);
+}
+
+export fn syntax_template_remap_revisions_result(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*, error: WorkBudgetError*): bool {
+    *error = WorkBudgetError.None;
+    if input.count > ~convert(usize, 0) / sizeof(usize) {
+        *error = WorkBudgetError.Invalid;
+        return false;
+    }
     var pending: vector(void*);
     vector_init(&pending);
     var bytes = input.count *sizeof(usize);
     fill(input.uses, 0, bytes);
     var ok = vector_push(&pending, input.root);
+    if !ok { *error = WorkBudgetError.Memory; }
     loop {
         if !ok {
             break;
@@ -282,7 +307,7 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
         }
         pending.length--;
         var node = pending.data[pending.length];
-        ok = template_remap_node(input, node, source, destination);
+        ok = template_remap_node(input, node, source, destination, error);
         if !ok {
             break;
         }
@@ -291,6 +316,7 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
         for(; index != count; index++) {
             ok = vector_push(&pending, entity_child_at(node, index));
             if !ok {
+                *error = WorkBudgetError.Memory;
                 break;
             }
         }

@@ -17,12 +17,12 @@ fn lr_check_frame(a: LRFrame*, b: LRFrame*): void {
 fn lr_check_probes(actual: void*, oracle: OracleParser*): void {
     var allowances: usize[4]; allowances[0] = 0; allowances[1] = 1; allowances[2] = 128; allowances[3] = 8192;
     var ids: u32[5]; ids[0] = 0; ids[1] = 32; ids[2] = 2097152; ids[3] = LRTokenEnd; ids[4] = ~convert(u32, 0);
-    for (var index: usize = 0; index < 4; ++index) {
-        var left_budget: LRProbeBudget; left_budget.remaining = allowances[index]; left_budget.complete = true;
+    for (var index: usize = 0; index < sizeof(decltype(allowances)) / sizeof(usize); ++index) {
+        var left_budget: LRProbeBudget = default; left_budget.remaining = allowances[index]; left_budget.complete = true;
         var right_budget: LRProbeBudget; copy(&right_budget, &left_budget, sizeof(LRProbeBudget));
         var left = lr_probe_create(actual, &left_budget); utility_check(left is not null, "LR probe creation"); defer lr_probe_destroy(left);
         var right = oracle_probe_create(oracle, &right_budget); defer oracle_probe_destroy(right);
-        for (var token_index: usize = 0; token_index < 5; ++token_index) {
+        for (var token_index: usize = 0; token_index < sizeof(decltype(ids)) / sizeof(u32); ++token_index) {
             var x = lr_probe_clone(left); utility_check(x is not null, "LR probe clone"); defer lr_probe_destroy(x);
             var y = oracle_probe_clone(right); defer oracle_probe_destroy(y);
             for (var reset: usize = 0; reset < 2; ++reset) {
@@ -31,7 +31,8 @@ fn lr_check_probes(actual: void*, oracle: OracleParser*): void {
                 var before_left: usize; var before_right: usize;
                 utility_check(lr_probe_step(x, ids[token_index], &before_left) == oracle_probe_step(y, ids[token_index], &before_right), "LR probe step kind");
                 utility_check(before_left == before_right && left_budget.remaining == right_budget.remaining
-                    && left_budget.complete == right_budget.complete, "LR probe exact shared budget and predecessor");
+                    && left_budget.complete == right_budget.complete
+                    && left_budget.resource_error == right_budget.resource_error, "LR probe exact shared budget and predecessor");
                 utility_check(lr_probe_count(x) == y.frames.length, "LR probe stack count");
                 var frames = lr_probe_frames(x);
                 for (var frame: usize = 0; frame < y.frames.length; ++frame) {

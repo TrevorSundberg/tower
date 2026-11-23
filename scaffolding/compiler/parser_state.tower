@@ -138,6 +138,9 @@ export fn parser_recognizer_take_completion(request: ParserRequest*): LRCompleti
 
 export fn parser_recognizer_get_error(opaque: void*): u8* {
     var request = bits(ParserRequest*, opaque);
+    if request.error.length == 0 && request.resource_error != WorkBudgetError.None {
+        return "Unable to acquire parser resources";
+    }
     return parser_state_text(&request.error);
 }
 
@@ -146,6 +149,8 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
     parser_state_require(empty);
     request.work.reads++;
     request.read_node_or_null = parser_stream_read(request.stream, &request.read_id, &request.read_start, &request.read_length);
+    request.resource_error = parser_stream_resource_error(request.stream);
+    if request.resource_error != WorkBudgetError.None { return; }
     var end = request.read_id == ParserStreamEnd;
     if end {
         var gap = request.read_start == convert(usize, ParserStreamEnd);
@@ -155,13 +160,16 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
         }
         request.read_length = 0;
     }
-    parser_state_assign(&request.lookahead_error, parser_stream_get_error(request.stream));
+    if !parser_state_try_assign(&request.lookahead_error, parser_stream_get_error(request.stream)) {
+        request.resource_error = WorkBudgetError.Memory;
+        return;
+    }
     var capture = request.capture_completion;
     capture &&= end;
     capture &&= request.lookahead_error.length == 0;
     if capture {
         lr_completion_destroy(request.completion);
-        request.completion = lr_completion_create(request.control);
+        request.completion = lr_completion_create_result(request.control, &request.resource_error);
     }
     request.has_lookahead = true;
 }
@@ -176,6 +184,7 @@ export fn parser_return_lookahead(request: ParserRequest*): void {
 
 // Advance ordinary LR control, requesting at most one stream token per step.
 fn parser_request_advance(request: ParserRequest*, step: LRStep*, polling: bool): u32 {
+    if request.resource_error != WorkBudgetError.None { return convert(u32, ParserAction.Invalid); }
     var error = request.lookahead_error.length != 0;
     var kind = lr_parser_step(request.control, request.has_lookahead, request.read_id,
     error, request.read_start, request.read_length, step);
@@ -187,6 +196,7 @@ fn parser_request_advance(request: ParserRequest*, step: LRStep*, polling: bool)
             return kind;
         }
         parser_recognizer_read_id(request);
+        if request.resource_error != WorkBudgetError.None { return convert(u32, ParserAction.Invalid); }
         error = request.lookahead_error.length != 0;
         kind = lr_parser_step(request.control, request.has_lookahead, request.read_id,
         error, request.read_start, request.read_length, step);
@@ -250,11 +260,16 @@ extern fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
 extern fn syntax_parser_diagnostic_read(source: void*, position: usize*, context: ParserRequestLookahead*, id: u32*): bool;
 
 export fn parser_table_completion(table: ParserHostTable*): LRCompletion* {
-    var control = lr_parser_create(bits(LRRuntime*, table.runtime), true, false);
+    var error = WorkBudgetError.None;
+    return parser_table_completion_result(table, &error);
+}
+
+export fn parser_table_completion_result(table: ParserHostTable*, error: WorkBudgetError*): LRCompletion* {
+    var control = lr_parser_create_result(bits(LRRuntime*, table.runtime), true, false, error);
     if control == null {
         return null;
     }
-    var result = lr_completion_create(control);
+    var result = lr_completion_create_result(control, error);
     lr_parser_destroy(control);
     return result;
 }
@@ -295,6 +310,10 @@ export fn parser_recognizer_create(table: ParserHostTable*, stream: ParserStream
     return parser_recognizer_create_mode(table, stream, false);
 }
 
+export fn parser_recognizer_create_result(table: ParserHostTable*, stream: ParserStream*, error: WorkBudgetError*): ParserRequest* {
+    return parser_recognizer_create_mode_result(table, stream, false, error);
+}
+
 export fn parser_recognizer_create_prefix(table: ParserHostTable*, stream: ParserStream*): ParserRequest* {
     return parser_recognizer_create_mode(table, stream, true);
 }
@@ -308,7 +327,9 @@ export fn parser_recognizer_resource_error(request: ParserRequest*): WorkBudgetE
 }
 
 fn parser_request_fail(request: ParserRequest*, message: u8*): void {
-    parser_state_assign(&request.error, message);
+    if request.resource_error == WorkBudgetError.None && !parser_state_try_assign(&request.error, message) {
+        request.resource_error = WorkBudgetError.Memory;
+    }
     request.complete = true;
 }
 
@@ -320,6 +341,10 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     }
     var step: LRStep;
     var kind = parser_request_advance(request, &step, polling);
+    if request.resource_error != WorkBudgetError.None {
+        parser_request_fail(request, "Unable to allocate parser completion within its memory budget");
+        return null;
+    }
     var action = convert(ParserAction, kind);
     match action {
         ParserAction.Unexpected => {

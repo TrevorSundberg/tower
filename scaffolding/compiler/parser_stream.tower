@@ -5,6 +5,7 @@ import lr_tree;
 import parser_state;
 import syntax_reader;
 import .library.vector;
+import .library.work_budget_types;
 import parser_markers;
 
 // A stream has one writer. Buffered input transfers one owned entity reference.
@@ -12,6 +13,7 @@ import parser_markers;
 struct ParserStream {
     kind: ParserInputService;
     error: vector(u8);
+    resource_error: WorkBudgetError;
     buffered: bool;
     buffered_node: void*;
     buffered_id: u32;
@@ -56,13 +58,17 @@ fn parser_state_clear(value: vector(u8)*): void {
 }
 
 fn parser_state_assign(value: vector(u8)*, text: u8*): void {
+    parser_state_require(parser_state_try_assign(value, text));
+}
+
+fn parser_state_try_assign(value: vector(u8)*, text: u8*): bool {
     var length: usize = 0;
     for(; text[length] != 0; length++) {}
     if length == 0 {
         parser_state_clear(value);
-        return;
+        return true;
     }
-    parser_state_require(bytes_assign_text(value, text, length));
+    return bytes_assign_text(value, text, length);
 }
 
 export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserStream* {
@@ -97,11 +103,24 @@ export fn parser_stream_from_userdata(data: void*): ParserStream* {
 }
 
 export fn parser_stream_get_error(stream: ParserStream*): u8* {
+    if stream.resource_error != WorkBudgetError.None { return "Unable to acquire parser input resources"; }
     return parser_state_text(&stream.error);
 }
 
+export fn parser_stream_resource_error(stream: ParserStream*): WorkBudgetError {
+    return stream.resource_error;
+}
+
+// A failed input remains failed until its owner replaces the stream. No error
+// string allocation is required to preserve the producer's first cause.
+export fn parser_stream_resource_fail(stream: ParserStream*, error: WorkBudgetError): void {
+    if stream.resource_error == WorkBudgetError.None { stream.resource_error = error; }
+}
+
 export fn parser_stream_set_error(stream: ParserStream*, error: u8*): void {
-    parser_state_assign(&stream.error, error);
+    if !parser_state_try_assign(&stream.error, error) {
+        parser_stream_resource_fail(stream, WorkBudgetError.Memory);
+    }
 }
 
 // Discard returns ownership of buffered entities before disposing stream storage.
@@ -159,6 +178,12 @@ export fn parser_stream_recognizer_create(recognizer: void*): ParserStream* {
 // A returned node transfers exactly one reference to the reader.
 export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, length: usize*, node: void**): bool {
     *node = null;
+    if stream.resource_error != WorkBudgetError.None {
+        *id = ParserStreamEnd;
+        *start = convert(usize, ParserStreamEnd);
+        *length = 0;
+        return true;
+    }
     if stream.buffered {
         stream.buffered = false;
         *id = stream.buffered_id;
@@ -181,7 +206,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
     if stream.kind == ParserInputService.Utf8 {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
         if data.allocation_failed {
-            parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
+            parser_stream_resource_fail(stream, WorkBudgetError.Memory);
             return true;
         }
         var remaining = data.source.length -data.cursor;
@@ -216,7 +241,10 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         }
     }
     data.complete = !running;
-    parser_stream_set_error(stream, parser_recognizer_get_error(data.recognizer));
+    parser_stream_resource_fail(stream, parser_recognizer_resource_error(bits(ParserRequest*, data.recognizer)));
+    if stream.resource_error == WorkBudgetError.None {
+        parser_stream_set_error(stream, parser_recognizer_get_error(data.recognizer));
+    }
     var ready = *node != null;
     if ready {
         var request = bits(ParserRequest*, data.recognizer);
