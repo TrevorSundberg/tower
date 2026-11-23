@@ -1344,3 +1344,30 @@ checkpoint, recording conclusions in compiler_ecs_audit_d1.md. New
 scaffolding/backend/execution_functions.tower belongs to B2 and
 scaffolding/benchmarks/compiler_reference_inputs.tower to D2. Total1,074 Tower
 paths /491 D1 direct paths. Local merged runtime remains unrun.
+
+### Root all-eight checkpoint3915aee8
+
+Six additional D1 audit paths beneath scaffolding/tests: entity_locality,
+layout_frontier_profile, lr_state_benchmark, parser_retention,
+parser_retention_observer and work_budget_allocation (all.tower). A2 owns the
+locality/layout/ledger measurement implementations, B1 the LR/retention sources;
+D1 reviewed every complete body and the seven modified existing fixtures.
+Current total1,080 tracked /497 direct D1 paths; all have substantive review,
+without transferring owner implementation scope or claiming merged execution.
+
+### Root grammar checkpoint86e7ec98
+
+Added scaffolding/library/work_arena_api.tower (A2 implementation) and
+scaffolding/tests/work_arena_linkage.tower (A2 specific fixture/D1 full audit).
+D1 reviewed all39 linkage lines plus the complete113-line parser_table_budget
+successor and preserved prior fixture intent. Inventory1,082 total /498 direct,
+all current direct paths substantively reviewed. Runtime remains source-specific;
+new registration and latest merged validation are pending.
+
+### A1 accepted publication ancestorab603725
+
+New compiler/semantic_known_publish belongs to A1; new
+scaffolding/tests/semantic_publish_checks.tower (173lines) is A1's specific test
+and D1's complete direct audit. Existing resource fixture's growth delta and
+entry-only registration conflict were reviewed in full. Counts1,084/499direct.
+Advertised later0e36d5c9 constructor/dispatch additions were not adopted or counted.
