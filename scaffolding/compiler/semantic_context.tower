@@ -12,6 +12,31 @@ import semantic_support;
 import .library.vector;
 
 import semantic_context_types;
+import semantic_program_types;
+
+// The coordinator records joined results in source order. A worker may call
+// this only on its private program, then transfer the receipt with its result.
+// This does not allocate, format text, or mutate a shared budget/error slot.
+export fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void {
+    if error == WorkBudgetError.None || program.resource.error != WorkBudgetError.None { return; }
+    program.resource = { error: error, offset: offset };
+}
+
+// Output boundaries can report a retained failure even if diagnostic storage
+// was unavailable or an editor intentionally cleared ordinary source errors.
+export fn sem_resource_message(error: WorkBudgetError): u8* {
+    if error == WorkBudgetError.None { return ""; }
+    if error == WorkBudgetError.Capacity { return "Semantic memory budget exceeded"; }
+    if error == WorkBudgetError.Memory { return "Cannot allocate semantic storage"; }
+    if error == WorkBudgetError.Busy { return "Semantic worker admission failed"; }
+    return "Invalid semantic resource request";
+}
+
+// Classify an actual failed graph operation only. An empty take on a healthy
+// graph is ordinary waiting. This helper never cancels, drains or releases work.
+export fn sem_query_error(c: SemanticContext*): WorkBudgetError {
+    return c.queries.resource_error == WorkBudgetError.None ? WorkBudgetError.Invalid : c.queries.resource_error;
+}
 
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
@@ -322,20 +347,30 @@ export fn sem_workers_open(c: SemanticContext*): bool {
 // not permission to dispatch; this receipt outlives joins and stage publication.
 // The output is fresh storage, never an existing live receipt.
 fn sem_workers_admit(c: SemanticContext*, count: usize, receipt: WorkReservation*): usize {
+    var extra: usize = 0;
+    if sem_workers_admit_result(c, count, receipt, &extra) != WorkBudgetError.None {
+        trap("Unable to reserve shared semantic worker budget", 0);
+    }
+    return extra;
+}
+
+fn sem_workers_admit_result(c: SemanticContext*, count: usize, receipt: WorkReservation*, admitted: usize*): WorkBudgetError {
     sem_require(c.workers.running == 0);
     *receipt = default;
-    if count < 2 || !c.workers.threaded { return 0; }
+    *admitted = 0;
+    if count < 2 || !c.workers.threaded { return WorkBudgetError.None; }
     var capacity = compiler_worker_capacity(c.program.root);
-    if capacity < 2 { return 0; }
+    if capacity < 2 { return WorkBudgetError.None; }
     var extra = count - 1;
     if extra >= capacity { extra = capacity - 1; }
     if extra > c.workers.count { extra = c.workers.count; }
     var world = compiler_node_world(c.program.root);
-    if compiler_world_work_budget(world) == null { return extra; }
-    if compiler_world_worker_reserve(world, extra, receipt) != WorkBudgetError.None {
-        trap("Unable to reserve shared semantic worker budget", 0);
+    if compiler_world_work_budget(world) == null { *admitted = extra; return WorkBudgetError.None; }
+    var error = compiler_world_worker_reserve(world, extra, receipt);
+    if error == WorkBudgetError.None {
+        *admitted = receipt.lanes;
     }
-    return receipt.lanes;
+    return error;
 }
 
 fn sem_workers_release(c: SemanticContext*, receipt: WorkReservation*): void {
