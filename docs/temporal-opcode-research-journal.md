@@ -79805,3 +79805,83 @@ actual ParserNodes WASI/policy slot next. This is a native harness checkpoint,
 not final integrated acceptance. Negative probe is unchanged and unexecuted;
 current broad native/address/thread, oldff3 restricted-host Cancel4, final clean
 bootstrap/browser/generation and leased atomic hosted publication remain open.
+
+## 2026-11-23 A1 bounded late-flow admission and continuation batch
+
+User's bounded task supersedes the earlier open-ended campaign: this receipt
+covers `semantic_flow.tower` and one new `semantic_flow_checks.tower` fixture.
+ROOT retains integrated sanitizers/bootstrap/browser/generation/deployment.
+Baseline main82b994886e99b0197a5eb2e38a313c36f4c8760c includes complete ROOT
+b04214474ac14588abffea1c6c27b2a0b2ebb2ed history. The verified bundle SHA256 is
+e25f1456f1476685ce775f733b815d58c5af2409ebef48937cfc6345fae9a60d.
+The three prior entity-stage edits already in ROOT d66efb8007 remain backed up
+in `a1_root_d66_handoff_backup_20261123`; no duplicate patch was reapplied.
+No todo, shared context, execution producer or type/generic source changed.
+
+Implementation: request/dependency/access/seal failures now preserve the actual
+graph cause before flow metadata publication. Duplicate requests retain the first
+complete dependency list, ordinal and result. The late pump takes individual
+ready tasks through WorkGraph, reserves existing shared worker grants, dispatches
+through the existing kernel/pool and joins before publishing ticket outcomes.
+A partial take or joined transport/finish failure cancels outstanding tickets;
+no completed kernel is replayed. Waiting is distinct from failure. Later semantic
+failures remain on their function components until earlier source owners settle.
+The final lifecycle wrapper alone diagnoses unfinished/cyclic work after the
+preceding owning pipelines have drained. It checks graph-walker failures too.
+Lowering/evaluation/known-publication/module-initializer order is unchanged;
+this is explicitly not permission to run flow earlier without those edges.
+The archetype query is a derived index over stable world-owned payloads, not a
+claim of packed payload storage. Its term count derives from the array type.
+
+Validation on KinmenA/Windows11, Linux x64 Docker ba707de6a29fd47e22b186ce711f82e51146fd0d38f7c557dadaf77f7e087156,
+CPU0-11,24GiB, LLVM/Clang19.1.1. One owned build at a time; max6 build jobs,
+each Tower compiler --jobs1. Dependency-aware command, before and after:
+`cmake --build /cache/native --parallel 6 --target towerc tower-lr-work-tests`.
+The first changed compile rejected `sizeof(terms)`; corrected to the predecessor's
+supported `sizeof(decltype(terms))`. Fixture development caught reserved `expected`,
+unsupported positional array initialization and missing ParserMatch provenance
+in synthetic diagnostic nodes. All failed logs are retained; subsequent checks
+passed. No failed run is counted as acceptance.
+
+The declaration-only new fixture links the existing semantic provider once.
+Public compiler9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02
+compiles it with --jobs1 --library --target x86_64-pc-linux-gnu and the documented
+Bedrock/Foundation resources. Link uses the native tower-lr-work-tests provider
+objects/libraries, replacing its main/receipt/failure-order fixture objects with
+`a1_semantic_flow_checks.o`. Exact compile/link commands are preserved in
+`/cache/a1_flow_fixture.sh`; no generic harness/manifest change was made.
+26 trials passed: 13 cases at workers1/4, checking repeated requests/waits/terminal
+calls, independent ready batches, reverse readiness and source diagnostics,
+query/edge/access/demand capacity denial, exhausted/partial admission, finish
+ready-index growth denial, cancellation, quiescent dependency paths and actual
+retained evaluation failure receipts. World and graph ledgers reach zero.
+`timeout 180 /cache/native/tower-lr-work-tests /work/scaffolding query-smoke`
+passed serial/threaded 32/64-bit staging and continuations: .23wall/.24CPU seconds,
+88336KiB peak RSS. Fixture executable SHA799363a816a7d4a35f0522bfc8110bdb0010fca90f8f4620280ee2908b88104d;
+semantic provider SHA545576ece61a284eb27e9588f713f3d589db0f4d960616aae6c4daa6e48c7538.
+
+Small checked runtime comparison: existing `scaffolding/tests/comptime_flow.tower`
+SHA2d3ed9f30af7eb4fb093df7c0e06e82e99339f06d112e0d2dd3c897d100b7adb;
+--interpret --jobs1/4, same explicit Bedrock/Foundation resources, warm filesystem,
+fresh processes, one sample per configuration. Each output is exactly0; before,
+after and serial/parallel outputs compare equal. `/usr/bin/time` wall,user,sys,RSS:
+
+| Workers | Before wall / CPU seconds / peak KiB | After wall / CPU seconds / peak KiB |
+| --- | --- | --- |
+| 1 | 1.14 / 1.07 / 179756 | 1.13 / 1.06 / 179816 |
+| 4 | 1.01 / 1.19 / 197252 | 1.00 / 1.16 / 196952 |
+
+Before executable `/cache/a1_flow_82b99488_before_towerc` SHA
+f49b3233e65f848d9386ee13c342dfef1591e53367c30a960142d31088c507aa is preserved;
+after `/cache/native/towerc` SHA56f4e3e63f3be77358da851215772d8d5b888e40eaf7a5f0abe1f1fa4972f188.
+This small comparison finds no material regression, but does not measure useful
+worker overlap, flow critical path, allocation counts or broad scaling. The
+fixture's checked budget retention is distinct from process RSS. Its error
+cases exercise real graph grants, not a threaded allocator sanitizer.
+Shared structural component/view/vector allocation still has existing asserted
+boundaries; changing those belongs to the shared constructor/storage work.
+No new language syntax, constant folder, scheduler, or authoritative graph added.
+Integrated instrumentation, clean bootstrap/native/browser/generation, standard
+fixture registration and hosted verification remain pending with ROOT; none are
+claimed passed here. Documentation updates need no separate runtime profile.
+All logs/scripts remain under C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_flow_*.
