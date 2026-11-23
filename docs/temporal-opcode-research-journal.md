@@ -81898,8 +81898,8 @@ closure, LLVM19, checked-in bootstrap9653f8187a10; current production compiler
 sources built into the existing harness. Frozen executable SHA256:
 d7592de070617ae1736b8c4332f3a31f1647ba2097e1570a82b200d8572a8571.
 Saved /cache/b2_scaling_exported_profile; initial empty-object baseline is also
-preserved. Resource path/workload path stayed /work/scaffolding/profile_unit.tower.
-Actual module sources use the same /work/scaffolding resources,8-byte target
+preserved. Resource root stayed /work/scaffolding; each virtual input kept the
+lexical source path profile_unit.tower. All cases use those resources,8-byte target
 pointers, x86_64-pc-linux-gnu library output, backend optimize=false at all widths.
 Objects are independent library compilations, not a linked16-unit executable.
 
@@ -82313,3 +82313,17 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+Publication receipt: measured/profile implementation commit9dd90fc1. A transient
+DNS pull failure recovered on the next normal attempt; ff-only then correctly
+refused divergence. Merge2e5cafc1 preserves all published/local histories and
+journal entries, incorporating origin68f89640's checked stage/admission and grammar
+observer changes. Coherent17-action dependency rebuild passed. B2's Tower profile
+is byte-identical to9dd90fc1. Representative merged small16 workers1/8 preserve
+both exact hashes and known results (18.117/4.987s, actual outer peaks1/8);
+single4096 workers12 likewise preserves its hashes (4.886s). These are merged
+acceptance observations, not replacements for the frozen table above. Nested
+admission/cancellation/canonical regression passes with91600ns refill, and
+backend-overlap-calibrated passes exact objects/distinct live threads. Logs
+b2_scaling_merged_{build,small_w1,small_w8,single,admission,overlap}.log. All owned
+jobs drained. Normal main push follows; final remote receipt is in B2/status.md.
