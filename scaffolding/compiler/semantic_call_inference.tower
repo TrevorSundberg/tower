@@ -175,7 +175,9 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         var error: u8* = null;
         var returned = generic_type_result_read(definition, &error);
         if error != null {
-            sem_fail(c, inference.use, error);
+            // An ordinary body is not an invertible alias constraint. Leave
+            // deduction unresolved; explicit arguments still check/execute it
+            // through the ordinary type producer, including locals and effects.
             return;
         }
         // Follow the existing straight-return alias subset by substituting its

@@ -30,6 +30,11 @@ in the same constraint lookup as nominal type constructors. This does not turn
 their execution into static alias expansion: their substituted signatures still
 run through the ordinary type queries and checking.
 
+An alias body with locals or control flow is not executed to deduce a missing
+type argument. If no other operand determines that argument, the call reports
+`Cannot infer type argument 'T'; pass explicit type arguments`. An explicit
+argument still prepares and executes the ordinary body; its statements are kept.
+
 Typed operands are considered before contextual integer/null literals. Thus either
 argument of `choose(-9223372036854775808, an_i64)` can provide the constraint, without
 first forcing the magnitude into i32. A bare type parameter constrained only by an

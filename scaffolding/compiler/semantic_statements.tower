@@ -450,6 +450,14 @@ fn sem_if_begin_value(c: SemanticContext*, n: void*, condition: void*): bool {
     if !sem_shape(c, n, "condition") || !sem_shape(c, n, "body") {
         return false;
     }
+    if condition == null && c.current == c.program.root && c.declaration_subjects == null
+        && c.entity_stage == null && c.query_reads == null {
+        // Module conditions need the same identity/layout producers as other
+        // expressions. Keep contextual bool checking and consume the result once.
+        condition = sem_module_expression(c, sem_member(n, "condition"),
+            sem_type_new(c, SBool, 0, null), SemanticExpressionMode.Operand);
+        if !sem_ok(c) { return false; }
+    }
     var value = sem_node_result(c, n, KIf);
     if value == null { return default; }
     value.value = condition ?? sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
@@ -530,7 +538,7 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
         if !sem_shape(c, n, capture) { return FlowNext; }
         var source = sem_member(n, capture);
         var mode = discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
-        var prepared = sem_module_expression(c, source, mode);
+        var prepared = sem_module_expression(c, source, null, mode);
         if !sem_ok(c) { return FlowNext; }
         var flow = discarded ? sem_expression_statement(c, n, prepared) : sem_call_statement(c, n, prepared);
         return sem_statement_complete(c, n, flow);
