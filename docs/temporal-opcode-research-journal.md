@@ -83590,3 +83590,21 @@ allocation-failure or sanitizer probe ran. ROOT retains final merged memory/UB/
 thread instrumentation, useful scaling, bootstrap/browser/generation and hosted
 release gates. This batch claims caller migration only, with ROOT's execution
 exception explicit; no overall compiler completion or deployment claim.
+
+Merged receipt: the requested ff-only pull fetched `5b05d6bb` and stopped on
+divergence; `git rebase --rebase-merges origin/main` preserved all published
+merges and replayed the batch cleanly as `24acdc63`. Incoming ROOT execution
+adoption (`d56c2903`) is now checked, including discard before view close; no
+void `entity_stage_hold` call remains in compiler source. A1 phase/frontier,
+L2 admission and other incoming ownership/scheduling hunks are preserved.
+The same dependency-aware target set rebuilt21 affected steps. Merged stage
+normal/queued/concurrent, query-smoke, resource-smoke, lifecycle14-16 and
+body-smoke all PASS, exit0 (`stage_callers_merged.log`). The body check reran
+because incoming compiler inputs changed, completing serial/worker canonical,
+execution and ordered-error coverage on the final cleanup implementation.
+Existing profiles retain their original frozen input identity. Final
+instrumentation/retention, scaling, canonical bootstrap/browser/generation and
+hosted-release acceptance remain ROOT-owned pending integrated gates; source
+caller adoption has no remaining unchecked hold in the scoped search. All owned
+build/test/profile jobs drained before the publication attempt. This is a
+normal main push only, with no gh-pages update or deployment claim.

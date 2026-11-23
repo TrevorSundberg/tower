@@ -418,8 +418,9 @@ pipeline teardown. Workers must already be joined, stages must use cancellable
 borrowed payloads, and sources must remain owned through either outcome. A
 transport `Busy` on entry admits no jobs from this wave and does not authorize
 joining another owner's jobs. This helper does not dispatch, allocate, create
-leases, or infer alias guarantees. Generic-body cloning retains its existing
-checked ownership boundary. ROOT owns the remaining execution-pump adoption.
+leases, or infer alias guarantees. Generic-body cloning and executable-function
+preparation retain their own checked ownership boundaries; ROOT's execution
+adoption is integrated with this caller migration.
 
 Ordered containment also offers `entity_replace_child_result(parent, index,
 replacement)` and `entity_take_last_child_result(parent, error)`. Replacement

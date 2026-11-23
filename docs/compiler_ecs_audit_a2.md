@@ -1756,3 +1756,12 @@ allowlist expansion. Exact remaining gates: ROOT execution caller adoption,
 merged instrumentation/retention and full scaling/bootstrap/browser/release.
 Normal native checks do not prove universal race freedom or instrument every
 private allocation. Measurement details and preserved errors are in the journal.
+
+Merged source review: `24acdc63` rebases this batch onto `5b05d6bb` with complete
+published merge history. ROOT's `d56c2903` execution change now checks holds and
+uses deferred discard-before-view-close cleanup. Scoped compiler search finds
+no remaining void hold call, only the shared semantic boundary and the checked
+generic/execution pumps. New A1 phase-frontier and L2 evaluation-admission hunks
+are preserved. The common kernel and three stage/lowering regression fixtures
+are byte-identical to the measured batch; compiler profiles remain scoped to
+the original frozen inputs, not relabeled for incoming scheduling/parser work.
