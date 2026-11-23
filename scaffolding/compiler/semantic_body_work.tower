@@ -5,6 +5,7 @@ import semantic_context_types;
 import semantic_evaluation_types;
 import compiler_kernel;
 import semantic_context;
+import grammar_types;
 import semantic_program_types;
 import semantic_modules;
 import semantic_definitions;
@@ -2039,6 +2040,8 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
 }
 
 fn sem_bodies(c: SemanticContext*): void {
+    sem_observe(c, GrammarPhase.SemanticBodies, true, 0, 0);
+    defer sem_observe(c, GrammarPhase.SemanticBodies, false, 0, 0);
     // Root expressions have completed before ordinary body roots are demanded.
     // Do not repeat this global scan between declaration frontiers: a newly
     // published nominal identity can still be waiting for its field producer.
@@ -2060,12 +2063,18 @@ fn sem_bodies(c: SemanticContext*): void {
     loop {
         var bodies = sem_bodies_pump(c);
         if bodies == SemanticPumpResult.Failed || bodies == SemanticPumpResult.Complete { break; }
+        sem_observe(c, GrammarPhase.SemanticDeclarations, true, 0, 0);
         var declarations = sem_declarations_pump(c);
+        sem_observe(c, GrammarPhase.SemanticDeclarations, false, 0, 0);
+        sem_observe(c, GrammarPhase.SemanticQueries, true, 0, 0);
         var values = sem_query_pipeline_pump(c);
+        sem_observe(c, GrammarPhase.SemanticQueries, false, 0, 0);
         if values == SemanticPumpResult.Failed { break; }
         var layouts: usize = 0;
         if sem_ok(c) {
+            sem_observe(c, GrammarPhase.SemanticLayout, true, 0, 0);
             layouts = sem_layout_execute(c);
+            sem_observe(c, GrammarPhase.SemanticLayout, false, 0, layouts);
             // Preserve failed layout receipts for source-ordered diagnostics.
             if c.program.resource.error == WorkBudgetError.None {
                 vector_dispose(&c.program.error);
@@ -2145,14 +2154,20 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     }
     var batch = state.window.data;
     var count = state.window.length;
+    sem_observe(c, GrammarPhase.BodyInputs, true, count, 0);
     progress = sem_body_inputs(c, state) || progress;
+    sem_observe(c, GrammarPhase.BodyInputs, false, count, 0);
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     if count != 0 && c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
+    sem_observe(c, GrammarPhase.BodyDiscovery, true, count, 0);
     progress = sem_body_sources_execute(c, batch, count) != 0 || progress;
+    sem_observe(c, GrammarPhase.BodyDiscovery, false, count, 0);
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     // A later producer can unblock an earlier consumer even after another
     // body has failed. Retain diagnostics while servicing that dependency.
+    sem_observe(c, GrammarPhase.BodyWave, true, count, 0);
     sem_body_wave(c, batch, count, count);
+    sem_observe(c, GrammarPhase.BodyWave, false, count, 0);
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     // Release every worker claim before any coordinator continuation publishes
     // types or registers new producers. Waiting bodies retain their ECS cursor.
@@ -2181,7 +2196,9 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
         }
     }
     if preparing.length != 0 {
+        sem_observe(c, GrammarPhase.BodyPrepare, true, preparing.length, 0);
         sem_body_declarations(c, preparing.data, preparing.length, preparing.length);
+        sem_observe(c, GrammarPhase.BodyPrepare, false, preparing.length, 0);
         progress = true;
     }
     if !sem_ok(c) { return SemanticPumpResult.Failed; }

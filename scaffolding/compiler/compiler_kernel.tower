@@ -3,7 +3,7 @@ import .library.work_pool;
 import .library.work_budget_types;
 
 enum CompilerKernelKind: u32 {
-    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery, PrepareFunction
+    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery, PrepareFunction, Count
 }
 
 struct CompilerKernel {

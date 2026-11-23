@@ -1,6 +1,8 @@
 import tower;
 import worker_policy;
 import compiler_kernel;
+import grammar_observer;
+import grammar_types;
 import .library.work_graph;
 import .library.work_pool;
 import .library.work_budget_types;
@@ -14,6 +16,16 @@ import .library.vector;
 
 import semantic_context_types;
 import semantic_program_types;
+
+fn sem_observe(c: SemanticContext*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
+    var world = compiler_node_world(c.program.root);
+    if world != null { grammar_observe(world, phase, entering, first, second); }
+}
+
+fn sem_worker_observe(world: void*, job: void*, ordinal: usize, lanes: usize, entering: bool): void {
+    if job == null { grammar_observe(world, GrammarPhase.SemanticDispatch, entering, ordinal, lanes); }
+    else { grammar_observe(world, GrammarPhase.SemanticKernel, entering, ordinal, convert(usize, bits(CompilerKernel*, job).kind)); }
+}
 
 // The coordinator records joined results in source order. A worker may call
 // this only on its private program, then transfer the receipt with its result.
@@ -226,6 +238,8 @@ extern fn entity_view_close(view: void*): void;
 // failure, retain that producer's original message/offset in source order.
 fn sem_stage_wave(T: type, c: SemanticContext*, jobs: T**, count: usize, view: void*, dispatched: WorkBudgetError, subject: void*,
     cancel: function(void, void*)): bool {
+    sem_observe(c, GrammarPhase.SemanticStages, true, count, 0);
+    defer sem_observe(c, GrammarPhase.SemanticStages, false, count, 0);
     var cause = dispatched;
     if cause == WorkBudgetError.None && !work_ok(&c.queries) { cause = sem_query_error(c); }
     var error = compiler_kernel_stages_result(jobs, count, view, cause,
@@ -449,7 +463,12 @@ export fn sem_workers_open(c: SemanticContext*): bool {
     if c.workers.count != 0 { return true; }
     var world = compiler_node_world(c.program.root);
     if work_pool_open_budget(&c.workers, compiler_worker_capacity(c.program.root),
-        compiler_world_work_budget(world)) { return true; }
+        compiler_world_work_budget(world)) {
+        if world != null && compiler_world_grammar(world).observer.event != null {
+            c.workers.observation = world; c.workers.observe = sem_worker_observe;
+        }
+        return true;
+    }
     var error = c.workers.resource_error;
     if error == WorkBudgetError.None { error = WorkBudgetError.Invalid; }
     var message: vector(u8) = default;
@@ -470,6 +489,8 @@ fn sem_workers_admit(c: SemanticContext*, count: usize, receipt: WorkReservation
 }
 
 fn sem_workers_admit_result(c: SemanticContext*, count: usize, receipt: WorkReservation*, admitted: usize*): WorkBudgetError {
+    sem_observe(c, GrammarPhase.SemanticAdmission, true, count, 0);
+    defer sem_observe(c, GrammarPhase.SemanticAdmission, false, count, *admitted + 1);
     sem_require(c.workers.running == 0);
     *receipt = default;
     *admitted = 0;

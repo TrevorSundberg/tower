@@ -20,6 +20,8 @@ import .library.work_budget_types;
 
 extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
+extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
 
 // Functional tests call the production tw_* exports. The host only installs
 // ordinary source modules and invokes ide_tests; no native/JS test policy.
@@ -395,6 +397,10 @@ fn ide_test_resource_width(width: u32): IdeResourceCheck {
     if handle == 0 { return IdeResourceCheck.Create; }
     defer tw_exec_destroy(handle);
     ide_package_reset();
+    // The execution fixture leaves a successful snapshot. Error reset preserves
+    // it transactionally; this case owns an explicit no-package precondition.
+    tw_exec_bytecode_release();
+    if tw_exec_bytecode_size() != 0 || tw_exec_bytecode_data() != null { return IdeResourceCheck.Package; }
     var session = ide_execution(handle);
     var offset = ide_length("import foundation;\n");
     sem_resource_record(&session.program, WorkBudgetError.Capacity, offset);
@@ -412,14 +418,30 @@ fn ide_test_resource_width(width: u32): IdeResourceCheck {
         || !ide_test_contains(tw_exec_foundation(handle), "\"status\":\"error\"") {
         return IdeResourceCheck.Artifact;
     }
+    var state = ide_state();
     var package_bytes = tw_exec_bytecode_size();
-    if tw_exec_prepare_package(handle, 0) != 0 || tw_exec_bytecode_size() != package_bytes
-        || tw_exec_bytecode_data() != null { return IdeResourceCheck.Package; }
+    var package_data = tw_exec_bytecode_data();
+    var package_handles = host_handles_count(&state.handles, 1);
+    var prepared = tw_exec_prepare_package(handle, 0);
+    if prepared != 0 || tw_exec_bytecode_size() != package_bytes || tw_exec_bytecode_data() != null
+        || host_handles_count(&state.handles, 1) != package_handles {
+        var receipt: ByteBuffer = default; defer bytes_dispose(&receipt);
+        ide_text(&receipt, "Resource package failure: width="); ide_number(&receipt, convert(usize, width));
+        ide_text(&receipt, " prepared="); ide_number(&receipt, convert(usize, prepared));
+        ide_text(&receipt, " bytes before/after="); ide_number(&receipt, package_bytes);
+        ide_text(&receipt, "/"); ide_number(&receipt, tw_exec_bytecode_size());
+        ide_text(&receipt, " data before/after="); ide_number(&receipt, bits(usize, package_data));
+        ide_text(&receipt, "/"); ide_number(&receipt, bits(usize, tw_exec_bytecode_data()));
+        ide_text(&receipt, " handles before/after="); ide_number(&receipt, package_handles);
+        ide_text(&receipt, "/"); ide_number(&receipt, host_handles_count(&state.handles, 1));
+        puts(ide_result(&receipt));
+        fflush(null);
+        return IdeResourceCheck.Package;
+    }
     if session.program.resource.error != WorkBudgetError.Capacity || session.program.resource.offset != offset
         || !ide_test_same(tw_last_error(), sem_resource_message(WorkBudgetError.Capacity))
         || tw_live_allocations() != allocations { return IdeResourceCheck.Receipt; }
 
-    var state = ide_state();
     var handles = host_handles_count(&state.handles, 1);
     var nodes = tw_live_nodes();
     var private_session = ide_execution_text(source, ide_length(source), width, false);
@@ -437,6 +459,16 @@ fn ide_test_resource_width(width: u32): IdeResourceCheck {
         || !ide_test_contains(tw_exec_step(retry, IdeExecutionStepLimit), "\"status\":\"done\"") {
         return IdeResourceCheck.Recovery;
     }
+    var retry_handles = host_handles_count(&state.handles, 1);
+    var package_retry = tw_exec_prepare_package(retry, 0);
+    if package_retry == 0 { return IdeResourceCheck.Recovery; }
+    var recovered = host_handles_count(&state.handles, 1) == retry_handles + 1
+        && tw_exec_bytecode_size() != 0 && tw_exec_bytecode_data() != null
+        && ide_test_contains(tw_exec_step(package_retry, IdeExecutionStepLimit), "\"outputBytes\":[52,50,10]");
+    tw_exec_destroy(package_retry);
+    tw_exec_bytecode_release();
+    if !recovered || host_handles_count(&state.handles, 1) != retry_handles
+        || tw_exec_bytecode_size() != 0 || tw_exec_bytecode_data() != null { return IdeResourceCheck.Recovery; }
     return IdeResourceCheck.Passed;
 }
 
