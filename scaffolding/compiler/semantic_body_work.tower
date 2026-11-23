@@ -223,6 +223,7 @@ struct SemanticBodyWork {
     error: vector(u8);
     query_reads: vector(usize);
     error_offset: usize;
+    resource: SemanticResourceFailure;
     resumed: bool;
     done: bool;
     calls_published: bool;
@@ -523,6 +524,7 @@ fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
     sem_body_sources(&context, result);
     result.error = program.error;
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     stack_dispose(&context.scan);
     vector_dispose(&context.token_text);
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
@@ -571,7 +573,7 @@ fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork**, coun
     entity_view_close(view);
     foreach(var result in &ready) {
         sem_query_observe(c, &result.ticket, &result.query_reads);
-        result.done = result.error.length != 0;
+        result.done = result.resource.error != WorkBudgetError.None || result.error.length != 0;
         sem_require(work_finish(&c.queries, &result.ticket, !result.done));
         result.ticket = default;
         result.context = null;
@@ -1633,6 +1635,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     }
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     copy(&result.evaluations, &context.evaluation_jobs, sizeof(vector(void*)));
     if result.done {
         copy(&result.flow_dependencies, &context.flow_dependencies, sizeof(vector(void*)));
@@ -1700,6 +1703,15 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
 fn sem_body_hold_error(c: SemanticContext*, result: SemanticBodyWork*): void {
     // Preparation is source ordered, but an earlier continuation may still
     // diagnose an error. Transfer this diagnostic and drain those jobs first.
+    result.resource = c.program.resource;
+    if result.resource.error != WorkBudgetError.None {
+        result.error_offset = result.resource.offset;
+        if c.program.error.length != 0 && c.program.error.length < result.error.capacity {
+            copy(result.error.data, c.program.error.data, c.program.error.length + 1);
+            result.error.length = c.program.error.length;
+        }
+        return;
+    }
     copy(&result.error, &c.program.error, sizeof(vector(u8)));
     result.error_offset = c.program.error_offset;
     fill(&c.program.error, 0, sizeof(vector(u8)));
@@ -1710,7 +1722,7 @@ fn sem_body_hold_error(c: SemanticContext*, result: SemanticBodyWork*): void {
 // Publish its completed lexical prefix as a dependency instead of requiring
 // the unfinished whole body or reading an initializer without a receipt.
 fn sem_body_prefix(c: SemanticContext*, result: SemanticBodyWork*): void {
-    if result.error.length != 0 { return; }
+    if result.resource.error != WorkBudgetError.None || result.error.length != 0 { return; }
     result.prefix_generation++;
     var prefix = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.BodyPrefix), result.prefix_generation);
     var previous = result.prefix != 0 ? result.prefix
@@ -1775,13 +1787,13 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
         sem_flow_request(c, result.subject, &result.flow_dependencies);
     }
     vector_dispose(&result.evaluations);
-    if c.count > c.node_limit && result.error.length == 0 {
+    if c.count > c.node_limit && result.resource.error == WorkBudgetError.None && result.error.length == 0 {
         sem_fail(c, result.subject, "Foundation component memory budget exceeded");
         sem_body_hold_error(c, result);
         result.done = true;
     }
     if result.done {
-        sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0));
+        sem_require(work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
     }
 }
 
@@ -1917,8 +1929,10 @@ fn sem_bodies(c: SemanticContext*): void {
         if sem_ok(c) {
             layouts = sem_layout_execute(c);
             // Preserve failed layout receipts for source-ordered diagnostics.
-            vector_dispose(&c.program.error);
-            c.program.error_offset = 0;
+            if c.program.resource.error == WorkBudgetError.None {
+                vector_dispose(&c.program.error);
+                c.program.error_offset = 0;
+            }
         }
         if declarations == SemanticPumpResult.Progress || values == SemanticPumpResult.Progress || layouts != 0
             || bodies == SemanticPumpResult.Progress { continue; }
@@ -2038,10 +2052,11 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
             }
         }
         if result.done && !result.calls_published {
-            if result.error.length == 0 { sem_body_demand(c, &result.calls); }
+            if result.resource.error == WorkBudgetError.None && result.error.length == 0 { sem_body_demand(c, &result.calls); }
             result.calls_published = true;
         }
-        if result.error.length != 0 && (failure == null || result.ordinal < failure.ordinal) { failure = result; }
+        if (result.resource.error != WorkBudgetError.None || result.error.length != 0)
+            && (failure == null || result.ordinal < failure.ordinal) { failure = result; }
         if !result.done && result.ordinal < first_pending { first_pending = result.ordinal; }
     }
     // Early helper demand is ordered by execution, not source. Retain failures
@@ -2093,7 +2108,7 @@ fn sem_body_inputs(c: SemanticContext*, state: SemanticBodyPipeline*): bool {
     }
     if layouts {
         sem_layout_execute(c);
-        if c.declaration_isolated { vector_dispose(&c.program.error); }
+        if c.declaration_isolated && c.program.resource.error == WorkBudgetError.None { vector_dispose(&c.program.error); }
     }
     return progress;
 }
@@ -2164,7 +2179,8 @@ fn sem_body_failure(c: SemanticContext*, subject: void*): bool {
     if c.body_pipeline == null { return false; }
     var state = sem_bodies_begin(c);
     var result = bits(SemanticBodyWork*, entity_component_data(entity_component_get(subject, state.kind)));
-    return result != null && sem_restore_error(c, &result.error, result.error_offset);
+    return result != null && (sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset)
+        || sem_restore_error(c, &result.error, result.error_offset));
 }
 
 // Registration never checks a body or waits for its producers. Executed stage

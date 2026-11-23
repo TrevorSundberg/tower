@@ -29,6 +29,8 @@ export fn sem_resource_message(error: WorkBudgetError): u8* {
     if error == WorkBudgetError.Capacity { return "Semantic memory budget exceeded"; }
     if error == WorkBudgetError.Memory { return "Cannot allocate semantic storage"; }
     if error == WorkBudgetError.Busy { return "Semantic worker admission failed"; }
+    if error == WorkBudgetError.Stale { return "Stale semantic resource reservation"; }
+    if error == WorkBudgetError.Exhausted { return "Semantic resource reservation identifiers exhausted"; }
     return "Invalid semantic resource request";
 }
 
@@ -76,8 +78,25 @@ export fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u3
 }
 
 fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): void {
-    foreach(var query in reads) { sem_require(work_observe(&c.queries, ticket, query)); }
+    sem_require(sem_query_observe_checked(c, ticket, reads));
+}
+
+fn sem_query_observe_checked(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): bool {
+    foreach(var query in reads) {
+        if !work_observe(&c.queries, ticket, query) { return false; }
+    }
     reads.length = 0;
+    return true;
+}
+
+// Graph growth can fail after releasing a ticket or publishing some ready
+// edges. Only the joined coordinator may invalidate the remaining receipts.
+// The caller retains private outputs until it has selected its diagnostic.
+fn sem_query_cancel_failure(c: SemanticContext*): WorkBudgetError {
+    sem_require(c.workers.running == 0);
+    var error = sem_query_error(c);
+    work_cancel(&c.queries);
+    return error;
 }
 
 // Inspect only demanded queries of this phase. An empty ready queue is a
