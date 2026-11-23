@@ -86657,3 +86657,51 @@ receipt-only follow-up changes no executable input; additional runtime profiling
 is inapplicable. User explicitly corrected coordination: maintain all eight
 existing bounded sessions with useful assignments and replace completed tasks
 promptly. All eight were relaunched/verified; no extra context was created.
+
+### ROOT current portable/LLVM/cross build and browser generation failure (2026-11-23)
+
+Frozen published source b0f507c6ad4bdaec4a3b87ddd943e647ba393eaa, public
+768a0cdf bootstrap with no private override. Local Orchestral-Revng WSL,
+LLVM19.1.1/WASI SDK34, CPU8-15, build jobs4/compiler jobs1; Linux memory16GiB,
+no competing cache writer. Existing pinned LLVM source/tablegen/cross caches
+were reused, with dedicated /root/.cache/tower/root_release_tools. Normal
+release frontend built with IDE_TESTS=OFF; TOWER_BROWSER_CROSS=ON rebuilt
+both LLVM reactors and complete compiler-project support packs. All tracked
+compiler/build/transport input hashes matched before/after. This is preparatory
+current-source release evidence, not final adoption of concurrent owner fixes.
+
+Portable28 actions PASS65.96wall/125.41CPU seconds/1041372KiB child peak RSS.
+LLVM/cross40 actions plus packaging PASS109.12wall/199.56CPU/1041676KiB.
+Receipt /root/.cache/tower/root_release_b0f507c6/status0 retains all logs,
+source hashes, flags and host settings. Complete artifacts:
+tower.wasm308150ecab0ff80e3985f06305530ffa68e763e64a5b8c35ac04cd1729f4b23d;
+tower-llvm.wasm64f508684f74eff491a78128820497bcb00d4270c6fba1cbb6d20395635468bb;
+tower-cross.wasm7e874158f03bc2e9ab43b746dd28ad4d702edef2d03b7ab1ca656a6bbeb6491b;
+project.json748997326a3a385e7f31a2bd5d0150d51df492202749493dc8669699620d5ef9.
+No rebuild of unchanged LLVM third-party libraries was required.
+
+The actual two-edited-browser-generation gate FAILED during generation1 candidate
+acceptance. node v21.7.3 --max-old-space-size=4096 ran the existing
+test-compiler-project.mjs with output build/root_ecs_generations_b0f507c6.
+All generation1 units compiled and all three reactors linked; candidate checks
+then threw "Candidate module completion check failed" at compiler-build.mjs:115.
+The qualified source imports helpers.answer as left and requests left.an; it
+must produce exactly exported label answer. This is consistent with D2's
+independent helpers.he/helper failure but the common root cause is not yet proved.
+No candidate was accepted and generation2 never ran. A1's next bounded task
+owns both exact reproducers; expected checks remain intact.
+
+Retained wall120.390s/CPU286.641s/Windows peak working set1555529728bytes.
+The PowerShell monitor did not cache its process handle and observed a null
+Process.ExitCode after exit; consequently its wrapper exited0. That0 is NOT a
+passed check. Original stdout/stderr/result.json remain preserved, with a separate
+result_review.json explicitly marking failure and the uncaptured native exit.
+Future monitors must retain the handle before polling and reject a missing
+exit status. Artifacts/measurement/logs are in coordination directory
+ROOT_browser_generations_b0f507c6; original generation1 unit objects remain.
+All ROOT build/Node jobs are drained; source mutations may now resume.
+
+This receipt-only commit changes no compiler behavior; additional before/after
+runtime profiling is inapplicable. Final current-source normal/shared/LLVM/cross,
+two edited generations, supported instrumentation, useful scaling and hosted
+release still require affected-source adoption and fixing actual failures.
