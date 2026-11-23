@@ -11,6 +11,7 @@ import semantic_expressions;
 import semantic_expression_lowering;
 import semantic_lowering_work;
 import semantic_work_ids;
+import .library.work_graph;
 
 // Source signature metadata stays on the function entity. The executable
 // signature uses only ordinary Foundation pointer parameters and void returns.
@@ -38,6 +39,7 @@ fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: Foundation
 
 fn sem_aggregate_prepare(c: SemanticContext*): void {
     sem_lower_transform(c, true);
+    if !sem_ok(c) || !work_ok(&c.queries) { return; }
     // Publish executable callback signatures at the same barrier as function
     // signatures, before expression-lowering workers consume either form.
     foreach(var type in &c.type_arguments) { sem_aggregate_function_type(c, &sem_get(type).type); }
