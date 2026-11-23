@@ -92786,7 +92786,9 @@ semantics6b3273f0ad5c51501fb9af541c823eb616451f6c7e49c9e9b4af9dd62c98c4b9;
 runnerfab9827ef127bbe57648918525b95c9aac8fd81229979ee11045cb0b33762837.
 External L1 alias_fields_receipt.json and logs/alias_fields_merged retain exact
 inputs, results and original failures. All owned jobs drained, todo unchanged;
-ROOT portable/LLVM/shared artifact adoption remains pending after publication.D2 trace verification publication: scopedb344e4e4 merged complete publicb8d65c37
+ROOT portable/LLVM/shared artifact adoption remains pending after publication.
+
+D2 trace verification publication: scopedb344e4e4 merged complete publicb8d65c37
 after prescribed ff-only pull detected divergence, preserving both journals.
 Driver/strict/coordinator/boundary/work/browser and every saved JSON hash match.
 Incoming semantic producers/manifests/Tower fixtures are outside this no-Wasm
