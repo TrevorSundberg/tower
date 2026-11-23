@@ -88758,6 +88758,65 @@ whitespace. One metadata-read helper used a .NET API unavailable in Windows
 PowerShell; corrected to supported ProcessStartInfo.Arguments without executing
 runtime code. No source/test/WIP/todo edit or sanitizer retry. Named stash retained.
 
+### A1 IDE resource package fixture ownership (2026-11-23)
+
+Source9d9329db3606cbe74c544271ad4b9bb1912a0eec, same A1 session, Codex PID36448,
+KinmenA Docker CPU12-23/24GiB. Jobs were drained; main was clean/current. This
+bounded follow-up changes tests/ide.tower and tests/ide_package_checks.tower only.
+No host/compiler package policy or transactional publication logic changed.
+
+Code73 was a stale fixture precondition. ide_test_execution leaves its successful
+snapshot; ide_package_reset clears the static error, whereas tw_exec_bytecode_release
+explicitly retires the snapshot. A Tower diagnostic at the original failing
+condition recorded width4, prepare result0, bytes1107/1107, data3194384/3194384 and
+handles1/1 before/after denial. The producer preserved its previous output exactly;
+the fixture incorrectly required that existing pointer to be null. Original and
+diagnostic reactors/logs remain in a1_package_original* and a1_package_trace*.
+Trace reactorf813a8643d3b5d1599b5e2cb9703e287a1b68e3a70333beeefdc2278dd5da539
+reproduces Node exit1/code73. All five existing package tests passed on it, including
+invalid profile/input preservation. No expectation was suppressed or changed to
+accept lost package data.
+
+The no-package case now releases only the preceding fixture-owned snapshot before
+its allocation baseline, asserts null/zero state, retains the original denial
+assertions, checks handle stability and verifies fresh package recovery/output42
+followed by explicit snapshot/handle retirement. Failure diagnostics report exact
+before/after snapshot and handle state. The existing package fixture now also
+injects Capacity followed by Memory into a producer with a valid prior snapshot.
+Repeated denied calls preserve the first cause/offset, exact independently copied
+packet bytes, pointer, size, handles, live nodes and allocation count. Ordinary
+Foundation reconstruction supplies a successful fresh retry with identical bytes
+and behavior. Both target widths, six repetitions, retain stable allocation/node
+counts, no extra handles, and zero final package data/length/capacity/active grant.
+These are fixed-receipt consumer tests, not allocation-fault injection or a claim
+that the persistent host's entire allocation count becomes zero.
+
+Validation uses the existing public-bootstrap dependency target tower-browser,
+TOWER_IDE_TESTS=ON and TOWER_IDE_PACKAGE_TESTS=ON, compiler --jobs1; only the IDE
+object and reactor link rebuilt. Unchanged Node test-ide.mjs now passes the entire
+IDE gate (exit0, wall12.42s/CPU11.05s/peak225940KiB). Existing bytecode.test.mjs
+passes5/5, zero skips (wall4.39s/CPU2.83s/peak207476KiB), including the enabled Tower
+package export, both canonical target round trips, untrusted input and custom
+grammar cases. Previous native alias/hover evidence is reused because those
+providers and inputs did not change. One diagnostic-only compile first failed on
+missing puts declaration; its log is retained. The first diagnostic did not flush
+before Node threw; explicit test-only fflush exposed the receipt without changing
+the failing assertion.
+
+Matched successful/failing package selector 'round trip|untrusted packages' runs
+three unchanged program checks before/after, warm cache/fresh
+Node22.23.5 process, n1 each: wall3.69/3.85s, CPU2.02/2.17s, peak209428/208956KiB,
+all three passed. These include reactor startup/source transport and do not show
+a runtime speedup or establish a performance regression: production code is
+unchanged, the reactor contains different test exports, and no repeated statistical
+or multiworker throughput study was run. No new native/sanitizer/generation/release
+pass is claimed. Full deployment/generation ownership remains ROOT's.
+
+Final input listf8adcaa8adaa314e94ba44a90a03d2fa1617191b257b70b0128efeaca94939bc;
+reactor0be1798cc07be921fb0b6da212064e4f5336fcfef1e3234915b517e7eb006130.
+Exact commands, outputs, exit codes, timings and prior failures are retained at
+C:\Sandbox\build\codex_ecs_20261122\A1\cache\a1_package_*.
+All jobs drained before commit/reconciliation; normal main push follows.
 L2 merged adoption for the declaration-call correction: full-history merge
 5b023f63 retains22167104 and published9d9329db, including A1's64450fc1 inspection
 preparation and52895b4f LR worker policy. The five audited producer/caller files
@@ -88790,6 +88849,20 @@ unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
 two minimal cases on its next affected reactor. Worktree/todo/history preserved,
 all owned jobs drained; normal main push follows, no runtime deployment.
 
+Merged package acceptance: origin c299b862 was merged completely as
+d7d18868f13d95acaa05a5b1415e48fe06c11247, preserving independent fixtures and the
+Foundation storage transport repair. The dependency build reports no work; reactor
+hash remains0be1798cc07be921fb0b6da212064e4f5336fcfef1e3234915b517e7eb006130.
+Full IDE passes again (11.75s wall/10.38s CPU/225184KiB); bytecode passes5/5 with
+zero skips (4.04s/2.60s/208844KiB). Merged source/resource/transport manifest is
+52f7fe0e4b4eab4e3c0d1966ccbd335e14c40fd06caa0435bf29120ca3e61983. Logs are
+ a1_package_merged_*. The earlier matched selector holds its selected program
+inputs constant; the mounted catalogue includes changed, unused test text and the
+reactor's fixture exports differ. It is not an identical-whole-artifact throughput
+comparison. No production performance conclusion is drawn from these n1 samples.
+All owned jobs drained; todo hash remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Normal source push follows; final generation/hosted release remains ROOT-owned.
 
 ### ROOT two edited browser generations passed at 9d9329db (2026-11-23)
 

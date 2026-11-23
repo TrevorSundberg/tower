@@ -6,12 +6,19 @@ import .host.ide_parser;
 import .host.ide_execution;
 import .host.ide_artifacts;
 import .compiler.format_types;
+import .compiler.semantic_program_types;
+import .library.work_budget_types;
+
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 enum PackageCheck: u32 {
     Passed = 0, Prepare = 1, Load = 2, Foundation = 3, Execution = 4,
-    Profile = 5, InvalidProgram = 6, Lifetime = 7, PackageBytes = 8, Input = 9
+    Profile = 5, InvalidProgram = 6, Lifetime = 7, PackageBytes = 8, Input = 9,
+    Resource, Receipt, Recovery
 }
 var BaselinePackageProfile: u32 = 0;
+var PackageExecutionHandleKind: u32 = 1;
 
 fn package_check_equal(left: u8*, right: u8*): bool {
     for (var i: usize = 0; ; i++) {
@@ -66,8 +73,43 @@ fn package_check_width(width: u32): PackageCheck {
     if tw_exec_prepare_foundation_package(canonical_source.text.data, canonical_source.text.length, invalid_width, BaselinePackageProfile) != 0 || tw_exec_bytecode_size() != size { return PackageCheck.Input; }
     saved[0] = 0;
     if tw_exec_prepare_foundation_package(saved, 1, width, BaselinePackageProfile) != 0 || tw_exec_bytecode_size() != size { return PackageCheck.Input; }
+    // The copied packet is an independent expected snapshot, already checked
+    // against ordinary Foundation reconstruction. Typed failure must preserve
+    // it too, including repeated attempts after the diagnostic text is cleared.
+    var state = ide_state();
+    var session = ide_execution(prepared);
+    var offset = canonical_source.text.length - 1;
+    sem_resource_record(&session.program, WorkBudgetError.Capacity, offset);
+    sem_resource_record(&session.program, WorkBudgetError.Memory, offset + 1);
+    var handles = host_handles_count(&state.handles, PackageExecutionHandleKind);
+    var allocations = tw_live_allocations();
+    var nodes = tw_live_nodes();
+    var data = tw_exec_bytecode_data();
+    var attempts: usize = 2;
+    for(var attempt: usize = 0; attempt < attempts; attempt++) {
+        session.program.error.length = 0;
+        session.error.length = 0;
+        if tw_exec_prepare_package(prepared, BaselinePackageProfile) != 0
+            || tw_exec_bytecode_size() != size || tw_exec_bytecode_data() != data
+            || host_handles_count(&state.handles, PackageExecutionHandleKind) != handles
+            || tw_live_allocations() != allocations || tw_live_nodes() != nodes { return PackageCheck.Resource; }
+        if session.program.resource.error != WorkBudgetError.Capacity || session.program.resource.offset != offset
+            || !package_check_equal(tw_last_error(), sem_resource_message(WorkBudgetError.Capacity)) { return PackageCheck.Receipt; }
+        for(var i: usize = 0; i < size; i++) {
+            if packet[i] != tw_exec_bytecode_data()[i] { return PackageCheck.PackageBytes; }
+        }
+    }
+    var retry = tw_exec_prepare_foundation_package(canonical_source.text.data, canonical_source.text.length, width, BaselinePackageProfile);
+    if retry == 0 { return PackageCheck.Recovery; }
+    var recovered = package_check_equal(execution, tw_exec_step(retry, budget)) && tw_exec_bytecode_size() == size;
+    tw_exec_destroy(retry);
+    if !recovered || host_handles_count(&state.handles, PackageExecutionHandleKind) != handles { return PackageCheck.Recovery; }
+    for(var i: usize = 0; i < size; i++) {
+        if packet[i] != tw_exec_bytecode_data()[i] { return PackageCheck.PackageBytes; }
+    }
     tw_exec_bytecode_release();
-    if tw_exec_bytecode_size() != 0 { return PackageCheck.Lifetime; }
+    if tw_exec_bytecode_size() != 0 || tw_exec_bytecode_data() != null
+        || state.bytecode.capacity != 0 || state.bytecode.reservation.active { return PackageCheck.Lifetime; }
     return PackageCheck.Passed;
 }
 
@@ -77,6 +119,7 @@ export fn ide_package_tests(): u32 {
     var wide: u32 = 8;
     var nodes: usize = 0;
     var allocations: usize = 0;
+    var handles = host_handles_count(&ide_state().handles, PackageExecutionHandleKind);
     for (var repeat: usize = 0; repeat < repeats; repeat++) {
         for (var width = narrow; width <= wide; width *= 2) {
             var result = package_check_width(width);
@@ -88,6 +131,8 @@ export fn ide_package_tests(): u32 {
         tw_exec_destroy(handle);
         rejected &&= tw_exec_prepare_foundation_package(invalid, ide_length(invalid), narrow, BaselinePackageProfile) == 0;
         if !rejected { return convert(u32, PackageCheck.InvalidProgram); }
+        if host_handles_count(&ide_state().handles, PackageExecutionHandleKind) != handles
+            || tw_exec_bytecode_size() != 0 || tw_exec_bytecode_data() != null { return convert(u32, PackageCheck.Lifetime); }
         var now = tw_live_nodes();
         var memory = tw_live_allocations();
         if repeat > 1 && (now != nodes || memory != allocations) { return convert(u32, PackageCheck.Lifetime); }
