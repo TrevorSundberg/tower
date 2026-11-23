@@ -200,3 +200,20 @@ zero owners. These controls use `/work/scaffolding`; its library-root snapshot
 is16 bytes shorter than the original frozen root, matching their16-byte lower
 retention. They are not additions to the matched performance pairs. Original
 input/binary identities stay unchanged; merged manifests/logs live under `merged`.
+
+The first push then raced B2's published Entity storage change. Complete history
+through `4a8694da` is preserved at `ba8816e4c0d632d19f637f71237a180c90c1fdfd`.
+That joined composition **adopts** [B2's descriptor-owned first component index](entity_inline_component_70e77b60.md);
+it is absent from both sides of the gate-only comparison above. Its Entity ABI
+change required11 dependency actions,34.92s wall/59.48s CPU/1073532KiB.
+
+Joined profiler SHA256
+`caf213eb8a1236f0656a4ac8994e1a428510e3922eb3c706c17b51403fa30b0e`,
+LR runner `eb3b8514e5994644468be4c39437077503bffd47aea0f149cf1fab0a4e88fbde`.
+LR passes1.74s/2.26s CPU/117356KiB, full units10.78s/16.78s/880448KiB, and all
+nine exact native symbol closures pass again. Small1 and multi4 controls retain
+full canonical/source equality, known42/42 and zero owners:0.3793s/0.3439CPU/
+165268KiB and2.4119s/8.2157CPU/1015152KiB. Retention is18,321,455/579,913,459
+bytes and17,118/498,251 live receipts before final destruction. These are single
+joined acceptance observations, not another matched performance claim. Original
+before/candidate binaries remain unchanged; separate evidence is under `joined`.

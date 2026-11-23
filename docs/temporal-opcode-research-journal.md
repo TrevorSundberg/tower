@@ -95128,3 +95128,16 @@ publication follows; ROOT retains later-provider builds/generations/hosted relea
 
 
 L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
+
+B1 gate push raced publishedB2inlineEntity. Complete merge4a8694da at
+ba8816e4c0d632d19f637f71237a180c90c1fdfd adopts its newdescriptorABI, without
+editing B2methods. Gate-only16pairedclaims still exclude Entitydelta onbothsides.
+11affecteddependencyactions34.92wall/59.48CPU/1073532KiB. Joinedprofiler
+caf213eb8a1236f0656a4ac8994e1a428510e3922eb3c706c17b51403fa30b0e,
+LR eb3b8514e5994644468be4c39437077503bffd47aea0f149cf1fab0a4e88fbde.
+JoinedLR1.74/2.26CPU/117356KiB,FULLunits10.78/16.78/880448 and9exactnative
+symbolclosures PASS. Singlejoined small1 .3793/.3439/165268,multi4
+2.4119/8.2157/1015152 exactfullsource/canonical+known42/42+zeroownersPASS;
+retention18321455/579913459bytes with17118/498251livepreclose receipts.
+Joinedcontrols separate from matchedgate-onlyclaim; no residualproduceredit or
+newtuning. Originalsources/binaries preserved, normalpushafterdocrecord follows.
