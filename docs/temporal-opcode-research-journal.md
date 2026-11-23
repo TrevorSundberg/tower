@@ -73832,3 +73832,62 @@ open; no A2 publication lease exists. No todo or another owner's production edit
 ### 2026-11-23T10:45:31.0103565Z ROOT: Integrate checked borrowed scheduling reservations
 
 Reviewed complete A2 ddefda0e, bundlec91fea22. Shared validate_result checks exact owner/revision/slot/generation/lanes/bytes under the existing gate without changing receipts, diagnostics or counters; release reuses the internal entry validation within its locked transaction. No pointer escapes the transaction. Native, malformed/stale/no-allocation cases, real four-worker churn,18 supported sanitizer invocations and actual WASI pass on owner's source. Selected ledger microcosts remain+0.49%/+1.61%; final fixed-path32 compiler outputs/canonical/reparse pass. Borrowers still require an executing parent lane and caller-owned immutable receipt/ledger lifetime through joins and publication: validation neither pins nor admits work. The eight-stage node observer checks stable identities and real intervals; it does not implement charged node pages. Typed staged create/attach/references producers and reference-counter ownership remain open. Root review passes, with combined runtime/release acceptance still pending and todo untouched.
+
+### 2026-11-23 11:07:31 UTC ROOT/B2: typed world-component admission
+
+Source audit for the pending metadata-copy migration found that
+compiler_world_component discards the exact type/component producer result.
+Add compiler_world_component_result(world, owner, kind, error*) using the
+existing typed producers and initialization path; retain the old wrapper.
+Per-call Invalid/Busy/Memory/Capacity/None remains separate from program-owned
+sticky diagnostics. Existing payload lookup still does not mutate structure.
+No shared layout, allocator framework, worker policy or metadata consumer changes.
+
+The existing serial world-constructor fixture now tests invalid owners, pinned
+structural admission, actual next-allocation Memory, a fully occupied physical
+ledger's Capacity, unchanged component count, same-owner retry, existing lookup
+under a pin, and complete zero-owner/byte/lane teardown. The serial transport
+guard precedes all fault instrumentation. Smallest production and fixture units
+compile through the public Linux x64 pin.
+
+Baseline source is complete565cd436. Immutable five-binary/resources package
+root_world_component_before_565 passed coherent build74.942s/146.445CPU/
+798392KiB, query.218s, allocations2.239s and fullunits21.959s. The first OS wrapper
+used bare cmake, but process_profile needs an executable pathname: it failed
+before a build. Preserve before_build_unresolved_command.log; the verified
+/usr/bin/cmake correction changes only transport.
+
+A restored draft retained its original timestamp. Ninja therefore did no work,
+and all five AFTER1 hashes equaled BEFORE. Those successful runtime invocations
+are stale-baseline observations, NOT coverage of the new API. Preserve every
+after_* log/package. After updating only the two file timestamps, AFTER2 rebuilt
+the affected providers in9.876s/13.817CPU/443092KiB, explicitly verified the new
+entity-provider export, and passed query.219s, allocations2.227s including new
+cases, and fullunits21.635s. All five binaries now differ. Freeze manifests pass.
+Build/gate wall times under other-half activity are not performance comparisons.
+
+Dedicated quiet profiles use KinmenB Linux x64 CPU12-23/24GiB, public-pin native
+build, the existing production frontend_units_profile and process_profile,
+one installed runner path/cwd/immutable565 resource tree for BOTH sides. Copies,
+cmp and hashes occur outside timed child execution. Three compilation units,
+0/4096 additional bodies, workers1/4, one excluded warmup and three alternating
+pairs per cell: all32 child statuses, exact canonical output/entity/component/
+retained-byte comparisons and source/binary/resource freezes pass.
+
+| Bodies/workers | Before median wall ns / CPU us / RSS KiB | After median wall ns / CPU us / RSS KiB |
+| --- | --- | --- |
+| 0/1 | 3198846620 / 3195708 / 197772 | 3187970043 / 3182561 / 197692 |
+| 0/4 | 1291787294 / 4041600 / 462008 | 1290193629 / 4031605 / 456564 |
+| 4096/1 | 4518319913 / 4509636 / 679960 | 4453827810 / 4445023 / 679944 |
+| 4096/4 | 2333784324 / 5669598 / 940324 | 2329886853 / 5634674 / 932868 |
+
+Wall changes -0.34/-0.12/-1.43/-0.17%; no regression established at n3 and no
+broad speedup claim. Retained bytes match exactly15161368/15152240/
+289310057/289300929 respectively. Every parallel sample observes outer_peak3
+within a four-lane budget; reserved peak bytes vary slightly with scheduling.
+No excess allocation/retention growth is observed. B1 quiet ownership and actual
+drain/release are recorded in coordination status. Raw logs/packages remain
+build/root_world_component and /cache/root_world_component_{before,after2}_565.
+Current supported instrumentation and final merged/publication acceptance remain
+pending; native/profile success is not race proof. Metadata and provenance
+result APIs still await the complete A2 staged-reference producer.
