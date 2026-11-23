@@ -19,25 +19,26 @@ struct LRStateTask {
     results: LRItems**;
     begin: usize;
     count: usize;
-    success: bool;
+    resource_error: WorkBudgetError;
 }
 
 var LRStateGrain: usize = 128;
 var LRStateFanout: usize = 4;
 var LRStateWorkPerJob: usize = 65536;
 var LRStateRefineMinimumJobs: usize = 4;
+var LRStateSerialMinimum: usize = 32;
 
 export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
     var analysis: LRAnalysis;
     copy(&analysis, task.analysis, sizeof(LRAnalysis));
-    task.success = true;
+    task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
         var result = lr_items_create();
         task.results[i] = result;
-        if result == null || !lr_items_goto(&analysis, task.source,
-            &analysis.symbols[task.symbols[i]], result, false) {
-            task.success = false;
+        if result == null { task.resource_error = WorkBudgetError.Memory; return; }
+        if !lr_items_goto(&analysis, task.source, &analysis.symbols[task.symbols[i]], result, false) {
+            task.resource_error = lr_items_error(result);
             return;
         }
     }
@@ -47,21 +48,32 @@ export fn compiler_lr_state_kernel(payload: void*): void {
 // kernels, publishes transition IDs and pops the pending stack, in exactly the
 // serial order. Workers never mutate the state index or share failed flags.
 export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRStates* {
+    var error = WorkBudgetError.None;
+    return lr_states_create_parallel_result(analysis, anchor, &error);
+}
+
+export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*, error: WorkBudgetError*): LRStates* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if analysis == null || analysis.symbol_count > ~convert(usize, 0) - analysis.rule_count { return null; }
     var capacity = compiler_worker_capacity(anchor);
-    if capacity <= 1 || anchor == null || analysis.symbol_count + analysis.rule_count < 32 {
-        return lr_states_create(analysis);
+    if capacity <= 1 || anchor == null || analysis.symbol_count + analysis.rule_count < LRStateSerialMinimum {
+        return lr_states_create_result(analysis, error);
     }
-    var value = lr_states_begin(analysis);
+    var value = lr_states_begin_result(analysis, error);
     if value == null { return null; }
     defer lr_states_destroy(value);
     var owner: void* = null;
     defer { if owner != null { entity_release(owner); } }
     var nodes: void*[WorkPoolMaximumCapacity];
     var jobs: LRStateTask*[WorkPoolMaximumCapacity];
+    if capacity > sizeof(decltype(jobs)) / sizeof(LRStateTask*) { *error = WorkBudgetError.Invalid; return null; }
     var workers: ParserWorkers = default;
     defer parser_workers_close(&workers);
     var graph: WorkGraph;
-    work_init(&graph, 1, 0);
+    if !work_init_budget(&graph, 1, 0, compiler_world_work_budget(compiler_node_world(anchor))) {
+        *error = lr_work_error(&graph); return null;
+    }
     defer work_dispose(&graph);
     var results: vector(LRItems*);
     vector_init(LRItems*, &results);
@@ -73,7 +85,8 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
     while value.pending.length != 0 && ok {
         value.pending.length--;
         var state = value.states.data[value.pending.data[value.pending.length]];
-        if !lr_state_symbols(analysis, state) { return null; }
+        *error = lr_state_symbols_result(analysis, state);
+        if *error != WorkBudgetError.None { return null; }
         // A single outgoing edge exposes no parallel work; tiny closures cost
         // less than the handoff. Keep the same transition algorithm in both
         // paths and start platform threads only for a useful ready batch.
@@ -97,10 +110,14 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         }
         var admission: ParserAdmission = default;
         defer parser_admission_close(&admission, &graph);
-        if count >= 2 && !parser_admission_open(&admission, anchor, count) { return null; }
+        if count >= 2 {
+            *error = parser_admission_open_result(&admission, anchor, count);
+            if *error != WorkBudgetError.None { return null; }
+        }
         if count < 2 || admission.extra == 0 {
             for(var i: usize = 0; i < state.symbols.length && ok; i++) {
-                ok = lr_state_transition(value, state, state.symbols.data[i]);
+                *error = lr_state_transition_result(value, state, state.symbols.data[i]);
+                ok = *error == WorkBudgetError.None;
             }
             continue;
         }
@@ -108,24 +125,27 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         // frontier. Allocate ECS jobs only when the same gate admits workers.
         // Reuse them for later states; all inputs stay frozen until each join.
         if owner == null {
-            owner = entity_create_related(anchor);
+            owner = entity_create_related_result(anchor, error);
             if owner == null { return null; }
-            var kind = lr_work_node(owner);
-            if kind == null || !entity_register(kind, sizeof(LRStateTask), alignof(LRStateTask), 0) { return null; }
+            var kind = lr_work_node_result(owner, error);
+            if kind == null { return null; }
+            if !entity_register(kind, sizeof(LRStateTask), alignof(LRStateTask), 0) { *error = WorkBudgetError.Invalid; return null; }
             for(var i: usize = 0; i < capacity; i++) {
-                nodes[i] = lr_work_node(owner);
+                nodes[i] = lr_work_node_result(owner, error);
                 if nodes[i] == null { return null; }
-                jobs[i] = bits(LRStateTask*, entity_component_data(entity_component_add(nodes[i], kind)));
+                jobs[i] = bits(LRStateTask*, entity_component_data(entity_component_add_result(nodes[i], kind, error)));
                 if jobs[i] == null { return null; }
                 *jobs[i] = default;
                 jobs[i].analysis = analysis;
                 jobs[i].kernel.kind = CompilerKernelKind.LRState;
                 jobs[i].kernel.payload = bits(void*, jobs[i]);
             }
-            if !parser_workers_open(&workers, anchor, capacity) { return null; }
+            *error = parser_workers_open_result(&workers, anchor, capacity);
+            if *error != WorkBudgetError.None { return null; }
         }
         var pool = workers.pool;
-        if !vector_reserve(LRItems*, &results, state.symbols.length) { return null; }
+        *error = lr_reserve_result(&results, state.symbols.length);
+        if *error != WorkBudgetError.None { return null; }
         results.length = state.symbols.length;
         fill(results.data, 0, results.length * sizeof(LRItems*));
         if count > pool.count { count = pool.count; }
@@ -148,14 +168,18 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
             ok &&= work_demand(&graph, id);
             ok &&= work_take(&graph, &job.ticket);
         }
-        if !ok { break; }
-        var view = entity_view_open(owner);
+        if !ok { *error = lr_work_error(&graph); break; }
+        var view = entity_view_open_result(owner, error);
         if view == null { return null; }
-        ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
+        *error = compiler_kernel_dispatch_admitted_result(pool, &jobs[0], count, admission.extra);
         entity_view_close(view);
-        if !ok { break; }
+        if *error != WorkBudgetError.None { return null; }
         for(var i: usize = 0; i < count; i++) {
-            if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success { ok = false; }
+            if !work_finish(&graph, &jobs[i].ticket, jobs[i].resource_error == WorkBudgetError.None) { ok = false; }
+        }
+        if !ok { *error = lr_work_error(&graph); return null; }
+        for(var i: usize = 0; i < count; i++) {
+            if jobs[i].resource_error != WorkBudgetError.None { *error = jobs[i].resource_error; return null; }
         }
         for(var i: usize = 0; i < results.length; i++) {
             var items = results.data[i];
@@ -163,14 +187,14 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
             if !ok { lr_items_destroy(items); continue; }
             var edge: LRTransition;
             edge.symbol = state.symbols.data[i];
-            edge.state = lr_states_intern(value, items, edge.symbol);
+            edge.state = lr_states_intern_result(value, items, edge.symbol, error);
             ok = edge.state != lr_none();
-            ok &&= lr_append(LRTransition, &state.edges, &edge);
+            if ok { *error = lr_push_result(&state.edges, edge); ok = *error == WorkBudgetError.None; }
         }
         results.length = 0;
         // No consumer crosses this joined wave. Retain capacity while rejecting
         // every prior ticket, including when a component slot is reused.
-        if !work_reset(&graph, graph.revision + 1, 0) { ok = false; }
+        if ok && !work_reset(&graph, graph.revision + 1, 0) { *error = lr_work_error(&graph); ok = false; }
     }
     if !ok { return null; }
     var result = value;
