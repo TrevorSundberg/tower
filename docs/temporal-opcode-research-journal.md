@@ -83395,3 +83395,16 @@ threads at workers4 (outer_peak4); this is overlap evidence, not a new scaling
 claim. Logs A1/cache/a1_inferred_retry1_*. Session28371 reaped0; no active jobs.
 Unchanged production profiling/control/canonical receipts reused. Normal push
 retry follows; no release-gate attribution to these test-only merges.
+
+Normal push race1 brought A1 inferred-stage readiness7abe4e74; complete history
+merged cleanly as bba8975d, preserving its semantic_evaluation/semantic_phase_work
+ownership and both journals. Because those inputs changed, focused retry7217
+rebuilt six dependency actions and passed the existing known suite (including
+its shared aggregate captures), query-smoke and the updated20-case explicit/
+inferred staging frontier. All stderr empty, process0/source0, jobs drained.
+Wall/CPU seconds/peakRSS KiB: build32.87/33.70/779104;
+known59.78/67.27/326640; query.20/.23/75392; frontier.02/.02/52884.
+No second full matrix or performance comparison was run, and no A1 scheduling
+hunk was changed by L2. Full checkpoint acceptance remains b959ad59; these are
+separate merged behavior receipts under L2/type_checkpoint_retry1* and logs.
+Normal push retry follows with all committed histories retained.
