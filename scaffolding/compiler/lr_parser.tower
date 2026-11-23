@@ -3,22 +3,34 @@ import lexer_table;
 import lr_analysis;
 import lr_runtime;
 import lr_states;
-import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 import lr_types;
+
+// Query work limits are independent of the runtime world's physical byte ledger.
+var LRProbeStepLimit: usize = 128;
+var LRCompletionQuerySteps: usize = 8192;
+var LRCompletionSuffixSteps: usize = 65536;
+var LRCompletionMaximumPaths: usize = 512;
 
 // LR and proven finite-sequence control over integer symbols. Frames borrow
 // forest handles; the shared entity forest retains ownership of syntax nodes.
 // A pull protocol keeps stream callbacks outside the deterministic control loop.
 struct LRParser {
+    storage: WorkBuffer;
+    storage_error: WorkBudgetError;
     runtime: LRRuntime*;
-    stack: vector(LRFrame);
+    stack: work_vector(LRFrame);
     work: LRWork;
     prefix: bool;
     shifted: bool;
     finishing: bool;
     consumed: usize;
     sequence: bool;
-    evidence: vector(u8);
+    evidence: work_vector(u8);
     sequence_first: usize;
     sequence_last: usize;
     sequence_start: usize;
@@ -29,19 +41,23 @@ export fn lr_parser_destroy(value: LRParser*): void {
     if value == null {
         return;
     }
-    vector_dispose(&value.stack);
-    vector_dispose(&value.evidence);
-    free(value);
+    work_vector_dispose(&value.stack);
+    work_vector_dispose(&value.evidence);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool): LRParser* {
-    var value = alloc(LRParser, 1);
-    if value == null {
-        return null;
-    }
-    *value = default;
-    value.runtime = runtime;
-    value.prefix = prefix;
+    var error = WorkBudgetError.None;
+    return lr_parser_create_result(runtime, prefix, specialize, &error);
+}
+
+export fn lr_parser_create_result(runtime: LRRuntime*, prefix: bool, specialize: bool, error: WorkBudgetError*): LRParser* {
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, runtime.budget, sizeof(LRParser), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var value = bits(LRParser*, storage.data);
+    *value = {storage: storage, runtime: runtime, prefix: prefix, ..default};
     if specialize {
         value.sequence = runtime.sequence != null;
     }
@@ -50,7 +66,8 @@ export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool):
     var frame: LRFrame = default;
     frame.first = lr_none();
     frame.last = lr_none();
-    if lr_append(LRFrame, &value.stack, &frame) {
+    *error = work_vector_push_result(&value.stack, runtime.budget, frame);
+    if *error == WorkBudgetError.None {
         return value;
     }
     lr_parser_destroy(value);
@@ -218,8 +235,8 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     if step.kind == 6 {
         var evidence = step.end != step.start;
         var byte = convert(u8, evidence);
-        var ok = vector_push(&value.evidence, byte);
-        if !ok {
+        value.storage_error = work_vector_push_result(&value.evidence, value.runtime.budget, byte);
+        if value.storage_error != WorkBudgetError.None {
             return false;
         }
         if value.evidence.length == 1 {
@@ -237,8 +254,9 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     }
     var length = value.stack.length -step.pop;
     var count = length + 1;
-    var ok = vector_reserve(&value.stack, count);
-    if !ok {
+    value.storage_error = count == 0 ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(&value.stack, value.runtime.budget, count);
+    if value.storage_error != WorkBudgetError.None {
         return false;
     }
     var frame = &value.stack.data[length];
@@ -307,32 +325,56 @@ export fn lr_parser_work(value: LRParser*, result: LRWork*): void {
     copy(result, &value.work, sizeof(LRWork));
 }
 
-// Error-path probes share one explicit work budget. They never execute semantic
-// actions, consume a source stream, or mutate the real recognizer's stack.
+// Error-path probes share an explicit operation quota and borrow their runtime's
+// physical byte budget. They never execute semantic actions, consume a source
+// stream, or mutate the real recognizer's stack. The runtime outlives its readers.
+struct LRProbeFrames {
+    storage: WorkBuffer;
+    data: LRProbeFrame*;
+    length: usize;
+}
+
 struct LRProbe {
+    storage: WorkBuffer;
     runtime: LRRuntime*;
     budget: LRProbeBudget*;
-    frames: vector(LRProbeFrame);
+    frames: LRProbeFrames;
+}
+
+fn lr_probe_reserve(value: LRProbe*, needed: usize): bool {
+    var frames = &value.frames;
+    if work_buffer_grow_elements(&frames.storage, value.runtime.budget, frames.length,
+        frames.storage.capacity / sizeof(LRProbeFrame), needed, sizeof(LRProbeFrame),
+        alignof(LRProbeFrame)) != WorkBudgetError.None { return false; }
+    frames.data = bits(LRProbeFrame*, frames.storage.data);
+    return true;
+}
+
+fn lr_probe_push(value: LRProbe*, frame: LRProbeFrame): bool {
+    var needed = value.frames.length + 1;
+    if needed == 0 || !lr_probe_reserve(value, needed) { return false; }
+    value.frames.data[value.frames.length++] = frame;
+    return true;
 }
 
 export fn lr_probe_destroy(value: LRProbe*): void {
     if value == null {
         return;
     }
-    vector_dispose(&value.frames);
-    free(value);
+    work_buffer_dispose(&value.frames.storage);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize): LRProbe* {
-    var value = alloc(LRProbe, 1);
-    if value == null {
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, runtime.budget, sizeof(LRProbe), 0) != WorkBudgetError.None {
         budget.complete = false;
         return null;
     }
-    *value = default;
-    value.runtime = runtime;
-    value.budget = budget;
-    if vector_reserve(&value.frames, count) {
+    var value = bits(LRProbe*, storage.data);
+    *value = {storage: storage, runtime: runtime, budget: budget, ..default};
+    if lr_probe_reserve(value, count) {
         value.frames.length = count;
         return value;
     }
@@ -394,7 +436,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
     *before = lr_none();
     var steps: usize = 0;
     loop {
-        var exhausted = steps == 128;
+        var exhausted = steps == LRProbeStepLimit;
         if exhausted {
             break;
         }
@@ -414,7 +456,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
         frame.consumed = false;
         if action.state != lr_none() {
             *before = state;
-            var ok = lr_append(LRProbeFrame, &value.frames, &frame);
+            var ok = lr_probe_push(value, frame);
             if ok {
                 return 1;
             }
@@ -441,7 +483,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
         if invalid {
             return 0;
         }
-        var ok = lr_append(LRProbeFrame, &value.frames, &frame);
+        var ok = lr_probe_push(value, frame);
         if !ok {
             break;
         }
@@ -454,6 +496,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
 // Editor lookahead snapshots are derived indexes over the live LR stack. They
 // never run semantic actions or alter the recognizer. Every query is bounded.
 struct LRCompletion {
+    storage: WorkBuffer;
     budget: LRProbeBudget;
     original: LRProbe*;
 }
@@ -465,16 +508,33 @@ struct LRCompletionPath {
     depth: usize;
 }
 
+// The bounded worklist uses the shared buffer growth operation directly. Its
+// typed view adds no second owner or generic specialization to the parser unit.
+struct LRCompletionPaths {
+    storage: WorkBuffer;
+    data: LRCompletionPath*;
+    length: usize;
+}
+
+fn lr_completion_path_add(paths: LRCompletionPaths*, budget: WorkBudget*, value: LRCompletionPath): bool {
+    var needed = paths.length + 1;
+    if needed == 0 || work_buffer_grow_elements(&paths.storage, budget, paths.length,
+        paths.storage.capacity / sizeof(LRCompletionPath), needed, sizeof(LRCompletionPath),
+        alignof(LRCompletionPath)) != WorkBudgetError.None { return false; }
+    paths.data = bits(LRCompletionPath*, paths.storage.data);
+    paths.data[paths.length++] = value;
+    return true;
+}
+
 export fn lr_completion_create(parser: LRParser*): LRCompletion* {
-    var c = alloc(LRCompletion, 1);
-    if c == null {
-        return null;
-    }
-    *c = default;
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, parser.runtime.budget, sizeof(LRCompletion), 0) != WorkBudgetError.None { return null; }
+    var c = bits(LRCompletion*, storage.data);
+    *c = {storage: storage, ..default};
     c.budget.complete = true;
     c.original = lr_probe_create(parser, &c.budget);
     if c.original == null {
-        free(c);
+        lr_completion_destroy(c);
         return null;
     }
     return c;
@@ -485,7 +545,8 @@ export fn lr_completion_destroy(c: LRCompletion*): void {
         return;
     }
     lr_probe_destroy(c.original);
-    free(c);
+    var storage = c.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn lr_completion_runtime(c: LRCompletion*): LRRuntime* {
@@ -504,7 +565,7 @@ export fn lr_completion_accepts(c: LRCompletion*, id: u32): bool {
     if c.original == null {
         return false;
     }
-    c.budget.remaining = 8192;
+    c.budget.remaining = LRCompletionQuerySteps;
     c.budget.complete = true;
     var probe = lr_probe_clone(c.original);
     if probe == null {
@@ -524,7 +585,7 @@ export fn lr_completion_follows(c: LRCompletion*, first: u32, second: u32): bool
     if c.original == null {
         return false;
     }
-    c.budget.remaining = 8192;
+    c.budget.remaining = LRCompletionQuerySteps;
     c.budget.complete = true;
     var probe = lr_probe_clone(c.original);
     if probe == null {
@@ -555,15 +616,13 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
         if c.budget.remaining == 0 {
             break;
         }
-        var eof: u32 = 0;
-        eof = eof - 2;
         var before: usize;
         var trial = lr_probe_clone(current);
         missing = trial == null;
         if missing {
             break;
         }
-        var status = lr_probe_step(trial, eof, &before);
+        var status = lr_probe_step(trial, LRTokenEnd, &before);
         lr_probe_destroy(trial);
         if status == 2 {
             answer = length;
@@ -608,23 +667,24 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     if c.original == null {
         return lr_none();
     }
-    c.budget.remaining = 65536;
+    c.budget.remaining = LRCompletionSuffixSteps;
     c.budget.complete = true;
     var terminated = lr_completion_terminators(c, ids, count, result, capacity);
     var complete = terminated != lr_none();
     if complete {
         return terminated;
     }
-    var paths: vector(LRCompletionPath);
-    vector_init(&paths);
+    var paths: LRCompletionPaths = default;
+    defer work_buffer_dispose(&paths.storage);
     var first: LRCompletionPath = default;
     first.probe = lr_probe_clone(c.original);
     if first.probe == null {
         return lr_none();
     }
-    var added = lr_append(LRCompletionPath, &paths, &first);
+    var added = lr_completion_path_add(&paths, c.original.runtime.budget, first);
     var failed = !added;
     if failed {
+        c.budget.complete = false;
         lr_probe_destroy(first.probe);
         return lr_none();
     }
@@ -642,9 +702,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
             break;
         }
         var before: usize;
-        var eof: u32 = 0;
-        eof = eof - 2;
-        var status = lr_probe_step(probe, eof, &before);
+        var status = lr_probe_step(probe, LRTokenEnd, &before);
         lr_probe_destroy(probe);
         if status == 2 {
             length = depth;
@@ -663,7 +721,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         if depth < capacity {
             var i: usize = 0;
             for(; i != count; i++) {
-                if paths.length >= 512 {
+                if paths.length >= LRCompletionMaximumPaths {
                     break;
                 }
                 probe = lr_probe_clone(original);
@@ -673,9 +731,10 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 status = lr_probe_step(probe, ids[i], &before);
                 if status == 1 {
                     var next: LRCompletionPath = { probe: probe, parent: at, choice: i, depth: depth + 1 };
-                    added = lr_append(LRCompletionPath, &paths, &next);
+                    added = lr_completion_path_add(&paths, c.original.runtime.budget, next);
                     failed = !added;
                     if failed {
+                        c.budget.complete = false;
                         lr_probe_destroy(probe);
                         break;
                     }
@@ -689,6 +748,5 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     for(; at != paths.length; at++) {
         lr_probe_destroy(paths.data[at].probe);
     }
-    vector_dispose(&paths);
     return length;
 }

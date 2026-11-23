@@ -8,6 +8,7 @@ import lr_parser;
 import lr_runtime;
 import lr_states;
 import .library.vector;
+import .library.work_budget_types;
 import lr_types;
 import parser_types;
 import lr_grammar;
@@ -43,6 +44,7 @@ struct ParserRequestLookahead {
 // Request-owned mutable state. Runtime/diagnostic context/stream are borrowed;
 // LR control, completion, forest and unread node references are owned here.
 struct ParserRequest {
+    resource_error: WorkBudgetError;
     capture_completion: bool;
     completion: LRCompletion*;
     control: LRParser*;
@@ -84,6 +86,13 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
 // Low-level LR request constructor. A null table supports clients driving the
 // existing step/tree APIs themselves; full recognizers use the constructor below.
 export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: ParserStream*, prefix: bool, specialize: bool): ParserRequest* {
+    var error = WorkBudgetError.None;
+    return parser_request_create_result(runtime, context, stream, prefix, specialize, &error);
+}
+
+fn parser_request_create_result(runtime: LRRuntime*, context: void*, stream: ParserStream*, prefix: bool,
+    specialize: bool, error: WorkBudgetError*): ParserRequest* {
+    *error = WorkBudgetError.Invalid;
     var missing = runtime == null;
     if missing {
         return null;
@@ -93,6 +102,7 @@ export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: Par
         return null;
     }
     var request = bits(ParserRequest*, compiler_buffer_allocate(sizeof(ParserRequest)));
+    *error = WorkBudgetError.Memory;
     missing = request == null;
     if missing {
         return null;
@@ -104,10 +114,12 @@ export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: Par
     request.read_id = ParserStreamEnd;
     request.prefix = prefix;
     request.forest = parse_forest_create();
-    request.control = lr_parser_create(runtime, prefix, specialize);
-    missing = request.forest == null;
-    missing ||= request.control == null;
-    if missing {
+    if request.forest == null {
+        parser_recognizer_destroy(request);
+        return null;
+    }
+    request.control = lr_parser_create_result(runtime, prefix, specialize, error);
+    if request.control == null {
         parser_recognizer_destroy(request);
         return null;
     }
@@ -248,6 +260,13 @@ export fn parser_table_completion(table: ParserHostTable*): LRCompletion* {
 }
 
 fn parser_recognizer_create_mode(table: ParserHostTable*, stream: ParserStream*, prefix: bool): ParserRequest* {
+    var error = WorkBudgetError.None;
+    return parser_recognizer_create_mode_result(table, stream, prefix, &error);
+}
+
+fn parser_recognizer_create_mode_result(table: ParserHostTable*, stream: ParserStream*, prefix: bool,
+    error: WorkBudgetError*): ParserRequest* {
+    *error = WorkBudgetError.Invalid;
     var missing = table == null;
     if missing {
         return null;
@@ -264,7 +283,7 @@ fn parser_recognizer_create_mode(table: ParserHostTable*, stream: ParserStream*,
         }
     }
     var specialize = table.trace == false;
-    var request = parser_request_create(bits(LRRuntime*, table.runtime), bits(void*, table), stream, prefix, specialize);
+    var request = parser_request_create_result(bits(LRRuntime*, table.runtime), bits(void*, table), stream, prefix, specialize, error);
     missing = request == null;
     if !missing {
         request.match_kind = table.match_kind;
@@ -278,6 +297,14 @@ export fn parser_recognizer_create(table: ParserHostTable*, stream: ParserStream
 
 export fn parser_recognizer_create_prefix(table: ParserHostTable*, stream: ParserStream*): ParserRequest* {
     return parser_recognizer_create_mode(table, stream, true);
+}
+
+export fn parser_recognizer_create_prefix_result(table: ParserHostTable*, stream: ParserStream*, error: WorkBudgetError*): ParserRequest* {
+    return parser_recognizer_create_mode_result(table, stream, true, error);
+}
+
+export fn parser_recognizer_resource_error(request: ParserRequest*): WorkBudgetError {
+    return request.resource_error;
 }
 
 fn parser_request_fail(request: ParserRequest*, message: u8*): void {
@@ -359,6 +386,8 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
         }
         var ok = status != 0;
         if !ok {
+            request.resource_error = request.control.storage_error != WorkBudgetError.None
+                ? request.control.storage_error : WorkBudgetError.Memory;
             parser_request_fail(request, "Unable to allocate parser tree");
             return null;
         }
@@ -367,6 +396,8 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
         var result: void* = null;
         var ok = lr_tree_reduce_kind(request.control, request.forest, grammar, request.match_kind, &step, &result);
         if !ok {
+            request.resource_error = request.control.storage_error != WorkBudgetError.None
+                ? request.control.storage_error : WorkBudgetError.Memory;
             parser_request_fail(request, "Unable to allocate parser tree");
             return null;
         }

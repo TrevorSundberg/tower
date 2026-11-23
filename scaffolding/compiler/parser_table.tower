@@ -63,10 +63,17 @@ export fn parser_table_destroy(table: ParserHostTable*): void {
 // Input entities/kinds are borrowed for construction. LRGrammar owns immutable
 // name/capture snapshots; successful build releases its source-node indexes.
 export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
+    var error = WorkBudgetError.None;
+    return parser_table_open_result(root, kinds, userdata, presentation, mode, &error);
+}
+
+export fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation,
+    mode: u32, error: WorkBudgetError*): ParserHostTable* {
     var anchor = root != null ? root : kinds.`match`;
     var budget = compiler_world_work_budget(compiler_node_world(anchor));
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, budget, sizeof(ParserHostTable), 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&storage, budget, sizeof(ParserHostTable), 0);
+    if *error != WorkBudgetError.None { return null; }
     var table = bits(ParserHostTable*, storage.data);
     *table = default;
     table.storage = storage;
@@ -81,7 +88,8 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
         table.error = "Empty grammar";
         return table;
     }
-    table.grammar = lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
+    table.grammar = lr_grammar_create_result(root, kinds.rule, kinds.reference, kinds.string, kinds.range, &table.resource_error);
+    *error = table.resource_error;
     var missing = table.grammar == null;
     if missing {
         table.error = "Unable to allocate grammar indexes";
@@ -106,7 +114,8 @@ export fn parser_table_open_host(root: void*, userdata: void*, presentation: Par
 
 fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*): bool {
     var count = lr_states_count(states);
-    var ok = work_vector_reserve(&table.states, table.budget, count);
+    table.resource_error = work_vector_reserve_result(&table.states, table.budget, count);
+    var ok = table.resource_error == WorkBudgetError.None;
     if !ok {
         return false;
     }
@@ -123,7 +132,8 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var items = lr_states_items(states, index);
         var values = lr_items_data(items);
         var size = lr_items_count(items);
-        ok = work_vector_reserve(&state.contexts, table.budget, size);
+        table.resource_error = work_vector_reserve_result(&state.contexts, table.budget, size);
+        ok = table.resource_error == WorkBudgetError.None;
         if !ok {
             return false;
         }
@@ -175,6 +185,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     }
     parser_table_clear_runtime(table);
     table.error = null;
+    table.resource_error = WorkBudgetError.None;
     if lr_grammar_pending(grammar) != parser_table_none() {
         table.error = "Unresolved grammar rule";
         return false;
@@ -184,6 +195,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     missing = analysis == null;
     if missing {
         table.error = "Unable to allocate LR grammar analysis";
+        table.resource_error = WorkBudgetError.Memory;
         return false;
     }
     var names = lr_grammar_name_count(grammar);
@@ -223,6 +235,10 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);
     if !ok {
+        // Legacy FIRST/state/runtime constructors expose only success/failure.
+        // Preserve a precise buffer error when available; their remaining
+        // construction failures have the existing memory-failure contract.
+        if table.resource_error == WorkBudgetError.None { table.resource_error = WorkBudgetError.Memory; }
         parser_table_clear_runtime(table);
     }
     return ok;

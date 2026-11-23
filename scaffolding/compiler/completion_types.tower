@@ -3,6 +3,7 @@ import semantic_program_types;
 import semantic_context_types;
 import language_grammar_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Shared declaration-only editor query payloads; the service owns all lifetimes.
 struct CompletionSpan {
@@ -14,6 +15,7 @@ struct CompletionSpan {
 struct CompletionQuery {
     world: void*;
     environment: void*;
+    resource_error: WorkBudgetError;
     active: void*;
     program: SemanticProgram;
     context: SemanticContext;
