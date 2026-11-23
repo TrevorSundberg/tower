@@ -82945,3 +82945,92 @@ L1/logs/shared_wasm_merged/browser.json and status0 retain current-source eviden
 No compiler changes by L1, no new performance claim; prior failures remain logged.
 All owned jobs drained. Normal main publication follows; ROOT release/deployment
 limits above remain pending.
+
+### D2 normal-allocator entity accounting and finite-cap regression (2026-11-23)
+
+Frozen published c7ad4f423ad6e183e7207b5f7057694ff60f9095 plus the new fixture and
+narrow TowerWorkTests registration. User explicitly assigns these to D2; A2's
+entity_types/entities/entity_stage producers are unchanged. Audited existing
+entity_page_churn, entity_node_profile, entity_locality and work_buffer measurements
+and actual alloc/free sites first. Reuse actual owner capacities, sizeof,
+compiler_buffer_allocation_size and work_budget_snapshot; no allocator adapter,
+process-global counter, fault injection, second graph or scheduler. D1 generic
+fixture helper remains unchanged. The explicit strict target does not join a
+passing CTest group and has no WILL_FAIL/skip conversion.
+
+New tests/entity_accounting.tower uses one world/store owner,32 ordinary nodes
+and4 private staged nodes. Query sum528, alternate detach/component removal and
+reuse, source survival under pinned staged cancellation,52 finalizers and final
+zero node/component/page/grant ownership pass. A repeat is byte-identical with
+empty stderr. Names, arrays, type and capacity fields determine extents; no
+mirrored hardcoded ABI sizes. Its census checks actual stable owner storage,
+not a second semantic model. The exact compiler-buffer total includes headers;
+raw arrays/descriptors are their libc-requested sizes. Ledger metadata is a
+separate uncharged owner. malloc-private overhead, test stack and libc output
+buffers are excluded. No runtime/compiler production behavior was changed.
+
+| Phase | Compiler buffers / ledger live B | Raw omitted B | World requested retained B | Ledger peak B |
+| --- | ---: | ---: | ---: | ---: |
+| Empty store |2232|0|2232|2232|
+|32 nodes attached, query alive |7047|8766|15813|7047|
+| Alternate detach/component removal |7047|8648|15695|7047|
+| Reused nodes, query alive |7047|8760|15807|7047|
+| Private stage, lease and cancellable reference |11862|10224|22086|11862|
+| All nodes/stages/views released, store alive |2232|0|2232|11862|
+| Store and ledger disposed |0|0|0|historical11862|
+
+Ledger metadata is320B while the budget lives, zero after disposal. At the
+largest sampled point the omitted10224B comprises Entity descriptors6992,
+children512, component/instance indexes1408, archetype table600, view16 and
+stage descriptor/vectors696. The earlier query owns112B; the first child name
+accounts for6B before detach. The one normal and one private component page
+account for9630 physical compiler-buffer bytes; empty-store owner2232 remains.
+Their allocations do not resize in this workload, so the phase maximum captures
+this fixture's compiler-buffer peak. World-retained peak22086 is sampled and
+excludes temporary simultaneous old/new raw reallocations; it is not a complete
+allocator peak or RSS claim. Physical requested plus ledger metadata at that
+sample is22406B. The stage and ledger retain no owner after cleanup.
+
+The independent strict cap case calibrates the charged empty-store allowance,
+then constructs a fresh budget of exactly2232B. work_buffer_resize of one byte
+returns Capacity/null as required. entity_create_result instead returns a live
+184B Entity, None(0), advances identity and leaves ledger.used_bytes2232:
+desired Capacity(1)/no-publication fails. The node/store/ledger still dispose
+completely before exit1. Actual tower-check-entity-accounting-cap target returns1
+through Ninja; preserved cap_target.log/status is a FAILED acceptance gate.
+Profile exit0 is only the functional/census oracle. This necessary descriptor
+case does not prove the eventual child/index/query/stage cap; those producer
+owners and lifetimes are listed precisely in the D2 audit. ROOT can hand the
+measured closure to A2 after its current caller batch. No conflicting fix here.
+
+Environment: Steam Deck14.8GiB RAM, Docker tower_build image
+4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6, CPUs0,2,
+Linux x64-pc-linux-gnu Release, LLVM/Clang19.1.1, public bootstrap9653f8187a10,
+existing native-coherent-f13c8f6 cache, jobs1. Held the single host heavy lock;
+container had only init/sleep before edits and after tests. No parallel runtime
+is requested by this single-owner measurement, so no overlap/scaling claim.
+Warm filesystem/fresh processes, first valid baseline and one final measured
+sample plus one untimed deterministic repeat; no OS-cold claim. /usr/bin/time -v
+reports final profile wall/user/system all0.00s at its centisecond resolution,
+RSS1496KiB; original strict-cap case likewise0.00s,1368KiB and exit1. These are
+below timing resolution, not zero cost or a speedup comparison. Initial valid
+fixture build5.71wall/5.60CPU s/222832KiB. Final output-order correction rebuild
+6.14/6.01/222860. Only this dependency-aware target closure was built, no native
+compiler/backend/browser/sanitizer matrix.
+
+Preserved failures: first compile rejects reserved identifier expected; next
+requires explicit aggregate foreach borrow. Both drain before correction, logs
+build.log/build_corrected.log. First valid runtime passed, but libc puts buffering
+moved headings after Tower numeric output; scoped fflush boundary fixes ordering,
+with unchanged census bytes and cap failure. Sources frozen during every build.
+
+Exact SHA256: fixture11ee2a841f1d37cc49ec06161433b30cd626aa07e750280f22b03521af7a4e45;
+executable57ac124be31be0cd399fd14a06fb4b3973acb80858730d2db576d1a4e907897b;
+entitiesedce2d592862b4896d8a70f687c222f0ccb25ab71a663c2fdcf9242c4c7c7925;
+entity_typesd3401c5ced724a30d92e733015944a017a5d771c71f5b213ee8babcaeafe1dd0;
+entity_stage5579a86b53bf437c8fd4bc79add6dbbafd82362d6811986b25fa58bf87b4304c.
+Further work-buffer/budget/memory/pin hashes, raw build/run statuses and commands
+are preserved in build/d2_ecs/entity_accounting/final_inputs.sha256 and sibling
+logs. The checked unchanged inputs and todo hash remain preserved. Documentation
+changes need no performance rerun. Final source publication identity goes in D2
+status; ROOT retains final assets/instrumentation/deployment ownership.

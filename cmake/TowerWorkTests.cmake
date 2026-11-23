@@ -88,6 +88,12 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endforeach()
     tower_work_fixture(work_buffer_profile ON budget 1)
     tower_work_fixture(work_arena_profile ON arena16 1 large)
+    # Explicitly requested accounting gate: current raw descriptors bypass the
+    # finite ledger. Keep that failure separate from the passing census/profile.
+    tower_work_fixture(entity_accounting ON profile)
+    add_custom_target(tower-check-entity-accounting-cap
+      COMMAND "$<TARGET_FILE:tower-entity-accounting-tests>" cap
+      DEPENDS tower-entity-accounting-tests USES_TERMINAL VERBATIM)
   endif()
   set(target_once_objects)
   tower_target_registry_runtime("${work_triple}")

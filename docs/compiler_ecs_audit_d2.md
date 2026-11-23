@@ -2888,3 +2888,32 @@ that exact local dist. Verify the deployed workflow/ref and every served asset;
 the old manifest check in this audit is not that final gate. Implemented portable
 interpretation, target object emission and shared-Wasm transport do not establish
 published acceptance of this current integrated source.
+
+### Bounded entity accounting fixture, reviewed c7ad4f42 (2026-11-23)
+
+User explicitly assigns D2 the focused fixture/profile and narrow registration;
+A2 retains production entities/stage ownership. This is supplemental test review,
+not a reassignment of D1's full test inventory or a new allocator framework.
+
+| Path | Full review / ownership and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/entity_accounting.tower` (new) | Actual EntityStore and paged payloads remain authoritative. Stack node arrays are borrowed test indexes; no copied AST/scheduler. One normal allocator owner creates32 nodes, checks canonical query sum528, detaches/removes alternating rows, reuses them, and creates4 staged nodes plus an existing-node lease. A cancellable borrowed payload clears before discard finalization while the input view survives. All52 payload finalizers, view/lease/store cleanup and zero ledger grants are checked. Actual capacities/type sizes drive raw ownership census, including combined table row/column storage and borrowed query columns without double count. No threaded/global allocator counter or failure injection. Profile/repeated byte equality pass; finite-cap descriptor gate deliberately fails1 after cleanup, with exact None versus required Capacity. This fixture tests one necessary cap boundary, not complete world-budget coverage. |
+| `cmake/TowerWorkTests.cmake` (narrow registration) | Reuses tower_work_fixture and its normal guest runtime/object rules. Profile executable stays EXCLUDE_FROM_ALL; explicit measure target reports checked census. Separate tower-check-entity-accounting-cap propagates real nonzero exit, no WILL_FAIL or skip. No generic fixture helper/allocator/ABI change. Smallest dependency-aware target compiles and links through the public predecessor; target's baseline failure was actually run. |
+| `scaffolding/tests/README.md` (caller instructions) | Documents exact targets, field order, physical requested bytes versus sampled retained peak/RSS, separate ledger metadata, and baseline nonacceptance. No passing result is assigned to the desired cap. |
+
+Read-only producer closure for A2, at the recorded hashes in the journal:
+
+| Producer | Omitted owner / required lifetime |
+| --- | --- |
+| `library/entities.tower::entity_create_result` | Raw Entity descriptor; own byte receipt until final entity_release, including pinned deferred reclamation. Baseline184bytes/node; stage_create_result has the corresponding private descriptor path. |
+| `entity_attach_result`, `entity_reserve_components` | Child array/name storage lives with parent until resize/detach/destruction; component pointer array belongs to node, instance index to kind. Replacement admission must cover old+new live storage and preserve prior links/indexes on failure. |
+| `entity_table_prepare_result`, `entity_table_reserve` | Table/type IDs and combined row/column block belong to store's derived archetype table until prune. Reserve replacement before freeing old block; no packed-payload claim. |
+| `entity_view_open_result`, `entity_view_tables` | View and cached query/type/match/column blocks belong to input view; query match columns borrow one common allocation. Retire only after consumers drain. |
+| `library/entity_stage.tower::entity_stage_open_result/create_result/lease_result/references_cancellable_result` | Stage descriptor and node/reference/cancellation/lease vectors need stage-owned receipts, transferred/disposed at joined publication/discard; private nodes must not be charged through unsynchronized global counters. Queue callbacks/context survive failure cleanup before the last input pin closes. |
+
+No production file changed. Physical compiler-buffer peak11862B equals charged
+peak; observed live world storage peaks22086B, omitting10224B from that ledger,
+plus320B separate ledger metadata. This measures requested owner storage, not
+allocator usable size/hidden replacement peaks or process-wide retained memory.
+Native profile and exact repeat pass; finite-cap failure stays an open A2 gate.
+Final instrumentation/platform/bootstrap/browser release remains ROOT-owned.
