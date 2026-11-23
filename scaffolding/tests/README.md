@@ -1746,3 +1746,4 @@ compares serial/four-worker execution and canonical Foundation, including recomp
 at32/64-bit widths. Use `imported-alias minimal|containers|controls|scopes 1|4`
 for a small checked process-cost sample; that selector runs only its named case
 at both widths and does not itself compare separate worker processes.
+The bare "imported-alias" selector runs only the complete28-trial alias regression set, for affected merged-source validation without repeating type-smoke's existing lifecycle cases.

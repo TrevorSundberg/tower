@@ -89104,3 +89104,23 @@ remain unchanged, as do both reactors. Reuse exact23/25 evidence; no additional
 aggregate or compiler build. New owner observer/package/lifecycle receipts are
 separate acceptance, not silently covered here. Diff check passes; todo and all
 previous logs preserved. Normal source push follows, ROOT retains deployment.
+
+L2 publication adoption: commit96cd1eda carries the production fix and frozen
+type/query acceptance. Full-history merge8f656429 preserves publishedb3ac7aca,
+including worker-observerf16cde13, D1 fixtures and A1/L1 receipts. No conflict or
+partial ABI copy. semantic_statements and the checked alias fixtures are unchanged.
+The new WorkPool observer fields require the existing dependency target to rebuild
+24 affected objects/links;99.53wall/151.08CPU seconds/1069220KiB, one build owner.
+Added only a bare imported-alias selector to run this28-trial set independently
+of type-smoke, avoiding another lifecycle matrix.
+
+Merged focused imported-alias PASS0:16.72wall/15.25CPU/237688KiB; query-smoke
+PASS0:.40/.39/104292. Both stderr empty, frozen source/status0, every failure/clean
+compile/canonical/execution check retained. Merged native runner SHA256
+1229edf325bc37168c1b4a11fd3401441e3b8b8fe810b9eefa00f916b0e7139a.
+Full type-smoke remains the96cd1eda receipt, not relabeled as a new full matrix of
+observer sources. Before/after cost samples remain on their exact frozen provider
+inputs. Current native closure is complete; browser reactor rebuild/adoption,
+independent pointer-type-value limits and final release remain their existing
+owners' gates. No browser/LLVM/generation/sanitizer or deployment claim. All owned
+processes drained; prior call-discovery correction and all earlier logs preserved.
