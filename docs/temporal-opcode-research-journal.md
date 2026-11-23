@@ -90740,7 +90740,7 @@ Concrete failures, no retry or weaker regex:
    expected0. Existing ordinary `fn alias(T:type):type { return box(T); }`
    participates in outer's `inner:alias(T)` field. Source-supported boundary:
    generic_register_result classifies returned CoreCall as an ordinary function;
-   sem_type_apply/sem_constructor_arguments later requires a type_functions
+   sem_type_call/sem_constructor_arguments later requires a type_functions
    definition and diagnoses null. Exact wrong admission/owner edge is not proved.
    ROOT/L1 wrapper/type-constructor work with L2 constructor query ownership;
    no numeric unary-argument change or replacement representation applied.
@@ -90829,3 +90829,11 @@ node counts after independent loads (24446 narrow,41227 control) before final
 reference destruction; the recorded final counts are shared-world owners, not
 an unsupported zero-handle/LLVM-store census. No compiler build or deployed
 runtime adoption is implied. All jobs drained before normal main publication.
+D2 dependency-language reconciliation: scoped commitf7fa33c3 merged complete
+publishedbda11a9b without conflict after the required ff-only pull diverged.
+Incoming A2 unary-integer source/fixtures and separate LLVM test changes do not
+alter selected language resources, portable host or measured cases; final selected
+hashes still match. They are not baked into the frozen eac reactor. Corrected the
+source citation to sem_type_call; no diagnostic/assertion changes or repeated
+passing executions. Retain45 new passes,1 adopted pass,3 failures and explicit
+unstarted modes; normal source push follows, no deployment claim.
