@@ -91,6 +91,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Explicitly requested accounting gate: current raw descriptors bypass the
     # finite ledger. Keep that failure separate from the passing census/profile.
     tower_work_fixture(entity_accounting ON profile)
+    tower_work_fixture(entity_locality ON layout mixed direct)
     add_custom_target(tower-check-entity-accounting-cap
       COMMAND "$<TARGET_FILE:tower-entity-accounting-tests>" cap
       DEPENDS tower-entity-accounting-tests USES_TERMINAL VERBATIM)

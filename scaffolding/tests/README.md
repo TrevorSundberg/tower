@@ -1361,6 +1361,14 @@ target uses the ordinary semantic provider and covers `healthy`, `take`,
 `suspend`, `observe` and `finish`. These variants do not themselves demonstrate
 overlap; capture's healthy result is a legitimate suspended query.
 
+The executable selectors `startup`, `metadata` and `pinned` reject real pinned
+admission without publishing readiness. `signature` uses the bounded world
+constructor and a valid oversized metadata kind to deny its worker's aggregate
+signature allocation; `signature-healthy` checks the ordinary successful path.
+Both widths and worker budgets1/4 retain the owning offset, join before cleanup,
+and release all world grants. These are normal-allocator capacity checks, not
+thread sanitizer or overlap claims.
+
 ```sh
 cmake --build build/native --parallel 1 --target tower-semantic-capture-continuation-tests \
   tower-semantic-executable-admission-tests
@@ -1426,6 +1434,7 @@ producer closure; a passing profile is not finite-cap acceptance, and fixing
 this one denial does not establish child/index/query/stage accounting. The census
 must remain tied to the actual allocation layout as those owners migrate.
 See the journal's D2 entity accounting receipt for source hashes and byte totals.
+
 The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
 imports the actual frontend unit producer through
 `generation_layout_frontier.tower`, checks all its bodies and interprets the
@@ -1435,3 +1444,54 @@ It guards the transition from early executed type/generic helpers to ordinary
 module body admission: a local construction cursor is not proof that every
 unrelated nominal layout has been published. This focused regression does not
 establish whole-compiler generation identity.
+
+The registered semantic flow/lifecycle frontier fixtures also exercise checked
+kind/component pin denial, world-budgeted scratch and worker-pool denial,
+partial lowering lease admission, exhausted stage anchors/views, and graph
+completion pressure. They require canonical error offsets, joined cleanup,
+no successful ticket prefix, preserved foreign leases, stable terminal retries
+and zero retained budget reservations. These focused cases are not sanitizer
+or integrated bootstrap/browser evidence.
+
+### Bounded entity layout and traversal profile
+
+The same Linux x64 `TOWER_WORK_TESTS` configuration provides an opt-in extension
+of `entity_locality.tower`, using the normal allocator and one serial owner:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-entity-locality-tests
+"$TOWER_NATIVE_BUILD/tower-entity-locality-tests" layout homogeneous direct
+"$TOWER_NATIVE_BUILD/tower-entity-locality-tests" layout homogeneous columns
+"$TOWER_NATIVE_BUILD/tower-entity-locality-tests" layout mixed direct
+"$TOWER_NATIVE_BUILD/tower-entity-locality-tests" layout mixed columns
+```
+
+The last argument selects which path runs first, not a worker count. Both paths
+check the same live primary payloads: direct lookup visits all 2,048 owners;
+planned archetype columns visit matching rows. Mixed mode adds another kind on
+every second owner and a third on every sixteenth. These are dense/sparse
+**membership populations**, all backed by the same stable component pages.
+Each process measures initial population, one-survivor-per-primary-page removal,
+and refill; primary sums are 33,550,336 / 508,096 / 33,550,336. Refill must acquire
+zero new byte grants and preserve surviving payload addresses. Complete world
+and ledger disposal is checked. Views close before every structural edit.
+
+Each labeled record emits its fields in order, one per line. First traversal is
+after creation and planning; it is not an OS/hardware cold-cache experiment.
+Warm traversal reuses the plan for 256 rounds. Reverse order in a fresh process
+to expose order sensitivity. Plan and structural costs are separate; use
+`/usr/bin/time -v` for whole-process wall/CPU/peak RSS. Timing has no pass threshold.
+`tower-measure-entity-locality` runs mixed/direct; no arguments preserve the older
+1,024/65,536-row four-path profile, including its derived packed snapshot.
+
+The new mode has no packed snapshot. It enumerates unique live `component.page`
+pointers because full pages are absent from the free-slot pool list. Occupancy,
+payload bytes, physical page allocation requests, strided slot bytes, raw owner
+storage, query plan storage and live allocation-owner count are reported. Those
+counts are retained owners, not malloc call counts. Ledger metadata and census
+scratch are separate; stack arrays, allocator-private overhead and transient raw
+resize peaks are outside this census. Page payloads have stable addresses and
+stride/back-reference overhead; archetype columns contain component pointers,
+not packed payloads. No hardware counters, parallel mutation, finite whole-world
+cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
+receipt and audit for measured source identity and limits.

@@ -2,10 +2,15 @@ import tower;
 import .host.memory;
 import .library.entities;
 import .library.entity_types;
+import .library.work_buffer;
+import .library.work_budget;
 
 // Linux x64 measurement boundaries; ownership, workload and references are Tower.
 extern fn clock_gettime(clock: i32, result: i64*): i32;
 extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
 
 // Physical bytes requested from the allocator, including the compiler header.
 // This is an ownership metric, not allocator-private usable bytes or process RSS.
@@ -152,5 +157,234 @@ fn locality_case(count: usize): void {
     locality_check(store.storage.first == null && entity_store_dispose(store));
 }
 
-locality_case(1024);
-locality_case(65536);
+// Bounded normal-allocator layout profile. Density describes component presence,
+// not a different storage trait: all three kinds use the same stable page pool.
+var LayoutBudgetBytes: usize = 1048576;
+var LayoutWarmRounds: usize = 256;
+var LayoutDensePeriod: usize = 2;
+var LayoutSparsePeriod: usize = 16;
+fn layout_label(text: u8*): void { locality_check(puts(text) >= 0 && fflush(null) == 0); }
+fn layout_cpu(before: i64*, after: i64*): i64 {
+    return (after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3];
+}
+fn layout_elapsed(label: u8*, start: i64, before: i64*): void {
+    var elapsed = locality_time() - start;
+    var after: i64[18];
+    locality_check(getrusage(0, &after[0]) == 0);
+    layout_label(label); print(elapsed); print(layout_cpu(before, &after[0])); print(after[4]);
+}
+fn layout_fill(component: EntityComponent*, index: usize): void {
+    locality_check(component != null && component.page != null);
+    var value = convert(u64, index);
+    *bits(LocalityValue*, component.data) = init(LocalityValue) {
+        a: value, b: value * 3 + 1, c: value * 5 + 2, d: value * 7 + 3};
+}
+struct LayoutStorage { bytes: usize; allocations: usize; }
+fn layout_node(sample: LayoutStorage*, node: Entity*): void {
+    // This workload has no child names/relationships or private stages.
+    locality_check(node.child_capacity == 0 && node.stage == null);
+    sample.bytes += sizeof(Entity)
+        + (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
+    sample.allocations++;
+    if node.component_capacity != 0 { sample.allocations++; }
+    if node.instance_capacity != 0 { sample.allocations++; }
+}
+fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,
+    owners: Entity**, count: usize, view: EntityView*): usize {
+    // Full pages are detached from pool.first. Census live component.page
+    // pointers instead; the scratch index is derived, private and untimed.
+    var scratch: WorkBuffer = default;
+    locality_check(work_buffer_resize(&scratch, null,
+        store.component_count * sizeof(EntityComponentPage*), 0) == WorkBudgetError.None);
+    defer work_buffer_dispose(&scratch);
+    var pages = bits(EntityComponentPage**, scratch.data);
+    var page_count: usize = 0; var page_bytes: usize = 0;
+    var slots: usize = 0; var live: usize = 0; var payload: usize = 0;
+    var stride_bytes: usize = 0;
+    var raw: LayoutStorage = default;
+    for(var k: usize = 0; k < kind_count; k++) {
+        layout_node(&raw, kinds[k]);
+        payload += kinds[k].instance_count * kinds[k].data_size;
+        for(var i: usize = 0; i < kinds[k].instance_count; i++) {
+            var page = kinds[k].instances[i].page;
+            locality_check(page != null);
+            var found: usize = 0;
+            while found < page_count && pages[found] != page { found++; }
+            if found == page_count {
+                pages[page_count++] = page;
+                page_bytes += locality_page_bytes(page, kinds[k]);
+                slots += page.capacity; live += page.live;
+                stride_bytes += page.capacity * page.stride;
+            }
+        }
+    }
+    locality_check(live == store.component_count);
+    for(var i: usize = 0; i < count; i++) { layout_node(&raw, owners[i]); }
+    var buckets = sizeof(decltype(store.tables)) / sizeof(EntityTable*);
+    for(var i: usize = 0; i < buckets; i++) {
+        var table = store.tables[i];
+        while table != null {
+            raw.bytes += sizeof(EntityTable) + table.arity * sizeof(usize)
+                + table.capacity * (sizeof(Entity*) + table.arity * sizeof(EntityComponent*));
+            raw.allocations++;
+            if table.arity != 0 { raw.allocations++; }
+            if table.capacity != 0 { raw.allocations++; }
+            table = table.next;
+        }
+    }
+    var query = view.queries;
+    var plan_bytes = sizeof(EntityView);
+    var plan_allocations: usize = 1;
+    while query != null {
+        plan_bytes += sizeof(EntityTableQuery) + query.arity * sizeof(usize)
+            + query.count * (sizeof(EntityTableMatch) + query.arity * sizeof(usize));
+        plan_allocations++;
+        if query.arity != 0 { plan_allocations++; }
+        if query.count != 0 { plan_allocations += 2; }
+        query = query.next;
+    }
+    var snapshot: WorkBudgetSnapshot;
+    locality_check(work_budget_snapshot(store.budget, &snapshot));
+    var buffers = compiler_buffer_allocation_size(store.allocation.capacity) + page_bytes;
+    layout_label("storage: pages,slots,live,payload_bytes,page_bytes,strided_slot_bytes,raw_world_bytes,plan_bytes,world_and_plan_bytes,live_allocation_owners,ledger_live,ledger_peak,ledger_metadata,census_scratch_bytes");
+    print(page_count); print(slots); print(live); print(payload); print(page_bytes); print(stride_bytes);
+    print(raw.bytes); print(plan_bytes); print(buffers + raw.bytes + plan_bytes);
+    print(page_count + 1 + raw.allocations + plan_allocations);
+    print(snapshot.used_bytes); print(snapshot.peak_bytes); print(snapshot.retained);
+    print(compiler_buffer_allocation_size(scratch.capacity));
+    return page_bytes;
+}
+fn layout_sum(owners: Entity**, count: usize, kind: Entity*, query: EntityTableQuery*, columns: bool): u64 {
+    var sum: u64 = 0;
+    if columns {
+        for(var range: usize = 0; range < entity_table_query_ranges(query); range++) {
+            var column = entity_table_query_column(query, range, 0);
+            var length = entity_table_query_range_count(query, range);
+            for(var row: usize = 0; row < length; row++) {
+                sum += locality_value(bits(LocalityValue*, column[row].data));
+            }
+        }
+    } else {
+        for(var i: usize = 0; i < count; i++) {
+            var component = entity_component_get(owners[i], kind);
+            if component != null { sum += locality_value(bits(LocalityValue*, component.data)); }
+        }
+    }
+    return sum;
+}
+fn layout_scan(store: EntityStore*, kinds: Entity**, kind_count: usize, owners: Entity**,
+    count: usize, reference: u64, columns_first: bool): usize {
+    var before: i64[18]; var after: i64[18];
+    locality_check(getrusage(0, &before[0]) == 0);
+    var start = locality_time();
+    var view = entity_view_open(kinds[0]);
+    locality_check(view != null);
+    defer entity_view_close(view);
+    var terms: Entity*[1]; terms[0] = kinds[0];
+    var query = entity_view_tables(view, &terms[0], sizeof(decltype(terms)) / sizeof(Entity*));
+    locality_check(query != null && entity_table_query_count(query) == kinds[0].instance_count);
+    var elapsed = locality_time() - start;
+    locality_check(getrusage(0, &after[0]) == 0);
+    layout_label("plan: candidates,selected,ranges,wall_ns,cpu_us,process_peak_rss_kib");
+    print(count); print(query.length); print(query.count); print(elapsed);
+    print(layout_cpu(&before[0], &after[0])); print(after[4]);
+    // First traversal follows creation/planning, not a hardware cache flush.
+    // Counterbalance path order with a fresh process. Warm scans reuse the plan.
+    for(var pass: usize = 0; pass < 2; pass++) {
+        var rounds = pass == 0 ? 1 : LayoutWarmRounds;
+        for(var order: usize = 0; order < 2; order++) {
+            var columns = (order == 0) == columns_first;
+            locality_check(getrusage(0, &before[0]) == 0);
+            start = locality_time();
+            var total: u64 = 0;
+            for(var round: usize = 0; round < rounds; round++) {
+                var sum = layout_sum(owners, count, kinds[0], query, columns);
+                locality_check(sum == reference);
+                total += sum;
+            }
+            elapsed = locality_time() - start;
+            locality_check(getrusage(0, &after[0]) == 0);
+            locality_check(total == reference * convert(u64, rounds));
+            layout_label("scan: columns,pass,rounds,sum_per_round,wall_ns,cpu_us,process_peak_rss_kib");
+            print(columns); print(pass); print(rounds); print(reference); print(elapsed);
+            print(layout_cpu(&before[0], &after[0])); print(after[4]);
+        }
+    }
+    return layout_storage(store, kinds, kind_count, owners, count, view);
+}
+fn layout_case(mixed: bool, columns_first: bool): void {
+    var budget: WorkBudget = default;
+    locality_check(work_budget_init(&budget, 1, LayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    locality_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var kinds: Entity*[3] = default;
+    var kind_count = mixed ? sizeof(decltype(kinds)) / sizeof(Entity*) : 1;
+    var owners: Entity*[2048];
+    var addresses: u8*[sizeof(decltype(owners)) / sizeof(Entity*)];
+    var count = sizeof(decltype(owners)) / sizeof(Entity*);
+    var before: i64[18];
+    locality_check(getrusage(0, &before[0]) == 0);
+    var start = locality_time();
+    for(var k: usize = 0; k < kind_count; k++) {
+        kinds[k] = entity_create(store);
+        locality_check(kinds[k] != null && entity_register(kinds[k], sizeof(LocalityValue), alignof(LocalityValue), 0));
+    }
+    var reference: u64 = 0;
+    for(var i: usize = 0; i < count; i++) {
+        owners[i] = entity_create(store);
+        locality_check(owners[i] != null);
+        var component = entity_component_add(owners[i], kinds[0]);
+        layout_fill(component, i); addresses[i] = component.data;
+        reference += convert(u64, i) * 16 + 6;
+        if mixed && i % LayoutDensePeriod == 0 { layout_fill(entity_component_add(owners[i], kinds[1]), i); }
+        if mixed && i % LayoutSparsePeriod == 0 { layout_fill(entity_component_add(owners[i], kinds[2]), i); }
+    }
+    layout_elapsed("create: wall_ns,cpu_us,process_peak_rss_kib", start, &before[0]);
+    layout_label(mixed ? "mixed/full" : "homogeneous/full");
+    var page_bytes = layout_scan(store, &kinds[0], kind_count, &owners[0], count, reference, columns_first);
+    // Retain one primary payload in each original page; other kinds remain.
+    var last: EntityComponentPage* = null;
+    var sparse_reference: u64 = 0;
+    locality_check(getrusage(0, &before[0]) == 0);
+    start = locality_time();
+    for(var i: usize = 0; i < count; i++) {
+        var component = entity_component_get(owners[i], kinds[0]);
+        if component.page != last {
+            last = component.page;
+            sparse_reference += convert(u64, i) * 16 + 6;
+        } else { locality_check(entity_component_remove(owners[i], kinds[0])); }
+    }
+    layout_elapsed("remove: wall_ns,cpu_us,process_peak_rss_kib", start, &before[0]);
+    layout_label("fragmented");
+    locality_check(layout_scan(store, &kinds[0], kind_count, &owners[0], count,
+        sparse_reference, columns_first) == page_bytes);
+    var grants = budget.generation;
+    locality_check(getrusage(0, &before[0]) == 0);
+    start = locality_time();
+    for(var i: usize = 0; i < count; i++) {
+        var component = entity_component_get(owners[i], kinds[0]);
+        if component != null { locality_check(component.data == addresses[i]); }
+        else { layout_fill(entity_component_add(owners[i], kinds[0]), i); }
+    }
+    layout_elapsed("refill: wall_ns,cpu_us,process_peak_rss_kib", start, &before[0]);
+    layout_label("refilled; new_page_grants=0; survivor_addresses_stable");
+    locality_check(budget.generation == grants);
+    locality_check(layout_scan(store, &kinds[0], kind_count, &owners[0], count,
+        reference, columns_first) == page_bytes);
+    for(var i: usize = 0; i < count; i++) { entity_release(owners[i]); }
+    for(var k: usize = 0; k < kind_count; k++) { entity_release(kinds[k]); }
+    locality_check(store.entity_count == 0 && store.component_count == 0 && store.storage.first == null);
+    locality_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget));
+    layout_label("PASS: checked sums, reuse, stable survivors, world and ledger cleanup");
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 1 { locality_case(1024); locality_case(65536); return 0; }
+    if argc == 4 && strcmp(argv[1], "layout") == 0
+        && (strcmp(argv[2], "homogeneous") == 0 || strcmp(argv[2], "mixed") == 0)
+        && (strcmp(argv[3], "direct") == 0 || strcmp(argv[3], "columns") == 0) {
+        layout_case(strcmp(argv[2], "mixed") == 0, strcmp(argv[3], "columns") == 0); return 0;
+    }
+    layout_label("usage: entity_locality [layout homogeneous|mixed direct|columns]"); return 2;
+}
