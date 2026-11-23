@@ -89567,6 +89567,41 @@ changes retain independent owner evidence, not validation by these frozen
 binaries. Our diff against incoming main is receipt/journal only; no rejected
 index or new API is present. Reused unchanged frozen checks; no unnecessary
 merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.
+## L2 current native dependency integration on e7558fa8 (2026-11-23)
+
+Bounded source-bound acceptance passes without a production/fixture change.
+See [the exact selector, overlap and measurement receipt](native_dependency_acceptance_e7558fa8.md).
+CLI PID14364; clean main/pull, no surviving owned build. Audit from full48d791a8
+identifies LR range/grain, module/generic/defer and optional observer deltas.
+All1218 Tower/CMake inputs and native test executable match accepted1a5241cb,
+so query-smoke and28 imported-alias trials are reused exactly. Full48d791a8 and
+96cd1eda type receipts retain their original scope. No repeated broad matrix.
+
+Existing dependency-units, unit-admission and lifecycle17/21/24/38-39 pass;
+20 original32/64-bit1/4-worker capture/effect trials plus6 canonical recompiles.
+Four units execute answers42/43/44/45, equal canonical bytes and ordered cycle
+errors; actual peak4/four distinct threads. Nested lane release refills outer
+work after49836ns; cancelled results stay hidden. Joined execution lanes0,
+nested grant inactive, final live budget grants0 enforced by successful close.
+Retained input/output byte grants remain until close, explicitly not zero at join.
+
+One dependency build refreshes only profile object/link:5.47wall/3.79CPU seconds,
+270584KiB RSS. Dependency checks7.04/13.45/817048; admission4.31/4.92/476460.
+Observed small16-body1/4 samples:.711594/.804294wall,.634907/.794435CPU,
+177480/181308KiB. Large4096-body:3.051238/2.783281wall,2.957531/3.630374CPU,
+838048/840504KiB. Exact source/canonical bytes and known42/42 agree; actual
+semantic peak/thread1/4,311 dispatches. Small parallel overhead and large lower
+kernel CPU amplification remain visible. No code changed; these are validation
+costs, not a claimed implementation speedup. Peak charged bytes<=712739625,
+1.25GiB profile budget,10/80MiB ledger storage separately; no process heap cap.
+
+CPU4-7, existing l2_ecs_native/public bootstrap, production allocator, n1/fresh
+processes/warm filesystem, no duplicate build or cache overlap. All errors/stdout,
+source/output manifests and observer spans are retained under external L2 prefix
+current_dependency_e7558fa8; status/frozen checks0 and stderr empty. Prior failed
+limits and full receipts remain intact. ROOT interpreter/resource portable fixes,
+other owners' work, browser/sanitizer/generation/publication remain their separate
+gates, not skipped successes. No implementation blocker; all owned work drained.
 
 D2 publication reconciliation: repair5ce2e0b9 committed first; required ff-only pull
 reported divergence, then complete publice7558fa8 history merged as
@@ -89672,6 +89707,20 @@ remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
 
+L2 current-dependency publication reconciliation: receipt2f0220bd; required
+ff-only pull refused ordinary divergence, then full-history merge7340d7ba
+preserved published5b9194e4 and both journals without conflict. ROOT's incoming
+eac16533 changes test fixtures, not production interpreter; A2 profile/L1 alias/
+D2 browser additions retain their owners. Compiler/library/language and selected
+dependency/admission/capture/profile/imported-alias inputs are byte-identical.
+The complete old manifest is not relabeled unchanged: query-smoke actually calls
+the changed resource fixture through evaluation_query_tests. One affected query
+object/link rebuild9.49wall/4.49CPU/290068KiB; merged query PASS0 .38/.37/104448,
+empty stderr, frozen source/status0. Other exact receipts and samples reused.
+New native runner35f769a662dc57b9592c7ba5c380c1c9b6c34e57816940843938047f3e62bf28;
+external prefixcurrent_dependency_merged_7340d7ba retains commands/manifests/logs.
+No production defect found or broad rerun needed; normal push follows, ROOT
+retains final release. Todo unchanged and all owned work drained.
 B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
 
 D1 eight-file publication reconciliation (2026-11-23): implementation `9b0ba0bb`
