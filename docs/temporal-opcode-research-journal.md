@@ -55845,3 +55845,32 @@ A2 constructor budgets, B1 fixed LR result, L2 publicclone_result and paired B2
 consumers, plus subsequent arena caller work. D1's current compiler/profile
 recipes need their source identity refreshed before next freeze. Do not reuse
 f635 binary receipts as union validation or run only one side of a new layout.
+
+### D1 bounded lifecycle and existing fixture registration
+
+After root approved the proposal, added lifecycle FIRST [LAST] solely to
+lr_work_main plus usage docs. Existing semantic_lifecycle_range supplies the
+unchanged case assertions, widths4/8 and workers1/4. Decimal parsing rejects
+empty/nondecimal/overflow/out-of-range/reversed arguments before opening resources;
+start/end receipts flush around each selected case. Default all/bodies/type-smoke
+remain unchanged. This addresses the measured opaque180s whole-suite timeout by
+making bounded per-case attribution possible; it does not change that failed
+receipt or claim any previously unfinished cases passed.
+
+Root1fec delivered the pure B2 backend execution_functions helper. Registered
+existing backend_execution_index in default and focused execution-index paths of
+the serial frontend runner, preserving every allocation/identity/canonical oracle.
+D2 also reported its queued tower-parser-tests target is absent from native mode.
+Audited actual callers: TOWER_MODULE_TESTS selects parser_modules_work, which
+already includes frontend_modules_tests. Added only a conditional native target
+for existing B2 module_cache_checks, same production sources/libraries/callbacks,
+with scaffolding cwd. No new Tower runner, parser implementation or fixture body.
+Default native configuration remains unchanged unless that option is selected.
+
+Exported source-only incremental hooks: lifecycle fca3db6b, execution-index
+d679e180, module-cache62b9d819. They are not validation receipts. Current D2 build
+must drain before adoption; D1 has no heavy process. Public smallest units then
+coherent link/runtime and malformed/range checks are next. Individual case timing
+will report actual wall/CPU/RSS and exact completed scope; reduced selected work
+will not be presented as a compiler speedup. Final union instrumentation/release
+and remaining owner constructor/clone/arena handoffs stay open.

@@ -1735,3 +1735,28 @@ production/measurement ownership. Root checkpoint contains the clone-stack
 prerequisite but excludes later publicclone_result25503293 and its paired B2
 service/cache handling. Do not run a half-ABI combination. Source review does not
 inherit another lane's old runtime or sanitizer receipt for the integrated union.
+
+### Focused harness continuation after merge9464bc0
+
+Coordinator explicitly approved lifecycle selection in lr_work_main only.
+The shared A1 case enum/trials/range helper remain unchanged. The new parser
+accepts only decimal indices at most the last enum member, checking that bound
+after every digit so arithmetic remains small; reversed ranges and wrong argument
+counts return1 before resource loading. Each selected case invokes the existing
+range helper with first=last, preserving both widths and serial/four-worker
+comparisons/reparses. Start/completion text is flushed. Existing generic clone
+query hook and every default/type-smoke/body case remain intact. No new runner.
+
+frontend_main now imports the pure backend_execution_index client and calls it
+both by focused execution-index selector and default serial suite. The original
+function-index canonical/identity/fault oracles are unchanged. CMake's existing
+native work-policy function conditionally registers the already supplied
+module_cache_checks entry when TOWER_MODULE_TESTS is enabled, using the same
+production object/library closure and callbacks. CTest uses scaffolding cwd.
+This avoids rebuilding unrelated parser-only suites and does not equate profile
+invalidation with full malformed/cycle/session regression coverage.
+
+These are source-only registrations at this point. Smallest unit/link/runtime,
+malformed selector cases, individual lifecycle receipts and measured common-path
+cost remain pending. Added test work must not be called a compiler regression or
+speedup based on differing suite sizes. No new Tower path is introduced.
