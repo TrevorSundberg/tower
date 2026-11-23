@@ -18,7 +18,7 @@ B1 `tower_ecs_b1`, CPU0-11/24GiB, Linux6.18.33.2 WSL2, Clang/LLVM19.1.1,
 native x64 Release, compiler jobs1/build jobs6, production allocator. Public
 bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138,
 environment override unset. Fresh processes/worlds and warm filesystem, shared
-host without frequency isolation. Initial/final free disk111GiB; owned jobs
+host without frequency isolation. Initial free disk111GiB, final118GiB; owned jobs
 drained before edits. Old receipts and binaries remain unchanged.
 
 Read the rejected [exact-range bitmap](lr_range_membership_415a54e9.md),
@@ -199,3 +199,22 @@ objects: `build/ecs_b1/cache/table_seed_8ff77438`. Scripts
 `C:/Sandbox/build/codex_ecs_20261122/B1/table_seed_8ff77438`.
 No todo/public pin change, full native generation, browser, sanitizer or hosted
 deployment claim. ROOT retains integrated release ownership.
+## Publication reconciliation
+
+Receipt44d0fd4a preserves the8ff77438 measured freeze. The required ff-only pull
+refused ordinary divergence; complete published44bfbbc8 merged at
+7d0e738d8b9bbba154cca58d7fa9ce85fb1ef779 without conflicts. Incoming native
+Windows/shared-budget fixture wiring, backend fixtures, browser transport and
+owner generation/memory receipts retain their own acceptance boundaries.
+Compiler/library/host implementations and the selected LR/profile fixtures are
+unchanged; no runtime source from this rejected candidate is adopted. Reuse the
+exact restored-input evidence without rebuilding unrelated later fixtures or
+relabeling the frozen binaries as their acceptance.
+
+Final snapshot verification initially failed in shell transport with an
+unterminated sed expression before checking inputs. Moving that OS checksum
+command into the retained script fixed quoting; every frozen input checksum and
+rejected patch/source checksum passes. Before/candidate native compiler undefined
+symbol lists are identical; no symbol-policy relaxation occurred. The original
+failure is retained as setup evidence, not a runtime failure or skipped check.
+Todo is byte-identical, no owned live work remains and main publication is normal.

@@ -95941,3 +95941,5 @@ L1 native-generation receipt088baa95 has matching a06 compiler/library trees:
 records the complete a18 development candidate while keeping public repin/default
 adoption and restricted standalone release open. No new authored source delta or
 D2 runtime. Evidence cutoff41c8a5db; historical tail/todo checks remain unchanged.
+
+B1 table-seed receipt44d0fd4a reconciled with complete44bfbbc8 history as7d0e738d8b9bbba154cca58d7fa9ce85fb1ef779 after normal ff-only divergence. Compiler/library/host and selected LR/profile fixtures remain unchanged; incoming Windows/shared-budget linkage, backend/browser fixtures and owner generation/memory receipts are preserved outside the8ff freeze. No B1 runtime delta to adopt, no repeated unrelated build. Exact four restored binaries retain original identities. Frozen input and rejected-source hashes pass; candidate/before native undefined symbols are equal. One checksum transport sed quoting failure was corrected through a retained OS script, preserving original error. Disk118GiB, todo hash unchanged, owned jobs drained. Normal push follows; no deployment or later-source runtime claim.
