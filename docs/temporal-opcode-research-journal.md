@@ -83019,3 +83019,17 @@ L1/logs/shared_wasm_merged/browser.json and status0 retain current-source eviden
 No compiler changes by L1, no new performance claim; prior failures remain logged.
 All owned jobs drained. Normal main publication follows; ROOT release/deployment
 limits above remain pending.
+
+B1 merged reuse receipt: production222370ce plus publishedc7ad4f42 preserved
+without conflicts asbe656a17. Incoming semantic/interpreter/profile changes
+required the dependency refresh31.21wall/30.44CPU seconds/778532KiB. Merged
+structure-reuse .04s/55464KiB and parser/live grammar .26s/60008KiB pass;
+ordinary cold1.03s/.98CPU/164864KiB keeps123 LR builds/36 reuses and canonical
+976byte hash13832670361687071853. Merged3-unit workers1/4 checks agree on
+canonicalhash1173729914654460811 and entity/component counts, including real
+outer overlap. These are integration checks, not replacement before/after
+profiles: the original frozen paired evidence remains tied to68f89640+the patch.
+Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
+container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
+This receipt is documentation-only; no additional runtime measurements apply.
+Normal main push follows; historical timeout and ROOT release gates stay pending.
