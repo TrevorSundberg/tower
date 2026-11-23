@@ -1541,7 +1541,7 @@ fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, c
 }
 
 fn sem_declaration_discover(c: SemanticContext*): void {
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return; }
     var batch: vector(SemanticDeclaration*) = default;
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
     defer vector_dispose(&batch);
@@ -1754,7 +1754,7 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
 // entities; other phases may publish prerequisites before the next pump.
 export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticDeclaration*) = default;
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
     defer vector_dispose(&batch);
