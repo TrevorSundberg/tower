@@ -606,3 +606,8 @@ passes; n1 timing limits and preserved fixture failures are in the journal.
 The user assigns remaining shared root initialization to L2 and integrated
 release checks/deployment to ROOT. No IMContext ABI or blanket Fast/output
 migration is included. Final merged-source check and main push follow.
+
+Final merged source9985c385 passes the dependency-aware native build and focused
+query/core/constructor gates (58570, exit0, frozen hashes). This closes the direct
+user's bounded interpreter execution ownership batch; it does not claim ROOT's
+pending integrated release or L2's separate root initialization work complete.

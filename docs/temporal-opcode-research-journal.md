@@ -79993,3 +79993,13 @@ allocation/error probe, sanitizer or profile was run. ROOT retains integrated
 validation/deployment; this inventory receipt claims neither compiler completion
 nor current runtime acceptance. Exact union/one-owner and receipt-exception checks pass;
 the scoped commit/push receipt is recorded in the existing A2 status.
+Final merged native check58570 completed0 on9985c385 (includes published6714a03):
+one13-step dependency build62.82s wall/85.47s CPU/751568KiB, then query-smoke
+.20/.22/75132, core8.78/10.40/312396 and constructor1.23/1.52/189164 all exit0
+with empty stderr. Core includes counted session ownership/round trips/package;
+constructor covers exact counted producer preservation/no replay at both widths.
+Full compiler/build input manifests match SHA256
+76fa97e7795561cf5abee9f125c8f240533b54d39b0b84453d3ac210547c5fa6.
+Logs: L1/logs/execution_ownership_final_9985. No owned child remains running.
+This final receipt adds documentation only, so no new runtime measurement is
+needed for it. Normal main push follows; no gh-pages deployment is claimed.
