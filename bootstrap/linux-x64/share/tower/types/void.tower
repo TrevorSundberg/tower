@@ -1,2 +1,0 @@
-import .foundation_syntax;
-var void: type = empty_type();

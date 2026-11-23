@@ -86522,3 +86522,65 @@ L2 module/inspection admission and final current-source performance,
 instrumentation, complete generations, browser and hosted release remain pending.
 
 L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+### ROOT public capacity bootstrap and paired reference receipt (2026-11-23)
+
+Required prerequisite: A1's preserved body/declaration provider legitimately
+exceeds the prior128MiB semantic-node payload policy. A2 measured128.56MiB
+and published the explicit160MiB default policy without changing caller limits
+or claiming a process-memory cap. B2 rebuilt complete generations from the
+public9653f818 predecessor on frozen published252b424ab770a0b334f31fa68eede1f1584a5acc.
+Its generations2/3 match all34 actual compiler/runtime/helper binary artifacts
+and complete package payloads, including path-sensitive runtime LLVM resources.
+This is a Linux x64 development bootstrap, not standalone portable acceptance.
+
+ROOT independently copied the complete immutable generation3 package, verified
+all SHA256SUMS, executable mode/hash and relocated development checks on KinmenA
+tower-c-validation. Receipt /cache/root_capacity_pin_252b/status0, full command/
+verification logs retained; current verifier /cache/narrow-verify-tools/bin/verify_compiler.
+Executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+payload checksumsbd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+ROOT transport archive94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e.
+Complete linux-x64 payload and exact manifest replace the prior pin together;
+the old directory remains outside the checkout and is recoverable in Git.
+Publish before A1's canonical no-override adoption. This package predates L2's
+6767cd30 admission batch and still-unpublished A1/L1 work; those do not inherit
+the generation receipt. Final current-source generations/release remain pending.
+
+Separately, ROOT measured unchanged existing compiler_reference_inputs fixtures
+(16/1000 functions, exact expected15/999) against frozen196d and merged f72179d2
+(runtime-identical252b). No project source or fixture logic was added. Host
+Ryzen AI MAX+395, Linux WSL2/LLVM19.1.1, Docker CPU24-31/24GiB. Tower explicit
+Bedrock/Foundation/target x86_64-unknown-linux-gnu, normal optimized object
+pipeline, workers1/4; Clang same target, -std=c11 -m64 -O2 -fwrapv -c. Headerless
+C source, built-in grammar/printf and Tower editable grammar/prelude/runtime
+differ; this is a concrete body/frontend reference, not a language ranking.
+All imported language-resource bytes used here match between Tower versions.
+
+One warmup each, then3 counterbalanced fresh-process samples per size/compiler;
+warm filesystem, no intentional OS-cache flush. GNU time wall/CPU/peak RSS:
+| Input/compiler | Median wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Small frozen196d workers1 | .99 | .99 |184016|
+| Small current workers1 | .89 | .89 |198436|
+| Small current workers4 | .80 | .99 |215276|
+| Small Clang | .02 | .01 |98928|
+| Large frozen196d workers1 |1.13|1.12|211728|
+| Large current workers1 |1.03|1.02|239168|
+| Large current workers4 | .93|1.14|263060|
+| Large Clang | .06| .06|109716|
+
+All32 separately linked executions pass. Repeated own-compiler objects, current
+serial/four-worker objects and these cross-version Tower objects match exactly.
+Both optimizers eliminate private constant-return bodies (only main/tower_main
+and the C constant string remain). Object compile timings exclude link/runtime
+preparation and execution checks. Current serial is about9-10% faster than
+frozen196d on these inputs with about8%/13% higher RSS; intervening ownership/
+index changes prevent attributing this to a single fix. Four workers save about
+10% wall with increased CPU/RSS, not proof of whole-machine scaling. CLI
+parse+check remains about.78/.87s and dominates; the comparable-C speed goal
+is not met. No live-allocation/retention or idle-time data is exposed by this CLI.
+All logs/objects/host/inputs/compiler hashes: /cache/root_reference_f72179d2,
+copied to ROOT_reference_f72179d2 in coordination storage. Original shell
+readback quoting failed without changing results; raw receipt copy then passed.
+No new source implementation was measured or runtime release claimed here.
