@@ -3,6 +3,7 @@ import frontend_units;
 import compiler_dependency_units;
 import declaration_call_checks;
 import integer_argument_checks;
+import malformed_call_checks;
 import imported_alias_checks;
 import nominal_wrapper_checks;
 import backend_units;
@@ -86,6 +87,7 @@ fn lr_resource_cases(width: u32, workers: usize): void {
 }
 
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
+    if argc == 4 && strcmp(argv[2], "malformed-call") == 0 { return malformed_call_checks(argv[1], argv[3]); }
     if argc == 4 && strcmp(argv[2], "integer-arguments") == 0 { return integer_argument_checks(argv[1], argv[3]); }
     if argc == 3 && strcmp(argv[2], "imported-alias") == 0 {
         imported_alias_tests(argv[1]);
@@ -171,6 +173,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         utility_check(semantic_failure_order_tests() == 0, "Canonical producer order across waiting failure frontiers");
     }
     if all || queries {
+        utility_check(malformed_call_checks(argv[1], "all") == 0, "Malformed statement admission and world recovery");
         utility_check(semantic_lifecycle_frontier_tests() == 0, "Mixed lifecycle stage ownership and failure draining");
         generic_clone_parallel_tests();
         utility_check(semantic_publish_tests() == 0, "Semantic publication pressure and atomic output");
