@@ -94103,3 +94103,81 @@ c2c97058 with its input/provider hashes. Later semantic sources are explicitly
 excluded from that frozen run and await ROOT's final integrated adoption; no
 rebuild/repetition or claim that a prior binary tests newer source. All complete
 histories and original failures remain preserved. Diff checks pass; normal push.
+
+### 2026-11-23 L2: four remaining T9 native reconstruction requests pass
+
+Frozen published main f0485e83c8a91d355466236a4f3105d29a9f6783,
+treeb5244d15147a3aba20c4d543add1618daf124d81. Same clone/main/CLI PID27528;
+startup owned processes drained, C:111GiB and WSL923GiB available. The accepted
+backend producer is unchanged. Refreshing only the semantic provider and its
+CLI/source-session links adopts published module-capture/executable-alias fixes:
+three dependency actions,38.43wall/27.43CPU s/1074848KiB peak. No new production
+or fixture edit, private bootstrap or broad rebuild. All scaffolding/bootstrap/
+CMake inputs match ROOT's25dddd04 build source by blob. Final source manifest
+rechecked unchanged after execution. CLI SHAa86686f3d09a882d94e316c3e09114f98ef8225ebd81c48a18028580dc10c7a0;
+source runner SHA5cd2dacc2b0a506edde0a5a9cf359a9c63a9da59a3d25f11896d5be68fa3bea1.
+
+All four retained original requests were immediately available; no generated
+canonical substitutes. A1 files copied from KinmenA
+`C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t9_78650118/NAME/NAME_32_canonical.tower`;
+D2 files from Deck `/home/deck/tower_coord_ecs_20261122/D2/work_pair_eac_78650118/`.
+Exact canonical lengths/SHA256 agree with their published failed/timeout receipts:
+- entity_stage_ownership1085877B:ef3733ab73c7bc6aeab27842fb399c16e19c3c9874b88de91dfb02a55df176a3.
+- compiler_work994124B:83fa8ddbe77e7e856eaf40772825fd6d1f82dfe60ab39b508c7cc518efc8d202.
+- work_access395107B:208a1d7d0bb94bbcb4afde92384a1fdc909f111ec0d8b63843a3fef0e240be1a.
+- work_observe428307B:9c92b227725586fd7eaee56650bcf0f59487e1402a9cc790ea867962d01957b8.
+All original Tower fixture hashes also match A1/D2:77966b82/ad486c72/2c5c6367/
+545a7864 (full hashes retained in inputs.sha256), with original relative imports
+resolved from scaffolding/tests. The semantic-port registrations/outputs are
+unchanged. compiler_batch and backend popcount/stack/constants were not run.
+
+Serial for each: independently execute the original Tower fixture, execute its
+retained canonical, call existing source-session runner INPUT OUTPUT 4 1, then
+compile/interpret the entire reconstructed result. Target wasm32; explicit
+BackendSourceImport|BackendSourceUnoptimized, optimizationProfile2 and mandatory
+shared Foundation recheck. Every process exits0, stderr empty; the first three
+return exact0 newline, work_observe exact8192/256/0 on separate lines. All four
+requested cases completed, no failure and no unstarted serial case. No cap change,
+optimized substitution, truncated text, skipped export or edited reconstructed
+output. Use existing180s A1/120s D2 numeric guards per native phase, TERM then5s
+kill/reap; no guard was reached. These separately measured native phases are not
+relabeled executions of the original multi-phase browser selections.
+
+| Retained case | Reconstructed bytes / SHA256 | Reconstruction wall/CPU s / peak KiB | Execution wall/CPU s / peak KiB |
+| --- | --- | --- | --- |
+| entity_stage_ownership | 4573782 /9781aec7396f8c575c7134633e0ceb5b7e09e64d86fc9904299ce5ef9a505409 | 15.81/15.99 /3273628 | 16.63/16.43 /3161536 |
+| compiler_work | 3904767 /5d0208dfaf84b48218beb8788ed24ffd88afad1cf1eed3744de524fd48c38ea4 | 13.76/13.79 /2814952 | 14.25/14.05 /2743616 |
+| work_access | 1107315 /4015143cfb3ecdaf723ae3f62784669b01261f212d4edc14ecf3c2a4b3aa8d0d | 3.65/3.59 /854408 | 2.70/2.63 /852880 |
+| work_observe | 1327266 /da2f03c618cab30c20ad200c85172daaecbcad0dcd8820538e8d5554a326f5d2 | 4.41/4.40 /1007748 | 23.03/22.88 /1000152 |
+
+Environment: native Linux x64/LLVM19 Orchestral-Revng, CPU4-7, one heavy process,
+normal synchronized allocation, unchanged24GiB explicit world ledger. n1 fresh
+processes/warm files, GNU time CPU=user+system. Original source reference costs
+in table order (wall/CPU s/peakKiB):1.59/1.17/263976;1.41/1.03/260644;
+.98/.73/211208;1.74/1.50/214536. Retained canonical references:
+4.20/4.15/884456;3.80/3.71/821536;1.24/1.17/384080;2.25/2.20/408296.
+No implementation changed this turn; these are acceptance costs, not a speedup
+comparison. Reconstructed work_observe remains more expensive than its original;
+8192versus256 is the fixture's edge count, not a speedup or actual-thread claim.
+
+Every source session reports backend_resource=0 and final bytes/grants/lanes0,
+then successfully disposes its world/store and budget ledger. Serial charged
+peaks in table order:2963445065/2555544774/733493400/869679163B; ledger capacity
+before final disposal335544320/335544320/83886080/83886080B. These are explicit
+service-owner counters, not a claimed census of all process allocations.
+Largest successful input/output entity_stage_ownership alone adds workers4:
+reconstruction17.01wall/21.42CPU/3287180KiB, full execution16.47/19.62/3131404.
+Byte-identical4573782B Foundation and exact0 output; final bytes/grants/lanes0,
+peak charged2963444289B. No actual-overlap or race-freedom inference from worker
+request count/CPU use. Other widths/profiles/framework gates were not repeated.
+
+Evidence directory `C:/Sandbox/build/codex_ecs_20261122/L2/framework_reconstruction_f0485e83`
+retains source/input/binary identities, scripts, raw logs/times and exact output.
+Old A1 LLVM resource failures and D2 timed-out eac runs remain genuine historical
+receipts, not overwritten or relabeled; their old measurement limits remain.
+Current native T9 reconstruction is closed for these four exact requests. Actual
+new-Wasm memory fit, Graph/Fast/LLVM32/64/browser matrices, other final generation
+and hosted gates remain ROOT's work; native~3.1GiB RSS is not2GiB guest-fit proof.
+No sanitizer/service retry, browser/reactor rebuild, other-owner edit, agent,
+context/goal or idle polling. Owned jobs drained; todo unchanged. Normal evidence
+publication follows, preserving the exact freeze and complete incoming history.
