@@ -1025,6 +1025,22 @@ declaration/type cycles for serial/four-worker budgets. Reuse a completed
 lifecycle receipt for the same compiler inputs when iterating these checks.
 This selector does not replace lifecycle coverage; `type-smoke` still runs both.
 
+For a complete type/staging checkpoint without duplicate suites, run
+`tower-lr-work-tests RESOURCE_ROOT lifecycle 0 41` followed by `type-errors`.
+Together these select the existing `type-smoke` cases; do not additionally run
+`type-smoke` or its `capture-policy` subset on the same frozen inputs.
+`tower-execution-tests RESOURCE_ROOT type-staging` then selects the existing
+constructor protocol, type binding/computed argument/type object/constructor,
+known binding and staged aggregate suites. Their shared aggregate capture fixture
+runs once. Individual `types`, `known`, `aggregate-stages` and `type-construction`
+selectors retain their standalone coverage and need not run again.
+These fixtures compare known outputs and canonical Foundation reconstruction at
+32/64-bit target widths, using the graph and cached interpreters and requested
+worker counts 1/2/4/8. Negative-case widths follow their existing helpers.
+Use the existing lifecycle/staging-frontier tests for barrier-backed worker
+overlap and scheduling contracts; a requested worker count by itself is not
+overlap or throughput evidence. Retain the exact source and binary identities.
+
 The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
 existing executable-function index fixture, including exact canonical preservation,
 declaration identity and allocation-failure cleanup. The default frontend suite
@@ -1364,11 +1380,49 @@ build/native/tower-lr-work-tests scaffolding control-smoke
 
 The flow fixture checks idempotent admission, deterministic errors, waits,
 cancellation and graph failures. The lifecycle fixture includes actual mixed
-signature/lowering rendezvous. The staging fixture verifies explicit stages
-finish before unrelated waiting **and ready** lowering, lexical-owner and
-canonical-inference prerequisites, executed-only lazy dependencies, retained
-suspended interpreter state and diagnostic priority. Its function count follows
-the production window size. All cover budgets1/4 and teardown; budget variants
-alone do not prove concurrent execution. Lowering/evaluation windows still join
-before cross-phase publication. Integrated sanitizers/platform checks remain
-separate release gates.
+signature/lowering rendezvous. The staging fixture checks required and optional
+inferred work before unrelated waiting **and ready** lowering, with actual
+evaluation rendezvous at four workers. It covers per-owner lowering, lazy
+executable inputs, suspended nested frames, untaken calls/stages, module/local
+known captures, separate required capture producers, optional fallback and
+ordered required errors. Its function count follows the production window size.
+All cover budgets1/4 and teardown; budget variants alone do not prove overlap.
+The resource fixture supplies ready executable inputs for both policies before
+denying actual nested frame growth. Known proofs/snapshots and shared signature
+publication remain prerequisites. Lowering/evaluation windows still join before
+cross-phase mutation, and diagnostics retain the full lowering priority.
+Integrated sanitizers/platform checks remain separate release gates.
+
+### Entity accounting census and pending finite-cap gate
+
+On the supported Linux x64 native configuration with `TOWER_WORK_TESTS=ON`:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-entity-accounting-tests
+"$TOWER_NATIVE_BUILD/tower-entity-accounting-tests" profile
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-check-entity-accounting-cap
+```
+
+`entity_accounting.tower` reuses the entity page/node fixtures' ownership census,
+`compiler_buffer_allocation_size` and `work_budget_snapshot`. It uses the normal
+allocator, one owner and no dispatch/fault counters. Each named profile record
+prints the twelve fields listed in its header, one value per line. Canonical
+component sums, detach/reuse, cancellable staged borrows, finalizers and complete
+world/ledger disposal are checked. `tower-measure-entity-accounting` runs that
+same profile. The small workload's store/pages have no replacement-buffer growth,
+so its compiler-buffer peak is captured by these phases. The separately labeled
+world-retained peak is sampled: transient raw replacement allocations, malloc
+metadata, libc output buffers and RSS are not included. Ledger metadata is
+reported separately and is outside the declared work-byte allowance.
+
+The explicit cap target is **currently failing**, not a CTest expected-failure
+pass or a skip. It calibrates the actual charged empty-store footprint, gives a
+fresh store exactly that finite allowance, verifies a charged buffer is denied,
+then requires raw entity creation to return `Capacity` without changing identity
+or publishing a node. It always disposes the attempted owner before returning.
+Current baseline admits a 184-byte node after using all 2,232 ledger bytes and
+returns1. This is an independent descriptor-admission regression for A2's future
+producer closure; a passing profile is not finite-cap acceptance, and fixing
+this one denial does not establish child/index/query/stage accounting. The census
+must remain tied to the actual allocation layout as those owners migrate.
+See the journal's D2 entity accounting receipt for source hashes and byte totals.

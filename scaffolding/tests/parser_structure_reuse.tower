@@ -1,0 +1,171 @@
+import tower;
+import frontend_world;
+import frontend_revision;
+import frontend_table_owner;
+import frontend_session_world;
+import frontend_syntax_version;
+import frontend_units;
+import parser_table_budget;
+import .compiler.parser_types;
+import .compiler.component_kinds;
+import .compiler.frontend_revision_types;
+import .compiler.lr_api;
+import utility_checks;
+import .library.work_budget;
+import .library.work_vector_types;
+
+extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
+extern fn parser_structure_cache_copy(target: ParserStructureCache*, source: ParserStructureCache*): bool;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn compiler_node_get(node: void*, kind: u32): void*;
+extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+
+fn structure_open(kinds: FrontendKinds*, cache: ParserStructureCache*, text: u8*, capture: u8*,
+    mode: ParserReadMode, precedence: u32): ParserHostTable* {
+    var builder: GrammarBuilder = default;
+    grammar_builder_init(&builder, kinds);
+    var rule = grammar_builder_rule(&builder, "Root", false);
+    grammar_builder_reference(&builder, rule, "Term", capture);
+    if text != null {
+        rule = grammar_builder_rule(&builder, "Term", false);
+        var data = bits(ParserRuleData*, compiler_node_get(rule, CompilerParserRule));
+        data.precedence = precedence;
+        grammar_builder_literal(&builder, rule, text);
+    }
+    var root = grammar_builder_finish(&builder);
+    utility_check(root != null, "Structural fixture entities");
+    var table = parser_table_open(root, kinds, root, ParserPresentation.Numeric, convert(u32, mode));
+    utility_check(table != null && table.grammar != null, "Structural fixture grammar");
+    table.reuse = cache;
+    return table;
+}
+
+fn structure_close(table: ParserHostTable*): void {
+    entity_release(table.userdata);
+    parser_table_destroy(table);
+}
+
+fn structure_capture(table: ParserHostTable*, name: u8*): bool {
+    for(var i: usize = 0; i < lr_grammar_symbol_count(table.grammar); i++) {
+        if strcmp(lr_grammar_capture(table.grammar, i), name) == 0 { return true; }
+    }
+    return false;
+}
+
+fn structure_owner_cases(world: void*, budget: WorkBudget*): void {
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Structural fixture kinds");
+    var cache: ParserStructureCache = {world: world, budget: budget, limit: FrontendCacheLimit, ..default};
+    defer parser_structure_cache_dispose(&cache);
+    var first = structure_open(&kinds, &cache, "x", "first", ParserReadMode.WholeInput, 0);
+    utility_check(parser_table_build(first, false) && first.structure != null, "Publish frozen structure");
+    var runtime = first.runtime;
+    var next = structure_open(&kinds, &cache, "x", "next", ParserReadMode.WholeInput, 0);
+    defer structure_close(next);
+    var reservation: WorkReservation = default;
+    parser_control_occupy(budget, 0, &reservation);
+    utility_check(parser_table_build(next, false) && next.resource_error == WorkBudgetError.None
+        && next.runtime == runtime && next.structure == first.structure,
+        "Exact structural reuse requires no LR construction allocation");
+    utility_check(work_budget_release_result(budget, &reservation) == WorkBudgetError.None, "Release comparison budget");
+    utility_check(next.grammar != first.grammar && next.userdata != first.userdata
+        && structure_capture(next, "next") && !structure_capture(next, "first")
+        && structure_capture(first, "first"), "Version captures and userdata remain private");
+    var fork: ParserStructureCache = default;
+    utility_check(parser_structure_cache_copy(&fork, &cache), "Private index fork pins frozen structures");
+    parser_structure_cache_dispose(&cache);
+    structure_close(first);
+    utility_check(next.runtime == runtime && structure_capture(next, "next"), "Table survives cache and original table retirement");
+    var stream = parser_stream_utf8_null_terminated_create("x");
+    var error = WorkBudgetError.None;
+    var request = parser_recognizer_create_result(next, stream, &error);
+    utility_check(request != null && error == WorkBudgetError.None, "Request borrows surviving shared structure");
+    parser_recognizer_destroy(request); // cancellation before first step
+    request = parser_recognizer_create_result(next, stream, &error);
+    utility_check(request != null && error == WorkBudgetError.None, "Cancelled request can retry unchanged input");
+    var running = true;
+    var result: void* = null;
+    while running { result = parser_recognizer_step(request, &running); }
+    utility_check(result != null && parser_recognizer_resource_error(request) == WorkBudgetError.None
+        && tower_node_get_child_member(result, "next") != null
+        && tower_node_get_child_member(result, "first") == null,
+        "Surviving shared runtime parses using the new table's capture metadata");
+    entity_release(result);
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(stream);
+    utility_check(next.structure.references >= 2, "Cancelled request leaves table/cache pins intact");
+
+    var changed = structure_open(&kinds, &fork, "y", "next", ParserReadMode.WholeInput, 0);
+    defer structure_close(changed);
+    var before = fork.entries.length;
+    parser_control_occupy(budget, 0, &reservation);
+    utility_check(!parser_table_build(changed, false) && changed.resource_error == WorkBudgetError.Capacity
+        && changed.structure == null && fork.entries.length == before, "Changed grammar retains exact capacity failure and no partial cache entry");
+    utility_check(work_budget_release_result(budget, &reservation) == WorkBudgetError.None, "Release retry budget");
+    changed.reuse = &fork;
+    utility_check(parser_table_build(changed, false) && changed.runtime != runtime, "Changed terminal constructs its own LR structure on retry");
+    var mode = structure_open(&kinds, &fork, "x", "next", ParserReadMode.Constructs, 0);
+    defer structure_close(mode);
+    utility_check(parser_table_build(mode, false) && mode.runtime != runtime, "Constructs profile is in the structural key");
+    var specialized = structure_open(&kinds, &fork, "x", "next", ParserReadMode.WholeInput, 0);
+    defer structure_close(specialized);
+    utility_check(parser_table_build(specialized, true) && specialized.runtime != runtime, "Specialization profile is in the structural key");
+    var precedence = structure_open(&kinds, &fork, "x", "next", ParserReadMode.WholeInput, 1);
+    defer structure_close(precedence);
+    utility_check(parser_table_build(precedence, false) && precedence.runtime != runtime, "Production precedence is in the structural key");
+    var missing = structure_open(&kinds, &fork, null, "next", ParserReadMode.WholeInput, 0);
+    defer structure_close(missing);
+    before = fork.entries.length;
+    utility_check(!parser_table_build(missing, false) && missing.resource_error == WorkBudgetError.None
+        && strcmp(missing.error, "Unresolved grammar rule") == 0 && fork.entries.length == before,
+        "Original unresolved diagnostic is not cached as a successful structure");
+    parser_structure_cache_dispose(&fork);
+}
+
+fn structure_scope_cases(): void {
+    var world = compiler_world_create_workers(1);
+    var other = compiler_world_create_workers(1);
+    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
+    var other_bedrock = syntax_world_revision(other, SyntaxSeedBaseline);
+    var revision = syntax_revision_create(null, 0, null, 0);
+    var replaced = syntax_revision_create(bedrock.rules.data, bedrock.rules.length, bedrock.tokens.data, bedrock.tokens.length);
+    var cache: SyntaxVersionCache = default;
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    var first = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+    utility_check(first != null, "Version cache initial scope");
+    var same = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+    utility_check(same == first, "Unchanged full version keeps existing cache hit");
+    syntax_version_release(same);
+    var changed = syntax_version_cached(&cache, world, revision, replaced, &diagnostic);
+    utility_check(changed != null && changed != first && cache.bedrock == replaced,
+        "Different Bedrock revision invalidates whole-version and structural scope");
+    var foreign = syntax_version_cached(&cache, other, revision, other_bedrock, &diagnostic);
+    utility_check(foreign != null && foreign != changed && cache.structures.world == other,
+        "Independent world cannot reuse previous world structures");
+    syntax_version_cache_dispose(&cache);
+    syntax_version_release(first);
+    syntax_version_release(changed);
+    syntax_version_release(foreign);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_revision_release(replaced);
+    frontend_revision_release(revision);
+    frontend_revision_release(bedrock);
+    frontend_revision_release(other_bedrock);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world)
+        && frontend_world_clear(other) && compiler_world_dispose(other), "Version scope owners release completely");
+}
+
+fn parser_structure_reuse_tests(): void {
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Structural shared budget");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Structural explicit world");
+    structure_owner_cases(world, &budget);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Structural world cleanup");
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0
+        && work_budget_dispose(&budget), "Final structural pin releases all physical budget owners");
+    structure_scope_cases();
+    frontend_session_world_tests(); // imported overrides, cycles, reset, independent owners
+    puts("Parser structural reuse, identities, metadata, cancellation and lifetime passed");
+}

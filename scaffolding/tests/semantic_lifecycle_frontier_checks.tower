@@ -8,6 +8,8 @@ import .compiler.compiler_kernel;
 import .compiler.foundation_tags;
 import .compiler.component_kinds;
 import .compiler.parser_types;
+import .compiler.syntax_types;
+import .library.entity_types;
 import .library.work_graph;
 import .library.work_pool;
 import .library.work_budget_types;
@@ -24,14 +26,17 @@ extern fn entity_store_component_count(store: void*): usize;
 extern fn entity_register(kind: void*, size: usize, alignment: usize, flags: u32): bool;
 extern fn sem_member(node: void*, name: u8*): void*;
 extern fn puts(message: u8*): i32;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn compiler_node_copy_metadata_staged_result(source: void*, destination: void*, stage: void*): WorkBudgetError;
 
-enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, Count }
+enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, HoldFailure, Count }
 var LifecycleExpressionStatements: usize = 32;
 var LifecycleMalformedDepth: u32 = 130;
 var LifecycleInvalidParameters: usize = 64;
 // Each function owns its probe. The callback uses the real worker's function
 // lease; signal handles are frozen before admission and closed after final join.
-struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; }
+struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; source: void*; }
 
 fn lifecycle_kernel(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
@@ -47,6 +52,10 @@ fn lifecycle_kernel(payload: void*): void {
         }
     }
     semantic_lowering_kernel(result);
+    if probe != null && probe.signature == result.signature && probe.source != null {
+        var node = entity_stage_create(result.stage, result.subject);
+        sem_require(node != null && compiler_node_copy_metadata_staged_result(probe.source, node, result.stage) == WorkBudgetError.None);
+    }
 }
 
 fn lifecycle_check(ok: bool, message: u8*, failures: u32*): void {
@@ -154,6 +163,22 @@ fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
     *signature_probe = default;
     *expression_probe = default;
     signature_probe.signature = true;
+    var history: Entity* = null;
+    var history_references: usize = 0;
+    if mode == LifecycleCase.HoldFailure {
+        var source = sem_create(root);
+        var owner = sem_create(root);
+        var trace = bits(SyntaxExpansion*, compiler_world_component(world, owner, CompilerSyntaxExpansion));
+        var origin = bits(SyntaxOrigin*, compiler_world_component(world, source, CompilerSyntaxOrigin));
+        sem_require(trace != null && origin != null);
+        origin.expansion = trace;
+        entity_retain(owner);
+        history = bits(Entity*, owner);
+        history_references = history.references;
+        history.references = ~convert(usize, 0);
+        signature_probe.source = source;
+        expression_probe.source = source;
+    }
     var overlap = workers > 1 && (mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting);
     if overlap {
         signature_probe.arrived = work_signal_open();
@@ -166,6 +191,20 @@ fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
     if overlap { sem_require(c.workers.threaded && c.workers.count > 1); }
     if mode == LifecycleCase.Cancelled { work_cancel(&c.queries); }
     var state = sem_lifecycle_lowering_pump(&c);
+    if mode == LifecycleCase.HoldFailure {
+        lifecycle_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Exhausted
+            && c.queries.cancelled && c.workers.running == 0 && c.queries.running == 0
+            && signature_probe.calls == 1 && expression_probe.calls == 1
+            && history.references == ~convert(usize, 0) && history.store.views == 0
+            && callback.element.scalar == SStruct && callback.parameters.length == 0,
+            "Checked mixed-lowering holds discard every peer before readiness or ABI publication", &failures);
+        foreach(var &task in &c.queries.tasks) {
+            if task.query == convert(u32, SemanticQuery.Lowering) || task.query == convert(u32, SemanticQuery.AggregatePrepare) {
+                lifecycle_check(task.state != WorkState.Succeeded, "Failed ownership publishes no ready transform", &failures);
+            }
+        }
+        history.references = history_references;
+    }
     if mode == LifecycleCase.PartialTake {
         lifecycle_check(state == SemanticPumpResult.Waiting && signature_probe.calls == 0 && expression_probe.calls == 0,
             "Known snapshot blocks all transformation admission", &failures);

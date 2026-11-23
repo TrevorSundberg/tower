@@ -14,6 +14,26 @@ struct ParserHostState {
     contexts: work_vector(FrontendContextPosition);
 }
 
+// Frozen derived LR data. Per-version grammar labels/captures, userdata,
+// emission, replacements and source provenance stay on the borrowing table.
+// Coordinator pins protect the numeric runtime and diagnostic context columns.
+struct ParserStructure {
+    storage: WorkBuffer;
+    references: usize;
+    grammar: void*;
+    runtime: void*;
+    states: work_vector(ParserHostState);
+    mode: u32;
+    specialize: bool;
+}
+
+struct ParserStructureCache {
+    world: void*;
+    budget: WorkBudget*;
+    limit: usize;
+    entries: work_vector(ParserStructure*);
+}
+
 // Presentation services are explicit until Tower supports function values. The
 // Syntax service calls the existing syntax owner's exported views; it does not
 // own or mutate a SyntaxSession or grammar revision.
@@ -38,4 +58,6 @@ struct ParserHostTable {
     built: bool;
     match_kind: void*;
     trace: bool;
+    structure: ParserStructure*;
+    reuse: ParserStructureCache*; // construction-only borrow, cleared on completion
 }

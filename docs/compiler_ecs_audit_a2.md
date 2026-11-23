@@ -1726,3 +1726,42 @@ was not edited. Existing test-only legacy queue callers remain supported.
 The journal records focused checks, measured costs and preserved build errors.
 Current supported sanitizer/full-scaling/bootstrap/browser/release evidence is
 pending ROOT's integrated milestone, not implied by these normal native tests.
+
+## Bounded compiler caller migration, 2026-11-23
+
+Substantive source review against `0aee8b07` plus this scoped batch; this does
+not replace the earlier full inventory or claim compiler-wide acceptance.
+
+| Path under `scaffolding/` | Reviewed ownership transition and evidence |
+| --- | --- |
+| `compiler/compiler_kernel.tower` | New allocation-free joined-stage boundary: prior cause, all checked holds, view close, checked structural publications, private-result cancellation before discard, context retirement. Shared generic fixture checks partially held peers, dispatch precedence, publication collision and callback-before-finalizer ordering. Existing dispatch/join implementation unchanged. |
+| `compiler/semantic_context.tower` | Typed semantic wrapper preserves dispatch/graph cause and source-ordered worker resource receipt on ownership failure, cancels failed graph, exposes no wave readiness. Ordinary worker-result ordering remains with phase owners. |
+| `compiler/semantic_body_work.tower` | Typed admission/dispatch; shared transfer before body publication; immediate failed pump return. Private evaluation buffers retire before staged nodes, retained lexical list buffers/allocations free at final pipeline disposal. Body smoke and lifecycle14-16 normal/canonical/cancellation checks; shared callback-order regression. |
+| `compiler/semantic_declarations.tower` | Discovery and declaration/type waves share the boundary; optional/null stages supported. Original dispatch result survives cleanup. Unpublished evaluation buffers and retained scratch have the same ownership treatment as bodies; discovery/type scheduling and source-order diagnostics preserved. Query/resource/lifecycle and body checks. |
+| `compiler/semantic_evaluation.tower` | Existing consumer-before-producer buffer disposal factored to accept an explicit job vector, reused for never-admitted private evaluations. Normal context disposal retains its original order. No L2 admission changes. |
+| `compiler/semantic_evaluation_work.tower` | Joined preparation/clone waves check ownership before aliases, evaluation receipts or task completion; error cancels without bookkeeping. Worker-private scratch already freed by its kernel. Query/resource/lifecycle checks. |
+| `compiler/semantic_lowering_work.tower` | Shared transfer replaces publication even after dispatch failure. A1 mixed-frontier admission and ordering preserved. Actual mixed signature/expression regression queues real provenance, forces cumulative hold exhaustion and checks cancellation/no ready tasks/no ABI publication at workers1/4. |
+| `compiler/semantic_generic_body_work.tower` | Reviewed, unchanged: joined checked holds, hold-failure discard under view, first dispatch cause retained, failed structural publication returns before subsequent readiness; ordinary clone diagnostics retain source-ordered receipt semantics. Existing real provenance exhaustion and Busy-publication query coverage passed. |
+| `compiler/semantic_execution_work.tower` | Reviewed only; ROOT-owned unchecked `entity_stage_hold` adoption remains outstanding at this frozen base. No edits to it or its executable fixture. |
+| `tests/entity_stage_concurrent.tower` | Adds shared-boundary callback/hold/dispatch/publication cases. Existing 2/4-worker simultaneous-entry, join, cancellation/partial-admission and 57792-finalizer suite retained. `profile` skips only added cases for equivalent receipts. |
+| `tests/entity_stage_result.tower` | Adds 8 rounds of 65536 repeated references, checked/idempotent hold, pinned zero-count lifetime and exact final teardown. Before/after larger-case binary is identical: a measurement control, not speedup evidence. |
+| `tests/semantic_lifecycle_frontier_checks.tower` | Adds only actual lowering ownership-exhaustion mode to A1's existing fixture; private post-kernel provenance queues, unchanged source count, drained workers/tickets, no succeeded lowering/aggregate tasks and no ABI mutation. |
+| `tests/lr_work_main.tower` | Calls existing linked lifecycle-frontier fixture in query smoke. Companion `cmake/TowerWorkPolicyTests.cmake` registers that fixture in the existing receipt loop, no new target or harness implementation. |
+
+`rg` over compiler `.tower` stage hold/publish/discard calls finds only the ROOT
+execution pump still using a void hold. Remaining non-wave discards release
+undispatched empty stages. Compatibility declarations remain; the library
+protocol and provenance producer are unchanged. No new foreign symbol needed
+allowlist expansion. Exact remaining gates: ROOT execution caller adoption,
+merged instrumentation/retention and full scaling/bootstrap/browser/release.
+Normal native checks do not prove universal race freedom or instrument every
+private allocation. Measurement details and preserved errors are in the journal.
+
+Merged source review: `24acdc63` rebases this batch onto `5b05d6bb` with complete
+published merge history. ROOT's `d56c2903` execution change now checks holds and
+uses deferred discard-before-view-close cleanup. Scoped compiler search finds
+no remaining void hold call, only the shared semantic boundary and the checked
+generic/execution pumps. New A1 phase-frontier and L2 evaluation-admission hunks
+are preserved. The common kernel and three stage/lowering regression fixtures
+are byte-identical to the measured batch; compiler profiles remain scoped to
+the original frozen inputs, not relabeled for incoming scheduling/parser work.
