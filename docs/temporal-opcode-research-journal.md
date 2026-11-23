@@ -87497,6 +87497,49 @@ input hashes/exit statuses remain build/d1_ecs/diagnostics_imports_ce4f724/.
 Disk129GiB free; todo SHAe97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327
 unchanged. Normal source reconciliation/push follows; ROOT owns final integrated
 browser/generation/sanitizer/hosted acceptance, none passed by this fixture repair.
+### 2026-11-23 A2: static b0 release-artifact/provenance review
+
+Direct user replacement task; no instrumentation retry after the reported service
+rejection. Previously started A2 fixed-build child was already exited0 when
+inspected; old failed/passed logs and +1 frontend_modules/+8 storage_main WIP
+remain preserved and excluded from this documentation commit. The final current-
+source sanitizer gate stays OPEN. No compiler, target/browser program, fault
+probe, archive extraction or network probe ran for this static review.
+
+Reviewed ROOT_release_artifact_audit_b0/project.json, files.json, artifacts.sha256
+and identity.txt against packaging/consumer source and published Git objects.
+Actual project SHA256748997326a3a385e7f31a2bd5d0150d51df492202749493dc8669699620d5ef9
+matches both metadata manifests. All532 non-generated embedded files match exact
+b0f507c6ad4bdaec4a3b87ddd943e647ba393eaa blobs; no required compiler/backend/host/
+library source omitted.24 unique units,3 recipes,11 referenced support files and
+3806 export/link entries have consistent names, relative paths and no duplicates.
+Eight stale/unreferenced directory members are excluded by the existing explicit
+recipe-based deployment copy. Actual support archive members/reactor payloads
+were not supplied, so their hashes/closure remain assertions, not independently
+rehash-verified binaries. The25 generated entries still need original build
+input identities. Initial Windows-default decoding falsely mismatched four
+non-ASCII texts; explicit UTF-8 yields532/532; both comparison CSVs are retained.
+
+Checked public bootstrap53 payload hashes plus executable/manifest/checksum
+identity;768a0cdf/5b6f9a0f/bd4639d8 match the separate complete native252b424a
+receipt. ROOT2013 clean adoption, b0 browser build, D2 shared receipt and the
+failed first edited browser generation remain separate. No native fixed point,
+wrapper0 or metadata match is promoted to browser/standalone release acceptance.
+Remaining static publication requirements include support member/object/compiler
+provenance, seven cross-target input hashes, mandatory threads profile/artifact,
+complete builtin/license/deployment inventory and source/build reachability.
+Actual shared retirement/IDE completion failures and both edited-generation
+acceptance remain pending their owners; Pages6f142bef runtime remains old.
+
+Full concise mapping: docs/compiler_release_artifact_review_b0.md. External raw
+static evidence: A2/cache/logs/release_artifact_review_b0. Read-only Git fetch then
+required pull reachedce4f7240. A concurrent upstream storage backend selector
+conflicted with old WIP; retaining both selectors resolved it without changing
+assertions. Old+1/+8 edits remain unstaged; autostashba4408aa retained. Only this
+receipt/journal is staged. The reviewed packaging sources match b0 exactly;
+later A1/L1/B1/L2 compiler changes are outside this frozen receipt. No active A2
+build/Git child. Documentation-only: runtime profiling is inapplicable. ROOT
+retains deployment/final runtime gates; no runtime published by this task.
 B2 publication reconciliation: scoped observation/receipt commit8de8f238; normal merge48ff2499 preserves incoming history throughce4f7240, including concurrent parser/body/backend work and all journal entries. Eight affected native build actions PASS. On that merge, unit-admission/backend-ir/dependency-units/calibrated backend overlap PASS;16-unit32-body dependency control workers1/8 exact source/canonical/optimized objects and merged native42/42 PASS. This is focused integration validation only, not new scaling acceptance or relabeling of frozenb0f507c6 measurements. Raw merged logs/artifacts retained beside the original evidence; no runtime production edits by B2.
 Publication reconciliation: implementation c635afae committed, then required ff-only pull found published ce4f7240. Complete-history mergeb56b95e1 preserves A1 checked body/declaration admission (ddcacc9d lineage), L1 transactional backend import041912d1 and B1 LR46167039. Only conflict was storage_main imports/selectors; both known-scan and backend-import retained. Both journal histories preserved. These previously pending A1/L1 source adoptions are now present in the merge, superseding the pre-merge adoption limitation above; no L2 rewrite of their methods.
 
