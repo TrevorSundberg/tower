@@ -51,23 +51,23 @@ struct LRLinkOutput {
     links: vector(LRPropagationLink)*;
 }
 
-fn lr_lalr_apply(graph: LRPropagation*, link: LRPropagationLink*): bool {
+fn lr_lalr_apply_result(graph: LRPropagation*, link: LRPropagationLink*): WorkBudgetError {
     if link.first == LRTokenPropagation {
-        return lr_propagation_edge(graph, link.source, link.destination);
+        return lr_propagation_edge_result(graph, link.source, link.destination);
     }
-    return lr_propagation_seed(graph, link.destination, link.first, link.last);
+    return lr_propagation_seed_result(graph, link.destination, link.first, link.last);
 }
 
-fn lr_lalr_link(value: LRStates*, output: LRLinkOutput*, source: usize, state: usize, item: LRItem*): bool {
+fn lr_lalr_link_result(value: LRStates*, output: LRLinkOutput*, source: usize, state: usize, item: LRItem*): WorkBudgetError {
     var destination = lr_lalr_index(value, state, item);
     if destination == lr_none() {
-        return false;
+        return WorkBudgetError.Invalid;
     }
     var link: LRPropagationLink = { source: source, destination: destination, first: item.first, last: item.last };
     if output.links != null {
-        return lr_append(output.links, &link);
+        return lr_push_result(output.links, link);
     }
-    return lr_lalr_apply(output.graph, &link);
+    return lr_lalr_apply_result(output.graph, &link);
 }
 
 fn lr_lalr_destination(value: LRStates*, state: LRState*, symbol: usize): usize {
@@ -122,7 +122,7 @@ fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
 // entire closure for every symbol makes wide expression grammars quadratic.
 // Range containment matches lr_items_shift, including overlapping terminals.
 // Advancing a dotted position preserves item order and cannot create duplicates.
-fn lr_kernel_shift(analysis: LRAnalysis*, cached: LRKernelClosure*): bool {
+fn lr_kernel_shift_result(analysis: LRAnalysis*, cached: LRKernelClosure*): WorkBudgetError {
     var closure = &cached.state;
     foreach (var &item in &closure.items.values) {
         var rule = &analysis.rules[item.rule];
@@ -151,13 +151,18 @@ fn lr_kernel_shift(analysis: LRAnalysis*, cached: LRKernelClosure*): bool {
             }
             // These immutable kernels are consumed by propagation, never closed
             // again. They need neither sorted insertion nor a pending work copy.
-            if !vector_push(&cached.next.data[i].values, advanced) { return false; }
+            var error = lr_push_result(&cached.next.data[i].values, advanced);
+            if error != WorkBudgetError.None { return error; }
         }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
-fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
+fn lr_kernel_closure_result(analysis: LRAnalysis*, kernel: LRItem*, error: WorkBudgetError*): LRKernelClosure* {
+    *error = WorkBudgetError.Invalid;
+    if analysis == null || kernel == null || kernel.rule >= analysis.rule_count
+        || kernel.position > analysis.rules[kernel.rule].count { return null; }
+    *error = WorkBudgetError.Memory;
     var cached = alloc(LRKernelClosure, 1);
     var missing = cached == null;
     if missing {
@@ -176,6 +181,7 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
     seed.last = LRTokenPropagation;
     var ok = lr_items_insert(closure.items, &seed);
     ok &&= lr_items_close(analysis, closure.items, true);
+    *error = ok ? WorkBudgetError.None : lr_items_error(closure.items);
     var index: usize = 0;
     loop {
         if !ok {
@@ -189,7 +195,8 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
         var rule = &analysis.rules[item.rule];
         if item.position < rule.count {
             var symbol = rule.begin + item.position;
-            ok = lr_state_symbol(analysis, closure, symbol);
+            *error = lr_state_symbol_result(analysis, closure, symbol);
+            ok = *error == WorkBudgetError.None;
         }
         index++;
     }
@@ -205,17 +212,19 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
         var next = lr_items_create();
         missing = next == null;
         if missing {
+            *error = WorkBudgetError.Memory;
             ok = false;
             break;
         }
-        ok = vector_push(&cached.next, next);
+        *error = lr_push_result(&cached.next, next);
+        ok = *error == WorkBudgetError.None;
         if !ok {
             lr_items_destroy(next);
             break;
         }
         index++;
     }
-    ok &&= lr_kernel_shift(analysis, cached);
+    if ok { *error = lr_kernel_shift_result(analysis, cached); ok = *error == WorkBudgetError.None; }
     if ok {
         return cached;
     }
@@ -225,31 +234,29 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
 
 // All closures and state bases are immutable before a worker enters here.
 // Cache construction is deliberately outside this helper.
-fn lr_lalr_kernel_cached(value: LRStates*, output: LRLinkOutput*, state_index: usize,
-source: usize, cached: LRKernelClosure*): bool {
+fn lr_lalr_kernel_cached_result(value: LRStates*, output: LRLinkOutput*, state_index: usize,
+source: usize, cached: LRKernelClosure*): WorkBudgetError {
     var closure = &cached.state;
     var state = value.states.data[state_index];
     var index: usize = 0;
     for(; index != closure.items.values.length; index++) {
         var item = &closure.items.values.data[index];
         if value.analysis.rules[item.rule].count == 0 {
-            var ok = lr_lalr_link(value, output, source, state_index, item);
-            if !ok {
-                return false;
-            }
+            var error = lr_lalr_link_result(value, output, source, state_index, item);
+            if error != WorkBudgetError.None { return error; }
         }
     }
     index = 0;
     loop {
         var done = index == closure.symbols.length;
         if done {
-            return true;
+            return WorkBudgetError.None;
         }
         var symbol = closure.symbols.data[index];
         var destination = lr_lalr_destination(value, state, symbol);
         var missing = destination == lr_none();
         if missing {
-            return false;
+            return WorkBudgetError.Invalid;
         }
         var next = cached.next.data[index];
         var position: usize = 0;
@@ -260,10 +267,8 @@ source: usize, cached: LRKernelClosure*): bool {
             }
             var item = &next.values.data[position];
             if lr_kernel(value.analysis, item) {
-                var ok = lr_lalr_link(value, output, source, destination, item);
-                if !ok {
-                    return false;
-                }
+                var error = lr_lalr_link_result(value, output, source, destination, item);
+                if error != WorkBudgetError.None { return error; }
             }
             position++;
         }
@@ -271,22 +276,22 @@ source: usize, cached: LRKernelClosure*): bool {
     }
 }
 
-fn lr_lalr_kernel(value: LRStates*, graph: LRPropagation*, state_index: usize, source: usize,
-kernel: LRItem*, cache: LRKernelClosure**): bool {
+fn lr_lalr_kernel_result(value: LRStates*, graph: LRPropagation*, state_index: usize, source: usize,
+kernel: LRItem*, cache: LRKernelClosure**, count: usize): WorkBudgetError {
     var key = value.analysis.rules[kernel.rule].begin + kernel.rule + kernel.position;
+    if key >= count { return WorkBudgetError.Invalid; }
     if cache[key] == null {
-        cache[key] = lr_kernel_closure(value.analysis, kernel);
-    }
-    if cache[key] == null {
-        return false;
+        var error = WorkBudgetError.None;
+        cache[key] = lr_kernel_closure_result(value.analysis, kernel, &error);
+        if cache[key] == null { return error; }
     }
     var output: LRLinkOutput = default;
     output.graph = graph;
-    return lr_lalr_kernel_cached(value, &output, state_index, source, cache[key]);
+    return lr_lalr_kernel_cached_result(value, &output, state_index, source, cache[key]);
 }
 
-fn lr_lalr_state_links(value: LRStates*, cache: LRKernelClosure**, state_index: usize,
-links: vector(LRPropagationLink)*): bool {
+fn lr_lalr_state_links_result(value: LRStates*, cache: LRKernelClosure**, count: usize, state_index: usize,
+links: vector(LRPropagationLink)*): WorkBudgetError {
     var state = value.states.data[state_index];
     var output: LRLinkOutput = default;
     output.links = links;
@@ -297,26 +302,24 @@ links: vector(LRPropagationLink)*): bool {
         }
         var key = value.analysis.rules[item.rule].begin + item.rule + item.position;
         // Missing immutable input is a failed job, never lazy cache mutation.
-        if cache[key] == null || !lr_lalr_kernel_cached(value, &output, state_index,
-        state.base + i, cache[key]) {
-            return false;
-        }
+        if key >= count || cache[key] == null { return WorkBudgetError.Invalid; }
+        var error = lr_lalr_kernel_cached_result(value, &output, state_index, state.base + i, cache[key]);
+        if error != WorkBudgetError.None { return error; }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 // The same ordered algorithm serves serial construction and private worker output.
-fn lr_lalr_state_actions(value: LRStates*, graph: LRPropagation*, state_index: usize,
-actions: vector(LRAction)*): bool {
+fn lr_lalr_state_actions_result(value: LRStates*, graph: LRPropagation*, state_index: usize,
+actions: vector(LRAction)*): WorkBudgetError {
     var state = value.states.data[state_index];
     actions.length = 0;
     foreach(var & edge in &state.edges) {
         var symbol = &value.analysis.symbols[edge.symbol];
         if symbol.nonterminal == lr_none() {
             var action: LRAction = { first: symbol.first, last: symbol.last, rule: lr_none(), state: edge.state };
-            if !lr_append(actions, &action) {
-                return false;
-            }
+            var error = lr_push_result(actions, action);
+            if error != WorkBudgetError.None { return error; }
         }
     }
     for(var index: usize = 0; index < state.items.values.length; index++) {
@@ -325,58 +328,56 @@ actions: vector(LRAction)*): bool {
             var ranges = &graph.nodes[state.base + index].ranges;
             foreach(var & range in ranges) {
                 var action: LRAction = { first: range.first, last: range.last, rule: item.rule, state: lr_none() };
-                if !lr_append(actions, &action) {
-                    return false;
-                }
+                var error = lr_push_result(actions, action);
+                if error != WorkBudgetError.None { return error; }
             }
         }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
-fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
+fn lr_lalr_actions_result(value: LRStates*, graph: LRPropagation*): WorkBudgetError {
     for(var i: usize = 0; i < value.states.length; i++) {
-        if !lr_lalr_state_actions(value, graph, i, &value.states.data[i].actions) {
-            return false;
-        }
+        var error = lr_lalr_state_actions_result(value, graph, i, &value.states.data[i].actions);
+        if error != WorkBudgetError.None { return error; }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
-fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool {
+fn lr_lalr_seed_result(value: LRStates*, graph: LRPropagation*, constructs: bool): WorkBudgetError {
     var seed: LRItem = default;
     var start = lr_lalr_index(value, 0, &seed);
     if start == lr_none() {
-        return false;
+        return WorkBudgetError.Invalid;
     }
-    var ok = lr_propagation_seed(graph, start, LRTokenEnd, LRTokenEnd);
-    if !ok {
-        return false;
-    }
+    var error = lr_propagation_seed_result(graph, start, LRTokenEnd, LRTokenEnd);
+    if error != WorkBudgetError.None { return error; }
     if constructs {
         var owner = value.analysis.rules[0].owner;
         var first = &value.analysis.nonterminals[owner].first;
         foreach(var & range in first) {
-            ok = lr_propagation_seed(graph, start, range.first, range.last);
-            if !ok {
-                return false;
-            }
+            error = lr_propagation_seed_result(graph, start, range.first, range.last);
+            if error != WorkBudgetError.None { return error; }
         }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
-fn lr_states_propagation_begin(value: LRStates*, constructs: bool): LRPropagation* {
+fn lr_states_propagation_begin_result(value: LRStates*, constructs: bool, error: WorkBudgetError*): LRPropagation* {
+    *error = WorkBudgetError.Invalid;
+    if value == null || value.analysis == null || value.states.length == 0 || value.analysis.rule_count == 0 { return null; }
     var count: usize = 0;
     foreach(var state in &value.states) {
         state.base = count;
+        if state.items.values.length > ~convert(usize, 0) - count { return null; }
         count += state.items.values.length;
     }
-    var graph = lr_propagation_create(count);
+    var graph = lr_propagation_create_result(count, error);
     if graph == null {
         return null;
     }
-    if !lr_lalr_seed(value, graph, constructs) {
+    *error = lr_lalr_seed_result(value, graph, constructs);
+    if *error != WorkBudgetError.None {
         lr_propagation_destroy(graph);
         return null;
     }
@@ -384,7 +385,16 @@ fn lr_states_propagation_begin(value: LRStates*, constructs: bool): LRPropagatio
 }
 
 fn lr_states_propagation_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): LRPropagation* {
-    var graph = lr_states_propagation_begin(value, constructs);
+    var error = WorkBudgetError.None;
+    var count = lr_lalr_cache_count(value, &error);
+    if error != WorkBudgetError.None { return null; }
+    return lr_states_propagation_cached_result(value, constructs, cache, count, &error);
+}
+
+fn lr_states_propagation_cached_result(value: LRStates*, constructs: bool, cache: LRKernelClosure**,
+count: usize, error: WorkBudgetError*): LRPropagation* {
+    if cache == null { *error = WorkBudgetError.Invalid; return null; }
+    var graph = lr_states_propagation_begin_result(value, constructs, error);
     if graph == null {
         return null;
     }
@@ -412,7 +422,8 @@ fn lr_states_propagation_cached(value: LRStates*, constructs: bool, cache: LRKer
             var item = &state.items.values.data[index];
             if lr_kernel(value.analysis, item) {
                 var source = state.base + index;
-                ok = lr_lalr_kernel(value, graph, state_index, source, item, cache);
+                *error = lr_lalr_kernel_result(value, graph, state_index, source, item, cache, count);
+                ok = *error == WorkBudgetError.None;
             }
             index++;
         }
@@ -426,27 +437,50 @@ fn lr_states_propagation_cached(value: LRStates*, constructs: bool, cache: LRKer
 }
 
 export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): bool {
-    var graph = lr_states_propagation_cached(value, constructs, cache);
-    if graph == null {
-        return false;
-    }
+    var error = WorkBudgetError.None;
+    var count = lr_lalr_cache_count(value, &error);
+    return error == WorkBudgetError.None && lr_states_lalr_cached_result(value, constructs, cache, count) == WorkBudgetError.None;
+}
+
+fn lr_states_lalr_cached_result(value: LRStates*, constructs: bool, cache: LRKernelClosure**, count: usize): WorkBudgetError {
+    var error = WorkBudgetError.None;
+    var graph = lr_states_propagation_cached_result(value, constructs, cache, count, &error);
+    if graph == null { return error; }
     defer lr_propagation_destroy(graph);
-    return lr_propagation_solve(graph) && lr_lalr_actions(value, graph);
+    error = lr_propagation_solve_result(graph);
+    return error != WorkBudgetError.None ? error : lr_lalr_actions_result(value, graph);
+}
+
+fn lr_lalr_cache_count(value: LRStates*, error: WorkBudgetError*): usize {
+    *error = WorkBudgetError.Invalid;
+    if value == null || value.analysis == null || value.analysis.failed || value.states.length == 0
+        || value.analysis.rule_count == 0
+        || value.analysis.symbol_count > ~convert(usize, 0) - value.analysis.rule_count { return 0; }
+    var count = value.analysis.symbol_count + value.analysis.rule_count;
+    if count > ~convert(usize, 0) / sizeof(LRKernelClosure*) { return 0; }
+    *error = WorkBudgetError.None;
+    return count;
 }
 
 export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
-    var count = value.analysis.symbol_count + value.analysis.rule_count;
+    return lr_states_lalr_result(value, constructs) == WorkBudgetError.None;
+}
+
+export fn lr_states_lalr_result(value: LRStates*, constructs: bool): WorkBudgetError {
+    var error = WorkBudgetError.None;
+    var count = lr_lalr_cache_count(value, &error);
+    if error != WorkBudgetError.None { return error; }
     var cache = alloc(LRKernelClosure*, count);
     if cache == null {
-        return false;
+        return WorkBudgetError.Memory;
     }
     fill(cache, 0, count *sizeof(LRKernelClosure*));
-    var ok = lr_states_lalr_cached(value, constructs, cache);
+    error = lr_states_lalr_cached_result(value, constructs, cache, count);
     for(var i: usize = 0; i < count; ++i) {
         lr_kernel_closure_destroy(cache[i]);
     }
     free(cache);
-    return ok;
+    return error;
 }
 
 export fn lr_states_action_count(value: LRStates*, index: usize): usize {

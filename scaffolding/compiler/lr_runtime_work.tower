@@ -96,14 +96,14 @@ export fn lr_runtime_create_work_result(source: LRStates*, anchor: void*, count:
     var jobs: LRRuntimeTask*[WorkPoolMaximumCapacity];
     if count == 0 || count > sizeof(decltype(jobs)) / sizeof(LRRuntimeTask*)
         || count > source.states.length || anchor == null { return null; }
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
     var graph: WorkGraph;
-    work_init(&graph, 1, 0);
+    if !work_init_budget(&graph, 1, 0, budget) { *error = lr_work_error(&graph); return null; }
     defer work_dispose(&graph);
     var admission: ParserAdmission = default;
     *error = parser_admission_open_result(&admission, anchor, count);
     if *error != WorkBudgetError.None { return null; }
     defer parser_admission_close(&admission, &graph);
-    var budget = compiler_world_work_budget(compiler_node_world(anchor));
     var value = lr_runtime_open(budget, error);
     if value == null { return null; }
     defer lr_runtime_destroy(value);
