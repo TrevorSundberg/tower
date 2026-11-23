@@ -88751,7 +88751,7 @@ before Node threw; explicit test-only fflush exposed the receipt without changin
 the failing assertion.
 
 Matched successful/failing package selector 'round trip|untrusted packages' runs
-three unchanged checks before/after on the same mounted inputs, warm cache/fresh
+three unchanged program checks before/after, warm cache/fresh
 Node22.23.5 process, n1 each: wall3.69/3.85s, CPU2.02/2.17s, peak209428/208956KiB,
 all three passed. These include reactor startup/source transport and do not show
 a runtime speedup or establish a performance regression: production code is
@@ -88795,3 +88795,18 @@ identity; these old reactors cannot accept or reject those later fixes. Reuse
 unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
 two minimal cases on its next affected reactor. Worktree/todo/history preserved,
 all owned jobs drained; normal main push follows, no runtime deployment.
+
+Merged package acceptance: origin c299b862 was merged completely as
+d7d18868f13d95acaa05a5b1415e48fe06c11247, preserving independent fixtures and the
+Foundation storage transport repair. The dependency build reports no work; reactor
+hash remains0be1798cc07be921fb0b6da212064e4f5336fcfef1e3234915b517e7eb006130.
+Full IDE passes again (11.75s wall/10.38s CPU/225184KiB); bytecode passes5/5 with
+zero skips (4.04s/2.60s/208844KiB). Merged source/resource/transport manifest is
+52f7fe0e4b4eab4e3c0d1966ccbd335e14c40fd06caa0435bf29120ca3e61983. Logs are
+ a1_package_merged_*. The earlier matched selector holds its selected program
+inputs constant; the mounted catalogue includes changed, unused test text and the
+reactor's fixture exports differ. It is not an identical-whole-artifact throughput
+comparison. No production performance conclusion is drawn from these n1 samples.
+All owned jobs drained; todo hash remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Normal source push follows; final generation/hosted release remains ROOT-owned.
