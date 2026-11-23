@@ -81507,3 +81507,22 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+
+Post-commit required ff-only pull fetched189e392 and exited128 on divergence;
+complete-history merge484c05effcfb6c7368433f28821c8581ca303b7a succeeded cleanly.
+Incoming parser diagnostics and semantic layout/lifecycle/lowering changed the
+compiler closure, so the same dependency target rebuilt9 affected actions:
+101.38wall/98.95CPU/761172KiB, exit0. No unchanged broad matrix was repeated.
+Merged dependency-units passes20.70wall/34.69CPU/772796KiB, zero swaps; success
+compile intervals9.373894/3.707519s for1/4workers, observed threads and peaks1/4.
+Cycle controls3.985441/3.377974s preserve exact diagnostic bytes/offset/unit order.
+Known answers/canonical bytes still match; query-smoke passes .30wall/.33CPU/
+71800KiB. Both stderr files are empty; all Tower/build input hashes verify.
+Final runner SHA0598886da5810ae2768bdc02af0db1a9f2117c7415e9adff34452ec6287c8eb0.
+These merged costs are another frozen acceptance receipt, not an attributed
+speedup from this test-only change. The same logical imported path deliberately
+has a cyclic snapshot only in unit2, also checking private module environments.
+All owned jobs drained, original0,2 container affinity restored and D1 heavy lock
+released. Commit65ff524 owns the regression; final documentation/push hash is in
+D1 status. todo and portable stale-ticket work remain unchanged. ROOT retains
+integrated instrumentation/platform/release verification; none was claimed here.

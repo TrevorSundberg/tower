@@ -3170,3 +3170,12 @@ and observed four-thread/peak4 overlap, with a serial peak1 control. Whole proce
 22.64wall/36.80CPU/729004KiB; query-smoke .37s/71588KiB also passes. Source hashes
 verify. The journal preserves fixture compile corrections and exact scope; no
 old native/type timeout or deferred instrument gate is relabeled as passed.
+
+Final source484c05eff integrates newer parser diagnostics and lifecycle/layout/
+lowering. The affected9-action rebuild and both focused cases pass again:
+dependency-units20.70wall/34.69CPU/772796KiB, query-smoke .30s/71800KiB, zero swaps.
+Success still observes four distinct threads/peak4, and the true-cycle variant
+keeps exact error bytes/offset/order. Identical logical import names with different
+private snapshots exercise environment isolation. Frozen source checks pass;
+fixture commit65ff524 adds no production code. Final broad/platform/release gates
+remain explicitly outside this bounded acceptance batch.
