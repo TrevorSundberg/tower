@@ -1,5 +1,6 @@
 import tower;
 import fast_interpreter;
+import fast_interpreter_types;
 import interpreter;
 
 var BytecodeContainerVersion: u64 = 1;

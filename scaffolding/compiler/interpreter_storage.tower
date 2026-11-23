@@ -68,7 +68,7 @@ fn im_storage_result(m: IMState*, result: WorkBudgetError): bool {
     return false;
 }
 
-// Remaining Fast and diagnostic allocation failure retains the fatal host policy.
+// Remaining diagnostic allocation failure retains the fatal host policy.
 // Guest allocation itself has a separate, recoverable null-result contract.
 extern fn abort(): void;
 
