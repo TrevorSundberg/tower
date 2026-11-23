@@ -97,9 +97,8 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
 }
 
 export fn sem_layout_execute(c: SemanticContext*): usize {
-    if c.workers.count == 0 {
-        sem_require(sem_workers_open(c));
-    }
+    if !sem_ok(c) || !work_ok(&c.queries) { return 0; }
+    if c.workers.count == 0 && !sem_workers_open(c) { return 0; }
     var receipt: WorkReservation = default;
     var extra: usize = 0;
     defer sem_workers_release(c, &receipt);

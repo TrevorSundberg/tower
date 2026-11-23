@@ -1200,3 +1200,161 @@ commands. TSan/current full type/bootstrap/browser/generation/release evidence
 remains pending; external LLVM is uninstrumented and source-language UBSan is
 not supplied by this path. The matched runtime profile is ready but waiting for
 a fresh quiet window; no old profile is being relabeled for this caller change.
+
+### A1 caller profile and nested pool accounting follow-up (2026-11-23)
+
+The committed caller fix0beeb8aa now has its matched quiet-window profile:
+source pair b584+L2draft411 before/after the four A1 callers, frozen native
+compilers1adcfd8b/6910c461 and a separately preserved identical resource tree.
+The later ROOT556/L2history/B2 draft and pool edits are not profile inputs.
+One excluded warmup plus three alternating pairs for small/large staged inputs,
+workers1/4, Linux x64 host/wasm32 interpreted target, CPU0-11/24GiB. All32
+expected outputs, serial/parallel canonical Foundation comparisons and reparse
+pass. Medians wall seconds / CPU seconds / peak RSS KiB:
+
+| Input/workers | Before | After |
+| --- | --- | --- |
+| small/1 | 1.19 / 1.12 / 178972 | 1.16 / 1.09 / 179372 |
+| small/4 | 1.05 / 1.21 / 195968 | 1.05 / 1.21 / 197108 |
+| large/1 | 1.16 / 1.10 / 178776 | 1.16 / 1.09 / 179320 |
+| large/4 | 1.06 / 1.23 / 196964 | 1.06 / 1.22 / 195272 |
+
+No wall regression is observed in these short samples; the small serial change
+is not a broad speedup claim. Actual failure cases independently check zero
+live ledger grants after teardown and unchanged entity/component counts on
+repeated failed pumps. No allocation/idle-time census or universal race-freedom
+claim follows. Logs semantic_query_failure_paired1 and every per-run time/output
+retain the exact commands. A2 granted/released the bounded quiet window; no
+compiler build overlapped it. These results close this caller's pending matched
+profile only, not A1 acceptance or final integrated instrumentation/publication.
+
+Full ROOT556 history was merged as2ae4a81d. The sole runner conflict retained
+EXACT incoming D1 receipt/order registration; the already adopted phase fixture
+was identical. L2 fullf035 history was then verified against every path of the
+local411 draft before replacing that identical draft with owner history in
+d8a2b7b7. Its sole context conflict preserves A1's Stale/Exhausted messages.
+L2's stage/view/publication Memory classification is still present in f035;
+full history does not imply that pending correction has landed.
+
+ROOT authorized exact B2_world_output_import_current.patch f2607e12 for the
+actual peak-minus-one reproduction. All source/audit hunks were applied without
+rewriting B2 logic; the exact WASM cancellation hunk was already present and
+verified in reverse. The309-line append-only B2 journal addition was preserved
+verbatim at the current journal end because the old EOF/base blob could not
+support an automatic three-way application. That failed atomic attempt changed
+no files. B2 draft files remain separately owned/uncommitted pending its history.
+The resulting pre-pool native21-action build passed116.89wall/83.77user/6.16sys/
+746728KiB and saved compiler05dfe8a3.
+
+A narrow temporary Tower driver at A1 cache/semantic_peak_probe.tower calls
+UNCHANGED B2 frontend_units_memory_tests, reusing units_read to load resource
+text. Its first version passed filenames instead of source text and failed
+Bedrock validation before the target; that orchestration failure is preserved.
+Corrected driver reproduces actual reference answer42 followed by the
+peak-minus-one Capacity oracle failing with Cannot allocate semantic storage.
+The first GDB receipt breakpoints were optimized away at the call sites and
+only observed the final oracle abort; they did NOT identify the producer.
+Further localization is open. No null-to-Memory assumption or oracle change
+has been adopted, and no L2/B2 production function is edited by A1.
+
+New complete file audit: scaffolding/tests/semantic_pool_budget_checks.tower,
+reviewed at d8a2b7b7 plus this draft; living semantic census58. The fixture owns
+a synchronized world budget and real semantic context, derives slot payload
+bytes from actual pool count/type and physical bytes from
+compiler_buffer_allocation_size, and checks byte-only reservation ownership,
+healthy retention, denied direct/declaration/layout entries, terminal failure
+after pressure release, repeated no-growth calls and complete teardown. Widths
+4/8 and workers1/4 produce16 cases. The existing generic fixture still binds
+after its legacy world constructor: this tests pool grants, not prebound world
+constructor accounting. Public unit1 failed on unavailable nonexported sem_ok;
+unit2 uses the actual public program receipt/text observations and compiles.
+Same fixture2 on the coherent before union exits1 (.02wall/.01CPU/50716KiB),
+showing unaccounted slots and ignored denial. Runtime after validation is pending.
+
+Implementation draft, nine A1 production files: semantic_context binds the
+existing work_pool_open_budget to the root's world ledger, preserves its typed
+failure without allocating diagnostics and rejects retries after sticky failure.
+The ten formerly asserting opens in evaluation, preparation, executable,
+declaration, body, layout, flow and lowering return to their owning pump; the
+existing checked known-work path remains. Body pumping also stops after failed
+layout inputs. No shared layout, second scheduler, extra lane grant or ownership
+policy was introduced. These opens precede worker dispatch; failed pool cleanup
+belongs to the existing WorkPool constructor and normal context teardown.
+Smallest context compilation passes. New before/after pool profiles, current
+ASan/TSan, additional affected smokes and integrated release remain pending.
+Normal semantic graph construction and other assertion-based resource paths
+remain explicit open work.
+
+### A1 pool budget validation and producer trace (2026-11-23)
+
+The nine-path pool change passes the same immutable16-case fixture that failed
+before: after .02wall/.01CPU/51184KiB versus before .02wall/.01CPU/50716KiB.
+The incremental native build took22.19wall/15.31user/1.24sys/746624KiB.
+Two existing A1 fixtures had applied pressure before the formerly uncharged
+pool allocation. query1 therefore failed32 order cases before their intended
+interpreter-startup denial; after moving actual pool admission before pressure,
+query2 reached a separate publication-fixture null assumption and SIGSEGV.
+GDB localized publish_trial. That fixture now opens its actual pool after input
+construction, reserves measured remaining bytes minus the unchanged phase
+allowance, and requires postjoin retention to equal the measured pool baseline
+plus its independent pressure grant. Cancelled entry still opens no pool.
+All publication, ordering, atomic-output, retry and failure assertions remain.
+The first order-unit rebuild also rejected imports after the new extern; moving
+the declaration below imports fixes that syntax error. Failed logs are retained.
+Smallest corrected units, runner3 and full query3 pass, including32 order cases.
+The new16 cases independently cover pool admission denial and terminal retries.
+
+Matched pool profile: frozen d8a2b7b7+B2f260 before compiler05dfe8a3fac9a968064e8065ff84d71b26cbbda7257f29da0b281232aaa5ff61,
+after5192ae8294e721f1b96541e84cd5a22f5ecf76b979cd71a1e596b7b13a545471;
+only the nine owned production paths differ. Identical saved resources and
+small/large resource_hook_profile programs; native Linux x64 compiler,
+wasm32-unknown-unknown interpreted target, explicit jobs1/4, CPU0-11/24GiB.
+One excluded warmup then three alternating pairs per cell, all32 outputs checked;
+serial/parallel canonical Foundation and reparse also pass. A2 fresh reciprocal
+quiet grant09:22:07, A1 run09:23:49, session3672 drained0 and released immediately.
+Medians below are wall/CPU seconds and peak RSS KiB (CPU=user+system per sample).
+
+| Input/workers | Before wall/CPU/RSS | After wall/CPU/RSS |
+| --- | --- | --- |
+| small/1 | 1.17/1.10/178740 | 1.18/1.12/178592 |
+| small/4 | 1.06/1.21/197040 | 1.05/1.21/196020 |
+| large/1 | 1.16/1.09/178504 | 1.17/1.10/178260 |
+| large/4 | 1.05/1.22/197056 | 1.06/1.24/196588 |
+
+The observed .01second wall changes and <=.02CPU changes are small in these
+short samples; three pairs do not establish statistical neutrality or broad
+speedup. RSS medians fall slightly in every cell. The implementation adds a
+terminal receipt check and charges retained slots once, without an extra lane
+grant; repeated admission and teardown assert exact grants, physical header
+bytes and zero final retention. No excessive-memory growth was observed. This
+is not a scheduler idle-time/critical-path census or whole compiler heap budget.
+All commands and samples remain in semantic_pool_budget_paired1/per-run logs.
+
+The B2 peak-minus-one cause is now localized beyond the earlier optimized
+breakpoint attempt. A public-pin --no-optimize semantic aggregate, linked with
+the actual unchanged other providers, reaches sem_resource_record(Memory,3436)
+from frontend_compile_sources before semantic_compile. Actual getters report
+syntax_session_resource_error=Memory, syntax_get_error="Unable to allocate
+replacement preparation storage", frontend_module_resource_error=None and
+empty module text. Thus the cause already comes from B1 syntax replacement
+preparation; the underlying failing replacement operation remains unlocalized.
+No claim that semantic attachment or a generic constructor caused this denial.
+The optimized unchanged fixture independently preserves its failed Capacity
+oracle. Debugger stack offsets were derived from that exact unoptimized binary,
+not adopted as source layout assumptions. ROOT requested/routed the handoff:
+A1_peak_replacement_trace.zip SHA256b1c1ab5963a7cbd4ababc1454d90b0f8629ff7b32a839a4627895d4b6eda2b96
+contains the Tower driver, trace2/3, source deltas, public-pin/provider recipes
+and explicit provenance/limitations. B1 owns the producer correction. L2's
+separate pending stage Memory fallback is not resolved by this finding.
+
+After all jobs drained, complete ROOT351 history was verified and merged as
+9f1b8021. Every B2 draft production path matched incoming history; only incoming
+backend_units refined physical component receipts and B2 audit additions were
+newer, so those are retained. New world_constructor content matched its incoming
+Git blob exactly. Full premerge state remains in stash38de7892 and a binary
+patch; the owned11-file delta/new fixture and unique journal append were restored
+separately. No copied B2 production remains as an A1 draft or commit. Existing
+owner histories and todo are preserved. Current merged native/instrumented
+checks are pending; earlier results retain their exact frozen source identities.
+The full A1 goal, semantic graph constructor/assertion paths, final public
+bootstrap/native/browser/generation and leased release evidence remain open.
