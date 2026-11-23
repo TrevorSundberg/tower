@@ -90400,3 +90400,83 @@ their owner receipts and are not compiled into eac. In particular L1's newly
 published type-return repair is not retroactively tested by the old reactor.
 Exact mismatch lists are in merged_host_check.log/merged_resources_check.log.
 Reuse the unchanged selected evidence; no redundant rerun or expanded audit.
+
+### D2 synthetic deployment packaging gate (2026-11-23)
+
+Frozen published source c8e1d10b; scope is the existing
+playground/tests/build-packaging.test.mjs filesystem/process boundary, not
+compiler execution or hosted deployment. Reviewed the complete changed fixture,
+production build.mjs/build-bootstrap.sh callers, targets.mjs input contract,
+package_playground_assets.tower, build_tools.tower, and relevant shared file/gzip
+helpers. README Checks and the earlier Tower packager migration receipt define
+the division: Node collects/bundles files and enforces capability prerequisites;
+Tower compresses LLVM/cross bytes and hashes sorted emitted paths, publishing the
+manifest last. Existing production rules are correct for the tested contract;
+no Tower producer/runtime change or alternate packaging implementation is needed.
+
+The old cached packager dated Nov22 has a stale depfile referring to removed
+scaffolding/types/integer.tower and other split type modules. Preserved its bytes
+and depfile; did not relabel it current. Built only package_playground_assets and
+its tool/runtime prerequisites with the documented public entry:
+`TOWER_BUILD_JOBS=1 TOWER_TOOLS_BUILD=/tmp/tower-home/.cache/tower/tools bash
+playground/scripts/build-bootstrap.sh --tools package_playground_assets`, with
+TOWER_BOOTSTRAP_COMPILER unset. The entry verified the checked-in pin/resources.
+Release/Linux x86_64, TOWER_COMPILER_JOBS=1; public towerc SHA256
+768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+result packager SHA256
+9d257830c23ad71229805950a1d9aefb69ab2a9cbf6f50794f0e0be8d5ec13ef;
+unchanged producer source SHA256
+0a02745815c05570e01dde32b3257dbe43810815b46e63bfa32172bdc7c66a41.
+Compiler-generated depfile and its actual import hashes are preserved with logs;
+closure checked unchanged after execution. No compiler/reactor build.
+
+Before: the original gate failed during fixture copy with ENOENT for the absent
+third_party/llvm-project/llvm/LICENSE.TXT, before bundling. A synthetic boundary
+fixture should not require that large source checkout. Supplied explicitly marked
+synthetic LLVM/libcxx notice bytes inside its unique temporary directory. These
+are not real distribution licenses. Source audit also found that the old fixture
+omitted the shared reactor while inheriting TOWER_REQUIRE_THREADS. Added synthetic
+threads input for the required success case; every invocation now sets BOTH
+backend/thread requirements explicitly, with an independently checked nonzero
+missing-required-threads case. Optional cases explicitly clear those requirements;
+the required case is never satisfied by absence or a skip. No production check
+or expected failure message was weakened.
+
+Added missing declared compiler-support rejection, gzip-byte comparison via
+Node's independent zlib decoder, explicit stale threads/backend/target/project
+files, and checksum/CNAME checks for both complete and optional bundles. Retained
+required-project, present-cross/missing-target and required-backend rejection.
+Spawn errors/signals cannot count as expected rejection. Each synthetic Wasm/
+archive input contains only the string `fixture`; nothing attempts to execute it.
+Cleanup remains confined to mkdtemp's owned fixture directory, including failures.
+No compiler semantics or model is implemented in JavaScript.
+
+One final affected aggregate, Node22.23.5/esbuild0.25.12, concurrency1:
+`TOWER_PLAYGROUND_ASSET_PACKAGER=/tmp/tower-home/.cache/tower/tools/bin/package_playground_assets
+TOWER_REQUIRE_BACKENDS=1 TOWER_REQUIRE_THREADS=1 node --test --test-concurrency=1
+playground/tests/build-packaging.test.mjs`. PASS1/1, zero skips, exit0. Actual
+full/optional manifests checked91/78 emitted assets respectively, including exact
+CNAME; five distinct missing-input rejection paths pass. Raw cross is removed
+only after gzip; decompressed LLVM/cross bytes equal their synthetic input.
+All owned jobs drained and heavy slot released. Syntax/diff checks pass, todo
+unchanged. Complete fixture source SHA256
+ a74681775486341c23960844b28b94415abfed6f60d2e71fbe1dedd91dcf9610
+is D1's adoption identity; production build.mjs remains
+7da1520dfe99e3691c3f762b9e7893e1af2c64b82f88faf751badd82025266fc.
+
+Measurements (`/usr/bin/time -v`, n1 each, fresh processes, filesystem caches not
+flushed; no throughput/scaling comparison): tool-only build15.21wall/14.58CPU
+seconds, peak217572KiB, exit0; original setup failure0.48wall/0.46CPU,
+peak61600KiB, exit1; repaired seven-invocation gate3.91wall/2.29CPU,
+peak66200KiB, exit0. The expanded successful check is more work than the failed
+setup, not a production performance regression or speedup. GNU time peak RSS is
+process high-water accounting, not summed concurrent live buffers or a whole-world
+memory cap; allocator retention is not measured by this filesystem gate.
+Docker tower-d2-ecs image4be584fb42a6, cpuset0,2, memory/swap limit8GiB,
+Clang19.1.1/CMake3.28.3, host dynamic frequency; disk128GiB free and RAM~10GiB
+available afterward, preexisting swap5.9GiB. No observed swaps in timed commands.
+Logs, statuses, exact source/producer/depfile identities and failed baseline:
+build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
+project assets, real notices, final bundle checks and hosted verification retain
+separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
+Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
