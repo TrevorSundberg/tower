@@ -6,6 +6,7 @@ import parser_types;
 import format_parser_table;
 import format_syntax_preview;
 import format_diagnostic;
+import .library.work_budget_types;
 
 // Diagnostic views use the shared formatter and graph. They are not program
 // serialization; format_entity remains the canonical foundation spelling.
@@ -250,18 +251,25 @@ export fn parser_tree_debug_string(root: void*): u8* {
 }
 
 export fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8* {
+    var error = WorkBudgetError.None;
+    return parser_table_utf8_id_to_string_result(userdata, id, &error);
+}
+
+export fn parser_table_utf8_id_to_string_result(userdata: void*, id: u32, error: WorkBudgetError*): u8* {
+    *error = WorkBudgetError.None;
     // One scalar needs at most four UTF-8 bytes plus quotes. Use bounded scratch
     // storage so this hot host path still allocates only its returned string.
     var scratch: u8[6];
     var result: FormatResult = default;
     result.text.data = &scratch[0];
-    result.text.capacity = 6;
+    result.text.capacity = sizeof(decltype(scratch));
     if !format_parser_scalar(&result, id) {
         return null;
     }
     var size = result.text.length + 1;
     var text = bits(u8*, compiler_buffer_allocate(size));
     if text == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     copy(text, result.text.data, result.text.length);

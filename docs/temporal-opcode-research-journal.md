@@ -80906,6 +80906,91 @@ policy/checker and24-case fixture inputs are identical, so their passing receipt
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
 
+### B1 bounded parser diagnostic ownership batch (2026-11-23)
+
+The prior parser/pattern batch5b1144bc is published: DNS recovered on the next
+user-authorized attempt, complete published636f7f93 merged as f33770ba and normal
+main push/remote-SHA verification succeeded. No prior work or logs were discarded.
+This follow-up owns diagnostic construction/destruction and its immediate callers;
+no B2 frontend startup, cache sharing, new syntax or general allocator migration.
+
+Findings and implementation: parser_recognizer_diagnostic formerly allocated its
+owner/options/labels outside the request budget and returned partial state on
+failure. Its frontend diagnostic descriptor/context arrays also lacked receipts,
+although the underlying LR probes already charged their runtime budget. The new
+parser_recognizer_diagnostic_result(request, reader, source, error) returns a whole
+owned view with None or null with the first exact WorkBudgetError. WorkBuffer and
+work_vector own these bytes; the old wrapper and public ParserDiagnostic layout
+remain. frontend_diagnostic_create_result/resource_error propagate constructor and
+probe failures. Named semantic quotas preserve normal bounded/incomplete behavior;
+candidate capacity comes from the actual array. The public FrontendExpectation
+context container and ParserStream ownership fields change with their complete
+producer/consumer history, not isolated ABI copies.
+
+Request error/lookahead text now carries its runtime budget. The allocation-free
+parser_stream_return_owned moves both the receipt and allocator identity; legacy
+parser_stream_return still accepts ordinary vectors. A returned diagnostic drops
+its LR runtime borrows and retains copied numeric contexts/owned labels, so it can
+outlive request, stream, table and world. Its explicit caller-owned WorkBudget
+must remain alive until diagnostic destruction; live receipts reject disposal.
+Shared formatter scratch and final host-text/description storage retain their
+existing contracts. Checked label-name producers distinguish absent names from
+actual allocation failure, preserving valid numeric fallback. Syntax-session and
+template callers preserve the first resource cause and original syntax message
+when optional diagnostic construction cannot complete.
+
+Validation uses one dependency-aware native target set (frontend-tests and the
+existing units-profile) and incremental recompilation of changed inputs only:
+Linux x64, public bootstrap9653, LLVM19.1.1, CPU0-11/24GiB, object jobs6/compiler1,
+existing B1 native cache. Initial failures were missing direct work_vector/vector
+imports, unsupported indexing of a string literal, reserved local name expected,
+and missing strlen prototype. All original logs remain under
+build/ecs_b1/logs/parser_diagnostic_build_*. No failing build was a test pass.
+The first runtime attempt then failed SIGSEGV inside compiler_buffer_free.
+GDB/disassembly located parser_stream_dispose freeing a legacy Tower vector with
+the compiler-buffer allocator. The corrected handoff stores an explicit storage
+family flag: an inactive ledger receipt also occurs for standalone work buffers
+and cannot identify their allocator. The failing log and read-only debugger traces
+are preserved; they are not performance measurements or sanitizer evidence.
+
+After that fix, coherent native build20.48s wall/15.20s CPU/721444KiB RSS passed.
+Focused parser (.04s/53872KiB), diagnostic revision/location (.02s/52744KiB), regex
+(.04s/51516KiB) all exited0. The fixture then added direct syntax-caller first-cause
+and aliased stream replacement checks; only fixture/relink work repeated
+(11.42s wall/7.95s CPU/442464KiB), and all three selectors passed again. Existing
+grammar-resource/template caller checks also passed1.27s/1.24s CPU/52324KiB.
+The new Tower fixture measures actual allocation count and retained footprint:
+zero-capacity rejection before allocation, partial-footprint denial, every required
+allocation failing with Memory and full cleanup, invalid reader source, preserved
+syntax message/positions/options, retry, detached lifetime through world teardown,
+and stream text/receipt ownership through request destruction. Budget disposal
+fails while a detached diagnostic remains, then succeeds with zero live bytes.
+
+One four-process comparison reused the preserved c07203d8 units baseline (its
+parser batch is unchanged through f33770ba), the same run path/cwd and immutable
+6fd resources. The after executable includes unrelated published semantic changes,
+so this is a representative integration comparison, not isolation of diagnostic
+construction cost. Warm processes, three units/bodies0, workers1/4, n1 each side:
+serial wall3459.003->3456.223ms, CPU3229.815->3233.196ms, RSS196924->197276KiB;
+parallel wall1333.833->1338.250ms, CPU3980.773->3953.630ms, RSS456756->458876KiB.
+Canonical1173729914654460811, entities48240/components55014, retained bytes
+15158986(serial)/15150626(parallel), and ledger bytes5242880/20971520 are exactly
+equal. Outer peaks1/3 and lane ceilings1/4 confirm real parallel overlap. Peak
+reserved bytes vary with schedule; all processes exit0. No precise speedup,
+neutrality or error-path latency claim follows. Error-path allocation/retention is
+covered by the checked fixture, not a separate latency microbenchmark.
+
+Profile artifacts: build/ecs_b1/cache/parser_diagnostic_profile, including source
+identities/patch and original logs. Before units SHA256
+52e31b5eb2af64f5810d9791b10dfbf0e91e2a183796f41ba4ee0cf4c0b2cd68;
+after de29797dd0ecad4d3f6b9d2bb84c3cf0f207192d81bfd80e1a7444ec8433b220;
+resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+Final fixture-only additions do not change those runtime providers. All owned
+jobs (25590,15043,84970) drained0. todo.txt remains e97d67a6 unchanged;
+git diff --check passes. Supported sanitizers, full scaling, bootstrap/browser/
+generation and hosted deployment remain pending ROOT's integrated milestone.
+Old receipts are not relabeled. Normal commit/pull/merge/push follows; B1 status
+records the final source and publication result. This bounded task then ends.
 ## 2026-11-23 A1 lifecycle mixed transformation frontier
 
 Bounded follow-up to published a2ffdedb, on clean main
@@ -81433,6 +81518,33 @@ Semantics policy; the first two are still absent by exact name in that policy
 source. Tooling remains ROOT/D2-owned; no portable gate or deployment is claimed.
 Normal main push follows this receipt. Final pushed hash is recorded in B2/status;
 no pending assignment or idle goal follows this bounded task.
+B1 final merged receipt: published e66666c9 advanced during the batch; the required
+fast-forward-only pull refused divergence and normal merge preserved both complete
+histories as73c48dacc7d16937ec7d6fefa1f4fb05ad8120f3. All diagnostic batch files
+remain identical to production d5132ed5. Incoming module/semantic changes required
+six dependency-build actions,23.57s wall/45.42s CPU/756324KiB RSS. Merged parser
+.04s/53616KiB, diagnostics .02s/52644KiB, regex .04s/51552KiB and grammar-resource
+1.26s/52520KiB all exit0. Session67630 drained0; container only init. Logs/source/
+artifact hash: build/ecs_b1/logs/parser_diagnostic_merged_*. Frontend executable
+SHA256795b9ec5c5a1bbf7972773f0699c83e28b1da39f31e1e818d0cf1d145b71f5ba.
+No profiling or broad matrix repeated; prior profiles retain their frozen source.
+
+Exact observed native interface handoff: ParserNodes now imports
+parser_presentation_buffer_result from ParserFormat; ParserFormat imports
+parser_table_non_terminal_id_to_string_result and syntax_parser_token_name_result
+from ParserNodes; TemplateBuild imports syntax_session_diagnostic_result and
+parser_recognizer_get_error from ParserNodes. The linked focused checks resolve
+these complete providers. Strict bootstrap symbol-policy/release validation is a
+ROOT/D2 integrated gate, pending for these newly observed names, not claimed passed.
+The pointer wrappers remain available. Public checked diagnostic signature is
+parser_recognizer_diagnostic_result(request, ParserDiagnosticReader, source,
+WorkBudgetError*) -> ParserDiagnostic*; syntax_session_diagnostic_result(session,
+request, repairs, WorkBudgetError*) -> u8*. Both return null on resource failure;
+the latter retains the existing compiler_buffer_free text ownership on success.
+parser_stream_return_owned accepts work_vector(u8)* and transfers its receipt;
+legacy vector handoff remains unchanged. Remaining formatter allocation and budget
+lifetime limits are documented in docs/parser.md. Final normal push/status follows;
+no gh-pages deployment is part of this bounded task.
 Lifecycle push retry1: the first normal push lost a race toe66666c9's exact
 bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
