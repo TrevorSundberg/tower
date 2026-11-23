@@ -75976,3 +75976,64 @@ was launched. Completed dfcef history remains integrated. ROOT now owns its
 remaining ordinary entity ownership work and cancelled the unused profiling hold.
 Current metadata checkpoint is not final bootstrap/browser/generation/hosted
 release acceptance; source publication remains coordinated at the final boundary.
+
+### D1 matched proof control and current race-probe composition, 2026-11-23
+
+Metadata merge a0e789324 preserves complete dba and owned bf093/D2cbe. Only the
+README append conflicted; both full target instructions and metadata-allocation
+paragraph were retained. Compiler/library/backend/bootstrap match dba exactly;
+approved Linux affinity remains cbe. No original failure receipt is relabeled.
+D2 later completed6159 with exact four-name symbol policy. Bundle72a6f18e64040b2d5353915a58fadf1b7ef77d46978d1cc92813e6770d6b4f8b
+and54MiB receipt0c98f33fad62ee5da57b67f072a8a4336a298b5886a5c050dc6fda806f33a498
+verify. Full final patch0058caa6 matches the previously reviewed draft. D1's
+actual fa15 interpreter/evaluation undefined reports also contain precisely
+compiler_world_create_result/strlen; corresponding source uses are the L1
+bounded-world/function-output fixtures. No broad prefix/allocator permission.
+
+After D2's actual12:03:40 release, D1 acquired the free lock for bounded timing
+control21803. Existing fa15 before/after proof executables run at the SAME
+/cache-equivalent lane registration-control/runner path and same repository cwd.
+Copy/cmp/hash happens outside timing after each child drains. CPU0,2, same image,
+GNU time+timeout wrapper, warmup plus nine alternating pairs per healthy/query:
+all40 statuses/empty outputs pass, both original hashes stay unchanged.
+
+| Matched control | Before median wall/CPU/RSS KiB | After |
+| --- | --- | --- |
+| Healthy | .05/.04/50240 | .05/.04/50432 |
+| Query denial | .05/.04/50304 | .03/.03/50304 |
+
+The original .02->.05 query increase is not sustained. Coarse.01s timing and
+startup still preclude a speedup/precise neutrality claim. CPU0/2 observed
+powersave frequencies were1077645/2424663kHz before and1077522/2424112 after;
+these differ by core but do not prove the original sample's cause. No unchanged
+expensive compiler matrix is justified. Logs are proof_query_matched_control;
+retained original n3 records remain alongside this bounded investigation.
+
+Next unchanged a0 race probe follows the documented top-level LLVM/full-runtime
+recipe. Session54903 public probe compile4.03wall/3.97CPU/186016KiB and Clang object/
+full-runtime compilation pass. Link fails1 on compiler_buffer_allocation_size,
+compiler_buffer_allocate and compiler_buffer_free, from WorkPool and capacity.
+This is an actual current composition failure, not a TSan finding. No probe or
+production source changed. All jobs drain; full source manifest still passes.
+
+An independent reference supplies the EXISTING host.memory object, with the
+unchanged probe and published full runtime. Build the existing instrument tool,
+compile the memory leaf3.09wall/3.06CPU/173736KiB, instrument each of the three
+original LLVM modules, then Clang-O1 object/link with compiler-rt. Tool reports
+53probe/12memory/49runtime original functions instrumented; all actual objects
+have TSan read/write hooks (output IR also contains the added module constructor).
+Existing tower-d1-ecs-sanitizers CPU0,2/8GiB settings are unchanged; no new security
+or host policy adjustment. Session13474 group0, actual probe66, wall.06s/CPU.01s/
+23208KiB. TSan reports a read by T1 and previous write by T2 at the same stack
+counter in work_kernel_execute, both real pthread workers. Retain the accompanying
+llvm-symbolizer [stack] warning and complete stacks/status, not an empty-stderr
+claim. This is a successful sensitivity test of an intentionally failing program,
+not a passing ordinary fixture or universal race-freedom evidence.
+
+Logs/IR/objects are race_probe_provider_before and race_probe_provider_reference;
+source hashes pass and both containers return idle before releasing the saved
+own lock. D1 requested ROOT's narrow standalone probe handoff because the existing
+sanitizer document assigns it to A2. Until that arrives, no provider/count source
+edit is made; the separate-provider reference is already concrete and reviewable.
+Current positive six-target instrumentation/native query and full release gates
+remain pending the next coherent source, distinct from this negative control.

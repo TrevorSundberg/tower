@@ -2808,3 +2808,16 @@ This is not atomic replacement of existing payloads or complete shared-counter
 exhaustion handling. Source review changes no runtime, so profiling the audit is
 inapplicable. ROOT's measured costs and L2's older2e3d instrumentation retain
 their actual source identities; none accepts the forthcoming D1 joined release.
+
+### Current import policy and sanitizer sensitivity review (2026-11-23)
+
+| Assigned path | Reviewed identity and substantive disposition |
+| --- | --- |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Complete D2 6159d78a8, exact reviewed patch0058caa6. Adds native/WASI positives and truncated/suffixed/wrong-unit negatives for exactly two ParserNodes forest results and Interpreter's world constructor/strlen. D1 actual fa15 object reports independently confirm those imports and entity providers; both interpreter/evaluation source units import the function-query fixture that requires them. Exact-string matcher and rejection of fault allocator hooks remain unchanged. Tests own only their existing private report/process buffers; no world, scheduler or storage representation changes. D2 old-checker exit1 and corrected native/three fresh WASI/fixture instrumentation evidence remain separately identified. No new assigned path; adopt complete history after current D1 jobs drain. |
+| scaffolding/tests/sanitizer_race_probe.tower | Current a0 source unchanged. Deliberately invalid two-worker barrier/counter race; stack jobs/counter live through joins, and pool defers before signal teardown. Current documented fixture+full-runtime link actually fails1 on compiler_buffer_allocation_size/allocate/free after public LLVM/object compilation; it is not a sanitizer result. Adding the existing separately compiled host.memory provider establishes the reference: all three Tower units carry actual TSan access hooks,53/12/49 original functions are instrumented, and exit66 reports T1/T2 racing in work_kernel_execute. The stack symbolizer warning remains in the diagnostic. No ordinary pass/race-freedom claim, no fixture edit yet. Existing docs assign the probe to A2; narrow ROOT handoff for standalone-provider/count cleanup remains pending. Its fixed two-job pool/loop/barrier extents should derive from the actual array when touched, while preserving the intentional race. |
+
+The bounded same-path proof timing control uses the existing fa15 before/after
+executables, not recompiled current sources. Warmup plus nine alternating pairs
+for healthy/query all pass; query's earlier wall increase is not sustained.
+Both binary hashes remain unchanged. This resolves the need for further unchanged
+timing reruns, without asserting a speedup or exact neutral cost at .01s resolution.
