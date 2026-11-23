@@ -94238,3 +94238,15 @@ c2c97058 with its input/provider hashes. Later semantic sources are explicitly
 excluded from that frozen run and await ROOT's final integrated adoption; no
 rebuild/repetition or claim that a prior binary tests newer source. All complete
 histories and original failures remain preserved. Diff checks pass; normal push.
+
+D1 finite-review publication reconciliation: required ff-only pull refused
+concurrent divergence; normal merge retained complete451bea0c history. Of the26
+reviewed paths, only TowerWorkTests changed after1e60; its D2 exact-zero wrapper
+and alias-negative adoption are published later inputs, excluded from this frozen
+source review (not claimed absent). Incoming A1 alias-publication repair/tests,
+B1 rejected admission trial/measurements and L2 retained large-request receipts
+are likewise preserved without relabeling this review. All24 reviewed Tower blobs
+and the backend CMake contract remain identical; audit/handoff text survived the
+merge unchanged. Source-only C incompatibility remains on unchanged producers.
+Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
+ROOT owns final runtime acceptance and release.
