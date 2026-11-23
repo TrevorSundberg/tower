@@ -31,6 +31,7 @@ extern fn entity_create(store: void*): void*;
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession*;
 
 extern fn syntax_destroy(session: void*): void;
+extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 
 extern fn syntax_reset(session: void*, source: u8*, module: FrontendModule*): void;
 
@@ -882,21 +883,34 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                         }
                         entity_release(root);
                     }
-                    var error = syntax_get_error(session);
-                    if error[0] != 0 {
-                        module_fail(result, "", error);
+                    var resource_error = syntax_session_resource_error(session);
+                    if resource_error == WorkBudgetError.None { resource_error = parent.graph.resource_error; }
+                    if resource_error != WorkBudgetError.None {
+                        // Retain the producer's cause before diagnostic allocation
+                        // or returning this imported session to its owner.
+                        module_clone_fail(parent.graph, resource_error, "Imported module failed to acquire compiler resources");
                         frontend_module_diagnostic(result, syntax_get_error_offset(session));
+                    } else {
+                        var error = syntax_get_error(session);
+                        if error[0] != 0 {
+                            module_fail(result, "", error);
+                            frontend_module_diagnostic(result, syntax_get_error_offset(session));
+                        }
+                        syntax_capture_comments(session, result);
                     }
-                    syntax_capture_comments(session, result);
                     if parent.graph.import_session != null {
                         syntax_destroy(parent.graph.import_session);
                     }
                     parent.graph.import_session = session;
                     parent.graph.depth--;
-                    module_complete(result);
-                    module_validate_cycles(result.graph);
-                    if frontend_module_error(parent)[0] == 0 {
-                        if !module_cache_store(result) { result = null; }
+                    if resource_error == WorkBudgetError.None {
+                        module_complete(result);
+                        module_validate_cycles(result.graph);
+                        if frontend_module_error(parent)[0] == 0 {
+                            if !module_cache_store(result) { result = null; }
+                        }
+                    } else {
+                        result = null;
                     }
                 }
             }

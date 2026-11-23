@@ -10,6 +10,7 @@ import syntax_session_types;
 import syntax_validation;
 import syntax_version_cache;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 
@@ -51,6 +52,10 @@ fn syntax_format_roots_dispose(roots: vector(void*)*): void {
 export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**): bool {
     var session = bits(SyntaxSession*, opaque);
     *error = "";
+    if session.resource_error != WorkBudgetError.None {
+        *error = "Unable to acquire syntax resources";
+        return false;
+    }
     if session.error.length != 0 || !session.finalized {
         return false;
     }
@@ -73,6 +78,10 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
             return false;
         }
     }
+    if source.resource_error != WorkBudgetError.None {
+        *error = "Unable to acquire syntax resources";
+        return false;
+    }
     if source.error.length != 0 {
         return false;
     }
@@ -80,7 +89,7 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     vector_init(&comments);
     defer vector_dispose(&comments);
     foreach(var & row in &source.highlights.items) {
-        if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", 7) != 0 {
+        if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", syntax_text_length("comment")) != 0 {
             continue;
         }
         if !vector_reserve(&comments, comments.length + 1) {
@@ -126,6 +135,11 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
         source.source, source.source_length, verify.source, verify.source_length, syntax, match_kind);
         same &&= matches;
         index++;
+    }
+    if verify.resource_error != WorkBudgetError.None {
+        format_dispose(output);
+        *error = "Unable to acquire syntax resources";
+        return false;
     }
     if !same || index != roots.length || verify.error.length != 0 {
         format_dispose(output);
