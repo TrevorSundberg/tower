@@ -858,6 +858,29 @@ verification/disposal. Charged bytes include the compiler header but exclude
 ledger storage, allocator-private overhead and RSS; this is buffer-accounting
 cost, not evidence of a complete compiler memory limit or useful core scaling.
 
+Two opt-in Linux x64 compiler measurements reuse the production LR/backend
+source and library composition with `TOWER_WORK_TESTS=ON` and
+`TOWER_BACKEND_TESTS=ON`. Build and run `tower-measure-frontend-units` for three
+independent units with two worker lanes and no extra bodies, or
+`tower-measure-module-cache` for the import-cache cases. Neither is a CTest test
+or part of the default build. They exclude the serial fault allocator/transport
+and export the production worker/backend callbacks.
+
+The frontend executable takes `RESOURCE_ROOT UNIT_COUNT WORKER_BUDGET BODY_COUNT
+[backend]`. Compare identical inputs with worker budgets 1/2, retaining exact
+canonical hashes and the independent answer 42 check. An equal-unit control with
+multiple requested lanes must actually overlap on distinct threads; failure
+keeps its raw measurements and exits nonzero. Skewed body workloads report their
+observed overlap without assuming a speedup. Optional backend mode checks retained
+ELF output envelopes, not independent execution of those objects.
+
+The module-cache executable takes no arguments. It measures 3/18-layer diamond
+imports with fresh and reused environments, checks unique module counts, changes
+a shared leaf and verifies grammar invalidation, then releases every world/cache.
+Its requested worker count alone is not concurrency evidence. Both measurements
+report Linux x64 wall/CPU/RSS and retained counters with no timing pass threshold;
+retain source, transport, samples and actual overlap alongside performance claims.
+
 With both `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`, the separate
 Linux x64 `tower-semantic-layout-profile` executable reuses the native compiler
 unit link closure and production worker transport. It is excluded from default

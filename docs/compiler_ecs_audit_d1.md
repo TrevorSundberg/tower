@@ -1545,3 +1545,29 @@ compilation allowance successor; joint runtime is pending. Type-only split also
 requires explicit defining-module imports because Tower has no implicit re-export.
 D1 reported missing WorkBuffer/work_vector imports before adopting the split.
 No incoming production edit has been silently folded into1a64007 evidence.
+
+### Production profile registration prepared after 4a5d872
+
+The complete incoming `module_cache_profile.tower` body (175 lines, SHA256
+0930654a) is now adopted unchanged. Its substantive review above remains current:
+explicit worlds, retained module snapshots, unique diamond counts, shared-leaf
+invalidation and complete teardown. It is a D1 audit path with D2 measurement
+ownership, not new production parser logic. The frontend profile is now 227 lines,
+SHA256 57e392d9, following D2's v2 transport guard: production threading must be
+available before timing, and eligible equal-unit controls require overlapping
+spans on distinct pthread IDs plus admitted lanes above one. Raw observations
+remain available on failure. No timed-region or answer/canonical oracle changed.
+
+D1's opt-in Linux x64 CMake targets reuse the production backend source/library
+closure with its old main removed, matching B2 recipe 7749a2a3. Both export only
+the three required work/backend callbacks, with no serial or instrumented
+allocator override, extra guest runtime, or test-only named callback. The default
+frontend measurement is three units/two lanes/no extra bodies; module cache has
+no arguments. Neither is a default build or CTest test. Smallest source compiles
+are independently reported by D2; these new registrations have not yet linked
+or run locally. Actual performance, overlap and final closure remain pending.
+
+This adds one current tracked path after staging: 1,055 Tower files and 478 D1
+direct paths, all substantively reviewed. The earlier incoming-only module-cache
+row was not counted as a tracked file. Documentation itself has no runtime cost;
+the new executable registrations still need checked before/after measurements.

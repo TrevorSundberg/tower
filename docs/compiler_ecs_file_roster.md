@@ -1294,3 +1294,11 @@ Postbab4c34 retained-buffer handoff71d28d31 adds six exact owner sources:
 Once staged, totals are1054tracked Tower paths/477D1direct. Existing allocator,
 known-order and generic harness updates are not new paths. All added bodies have
 substantive D1 review in the audit; no local compile/runtime pass is claimed yet.
+
+After 4a5d872, the previously incoming-only
+`scaffolding/tests/module_cache_profile.tower` is adopted as the exact 175-line
+B2 source 0930654a, with D2 measurement ownership and D1 full audit/registration.
+The existing frontend profile is updated to D2's 57e392d9 transport guard; it is
+not a second path. This gives 1,055 tracked Tower files / 478 D1 direct paths once
+staged. Both full bodies have substantive audit receipts; registration/runtime
+acceptance is still pending.

@@ -49261,3 +49261,28 @@ swap. Goal/publication remains active/unrequested. Incoming parser/frontend and
 interpreter physical-budget changes, type-only import split, frontend/module
 profile registration, full42 selection, current coherent instrumentation and final
 public-bootstrap/native/browser/generation/leased atomic publication remain work.
+
+### D1 production measurement registration preparation — 2026-11-23 00:45 UTC
+
+After all D1 jobs drained, read B2's exact native link recipe 7749a2a3 and both
+measurement sources in full. Adopted unchanged module-cache source 0930654a and
+D2 frontend guard v2 (current source 57e392d9). The latter checks native transport
+before timing and actual overlap on distinct threads for eligible equal-unit
+controls after measurements/reference checks. D1 added opt-in Linux x64 targets
+using existing production backend sources/libraries minus its main and the three
+required dynamic callbacks. No serial fault override or default heavy test was
+added. Existing frontend-tests remains explicitly serial functional coverage.
+
+D2 owns the shared heavy slot and independently compiled both profile entrypoints
+with the public predecessor; D1 has not linked or executed these registrations.
+The exact small CMake/README delta is exported for D2's current build rather than
+running a concurrent build. Runtime profiles and combined caller validation remain
+required. Documentation-only audit updates need no separate runtime measurements.
+Current source review census becomes 1,055 tracked / 478 D1 direct after staging.
+
+Separately, D2 reproduced the data-only type split's missing defining-module
+imports at work_buffer.tower:76:17 (Unknown type constructor work_vector). Its
+five-file import-only correction a4eb4477 matches D1's prior source analysis and
+docs/modules.md's explicit no-re-export contract. That correction and split will
+be adopted together after this source checkpoint; no partial split execution or
+replacement nominal type is acceptable. Original failing logs remain preserved.
