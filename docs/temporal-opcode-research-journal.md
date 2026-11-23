@@ -93995,3 +93995,54 @@ comparison remains attached to902f7c4d. All processes exit0/drained, no broad
 matrix or private bootstrap adoption, todo/history preserved; normal push follows.
 
 A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
+
+### B1 bounded shared-budget synchronization attribution (ef59b0aa)
+
+Frozen published ef59b0aa2400676a2f76ea20588e3e273a7bbba3, tree
+0c193f76c2d23d0e74cb9b765ca329740bf19133; current production remains unchanged.
+Required pull succeeded, owned jobs drained, CPU0-11/24GiB and about113GiB free.
+Public768 dependency target rebuilt backend/semantics/profile only (33.96wall,
+26.10CPU,1073872KiB), then reused those providers for the current LR runner.
+No private override, agent, generation or publication adoption.
+
+One bounded ordinary GDB child snapshot caught six active outer threads in
+sem_post/futex_wake after WorkBudget reserve/release and two waiting on the SAME
+budget semaphore0x61e37ea69810. Resize/disposal/entity_reclaim callers are visible;
+60 retained pool threads sleep on separate signals and the coordinator waits on
+completion0x61e37ea69840. Other active stacks allocate or construct grammar.
+Optimized unwind gaps and missing-glibc-source warning preserved; perf/strace/
+bpftrace unavailable. No privilege/security changes. Snapshot resumed, passed
+known42/canonical/cleanup and exited normally; its timing is NOT throughput.
+
+Existing Tower outer thread clocks independently account for44.9057/42.8614s of
+44.9152/42.8703s uninstrumented12-worker processCPU. The CPU amplification runs
+inside active compilation callbacks, not idle retained pools. This is actual
+shared outer-budget receipt contention, not established pool wake/refill
+starvation or an allocator lock diagnosis; no sampled time fraction is claimed.
+WorkBuffer replacement must charge old+new during copy; releases validate ledger
+owner/generation, entity pages free only at last component, private arena bump
+already avoids the gate. No safely redundant transaction was established. No
+speculative mutex/cache, batching contract or LR algorithm implemented.
+
+Same existing uniform source and flags, fresh processes/warm filesystem, n2:
+small1 wall.5589/.4040,CPU.5183/.3690; multi1 wall8.1662/5.7191,
+CPU7.8119/5.3611; multi4 wall4.9393/4.4349,CPU15.9779/14.2049;
+multi12 wall5.4289/5.2208,CPU44.9152/42.8703. Retain serial variation;
+no before/after or prior-source speedup claim. Multi12 wholeprocess system
+28.27/25.78s,voluntary1113380/1109175,readyvacancy1.456/1.299lane-ms.
+All8 controls exactfull canonical/source +known42/42, bounded lanes/bytes,
+zero joined lanes and checked zero-grant owner teardown. Multi1/4/12 retained
+633110235/633076515/633077027bytes; ledger separate, allocator RSS distinct.
+No production allocation-call count claimed. Full source/binary manifests pass.
+
+Current LR and fullunits gates pass:1.74wall/2.26CPU/117324KiB and
+13.71wall/23.39CPU/846216KiB; shared budget, original finite-memory error/retry,
+independent worlds, deterministic failures/dependencies/cancellation/cleanup.
+Current test-entry build8.87wall/6.02CPU/443156KiB reused providers; no matrix.
+Receipt docs/compiler_budget_sync_ef59b0aa.md; raw build/ecs_b1/cache/budget_sync_ef59;
+concise handoff C:/Sandbox/build/codex_ecs_20261122/B1/budget_sync_ef59b0aa.
+Finite next boundary is work_budget_reserve_result/release_result byte-receipt
+synchronization, requiring exact admission/first-cause/lifetime contracts. No
+implementation is justified by a point sample alone. Prior3211cb1e rejection
+remains restored; wrapper events are not removed graphs. Todo/publicpin unchanged.
+Normal receipt reconciliation/push follows; ROOT owns final release.
