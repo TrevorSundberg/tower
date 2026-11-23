@@ -46,9 +46,12 @@ Module snapshots and supported parser/grammar failures retain their typed
 the session cause before the module cause, stops recovery after resource failure,
 and returns an error object from `completion_end`; document inspection returns
 null. Ordinary incomplete syntax still permits partial inspection. Typed coverage
-currently includes table construction and LR control storage. Early grammar
-construction and probe/candidate allocation outcomes still need complete
-propagation; the getters do not establish coverage of every allocation path.
+currently includes supported table construction, LR control storage, and entity
+or match-component creation during tree shifts/reductions. Tree creation retains
+the per-call entity result in the request's existing LR control error field.
+Early grammar phases, raw forest/attachment and some candidate allocation outcomes
+still need complete propagation; the getters do not establish coverage of every
+allocation path.
 
 Hover results include a canonical signature, resolved type/layout where present,
 attached comments, and file/line/column locations. Grammar references retain the

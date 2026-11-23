@@ -718,3 +718,17 @@ presentation. Native515 ABI plus18 diagnostic positions and prior tool checks
 pass. Current guard/sweep instrumentation and full merged compiler checks remain
 pending; the earlier ASan receipt is not relabeled. L2 owns the existing-provider
 late inspection extraction; ROOT owns remaining metadata/module/linker contracts.
+
+### Typed component admission prerequisite
+
+compiler/world.tower now exposes compiler_world_component_result through its
+existing typed type/component producers, preserving exact Invalid/Busy/Memory/
+Capacity/None without changing layout or payload initialization. The legacy
+wrapper remains. tests/world_constructor.tower covers real physical denial and
+pins/retry/lookup/zero-owner cleanup through the production provider. Coherent
+complete565 native query/allocations/fullunits and fixed-path32 serial/parallel
+profiles pass. All canonical/retention fields match; n3 wall changes range
+-0.12% to-1.43%, RSS does not grow. The stale-timestamp AFTER1 attempt is explicitly
+excluded. Current instrumentation and later source-union acceptance remain open.
+This is the first producer prerequisite, not completed metadata/provenance or
+standalone linker budget migration.

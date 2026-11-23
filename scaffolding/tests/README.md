@@ -1063,6 +1063,12 @@ It checks typed resource denial, ordinary grammar diagnostics, optional uncached
 success, pinned type admission and exact cleanup.
 It uses the serial fault allocator; it does not test production worker overlap.
 
+`tower-frontend-tests RESOURCE_ROOT parser` also checks real match-component page
+denial during ordinary shifts, specialized shifts and empty reductions. Each
+world binds its ledger before construction; the fixture occupies the actual
+remaining bytes after creating the table and request. It requires exact
+`Capacity`, unchanged prior owners, successful same-input retry and full cleanup.
+
 `tower-frontend-tests RESOURCE_ROOT regex` runs the existing independent regex
 oracle, including 300 generated patterns, 500 arbitrary byte patterns, counted
 NUL input, invalid source spans and output-table state, semantic rejection, and
@@ -1158,6 +1164,21 @@ joined peer cleanup without publication or replay. The declaration case rejects
 false idle progress after failed admission. Capacity derives from the live graph
 and shared budget; final ownership must return to zero. The unchanged fixture
 runs with production allocation and supported address/thread instrumentation.
+
+Capture admission uses that same compiler composition:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-capture-admission-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-capture-admission-(healthy|cancelled|capacity|failed)$'
+```
+
+The four selectors each cover 32/64-bit targets and worker budgets1/4. They check
+healthy undemanded identity, cancellation, actual graph-capacity denial and an
+existing failure receipt. Repeated requests must retain the owning declaration's
+receipt without metadata growth, and teardown must release every graph grant.
+These admission checks do not execute worker jobs; the `failed` selector preserves
+an injected Memory receipt rather than simulating a physical allocation failure.
 
 Pool ownership, stable page reuse and live-owner reentrant finalization use these
 existing-composition targets:

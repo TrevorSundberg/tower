@@ -10,6 +10,7 @@ import parser_types;
 import regex_lowering;
 import syntax_emission;
 import syntax_reader;
+import .library.work_budget_types;
 
 // Assemble shifts/reductions into the shared entities. Forests are temporary
 // ownership/work indexes; generated productions flatten without another AST.
@@ -24,6 +25,10 @@ extern fn parser_match_get_type(): void*;
 extern fn entity_parent(node: void*): void*;
 
 extern fn entity_release(node: void*): usize;
+
+extern fn entity_create_related_result(anchor: void*, error: WorkBudgetError*): void*;
+
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 
 extern fn parse_forest_leaf(forest: void*, node: void*, result: ParserForestSpan*): bool;
 
@@ -42,7 +47,12 @@ fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
 }
 
 fn lr_tree_create_match(node: void*, kind: void*): ParserMatchData* {
-    var data = entity_component_data(entity_component_add(node, kind));
+    var error = WorkBudgetError.None;
+    return lr_tree_create_match_result(node, kind, &error);
+}
+
+fn lr_tree_create_match_result(node: void*, kind: void*, error: WorkBudgetError*): ParserMatchData* {
+    var data = entity_component_data(entity_component_add_result(node, kind, error));
     if data != null {
         node_payload_init(CompilerParserMatch, data);
     }
@@ -61,6 +71,9 @@ export fn lr_tree_needs_label(node: void*, kind: void*): bool {
 // 0 allocation failure, 1 committed, 2 input node already attached.
 // On ownership transfer input becomes null, including if a later step fails.
 export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, kind: void*, step: LRStep*, input: void**, label: u8*): u32 {
+    // The caller reads this request-owned cause before formatting diagnostics.
+    // A retry starts a new operation; attached-input rejection is not allocation.
+    parser.storage_error = WorkBudgetError.None;
     var node = *input;
     var supplied = node != null;
     if supplied {
@@ -68,7 +81,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
             return 2;
         }
     } else {
-        node = entity_create_related(kind);
+        node = entity_create_related_result(kind, &parser.storage_error);
         var absent = node == null;
         if absent {
             return 0;
@@ -76,7 +89,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
     }
     var data = lr_tree_match(node, kind);
     if data == null {
-        data = lr_tree_create_match(node, kind);
+        data = lr_tree_create_match_result(node, kind, &parser.storage_error);
         var absent = data == null;
         if absent {
             if !supplied {
@@ -130,6 +143,7 @@ export fn lr_tree_reduce(parser: LRParser*, forest: void*, grammar: LRGrammar*, 
 }
 
 export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGrammar*, kind: void*, step: LRStep*, result: void**): bool {
+    parser.storage_error = WorkBudgetError.None;
     *result = null;
     var rule = &parser.runtime.rules.data[step.rule];
     var children: ParserForestSpan;
@@ -159,12 +173,12 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         materialize = true;
     }
     if materialize {
-        var node = entity_create_related(kind);
+        var node = entity_create_related_result(kind, &parser.storage_error);
         var absent = node == null;
         if absent {
             return false;
         }
-        var data = lr_tree_create_match(node, kind);
+        var data = lr_tree_create_match_result(node, kind, &parser.storage_error);
         absent = data == null;
         if absent {
             entity_release(node);
