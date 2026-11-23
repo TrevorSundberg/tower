@@ -397,11 +397,27 @@ export fn entity_stage_references_result(stage: EntityStage*, nodes: Entity**, c
         || count > ~convert(usize, 0) - stage.references.length { return WorkBudgetError.Invalid; }
     var needed = stage.references.length + count;
     if needed > ~convert(usize, 0) / sizeof(Entity*) { return WorkBudgetError.Invalid; }
+    // A live slice of this queue may be reused, but reserve can move it. Keep
+    // its index until growth completes; reject spare storage before reading it.
+    var borrowed = false;
+    var offset: usize = 0;
+    if count != 0 && stage.references.data != null {
+        var address = bits(usize, nodes);
+        var start = bits(usize, stage.references.data);
+        if address >= start && address - start < stage.references.capacity * sizeof(Entity*) {
+            var distance = address - start;
+            offset = distance / sizeof(Entity*);
+            if distance % sizeof(Entity*) != 0 || offset >= stage.references.length
+                || count > stage.references.length - offset { return WorkBudgetError.Invalid; }
+            borrowed = true;
+        }
+    }
     for(var i: usize = 0; i < count; i++) {
         var node = nodes[i];
         if node != null && (node.store != stage.anchor.store || node.stage != null) { return WorkBudgetError.Invalid; }
     }
     if !vector_reserve(&stage.references, needed) { return WorkBudgetError.Memory; }
+    if borrowed { nodes = &stage.references.data[offset]; }
     for(var i: usize = 0; i < count; i++) {
         if nodes[i] != null { stage.references.data[stage.references.length++] = nodes[i]; }
     }

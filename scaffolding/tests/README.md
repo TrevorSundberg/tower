@@ -1066,6 +1066,9 @@ It uses the serial fault allocator; it does not test production worker overlap.
 The same parser selector checks forest descriptor, child-index and traversal
 storage: exact Capacity/Memory results, observed growth boundaries, preserved
 receipts and entity ownership, then successful retries and final cleanup.
+Attachment trials also require exact Busy for pinned owners, Invalid for self
+attachment, and Memory from a real relationship allocation denial after the
+traversal stack has been prepared, preserving the leaf through every retry.
 Prewarmed match storage exercises forest growth through ordinary and specialized
 recognizers without duplicating a vector's capacity policy.
 
@@ -1202,3 +1205,65 @@ Page checks retain live addresses and private-stage isolation through publicatio
 reuse and discard. Reentrant checks use separately live owners during finalization.
 These are ownership checks; actual concurrent publication remains covered by the
 worker-stage fixtures. The separate page-churn measurement is not a default test.
+
+The existing `tower-frontend-tests RESOURCE_ROOT allocations` selector also runs
+the metadata-copy checks in `world_constructor.tower`. It derives every serial
+and staged denial position from actual successful allocation counts, checks
+exact `Memory`/`Capacity`/`Busy`/`Invalid` results and budget-pressure retry,
+compares copied parser/provenance data, and checks reference and byte ownership
+after discarding partial destinations. This selector requires serial allocator
+transport; real parallelism is tested separately by query and unit-overlap runs.
+
+`entity_attach_leases.tower` includes replacement/removal of leased children.
+`entity_mutation_results.tower` additionally checks exact invalid, pinned/leased,
+retain-overflow, empty-parent and successful ownership-transfer results. Valid
+replacement/removal must succeed with the next allocation denied and leave the
+allocation count unchanged. `entity_child_transfer_profile.tower` measures the
+same valid replace/take/reattach sequence for small/large iteration counts, checks
+ordered identity/reference counts and final disposal, and is a measurement tool
+rather than a default test. Shared containment publication is serial; this
+microbenchmark does not claim worker scaling or total-heap accounting.
+
+The mutation fixture also reuses live slices of a stage's reference queue, both
+with spare capacity and across growth. It checks exact growth-denial rollback,
+reference order, repeated hold and finalizer cleanup; a successful allocation
+count determines the denial sweep. Spare or overlong internal slices are rejected
+before reads. Queued-reference counter exhaustion is a separate ownership issue.
+
+Source-proof admission and ordered callback-signature publication have focused
+production-provider targets:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-semantic-source-proof-admission-tests tower-semantic-aggregate-admission-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-(source-proof|aggregate)-admission-'
+```
+
+Source-proof selectors `healthy`, `failed`, `cancelled`, `query`, `edge` and
+`finish` cover query/edge admission and failure while waking dependent consumers.
+Aggregate selectors `healthy`, `failed`, `cancelled` and `lowering` preserve
+callback ABI identity after failure and cancellation. Each selector covers both
+target widths and worker budgets1/4. The aggregate fixture supplies the semantic
+implementation itself; the target retains the other production service objects
+without linking that implementation twice. Budget width alone is not overlap.
+
+Containment leases and actual Linux thread-affinity checks use:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-entity-attach-leases-tests \
+  tower-entity-mutation-results-tests tower-work-linux-affinity-tests \
+  tower-work-linux-affinity-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(entity-(attach-leases|mutation-results)|work-linux-affinity(-faults)?)-tests$'
+```
+
+Mutation faults use the fixture's own portable transport and single-owner
+allocation instrumentation. The real affinity fixture checks child restriction,
+parent isolation and restoration before joins. Its separate serial fault target
+binds the actual transport and allocator through the existing Tower runtime
+symbol tool, covering sparse CPU IDs, growth denial and zero retained storage.
+It uses ordinary source initialization; native `SOURCE` objects explicitly select
+object emission. The manual capacity profile and argument oracle require the
+actual allowed capacity and are not default tests. Tests that deliberately require
+four physical worker slots need at least four allowed CPUs; preserve those oracles.

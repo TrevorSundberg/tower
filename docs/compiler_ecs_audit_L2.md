@@ -949,3 +949,63 @@ ROOT assigned the affinity-aware Linux provider to D2. The serial calibration
 was not a lower bound for worker duration; controlled calibration diagnosis
 remains open without weakening overlap. Late inspection will reuse the current
 completion_semantic_failed owner after the frozen scratch instrument milestone.
+
+Current supported native instrumentation is now complete for frozen
+2e3d82c1a0825d1e46b8233a07818c183b3007e0: full ROOT565, L1return9e8 and L2scratch9ced.
+ADDRESS69404 and THREAD66144 each pass a coherent97-step rebuild and11 runtime
+gates, with identical source manifests, exact CLI outputs, seven actual IR
+symbol/hash checks, and empty runtime stderr. This includes typed pool/scratch/
+publication cases, return-failure regression, construction, three real clone
+overlap/cancellation runs per mode and actual four-unit overlap. Complete raw
+receipt1c8e80ca and immutable binaries/IR/resources are identified in the journal.
+
+The2e3d results supersede the earlier pending-instrument statement only for this
+union. They do not accept later map/node changes, D1's restricted-host overlap
+failure, source-language UBSan, browser instrumentation or integrated release.
+No universal race-freedom claim follows. The measured9ced serial generic cost
+remains explicit. Next owned work is the assigned language_document_inspect
+extraction and actual late producer fixture; its before/after profile reuses
+unchanged editor_units_trial instead of timing the expanded regression suite.
+
+The assigned late-inspection two-path change is now implemented but unvalidated
+on1c4085 (completeROOTd3 plus prior L2 evidence). The existing language_query
+provider owns language_document_inspect; document-world delegates to it and the
+existing completion_semantic_failed receipt. Existing generic_inspection_budget
+now retains the successful document and denies its actual second inspection,
+then checks first cause, source-derived offset, output suppression and no replay
+after capacity returns. Physical node/page denial remains outside its legacy
+binder scope. BEFORE88700 public profile leaf/coherent native/editor passed and
+full before package is frozen. The unchanged editor workload wrapper keeps new
+regression work out of cost comparisons. After runtime, paired costs and affected
+instrumentation are pending; prior2e3d results are not acceptance for this source.
+Late-inspection native AFTER45029 now passes the actual producer regression at
+both target widths and workers1/4, including exact Capacity/derived source offset,
+previous-output suppression, no replay after pressure release, fresh recovery and
+zero retained budget/world teardown. First36544 failed only the test's unsupported
+pointer subtraction before runtime; the corrected address-integer subtraction
+preserves the oracle and its failed log. Complete immutable before/after packages
+are identified in the journal. Paired unchanged-workload costs and affected
+ASan/LSan/TSan editor checks are still pending; overall acceptance stays open.
+
+Quiet12252 supplies16 exact-output/identity passes on the same executable and
+resource path. Retained median wall/CPU/RSS before -> after: requested budget1
+3.11/3.11/215416 -> 3.22/3.19/215428; budget4 1.58/3.87/381360 ->
+1.60/3.91/379580 (seconds/seconds/KiB). Small positive costs remain, not neutrality;
+RSS shows no excessive growth here. The journal preserves all ranges and the
+requested-budget1 CPU/wall anomaly pending a separate untimed thread trace.
+The native target remains unchanged; current affected address editor validation
+is running, thread follows. No integrated release acceptance is claimed.
+
+The late-inspection scoped milestone is now validated: native45029, all16 fixed-
+path profile12252 cases, ASan/LSan18648 and TSan73196 pass on identical source
+manifests, with actual instrumented phase definitions and empty runtime stderr.
+Both target widths, worker counts, first cause, prior-output suppression, no replay
+after pressure release, independent recovery and full selected-budget teardown are
+covered. Untimed GDB controls for before/after budget1 pass with no observed
+clone/clone3/new-thread event; the recorded CPU/wall anomaly remains unexplained,
+and the original costs are retained. Complete190-file receiptd402b904 and immutable
+native/instrument packages are detailed in the journal. This closes only the
+assigned phase/test change. Typed generic registry/clone consumers, D1 restricted-
+host overlap diagnosis, later integrated inputs, D2 exact provider policy, public
+bootstrap/browser/generation and hosted publication remain open. Supported native
+address/thread checks do not supply source-language UBSan/browser coverage.
