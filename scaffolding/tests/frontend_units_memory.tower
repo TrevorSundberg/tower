@@ -15,6 +15,7 @@ extern fn frontend_units_failed(batch: void*): usize;
 extern fn frontend_units_cancelled(batch: void*): bool;
 extern fn frontend_units_close(batch: void*): void;
 extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
+extern fn frontend_units_input_bytes(batch: void*): usize;
 extern fn strlen(text: u8*): usize;
 extern fn puts(text: u8*): i32;
 extern fn abort(): void;
@@ -49,6 +50,26 @@ fn units_memory_snapshot(batch: void*): WorkBudgetSnapshot {
     var snapshot: WorkBudgetSnapshot;
     units_memory_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot), "Unit memory snapshot");
     return snapshot;
+}
+
+// Independent expected bytes: exact NUL-terminated payload plus the documented
+// four-word compiler buffer header. Parser/world storage is additional.
+var UnitSnapshotHeaderWords: usize = 4;
+var UnitSharedSnapshotBuffers: usize = 3;
+var UnitSourceSnapshotBuffers: usize = 2;
+var UnitCompilationAllowance: usize = 67108864;
+
+fn units_memory_span_bytes(length: usize): usize {
+    return length + 1 + UnitSnapshotHeaderWords * sizeof(usize);
+}
+
+fn units_memory_resource_bytes(bedrock: u8*, foundation: u8*, root: u8*): usize {
+    return units_memory_span_bytes(strlen(bedrock)) + units_memory_span_bytes(strlen(foundation))
+        + units_memory_span_bytes(strlen(root));
+}
+
+fn units_memory_input_bytes(path: u8*, length: usize): usize {
+    return units_memory_span_bytes(strlen(path)) + units_memory_span_bytes(length);
 }
 
 fn units_source_bounds_trial(bedrock: u8*, foundation: u8*, root: u8*, text: u8*, length: usize,
@@ -97,10 +118,10 @@ fn units_source_bounds_trial(bedrock: u8*, foundation: u8*, root: u8*, text: u8*
 }
 
 export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*): void {
-    var resources = strlen(bedrock) + strlen(foundation) + strlen(root) + 3;
+    var resources = units_memory_resource_bytes(bedrock, foundation, root);
     var path = "memory.tower";
     var source = "import tower; fn answer():i32{return 42;}";
-    var input = strlen(path) + strlen(source) + 2;
+    var input = units_memory_input_bytes(path, strlen(source));
     units_memory_check(frontend_units_create_bounded(1, 1, 0, 8, 1, 1, bedrock, foundation, root) == null
         && frontend_units_create_bounded(1, 1, ~convert(usize, 0), 8, 1, 1, bedrock, foundation, root) == null,
         "Bounded unit API rejects missing or unbounded policy");
@@ -109,7 +130,9 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var batch = frontend_units_create_bounded(1, 1, resources, 8, 1, 1, bedrock, foundation, root);
     units_memory_check(batch != null, "Exact resource capacity accepted");
     var before = units_memory_snapshot(batch);
-    units_memory_check(before.used_bytes == resources && before.peak_bytes == resources && before.live == 1
+    units_memory_check(frontend_units_input_bytes(batch) == resources
+        && before.used_bytes == resources && before.peak_bytes == resources
+        && before.live == UnitSharedSnapshotBuffers
         && !frontend_units_source(batch, 1, path, source, strlen(source)), "Source denied before allocation at full resource cap");
     var after = units_memory_snapshot(batch);
     units_memory_check(after.used_bytes == before.used_bytes && after.live == before.live,
@@ -128,34 +151,56 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     bounded[length] = *"@";
     units_source_bounds_trial(bedrock, foundation, root, bounded, length, true, 0);
 
-    batch = frontend_units_create_bounded(1, 1, resources + input, 8, 1, 1, bedrock, foundation, root);
+    batch = frontend_units_create_bounded(1, 1, resources + input + UnitCompilationAllowance,
+        8, 1, 1, bedrock, foundation, root);
     units_memory_check(batch != null && frontend_units_source(batch, 1, path, source, strlen(source)),
         "Exact source capacity accepted");
+    // Hold the finite compilation allowance while testing tight input capacity.
+    // Releasing this test grant makes those same bytes available to parser work.
+    var compilation: WorkReservation = default;
+    units_memory_check(work_budget_reserve(frontend_units_work_budget(batch), 0, 0,
+        UnitCompilationAllowance, &compilation), "Reserve explicit compilation allowance");
     before = units_memory_snapshot(batch);
     bounded[length] = 0;
     units_memory_check(!frontend_units_source(batch, 1, path, bounded, length + 2)
         && strcmp(frontend_units_error(batch), "Compilation source contains an embedded NUL byte") == 0
         && frontend_units_error_offset(batch) == length, "Unit source rejection reports exact NUL offset");
-    units_memory_check(before.used_bytes == resources + input && before.live == 2
+    units_memory_check(frontend_units_input_bytes(batch) == resources + input
+        && before.used_bytes == resources + input + UnitCompilationAllowance
+        && before.live == UnitSharedSnapshotBuffers + UnitSourceSnapshotBuffers + 1
         && !frontend_units_source(batch, 1, "failed.tower", "@", 1)
         && !frontend_units_source(batch, 1, path, source, ~convert(usize, 0)),
         "Replacement and length overflow reject without losing configured source");
     after = units_memory_snapshot(batch);
     units_memory_check(after.used_bytes == before.used_bytes && after.live == before.live
         && after.peak_bytes <= after.bytes, "Denied replacement retains exact accounting");
+    units_memory_check(work_budget_release(frontend_units_work_budget(batch), &compilation),
+        "Make bounded allowance available before compiling");
     while !frontend_units_step(batch, true) {}
     units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
         "Previously configured program still compiles after denied replacement");
-    frontend_units_close(batch);
 
-    var old_input = strlen(path) + 3;
-    batch = frontend_units_create_bounded(1, 1, resources + old_input + input, 8, 1, 1, bedrock, foundation, root);
+    after = units_memory_snapshot(batch);
+    units_memory_check(frontend_units_input_bytes(batch) == resources + input
+        && after.used_bytes >= resources + input && after.peak_bytes <= after.bytes,
+        "Compiled tables share the finite ledger without changing input ownership");
+    frontend_units_close(batch);
+    var old_input = units_memory_input_bytes(path, 1);
+    batch = frontend_units_create_bounded(1, 1, resources + old_input + input + UnitCompilationAllowance,
+        8, 1, 1, bedrock, foundation, root);
+    units_memory_check(batch != null && work_budget_reserve(frontend_units_work_budget(batch), 0, 0,
+        UnitCompilationAllowance, &compilation), "Reserve replacement compilation allowance");
     bounded[length] = *"@";
     units_memory_check(batch != null && frontend_units_source(batch, 1, path, "@", 1)
         && frontend_units_source(batch, 1, path, bounded, length), "Replacement owns the exact span, excluding the suffix");
     after = units_memory_snapshot(batch);
-    units_memory_check(after.used_bytes == resources + input && after.peak_bytes == resources + old_input + input
-        && after.live == 2, "Commit releases only the previous input receipt");
+    units_memory_check(frontend_units_input_bytes(batch) == resources + input
+        && after.used_bytes == resources + input + UnitCompilationAllowance
+        && after.peak_bytes == resources + old_input + input + UnitCompilationAllowance
+        && after.live == UnitSharedSnapshotBuffers + UnitSourceSnapshotBuffers + 1,
+        "Commit releases only the previous input receipts");
+    units_memory_check(work_budget_release(frontend_units_work_budget(batch), &compilation),
+        "Release replacement compilation allowance");
     while !frontend_units_step(batch, true) {}
     units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
         "Successful replacement compiles the new program");

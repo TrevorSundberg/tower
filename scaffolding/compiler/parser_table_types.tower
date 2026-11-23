@@ -1,5 +1,7 @@
 import tower;
-import .library.vector;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_vector_types;
 import frontend_diagnostic_types;
 
 enum ParserReadMode: u32 {
@@ -9,7 +11,7 @@ enum ParserReadMode: u32 {
 struct ParserHostState {
     origin: usize;
     kernels: usize;
-    contexts: vector(FrontendContextPosition);
+    contexts: work_vector(FrontendContextPosition);
 }
 
 // Presentation services are explicit until Tower supports function values. The
@@ -23,9 +25,11 @@ enum ParserPresentation: u32 {
 // Build completes before publication. Requests borrow it without refcount/cache
 // writes; it must not be rebuilt or destroyed until those requests have ended.
 struct ParserHostTable {
+    storage: WorkBuffer;
+    budget: WorkBudget*;
     grammar: void*;
     runtime: void*;
-    states: vector(ParserHostState);
+    states: work_vector(ParserHostState);
     userdata: void*;
     presentation: ParserPresentation;
     mode: u32;

@@ -854,3 +854,18 @@ Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
 the30-second internal deadline are unchanged. Phase messages identify baseline
 versus streaming work; directional deadline errors identify the waiting side.
 The focused selector does not replace the full backend matrix or its failures.
+
+`tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
+frontend snapshot allocation-failure checks without the unrelated body/parser
+matrix. The default frontend invocation still runs these checks. The `parser`
+selector runs parser integration and failure checks, including traced output and
+bounded failed-allocation prefixes. Neither selector provides production
+threading or whole compiler sanitizer coverage.
+
+The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
+optional final `runtime` argument. It then measures runtime-table construction
+over already prepared LR states, binds a finite synchronized world budget, and
+checks every action/goto against a serial reference outside each interval.
+Reported peak/current bytes include actual owned buffer headers; ledger metadata
+and process peak RSS are separate columns. Each table must return its grants on
+destruction. Requested workers and reserved lanes do not prove physical overlap.

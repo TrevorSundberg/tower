@@ -2,12 +2,16 @@ import tower;
 import .compiler.lr_api;
 import .compiler.lr_types;
 import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
 
 // Linux x64 measurement entry linked against the existing production LR test
 // objects. No allocator instrumentation is shared with native worker threads.
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): EntityStore*;
 extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn entity_create(store: EntityStore*): void*;
 extern fn entity_release(node: void*): usize;
 extern fn lr_states_create_parallel(analysis: void*, anchor: void*): void*;
@@ -32,7 +36,8 @@ extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn strtoul(text: u8*, end: u8**, radix: i32): usize;
 extern fn printf(format: u8*, case: u8*, workers: usize, sample: usize,
     iterations: usize, wall: u64, cpu: u64, rss: i64, entities: usize, states: usize,
-    voluntary: i64, involuntary: i64): i32;
+    voluntary: i64, involuntary: i64, peak_bytes: usize, retained_bytes: usize,
+    ledger_bytes: usize, peak_lanes: usize): i32;
 
 var LRBenchmarkMonotonic: i32 = 1;
 var LRBenchmarkProcessCPU: i32 = 2;
@@ -40,6 +45,7 @@ var LRBenchmarkWarmups: usize = 3;
 var LRBenchmarkSamples: usize = 15;
 var LRBenchmarkMaximumSymbols: usize = 4096;
 var LRBenchmarkNone: usize = 18446744073709551615;
+var LRBenchmarkMemoryBytes: usize = 268435456;
 
 fn lr_benchmark_clock(clock: i32, output: u64*): bool {
     var time: LRBenchmarkTime = default;
@@ -73,9 +79,35 @@ fn lr_benchmark_equal(left: void*, right: void*): bool {
     return true;
 }
 
+fn lr_benchmark_runtime_equal(left: void*, right: void*, states: usize): bool {
+    if left == null || right == null || lr_runtime_row_count(left) != lr_runtime_row_count(right) { return false; }
+    var conflict: LRConflict = default;
+    if lr_runtime_conflict(left, &conflict) || lr_runtime_conflict(right, &conflict) { return false; }
+    for(var i: usize = 0; i < states; i++) {
+        var count = lr_runtime_action_count(left, i);
+        if count != lr_runtime_action_count(right, i) { return false; }
+        var a = lr_runtime_actions(left, i);
+        var b = lr_runtime_actions(right, i);
+        for(var j: usize = 0; j < count; j++) {
+            if a[j].first != b[j].first || a[j].last != b[j].last
+                || a[j].state != b[j].state || a[j].rule != b[j].rule { return false; }
+        }
+        count = lr_runtime_goto_count(left, i);
+        if count != lr_runtime_goto_count(right, i) { return false; }
+        var x = lr_runtime_goto_data(left, i);
+        var y = lr_runtime_goto_data(right, i);
+        for(var j: usize = 0; j < count; j++) {
+            if x[j].nonterminal != y[j].nonterminal || x[j].state != y[j].state { return false; }
+        }
+    }
+    return true;
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    var runtime = argc > 1 && strcmp(argv[argc - 1], "runtime") == 0;
+    if runtime { argc--; }
     if argc != 3 && argc != 4 {
-        puts("usage: lr-state-benchmark small|chain|wide|large WORKERS [WIDE_OR_LARGE_SYMBOLS]");
+        puts("usage: lr-state-benchmark small|chain|wide|large WORKERS [WIDE_OR_LARGE_SYMBOLS] [runtime]");
         return 1;
     }
     var small = strcmp(argv[1], "small") == 0;
@@ -129,13 +161,41 @@ export fn main(argc: i32, argv: u8**): i32 {
     var reference = lr_states_create(analysis);
     defer lr_states_destroy(reference);
     if reference == null { puts("Serial reference failed"); return 1; }
+    var runtime_reference: void* = null;
+    defer lr_runtime_destroy(runtime_reference);
+    if runtime {
+        if !lr_states_lalr(reference, false) { puts("Runtime source analysis failed"); return 1; }
+        runtime_reference = lr_runtime_create(reference);
+        if runtime_reference == null { puts("Runtime reference allocation failed"); return 1; }
+    }
+    var budget: WorkBudget = default;
+    var caller: WorkReservation = default;
+    var gate: void* = null;
+    defer {
+        if runtime && budget.initialized {
+            if caller.active && !work_budget_release(&budget, &caller) { trap("Profile caller grant retained", 0); }
+            if !work_budget_dispose(&budget) { trap("Profile memory grant retained", 0); }
+        }
+        if gate != null { work_signal_close(gate); }
+    }
+    if runtime {
+        gate = work_signal_open();
+        if gate == null { puts("Budget gate allocation failed"); return 1; }
+        work_signal_post(gate);
+        if !work_budget_init(&budget, workers, LRBenchmarkMemoryBytes, 1)
+            || !work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post)
+            || !work_budget_reserve(&budget, 1, 1, 0, &caller) { puts("Profile budget setup failed"); return 1; }
+    }
     var world = compiler_world_create_workers(workers);
     if world == null { puts("World creation failed"); return 1; }
+    if runtime && !compiler_world_bind_budget(world, &budget) {
+        compiler_world_dispose(world); puts("World budget binding failed"); return 1;
+    }
     var store = compiler_world_store(world);
     var root = entity_create(store);
     if root == null { compiler_world_dispose(world); puts("Anchor creation failed"); return 1; }
     var ok = true;
-    puts("case,workers,sample,iterations,wall_ns,cpu_ns,peak_rss_kib,created_entities,states,voluntary_switches,involuntary_switches");
+    puts("case,workers,sample,iterations,wall_ns,cpu_ns,peak_rss_kib,created_entities,states,voluntary_switches,involuntary_switches,peak_bytes,retained_bytes,ledger_bytes,peak_lanes");
     for(var sample: usize = 0; sample < LRBenchmarkWarmups + LRBenchmarkSamples && ok; sample++) {
         var id = store.next_id;
         var retained_entities = store.entity_count;
@@ -144,6 +204,8 @@ export fn main(argc: i32, argv: u8**): i32 {
         var after: LRBenchmarkUsage = default;
         var wall: u64 = 0;
         var cpu: u64 = 0;
+        var retained_bytes: usize = 0;
+        var memory: WorkBudgetSnapshot = default;
         if getrusage(0, &before) != 0 { ok = false; break; }
         // Sum construction intervals; equality checks and destruction remain
         // outside timing. Repetition reduces sub-100us sampling instability.
@@ -154,22 +216,32 @@ export fn main(argc: i32, argv: u8**): i32 {
             var cpu_finish: u64 = 0;
             if !lr_benchmark_clock(LRBenchmarkProcessCPU, &cpu_start)
                 || !lr_benchmark_clock(LRBenchmarkMonotonic, &start) { ok = false; break; }
-            var result = lr_states_create_parallel(analysis, root);
+            var result = runtime ? lr_runtime_create_parallel(reference, root) : lr_states_create_parallel(analysis, root);
             ok = lr_benchmark_clock(LRBenchmarkMonotonic, &finish)
                 && lr_benchmark_clock(LRBenchmarkProcessCPU, &cpu_finish);
             wall += finish - start;
             cpu += cpu_finish - cpu_start;
-            ok &&= lr_benchmark_equal(reference, result);
-            lr_states_destroy(result);
+            if runtime {
+                ok &&= lr_benchmark_runtime_equal(runtime_reference, result, lr_states_count(reference));
+                ok &&= work_budget_snapshot(&budget, &memory) && memory.used_bytes != 0
+                    && memory.peak_bytes <= memory.bytes && memory.used_lanes == caller.lanes;
+                if memory.used_bytes > retained_bytes { retained_bytes = memory.used_bytes; }
+                lr_runtime_destroy(result);
+                ok &&= work_budget_snapshot(&budget, &memory) && memory.used_bytes == 0 && memory.live == 1;
+            } else {
+                ok &&= lr_benchmark_equal(reference, result);
+                lr_states_destroy(result);
+            }
         }
         ok &&= getrusage(0, &after) == 0;
         ok &&= store.entity_count == retained_entities && store.component_count == retained_components;
         if ok && sample >= LRBenchmarkWarmups {
-            printf("%s,%llu,%llu,%llu,%llu,%llu,%lld,%llu,%llu,%lld,%lld\n", argv[1], workers,
+            printf("%s,%llu,%llu,%llu,%llu,%llu,%lld,%llu,%llu,%lld,%lld,%llu,%llu,%llu,%llu\n", argv[1], workers,
                 sample - LRBenchmarkWarmups, iterations, wall, cpu,
                 after.max_rss, store.next_id - id, lr_states_count(reference),
                 after.voluntary_switches - before.voluntary_switches,
-                after.involuntary_switches - before.involuntary_switches);
+                after.involuntary_switches - before.involuntary_switches,
+                memory.peak_bytes, retained_bytes, memory.retained, memory.peak_lanes);
         }
     }
     entity_release(root);
