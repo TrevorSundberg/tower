@@ -15,7 +15,8 @@ import .backend.wasm_bytes;
 import .library.bytes;
 import .library.vector;
 import .library.entity_api;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 import .library.ar_archive;
 
 fn pe_check_load(link: PeLink*, inputs: vector(ByteBuffer)*, probe: WasmBytes): void {

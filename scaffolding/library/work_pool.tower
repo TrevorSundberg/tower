@@ -22,7 +22,6 @@ extern fn work_signal_close(signal: void*): void;
 extern fn work_signal_post(signal: void*): void;
 extern fn work_signal_wait(signal: void*): void;
 extern fn work_signal_try(signal: void*): bool;
-extern fn work_kernel_execute(job: void*): void;
 
 var WorkSlot: type = pool_types.WorkSlot;
 var WorkPool: type = pool_types.WorkPool;
@@ -65,22 +64,6 @@ fn work_pool_entry(argument: void*): void* {
     }
 }
 
-export fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
-    return work_pool_open_budget(pool, capacity, null);
-}
-
-export fn work_pool_open_budget(pool: WorkPool*, capacity: usize, budget: WorkBudget*): bool {
-    return work_pool_open_named_budget(pool, capacity, null, null, budget);
-}
-
-export fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool {
-    return work_pool_open_named_budget(pool, capacity, entry, windows_entry, null);
-}
-
-export fn work_pool_open_named_budget(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, budget: WorkBudget*): bool {
-    return work_pool_open_impl(pool, capacity, entry, windows_entry, work_kernel_execute, budget);
-}
-
 // Typed kernels share the ordinary platform entry and semaphore handoff. The
 // callback is a noncapturing function; job owns/borrows its explicit context.
 export fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(void, void*)): bool {
@@ -91,7 +74,7 @@ export fn work_pool_open_kernel_budget(pool: WorkPool*, capacity: usize, execute
     return work_pool_open_impl(pool, capacity, null, null, execute, budget);
 }
 
-fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*), budget: WorkBudget*): bool {
+export fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*), budget: WorkBudget*): bool {
     *pool = default;
     pool.execute = execute;
     pool.custom_entry = entry != null || windows_entry != null;

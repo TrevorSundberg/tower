@@ -20,10 +20,21 @@ extern fn work_kernel_execute(job: void*): void;
 
 extern fn work_pool_wait(slot: WorkSlot*): void*;
 extern fn work_pool_complete(slot: WorkSlot*): void;
-extern fn work_pool_open(pool: WorkPool*, capacity: usize): bool;
-extern fn work_pool_open_budget(pool: WorkPool*, capacity: usize, budget: WorkBudget*): bool;
-extern fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool;
-extern fn work_pool_open_named_budget(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, budget: WorkBudget*): bool;
+// Select the default kernel at its using client. A transport-only provider must
+// also link into allocation fixtures that define no compiler kernel at all.
+fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
+    return work_pool_open_budget(pool, capacity, null);
+}
+fn work_pool_open_budget(pool: WorkPool*, capacity: usize, budget: WorkBudget*): bool {
+    return work_pool_open_named_budget(pool, capacity, null, null, budget);
+}
+fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool {
+    return work_pool_open_named_budget(pool, capacity, entry, windows_entry, null);
+}
+fn work_pool_open_named_budget(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, budget: WorkBudget*): bool {
+    return work_pool_open_impl(pool, capacity, entry, windows_entry, work_kernel_execute, budget);
+}
+extern fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*), budget: WorkBudget*): bool;
 extern fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(void, void*)): bool;
 extern fn work_pool_open_kernel_budget(pool: WorkPool*, capacity: usize, execute: function(void, void*), budget: WorkBudget*): bool;
 extern fn work_pool_admit(pool: WorkPool*, job: void*): bool;
