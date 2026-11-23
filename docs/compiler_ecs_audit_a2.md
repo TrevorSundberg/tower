@@ -1395,3 +1395,14 @@ smallest public unit passes; ownership and allocation size are unchanged.
 Full native runtime checks had not started at the failure. Source fix and
 failure evidence are recorded in the journal; this is an interface correction,
 not a performance or release claim.
+
+Fixture-provider audit correction: scaffolding/tests/work_named.tower is an
+aggregate LR fixture through backend_units, not a standalone allocator provider.
+A2's d51 .host.memory import caused duplicate compiler_buffer_allocation_size
+at LR link after the current native compiler succeeded. Removed only that import;
+smallest fixture, fresh LR link, query/type/control/units/backend-overlap/work/
+parser/aggregate-stage gates all pass at483e15db plus this deletion. All source
+hashes stayed frozen. The before runner was unlinkable, so runtime profiling of
+this provider-only correction is inapplicable. See journal for logs/timing and
+exact identities. Whole-lane acceptance remains open; these results do not cover
+newer coordinator inputs or final browser/generation/publication gates.

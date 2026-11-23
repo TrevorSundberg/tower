@@ -60835,3 +60835,33 @@ hashes/timing are in syntax_allocator_declarations.log. The before source
 cannot compile in the same merged closure, so there is no meaningful before
 runtime timing or speedup claim. Coherent native runtime validation resumes next,
 with new source hashes and affected objects rebuilt, not old-ABI reuse.
+
+A2 selected native checkpoint, 2026-11-23 03:19 UTC. The resumed compiler built
+all 53 targets and linked towerc in 91.394 wall /120.348 user /10.029 system
+seconds. The following LR link failed because A2's earlier fixture import of
+.host.memory in tests/work_named.tower introduced a second allocator provider;
+llvm-nm confirmed compiler_buffer_allocation_size in both lr-work-main.o and
+tower-compiler-host.o. Original logs nominal_snapshot_resume_native.log and
+allocator_provider_symbols_before.log are retained. Removed only that import:
+this aggregate fixture already links the existing compiler memory provider.
+No assertion, oracle, registration or production allocation behavior changed.
+The smallest fixture compiles in1.593s, and the three affected targets rebuild
+and link in7.317s. Profiling the import deletion at runtime is inapplicable:
+the before runner cannot link; this changes provider membership, not behavior.
+
+Frozen input483e15db plus that single deletion passes query-smoke0.239s,
+type-smoke221.248s, control-smoke34.057s, units19.520s, backend-overlap8.346s,
+work-pool0.026s, parser0.060s and aggregate-stages19.933s, all within unchanged
+bounds. Type-smoke's long silent CPU-active interval was not a hang; no timeout
+extension or retry was needed. These are validation wall times, not paired
+performance samples. Container tower-a2-nominal-fixture-resume-v2 exited zero;
+all jobs drained. All scaffolding Tower input hashes match after the run.
+Logs: A2/cache/logs/nominal_snapshot_fixture_*.log. Public bootstrap9653f818,
+Linux x64/Docker CPU12-23/24GiB, build jobs2/compiler jobs1, no bootstrap override.
+Compiler SHA4107a1c0b7c6ad15761e2dd458ba7298931db24614a3e38da037813c8005742b;
+LR runner SHA f20c1816c7d60d88da6825be5ee7b572117784ce02afc849e069a3b898f01df9.
+This establishes the selected nominal-storage/context-snapshot native closure,
+not current coordinator97b10 or full lane acceptance. Remaining packed payloads,
+physical page/node accounting, scheduling, browser/generation and final release
+instrumentation/publication remain open. ROOT's requested per-call entity create
+result API is the next scoped shared-owner task; preserve this checkpoint first.
