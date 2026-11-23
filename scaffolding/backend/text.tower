@@ -40,18 +40,22 @@ fn backend_prefix(a: u8*, b: u8*): bool {
     }
 }
 
-fn backend_text_append(out: vector(u8)*, text: u8*, count: usize): void {
+fn backend_text_append(out: vector(u8)*, text: u8*, count: usize): bool {
+    var maximum = ~convert(usize, 0);
+    if out.length == maximum || count > maximum - out.length - 1 { return false; }
     var end = out.length + count;
     var needed = end + 1;
     if vector_reserve(out, needed) {
         copy(&out.data[out.length], text, count);
         out.length = end;
         out.data[end] = 0;
+        return true;
     }
+    return false;
 }
 
-fn backend_text(out: vector(u8)*, text: u8*): void {
-    backend_text_append(out, text, backend_length(text));
+fn backend_text(out: vector(u8)*, text: u8*): bool {
+    return backend_text_append(out, text, backend_length(text));
 }
 
 fn backend_contains(text: u8*, part: u8*): bool {

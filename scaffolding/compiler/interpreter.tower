@@ -690,7 +690,15 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
     if !ix_strict_node(m, n, offset) {
         return 0;
     }
-    if n.kind == KFunctionReference { return im_function_reference(m.state, n.binding); }
+    if n.kind == KFunctionReference {
+        var reference = im_function_reference(m.state, n.binding);
+        if reference == 0 {
+            ix_fail(m, m.state.storage_error == WorkBudgetError.Invalid
+                ? "Invalid interpreter function reference index"
+                : "Cannot allocate interpreter function storage", offset);
+        }
+        return reference;
+    }
     if n.kind == KTypeReference {
         return ix_type_reference(m, &n.element, offset);
     }

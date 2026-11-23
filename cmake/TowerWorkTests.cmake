@@ -67,7 +67,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set_tests_properties(${target} PROPERTIES TIMEOUT 30)
       endif()
     endfunction()
-    foreach(unit IN ITEMS work_ready work_budget work_budget_shared work_kernel_admission tool_output_identity work_signal_observe entity_stage_concurrent entity_stage_result work_buffer work_buffer_shared work_arena work_arena_shared work_arena_linkage work_dispatch_result work_constructor_budget work_schedule_budget entity_component_budget entity_component_layout)
+    foreach(unit IN ITEMS work_ready work_budget work_budget_shared work_kernel_admission tool_output_identity work_signal_observe entity_stage_concurrent entity_stage_result entity_page_reuse entity_stage_reentrant work_buffer work_buffer_shared work_arena work_arena_shared work_arena_linkage work_dispatch_result work_constructor_budget work_schedule_budget entity_component_budget entity_component_layout)
       tower_work_fixture(${unit} OFF)
     endforeach()
     # Linux x64 clock/rusage microbenchmarks check their outputs but have no

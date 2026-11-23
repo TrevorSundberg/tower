@@ -4,10 +4,12 @@ import foreign_reader;
 import text;
 
 fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
+    if base == null || foreign_failed(m) { return null; }
     if foreign_take(m, "[") == false {
         return base;
     }
     var type = foreign_node(m, 6);
+    if type == null { return null; }
     if foreign_take(m, "]") == false {
         type.count = foreign_integer(m);
         foreign_expect(m, "]");
@@ -53,7 +55,7 @@ fn foreign_member_owner(m: ForeignName*): ForeignType* {
 }
 
 fn foreign_ms_array(m: ForeignName*, type: ForeignType*): void {
-    backend_text(&m.text, "Y");
+    foreign_text(m, &m.text, "Y");
     var rank: usize = 0;
     var base = type;
     loop {
@@ -73,7 +75,7 @@ fn foreign_ms_array(m: ForeignName*, type: ForeignType*): void {
         dimension = dimension.base;
     }
     if base.cv != 0 {
-        backend_text(&m.text, "$$C");
+        foreign_text(m, &m.text, "$$C");
         foreign_ms_cv(m, base.cv);
     }
     foreign_ms_type(m, base, false);
@@ -83,37 +85,37 @@ fn foreign_ms_member(m: ForeignName*, type: ForeignType*): void {
     var cv = type.cv &3;
     cv = cv + 80;
     var byte = convert(u8, cv);
-    backend_text_append(&m.text, &byte, 1);
+    foreign_text_append(m, &m.text, &byte, 1);
     if type.base.kind == 7 {
-        backend_text(&m.text, "8");
+        foreign_text(m, &m.text, "8");
         foreign_ms_name(m, type.scope);
         if m.pointer_bytes == 8 {
-            backend_text(&m.text, "E");
+            foreign_text(m, &m.text, "E");
         }
         if type.base.ref == 1 {
-            backend_text(&m.text, "G");
+            foreign_text(m, &m.text, "G");
         }
         if type.base.ref == 2 {
-            backend_text(&m.text, "H");
+            foreign_text(m, &m.text, "H");
         }
         foreign_ms_cv(m, type.base.cv);
         foreign_ms_cc(m, type.base.convention, true);
         foreign_ms_type(m, type.base.base, true);
         foreign_ms_parameters(m, type.base);
         if type.base.nothrow {
-            backend_text(&m.text, "_E");
+            foreign_text(m, &m.text, "_E");
         }
         else {
-            backend_text(&m.text, "Z");
+            foreign_text(m, &m.text, "Z");
         }
     } else {
         if m.pointer_bytes == 8 {
-            backend_text(&m.text, "E");
+            foreign_text(m, &m.text, "E");
         }
         cv = type.base.cv & 3;
         cv = cv + 81;
         byte = convert(u8, cv);
-        backend_text_append(&m.text, &byte, 1);
+        foreign_text_append(m, &m.text, &byte, 1);
         foreign_ms_name(m, type.scope);
         foreign_ms_type(m, type.base, false);
     }
