@@ -1,0 +1,2 @@
+// A custom grammar needs its own numeric token; the Bedrock seed has none.
+[number] token Number = /[0-9]+/;

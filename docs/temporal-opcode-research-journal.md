@@ -88940,3 +88940,86 @@ L1 canonical-type publication reconciliation: db27b108 merged complete cc21bb4e 
 B2 publication reconciliation: f16cde13 merged complete published cc21bb4e history at4fd5ab83c11dbcb41a39eaff166a0a9d6dbacadc; both journal entries retained without conflicts. Four dependency-aware native actions rebuilt incoming generic-inspection inputs. Query smoke and nested admission/cancellation PASS; merged4096-body workers1/4 retain exact frozen source/canonical bytes, known42 and actual semantic overlap4. Canonical SHA2569c0daad4b6b7d0d94eeb27c99fe30c27e37cee1cabc3555c7db83a67278d0039. Original e0e3530b throughput/source identities remain intact; this is affected-source correctness only. Logs in the existing within_unit_e0e3530b receipt folder. ROOT retains final deployment and integrated acceptance.
 
 L1 final canonical-type adoption: first normal push raced shared WorkPool/WorkBatch descriptor/observer changes. Required pull preserved divergence; complete7facb35f history merged as59f4c085075649817e6febec73b0348444b47ae2. A dependency-aware towerc target coherently refreshed affected providers once (94.43wall/141.67CPU/1066336KiB), then the same four fixture/width canonical formats remained byte-identical and fresh Graph/Fast outputs remained0. Compiler0e8019924b7d17d04aa8ecbd54b388ab6ffee0a975c59bc5e9b1e77dbfb18377; before/after manifest30109c5fa76ac2ea772e1d59539d87b97866888e4591af06fb3e913580118aaf. Exact foundation_type_dispatch_merge logs/receipt preserve identities. No new L1 production edit, broader matrix, browser execution or old-evidence relabeling. Jobs drained; retry normal main push.
+### D1 bounded increment/invocation/precedence/replacement fixtures (2026-11-23)
+
+Mounted source freezecc21bb4e0df478933ffb4f9ec797020221919374, clean main;
+scaffolding711cb44392daef192083059ebe33e55c988f4438 and host
+24bd709ce4b6f7c4243b00bf333264ec0f18a7c6. Same D1 thread, Codex PID3122400.
+ROOT supplied immutable9d9329db reactors/public768; SHA256 portable
+13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738 and LLVM
+bd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac verified
+before own-cache copy. D2 heavy lock/active LLVM run and all f7 artifacts/logs
+untouched. No compiler build. Explicit absolute TOWER_TEST_WASM and
+TOWER_TEST_LLVM_WASM select these copies; eager default artifact reads exist.
+Current resource/host manifests are separate from frozen compiled source.
+
+Read AGENTS, modules/parser contracts, handoff/services and recent owner receipts;
+inspected actual Bedrock seed vs editable Bedrock, Foundation wrapper, examples,
+Tower increment fixture, native replacement/precedence fixtures and Node callers.
+Baseline only increment.test.mjs, interpreter-invocation.test.mjs,
+precedence.test.mjs and replacements.test.mjs:10pass/15fail/0skip, exit1.
+Increment already6/6 passes. Custom Number grammars lacked their own token;
+precedence annotations also lacked the explicit editable Bedrock import.
+Foundation assignment-template negative extended an absent seed Statement.
+
+Repair is data-boundary only: one shared numeric_token.tower fixture defines
+Number without importing a language; precedence explicitly imports Bedrock;
+replacement custom grammar remains seed-only. Only the ordinary assignment
+negative imports Foundation. Revision assertions explicitly account for the
+accepted token/import; original independent values, exact error alternatives,
+Unicode byte offsets, canonical equality, expansion shapes/origins and all
+limit/cleanup assertions remain. No compiler/host behavior or shared wrapper
+changed. Existing Node semantic oracle is preserved, not expanded or duplicated.
+
+Targeted two-file run16/16 passed. Two remaining compiled-export failures were
+source-traced against byte-identical9d/current providers. Invocation width4
+returns2: tests/interpreter_invocation.tower constructs a parameter but omits
+function.locals, required by interpreter.tower ix_local_binding. Production
+sem_add_local and its parameter caller populate that identity/index registry.
+The hand-built uninitialized local likewise lacks registration, so its generic
+error assertion does not establish the desired initialization error. ROOT/L1:
+repair fixture ownership and preserve exact strict-storage evidence in a rebuilt
+provider; do not weaken production capture checks.
+
+semantic_world_tests(4) traps before completing its suite: semantic_world_trial
+calls evaluation_query_tests -> semantic_resource_tests -> resource_trial, which
+asserts nonnull work_signal_open. The portable host intentionally returnsnull;
+llvm-objdump confirms the actual trap site0x14a660 calling sem_require and
+exported work_signal_open returningi32.const0. This is a concrete portable test
+capability mismatch. ROOT/L1 resource-fixture owner: support the real serial
+budget path while retaining synchronized threaded denial checks. No fake signal,
+skip, or broad host rewrite here. Both width8 iterations and world subcases
+after the trap remain unrun. semantic_stage_tests passes. Existing Tower fixture
+producers are the exact reproductions; no duplicate JS semantics was added.
+A focused two-export diagnostic log callback probe reproduced2/2fail with no
+additional output; temporary callback removed, failures preserved.
+
+Command boundary: Docker tower-d1-ecs, Node22.23.5, Linux x64 SteamDeck,
+cpuset0,2, --test-concurrency=1, /usr/bin/time -v, timeout180s (targeted export
+probe60s), no npm IDE gate. Logs/exit statuses/hashes/disassembly under
+build/d1_ecs/browser_four_cc21bb4e. Each phase n1/fresh process/warm filesystem;
+D2 workload may contend for host resources. Measurements are validation cost:
+- before10/25:11.06wall/9.56CPU seconds/324060KiB peak, exit1;
+- affected precedence+replacements16/16:6.11wall/5.73CPU/185532KiB, exit0;
+- final four-file aggregate23/25:12.02wall/11.05CPU/317228KiB, exit1/0skips.
+All reported runs zero swaps. More assertions now execute; these timings are
+not equivalent production before/after profiles or speedup. No runtime logic
+changed, so production profiling/sanitizer/scaling campaigns are inapplicable.
+Final manifest checks preserve reactor/source inputs; all owned processes drain
+before reconciliation. Earlier f7 four-file20/22 stays exact; its stack/defer L2
+and pointer-alias L1 cases were not rerun or claimed passed. Current-source full
+Node/shared/IDE/generation/hosted acceptance remains ROOT's separate milestone.
+B2 publication reconciliation: f16cde13 merged complete published cc21bb4e history at4fd5ab83c11dbcb41a39eaff166a0a9d6dbacadc; both journal entries retained without conflicts. Four dependency-aware native actions rebuilt incoming generic-inspection inputs. Query smoke and nested admission/cancellation PASS; merged4096-body workers1/4 retain exact frozen source/canonical bytes, known42 and actual semantic overlap4. Canonical SHA2569c0daad4b6b7d0d94eeb27c99fe30c27e37cee1cabc3555c7db83a67278d0039. Original e0e3530b throughput/source identities remain intact; this is affected-source correctness only. Logs in the existing within_unit_e0e3530b receipt folder. ROOT retains final deployment and integrated acceptance.
+
+D1 publication reconciliation: implementation499648cf; required ff-only pull
+refused normal divergence, so mergec1d599fd39133638d60948fb053280f4537c9328
+preserves complete published7facb35f history without conflicts. Incoming eleven
+Tower changes are compiler/work-pool/other-fixture providers, outside the ordinary
+language/example imports executed by this Node slice; their code is not present
+in the frozen9d reactors. Full-resource manifest correctly records those eleven
+mismatches, not an all-current pass. Node transport/four tests, numeric fixture,
+actual language/examples and eight inspected failure-provider source hashes
+remain unchanged, as do both reactors. Reuse exact23/25 evidence; no additional
+aggregate or compiler build. New owner observer/package/lifecycle receipts are
+separate acceptance, not silently covered here. Diff check passes; todo and all
+previous logs preserved. Normal source push follows, ROOT retains deployment.
