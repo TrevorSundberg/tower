@@ -690,6 +690,14 @@ construction destroys the unpublished graph and permits retry. The underlying
 legacy propagation vectors retain their existing allocation contract; this
 change does not claim to charge all LR memory or foreign allocator metadata.
 
+The shared FIRST/lookahead range union walks the already sorted contiguous sets,
+counts missing exact ranges, reserves once, then merges backward in place. Equal
+starts with different ends and overlapping ranges retain separate identities.
+Empty, subset and self merges allocate nothing; a single incoming range keeps
+the ordinary binary insertion path. Callers provide separate owned vectors or
+the same descriptor, and denial preserves the destination and first typed error.
+This adds no scratch/cache owner and keeps the vectors' existing budget contract.
+
 ### Checked provenance and presentation ownership
 
 `SyntaxExpansion.rule` and `SyntaxOrigin.splices` own checked work vectors charged
