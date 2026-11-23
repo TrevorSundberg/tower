@@ -93672,3 +93672,15 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+ROOT A2 publication recovery: the source fixee91c300 and all A2 merge history
+were preserved through78d675c441 and atomically pushed with unchanged Pages.
+The final merge brings only browser/docs; native executed inputs remain those
+already checked by A2. SSH DNS and unavailable Credential Manager session
+failures are retained, not mislabeled as successful pushes. A verified
+ee025e52dcb00a29ff17b526673f2ec0f84722c3a67e11669789630e99f5cb6b Git bundle
+transferred the commits to ROOT's already authenticated normal checkout.
+See compiler_malformed_shapes_ba52a932.md recovery appendix. No runtime rebuild
+or performance comparison is needed for this documentation/transport recovery.
+B2's published7890ebd7 browser ownership repair is now assigned actual b8
+strict/static-application adoption; all32 b8 artifacts were copied and remotely
+rehashed on KinmenB (168164918B). The existing eight UUIDs remain the only workers.
