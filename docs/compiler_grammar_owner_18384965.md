@@ -66,6 +66,8 @@ The earlier matched Clang19 `-O2 -fwrapv` controls remain .04/.09s from the
 
 Existing `frontend_units_profile`4 independently owned units/16 bodies, n2,
 alternating before/after, no grammar observer during these timings:
+the frozen tool's default shape puts the16 bodies in the last unit and zero
+additional bodies in the other three. It is not the later B2 uniform-unit mode.
 
 | Workers | Timed wall s before / candidate | CPU s before / candidate | Peak RSS KiB before / candidate |
 | --- | ---: | ---: | ---: |
@@ -138,3 +140,16 @@ equal their frozen originals byte for byte, so their unchanged evidence is reuse
 The candidate's additional `syntax_world_structures_clear` object import is
 retained in its nm report only; no public symbol-policy expansion is adopted.
 Prior Node passes, native generation freezes and public bootstrap remain intact.
+
+## Publication boundary
+
+Receipt `66b90477` merged complete published `fcaad5a6` as `534b47ed` after
+the required ff-only pull refused divergence. The six restored candidate paths
+and exact finite-budget fixture remain unchanged. Later nominal/numeric-wrapper,
+malformed-call and B2 profile/schema changes are outside the measured freeze;
+in particular, the newly added uniform workload mode was not executed here.
+The rejected patch is not applied to those later compiler inputs, and this
+receipt does not claim a newly rebuilt compiler or a reproduced failure on them.
+Documentation publication requires no new runtime rebuild or repeated passing
+matrix. Preserved source snapshots and before/candidate binaries retain their
+original identities; ROOT retains final composition and release ownership.

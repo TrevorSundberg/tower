@@ -92553,3 +92553,13 @@ actual module-input boundary without a repeat; added registry files are filtered
 out of that host's supplied baseline. New compiler sources are not baked into
 47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
 group, implementation change or blanket merged compiler validation.
+
+B1 publication reconciliation: receipt66b90477 merged completefcaad5a6 as534b47ed
+following normal ff-only divergence. Six restored candidate paths and exact
+frontend_units_memory fixture unchanged. Later wrapper/malformed-call producers
+and B2's new uniform/profile schema remain outside frozen18384965 measurements;
+no candidate or restored binary relabeled as those inputs. The original profile
+shape has16 bodies in its last unit and zero in three others, not later uniform.
+Documentation-only result; no runtime patch/policy adoption, new rebuild or
+passing-test repeat. Original error remains precise evidence for its frozen
+candidate, not a claim that the rejected patch was tested on later main.
