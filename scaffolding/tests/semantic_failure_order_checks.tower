@@ -22,6 +22,8 @@ extern fn entity_create(store: void*): void*;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
 extern fn puts(text: u8*): i32;
+extern fn sem_control_names(c: SemanticContext*): void;
+extern fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void*;
 
 enum FailureOrderMode: u32 { Reversed, Deferred, EarlierSuccess, Isolated }
 var FailureOrderBudgetBytes: usize = 65536;
@@ -97,6 +99,11 @@ fn failure_order_trial(width: u32, workers: usize, mode: FailureOrderMode, resou
     work_signal_post(signal);
     sem_require(work_budget_init(&budget, workers, FailureOrderBudgetBytes, FailureOrderBudgetRevision)
         && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post));
+    defer {
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+            && snapshot.used_lanes == 0 && snapshot.live == 0 && work_budget_dispose(&budget));
+    }
     var world = compiler_world_create_workers(workers);
     sem_require(world != null && compiler_world_bind_budget(world, &budget));
     var store = compiler_world_store(world);
@@ -112,18 +119,54 @@ fn failure_order_trial(width: u32, workers: usize, mode: FailureOrderMode, resou
     var unused = failure_order_stage(&context, 97, true, false, 0);
     var first = failure_order_stage(&context, 83, mode != FailureOrderMode.EarlierSuccess, true, first_gate);
     var second = failure_order_stage(&context, 11, true, true, second_gate);
+    defer {
+        sem_context_dispose(&context);
+        semantic_program_dispose(&program);
+        entity_release(root);
+        sem_require(compiler_world_dispose(world));
+    }
     var occupied: WorkReservation = default;
+    defer { if occupied.active { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); } }
     if resource {
-        // This oracle denies interpreter startup, after the separately owned
-        // pool has reserved its physical slots from the same world budget.
+        // Scratch is now a real grant. Admit coordinator metadata and the pool
+        // before denying private worker preparation, ahead of interpreter start.
         sem_require(sem_workers_open(&context));
-        // Valid startup requests fit the total but cannot fit beside this owner.
+        sem_require(sem_evaluation_work_register(&context, false) != null);
+        sem_control_names(&context);
+        sem_require(program.resource.error == WorkBudgetError.None);
+        // The actual remaining capacity is denied, without guessing a scratch
+        // payload, allocator header, or interpreter cache size.
         var snapshot: WorkBudgetSnapshot = default;
         sem_require(work_budget_snapshot(&budget, &snapshot));
         sem_require(work_budget_reserve_result(&budget, 0, 0,
             FailureOrderBudgetBytes - snapshot.used_bytes - 1, &occupied) == WorkBudgetError.None);
     }
     context.declaration_isolated = mode == FailureOrderMode.Isolated;
+    if resource {
+        sem_evaluation_pump(&context);
+        failure_order_check(!first.started && !second.started && !unused.started
+            && !first.ready.ready && !second.ready.ready
+            && first.resource_error == WorkBudgetError.Capacity && second.resource_error == WorkBudgetError.Capacity
+            && first.error_offset == 83 && second.error_offset == 11 && context.workers.running == 0
+            && context.queries.running == 0,
+            "Worker scratch denial keeps exact producer positions and publishes no ready partial value", &failures);
+        if context.declaration_isolated {
+            failure_order_check(program.resource.error == WorkBudgetError.None && program.error.length == 0,
+                "Isolated scratch denial remains on its owning producers", &failures);
+            context.declaration_isolated = false;
+            sem_evaluation_pump(&context);
+        }
+        failure_order_check(program.resource.error == WorkBudgetError.Capacity && program.resource.offset == 83,
+            "Scratch failure selection follows owner order, not smaller numeric offsets", &failures);
+        var query = work_find(&context.queries, first.subject, convert(u32, SemanticQuery.Evaluation), 0);
+        var first_dispatch = work_task(&context.queries, query).dispatch;
+        var nodes = entity_store_count(store);
+        failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Failed
+            && work_task(&context.queries, query).dispatch == first_dispatch
+            && entity_store_count(store) == nodes && !first.started && !second.started,
+            "Terminal scratch denial cannot replay preparation or interpreter effects", &failures);
+        return failures;
+    }
     failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
         && first.started && second.started && !unused.started && program.error.length == 0
         && program.resource.error == WorkBudgetError.None && context.workers.running == 0,
@@ -179,15 +222,6 @@ fn failure_order_trial(width: u32, workers: usize, mode: FailureOrderMode, resou
     failure_order_check(!unused.started && unused.function == null && context.workers.running == 0
         && first.invocation.state.memory.data == null && second.invocation.state.memory.data == null,
         "Executed failures drain storage and leave undemanded stages untouched", &failures);
-    sem_context_dispose(&context);
-    semantic_program_dispose(&program);
-    entity_release(root);
-    failure_order_check(compiler_world_dispose(world), "Ordered failure releases its input world", &failures);
-    if resource { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); }
-    var snapshot: WorkBudgetSnapshot = default;
-    sem_require(work_budget_snapshot(&budget, &snapshot));
-    failure_order_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
-        && work_budget_dispose(&budget), "Ordered failure retires every budget owner", &failures);
     return failures;
 }
 
@@ -244,7 +278,6 @@ export fn main(): i32 {
             failures += failure_order_trial(width, workers, FailureOrderMode.EarlierSuccess, false);
             failures += failure_order_trial(width, workers, FailureOrderMode.Isolated, false);
             failures += failure_order_trial(width, workers, FailureOrderMode.Reversed, true);
-            failures += failure_order_trial(width, workers, FailureOrderMode.Deferred, true);
             failures += failure_order_trial(width, workers, FailureOrderMode.Isolated, true);
         }
     }

@@ -74,8 +74,10 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
 
 fn language_grammar_index(q: CompletionQuery*): void {
     q.grammar_index = sem_table(&q.context);
+    if !sem_ok(&q.context) { return; }
     foreach(var & entry in &q.grammar) {
         var indexed = sem_state(&q.context, q.grammar_index, entry.node);
+        if indexed == null { return; }
         indexed.value = bits(void*, entry);
     }
 }

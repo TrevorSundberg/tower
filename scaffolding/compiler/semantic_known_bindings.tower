@@ -27,15 +27,15 @@ export fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKn
 }
 
 // Only owned executable edges; never follow declaration/type back references.
-fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
+fn sem_known_edges(c: SemanticContext*, pending: vector(void*)*, node: FoundationNode*): void {
     if node.kind == KFunction || node.kind == KType || node.kind == KLabel { return; }
-    sem_push(pending, node.left);
-    sem_push(pending, node.right);
-    sem_push(pending, node.value);
-    sem_push(pending, node.target);
-    sem_push(pending, node.body);
-    sem_push(pending, node.otherwise);
-    foreach(var item in &node.items) { sem_push(pending, item); }
+    if !sem_push_checked(c, pending, node.left) { return; }
+    if !sem_push_checked(c, pending, node.right) { return; }
+    if !sem_push_checked(c, pending, node.value) { return; }
+    if !sem_push_checked(c, pending, node.target) { return; }
+    if !sem_push_checked(c, pending, node.body) { return; }
+    if !sem_push_checked(c, pending, node.otherwise) { return; }
+    foreach(var item in &node.items) { sem_push_checked(c, pending, item); }
 }
 
 
@@ -121,7 +121,7 @@ fn sem_known_surface(node: void*): bool {
 // eligible producers remain dependencies for that work to discover.
 fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void*)*): bool {
     pending.length = 0;
-    sem_push(pending, expression);
+    if !sem_push_checked(c, pending, expression) { return default; }
     for(var index: usize = 0; index < pending.length; index++) {
         var node = pending.data[index];
         if node == null { continue; }
@@ -135,12 +135,12 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
         // selects them. This bounded admission scan checks mandatory inputs;
         // it neither chooses a branch nor computes a constant.
         if value.kind == SurfaceSelect {
-            sem_push(pending, value.value);
+            if !sem_push_checked(c, pending, value.value) { return default; }
         } else {
             if value.kind == SurfaceAnd || value.kind == SurfaceOr || value.kind == SurfaceCoalesce {
-                sem_push(pending, value.left);
+                if !sem_push_checked(c, pending, value.left) { return default; }
             } else {
-                sem_known_edges(pending, value);
+                sem_known_edges(c, pending, value);
             }
         }
     }
@@ -155,6 +155,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     var proof = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
     if !sem_known_query_check(c, c.program.root, proof != 0) { return; }
     var nodes = sem_list(c);
+    if !sem_ok(c) { return; }
     var root = sem_get(c.program.root);
     for(var index: usize = 0; index < root.items.length; index++) {
         sem_known_register(c, root.items.data[index], null, index);
@@ -177,7 +178,7 @@ fn sem_known_infer(c: SemanticContext*): void {
         foreach(var &candidate in &job.candidates) {
             if job.owner != null { sem_known_register(c, candidate.subject, job.owner, candidate.ordinal); }
             if !sem_ok(c) { sem_known_jobs_dispose(&scans); return; }
-            sem_push(nodes, candidate.subject);
+            if !sem_push_checked(c, nodes, candidate.subject) { return; }
         }
     }
     foreach(var job in &scans) {
