@@ -94639,3 +94639,96 @@ validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
 
 A2 Wasm struct receipt publication reconciliation: first normal push raced. Complete upstream70e77b60 merged, retaining unrelated later C/native void-return registrations (driver_c_cases/driver_differentials/new backend_void_returns_direct). Those new mounted test-resource bytes are outside the measured e932b546 freeze; the reactor, selected Node test/transport, primitive resources and full struct fixture are unchanged. Receipt remains source-bound; no runtime rerun or current-registry acceptance inferred. No compiler implementation changed in this documentation task.
+
+
+## 2026-11-23 D2: four T8 Node files adopt the 25dddd04 reactor pair
+
+Bounded adoption completed: **15/15 top-level cases pass**, c-source6,
+compiler-bytes3, compiler-utf83, formatter-port3. All four complete files ran
+unchanged, once each, in that order; exit0, zero failed/skipped/cancelled/todo,
+timeout or unstarted cases. Literal registrations were extracted from each file
+and compared exactly against completed TAP names, not inferred from a substring.
+This is new-pair execution evidence, separate from the older accepted 78650118
+receipt. No compiler, host, fixture, expected output or test registration changed.
+
+Frozen published host/resource source:
+`3a0b5e416aec006c3191880a8ac8378e4aae6740`; scaffolding tree
+`645cd442fedf1f14c710310b9b0301a4cd08aec3`, playground/src tree
+`5021aff854f4156ea2ee1425e045ed5b219c8aef`.
+Compiled reactor source is separately
+`25dddd0420258bc5174a3039293c447fd60ef367`, **excluding A2's later125efb11
+body-query fix**. Mounted current source does not rebuild that compiler.
+Both supplied immutable files were verified before/after and mounted read-only
+at their exact override paths under
+`/home/deck/tower_coord_ecs_20261122/root_release_25dddd04/`:
+
+- `tower.wasm`: `35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb`.
+- `tower-llvm.wasm`: `c1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa`.
+
+Fixture SHA256 identities (all four byte-unchanged from78650118):
+
+| File under playground/tests | SHA256 |
+| --- | --- |
+| c-source.test.mjs | `5abe45986533f1f45f59bf0f1067df41f42b7b06140053cd6ec8e11b08cf7668` |
+| compiler-bytes.test.mjs | `b527138e1a97315bbef1e83fffe02a3be6fa0e9d7b1bc93787655bcffd15b6ff` |
+| compiler-utf8.test.mjs | `3ddee343ed2f3e17164cb08c85c8f867e3b63c94b7d2b84a25a12e441f233c7c` |
+| formatter-port.test.mjs | `306944e2132ebd59bb73ab6ee27578dc9762ce10ad719a74705ea8a109bf9703` |
+
+Loader compiler-fixtures.mjs SHA256
+`495cb14e25e700c8b41710a79423d75310a361039e7486f24c5f0f9a212605fd`;
+it recursively supplies the actual1185 scaffolding Tower files. Retained sorted
+per-file manifests: resources.sha256 digest
+`7d90a9bd91d754361635c20de93cdad84730d79bb25f54e50a67108a453b2fb7`,
+47-file host.sha256 digest
+`24cbafee4a7f8c7c0f8650332a0590764232d3dd3ec3413aeb12f98b4fffc520`,
+tests.sha256 digest
+`af4a296df05af1f1703276612b73c727e17761428c293c401a4bc54d57fa4fdc`.
+All manifest entries verified unchanged after execution.
+
+Deck Linux6.16.12-valve24.5, Ubuntu24.04.5 Docker image
+`sha256:4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`;
+Node22.23.5/V8 12.4.254.21-node.57, CPU affinity0,2, memory8589934592B,
+cgroup swap0, one heavy job under the acquired D2 lock. Fresh finite container
+and Node process per file, filesystem cache not flushed, n1 per file; no compiler
+worker-count or useful-overlap claim. Existing container's Node executable
+SHA256 `2f822d544601dfff107f57d945b649d15c5bf6302595735a6bd9cdc7ee9669bd`
+and GNU time SHA256
+`3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10`
+were mounted read-only into the same base image; no install/build. First transport
+preflight exited127 because the base image lacks /usr/bin/time, **before any test
+started**. That log remains in preflight_missing_time; mounting the existing
+timing binary resolved the prerequisite. GNU time reports version UNKNOWN
+(copyright2018); timeout is coreutils9.4. No interpreter-only mode was set.
+
+From repo root, with TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM set to the exact supplied
+paths, each invocation was `/usr/bin/time -v -o FILE.time timeout --foreground
+--signal=KILL 180s node --test --test-concurrency=1 --test-timeout=180000
+playground/tests/FILE.test.mjs`, with complete stdout/stderr retained separately.
+
+| File | Pass / exit | Wall s | CPU s (user + system) | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: |
+| c-source | 6 / 0 | 6.65 | 8.38 (7.78 + 0.60) | 284936 |
+| compiler-bytes | 3 / 0 | 9.41 | 12.38 (11.66 + 0.72) | 412936 |
+| compiler-utf8 | 3 / 0 | 14.29 | 20.53 (19.68 + 0.85) | 431192 |
+| formatter-port | 3 / 0 | 5.45 | 6.23 (5.87 + 0.36) | 171920 |
+
+Unchanged assertions checked C comments/raw+optimized Foundation/canonical order,
+C capability rejection and ABI widths; byte-buffer32/64 layouts, exact interpreter
+and actual LLVM results, failed-reserve preservation/disposal and100 source resets;
+UTF-8 reference/malformed input, no-import generated Wasm, truncated memory-boundary
+reads, repeated Wasm byte equality, interpreter/canonical/LLVM agreement; exact
+UTF-8 source mappings, numeric/type formatting and100 spacing round trips. Warm
+node/allocation equality remains its existing scoped assertion, not proof that
+all allocation instrumentation is enabled.
+
+Logs/manifests/expected-completed names/exit files/runtime identity are retained
+at `build/d2_ecs/t8_four_25dddd04_3a0b5e41/`; evidence.sha256 digest
+`c1f9e7ba79c952bd4f721adf2078b76a303f14b0942761967985a1fcfe0b60aa`.
+All four cgroup memory.events report zero max/oom/oom_kill; GNU time reports zero
+swaps. Peak RSS is process residency including Node/V8/reactors/host data, not
+Wasm capacity or live ECS ownership. These are validation costs, not a production
+performance comparison. No runtime changes require new profiling. After drain,
+D2 released its lock; disk127GiB free, available RAM9.7GiB. No compiler/reactor
+build, compiler-entities/entity_pages/fullstruct, unrelated Node, browser,
+generation or sanitizer check ran. Later producer adoption and real hosted
+release remain ROOT/owners' separate gates; no deployment claimed.
