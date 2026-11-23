@@ -80867,3 +80867,30 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+
+### D2 bounded publication-readiness audit (2026-11-23)
+
+Reviewed published636f7f93 through f33770ba, then pulled complete L2 history to
+afca69b171c790ce9386ae85c3f3d493d21cec59 before writing the final checklist in
+docs/compiler_ecs_audit_d2.md. No owned build survived; actual Codex PID3036590,
+Deck container init/sleep only, no heavy lock acquired. All56 public bootstrap
+checksum entries verify (compiler9653f818, manifestcf7d84b1). Read actual native
+depfiles, current CMake/unit/export rules and published project metadata. The
+636 provider receipt now needs ParserNodes, Semantics, Evaluation, Interpreter,
+query-checks and driver consumer refresh; unchanged Entities and exact policy/
+24-case receipts remain reusable only within their original input/profile scope.
+No duplicate test or broad build was run.
+
+Fetched served manifesteb70f538, exactly matching Pages6f142bef; its104 assets
+and project533files/22units still identify build98ade8cc, not this source union.
+The old recipe lacks the four generic-result and entity_attach_result exports.
+Recorded exact pin/source/object/project/receipt identities, current export and
+release gaps, reusable vendor/input boundaries, corrected root-cwd mandatory
+thread test invocation, and minimal existing clean/bootstrap/browser/generation/
+hosted/address/thread commands. Current thread package built-only, historical
+timeouts, broken negative control and unsupported UBSan remain explicit.
+Documentation-only work requires no runtime performance/memory comparison.
+Source receipts were reviewed, not relabeled or rerun. /home129GiB free and
+9.7GiB RAM available at inspection; no cleanup or other owner's changes.
+ROOT retains final runtime/assets/deployment. This bounded audit commits/pushes
+main only; its exact publication result is recorded in D2's existing status.
