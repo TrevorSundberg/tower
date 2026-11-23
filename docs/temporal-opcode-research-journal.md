@@ -93878,3 +93878,11 @@ runtime rerun; fixed pending entries do not deny the presence of later repairs.
 Own finite audit remains unchanged; historical handoff ledger bytes preserved
 apart from the explicit historical heading. Diff checks pass, todo unchanged;
 normal source push follows. ROOT retains final integrated acceptance.
+
+B2 b8UI publication reconciliation: receiptf9869995 merged completecd3aefa2
+history ascd50f06d after required ff-only divergence; both journals preserved.
+All browser host/fixture/script bytes remain unchanged, frozenresource snapshot
+hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
+receipts without new tests. Incoming L1header-capture/L2void-pointer producers
+and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
+acceptance. No source/package relabel or runtime deployment; normalpush follows.
