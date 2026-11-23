@@ -92137,6 +92137,57 @@ not evidence that the newer implementation fails. Preserve resource mismatch
 logs and original measured identity; no entire merged-registry runtime claim or
 passing-case rerun. Current actual selected fixture/language closure unchanged.
 
+### B1 grammar-plan owner trial at18384965: rejected on exact resource failure (2026-11-23)
+
+Frozen18384965d21ee5f710b05db3623f13668d68c993/tree2b31d12666e99f53ee9d2d92636d2f6d81361e47,
+KinmenB CPU0-11/24GiB, one native cache, public768 ordinary bootstrap, jobs6 maximum.
+Previous jobs drained,115GiB disk. Audited frontend_unit_compile baseline installs,
+syntax_baseline_install teardown/reset, module cache identity and per-session
+SyntaxVersionCache.structures. Same-world later imports repeat previously built
+immutable LR plans; no safe cross-world entity sharing was inferred.
+
+One candidate used existing bounded ParserStructureCache through a budgeted
+world-owned holder, exact ordered LR/profile identity and explicit seed/budget
+invalidation. Per-version emission/provenance/userdata and incremental boundaries
+stayed private. Initial holder retained55MiB/world and violated cache-only cleanup;
+refined explicit session opt-in preserved the old API and released surplus pins
+after parsing joined, before semantics. No scheduler, parser-tree or backend edit.
+Both candidate shapes/failed logs/source snapshots are preserved, neither adopted.
+
+Final same-source n2 alternating CLI medians wall/CPU/RSSKiB:
+small1 .49/.42/186216 -> .45/.38/187310; large1 .63/.56/238760 -> .60/.525/231796.
+Single4-worker controls small .55/.50/187764 -> .50/.45/189220;
+large .70/.67/240468 -> .66/.62/235552. All12 objects equal original known-good
+objects; all12 executions print15/999. Frozen parser_table production control
+1.18/.80/229364 ->1.09/.72/220892, exact object. Prior C controls remain distinct.
+Existing frontend_units_profile4units/16bodies n2:1worker timedwall1.7293->1.5382s,
+4workers1.3775->1.1501s; all8 known-result/canonical checks exact hash14671003786951432625.
+Four-world retained storage rises352512bytes; no claim for B2's12-unit workload.
+Observer construction counts installed60+123 ->53+63, fourworld732->464;
+cold123->115. Cold/installed calls2144109/2562404 ->2067619/2222332;
+retained1893528 ->1965224/1981656, metadata5242880, zero-grant teardown passes.
+
+Final structural identity/metadata denial/retry/lifetime, grammar-equivalence,
+grammar-resource, independent150-grammar oracle and native threaded LR pass.
+REQUIRED units gate FAILS at frontend_units_memory.tower:189: unchanged minimal
+import tower; fn answer():i32{return 42;} at memory.tower, width8/workers1,
+derived constructor+input allowance plus64MiB. Expected typedCapacity/message
+Semantic memory budget exceeded, candidate reports typedMemory/message
+Cannot allocate semantic storage. Signal6 at.59s. Candidate later cancellation/
+dependency assertions unstarted. Baseline same full units gate PASS16.36wall/
+27.23CPU including cancellation/drain/canonical/error order. Internal failing
+producer is not yet isolated; do not infer parsing phase from the assertion name.
+Exact first-cause preservation under this existing fixture is the finite adoption
+prerequisite; ROOT can route its producer, no speculative L2/backend diagnosis.
+
+Original runtime/test source restored and timestamps refreshed; dependency-aware
+restore matches all4 original executable hashes. Compiler a5e3f65b93b0ff6ff0854ed7391ce4cc991ecb1e2c4fa7ff119ef9fd8d72165d;
+rejectedcompiler91fb1f139dcd4ceb0cda55658f8a53f4670fee67ee1ed6feeb7295aa415210e1.
+Patch527b62b3a7fb0183466b208bc52558b3cc9eddbf3fb8dcfd59e7f8dfb75d76e0.
+Evidence build/ecs_b1/cache/grammar_owner_1838; receipt docs/compiler_grammar_owner_18384965.md.
+Initial missing extern and unbound-budget fixture failures retained and corrected;
+no cap/assertion weakened, no symbol-policy expansion or runtime change adopted.
+Previous Node/generation freezes untouched. No broad matrix/new agent or goal.
 ### D2 body-continuation LLVM target-bound canonical repair (2026-11-23)
 
 Frozen published main18384965d21ee5f710b05db3623f13668d68c993; reviewed the
@@ -92551,3 +92602,13 @@ checks pass. Incoming compiler/type/caller fixtures are outside the no-Wasm path
 and are not validated here. Failed smoke remains tied to164adb34, final023d1dee
 stream path remains unexecuted; no passing result adopted across that correction.
 Normal main publication only, ROOT retains native-trace/release acceptance.
+
+B1 publication reconciliation: receipt66b90477 merged completefcaad5a6 as534b47ed
+following normal ff-only divergence. Six restored candidate paths and exact
+frontend_units_memory fixture unchanged. Later wrapper/malformed-call producers
+and B2's new uniform/profile schema remain outside frozen18384965 measurements;
+no candidate or restored binary relabeled as those inputs. The original profile
+shape has16 bodies in its last unit and zero in three others, not later uniform.
+Documentation-only result; no runtime patch/policy adoption, new rebuild or
+passing-test repeat. Original error remains precise evidence for its frozen
+candidate, not a claim that the rejected patch was tested on later main.
