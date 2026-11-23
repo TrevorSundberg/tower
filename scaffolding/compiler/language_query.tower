@@ -445,6 +445,10 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
         // by the original result so partially checked values are never exposed.
         q.program.error.length = 0;
         q.generic_info = sem_generic_inspect(c, checked, &q.truncated);
+        if q.generic_info == null {
+            completion_dispose(q);
+            return null;
+        }
     }
     if checked {
         i = 0;

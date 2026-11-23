@@ -165,17 +165,12 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     return failures;
 }
 
-export fn main(argc: i32, argv: u8**): i32 {
+fn semantic_resource_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
-    for(var width: u32 = 4; width <= 8; width *= 2) {
-        for(var workers: usize = 1; workers <= 4; workers *= 4) {
-            for(var mode: usize = 0; mode < 2; mode++) {
-                failures += resource_trial(width, workers, false, false, mode != 0);
-                failures += resource_trial(width, workers, true, false, mode != 0);
-                failures += resource_trial(width, workers, true, true, mode != 0);
-            }
-        }
+    for(var mode: usize = 0; mode < 2; mode++) {
+        failures += resource_trial(width, workers, false, false, mode != 0);
+        failures += resource_trial(width, workers, true, false, mode != 0);
+        failures += resource_trial(width, workers, true, true, mode != 0);
     }
-    if failures == 0 { puts("Semantic resource failures preserve failed receipts and drain peers."); }
-    return failures == 0 ? 0 : 1;
+    return failures;
 }

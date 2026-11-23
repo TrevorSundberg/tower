@@ -1321,3 +1321,26 @@ reviewed in the D1 audit; production ownership is unchanged.
 After staging: 1,064 tracked Tower files / 483 D1 direct files. Existing updated
 query/frontend/backend/buffer fixtures retain their rows. The D1 supporting
 library review is not a replacement for A2's audit or current runtime evidence.
+
+### Typed resource failure regression integration
+
+`scaffolding/tests/semantic_resource_checks.tower` is one new D1 audit path,
+implemented by A1 (original efde967a) and registered by D1 after independent
+A1/B2 after-pass confirmation. Entry-only helper source SHA256
+0b6cbbef608d3b3085b1a471400f98ec78e4359289b94f303c2b8513902e9e6b.
+Every trial body and assertion is preserved. This brings the current tracked
+roster to1,065 Tower files and484 D1 direct files; substantive review and pending
+local execution are distinguished in compiler_ecs_audit_d1.md.
+
+### Root six-lane checkpoint 1fec1b91
+
+Bundle79350aa1 adds seven D1-direct paths: compiler_buffer_contract,
+foreign_tool_checks, generic_clone_fixture, generic_clone_parallel,
+generic_clone_storage, module_cache_checks and token_text (all beneath
+scaffolding/tests with .tower suffix). B2 retains foreign/cache/buffer helper
+implementation reservations, L2 the three clone fixtures, and A1 token_text.
+D1 reviewed every complete body and each changed existing fixture at that exact
+checkpoint, recording conclusions in compiler_ecs_audit_d1.md. New
+scaffolding/backend/execution_functions.tower belongs to B2 and
+scaffolding/benchmarks/compiler_reference_inputs.tower to D2. Total1,074 Tower
+paths /491 D1 direct paths. Local merged runtime remains unrun.
