@@ -84325,7 +84325,7 @@ therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
 
-### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
+### 2026-11-23 ï¿½ L1 counted interpreter text and package ownership (implementation, validation in progress)
 
 Bounded follow-up starts at published36ad337 after the required fast-forward pull,
 with no surviving L1 jobs. PID8356 performed the first successful caller/layout
@@ -84368,7 +84368,7 @@ caught an accidental internal/declaration offset substitution; corrected to the
 established declaration mapping. Its focused rerun and shared-Wasm validation are
 pending at this entry. No failed attempt is represented as a pass.
 
-### L1 interpreter/output/package storage gate — focused completion receipt
+### L1 interpreter/output/package storage gate ï¿½ focused completion receipt
 
 The final layout keeps Fast's existing hot offsets and appends only its frozen
 provider target. Native `core` passes on that layout, including156 graph/Fast
@@ -85753,3 +85753,90 @@ shared-Wasm38d7c19815b7ee7baee71e8567e1b4ece2466fb227dae1f2f9cceec7f5b5eb59.
 External L1/diagnostic_origin_receipt.json links complete hashes, logs, preserved
 failures, original storage commits, limits and the verified publication commit.
 All owned jobs drained, todo unchanged; this entry changes no tested runtime input.
+## A2 semantic-provider capacity policy - 2026-11-23
+
+Diagnosis/implementation (validation continues below): base main
+`c13c263178c1001fb5873b8e11568cf00d57cf4c`; A1 remains an untouched read-only
+input at `86843700623e12583ea460c53524e2368f508911`. An owned git archive under
+`C:/Sandbox/build/codex_ecs_20261122/A2/cache/capacity_release/a1_input` freezes
+its complete source. Both semantics provider entry files have SHA256
+`7bbb82922f0fe293859145636dcfbc77bda2d8e94926857527fdbe7735e289f1`.
+No test import was dropped and no A1 history was integrated by partial copying.
+
+Verified ROOT b5 package SHA256
+`e20fd2025a671fa795a366879f2fced1c7a55b274e07019b00419b833271b171`, executable
+`f71fd0d58bb0231c55600bd7bf2d70911147e5bba9b7ca18e44dee00ba1d5881`, and all
+resource checksums. The exact library compile uses the frozen
+`scaffolding/compiler/units/semantics_checks.tower`, jobs1, target
+x86_64-pc-linux-gnu, its own bedrock/foundation, object and depfile outputs.
+Bounded GDB runs used the existing tower-a1-validation:32f860 image in A2-owned
+network-none containers, CPU12-23/24GiB, container-only SYS_PTRACE, with ASLR
+left enabled. Scripts, disassembly, logs and statuses remain in capacity_release.
+The optimized recorder is inlined, so the initial function breakpoint missed
+it; a hardware watchpoint on the actual SemanticProgram resource field caught
+the first write. A subsequent count script initially mistook pointer_bytes for
+the root pointer and exited1; its diagnostic remains preserved. Corrected
+layout reads were checked against the actual binary accessors/disassembly.
+
+The first Capacity comes from sem_lower_frontier's joined result accumulation:
+389994 counted nodes +269 from the result exceed node_limit390167, derived
+from134217728/344. The Foundation kind actually owns390291 live instances;
+the physical world WorkBudget pointer is null. GenericContext has276 instances
+and42903 copied nodes, below the separate512/65536 quotas. This is the semantic
+component-count policy, not physical ledger exhaustion or generic quota denial.
+One bounded diagnostic-only192MiB argument substitution completed the same
+input:391866 counted nodes,391894 live Foundation instances,344B each,
+962775 entities and1162046 components. Counted payload134801904B exceeds the
+old default by584176B; live payload134811536B independently confirms genuine
+capacity need rather than inflated count alone. The28 additional live instances
+are outside the newly-attached counter; this is not an exact physical ledger.
+Generic counts remained unchanged. The diagnostic completed exit0 in23.109714s
+wall/17.923043s CPU,837720KiB peak RSS including GDB. It is not canonical or
+candidate acceptance. The original first-watch run reproduced the ordinary
+failure; debugger exit0 must not be mistaken for inferior compile success.
+
+The implementation changes only SemanticComponentBudgetBytes to160MiB
+(487709 nodes at this layout), a bounded default with roughly24% payload
+headroom above the measured provider. It neither allocates that amount upfront
+nor installs a process cap. semantic_compile_budget still uses the caller's
+exact byte argument; physical world/storage grants, generic clone quotas and
+all existing denial/cleanup paths are unchanged. The stale64MiB language-doc
+statement is corrected. No admission, scratch, diagnostic or scheduling owner
+was rewritten. Broader process memory includes syntax, indexes, scratch, LLVM,
+allocator internals and other resources beyond this payload-count policy.
+
+One dependency-aware native build used the unchanged public pin
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, existing
+A2/cache/native, LLVM19 Release, compiler jobs1/build parallel2, CPU12-23/24GiB.
+The13 affected actions built towerc and tower-lr-work-tests successfully in
+45.889437s wall/68.277305s CPU,817344KiB peak. Candidate executable SHA256
+`e4ffd7e3005e27df40658bce5011dd9af24e95a6173bf29de0cc230bd9c898dc`.
+No bootstrap override, candidate-only syntax, second scheduler or storage layout
+change was used. Existing resource-smoke24 cases and receipt-smoke pass,
+including32/64-bit and1/4-worker capacity failures, canonical first-cause
+selection, cancellation, no replay and complete grant/world cleanup. Exact A1
+candidate compilation, matched healthy profiles and complete package verification
+are still pending at this entry; later receipts record their actual outcomes.
+
+A2 capacity integration follow-up: the first current-main candidate reached its
+180s bound (exit124,180.037664s wall/174.920041s CPU/614668KiB peak), so its
+A1 acceptance and queued profiles did not pass. Two brief attach traces locate
+the hot PC at sem_push_checked+83 in the linked-list identity scan; the first
+attach lacked symbols and the corrected trace supplied the actual executable.
+Both are preserved, along with candidate_before_b1 (SHAe4ffd7e3... above).
+This is the separately assigned B1 lookup problem, not evidence for another
+resource-policy increase. No scratch implementation was changed by A2.
+
+After draining the timed-out job, the requested pull/autostash fast-forwarded
+to a241935e6628597fcc13f8310b2b0557c11c47e8, including B1's3415d9c8 lookup,
+L2's1137b6ce admission and L1's first-cause/output changes. All were retained.
+The sole production diff remains the same160MiB policy/comment. An affected-only
+12-action rebuild through the same public pin passed in35.917500s wall/
+52.829201s CPU/825900KiB peak; merged_build.log/status retain the commands.
+Merged candidate SHA256
+`a0ffc67c9a8e4f8371a828d798bf0a6a1aa826d74519195231df956611a50852`.
+The merged resource-smoke24 cases and receipt-smoke pass again. Unmodified
+candidate now compiles the exact frozen A1 provider at jobs1, exit0,
+23.577945s wall/18.684996s CPU/1047416KiB peak. Parallel equality, healthy
+paired measurements and complete package receipts follow separately; this
+successful invocation uses no debugger argument substitution or bootstrap override.

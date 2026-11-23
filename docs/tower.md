@@ -272,7 +272,7 @@ layout, and layout kernels consume completed dependency layouts. The former
 128-level layout recursion and 256-type/field caps are removed. Compilation
 node/storage budgets still apply. Semantic compilation now accepts an explicit
 component-payload byte budget through `semantic_compile_budget`; the default is
-64 MiB. This accounts newly attached payloads during semantic checking, not
+160 MiB. This accounts newly attached payloads during semantic checking, not
 total process memory. Existing/generated nodes, syntax expansion, runtime storage
 and other resource budgets remain separate.
 
