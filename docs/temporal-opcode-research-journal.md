@@ -94454,3 +94454,14 @@ they and later lifecycle/T9 execution receipts are preserved outsideea606d32, no
 silently source-reviewed or runtime-adopted here. No repeated checks beyond git
 identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
 push follows; this closes the requested independent review only.
+
+D2 C-registration reconciliation: implementation31bd0359, complete-history
+merge96c207e1f06aeca85cb3341da797e905972b964b retains fd1725d8 and both README/
+journal additions. Incoming A2 module-body preparation changed the native
+semantic provider; only two affected towerc actions refreshed (40.34wall/39.18CPU/
+1074488KiB). The unchanged runner and fixture bytes were reused. Selected direct
+C16/16 passes13.90/13.39/182800; complete LLVM callback2/2 passes6.30/6.12/182916,
+all exit0. No full compiler/reactor matrix or repeated unsupported-C request.
+Merged source manifest7d90a9bd91d754361635c20de93cdad84730d79bb25f54e50a67108a453b2fb7 matches after checks; compiler48a58fa3ce64947e3dbb739cd34731b0aea6c66b806012ec252ed37538d8bb8b.
+Original and merged measurements retain separate directories/identities; all
+owned jobs drained and lock released. No producer edits or new performance claim.
