@@ -103,7 +103,7 @@ export fn syntax_host_set(world: void*, source: u8*, length: usize, foundation: 
             copy(text, source, length);
             text[length] = 0;
             syntax_baseline_install(world, state.environment, text, foundation, diagnostic);
-            compiler_buffer_free(text);
+            compiler_buffer_free(bits(void*, text));
         }
     }
     return syntax_version_diagnostic_text(diagnostic);
