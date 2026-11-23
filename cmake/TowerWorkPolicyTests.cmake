@@ -103,6 +103,15 @@ function(tower_lr_work_policy_test)
   endif()
 
   if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(semantic-pool-budget-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks.tower" "${triple}")
+    add_executable(tower-semantic-pool-budget-tests ${sources} "${semantic-pool-budget-checks_OBJECT}")
+    set_target_properties(tower-semantic-pool-budget-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-semantic-pool-budget-tests PRIVATE ${libraries})
+    target_link_options(tower-semantic-pool-budget-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    add_test(NAME tower-semantic-pool-budget-tests COMMAND tower-semantic-pool-budget-tests)
+    set_tests_properties(tower-semantic-pool-budget-tests PROPERTIES TIMEOUT 60)
+
     tower_runtime_object(semantic-query-failure-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks.tower" "${triple}")
     add_executable(tower-semantic-query-failure-tests ${sources} "${semantic-query-failure-checks_OBJECT}")
