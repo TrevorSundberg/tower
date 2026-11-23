@@ -245,8 +245,13 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
         if work.instance == null {
             work.arguments = sem_constructor_arguments(c, result.subject, work.definition);
             if !sem_ok(c) { return false; }
-            work.instance = generic_instantiate_deferred(c.generics, work.definition, result.subject,
-                work.arguments.data, work.arguments.length);
+            var resource_error = WorkBudgetError.None;
+            work.instance = generic_instantiate_deferred_result(c.generics, work.definition, result.subject,
+                work.arguments.data, work.arguments.length, &resource_error);
+            if resource_error != WorkBudgetError.None {
+                sem_resource_record(c.program, resource_error, sem_offset(c, result.subject));
+                return false;
+            }
             if !sem_generic_ok(c, result.subject) || work.instance == null { return false; }
             sem_state(c, c.source_bases, work.instance).number = sem_source_base(c, work.definition);
         }
