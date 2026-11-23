@@ -838,3 +838,23 @@ the unchanged120/240s bounds and have no claimed result yet. Current matching
 profiles, supported sanitizers, B2/L2 producer/consumer integration and release
 acceptance remain open. ROOT03:50 independently reviewed V2 b255ff12 and verified
 its application on9b318; that is source review, not independent runtime proof.
+
+At25c3a63e, corrected control-smoke passes32.57wall/33.41user/2.00sys/
+273172KiB and type-smoke passes221.90/226.34/12.13/283672KiB within the existing
+240s bound. Query/control/type and the15 focused cases are current native
+behavior evidence, not current sanitizer or final release evidence. ROOT's V2
+review found Stale/Exhausted fell through to an Invalid fallback message; the
+shared static helper now names stale reservation and exhausted identifiers
+truthfully. The typed receipt and all success/ownership paths are unchanged.
+Smallest public context5 compiles; affected binary refresh is still running.
+
+Postcommit pull with --rebase=merges preserved25c but replayed335 commits against
+unchanged published60741. The next native refresh scheduled62 actions after
+only two message lines changed, whereas the preceding genuine provider refresh
+needed5 actions/22s. Refreshed tracked/bootstrap mtimes are the apparent trigger,
+not changed compiler behavior; hash/mtime attribution and a fast-forward-only
+pull fast path with rebase fallback remain to be checked after jobs drain. This
+iteration issue was routed to ROOT/D2 without weakening dependency checks or
+changing shared build tools. Matching pre-receipt baseline build and quiet paired
+profiling follow the current immutable build. ROOTc917 entity/backend integration
+is queued after that freeze so its changes cannot confound the comparison.

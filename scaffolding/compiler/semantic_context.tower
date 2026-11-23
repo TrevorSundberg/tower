@@ -29,6 +29,8 @@ export fn sem_resource_message(error: WorkBudgetError): u8* {
     if error == WorkBudgetError.Capacity { return "Semantic memory budget exceeded"; }
     if error == WorkBudgetError.Memory { return "Cannot allocate semantic storage"; }
     if error == WorkBudgetError.Busy { return "Semantic worker admission failed"; }
+    if error == WorkBudgetError.Stale { return "Stale semantic resource reservation"; }
+    if error == WorkBudgetError.Exhausted { return "Semantic resource reservation identifiers exhausted"; }
     return "Invalid semantic resource request";
 }
 
