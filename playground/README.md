@@ -1018,6 +1018,10 @@ initialization, without sleeps. Failure adapters must install their message
 handler before an initial port can arrive; the injected guest trap and shared
 failure-state assertions remain mandatory. The journal retains the original
 Chromium159 failures and the separate native trace evidence.
+`ownership:retired-errors,coordinator-messageerror` checks controlled DOM event
+delivery after replacement and first active message-failure forwarding. The
+replacement must execute real Tower pool work, and both groups must retire.
+These controls do not claim reproduction of a native browser queued-error race.
 
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
