@@ -75817,3 +75817,29 @@ whole-union browser/generation/final clean-cache bootstrap and atomic publicatio
 remain open. Prior L2 Cancel4-on-two-CPU failure is not closed by this correction;
 current tests have explicit actual lane counts. Public-pin native rebuilds above
 are coherent incremental builds, not mislabeled empty-cache release checks.
+
+### ROOT joined native affinity/containment checkpoint e96a5b70
+
+Merge complete B1 a856 attachment evidence and D2 cbe affinity history after the
+isolated4b checks. B2 frozen e96 native16-action rebuild passes27.067wall/
+45.866CPU/461620KiB, then allocations, parser, query-smoke, fullunits and real
+concurrent stages pass. Units21.534wall/31.938CPU/775336KiB; stage57792finalizations.
+The additional public-pin real-affinity fixture compiles/links but exits2 because
+ROOT's standalone link omitted the dynamic worker export required by dlsym.
+The initial dynamic symbol table confirms work_thread_entry is absent. Preserve
+that executable/log; relink only with the established --export-dynamic option.
+The corrected binary exports the entry and passes actual12allowedCPUs/two workers,
+per-thread narrowing, parent isolation and restoration (4.423ms/2.162msCPU/
+1320KiB). No source/security change, repeated compiler matrix or waived assertion.
+Full frozen source verification then passes. build/root_affinity_child_union
+contains both link/runtime attempts and the successful source receipt.
+
+D2's independent bound review finds the new bare-clone fixture duplicates the
+extent of its expected string. Replace utility_equal(...,5) with the ordinary
+exact strcmp comparison, preserving terminator checking without a copied length.
+Smallest public fixture and the allocation suite pass after this test-only edit.
+Selector observations before2.223s/2.147CPU/174064KiB, after2.470s/2.377CPU/
+174116KiB are single untimed-coordination validation samples, not a performance
+claim or change to the product runtime. Existing4b production profiles remain
+applicable; the changed assertion is covered by its new run. Source bootstrap,
+browser/generation and whole joined instrumentation remain separate final gates.

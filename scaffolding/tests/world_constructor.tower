@@ -16,6 +16,7 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn work_thread_available(): bool;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 struct WorldConstructorSample { bytes: usize; allocations: usize; }
 
@@ -116,7 +117,7 @@ fn world_bare_clone(): void {
         && clone != source && tree.store == original.store && tree.child_count == original.child_count
         && tree.children[0].entity != bits(Entity*, child) && tree.children[0].entity.parent == tree
         && tree.component_count == 0 && tree.children[0].entity.component_count == 0
-        && utility_equal(tree.children[0].name, "leaf", 5),
+        && strcmp(tree.children[0].name, "leaf") == 0,
         "Bare-store cloning preserves ordered names without requiring compiler metadata");
     utility_check(compiler_node_copy_metadata_result(source, destination) == WorkBudgetError.None
         && syntax_origin_copy_result(null, source, destination) == WorkBudgetError.None
