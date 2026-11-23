@@ -85861,6 +85861,94 @@ ROOT/B2 retain complete-generation identity acceptance. Original exact reference
 comparison remains valid for3415d9c8. All owned jobs drained, todo unchanged;
 normal main push follows this receipt, with no pin/deployment change.
 
+### B1 parallel LR frozen-frontier measurement: no runtime change (2026-11-23)
+
+Source e3fc5766474c2df9f68bba7863c7d410910025a4, required pull already current,
+clean main and no surviving child jobs. Preserved current compiler/native LR
+executable before measurement. The prior B1 receipt noted that worker kernels
+still close eagerly; that observation alone did not establish a production
+bottleneck. This bounded follow-up measures that prerequisite and declines an
+unjustified worker rewrite.
+
+Audited lr_state_work dispatch/join and lr_states core/hash/index ownership.
+One wave borrows frozen analysis, source items, symbol order and state buckets;
+only the coordinator interns/reindexes and assigns identities after dispatch
+has drained. A future readonly membership test could skip closure for a core
+already in that frozen index. New duplicate cores within a wave must still join
+in source order; no worker may publish to the shared index. No implementation
+of that candidate was made, and no change to nullable/LALR/range/priority,
+propagation sentinel, grammar authority or D2 suffix-FIRST production occurred.
+
+Temporary Tower-only instrumentation summarizes actual dispatched state kernels
+and joined identities below the pre-join state count. It uses the existing join
+result, adding no second lookup or timing to the hot loop. A sparse world grammar
+observer reports the counts after construction. Native profile uses the same
+ordinary answer42 request as frontend_iteration_profile, cold and preinstalled,
+with production transport and a synchronized explicit 512MiB budget at workers
+1/4. It checks interpretation, canonical output and zero final bytes/lanes/grants.
+The initial four-worker fixture omitted its synchronization gate and correctly
+failed owner admission (signal6); that setup failure is retained and excluded.
+After using the existing work-signal/budget gate, all measured invocations pass.
+
+Decisive result: cold workers4 enters125 parallel-capable state builders and
+actually dispatches ZERO LR state closures. Preinstalled startup enters62 and
+its ordinary request123; both also dispatch ZERO. There are therefore zero
+frozen-state duplicates to avoid in either real workload. The serial path's
+existing core interning handles all these state transitions. This observation
+does not deny parallel FIRST/LALR/action work elsewhere in the same compilation.
+
+Positive control: the unchanged wide-admission/native LR fixture reports263169
+state kernels,261632 matches in the frozen index, repeated in three admitted
+cases. Thus the counter sees real worker work and distinguishes pre-wave hits
+from duplicates first created during a wave. The complete existing native LR
+check passes serial/threaded items, ordered transitions/actions/conflicts,
+nullable/range propagation, shared admission/denial, actual caller/worker overlap
+and lifetime cleanup (1.77wall/2.31CPU seconds/114780KiB). This synthetic512-way
+stress grammar is not evidence of material cold compiler latency. No independent
+oracle campaign was repeated because the construction algorithm is unchanged.
+
+Linux x64 Ryzen AI MAX+395, CPU0-11/24GiB, LLVM19.1.1, public bootstrap SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02; one native
+cache/dependency target, compiler jobs1/object jobs<=6. Instrumented build27.78wall/
+62.62CPU seconds/824428KiB; later positive-control parser unit/relink20.94/15.43/
+747900KiB. Fresh processes, warm filesystem, /usr/bin/time -v; two counterbalanced
+samples ordered cold1,cold4,installed4,installed1,installed1,installed4,cold4,cold1.
+Command from /work/scaffolding: measured . iteration-cold|iteration-installed 1|4.
+
+| Workload | Workers | Wall seconds a/b | CPU seconds a/b | Peak RSS KiB a/b |
+| --- | --- | --- | --- | --- |
+| Cold | 1 | 0.92 / 0.91 | 0.89 / 0.88 | 185280 / 185904 |
+| Cold | 4 | 0.83 / 0.83 | 1.01 / 1.01 | 202656 / 202536 |
+| Installed, including installation | 1 | 1.02 / 1.01 | 0.96 / 0.95 | 189252 / 188784 |
+| Installed, including installation | 4 | 0.94 / 0.93 | 1.11 / 1.10 | 205724 / 206188 |
+
+Every output has canonical976-byte hash13832670361687071853 and answer42;
+ordinary request185 lookups/155 builds/123 tables/36 reuses remains unchanged.
+Cold retained/peak: workers1 13313053/103628699B, workers4 13310229/103578243B.
+Installed retained/peak: workers1 16519217/106727567B, workers4 16516393/106677111B.
+Ledger metadata10485760B in all; teardown verifies zero grants. Foreign allocator,
+thread/runtime and legacy raw LR scratch are outside these payload receipts.
+These are existing worker-control measurements, not an optimization speedup.
+
+Preserved executable hashes: original native LR
+be54b0b185ebda483bb6cbc320244df53e8d6ead3616782938a225e9b881f9d3;
+original compiler6d1430861cc79ed564d3f163ba960a9ee5b3de8b339ae27e00b347f16a84d083;
+instrumented measurement741bf6408a1527d8f0c6c1bd71858dc8966688769cf016b74e34709e24d3ff78.
+Logs, exact patched Tower sources, measurement.patch and fixture are retained in
+build/ecs_b1/lr_frontier; binaries in /cache/lr_frontier. Measurement patch is based
+on e3fc5766; the extra fixture is saved in measurement_sources. Original sources
+were restored only after preserving and verifying these edits. Native cache may
+contain measurement objects until the next ordinary dependency rebuild; these
+are not a published successor. No measurement hooks or runtime changes ship.
+
+Decision: no production optimization in this batch. The concrete prerequisite
+is a representative production grammar that actually admits LRState waves and
+shows material redundant closure cost, not merely a high synthetic duplicate
+count. Keep existing thresholds and fast serial path; do not add speculative
+index probes or lower admission thresholds to manufacture a win. Published
+changes are this evidence only. D1 symbol/path investigations and D2 suffix
+reuse remain separate. No broad audit, sanitizer/platform/generation campaign,
+pin/deployment, new agent or continuing goal. All jobs drained; todo unchanged.
 L1 final complete-history merge: B1 e3fc576 integrated as78d22d11428f795e93a02f9caaf0c068fec70b7e.
 Only storage_main selector conflict required resolution; both scratch and
 diagnostic-faults remain. B1's descriptor/index ownership and all other production
