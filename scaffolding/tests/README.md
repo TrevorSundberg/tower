@@ -1817,3 +1817,12 @@ equality and re-execution at32/64 bits, plus the existing computed-type program.
 `integer-arguments reproduce` compiles D1's unchanged exact negation source and
 returns a normal nonzero result on failure. See the
 [native repair receipt](../../docs/compiler_integer_arguments_b90b6f4e.md).
+
+Module loop-header producer regression: `towerc tests/module_loop_queries.tower
+--interpret` prints0; CTest registers `tower-module_loop_queries-1` and `-4`.
+It covers alias/layout/decltype/comptime readiness, contextual bool, lexical
+header bindings and observed condition/update/continue order. The existing
+`tower-lr-work-tests RESOURCE_ROOT control-smoke` includes exact loop error,
+source-position and terminal-budget checks; `module-loop-queries` selects those
+checks alone. Known separate body-local annotation and mutable header-local
+capture limitations are recorded in the2026-11-23 L1 journal receipt.
