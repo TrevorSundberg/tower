@@ -63205,3 +63205,135 @@ L1 reports all six current thread gates passed after its six address gates;
 the complete67669 history is ready but not yet in this root union. D1's current
 phase-fixture public leaves and native compiler pass; paired24-case and successor
 instrumentation remain pending. Full objective and publication remain open.
+
+A2 source-review correction,08:03Z: the page profile's speculative free-slot-scan
+wording above is withdrawn. Current work_budget_reserve_locked pops free_slot
+and work_budget_release_locked pushes entry.next in O(1); there is no linear
+free-slot search. This is already present in the before/after profile source.
+Additional page grants, shared-gate calls, ledger retention and measured8worker
+regression are real; their wait-time attribution remains unmeasured. No bogus
+scan optimization was implemented. This correction changes documentation only,
+so runtime profiling is inapplicable. The preceding exact measurements remain.
+
+### A2 typed stage/view failure draft on9776cd0f, 2026-11-23
+
+After page checkpoint69b208b3 and required ff-only pull, verified ROOT72a218
+history merged cleanly as9776cd0f. D2 changed tool objects compile8.451/5.019s;
+canonical affected native2targets17.699s, LR/frontend relink1.059s, query.112s
+and calibrated backend8.459s pass. Source hashes verified; before-stage compiler
+4b72bae92e16bcbb289f9b5ad4cb5dab10296806ee4bc89b1c53bf84cd49eece and
+immutable9776resources retained for matching profiles. ROOT75 newer program ABI
+is queued until this attributed stage checkpoint, not treated as validated.
+
+ROOT/L2 found null/bool stage/view results incorrectly classified as Memory by
+consumers. Proposed common signatures were recorded before implementation.
+Implemented caller-private entity_view_open_result(anchor,error*) and
+entity_stage_open_result(anchor,error*), plus enum-returning
+entity_stage_publish_result(stage). Existing APIs wrap these without a new
+provider, scheduler or layout. Invalid covers null/staged anchors, duplicate
+names and arithmetic bounds; Busy covers existing view/reclaim guards;
+Exhausted covers view count, anchor reference count and publication ID range;
+Memory covers actual failed allocations. Internal name/count/table preparation
+propagates exact errors and unprepares reserved table destinations on failure.
+Capacity growth before failed preparation remains retained, with membership,
+IDs, leases, queued holds and payload addresses unchanged. No fallible operation
+is added after preparation. Names/side indexes/stage descriptor remain raw,
+physically unbudgeted; typed errors do not imply complete physical accounting.
+
+Additional demonstrated ownership defect: old stage open could retain a dying
+zero-reference anchor from its finalizer, even though destruction would continue.
+The new normal test first passed the result contract, then added a bounded
+reentrant ownership assertion. With the unfixed provider it exits1 with
+`Reclaiming store admitted an owning stage` (entity_stage_reclaim_before.log).
+It stops immediately after erroneous admission, before unsafe cleanup or stale
+pointer access; no invalid-memory probe or cleanup-pass claim. Stage open now
+rejects a reclaiming store with Busy before allocation/retain, like view open.
+The strengthened test passes, including actual finalizer execution. This evidence
+supersedes the initial proposal to retain every old stage-open precondition.
+
+New typed tests: entity_stage_result covers exact results/private independence,
+finite view/reference/ID exhaustion, staged-anchor invalidity, pinned publication
+without premature reference holds, explicit holds before last-view closure,
+publication/retry, both duplicate-name forms, survivor addresses and real
+reclaiming callback rejection. entity_stage_result_faults sweeps serial allocator
+failures across creation/view and mixed new/leased-node publication, asserting
+Memory, unchanged membership/IDs/receipts/previous payload, no premature holds,
+table reservation rollback, successful retry and zero final allocation counts.
+The first attempted new filename collided with existing entity_stage_faults;
+caught before any build, new content moved to result_faults and original restored
+exactly from the clean9776 tree (diff exit0). Existing aggregate oracle is intact.
+
+First three public library units pass1.934/2.141/1.519s and normal test passes.
+New fault fixture then failed linking tower_print, which is absent from the
+existing serial test runtime. Switched only its success marker to existing puts;
+no new provider or test-harness edit. After reclaim guard, smallest stage2.290s,
+normal/fault/old ownership/actual concurrent stage all return0. The shell wrapper
+incorrectly required concurrent stdout to be one0, but this existing fixture
+reports finalizer count/CPU/RSS (57792/98172/1700 in this run). Preserved wrapper
+failure; no assertion changed, and sanitizer phase had NOT started. Next run
+resumes only pending instrumentation, then actual public aggregates/whole native,
+portable checks and equivalent before/after profiles. No completion claim.
+
+Typed stage closure (entity_stage_result_closure) finished08:23:40.765991712Z,
+session72620 exit0/reaped. The exact prior fixture/source checksum matches before
+resuming. Twelve current ASan/LSan/TSan runs pass:3each mode for typed-result
+fixture136functions and real concurrent-stage224functions, plus47 participating
+production-runtime functions. No serial allocation-failure allocator is used in
+these threaded checks. Original failing stdout-wrapper receipt is retained.
+Public entities5.105s/parser19.424s/semantics20.575s pass without limit increases.
+Canonical native build27.543wall/24.058user/2.808sys,4runner targets6.929s;
+query.114s,units18.895s,editor10.852s,parser.039s,storage.304s all pass. Storage
+1/1 zero skips includes the original aggregate stage-fault fixture. No changed
+Tower inputs during this closure. After compiler SHA
+0210708d29a640891318de8403e73fa2e772a9d52bea0645f633a66e20737ea2.
+
+Same typed normal fixture compiles at wasm32 (public9653, SDK34-O1, existing
+8MiB-stack/256MiB-limit portable runtime), with the visible expected SDK triple
+warning. Node21.7.3 TowerWASI execution returns0/prints0, including the real
+reclaiming-finalizer Busy assertion. Module SHA
+ddf0e82080fc7c9eca1e39fc1b1235bc63f490c9bf8d703322e98f611e81435a.
+This is portable32-bit correctness, not browser thread or whole-browser proof.
+UBSan remains unsupported; external native libraries are not universally
+instrumented. Final integrated gates and exact publication are still open.
+Frozen matched compiler/stress profiles are prepared; A1 currently has the
+reciprocal quiet window. No performance conclusion is made before those runs.
+
+Typed stage profiling completed in the fresh A1 reciprocal quiet window
+08:33:11.735782212-08:33:47.291195947Z, released08:33:47.568Z. All52checked
+executions plus canonical equality/reparse pass. Native Linuxx64/Windows11
+KinmenA host, CPU12-23/24GiB, production allocator; public9653-built compiler,
+clang19-O1 focused stress; fresh processes/warm host caches. Exact before/after
+compiler4b72bae9/0210708d use identical immutable9776resources and the previous
+small Tower42/large Foundation signed-reference inputs, jobs1/4, --interpret
+--timings --target wasm32-unknown-unknown. Canonical outputs and original all
+SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5;
+ordinary Foundation reexecution returns the reference output. Logs
+entity_stage_result_paired and individual entity_stage_compile receipts.
+
+| Whole compiler,3 alternating samples after warmup | Before wall / CPU seconds / RSSKiB | After wall / CPU seconds / RSSKiB |
+| --- | --- | --- |
+| Small Tower,1 worker | 1.177573 /1.097501 /178160 | 1.165129 /1.084972 /178516 |
+| Small Tower,4 workers | 1.062145 /1.213790 /193760 | 1.052687 /1.200109 /193372 |
+| Large Foundation,1 worker | .592121 /.530145 /206940 | .596210 /.534375 /207928 |
+| Large Foundation,4 workers | .767925 /.739632 /209912 | .772093 /.741812 /209344 |
+
+These approximately1% variations support retaining the correctness change;
+three samples do not establish a speedup or exact zero overhead. Large Foundation
+remains slower with4workers than serial for both versions, while small Tower
+benefits modestly. Different grammars make cross-input absolute timings unsuitable
+for a source-size scaling claim. No C-toolchain comparison is asserted here.
+
+The unchanged existing stage-concurrency fixture ran one warmup plus9 alternating
+pairs before1df273d98a9b8661a483106f75269d5d2c326099fd5c8d85e9f74d3de883c45e
+and after0c5eb743a0f1f22d008c51b2e1f87a733f4e4009eadc4ee360c18cadb3a4c460.
+Its transitive baseline source is unchanged by ROOT72's backend/tool-only delta.
+Process-wrapper medians wall105.786297->105.874576ms, CPU102.246->102.749ms,
+peakRSS1640->1656KiB. Fixture counters report identical57792 finalizers, with
+per-trial complete world/component teardown; internal CPU101.922->102.333ms
+and peakRSS1628->1652KiB. Wrapper final RSS may include output/teardown. The
+fixture forces actual2/4-worker overlap and failure/cancellation cases; it is
+stress-overhead evidence, not a useful compiler speedup measurement. Valid-path
+stage/view allocations and layouts are unchanged; private result values add no
+heap owner. Serial fault sweeps prove complete allocation cleanup separately.
+Per-wait contention attribution and broad allocation census remain outside this
+receipt. Unsupported UBSan/full-platform coverage remains explicit.
