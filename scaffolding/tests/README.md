@@ -951,6 +951,11 @@ captures, repeated frame use and independent copies. Both engines, target widths
 canonical reconstruction and worker1/2/4/8 comparisons reuse the original helper;
 the original aggregate rejection fixtures remain unchanged.
 
+`tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
+frontend snapshot allocation-failure checks without the unrelated body/parser
+matrix. The default frontend invocation still runs these checks. This selector
+does not provide production threading or whole compiler sanitizer coverage.
+
 `tower-frontend-tests RESOURCE_ROOT parser` runs the existing parser integration
 and failure suites without the unrelated body matrix. It includes valid trace
 output and serial allocation-failure/ownership checks. Use the serial frontend

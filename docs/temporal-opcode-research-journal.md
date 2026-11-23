@@ -49335,3 +49335,17 @@ profiles, inputs, outputs, sanitizer hooks and source/binary/resource identities
 Objects/copied WASM remain in the original owned build paths. This is evidence
 for the earlier frozen source only. Current Docker processes are idle, disk
 139 GiB free and memory9.7 GiB available; no source mutation occurred during jobs.
+
+D2's current source audit identified repeated full frontend body/parser work just
+to reach the existing two snapshot allocation failures. D1 added a four-line
+`allocations` selector in frontend_main (patch dfb232e4), keeping default coverage
+and all existing fault assertions. No new runner, allocation implementation or
+CTest matrix. Local compile/selected timing remains pending the heavy slot;
+reduced selected work will be reported as iteration cost, not compiler speedup.
+
+Read later L1 reporting a8ecf458 and typed storage-error bad3e4f1 handoffs in full.
+They are not adopted yet: A1 must retain resource failure across invocation
+disposal and both startup/terminal producer paths, including declaration-isolated
+work, then cancel/drain peers before cleanup. A typed error field alone is not
+completed coordinator failure propagation. Existing 9228 prepared source and
+older 1a execution receipts remain distinct from that future shared-layout change.

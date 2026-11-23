@@ -1624,3 +1624,12 @@ hashes described above except those single imports. Current line counts are
 119/99/46/116/166 respectively. Exact draft was sent to A2/root for comparison;
 no independent implementation or nominal alias was introduced. Public-predecessor
 compile and current runtime checks remain pending the shared build slot.
+
+At 02a78a7, D2 requested a focused serial snapshot-fault entry to avoid repeatedly
+running the unrelated body/parser matrix. `frontend_main.tower` gains only an
+`allocations` selector calling the existing root allocation test; the default call
+and every assertion remain unchanged. Patch dfb232e4 includes usage/transport
+documentation. The complete existing allocation fixture was reread: primed receipt
+slot, first/second physical failure, exact rollback, successful original-source
+compile and final allocator baseline. Smallest entry compilation and selected
+runtime/cost are pending; reduced selected work is not compiler speedup.
