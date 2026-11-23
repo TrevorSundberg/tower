@@ -65919,3 +65919,98 @@ l1_node_cache_native_milestone. All owned/subordinate jobs have drained; L2's
 queued quiet32 profiles get the next host slot. Full ROOT351 production adoption,
 cache performance follow-up, remaining map/function/Fast ownership and integrated
 public-bootstrap/browser/generation/publication acceptance remain open.
+
+After current4bef native/address/thread jobs drain and evidence7dc1b7d is committed,
+apply the two-path fixed-extent candidate9eac93fa. The shared constructor input now
+derives the lookup mask; the existing storage fixture checks the actual constructed
+length equals that input, is positive/power-of-two, and fits physical capacity.
+The constructor still clears from actual length and sizeof(IMEntry); budget,
+allocation failure, key collision check and disposal contracts are unchanged.
+Whole-source write census establishes the active table cannot resize between
+initialization and disposal. This candidate has not yet compiled/run/measured;
+no source acceptance or speedup is inferred from its simple algebra or previous
+cache milestone. L2 owns the quiet profile slot; L1 edits only on Windows and
+runs no WSL work until its actual drain. Complete4bef native baseline remains
+immutable, with exact current resources, for the next32 CLI paired observations.
+
+Fixed-extent candidate15586 passes its actual interpreter public leaf, all three
+storage-v5 cases, seven-step coherent rebuild9.74wall/14.23CPU/358088KiB, full core
+and query. Assembly folds the mask and shortens lookup0x55->0x44. These facts did
+not predict better measured behavior. Initial paired63118 completes32 exact-output
+processes but shows graphlarge219.66->238.79ms, small graphwall1.53->1.63 and
+Fast1.67->1.79. Preserve those observations and do not accept the candidate on
+instruction count alone.
+
+A new attribution problem is exposed by its unchanged comparison binary:
+charged4bef compiler e9cd87ca runs small graph at3.486ms/177136KiB from the archived
+package, versus the SAME e9cd87ca at4.719-5.233ms/179920-180004KiB from the active
+native package in the preceding default-policy controls. Linux driver_entry uses
+/proc/self/exe and derives a packaged resource root. driver_request_configure_modules
+uses the explicit Foundation parent as its primary library base, but still
+allocates and installs the executable-derived fallback root; canonical grammar
+also uses that root when needed. Changing install paths is therefore not a
+controlled code-only comparison. The earlier allocator-threshold reversal remains
+a real observation, but neither it nor the original paired RSS/setup deltas can
+be assigned solely to node-cache implementation.
+
+New same-real-path control31741 completes48/48 processes with exact outputs,
+matching full packaged resource byte inventories across all three variants,
+unchanged source/resources/immutable executable hashes, and a per-run selected
+executable hash. Variants are eaf baselinef705be48, charged4bef e9cd87ca, and
+constant-mask candidateb476fe36. Every synchronous child exits before the next
+executable is copied and verified OUTSIDE timing to the same path
+l1_node_cache_one_path/package/towerc. Package resources are copied once; explicit
+workload, Bedrock, Foundation, target, --jobs1/--no-optimize/default allocator and
+working directory are identical. One warmup plus three Latin-balanced measured
+samples per graph/Fast small/large variant. This is a controlled warm CLI check,
+not a native/browser release, fresh multicore claim or isolated-loop benchmark.
+
+| Workload / variant | Wall s | CPU s | Peak RSS KiB | Execute ms | Fast prepare ms |
+| --- | --- | --- | --- | --- | --- |
+| Graph small / baseline | 1.53 | 1.51 | 177104 | 3.644 | — |
+| Graph small / charged | 1.52 | 1.50 | 177056 | 3.576 | — |
+| Graph small / mask candidate | 1.55 | 1.52 | 177072 | 3.565 | — |
+| Graph large / baseline | 1.73 | 1.72 | 180008 | 218.243 | — |
+| Graph large / charged | 1.72 | 1.73 | 180016 | 207.048 | — |
+| Graph large / mask candidate | 1.76 | 1.76 | 180016 | 223.835 | — |
+| Fast small / baseline | 1.64 | 1.62 | 176548 | 0.773 | 1.194 |
+| Fast small / charged | 1.62 | 1.60 | 176424 | 0.700 | 1.282 |
+| Fast small / mask candidate | 1.62 | 1.60 | 176628 | 0.757 | 1.162 |
+| Fast large / baseline | 1.69 | 1.69 | 180552 | 72.488 | 2.752 |
+| Fast large / charged | 1.70 | 1.70 | 180536 | 73.629 | 2.679 |
+| Fast large / mask candidate | 1.72 | 1.70 | 180528 | 73.792 | 2.645 |
+
+The path control removes the earlier small-case multi-MiB RSS and setup gap:
+minor-fault medians graphsmall35235/35235/35234. The charged implementation has
+no established material regression in these controlled samples. Large graph
+execution varies substantially (baseline195.01/229.04/218.24ms versus charged
+193.25/226.96/207.05ms); do not claim general speedup from three samples. Fastlarge
+charged wall1.69->1.70 and execute72.49->73.63ms remain visible, with overlapping
+sample ranges. The stronger new control supersedes code-cost attribution from
+the earlier installation-path pairs; all original receipts are preserved.
+
+Decision after actual31741 drain: REJECT and reverse the two-path mask candidate,
+including its candidate-specific invariant assertion. It provides no measured
+benefit and raises the large-graph median versus the current charged implementation.
+Tower source now exactly matches validated4bef/evidence7dc1b7d and again derives
+lookup bounds from actual node_cache.length. No candidate address/thread run was
+started; its prepared scripts are explicitly unrun. The live native cache still
+contains rejectedb476 objects/binaries and MUST NOT be treated as matching restored
+source. Immutable l1_node_cache_native_milestone contains correct e9cd4bef binaries;
+current address/thread caches still match the accepted cache ownership source.
+Next coherent source-union build must replace the experimental native objects.
+This avoids another unchanged ownership matrix solely to revert an experiment.
+L2 receives the next archive+32 same-path control slot; L1 runs no WSL work until
+its actual drain. Latest ROOT302/A2 complete histories remain queued for the next
+coherent boundary. New control archive and final evidence handoff remain to write.
+
+Receipt completion: L1_node_cache_path_controls_receipt.tgz SHA256
+79dfaa6c3ccd14034805e31c8455055084063a74673bf94359cd4fcb164ef657
+preserves the rejected extent build/32 pairs, final same-path48 complete logs and
+staged package, exact inputs and transport scripts. Archive process exited0; no
+compiler/test was rerun for this documentation-only attribution correction.
+Runtime performance/memory measurements are inapplicable to these prose edits;
+the measured code experiment and original failures remain identified above.
+Latest complete ROOT9d73 supersedes queued ROOT302/A2 separate bundles and will
+be merged after this evidence commit. L2 owns the next bounded coherent fixture
+gate; L1 source integration is Windows-only until its actual drain.

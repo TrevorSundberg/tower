@@ -1,6 +1,21 @@
 # L1 execution ownership audit
 
-Current counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
+Latest completed ownership checkpoint: source4befc5e/evidence7dc1b7d admits the
+node cache through the invocation's world budget before executable lookup.
+Native storage, core, corrected exact-phase query and remaining gates pass with
+source-specific receipts; five address/leak and five thread gates pass on the
+corrected shared fixture. A48-process control at one real executable/resource
+path preserves all output oracles and removes the prior small-case multi-MiB
+RSS/setup gap. Earlier different-install-path timings retain raw evidence but
+cannot establish a code-only cost. Controlled samples show no material cache
+regression; limited sample count and visible Fastlarge cost preclude a broad
+neutrality/speedup claim. A constant-mask experiment passed native checks but
+showed no benefit and was reverted. Production source remains the validated
+actual-length lookup. ROOT9d73 (including A2) production is queued, not validated here; the
+live native cache contains rejected experimental objects until the next coherent
+build. Remaining graph maps/function indexes/Fast storage and integrated release
+acceptance stay open. Historical checkpoints below retain their original scope.
+The earlier counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
 execution and package boundaries even when presentation text is absent. Public
 leaves, coherent rebuild and six native gates pass, including first-error/replay
 and canonical-package regressions at both pointer widths. Corrected4511ed9 adds
@@ -30,7 +45,7 @@ profile processes preserve outputs and canonical hashes. Large call-heavy runs
 cost about 2-3% end to end; separate phase timing shows about 7.5% execution cost.
 Two slow process exits outside compilation did not recur in twelve Linux-local
 output controls; their original measurements remain recorded, cause unproven.
-Current e68 thread instrumentation passes three query runs, two four-unit runs
+At e68, thread instrumentation passes three query runs, two four-unit runs
 with actual outer overlap and identical canonical hashes, and full aggregate
 execution. The latter finishes in533.78s within its unchanged600s bound. This
 does not cover later merged sources, native UBSan or foreign libraries. Integrated
@@ -44,7 +59,7 @@ existing coverage identified by reading; fresh results are recorded separately.
 
 ## Contracts and sources
 
-The current coherent snapshot is b8dfc67 plus A1's exact resource-error hook
+The historical coherent snapshot was b8dfc67 plus A1's exact resource-error hook
 76e1a971. Compiler 452f2fc0 passes independent resource failure checks three times
 and query, units, backend overlap, serial snapshot/parser, known bindings,
 aggregate stages, types, narrow integers and negation. The query now covers both
@@ -127,7 +142,8 @@ build slot at `/tmp/tower_l1_ecs_native` with two build jobs. No private bootstr
 override is set. The default `build-native.sh` build is in progress; its retained
 log is outside the repository at `C:/Sandbox/build/codex_ecs_20261122/L1/logs/baseline_build.log`.
 
-No fresh runtime, overlap, sanitizer, deployment or speedup result is claimed yet.
+At the initial setup checkpoint, no fresh runtime, overlap, sanitizer, deployment
+or speedup result was claimed.
 Audit documentation itself changes no runtime path; runtime performance and
 memory comparisons apply to subsequent implementation fixes.
 
@@ -441,7 +457,8 @@ oracles. Recorded graph/setup/RSS regressions keep performance acceptance open;
 allocator controls now show a reversal under a fixed mmap threshold, supporting
 an allocation/page-residency contribution without erasing default costs. Current
 4bef address/leak5 and thread5 gates pass with exact source/IR identities. The
-fixed constructor-extent lookup proposal is unimplemented/unmeasured. Graph
+fixed constructor-extent experiment was subsequently measured and reverted; the
+same-real-path control supersedes attribution from the earlier timing pairs. Graph
 maps, function indexes, Fast arrays and diagnostic/
 opaque owners remain open; type indexes and counted receipt consumers are
 implemented with their source-specific evidence above.
