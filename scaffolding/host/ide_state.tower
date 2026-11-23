@@ -30,7 +30,16 @@ fn ide_state(): IdeState* {
 
 fn ide_error(message: u8*): void {
     var state = ide_state();
+    state.error_fallback = null;
     ide_assign(&state.error, message);
+}
+
+// Resource failure must remain reportable without allocating another buffer.
+// Callers supply static text whose lifetime exceeds the transport state.
+fn ide_static_error(message: u8*): void {
+    var state = ide_state();
+    state.error.length = 0;
+    state.error_fallback = message;
 }
 
 fn ide_valid(data: u8*, length: usize): bool {
@@ -52,6 +61,7 @@ fn ide_execution(handle: u32): IdeExecution* {
 
 export fn tw_last_error(): u8* {
     var state = ide_state();
+    if state.error_fallback != null { return state.error_fallback; }
     return ide_result(&state.error);
 }
 

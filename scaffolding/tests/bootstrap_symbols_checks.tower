@@ -79,6 +79,14 @@ export fn main(): i32 {
         " U compiler_buffer_alignment\n U compiler_buffer_allocation_size\n U frontend_module_resource_error\n U syntax_session_resource_error\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U frontend_module_resource_error_extra\n", "frontend_module_resource_error_extra");
     symbol_case(BootstrapUnit.ParserNodes, false, " U syntax_session_resource_error\n", "syntax_session_resource_error");
+    symbol_case(BootstrapUnit.ParserNodes, false,
+        " U compiler_world_type_result\n U entity_component_add_result\n U entity_create_related_result\n U entity_create_result\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_world_type_result_extra\n", "compiler_world_type_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_component_add_resul\n", "entity_component_add_resul");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_create_related_result_extra\n", "entity_create_related_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_create_result_extra\n", "entity_create_result_extra");
+    symbol_case(BootstrapUnit.Semantics, false, " U compiler_world_type_result\n", "compiler_world_type_result");
+    symbol_case(BootstrapUnit.Interpreter, false, " U entity_component_add_result\n", "entity_component_add_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_node_create\n", null);
     // Check-only allocator hooks are not production bootstrap dependencies.
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_count\n", "tower_test_buffer_count");

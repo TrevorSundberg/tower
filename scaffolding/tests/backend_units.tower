@@ -4,7 +4,10 @@ import frontend_units_memory;
 import work_named;
 import .library.vector;
 import .library.work_pool;
+import .library.work_graph;
+import .library.work_buffer_types;
 import .library.compiler_work_types;
+import .library.entity_types;
 import .library.work_budget;
 import .library.work_budget_types;
 import .compiler.format_api;
@@ -19,6 +22,10 @@ extern fn backend_units_cancelled(batch: void*): bool;
 extern fn backend_units_cancel(batch: void*): void;
 extern fn backend_units_result(batch: void*, ordinal: usize): void*;
 extern fn backend_units_error(batch: void*): u8*;
+extern fn frontend_units_work_acquire(frontend: void*): void*;
+extern fn frontend_units_work_release(frontend: void*): void;
+extern fn compiler_work_graph(work: void*): void*;
+extern fn compiler_work_anchor(work: void*): void*;
 extern fn backend_bytes(backend: void*): u8*;
 extern fn backend_size(backend: void*): usize;
 extern fn frontend_units_observer(frontend: void*, context: void*,
@@ -137,8 +144,90 @@ fn backend_units_frontend(width: u32, root: u8*, bedrock: u8*, foundation: u8*):
     return frontend;
 }
 
+// Read only at a joined phase boundary under the existing exclusive lease.
+// Backend queries extend this shared graph even when objects have a separate ledger.
+fn backend_units_anchor(frontend: void*): Entity* {
+    var work = frontend_units_work_acquire(frontend);
+    units_check(work != null, "backend component storage inspection lease");
+    defer frontend_units_work_release(frontend);
+    return bits(Entity*, compiler_work_anchor(work));
+}
+
+// The frontend keeps this stable anchor alive. Read component receipts only
+// before dispatch or after every job joins, while the caller owns publication.
+fn backend_units_component_storage(anchor: Entity*, budget: WorkBudget*): WorkBudgetSnapshot {
+    var allocations: vector(u8*) = default;
+    defer vector_dispose(&allocations);
+    var result: WorkBudgetSnapshot = default;
+    for(var row: usize = 0; row <= anchor.child_count; row++) {
+        var node = row == 0 ? anchor : anchor.children[row - 1].entity;
+        for(var index: usize = 0; index < node.component_count; index++) {
+            var component = node.components[index];
+            var seen = false;
+            foreach(var allocation in &allocations) { seen ||= allocation == component.allocation; }
+            if seen { continue; }
+            units_check(vector_push(&allocations, component.allocation), "backend component receipt index");
+            var buffer = component.page == null
+                ? &bits(EntityComponentAllocation*, component.allocation).allocation
+                : &component.page.allocation;
+            units_check(buffer.reservation.active && buffer.reservation.owner == budget,
+                "coordinator components retain their frontend physical byte grants");
+            result.used_bytes += buffer.reservation.bytes;
+            result.live++;
+        }
+    }
+    return result;
+}
+
+fn backend_units_storage_diagnostic(before: WorkBudgetSnapshot*, retained: WorkBudgetSnapshot*,
+    released: WorkBudgetSnapshot*, components: WorkBudgetSnapshot*, remaining: WorkBudgetSnapshot*): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var out: FormatEngine = { result: &text, ..default };
+    format_text(&out, "Backend ledger bytes before/joined/released, component bytes joined/released: ");
+    format_unsigned(&out, convert(u64, before.used_bytes)); format_text(&out, "/");
+    format_unsigned(&out, convert(u64, retained.used_bytes)); format_text(&out, "/");
+    format_unsigned(&out, convert(u64, released.used_bytes)); format_text(&out, ", ");
+    format_unsigned(&out, convert(u64, components.used_bytes)); format_text(&out, "/");
+    format_unsigned(&out, convert(u64, remaining.used_bytes));
+    units_check(!text.failed && vector_push(&text.text, 0), "backend ledger diagnostic");
+    puts(text.text.data); fflush(null);
+}
+
+fn backend_units_graph_storage(frontend: void*): WorkBudgetSnapshot {
+    var work = frontend_units_work_acquire(frontend);
+    units_check(work != null, "backend graph storage inspection lease");
+    defer frontend_units_work_release(frontend);
+    var graph = bits(WorkGraph*, compiler_work_graph(work));
+    units_check(graph != null, "backend graph storage joined boundary");
+    var buffers: WorkBuffer*[9];
+    buffers[0] = &graph.storage.tasks;
+    buffers[1] = &graph.storage.edges;
+    buffers[2] = &graph.storage.task_index;
+    buffers[3] = &graph.storage.edge_index;
+    buffers[4] = &graph.storage.ready;
+    buffers[5] = &graph.storage.scratch;
+    buffers[6] = &graph.storage.frames;
+    buffers[7] = &graph.storage.accesses;
+    buffers[8] = &graph.storage.executing;
+    var result: WorkBudgetSnapshot = default;
+    for(var i: usize = 0; i < sizeof(decltype(buffers)) / sizeof(WorkBuffer*); i++) {
+        var receipt = &buffers[i].reservation;
+        if receipt.active {
+            units_check(receipt.owner == frontend_units_work_budget(frontend), "shared graph owns frontend byte grants");
+            result.used_bytes += receipt.bytes;
+            result.live++;
+        }
+    }
+    return result;
+}
+
 fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vector(u8)*): void {
     var streaming = frontend_units_pending(frontend);
+    var anchor = backend_units_anchor(frontend);
+    var original_components = backend_units_component_storage(anchor, frontend_units_work_budget(frontend));
+    var graph_before: WorkBudgetSnapshot = default;
+    if !streaming { graph_before = backend_units_graph_storage(frontend); }
     var before: WorkBudgetSnapshot;
     units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &before), "backend input accounting");
     var input_bytes = frontend_units_input_bytes(frontend);
@@ -173,6 +262,7 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
         units_check(retained.used_bytes >= before.used_bytes + output_bytes,
             "streaming objects retain their byte reservations after join");
     }
+    var components = backend_units_component_storage(anchor, frontend_units_work_budget(frontend));
     // Streaming compilation also creates retained frontend tables. Measure the
     // exact backend release against the joined frontend baseline, not its
     // earlier state before parsing. Later targets use a separate backend ledger.
@@ -182,14 +272,25 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &released)
         && released.used_lanes == 0 && released.peak_bytes <= released.bytes
         && frontend_units_input_bytes(frontend) == input_bytes, "Backend disposal preserves retained inputs and cap");
+    var remaining = backend_units_component_storage(anchor, frontend_units_work_budget(frontend));
+    units_check(remaining.used_bytes == original_components.used_bytes && remaining.live == original_components.live
+        && components.used_bytes >= remaining.used_bytes && components.live >= remaining.live,
+        "Backend disposal releases its component pages and preserves frontend component ownership");
+    var component_bytes = components.used_bytes - remaining.used_bytes;
+    var component_owners = components.live - remaining.live;
     if streaming {
-        units_check(retained.used_bytes == released.used_bytes + output_bytes
-            && retained.live == released.live + BackendFixtureUnits + 1
-            && released.used_bytes >= before.used_bytes && released.live >= before.live,
-            "Backend disposal releases exactly target and object receipts beside retained frontend owners");
+        var exact = retained.used_bytes == released.used_bytes + output_bytes + component_bytes
+            && retained.live == released.live + BackendFixtureUnits + 1 + component_owners
+            && released.used_bytes >= before.used_bytes && released.live >= before.live;
+        if !exact { backend_units_storage_diagnostic(&before, &retained, &released, &components, &remaining); }
+        units_check(exact, "Backend disposal releases exactly target, object and component receipts beside retained frontend owners");
     } else {
-        units_check(released.used_bytes == before.used_bytes && released.live == before.live,
-            "Separate backend ledger leaves frontend accounting unchanged");
+        var graph_after = backend_units_graph_storage(frontend);
+        var exact = released.used_bytes + component_bytes == retained.used_bytes && released.live + component_owners == retained.live
+            && released.used_bytes + graph_before.used_bytes == before.used_bytes + graph_after.used_bytes
+            && released.live + graph_before.live == before.live + graph_after.live;
+        if !exact { backend_units_storage_diagnostic(&before, &retained, &released, &components, &remaining); }
+        units_check(exact, "Separate backend output releases leave exactly shared graph growth on the frontend ledger");
     }
 }
 
@@ -197,11 +298,12 @@ fn backend_units_memory(frontend: void*, target: u8*): void {
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, 0, target, true, true) == null
         && backend_units_create_bounded(frontend, BackendFixtureUnits, 1, ~convert(usize, 0), target, true, true) == null,
         "bounded backend rejects missing or unbounded policy");
-    var bytes = units_memory_span_bytes(strlen(target));
+    var bytes = units_memory_span_bytes(strlen(target))
+        + sizeof(WorkSlot) + UnitSnapshotHeaderWords * sizeof(usize);
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes - 1, target, true, true) == null,
-        "target cap rejection leaves frontend graph usable");
+        "target and worker-slot cap rejection leaves frontend graph usable");
     var batch = backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes, target, true, true);
-    units_check(batch != null, "exact target payload and allocator header admitted before allocation");
+    units_check(batch != null, "exact target and one worker-slot storage admitted before allocation");
     defer backend_units_close(batch);
     while !backend_units_step(batch, true) {}
     units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 1
