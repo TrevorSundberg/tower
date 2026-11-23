@@ -3,13 +3,22 @@ import lr_analysis;
 import parser_nodes;
 import parser_types;
 import regex_lowering;
-import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_arena_api;
+import .library.work_arena_types;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 import lr_types;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 // Derived indexes over ordinary grammar entities. Names/captures are snapshots
 // for this table revision; source entities and declaration order remain intact.
 struct LRGrammarName {
-    text: vector(u8);
+    text: u8*;
     hash: usize;
     next: usize;
     order: usize;
@@ -22,7 +31,7 @@ struct LRGrammarRule {
 
 struct LRGrammarSymbol {
     node: void*;
-    capture: vector(u8);
+    capture: u8*;
 }
 
 struct LRUnresolved {
@@ -31,13 +40,31 @@ struct LRUnresolved {
 }
 
 struct LRGrammar {
-    names: vector(LRGrammarName*);
-    buckets: vector(usize);
-    rules: vector(LRProduction);
-    rule_metadata: vector(LRGrammarRule);
-    symbols: vector(LRSymbol);
-    symbol_metadata: vector(LRGrammarSymbol);
-    unresolved: vector(LRUnresolved);
+    storage: WorkBuffer;
+    budget: WorkBudget*;
+    // Names and capture strings share this immutable grammar lifetime. The
+    // arena keeps their addresses stable while derived index vectors grow.
+    snapshots: WorkArena;
+    names: work_vector(LRGrammarName*);
+    buckets: work_vector(usize);
+    rule_storage: WorkBuffer;
+    rules: LRProduction*;
+    rule_metadata_storage: WorkBuffer;
+    rule_metadata: LRGrammarRule*;
+    symbols: work_vector(LRSymbol);
+    symbol_metadata: work_vector(LRGrammarSymbol);
+    unresolved: work_vector(LRUnresolved);
+}
+
+// Each snapshot is copied once and remains immutable until grammar retirement.
+fn lr_grammar_text(arena: WorkArena*, source: u8*): u8* {
+    var length: usize = 0;
+    while source[length] != 0 { length++; }
+    var bytes = length + 1;
+    if bytes == 0 { return null; }
+    var text = work_arena_allocate(arena, bytes, alignof(u8));
+    if text != null { copy(text, source, bytes); }
+    return text;
 }
 
 fn lr_name_hash(text: u8*): usize {
@@ -81,7 +108,7 @@ fn lr_grammar_lookup(value: LRGrammar*, name: u8*, hash: usize): usize {
         var entry = value.names.data[index];
         var same = entry.hash == hash;
         if same {
-            same = lr_name_equal(name, node_text_get(&entry.text));
+            same = lr_name_equal(name, entry.text);
             if same {
                 return index;
             }
@@ -96,20 +123,15 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
     if *index != lr_none() {
         return true;
     }
-    var entry = alloc(LRGrammarName, 1);
-    if entry == null {
-        return false;
-    }
-    *entry = default;
-    var ok = node_text_set(&entry.text, name);
-    ok &&= vector_push(&value.names, entry);
+    var entry = bits(LRGrammarName*, work_arena_allocate(&value.snapshots, sizeof(LRGrammarName), alignof(LRGrammarName)));
+    if entry == null { return false; }
+    *entry = {text: lr_grammar_text(&value.snapshots, name), hash: hash, ..default};
+    var ok = entry.text != null;
+    ok &&= work_vector_push(&value.names, value.budget, entry);
     if !ok {
-        vector_dispose(&entry.text);
-        free(entry);
         return false;
     }
     *index = value.names.length - 1;
-    entry.hash = hash;
     // The augmented start name is diagnostic text, not a source-name binding.
     if *index == 0 {
         return true;
@@ -119,14 +141,14 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
         return false;
     }
     var bucket = hash % size;
-    entry.next = value.buckets.data[bucket];
+    value.names.data[*index].next = value.buckets.data[bucket];
     value.buckets.data[bucket] = *index;
     return true;
 }
 
 fn lr_grammar_name_less(value: LRGrammar*, a: usize, b: usize): bool {
-    var left = node_text_get(&value.names.data[a].text);
-    var right = node_text_get(&value.names.data[b].text);
+    var left = value.names.data[a].text;
+    var right = value.names.data[b].text;
     var index: usize = 0;
     loop {
         if left[index] != right[index] {
@@ -169,10 +191,11 @@ fn lr_grammar_name_sift(value: LRGrammar*, order: usize*, count: usize, start: u
 
 fn lr_grammar_order(value: LRGrammar*): bool {
     var count = value.names.length;
-    var order = alloc(usize, count);
-    if order == null {
-        return false;
-    }
+    if count > ~convert(usize, 0) / sizeof(usize) { return false; }
+    var storage: WorkBuffer = default;
+    defer work_buffer_dispose(&storage);
+    if work_buffer_resize(&storage, value.budget, count * sizeof(usize), 0) != WorkBudgetError.None { return false; }
+    var order = bits(usize*, storage.data);
     var index: usize = 0;
     for(; index != count; index++) {
         order[index] = index;
@@ -203,7 +226,6 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         var original = order[index];
         value.names.data[original].order = index;
     }
-    free(order);
     return true;
 }
 
@@ -211,24 +233,16 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
     if value == null {
         return;
     }
-    var index: usize = 0;
-    for(; index != value.names.length; index++) {
-        var name = value.names.data[index];
-        vector_dispose(&name.text);
-        free(name);
-    }
-    index = 0;
-    for(; index != value.symbol_metadata.length; index++) {
-        vector_dispose(&value.symbol_metadata.data[index].capture);
-    }
-    vector_dispose(&value.names);
-    vector_dispose(&value.buckets);
-    vector_dispose(&value.rules);
-    vector_dispose(&value.rule_metadata);
-    vector_dispose(&value.symbols);
-    vector_dispose(&value.symbol_metadata);
-    vector_dispose(&value.unresolved);
-    free(value);
+    work_vector_dispose(&value.names);
+    work_vector_dispose(&value.buckets);
+    work_buffer_dispose(&value.rule_storage);
+    work_buffer_dispose(&value.rule_metadata_storage);
+    work_vector_dispose(&value.symbols);
+    work_vector_dispose(&value.symbol_metadata);
+    work_vector_dispose(&value.unresolved);
+    work_arena_dispose(&value.snapshots);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 fn lr_grammar_payload(node: void*, kind: void*): void* {
@@ -241,21 +255,32 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
     metadata.node = node;
     var ok = true;
     if *capture != 0 {
-        ok = node_text_set(&metadata.capture, capture);
+        metadata.capture = lr_grammar_text(&value.snapshots, capture);
+        ok = metadata.capture != null;
     }
-    ok &&= lr_append(LRGrammarSymbol, &value.symbol_metadata, &metadata);
+    ok &&= work_vector_push(&value.symbol_metadata, value.budget, metadata);
     if !ok {
-        vector_dispose(&metadata.capture);
         return false;
     }
-    return lr_append(LRSymbol, &value.symbols, symbol);
+    return work_vector_push(&value.symbols, value.budget, *symbol);
 }
 
 fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var count = entity_child_count(root);
+    if count > (~convert(usize, 0) - 1) / 2 { return false; }
+    // Every source rule contributes exactly one record, plus the augmented
+    // start rule. These frozen columns never need vector growth or spare slots.
+    var rule_count = count + 1;
+    if rule_count > ~convert(usize, 0) / sizeof(LRProduction)
+        || rule_count > ~convert(usize, 0) / sizeof(LRGrammarRule) { return false; }
+    if work_buffer_resize(&value.rule_storage, value.budget, rule_count * sizeof(LRProduction), 0) != WorkBudgetError.None
+        || work_buffer_resize(&value.rule_metadata_storage, value.budget,
+            rule_count * sizeof(LRGrammarRule), 0) != WorkBudgetError.None { return false; }
+    value.rules = bits(LRProduction*, value.rule_storage.data);
+    value.rule_metadata = bits(LRGrammarRule*, value.rule_metadata_storage.data);
     var size = count *2;
     size++;
-    var ok = vector_reserve(&value.buckets, size);
+    var ok = work_vector_reserve(&value.buckets, value.budget, size);
     if !ok {
         return false;
     }
@@ -269,11 +294,8 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     }
     var rule: LRProduction = default;
     var metadata: LRGrammarRule = default;
-    ok = lr_append(LRProduction, &value.rules, &rule);
-    ok &&= lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
-    if !ok {
-        return false;
-    }
+    value.rules[0] = rule;
+    value.rule_metadata[0] = metadata;
     index = 0;
     loop {
         if index == count {
@@ -289,11 +311,11 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
         rule.precedence = source.precedence;
         rule.associativity = source.associativity;
         ok = lr_grammar_name_add(value, node_rule_name(source), &rule.owner);
-        ok &&= lr_append(LRProduction, &value.rules, &rule);
-        ok &&= lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
         if !ok {
             return false;
         }
+        value.rules[index + 1] = rule;
+        value.rule_metadata[index + 1] = metadata;
         index++;
     }
 }
@@ -306,16 +328,16 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
         if !ok {
             return false;
         }
-        value.rules.data[0].count = 1;
+        value.rules[0].count = 1;
     }
     var rule_index: usize = 1;
     loop {
-        var done = rule_index == value.rules.length;
+        var done = rule_index == lr_grammar_rule_count(value);
         if done {
             return true;
         }
-        var rule = &value.rules.data[rule_index];
-        var source = value.rule_metadata.data[rule_index].node;
+        var rule = &value.rules[rule_index];
+        var source = value.rule_metadata[rule_index].node;
         rule.begin = value.symbols.length;
         var count = entity_child_count(source);
         var index: usize = 0;
@@ -339,7 +361,7 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                     var pending: LRUnresolved;
                     pending.name = name;
                     pending.symbol = value.symbols.length;
-                    var ok = lr_append(LRUnresolved, &value.unresolved, &pending);
+                    var ok = work_vector_push(&value.unresolved, value.budget, pending);
                     if !ok {
                         return false;
                     }
@@ -394,16 +416,21 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
 }
 
 export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*, string_kind: void*, range_kind: void*): LRGrammar* {
-    var value = alloc(LRGrammar, 1);
-    if value == null {
+    var budget = compiler_world_work_budget(compiler_node_world(root));
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, budget, sizeof(LRGrammar), 0) != WorkBudgetError.None { return null; }
+    var value = bits(LRGrammar*, storage.data);
+    *value = {storage: storage, budget: budget, ..default};
+    var chunk_bytes = sizeof(WorkArenaChunk) + WorkBufferInitialElements * sizeof(LRGrammarName);
+    if !work_arena_init(&value.snapshots, budget, chunk_bytes) {
+        lr_grammar_destroy(value);
         return null;
     }
-    *value = default;
     var ok = lr_grammar_rules(value, root, rule_kind);
     ok &&= lr_grammar_symbols(value, reference_kind, string_kind, range_kind);
     if ok {
         // Name lookup is finished. Runtime tables only need the ordered names.
-        vector_dispose(&value.buckets);
+        work_vector_dispose(&value.buckets);
         return value;
     }
     lr_grammar_destroy(value);
@@ -411,19 +438,19 @@ export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*
 }
 
 export fn lr_grammar_rule_count(value: LRGrammar*): usize {
-    return value.rules.length;
+    return value.rule_storage.capacity / sizeof(LRProduction);
 }
 
 export fn lr_grammar_rule_data(value: LRGrammar*): LRProduction* {
-    return value.rules.data;
+    return value.rules;
 }
 
 export fn lr_grammar_rule_node(value: LRGrammar*, index: usize): void* {
-    return value.rule_metadata.data[index].node;
+    return value.rule_metadata[index].node;
 }
 
 export fn lr_grammar_generated(value: LRGrammar*, index: usize): bool {
-    return value.rule_metadata.data[index].generated;
+    return value.rule_metadata[index].generated;
 }
 
 export fn lr_grammar_symbol_count(value: LRGrammar*): usize {
@@ -439,7 +466,8 @@ export fn lr_grammar_symbol_node(value: LRGrammar*, index: usize): void* {
 }
 
 export fn lr_grammar_capture(value: LRGrammar*, index: usize): u8* {
-    return node_text_get(&value.symbol_metadata.data[index].capture);
+    var capture = value.symbol_metadata.data[index].capture;
+    return capture == null ? "" : capture;
 }
 
 export fn lr_grammar_name_count(value: LRGrammar*): usize {
@@ -447,7 +475,7 @@ export fn lr_grammar_name_count(value: LRGrammar*): usize {
 }
 
 export fn lr_grammar_name(value: LRGrammar*, index: usize): u8* {
-    return node_text_get(&value.names.data[index].text);
+    return value.names.data[index].text;
 }
 
 export fn lr_grammar_name_order(value: LRGrammar*, index: usize): usize {
@@ -491,10 +519,10 @@ export fn lr_grammar_pending(value: LRGrammar*): usize {
 // Source-node addresses are construction-only. Keep numeric records when the
 // table's diagnostics/trace views still consume them; never rebuild native copies.
 export fn lr_grammar_detach(value: LRGrammar*): void {
-    vector_dispose(&value.unresolved);
+    work_vector_dispose(&value.unresolved);
     var index: usize = 0;
-    for(; index != value.rule_metadata.length; index++) {
-        value.rule_metadata.data[index].node = null;
+    for(; index != value.rule_metadata_storage.capacity / sizeof(LRGrammarRule); index++) {
+        value.rule_metadata[index].node = null;
     }
     index = 0;
     for(; index != value.symbol_metadata.length; index++) {
@@ -505,6 +533,7 @@ export fn lr_grammar_detach(value: LRGrammar*): void {
 // Compact readers only need generated flags, labels and captures after build.
 export fn lr_grammar_finish(value: LRGrammar*): void {
     lr_grammar_detach(value);
-    vector_dispose(&value.rules);
-    vector_dispose(&value.symbols);
+    work_buffer_dispose(&value.rule_storage);
+    value.rules = null;
+    work_vector_dispose(&value.symbols);
 }
