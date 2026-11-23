@@ -29,6 +29,7 @@ struct SemanticLowering {
     count: usize;
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
     query_reads: vector(usize);
     signature: bool;
     evaluation_aliases: vector(SemanticEvaluationAlias);
@@ -68,6 +69,7 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     stack_dispose(void*, &context.scan);
     vector_dispose(u8, &context.token_text);
     for(var i: usize = 0; i < context.lists.length; ++i) {
@@ -221,14 +223,11 @@ export fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResu
             // handles all canonical links without dangling staged references.
             sem_evaluation_aliases(c, &result.evaluation_aliases);
             c.count += result.count;
-            if result.error.length != 0 && sem_ok(c) {
-                sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
-                copy(c.program.error.data, result.error.data, result.error.length + 1);
-                c.program.error.length = result.error.length;
-                c.program.error_offset = result.error_offset;
+            if !sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset) {
+                sem_restore_error(c, &result.error, result.error_offset);
             }
             if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
-            var success = result.error.length == 0 && c.count <= c.node_limit;
+            var success = result.resource.error == WorkBudgetError.None && result.error.length == 0 && c.count <= c.node_limit;
             sem_require(work_finish(&c.queries, &result.ticket, success));
             vector_dispose(u8, &result.error);
             vector_dispose(&result.query_reads);

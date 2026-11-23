@@ -95,11 +95,30 @@ fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message
         result.error.length = length;
         result.error_offset = offset;
     }
-    if !c.declaration_isolated { sem_evaluation_failure(c, result); }
 }
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
-    return result != null && sem_restore_error(c, &result.error, result.error_offset);
+    return result != null && (sem_restore_resource(c, result.resource_error, &result.error, result.error_offset)
+        || sem_restore_error(c, &result.error, result.error_offset));
+}
+
+// Readiness and worker completion do not define diagnostic order. The owning
+// declaration/body publication appends this index in canonical source order.
+// An earlier demanded continuation may still discover a failure in a later
+// pump, so retain later failures until that earlier producer has terminated.
+fn sem_evaluation_select_failure(c: SemanticContext*): bool {
+    if c.declaration_isolated { return false; }
+    foreach(var job in &c.evaluation_jobs) {
+        var result = bits(SemanticEvaluation*, job);
+        var id = work_find(&c.queries, result.subject, EvaluationQuery, 0);
+        if id == 0 { continue; }
+        var task = work_task(&c.queries, id);
+        if !task.demanded || task.state == WorkState.Succeeded { continue; }
+        // A failed executed dependency may own the retained receipt. Follow
+        // the existing failed edges, without diagnosing pending work as cyclic.
+        return task.state == WorkState.Failed && sem_declaration_failure(c, id);
+    }
+    return false;
 }
 
 // Unsupported optional staging may keep its runtime initializer. Exhausting
@@ -375,7 +394,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         // A suspended interpreter can demand another stage. Prepare only that
         // ready frontier before opening the next immutable execution view.
         sem_evaluation_prepare_all(c);
-        if !sem_ok(c) { return SemanticPumpResult.Failed; }
+        if !sem_ok(c) || sem_evaluation_select_failure(c) { return SemanticPumpResult.Failed; }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var count: usize = 0;
@@ -461,25 +480,27 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
             index++;
         }
     }
-    return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+    return sem_ok(c) && !sem_evaluation_select_failure(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
 }
 
 // Call only after the owning pipeline can no longer satisfy a waiting producer.
 // Ordinary phase pumping never declares its unfinished dependencies cyclic.
 fn sem_evaluation_finish(c: SemanticContext*): void {
-    var index: usize = 0;
-    while index < c.queries.tasks.length && sem_ok(c) {
-        var task = work_task(&c.queries, index + 1);
-        if task.query == EvaluationQuery && task.demanded && task.state != WorkState.Succeeded {
-            var result = sem_evaluation_get(c, task.subject);
+    foreach(var job in &c.evaluation_jobs) {
+        if !sem_ok(c) { break; }
+        var result = bits(SemanticEvaluation*, job);
+        var id = work_find(&c.queries, result.subject, EvaluationQuery, 0);
+        if id == 0 { continue; }
+        var task = work_task(&c.queries, id);
+        if task.demanded && task.state != WorkState.Succeeded {
+            if sem_declaration_failure(c, id) { break; }
             if result != null && result.inferred && result.resource_error == WorkBudgetError.None {
                 result.ready.failed = true;
                 result.ready.ready = true;
             } else {
-                if !sem_declaration_failure(c, index + 1) { sem_evaluation_cycle(c, index + 1); }
+                sem_evaluation_cycle(c, id);
             }
         }
-        index++;
     }
 }
 

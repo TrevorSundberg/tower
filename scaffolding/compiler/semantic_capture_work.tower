@@ -2,6 +2,8 @@ import tower;
 import semantic_declaration_types;
 import semantic_source_binding_types;
 import semantic_context_types;
+import semantic_program_types;
+import .library.work_budget_types;
 import semantic_evaluation_types;
 import semantic_context;
 import semantic_known_bindings;
@@ -27,6 +29,7 @@ struct SemanticCapture {
     evaluation: SemanticEvaluation*;
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
     block: void*;
     begin: usize;
     end: usize;
@@ -47,7 +50,7 @@ fn sem_captures_begin(c: SemanticContext*): void {
     }
 }
 
-fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
+export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
     sem_captures_begin(c);
     var query = convert(u32, SemanticQuery.CaptureInput);
     var existing = work_find(&c.queries, subject, query, 0);
@@ -158,7 +161,8 @@ fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void 
     result.evaluation = evaluation;
 }
 
-fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
+export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     if c.capture_inputs == null { return SemanticPumpResult.Complete; }
     var query = convert(u32, SemanticQuery.CaptureInput);
     var ticket: WorkTicket;
@@ -172,6 +176,7 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         // Suspend before dispatching proof workers. A retained proof pipeline
         // publishes declaration facts once, after all of its scans have joined.
         var proof = sem_source_binding_request(c, subject);
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         if work_task(&c.queries, proof).state != WorkState.Succeeded {
             sem_require(work_suspend(&c.queries, &ticket, proof));
             return SemanticPumpResult.Progress;
@@ -271,17 +276,21 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         input.projections = input.aggregate ? result.evaluation.leaves.data : null;
         input.projection_count = input.aggregate ? result.evaluation.leaves.length : 0;
     } else {
-        result.error = c.program.error;
+        result.resource = c.program.resource;
         result.error_offset = c.program.error_offset;
-        c.program.error = default;
+        if result.resource.error == WorkBudgetError.None {
+            result.error = c.program.error;
+            c.program.error = default;
+        }
     }
-    sem_require(work_finish(&c.queries, &ticket, result.error.length == 0));
+    sem_require(work_finish(&c.queries, &ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
     return SemanticPumpResult.Progress;
 }
 
 fn sem_capture_failure(c: SemanticContext*, subject: void*): bool {
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
-    return result != null && sem_restore_error(c, &result.error, result.error_offset);
+    return result != null && (sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset)
+        || sem_restore_error(c, &result.error, result.error_offset));
 }
 
 // The sole KnownPublish caller follows the complete evaluation pump/finalizer.

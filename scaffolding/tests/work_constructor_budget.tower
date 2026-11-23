@@ -19,6 +19,11 @@ fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
     constructor_check(work_budget_init(&budget, 4, bytes, 1));
     var work: CompilerWork* = null;
     var result = compiler_work_create_result(8, 4, 1, 9, &budget, &work);
+    if result != wanted {
+        print(bytes);
+        print(convert(u32, wanted));
+        print(convert(u32, result));
+    }
     constructor_check(result == wanted);
     if wanted == WorkBudgetError.None {
         constructor_check(work != null && work.store.budget == &budget && work.graph.budget == &budget);
@@ -40,10 +45,22 @@ fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
 export fn main(argc: i32, argv: u8**): i32 {
     var self_bytes = compiler_buffer_allocation_size(sizeof(CompilerWork));
     var store_bytes = compiler_buffer_allocation_size(sizeof(EntityStore));
+    // Observe the physical page request rather than duplicating its layout.
+    // A request larger than the whole ledger is Invalid; a fitting request
+    // denied by other live owners is Capacity.
+    var probe = compiler_work_create(1, 1, 1, 9);
+    constructor_check(probe != null);
+    var component = entity_component_get(compiler_work_subject(probe, 1), probe.kind);
+    constructor_check(component != null && component.page != null);
+    var page_bytes = compiler_buffer_allocation_size(component.page.allocation.capacity);
+    compiler_work_close(probe);
     constructor_limit(1, WorkBudgetError.Invalid);
     constructor_limit(self_bytes, store_bytes > self_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
-    constructor_limit(self_bytes + store_bytes, WorkBudgetError.Capacity);
-    constructor_limit(self_bytes + store_bytes + compiler_buffer_allocation_size(16 * sizeof(usize)), WorkBudgetError.Capacity);
+    var initial_bytes = self_bytes + store_bytes;
+    constructor_limit(initial_bytes, page_bytes > initial_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    var ready_bytes = initial_bytes + compiler_buffer_allocation_size(16 * sizeof(usize));
+    constructor_limit(ready_bytes, page_bytes > ready_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    constructor_limit(initial_bytes + page_bytes, WorkBudgetError.Capacity);
     constructor_limit(1048576, WorkBudgetError.None);
     var budget: WorkBudget = default;
     constructor_check(work_budget_init(&budget, 1, store_bytes, 1));
