@@ -94103,3 +94103,40 @@ c2c97058 with its input/provider hashes. Later semantic sources are explicitly
 excluded from that frozen run and await ROOT's final integrated adoption; no
 rebuild/repetition or claim that a prior binary tests newer source. All complete
 histories and original failures remain preserved. Diff checks pass; normal push.
+
+## 2026-11-23 A1: independent page-owned browser lifetime review
+
+Frozen published source f0485e83c8a91d355466236a4f3105d29a9f6783;
+implementation 5aff643a against parent ba52a932. Read whole changed transport
+methods, page Engine/LanguageService and execution/build callers, static entry
+bundling, default Node path, separate LLVM unit pool and selected fault/ownership
+controls. Source map and exact receipt limits:
+[review](browser_worker_lifetime_review_a1.md). No production edits or new tests.
+
+Concrete remaining boundary for ROOT: compiler-worker-group suppresses queued
+messages after closure but its error listener only calls idempotent close.
+A coordinator startup error queued before cancellation can reach its old caller
+after replacement. Engine and LanguageService unconditionally stop their current
+worker in that old callback, terminating the replacement and rejecting its work.
+The HTML worker-processing/termination algorithms support this outside-global
+error-task interleaving; this review did not reproduce it in Chromium. Caller
+weakness predates the helper. Smallest proposed control retires A, installs B,
+then delivers an ErrorEvent to A and checks that B survives. That checks the
+transport boundary, not native task timing. Preserve active errors: the helper
+intentionally closes before forwarding child failure, so an unconditional closed
+error filter would hide a real failure. No overlapping transport patch made.
+
+Direct git comparisons confirm the reviewed repair/controls/build entry bytes
+are unchanged from 5aff643a and B2's 78d675c4 host; the four recorded provider
+SHA256 values match. Historical candidate archives were not reopened by A1.
+B2's f167 and b8 receipts remain source/binary/resource-bound owner evidence:
+strict close events plus zero CDP targets precede browser cleanup; the four
+static-app tests do not assert retirement. Node and separate LLVM pool contracts
+remain unchanged. No b8 test is relabeled as ROOT's running 25dddd04 compiler
+acceptance, nor as coverage of the stale-error finding. Proposed regression unrun.
+
+Documentation-only: profiling, compiler builds and runtime reruns inapplicable;
+no prior selectors repeated. KinmenA/A1 PID32896, same session
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7; assigned cache idle, no active build/test
+jobs; initial disk free339785383936B. Todo unchanged. Normal main publication
+only; ROOT retains runtime deployment and the narrow transport follow-up.
