@@ -961,20 +961,18 @@ and failure suites without the unrelated body matrix. It includes valid trace
 output and serial allocation-failure/ownership checks. Use the serial frontend
 target for this fault allocator; it is not a threaded allocator sanitizer.
 
-The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
-optional final `runtime` argument. It measures runtime-table construction over
-already prepared LR states, binds a finite synchronized world budget, and checks
-every action/goto against a serial reference outside each interval. Reported
-peak/current bytes include actual owned buffer headers; ledger metadata and
-process peak RSS are separate columns. Each table must return its grants on
-destruction. Requested workers and reserved lanes do not prove physical overlap.
-
 The existing native `tower-lr-work-tests RESOURCE_ROOT query-smoke` also runs
 `semantic_resource_checks.tower`: required, inferred and declaration-isolated
-storage denial for32/64-bit targets and1/4 requested workers. It requires failed
+startup and nested-frame storage denial for32/64-bit targets and1/4 requested workers. It requires failed
 query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
+
+The same query entry runs `semantic_publish_checks.tower` once before its
+width/worker loop:18 pressure cases plus4 pre-cancelled cases. These check joined
+resource failures, source-ordered diagnostics, atomic canonical storage changes,
+stable dispatch receipts and cancellation without new work. The separate
+resource helper contributes24 startup/growth trials across the outer matrix.
 
 `tower-lr-work-tests RESOURCE_ROOT lifecycle FIRST [LAST]` selects an inclusive
 range from `SemanticLifecycleCase` (currently0–41), or one case when LAST is
@@ -983,6 +981,12 @@ prints and flushes start/completion receipts, using the unchanged32/64-bit and
 1/4-worker assertions and successful canonical reparses. Default `all`, `bodies`
 and `type-smoke` coverage is unchanged. Use separate case invocations for external
 wall/CPU/RSS measurements; an unfinished case has no completion receipt.
+
+`tower-lr-work-tests RESOURCE_ROOT type-errors` runs the existing post-lifecycle
+part of `type-smoke`: body continuation, canonical reparse, binding failures and
+declaration/type cycles for serial/four-worker budgets. Reuse a completed
+lifecycle receipt for the same compiler inputs when iterating these checks.
+This selector does not replace lifecycle coverage; `type-smoke` still runs both.
 
 The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
 existing executable-function index fixture, including exact canonical preservation,
@@ -996,3 +1000,22 @@ or select CTest `tower-module-cache-regressions`. This uses the existing
 `parser_modules_work` composition and `module_cache_checks.tower` entry with
 production transport. The separate cache profile's invalidation check does not
 replace these malformed-input, cycle, resolution and session regressions.
+
+The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
+optional final `runtime` argument. It measures runtime-table construction over
+already prepared LR states, binds a finite synchronized world budget, and checks
+every action/goto against a serial reference outside each interval. Reported
+peak/current bytes include actual owned buffer headers; ledger metadata and
+process peak RSS are separate columns. Each table must return its grants on
+destruction. Requested workers and reserved lanes do not prove physical overlap.
+
+`tower-work-budget-allocation-tests` runs the existing ledger metadata failure
+fixture through the serial fault allocator. It checks rollback, output and receipt
+preservation, slot reuse and stale releases. The registration reuses the host
+memory object and instrumented runtime; it does not sanitize concurrent workers.
+
+`tower-work-arena-linkage-tests` links the declaration-only arena client with one
+separately compiled implementation and the ordinary guest runtime. It exercises
+all six exported operations, physical retention, alignment, denial and ownership
+transfer. The existing native work-test object rules apply supported sanitizer
+instrumentation to both client and provider; no compiler entity unit is linked.

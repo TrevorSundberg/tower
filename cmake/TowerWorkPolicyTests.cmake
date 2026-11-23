@@ -21,14 +21,18 @@ add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
 if(policy_triple MATCHES "^x86_64-.*linux")
-  # These fixtures import host.memory; do not link a second copy. Their
-  # failure allocator and transport are deliberately single-owner/serial.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults)
+  # Buffer/arena fixtures import host.memory; the ledger fixture links the
+  # existing memory object. All use the single-owner fault allocator/transport.
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
+    set(fault_memory)
+    if(unit STREQUAL "work_budget_allocation")
+      list(APPEND fault_memory "${host_memory_OBJECT}")
+    endif()
     add_executable(tower-${name}-tests
-      "${${name}_OBJECT}" "${policy_runtime}" "${policy_trap}")
+      "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")
     set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE C)
     target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
     add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
