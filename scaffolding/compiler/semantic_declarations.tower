@@ -48,6 +48,9 @@ var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
 var ArrayTypeQuery: u32 = convert(u32, SemanticQuery.ArrayType);
 var TypeConstructionQuery: u32 = convert(u32, SemanticQuery.TypeConstruction);
 var SemanticProjectionDepthLimit: usize = 128;
+// Body/declaration stages usually install only a few records. Store allocations
+// keep the default page policy; the world-owned kind is sealed before dispatch.
+var SemanticDeclarationStageRows: u8 = 4;
 
 
 struct DeclarationScan {
@@ -77,7 +80,8 @@ fn sem_declaration_state_result(c: SemanticContext*, node: void*): SemanticDecla
     if !sem_ok(c) { return null; }
     var error: WorkBudgetError;
     if c.declaration_state == null {
-        c.declaration_state = sem_kind_result(c.program.root, sizeof(SemanticDeclaration), alignof(SemanticDeclaration), &error);
+        c.declaration_state = sem_kind_stage_result(c.program.root, sizeof(SemanticDeclaration),
+            alignof(SemanticDeclaration), SemanticDeclarationStageRows, &error);
         if c.declaration_state == null { sem_work_resource(c, node, error); return null; }
     }
     var component = entity_component_get(node, c.declaration_state);
@@ -453,6 +457,20 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
                 // The call continuation consumes these receipts in source
                 // order. This reverse dependency scan must not choose a later
                 // array's failure while an earlier extent is still pending.
+                continue;
+            }
+        }
+        // A cloned alias exposes named type reads after initial discovery.
+        // Admit their ordinary producers before checking the continuation,
+        // including a ready producer whose read lease is new to this query.
+        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
+            && sem_member(node, "args") == null && sem_member(node, "base") == null {
+            var binding = sem_resolve(c, c.types, node, sem_identifier(c, node));
+            if !sem_ok(c) { return 0; }
+            if binding != null && (sem_get(binding).global || semantic_enum(&sem_get(binding).type)) {
+                var query = sem_declaration_query(c, binding);
+                if query != 0 && (sem_declaration_input(c, result, query)
+                    || work_task(&c.queries, query).state != WorkState.Succeeded) { waiting = query; }
                 continue;
             }
         }

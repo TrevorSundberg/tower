@@ -14,6 +14,7 @@ extern fn entity_create_related(entity: Entity*): Entity*;
 extern fn entity_create_related_result(entity: Entity*, error: WorkBudgetError*): Entity*;
 extern fn entity_release(entity: Entity*): usize;
 extern fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_register_stage_result(type: Entity*, size: usize, alignment: usize, lifecycle: usize, stage_rows: u8): WorkBudgetError;
 extern fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent*;
 extern fn entity_component_add_result(owner: Entity*, type: Entity*, error: WorkBudgetError*): EntityComponent*;
 extern fn entity_component_remove_result(owner: Entity*, type: Entity*): WorkBudgetError;

@@ -1,6 +1,7 @@
 import tower;
 import .library.entities;
 import .library.entity_types;
+import .library.entity_stage;
 import .library.work_budget;
 import .library.work_budget_types;
 import .host.memory;
@@ -17,9 +18,71 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
     trap("Component layout fixture has no lifecycle payloads", 0);
 }
 
+fn component_stage_policy(): void {
+    var budget: WorkBudget = default;
+    component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    component_layout_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    var pending = entity_create(store);
+    component_layout_check(root != null && kind != null && pending != null
+        && entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 1) == WorkBudgetError.Invalid
+        && !kind.registered
+        && entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 4) == WorkBudgetError.None
+        && entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 0) == WorkBudgetError.Busy);
+    var stage = entity_stage_open(root);
+    component_layout_check(stage != null);
+    var owners: Entity*[5]; // One more than the explicit four-slot policy.
+    var count = sizeof(decltype(owners)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) {
+        owners[i] = entity_stage_create(stage, root);
+        component_layout_check(owners[i] != null
+            && entity_reserve_components(store.budget, &owners[i].components, &owners[i].component_capacity, 0) == WorkBudgetError.None);
+    }
+    var view = entity_view_open(root);
+    component_layout_check(view != null
+        && entity_register_stage_result(pending, sizeof(u64), alignof(u64), 0, 4) == WorkBudgetError.Busy
+        && !pending.registered
+        && entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 4) == WorkBudgetError.None);
+    var first: EntityComponent* = null;
+    for(var i: usize = 0; i + 1 < count; i++) {
+        var component = entity_component_add(owners[i], kind);
+        component_layout_check(component != null && component.page.capacity == convert(usize, kind.stage_page_rows));
+        if first == null { first = component; }
+        component_layout_check(component.page == first.page);
+        *bits(u64*, component.data) = convert(u64, i);
+    }
+    var address = first.data;
+    var identity = store.next_id;
+    var block: WorkReservation = default;
+    component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &block));
+    var error = WorkBudgetError.None;
+    store.resource_error = WorkBudgetError.Stale;
+    component_layout_check(entity_component_add_result(owners[count - 1], kind, &error) == null
+        && error == WorkBudgetError.Capacity && store.resource_error == WorkBudgetError.Stale
+        && owners[count - 1].component_count == 0 && kind.instance_count == 0
+        && store.next_id == identity && first.data == address && first.page.live == count - 1);
+    component_layout_check(work_budget_release(&budget, &block));
+    var last = entity_component_add_result(owners[count - 1], kind, &error);
+    component_layout_check(last != null && error == WorkBudgetError.None && last.page != first.page
+        && entity_stage_hold_result(stage) == WorkBudgetError.None);
+    entity_view_close(view);
+    component_layout_check(entity_stage_publish_result(stage) == WorkBudgetError.None
+        && first.data == address && first.page.owner == &store.storage && kind.instance_count == count);
+    for(var i: usize = 0; i + 1 < count; i++) {
+        component_layout_check(*bits(u64*, entity_component_get(owners[i], kind).data) == convert(u64, i));
+    }
+    entity_release(root); entity_release(kind); entity_release(pending);
+    component_layout_check(store.entity_count == 0 && store.component_count == 0
+        && entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget));
+}
+
 // Run unchanged on native and wasm32. All receipts and offsets use this
 // target's actual types; no x64 header size is embedded in the reference.
 export fn main(argc: i32, argv: u8**): i32 {
+    component_stage_policy();
     var budget: WorkBudget = default;
     component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
     var store: EntityStore* = null;

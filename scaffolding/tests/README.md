@@ -1767,7 +1767,8 @@ build/tower-frontend-storage-profile scaffolding 512 4 plain
 ```
 
 Arguments are resource root, independent body count (1..4096), worker budget
-(1 or4), and `observe`/`plain`. Both modes compile the same imported generic,
+(1 or4), `observe`/`plain`, and optional extra locals per body (default0).
+For a fuller declaration stream use `8 1 observe 256`. Both modes compile the same imported generic,
 `decltype`/`comptime` input, execute reference answers, report comparable canonical
 checksums and dispose to zero byte/lane grants. `plain` skips all storage walks.
 The census runs at coordinator joins, never through a worker/global allocator hook.
@@ -1780,7 +1781,11 @@ page slots, physical page bytes, strided slot bytes, one-live-slot pages,
 bytes. `used` rows report phase/label/ID/ever-used slots in remaining pages;
 `metric` rows give phase/key/value totals and separately identify observer and
 ledger metadata. Core and dynamic component counts are checked against the store.
+Joined metrics also report live grants and successful grant generation (including
+lane/buffer admissions, not raw malloc calls). Plain mode omits this census.
 Payload pages, descriptor pages and dense pointer indexes must not be added to
 logical payload twice. Raw vectors/foreign allocations and RSS remain separate.
 See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md)
 for exact identities, limits, phase retention and the bounded page-policy proposal.
+The [four-slot experiment](../../docs/compiler_ecs_declaration_pages_5b9194e4.md)
+records its implementation, matched costs and fuller-stream allocation trade-off.

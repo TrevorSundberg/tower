@@ -192,7 +192,7 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
     var large_type = entity_create(store);
     var target = entity_create(store);
     page_check(root != null && type != null && large_type != null && target != null
-        && entity_register(type, sizeof(PagePayload), 64, 1)
+        && entity_register_stage_result(type, sizeof(PagePayload), 64, 1, 4) == WorkBudgetError.None
         && entity_register(large_type, PageLargeBytes, 4096, 1));
     store.resource_error = WorkBudgetError.Stale;
     var pool: WorkPool = default;

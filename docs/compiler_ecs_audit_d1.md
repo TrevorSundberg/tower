@@ -4158,3 +4158,30 @@ receipts; none relabels an old reactor as rebuilt. Exact manifest differences an
 commands are in the journal and `browser_eight_b3ac7aca/merged*`. The two type
 compositions, linking prerequisites and15 incomplete semantic-port cases remain
 open; no full-suite, sanitizer or release acceptance claimed.
+
+## Supplied-artifact adoption at bcd0e3ab (2026-11-23)
+
+Source freeze `bcd0e3abf9bd2d970c771133b95d11990defb02c`; matching ROOTeac
+portable df541c16 / LLVM87c8fbc9, full hashes and source manifests in the journal
+and `build/d1_ecs/adoption_bcd0e3ab`. No compiler build. Earlier four-file20/22
+and seven-file87/91 remain historical; this is focused changed-input adoption.
+
+| Path / caller | Source review and executed evidence |
+| --- | --- |
+| tests/generic_stack_module.tower + generic-inference collection case | Unchanged explicit tower/library.stack input, initialized owner, deferred disposal. L2 deferred-module query preparation now reaches actual binding before checking. Complete collection case passes Graph/Fast32/64, canonical and LLVM, including vector/queue/stack cleanup and expected effects. |
+| tests/generic_pointer_alias.tower + generic-inference nested case | Adopt L1 corrected pointer_type/type_value returns and explicit specialization for noninvertible representation calls. Structural T* deduction, nominal identity, two widths, operand order12, pointer size/null and combined nested wrappers all pass through existing compare. No new compiler semantics claimed. |
+| forward-references/inference/foundation-storage Node callers | Exact source comparison to8b2bb2d7 retains earlier unchanged reviews. Current module forward/initializer-order cases and generic negative case pass; four Foundation storage host cases reuse identical producer/data independent of reactor. Remaining earlier compiler cases are retained historical evidence, not newly executed eac coverage. |
+| raw-memory Node link tests + tests/foreign_fixture.tower/linking.tower | Real supplied Tower archive/native Wasm now execute full linkedOutput. Completion, callback export, tower-only imports, malformed archive failure and clean recovery checked. Two passes, zero skips. Corrected C title; raw Foundation memory policy unchanged. |
+| tests/type_numeric_known.tower | New minimal immutable initialized usize capture; expected sizeof8 passes32/64/canonical and LLVM. SHA2560f5c0b3ef789cce402003a814c9e0ecf0dc0472ce830fae8728bd87d678f09bd. Plain declaration data, no dynamic owner escape. |
+| tests/semantic_invalid/type_numeric_mutable.tower | Deliberately invalid counterpart: later write invalidates the known-size proof. Exact capture error before print123, zero steps/empty output pass. SHA2563290679e729fbe04449ba8aa99b6b788b90bd12b74f58edfd067c46ebb76f26b. |
+| tests/type_numeric_negation.tower | Minimal valid -(-2) extent, expected size8; first Graph32 fails "Expected a compile-time integer argument". SHA256af6bcd0949168b4f84b3eecd6502ab35c48ab98c4b088ce5c8b942e032f81290. Source-confirmed literal admission skips staging while unary minus builds a nonconstant operation. ROOT/type-query owner repair pending; later modes unrun. |
+| templates Node registration | Six numeric negatives run independently of two positive compositions. Exact type mismatch and invalid-bound/capture/effect assertions retained; no blanket alternate errors. Unsigned -1 now expects the array-bound diagnostic because negation wraps, and remains a visible failure paired with the valid negation reproducer. Existing L1-owned compositions unchanged and still fail. |
+
+New Tower files use the ordinary compiler/interpreter through existing Node
+transport only; no native registrations or executions claimed. All production
+inputs and original positive fixtures are preserved. Initial focused adoption7/7;
+final changed link/template selection8pass/4fail, zero skips,12.30wall/14.98CPU s,
+345540KiB/0swaps. Two failures are the same newly exposed negation preparation
+edge; two are the existing L1 compositions. This closes supplied-artifact and
+former generic-stack/pointer fixture gates, not overall template or release
+acceptance. ROOT retains semantic-port/reconstruction and final platform gates.
