@@ -95638,3 +95638,11 @@ providers remain unchanged. Todo remains protected and byte-identical.
 This journal-only publication reuses the verified existing Pages runtime identity;
 it does not represent the new artifacts as hosted. No runtime code is changed by
 this ROOT record, so new runtime profiling for the documentation is inapplicable.
+
+D1 overflow review publication: required ff-only pull refused divergence; normal
+merge preserved complete35add633 packaging/entity-fault/performance history.
+All eight reviewed blobs rechecked byte-identical to a06ec4b1, with backend/
+compiler/library/host context unchanged. New packaging/fault fixtures and owner
+receipts remain outside this finite review; no source census or runtime rerun.
+R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
+checks pass, todo unchanged, no owned job/lock; normal main push follows.
