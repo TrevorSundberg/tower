@@ -83716,7 +83716,7 @@ index5242880 unchanged. Parallel retained15152426->15154186; peak198638541->
 198404768 with20971520 ledger bytes. These are physical grants, not RSS.
 
 Commands use cmake --build /cache/native --target tower-frontend-tests
- tower-frontend-units-profile --parallel6, then selectors from /work/scaffolding;
+ tower-frontend-units-profile --parallel 6, then selectors from /work/scaffolding;
 all command output, timing, old failures and exact nm are retained under
 build/ecs_b1/checked_presentation. All owned jobs drained before publication.
 Known historical full-frontend300s timeout remains failed/unresolved. Full native
@@ -84711,3 +84711,21 @@ Reuse merged focused runtime evidence without recompilation. Both owners' journa
 and README additions retained. Normal main push retried; no deployment claimed.
 
 B2 inference publication receipt: type-smoke completed PASS,213.762wall/230.153CPU/268560KiB; owned jobs drained. Implementation0e9db271 merged complete origin68f906a1 as5b16b584 after required ff-only pull correctly refused divergence. Both journal histories retained. Incoming LR change required exactly parser-nodes plus relink (21.313wall/15.676CPU/732456KiB); merged inference CTest2/2 PASS and workers4 canonical remains byte-identical to the recorded workers1 baseline. Whole-generation source is frozen after this publication receipt; generation/package lineage will name that published commit rather than the earlier intermediate binaries.
+
+B1 integration receipt: production4bc51044, complete publishedb5b585fb history
+merged asff6820e2. Preserved both test selectors/imports and exact symbol fixtures;
+README keeps the newer A1/D2 material plus the B1 ownership contract. No runtime
+conflicts. Incoming semantic/LR/backend inputs required9 affected native actions,
+37.80wall/81.35CPU seconds/795108KiB peak build RSS in the existing cache.
+Merged presentation-budget, parser, grammar-equivalence and all three native
+symbol closures plus symbol fixtures pass. Real diagnostic peak597595 and final
+zero grants remain unchanged. Cold canonical976-byte hash13832670361687071853,
+155 versions/123 tables/36 reuses; the new D2 observer independently checks final
+ledger teardown. Three-unit workers1/4 canonicalhash1173729914654460811 and
+48240 entities/55014 components match; real outer peaks1/3. Merged controls report
+3.012/1.149s request wall and196788/458824KiB RSS. These integrated controls include
+D2's LR optimization and A1 changes and are not a replacement B1 before/after
+comparison. Original frozen paired evidence remains valid for4bc51044.
+All owned jobs drained, git diff checks clean, todo unchanged. Normal main push
+follows this documentation receipt; ROOT sanitizer/bootstrap/browser/deployment
+gates and the historical timeout remain pending. No runtime deployment claimed.
