@@ -87861,3 +87861,22 @@ performance sample or relabeling of the n3 ce4f7240 comparison. Source checks
 passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
 Owned container is idle. Normal main push/remote verification follows; ROOT's
 broader integrated publication gates remain pending.
+
+Publication reconciliation: fa65b305 committed the repair; required ff-only pull
+found B1 f7e764ab. Complete normal merge0d27e9fbaa50830c7434e53c204909d2dfea108e
+preserved both histories without conflict. Only ParserNodes' actual depfiles
+changed. Rebuilt that provider plus frontend link in each profile (2 actions):
+normal41.57wall/39.74CPU/940732KiB, shared47.51/45.68/965256. Semantics and work
+objects remained unchanged. B1's own merged native LR/oracle/error checks are
+retained at their documented scope; no duplicate native suite ran here.
+Merged strict browser all3 PASS15.91wall/2.51 waited-child CPU/204452KiB; closes5/2/5,
+spawns24/0/781, zero targets, unchanged exact outputs/canonical hashes versus7ebb.
+Merged selected Node checks PASS27/fail0/skip0,3.71wall/4.29CPU/137196KiB.
+Source manifest78040f47095111d58b95be5d84e75d1dc922e41c3cf24589ac9a5f4f86cd8034
+matches before/after; provider manifest23c4f5b8e52903cfb55c09716aa51029769392c4ad4aa1351fc28c352f440be2.
+Merged normal wasm69e9d7df2c43773164f9871355b4755776cd561957548e771e95b9544f403bf5;
+shared6d7bdaac10b23bf04c2809f686d1be875f17bc3d45b5f1ed462ad1dd32a0c501;
+work SHA remainsa1f9a66e. A1 alias fix is still absent; the IDE failure receipt
+remains precisely7ebb rather than relabeled after B1's merge. Final transport
+hashes unchanged. All processes drained, own lock released; normal source push
+follows. No gh-pages or hosted runtime publication by D2.
