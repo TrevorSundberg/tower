@@ -48,6 +48,17 @@ direct runs retain sources, binaries and capture logs there for inspection.
 Unknown filters fail. Child exit statuses are preserved, including abnormal
 termination, with a 30-second child limit and a 20-minute CTest limit.
 
+Linux native builds with `TOWER_BACKEND_TESTS=ON` also provide
+`tower-backend-source-tests` and CTest `tower-backend-source-worlds`. They run
+the existing browser source/session assertions against native LLVM: explicit
+world ownership, retained Foundation, reconstructed type values, object/link
+failure and retry. The direct arguments are `BEDROCK FOUNDATION WASM_RUNTIME_OBJECT`;
+use the build's `tower-backend-source-checks` working directory and `guest-wasm32.o`.
+CMake mounts the source resources there as `.tower`. The runtime is a counted
+input; browser exports retain their existing embedded-runtime transport. This
+Linux entry supplies only file and monotonic-clock transport, and does not test
+browser worker lifecycle or non-Linux execution.
+
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
 raw and optimized native execution. Its direct, callback and recursive calls
