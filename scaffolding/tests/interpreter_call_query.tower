@@ -231,6 +231,7 @@ export fn call_query_tests(width: u32): u32 {
     call_query_check(compiler_world_dispose(world), "Suspended call inputs release their world", &failures);
     failures += function_query_tests(width);
     failures += map_query_tests(width);
+    failures += wide_query_tests(width);
     failures += input_query_tests(width, InputQuerySmallBytes, false);
     failures += input_query_tests(width, InputQueryLargeBytes, false);
     failures += input_query_tests(width, InputQuerySmallBytes, true);
@@ -911,5 +912,176 @@ fn map_query_tests(width: u32): u32 {
     var released: WorkBudgetSnapshot = default;
     call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
         && work_budget_dispose(&budget), "Map query budget outlives its world and invocations", &failures);
+    return failures;
+}
+
+var WideQueryOffset: usize = 117;
+var WideQueryFinishValuePhase: usize = 4;
+var WideQueryCalleeEffect: u64 = 1000;
+
+fn wide_query_number(root: void*, width: u32, value: u64): void* {
+    var node = call_query_node(root, width, KOperand);
+    sem_get(node).constant = true;
+    sem_get(node).bits = value;
+    return node;
+}
+
+fn wide_query_binary(root: void*, width: u32, op: u32, left: void*, right: void*): void* {
+    var node = call_query_node(root, width, KBinary);
+    sem_get(node).op = op;
+    sem_get(node).left = left;
+    sem_get(node).right = right;
+    return node;
+}
+
+fn wide_query_increment(root: void*, width: u32, body: void*, pointer: void*, amount: u64): void* {
+    var loaded = call_query_node(root, width, KLoad);
+    sem_get(loaded).value = call_query_read(root, width, pointer);
+    var assigned = call_query_node(root, width, KAssign);
+    sem_get(assigned).target = loaded;
+    sem_get(assigned).value = wide_query_binary(root, width, OAdd, loaded, wide_query_number(root, width, amount));
+    call_query_push(&sem_get(body).items, assigned);
+    return loaded;
+}
+
+// Argument effects finish before temporary admission. A denial must preserve
+// those effects, skip the callee and stay terminal when allowance is restored.
+fn wide_query_tests(width: u32): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    function_query_require(work_budget_init(&budget, 1, MapQueryBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Wide call world");
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var entry = call_query_node(root, width, KFunction);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    sem_get(entry).frame_size = sizeof(i32);
+    var counter = call_query_node(root, width, KDeclare);
+    sem_get(counter).value = wide_query_number(root, width, 0);
+    call_query_push(&sem_get(entry).locals, counter);
+    call_query_push(&sem_get(body).items, counter);
+    var address = call_query_node(root, width, KAddress);
+    sem_get(address).type.pointers = 1;
+    sem_get(address).value = call_query_read(root, width, counter);
+    var argument = call_query_node(root, width, KFunction);
+    var argument_body = call_query_node(root, width, KBlock);
+    sem_get(argument).body = argument_body;
+    sem_get(argument).frame_size = convert(usize, width);
+    var argument_pointer = call_query_node(root, width, KParameter);
+    sem_get(argument_pointer).type.pointers = 1;
+    call_query_push(&sem_get(argument).parameters, argument_pointer);
+    call_query_push(&sem_get(argument).locals, argument_pointer);
+    var argument_return = call_query_node(root, width, KReturn);
+    sem_get(argument_return).value = wide_query_increment(root, width, argument_body, argument_pointer, 1);
+    call_query_push(&sem_get(argument_body).items, argument_return);
+    var callee = call_query_node(root, width, KFunction);
+    var callee_body = call_query_node(root, width, KBlock);
+    sem_get(callee).body = callee_body;
+    var pointer = call_query_node(root, width, KParameter);
+    sem_get(pointer).type.pointers = 1;
+    call_query_push(&sem_get(callee).parameters, pointer);
+    call_query_push(&sem_get(callee).locals, pointer);
+    wide_query_increment(root, width, callee_body, pointer, WideQueryCalleeEffect);
+    var call = call_query_node(root, width, KCall);
+    sem_get(call).binding = callee;
+    sem_get(call).start = WideQueryOffset;
+    call_query_push(&sem_get(call).items, address);
+    var argument_count = sizeof(InterpreterInlineArgumentStorage) / sizeof(u64);
+    var sum = wide_query_number(root, width, 0);
+    var wanted: u64 = 0;
+    for(var i: usize = 0; i < argument_count; i++) {
+        var parameter = call_query_node(root, width, KParameter);
+        sem_get(parameter).byte_offset = convert(usize, width) + i * sizeof(i32);
+        sem_get(parameter).index = sem_get(callee).locals.length;
+        call_query_push(&sem_get(callee).parameters, parameter);
+        call_query_push(&sem_get(callee).locals, parameter);
+        var ordinal = convert(u64, i + 1);
+        sum = wide_query_binary(root, width, OAdd, sum, wide_query_binary(root, width, OMul,
+            call_query_read(root, width, parameter), wide_query_number(root, width, ordinal)));
+        wanted += ordinal * ordinal;
+        var value = call_query_node(root, width, KCall);
+        sem_get(value).binding = argument;
+        call_query_push(&sem_get(value).items, address);
+        call_query_push(&sem_get(call).items, value);
+    }
+    sem_get(callee).frame_size = convert(usize, width) + argument_count * sizeof(i32);
+    var callee_return = call_query_node(root, width, KReturn);
+    sem_get(callee_return).value = sum;
+    call_query_push(&sem_get(callee_body).items, callee_return);
+    var returned = call_query_node(root, width, KReturn);
+    sem_get(returned).value = call;
+    sem_get(returned).start = WideQueryOffset;
+    call_query_push(&sem_get(body).items, returned);
+    var selected: MapQueryCase = { subject: call, phase: WideQueryFinishValuePhase, frames: 1, ..default };
+    var baseline: WorkBudgetSnapshot = default;
+    function_query_require(work_budget_snapshot(&budget, &baseline), "Wide call baseline");
+    var staged: bool[2] = default;
+    staged[1] = true;
+    for(var mode: usize = 0; mode < sizeof(decltype(staged)) / sizeof(bool); mode++) {
+        var strict = staged[mode];
+        var probe: IMInvocation = default;
+        function_query_require(interpreter_invocation_init(&probe, entry, convert(usize, width), null, 0, strict, CallQueryFuel),
+            "Wide call successful probe entry");
+        var probe_base = probe.state.frames.data[0].base;
+        probe.context.type_arguments = true;
+        interpreter_invocation_step(&probe, convert(usize, CallQueryFuel));
+        if !probe.state.done || probe.state.failed || !probe.context.returned || probe.context.result != wanted {
+            puts(probe.context.error.data ?? "Wide call probe has no diagnostic");
+            input_query_number(convert(usize, probe.context.result));
+            input_query_number(convert(usize, probe.state.steps));
+        }
+        function_query_require(probe.state.done && !probe.state.failed && probe.context.returned && probe.context.result == wanted,
+            "Wide call independently weighted argument order");
+        var probe_effect: i32 = 0;
+        copy(&probe_effect, probe.state.memory.data + probe_base, sizeof(i32));
+        function_query_require(probe_effect == convert(i32, convert(u64, argument_count) + WideQueryCalleeEffect),
+            "Successful wide call enters the callee after all argument effects");
+        interpreter_invocation_dispose(&probe);
+        var invocation: IMInvocation = default;
+        function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, strict, CallQueryFuel),
+            "Wide call entry before pressure");
+        invocation.context.type_arguments = true;
+        for(var step: u64 = 0; step < CallQueryFuel && !invocation.state.done && !invocation.state.failed
+            && !map_query_at(&invocation, &selected); step++) { interpreter_invocation_step(&invocation, 1); }
+        function_query_require(map_query_at(&invocation, &selected) && !invocation.state.failed && !invocation.state.done,
+            "Wide call reaches its real finish continuation");
+        var base = invocation.state.frames.data[0].base;
+        var before_effect: i32 = 0;
+        copy(&before_effect, invocation.state.memory.data + base, sizeof(i32));
+        function_query_require(before_effect == convert(i32, argument_count), "Every argument effect precedes admission");
+        var remaining: WorkBudgetSnapshot = default;
+        var occupied: WorkReservation = default;
+        function_query_require(work_budget_snapshot(&budget, &remaining)
+            && work_budget_reserve_result(&budget, 0, 0, remaining.bytes - remaining.used_bytes, &occupied)
+                == WorkBudgetError.None, "Wide call exact pressure");
+        var stack = invocation.state.stack;
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        var effect: i32 = 0;
+        copy(&effect, invocation.state.memory.data + base, sizeof(i32));
+        call_query_check(invocation.state.done && invocation.state.failed && !invocation.context.returned
+            && invocation.state.storage_error == WorkBudgetError.Capacity && invocation.state.error_offset == WideQueryOffset
+            && invocation.context.error.data != null
+            && strcmp(invocation.context.error.data, "Cannot allocate interpreter call arguments") == 0
+            && invocation.state.frame_count == selected.frames && invocation.state.stack == stack && effect == before_effect,
+            "Wide call denial preserves effects and skips callee entry", &failures);
+        function_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Wide call pressure releases");
+        var steps = invocation.state.steps;
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        copy(&effect, invocation.state.memory.data + base, sizeof(i32));
+        call_query_check(invocation.state.done && invocation.state.failed && invocation.state.steps == steps
+            && effect == before_effect && !invocation.context.returned,
+            "Wide call denial cannot replay arguments after allowance returns", &failures);
+        interpreter_invocation_dispose(&invocation);
+        var released: WorkBudgetSnapshot = default;
+        call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
+            && released.live == baseline.live, "Wide call retires temporary and persistent owners", &failures);
+    }
+    entity_release(root);
+    function_query_require(compiler_world_dispose(world), "Wide call world disposal");
+    var released: WorkBudgetSnapshot = default;
+    call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Wide call budget cleanup", &failures);
     return failures;
 }
