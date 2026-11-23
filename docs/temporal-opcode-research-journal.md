@@ -84827,3 +84827,26 @@ its entity-accounting statements now reflect charged physical ownership.
 Production backend, LR and semantic inputs changed upstream, requiring a focused
 merged rebuild; the earlier timing table remains scoped to its original frozen
 inputs, not a claim about this merged compiler.
+
+A2 merged accounting validation (`ecadff20` plus narrow layout-fixture update):
+44-step dependency rebuild completed. Strict cap, work-buffer, stage normal/
+queued/reentrant/concurrent, page reuse, synchronized component budget,
+attach-leases and the exact 45,567B census passed in
+`entity_accounting_merged.log`. That job then stopped at the incoming D2 layout
+profile's old 1MiB allowance, before compiler smoke checks. The failure remains
+preserved; no denial was converted into success. Physical descriptor/index
+ownership makes its unchanged 2,048-owner mixed population require 1,185,328B.
+Only the measurement allowance becomes 2MiB, with exact admission diagnostics;
+`entity_accounting`'s strict cap/denial checks retain their actual calibrated cap.
+The layout census now counts descriptor pages and independent index headers,
+asserts physical=charged bytes, and retains the no-new-payload-pages/stable-
+survivor refill oracle. Recreated archetype indexes legitimately get grants.
+No traversal/workload or production layout change was made during integration.
+
+`entity_accounting_merged_final.log` exits0: the affected locality target rebuilt,
+strict cap again passed, mixed/direct layout passed exact sums/census/reuse/final
+zero, and merged query-smoke, resource-smoke and lifecycle14–16 passed at widths4/8
+and workers1/4. Earlier entity checks remain valid because their input closure
+was unchanged by the fixture-only follow-up. All owned jobs are drained. Original
+before/after performance evidence is retained without attributing it to incoming
+LR/backend/semantic optimizations. Broad integrated gates remain pending ROOT.

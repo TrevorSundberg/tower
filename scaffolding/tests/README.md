@@ -1501,8 +1501,12 @@ every second owner and a third on every sixteenth. These are dense/sparse
 **membership populations**, all backed by the same stable component pages.
 Each process measures initial population, one-survivor-per-primary-page removal,
 and refill; primary sums are 33,550,336 / 508,096 / 33,550,336. Refill must acquire
-zero new byte grants and preserve surviving payload addresses. Complete world
+zero new payload pages and preserve surviving payload addresses; reconstructed
+archetype indexes may acquire their own charged buffers. Complete world
 and ledger disposal is checked. Views close before every structural edit.
+The measurement allowance is 2MiB: its 2,048-owner mixed population now charges
+descriptor/index storage too, exceeding the former 1MiB payload-only allowance.
+The separate accounting cap target continues to require actual denial.
 
 Each labeled record emits its fields in order, one per line. First traversal is
 after creation and planning; it is not an OS/hardware cold-cache experiment.
@@ -1516,7 +1520,10 @@ The new mode has no packed snapshot. It enumerates unique live `component.page`
 pointers because full pages are absent from the free-slot pool list. Occupancy,
 payload bytes, physical page allocation requests, strided slot bytes, raw owner
 storage, query plan storage and live allocation-owner count are reported. Those
-counts are retained owners, not malloc call counts. Ledger metadata and census
+counts are retained owners, not malloc call counts. Descriptor pages (including
+full pages) and independent index buffers now contribute their actual physical
+bytes and headers. Raw owner/plan payload columns overlap that physical total;
+the total must equal charged live bytes. Ledger metadata and census
 scratch are separate; stack arrays, allocator-private overhead and transient raw
 resize peaks are outside this census. Page payloads have stable addresses and
 stride/back-reference overhead; archetype columns contain component pointers,
