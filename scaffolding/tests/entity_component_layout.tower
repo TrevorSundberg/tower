@@ -10,6 +10,77 @@ var ComponentLayoutBudgetBytes: usize = 1048576;
 var ComponentLayoutLargeBytes: usize = 32768;
 var ComponentLayoutAlignment: usize = 4096;
 
+fn child_index_storage(): void {
+    var budget: WorkBudget = default;
+    component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    component_layout_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var anchor = entity_create(store); // Keep this descriptor page alive for reuse.
+    component_layout_check(root != null && anchor != null);
+    var nodes: Entity*[5];
+    for(var i: usize = 0; i < sizeof(decltype(nodes)) / sizeof(Entity*); i++) {
+        nodes[i] = entity_create(store); component_layout_check(nodes[i] != null);
+    }
+    var before = budget.used_bytes; var receipts = budget.live;
+    component_layout_check(entity_attach_result(nodes[0], root, null) == WorkBudgetError.None
+        && root.children == &root.inline_children[0] && root.child_capacity == 1
+        && budget.used_bytes == before && budget.live == receipts);
+    var view = entity_view_open(root);
+    component_layout_check(view != null && entity_attach_result(nodes[1], root, null) == WorkBudgetError.Busy);
+    entity_view_close(view);
+    var block: WorkReservation = default;
+    var charge = compiler_buffer_allocation_size(sizeof(EntityBufferAllocation)
+        + EntityChildIndexMinimum * sizeof(EntityChild));
+    component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - charge + 1, &block));
+    component_layout_check(entity_attach_result(nodes[1], root, null) == WorkBudgetError.Capacity
+        && root.children == &root.inline_children[0] && root.child_count == 1
+        && root.children[0].entity == nodes[0] && nodes[0].references == 2
+        && nodes[1].parent == null && nodes[1].references == 1);
+    component_layout_check(work_budget_release(&budget, &block)
+        && entity_attach_result(nodes[1], root, null) == WorkBudgetError.None
+        && root.children != &root.inline_children[0] && root.child_capacity == EntityChildIndexMinimum);
+    for(var i: usize = 2; i < root.child_capacity; i++) {
+        component_layout_check(entity_attach_result(nodes[i], root, null) == WorkBudgetError.None);
+    }
+    var previous = root.children; before = budget.used_bytes;
+    charge = compiler_buffer_allocation_size(sizeof(EntityBufferAllocation) + root.child_capacity * 2 * sizeof(EntityChild));
+    component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - charge + 1, &block));
+    var last = nodes[sizeof(decltype(nodes)) / sizeof(Entity*) - 1];
+    component_layout_check(entity_attach_result(last, root, null) == WorkBudgetError.Capacity
+        && root.children == previous && root.child_count == EntityChildIndexMinimum && last.parent == null);
+    component_layout_check(work_budget_release(&budget, &block) && budget.used_bytes == before
+        && entity_attach_result(last, root, null) == WorkBudgetError.None);
+    for(var i: usize = 0; i < sizeof(decltype(nodes)) / sizeof(Entity*); i++) {
+        component_layout_check(root.children[i].entity == nodes[i] && nodes[i].parent == root && nodes[i].references == 2);
+    }
+    var error = WorkBudgetError.None;
+    var taken = entity_take_last_child_result(root, &error);
+    component_layout_check(taken == last && error == WorkBudgetError.None && last.references == 2);
+    entity_release(taken);
+    component_layout_check(entity_attach_result(last, root, "restored") == WorkBudgetError.None);
+    var stage = entity_stage_open(root);
+    var staged = entity_stage_create(stage, root);
+    var staged_child = entity_stage_create(stage, staged);
+    component_layout_check(staged != null && staged_child != null && entity_stage_publish(stage)
+        && staged.children == &staged.inline_children[0] && staged.child_count == 1
+        && staged_child.parent == staged);
+    stage = entity_stage_open(root);
+    var discarded = entity_stage_create(stage, root);
+    component_layout_check(discarded != null && entity_stage_create(stage, discarded) != null
+        && entity_stage_prepare_result(stage) == WorkBudgetError.None
+        && discarded.children == &discarded.inline_children[0]);
+    entity_stage_discard(stage);
+    for(var i: usize = 0; i < sizeof(decltype(nodes)) / sizeof(Entity*); i++) { entity_release(nodes[i]); }
+    var recycled = root;
+    entity_release(root);
+    root = entity_create(store);
+    component_layout_check(root == recycled && root.children == null && root.child_capacity == 0 && root.child_count == 0);
+    entity_release(root); entity_release(anchor);
+    component_layout_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget));
+}
+
 fn component_layout_check(ok: bool): void {
     if !ok { trap("Component allocation target layout regression", 0); }
 }
@@ -165,6 +236,7 @@ fn component_inline_index(): void {
 // Run unchanged on native and wasm32. All receipts and offsets use this
 // target's actual types; no x64 header size is embedded in the reference.
 export fn main(argc: i32, argv: u8**): i32 {
+    child_index_storage();
     component_inline_index();
     component_stage_policy();
     var budget: WorkBudget = default;

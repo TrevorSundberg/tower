@@ -65,7 +65,9 @@ fn reconstruction_storage(probe: ReconstructionProbe*, store: EntityStore*): voi
                 var bytes = node.components == &node.inline_components[0] ? 0
                     : reconstruction_buffer(bits(u8*, node.components));
                 components += bytes;
-                children += reconstruction_buffer(bits(u8*, node.children));
+                if node.children != &node.inline_children[0] {
+                    children += reconstruction_buffer(bits(u8*, node.children));
+                }
                 instances += reconstruction_buffer(bits(u8*, node.instances));
                 if node.component_count == 1 { single++; single_bytes += bytes; }
             }

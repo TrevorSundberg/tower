@@ -96159,3 +96159,22 @@ unstarted after policy rejection, with no retry. ROOT final release remains open
 D2 final integration preserves complete68345ada after routine ff-only refusal;
 both reviewed blobs and actual source/caller closure are unchanged. No runtime
 rerun or adoption of unrelated incoming static-app receipts; normal push follows.
+
+### 2026-11-24 B2: measured inline first-child storage
+
+[Scoped acceptance](entity_inline_children_5fc00c85.md), frozen5fc00c85/public768.
+Joined4096 census:348824 leaves/204122 singleton/61633 many-child indexed nodes;
+one-child heaps33.7MB, descriptor192->208/stride208->224/page16->15 explicitly
+counted. Candidate preserves refcount/name/order/lease/transfer and checked heap
+old+new admission; inline storage never freed as a buffer. Private/stage ownership
+and whole-Entity initialization audited. No WorkBudget/allocator/scheduler edits.
+Retained521369982->495030649B, grants432300->230046, ledger40->20MiB. Alternating
+n2 small1wall.375164->.376073; large1 2.503750->2.387955, large4 2.355054->2.212271.
+All earlier noninterleaved slower observations retained; no observer in timing.
+Exact source/import/canonical/known42 and drained world/ledger checks pass. Focused
+promotion/old+new denial/retry/take/stage/lease/concurrent/reuse/accounting pass;
+old first-child-cap fixture corrected from actual descriptor admission, with the
+failure preserved. Small58057B reconstructed control matches known hash/zero owners.
+A2 exact large request absent locally, pending; no generation/reactor/instrumentation
+or blocked-verifier attempt. D2 old observer review not relabeled. Full source,
+commands, costs, failures and candidate binaries in B2/entity_children_5fc00c85.
