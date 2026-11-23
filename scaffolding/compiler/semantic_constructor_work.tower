@@ -150,6 +150,70 @@ fn sem_type_query_syntax(c: SemanticContext*, node: void*): bool {
         || sem_resolve(c, c.type_functions, name_node, name) != null;
 }
 
+// Restore known numeric forwarding only for a chain of single-return calls
+// ending in an existing static constructor. Resolve real declarations in each
+// definition's module; never classify an effectful ordinary callee by spelling.
+fn sem_constructor_wrapper(c: SemanticContext*, node: void*): void* {
+    var name = sem_member(node, "name");
+    if name == null || sem_call_uses_value(c, name) { return null; }
+    var spelling = sem_identifier(c, name);
+    var definition = sem_resolve(c, c.templates, name, spelling);
+    if definition == null { definition = sem_resolve(c, c.functions, name, spelling); }
+    return sem_constructor_wrapper_definition(c, definition);
+}
+
+// Body admission and known type calls use the same declaration proof. This
+// inspects only a strict forwarding chain, never executes or completes a body.
+fn sem_constructor_wrapper_definition(c: SemanticContext*, definition: void*): void* {
+    if definition == null || !sem_ok(c) { return null; }
+    var first = definition;
+    var seen = sem_list(c);
+    if !sem_ok(c) { return null; }
+    loop {
+        var result_type = sem_tokens(c, sem_member(definition, "type"));
+        if !sem_ok(c) { return null; }
+        if !sem_equal(result_type, "type")
+            || sem_has(seen, definition) { return null; }
+        if !sem_push_checked(c, seen, definition) { return null; }
+        var error: u8* = null;
+        var returned = generic_type_result_read(definition, &error);
+        if error != null || !sem_is(returned, "CoreCall") { return null; }
+        var callee = sem_member(returned, "name");
+        var called = sem_identifier(c, callee);
+        var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+        if !sem_ok(c) { return null; }
+        var numeric = false;
+        for(var i: usize = 0; i < parameters.length; i++) {
+            var parameter = parameters.data[i];
+            // A formal callee is a value binding, not the same-named module fn.
+            var parameter_name = sem_identifier(c, sem_member(parameter, "name"));
+            if !sem_ok(c) || sem_equal(called, parameter_name) { return null; }
+            if definition != first || generic_type_parameter(c.generics, definition, i) { continue; }
+            numeric = true;
+            var annotation = sem_member(parameter, "type");
+            var type_name = sem_identifier(c, annotation);
+            // This bounded path admits source-bound scalar parameter types.
+            // Dependent/structural parameter signatures keep ordinary execution.
+            if sem_resolve(c, c.types, annotation, type_name) == null { return null; }
+            for(var j: usize = 0; j < parameters.length; j++) {
+                var parameter_name = sem_identifier(c, sem_member(parameters.data[j], "name"));
+                if !sem_ok(c) { return null; }
+                if generic_type_parameter(c.generics, definition, j)
+                    && sem_equal(type_name, parameter_name) { return null; }
+            }
+        }
+        if definition == first && !numeric { return null; }
+        if !sem_ok(c) || sem_resolve(c, c.globals, callee, called) != null { return null; }
+        var next = sem_resolve(c, c.templates, callee, called);
+        if next == null { next = sem_resolve(c, c.functions, callee, called); }
+        if !sem_ok(c) { return null; }
+        if next == null {
+            return sem_resolve(c, c.type_functions, callee, called) != null ? first : null;
+        }
+        definition = next;
+    }
+}
+
 export fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
     if !sem_ok(c) { return null; }
     if node == null || parent == null { sem_type_resource(c, node, WorkBudgetError.Invalid); return null; }
@@ -163,6 +227,10 @@ export fn sem_constructor_add(c: SemanticContext*, node: void*, parent: Semantic
     }
     var name = sem_member(node, "name");
     result.constructor.definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
+    if result.constructor.definition == null && result.constructor.phase == SemanticConstructorPhase.Call {
+        result.constructor.definition = sem_constructor_wrapper(c, node);
+        if result.constructor.definition != null { result.constructor.phase = SemanticConstructorPhase.Parameters; }
+    }
     if !sem_ok(c) { return default; }
     result.construction_owner = parent.construction_owner ?? parent;
     result.scope = parent.scope;
@@ -173,6 +241,16 @@ export fn sem_constructor_add(c: SemanticContext*, node: void*, parent: Semantic
 
 fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
     var work = result.constructor;
+    if work.phase == SemanticConstructorPhase.Parameters {
+        var parameters = sem_collect(c, sem_member(work.definition, "params"), "CoreParameter");
+        if !sem_ok(c) { return; }
+        for(var i: usize = 0; i < parameters.length; i++) {
+            if !generic_type_parameter(c.generics, work.definition, i) {
+                sem_declaration_scan_push(c, scan, sem_member(parameters.data[i], "type"), true);
+            }
+        }
+        return;
+    }
     if work.phase == SemanticConstructorPhase.Execute {
         sem_declaration_scan_push(c, scan, result.subject, false);
         return;
@@ -231,6 +309,26 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
 fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if !sem_ok(c) { return false; }
     var work = result.constructor;
+    if work.phase == SemanticConstructorPhase.Parameters {
+        var parameters = sem_collect(c, sem_member(work.definition, "params"), "CoreParameter");
+        if !sem_ok(c) { return false; }
+        work.phase = SemanticConstructorPhase.Call;
+        for(var i: usize = 0; i < parameters.length; i++) {
+            if generic_type_parameter(c.generics, work.definition, i) { continue; }
+            var type = sem_type(c, sem_member(parameters.data[i], "type"));
+            if !sem_ok(c) { return false; }
+            if !semantic_integer(type) {
+                work.definition = null;
+                work.phase = SemanticConstructorPhase.Execute;
+                break;
+            }
+        }
+        result.calls_scanned = false;
+        result.call_index = 0;
+        result.type_frontier = 0;
+        result.calls.length = 0;
+        return true;
+    }
     if work.phase == SemanticConstructorPhase.Call {
         if work.definition == null && sem_type_identity_call(c, result.subject) {
             work.type = *sem_type_call(c, result.subject);

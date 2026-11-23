@@ -82,6 +82,7 @@ export fn generic_register_result(context: GenericContext*, definition: Entity*,
     generic_parameters(context, template, params, 0);
     var result = compiler_node_member(definition, "type");
     var produces_type = compiler_name_is(result, "type");
+    var call_wrapper = false;
     if template.type_count != 0 {
         template.kind = GenericKind.Function;
     }
@@ -89,6 +90,7 @@ export fn generic_register_result(context: GenericContext*, definition: Entity*,
         var error: u8* = null;
         var result = generic_type_result_read(definition, &error);
         var ordinary_call = compiler_node_label(result, "CoreCall");
+        call_wrapper = error == null && ordinary_call;
         // Nominal recursive declarations retain early identity publication.
         // General type-producing bodies use ordinary callable specialization
         // and execution, including mutable value parameters and control flow.
@@ -100,7 +102,9 @@ export fn generic_register_result(context: GenericContext*, definition: Entity*,
             template.kind = GenericKind.TypeConstructor;
         }
     }
-    if template.kind != GenericKind.Ordinary {
+    // A known nominal wrapper can bind integer parameters without a type
+    // parameter. Metadata does not change its ordinary callable classification.
+    if template.kind != GenericKind.Ordinary || call_wrapper {
         var data = bits(GenericTemplate*, generic_component_add_result(definition, context.template_type, error));
         if data == null { return ordinary; }
         *data = *template;
@@ -285,7 +289,7 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     if template == null { return null; }
     *error = WorkBudgetError.None;
     var needed = template.type_count;
-    if template.kind == GenericKind.TypeConstructor {
+    if template.kind == GenericKind.TypeConstructor || defer_type_body && count == template.count {
         needed = template.count;
     }
     if count != needed {
@@ -321,7 +325,7 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     // Preserve the body root's shape/provenance for the signature. Descendants
     // are copied only when execution demands this function's body.
     var body_source: Entity* = null;
-    if template.kind == GenericKind.Function || defer_type_body && template.kind == GenericKind.TypeConstructor {
+    if template.kind == GenericKind.Function || defer_type_body {
         body_source = compiler_node_member(definition, "body");
     }
     var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(context.root)), ..default };
@@ -385,7 +389,10 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
                     return null;
                 }
                 var compile_time = template.type_parameters[i];
-                if template.kind == GenericKind.TypeConstructor {
+                // The count is part of canonical instance identity. Ordinary
+                // functions bind only type parameters; known constructor calls
+                // bind the complete parameter list, including integer values.
+                if instance.count == template.count {
                     compile_time = true;
                 }
                 if compile_time {

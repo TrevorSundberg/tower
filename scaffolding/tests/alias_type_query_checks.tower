@@ -1,0 +1,53 @@
+import tower;
+import frontend_units;
+import .library.vector;
+
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn frontend_modules_location(environment: void*, offset: usize, line: usize*, column: usize*): u8*;
+
+fn alias_type_query_checks(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    defer vector_dispose(&source); defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var path = "/tests/semantic_invalid/inference_alias_invalid.tower";
+    units_read(root, path, &source);
+    var call = strstr(source.data, "read(actual)");
+    units_check(call != null, "Original inference fixture retains its first inferred call");
+    var expected_offset = bits(usize, call) - bits(usize, source.data);
+    var expected_line: usize = 1;
+    var expected_column: usize = 1;
+    for(var i: usize = 0; i < expected_offset; i++) {
+        if source.data[i] == 10 { expected_line++; expected_column = 1; }
+        else { expected_column++; }
+    }
+    var first_offset: usize = 0;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            var batch = frontend_units_create(1, workers, width, 1, 1, bedrock.data, foundation.data, root);
+            units_check(batch != null, "Alias inference batch");
+            defer frontend_units_close(batch);
+            units_check(units_source(batch, 1, root, path, source.data, strlen(source.data)), "Unchanged alias inference input");
+            while !frontend_units_step(batch, true) {}
+            var wanted = "Cannot infer type argument 'T'; pass explicit type arguments";
+            var error = frontend_units_error(batch);
+            if strcmp(error, wanted) != 0 { puts(error); }
+            units_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                && strcmp(error, wanted) == 0, "Inference fails before ordinary alias body execution");
+            var offset = frontend_units_error_offset(batch);
+            var line: usize = 0;
+            var column: usize = 0;
+            var file = frontend_modules_location(frontend_units_environment(batch, 1), offset, &line, &column);
+            units_check(file != null && strstr(file, "inference_alias_invalid.tower") != null
+                && line == expected_line && column == expected_column, "Exact first-call source position");
+            if first_offset == 0 { first_offset = offset; }
+            units_check(offset == first_offset && frontend_units_step(batch, false)
+                && strcmp(frontend_units_error(batch), wanted) == 0 && frontend_units_error_offset(batch) == offset,
+                "Stable alias inference diagnostic and semantic offset across widths/workers/retry");
+        }
+    }
+    puts("Alias inference: exact original message, source position and no partial publication passed.");
+}

@@ -59,15 +59,28 @@ type. Existing restricted straight-return/nominal type constructors retain their
 early identity publication. General bodies with control flow execute normally.
 Unifying those constructor paths and staging policies is further work.
 
-That distinction also bounds composition. A nominal constructor such as
-`buffer(T, size)` binds its integer arguments before checking its fields. An
-ordinary forwarding function's `size: usize` parameter is runtime storage, so
-`return buffer(T, size);` cannot supply a static nominal layout while that
-function's body is checked. Direct `buffer(i32, 2)`, a transparent binding to
-that specialization, and forwarding a fixed extent retain the same nominal
-identity. `return array_type(T, size);` can instead construct an array through
-ordinary staged execution; it does not create that nominal buffer type. General
-runtime-parameter forwarding into nominal construction remains unsupported.
+Known numeric forwarding into nominal construction is supported. For example,
+`fn wrapped(T: type, size: usize): type { return buffer(T, size); }` used as
+`wrapped(i32, 2)` retains the identity of `buffer(i32, 2)`. A chain of single-return
+calls to an existing static constructor binds its source-declared integer
+parameters through the ordinary integer-argument queries before its body is
+cloned. Nested forwarding uses the same canonical specialization cache, including
+numeric-only wrappers such as `fn integers(size: usize): type { return buffer(i32, size); }`.
+At a known type-use site, `integers(2)` is the same nominal type as `buffer(i32, 2)`.
+The original forwarding declaration retains its ordinary callable identity;
+its body is demanded by actual calls/function references, while known type uses
+own their bound clones. Undemanded forwarding bodies are omitted from canonical
+output. Runtime calls cannot provide a dynamic nominal extent merely because
+one caller happens to pass a literal.
+
+General bodies and ordinary callees still execute normally; non-integer or
+dependent parameter signatures keep that path. This bounded known-call case
+does not make nominal layout dynamic: a runtime-unknown argument, a mutable
+capture, or a capture initializer reading a later module initializer cannot
+supply its extent. Preparing an immutable binding does not reorder ordinary
+module initialization. Ordinary
+`array_type(T, size)` construction remains available through staged execution
+and does not substitute for a nominal buffer identity.
 
 The portable graph interpreter, cached interpreter, and LLVM native/Wasm output
 support type values. Each execution/module uses its own disposable identity

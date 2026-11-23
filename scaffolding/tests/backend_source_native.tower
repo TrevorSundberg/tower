@@ -1,5 +1,6 @@
 import tower;
 import backend_source;
+import backend_clock_native;
 import .backend.source_session;
 import .backend.session;
 import utility_checks;
@@ -156,22 +157,6 @@ export fn backend_reconstruction_error(payload: void*): usize {
         program.types.length, program.error.length, 0, 0);
     fflush(null);
     return convert(usize, program.resource.error);
-}
-
-struct BackendTestClock { seconds: i64; nanoseconds: i64; }
-extern fn clock_gettime(clock: i32, value: BackendTestClock*): i32;
-
-// Linux test transport for the existing session's WASI monotonic timing call.
-// This observes time only; compilation, linking and assertions stay unchanged.
-export fn __wasi_clock_time_get(clock: u32, precision: u64, out: u64*): u32 {
-    var monotonic: u32 = 1;
-    var unsupported: u32 = 28;
-    if clock != monotonic || out == null { return unsupported; }
-    var value: BackendTestClock = default;
-    if clock_gettime(convert(i32, monotonic), &value) != 0 { return unsupported; }
-    var nanoseconds_per_second: u64 = 1000000000;
-    *out = convert(u64, value.seconds) * nanoseconds_per_second + convert(u64, value.nanoseconds);
-    return 0;
 }
 
 export fn main(argc: i32, argv: u8**): i32 {

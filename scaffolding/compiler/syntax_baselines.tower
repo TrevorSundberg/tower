@@ -10,6 +10,20 @@ import syntax_nodes;
 import syntax_revision;
 import syntax_validation;
 import .library.vector;
+import .library.work_buffer;
+import parser_table_types;
+
+extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+
+// Only derived numeric LR data survives a session. Versions retain their own
+// entities, emission, replacements and provenance. One world's coordinator
+// mutates this bounded index; parser workers only borrow completed tables.
+struct SyntaxStructureOwner {
+    storage: WorkBuffer;
+    bedrock: FrontendRevision*;
+    cache: ParserStructureCache;
+}
 
 // A world's coordinator publishes complete validated baselines. Sessions retain
 // revision views, so replacement/reset can retire the registry's document while
@@ -24,6 +38,7 @@ struct SyntaxBaselines {
     seed: FrontendRevision*;
     bedrock: SyntaxBaseline;
     foundation: SyntaxBaseline;
+    structures: SyntaxStructureOwner*;
 }
 
 extern fn compiler_world_get(world: void*, entity: void*, kind: u32): void*;
@@ -52,6 +67,44 @@ fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
     *owner = default;
     cache.syntax = bits(void*, owner);
     return owner;
+}
+
+// Optional reuse has the same exact structural/profile key as session caches.
+// Never carry entries across worlds, budget owners or immutable seed revisions.
+// Failure to reserve cache metadata leaves the caller's private cache usable.
+export fn syntax_world_structures(world: void*, bedrock: FrontendRevision*): ParserStructureCache* {
+    if compiler_world_pinned(world) { return null; }
+    var owner = syntax_baselines_owner(world, false);
+    if owner == null { return null; }
+    var budget = compiler_world_work_budget(world);
+    var shared = owner.structures;
+    if shared == null {
+        var storage: WorkBuffer = default;
+        if work_buffer_resize(&storage, budget, sizeof(SyntaxStructureOwner), 0) != WorkBudgetError.None { return null; }
+        shared = bits(SyntaxStructureOwner*, storage.data);
+        *shared = {storage: storage, ..default};
+        owner.structures = shared;
+    }
+    if shared.bedrock != bedrock || shared.cache.budget != budget {
+        parser_structure_cache_dispose(&shared.cache);
+        frontend_revision_release(shared.bedrock);
+        shared.bedrock = frontend_revision_retain(bedrock);
+        shared.cache = {world: world, budget: budget, limit: FrontendCacheLimit, ..default};
+    }
+    return &shared.cache;
+}
+
+// Requests have joined before this coordinator boundary. Tables keep their own
+// pins; surplus intermediate grammar plans need not survive semantic checking.
+export fn syntax_world_structures_clear(world: void*): void {
+    var owner = syntax_baselines_owner(world, false);
+    if owner == null || owner.structures == null { return; }
+    var shared = owner.structures;
+    owner.structures = null;
+    parser_structure_cache_dispose(&shared.cache);
+    frontend_revision_release(shared.bedrock);
+    var storage = shared.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Returns an owned revision pin. Existing snapshots can be read under an ECS
@@ -140,6 +193,7 @@ fn syntax_baselines_clear(world: void*): void {
     if owner is null {
         return;
     }
+    syntax_world_structures_clear(world);
     frontend_revision_release(owner.seed);
     syntax_baseline_dispose(&owner.bedrock);
     syntax_baseline_dispose(&owner.foundation);

@@ -4281,9 +4281,9 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | compiler-threads | O1 2P/1F | Old work-Wasm pool/trap P; shared compiler ENOENT. New browser retirement receipt is not this Node suite; T5. |
 | compiler-utf8 | O1 2P/1F | Utility interpreter/LLVM/canonical comparison unpassed; T8. |
 | compiler-workers | O1 file-init F | Missing project.json, all8 registered cases U; generation success is not these assertions; T6. |
-| compiletime | O1 27P/18F | DL42P/3F portable; decltype_type_fields/parameterized-field chain fail Unknown type constructor 'alias' (ROOT/L1 with L2); inference_alias_invalid rejects with earlier capability error (ROOT/L2).43 LLVM registrations U on E; commands below. Not an unassigned whole-file failure. |
+| compiletime | O1 27P/18F | DL42P/3F portable. LLVM-only c95b04a2/E receipt below:39P/4F, all43 attempted,45 portable registrations excluded. Three older-eac alias/type-body failures remain; body_continuation additionally prints1 instead of0 in emitted Wasm. Source/input-phase adoption remains ROOT/L1/L2; no full current-source file pass. |
 | completion-queries | O1 4P | Unchanged mock transport producer/data; reuse O1. |
-| cross-compilation | O1 7S | Six target groups and recoverable-linker case lack execution in this inventory; T7. |
+| cross-compilation | O1 7S | T7 now7/7P at84146755 plus explicit fixture imports / supplied eac cross reactor; see the source-bound T7 receipt below. Other-OS binaries emitted, not executed natively. |
 | data-driven-scanners | O1 3F | N3/3P. |
 | default | O1 6F | No later Node closure located; T8. |
 | defer | O1 5P/1F | Foundation ordinary-identifier case unpassed; T8. |
@@ -4304,8 +4304,8 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | interpreter-invocation | O2 1P/2F | G4 same failures; R closes all3 exact export groups (invocation4/8, worlds4/8, stage), portable serial capability correctly selected. |
 | language-service | O2 3P | Unchanged mock worker scheduling/cancellation; reuse O2. |
 | llvm-execution | O2 2P/49F | LL48 scoped P/3F; LA closes narrow/body and rechecks division zero. T3 struct remains unpassed; T4 records scoped closure, not a whole-file current-source run. |
-| module-path-names | O2 2P | Historical P; path inventory/project resources subsequently added, so final changed-input adoption remains necessary. |
-| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; lexical alias/path expectations unchanged. |
+| module-path-names | O2 2P | Current c93ddaab2/2P: actual resource paths/import availability and synthetic project upgrade checked; changed-resource gap closed at this freeze. Receipt below. |
+| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; new c93ddaab/47433acf13/13P with current language/module inputs. Exact case, lexical identity, relative boundaries and selected-file diagnostics retained; receipt below. |
 | module-scopes | O2 file-init F | N17P/2F; G8 19/19P, qualified completion plus full repeated-lifetime case now reached, matching LLVM override. |
 | operators | O2 6P | Historical pairO source/canonical/LLVM P; not relabeled current compiler evidence. |
 | output-syntax | O2 8P | Unchanged display-only lexer/dependencies/data; reuse O2. |
@@ -4318,7 +4318,7 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | source-location | O2 1P | D control P; unchanged host-only location/Unicode inputs. |
 | structs | O2 1P/11F | G8 12/12P; separate LL large struct reconstruction still F, not the same file/gate. |
 | targets | O2 25P | Unchanged host-only capability/selection mocks; reuse O2, not cross-target executable evidence. |
-| templates | O2 8F | G8 6P/2F; E7 independent known/mutable/type-error negatives P; four failures across current registrations (two compositions, invalid bound and valid negation). T1; remaining original six retain G8. |
+| templates | O2 8F | G8 6P/2F; E7 independent known/mutable/type-error negatives P. New47433acf pair closes all four T1 failures,4/4P on unchanged expectations; receipt below. Other registrations retain their previous source-bound receipts, not a new whole-file run. |
 | wasi-host | O2 4P | Unchanged host ABI/memory/FS fixture data; reuse O2. |
 | wasm | O2 6P/9F | G8 15/15P with exact revision/offset/provenance/cache/lifetime assertions. |
 
@@ -4333,13 +4333,13 @@ be omitted. These are commands for ROOT's final run, **not executed here**.
 
 | ID / owner | Exact unpassed scope and next command / prerequisites |
 | --- | --- |
-| T1 — L1, A2, ROOT adoption | Use the exact templates command below. L1's48499b3a identity-helper fix passes native32/64 and1/4, but E lacks it; use successor reactors. L1 found runtime numeric forwarding into a nominal constructor unsupported, documented in type-values.md: original positive numeric fixture remains unresolved as an acceptance contract, not secretly passed by direct/array substitutes. A2's published b84c6ba7 unary-argument repair and merged44d4dd48 have22-case/query-smoke native passes ([receipt](compiler_integer_arguments_b90b6f4e.md)); exact -(-2) browser adoption still requires successor matched reactors. Leave original fixtures/expected values to those owners. |
+| T1 — CLOSED four registrations on47433acf; ROOT final adoption | New matching portable/LLVM pair actually passes original numeric composition, generic binding/identity, unsigned-negative bound and nested negation,4/4 with unchanged expected outputs/diagnostics. Receipt below supersedes old unsupported-original-wrapper and unadopted-negation wording. Separate numeric-only ordinary wrapper admission remains L1-owned; the three compiletime alias/type-body residues still fail in both selected modes on this new pair. No broad type-function completion claim. |
 | T2 — L2 reconstruction, ROOT | Four separate cases `entity_pages`, `entity_tables`, `work_graph`, `work_resume`. [B1 receipt](semantic_port_four_bcd0e3ab.md), bcd0e3ab+7cfb6531 transport / pairE, all fail at32-bit unoptimized LLVM Foundation with `Compiler resource request failed`, before reconstructed execution/optimized64/native stages. Original32 Graph/Fast/canonical phases P. Saved canonical input plus incomplete typed-error propagation handoff belongs to L2 now; generic error is not proven Memory/Capacity. Use the per-case command below after producer/diagnostic repair. |
 | T3 — L2 reconstruction, D2 evidence | `node --test --test-concurrency=1 --test-name-pattern='^LLVM matches interpreter: struct values$' playground/tests/llvm-execution.test.mjs`. D2 full source / pairF freeze578437af remains failed/90s incomplete inside unoptimized LLVM Foundation. Small struct_reconstruction_small passes, not a full-case fix. Receipt/source/canonical hashes in journal “D2 bounded struct LLVM Foundation isolation”; input2ce1c260ebe11faeb2dc7524f1e0f239208caf8afc629962b800200e7052f285, canonical2f4602e298b100c6e93dc47798a515c118d12cf42e53da330a7faa88167c2601. |
 | T4 — CLOSED on LA; ROOT final changed-input adoption | LL's narrow/body package failures are superseded by LA's actual end-to-end passes, including independent load/execute. Preserve separately scoped evidence; no extra repeat for unchanged inputs. If final reactor/caller inputs change, selectors are `--test-name-pattern='^LLVM matches interpreter: narrow integers$'` and `'^LLVM matches interpreter: resumable control bodies$'` in llvm-execution.test.mjs, retaining all original profile/output/offset/canonical assertions. |
 | T5 — ROOT/B2 shared retirement and Node adoption | [f167c444 receipt](compiler_shared_browser_f167c444.md): shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4, work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c, resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b. Strict browser retirement repeatedly fails; once-passing rejected candidates/older D2 passes do not close it. Run `TOWER_REQUIRE_THREADS=1 node playground/scripts/test-shared-compiler.mjs /absolute/shared/tower.wasm /absolute/shared/tower-work-tests.wasm REPORT.json`, then the Node compiler-threads file with real matching work/compiler bytes and no skips. Chromium/Playwright and resource manifest must match the accepted repair. |
 | T6 — ROOT/B2 worker artifact adoption | `node --test --test-concurrency=1 playground/tests/compiler-workers.test.mjs`. All8 cases were unstarted at missing build/compiler-project/project.json. Supply final project manifest/resources and build/browser-wasi-llvm/tower-llvm.wasm; this file imports the raw LLVM loader and worker entry, so generic fixture overrides alone are insufficient. Two edited9d generations prove their own script, not these eight output-order/cancel/generic/iteration/vectorization cases. |
-| T7 — ROOT cross artifacts / fixture triage | `env -u TOWER_TEST_LLVM_WASM node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`. All7 previously skipped. Supply final build/browser-wasi-llvm/tower-cross.wasm and every targetInputs runtime/link input. The shared fixture loader's LLVM override would otherwise replace the cross reactor with the ordinary LLVM reactor. Current inline object/link/recovery source strings still lack language imports: reconcile their explicit-language boundary when reached, not by treating seven skips as passes. |
+| T7 — CLOSED at84146755/eac; ROOT final artifact adoption | Seven fresh exact selections now pass with explicit Foundation imports; full receipt below. For changed final artifacts, use `env -u TOWER_TEST_LLVM_WASM -u TOWER_INTERPRETER_ONLY node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`, supplying build/browser-wasi-llvm/tower-cross.wasm and all targetInputs files. A generic LLVM override would silently select the wrong reactor. Retain native-emission versus actual Wasm-execution distinction. |
 | T8 — ROOT to assign; eleven original files without later Node closure | `node --test --test-concurrency=1 playground/tests/{c-source,compiler-bytes,compiler-entities,compiler-utf8,default,defer,execution,fast-interpreter,for-loops,foreach,formatter-port}.test.mjs`. Do **not** silently delegate this to L1/A2's unrelated fixes. Exact failed groups/counts are above and original logs remain O1. These Node files are unchanged since69391085; imported resources/providers have advanced. Observed old failures include implicit-language strings, older LLVM integer_type reconstruction and generic_registry's Tower-owned compiler_buffer_allocation_size provider. Matched-pair/resource adoption and fixture triage are required before classifying current compiler defects. Keep malformed/seed cases deliberate. Compiletime now has DL's separate disposition, not an unassigned failure. |
 | T9 — ROOT framework scheduling, then relevant producer owner if failing | Eight exact semantic-port cases lack a matching-pair pass: `entity_stage_ownership`, `work_access`, `work_observe`, `compiler_work`, `compiler_batch`, `backend_popcount`, `backend_stack`, `backend_import_constants`. They failed under O's mixed artifacts; were unstarted after the G8 interruption; B1/S3 did not select them. Native fixtures and R's stage export are not these full Graph/Fast/LLVM32/64/canonical checks. Run separately with the command below. |
 
@@ -4361,12 +4361,12 @@ separately from A2's numeric repair. Exact follow-ups on the final capable host:
 
 ```sh
 node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|inference_alias_invalid|parameterized fields).*\(portable\)$' playground/tests/compiletime.test.mjs
-node --test --test-concurrency=1 --test-name-pattern='\(LLVM\)$' playground/tests/compiletime.test.mjs
+node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|body_continuation|inference_alias_invalid|parameterized fields).*\(LLVM\)$' playground/tests/compiletime.test.mjs
 ```
 
 DL makes LLVM/stress loading lazy without omitting default assertions. The second
-command selects all43 unstarted LLVM registrations and requires the final pair;
-it is not a lightweight Deck instruction. Exact invalid inference expectation
+command now selects only the four failures from the completed c95b04a2/E LLVM
+receipt, after their repair/target-input diagnosis and matched artifacts. Exact invalid inference expectation
 remains `Cannot infer type argument 'T'; pass explicit type arguments`, not the
 observed general-compile-time-execution capability error. Both alias positives
 still expect0; later modes were not reached after their Graph32 failure.
@@ -4411,3 +4411,354 @@ without later Node closure, while compiletime has the explicit partial receipt
 and assigned failures above. Its two current test hashes match DL; no new D1
 execution. ROOT's generation is separately source-bound and does not execute
 the remaining Node groups. This finite receipt adoption ends the reconciliation.
+
+## T7 cross-target execution at 84146755 (2026-11-23)
+
+Frozen host/resource source84146755f49035aae60a983d6db2a682a3051201 plus the five
+explicit `import foundation;` prefixes in cross-compilation.test.mjs, final SHA
+`dbd4fefbe7c3610e8b87d8999617884a2c7ed656f4003f065f7a367ee47f31d4`.
+Supplied cross reactor sourceeac16533 / SHA
+`e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1`.
+Archive3ae60fc20303f8b91b8398e3eda0dd6c2939c60bdb4a6c03e5c207fec1c452a1
+and all eight selected entries (cross plus seven target files) match files.json.
+No default artifact was overwritten; previous portable/LLVM artifacts untouched.
+
+Each of WebAssembly, Windows x64, Linux x64/ARM64, macOS x64/ARM64 and linker
+recovery ran in a fresh process, concurrency1,120s bound. Baseline0/7: six fail
+at the unimported library source after successful main/repeat emission; recovery
+fails before linking. Repaired7/7, zero skips/timeouts/cancellations. All original
+assertions remain: executable magic, deterministic repeated bytes, native
+allocation signature/disassembly, library object/no tower_main, external answer
+linking, real Wasm outputs5/84/42/4/41/42 and42, Link failed then successful compile,
+unknown-target diagnostic. Existing cross_target_program.tower remains unchanged;
+no compiler/semantic implementation was added. Other-OS output is emission, not
+native execution there. No whole-current-compiler/browser release claim.
+
+Logs/manifests `build/d1_ecs/cross_84146755/`; journal has exact command and per-case
+costs. Final summed wall/CPU25.30/37.35s, maximum individual peak379228KiB,0swaps.
+These are validation costs, not equivalent-success production performance data.
+Fixture-only boundary repair has no production optimization/scaling claim. No
+compiler build, repeated aggregate, generation, sanitizer or unrelated gate run.
+All owned jobs drained and shared heavy lock released before publication.
+
+Merged adoption66657986 retains all T7 test/host/artifact hashes. The only changed
+existing mounted resource is A1's tests/stress/comment_functions.tower, outside
+these executed imports. Its mismatch is preserved in merged_resources_check.log;
+the original full-registry identity is not relabeled as a fresh merged test run.
+
+## LLVM-only compiletime selection at c95b04a2 (2026-11-23)
+
+Frozen sourcec95b04a2d841ff7fb951b51e77319ee4fd1acb25, unchanged test SHA
+b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d, matching
+supplied eac portable/LLVM pairE. One suffix-filtered aggregate completed within
+180s:39P/4F,0unstarted selected registrations,0skips/cancellations/timeouts;
+45portable registrations filtered out, not executed or counted as passes.
+
+| Selected group | P | F | Unstarted registrations |
+| --- | --- | --- | --- |
+| Lazy signature / demanded body negatives | 2 | 0 | 0 |
+| Source + canonical execution positives | 14 | 2 | 0 |
+| Stage/dependency/execution diagnostics | 23 | 1 | 0 |
+| Generated parameterized-field chain | 0 | 1 | 0 |
+
+Failures retain independent expectations: decltype_type_fields cannot complete
+Graph64 canonical setup (`Unknown type constructor 'alias'`); inference_alias_invalid
+gets the earlier general-compile-time-execution capability error at LLVM32;
+generated type_fields fails LLVM32 alias admission. Those source-bound older-eac
+results need L1/ROOT wrapper/type-body adoption, not changed diagnostics.
+body_continuation completes Graph64 canonical setup but emitted Wasm returns1
+instead of0. The loop does not label original versus canonical input, so the
+failing iteration is unresolved. It prepares64-bit canonical then targets default
+wasm32, unlike A1's already passing same-target LLVM/package case; this observable
+setup difference is not yet a proven cause. ROOT owns that input/target isolation.
+No memory-error inference, producer repair, expectation weakening or fixture edit.
+
+Logs/names/manifests: build/d1_ecs/compiletime_llvm_c95b04a2/. All43 completed names
+match the preflight list exactly. Only the selected type_fields stress producer
+runs; other generators stay lazy.16.25wall/21.14CPU s,476656KiB peak,0swaps,
+exit1. No source changes or compiler build; timing is validation cost, not a
+production before/after or scaling measurement. All owned jobs drained, shared
+heavy lock released. Later phases within failed cases remain unpassed as detailed
+in the journal; completing registrations does not imply all their assertions ran.
+
+Reconciliationaaf01529 preserves selected test/host/fixture inputs. L1's newer
+5cb0b061 wrapper implementation and unrelated registered test additions are outside
+the eac executable and measured resource identity; their source/native receipts
+are not substitutes for this still-required joined-artifact adoption. No rerun.
+
+## Changed-producer browser adoption on47433acf (2026-11-23)
+
+Mounted source18384965d21ee5f710b05db3623f13668d68c993; supplied reactor build
+47433acff17e8ca6b3fffb6ce9875a37b38aec08, portable SHA
+68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad and LLVM SHA
+9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Both verified before/after; new isolated copies, old eac inputs/receipts preserved.
+Unchanged templates/compiletime tests select exactly4/3/3 in fresh bounded
+processes, concurrency1, no body_continuation or other file selections.
+
+| Selection | Pass/fail/unstarted registrations | Wall/CPU seconds; peak KiB |
+| --- | --- | --- |
+| Four T1 templates | 4/0/0 | 6.90/8.87;350964 |
+| Three portable alias/type-body residues | 0/3/0 | 3.80/4.45;212296 |
+| Same three LLVM residues | 0/3/0 | 5.83/7.29;351332 |
+
+All0skips/timeouts/swaps; excluded12 template registrations and85 per compiletime
+process are not passes. T1 retains numeric output42/7/8/12/9 and one nominal
+specialization, generic/effect/identity expectations, nested negation8 through
+Graph32/64/canonical and actual LLVM source/canonical execution. Unsigned-1
+retains exact array-bound diagnostic, empty output and0steps. No substitution of
+original positive fixtures or unsupported numeric-only ordinary wrapper claim.
+
+Remaining source-specific failures: decltype_type_fields gives Unknown type
+constructor 'alias' at Graph32 portable / Graph64 LLVM canonical preparation;
+parameterized-field256-chain fails Graph32 / LLVM32 compilation with the same
+error. inference_alias_invalid gives the earlier general-type-body capability
+error at Graph32 / LLVM32 instead of Cannot infer type argument 'T'; pass explicit
+type arguments. Later Fast/64/canonical/executable modes stop at these assertions.
+These now persist on the new producer pair; they cannot be dismissed solely as
+older-eac failures. ROOT/L1 own exact alias/type-body admission follow-up; existing
+Tower sources/hashes and full logs suffice, no duplicate producer implementation.
+D2 retains the separate old-eac body-continuation investigation.
+
+Evidence build/d1_ecs/adoption_47433acf_18384965/, exact patterns/expected names,
+TAP/status/time and artifact/host/resource/fixture manifests. All names matched;
+no source or expectation changes. Documentation-only runtime profiling is
+inapplicable; costs above measure adoption, not compiler speedup or scaling.
+Jobs drained and owned heavy lock released before reconciliation/publication.
+
+Merge2d8a96fe leaves selected test/host/artifact and executed import hashes intact.
+The sole resource delta, tests/frontend_units_profile.tower, is an unexecuted
+native profiling fixture; its recorded mismatch does not relabel the earlier
+full registry as rerun. Scoped4P/6F evidence reused, no further selection.
+
+## Module-path/resource adoption at c93ddaab (2026-11-23)
+
+Frozen sourcec93ddaabdd961c4be27d825ae4e3bf59575ec303. Fresh runs only of
+module-path-names2/2 and module-resolution13/13 pass, zero skips/timeouts; no code
+or fixture changes. Both matching47433acf overrides verified; path test uses no
+reactor and resolution uses portable68cd7a8a only, not LLVM execution evidence.
+Exact names, commands, hashes and TAP/time/status: build/d1_ecs/module_paths_c93ddaab/.
+
+Actual inputs reviewed: path test scans1151scaffolding and3browser Tower fixture
+paths, checking identifier/underscore components, dotted production imports and
+local/library availability. Compared with originald5b65afe there are35added
+scaffolding test files and2browser fixtures; all are included in this fresh scan.
+Test/invalid import contents are deliberately excluded from the production-import
+assertion. The upgrade test supplies a synthetic recipe, not generated project.json;
+unchanged old names retire, edited/user files survive, active entry updates and
+repeat upgrade is idempotent. Historical hyphenated user strings remain deliberate.
+
+Resolution imports compiler-fixtures' resource data but directly uses the real
+host with five root language files (bedrock,foundation,foundation_syntax,tower,
+types) and explicit case modules. All1151 sources are read by the fixture loader;
+they are not all configured or compiled by these cases. The five baseline files
+and project-refresh implementation match the older receipt, while actual new
+portable execution validates renamed grammars, capability removal/recovery,
+nearest-file cache edits, cycles, lexical dotted/quoted/separator identity with
+once-only effects, exact case/extension, parent boundaries, comment/alias canonical
+formatting and selected errorFile values. No realpath/symlink identity collapse,
+native filesystem equivalence or numeric-offset coverage is inferred.
+
+Costs wall/CPU s/peakKiB: names0.36/0.43/62296; resolution22.76/25.22/223384;
+0swaps. These are validation costs, not production profiling/scaling. Inputs
+verify unchanged after runs; jobs drained and owned lock released. Other fixed
+checklist gates and ROOT's final joined runtime release remain separate.
+
+Mergedcd4f85b0 adds11numeric-wrapper fixtures. Only the affected two-case host
+naming check reran:2/2P on1162scaffolding+3browser paths,0.48wall/0.55CPU s,
+62272KiB,0swaps. Resolution's actual five baseline language files, functions
+example, test and host bytes still match, so its13passes are reused without a
+repeat. Separate merged resource manifest/receipts preserve both input boundaries;
+new producer sources do not become a newly built47433acf reactor.
+
+## Numeric-only wrapper independent review at 22e15d5b (2026-11-23)
+
+Fixed source `22e15d5b8e459cd63417234cf2b8198a85dc283d`; implementation
+`0c1d24ddb7d08795746841def2c09e06a4b1f25a`. All sixteen changed Tower files and
+`cmake/TowerWorkTests.cmake` have identical blobs at those two commits. This
+adopts that delta after A1's unchanged-context review at `9caa921c`, without
+extending the freeze to later alias work or the pulled `fcaad5a6` source.
+Disposition: no concrete defect found in the inspected producer/caller closure;
+source adoption is separate from the owner execution evidence below.
+
+Paths in the following producer table are under `scaffolding/compiler/`.
+
+| Path / fixed blob | Substantive finding |
+| --- | --- |
+| `generics.tower` / `9649a3d2` | `generic_register_result` attaches parameter metadata to a successfully read single-return `CoreCall`, but returns the existing `GenericKind.Ordinary` for a numeric-only function. `sem_register_template` in `semantic_types.tower` branches on that returned kind, not metadata presence; ordinary calls remain in the function registry. Registration rejects foreign stores, stages and active views. Deferred instantiation now retains the ordinary wrapper's body source, uses the existing definition/count/argument-entity cache key, attaches the clone to the world root before registry publication, and releases the local reference. `generic_lookup` binds through the clone's defining template; no global type registry or second representation is introduced. |
+| `semantic_constructor_work.tower` / `0abf6ac1` | Both known calls and body admission use `sem_constructor_wrapper_definition`. Each link resolves a declaration from its syntax/module, requires a single-return call with textual result `type`, rejects a formal callee/global value and repeated declaration, and must end at an existing type constructor. The first signature must have a source-resolved non-type parameter; the Parameters phase then checks actual integer types. General/effectful bodies and dependent/structural parameter signatures fall back to ordinary execution. `sem_constructor_arguments` binds arguments left-to-right through existing type/constant queries; unknown/written extents are not accepted as runtime layouts. Clone/Alias and ordinary Execute retain shared declaration/evaluation dependencies and prior instance errors, rather than recursively completing helpers. |
+| `semantic_body_work.tower` / `7a5a8201` | `sem_body_needed` tests demand first. Only an undemanded original function with a nonpointer type result, nonempty all-integer signature and successful forwarding proof gains the new exclusion. Original exports/externs, other signatures and general bodies remain retained; generic clones retain their prior demand rule. Pruning stably compacts the function index, generated items and root items using the same predicate; it does not destroy definition entities or transfer ownership. The original declaration remains world-owned for clone provenance and nominal binding. |
+
+Reachability trace: `semantic_values.tower:sem_call` puts the resolved ordinary
+declaration or specialization in `KCall.binding`; indirect calls retain their
+callee as `value`. `semantic_types.tower:sem_function_reference` and
+`semantic_evaluation.tower:sem_evaluation_value` produce a `KFunctionReference`
+with the actual declaration binding. `semantic_iteration.tower` likewise binds
+generated protocol calls. `sem_body_collect` walks canonical owned expression
+edges, including `value`, arguments, branches and bodies, collecting both kinds;
+it deliberately skips definition bodies and type/back-reference edges.
+`semantic_statements.tower` finishes root expressions before `sem_bodies` enables
+root demand. Evaluation expressions are scanned separately. Workers use private
+`body_seen`, scratch and call vectors; `sem_body_wave` uses the existing leases,
+view, admitted dispatch and `semantic_context.tower:sem_stage_wave` join/stage
+publication boundary before the coordinator publishes demands. Completed bodies
+publish calls once; progress and the reset scan admit newly demanded earlier
+functions before quiescence. Pruning follows this pump and returns immediately
+on an existing semantic error. Thus the inspected reachable-reference paths
+retain their original body (and its ordinary diagnostics), rather than leaving
+a removed callable binding in successful output. This is source reasoning, not
+an exhaustive reachability or race proof.
+
+`semantic_modules.tower:sem_owner` follows generic origin back to the definition;
+`sem_resolve` uses that module and qualified import identity. Constructor
+instances retain construction owner/identity; their scope comes from the
+definition, not coincident caller offsets. Proof-cycle detection only declines
+the optimization; actual dependency cycles still belong to the owning shared
+pipeline's quiescent failure path. No scheduler, capture evaluator or lifetime
+policy changed. Existing checked scratch allocation and stage/drain machinery
+are reused; this review does not add allocation-failure or cancellation execution.
+
+Fixture/provider paths below are under `scaffolding/tests/`; each row was read,
+including its imports and actual registration/consumer.
+
+| Path | Coverage and disposition |
+| --- | --- |
+| `numeric_wrapper_minimal.tower` | Local numeric-only forwarding shares `buffer(i32,2)` identity; independent output remains `42 / 8 / true`. Preserve. |
+| `numeric_wrapper_module.tower` | Imported `Extent` alias, direct/forwarded/nested count+1, typed-wrapper bridge and byte layout providers; consumed by positive and negative fixtures. Preserve. |
+| `numeric_wrapper_known.tower` | Repeated/distinct nominal arguments, imported aliases, target-width layout, known locals and caller shadowing; staged `extent` checks ordered two effects, module initializer timing stays observable, ordinary callback has exactly one effect, untaken mutable read creates no dependency. Output remains42. Preserve. |
+| `semantic_invalid/numeric_wrapper_unknown.tower` | Runtime formal extent remains unknown even when its caller passes2. Preserve rejection. |
+| `semantic_invalid/numeric_wrapper_written.tower` | Later write disqualifies the local extent from known binding. Preserve rejection. |
+| `semantic_invalid/numeric_wrapper_mismatch.tower` | Forwarded extent2 cannot accept a nominal extent3 pointer; expected buffer types remain distinct. Preserve exact mismatch. |
+| `semantic_invalid/numeric_wrapper_order.tower` | A helper reads a later initializer while computing the earlier extent; preserve initialization-order error. |
+| `semantic_invalid/numeric_wrapper_effect.tower` | Ordinary trap before returning a constant nominal type must reach the staging capability error, not the strict forwarding path. Preserve. |
+| `semantic_invalid/numeric_wrapper_runtime.tower` | `var callback = runtime; callback(2)` demands the original numeric wrapper; its unbound extent must reject. This specifically exercises function-reference retention. |
+| `semantic_invalid/numeric_wrapper_cycle.tower` | Extent depends on `sizeof` its own numeric wrapper; preserve actual shared query-cycle failure. |
+| `numeric_wrapper_checks.tower` | Registers all seven invalid sources with their independent expected diagnostic substrings; shared checker compares complete diagnostics/offsets across width4/8 and workers1/4. Count comes from the path array. |
+| `nominal_wrapper_checks.tower` | Shared checker retains the four older nominal failures, adds explicit work-budget import, requires no partial program and zero admitted lanes, then checks stable bytes/live grants and diagnostics on terminal retries. Each batch closes before its source buffers. Stable retained ownership is not zero retained memory or proof of exactly-once effects in every path. |
+| `lr_work_main.tower` | Explicit `numeric-wrappers` returns after this checker; `all`, `type-smoke` and `type-errors` each invoke it once. No duplicate fixture inclusion in `all`. |
+
+`cmake/TowerWorkTests.cmake` adds the two positive files at workers1/4 through the
+existing `towerc --interpret` command with explicit Bedrock/Foundation resources;
+the minimal regex preserves42/8/true, the broad fixture42. Those four registrations
+are distinct from the negative runner selector and from canonical/Graph/Fast
+checks reported by L1; CTest registration itself proves none of those executions.
+
+Execution adoption: the journal's **2026-11-23 L1 — numeric-only known nominal
+forwarding** receipt and its **Numeric-only L1 reconciliation** retain the exact
+implementation, compiler SHA `9cc9ec7bdae3d37bf84c41d7e28743149c73fa85c8f847322b9040378ab24e7b`
+and runner SHA `03f247c3a40cb9fa1acefee3610366ae042b3ce897e2f8134021fd97ea889866`.
+They report both widths/workers, canonical equality/idempotent reparse and
+Graph/Fast positives, four CTests,28 negative trials, query-smoke and integer
+arguments; prior failed probes remain recorded. D1 verified the changed blobs
+against that publication without independently authenticating L1's external raw logs. Small n1
+paired samples and their256–908KiB RSS increases retain their original limits:
+worker count is not measured overlap or useful scaling.
+
+No new execution, build, performance or sanitizer campaign was run for this
+documentation-only review; runtime profiling is inapplicable. Dedicated
+export/extern pruning and direct-call-only numeric-wrapper regressions are not
+present in this batch (guards/call paths were source-reviewed). Existing47433acf
+browser artifacts predate this change, so their receipts cannot validate it.
+Joined browser/backend/generation/instrumentation adoption remains ROOT's work;
+the three later alias/type-body repairs remain outside this freeze. No concrete
+new defect or duplicate implementation is handed to L1. Exact changed/caller
+blob manifests: `build/d1_ecs/numeric_review_22e15d5b/`.
+
+## Unpublished L2 reconstruction draft review, snapshot 2130 (2026-11-23)
+
+This is source review of **unpublished draft data**, not adoption or a build.
+ROOT's `ROOT_l2_source_review_2130` manifest freezes UTC
+`2026-11-23T21:30:29.4611350Z`, published base
+`779de775b227f7f9bba1bcaa35cc420a4e7f0bb7`. Archive SHA256
+`0405e5479f92b734c124dfdfe81c0f2e3097eb4fbf9746e5d395bef74649455f` and manifest
+SHA256 `b422e2014d8b8836900e3d88b9018891440cc2def2062af60e8e4ca40fec93ca`
+verified, along with all twelve copied file hashes and lengths. Compared these
+copies with `git show` of that base; later L2 edits are excluded. Local evidence:
+`build/d1_ecs/l2_review_2130/{snapshot.sha256,draft.diff,base/}`. No draft source
+was installed into the working compiler/import closure.
+
+**R1 — concrete byte/text boundary defect; L2/ROOT adoption blocker.** In the
+copied `backend/import_module.tower:bi_initializer` (lines21–50), every nonzero
+byte run becomes `KString`. For an i8 constant array `[65,0,128,255,0]`, this emits
+a string payload containing raw `80 ff` hex. `compiler/format.tower:format_escape`
+escapes delimiters, slash and selected whitespace, but writes those high bytes
+unchanged. The result is not UTF-8 Foundation source: the existing
+`lexer_table.tower:lex_table_match` stops when `tower_utf8_decode` returns0, and
+`syntax_scan.tower:scan_after_skip` marks an unmatched token invalid. Independently,
+`playground/src/llvm-host.mjs:string` uses UTF-8 TextDecoder, which cannot preserve
+those isolated bytes if such text reaches the host. This is a source-confirmed
+failure of the arbitrary-byte case, **not an executed draft reproduction**;
+no observed full frontend diagnostic/offset or browser result is claimed.
+
+The LLVM API precondition is satisfied but insufficient for text encoding:
+`LLVMIsConstantString` recognizes i8 arrays, not UTF-8 or absence of interior NULs;
+`LLVMGetAsString` returns the counted raw array, including trailing NULs.
+Verified against LLVM19.1 [C API implementation](https://github.com/llvm/llvm-project/blob/llvmorg-19.1.0/llvm/lib/IR/Core.cpp#L1517)
+and [ConstantDataSequential contract](https://github.com/llvm/llvm-project/blob/llvmorg-19.1.0/llvm/include/llvm/IR/Constants.h).
+The existing zero-run fill correctly avoids source NULs; it does not repair
+non-UTF-8 nonzero runs. Small proposed **Tower** regression: in the existing
+backend import test provider, construct the five-byte payload above using the
+already declared `LLVMConstStringInContext` with count derived from the array
+type and `no_null=1`; import it through the existing stage, format/reparse and
+execute, requiring all five exact bytes and untouched surrounding sentinels.
+This directly controls the constant-data-array input instead of depending on an
+optimizer to synthesize it. The minimal implementation boundary is the byte-run
+producer: preserve unsupported text bytes with existing numeric store/fill
+operations (or another proved existing byte-preserving path), without changing
+Unicode values, accepting malformed text or introducing a new bytecode format.
+No concurrent repair or unrun regression was added by D1.
+
+All paths in the table are under `scaffolding/`. SHA256 values name the copied
+draft bytes, not final published inputs.
+
+| Path / SHA256 | Source review finding |
+| --- | --- |
+| `backend/import_bindings.tower` — `18f945ff9842e20ff8631bd857b7dc159d21633e3f23d2e519bf223d2da2bbc9` | Three existing LLVM foreign APIs have pointer/LLVMBool/size_t shapes matching the Tower declarations. The ConstantDataArray guard precedes the sequential-array predicate and raw-string accessor. This verifies source preconditions, not link/export availability on a new reactor. |
+| `backend/import_foundation.tower` — `b484d0c565270ac4e12c14a15f7667451ffec938dc2cf3322180c425dc8eb833` | `bi_result` keeps the exact-type final-temporary reuse path; otherwise it casts to the predeclared LLVM destination's full Foundation type before assignment. `bi_call` retains public nominal signatures; its older scalar cast can return an enum unchanged when scalar/pointer tags match. The new `bi_cast_type` uses nominal-aware equality, preserves target pointer metadata, and materializes a bits conversion when required. It reads the existing call-result temporary, so it does not repeat the call. Boolean handling remains the existing conversion policy; arguments and returns already use this helper. Allocation failure reaches the shared backend failure/stage discard path. |
+| `backend/import_module.tower` — `c62beaa247cc7153bff781c865648a2f0efdf50ceb7ca277e9e38b7aed9880c1` | Counted zero/nonzero partitions cover each input byte once; each operation uses address+start and end-start, excluding the KString buffer's added terminator. Global startup order is retained before tower_main. Other aggregate element widths and zero aggregates retain the old recursive path. R1 prevents accepting arbitrary-byte correctness. |
+| `compiler/format_types.tower` — `03b9c7db94fa9dd370d983448bcbfa75c8e6f90c7369670a693b92533c235ee1` | Adds borrowed program scope/prefix to the existing formatter context, with no global registry or owned graph. Caller initialization and synchronous owner lifetime are required. |
+| `compiler/format.tower` — `cb6fe291dc39db1a93e92741ba37f87a946e0c695bd9193230f454ad7e2d5ee3` | `format_entity` now defaults the entire engine, including scope/prefix. Existing string escaping explains R1; no escape policy changed in this draft file. Checked output errors remain caller-visible. |
+| `compiler/format_foundation.tower` — `be9b15d81d74ecba5a4670f764d4eded0c44ecba9dac36da73f1d0ac0ef7d942` | Postfix stars use the already supported CoreType grammar, preserving base/function/array/nominal structure and pointer depth under the same target profile. Binding reuse requires no nominal record, a prior global KType with zero pointer depth and matching scalar; it emits that declaration's actual escaped output name plus the requested stars. Prefix advances only after each declaration, avoiding self/forward reuse. Type-valued parameters disable reuse for the function header/body; local KType or type-valued KDeclare disables it for the whole block, restored on exit. No concrete binding defect found in the inspected valid-program paths. |
+| `compiler/format_grammar.tower` — `1f492e959cc970cd032e06d05d0b2761673060589b3a769845321d2a34d10eef` | Child alternative probe and grammar preview explicitly default the extended engine; child output retains existing checked parent-budget/error propagation. These fragments have no borrowed program alias scope. |
+| `compiler/format_source.tower` — `b6f89943bdf0f39e3fd1c7d63e7c039a32af9de1ad59284a0f33d42bbf2144ad` | Source/trivia formatter defaults its engine; no token, comment order, span or source-name policy changes. |
+| `compiler/parser_presentation.tower` — `c0ef314839ab90de6f63ae8ddf781b16582defe7d8406195d385131f3eba5277` | Parser edge presentation explicitly defaults the new fields; existing immediate result/engine reset remains. No parser or grammar identity change. |
+| `tests/backend_import_constants.tower` — `f0ebe6bd41259a385ad4e93c308a8c206130b436625215ee82f091009bfab11e` | Adds exported nominal enum result7 and ASCII newline/quote/backslash/z bytes plus trailing0. Existing integer-width and pointer assertions remain. Does not test embedded0, isolated128/255 or exact copy bounds; R1's proposed provider case is missing. |
+| `tests/backend_source.tower` — `5ef6d8b410376243dafad84874e2b5def5762e7a13e3d082a49ce35fe98dda03` | Type-value preservation checks now require an emitted u8 binding, reuse in type_value, and explicit32-bit wide declaration under a local u32 type-value shadow. Added nominal-result case requires profile2 and explicit bits(u32,...). These compile/recheck/text assertions are not execution of returned code; exact behavioral output is covered only when the separately registered constants fixture runs. No new parameter/global-shadow or mixed pointer-shape fixture here. |
+| `tests/backend_source_native.tower` — `cdae630d776d732ee55eb67943d0adb085deb04de9321316d1b68babd3921a40` | Optional census reuses the synchronous phase observer, explicit world/budget and LLVM module. Histogram capacity derives from observed parse IDs; borrowed labels live through the joined observation and work-vector storage is disposed. Linux rusage is whole-process peak, not live-world bytes. Census itself allocates/prints and is separate from production timing; parse-ID rows are not a globally unique cross-version rule identity. Explicit option validation keeps deny-recheck serial and distinct. Existing rollback/retry/final-zero-owner checks remain. |
+
+Immediate contracts inspected at the published base: Foundation CoreType postfix
+grammar; `semantic_types` type-binding classification; `semantic_modules` unique
+global output names; `semantic_constructor_work` type-valued binding precedence;
+`semantic_support` nominal/width equality; importer calls, offsets, text allocation
+and staged publication; source-session transactional recheck; formatter entry
+points and byte lexer/host transport. Ordinary scalar values do not shadow the
+type namespace in these paths. Global type/value declarations receive distinct
+output names; locals/parameters retain lexical names and are covered by the new
+conservative guards. Record-bearing types never use scalar alias substitution.
+Pointer bytes remain supplied by the compilation profile; spelling alone does
+not make a64-bit graph valid under a32-bit target.
+
+Ownership conclusion: LLVM byte storage is borrowed only during synchronous
+initialization; nonzero data is copied into a stage-owned Foundation node before
+LLVM teardown. The importer checks backend failure and discards its private
+stage/association vectors on failure; destination payload replacement happens
+only after successful stage publication. Source-session recheck keeps prior
+canonical output until the candidate succeeds. No new worker/shared mutation or
+allocator lifetime is introduced; this is source inspection, not failure-injection
+or race evidence.
+
+Registration: the existing `backend_source_tests_runtime` invokes both changed
+service checks through native `tower-backend-source-worlds` and the existing
+browser export; `tower-backend-source-recheck` retains its denial input and180s
+bound. `semantic-port.test.mjs` already registers backend_import_constants for
+Graph/Fast32/64, canonical and LLVM behavior. None was executed in this review.
+
+Acceptance remains **pending L2 final source/ROOT adoption**, including R1's
+repair and focused regression, exact final copied-versus-published delta,
+formatter shadow/target/round-trip evidence, enum call-result execution and
+source-specific failure cleanup. ROOT reports native17.32s/3.16GiB versus the
+prior153s/10.6GiB failed request; the snapshot contains source, not authenticated
+runtime receipts, so those are attributed progress only. Wasm2GiB fit, joined
+reactors/generations, instrumentation and hosted release are unproved here.
+No build/test/runtime repeat; documentation-only performance profiling is
+inapplicable. Existing full-audit history and earlier acceptance scopes stand.
