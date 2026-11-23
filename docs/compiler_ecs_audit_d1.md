@@ -1510,3 +1510,38 @@ unchanged. Original failed link/status remain in corrected/targets.log.
 No new path is added by v3/query updates:1054tracked/477direct remains. Fresh
 smallest affected units, normal/fault/real-thread checks, cost profiles and
 current instrumentation are still required before acceptance.
+
+### Executed current acceptance slice at1a64007
+
+All477 current direct-scope bodies are reviewed;1054tracked total. This review
+count does not close the integrated acceptance scope. Exact evidence is in the
+journal's1a64007 entry and build/d1_ecs/buffer_defined_order.
+
+- work_buffer v3 normal/fault/shared3x pass; actual ASan normal/shared/fault and
+  TSan normal/shared pass, with ten extra shared runs per mode and hook hashes.
+  Equivalent262144-replacement profiles expose severe two-worker gate contention;
+  no profitable budgeted scaling claim. New caller integration still pending.
+- known_binding_checks defined1,1,7/full suite passes135.36s. Independent before/
+  current graph/normalized-fast/native control passes. Raw uninitialized original
+  is compile admission only; strict demanded rejection remains. Browser capture
+ 9-line fixture passes both widths and graph/cache/canonical current WASI; full
+  LLVM/threaded browser remains pending.
+- stronger storage, bounded parser, whole-empty aggregate and immutable-call
+  diagnostics pass. Large query measures two64KiB private frames and exact vector
+  disposal. Query's later physical-budget ABI handoff is not included in this
+  receipt and requires complete dependent rebuild.
+- numeric imports in narrow_checks/integer_negation_checks were already corrected
+  atb23d6d5;36 publicpin/current CLI spot checks reconfirm intended errors/zero.
+  Incoming reports from older owner snapshots do not justify duplicate changes.
+- Current frontend fixture transport is explicitly serial/fault; LR/execution and
+  standalone shared tests use production native work. Neither requested lanes nor
+  functional comparison establishes useful scaling; measured compiler jobs2 still
+  loses to jobs1 for both common inputs.
+
+Read-only incoming review identified shared-ledger interactions: parser table
+charges invalidate snapshot-only postjoin counts/tight compile caps in the
+frontend handoff. Owners supplied an exact input subtotal and finite reserved
+compilation allowance successor; joint runtime is pending. Type-only split also
+requires explicit defining-module imports because Tower has no implicit re-export.
+D1 reported missing WorkBuffer/work_vector imports before adopting the split.
+No incoming production edit has been silently folded into1a64007 evidence.

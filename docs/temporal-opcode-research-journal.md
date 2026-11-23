@@ -49138,3 +49138,126 @@ not a separate counter/constant evaluator. Counts are observed vector capacity,
 not allocator calls, retained global memory or RSS. Previous32/64 query receipts
 remain valid only for their smaller fixture. New smallest query unit and joined
 runtime must pass before current evidence; owner3x pass does not substitute D1.
+
+### D1 retained-buffer/defined-order validation at1a64007 (2026-11-23)
+
+Frozen main1a64007 contains v3 buffers3b03/helper07e, defined-order8ee87576,
+corrected browser captureeb0aaac3, query storage741b6cb4 and earlier stronger
+storage/bounded trace/aggregate edges. Canonical Docker publicpin9653, LLVM19.1.1,
+jobs1, cpuset0,2, unchanged powersave, warm filesystem/fresh processes. No private
+bootstrap or new syntax. Full commands/raw errors/times/hashes are retained in
+build/d1_ecs/buffer_defined_order. Logs include the prior467/2ec failures; no failed
+step was converted into a pass by a later group result.
+
+After the eleven unaffected predecessor units and corrected capture unit, v3
+smallest units passed: vector3.59wall/3.54CPU/179700KiB, direct fixture2.90/2.84/
+186880, faults2.73/2.69/184624, profile5.89/5.71/188056, query3.08/3.02/185496;
+full generated execution-main11.01/10.75/340180. Canonical native2steps passed
+7.01/6.84/299252; eight targets17steps passed55.72/54.46/350692. New compiler
+SHA30fd58bd9a61e4317846e3c0e2411b8f15de735c9b8c02950732ecb360a0c97b
+and complete44-file resource tree are preserved in native_package_1a64007.
+Exact diff against86bf's42 resources consists only of work_buffer/work_vector;
+both match v3 source. This unpublished development package is not a release pin.
+
+Native runtime results, all0swaps:
+
+| Check | Wall/CPU seconds | Peak RSS KiB | Evidence |
+| --- | --- | --- | --- |
+| Stronger storage | .44/.42 |93052|100 active-grammar resets, provenance/fault/cleanup assertions pass. |
+| Large query smoke | .15/.14 |62224|32/64 and serial/native worker settings pass;64KiB private frames peak131072 live bytes,131136 memory and initialized capacity each,256 metadata bytes,5 observed growth events. These are capacities, not allocator calls/RSS. |
+| Bounded parser | .04/.02 |51444|Measured-prefix fault sweep and valid trace pass on intentional serial fault transport. |
+| Aggregate stages |53.35/59.44|333756|Nested/global/local/empty captures, immutable diagnostics, canonical and workers pass. |
+| Full known bindings |135.36/151.66|335356|Original compile admission, defined1,1,7 graph/cache/canonical/worker comparisons and strict demanded initializer rejection pass; all other negatives retained. |
+
+Direct buffer and serial faults print exact0; three shared runs pass real4pthread
+barrier, cancellation, denied growth and retained-until-disposal assertions.
+Independent initialized-call source and noncall control pass24 executions:
+before86bf/current30fd, jobs1/2, CLI graph, LLVM-normalized fast and native
+executables all produce1,1,7. New capture fixture also passes native CLI32/64
+both engines. This closes defined ordering observations, without prescribing any
+result for the separately preserved raw uninitialized programs.
+
+Browser transport initially failed before compilation with ERR_MODULE_NOT_FOUND:
+its imported helper path was absent/unmounted in Docker. Original observer/log/
+exit1 were retained. Retry reused existing own compiler-fixtures transport and
+copied the exact B1 wasm8bcc91ca into the own mounted build directory; all six
+imported language/original-capture files compare identical to B1 receipt. Six
+executions (32/64 graph, direct fast, canonical fast) produce0 and canonical bytes
+agree.9.08wall,172560KiB. This is current frontend WASI evidence; new LLVM reactor,
+threaded browser and final release checks remain open. No old backend substituted.
+
+Current v3 ASan and TSan were built using existing Tower IR instrumentation rules
+in separate owned stage-coherent caches. Actual object hook symbols, instrumented
+IR/object hashes and source freeze were checked, not merely configured manifests.
+ASan build19.52wall/19.13CPU/196340KiB; TSan20.61/20.17/196292. ASan normal/shared/
+serial faults and TSan normal/shared all pass, plus ten additional shared runs
+per mode. Each shared execution covers three four-thread scenarios. Exact0stdout,
+empty sanitizer stderr, leaks enabled, halt-on-error; no intentional invalid probe.
+Scoped sanitizer container retains its documented seccomp setting for TSan startup.
+This is standalone API coverage, not whole compiler/system LLVM instrumentation,
+source-language UBSan/browser/other-host coverage or universal race proof.
+
+Equivalent v3 buffer microbenchmark:262144 replacements, initialized4096-byte
+copy, full checksum/all-byte oracle,1/2 workers, one warmup plus three baseline/
+budget pairs, new process each sample. The registered target was actually run
+with budget1. Timed work excludes setup/postjoin checks/disposal.
+
+| Mode/workers | Median internal wall ms | Median CPU ms | Observed overlap |
+| --- | --- | --- | --- |
+| baseline1 |55.460|53.930|1|
+| budget1 |89.490|86.543|1|
+| baseline2 |35.618|53.092|2|
+| budget2 |176.170|283.511|2|
+
+Accounting adds about61% serial wall cost; budget2 is about4.95x baseline2 and
+1.97x budget1 despite real overlap. This corroborates serious shared-gate
+contention. Raw baseline2's1.56x micro speedup does not establish compiler scaling.
+All measuredprocess swaps0; GNUtime peak1480–1872KiB. Physical allocations are
+262144+workers, retained payload4096/8192B, charged peak12352/24704B and separate
+ledger320B. Requested header/payload excludes ledger/private allocator/RSS.
+A2's common-lifetime chunk approach and real geometric-growth compiler callers
+need their own before/after evidence; no whole-memory-budget completion claim.
+
+Common compiler profiles also pass24 output and8 canonical byte comparisons,
+using frozen known_bindings86lines/body_continuation771lines, public-built86bf
+before/30fd after, x64 --interpret, jobs1/2, three paired samples. Medians:
+
+| Input/jobs | Before wall/CPU s | After wall/CPU s | Before RSS KiB range | After RSS KiB range |
+| --- | --- | --- | --- | --- |
+| known/1 |2.94/2.91|2.06/2.03|171524–171696|171524–171560|
+| known/2 |3.33/3.91|3.59/3.96|183820–183952|182500–184208|
+| body/1 |2.14/2.11|2.14/2.12|180848–180968|181052–181156|
+| body/2 |3.49/4.03|3.37/3.74|195844–196596|195600–196556|
+
+Serial known includes a before5.33s/5.17CPU outlier; it is retained, not attributed
+to hibernation or called a speedup. Known2 medianwall increases7.8% with1.3% median
+CPU change while body2 improves; three pairs and unrecorded pertrial frequency
+are insufficient for causal attribution. Both current jobs2 workloads remain
+slower than jobs1. Investigating the touched allocator boundary with objdump shows
+the same compiler_buffer_allocate machine instructions/call sequence before/after
+at shifted addresses, with no added helper call. This does not exclude other
+layout/scheduling effects. Further caller profiles/scaling remain required;
+no excessive RSS growth or swap appeared in these samples.
+
+Transport re-audit confirms current frontend-tests links runtime-instrumented+
+work_serial: its parser/storage/unit results are serial functional/fault evidence.
+LR and execution targets use the production work_dispatch+work_linux member,
+and LR main rejects unavailable threading. Standalone shared buffer additionally
+asserts distinct pthreads/barriers. No withdrawal of unrelated CLI profile results
+or inference of overlap merely from worker settings.
+
+Reconfirmed earlier b23 numeric fix with36 direct checks on publicpin9653 and
+current30fd at jobs1/2: bare i8/i16/u16/u64 sources reject missing imports; precise
+Foundation variants reach unchanged range errors; unsigned negative zero prints0.
+Diagnostics/stdout are byte-identical across workers. Numeric imports were already
+implemented/measured, not newly absent. Exact existing narrow patchf9187 exported
+for the coordinator's older A1 snapshot; no oracle weakening. Error-path timings
+are not equivalent-work speed comparisons.
+
+All processes drained and final source hashes passed before normal lock release
+to D2. The normal container retains two old init-owned defunct Node entries, no
+live work; sanitizer container is idle.139GiB free,9.7GiB available,6.2GiB existing
+swap. Goal/publication remains active/unrequested. Incoming parser/frontend and
+interpreter physical-budget changes, type-only import split, frontend/module
+profile registration, full42 selection, current coherent instrumentation and final
+public-bootstrap/native/browser/generation/leased atomic publication remain work.
