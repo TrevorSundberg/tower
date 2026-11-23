@@ -422,6 +422,14 @@ retry. Sweep bounds and retained test arrays derive from each successful run's
 allocation count. This uses the single-owner fault allocator; real concurrency
 is checked separately by `tower-lr-work-tests RESOURCE_ROOT lr` and unit profiles.
 
+`tower-storage-tests RESOURCE_ROOT diagnostic-faults` selects the diagnostic
+construction oracle with the same single-owner allocator. At both target widths
+it denies every observed allocation boundary for plain and generic-trace
+diagnostics, checks physical budget denial, preserves the explicit source offset
+when generated spans differ, and verifies private current/scope restoration.
+Retained semantic and resource failures reject later declaration admission without
+another allocation or diagnostic. This selector needs no grammar bootstrap run.
+
 Formatter fixtures now run in Tower. Configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.

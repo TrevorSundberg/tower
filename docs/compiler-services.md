@@ -472,6 +472,13 @@ failed state and the first offset survive an empty diagnostic. Constructor failu
 moves its counted owner/grant to the invocation without allocating another copy.
 Runtime driver/IDE and invocation callbacks use the same text operations.
 
+Semantic diagnostic construction binds private scratch to the explicit source
+node for its duration and restores the lexical current node on every exit. A
+resource denial while constructing that message retains the same source offset,
+including when a generated Foundation span differs. Already terminal declaration
+admission returns without allocating or inventing a new `Memory` receipt from a
+checked append's failure result. Plain diagnostics need no trace scratch list.
+
 `execution_package_encode` and `bytecode_encode` return `WorkBudgetError` and take
 initialized `work_vector(u8)` output owners. The old output remains live while a
 complete replacement is admitted and survives every failed request. Encoding

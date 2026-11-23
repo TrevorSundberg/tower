@@ -814,15 +814,30 @@ fn sem_instantiation_use(c: SemanticContext*, n: void*): void* {
     return use;
 }
 
-fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
+export fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     if !sem_ok(c) {
         return;
     }
     var step3 = sem_offset(c, n);
     c.program.error_offset = step3;
-    var seen: vector(void*)* = sem_list(c);
-    if seen == null { return; }
+    // Every allocation below constructs this diagnostic, including its trace.
+    // Bind private scratch to its source, then restore the lexical owner even
+    // on denial. Generated Foundation spans need not equal this source span.
+    var current = c.current;
+    c.current = n;
+    defer {
+        c.current = current;
+        if c.program.resource.error != WorkBudgetError.None {
+            c.program.resource.offset = step3;
+            c.program.error_offset = step3;
+        }
+    }
     var use: void* = sem_instantiation_use(c, n);
+    var seen: vector(void*)* = null;
+    if use != null {
+        seen = sem_list(c);
+        if seen == null { return; }
+    }
     loop {
         if !(sem_ok(c) && use != null && seen.length < 8 && !sem_has(seen, use)) {
             break;

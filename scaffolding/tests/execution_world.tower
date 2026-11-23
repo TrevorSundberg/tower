@@ -78,13 +78,22 @@ fn execution_input_normalization_trial(width: u32, foreign_modules: void*): void
     var released: WorkBudgetSnapshot = default;
     execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
         && released.live == baseline.live, "Denied input descriptors retire every grant");
+    // Measure the actual rejected session owner, including the physically
+    // charged root entity. This control needs no normalization buffer.
+    execution_check(!execution_session_compile_sources_world(&session, world, &sources[1], 1, width, foreign_modules)
+        && session.program.resource.error == WorkBudgetError.Invalid
+        && execution_text(&session.error, sem_resource_message(WorkBudgetError.Invalid)),
+        "Input normalization control retains the same frontend rejection");
+    var rejected: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &rejected), "Rejected session owner baseline");
+    execution_session_close(&session);
     execution_check(!execution_session_compile_sources_world(&session, world, &sources[0], count, width, foreign_modules)
         && session.program.resource.error == WorkBudgetError.Invalid && session.program.resource.offset == 0
         && session.machine.failed && session.machine.done && session.machine.steps == 0 && !session.started
         && execution_text(&session.error, sem_resource_message(WorkBudgetError.Invalid)),
         "Admitted empty input preserves the exact foreign-world rejection");
-    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes + session.error.reservation.bytes
-        && released.live == baseline.live + (session.error.reservation.active ? 1 : 0), "Frontend failure releases normalized input descriptors");
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == rejected.used_bytes
+        && released.live == rejected.live, "Frontend failure releases normalized input descriptors");
     execution_session_close(&session);
     execution_session_close(&warm);
     execution_check(compiler_world_dispose(world), "Input fixture world drains");

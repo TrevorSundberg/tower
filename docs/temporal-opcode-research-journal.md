@@ -85407,3 +85407,73 @@ this review, and its c20 budget defect does not deny a subsequent fix. Final
 checks are documentation/path/history checks only; no compiler input was rebuilt.
 
 B2 publication closure: complete ef40e4dc history (including D2 LR interning) merged and pushed normally as b210b449. Required affected parser-node rebuild/relink2 actions passes20.274wall/15.125CPU/740636KiB; inference CTest workers1/4 passes2/2. D2 does not change the diagnosed scratch lookup; the incomplete latest-main self-hosting check remains pending L2's efficient ownership lookup, with exact earlier b21c13c7 sample identity retained. No repeat of the slow check or the frozen complete generation matrix. All child jobs drained and working tree clean before this documentation receipt. Complete frozen packages/provenance remain unchanged; no public pin or Pages deployment.
+
+L1 diagnostic origin repair after adad70a (2026-11-23).
+Required pull preserved complete36fe448 as257b049; no surviving owned jobs.
+The actual predecessor binary was traced with GDB before edits. An exported
+sem_resource_record breakpoint alone missed the inlined write. A hardware
+watchpoint on the actual SemanticProgram resource field showed None->Memory in
+sem_declaration_add_result immediately after sem_fail retained the duplicate
+parameter message. The intended node and current function were distinct, but
+no scratch failure occurred in that message construction. Thus ROOT's proposed
+sem_fail scratch-owner mismatch was not the cause of this specific ordinary
+fixture. It is a separate denial boundary now covered and repaired.
+
+The caller now stops admission on an already-failed context and preserves the
+checked append producer's typed cause instead of inventing Memory. sem_fail
+scopes private current to its explicit node, restores it with defer on every
+exit, and attributes any failure constructing this diagnostic to its original
+source offset, even when a generated Foundation start differs. The initial
+sem_ok guard preserves every earlier receipt. Plain messages no longer allocate
+an unused trace list. No execution consumer preference or expected offset was
+changed; Memory/Capacity remain observable. No sem_node/sem_create migration or
+B1 scratch-registry lookup change is included.
+
+New Tower diagnostic-faults selector uses the existing single-owner allocator:
+plain/generic-trace cases at both widths, each observed physical allocation gate,
+full budget denial, final text failure, prior retained semantic/resource failure,
+exact source offset, current/scope restoration, no second diagnostic allocation,
+no later declaration admission and final zero owners/grants. Only the two actual
+producer entry points become externally callable for that fixture; no data layout
+or browser API changes. The existing execution_world normalized-input oracle now
+compares an equivalent rejected session, including A2's charged live root entity,
+rather than assuming only the diagnostic has retained bytes. Its exact error,
+no-replay checks and final zero-grant teardown remain.
+
+Preserved failures: diagnostic_origin_after rejected fixed-array foreach under
+the public predecessor (fixture now derives loop bounds from array/type sizes).
+diagnostic_origin_checked aborted because the fixture accessed a deferred generic
+body; debugger identified parser_match_create(null), fixed by using the already
+cloned header with verified real origin. Its GNU time Exit status0 does not make
+the signal6 run pass. diagnostic_origin_final passed all diagnostic denials and
+the original semantic oracle, then exposed the stale execution_world accounting
+assumption. Only that changed test target was rebuilt; successful denial evidence
+was reused. All three failures and debugger logs remain in external L1/logs.
+
+Final diagnostic denial PASS actualexit0:0.01wall/0.01CPU seconds/51520KiB.
+Core PASS12.98wall/14.63CPU/343584KiB; query-smoke PASS0.31/0.36/104232.
+Shared-Wasm changed closure PASS74.20/101.66/869128 using existing WASI SDK34
+threads cache and checked-in public bootstrap, max2 outer/inner compilerjobs1.
+Node21.7.3 shared-memory package transport PASS5/5, zero skips,4.015wall/6.375CPU/
+272531456bytes peak. Four worker slots are transport configuration, not evidence
+of browser isolation or package-test overlap. No browser matrix or sanitizer run.
+
+Matched healthy four-unit native sample, n=1 per workers1/4, same frozen resources
+and canonicalhash17697577322696030917. Whole-process wall/CPU/peakRSSKiB:
+workers1 before5.18/5.16/245848 -> after5.24/5.12/245380;
+workers4 before2.54/9.11/624544 -> after2.28/8.02/622716.
+Internal request wall5.127->5.066s and2.425->2.192s; actual outer peaks1/4 with
+four distinct overlapping threads. Retained bytes66560768/66549640 unchanged;
+declared peak156659082 unchanged serial,425329103->424896085 parallel. These
+limited controls show no meaningful regression claim beyond this sample; they
+do not replace the earlier storage batch's residual isolated Fast8% observation.
+
+Final pre-reconciliation towerc SHA256 b573b0387fc82f24d921bcb3e4b6d38035ca8c255733bb618e4184484383eaf4;
+shared-Wasm662c9a8aeecfa6b57b90047846cfe8632d6d1c2c29c668e96d25090a4d1303cf.
+Full manifests, prior failed receipts and timings: external L1/logs/diagnostic_origin_*
+and L1/diagnostic_origin_receipt.json. Sources remained frozen during each build.
+Legacy semantic presentation vectors, unchecked formatter callers, foreign/host
+JSON/transport and IDE descriptors retain the earlier explicit limits; this is
+not a general presentation migration. ROOT owns integrated instrumentation and
+release/publication. All owned jobs drained; todo preserved; normal main push
+follows reconciliation. No deployed runtime or bootstrap-pin claim.
