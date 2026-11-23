@@ -41,12 +41,14 @@ fn bi_narrow_memory(type: void*): bool {
 }
 
 fn bi_memory_load(c: BackendImport*, address: void*, type: void*): void* {
+    if backend_failed(c.backend) { return null; }
     if bi_narrow_memory(type) {
         var width = LLVMGetIntTypeWidth(type);
         var count = width + 7;
         count = count / 8;
         var result = bi_const(c, 7, 0);
         for(var i: u32 = 0; i != count; i++) {
+            if backend_failed(c.backend) { return null; }
             var at = bi_offset(c, address, bi_const(c, 8, convert(u64, i)));
             var byte = bi_cast(c, bi_load(c, at, 5), 7, false);
             var shift = i *8;
@@ -59,6 +61,7 @@ fn bi_memory_load(c: BackendImport*, address: void*, type: void*): void* {
 }
 
 fn bi_memory_store(c: BackendImport*, address: void*, value: void*, type: void*): void {
+    if backend_failed(c.backend) { return; }
     if bi_narrow_memory(type) {
         var width = LLVMGetIntTypeWidth(type);
         var count = width + 7;
@@ -66,6 +69,7 @@ fn bi_memory_store(c: BackendImport*, address: void*, value: void*, type: void*)
         value = bi_cast(c, value, 7, false);
         var i: u32 = 0;
         loop {
+            if backend_failed(c.backend) { return; }
             if i == count {
                 return;
             }
@@ -81,6 +85,7 @@ fn bi_memory_store(c: BackendImport*, address: void*, value: void*, type: void*)
 }
 
 fn bi_mask(c: BackendImport*, value: void*, type: void*): void* {
+    if backend_failed(c.backend) { return null; }
     if LLVMGetTypeKind(type) == 8 {
         var width = LLVMGetIntTypeWidth(type);
         var scalar = bi_scalar(c, type);
@@ -112,6 +117,7 @@ fn bi_mask(c: BackendImport*, value: void*, type: void*): void* {
 }
 
 fn bi_signed(c: BackendImport*, value: void*, type: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var width = LLVMGetIntTypeWidth(type);
     value = bi_cast(c, value, 7, false);
     if !(width == 64) {
@@ -124,11 +130,13 @@ fn bi_signed(c: BackendImport*, value: void*, type: void*): void* {
 }
 
 fn bi_gep(c: BackendImport*, instruction: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var value = bi_value(c, LLVMGetOperand(instruction, 0));
     var type = LLVMGetGEPSourceElementType(instruction);
     var count = LLVMGetNumOperands(instruction);
     var i: i32 = 1;
     loop {
+        if backend_failed(c.backend) { return null; }
         if i == count {
             return value;
         }
@@ -165,14 +173,19 @@ fn bi_gep(c: BackendImport*, instruction: void*): void* {
 }
 
 fn bi_value(c: BackendImport*, value: void*): void* {
-    var entity = backend_find(&c.values, value);
+    if backend_failed(c.backend) { return null; }
+    var entity = bi_find(&c.values, value);
     if entity != null {
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         if n.kind == KFunction {
             var reference = bi_node(c, KFunctionReference, SFunction);
-            var result = sem_get(reference);
+            var result = bi_get(c, reference);
+            if result == null { return null; }
             result.binding = entity;
-            result.type = *bi_function_type(c, &n.type, &n.parameters);
+            var type = bi_function_type(c, &n.type, &n.parameters);
+            if type == null { return null; }
+            result.type = *type;
             return bi_cast(c, reference, BackendImportPointer, true);
         }
         if n.global {
@@ -219,7 +232,8 @@ fn bi_value(c: BackendImport*, value: void*): void* {
         if cast {
             var operand = bi_value(c, LLVMGetOperand(value, 0));
             if scalar == BackendImportPointer {
-                var input = sem_get(operand);
+                var input = bi_get(c, operand);
+                if input == null { return null; }
                 var integer = input.type.pointers == 0;
                 if integer {
                     operand = bi_cast(c, operand, 8, false);
@@ -235,19 +249,22 @@ fn bi_value(c: BackendImport*, value: void*): void* {
 }
 
 fn bi_select(c: BackendImport*, condition: void*, yes: void*, no: void*, scalar: u32): void* {
+    if backend_failed(c.backend) { return null; }
     var result = bi_decl(c, scalar);
     var outer = c.block;
+    defer { c.block = outer; }
     var entity = bi_if(c, condition);
-    var branch = sem_get(entity);
+    var branch = bi_get(c, entity);
+    if branch == null { return null; }
     c.block = branch.body;
     bi_assign(c, bi_ref(c, result), yes);
     c.block = branch.otherwise;
     bi_assign(c, bi_ref(c, result), no);
-    c.block = outer;
     return bi_ref(c, result);
 }
 
 fn bi_compare(c: BackendImport*, predicate: u32, a: void*, b: void*, type: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var op: u32 = 8;
     if predicate >= 38 {
         if LLVMGetIntTypeWidth(type) == 32 {
@@ -283,6 +300,7 @@ fn bi_compare(c: BackendImport*, predicate: u32, a: void*, b: void*, type: void*
 }
 
 fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: void*): void* {
+    if backend_failed(c.backend) { return null; }
     // Totalized LLVM shifts: out-of-range poison may choose any value. Never
     // introduce a trap into speculative, subsequently unused LLVM operations.
     var width = LLVMGetIntTypeWidth(type);
@@ -318,16 +336,18 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
     var power = bi_decl(c, 7);
     bi_assign(c, bi_ref(c, power), bi_const(c, 7, 1));
     for(var i: u32 = 0; i != 6; i++) {
+        if backend_failed(c.backend) { return null; }
         var bit = bi_pow2(i);
         var test = bi_binary(c, 5, b, bi_const(c, 7, bit), 7);
         test = bi_binary(c, 9, test, bi_const(c, 7, 0), 2);
         var outer = c.block;
-        var branch = sem_get(bi_if(c, test));
+        defer { c.block = outer; }
+        var branch = bi_get(c, bi_if(c, test));
+        if branch == null { return null; }
         c.block = branch.body;
         var factor = bi_const(c, 7, bi_pow2(convert(u32, bit)));
         var product = bi_binary(c, 2, bi_ref(c, power), factor, 7);
         bi_assign(c, bi_ref(c, power), product);
-        c.block = outer;
     }
     var left = op == 20;
     if left {

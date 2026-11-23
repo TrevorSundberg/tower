@@ -3,6 +3,8 @@ import lr_analysis;
 import lr_states;
 import .library.vector;
 import lr_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 
 // Build LALR lookahead dependencies from LR(1) closures of LR(0) kernels.
 // Grammar order determines indices, never conflict priority or a shift bias.
@@ -467,20 +469,140 @@ export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
 }
 
 export fn lr_states_lalr_result(value: LRStates*, constructs: bool): WorkBudgetError {
+    return lr_states_lalr_owned_result(value, constructs, null);
+}
+
+fn lr_lalr_item_graph_safe(value: LRStates*): bool {
+    if !value.analysis.suffix_ready { return false; }
+    // The established range parser shifts through the symbols present in each
+    // individual kernel closure. With overlapping labels, merging those
+    // contexts first can add a contained-label path. Keep that exact algorithm
+    // for range states; disjoint labels have a unique, context-independent goto.
+    foreach(var state in &value.states) {
+        var present = false;
+        var last: u32 = 0;
+        foreach(var &edge in &state.edges) {
+            var symbol = &value.analysis.symbols[edge.symbol];
+            if symbol.nonterminal != lr_none() { continue; }
+            if present && symbol.first <= last { return false; }
+            present = true;
+            last = symbol.last;
+        }
+    }
+    return true;
+}
+
+// LR(0) already contains each dotted production once per state. Build the same
+// lookahead fixed point through these items instead of reconstructing an LR(1)
+// closure for every kernel and flattening its transitive links. Reachability is
+// separate from lookahead: every kernel is a source, but an empty, nonnullable
+// FIRST suffix must not activate otherwise unreachable dot-zero productions.
+fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget: WorkBudget*, error: WorkBudgetError*): LRPropagation* {
+    var count = lr_lalr_cache_count(value, error);
+    if *error != WorkBudgetError.None { return null; }
+    var graph = lr_states_propagation_begin_result(value, constructs, error);
+    if graph == null { return null; }
+    var unpublished = graph;
+    defer lr_propagation_destroy(unpublished);
+    var maximum: usize = 0;
+    foreach(var state in &value.states) {
+        if state.items.values.length > maximum { maximum = state.items.values.length; }
+    }
+    var stride = sizeof(usize) + sizeof(u8);
+    if maximum > ~convert(usize, 0) / stride { *error = WorkBudgetError.Invalid; return null; }
+    var scratch: WorkBuffer = default;
+    defer work_buffer_dispose(&scratch);
+    *error = work_buffer_resize(&scratch, budget, maximum * stride, 0);
+    if *error != WorkBudgetError.None { return null; }
+    var pending = bits(usize*, scratch.data);
+    var active = scratch.data + maximum * sizeof(usize);
+    for(var state_index: usize = 0; state_index < value.states.length; state_index++) {
+        var state = value.states.data[state_index];
+        fill(active, 0, state.items.values.length * sizeof(u8));
+        var queued: usize = 0;
+        for(var i: usize = 0; i < state.items.values.length; i++) {
+            if lr_kernel(value.analysis, &state.items.values.data[i]) { active[i] = 1; pending[queued++] = i; }
+        }
+        for(var at: usize = 0; at < queued; at++) {
+            var index = pending[at];
+            var item = state.items.values.data[index];
+            var source = state.base + index;
+            var rule = &value.analysis.rules[item.rule];
+            if item.position >= rule.count { continue; }
+            var symbol_index = rule.begin + item.position;
+            var symbol = &value.analysis.symbols[symbol_index];
+            var terminal = symbol.nonterminal == lr_none();
+            var low: usize = 0;
+            var high = state.edges.length;
+            while low < high {
+                var middle = low + (high - low) / 2;
+                var candidate = &value.analysis.symbols[state.edges.data[middle].symbol];
+                var before = terminal ? candidate.nonterminal != lr_none() || candidate.first < symbol.first
+                    : lr_symbol_less(value.analysis, state.edges.data[middle].symbol, symbol_index);
+                if before { low = middle + 1; } else { high = middle; }
+            }
+            var advanced = item; advanced.position++;
+            for(var i = low; i < state.edges.length; i++) {
+                var edge = &state.edges.data[i];
+                var candidate = &value.analysis.symbols[edge.symbol];
+                if terminal {
+                    if candidate.nonterminal != lr_none() || candidate.first > symbol.last { break; }
+                    if candidate.last > symbol.last { continue; }
+                } else { if candidate.nonterminal != symbol.nonterminal { break; } }
+                var destination = lr_lalr_index(value, edge.state, &advanced);
+                *error = lr_propagation_edge_result(graph, source, destination);
+                if *error != WorkBudgetError.None { return null; }
+            }
+            if terminal { continue; }
+            var suffix: LRSuffix = default;
+            suffix.nullable = true;
+            if item.position + 1 < rule.count {
+                suffix = value.analysis.suffix.entries[value.analysis.suffix.bases[item.rule] + item.position];
+            }
+            if suffix.error != WorkBudgetError.None { *error = suffix.error; return null; }
+            if suffix.count == 0 && !suffix.nullable { continue; }
+            foreach(var production in &value.analysis.nonterminals[symbol.nonterminal].productions) {
+                var next: LRItem = {rule: production, position: 0, first: 0, last: 0};
+                var destination = lr_lalr_index(value, state_index, &next);
+                if destination == lr_none() { *error = WorkBudgetError.Invalid; return null; }
+                if suffix.nullable {
+                    *error = lr_propagation_edge_result(graph, source, destination);
+                    if *error != WorkBudgetError.None { return null; }
+                }
+                for(var i: usize = 0; i < suffix.count; i++) {
+                    var range = &value.analysis.suffix.ranges.data[suffix.begin + i];
+                    *error = range.first == LRTokenPropagation ? lr_propagation_edge_result(graph, source, destination)
+                        : lr_propagation_seed_result(graph, destination, range.first, range.last);
+                    if *error != WorkBudgetError.None { return null; }
+                }
+                var local = destination - state.base;
+                if active[local] == 0 { active[local] = 1; pending[queued++] = local; }
+            }
+        }
+    }
+    unpublished = null;
+    return graph;
+}
+
+fn lr_states_lalr_owned_result(value: LRStates*, constructs: bool, budget: WorkBudget*): WorkBudgetError {
     var error = WorkBudgetError.None;
     var count = lr_lalr_cache_count(value, &error);
     if error != WorkBudgetError.None { return error; }
-    var cache = alloc(LRKernelClosure*, count);
-    if cache == null {
-        return WorkBudgetError.Memory;
+    // Preserve standalone incomplete analysis and context-dependent range goto.
+    if !lr_lalr_item_graph_safe(value) {
+        var cache = alloc(LRKernelClosure*, count);
+        if cache == null { return WorkBudgetError.Memory; }
+        fill(cache, 0, count * sizeof(LRKernelClosure*));
+        error = lr_states_lalr_cached_result(value, constructs, cache, count);
+        for(var i: usize = 0; i < count; i++) { lr_kernel_closure_destroy(cache[i]); }
+        free(cache);
+        return error;
     }
-    fill(cache, 0, count *sizeof(LRKernelClosure*));
-    error = lr_states_lalr_cached_result(value, constructs, cache, count);
-    for(var i: usize = 0; i < count; ++i) {
-        lr_kernel_closure_destroy(cache[i]);
-    }
-    free(cache);
-    return error;
+    var graph = lr_states_propagation_items_result(value, constructs, budget, &error);
+    if graph == null { return error; }
+    defer lr_propagation_destroy(graph);
+    error = lr_propagation_solve_result(graph);
+    return error != WorkBudgetError.None ? error : lr_lalr_actions_result(value, graph);
 }
 
 export fn lr_states_action_count(value: LRStates*, index: usize): usize {

@@ -2,6 +2,8 @@ import tower;
 import source_api;
 import session;
 import text;
+import context;
+import import_bindings;
 import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.component_kinds;
@@ -76,12 +78,27 @@ fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* 
 fn backend_source_import(source: BackendSource*, program: SemanticProgram*, width: u32, optimize: bool, environment: void*): u8* {
     var imported: SemanticProgram;
     var world = compiler_node_world(program.root);
-    var root = entity_create(bits(EntityStore*, compiler_world_store(world)));
-    if root == null { return backend_session_failure(source.backend, "Unable to allocate compiler root", 0); }
+    var error: WorkBudgetError;
+    var root = entity_create_result(bits(EntityStore*, compiler_world_store(world)), &error);
+    if root == null {
+        backend_resource_fail(source.backend.backend, error);
+        return backend_session_failure(source.backend, backend_error(source.backend.backend), source.backend.backend.error_offset);
+    }
     semantic_initialize(&imported, bits(void*, root), width);
     var backend = source.backend;
+    if imported.resource.error != WorkBudgetError.None {
+        backend_resource_fail(backend.backend, imported.resource.error);
+        backend_source_program_close(&imported);
+        return backend_session_failure(backend, backend_error(backend.backend), backend.backend.error_offset);
+    }
     var result = backend_session_response(backend);
-    var preserve = type_object_program(program.root);
+    var preserve = false;
+    error = type_object_program_result(program.root, compiler_world_work_budget(world), &preserve);
+    if error != WorkBudgetError.None {
+        backend_resource_fail(backend.backend, error);
+        backend_source_program_close(&imported);
+        return backend_session_failure(backend, backend_error(backend.backend), backend.backend.error_offset);
+    }
     if preserve || backend_session_import(backend, program.root, program.functions.data,
     program.functions.length, width, optimize, imported.root) {
         var formatted: FormatResult = default;

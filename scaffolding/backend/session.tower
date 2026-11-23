@@ -13,6 +13,7 @@ import text;
 import .compiler.foundation_types;
 import .compiler.execution_profiles;
 import .library.vector;
+import .library.work_budget_types;
 
 // Backend service over validated Foundation entities. Source parsing and worker/
 // CLI scheduling belong to callers. Results own their buffers until reset/close.
@@ -32,8 +33,8 @@ struct BackendSession {
 
 extern fn semantic_format_type(type: FoundationType*, output: vector(u8)*): void;
 
-fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
-    backend_text(out, "\"");
+fn backend_json(out: vector(u8)*, text: u8*, length: usize): bool {
+    if !backend_text(out, "\"") { return false; }
     var i: usize = 0;
     var digits: u8* = "0123456789abcdef";
     for(; i != length; i++) {
@@ -43,25 +44,23 @@ fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
             escape = true;
         }
         if escape {
-            backend_text(out, "\\");
-            backend_text_append(out, &text[i], 1);
+            if !backend_text(out, "\\") || !backend_text_append(out, &text[i], 1) { return false; }
         } else {
             if byte < 32 {
-                backend_text(out, "\\u00");
+                if !backend_text(out, "\\u00") { return false; }
                 var high = convert(usize, byte) / 16;
                 var low = convert(usize, byte) % 16;
-                backend_text_append(out, &digits[high], 1);
-                backend_text_append(out, &digits[low], 1);
+                if !backend_text_append(out, &digits[high], 1) || !backend_text_append(out, &digits[low], 1) { return false; }
             } else {
-                backend_text_append(out, &text[i], 1);
+                if !backend_text_append(out, &text[i], 1) { return false; }
             }
         }
     }
-    backend_text(out, "\"");
+    return backend_text(out, "\"");
 }
 
-fn backend_json_text(out: vector(u8)*, text: u8*): void {
-    backend_json(out, text, backend_length(text));
+fn backend_json_text(out: vector(u8)*, text: u8*): bool {
+    return backend_json(out, text, backend_length(text));
 }
 
 export fn backend_session_create(runtime: u8*, length: usize): BackendSession* {
@@ -130,11 +129,11 @@ export fn backend_session_failure(s: BackendSession*, error: u8*, offset: usize)
     s.linker.output.length = 0;
     s.response.length = 0;
     s.response_fallback = null;
-    backend_text(&s.response, "{\"status\":\"error\",\"error\":");
-    backend_json_text(&s.response, error);
-    backend_text(&s.response, ",\"errorOffset\":");
-    backend_decimal(&s.response, convert(u64, offset));
-    backend_text(&s.response, "}");
+    if !backend_text(&s.response, "{\"status\":\"error\",\"error\":")
+        || !backend_json_text(&s.response, error)
+        || !backend_text(&s.response, ",\"errorOffset\":")
+        || !backend_decimal(&s.response, convert(u64, offset))
+        || !backend_text(&s.response, "}") { return backend_session_resource_failure(s); }
     return s.response.data;
 }
 
@@ -142,6 +141,17 @@ fn backend_session_resource_failure(s: BackendSession*): u8* {
     s.linker.output.length = 0;
     s.response.length = 0;
     s.response_fallback = "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
+    if s.backend != null {
+        if s.backend.resource_error == WorkBudgetError.Memory {
+            s.response_fallback = "{\"status\":\"error\",\"error\":\"Cannot allocate semantic storage\",\"resourceError\":\"Memory\"}";
+        }
+        if s.backend.resource_error == WorkBudgetError.Capacity {
+            s.response_fallback = "{\"status\":\"error\",\"error\":\"Semantic memory budget exceeded\",\"resourceError\":\"Capacity\"}";
+        }
+        if s.backend.resource_error == WorkBudgetError.Busy {
+            s.response_fallback = "{\"status\":\"error\",\"error\":\"Semantic worker admission failed\",\"resourceError\":\"Busy\"}";
+        }
+    }
     return s.response_fallback;
 }
 
@@ -171,7 +181,7 @@ export fn backend_session_begin_codegen(s: BackendSession*, source: u8*, length:
         backend_session_failure(s, "Unable to allocate backend storage", 0);
         return 0;
     }
-    if s.backend.error.length != 0 {
+    if backend_failed(s.backend) {
         backend_session_failure(s, backend_error(s.backend), 0);
         return 0;
     }
