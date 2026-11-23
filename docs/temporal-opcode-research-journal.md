@@ -82244,3 +82244,10 @@ producer and four immediate caller guards; no syntax/bootstrap adoption occurs.
 Remaining execution-kernel synthesis assertions and other worker caller closures
 are not claimed solved. A2 owns remaining stage callers, L2 known/capture
 admission, and ROOT final integrated sanitizer/bootstrap/browser/deployment gates.
+
+Second normal pushd8f1982 also raced with publication. Complete5c5a308 merged
+cleanly asc6419617; Fast code/ownership fixture remain identical to908515e.
+The affected semantics rebuild88933 plus core and constructor suites pass with
+empty stderr and unchanged source manifests (L1/logs/fast_storage_publish_retry2).
+Earlier function, CLI and matched-profile evidence keeps its recorded identity.
+No A2/semantic implementation edits, broad matrices or new performance claim.
