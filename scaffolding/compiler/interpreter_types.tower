@@ -3,6 +3,7 @@ import .library.vector;
 import .library.work_vector_types;
 import .library.work_budget_types;
 import foundation_types;
+import type_object_index_types;
 
 // Execution storage only; entity keys refer to the existing foundation nodes.
 // Ordered map entries and task arrays are derived execution indexes, not IR.
@@ -49,7 +50,7 @@ struct IMState {
     frames: work_vector(IMFrame);
     node_cache: vector(IMEntry);
     function_values: vector(void*);
-    type_values: vector(FoundationType);
+    type_values: TypeObjectIndex;
     // Borrowed from the root world before dispatch; outlives retained storage.
     // Null is the explicit standalone execution boundary.
     budget: WorkBudget*;
