@@ -40,6 +40,22 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U syntax_parser_template_read\n U compiler_world_type\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_alignment\n U im_foreign\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U fopen\n", "fopen");
+    symbol_case(BootstrapUnit.Interpreter, false,
+        " U compiler_buffer_alignment\n U compiler_buffer_allocate\n U compiler_buffer_allocation_size\n U compiler_buffer_free\n U compiler_node_world\n U compiler_world_bind_budget\n U compiler_world_work_budget\n U format_dispose\n U format_unsigned\n U foundation_execution_item\n U foundation_execution_reference\n U strcmp\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false,
+        " U compiler_world_create\n U compiler_world_create_workers\n U compiler_world_dispose\n U compiler_world_work_budget\n U entity_store_component_count\n U entity_store_count\n", null);
+    symbol_case(BootstrapUnit.Semantics, false,
+        " U compiler_unit_kernel\n U compiler_world_work_budget\n U compiler_world_worker_release\n U compiler_world_worker_reserve\n U frontend_module_root_world_size\n U type_object_abi_safe\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_world_work_budget_extra\n", "compiler_world_work_budget_extra");
+    symbol_case(BootstrapUnit.Semantics, false, " U compiler_world_worker\n", "compiler_world_worker");
+    symbol_case(BootstrapUnit.Bytes, false, " U compiler_buffer_allocate\n", "compiler_buffer_allocate");
+    symbol_case(BootstrapUnit.Host, false, " U compiler_world_work_budget\n", "compiler_world_work_budget");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U type_object_abi_safe\n", "type_object_abi_safe");
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_unit_kernel\n", "compiler_unit_kernel");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_clone_tree_result\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U compiler_clone_tree_result\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_clone_tree_result\n", "compiler_clone_tree_result");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_clone_tree_result_extra\n", "compiler_clone_tree_result_extra");
     symbol_case(BootstrapUnit.Semantics, false, " U frontend_module_position\n U syntax_completion_callable\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U work_signal_wait\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U work_signal_open\n", "work_signal_open");

@@ -1842,3 +1842,22 @@ compiler paths regress2.9%/3.7% and retain more RSS, while two workers remain sl
 than one. These integrated-source measurements and physical-ledger attribution
 are recorded without a general speedup claim. All owned jobs drained before
 D2 took the next slot; complete saved source/binary/resource identity remains0e544.
+
+### Clone-result union6b8355b review
+
+Verified complete root bundleaa7eaf7c, exact6b8355b head and sole published60741
+prerequisite. Integrated only after all0e544 jobs drained; no new Tower path,
+so census remains1,080/497direct. Three changed assigned fixture bodies reviewed:
+
+| Path / source6b8355b | Updated conclusions and evidence boundary |
+| --- | --- |
+| scaffolding/tests/generic_clone_storage.tower | Adds public synchronous clone outcomes: success at wide256/deep600, node quota versus first/growing stack Capacity, first allocation and later node Memory. Uses actual CloneFrame/CloneInitialFrames and compiler_buffer_allocation_size instead of magic word counts. Checks compatible wrapper, ordered/named children, source metadata, copied count, exact unchanged entity/component totals, retired frame grants and final physical buffer baseline. Staged failure indices0–4 cover frame/node/index/metadata allocations with existing hold-before-view-close and stage discard. Current owner serial evidence is separate; D1 merged run pending. Future budgeted entity constructors may change setup/grant boundaries and error classification, requiring exact fixture adaptation rather than weakened assertions. |
+| scaffolding/tests/frontend_modules.tower | Existing full regression entry now includes actual full-cache clone read/write Capacity denial after successful setup, old entry identity/count preservation, repeated failed-request rejection, exact owner/ledger restoration and successful unchanged cache reuse. Graph-owned partial cleanup includes dependencies even without a returned root. Reader setup occurs after occupancy in the read branch; flagged to B2 for forthcoming constructor accounting, not an observed failure on this closure. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Exact new observed physical-buffer/world-budget/callback imports are allowed only for owning compiler units; public clone-result restricted to ParserNodes/Semantics. Wrong-unit, prefix/suffix and forbidden native imports remain negative assertions. D2 owns checker policy and generation evidence. |
+
+The producer/consumer closure includes public clone resource results, node/attach
+Memory classification, matched module transaction and document-inspection null
+cleanup. Inspection-denial fixture remains L2-owned next work; positive editor
+checks alone are not failure coverage. README merge retained one copy of B1's
+runtime-profile paragraph plus every D1 registration and ledger paragraph.
+Earlier0e544 runtime receipts do not validate these new production inputs.

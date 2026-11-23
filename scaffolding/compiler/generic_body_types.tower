@@ -1,5 +1,15 @@
 import tower;
 import .library.work_budget_types;
+import .library.entity_types;
+
+// Internal clone storage layout, shared with exact allocation-boundary checks.
+struct CloneFrame {
+    source: Entity*;
+    destination: Entity*;
+    next: usize;
+}
+
+var CloneInitialFrames: usize = 16;
 
 // Internal worker arguments, borrowing canonical entities from one compiler world.
 struct GenericBodyCopy {
