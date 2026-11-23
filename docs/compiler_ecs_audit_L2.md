@@ -712,3 +712,23 @@ this failure; do not claim late generic-inspection denial or the remaining matri
 The original test-import linkage failure, corrected thin ABI, exact current
 hashes, timing/RSS and failed status are preserved in the journal. Final complete
 source instrumentation and public pin/deployment acceptance remain open.
+
+## Clone concurrency fixture follow-up on root0c8 / bb1a0af
+
+Reviewed the entire generic_clone_parallel.tower after D2's first actual
+two-worker interval-overlap failure. It still dispatches the production clone
+kernel through the existing pool with frozen input, private stages, access ranges,
+tickets and synchronized shared ledger. The admission barrier is outside the
+kernel timestamps. New reports preserve actual intervals and distinct thread IDs;
+the overlap rejection now follows stage/world/grant retirement. Calibration uses
+fully checked serial clones before admission, bounded by the existing expansion
+allowance, and never substitutes for measured overlap. No new compiler algorithm,
+queue, clock boundary or allocator instrumentation was introduced.
+
+Diagnostic-only2048-node baseline shows submillisecond kernels; the bounded
+calibration selected8192 nodes on this host in three complete query passes, with
+actual2/4-worker overlap, cancellation/failed-peer/stale-ticket coverage and exact
+metadata/cleanup. Frame peaks are unchanged; increased suite time/RSS and exact
+source/binary/log identities are in the journal. The original D2failure remains
+recorded. Crosshost/current instrumented validation is still required, and a
+passing finite sample cannot guarantee overlap under every scheduler delay.
