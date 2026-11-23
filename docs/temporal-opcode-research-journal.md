@@ -87033,3 +87033,118 @@ documentation; the full frozen scaffolding/build/bootstrap SHA256 list still
 matches and compiler3285cd9d is unchanged. Existing merged runtime evidence is
 reused, not rerun or relabeled for changed code. Normal main publication follows;
 ROOT retains gh-pages and final integrated runtime verification.
+
+## D2 normal/shared browser acceptance — frozen 2013ad28, 2026-11-23
+
+**Acceptance failed; builds and selected pool/transport checks passed.** Frozen
+published source2013ad28 uses the newly published capacity bootstrap
+`768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`;
+bootstrap manifest `5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857`.
+`build-bootstrap.sh` verified the complete checked-in package with the override
+unset. No private compiler, LLVM/cross reactor pack or generation build was used.
+The prior D2 suffix batch is already published and ROOT252b424a closes its
+selected merged native checks; its old local-publication blocker is historical.
+
+Deck Linux6.16.12-valve24.5, AMD Custom APU0932; actual host4cores/8threads,
+container restricted to CPUs0,2 (two distinct cores),8GiB memory+swap ceiling
+with no additional swap allowance. Powersave/background desktop activity;
+not an isolated/fixed-frequency benchmark. Node22.23.5, Playwright1.65.1,
+Chrome159.0.8154.6. SDK34 archive checksum passed and the cached archive was
+unpacked; its Clang is23.1.0-wasi-sdk, native runtime tools use LLVM19.1.1.
+The native cache was preserved; no browser CMake cache existed in this clone.
+Used documented direct CMake configurations, canonical `build/browser-wasi`
+and `build/browser-wasi-threads`, Release, IDE_TESTS=ON, LLVM/CROSS=OFF,
+COMPILER_JOBS=1; threads profile adds WORK_TESTS=ON and cmake/WasiThreads.cmake.
+One jobs1 target build per profile: portable tower-browser, then shared
+tower-browser/tower-work-tests. The existing link rule requests --threads=4;
+outer/compiler compilation was jobs1, linker overlap was not measured.
+
+| Operation (one run unless stated) | Result | Wall / CPU s | Maximum child RSS KiB |
+| --- | --- | --- | ---: |
+| Portable28-action build | PASS |175.71 /170.68|1047928|
+| Shared30-action build | PASS |170.53 /165.83|1043672|
+| Node test-ide.mjs | FAIL |20.15 /21.03|204356|
+| IDE diagnostic-name relink/run | same failure |20.83 /21.70|203096|
+| Five selected Node files |18 pass,9 fail,0 skips |2.77 /3.33|128752|
+| Isolated Chromium script | FAIL retirement |32.69 /4.56|197588|
+| Rejected transport experiment | same retirement failure |33.36 /4.73|198596|
+
+Fresh processes, warm filesystem; no OS cache flush. These are validation costs,
+not an optimization comparison. GNU time RSS is a per-process/child maximum,
+not aggregate browser-tree memory or live allocator ownership. Container samples
+remained below the8GiB limit; disk129GiB free, swap use unchanged. No cleanup.
+
+Exact final artifacts:
+- portable `0b9d22e60d545e82e6079addd6c67e8e6c6ebc607036c5b4a8143ff4aca08bae`;
+- shared frontend `631030b76e2856ec74e417f100f3fcac8bb9fa1827647f8b536f468786b40a82`;
+- shared work `a1f9a66e310478ff2e27b650f865c2896f3cbafb92e1bfb96186f9435d4ca3b0`.
+
+The actual Node IDE export aborts in
+`tests/ide_completion_checks.tower:50`: with lib/helper.tower supplied, completion
+for `import tower; import lib.helper as helpers; helpers.he|` requires `helper`
+but returns namespace `helpers`. Stack: q_expect/q_labels/ide_completion_checks/
+ide_tests. Existing assertions were preserved. A --debug-names relink reproduced
+it; removing only that name section with SDK llvm-objcopy produces byte-identical
+original Wasm. This is a concrete completion/module gate for L2/B1, not a proven
+attribution to their latest changes: inspect completion_symbols' q.editor.module,
+sem_editor_symbol/sem_namespace and recovered module ownership. Remaining IDE
+session/execution/candidate checks after this first assertion were not reached.
+
+The existing diagnostics/hover/completion-queries/language-service/diagnostic-delay
+Node selection ran with --test-concurrency=1. All9 failures are diagnostics.test.mjs
+inputs lacking language imports: ordinary snippets receive the explicit language-
+import diagnostic; custom grammars referencing Number receive undefined-rule
+errors. This is stale fixture input relative to the declared Bedrock-start
+contract, not permission to restore an ambient Foundation or relax expected
+repairs/coordinates. D1/fixture owner needs explicit imported inputs and their
+actual offset/location expectations, with project test policy in Tower. The18
+passes include host mocks for cancellation/stale replies; those do not establish
+real worker termination. No failed diagnostic was relabeled as a pass.
+
+The unchanged `test-shared-compiler.mjs` ran the actual local COOP/COEP server,
+Chromium reports isolated=true, SharedArrayBuffer available and hardwareConcurrency2.
+Its first pool trial passed both existing Tower lifecycles: four distinct threads
+rendezvous, concurrent allocation/growth, partial/full cancellation drain and
+stale revision/profile/dispatch rejection. Opened4/closed4 child wrappers,24 spawns.
+Phase times37.88/15.04ms; request905.85ms. Wasm memory capacity grew
+8388608->33947648 bytes then stayed constant; this is capacity, not live bytes/RSS.
+The actual current shared exports include lr_work_tests, semantic_world_tests,
+evaluation_query_tests and semantic_stage_tests; missing exports are not the cause.
+
+After30001.56ms the unchanged retirement assertion failed: CDP still listed the
+outer shared_compiler_worker.mjs coordinator (attached=true), with no nested
+worker target listed. An active coordinator versus a retained debugger target is
+not distinguished by this evidence. A single narrow browser-transport experiment
+cleared handlers and the owning wrapper reference before termination; it failed
+the same gate (30015.86ms). Preserved its patch and logs, restored the exact
+original scriptSHA8a005eaec44394854c798323352d646589d682046719b59fe1a2288707a0f09b.
+No relaxed assertion, timeout increase, force-GC substitute or runtime fix retained.
+ROOT/browser owner must resolve this retirement boundary. The script consequently
+never reached compiler1/4, query/stage/LR/world or the three fixtures' graph/Fast
+output and complete canonical comparisons: all remain PENDING. No worker-count
+speedup, universal race-freedom, hosted service-worker or deployment claim.
+
+Receipts under `build/d2_ecs/browser_acceptance_6767` (directory named at initial
+preflight; final freeze is2013ad28): source1377-path manifest
+`6b5186913e67566fac1deaa1b0aa7d9ccab73d678003a49285a1521c762ac200`,
+provider-object manifest `faf63006ebfe1eb58712bb3c371563dca5702eac0752f7fd93c91335200a0916`,
+raw evidence manifest `6d891d2ac35eb0cb8352b6aefd716ee5336e9d624cd1f7531d2082f3e415f1a2`.
+Browser mounted-resource SHA256
+`19d920a3957993c350aef5fede1d06c94a36c4ab18c6f65577405c31a2aa1c7b`;
+individual intended fixture hashes, target exports/imports, CMake settings,
+commands, statuses, phase data and failed experiments are preserved there.
+Reproduction: documented target builds above, `node playground/scripts/test-ide.mjs`,
+and `node playground/scripts/test-shared-compiler.mjs build/browser-wasi-threads/tower.wasm
+build/browser-wasi-threads/tower-work-tests.wasm REPORT.json` with the installed
+Playwright browser path. All child jobs drained before source reconciliation;
+source checksum and todo preservation passed, D2 released only its own heavy lock.
+
+After drain, pulled complete A1 history to5e816467. Actual depfile intersections
+identify tower-compiler-semantics.o in BOTH browser profiles as affected; those
+frontends need a semantics rebuild/relink and affected body/query/IDE/canonical
+adoption checks. Shared work inputs remain unchanged. The named pending L1
+backend/import_foundation, import_module and import_bindings sources are absent
+from these targets' actual depfiles; their backend/generation acceptance belongs
+to ROOT's separate closure. This receipt validates neither later A1 sources nor
+unbuilt L1 providers. Documentation alone is committed; no production/test change
+or new runtime profile is claimed by publication reconciliation.
