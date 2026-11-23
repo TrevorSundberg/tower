@@ -265,14 +265,15 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
         backend_units_close(batch); return null;
     }
     copy(batch.target.data, target, length + 1);
-    // Policy/target allocation failure above leaves the borrowed graph usable.
-    batch.graph = batch.streaming ? compiler_work_plan(batch.work) : compiler_work_graph(batch.work);
-    if batch.graph == null { backend_units_close(batch); return null; }
     var lanes = budget < count ? budget : count;
     batch.lanes = lanes;
-    if !batch.streaming && !work_pool_open_kernel(&batch.pool, lanes, backend_unit_execute) {
+    if !batch.streaming && !work_pool_open_kernel_budget(&batch.pool, lanes, backend_unit_execute, batch.budget) {
         backend_units_close(batch); return null;
     }
+    // Target and pool admission have not added graph work. Keep the graph out
+    // of cancellation cleanup until both succeed, so a denied setup can retry.
+    batch.graph = batch.streaming ? compiler_work_plan(batch.work) : compiler_work_graph(batch.work);
+    if batch.graph == null { backend_units_close(batch); return null; }
     var anchor = compiler_work_anchor(batch.work);
     batch.kind = entity_create_related(anchor);
     if batch.kind == null || !entity_register(batch.kind, sizeof(BackendUnit), alignof(BackendUnit), 0) {

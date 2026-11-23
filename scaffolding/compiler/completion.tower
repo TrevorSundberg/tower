@@ -58,7 +58,15 @@ export fn completion_from(q: CompletionQuery*): usize {
 }
 
 export fn completion_resource_error(q: CompletionQuery*): WorkBudgetError {
+    completion_semantic_failed(q);
     return q.resource_error;
+}
+
+fn completion_semantic_failed(q: CompletionQuery*): bool {
+    if q.resource_error == WorkBudgetError.None && q.semantic {
+        q.resource_error = q.program.resource.error;
+    }
+    return q.resource_error != WorkBudgetError.None;
 }
 
 // Resource failures in grammar/control or imported snapshots cannot use syntax
@@ -247,7 +255,12 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     sem_require(host_text_terminate(&hole));
     var attempt: usize = 0;
     loop {
-        if syntax_completion_identifier(active, hole.data) {
+        var accepted = syntax_completion_identifier(active, hole.data);
+        if completion_session_failed(q, active) {
+            vector_dispose(&hole);
+            return;
+        }
+        if accepted {
             break;
         }
         if attempt == 6 {
@@ -353,6 +366,10 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         entry.number = q.bases.data[i];
     }
     sem_run(c);
+    if completion_semantic_failed(q) {
+        c.editor = null;
+        return;
+    }
     // Observed scope tables borrow real entities and remain valid until dispose.
     if q.editor.found {
         c.scope = q.editor.scope;
@@ -616,7 +633,7 @@ fn completion_fold(byte: u8): u8 {
 }
 
 export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8*, category: u32): void {
-    if q.resource_error != WorkBudgetError.None { return; }
+    if completion_semantic_failed(q) { return; }
     if q.hidden {
         return;
     }
@@ -624,11 +641,13 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
         return;
     }
     var keyword = sem_equal(kind, "keyword");
-    if !syntax_completion_accepts(q.active, name, keyword) {
+    var accepted = syntax_completion_accepts(q.active, name, keyword);
+    if completion_session_failed(q, q.active) || !accepted {
         return;
     }
     if sem_equal(kind, "function") {
-        if !syntax_completion_callable(q.active) {
+        var callable = syntax_completion_callable(q.active);
+        if completion_session_failed(q, q.active) || !callable {
             return;
         }
     }
@@ -807,6 +826,7 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
 }
 
 fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, category: u32): void {
+    if completion_semantic_failed(q) { return; }
     var value = sem_get(node);
     if value == null {
         return;
@@ -859,6 +879,7 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
 }
 
 fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, category: u32): void {
+    if completion_semantic_failed(q) { return; }
     var scope: SemanticScope;
     scope.parent = null;
     scope.names = table;
@@ -866,6 +887,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
     vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     foreach(var candidate in &nodes) {
+        if completion_semantic_failed(q) { break; }
         var lexical = table == q.context.functions;
         lexical ||= table == q.context.globals;
         lexical ||= table == q.context.types;
@@ -881,6 +903,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
 }
 
 fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, detail: u8*, category: u32): void {
+    if completion_semantic_failed(q) { return; }
     var scope: SemanticScope;
     scope.parent = null;
     scope.names = table;
@@ -888,12 +911,14 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
     vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     foreach(var node in &nodes) {
+        if completion_semantic_failed(q) { break; }
         var eligible = sem_completion_visible(&q.context, &q.editor, table, node);
         if category == 0 {
             // Resolve return annotations with the ordinary type resolver when
             // possible. An unbound type parameter remains unknown, never guessed.
             q.program.error.length = 0;
             var result = sem_type(&q.context, sem_member(node, "type"));
+            if completion_semantic_failed(q) { break; }
             var known = sem_ok(&q.context);
             q.program.error.length = 0;
             if known {
@@ -922,7 +947,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
 }
 
 export fn completion_symbols(q: CompletionQuery*): void {
-    if q.resource_error != WorkBudgetError.None { return; }
+    if completion_semantic_failed(q) { return; }
     if !q.editor.found {
         return;
     }
@@ -990,6 +1015,7 @@ export fn completion_symbols(q: CompletionQuery*): void {
     }
     completion_table(q, q.context.functions, "function", 0);
     completion_templates(q, q.context.templates, "function", "generic function", 0);
+    if completion_semantic_failed(q) { return; }
     if qualified {
         return;
     }
@@ -1102,7 +1128,7 @@ export fn completion_symbols(q: CompletionQuery*): void {
 }
 
 export fn completion_end(q: CompletionQuery*): u8* {
-    if q.resource_error != WorkBudgetError.None {
+    if completion_semantic_failed(q) {
         return "{\"error\":\"Completion query failed to acquire compiler resources\"}";
     }
     completion_text(&q.output, "]}");
