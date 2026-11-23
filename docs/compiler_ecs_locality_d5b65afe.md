@@ -279,3 +279,14 @@ This is a finite ordinary performance receipt. It neither retries the rejected
 sanitizer work nor claims broad platform, compiler, browser, generation or hosted
 acceptance. No production performance regression is introduced: only this receipt
 and the journal change. ROOT retains final affected-input integration and release.
+
+## Subsequent real compiler census
+
+The [9d9329db real compiler receipt](compiler_ecs_occupancy_9d9329db.md) supplies
+this receipt's requested phase/kind census on 8/512-body imported/staged programs.
+It distinguishes never-filled private pages from holes in surviving pages, measures
+index/ledger retention and verifies ordinary zero-grant teardown. The material
+case is underfilled SemanticDeclaration pages, not a compiler-wide183x survivor
+pattern. Its bounded four-slot policy proposal remains an experiment, not an
+implemented packing change. These later measurements do not relabel the original
+synthetic results or close the separate sanitizer/release gates.

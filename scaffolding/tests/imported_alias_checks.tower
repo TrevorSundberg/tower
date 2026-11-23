@@ -1,0 +1,87 @@
+import tower;
+import frontend_units;
+import body_runs;
+import .library.vector;
+import .library.work_budget;
+
+extern fn frontend_units_error_offset(batch: void*): usize;
+
+fn imported_alias_checks(root: u8*, name: u8*, workers: usize): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var minimal = strcmp(name, "minimal") == 0;
+    var containers = strcmp(name, "containers") == 0;
+    var controls = strcmp(name, "controls") == 0;
+    units_check(minimal || containers || controls || strcmp(name, "scopes") == 0, "Imported alias case selector");
+    var path = minimal ? "/tests/imported_alias_minimal.tower" : containers ? "/tests/imported_alias_containers.tower"
+        : controls ? "/tests/imported_alias_controls.tower" : "/tests/imported_alias_scopes.tower";
+    units_read(root, path, &source);
+    var wanted = minimal ? "7\n" : containers ? "true\ntrue\ntrue\n42\ntrue\ntrue\n7\ntrue\ntrue\n9\n"
+        : controls ? "true\ntrue\ntrue\ntrue\n0\n1\n" : "0\n32\n31\n";
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        body_runs_trial_output(source.data, workers == 0 ? 1 : workers, width, bedrock.data, foundation.data, root, &canonical, wanted);
+        if workers == 0 {
+            body_runs_trial_output(source.data, 4, width, bedrock.data, foundation.data, root, &canonical, wanted);
+            units_check(vector_push(&canonical, 0), "Imported alias canonical terminator");
+            canonical.length--;
+            body_runs_trial_output(canonical.data, 1, width, bedrock.data, foundation.data, root, &canonical, wanted);
+        }
+    }
+    puts("Imported alias: expected execution and canonical output passed.");
+}
+
+fn imported_alias_tests(root: u8*): void {
+    imported_alias_errors(root);
+    var cases: u8*[4];
+    cases[0] = "minimal"; cases[1] = "containers"; cases[2] = "controls"; cases[3] = "scopes";
+    for(var i: usize = 0; i < sizeof(decltype(cases)) / sizeof(u8*); i++) { imported_alias_checks(root, cases[i], 0); }
+}
+
+fn imported_alias_errors(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var source = "import tower;import tests.imported_alias_left as left;import tests.imported_alias_right as right;var b:right.stack(i32)=default;defer left.dispose(i32,&b);print(missingLater);";
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var diagnostic: vector(u8) = default;
+        defer vector_dispose(&diagnostic);
+        var first_offset: usize = 0;
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            var batch = frontend_units_create(1, workers, width, 1, 1, bedrock.data, foundation.data, root);
+            units_check(batch != null, "Imported alias failing dependency batch");
+            defer frontend_units_close(batch);
+            units_check(units_source(batch, 1, root, "/alias_error.tower", source, strlen(source)), "Imported alias failing source");
+            while !frontend_units_step(batch, true) {}
+            var error = frontend_units_error(batch);
+            if strstr(error, "Expected") == null { puts(error); }
+            units_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                && strstr(error, "Expected") != null && strstr(error, "missingLater") == null,
+                "Nominal mismatch in deferred call precedes later diagnostics without publication");
+            var offset = frontend_units_error_offset(batch);
+            if diagnostic.length == 0 {
+                first_offset = offset;
+                units_check(vector_reserve(&diagnostic, strlen(error) + 1), "Imported alias error receipt");
+                copy(diagnostic.data, error, strlen(error) + 1);
+                diagnostic.length = strlen(error);
+            } else { units_check(offset == first_offset && strcmp(diagnostic.data, error) == 0, "Imported alias deterministic error and source offset"); }
+            var before: WorkBudgetSnapshot = default;
+            var after: WorkBudgetSnapshot = default;
+            units_check(work_budget_snapshot(frontend_units_work_budget(batch), &before) && before.used_lanes == 0
+                && frontend_units_step(batch, true) && frontend_units_step(batch, false)
+                && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+                && after.used_bytes == before.used_bytes && after.live == before.live && after.used_lanes == 0
+                && strcmp(diagnostic.data, frontend_units_error(batch)) == 0, "Terminal alias dependency retry has no new owners or effects");
+        }
+    }
+}

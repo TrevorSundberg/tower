@@ -243,7 +243,7 @@ test('colliding names round trip through compilable Foundation and raw/optimized
   const second = compiler.compile(foundation);
   try { assert.equal(compiler.foundation(second).source, foundation); }
   finally { compiler.destroyExecution(second); }
-  const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, grammar.foundation,
+  const llvm = await loadLLVM(await read(process.env.TOWER_TEST_LLVM_WASM || 'build/browser-wasi-llvm/tower-llvm.wasm'), undefined, grammar.foundation,
     undefined, grammar.bedrock, {tower: grammar.tower, builtins: grammar});
   for (const optimize of [false, true]) {
     llvm.configureModules({entry:'main.tower', library:'.', files:[...libraries,...twins]});

@@ -40,9 +40,11 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
   llvm.configureModules({entry:`.tower/tests/${name}.tower`});
   let canonical, canonical32;
   for(const pointerBytes of [4,8]) for(const fast of [false,true]) {
+   console.error(`${name}: compile ${pointerBytes * 8}-bit ${fast ? 'fast' : 'graph'}`);
    const h=tower.compile(source,{pointerBytes});
    try {
     if(fast)tower.useFast(h);
+    console.error(`${name}: execute ${pointerBytes * 8}-bit ${fast ? 'fast' : 'graph'}`);
     let result;
     do { result=tower.execute(h,100000); } while(result.status==='executing');
     assert.equal(result.status,'done',result.error);
@@ -50,6 +52,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
     canonical=tower.foundation(h).source;
     if(pointerBytes===4)canonical32=canonical;
    } finally { tower.destroyExecution(h); }
+   console.error(`${name}: canonical reparse ${pointerBytes * 8}-bit`);
    const h2=tower.compile(canonical,{pointerBytes});
    try {
     let result;
@@ -59,6 +62,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
     assert.equal(tower.foundation(h2).source,canonical);
    } finally { tower.destroyExecution(h2); }
    if(fast) for(const optimize of [false,true]) {
+    console.error(`${name}: LLVM Foundation ${pointerBytes * 8}-bit optimize=${optimize}`);
     const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
      target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
     assert.equal(rebuilt.status,'compiled',rebuilt.error);
@@ -76,6 +80,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
   // Executable Wasm is wasm32. A wasm64 Foundation result can contain explicit
   // target-sized constants/layouts; retain its separate same-profile checks above.
   for(const text of [source,canonical32]) {
+   console.error(`${name}: LLVM executable ${text === source ? 'source' : 'canonical'}`);
    const compiled=llvm.compile(text);
    assert.equal(compiled.status,'compiled',compiled.error);
    assert.equal((await executeWasm(compiled)).output,output);

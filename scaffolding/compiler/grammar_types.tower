@@ -14,13 +14,20 @@ struct FrontendKinds {
 enum GrammarPhase: u32 {
     Lookup, Build, Table, Reuse, PoolOpen, PoolClose, Lookahead,
     LookaheadGraph, LookaheadSolve, LookaheadActions, PropagationWave, ActionWave,
-    LookaheadKernel, Count
+    LookaheadKernel, FrontendParse, SemanticRun, SemanticBodies, BodyInputs,
+    BodyDiscovery, BodyWave, BodyPrepare, SemanticDeclarations, SemanticQueries,
+    SemanticLayout, SemanticKnown, SemanticLifecycle, SemanticFinish,
+    SemanticStages, SemanticDispatch, SemanticKernel, SemanticAdmission,
+    SemanticLowering, SemanticPhasePublish, SemanticLifecycleQueries, SemanticDispose, Count
 }
 struct GrammarObserver {
     // Borrowed until the world's synchronous work drains. Coordinator phases
     // are serial. LookaheadKernel events may overlap: their first argument is
     // a private ordinal within the enclosing PropagationWave/ActionWave, whose
     // exit runs only after every started kernel has joined. Second is work size.
+    // SemanticKernel uses its dispatch ordinal and CompilerKernelKind; dispatch
+    // boundaries carry actual job count and admitted lanes. Semantic phases use
+    // this same optional world-owned observer, not another scheduling authority.
     context: void*;
     event: function(void, void*, GrammarPhase, bool, usize, usize);
 }

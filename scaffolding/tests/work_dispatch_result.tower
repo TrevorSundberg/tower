@@ -23,6 +23,31 @@ struct DispatchResultJob {
     calls: usize;
     input: usize;
     result: usize;
+    observed: usize;
+}
+
+struct DispatchObservation {
+    pool: WorkPool*; jobs: DispatchResultJob*; count: usize;
+    started: usize; joined: usize;
+}
+
+fn dispatch_observe(context: void*, payload: void*, ordinal: usize, lanes: usize, entering: bool): void {
+    var observer = bits(DispatchObservation*, context);
+    if payload == null {
+        dispatch_check(ordinal == observer.count && lanes <= observer.pool.count && observer.pool.running == 0);
+        if entering { observer.started++; }
+        else {
+            observer.joined++;
+            for(var i: usize = 0; i < observer.count; i++) {
+                dispatch_check(observer.jobs[i].observed == observer.jobs[i].calls * 2);
+            }
+        }
+        return;
+    }
+    dispatch_check(ordinal < observer.count && payload == bits(void*, &observer.jobs[ordinal].kernel));
+    var job = &observer.jobs[ordinal];
+    dispatch_check(job.observed % 2 == (entering ? convert(usize, 0) : convert(usize, 1)));
+    job.observed++;
 }
 
 fn dispatch_check(ok: bool): void {
@@ -70,6 +95,8 @@ fn dispatch_failure(round: usize): void {
     var pool: WorkPool = default;
     dispatch_check(work_pool_open(&pool, count) && pool.threaded && pool.count == count);
     defer work_pool_close(&pool);
+    var observation = init(DispatchObservation) {pool: &pool, jobs: &jobs[0], count: count, ..default};
+    pool.observation = bits(void*, &observation); pool.observe = dispatch_observe;
     var pointers: DispatchResultJob*[4];
     dispatch_check(sizeof(decltype(pointers)) / sizeof(DispatchResultJob*) == count);
     for(var i: usize = 0; i < count; i++) {
@@ -98,6 +125,7 @@ fn dispatch_failure(round: usize): void {
     work_signal_close(pool.claim); pool.claim = null;
     DispatchFailSignal = true;
     dispatch_check(!compiler_kernel_dispatch(&pool, &pointers[0], count));
+    dispatch_check(observation.started == 4 && observation.joined == observation.started);
     work_pool_close(&pool);
     dispatch_check(pool.resource_error == WorkBudgetError.Memory && pool.count == 0 && pool.slots == null);
 }

@@ -3985,3 +3985,176 @@ Publication merge7a1e2631 adopts complete upstreambfb47510 history. The actual
 language/library/example and Node inputs for this slice still match; unrelated
 new supplied compiler capabilities retain their separate owner receipts. The
 frozen-reactor failures above are not claims about the later compiled result.
+
+## Four-file grammar/transport follow-up at cc21bb4e (2026-11-23)
+
+Frozen mounted source `cc21bb4e0df478933ffb4f9ec797020221919374`, scaffolding tree
+`711cb44392daef192083059ebe33e55c988f4438`, browser host tree
+`24bd709ce4b6f7c4243b00bf333264ec0f18a7c6`. ROOT's immutable portable/LLVM
+reactors are built at `9d9329db3606cbe74c544271ad4b9bb1912a0eec`, SHA256
+`13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738` /
+`bd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac`.
+Read-only originals and earlier f7 receipts remain unchanged. Absolute documented
+overrides select own verified copies; eager default reads still have real files.
+This does not relabel the reactors as cc21-compiled sources.
+
+- `playground/tests/increment.test.mjs`: unchanged, all six cases pass including
+  one-step call budgets, infinite continuation, left-to-right operands, captured
+  assignment destination, static errors before effects, canonical reparse and
+  LLVM execution. The example imports Foundation and defines its increment
+  replacements; `tests/increment_builtin.tower` imports Tower for place-aware
+  expressions. No ambient import repair is needed.
+- `playground/tests/precedence.test.mjs`: explicit Bedrock import supplies the
+  editable `@` grammar absent from the immutable seed. Its own numeric token
+  supplies Number; no Foundation/Tower expression grammar is imported into these
+  custom grammars. All six cases pass, retaining exact independent arithmetic
+  answers, left/right aliases, chained equivalence, ambiguity negatives,
+  nonassociativity, metadata cache reset and canonical equality. Existing JS
+  tree evaluation is unchanged; no new semantic model was introduced.
+- `playground/tests/replacements.test.mjs`: seed-only custom grammar retains
+  Identifier/String and adds only its missing Number declaration. Revisions now
+  explicitly include that successful declaration (base3, two aliases5). The
+  Foundation assignment-vs-expression negative imports Foundation and expects
+  revision1; its Unicode byte offset still derives from the complete actual
+  source. All ten cases pass, including exact source/template/capture spans,
+  shape, copied/generated counts, recursion/output/step limits and zero retained
+  node/allocation deltas. The already-correct imported example is unchanged.
+- New `playground/tests/fixtures/numeric_token.tower`, SHA256
+  `94714b9fc6e9c64a3f0f646dcecd37937903b057d3ee54aa49825c2c7a0152bf`:
+  one ordinary seed-supported `[number] token Number` declaration, transported
+  unchanged by existing Node file reads into both custom grammars. No execution,
+  mutable/shared owner, scheduler or hidden language import. Actual parser tests
+  validate activation and replacement/template revalidation. Existing native
+  `tests/syntax_replacements.tower` instead uses seed AttributeInteger and stays
+  unchanged; its cases do not replace the browser expansion-span/preview checks.
+
+`playground/tests/interpreter-invocation.test.mjs` remains **1/3 passed** on9d.
+Its direct compiled Tower exports do not execute newly mounted fixture text.
+Source checks compared exact9d/current blobs, not merely commit labels:
+
+1. `tests/interpreter_invocation.tower:31` builds `interpreter_invocation_tests`:
+   it pushes the parameter into `definition.parameters` but never populates
+   `definition.locals`. `compiler/interpreter.tower:52` requires binding identity
+   at `function.locals[local.index]`; `semantic_types.tower:913` / the parameter
+   caller in `semantic_statements.tower:166` construct that registry in real
+   checked functions. Thus the hand-built fixture is missing the current frame
+   ownership contract. Its width4 export returns2, expected0. The uninitialized
+   negative also lacks a local registry entry and currently accepts any error;
+   its intended strict-storage cause is not established. ROOT/L1 should register
+   both fixture locals with their actual indices and validate the exact strict
+   error in a rebuilt affected test provider. No capture check should be relaxed.
+2. `tests/semantic_world.tower:155` calls `evaluation_query_tests`, whose resource
+   branch reaches `tests/semantic_resource_checks.tower:183-184` and requires a
+   nonnull `work_signal_open()`. `host/work_portable.tower:11` deliberately returns
+   null. The frozen binary independently confirms this: trap caller
+   `0x14a660` in resource_trial calls `sem_require`; exported work_signal_open
+   disassembles to `i32.const 0`. This is a portable-fixture capability mismatch,
+   not evidence that ordinary isolated worlds fail. ROOT/L1 resource-fixture
+   owner must retain all denial assertions with supported serial budget setup,
+   plus the existing synchronized setup on threaded hosts. No skip/mock signal
+   or compiler host-policy change was introduced here.
+
+Both width8 loops stop before execution after their width4 assertion/trap;
+subsequent combined world subcases are unrun. Stage publication test passes.
+The existing Tower producers are already the exact reproductions; no redundant
+JS model or untested replacement fixture was added. A diagnostic-output transport
+probe preserved the same failures and emitted no extra cause; its temporary log
+callback was removed. Those provider corrections require a rebuilt reactor and
+remain explicit follow-up, not passed source changes in this batch.
+
+Baseline10/25 -> final23/25, zero skips; final12.02s wall/11.05s CPU/317228KiB
+peak RSS. Original and targeted failures retained under
+`build/d1_ecs/browser_four_cc21bb4e`. Fixture-only changes do not alter production
+cost; these are validation costs, not scaling/profile claims. No compiler build,
+heavy lock, sanitizer, generation or deployment. Earlier four-file20/22 remains
+historical and separate (stack/defer L2, pointer-alias L1). ROOT owns release.
+
+## Eight-file ordinary Node follow-up at b3ac7aca (2026-11-23)
+
+Source freeze `b3ac7aca41deca72f0944782c9f4a80526fc0256`, scaffolding tree
+`f7bc350e1f7e911facc1d8d420a69267dcbafc00`; host tree before repair
+`24bd709ce4b6f7c4243b00bf333264ec0f18a7c6`. Same immutable ROOT9d reactors
+and hashes as the preceding entry: portable13de3949/LLVMbd26f079, public768.
+Full hashes, source manifests, statuses and raw logs live in
+`build/d1_ecs/browser_eight_b3ac7aca`. No compiler build, shared heavy slot or
+D2 artifact change. Earlier23/25 and20/22 receipts remain separate failures.
+
+| Path under playground/tests | Substantive finding and checked disposition |
+| --- | --- |
+| platform.test.mjs | Basic executable strings now import Foundation. Canonical sizeof assertion uses the exact array/pointer/integer representation, preserving dimensions, width and signedness. Existing library.platform import already supplies its grammar; left unchanged. All3 pass, including split UTF-8 bytes, foreign tables and typed argument negatives. |
+| projects.test.mjs | Large source imports its language. Project-root fixture now transports the existing complete builtin collection, including foundation_syntax/types, and selects the entry by its path instead of assuming three library files. All8 pass; ZIP Unicode/order/link bytes, invalid paths, replaced FDs, file coordinates/effect order and import isolation stay strict. |
+| raw-memory.test.mjs | Ordinary strings explicitly import Foundation; already-imported examples/libraries and empty allocator program stay unchanged. Graph/Fast, exact outputs/layouts, canonical types, raw LLVM IR, host byte views, target widths and allocator reuse remain checked.24pass, missing C archive1fail, preexisting absent native-Wasm1skip. No uninitialized-value, per-object bounds or lifetime guarantee was added to raw Foundation. |
+| structs.test.mjs | Explicit Foundation inputs reach real checking. Primitive layouts are looked up by their actual names rather than obsolete first-four registry positions. Source-defined primitive names may be shadowed; duplicate declarations still reject. Obsolete rejection of ordinary struct copies/arguments/returns becomes concrete nominal mismatch and foreign pointer-ABI negatives, matching tests/struct_value_checks.tower. All12 pass, including exactly-once destination capture and node cleanup; no expected successful output changed. |
+| templates.test.mjs | Tower imports and canonical array spelling corrected. Ordinary type values/struct arguments are supported, so the old negatives now test wrong value type and distinct nominal arguments. Exact interpreter call-depth/effect/local-struct diagnostics replace retired constructor-only wording; all no-output/zero-step assertions remain.6pass/2fail; two composed programs moved unchanged into Tower fixtures below. Following numeric negative cases are still unrun after the positive failure; their pending coverage is not passed. |
+| wasm.test.mjs | Custom numeric grammar reuses numeric_token.tower; other seed-only cases retain the seed. Foreach example now has8 revisions/10 events; exact event/highlight sequences, step cursor and byte offsets remain asserted. Cache counts account for import transition; import cache is warmed before session-ownership counters, as in the existing ABI case. Foundation editing overrides the rule after its wrapper imports, pins the import before mutation, and retains invalid-candidate recovery. All15 pass, including exact shape/provenance/cache comparisons and zero warmed lifetime deltas. |
+| module-scopes.test.mjs | All19 pass on9d, including qualified completion, hover and the full repeated ownership exercise previously blocked by completion. Direct LLVM loading now honors the same absolute override; baseline used older default6ec53230 for its single LLVM case, so only final matched-pair evidence adopts that case. No label, nominal or visibility assertion weakened. |
+| semantic-port.test.mjs | Added only transport phase messages around existing compile/execute/reparse/LLVM boundaries. Baseline completed semantic layouts, language_control, language_collections and language_enums; the19-case file remains incomplete. The actual entity_pages source and all expected outputs remain unchanged. Details below; no skip introduced. |
+
+The only production change is browser transport `src/tower-host.mjs:89`:
+validate Foundation grammar before publishing its source to future imports.
+Previously an invalid candidate threw but remained installed in the module input
+map. The two existing configuration tests, repaired to use explicit imports,
+reproduce failed recovery before the change and pass afterward, including pinned
+sessions and the last accepted Word/call grammar. Tower's
+`syntax_baseline_install` still owns parsing, diagnostics and baseline publication;
+no JS grammar/semantic implementation or compiler method was added.
+
+New Tower receipts, consumed by the existing templates compare transport:
+
+- `scaffolding/tests/type_numeric_composition.tower`, SHA256
+  `56ceefd2c94f7d9d6a5dc886a8574d817ae4d9f86d489801028067cf423295ac`:
+  explicit language, two numeric nominal instances, wrapper pointer alias and
+  integer-only constructor. Expected42/7/8/12/9. First graph32 check fails with
+  `Compile-time expression cannot capture runtime storage: binding is mutable,
+  escaped or lacks an initializer`, instantiation line1,column1. ROOT/L2 type
+  preparation/capture follow-up; no capture policy workaround.
+- `scaffolding/tests/type_identity_composition.tower`, SHA256
+  `1086e0de7f5cac5e9b5af09bf2087e30412183d939181f0997ebfe62a5cd6e2d`:
+  explicit language, pointer-valued generic call, transparent identity helper and
+  nullary type helper. Expected42/7/8. First graph32 check fails with initializer
+  dependency cycle `i32`. ROOT routes type/generic ownership; this is not asserted
+  identical to L1's existing pointer-alias case. Later modes are unrun.
+
+These are the smallest **demonstrated failing compositions retained here**, not
+claims that their individual features fail. Four smaller controls (numeric
+wrapper, integer-only constructor, local value shadowing T, identity helper)
+passed existing32/64/canonical/LLVM comparisons; copies remain in the receipt
+folder. Original composed assertions/outputs remain. Inspected generics.tower
+registration/lookup and semantic_types preparation/interning context, but did not
+prove a specific stale capture/ticket edge. No producer patch or speculative
+root-cause claim. Native registration/execution of these new sources is pending
+ROOT; they are registered only through the existing Node caller here.
+
+Eight-file baseline hit its180s guard after60 completed reports; only the three
+never-started files were then run (35 reports). The entity_pages follow-up had
+its own60s guard, reached32-bit Graph/Fast and canonical checks, and last logged
+`LLVM Foundation 32-bit optimize=false`. That phase includes LLVM reconstruction
+and execution of its rebuilt Foundation; it did not return a completed receipt.
+Its child reached80s observed CPU and1652696KiB observed RSS at59s. Parent GNU
+ time excludes that killed/unreaped child, so its48276KiB is **not** the test's
+peak. First-run sampling similarly saw1749880KiB. No deadline widening, false
+success or leak diagnosis. Processes exited on the guards; dead children await
+the container's reaper and hold no live compiler execution. ROOT/B2/A1 should
+adopt the expensive reconstruction phase and remaining14 never-started cases
+with their frozen milestone; the15 incomplete case receipts stay pending.
+
+Final affected seven-file run:87pass/3fail/1existing skip,72.39wall/84.45CPU s,
+495812KiB peak RSS,0swaps. Missing `build/linking/wasm-fixture.a` is the third
+failure; missing native-compiled.wasm triggers the unchanged optional skip.
+Foundation transport's equivalent two-case sample before/after:0/2 ->2/2,
+1.82/2.76wall,2.25/3.05CPU s,168900/156484KiB peak, n1/fresh process. Passing
+now executes the formerly blocked recovery assertions; no speedup claim. These
+are validation costs, not universal scaling or current-source release evidence.
+No native/compiler rebuild, sanitizer, generation or deployment was performed.
+
+Publication reconciliation: `9b0ba0bb` merged published `f167c444` in
+`4dcd13fc`, preserving both histories. The only changed recorded Node input was
+D2's llvm-host artifact source-map/error-localization transport; inspected its
+producer and consumer. Four affected canonical/LLVM/host-byte/alias-capture checks
+passed on the merged host (17.61wall/16.60CPU s,434088KiB, no swaps). Original
+seven-file aggregate and immutable9d compiler identities remain distinct. Six
+recorded compiler/test resource deltas and new upstream files retain their owner
+receipts; none relabels an old reactor as rebuilt. Exact manifest differences and
+commands are in the journal and `browser_eight_b3ac7aca/merged*`. The two type
+compositions, linking prerequisites and15 incomplete semantic-port cases remain
+open; no full-suite, sanitizer or release acceptance claimed.
