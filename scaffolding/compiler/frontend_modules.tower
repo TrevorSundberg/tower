@@ -1403,54 +1403,34 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
 fn module_cacheable(module: FrontendModule*): bool {
     // A back-edge may still point at an unfinished module. Never cache that
     // partial snapshot, even if cycle validation will reject the request later.
-    if module.graph.cycles {
-        return false;
-    }
-    if module.state != ModuleLoaded {
-        return false;
-    }
-    var i: usize = 0;
-    loop {
-        if i == module.dependencies.length {
-            return true;
-        }
-        if !module_cacheable(module.dependencies.data[i]) {
-            return false;
-        }
-        i++;
-    }
+    // module_load completes dependencies before their importer and marks every
+    // edge to an unfinished ancestor on the owning graph. Rewalking every path
+    // adds exponential work for diamonds without establishing another invariant.
+    return !module.graph.cycles && module.state == ModuleLoaded;
 }
 
-fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*): bool {
-    var text: vector(u8);
-    vector_init(&text);
-    var status = module_read(environment, module.source.name.data, &text);
-    var ok = status == ModuleReady;
-    ok &&= module_equal(text.data, module.source.text.data);
-    vector_dispose(&text);
-    if !ok {
-        return false;
-    }
-    var i: usize = 0;
-    loop {
-        if i == module.dependencies.length {
-            return true;
+fn module_cache_valid(module: FrontendModule*): bool {
+    // A cache entry owns a complete cloned dependency graph. Its ordered index
+    // visits each module once, even when many import paths reach the same node.
+    // The root's bytes were checked by module_cached. Check every import edge's
+    // current resolution AND returned source bytes; this covers every other
+    // source without a second read or a persistent validity/cache identity.
+    var path: vector(u8) = default;
+    var text: vector(u8) = default;
+    defer vector_dispose(&path);
+    defer vector_dispose(&text);
+    foreach(var current in &module.graph.order) {
+        for(var i: usize = 0; i < current.dependencies.length; i++) {
+            path.length = 0;
+            text.length = 0;
+            var declaration = bits(SyntaxNode*, compiler_node_get(current.imports.data[i], CompilerSyntax));
+            var dependency = current.dependencies.data[i];
+            if module_resolve(current, declaration.name.data, declaration.literal, &path, &text) != ModuleReady
+                || !module_equal(path.data, dependency.source.name.data)
+                || !module_equal(text.data, dependency.source.text.data) { return false; }
         }
-        var path: vector(u8);
-        vector_init(&path);
-        vector_init(&text);
-        var declaration = bits(SyntaxNode*, compiler_node_get(module.imports.data[i], CompilerSyntax));
-        status = module_resolve(module, declaration.name.data, declaration.literal, &path, &text);
-        ok = status == ModuleReady;
-        ok &&= module_equal(path.data, module.dependencies.data[i].source.name.data);
-        vector_dispose(&path);
-        vector_dispose(&text);
-        ok &&= module_cache_valid(environment, module.dependencies.data[i]);
-        if !ok {
-            return false;
-        }
-        i++;
     }
+    return true;
 }
 
 fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): FrontendModule* {
@@ -1462,7 +1442,7 @@ fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): Fronten
         var candidate = environment.cache.data[i];
         var same = module_equal(candidate.source.name.data, path);
         same &&= module_equal(candidate.source.text.data, text);
-        same &&= module_cache_valid(environment, candidate);
+        same &&= module_cache_valid(candidate);
         if same {
             return candidate;
         }

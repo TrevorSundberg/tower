@@ -53,9 +53,10 @@ test('demanded generic body copies retain the node budget and reject execution',
  assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
 });
 
-for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow', 'comptime_capture_values']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
+  llvm.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
   let canonical;
   for (const width of [4, 8]) {
@@ -82,21 +83,20 @@ for (const [name, message] of [
  ['decltype_generic_header_cycle', /initializer dependency cycle/],
  ['decltype_layout_cycle', /Recursive by-value layout: Recursive -> Recursive/],
  ['decltype_type_field_cycle', /initializer dependency cycle/],
- ['decltype_aggregate_operator', /aggregate copies are not implemented/],
- ['aggregate_inferred_copy', /aggregate copies are not implemented/],
+ ['decltype_aggregate_operator', /Binary operators require scalar or pointer operands/],
+ ['aggregate_inferred_copy', /Expected Other, got Item; use an explicit conversion/],
  ['decltype_body_runtime', /Unknown local 'missing_body_value'/],
  ['decltype_body_comptime', /Unknown local 'missing_body_value'/],
  ['decltype_unknown', /Unknown local/],
  ['comptime_cycle', /Compile-time dependency cycle/],
  ['comptime_defer_cycle', /Compile-time dependency cycle/],
  ['comptime_return', /without returning a value/],
- ['comptime_capture', /cannot capture runtime storage/],
  ['comptime_output', /explicit effect capability/],
  ['comptime_uninitialized', /uninitialized local/],
  ['comptime_dead_pointer', /outside live local storage/],
  ['comptime_fuel', /fuel exhausted/],
  ['comptime_generic_selected', /Division by zero/],
- ['inference_alias_invalid', /Type constructors currently support a struct and return/],
+ ['inference_alias_invalid', /Cannot infer type argument 'T'; pass explicit type arguments/],
  ['declaration_index_cycle', /initializer dependency cycle first -> second -> first/],
  ['declaration_index_type', /An index must be an integer/],
 ]) {

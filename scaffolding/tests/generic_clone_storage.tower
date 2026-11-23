@@ -1,0 +1,100 @@
+import tower;
+import .compiler.generic_body_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_publish(stage: void*): bool;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
+extern fn compiler_generic_body_kernel(payload: void*): void;
+
+var GenericCloneBudgetBytes: usize = 131072;
+var GenericCloneInitialFrames: usize = 16;
+var GenericCloneFrameWords: usize = 3;
+var GenericCloneHeaderWords: usize = 4;
+
+// The production registry and deferred-header API create the actual instance.
+// Only fixture syntax is synthetic; no second clone implementation is compared.
+fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool, short_limit: bool,
+    budgeted: bool, deny_growth: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    if budgeted {
+        utility_check(work_budget_init(&budget, 1, GenericCloneBudgetBytes, 1), "Clone fixture byte budget");
+    }
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, width, depth, 1, budgeted ? &budget : null);
+    var store = fixture.store;
+    var instance = generic_clone_fixture_instance(&fixture);
+    var destination = generic_clone_fixture_body(instance);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var stage = entity_stage_open(fixture.root);
+    var view = entity_view_open(fixture.root);
+    utility_check(stage != null && view != null, "Clone fixture stage and input view");
+    var count = width * depth;
+    var request: GenericBodyCopy = { context: fixture.context, node: instance, stage: stage,
+        limit: short_limit ? count - 1 : count, budget: budgeted ? &budget : null, ..default };
+    var occupied: WorkReservation = default;
+    if deny_growth {
+        var first = (GenericCloneInitialFrames * GenericCloneFrameWords + GenericCloneHeaderWords) * sizeof(usize);
+        utility_check(work_budget_reserve(&budget, 0, 0, GenericCloneBudgetBytes - first, &occupied),
+            "Clone growth test leaves room for exactly the initial stack");
+    }
+    var started = tower_test_buffer_allocations();
+    if fail_allocation { tower_test_buffer_fail_next(); }
+    compiler_generic_body_kernel(bits(void*, &request));
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var allocations = tower_test_buffer_allocations() - started;
+    entity_stage_hold(stage);
+    entity_view_close(view);
+    if fail_allocation || short_limit || deny_growth {
+        var copied = fail_allocation ? 0 : deny_growth ? GenericCloneInitialFrames : count - 1;
+        var error = fail_allocation ? WorkBudgetError.Memory : deny_growth ? WorkBudgetError.Capacity : WorkBudgetError.None;
+        utility_check(!request.success && request.copied == copied && request.storage_error == error,
+            "Clone failure reports exact partial count and distinct resource error");
+        entity_stage_discard(stage);
+        utility_check(entity_child_count(destination) == 0 && entity_store_count(store) == nodes
+            && entity_store_component_count(store) == components, "Failed clone publishes no children or retained payloads");
+    } else {
+        utility_check(request.success && request.copied == count && request.storage_error == WorkBudgetError.None
+            && entity_stage_publish(stage), "Clone success publishes exact node count");
+        generic_body_complete(fixture.context, instance, request.copied);
+        generic_clone_fixture_check(&fixture, instance);
+        puts("Generic clone: width, depth, copied nodes, serial allocator calls during kernel");
+        generic_clone_number(width); generic_clone_number(depth);
+        generic_clone_number(request.copied); generic_clone_number(allocations);
+    }
+    if budgeted {
+        var released: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &released) && released.used_bytes == occupied.bytes
+            && released.live == (occupied.active ? 1 : 0) && released.peak_bytes <= released.bytes,
+            "Clone scratch is retired before publication result cleanup");
+        if occupied.active { utility_check(work_budget_release(&budget, &occupied), "Release clone test occupancy"); }
+        puts("Generic clone physical budget: peak bytes including replacement overlap");
+        generic_clone_number(released.peak_bytes);
+    }
+    generic_clone_fixture_close(&fixture);
+    if budgeted { utility_check(work_budget_dispose(&budget), "Clone budget outlives the world"); }
+    utility_check(tower_test_buffer_count() == buffers, "Clone fixture releases all allocations");
+}
+
+fn generic_clone_storage_tests(): void {
+    generic_clone_storage_trial(256, 1, false, false, false, false);
+    generic_clone_storage_trial(1, 600, false, false, false, false);
+    generic_clone_storage_trial(16, 2, false, true, false, false);
+    generic_clone_storage_trial(16, 2, true, false, false, false);
+    generic_clone_storage_trial(256, 1, false, false, true, false);
+    generic_clone_storage_trial(1, 600, false, false, true, false);
+    generic_clone_storage_trial(1, 600, false, false, true, true);
+    generic_clone_storage_trial(16, 2, true, false, true, false);
+}

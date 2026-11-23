@@ -17,6 +17,10 @@ import .library.work_pool;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
+// The native chain/fanout profile crosses dispatch overhead between 4096 and
+// 8192 fields. Keep smaller layouts on the caller, including mixed frontiers.
+var SemanticLayoutParallelFields: usize = 8192;
+
 fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationType*): void {
     if semantic_aggregate(type) {
         var dependency = work_request(&c.queries, type.record, convert(u32, SemanticQuery.Layout), 0);
@@ -26,7 +30,7 @@ fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationT
     }
 }
 
-fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
+export fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
     var graph = &c.queries;
     var first = graph.tasks.length;
     var root = work_request(graph, n, convert(u32, SemanticQuery.Layout), 0);
@@ -92,21 +96,12 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
     sem_fail(c, subject, sem_cat(c, "Recursive by-value layout: ", sem_cat(c, chain, "; use a pointer")));
 }
 
-fn sem_layout_execute(c: SemanticContext*): usize {
+export fn sem_layout_execute(c: SemanticContext*): usize {
     if c.workers.count == 0 {
         sem_require(sem_workers_open(c));
     }
-    // Count only the current derived ready frontier, bounded by retained pool
-    // capacity. Dependencies released below refill the same admitted lanes.
-    var ready: usize = 0;
-    for(var i = c.queries.head; i < c.queries.ready.length && ready < c.workers.count; i++) {
-        var id = c.queries.ready.data[i];
-        if id == 0 { continue; }
-        var task = work_task(&c.queries, id);
-        if task.query == convert(u32, SemanticQuery.Layout) && task.state == WorkState.Ready { ready++; }
-    }
-    var receipt: WorkReservation;
-    var extra = sem_workers_admit(c, ready, &receipt);
+    var receipt: WorkReservation = default;
+    var extra: usize = 0;
     defer sem_workers_release(c, &receipt);
     // All component allocation occurs before pinning. No worker performs an
     // entity mutation or uses the coordinator's semantic scratch/diagnostics.
@@ -115,6 +110,24 @@ fn sem_layout_execute(c: SemanticContext*): usize {
     var failed: SemanticLayoutWork* = null;
     var completed_count: usize = 0;
     loop {
+        // A chain can release a profitable frontier after the initial grant.
+        // Refresh only after every admitted result has joined and published;
+        // no live job can lose its lane or retain a released receipt.
+        if c.workers.threaded && c.workers.running == 0 {
+            var ready: usize = 0;
+            var inspected: usize = 0;
+            for(var i = c.queries.head; i < c.queries.ready.length && inspected < c.workers.count; i++) {
+                var id = c.queries.ready.data[i];
+                if id == 0 { continue; }
+                var task = work_task(&c.queries, id);
+                if task.query != convert(u32, SemanticQuery.Layout) || task.state != WorkState.Ready { continue; }
+                inspected++;
+                var job = bits(SemanticLayoutWork*, entity_component_data(entity_component_get(task.subject, c.layout_results)));
+                if job.offsets.length >= SemanticLayoutParallelFields { ready++; }
+            }
+            sem_workers_release(c, &receipt);
+            extra = sem_workers_admit(c, ready, &receipt);
+        }
         var result: SemanticLayoutWork* = null;
         var completed = bits(CompilerKernel*, work_pool_receive(&c.workers, false));
         if completed != null { result = bits(SemanticLayoutWork*, completed.payload); }
@@ -125,7 +138,7 @@ fn sem_layout_execute(c: SemanticContext*): usize {
             var component = entity_component_get(task.subject, c.layout_results);
             var job = bits(SemanticLayoutWork*, entity_component_data(component));
             job.ticket = ticket;
-            if c.workers.running < extra {
+            if job.offsets.length >= SemanticLayoutParallelFields && c.workers.running < extra {
                 sem_require(work_pool_submit(&c.workers, bits(void*, &job.kernel)));
             } else {
                 c.workers.execute(bits(void*, &job.kernel));

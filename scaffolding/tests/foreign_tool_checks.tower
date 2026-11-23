@@ -1,0 +1,63 @@
+import tower;
+import .backend.foreign_tool;
+import .backend.foreign_symbol;
+import .backend.foreign_api;
+import .backend.foreign_reader;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+extern fn puts(text: u8*): i32;
+
+fn foreign_tool_failure(input: u8*, fail_after: usize): bool {
+    var baseline = tower_test_buffer_count();
+    var source: ByteBuffer = default;
+    var output: ByteBuffer = default;
+    var wraps: ByteBuffer = default;
+    if !bytes_assign_text(&source, input, strlen(input)) { return false; }
+    tower_test_buffer_fail_after(fail_after);
+    var accepted = foreign_expand_source(foreign_wasi, source.data, source.length, &output, &wraps);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var unchanged = memcmp(source.data, input, source.length) == 0;
+    bytes_dispose(&source); bytes_dispose(&output); bytes_dispose(&wraps);
+    if accepted || !unchanged || tower_test_buffer_count() != baseline {
+        puts("Foreign expansion failure must reject, restore input and release allocations");
+        puts(input);
+        return false;
+    }
+    return true;
+}
+
+// The imported tool owns main. The existing runtime binder selects this entry
+// for the deliberately serial allocator profile; no native test shim is needed.
+export fn foreign_tool_check_main(argc: i32, argv: u8**): i32 {
+    if !foreign_tool_failure("abc", 0) || !foreign_tool_failure("\"abc\"", 0)
+        || !foreign_tool_failure("// comment\n", 0) || !foreign_tool_failure("/* comment */", 0)
+        || !foreign_tool_failure("`ordinary`", 0) { return 1; }
+    var baseline = tower_test_buffer_count();
+    var allocations = tower_test_buffer_allocations();
+    var symbol = foreign_symbol(foreign_wasi, "c_name(__wrap; void f())");
+    var symbol_allocations = tower_test_buffer_allocations() - allocations;
+    var symbol_ok = symbol != null && foreign_name_error(symbol)[0] == 0;
+    foreign_name_close(symbol);
+    if !symbol_ok || tower_test_buffer_count() != baseline { return 2; }
+    // The first output allocation follows mangling; the next owns wrap flags.
+    if !foreign_tool_failure("`c_name(__wrap; void f())`", symbol_allocations)
+        || !foreign_tool_failure("`c_name(__wrap; void f())`", symbol_allocations + 1) { return 3; }
+    var source: ByteBuffer = default;
+    var output: ByteBuffer = default;
+    var wraps: ByteBuffer = default;
+    var input = "`c_name(__wrap; void f())`";
+    var ok = bytes_assign_text(&source, input, strlen(input))
+        && foreign_expand_source(foreign_wasi, source.data, source.length, &output, &wraps)
+        && output.length == 10 && memcmp(output.data, "`__wrap_f`", 10) == 0
+        && wraps.length == 9 && memcmp(wraps.data, "--wrap=f\n", 9) == 0;
+    bytes_dispose(&source); bytes_dispose(&output); bytes_dispose(&wraps);
+    if !ok || tower_test_buffer_count() != baseline { return 4; }
+    puts("Foreign tool checked-output fixtures passed");
+    return 0;
+}

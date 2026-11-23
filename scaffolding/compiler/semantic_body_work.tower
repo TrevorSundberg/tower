@@ -33,6 +33,7 @@ import .library.work_pool;
 
 var BodyQuery: u32 = convert(u32, SemanticQuery.Body);
 var BodyPrepareQuery: u32 = convert(u32, SemanticQuery.BodyPrepare);
+var BodyLeaseStatementWindow: usize = 16;
 
 // Coordinator continuation on the compilation entity. Body workers retain
 // their own lexical cursors; this component owns only the derived admission
@@ -525,7 +526,7 @@ fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
     vector_dispose(&context.token_text);
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
     vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { free(allocation); }
+    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
     vector_dispose(&context.allocations);
 }
 
@@ -1654,7 +1655,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     }
     vector_dispose(void*, &context.lists);
     for(var i: usize = 0; i < context.allocations.length; i++) {
-        free(context.allocations.data[i]);
+        compiler_buffer_free(context.allocations.data[i]);
     }
     vector_dispose(void*, &context.allocations);
 }
@@ -1782,14 +1783,67 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     }
 }
 
+// A resumed root-block leaf interval only writes its declaration/assignment
+// syntax, the owning function's local list and the root block's item list.
+// Include the next leaf: a declaration binds before suspension; an assignment
+// suspends before checking its target. The
+// first dispatch still leases all syntax for label discovery. Nested controls,
+// deferred exits and unrecognized/long intervals keep that complete fallback.
+fn sem_body_leaf_end(result: SemanticBodyWork*): usize {
+    if !result.resumed || result.blocks.length != 0 || result.prepared_statement == null
+        || result.prepared_header != null || result.deferred_statement != null
+        || result.declaration_header != null || result.for_tail
+        || result.lexical.deferred != null || result.lexical.deferring != 0
+        || result.stop == null { return 0; }
+    var cursor = &result.cursor;
+    if cursor.next >= sem_child_count(cursor.subject) { return 0; }
+    var first = sem_child(cursor.subject, cursor.next);
+    if !sem_is(first, "Statement") || sem_unwrap(first) != result.prepared_statement { return 0; }
+    if sem_is(result.prepared_statement, "CoreAssign") && result.prepared_value == null { return 0; }
+    var inspected: usize = 0;
+    for(var index = cursor.next; index < sem_child_count(cursor.subject)
+        && inspected < BodyLeaseStatementWindow; index++) {
+        var source = sem_child(cursor.subject, index);
+        if !sem_is(source, "Statement") { return 0; }
+        var node = sem_unwrap(source);
+        if !sem_is(node, "CoreDeclare") && !sem_is(node, "CoreAssign") { return 0; }
+        if source == result.stop { return index + 1; }
+        inspected++;
+    }
+    return 0;
+}
+
+fn sem_body_lease(result: SemanticBodyWork*, pending: vector(void*)*): void {
+    var end = sem_body_leaf_end(result);
+    if end == 0 {
+        foreach(var node in &result.nodes) { sem_require(entity_stage_lease(result.stage, node)); }
+        return;
+    }
+    sem_require(entity_stage_lease(result.stage, result.subject));
+    sem_require(entity_stage_lease(result.stage, result.cursor.subject));
+    pending.length = 0;
+    for(var index = result.cursor.next; index < end; index++) {
+        sem_push(pending, sem_child(result.cursor.subject, index));
+    }
+    for(var index: usize = 0; index < pending.length; index++) {
+        var node = pending.data[index];
+        sem_require(entity_stage_lease(result.stage, node));
+        for(var child: usize = 0; child < sem_child_count(node); child++) {
+            sem_push(pending, sem_child(node, child));
+        }
+    }
+}
+
 // Reserve the complete independent continuation frontier before dispatch.
 // Structural publication still needs a barrier, but worker-sized sub-batches
 // need not idle behind one slow body. Freeze the descriptor as well as the graph:
 // a worker must never copy c while the coordinator changes c.workers counters.
 fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): usize {
     var running: vector(SemanticBodyWork*) = default;
+    var lease_nodes: vector(void*) = default;
     sem_require(vector_reserve(&running, count));
     defer vector_dispose(&running);
+    defer vector_dispose(&lease_nodes);
     var active: usize = 0;
     for(var i: usize = 0; i < count && i <= failed && active < BodyPreparationWindow; i++) {
         var result = batch[i];
@@ -1799,9 +1853,7 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
         result.stop = sem_body_stop(result);
         result.stage = entity_stage_open(c.program.root);
         sem_require(result.stage != null);
-        foreach(var node in &result.nodes) {
-            sem_require(entity_stage_lease(result.stage, node));
-        }
+        sem_body_lease(result, &lease_nodes);
         // Generated control blocks survive across dispatches and are not in
         // the original syntax list. They require leases too, not just pins.
         foreach(var &frame in &result.blocks) {

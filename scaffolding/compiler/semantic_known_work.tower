@@ -132,7 +132,7 @@ fn semantic_known_kernel(result: SemanticKnownWork*): void {
     if result.action == SemanticKnownAction.Publish { sem_known_storage(&context, result, pending); }
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
     vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { free(allocation); }
+    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
     vector_dispose(&context.allocations);
 }
 
