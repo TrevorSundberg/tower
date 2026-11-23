@@ -95061,3 +95061,15 @@ exited. Raw source/environment/logs/phase counts/timing/artifacts/process eviden
 C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
 before/339077795840B after, todo unchanged. Normal source-bound documentation
 publication follows; ROOT retains later-provider builds/generations/hosted release.
+
+D1 initializer-oracle publication reconciliation:58a1fe9f merged complete
+published52b2640e asd3c2397ae9fab4bcb3d189fec3d388954a751418 after required
+ff-only pull refused divergence. No conflicts. Compiler/library/backend/host,
+language/bootstrap/execution contract, selected provider and runtime fixtures
+are unchanged; current provider/fixture/binary hashes retain the final44 receipt.
+Incoming backend byte/storage tests are absent from the execution object's
+recorded dependency list; new browser transport/T5 and byte receipts are preserved
+but excluded from this gate. README and journal additions both retained. No repeat
+of unchanged execution evidence or broad rebuild. Diff checks/todo hash pass,
+all owned processes drained and heavy lock released. Normal main push follows;
+ROOT retains later full-generation/hosted acceptance.
