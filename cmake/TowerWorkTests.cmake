@@ -41,7 +41,9 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       tower_runtime_object(${target}
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${work_triple}" ${fixture_mode})
       set(fixture_objects "${${target}_OBJECT}")
-      if(unit STREQUAL "work_arena_linkage")
+      if(unit STREQUAL "work_budget_shared")
+        list(APPEND fixture_objects "${host_work_linux_OBJECT}")
+      elseif(unit STREQUAL "work_arena_linkage")
         tower_runtime_object(work-arena-link-provider
           "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_arena.tower" "${work_triple}")
         list(APPEND fixture_objects "${work-arena-link-provider_OBJECT}")
