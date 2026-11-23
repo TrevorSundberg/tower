@@ -94488,3 +94488,12 @@ CMake registrations and other-owner audits are preserved but excluded from this
 review. No new audit pass or runtime invocation. Todo hash unchanged; container
 has only its idle sleep process, no owned jobs; disk339441037312B free. Diff checks
 pass, ROOT retains deployment and the stated stale-error follow-up.
+
+B1 budget synchronization receipt publication reconciliation: c4660ec0 merged
+complete published8f9bb924 at550cac6e after required ff-only divergence, no
+conflicts/history loss. Incoming semantic declaration/statement and fixture
+changes are excluded from frozenef59 attribution/control/test evidence. Audited
+shared budget/buffer/arena/entity/pool/native-gate source bytes unchanged;
+frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
+validation retains both journal histories, no runtime rebuild/relabel or
+integrated acceptance claim. ROOT owns final publication; normal push follows.

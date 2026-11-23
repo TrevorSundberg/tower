@@ -169,3 +169,12 @@ Raw evidence and frozen inputs/binaries:
 are `build/ecs_b1/budget_sync_{freeze,stacks,samples,checks}.sh`; command/time/log,
 source/toolchain/artifact manifests and diagnostic warning are retained.
 Public predecessor and `todo.txt` unchanged. ROOT retains final publication.
+
+Publication reconciliation: receipt `c4660ec0` merged complete published
+`8f9bb924` history at `550cac6e` after the required ff-only pull refused
+divergence. Both journal histories remain. Incoming semantic declaration/
+statement and fixture changes are outside the ef59 freeze. The audited budget,
+buffer, arena, entity, pool and native semaphore sources remain identical;
+frozen input/binary hashes pass and receipt diff checks pass. This documentation
+merge does not rebuild or claim integrated runtime acceptance of those later
+compiler inputs.
