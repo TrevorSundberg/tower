@@ -1,0 +1,5 @@
+import tower;
+import .nominal_wrapper_module as types;
+print(123);
+var value: types.buffer(i32, 3);
+var wrong: types.wrapped(i32, 2)* = &value;

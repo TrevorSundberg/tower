@@ -1,0 +1,11 @@
+import foundation;
+
+var values: i32[4];
+values[0] = 11;
+values[1] = 22;
+var cursor = &values[1];
+// Foundation literals take usize index context; a signed index is explicit.
+var previous: i32 = -1;
+print(cursor[previous]);
+cursor = cursor - 1;
+print(*cursor);

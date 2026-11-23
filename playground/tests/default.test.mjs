@@ -72,18 +72,19 @@ test('generic inference and ordinary compile-time execution share default semant
  fn stage():i32{var n:i32=default;n=17;n=default;return n;}
  print(comptime(stage()));`, '0\n0\n42\n0\n0\n');
 });
-test('default diagnoses missing types and does not introduce aggregate copying or conversions',()=>{
+test('default values support ordinary struct copies and staged scalar results',async()=>{
+ await compare((await read('scaffolding/tests/default_struct_values.tower')).toString(),'0\n7\n0\n');
+});
+test('default diagnoses missing types and incompatible conversions',()=>{
  for(const [source,message] of [
   ['var n=default;',/requires a target type/],
   ['var n=default(void);',/non-void/],
   ['var n:i32=default(u32);',/Expected i32/],
   ['struct A{x:i32;}struct B{x:i32;}var a:A=default(B);',/Expected A/],
-  ['struct A{x:i32;}var a:A=default;var b=a;',/aggregate copies/],
-  ['struct A{x:i32;}print(default(A));',/Aggregate default requires/],
+  ['struct A{x:i32;}print(default(A));',/^print requires a scalar or pointer value$/],
   ['struct A{x:i32;}var a:A=default;var b=(a=default);',/void/],
   ['fn id(T:type,x:T):T{return x;}print(id(default));',/Cannot infer type argument/],
   ['struct A{x:i32;}var a:A=default;a+=default;',/integer|aggregate/i],
-  ['struct A{x:i32;}fn stage():i32{var a:A=default;return a.x;}print(comptime(stage()));',/storage or value capability/],
  ]){const result=execute('import tower;'+source);assert.equal(result.status,'error',source);assert.match(result.error,message,source);}
 });
 test('formatting preserves default syntax and Foundation keeps its ordinary identifier',()=>{
@@ -96,5 +97,5 @@ test('formatting preserves default syntax and Foundation keeps its ordinary iden
  try{assert.equal(runToEnd(tower,again).end.status,'done');assert.equal(tower.format(again).source,formatted.source);}
  finally{tower.destroy(again);}
  assert.equal(execute(formatted.source).output,'0\n');
- assert.equal(execute('var default:i32=42;print(default);').output,'42\n');
+ assert.equal(execute('import foundation;var default:i32=42;print(default);').output,'42\n');
 });

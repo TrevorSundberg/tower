@@ -1,0 +1,13 @@
+import tower;
+
+var Extent: type = usize;
+fn buffer(T: type, count: Extent): type { struct R { data: T[count]; } return R; }
+fn wrapped(T: type, count: Extent): type { return buffer(T, count); }
+fn nested(T: type, count: Extent): type { return wrapped(T, count + 1); }
+fn boolean(flag: bool): type { return buffer(i32, 2); }
+fn dependent(T: type, value: T): type { return buffer(i32, 2); }
+fn selected(take: bool): type {
+    if take { return buffer(i32, 2); }
+    trap("Untaken nominal producer", 0);
+    return buffer(i32, 3);
+}

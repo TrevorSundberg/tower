@@ -3,7 +3,7 @@ import foundation_types;
 import semantic_evaluation_types;
 import .library.vector;
 
-enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Execute, Ready }
+enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Execute, Ready, Parameters }
 
 struct SemanticConstructor {
     phase: SemanticConstructorPhase;

@@ -77,6 +77,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
     phase(`LLVM Foundation ${pointerBytes * 8}-bit optimize=${optimize}`);
     const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
      target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+    if(rebuilt.status!=='compiled')await save(`${profile}_error.json`,JSON.stringify(rebuilt,null,2));
     assert.equal(rebuilt.status,'compiled',rebuilt.error);
     await save(`${profile}_before.ll`,rebuilt.before);
     await save(`${profile}_after.ll`,rebuilt.after);

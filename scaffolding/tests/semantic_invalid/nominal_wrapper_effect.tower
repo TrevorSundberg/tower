@@ -1,0 +1,8 @@
+import tower;
+import .nominal_wrapper_module as types;
+print(123);
+fn ordinary(T: type, count: usize): type {
+    trap("Ordinary type-producing effect must execute", 0);
+    return types.buffer(T, 2);
+}
+var value: ordinary(i32, 2);

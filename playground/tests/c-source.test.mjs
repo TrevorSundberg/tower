@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {loadTower,loadLLVM,generatedSource} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const source='// original note\nfn answer():i32 { /* body note */ return 42; } print(answer()); // end note\n';
+const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+const source='import foundation;\n// original note\nfn answer():i32 { /* body note */ return 42; } print(answer()); // end note\n';
 
 test('C consumes the same entities, preserves comments, strips on request and releases storage',()=>{
   const warm=tower.compile(source,{pointerBytes:8});
@@ -35,7 +35,7 @@ test('C consumes the same entities, preserves comments, strips on request and re
 });
 
 test('LLVM optimization carries comments through compilable foundation and C',async()=>{
-  const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+  const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
   const h=tower.compile(source,{pointerBytes:8});
   try {
     for(const optimize of [false,true]) {
@@ -55,7 +55,7 @@ test('increment replacements preserve every example comment in raw and optimized
   const notes=[...source.matchAll(/^\/\/ (.+)$/gm)].map(match=>match[1].trim());
   assert.ok(notes.includes('5: the old value, then 6: the updated variable.'));
   const h=tower.compile(source,{pointerBytes:8});
-  const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+  const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
   try {
     const canonical=tower.foundation(h).source;
     for(const note of notes) assert.ok(canonical.includes(note),note);
@@ -79,12 +79,12 @@ test('increment replacements preserve every example comment in raw and optimized
 });
 
 test('foreign C++ names diagnose instead of producing invalid C',()=>{
-  const h=tower.compile('extern fn `cpp_name(void space::function())`():void; `cpp_name(void space::function())`();',{pointerBytes:8});
+  const h=tower.compile('import foundation; extern fn `cpp_name(void space::function())`():void; `cpp_name(void space::function())`();',{pointerBytes:8});
   try{assert.throws(()=>tower.cSource(h),/plain C identifier/);}finally{tower.destroyExecution(h);}
 });
 
 test('C ABI signatures retain signed parameters and return types',()=>{
-  const h=tower.compile('export fn signed32(value:i32):i32 { return value; } export fn signed64(value:i64):i64 { return value; }',{pointerBytes:8});
+  const h=tower.compile('import foundation; export fn signed32(value:i32):i32 { return value; } export fn signed64(value:i64):i64 { return value; }',{pointerBytes:8});
   try {
     const text=tower.cSource(h);
     assert.match(text,/int32_t signed32\(int32_t v\d+\)/);

@@ -4281,9 +4281,9 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | compiler-threads | O1 2P/1F | Old work-Wasm pool/trap P; shared compiler ENOENT. New browser retirement receipt is not this Node suite; T5. |
 | compiler-utf8 | O1 2P/1F | Utility interpreter/LLVM/canonical comparison unpassed; T8. |
 | compiler-workers | O1 file-init F | Missing project.json, all8 registered cases U; generation success is not these assertions; T6. |
-| compiletime | O1 27P/18F | DL42P/3F portable; decltype_type_fields/parameterized-field chain fail Unknown type constructor 'alias' (ROOT/L1 with L2); inference_alias_invalid rejects with earlier capability error (ROOT/L2).43 LLVM registrations U on E; commands below. Not an unassigned whole-file failure. |
+| compiletime | O1 27P/18F | DL42P/3F portable. LLVM-only c95b04a2/E receipt below:39P/4F, all43 attempted,45 portable registrations excluded. Three older-eac alias/type-body failures remain; body_continuation additionally prints1 instead of0 in emitted Wasm. Source/input-phase adoption remains ROOT/L1/L2; no full current-source file pass. |
 | completion-queries | O1 4P | Unchanged mock transport producer/data; reuse O1. |
-| cross-compilation | O1 7S | Six target groups and recoverable-linker case lack execution in this inventory; T7. |
+| cross-compilation | O1 7S | T7 now7/7P at84146755 plus explicit fixture imports / supplied eac cross reactor; see the source-bound T7 receipt below. Other-OS binaries emitted, not executed natively. |
 | data-driven-scanners | O1 3F | N3/3P. |
 | default | O1 6F | No later Node closure located; T8. |
 | defer | O1 5P/1F | Foundation ordinary-identifier case unpassed; T8. |
@@ -4339,7 +4339,7 @@ be omitted. These are commands for ROOT's final run, **not executed here**.
 | T4 — CLOSED on LA; ROOT final changed-input adoption | LL's narrow/body package failures are superseded by LA's actual end-to-end passes, including independent load/execute. Preserve separately scoped evidence; no extra repeat for unchanged inputs. If final reactor/caller inputs change, selectors are `--test-name-pattern='^LLVM matches interpreter: narrow integers$'` and `'^LLVM matches interpreter: resumable control bodies$'` in llvm-execution.test.mjs, retaining all original profile/output/offset/canonical assertions. |
 | T5 — ROOT/B2 shared retirement and Node adoption | [f167c444 receipt](compiler_shared_browser_f167c444.md): shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4, work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c, resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b. Strict browser retirement repeatedly fails; once-passing rejected candidates/older D2 passes do not close it. Run `TOWER_REQUIRE_THREADS=1 node playground/scripts/test-shared-compiler.mjs /absolute/shared/tower.wasm /absolute/shared/tower-work-tests.wasm REPORT.json`, then the Node compiler-threads file with real matching work/compiler bytes and no skips. Chromium/Playwright and resource manifest must match the accepted repair. |
 | T6 — ROOT/B2 worker artifact adoption | `node --test --test-concurrency=1 playground/tests/compiler-workers.test.mjs`. All8 cases were unstarted at missing build/compiler-project/project.json. Supply final project manifest/resources and build/browser-wasi-llvm/tower-llvm.wasm; this file imports the raw LLVM loader and worker entry, so generic fixture overrides alone are insufficient. Two edited9d generations prove their own script, not these eight output-order/cancel/generic/iteration/vectorization cases. |
-| T7 — ROOT cross artifacts / fixture triage | `env -u TOWER_TEST_LLVM_WASM node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`. All7 previously skipped. Supply final build/browser-wasi-llvm/tower-cross.wasm and every targetInputs runtime/link input. The shared fixture loader's LLVM override would otherwise replace the cross reactor with the ordinary LLVM reactor. Current inline object/link/recovery source strings still lack language imports: reconcile their explicit-language boundary when reached, not by treating seven skips as passes. |
+| T7 — CLOSED at84146755/eac; ROOT final artifact adoption | Seven fresh exact selections now pass with explicit Foundation imports; full receipt below. For changed final artifacts, use `env -u TOWER_TEST_LLVM_WASM -u TOWER_INTERPRETER_ONLY node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`, supplying build/browser-wasi-llvm/tower-cross.wasm and all targetInputs files. A generic LLVM override would silently select the wrong reactor. Retain native-emission versus actual Wasm-execution distinction. |
 | T8 — ROOT to assign; eleven original files without later Node closure | `node --test --test-concurrency=1 playground/tests/{c-source,compiler-bytes,compiler-entities,compiler-utf8,default,defer,execution,fast-interpreter,for-loops,foreach,formatter-port}.test.mjs`. Do **not** silently delegate this to L1/A2's unrelated fixes. Exact failed groups/counts are above and original logs remain O1. These Node files are unchanged since69391085; imported resources/providers have advanced. Observed old failures include implicit-language strings, older LLVM integer_type reconstruction and generic_registry's Tower-owned compiler_buffer_allocation_size provider. Matched-pair/resource adoption and fixture triage are required before classifying current compiler defects. Keep malformed/seed cases deliberate. Compiletime now has DL's separate disposition, not an unassigned failure. |
 | T9 — ROOT framework scheduling, then relevant producer owner if failing | Eight exact semantic-port cases lack a matching-pair pass: `entity_stage_ownership`, `work_access`, `work_observe`, `compiler_work`, `compiler_batch`, `backend_popcount`, `backend_stack`, `backend_import_constants`. They failed under O's mixed artifacts; were unstarted after the G8 interruption; B1/S3 did not select them. Native fixtures and R's stage export are not these full Graph/Fast/LLVM32/64/canonical checks. Run separately with the command below. |
 
@@ -4361,12 +4361,12 @@ separately from A2's numeric repair. Exact follow-ups on the final capable host:
 
 ```sh
 node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|inference_alias_invalid|parameterized fields).*\(portable\)$' playground/tests/compiletime.test.mjs
-node --test --test-concurrency=1 --test-name-pattern='\(LLVM\)$' playground/tests/compiletime.test.mjs
+node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|body_continuation|inference_alias_invalid|parameterized fields).*\(LLVM\)$' playground/tests/compiletime.test.mjs
 ```
 
 DL makes LLVM/stress loading lazy without omitting default assertions. The second
-command selects all43 unstarted LLVM registrations and requires the final pair;
-it is not a lightweight Deck instruction. Exact invalid inference expectation
+command now selects only the four failures from the completed c95b04a2/E LLVM
+receipt, after their repair/target-input diagnosis and matched artifacts. Exact invalid inference expectation
 remains `Cannot infer type argument 'T'; pass explicit type arguments`, not the
 observed general-compile-time-execution capability error. Both alias positives
 still expect0; later modes were not reached after their Graph32 failure.
@@ -4411,3 +4411,77 @@ without later Node closure, while compiletime has the explicit partial receipt
 and assigned failures above. Its two current test hashes match DL; no new D1
 execution. ROOT's generation is separately source-bound and does not execute
 the remaining Node groups. This finite receipt adoption ends the reconciliation.
+
+## T7 cross-target execution at 84146755 (2026-11-23)
+
+Frozen host/resource source84146755f49035aae60a983d6db2a682a3051201 plus the five
+explicit `import foundation;` prefixes in cross-compilation.test.mjs, final SHA
+`dbd4fefbe7c3610e8b87d8999617884a2c7ed656f4003f065f7a367ee47f31d4`.
+Supplied cross reactor sourceeac16533 / SHA
+`e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1`.
+Archive3ae60fc20303f8b91b8398e3eda0dd6c2939c60bdb4a6c03e5c207fec1c452a1
+and all eight selected entries (cross plus seven target files) match files.json.
+No default artifact was overwritten; previous portable/LLVM artifacts untouched.
+
+Each of WebAssembly, Windows x64, Linux x64/ARM64, macOS x64/ARM64 and linker
+recovery ran in a fresh process, concurrency1,120s bound. Baseline0/7: six fail
+at the unimported library source after successful main/repeat emission; recovery
+fails before linking. Repaired7/7, zero skips/timeouts/cancellations. All original
+assertions remain: executable magic, deterministic repeated bytes, native
+allocation signature/disassembly, library object/no tower_main, external answer
+linking, real Wasm outputs5/84/42/4/41/42 and42, Link failed then successful compile,
+unknown-target diagnostic. Existing cross_target_program.tower remains unchanged;
+no compiler/semantic implementation was added. Other-OS output is emission, not
+native execution there. No whole-current-compiler/browser release claim.
+
+Logs/manifests `build/d1_ecs/cross_84146755/`; journal has exact command and per-case
+costs. Final summed wall/CPU25.30/37.35s, maximum individual peak379228KiB,0swaps.
+These are validation costs, not equivalent-success production performance data.
+Fixture-only boundary repair has no production optimization/scaling claim. No
+compiler build, repeated aggregate, generation, sanitizer or unrelated gate run.
+All owned jobs drained and shared heavy lock released before publication.
+
+Merged adoption66657986 retains all T7 test/host/artifact hashes. The only changed
+existing mounted resource is A1's tests/stress/comment_functions.tower, outside
+these executed imports. Its mismatch is preserved in merged_resources_check.log;
+the original full-registry identity is not relabeled as a fresh merged test run.
+
+## LLVM-only compiletime selection at c95b04a2 (2026-11-23)
+
+Frozen sourcec95b04a2d841ff7fb951b51e77319ee4fd1acb25, unchanged test SHA
+b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d, matching
+supplied eac portable/LLVM pairE. One suffix-filtered aggregate completed within
+180s:39P/4F,0unstarted selected registrations,0skips/cancellations/timeouts;
+45portable registrations filtered out, not executed or counted as passes.
+
+| Selected group | P | F | Unstarted registrations |
+| --- | --- | --- | --- |
+| Lazy signature / demanded body negatives | 2 | 0 | 0 |
+| Source + canonical execution positives | 14 | 2 | 0 |
+| Stage/dependency/execution diagnostics | 23 | 1 | 0 |
+| Generated parameterized-field chain | 0 | 1 | 0 |
+
+Failures retain independent expectations: decltype_type_fields cannot complete
+Graph64 canonical setup (`Unknown type constructor 'alias'`); inference_alias_invalid
+gets the earlier general-compile-time-execution capability error at LLVM32;
+generated type_fields fails LLVM32 alias admission. Those source-bound older-eac
+results need L1/ROOT wrapper/type-body adoption, not changed diagnostics.
+body_continuation completes Graph64 canonical setup but emitted Wasm returns1
+instead of0. The loop does not label original versus canonical input, so the
+failing iteration is unresolved. It prepares64-bit canonical then targets default
+wasm32, unlike A1's already passing same-target LLVM/package case; this observable
+setup difference is not yet a proven cause. ROOT owns that input/target isolation.
+No memory-error inference, producer repair, expectation weakening or fixture edit.
+
+Logs/names/manifests: build/d1_ecs/compiletime_llvm_c95b04a2/. All43 completed names
+match the preflight list exactly. Only the selected type_fields stress producer
+runs; other generators stay lazy.16.25wall/21.14CPU s,476656KiB peak,0swaps,
+exit1. No source changes or compiler build; timing is validation cost, not a
+production before/after or scaling measurement. All owned jobs drained, shared
+heavy lock released. Later phases within failed cases remain unpassed as detailed
+in the journal; completing registrations does not imply all their assertions ran.
+
+Reconciliationaaf01529 preserves selected test/host/fixture inputs. L1's newer
+5cb0b061 wrapper implementation and unrelated registered test additions are outside
+the eac executable and measured resource identity; their source/native receipts
+are not substitutes for this still-required joined-artifact adoption. No rerun.
