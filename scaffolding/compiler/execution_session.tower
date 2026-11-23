@@ -5,6 +5,7 @@ import foundation_types;
 import format_types;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .library.work_budget_types;
 
 // One request owns its checked Foundation entities, derived execution cache and
 // guest storage. The module environment is borrowed only during compilation.
@@ -28,6 +29,7 @@ extern fn entity_release(node: void*): usize;
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
 
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
@@ -65,14 +67,25 @@ fn execution_session_close(execution: ExecutionSession*): void {
 }
 
 fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize): void {
-    if execution.error.length == 0 {
-        if !bytes_assign_text(&execution.error, text, strlen(text)) {
-            abort();
-        }
-        execution.machine.error_offset = offset;
-    }
-    execution.machine.failed = true;
+    // Failure does not depend on allocating its presentation. Preserve the first
+    // offset even if diagnostic storage is unavailable on every later attempt.
     execution.machine.done = true;
+    if execution.machine.failed { return; }
+    execution.machine.failed = true;
+    if execution.error.length == 0 {
+        execution.machine.error_offset = offset;
+        bytes_assign_text(&execution.error, text, strlen(text));
+    }
+}
+
+fn execution_session_program_failed(execution: ExecutionSession*): bool {
+    var resource = execution.program.resource;
+    if resource.error == WorkBudgetError.None && execution.program.error.length == 0 { return false; }
+    var text = execution.program.error.length != 0 ? execution.program.error.data
+        : sem_resource_message(resource.error);
+    var offset = resource.error != WorkBudgetError.None ? resource.offset : execution.program.error_offset;
+    execution_session_fail(execution, text, offset);
+    return true;
 }
 
 fn execution_session_compile_sources(execution: ExecutionSession*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
@@ -133,12 +146,7 @@ fn execution_session_compile_sources_world(execution: ExecutionSession*, world: 
         execution.machine.done = true;
         return false;
     }
-    if !bytes_assign_text(&execution.error, execution.program.error.data, execution.program.error.length) {
-        execution_session_fail(execution, "Unable to allocate compiler diagnostic", execution.program.error_offset);
-    }
-    execution.machine.error_offset = execution.program.error_offset;
-    execution.machine.failed = execution.error.length != 0;
-    execution.machine.done = execution.machine.failed;
+    if execution_session_program_failed(execution) { return false; }
     execution.machine.stack = 16;
     execution.machine.heap = 4194304;
     return !execution.machine.failed;
@@ -153,6 +161,7 @@ fn execution_session_compile(execution: ExecutionSession*, text: u8*, length: us
 
 fn execution_session_start(execution: ExecutionSession*): bool {
     if execution.machine.failed { return false; }
+    if execution_session_program_failed(execution) { return false; }
     if execution.program.root == null {
         execution_session_fail(execution, "Execution session has no compiled program", 0);
         return false;

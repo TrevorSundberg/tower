@@ -9,10 +9,42 @@ import .compiler.interpreter_types;
 import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
+import .library.work_budget_types;
+import .library.vector;
+
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+
+fn execution_package_resource_tests(modules: void*, width: u32): void {
+    var session: ExecutionSession = default;
+    execution_compile(&session, "import tower; print(42);", width, modules);
+    var root = session.program.root;
+    var store = compiler_world_store(compiler_host_world());
+    var count = entity_store_count(store);
+    var output: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    defer bytes_dispose(&error);
+    sem_resource_record(&session.program, WorkBudgetError.Memory, 0);
+    execution_check(execution_append_text(&output, "stale package"), "resource package output seed");
+    execution_check(!execution_package_encode(&session.program, modules, 0, &output, &error)
+        && output.length == 0 && execution_text(&error, sem_resource_message(WorkBudgetError.Memory)),
+        "empty semantic diagnostic cannot authorize package encoding");
+    var diagnostic = "Retained package resource diagnostic";
+    var length = strlen(diagnostic);
+    execution_check(vector_reserve(&session.program.error, length + 1), "package diagnostic fixture");
+    copy(session.program.error.data, diagnostic, length + 1);
+    session.program.error.length = length;
+    execution_check(!execution_package_encode(&session.program, modules, 0, &output, &error)
+        && output.length == 0 && execution_text(&error, diagnostic)
+        && session.program.root == root && entity_store_count(store) == count,
+        "resource package gate retains source diagnostic without reconstructing entities");
+    execution_close_checked(&session);
+}
 
 fn execution_package_tests(modules: void*): void {
     puts("Canonical .towerbc reconstruction");
     for(var width: u32 = 4; width <= 8; width += 4) {
+        execution_package_resource_tests(modules, width);
         var original: ExecutionSession;
         var decoded: ExecutionSession;
         fill(&original, 0, sizeof(ExecutionSession));

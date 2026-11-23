@@ -12,6 +12,31 @@ import semantic_support;
 import .library.vector;
 
 import semantic_context_types;
+import semantic_program_types;
+
+// The coordinator records joined results in source order. A worker may call
+// this only on its private program, then transfer the receipt with its result.
+// This does not allocate, format text, or mutate a shared budget/error slot.
+export fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void {
+    if error == WorkBudgetError.None || program.resource.error != WorkBudgetError.None { return; }
+    program.resource = { error: error, offset: offset };
+}
+
+// Output boundaries can report a retained failure even if diagnostic storage
+// was unavailable or an editor intentionally cleared ordinary source errors.
+export fn sem_resource_message(error: WorkBudgetError): u8* {
+    if error == WorkBudgetError.None { return ""; }
+    if error == WorkBudgetError.Capacity { return "Semantic memory budget exceeded"; }
+    if error == WorkBudgetError.Memory { return "Cannot allocate semantic storage"; }
+    if error == WorkBudgetError.Busy { return "Semantic worker admission failed"; }
+    return "Invalid semantic resource request";
+}
+
+// Classify an actual failed graph operation only. An empty take on a healthy
+// graph is ordinary waiting. This helper never cancels, drains or releases work.
+export fn sem_query_error(c: SemanticContext*): WorkBudgetError {
+    return c.queries.resource_error == WorkBudgetError.None ? WorkBudgetError.Invalid : c.queries.resource_error;
+}
 
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;

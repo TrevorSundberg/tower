@@ -379,3 +379,21 @@ L2's corrected301 fixture independently passes three serial allocation-prefix
 suites with unchanged production API; its new source hook still awaits adoption
 here. These receipts supersede the preceding pending labels only for their exact
 source scopes. Shared resource consumer and remaining map/cache work stays open.
+
+### Fixed semantic resource receipts at execution boundaries
+
+The execution_session compile/start/cache/step gates and execution_package encode
+now honor A1's shared SemanticProgram.resource independently of optional diagnostic
+text. Static shared fallback messages and the first offset remain available; an
+already failed session cannot acquire a later error's text or resume after text is
+cleared. Error-report allocation failure preserves failed/done and package false/
+zero-output, without aborting to format the failure. Existing ordinary diagnostics
+and recoverable guest allocation-null behavior retain their contracts.
+
+Final own patchafb3cc69 plus exact A1V2b255 atop ROOT72/L2301 passes public leaves,
+coherent native rebuild and six native gates including full execution/canonical
+packages and actual backend overlap. New fixtures cover both pointer widths,
+empty/present diagnostics, no effects/replay, root cleanup and clean recompile.
+Actual diagnostic allocator denial and full frontend producer integration remain
+separate evidence gaps; hand-seeded shared receipts do not prove those producers.
+Current performance/instrumentation and final publication are still pending.

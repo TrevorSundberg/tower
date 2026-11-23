@@ -64383,3 +64383,80 @@ L1 reports all six current thread gates passed after its six address gates;
 the complete67669 history is ready but not yet in this root union. D1's current
 phase-fixture public leaves and native compiler pass; paired24-case and successor
 instrumentation remain pending. Full objective and publication remain open.
+
+### 2026-11-23 L1: resumed execution-resource consumer milestone
+
+Resumed the same goal/session after the authorized account restart; actual Codex
+PID26880, gpt-6-astra/xhigh/default tier. Coordination was read once and reconciled
+against files/processes. The previous52256 process handle no longer exists; WSL
+had no surviving compiler/test jobs. Its completed7e06 baseline receipts are real:
+64-step build130.57wall/206.72CPU/731780KiB, query/core-static/type-construction/
+editor all status0, empty stderr, equal before/after/final manifests98eb1d45.
+All five saved complete-cache binary hashes verify after restart and current source
+matches. No completed test was restarted. Usage-limit output is not validation.
+Required pull --rebase=merges --autostash --ff-only succeeded unchanged. Todo was
+not edited; resumed hashb927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9.
+
+Merged reviewed full ROOT72 provider history into b3fbf2c after drain. Its only
+production changes from c917 are the two authorized .host.memory imports in the
+WASI tool entries; runtime source remains the baseline. Bundle SHA5673dc37 verified.
+Git fetch emitted transient old-pack-index-unavailable diagnostics as previously
+observed; the completed merge preserved all histories. No objects were deleted.
+Then applied exact owner-authorized A1V2 b255ff12 four-file resource contract.
+This is the shared owner's implementation, not a competing diagnostic policy.
+
+Owned draft execution_session now consults program.resource independently of text
+at the compile handoff and every start/step/cache boundary. The existing resource
+message helper supplies static fallback text; first receipt offset is preserved.
+The session's failure/done state is set before optional message allocation, so a
+second allocation failure cannot abort while reporting the first one. Successful
+compile no longer allocates an empty diagnostic solely to infer success from its
+length. Package encoding returns false with zero output on typed failure before
+formatting/reconstruction, even if diagnostic copying fails. Existing source text
+wins when present; raw guest allocation-null semantics are unchanged.
+
+New owned core regressions exercise the actual shared compile guard, graph start,
+cache construction and already-built cache stepping at both pointer widths. They
+record failures using the shared API, verify first receipt/text/offset and zero
+effects, clear both presentation buffers, prohibit replay, then close/recompile
+and verify normal7/9 output and exclusive root disposal. Package cases cover empty
+and retained text, stale output removal, unchanged root/entity count and cleanup.
+Offsets derive from source; the execution bound is a named semantic limit. No new
+runner or unowned host edit. Four public9653 leaf compilations pass; coherent16-step
+ABI rebuild and six native gates are currently running, not yet accepted. Actual
+allocation-denied diagnostic buffers and frontend producer integration remain
+separate coverage gaps until matching owner/probe support is available.
+
+Post-native review identified one additional reporting invariant: a second
+execution_session_fail call after text was cleared could pair that later message
+with the retained first offset. Revised helper returns immediately for an already
+failed machine (keeping done true), and the core fixture now directly verifies
+this case. No jobs survived at this edit. The preceding16-step build/all six
+native gates belong to v1: core-static4.56wall/5.52CPU/311176KiB, fullcore8.90/
+10.53/311608, editor14.05/23.42/845816, backend10.77/14.43/523032. Native v2 rerun is
+pending the bounded L2 subordinate grant's drain; do not relabel v1 as v2 evidence.
+
+Source-only next-slice audit: node_cache is a fixed256-slot direct map and every
+lookup dereferences its result. Moving its physical owner requires checked eager
+initialization before graph dispatch, not a nullable return at dozens of callers.
+Invocation function validation currently calls im_cached_node before ix_init binds
+the source world budget; that first validation can use the existing ordinary
+component lookup, then initialize the owned cache after binding. Proposed cache
+slot count must be named once, with mask/clear bytes derived from it and IMEntry.
+No implementation or validation of that next slice is claimed. Heap/free maps
+also need reservations before deleting a free range or publishing heap growth;
+simply changing their setter return types would break recoverable guest allocation
+failure. Returned/foreign value publication must propagate failure without replaying
+already executed effects. These remain concrete follow-on ownership contracts.
+
+Final v2 native96736 drained0. Both changed smallest units pass, coherent six-step
+rebuild20.25wall/21.91CPU/355188KiB, then all six core-static/core/query/type-
+construction/editor/calibrated-backend gates pass. Source manifests before/after/
+final match. Current compilerb11bb15005a802547ec7f1fcd553b29e420ed6717fffa39fcbe738d84ba64f97,
+execution0fdd62cb47d326cc9cfea7113cfe151e5f1e44a069afed38dc572aa169a7f78a,
+LR70012cb88b0d78d8c20a00f03ceb78fdaafcb147d3fcb2aa005b362374fe9004.
+Exact own four-path patchafb3cc693f8dd1c4d0d0bb101424961209387528615b3bef3af5ad09ca7dac77
+supersedes444c rather than stacking on it. L2's subordinate new-fixture leaf failed
+on unsupported else-if before any runtime; that grant closed with no surviving
+children. Quiet paired performance is next, followed by current focused supported
+instrumentation; no current performance or final release acceptance yet.
