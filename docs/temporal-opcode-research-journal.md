@@ -82930,3 +82930,18 @@ Owned jobs drained. Earlier timing receipts keep their measured compiler identit
 no repeated profiling or broad gates. The remaining scratch/synthesis and legacy
 caller admissions above remain pending; stage leases stay A2-owned. Normal main
 push follows this receipt; final lane status records the verified remote commit.
+L1 merged browser receipt: required ff-only pull fetchedb959ad5 and correctly
+refused divergent history; complete mergebe01b5c0 preserved both histories without
+conflicts. Incoming L2 known/capture inputs required only semantics object+reactor
+link,28.27wall/22.01CPU seconds/824732KiB build RSS. Frozen manifest before/after
+2671d02f12b530afde1e9a03a8c0fad02ad9eabc3a70392b594f9369e80a0f11 agrees.
+Current compiler wasm e07a2a8f1a016e678f35809b55232c3d53eee0d39af6dabd2072d14b17586829;
+work wasm unchanged270be3b. Same focused real Chromium selection passes, exact
+outputs/canonical text, overlap/cancellation/stale receipts and no remaining
+browser worker targets. Pool/serial/parallel total275.51/2719.77/4257.54ms;
+closes1.09/42.01/33.13ms. Final resource hash
+0ef031e657e4c6d71e17947f5a44c2a364dafa64d42f2355f7c151742b1d17ee.
+L1/logs/shared_wasm_merged/browser.json and status0 retain current-source evidence.
+No compiler changes by L1, no new performance claim; prior failures remain logged.
+All owned jobs drained. Normal main publication follows; ROOT release/deployment
+limits above remain pending.
