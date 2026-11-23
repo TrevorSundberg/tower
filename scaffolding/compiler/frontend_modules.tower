@@ -18,6 +18,7 @@ import syntax_source;
 import syntax_types;
 import syntax_validation;
 import .library.vector;
+import .library.work_budget_types;
 
 // Imports retain source, declaration and ordinary parse entities in one graph.
 // Grammar views below are derived indexes over those entities, never another IR.
@@ -43,7 +44,7 @@ extern fn syntax_get_error(session: void*): u8*;
 
 extern fn syntax_get_error_offset(session: void*): usize;
 
-extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
+extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
 
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 
@@ -121,6 +122,9 @@ struct ModuleGraph {
     entities: vector(void*);
     order: vector(FrontendModule*);
     error: vector(u8);
+    // Fixed diagnostics remain available after a failed allocation or grant.
+    clone_error: u8*;
+    resource_error: WorkBudgetError;
     depth: usize;
     cycles: bool;
     // One idle import reader, scoped to this graph. Recursive imports keep
@@ -413,6 +417,7 @@ fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u
 }
 
 fn module_fail(module: FrontendModule*, message: u8*, detail: u8*): void {
+    if module.graph.clone_error != null { return; }
     var error = &module.graph.error;
     if error.length == 0 {
         module_require(node_text_set(error, module.source.name.data));
@@ -424,29 +429,51 @@ fn module_fail(module: FrontendModule*, message: u8*, detail: u8*): void {
     }
 }
 
+fn module_clone_fail(graph: ModuleGraph*, error: WorkBudgetError, message: u8*): void {
+    if graph.error.length == 0 && graph.clone_error == null {
+        graph.resource_error = error;
+        graph.clone_error = message;
+    }
+}
+
+fn module_clone_memory(graph: ModuleGraph*): void {
+    module_clone_fail(graph, WorkBudgetError.Memory, "Cannot allocate cached module graph");
+}
+
 fn module_node(graph: ModuleGraph*, entity: void*): FrontendModule* {
     return bits(FrontendModule*, entity_component_data(entity_component_get(entity, graph.kind)));
 }
 
 fn module_new(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
+    var result = module_new_result(graph, name, text, length);
+    module_require(result != null);
+    return result;
+}
+
+fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
+    if !vector_reserve(&graph.entities, graph.entities.length + 1) {
+        module_clone_memory(graph);
+        return null;
+    }
     if graph.kind == null {
         graph.kind = entity_create(compiler_world_store(graph.world));
-        module_require(entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0));
+        if graph.kind == null || !entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0) {
+            if graph.kind != null { entity_release(graph.kind); graph.kind = null; }
+            module_clone_memory(graph);
+            return null;
+        }
     }
     var entity = entity_create(compiler_world_store(graph.world));
-    var allocated2 = entity != null;
-    module_require(allocated2);
+    if entity == null { module_clone_memory(graph); return null; }
     var component = entity_component_add(entity, graph.kind);
-    var allocated3 = component != null;
-    module_require(allocated3);
+    if component == null { entity_release(entity); module_clone_memory(graph); return null; }
     var value = bits(FrontendModule*, entity_component_data(component));
     fill(value, 0, sizeof(FrontendModule));
     value.entity = entity;
     value.graph = graph;
     value.source = syntax_source_create(name, text, length);
-    var allocated4 = value.source != null;
-    module_require(allocated4);
-    module_require(vector_push(&graph.entities, entity));
+    if value.source == null { entity_release(entity); module_clone_memory(graph); return null; }
+    graph.entities.data[graph.entities.length++] = entity;
     value.state = ModuleLoading;
     return value;
 }
@@ -454,19 +481,31 @@ fn module_new(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): Fronten
 // Publish dependencies before their importer, using the same completion order
 // as execution. Cached clones take this path too; discovery order is not order.
 fn module_complete(module: FrontendModule*): void {
-    module.state = ModuleLoaded;
+    module_require(module_complete_result(module));
+}
+
+fn module_complete_result(module: FrontendModule*): bool {
     var graph = module.graph;
-    module_require(vector_push(&graph.order, module));
+    if !vector_reserve(&graph.order, graph.order.length + 1) {
+        module_clone_memory(graph);
+        return false;
+    }
     if graph.tracked {
+        if !vector_reserve(&graph.environment.used, graph.environment.used.length + 1) {
+            module_clone_memory(graph);
+            return false;
+        }
         var name = module.source.name.data;
         var length = syntax_text_length(name);
         var needed = length + 1;
         var dependency = alloc(u8, needed);
-        var present = dependency != null;
-        module_require(present);
+        if dependency == null { module_clone_memory(graph); return false; }
         copy(dependency, name, needed);
-        module_require(vector_push(&graph.environment.used, dependency));
+        graph.environment.used.data[graph.environment.used.length++] = dependency;
     }
+    graph.order.data[graph.order.length++] = module;
+    module.state = ModuleLoaded;
+    return true;
 }
 
 // Coordinator-owned binding. A foreign world is rejected before changing any
@@ -548,6 +587,7 @@ export fn frontend_module_location(module: FrontendModule*, offset: usize, line:
 }
 
 export fn frontend_module_error(module: FrontendModule*): u8* {
+    if module.graph.clone_error != null { return module.graph.clone_error; }
     return module_text(&module.graph.error);
 }
 
@@ -787,6 +827,7 @@ fn module_resolve(parent: FrontendModule*, name: u8*, literal: bool, path: vecto
 }
 
 fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModule* {
+    if frontend_module_error(parent)[0] != 0 { return null; }
     var path: vector(u8);
     var text: vector(u8);
     vector_init(&path);
@@ -850,8 +891,8 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     parent.graph.depth--;
                     module_complete(result);
                     module_validate_cycles(result.graph);
-                    if parent.graph.error.length == 0 {
-                        module_cache_store(result);
+                    if frontend_module_error(parent)[0] == 0 {
+                        if !module_cache_store(result) { result = null; }
                     }
                 }
             }
@@ -1002,7 +1043,7 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
         ok &&= syntax_reader_name(reader, alias, &value.capture);
         if ok {
             ok = value.capture.length != 0;
-            module_require(node_text_set(&part.text, value.capture.data));
+            ok &&= node_text_set(&part.text, value.capture.data);
         }
     }
     return ok;
@@ -1039,7 +1080,7 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
         entity_retain(node);
         module_require(vector_push(&module.imports, node));
     }
-    var clean = module.graph.error.length == 0;
+    var clean = dependency != null && frontend_module_error(module)[0] == 0;
     return clean;
 }
 
@@ -1221,12 +1262,16 @@ export fn frontend_module_tree(module: FrontendModule*, index: usize): void* {
 }
 
 export fn frontend_module_destroy(module: FrontendModule*): void {
-    var graph = module.graph;
+    module_graph_destroy(module.graph);
+}
+
+// A failed private clone may have no root, but still owns earlier dependencies.
+fn module_graph_destroy(graph: ModuleGraph*): void {
     if graph.import_session != null {
         syntax_destroy(graph.import_session);
         graph.import_session = null;
     }
-    var active = graph.environment.active == module;
+    var active = graph.environment.active != null && graph.environment.active.graph == graph;
     if active {
         graph.environment.active = null;
     }
@@ -1451,39 +1496,53 @@ fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): Fronten
 }
 
 fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
+    if graph.error.length != 0 || graph.clone_error != null { return null; }
     var i: usize = 0;
     for(; i != graph.entities.length; i++) {
         var old = module_node(graph, graph.entities.data[i]);
         if module_equal(old.source.name.data, source.source.name.data) {
             if old.state == ModuleLoading {
-                module_fail(old, "Import cycle through ", old.source.name.data);
+                module_clone_fail(graph, WorkBudgetError.None, "Import cycle in cached module graph");
                 return null;
             }
             return old;
         }
     }
-    var result = module_new(graph, source.source.name.data, source.source.text.data, source.source.text.length);
+    var result = module_new_result(graph, source.source.name.data, source.source.text.data, source.source.text.length);
+    if result == null { return null; }
     i = 0;
     for(; i != source.dependencies.length; i++) {
         var dependency = module_clone(graph, source.dependencies.data[i]);
         if dependency == null {
             return null;
         }
-        module_require(vector_push(&result.dependencies, dependency));
+        if !vector_push(&result.dependencies, dependency) { module_clone_memory(graph); return null; }
     }
     i = 0;
     for(; i != source.declarations.length; i++) {
         var declaration = source.declarations.data[i];
+        if !vector_push(&result.declarations, declaration) { module_clone_memory(graph); return null; }
         entity_retain(declaration);
-        module_require(vector_push(&result.declarations, declaration));
     }
     foreach(var root in &source.roots) {
         var copied: usize = 0;
-        var tree = compiler_clone_tree(root, ModuleMaximumSourceBytes, &copied);
-        module_require(tree != null);
-        module_require(vector_push(&result.roots, tree));
+        var error = WorkBudgetError.None;
+        var tree = compiler_clone_tree_result(root, ModuleMaximumSourceBytes, &copied, &error);
+        if tree == null {
+            module_clone_fail(graph, error, error == WorkBudgetError.None
+                ? "Cached module clone exceeds its node limit"
+                : "Cannot allocate cached module clone within its memory budget");
+            return null;
+        }
+        if !vector_push(&result.roots, tree) {
+            entity_release(tree);
+            module_clone_memory(graph);
+            return null;
+        }
     }
-    foreach(var span in &source.comments) { module_require(vector_push(&result.comments, span)); }
+    foreach(var span in &source.comments) {
+        if !vector_push(&result.comments, span) { module_clone_memory(graph); return null; }
+    }
     i = 0;
     loop {
         if i == source.imports.length {
@@ -1492,38 +1551,64 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         // Cached grammar is immutable. Each request gets fresh import syntax
         // entities before attaching compilation-specific ownership/bindings.
         var copied: usize = 0;
-        var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes, &copied);
-        var present = declaration != null;
-        module_require(present);
+        var error = WorkBudgetError.None;
+        var declaration = compiler_clone_tree_result(source.imports.data[i], ModuleMaximumSourceBytes, &copied, &error);
+        if declaration == null {
+            module_clone_fail(graph, error, error == WorkBudgetError.None
+                ? "Cached module clone exceeds its node limit"
+                : "Cannot allocate cached module clone within its memory budget");
+            return null;
+        }
         var reader: SyntaxReader = {
             source: result.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch),
             syntax_kind: compiler_world_type(graph.world, CompilerSyntax), ..default
         };
-        module_require(module_read_import(&reader, declaration));
-        module_require(vector_push(&result.imports, declaration));
+        if !module_read_import(&reader, declaration) {
+            entity_release(declaration);
+            module_clone_fail(graph, WorkBudgetError.Invalid, "Cannot reconstruct cached module import");
+            return null;
+        }
+        if !vector_push(&result.imports, declaration) {
+            entity_release(declaration);
+            module_clone_memory(graph);
+            return null;
+        }
         i++;
     }
     result.body = true;
-    module_complete(result);
+    if !module_complete_result(result) { return null; }
     return result;
 }
 
-fn module_cache_store(module: FrontendModule*): void {
+fn module_cache_store(module: FrontendModule*): bool {
+    if frontend_module_error(module)[0] != 0 { return false; }
     // Cache grammar-bearing modules and import wrappers. Their ordinary
     // dependencies must not disable grammar reuse (Foundation's type prelude
     // is one such dependency). Pure code modules need no separate snapshot.
-    if module.roots.length != 0 && module.declarations.length == 0 { return; }
+    if module.roots.length != 0 && module.declarations.length == 0 { return true; }
     if !module_cacheable(module) {
-        return;
+        return true;
     }
     var environment = module.graph.environment;
     var graph = alloc(ModuleGraph, 1);
-    var present = graph != null;
-    module_require(present);
+    if graph == null { module_clone_memory(module.graph); return false; }
     *graph = default;
     graph.world = module.graph.world;
     graph.environment = environment;
     var snapshot = module_clone(graph, module);
+    if snapshot == null {
+        module_clone_fail(module.graph, graph.resource_error, graph.clone_error);
+        module_graph_destroy(graph);
+        return false;
+    }
+    // Reserve the publication slot before retiring any prior valid snapshot.
+    var needed = environment.cache.length == ModuleCacheEntries
+        ? ModuleCacheEntries : environment.cache.length + 1;
+    if !vector_reserve(&environment.cache, needed) {
+        module_clone_memory(module.graph);
+        module_graph_destroy(graph);
+        return false;
+    }
     if environment.cache.length == ModuleCacheEntries {
         frontend_module_destroy(environment.cache.data[0]);
         for(var i: usize = 1; i != environment.cache.length; i++) {
@@ -1532,7 +1617,8 @@ fn module_cache_store(module: FrontendModule*): void {
         }
         environment.cache.length--;
     }
-    module_require(vector_push(&environment.cache, snapshot));
+    environment.cache.data[environment.cache.length++] = snapshot;
+    return true;
 }
 
 export fn frontend_modules_used_clear(environment: ModuleEnvironment*): void {

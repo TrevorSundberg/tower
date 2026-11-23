@@ -8,6 +8,7 @@ import semantic_types;
 import semantic_modules;
 import semantic_generic_values;
 import .library.vector;
+import .library.work_budget_types;
 
 // Optional, disposable analysis on the original shared entities. The annotation
 // is the actual type-expression tree, whose name leaves bind to declarations;
@@ -51,6 +52,7 @@ struct GenericAnalysis {
     resolve_types: bool;
     budget: usize;
     truncated: bool;
+    storage_error: WorkBudgetError;
 }
 
 fn generic_info(node: void*, component: void*): GenericInfo* {
@@ -281,14 +283,14 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
 fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
     var component = sem_create(c.program.root);
     sem_require(entity_register(component, sizeof(GenericInfo), alignof(GenericInfo), 0));
-    var a: GenericAnalysis;
+    var a: GenericAnalysis = default;
     a.context = c;
     a.component = component;
     a.resolve_types = resolve_types;
     a.budget = InspectionNodeLimit;
     a.truncated = false;
     var i: usize = 0;
-    for(; i < c.template_nodes.length; i++) {
+    for(; i < c.template_nodes.length && a.storage_error == WorkBudgetError.None; i++) {
         var definition = c.template_nodes.data[i];
         a.definition = definition;
         a.constructor = sem_equal(sem_tokens(c, sem_member(definition, "type")), "type");
@@ -324,10 +326,11 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.
     i = 0;
-    for(; i < c.template_nodes.length; i++) {
+    for(; i < c.template_nodes.length && a.storage_error == WorkBudgetError.None; i++) {
         a.definition = c.template_nodes.data[i];
         generic_value_walk(&a, a.definition, 0);
     }
     *truncated = a.truncated;
+    if a.storage_error != WorkBudgetError.None { return null; }
     return component;
 }

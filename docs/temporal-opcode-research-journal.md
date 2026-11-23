@@ -58253,6 +58253,166 @@ The complete type/paired profile receipt therefore remains applicable to the
 unchanged compiler. Final supported instrumentation of these new concurrency
 checks and public synchronous clone denial propagation remain outstanding.
 
+### L2 public synchronous clone resource failure closure (source draft)
+
+The remaining public clone callers are module snapshot/cache construction and
+optional generic inspection. Deriving the source-world budget without changing
+these callers would turn an ordinary capacity denial into a module assertion or
+silently truncated inspection. Root assigned the frontend guard and module/cache
+transaction cleanup to B2, with D2 maintaining the existing export allowlist.
+No foreign-owner production file is edited by L2 for this draft.
+
+Add compiler_clone_tree_result with a fixed WorkBudgetError output; retain the
+existing compiler_clone_tree ABI as a wrapper. Both use the source world's frozen
+budget; only an actual standalone entity store has no world budget. The private
+stack still owns and disposes every frame allocation, including denied replacement
+growth. A node quota remains distinct from resource failure. GenericAnalysis now
+starts from default and latches the typed failure; recursive value traversal stops
+on that receipt and sem_generic_inspect returns null. B2 must reject that null
+before language_document_world clears optional checking errors or emits success.
+The inspection component remains contained by the query's root and is reclaimed
+by the existing context/program/root disposal sequence.
+
+Extend the existing serial storage fixture with exact public-tree shape, ordered
+metadata, wrapper compatibility, first reservation denial, denied growth after
+16 copied nodes, first heap failure and unchanged node-quota behavior. Check
+node/component counts after partial output retirement, frame grants before return,
+and complete world/buffer teardown. These tests do not use serial allocation
+instrumentation on worker threads. They are source drafts, not passing evidence.
+
+Before further compilation, preserve the complete unchanged37db021e compiler and
+committed64af7bf resources in l2_public_clone_before_64af (21MiB), with nine matching
+runtime LLVM resources and public_clone_before_package.sha256. The new result API
+and shared GenericAnalysis layout require coherent dependent builds; bounded
+service runtime waits for matched owner repairs. Current exact three-file patch
+is L2_public_clone_result_v2.patch, SHA25503293b496f838a870cd873bf67d345c76c52d2323336b1a713c5ade3c6576.
+No public bootstrap, final instrumentation or deployment acceptance is implied.
+
+Smallest public-pin compilation now passes for all four changed code units with
+the complete Tower/CMake input hash set unchanged: generics4.58s wall/3.99s CPU/
+246732KiB RSS; generic_info19.21/16.64/736308; generic_values19.68/16.33/736248;
+serial fixture2.46/2.23/184940. Session50524 drains0 and releases the host before
+L1's paired resource-error profile. No bounded frontend runtime is run against
+the still-unmatched caller cleanup. These compile checks do not establish a
+new compiler performance or public-bootstrap closure receipt.
+
+The isolated existing serial storage target now rebuilds every affected dependency
+(entities, semantics and fixture) and passes three complete runs, including all
+six new public-clone cases. The test uses the production helper with a source-world
+binding and no explicit caller budget argument. Success preserves exact ordered
+metadata and both API forms; quota, first byte denial, growth denial and allocation
+failure preserve distinct counts/errors and retire complete or partial trees.
+Node/component counts, frame grants and whole-world physical buffer counts return
+to their required baselines. This does not execute the still-unmatched bounded
+module/inspection service path.
+
+Build27.96s wall/33.22s CPU/789656KiB RSS; runs0.22/0.82/0.21s wall,
+0.20/0.21/0.20s CPU and93840/94004/93848KiB RSS. Keep the0.82s sample; the added
+cases mean these totals are not equivalent-suite before/after speed evidence.
+The earlier wide/deep allocation counts remain783/2434. Current storage executable
+SHA072c1df4d6cc3614d53e9776307e49fbcb3f7a4012d81cf14a0dd183bd0c82a1;
+public_clone_storage_* logs and full source manifests preserve input identity.
+Session14851 drains0, then releases the host. The complete before package remains
+available for equivalent compiler measurements after the owner caller join.
+
+### L2 six-lane source integration and clone node-failure follow-up
+
+Verify ROOT_main_1fec1b91.bundle SHA79350aa1820854d6ee537aa20b48c244e8421d098059263ae7b82786c924ce01,
+sole published60741 prerequisite, and merge its complete six-lane histories into
+L2 main after all owned jobs drain. Merge5d438415 preserves both root1fec1b91 and
+L2's public-clone checkpoint0975e75. The journal merges automatically; the three
+owned production files and L2 audit are unchanged relative to0975. Git autostash
+restores the sole pending serial regression edit. No todo change or branch is
+introduced. This union includes L1/A1 typed interpreter resource errors, current
+parser/frontend retained buffers, B2 unique-graph cache validation and full test
+registration prerequisites, but not the next B2 public-clone consumer repair,
+D2 allowlist, A2 constructor storage or B1 LR runtime slice. Old executable
+receipts do not validate this new unbuilt source identity.
+
+The new result contract exposes one further narrow issue on review: frame
+reservation failures set scratch.error, but a later fallible node/metadata or
+relationship allocation can return null with None. Optional inspection would
+then mislabel it as quota truncation. Root confirms this belongs to the same
+typed clone result contract; None must remain the actual node-limit result.
+Prepare a before regression with failure after the fresh ledger and frame have
+allocated, plus staged node/index/metadata allocation points. Production is not
+changed before observing that baseline. Nonstaged metadata still has an older
+infallible allocation boundary; this follow-up must not claim to repair that
+separate owner contract. The host remains with L1's supported TSan milestone;
+the regression script waits for actual drain/release.
+
+L1 subsequently grants one subordinate compile job and serial storage execution
+while its instrumented unit check uses about one CPU/1.1GiB. The primary lock
+remains L1's; L2 never acquires or removes it. These overlapping timings are
+validation costs only, not performance qualification. The public-pin fixture
+compiles and the15-step dependent storage rebuild completes on the frozen six-lane
+union. The before test then reports copied0/expected0 and errorNone0/expectedMemory3
+and aborts. The native failure is SIGABRT(signal6), recorded on the first line of
+the time log; the outer PowerShell tool returns1. GNU time's trailing Exit status0
+after a signal is not a pass. Preserve the entire log and before executable hash
+848f9ff4ebc99dceca38b9ef3502951ada10e4b7c3e52eb9d6acb75c546e9fa3.
+
+After actual8417 drain, set Memory on first/later fallible clone-node failure and
+failed relationship attachment, while leaving quota exhaustion as None. The
+template diagnostic now refers to clone storage, encompassing frames and nodes.
+No allocator, shared layout, source metadata or scheduling contract changes.
+The same fixture plus staged allocation faults0 through4 now passes three times,
+with exact counts/error distinctions and complete stage/entity/component/frame/
+world cleanup. Three smallest units and the coherent storage rebuild also pass;
+full source hashes stay unchanged throughout22028. The resulting storage binary
+is cc950f568496d74e53d26250ed7f1bef4bf0e8287c82ce7526d31ec135b5b098.
+
+Concurrent validation costs: before build131.76s wall/105.21s CPU/794576KiB RSS;
+failed before run0.35/0.16/90980. After build37.34/29.71/794664; three after runs
+0.22s wall each,0.21/0.22/0.22s CPU and95436/95428/95344KiB RSS. Different build
+work and early before abort prohibit performance comparison. Successful wide/deep
+allocation counts remain783/2434. Both jobs are drained and L1 is notified before
+further source changes. Exact incremental production patch
+L2_clone_node_storage_error_draft.patch SHAeb2d65011480a512b1110cbaccb8e93bb8a4c43db076b71d58c7ab0de93b3a10
+applies after the public result checkpoint. B2 caller adoption, whole merged
+compiler measurements and final instrumentation/publication remain pending.
+
+### L2 eight-lane source join and actual clone storage layout checks
+
+Pull/rebase preserves bff853c and its tested tree/hashes despite replaying the
+merge plan. Verify ROOT_main_3915aee8.bundle SHA08a0cecdb3ed44050806224e0ef5f51459245777adebfc9e3d4d4c60b7ba6a8b
+with sole60741 prerequisite; merge3915 into main as38cb22b. Both root and owned
+node-fix ancestors remain reachable, with all owned compiler/fixture bytes
+unchanged by the merge. Read the newly merged AGENTS rule requiring actual type
+and collection sizes. Move the existing CloneFrame record and CloneInitialFrames
+policy into existing generic_body_types, then use sizeof(CloneFrame) and the
+existing compiler_buffer_allocation_size in the serial fixture. Remove duplicated
+three-word frame/four-word header arithmetic and the duplicate initial count.
+GenericBodyCopy fields/layout, frame layout, clone algorithm and allocations
+remain unchanged. No new native export or language feature is added.
+
+After L1's actual release, acquire the ordinary host lock and freeze this eight-
+lane source plus the three-file layout change. Three smallest public-pin units,
+the40-step coherent storage/native-worker build and three storage/query pairs
+pass. Source manifests enumerate Tower files and CMakeLists; the other tracked
+build inputs are identified by38cb22b and remain unchanged. This clarification
+does not retroactively expand earlier manifests to include every cmake/ file.
+No source edit occurs during the build or runtime checks.
+
+The derived initial allocation remains416bytes. Existing wide/deep allocation
+counts783/2434 and frame peaks416/36928 remain unchanged. Public-node and staged
+faults retain precise errors and zero ownership. Actual clone kernels overlap on
+distinct native threads at1/2/4 lanes; cancellation, failed peer and stale-ticket
+checks pass with peaks416/832/1664, cancellation1664 and failed-peer1248. The
+joined query suite also passes the new interpreter physical-storage/error cases.
+This is scoped storage/query evidence for the union, not bounded frontend caller
+or whole compiler release acceptance.
+
+Build104.63s wall/164.22s CPU/794324KiB RSS. Storage runs0.22/0.22/0.21s wall,
+0.21s CPU each and99596/99748/99720KiB RSS; query runs0.08s wall/CPU each and
+61744/61640/61688KiB RSS. The suite grew with the union, so no before/after suite
+speed claim follows. Storage SHAe4731964bd2c47cce600f6aa6b9d50337a435ef8201f82faf5383c662d752e23,
+LR SHAe90478b00fbe5a7be7a18b01d1e3c076e2c615aeb806a317aa47d9a9544806dd.
+Session43044 drains0 before lock release and sibling notification. Exact records
+are clone_layout_*; production layout-sharing patch488af8a76c152b4890352403b11f0c1b61431843f6e20fa19e7fb3e2e0fcfb0c
+adds no result-API change. B2 caller cleanup, D2 symbol closure, remaining owner
+memory work, matched equivalent compiler profiles and final public release checks
+remain active.
 ### B2 coherent interpreter/semantic resource-failure checkpoint
 
 Reviewed and integrated L1 reporting a8ecf458 then typed storage failure bad3e4f1
@@ -59096,3 +59256,22 @@ The merge itself adds no new algorithm beyond owner changes, whose exact paired
 profiles are retained above. Local coherent native/profile validation is next;
 current instrumented backend-overlap deadline failure remains open with B2 owning
 event-timeline attribution. All L1 and previously admitted L2 jobs are drained.
+L1 subsequently read and merged complete L2 checkpoint018d (bundle33d7fcdf,
+sole published60741 prerequisite): public world-bound clone results, precise node/
+attach allocation-error classification, and exact CloneFrame-derived fixtures.
+Applied reviewed B2 caller patch606c11ff after that API: private cached graphs
+abort transactionally, preserve prior cache entries, retain allocation-independent
+diagnostics, and dispose partial ownership; language inspection immediately
+retires a failed result. Source review is not runtime acceptance. L2 owns the
+current matched caller checks; L1 will independently validate the merged closure
+before changing further interpreter layouts. All old native/TSan receipts remain
+attached to their original input hashes.
+
+Remaining interpreter review identifies frame/task scheduling arrays as a bounded
+owned next slice: their current vector allocation failures abort through
+im_storage_require; changing these to the common work_vector requires checked
+push results at every graph interpreter caller and the existing typed state error
+receipt. This is a proposal only. Fast-cache register/word arrays and map/type/
+function/diagnostic arrays remain separate explicit boundaries. No budgeted-null
+or partial scheduling continuation may be consumed as success. Before/after
+profiles must use the same joined source and resources outside that exact slice.
