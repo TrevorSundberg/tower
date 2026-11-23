@@ -3012,3 +3012,17 @@ no blocker; D2 owns the matched observed-report and supported instrumentation
 receipt. Adoption is pending the complete history; no independent runtime pass
 is inferred from reading the draft. Documentation-only review has no runtime
 performance delta and does not require repeating unaffected policy matrices.
+
+Current2f7 native boundary:92 positive processes pass before type-smoke times out
+124 at300.02s with329.17CPU/235400KiB, no output/diagnostic/swaps. Prior180s timeout
+and later211.11s full42 success have different frozen identities; none diagnoses
+this run's cause. The current low-level interpreter_storage.tower fixture belongs
+to parser-main --host-only, not tower-storage-tests. That current D1 run is still
+pending; owner L1's source-specific evidence is retained separately.
+
+ROOT's acceleration directive now defers all queued broad/current sanitizer
+campaigns to stable integration, leaves the cosmetic profile-bound proposal
+unapplied, and avoids repeated archives/duplicate leaf compilations. The92
+completed results remain valid; deferred or timed-out gates do not become passes.
+Current fixtures/production source are unchanged. Both jobs drained and own host
+lock released13:43:59. The standalone negative probe remains unchanged/unexecuted.
