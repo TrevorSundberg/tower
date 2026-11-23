@@ -48026,3 +48026,65 @@ reflect test-only changes. Source hashes match through session18374 drained0.
 The complete type/paired profile receipt therefore remains applicable to the
 unchanged compiler. Final supported instrumentation of these new concurrency
 checks and public synchronous clone denial propagation remain outstanding.
+
+### L2 public synchronous clone resource failure closure (source draft)
+
+The remaining public clone callers are module snapshot/cache construction and
+optional generic inspection. Deriving the source-world budget without changing
+these callers would turn an ordinary capacity denial into a module assertion or
+silently truncated inspection. Root assigned the frontend guard and module/cache
+transaction cleanup to B2, with D2 maintaining the existing export allowlist.
+No foreign-owner production file is edited by L2 for this draft.
+
+Add compiler_clone_tree_result with a fixed WorkBudgetError output; retain the
+existing compiler_clone_tree ABI as a wrapper. Both use the source world's frozen
+budget; only an actual standalone entity store has no world budget. The private
+stack still owns and disposes every frame allocation, including denied replacement
+growth. A node quota remains distinct from resource failure. GenericAnalysis now
+starts from default and latches the typed failure; recursive value traversal stops
+on that receipt and sem_generic_inspect returns null. B2 must reject that null
+before language_document_world clears optional checking errors or emits success.
+The inspection component remains contained by the query's root and is reclaimed
+by the existing context/program/root disposal sequence.
+
+Extend the existing serial storage fixture with exact public-tree shape, ordered
+metadata, wrapper compatibility, first reservation denial, denied growth after
+16 copied nodes, first heap failure and unchanged node-quota behavior. Check
+node/component counts after partial output retirement, frame grants before return,
+and complete world/buffer teardown. These tests do not use serial allocation
+instrumentation on worker threads. They are source drafts, not passing evidence.
+
+Before further compilation, preserve the complete unchanged37db021e compiler and
+committed64af7bf resources in l2_public_clone_before_64af (21MiB), with nine matching
+runtime LLVM resources and public_clone_before_package.sha256. The new result API
+and shared GenericAnalysis layout require coherent dependent builds; bounded
+service runtime waits for matched owner repairs. Current exact three-file patch
+is L2_public_clone_result_v2.patch, SHA25503293b496f838a870cd873bf67d345c76c52d2323336b1a713c5ade3c6576.
+No public bootstrap, final instrumentation or deployment acceptance is implied.
+
+Smallest public-pin compilation now passes for all four changed code units with
+the complete Tower/CMake input hash set unchanged: generics4.58s wall/3.99s CPU/
+246732KiB RSS; generic_info19.21/16.64/736308; generic_values19.68/16.33/736248;
+serial fixture2.46/2.23/184940. Session50524 drains0 and releases the host before
+L1's paired resource-error profile. No bounded frontend runtime is run against
+the still-unmatched caller cleanup. These compile checks do not establish a
+new compiler performance or public-bootstrap closure receipt.
+
+The isolated existing serial storage target now rebuilds every affected dependency
+(entities, semantics and fixture) and passes three complete runs, including all
+six new public-clone cases. The test uses the production helper with a source-world
+binding and no explicit caller budget argument. Success preserves exact ordered
+metadata and both API forms; quota, first byte denial, growth denial and allocation
+failure preserve distinct counts/errors and retire complete or partial trees.
+Node/component counts, frame grants and whole-world physical buffer counts return
+to their required baselines. This does not execute the still-unmatched bounded
+module/inspection service path.
+
+Build27.96s wall/33.22s CPU/789656KiB RSS; runs0.22/0.82/0.21s wall,
+0.20/0.21/0.20s CPU and93840/94004/93848KiB RSS. Keep the0.82s sample; the added
+cases mean these totals are not equivalent-suite before/after speed evidence.
+The earlier wide/deep allocation counts remain783/2434. Current storage executable
+SHA072c1df4d6cc3614d53e9776307e49fbcb3f7a4012d81cf14a0dd183bd0c82a1;
+public_clone_storage_* logs and full source manifests preserve input identity.
+Session14851 drains0, then releases the host. The complete before package remains
+available for equivalent compiler measurements after the owner caller join.

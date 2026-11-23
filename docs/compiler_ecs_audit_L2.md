@@ -626,3 +626,48 @@ serial fixture preserves783/2434 allocation counts and denial assertions. The
 compiler hash remains37db021e; these test additions need final instrumented stress,
 not another relabeled compiler-performance claim. Their native POSIX clock uses
 the existing runner's nominal ABI; no portable execution dependency is added.
+
+## Public clone caller closure under review
+
+At64af7bf, re-audit generics, semantic_generic_info and semantic_generic_values
+against every public clone caller. Module snapshot/cache construction asserts on
+failure; optional inspection currently truncates and later clears checking errors.
+The owned draft adds a world-derived budget and typed clone result, preserves the
+old ABI wrapper, initializes GenericAnalysis completely, and stops recursive
+inspection on latched resource failure. No new AST, registry or scheduler appears.
+The query root owns the disposable inspection component even on null return.
+
+B2 owns language_query null rejection and module/cache transaction rollback, D2
+the existing allowlist. Those changes must join before bounded service acceptance.
+The serial storage fixture now specifies exact public-clone output/metadata,
+distinct node/resource failures and partial-output/frame/world cleanup. These
+draft tests remain unbuilt. A complete37db/64af before package is preserved for
+equivalent measurements; final current sanitizer and public pin closure remain
+required, with retained entity payloads and other uncapped allocations explicitly
+outside this frame-storage measurement.
+
+## Current owned-file review at64af7bf plus public-clone draft
+
+The initial table above is historical. This table reconciles every currently
+tracked production file in the assigned type/generic families with the later
+implementation and evidence. The removed fourteen types/ files remain covered
+by the consolidation history and source-bound prelude test. No new production
+file in these families is omitted. Release acceptance still requires the merged
+source identity and complete public package.
+
+| Current file under scaffolding/ | Current storage, ownership and scheduling disposition | Evidence and remaining boundary |
+| --- | --- | --- |
+| types.tower | Ordinary consolidated primitive bindings and helpers; file imports retain module identity, with no ambient type-name registry. | Complete types and source-bound i32 override pass; successor publication remains pending. Representation policy beyond the agreed constructor contract is not claimed migrated. |
+| compiler/type_primitives.tower | Pure target representation classification; no mutable shared identity or allocation owner. | Exact numeric/width tests remain unchanged; no unrelated scalar-policy rewrite. |
+| compiler/type_objects.tower | Invocation-private descriptor index and iterative ABI reachability scan; structural/nominal comparisons use actual descriptors, never serialized pointer identity. | Transitive metatype ABI negatives and canonical reconstruction pass. Temporary vectors remain separately owned, outside clone-frame grants. |
+| compiler/semantic_types.tower | Canonical world entities and coordinator interning; worker-local function descriptions cannot publish array identities directly. Linear indexes remain derived from canonical entities. | Full types, both widths and worker determinism pass. Stable payload requirements remain; a dense pointer index is not packed payload storage. |
+| compiler/semantic_type_values.tower | Declaration-owned argument continuation and ordinary interpreter requests; shared phase pump supplies producers without a second evaluator. | Constructor, untaken-branch and dependency regressions pass; final joined resource-error receipt must retain these results. |
+| compiler/semantic_type_execution.tower | Evaluation-owned constructor receipt validates world, revision, profile, dispatch and invocation sequence; coordinator publishes under the shared type-index access contract. | Query/type/aggregate gates pass, including failure and retained result paths. L1/A1's later resource-error ABI requires a coherent rebuild. |
+| compiler/semantic_constructor_types.tower | Single shared phase/payload definition with borrowed world-owned references; no duplicate constructor graph or copied scratch owner. | Checked against work consumers; full type suite passes on the current layout. |
+| compiler/semantic_constructor_work.tower | Call/Clone/Alias/Execute/Ready continuation preserves ordered operand evaluation, early recursive nominal identity and ordinary execution of representation constructors. | Defined effects, aliases, nested helpers and negative ABI/constructor cases pass; final merged instrumentation remains required. |
+| compiler/generic_registry.tower | Root-owned template/instance/origin components and derived linked index; fixed parameter bounds remain explicit. Body-cost memoization is coordinator-only. | Actual registry APIs create every new clone fixture. Source/origin/definition, world teardown and node-limit checks pass. Registry arrays and payloads are not included in frame-byte accounting. |
+| compiler/generic_body_types.tower | Frozen borrowed WorkBudget pointer and fixed WorkBudgetError result accompany the private stage and node counters. No owned budget is copied into transport. | Actual native transport passes at1/2/4 lanes with exact failure results and zero frame grants. |
+| compiler/generics.tower | One private typed frame owner per complete kernel reuses capacity across sibling branches. Synchronous/header owners dispose at return; public result derives the source-world ledger. | Wide allocations1038 to783, deep2434 unchanged; denied replacement preserves cleanup. Public helper and compatibility wrapper pass three serial denial/shape/cleanup runs; bounded service caller join remains pending. |
+| compiler/semantic_generic_body_work.tower | Coordinator freezes budget/tickets/access ranges before dispatch, holds stages before closing views, publishes or discards before completion, and drains before disposal. | Distinct-thread overlapping kernels, cancelled outputs, failed peer and stale-ticket rejection pass. Final current sanitizer stress remains open. |
+| compiler/semantic_generic_info.tower | Disposable components remain on original definitions and query root; one document owns mutation. Draft default-initializes the full analysis and returns null on resource failure. | Existing generic/type hover checks pass before the draft; smallest draft compiles. B2 frontend null rejection and bounded inspection regression are pending. |
+| compiler/semantic_generic_values.tower | Temporary concrete expression clone uses ordinary checking; substitution views remain borrowed canonical relationships. Draft latches typed clone resource failure and stops recursive traversal without mislabeling truncation. | Existing exact type/generic presentation tests pass before the draft; smallest draft compiles. No claim that unrelated speculative checker failures have acquired full byte accounting. |

@@ -1,5 +1,6 @@
 import tower;
 import .compiler.generic_body_types;
+import .compiler.parser_types;
 import .library.work_budget;
 import .library.work_budget_types;
 import generic_clone_fixture;
@@ -16,11 +17,79 @@ extern fn entity_stage_publish(stage: void*): bool;
 extern fn entity_stage_discard(stage: void*): void;
 extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
 extern fn compiler_generic_body_kernel(payload: void*): void;
+extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
+extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
 
 var GenericCloneBudgetBytes: usize = 131072;
 var GenericCloneInitialFrames: usize = 16;
 var GenericCloneFrameWords: usize = 3;
 var GenericCloneHeaderWords: usize = 4;
+
+enum CloneTreeOutcome: u32 { Success, NodeLimit, CapacityStart, CapacityGrow, Memory }
+
+// The public synchronous API must obtain its budget from the source world;
+// callers do not supply a second, potentially different ledger.
+fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcome): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, GenericCloneBudgetBytes, 1), "Public clone byte budget");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, width, depth, 1, &budget);
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var occupied: WorkReservation = default;
+    var first = (GenericCloneInitialFrames * GenericCloneFrameWords + GenericCloneHeaderWords) * sizeof(usize);
+    if outcome == CloneTreeOutcome.CapacityStart || outcome == CloneTreeOutcome.CapacityGrow {
+        var available = outcome == CloneTreeOutcome.CapacityGrow ? first : 0;
+        utility_check(work_budget_reserve(&budget, 0, 0, GenericCloneBudgetBytes - available, &occupied),
+            "Public clone reserves the exact denial boundary");
+    }
+    var count = width * depth + 1;
+    var limit = outcome == CloneTreeOutcome.NodeLimit ? count - 1 : count;
+    var copied: usize = 0;
+    var error = WorkBudgetError.Invalid;
+    if outcome == CloneTreeOutcome.Memory { tower_test_buffer_fail_next(); }
+    var clone = compiler_clone_tree_result(fixture.body, limit, &copied, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if outcome == CloneTreeOutcome.Success {
+        utility_check(clone != null && copied == count && error == WorkBudgetError.None,
+            "Public clone returns its exact complete tree");
+        utility_check(entity_child_count(clone) == width, "Public clone preserves branch order");
+        for(var branch: usize = 0; branch < width; branch++) {
+            var cursor = entity_child_at(clone, branch);
+            for(var level: usize = 0; level < depth; level++) {
+                utility_check(cursor != null, "Public clone preserves branch depth");
+                var span = parser_match_create(cursor);
+                utility_check(span.start == branch * depth + level + 1 && strcmp(span.label.data, "CloneLeaf") == 0,
+                    "Public clone preserves source metadata");
+                utility_check(entity_child_count(cursor) == (level + 1 < depth ? 1 : 0),
+                    "Public clone preserves exact leaf shape");
+                if level + 1 < depth { cursor = entity_child_at(cursor, entity_member_index(cursor, "next")); }
+            }
+        }
+        entity_release(clone);
+        clone = compiler_clone_tree(fixture.body, count, &copied);
+        utility_check(clone != null && copied == count, "Compatible clone wrapper shares the bounded implementation");
+        entity_release(clone);
+    } else {
+        var expected_count = outcome == CloneTreeOutcome.NodeLimit ? count - 1
+            : outcome == CloneTreeOutcome.CapacityGrow ? GenericCloneInitialFrames : 0;
+        var expected_error = outcome == CloneTreeOutcome.NodeLimit ? WorkBudgetError.None
+            : outcome == CloneTreeOutcome.Memory ? WorkBudgetError.Memory : WorkBudgetError.Capacity;
+        utility_check(clone == null && copied == expected_count && error == expected_error,
+            "Public clone distinguishes node quota, capacity and allocation failure");
+    }
+    utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
+        "Public clone retires all complete or partial output ownership");
+    var released: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &released) && released.used_bytes == occupied.bytes
+        && released.live == (occupied.active ? 1 : 0) && released.peak_bytes <= released.bytes,
+        "Public clone retires frame grants before returning");
+    if occupied.active { utility_check(work_budget_release(&budget, &occupied), "Release public clone denial occupancy"); }
+    generic_clone_fixture_close(&fixture);
+    utility_check(work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Public clone releases its world and every physical buffer");
+}
 
 // The production registry and deferred-header API create the actual instance.
 // Only fixture syntax is synthetic; no second clone implementation is compared.
@@ -89,6 +158,12 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
 }
 
 fn generic_clone_storage_tests(): void {
+    generic_clone_tree_trial(256, 1, CloneTreeOutcome.Success);
+    generic_clone_tree_trial(1, 600, CloneTreeOutcome.Success);
+    generic_clone_tree_trial(16, 2, CloneTreeOutcome.NodeLimit);
+    generic_clone_tree_trial(1, 600, CloneTreeOutcome.CapacityStart);
+    generic_clone_tree_trial(1, 600, CloneTreeOutcome.CapacityGrow);
+    generic_clone_tree_trial(16, 2, CloneTreeOutcome.Memory);
     generic_clone_storage_trial(256, 1, false, false, false, false);
     generic_clone_storage_trial(1, 600, false, false, false, false);
     generic_clone_storage_trial(16, 2, false, true, false, false);
