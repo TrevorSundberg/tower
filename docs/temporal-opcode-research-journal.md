@@ -62433,3 +62433,47 @@ assertion. Broader grammar/phase/resource/provider issues and current joined
 ASan/TSan, public bootstrap/generation/browser, coordinator-leased atomic push and
 hosted verification remain open. This is a compatible API/source checkpoint,
 not full type-storage or compiler completion.
+
+The candidate restored through Git after baseline drain is c1560f8 plus six owned
+caller/test paths. All four public predecessor leaves passed; the coherent14-step
+native rebuild took50.57s wall,71.11s CPU,792032KiB peak RSS. Existing constructor
+suite now includes10 additional caller cases across both widths; all pass, as does
+query-smoke. Remaining broader type checks/profile/instrumentation are running or
+pending, so this is an intermediate receipt. Exact review patch
+L1_type_index_callers_v1.patch SHA11f6b5b603473f8a04e15dc6677073ff83dd98d4b06dbf8ba104e41c42156221
+contains the six owned paths and excludes the separately merged L2 API implementation.
+Review confirmed semantic_evaluation copies invocation.storage_error into its
+per-result resource_error before optional inferred-error clearing. No semantic
+consumer source change is needed to preserve this new interpreter failure class.
+
+Independent read-only continuation audit: remaining sorted-map insertion still
+uses fatal ordinary-vector reserve for values/addresses, guest allocation metadata,
+strings and sequencing. Node caching is another distinct family: invocation_init
+currently calls im_cached_node for function validation before ix_init binds the
+root-world budget. A future cache-accounting change must bind that borrowed owner
+before first cache insertion, propagate failures through actual callers, and keep
+per-depth retained maps alive across outer-frame replacement. This is a design
+finding, not an implemented cache migration or whole-heap accounting claim.
+
+Candidate native74252 ACTUALDRAIN0: all four smallest units and all five gates
+passed with equal before/after/final source manifests. Smallest wall/RSSKiB:
+interpreter4.50/204136, Fast4.94/238464, call-query2.44/196092, construction2.84/195892.
+Existing runner results wall/CPU/RSSKiB: constructor1.15/1.54/188896,
+query0.26/0.21/73916, type-smoke276.07/308.73/262620, fulltypes59.71/70.30/456756,
+calibrated backend10.18/13.87/529220. The latter proves exact serial/parallel objects
+and distinct-worker overlap; measured serial_frontend_ns5717049179 selected the
+unchanged30s floor for both waits. It is not yet the pending instrumented overlap
+result. The last portion of validation overlapped L2's explicitly admitted one-job
+storage build/serial suite; none of these gate timings are qualified performance
+samples. Its actual drain is required before L1's quiet paired measurements.
+
+Frozen native hashes: compiler5fb924b6a7ea0bf2ac575c32acff2bb743687ebba51802f296727249007b75eb,
+LRd6fdc28fc35e0550898f02b85bc1f99c5dffaffd6ed651af5b4dcda485fe7d33,
+execution8b041d1eaaa61ceec4e9f8a9aecca1d42fb94a0c9d010951a2f58d9f9cc35107,
+frontend profile8c858640681de09c05a953ddc96a713a5c0d275ee388fd2e862a7f634d9da6bb.
+L2 independently read the entire11f6b5b6 caller patch and found no scoped API issue.
+The shared physical Memory-prefix suite is still L2's running/unclaimed evidence;
+L1's ten new callers prove capacity failure, normal controls, exact diagnostics,
+no replay/unconsumed producer result and cleanup. Broader allocation accounting,
+shared SemanticProgram typed receipt consumer integration, paired performance,
+current supported instrumentation and final publication remain open.

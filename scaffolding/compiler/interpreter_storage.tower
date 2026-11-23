@@ -1,6 +1,7 @@
 import interpreter_types;
 import tower;
 import interpreter_abi;
+import type_object_index_api;
 import .library.vector;
 import .library.work_vector;
 import .library.work_budget_types;
@@ -40,7 +41,7 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     work_vector_dispose(&m.frames);
     vector_dispose(&m.node_cache);
     vector_dispose(&m.function_values);
-    vector_dispose(&m.type_values);
+    type_object_index_dispose(&m.type_values);
     vector_dispose(&m.allocations);
     vector_dispose(&m.free_blocks);
     vector_dispose(&m.strings);

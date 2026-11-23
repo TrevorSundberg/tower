@@ -677,15 +677,22 @@ fn ix_evaluate(m: IMExecution*, node: void*, offset: usize): u64 {
     return ix_evaluate_uncached(m, node, n, offset);
 }
 
+fn ix_type_reference(m: IMExecution*, type: FoundationType*, offset: usize): u64 {
+    var reference = type_object_index_intern(&m.state.type_values, m.state.budget, type);
+    if reference == 0 {
+        if m.state.storage_error == WorkBudgetError.None { m.state.storage_error = m.state.type_values.error; }
+        ix_fail(m, "Cannot allocate interpreter type storage", offset);
+    }
+    return reference;
+}
+
 fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
     if !ix_strict_node(m, n, offset) {
         return 0;
     }
     if n.kind == KFunctionReference { return im_function_reference(m.state, n.binding); }
     if n.kind == KTypeReference {
-        var reference = type_object_intern(&m.state.type_values, &n.element);
-        im_storage_require(reference != 0);
-        return reference;
+        return ix_type_reference(m, &n.element, offset);
     }
     if n.kind == KTypeConstruct { return ix_construct_type(m, node, n, offset); }
     if n.kind == KCall {
@@ -790,11 +797,11 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         if n.op == convert(u32, TypeConstructionKind.Pointer) || n.op == convert(u32, TypeConstructionKind.Array) {
             var reference = request.first;
             request.first = 0;
-            if reference == 0 || reference > convert(u64, m.state.type_values.length) {
+            if reference == 0 || reference > convert(u64, m.state.type_values.values.length) {
                 ix_fail(m, "Type construction operand contains an invalid type value", offset);
                 return 0;
             }
-            request.input = m.state.type_values.data[convert(usize, reference - 1)];
+            request.input = m.state.type_values.values.data[convert(usize, reference - 1)];
         }
     }
     if request.failed {
@@ -812,8 +819,8 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         ix_fail(m, "Type construction result target differs from the invocation target", offset);
         return 0;
     }
-    var reference = type_object_intern(&m.state.type_values, &request.result);
-    im_storage_require(reference != 0);
+    var reference = ix_type_reference(m, &request.result, offset);
+    if reference == 0 { return 0; }
     request.subject = null;
     request.ready = false;
     return reference;
@@ -1800,12 +1807,12 @@ export fn interpreter_function_result(invocation: IMInvocation*, reference: u64,
 }
 
 export fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool {
-    if reference == 0 || reference > convert(u64, invocation.state.type_values.length) {
+    if reference == 0 || reference > convert(u64, invocation.state.type_values.values.length) {
         var execution: IMExecution = { state: &invocation.state, context: &invocation.context };
         ix_fail(&execution, "Compile-time result contains an invalid type value", offset);
         return false;
     }
-    *type = invocation.state.type_values.data[convert(usize, reference - 1)];
+    *type = invocation.state.type_values.values.data[convert(usize, reference - 1)];
     return true;
 }
 

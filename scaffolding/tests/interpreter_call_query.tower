@@ -59,7 +59,8 @@ fn input_query_number(value: usize): void {
 fn input_query_owned_bytes(invocation: IMInvocation*): usize {
     var frames = &invocation.state.frames;
     var bytes = invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
-        + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes;
+        + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes
+        + invocation.state.type_values.values.reservation.bytes;
     for(var i: usize = 0; i < frames.capacity; i++) { bytes += frames.data[i].tasks.reservation.bytes; }
     return bytes;
 }

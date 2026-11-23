@@ -328,3 +328,32 @@ optional semantic queries. No API draft is credited as implemented. Incoming
 resource-growth tests must prove they reach the nested allocation after the newly
 charged entry owners. Current supported instrumentation, merged source rebuilds,
 public-bootstrap/generation/browser closure and leased publication remain open.
+
+### Type-value owner migration after the frame/task milestone
+
+The six-path11f6b5b6 caller patch now uses L2's shared TypeObjectIndex in graph and
+fast engines. Its descriptors remain borrowed canonical Foundation types; private
+one-based indexes never become another semantic graph. The world budget is passed
+on every intern request, including existing-value hits. Both graph interning sites
+retain the first resource error, failed constructor delivery stays unconsumed, and
+fast construction disposes its partial cache before returning a failed session.
+Capacity-owned graph scheduling storage remains available for normal failed-session
+disposal. Retained index reads, disposal and fast payload statistics use the shared
+owner layout. Existing semantic evaluation already preserves storage_error before
+optional source-diagnostic clearing. Both implementation imports remain present.
+
+Four public-bootstrap leaves, a coherent14-step native rebuild, the new ten caller
+cases at32/64bits, query/type smoke, full types, and calibrated exact-object overlap
+all pass on c1560f8 plus this patch. Complete ad79 baseline binaries/resources were
+saved before adoption. Journal/raw receipts retain exact hashes, costs and the
+concurrent-validation qualification. L2 reviewed the full caller patch. Its newly
+registered serial Memory-prefix suite is separate and still awaiting actual exit;
+paired performance and current instrumented gates are pending, not passed.
+
+The remaining map/cache/diagnostic/opaque owners in the previous section still
+need closure. Node-cache accounting additionally requires binding the budget before
+invocation_init's first cached function lookup; no such migration is claimed here.
+The newly coordinated SemanticProgram.resource receipt also requires an execution
+session success-boundary update after its exact shared header lands. Neither this
+native milestone nor the earlier frame/task sanitizer receipt is final merged
+bootstrap/browser/generation/hosted acceptance.
