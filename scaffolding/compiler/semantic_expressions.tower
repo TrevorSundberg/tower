@@ -9,6 +9,7 @@ import semantic_support;
 import semantic_types;
 import semantic_layout;
 import semantic_values;
+import .library.work_budget_types;
 
 // Transient surface classifications on the same entities. These are eliminated
 // before publishing a Foundation graph; they have no interpreter/cache encoding.
@@ -68,6 +69,7 @@ fn sem_surface_unwrap(n: void*): void* {
 }
 
 fn sem_surface_expected(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     if !sem_ok(c) {
         return n;
     }
@@ -86,7 +88,8 @@ fn sem_surface_expected(c: SemanticContext*, n: void*, expected_type: Foundation
 
 // Aggregate defaults initialize destination storage, including value temporaries.
 fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
-    var value = sem_node(c, n, KOperand);
+    var value = sem_node_result(c, n, KOperand);
+    if value == null { return default; }
     var type = expected_type;
     var annotation = sem_member(n, "type");
     if annotation != null { type = sem_type(c, annotation); }
@@ -120,6 +123,7 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
             underlying.record = null;
             value.kind = KConvert;
             value.value = sem_surface_constant(c, n, underlying, 0);
+            if value.value == null { return default; }
             c.surface_expressions = true;
         } else {
             value.constant = true;
@@ -138,7 +142,8 @@ fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: Founda
     // concrete parameter type. Reuse the checked fields and effects, while
     // still enforcing that later expected type; never append the fields twice.
     if sem_get(n) != null { return sem_surface_expected(c, n, expected_type); }
-    var initial = sem_node(c, n, SurfaceInitializer);
+    var initial = sem_node_result(c, n, SurfaceInitializer);
+    if initial == null { return default; }
     var type = expected_type;
     var annotation = sem_member(n, "type");
     if annotation != null { type = sem_type(c, annotation); }
@@ -174,7 +179,8 @@ fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: Founda
             initial.op = 1;
             continue;
         }
-        var field = sem_node(c, entry, KAssign);
+        var field = sem_node_result(c, entry, KAssign);
+        if field == null { return default; }
         var name = sem_identifier(c, sem_member(entry, "name"));
         if !sem_ok(c) { return default; }
         if !sem_set_name(c, field, name) { return default; }
@@ -239,6 +245,7 @@ fn sem_surface_integer(c: SemanticContext*, n: void*): bool {
 fn sem_surface_constant(c: SemanticContext*, parent: void*, type: FoundationType*, bits_value: u64): void* {
     if !sem_ok(c) { return null; }
     var n = sem_control_node(c, parent, KOperand);
+    if n == null { return default; }
     var value = sem_get(n);
     sem_set_type(&value.type, type);
     if type.pointers == 0 && semantic_enum(type) {
@@ -249,6 +256,7 @@ fn sem_surface_constant(c: SemanticContext*, parent: void*, type: FoundationType
         underlying.record = null;
         value.kind = KConvert;
         value.value = sem_surface_constant(c, n, underlying, bits_value);
+        if value.value == null { return default; }
     } else {
         value.constant = true;
         value.bits = bits_value;
@@ -360,7 +368,8 @@ fn sem_surface_compound(op: u8*): bool {
 }
 
 fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, op: u32, expected_type: FoundationType*): void* {
-    var value = sem_node(c, n, KBinary);
+    var value = sem_node_result(c, n, KBinary);
+    if value == null { return default; }
     value.op = op;
     var comparison = op >= OEq;
     var input = expected_type;
@@ -532,7 +541,8 @@ fn sem_surface_discard(c: SemanticContext*, n: void*): void* {
     if comma {
         kind = SurfaceComma;
     }
-    var value = sem_node(c, n, kind);
+    var value = sem_node_result(c, n, kind);
+    if value == null { return default; }
     var left = sem_member(n, "body");
     var right = sem_member(n, "otherwise");
     if comma {
@@ -578,7 +588,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
     var right = sem_member(n, "right");
     var condition = sem_member(n, "condition");
     if condition != null {
-        var value = sem_node(c, n, SurfaceSelect);
+        var value = sem_node_result(c, n, SurfaceSelect);
+        if value == null { return default; }
         value.value = sem_operand(c, condition, sem_type_new(c, SBool, 0, null));
         if !sem_ok(c) { return default; }
         var body = sem_member(n, "body");
@@ -601,7 +612,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
     }
     var op = sem_surface_operator(c, n, left);
     if sem_equal(op, ",") {
-        var value = sem_node(c, n, SurfaceComma);
+        var value = sem_node_result(c, n, SurfaceComma);
+        if value == null { return default; }
         value.left = sem_surface_discard(c, left);
         if !sem_ok(c) {
             return n;
@@ -624,7 +636,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if postfix {
             place = left;
         }
-        var value = sem_node(c, n, SurfaceModify);
+        var value = sem_node_result(c, n, SurfaceModify);
+        if value == null { return default; }
         value.target = sem_surface_place(c, place);
         if !sem_ok(c) {
             return n;
@@ -664,7 +677,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
             if address {
                 kind = KAddress;
             }
-            var value = sem_node(c, n, kind);
+            var value = sem_node_result(c, n, kind);
+            if value == null { return default; }
             if address {
                 value.value = sem_surface_place(c, right);
             }
@@ -726,6 +740,7 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                         operand = magnitude;
                     } else {
                         operand = sem_surface_constant(c, n, type, 0);
+                        if operand == null { return default; }
                         var cast = sem_get(operand);
                         cast.kind = KBits;
                         cast.constant = false;
@@ -744,16 +759,20 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
             var storage = sem_type_new(c, type.scalar == SF32 ? SU32 : SU64, 0, null);
             if !sem_ok(c) { return default; }
             var raw = sem_surface_constant(c, n, storage, 0);
+            if raw == null { return default; }
             sem_get(raw).kind = KBits;
             sem_get(raw).constant = false;
             sem_get(raw).value = operand;
             var toggle = sem_surface_constant(c, n, storage, 0);
+            if toggle == null { return default; }
             sem_get(toggle).kind = KBinary;
             sem_get(toggle).constant = false;
             sem_get(toggle).op = OXor;
             sem_get(toggle).left = raw;
             sem_get(toggle).right = sem_surface_constant(c, n, storage, (semantic_mask(storage) >> 1) + 1);
-            var value = sem_node(c, n, KBits);
+            if sem_get(toggle).right == null { return default; }
+            var value = sem_node_result(c, n, KBits);
+            if value == null { return default; }
             sem_set_type(&value.type, type);
             value.value = toggle;
             return sem_surface_expected(c, n, expected_type);
@@ -764,10 +783,12 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if sem_equal(op, "+") {
             return sem_surface_expected(c, operand, expected_type);
         }
-        var value = sem_node(c, n, KBinary);
+        var value = sem_node_result(c, n, KBinary);
+        if value == null { return default; }
         sem_set_type(&value.type, &sem_get(operand).type);
         value.op = OSub;
         value.left = sem_surface_constant(c, n, &value.type, 0);
+        if value.left == null { return default; }
         value.right = operand;
         if negate {
             value.op = OEq;
@@ -794,7 +815,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if logical_or {
             kind = SurfaceOr;
         }
-        var value = sem_node(c, n, kind);
+        var value = sem_node_result(c, n, kind);
+        if value == null { return default; }
         var boolean = sem_type_new(c, SBool, 0, null);
         if !sem_ok(c) { return default; }
         value.left = sem_operand(c, left, boolean);
@@ -828,7 +850,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
     var threeway = sem_equal(operation, "<=>");
     var code = sem_surface_code(operation);
     if !assign && code == SurfaceCoalesce {
-        var value = sem_node(c, n, SurfaceCoalesce);
+        var value = sem_node_result(c, n, SurfaceCoalesce);
+        if value == null { return default; }
         var infer = sem_equal(sem_tokens(c, left), "null") && expected_type == null;
         if !sem_ok(c) { return default; }
         var input = expected_type;
@@ -853,7 +876,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         return sem_surface_expected(c, n, expected_type);
     }
     if assign {
-        var value = sem_node(c, n, SurfaceAssign);
+        var value = sem_node_result(c, n, SurfaceAssign);
+        if value == null { return default; }
         value.target = sem_surface_place(c, left);
         if !sem_ok(c) {
             return n;
@@ -918,7 +942,8 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if threeway {
             kind = SurfaceCompare;
         }
-        var value = sem_node(c, n, kind);
+        var value = sem_node_result(c, n, kind);
+        if value == null { return default; }
         var input = expected_type;
         if threeway {
             input = null;

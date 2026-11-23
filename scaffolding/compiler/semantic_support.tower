@@ -936,29 +936,42 @@ fn sem_shape(c: SemanticContext*, n: void*, capture: u8*): bool {
     return true;
 }
 
-fn sem_node(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
-    var result = sem_node_result(c, n, kind);
-    sem_require(result != null);
-    return result;
+fn sem_node_offset(c: SemanticContext*, n: void*): usize {
+    n ??= c.current;
+    while n != null {
+        if sem_match(n) != null { return sem_offset(c, n); }
+        var value = sem_get(n);
+        if value != null { return value.start; }
+        n = sem_parent(n);
+    }
+    return 0;
 }
 
-fn sem_node_result(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
+export fn sem_node_result(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
+    if !sem_ok(c) { return null; }
+    var position = sem_node_offset(c, n);
     var fresh: bool = sem_get(n) == null;
+    // Retain the existing logical component-limit diagnostic. No payload is
+    // attached and no result is published when this semantic limit is reached.
+    if n != null && fresh && c.count >= c.node_limit {
+        sem_fail(c, n, "Foundation component memory budget exceeded");
+        c.program.error_offset = position;
+        if c.program.resource.error != WorkBudgetError.None { c.program.resource.offset = position; }
+        return null;
+    }
     var error: WorkBudgetError;
     var result = sem_attach_result(n, kind, &error);
-    if result == null { sem_resource_record(c.program, error, sem_offset(c, n)); return null; }
-    var step4 = sem_offset(c, n);
-    result.start = step4;
+    if result == null {
+        sem_resource_record(c.program, error, position);
+        c.program.error_offset = position;
+        return null;
+    }
+    result.start = position;
     result.end = result.start;
     var m: ParserMatchData* = sem_match(n);
     if m != null {
         result.end = result.end + m.length;
     }
-    if fresh {
-        c.count++;
-        if c.count > c.node_limit {
-            sem_fail(c, n, "Foundation component memory budget exceeded");
-        }
-    }
+    if fresh { c.count++; }
     return result;
 }

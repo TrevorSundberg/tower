@@ -85174,6 +85174,28 @@ Reuse unchanged entity cap/census/concurrent/layout checks from the prior merged
 receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
+L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+
+### L2 - checked source/synthetic node admission (2026-11-23)
+
+Scope: bounded follow-up to accepted scratch closure 14ce70f7/e116e966. Starting published main e116e966ef973422d4809a14c41c4691e432d457; existing L2 session, Codex PID 25544. Required pull was current. No surviving L2 build; the observed native-cache job belonged to L1 and was left alone.
+
+Reproduced a real physical Capacity denial: a parsed source node without its Foundation payload, a world bound to WorkBudget, and a reservation consuming the actual remaining bytes. The legacy sem_node wrapper aborted after sem_node_result recorded failure. Native storage exit 134; GDB stack was sem_node -> test -> main. Logs and source manifest: external L2/logs/semantic_admission_node_repro_* and node_repro_backtrace.log. Immutable before compiler /root/.cache/tower/l2_node/before/towerc has SHA256 23fb5e7ad13e75e58fd612db6612186ea9925ebadba7b014581f4b39f771909d: e116e966 production behavior plus only a test-facing export of the old wrapper and the aborting fixture. No performance result is yet claimed.
+
+Implementation: remove sem_node and guard its production consumers; use checked creation for synthetic control nodes and retire private unstaged children when payload admission fails. Keep stage-owned children under existing discard/join ownership. Preserve the canonical module offset, stop terminal retries before mutation, retain the ordinary logical component-limit diagnostic, and check immediate constant/projection/prepared-call admissions. Restore lexical state on early attribute/evaluation/iteration exits and commit frame offsets only after local registration. Body-work edits are only immediate node/block admission guards; scheduling ownership remains A1's. Existing scratch tests and immutable measurements are preserved. New serial storage trials derive Memory injection positions from actual healthy allocations, exercise Capacity and pinned Busy, staged private creation, terminal retries, identity and complete teardown; validation is pending.
+
+Validation attempt node0 failed compilation before tests: the fixture used reserved parameter spelling expected, and an added iteration cleanup duplicated the existing scratch-closure defer. Both were corrected after the parallel build drained (source_status=0); the existing iteration cleanup is retained. No runtime pass is claimed for that attempt.
+Attempt node1 compiled the semantics unit; the storage fixture still needed its explicit sem_get foreign declaration. Added that declaration after drain. This is a fixture compile correction; no runtime pass yet.
+Attempt node2 built all targets, then the new operand fixture faulted in generic_lookup: its manually initialized context lacked the ordinary generic registry. GDB node2_backtrace.log identifies fixture setup, before denied admission. Initialize that registry before injection. The final caller audit also added guards for two immediate type-result dereferences and avoided caching a failed type result. Existing production staged/optional behavior remains unchanged.
+
+Validation node3/session88207 passed the dependency-aware native build, complete existing storage/admission runner and query-smoke on one frozen input manifest (process0/source0, empty stderr). Storage: 0.34s wall/0.28s CPU/102280KiB peak RSS; query: 0.22s/0.25s/86712KiB. New serial admission coverage: source payload, ordinary numeric operand, lexical block, synthetic node, synthetic read/local, and private staged node; healthy-derived allocation sweeps plus real Capacity and pinned Busy (private staged creation intentionally remains legal under a view). These assert canonical module base+source offset, binding/initializer identity, restored lexical state, no executable-item publication after failure, unchanged frame when local registration fails, private-child retirement, no-allocation terminal retries, and zero retained buffers/grants after world teardown. Existing custom-component, query cancellation/drain, required/optional staging and scratch checks remain active. Query-smoke already includes its resource trials; resource-smoke is not repeated.
+
+Remaining legacy boundaries, not silently claimed closed: sem_create still occurs in A1-owned semantic_body_work registry/coordinator startup, semantic_modules registry/scopes, and semantic_generic_info inspection registry. sem_create/sem_attach compatibility exports and query API declarations remain for those callers/external legacy APIs. There are no remaining sem_node definitions or callers in scaffolding. This batch does not claim to eliminate unrelated name/formatter allocation assertions, prove all compiler allocation failure sites, or replace ROOT's integrated sanitizer/bootstrap/browser/deployment milestone.
+Final owned-batch validation, session79049 drained0: control-smoke passed serial/worker execution, canonical reparse, cleanup and ordered control/defer/iteration errors; lifecycle5 (Nominal),13 (LocalStageType),24 (ModuleCapture) passed32/64-bit targets and workers1/4 with their canonical recompiles. No duplicate type-smoke/full type checkpoint or resource-smoke was run. Wall/CPU seconds/peak RSS KiB: control92.53/119.59/285232; lifecycle5 5.46/5.80/247436;13 5.40/5.75/247040;24 5.55/5.81/244988. All subset source checks passed, stderr empty. Query clone interval receipts also show distinct worker threads and overlap=1 under the normal allocator; serial denial injection is not threaded allocator instrumentation.
+
+Minimal matched healthy comparison (node_pair_*): WSL2 Linux x86_64, CPUs4-7, native target width8, --interpret --jobs1/4, same frozen packaged resources and generic_stage_constructor.tower input, one sample per mode/variant, ordinary allocator, warm resource cache, alternating before/after order. Exact independent output0, empty stderr, executable/input/resource/source hashes checked. Before -> after wall/CPU/peak RSS KiB: jobs1 1.36/1.35/194376 ->1.33/1.33/194324; jobs4 1.15/1.42/213184 ->1.17/1.44/214004. This small sample shows no material regression and establishes no broad scaling/race claim. After binary SHA25610edd96844066e4a06b2d38f5460bea29c544e43fc90d85a2d5dc6dc1dc1ce36; inputbbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071. Full prior acceptance and scratch measurements retain their original source identities.
+
+Additional external legacy users of sem_create/sem_attach are backend/import_foundation and backend/import_module plus test fixture construction; their ownership remains separate. The node producer/caller closure and immediate synthetic/constant/prepared-call consumers are completed and checked here. Sanitizers, broad acceptance, generations and hosted publication remain ROOT's integrated milestone, not passed by this task. All owned jobs drained before commit/integration; todo.txt unchanged. Normal main integration/push follows, with final merged-source evidence recorded separately if providers change.
 B2 final reconciliation: merged complete B1 presentation and A2 accounting history42c1e142 as43c680fe, preserving both journal histories. Rebuilt only affected native dependencies (22 steps,33.647wall/113.883CPU/796036KiB). Independent inference CTest workers1/4 PASS; the actual production semantics unit compiled by that merged successor PASS (22.494wall/17.707CPU/972660KiB). Merged fixture canonical bytes match workers1/4 and the frozen baseline. These validate the merged inference behavior; the complete generation fixed point remains explicitly scoped to published b5b585fb and is not relabeled to include later B1/A2 runtime changes. No further whole-generation matrix was run after reconciliation. All owned jobs drained; normal main publication follows.
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
 B2 final incoming L2 prerequisite: complete e116e966 merged as b21c13c7d886319c1c03f943604f95479f11651e, no conflicts/history loss. The existing inference fix and layout-frontier fix remain intact; incremental native build5 actions PASS (24.032wall/29.688CPU/814932KiB), independent inference CTest workers1/4 PASS. The actual latest-main semantics check did not complete by228.184wall/223.281CPU seconds/607328KiB and was explicitly terminated/drained143; no semantic diagnostic or finished object, so not passed. Exact compiler SHA256039a46bbae53eb25b8f7719a10ef75e076b7e2aa2b9212045bb40f1bd4a142d9. A direct attach was unsupported; one45s debugger-owned probe ended124 and sampled sem_push_checked+83 in the retained scratch linked-list search. Current-source inspection shows each push scans retained lists before even handling c.scan; new lists append at tail. Matched identical latest-source/target/flags with the preserved frozen fixed-point compiler passes in21.693wall/16.911CPU/799500KiB, isolating a greater-than10x incomplete cost increase from source growth. This is an actionable L2-owned scratch integration prerequisite outside the narrow inference grant: fast-path known scan storage and avoid repeated linear ownership discovery while retaining budget/parent-lifetime contracts. No scratch redesign or weakened checks made. Latest-main self-hosting validation is pending this performance blocker; frozen published b5b585fb whole generation2/3 remains fully passed. Detailed command/artifact/log identities and final scope are in compiler_generation_identity.md. All owned children drained, no broader matrix or new task started. Normal publication of fixes and honest receipts follows.
@@ -85307,3 +85329,106 @@ and later B2 incomplete-generation records remain failed/pending; this bounded
 semantics object succeeds, not an entire successor generation. ROOT owns final
 sanitizers/scaling/bootstrap/browser/hosted publication. No new agents/goals,
 public pin edit, foreign allocator replacement or unrelated support rewrite.
+### 2026-11-23 A2: final focused storage ASan/LSan/TSan milestone
+
+ROOT delegated the final storage closure separately from the integrated compiler,
+query/browser and publication gates. Initial requested pull was already current,
+clean main at published `42c1e1422e85f9304c422ae28a5050f27c9d7610`; no owned jobs
+survived. CodexPID11768, same supplied thread01a2046f-fec2-7c71-be46-cad28f9ac147.
+About344.75GB disk free initially,344.32GB after builds; no cleanup was justified.
+Read the instrumentation contract and historical personality/control limitations.
+
+Reused `native_address_joined` and `native_thread_joined` with the public bootstrap,
+LLVM/Clang19.1.1, Release, jobs2/compiler jobs1, CPU12–23/24GiB, one mode at a time.
+Image `tower_build:latest` ID
+`sha256:ba707de6a29fd47e22b186ce711f82e51146fd0d38f7c557dadaf77f7e087156`.
+Only the 14 existing storage executables listed in compiler_sanitizer_checks.md
+were selected through dependency-aware CMake; no compiler/browser/type matrix.
+ASan enables leak detection/halt-on-error; TSan uses halt-on-error and actual
+production allocation/worker transport. Its network-none container used the
+previously documented per-container seccomp accommodation, unchanged limits,
+without changing host settings or rerunning the denied personality startup.
+
+Failures and fixes are preserved under
+`A2/cache/logs/storage_ownership_42c1e142`. The image lacks `/usr/bin/time`;
+initial orchestration exited127 before building, and native argument quoting
+prevented the first fallback replacement. Both failed attempts are retained.
+A literal OS-boundary script then used the existing Tower `ecs_process_profile`
+(binary SHAb77d1f750cdc3072261f186f0c8b999abf20a834b075ed8c938a2cebb7994ccd)
+for wall/CPU/RSS and child status. `containers.json` retains raw container exits.
+
+The first ASan suite stopped on the component-layout fixture's obsolete
+payload-only ledger equality (exit1, no sanitizer memory diagnostic). It now
+checks exact payload grant bytes and live-to-Stale retirement while descriptor
+and index grants remain separately owned; the complete accounting census and
+strict cap are unchanged. Resumption exposed a real ASan SEGV in
+`stage_queue_cost`: a raw StageQueuePayload vector was used before initialization,
+with `0xbebebebebebebebe` in the failing trace. The fixture constructor now writes
+`default` before reserve; its existing65536x8 queued case passes, and a two-reference
+case now runs in the normal entry point. No automatic zeroing or production
+owner/allocator change was introduced. The failed executable and instrumented
+IR are retained (`stage_queued_failed_asan`, SHA4538ebb8cb4500dd42fc4dd0e975e15909f66740bdfd896b674260714cef1adc).
+The original `address_final_stage-queued.time` contains the complete diagnostic.
+Earlier queued benchmark receipts do not establish initialized lifetime; accepted
+compiler/ordinary serial/concurrent costs exclude that optional queued selector.
+Only affected fixture targets rebuilt after each correction, and unchanged
+passing checks were reused.
+
+Final evidence:26 zero-exit process receipts per mode,52 total, selected in
+`passing_cases.csv`; each concurrent stage/component-budget/buffer/arena/budget
+fixture ran three times. Existing barriers/distinct-thread oracles establish
+actual overlap, including leases/pins, joined handoff, cancellation and finalizers.
+Stage runs each check57,792 finalizers. Strict cap genuinely denies creation at
+2256B; accounting retains45567B physical=charged, omitted0 and final zero grants.
+Both modes pass page reuse, reentrant-finalizer, checked stage/reference, large
+aligned component, buffer/vector and separate arena-provider ownership checks.
+No final ASan/LSan or TSan finding remains in this selected suite.
+
+All16 actual linked Tower objects per mode have memory-access hooks (14 fixture
+objects plus guest runtime and separate arena provider). Actual link commands,
+input lists, import depfiles, IR/object/executable hashes and sanitizer runtime
+initializers are retained. Five concurrent binaries expose work_thread_entry.
+The configured sanitizer-objects.tsv is corroborated by actual linked artifacts,
+not treated as a run receipt. Source hashes verify unchanged across execution.
+Production remains42c1e142; the two fixture-only changes have exact hashes in the
+instrumentation document. Final source manifest SHA
+`bb38d0767dd83e09b340f7068e8bd4a9160209b7c5c0b1199ce88642408b02d3`;
+address artifact manifest
+`c94f3ffee8082b6aea19aef4fa1403fc6ea2ceca7d075ae769f7211f5cc46c6f`;
+thread artifact manifest
+`f9870bf169d79e28e4a464b2ebd9a71c7bb91be23c383991e0d76430053816e2`;
+case-receipt manifest
+`437529d3c427f8379313689ec7f7f30660e06438a8bd3720f8b27bbee516fa2d`.
+`identities.status` is0; `final_receipts.sha256` also pins the toolchain manifest.
+
+Instrumented costs (single recorded samples, not before/after performance claims):
+
+| Case | Address wall/CPU ms; peak KiB | Thread wall/CPU ms; peak KiB |
+| --- | --- | --- |
+| Concurrent stages, first repetition | 354.102458 /480.489;94716 | 279.064680 /291.898;26916 |
+| Corrected65536x8 queue | 34.110355 /20.966;17644 | 79.468854 /69.023;22300 |
+
+Initial50-action builds cost71.372s wall/68.865s CPU/268364KiB (address) and
+60.248s/53.569s/267876KiB (thread); small fixture rebuild receipts are separate.
+No production code changed, so the accepted normal +6% time/+10%RSS accounting
+comparison is unchanged; no new production profiling campaign is warranted.
+All owned jobs are drained. No deliberate invalid sensitivity probe was rerun;
+historical receipts and the current missing-provider control gap remain explicit.
+Source-language UBSan and Windows/macOS/browser sanitizer coverage are unsupported.
+ASan physical allocation checks are not per-slot language lifetime checks or a
+proof of universal race freedom. This closes the frozen storage milestone only;
+ROOT retains integrated compiler/query/browser instrumentation and release gates.
+
+Storage milestone publication reconciliation: local41c3160d rebased cleanly as
+`8c12894f` onto published `36fe4488`, retaining complete merge history. The first
+pull had a host DNS failure; a fresh DNS lookup returned20.64.190.225, and a
+per-process Git `http.curloptResolve=github.com:443:20.64.190.225` recovered normal
+HTTPS with certificate checks unchanged. No persistent resolver setting changed.
+Incoming compiler changes intersect neither the captured fixture/provider import
+depfiles nor build commands. Libraries, host providers, bootstrap, CMake and tools
+are unchanged; both corrected fixture SHA256s still exactly match the instrumented
+inputs. Reuse the52 passing storage receipts without rebuilding unrelated compiler
+work. `incoming_paths.txt` records that comparison; current-main compiler/query
+instrumentation remains ROOT's gate. All owned jobs remain drained.
+
+Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
