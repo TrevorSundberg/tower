@@ -214,3 +214,10 @@ Broader object/generation/browser/platform/sanitizer acceptance remains ROOT's
 separate milestone. Current evidence establishes overlap, deterministic checked
 outputs, bounded ownership and modest useful speedups; it does **not** establish
 profitable full-partition utilization or validate later compiler changes.
+
+Publication reconciliation: implementation/receipt `f0b8916c` merged complete
+incoming `18384965` history in `604096da` after the required ff-only pull refused
+divergence. The profile source hash is unchanged; both journal histories and
+README additions survive, and diff checks pass. Incoming nominal-wrapper,
+backend reconstruction and Node/test changes are excluded from this frozen
+56c892c1 evidence. No repeated build/matrix, relabeled executable or deployment.

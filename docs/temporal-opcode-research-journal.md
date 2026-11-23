@@ -91948,3 +91948,11 @@ has its own native receipt; the old-eac failures remain final-artifact adoption,
 not evidence that the newer implementation fails. Preserve resource mismatch
 logs and original measured identity; no entire merged-registry runtime claim or
 passing-case rerun. Current actual selected fixture/language closure unchanged.
+
+B2 core-acceptance publication reconciliation: implementation/receiptf0b8916c
+merged complete incoming18384965 in604096da after required ff-only pull refused
+divergence. Both journal histories/README entries preserved; measured profile
+SHA3fa3430df1c23811837197288e5a5bc58660267175c81c5b70514238cea4d779
+unchanged; diff checks pass. Incoming nominal-wrapper/backend reconstruction/
+Node/test work is excluded once from frozen56c892c1 evidence. No rebuilt or
+relabeled artifacts, repeated matrix, or deployment claim; owned jobs idle.
