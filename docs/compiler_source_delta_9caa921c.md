@@ -146,3 +146,10 @@ and blocked instrumentation. No current all-compiler, sanitizer, browser or
 release acceptance is inferred from the combined historical receipts. Later
 incoming source commits are outside the fixed review, even when merged to
 publish this document; the freeze will not be advanced for publication.
+
+Publication reconciliation: review commit `09e44578` merged complete published
+`761aa5b5` as `525a0b2b`, with both journal histories intact. The only incoming
+Tower path is `scaffolding/tests/frontend_units_profile.tower`; it is **excluded**
+from this review, along with the incoming compiler-workers transport/receipts.
+All 42 reviewed Tower paths are unchanged. The fixed review is not reopened by
+this merge or by later publication races.

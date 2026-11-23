@@ -92120,3 +92120,11 @@ Preserve its mismatch log and original registry identity; selected language and
 fixture closure unchanged. Reuse the4passes/6failures without rerunning; incoming
 ROOT build/shared/core receipts retain their own sources and do not erase the
 three unresolved alias/type-body cases. No D2 body-continuation change arrived.
+
+A1 audit publication reconciliation: review09e44578 merged complete published
+761aa5b5 as525a0b2bdf4fa75bc53901278b8647eaefb5f9dc after required ff-only pull
+reported ordinary divergence. Both journal histories preserved without conflict.
+The sole incoming Tower source, tests/frontend_units_profile.tower, and its
+compiler-workers transport/receipts are excluded from the9caa review. All42
+reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
+No new audit/runtime pass or current-compiler claim follows from this merge.
