@@ -615,3 +615,125 @@ ASan/LSan and TSan instrument Tower LLVM IR. No supported Tower arithmetic-UB
 instrumentation is available in this configuration; native boundary checks are
 not substituted for it. Passing stress runs do not establish universal race
 freedom. All owned instrumentation children have drained.
+
+### Joined history and next grammar-owner slice
+
+Committed checkpoint8ee486cd contains the preceding memory/index changes. Merge
+d1a23181 joins root1fec1b91, including the newer interpreter resource-failure ABI,
+backend target owner, unique-module cache traversal and shared arena library.
+Ten conflict paths were resolved preserving the newer owner contracts and B1's
+growth helper. The54-step public native build passes53.79s/847300KiB. Query smoke
+passes32/64-bit serial/worker input-storage and continuation checks; production LR,
+frontend units18.81s/735464KiB, serial parser/allocation checks, storage/clone and
+all four normal/shared buffer/arena tests pass. Prior sanitizer receipts remain
+scoped to8ee; they do not validate this newer interpreter layout. Root3915 differs
+from d1a's production/build inputs only in three comments; its three unregistered
+measurement/allocator fixtures are additional unexecuted inputs.
+
+The next grammar regression reproduces an unaccounted owner: with only the table
+descriptor's physical bytes available, parser_table_open still creates its full
+grammar. The baseline fixture exits1 at that assertion; its two-step build passes.
+The new fixture additionally denies one byte below observed grammar retention,
+checks no incomplete grammar escapes, retires partial owners and retries after
+the competitor releases capacity. This is ordinary valid-input denial coverage,
+not an intentional invalid-memory probe.
+
+`lr_grammar.tower` now has a draft explicit root-world budget and physical object,
+column and scratch owners. Rule and metadata counts are known from source children
+plus the augmented start rule, so exact WorkBuffers replace unnecessary growing
+vectors; count/overflow checks derive from record sizes. Name objects and immutable
+name/capture snapshots share the validated WorkArena because they have one common
+retirement boundary. The initial chunk derives from its descriptor and the shared
+initial-element count times the name-record size; larger strings use checked
+oversized chunks. The arena keeps string/record addresses stable. Hash/name order
+and source declaration order remain derived indexes, not another semantic graph.
+
+The first version used per-string buffers and inline name records; its aggregate
+hit the public65536 expansion cap after the leaf compiled. That draft was revised,
+not published. The exact-column retry and subsequent arena retry both stop at an
+old frontend_table direct-field read; they have not demonstrated a second cap
+failure. The initial status misattributed the former and was corrected. B2 is
+coordinating the small conversion to existing grammar getters. The owned lr_tree
+consumer now uses the existing generated-rule getter. No compiler cap, private
+bootstrap or duplicate semantic implementation was introduced. Joined grammar
+execution, profile and instrumentation remain pending at this entry.
+
+Follow-on: root and B2 approved the narrow frontend_table getter conversion,
+preserving name order and the first nonnull rule anchor. Adopted A2 arena boundary
+819a9542/API archive2f16b385: the existing entities unit is the sole provider;
+grammar imports declarations. llvm-nm finds exactly six arena definitions in
+entities and none in parser. The smallest consumer passes15.05s/664196KiB; the
+original aggregate/dependents pass7steps/24.38s/727224KiB, without a cap increase
+or unit split. Sequence and captured-reference denial/cleanup/retry tests pass,
+as do production LR/units, serial allocation failures and storage/clone checks.
+
+The existing production frontend profile compares frozen beforeed857ed7 and
+after46d30e30, identical resources, three units, zero or4096 extra bodies in the
+last unit, and worker budgets1/4. Two alternating process pairs per case yield
+16 successful processes. Timing includes batch creation, source snapshots and
+compilation; reference execution and canonical hashing follow the interval.
+Every canonical hash, entity/component count and independent42 result matches.
+Every four-lane sample observes three distinct overlapping outer workers and
+peak admitted lanes4; one-lane samples stay serial.
+
+| Input / workers | Before wall / CPU seconds (range) | After wall / CPU seconds (range) | Before / after peak RSS KiB (range) |
+| --- | --- | --- | --- |
+| Small / 1 | 3.411559–3.432264 / 3.243760–3.266995 | 3.421340–3.478655 / 3.255160–3.308117 | 199104–199640 / 197692–197868 |
+| Large / 1 | 4.535504–4.545909 / 4.365581–4.376456 | 4.600234–4.628534 / 4.429256–4.454459 | 677444–678012 / 675832–676444 |
+| Small / 4 | 1.325823–1.343398 / 3.982712–4.048929 | 1.338657–1.361540 / 4.030496–4.080726 | 460440–468156 / 457640–464268 |
+| Large / 4 | 2.154542–2.161957 / 5.323682–5.364996 | 2.175718–2.179791 / 5.401341–5.403821 | 941824–942976 / 937160–939004 |
+
+The sample suggests roughly1–2% time cost for added physical accounting. Newly
+tracked retention is exactly282912 bytes in every case; that is previously
+unaccounted storage, not an equivalent increase in physical memory. One-lane
+charged peak rises4044048 bytes; four-lane peak about11.3–11.6MB, depending on
+overlap. Ledger storage stays5MiB/20MiB. RSS generally decreases, with overlapping
+small/four-worker ranges. Additional operations are gated grants on new owners
+and growth; arena snapshots remove separate name/string allocations. Two pairs
+do not establish a general speed or memory improvement. Profitable between-unit
+overlap is observed here; no new within-unit/all-core claim follows.
+
+Accepted quiet interval2026-11-23T01:44:31.0101531Z–01:45:20.8570022Z starts61ms
+after the fresh120-second grant. The watcher releases after all16 children drain;
+binaries and inputs stay frozen. Raw JSON/time files are under
+/cache/parser_memory_profile/grammar/results. Current ASan/LSan refresh includes
+the joined interpreter ABI and new grammar/provider owners; execution and TSan
+remain pending at this entry, distinct from8ee evidence.
+
+Current instrumentation now passes. ASan/LSan74-step build100.87s/847688KiB;
+parser0.11s/88960KiB, serial allocations8.34s/771920KiB, query0.57s/223548KiB,
+productionLR19.79s/853304KiB and actual three-worker frontend9.62s/1107132KiB
+all exit0 with leak detection/abort enabled. The frontend oracle and canonical
+hash match; its shorter resource-root string explains the29-byte input receipt
+difference from the frozen measurement path.
+
+TSan74-step build62.86s/842676KiB also passes, followed by parser, query, real LR
+and two outer-frontend stress runs. Each outer run observes three overlapping
+threads, peak lanes4, the same exact output/hash/counts and5672070 retained bytes.
+Measured instrumented frontend intervals are24.869/24.929s, process CPU79.493/
+79.863s and peak RSS1436828/1426976KiB; these are instrumentation receipts, not
+performance samples. Container-inclusive elapsed is0.470/1.353/47.368s for
+parser/query/LR and25.464/25.532s for the outer runs. Same image/CPU/memory limits,
+no network and the documented sanitizer-only seccomp setting; no TSan report.
+All children drain before further changes. Arithmetic-UB, browser sanitizers and
+universal race-freedom claims remain unsupported. Portable frontend validation
+is the next host-layout check, not completed publication.
+
+Portable frontend follow-up: the public bootstrap/WASI SDK34 build passes all28
+steps (44.65wall/88.01user/13.99system seconds,920828KiB peak RSS). Current
+build/browser-wasi/tower.wasm is1593977 bytes, SHA256
+9ffa385cce88915ef844081b0bbfab60d4fd6ff7dfc55fd5b45f4c352e914893.
+Full existing Tower IDE fixtures pass; a confirmation invocation has captured
+exit0 in grammar_memory_wasi_ide_confirm.log. Existing browser ABI observation
+transport also exits0: at both target pointer widths4/8, comptime_capture
+completes with empty output; inference_alias_invalid rejects at146 with Cannot
+infer type argument 'T'; decltype_aggregate_operator rejects at95 with Binary
+operators require scalar or pointer operands; aggregate_inferred_copy rejects
+at103 with Expected Other, got Item. Raw diagnostics remain in
+build/ecs_b1/logs/grammar_memory_wasi_observe.log. This is portable32-bit-host
+frontend/IDE coverage of this grammar/provider slice and joined1fec ABI, not
+new LLVM backend, threaded-browser, public-clone-v2 or release acceptance.
+The existing LLVM Wasm asset was deliberately not used as current evidence.
+All owned children are drained; next is the source checkpoint and coordinated
+root6b8355 clone/caller union. Remaining LR analysis/state/automata/request
+storage and shared world/store/constructor accounting stay explicitly open.
