@@ -93660,3 +93660,64 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+
+### 2026-11-23 D2 — close alias scalar rejection and exact-zero CTest gaps
+
+Frozen published source7890ebd7 plus this focused test/boundary change; production
+semantics untouched. Extended existing alias_type_query_checks with one borrowed
+case helper: original inference_alias_invalid still requires exactly `Cannot
+infer type argument 'T'; pass explicit type arguments` at its first call. Added
+unchanged alias_condition_scalar, whose actual predecessor/native rejection is
+`An integer literal needs an integer type` at2:4. Both derive location from input
+bytes, check mapped filename/line/column, failed terminal state, null program,
+stable offset and repeated false/true step results at32/64 bits, workers1/4.
+Caller retains resource vectors; per-case source outlives every closed batch.
+No global instrumentation, new scheduler, fixture rewrite or selector removal.
+
+Local CMake3.28.3 documentation confirms PASS_REGULAR_EXPRESSION ignores process
+exit status, so anchoring that property alone would leave a second false pass.
+Only decltype_type_fields, alias_type_query_controls and module_loop_queries now
+use TowerTestZeroOutput.cmake: existing CLI arguments, explicit exit0, complete
+stdout `0` plus LF/CRLF, empty stderr. Failure retains exit/stdout/stderr in the
+CTest error. This15-line CMake file is only an OS process boundary; semantic
+cases and temporary output controls are Tower. Reviewed complete changed Tower
+provider, boundary and registration; other fixtures/expectations remain intact.
+
+Checked results (no retries to obtain green):
+- `tower-lr-work-tests SCAFFOLDING alias-type-queries`: both negatives pass all
+  four width/worker configurations, including original first-call diagnostic.
+- Actual CTest selection `^tower-(decltype_type_fields|alias_type_query_controls|module_loop_queries)-(1|4)$`:
+  exactly6/6 pass, no skips, through the new boundary; native CLI default profile.
+- Temporary Tower print(10) is incorrectly accepted by old substring policy,
+  rejected by the actual new boundary with child exit0/stdout10. A tiny Tower
+  process prints0 and returns7: old policy incorrectly accepts; new boundary
+  rejects with exit7/stdout0/empty stderr. Its explicit CRLF mode passes. The
+  five-control CTest retains exit8 and exactly the two intended failed names;
+  checked LastTestsFailed.log against those names, not marked aggregate green.
+  Initial control link failed for missing tower_trap; preserved log, reaped,
+  linked the already-built normal runtime-trap.o successfully without recompiling.
+
+Deck AMD Custom APU0932/Linux x64; Docker tower-d2-ecs image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+CPU0,2/8GiB, LLVM19 Release, jobs1 build/CTest, normal allocator, warm files and
+fresh processes, one sample per validation group. Atomic heavy mkdir preceded
+owner write; no competing heavy process. Existing native-coherent-f13c8f6 cache
+predated these producers, so ONE dependency-aware build of tower-lr-work-tests
+and towerc refreshed59 required native/link/resource actions with public768
+bootstrap (SHA256768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+complete packaged SHA256SUMS verified). No private override/reactor/full suite.
+Wall/CPU seconds/peak RSS KiB: build292.39/284.82/1071880 exit0; alias8.33/8.25/
+197532 exit0; six positives8.04/7.83/176932 exit0; five boundary controls2.18/2.11/
+174396 expected exit8. Scalar predecessor3.26/3.20/165900 expected exit1. Temporary
+Tower control compile3.85/3.74/190812, corrected link.06/.06/66456. Validation
+costs only: no production performance change, speedup or observed-overlap claim.
+
+All commands/output/time/exit/control sources and manifests remain in
+build/d2_ecs/alias_gate_7890ebd7. Complete tracked Tower source SHA manifest
+4ff71fce1737d2a13274531ad43b99aeaf83d3271107d176321faea353d2d403 matches before/
+after build and checks; changed-input manifestc190292d4bbc371d8a0165fdf490113b512abe4d478749a7948bdaae4e23e28c.
+Native compiler2513fbbafe6e3b8816826b9982b55b2d096fd71e83fbcaed7e3fa5f6a37af6b5;
+runnerda0171b6fc6de16a6ca2ed49feba706ae2eb68c77576a4cbdff1fcbbaccf7166;
+semantics8efbabe2749c1864a370ff9c13c70e42724be8093efbb900f19294958f58416d.
+Original failed logs preserved; all owned jobs drained and heavy lock released.
+127GiB disk/9.7GiB RAM available; todo unchanged. ROOT owns later source adoption,
+portable/browser/sanitizer/release gates; those were not run or claimed here.
