@@ -1833,9 +1833,15 @@ It covers alias/layout/decltype/comptime readiness, contextual bool, lexical
 header bindings and observed condition/update/continue order. The existing
 `tower-lr-work-tests RESOURCE_ROOT control-smoke` includes exact loop error,
 source-position and terminal-budget checks; `module-loop-queries` selects those
-checks alone. Known separate body-local annotation and mutable header-local
-capture limitations are recorded in the2026-11-23 L1 journal receipt.
+checks alone. The mutable header-local capture proof is a separate L1 boundary.
 
+`tower-execution-tests RESOURCE_ROOT body-type-queries` checks module-loop local
+annotations through ordinary forwarding type functions, header `decltype`,
+nominal alias writes, nested shadowing, exactly-once effects and function-body
+controls. It checks Graph/Fast output and canonical equality at32/64 bits with
+one/four workers, exact unknown/recursive diagnostics, Foundation round trips
+and final zero budget owners. It is also registered in `all`.
+`body-type-reproduce` selects the exact original seven-line failure source.
 The module-loop query selector also checks mutable/escaped header and block
 captures at the original declaration, including shadow identity. Its negative
 runner compiles without executing the rejected loop. The positive
