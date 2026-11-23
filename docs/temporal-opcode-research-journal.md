@@ -52244,6 +52244,1102 @@ the candidate reinterprets that canonical Foundation with exact saturation
 output. This is a measured shared-stage improvement on two frozen workloads,
 not cross-language superiority or whole-compiler release acceptance. Final
 merged ownership/bootstrap/browser/generation and instrumentation gates remain.
+### 2026-11-22: B1 compiler ECS campaign audit begins
+
+Assigned parser/LR/token/grammar/syntax/AST relationships, transformations and
+canonical formatting. Initial main 6282238779034442e0578d76b921ca117df819f1 was
+clean; ordinary git pull --rebase passed. Read campaign/common/B1/inbox,
+compiler-services and threading handoff plus the later type-value continuation:
+production helper readiness supersedes the historical missing-helper statement.
+Detailed per-file receipts are in docs/compiler_ecs_audit_b1.md (in progress).
+Primary references: Flecs Systems and ComponentTraits and Unity Burst 1.8
+aliasing documentation, consulted 2026-11-22. Transfer explicit access/staged
+publication, stable-versus-packed storage and proven alias principles only.
+
+Source findings (not measured claims): LR jobs already use shared WorkGraph,
+WorkPool and compiler kernel dispatch; private outputs publish in deterministic
+order. lr_state_work eagerly allocates full ECS task sets before knowing whether
+any state reaches its grain/fanout gate. Delaying this setup is a candidate small
+optimization. lr_analysis repeatedly inserts sorted range unions; measure before
+choosing a change. Shared parser payloads and forest transfers preserve the
+entity graph; stable payloads plus dense pointer indexes are not packed payloads.
+
+Baseline: dedicated tower_ecs_b1 container using tower_build image
+06e0a5e312f0b84796b35b90f95e7999126ce507b95db1f78c786cca4cb29d2e; Windows host,
+Linux x64 Docker, initial host free disk 126.5 GiB/free RAM 103.1 GiB. Coordinator
+reported Docker VM memory 60.6 GiB; reduced B1 live container to CPUs 0-11,
+24 GiB memory/swap maximum. TOWER_NATIVE_BUILD=/cache/native and
+TOWER_BUILD_JOBS=1 bash playground/scripts/build-native.sh
+-DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON uses the checked-in public bootstrap,
+no override. /cache is clone-local build/ecs_b1/cache. Source closure frozen;
+log build/ecs_b1/logs/baseline_native.log. Build/checks not yet complete. A read
+command referenced nonexistent scaffolding/CMakeLists.txt; preserved diagnostic
+and inspected actual root CMakeLists.txt/cmake files. No todo edit or foreign
+project logic added. Publication requires the coordinator's named lease.
+
+B1 LR experiment update: standalone tests/lr_state_benchmark.tower compiles with
+the public pin and links existing production LR test objects. Fixed inputs:
+small 16-way grammar (50 states), chain 1024 terminals (1025 states), wide
+128-way two-level grammar (386 states). Three warmups/fifteen samples, explicit
+world workers 1/2/4/8/12, clock_gettime wall/process CPU, Linux x64 getrusage peak
+RSS and context switches; compare every state item/edge against serial outside
+timing and assert no retained entities/components. Frozen baseline results are
+build/ecs_b1/logs/lr_baseline_{small,chain,wide}_{1,2,4,8,12}.csv. A B2-coordinated
+quiet slot covered baseline samples. Source preflight showed 14 temporary ECS
+entities for small/chain at12 workers despite no eligible parallel state. Wide
+case sample0: 4.45ms serial versus34.33ms at12, a scheduling regression to
+investigate, not a parallel speedup. RSS about48-53MiB includes native executable
+and LLVM loader, not only parser scratch. No C-like workload comparison claimed.
+
+Implemented lazy task/entity initialization in lr_state_work and an LR regression
+requiring exact serial equality plus zero hidden ECS entity allocations for a
+64-terminal chain. Smallest changed unit compiled. First candidate crashed at
+entity_release(null) on the formerly impossible unallocated-owner cleanup path.
+The primitive requires non-null; guarded cleanup fixes that source error. Preserve
+partial candidate CSV and do not accept them as measurements. A combined test+
+link shell command masked test failure behind successful link status; a B2 note
+prematurely claimed success before inspecting the sample command. Immediate
+append-only correction sent; all subsequent dependent checks must be isolated.
+Rebuild passed; runtime rerun pending B2 quiet slot. Short corrective build
+admission overlapped receipt of B2 slot notice; warned B2 to exclude those samples
+and confirmed drain. This failure is evidence for testing cleanup, not acceptance.
+
+Other baseline validation: existing production tower-lr-work-tests LR suite passed
+before edits. Frontend serial test target fails linking undefined work_thread_entry
+from inappropriate dynamic-export flag; B2 owns acknowledged build-profile fix.
+Initial format target absent until existing TOWER_FORMAT_TESTS option enabled.
+No full matrix passed. /usr/bin/time and Valgrind absent from image. Internal
+compiler build jobs may32 because host capacity API ignores affinity; explicit
+benchmark worker worlds are 1/2/4/8/12. D2 coordinates build-job budget fix.
+
+B1 follow-up evidence: guarded lazy-owner cleanup passed the isolated production
+LR suite, including the zero-entity narrow-chain regression. Two V1 paired rounds
+completed in a B2 quiet slot; reversed small timings were noisy, so no reliable
+timing improvement was claimed from V1. Frozen V1 fixture SHA256
+7d12f4f8df9c3a8593980c9febe7a33b11452b825521c9fe76d93ac656449fcf; original executable
+350d1e378273612dcc34dbb2a8ede3f6fdfa269f23aa8dc3d9cade08a934729f; guarded candidate
+2478cc86f8c6abea91ab803c4ad2f1fe964d8fa6a68ad55a5287b90a2dc80bc1.
+
+V2 preserves all comparison/retention checks, sums 128 small or 16 chain
+construction intervals per sample, and adds a 512-way grammar (1538 states).
+Comparison/destruction are outside wall/CPU intervals; RSS includes loader and
+reference graph. Original parser object was rebuilt from a git archive of
+6282238 using the public bootstrap and --jobs4; both executables use identical
+remaining production objects and V2 fixture. Three warmups/fifteen samples per
+case/budget; all four cases and 1/2/4/8/12 workers passed in a second quiet slot.
+Raw build/ecs_b1/logs/lr_v2_{before,after}_{case}_{workers}.csv are retained.
+Small12 summed wall samples are mostly4.43-4.74ms after versus4.89-5.28ms before,
+with exactly1792 ->0 created entities per128 constructions. This is synthetic
+LR setup evidence, not an end-to-end compiler claim. Large serial samples are
+about205ms; four workers about151ms wall/342ms processCPU, eight about150ms,
+twelve about183ms/464ms CPU. Process CPU above wall within isolated construction
+demonstrates actual concurrency, but higher widths lose efficiency. Wide128
+remains about17ms at4 workers versus4-5ms serial. No retained entities/components
+remain; large process RSS around103-109MiB includes both reference and result.
+
+Measured next experiment (not yet accepted): admit jobs by known shift scans,
+65536 item visits per job, computing symbols/job by division to avoid overflow.
+Require at least two jobs; cap by world budget and available pool. This keeps
+wide128 serial and large512 at four jobs while preserving existing graph/access,
+join and ordered interning. Closure expansion may add work, so the estimate is
+conservative and requires broader grammar checks. Smallest parser-work object
+build is running with public --jobs4; no result claimed yet.
+
+Required follow-up pull --rebase --autostash integrated journal-only d3ec5a4 and
+preserved all B1 edits. Applied B2 owner-authored serial callback-export patch
+locally to unblock focused checks; no B2 compiler changes imported. Constructor
+canonical node/capability contract acknowledged with L1/A1/L2/B2; coordinator
+approved a small switch on shared TypeConstructionKind. B1 formatting waits for
+shared tag integration. Full audit, sanitizer, merged native/browser/bootstrap
+and publication acceptance remain open. No runtime assets have been published.
+
+B1 measured admission candidate: isolated LR production suite passed with new
+128-way serial-admission and 512-way worker-admission fixtures, exact ordered
+state comparisons and final ownership counts. Controlled V2 original/candidate
+matrix at1/4/12 workers passed for small/chain/wide/large plus reversed small1/12.
+At12, wide128 wall samples33.64-35.74ms ->4.20-4.36ms; CPU about50-53ms ->4.2-4.4ms;
+created entities14 ->0 and voluntary switches about1680 ->0. Large512 at12:
+180-184ms ->151-157ms wall,458-463ms ->343-353ms processCPU; switches about7060
+->3250. Large peak RSS104080KiB ->111452KiB in this pair: allocator/thread
+scheduling sensitivity remains a limitation, not a claimed memory reduction.
+Reversed small12 summed128 constructions/sample:4.84-5.47ms ->4.51-4.70ms,
+entities1792 ->0. Every construction checked against serial outside timing;
+no retained entities/components. Logs lr_grain_*.csv, fixed public-pin V2 objects,
+quiet host slot after B2 browser verification drained. These are synthetic
+construction results; broader end-to-end and observer checks remain required.
+
+Broader focused builds linked with B2 export correction, but frontend and format
+CTest aborted. Line-buffered reruns diagnosed outdated no-import fixtures:
+frontend body continuation compilation (routed to A1/D1/B2), formatter first
+source fragment (B1). No production implicit-language fallback added. Formatter
+fixtures now prepend explicit Foundation imports, receive resource root at all
+three callers, and compare independently frozen body text/spans after separately
+checking the import and translating source/output offsets. Canonical Foundation
+fixtures retain their existing expected prelude and roundtrip checks.
+
+Intermediate authored failures are preserved: unsupported -I CLI argument;
+reserved expected identifier; foreach over a raw fixed array without nominal
+iteration protocol; library-mode top-level string pointer initialization; and
+wrong literal import-prefix length18 (actual length19), caught by exact spans.
+The user's instruction to derive sizes exposed/fixed that last error. Counted
+array traversal uses sizeof(decltype(array))/sizeof(element), and prefix lengths
+use strlen. User-requested AGENTS guidance now requires derived lengths/counts/
+bounds/related offsets and explicit counts alongside raw pointers. Actual data
+and contract literals remain legitimate. Documentation alone has no runtime
+measurement; test migration changes no production language policy.
+
+After those corrections, smallest fixture compilation and isolated formatter
+suite passed (format_fixture_derived_counts_retry.log, format_explicit_spans.log).
+Exact text/spans, idempotence, Foundation roundtrip, generated names and allocation
+failure cleanup all passed. B1 constructor formatter uses the agreed shared tag
+and small enum switch, ordinary LTR operand formatting and expression statements;
+unknown discriminator, missing operand and unary extra operand fail. Four generated
+operation shapes and four malformed shapes passed. Only L1 foundation_tags hunk
+was applied for this focused integration; shared interpreter/context/coordinator
+and semantic/cache versions are still pending. Scoped B1 formatter patch supplied
+to coordinator. Do not treat generated-graph formatting as full staged execution
+or source roundtrip acceptance. Required resumed pull preserved edits on89d6038.
+
+Next: complete file audit and shared budget integration, run supported production
+memory/race observers, finish joined constructor tests, then frozen merged
+bootstrap/native/browser publication checks. No publication lease requested.
+B1 production observers (2026-11-22, integration base89d6038): installed
+Valgrind3.22/time in owned disposable tower_ecs_b1 container only. Memcheck
+production LR suite with --leak-check=full --track-origins=yes,
+--errors-for-leak-kinds=definite,indirect --error-exitcode=97 passed: zero errors,
+zero definite/indirect/possible lost bytes,151014 bytes2458 blocks still reachable;
+2088394 allocations/2085936 frees/728539061 total allocated bytes. Ordinary LR
+retention checks also passed. This is not comprehensive undefined-behavior coverage.
+
+Helgrind failed (865 errors/105 contexts,31 default suppressions), initially
+with custom executable repeated .text debug-mapping warning. First conflict was
+work_pool_receive clearing WorkSlot.job after work_signal_try(finished), versus
+work_thread_entry reading job after sem_wait(start). Manual disassembly matched
+runtime addresses using PIE base0x108000. No suppressions added and no transport
+change made. Shared A2/B2/D2 owners notified through status/inbox.
+
+Same-object control relinked native LR target with clang-19/system ld and identical
+objects, exports/libraries into /cache/lr_work_system_linker. Ordinary LR suite
+passed. Helgrind mapping warning disappeared and symbols resolved, but833 errors
+in20 contexts remained; mapping alone cannot explain these reports. Local nm -D
+shows installed Helgrind preload intercepts sem_wait/post but not sem_trywait;
+DRD preload does intercept sem_trywait. Running DRD --error-exitcode=99 against
+identical system-linked executable next; no observer pass claimed yet. Primary
+Valgrind manual/repository consulted (https://valgrind.org/docs/manual/hg-manual.html,
+https://valgrind.org/downloads/repository.html); current source/manual retrieval
+was unavailable503, so exact installed symbol evidence takes precedence over
+assuming version support. Logs lr_{memcheck,helgrind,system_helgrind,system_drd}.log
+remain under build/ecs_b1/logs. Compiler sources frozen; all shared-owner edits
+remain pending coordination. Complete B1 formatter/fixture patch exported for
+joined constructor testing, excluding L1 tag definitions.
+B1 observer follow-up: DRD --error-exitcode=99 completed exit0 on the same-object
+system-linker control (zero errors/contexts) and original Tower-linked LR target
+(zero errors/contexts). Original -s shows only built-in drd-libc-stdio31 and drd-ld70
+suppression instances, no project additions. System-linked executable has no mapping
+warning; original still does. Exact output comparisons/lifetime checks passed on
+both. Installed Helgrind's missing sem_trywait interception is a supported observer
+limitation, not license to erase its failed logs or claim universal race freedom.
+Shared owners retain protocol/independent instrumentation review request.
+
+B1 joined source and instrumentation update (2026-11-22): after all observers
+drained, applied coordinated L1 interpreter (excluding the previously applied
+tag hunk), A1 semantic bridge, L2 v4 constructor producer/type policy, B2 lowering,
+A2 WorkBudget and LLVM instrumentation patches. Imported work retains its owner;
+this is source integration, not language adoption or release acceptance. Smallest
+joined semantic_constructor_work compilation with the public pin and --jobs4
+passed: 14.39s wall, 11.90s user, 1.88s system, 770896KiB peak RSS. Helper-argument
+caller delta, semantics/cache boundary update and joined execution remain pending.
+
+The actual LLVM instrumentation tool compiled from Tower with the public pin.
+Address instrumentation of both the Tower sensitivity probe and published runtime
+detected the intended one-byte heap overflow after an eight-byte allocation.
+Thread instrumentation initially stopped before guest execution because default
+Docker seccomp denied personality/ADDR_NO_RANDOMIZE. A transient observer container
+with --security-opt seccomp=unconfined and the same 12 CPU/24GiB limits detected
+the intended race between worker threads. It was removed automatically; no
+host-wide ASLR/security setting changed. Both are successful negative controls,
+not passing application sanitizer checks. Logs memory_probe_asan.log,
+race_probe_tsan.log and race_probe_tsan_seccomp.log retain failures/diagnostics.
+
+B2's guarded world-budget binding/accessor patch is now integrated. Parser
+dispatch still awaits A2's admitted-width interface so retained pool slots cannot
+be mistaken for current grants. Outer callers own one lane; nested grants cover
+extras and must drain before release. Declared byte accounting is not an RSS cap.
+All B1 builds were idle during B2's coordinated baseline timing slot. Full fixture
+audit continues with independent oracle and failure/lifetime checks distinguished
+from new execution evidence. Exact original LR observer artifacts, source
+reconstruction and SHA256 rosters are exported in the external B1/observer_snapshot
+handoff; newer constructor/budget worktree changes are explicitly excluded.
+
+B1 verified the observer handoff independently: reconstructing public source
+89d6038 plus the two-file LR admission patch produced parser object SHA256
+9f25196f36b6229bdb93d053c5d487274b83477649f0ce08f6cca2abfb7d2eb8, exactly matching
+the original Memcheck/DRD/Helgrind input. Its depfile references only the frozen
+reconstruction. Optimized LLVM was then emitted from that closure (SHA256
+1cfe360b01e1962ab1142c03d70c540873ccc51742d97e6c422d201df5d7372e) and exported with
+source/object hash rosters, all explicit linked objects and original logs. A2
+received this matching closure for independent instrumentation. A2's separate
+semaphore control directly reproduced Helgrind's missed sem_trywait handoff;
+that control does not automatically classify every LR report. Pull onto docs-only
+60741c5 preserved all local work and did not invalidate compiler source evidence.
+
+Shared parser admission candidate now uses A2's exact
+compiler_kernel_dispatch_admitted(..., extra_lanes) API. ParserAdmission reserves
+only extra lanes from B2's frozen world budget; zero extras use serial/inline
+execution, and retained slots do not establish entitlement. FIRST delays opening
+threads until a useful grant exists. Closure tickets/accesses are all reserved
+before dispatch, replacing the former fixed pool-sized admission loop. Grants
+remain live until synchronous dispatch drains, ordered publication completes and
+views/tickets release; failure cancels uncompleted logical tickets after drain.
+An invalid ledger release traps with a diagnostic. Parser heap bytes remain
+unaccounted by this lane reservation. No RSS enforcement claim is made.
+
+New fixtures cover saturated/partial competing outer reservations over an already
+retained wide pool, exact serial/state/FIRST/LALR/runtime equality and ledger/world
+cleanup. A two-party semaphore barrier with one extra worker requires actual
+caller/worker overlap; occupancy assertions now count extras rather than the
+caller. The barrier's failure bound is the enclosing test-process timeout. These
+are implemented checks, not yet accepted execution evidence.
+
+The public-pin parser_workers unit compiled (1.81s wall, 216368KiB RSS), and the
+production lr_state_work slice compiled (3.34s wall, 291396KiB RSS). The larger
+parser_work aggregate failed at the predecessor's 65536-node template-expansion
+limit in vector initialization/disposal (10.51s, 578812KiB RSS); the full diagnostic
+is retained in parser_budget_compile.log. New budget/barrier fixtures moved to
+tests/lr_budget.tower under the existing lr_work_main entry, calling three existing
+LR fixture helpers through declarations. This reduces aggregate expansion without
+changing manifests, omitting checks or introducing a private bootstrap. Retry and
+runtime validation are pending. A2 reported measured dispatch refill regressions
+and is preparing the shared transport successor; current interface integration is
+development evidence, not final performance acceptance.
+
+Coordinated L1 bytecode boundary/version and fast-cache allocation/statistics
+deltas were reviewed/applied after drain. The refreshed A1 helper ABI extern and
+collected-argument caller delta now match L2_helper_args; reverse-check of the
+complete refreshed A1 bridge succeeds. Owner tests, joined runtime checks and
+complete public publication remain required; no half-feature release is claimed.
+
+B1 follow-up: moving the new budget tests out of the parser aggregate did not
+resolve the predecessor's cumulative generic expansion limit (10.41s retry).
+The narrower parser_core aggregate also failed at vector disposal in syntax
+emission (9.39s, 521628KiB RSS). Existing generic-body budget code identifies a
+shared retained clone limit; the evidence did not indicate physical RAM pressure.
+The coordinator approved a two-function vector cleanup after all jobs drained:
+vector_init resets the complete three-field value with default, and vector_dispose
+frees its data before the same reset. This removes a nested generic call while
+preserving ownership. No compiler limit, private bootstrap or language change
+was used. Exported patch B1/vector_reset.patch SHA256
+678fad64dec0df2140c2026dd8c0c2c3197669ed8a1fa928fceff5315f92d546.
+
+With the unchanged public Linux x64 bootstrap, target x86_64-pc-linux-gnu and
+--jobs4, existing compiler_storage fixture compilation passed before and after:
+2.02s wall/1.66s user/0.23s system/211268KiB RSS versus
+1.92s/1.54s/0.32s/212380KiB. These single cold/warm observations are not a
+speedup claim. The previously failing parser_work aggregate then passed in
+16.29s wall/12.95s user/2.31s system/720984KiB RSS. Failed-versus-successful
+aggregate durations are not equivalent performance measurements. Logs
+vector_reset_before.log, vector_reset_after.log and parser_budget_vector.log
+preserve commands and counters. Runtime/lifetime checks and valid equivalent
+runtime profiling remain required.
+
+The separate lr_budget fixture first diagnosed an incomplete named initializer,
+then an unavailable transitive lr_none binding. Adding explicit default for the
+remaining fields and a local named sentinel fixed those source errors; the
+public compile passed. All failed logs remain. The fixture covers complete and
+partial competing grants and a real caller/worker barrier, but a compile pass
+does not establish those runtime outcomes.
+
+Reviewed and integrated D2's explicit compiler-job budget and opt-in actual LLVM
+sanitizer build transport. Existing A2 tool/probe files were excluded; only the
+reviewed shared-entry documentation delta was added. Existing sensitivity
+evidence remains recorded; the coordinator directed no repeat deliberate-invalid
+probes. Ordinary valid compiler workloads still require final instrumentation.
+A1's full v2 bridge replaced the exact reverse-checked earlier owner patch;
+the shared data modules, query unit split and source-proof fixture were applied
+together. The complete L2/A1 receipt fixture was copied from the provided compiled
+snapshot, excluding its superseded patch hunk. Its redundant initial defaults
+remain unchanged, per the owner's corrected receipt. The query client compiled
+in 2.99s with 242240KiB RSS. B2's explicit-language session fixture fix is also
+integrated. These imports retain their original owners and require fresh objects
+after ABI changes; no old-object join is acceptance evidence.
+
+The native cache now explicitly sets TOWER_COMPILER_JOBS=4, with one outer Ninja
+job and the existing 12-CPU/24GiB container budget. Frozen LR and storage target
+rebuild is in progress. Audit coverage now includes the independent reader,
+validation, regex, lexer and formatter goldens. The final shared transport revision,
+joined budget runtime checks, representative compiler profiling, full supported
+instrumentation, public-bootstrap/browser milestone and publication remain open.
+
+The frozen native LR/storage rebuild completed all 39 steps in 129.03s wall,
+105.31s user/18.09s system and 838276KiB peak RSS. New LR budget/barrier and exact
+serial graph/lifetime checks passed (1.79s, 117816KiB). Storage then aborted at
+`Session reset parses`: its independent source used bare print syntax without
+declaring/importing a language. An unbuffered diagnostic retry confirmed exit134.
+The parser-specific fixture now declares a minimal Statement grammar on reset,
+consumes that declaration explicitly, and preserves retained-source and failed
+allocation checks. Exported B1/storage_explicit_grammar.patch contains only that
+fixture correction; production import semantics remain unchanged.
+
+After exact reverse-check/removal of A2's earlier dispatcher patch, its full
+finite batch successor was applied. WorkPool layout and callback lifetime changed,
+so every dependent host/caller object was rebuilt (21 steps, 98.52s wall,
+77.89s user/13.45s system, 840840KiB RSS). A1's three root-demand hunks needed
+manual application because mixed line endings prevented the patch context match;
+the final code matches the reviewed owner change. Native LR checks passed again
+(1.78s, 115984KiB), including actual barrier overlap and retained-pool grant
+contention. The separate query smoke passed all serial/threaded 32/64-bit cases,
+including source-proof suspension and type request receipts.
+
+The entire compiler_storage_tests subset now reports success: snapshots,
+payloads, aliases, deep clones, vector ownership transfer, session/source failure
+and cleanup checks. The enclosing storage executable still aborts at the next
+entity_registry fixture, which also supplies a bare source without imports or a
+module environment. That cross-owner issue was routed with exit134 and log
+vector_storage_fixed.log; the full suite is not passed. B1/parser_budget.patch
+was exported for outer/nested integration, requiring the shared budget/world and
+batch dispatcher APIs. It is a full base-relative patch, not a delta over the
+original frozen observer snapshot.
+
+The remaining LR worker pointer/node arrays now use WorkPoolMaximumCapacity
+instead of repeating its literal extent. The public predecessor compiled the
+smallest LR slice in 3.21s/292428KiB and the parser aggregate in the incremental
+build in 17.49s/701304KiB; exact LR checks pass. Before/after parser objects differ
+(158d84fc99a2a1b3555909644fa94e6d58aa171531f12f2acc04f457e4abeec5 versus
+6ef72f4fee42c24feb9a36d275704fc0c1d2c97c362f89bf6c06dddbbc087afc), so no
+byte-equivalence claim is made. Ordinary graph/output checks are the evidence.
+ASan compilation of actual valid compiler/work targets is now in progress in
+the separate native_address cache. Initial PowerShell argument transport split
+the CMake include filename and failed configuration; the same quoted POSIX
+transport configured successfully, with the failure retained in session output
+and CMake diagnostics. No test was run from that failed configuration.
+
+### B1 valid workload sanitizers and formatter diagnostic (2026-11-22)
+
+The shared native LLVM instrumentation built the current LR/work closure in
+separate address and thread caches with public bootstrap 9653f818, child jobs4,
+outer jobs1, Linux x64 Clang19, twelve allowed CPUs and 24GiB container budget.
+ASan build: 234.95s wall, 175.59s user, 24.54s system, 841960KiB peak RSS.
+With detect_leaks=1:halt_on_error=1, LR/barrier/budget checks passed in18.84s
+(824280KiB), query-smoke in0.42s (161932KiB), and work checks in0.03s
+(48872KiB). TSan build:163.13s wall,122.66s user,20.75s system,844152KiB.
+With halt_on_error=1, valid LR passed43.32s (347516KiB), query-smoke0.79s
+(113256KiB), work0.06s (116248KiB); all exit0 and no sanitizer finding.
+The transient thread observer used the same mount/CPU/memory budget and
+container-local seccomp=unconfined; it drained and was removed. Actual LR link
+contains23direct Tower objects plus4memory archive members, with emitted
+instrumentation inspected. Source/binary rosters and raw logs are retained in
+build/ecs_b1/logs/lr_batch_source_hashes.csv, lr_batch_sanitizer_binaries.csv and
+{lr,query,work}_{address,thread} checks logs. Foreign LLVM/system libraries are
+outside this Tower coverage; source-language UBSan remains unsupported. These
+observed schedules do not prove universal race freedom. No deliberate negative
+sensitivity probes were repeated.
+
+The current formatter ASan workload failed with a real fixture diagnostic
+heap-buffer-overflow: puts read53bytes from a52byte nonterminated error vector
+(format_address_checks.log). The helper now checks a terminating append and
+restores the semantic length before printing. An unbuffered valid-workload rerun
+then exited134 with the underlying diagnostic: input.tower cannot read imported
+module foundation. The semantic compile helper passed null despite the suite's
+configured resource environment. It now explicitly passes that environment
+through initial and canonical recompilation fixtures and failure-cleanup setup.
+No production import fallback or altered expected result was introduced. Current
+formatter rebuild/run evidence is pending; prior isolated passes do not cover
+this joined closure. Quiet timing slot was released unused while investigating.
+
+The explicit-environment formatter successor passed the entire valid ASan/LSan
+suite from outside the resource directory: exit0, exact legacy text/spans,
+Foundation round trips, generated names/constructor shapes and failure cleanup.
+Raw format_address_modules_checks.log records36.20s wall,2.47s user,4.93s system,
+554576KiB peak. Host activity/page faults make this a correctness observation,
+not paired performance evidence. The original failing logs remain preserved.
+
+### B1 final LR comparison and parser page attribution (2026-11-22)
+
+After A1 declaration/type/world boundaries and A2 shared serial projection, the
+native LR/query/formatter refresh passed9steps in58.34s (44.23user/7.34system,
+833840KiB). All three focused suites passed. The final LR benchmark client object
+is byte-identical to frozenV2, SHA811b98c82e606de286331426b71a9582b2fc5bef5e11de69d2ea9502dbb77561.
+B2 explicitly granted a90second quiet slot.80invocations covered original/current,
+forward/reverse order, small/chain/wide/large and1/2/4/8/12workers. Each uses3warmups,
+15samples, exact serial items/transitions and stable entity/component ownership;
+all exited0. Inputs, source/binary rosters and tracked diff are retained as
+lr_final_* under build/ecs_b1/logs and the B1 coordination directory. Initial
+inline PowerShell-to-sh quoting failed before samples; the stored OS invocation
+script lr_final_profile.sh succeeded. Slot released immediately after completion.
+
+Linuxx64 publicpin9653f818, Clang19,12allowedCPUs/24GiB, optimized Tower objects,
+production allocator, warmed construction intervals; CPU is process time and RSS
+is whole-process peak including LLVM loader. Three small/chain/wide shapes and
+512-way large shape remain synthetic LR microbenchmarks, not end-to-end claims.
+One-off Tower lr_csv_summary.tower (build/ecs_b1) validates numeric columns and
+odd sample counts, reports min/median/max. It compiles as a library object linked
+through the existing guest-host-library runtime. Initial --emit exe attempts
+failed duplicate main; broad CSV glob correctly rejected source/hash metadata.
+The restricted forward/reverse receipt globs passed. Original logs remain.
+
+Median wall milliseconds, forward/reverse ranges:
+
+| Shape / workers | Original | Current |
+| --- | --- | --- |
+| small /1 (128constructions) |4.661-4.807|4.607-4.724|
+| small /12 (128constructions)|5.040-5.104|4.633-4.706|
+| chain /1 (16constructions)|4.662-4.772|4.787-4.850|
+| chain /12 (16constructions)|4.818-5.158|4.873-5.103|
+| wide /1|4.194-4.384|4.258-4.367|
+| wide /12|34.692-34.742|4.245-4.303|
+| large /1|208.863-211.724|204.491-214.926|
+| large /2|186.183-189.084|163.480-166.866|
+| large /4|151.361-151.961|152.868-155.220|
+| large /8|149.171-152.584|155.379-157.109|
+| large /12|184.053-185.508|155.437-156.545|
+
+Wide12 now stays inline: CPU51.25-51.34ms becomes4.25-4.30ms and median voluntary
+switches1684-1687 become0. Small/chain/wide unnecessary ECS task allocations vanish.
+Large12 CPU465-466ms becomes327-329ms, voluntary switches7041-7047 become2184-2204.
+Large12 peak RSS rises from103636-104372KiB to109284-109968KiB; no memory reduction
+claim. Current large4/8 reduces CPU versus original (~325-330ms versus343-348 and
+405-408ms), but wall is somewhat worse, especially8workers. The conservative
+65536item-scan threshold forms four jobs for this shape. This is an explicit
+wall/CPU tradeoff, not universal speedup; a smaller-grain experiment on the final
+joined closure remains to investigate whether the newer transport supports more
+profitable lanes. The chain single-worker difference is small with overlapping
+ranges; no zero-overhead assertion. All raw min/max/median values retained.
+
+A separate tests/parser_retention.tower diagnostic reproduces the original
+benchmark reset/declaration/statement/release order without changing its strict
+assertion.128resets for each256/512/1024/2048 input enumerate actual entity-owned
+component pages outside timing. Host512iteration10:9521buffers,2048entities,
+2047components,40pages,2516slots; iteration11:9522buffers, same entities/components,
+41pages,2572slots. Cache entries remain2. The exact extra tracked allocation is a
+56-slot component page. entities.tower derives capacity from actual payload stride
+and page policy, consumes slots monotonically, detaches full pages from the reuse
+index and frees a page when its last live component releases. This explains the
+step without assigning a new semantic/cache owner.
+
+After every session destruction, host counts return4546buffers/1040entities/
+1036components/19pages. An isolated world returns4544/1038/1036/19 after each size;
+explicit frontend_world_clear plus compiler_world_dispose returns every tracked
+buffer to the pre-world baseline (exit0). Original abort and diagnostic receipts
+are retained/exported to D1/A2.128cycles are evidence, not a universal bound;
+D1/A2 are reviewing a source-derived page/byte bound and ownership oracle before
+changing the benchmark. No arbitrary growth allowance or extra warmups adopted.
+Diagnostic preflight errors remain recorded: reserved identifier token, missing
+im_fail when replacing the format client, duplicateABI when adding evaluation
+beside interpreter, and correctly refused world disposal before explicit grammar
+cache clear. The corrected existing serial link uses evaluation instead of the
+interpreter unit, matching the original D2 benchmark's ownership boundary.
+
+Full B2 bounded-unit/driver source, A1 frontend API boundary, all semantic admitted
+phase callers, type-role frontier and initializer reuse are now integrated after
+those runs drained. A fresh joined native build is running; historical LR and
+sanitizer receipts do not validate this later source closure. No publication lease
+requested and no deployment/source commit claimed complete.
+
+### B1 joined checks, LR grain boundary and byte-aware retention (2026-11-22)
+
+The public-predecessor joined native refresh passed all 37 steps in 81.57s wall,
+61.28s user, 11.12s system, 828408KiB peak RSS. Focused CTest passed 4/4:
+work overlap 0.01s, formatting 23.67s, LR 1.83s, query 0.07s (25.64s total).
+This closure includes B2 bounded units and A1 admitted phase callers, but predates
+the pending L2 generic-copy grant and later nominal/source-boundary changes.
+It does not establish complete shared-budget or constructor acceptance.
+
+Same-object, forward/reverse 20-run comparisons tested LR work-per-job 65536
+against 32768 after the new dispatcher join. B2 granted/released the quiet slot;
+all exact graph and owner checks passed. Large512 at 12 workers improved median
+153.740-157.548ms to 141.209-144.270ms; at 8 workers, 154.373-154.823ms to
+141.438-144.899ms. Four-worker and serial results were essentially unchanged.
+CPU at 12 rose 325.6-332.6ms to 387.7-394.8ms, and peak RSS rose
+109276-110256KiB to 116404-118264KiB. This is a latency/CPU/memory tradeoff,
+not a uniform improvement. Raw lr_grain_* CSVs and Tower-derived summary retained.
+
+A second quiet 20-run boundary comparison used one new benchmark object with
+explicit grammar size256. Halving the grain alone REGRESSED 12-worker wall
+28.441-29.521ms to 40.149-41.680ms and CPU about28-29ms to53-54ms. This candidate
+is not accepted. The revised candidate requires minimum total estimated work
+131072 before starting a parallel batch, independently of 32768 work per job.
+Overflow-safe ceiling divisions avoid multiplying untrusted item/edge counts.
+Public smallest-unit and parser aggregate compilation pass; an added256-wide
+regression verifies no hidden ECS jobs and exact serial output, and the explicit
+LR suite passes. An accidental default-all invocation (missing lr selector) was
+terminated and drained; its exit1 is not a full-suite pass. Final paired adaptive
+boundary/large measurements remain pending; no replacement handoff exported yet.
+
+The reusable parser_retention_observer derives requested allocation bytes from
+actual component type, stride, page capacity, headers and alignment, verifying
+0<live<=used<=capacity and exact pooled owner counts. At quiescence every retained
+page has a live component, hence page_count<=pooled_live; this is a deliberately
+loose source-contract bound, supplemented with actual fragmentation measurements.
+After the original five warmups, semantic/cache/live counts and buffers-pages
+stay exact. No arbitrary growth allowance or extra warmups were introduced.
+Owned512 iterations10->11: buffers9519->9520, pages40->41, requested338840->355063
+bytes (+16223), live payload141920 unchanged. Entities2046/components2047/cache2
+are unchanged. After every session, requested179981/livepayload93136/buffers4544
+return exactly; explicit cache clear/world destruction restores pre-world buffers.
+All128resets for256/512/1024/2048 pass. These observations are not universal proof.
+Requested bytes exclude allocator overhead/RSS. Full sources, exact link, hashes
+and raw CSV are exported under B1/retention_bytes for D1's benchmark oracle;
+original parser_benchmark and its failing strict-counter log remain unchanged.
+
+The completed adaptive LR sweep contains48 invocations, all with exact graph
+and owner checks passing. At256 it preserves serial28-30ms behavior. At512,
+12-worker medians improve156.42-157.70ms to141.78-143.74ms. At384 forward,
+coarse83.86ms versus adaptive85.07ms brings no latency benefit while CPU grows
+127.92ms to164.75ms. The reverse coarse384 run has an unexplained147-170ms
+wall/process-CPU spike, including serial execution; its raw receipt is retained
+without attributing it to implementation or host interference. Consequently the
+next candidate retains65536 work/job for narrow batches and halves that grain
+only once at least four coarse jobs are available. This derives the refinement
+from the existing grain, retaining the original minimum profitable admission.
+A short repeated boundary/large comparison remains required before exporting it.
+
+Reviewed owner handoffs now include L2 generic-copy grants, classification,
+consolidated primitive resources, constructor/type-binding fixtures and signature
+identity; A1 nominal expression/identity ownership, body readiness and signature
+consumer hooks; B2 explicit source bounds and exact CLI NUL diagnostics. The
+initial type-binding patch failed context matching due line endings despite an
+identical base Git blob3960ee7. Ignoring context whitespace yielded exact owner
+blobd13cec1 before the incremental signature tests; no semantic resolution was
+invented. No legacy semantic compiler_kernel_dispatch calls remain. WorkTask's
+new direct-ready index is reviewed but not applied until the frozen LR pair ends;
+all resulting ABI dependents will then rebuild. Historical sanitizer receipts do
+not validate these inputs. Shared focused registration awaits those prerequisites.
+
+The formatter constructor cases now use named TypeConstructionKind values and an
+explicit fixture array, deriving the traversal bound from its type. Expected text
+and malformed cases remain unchanged. Literal fixture values define the data;
+loop bounds and case validity no longer depend on duplicated numeric partitions.
+No new production syntax is adopted. Smallest compilation and runtime checks are
+pending the coordinated timing slots. AGENTS includes the requested general rule.
+
+Resume correction: the user hibernated all machines during this sweep. The
+reverse coarse384/1 CSV was created20:43:08UTC and completed20:56:08UTC; this
+process crossed suspend. Treat the384 paired performance and256 version pair
+spanning the pause as suspend-contaminated, retaining raw output/ownership and
+CPU observations. The earlier384/12 slowdown completed20:43:02 before suspend;
+its cause remains unproven. The512 pairs completed before suspend. Repeat the
+affected complete pairs on the stable awake host, without rewriting old logs or
+restarting any already drained/successful correctness jobs merely due observation.
+
+The coherent owner join rebuilt84 native steps successfully:170.33s wall,
+150.90s user,24.09s system,833140KiB peak RSS. Ten of11 focused CTests passed
+(LR, query, overlap and the seven new shared scheduler/tool checks). Formatting
+aborted on exact golden text. The unbuffered diagnostic shows precisely the two
+signed_integer/unsigned_integer functions now defined by consolidated types.tower;
+the old expected prelude omitted them. The updated independent declaration table
+spells both functions, their return statements, and every primitive binding.
+Expected spans sum that data (function+return each contributes two); the table
+extent derives from its type. Legacy body text/source-span triples remain frozen.
+No production formatter behavior was changed to fit the new input.
+
+Public smallest expected-fixture compilation and two-step native relink passed.
+The complete formatter suite then passed in3.20s wall,0.32s user,0.42s system,
+93484KiB RSS. This later consolidated-resource closure differs from the earlier
+23.67s run, so the difference is not an isolated formatter optimization result.
+Original failing CTest/diagnostic logs remain. Full replacement handoff
+constructor_formatter_consolidated.patch has SHA256
+e51e5db8952f75250929a5ba8cb85025ce90926e6895ae3279d79ce5eeea671f.
+It replaces the earlier ce86 formatter bundle and requires the consolidated prelude.
+
+The separately compiled ready fixture with derived array counts links/runs output0.
+Its complete current source is exported as work_ready_derived.tower SHA256
+6e8ee34e63516ba46e9f948ae3655d909a200ec8b88f7a0756a7896edfaf6aa0.
+The formatter case-table first compilation rejected a local struct declaration;
+its corrected top-level declaration compiles with the public predecessor. Failed
+logs remain. Shared ownership/sanitizer/publication acceptance is still pending
+later required-stage/capture handoffs and the final frozen source milestone.
+
+### B1 final coarse/refined LR decision and fresh awake pair (2026-11-22)
+
+After the host resumed, B2 explicitly granted a fresh quiet slot. All48 complete
+forward/reverse invocations passed: sizes256/384/512, workers1/4/8/12, three
+warmups and15 checked samples per invocation. The slot was released on drain;
+B2's following allocator-attribution slot is separate. Windows UTC, container UTC
+and the session clock agreed during the new sweep. Raw receipts and hashes are
+under build/ecs_b1/logs/lr_refined_* and the B1/lr_refined_receipts handoff.
+The immutable V3 benchmark object and all other linked objects are identical
+between variants. The refined parser aggregate was compiled with the public pin
+against the lane's frozen earlier source archive, changing only lr_state_work;
+this keeps the later WorkTask ABI out of the paired experiment. New native LR
+checks separately validate the same policy on the coherent later owner join.
+
+Median wall milliseconds (forward/reverse range):
+
+| Size / workers | Coarse65536 | Refine only after four coarse jobs |
+| --- | --- | --- |
+|256 /1|29.220-30.066|29.327-30.316|
+|256 /12|28.533-28.999|28.666-28.768|
+|384 /1|89.359-94.176|90.851-93.276|
+|384 /4|83.072-87.344|84.348-86.265|
+|384 /8|84.448-88.527|83.791-85.507|
+|384 /12|84.889-87.368|85.649-88.407|
+|512 /1|209.444-212.052|208.884-221.786|
+|512 /4|153.761-155.550|155.068-156.230|
+|512 /8|155.122-158.279|143.396-145.088|
+|512 /12|155.182-158.160|140.249-144.829|
+
+At512/12, process CPU increases327.8-331.2ms to388.1-394.0ms; maximum RSS rises
+109056-109752KiB to123508-123856KiB; voluntary switches rise2171-2178 to4471-4558.
+These are real costs of using eight profitable chunks instead of four. The
+largest-case latency improves while intermediate384 retains the coarse CPU cost
+(129.49-132.35ms versus129.97-133.54ms), avoiding the earlier all-small-grain penalty.
+Accept the refinement as a measured latency/CPU/memory tradeoff. No uniform speedup
+or zero serial overhead is claimed: one reverse serial512 pair is4.6% slower,
+with overlapping raw ranges and the same capacity-one early serial algorithm.
+The synthetic grammar microbenchmark does not establish end-to-end compiler speed.
+
+Full replacement parser_budget_refined.patch has SHA256
+836fee7f7c5002a550f9be0fb629abab37cd690f55ef83b06651e6fdfad7aa06;
+reverse application checks exactly against the current tree. It replaces the
+older parser_budget_derived bundle, including its new budget fixture, and retains
+the explicit defining-type imports and WorkPoolMaximumCapacity array bounds.
+The new256 admission regression checks both serial graph identity and absence of
+hidden ECS task creation. Final outer-unit compiler measurements, applicable
+fresh sanitizers, clean public-bootstrap/browser generation and publication remain
+open. The reviewed A1 required-stage continuation was applied only after these
+profiles drained; its later capture KnownOrder issue remains with A1/L1.
+
+Required-stage continuation integration rebuilt seven native steps in45.46s,
+36.61s user,5.28s system,828492KiB RSS. Query smoke passes. The full existing
+execution types suite passes computed type arguments, opaque type objects,
+executed constructors, target widths, canonical reconstruction, errors, worker
+identity and request retention. This narrows the remaining failure; it does not
+make all body/type-query paths pass.
+
+The LR type-smoke first body_continuation compilation aborts with
+'Strict evaluation reads an uninitialized local' (standalone raw134). A direct
+current towerc --jobs1 --emit foundation reports the same failure at
+scaffolding/tests/body_continuation.tower:219:27, comptime(nested_stack()), exit1.
+The function initializes total, writes both array elements through identity(3/4)
+in nested blocks, then returns their sum. Existing fixture and assertions remain
+unchanged; exact source/log reproduction is routed to A1/L1 rather than guessing
+a parser fix. The first orchestration's shell exit1 is recorded separately from
+the repeated raw134; GNU time's final status field is not used to relabel aborts.
+
+D2 reviewed the retention observer's source: it enumerates at least one owner
+for each observed page and compares the aggregate pooled references with summed
+page.live. It does not compare a per-page enumerated reference count with each
+live field. The comment now states that exact limitation; D1's benchmark oracle
+has the stronger per-page check. This documentation-only change does not change
+runtime behavior or require new performance measurements. The original measured
+source was restored byte-exact from the frozen archive in retention_bytes
+(SHA6fade0fafde84305791bce383416e326be28c2cc600fbc7bc749fb9442f0b02c);
+the comment-corrected export is separately named parser_retention_observer_documented.
+The historical hashes/CSV retain their original meaning.
+
+LR metric boundaries: construction wall/process-CPU timers exclude serial equality
+and destruction; getrusage context-switch deltas span the whole iteration including
+those checks/destruction. Whole-process peak RSS also includes the retained serial
+reference. Scheduling switch counts therefore are not dispatch-only counters.
+A clean parser-only Release cache, public pin verified by build-bootstrap.sh,
+modules enabled and jobs4/outer1, is now building the complete parser regression
+suite independently of the body continuation diagnosis.
+
+### B1 explicit fixture languages and seed tokens (2026-11-22)
+
+The clean public-predecessor parser-only cache built 47 steps in 115.18s
+wall/103.52s user/16.33s system, peak 825836 KiB. CTest initially passed 12/15:
+reader extended an undefined Statement, and the attribute helper copied a
+GrammarDeclaration override with an undefined GrammarPrecedence dependency.
+Explicit CLI probes importing Foundation/Bedrock passed. The reader now imports
+Foundation only for its extending fixture, preserving the same replacement,
+malformed-source, reference-reader and allocation-failure oracles. Attribute
+fixtures import complete ordinary Bedrock instead of repeating partial rules.
+A first top-level string variable failed public library compilation; the existing
+prefix function remains because this predecessor disallows its library initializer.
+The failure and successor smallest-unit logs are preserved.
+
+The live and replacement suites also assumed a Number token in the immutable
+seed. Their decimal-only cases now use the existing contextual AttributeInteger;
+actual lexical override tests still declare their own Number token. Declaration
+counts, exact revisions/spans/diagnostics and ownership checks remain unchanged.
+The touched replacement array loop derives its extent from the array type.
+Reader and live suites pass; live measured 0.40s wall/0.31s user/0.01s system,
+42136 KiB peak RSS. Production parser algorithms are unchanged in this fixture
+followup, and the invalid previous fixtures provide no passing timing baseline.
+
+Full CTest now passes 14/15. The aggregate reaches and passes replacement,
+randomized LR, allocation sweeps and shared entity tests, then aborts134 at the
+separately owned entity_registry bare-language fixture. That failure is preserved
+in parser_replacement_seed_diagnostic.log and routed to D1/A2; it is not a parser
+suite pass. Earlier actual sanitizer receipts precede this later owner ABI join.
+The five-file parser_fixture_languages.patch is independent of the existing
+formatter/parser-budget exports; reverse application was checked before handoff.
+
+### B1 execution join and invocation-directory diagnosis (2026-11-22)
+
+Reviewed the complete L1 execution handoff through a temporary Git index and
+compared target blobs against existing files. Five production targets were
+already exact; only the 16 missing paths were applied. This preserves the paired
+IMValueInput role/publisher ABI, A1 executable lowering receipts and independent
+L2 type-object changes. D1 recursion diagnostics now distinguish executed infinite
+recursion from dependency cycles. Registration v2 was already present, including
+the derived work_ready bound; its only remaining differences omitted newer
+work_budget_types imports, which were preserved. Temporary indexes never changed
+the real staging area or any branch.
+
+The 28-step native join linked the compiler, LR, formatter and execution binaries
+but failed the final driver-request target: driver_platform_make_executable was
+undefined (exit1,87.36s wall/72.68s user/11.76s system,830408KiB). The first
+speculative attribution to tool_files_posix was incorrect. The generated request
+unit uses TOWER_DRIVER_SOURCE, excluding the platform paths implementation that
+TOWER_DRIVER_PRODUCTION_SOURCE supplies. B2/D1 own the requested build correction.
+
+New control and type invocations initially ran in /work/scaffolding. Control
+failed with ambiguous imported i32; the type-source override still used i32's
+32-bit width despite the absolute-key 64-bit replacement. Identical executable
+and resource arguments pass from the registered CTest directory /cache/native:
+control33.01s/34.28user/1.43sys/242272KiB and complete types47.26s/41.73user/
+4.42sys/378436KiB. These passing suites cover serial/parallel canonical output,
+ordered failures, retained type reachability, constructors and source-bound type
+changes. No oracle was relaxed. B2's resolver audit explains importer-relative
+lookup before library lookup and distinct normalized lexical keys; relative
+synthetic entry paths can resolve a different spelling than the absolute override
+when cwd equals the resource root. Preserve both reproductions; coordinate fixture
+entry anchoring, without changing import priority or merging filesystem aliases.
+Earlier attribution of these failures to the semantic join was therefore too broad.
+
+The small direct body_continuation CLI compilation also passes, resolving the
+previous nested_stack uninitialized-local failure. A separate five-line
+EarlyCapture probe still fails1 with an unfinished-query diagnostic instead of
+the required source-order diagnostic. Type-smoke's lifecycle assertion abort134
+is retained; GNU time's footer0 after signal6 is not a passing process result.
+A1 has an upcoming general fix, so its partial special-case patch is deferred.
+
+Fresh focused CTest passes11/11 in4.30s, including exact LR worker equivalence,
+caller overlap, shared grants, query continuations, formatter, ready/budget and
+semaphore checks. These are newer-source receipts; final sanitizer/native/browser
+publication acceptance is still open. The next compiler profile freezes current
+resources and binaries, rebuilding only the coarse LR state variant with the
+public pin and linking identical remaining objects. Existing Tower measurement
+logic verifies identical emitted object bytes; OS wrappers fix jobs1/4/12 and
+collect per-process wall/CPU/RSS/context switches. No new measurement claim is
+made before the paired runs finish.
+
+### B1 isolated whole-compiler LR policy profile: small workload
+
+Frozen compiler_profile binaries differ only in the parser aggregate's large-batch
+LR refinement. The public pin compiled the baseline smallest unit and aggregate;
+all other native link inputs are identical. The frozen resource/source archive,
+original/modified link recipes, binary hashes, OS launch wrappers and raw receipts
+are under build/ecs_b1. The existing Tower driver_measure implementation performs
+2 warmups plus12 alternating measured pairs, exact optimized object-byte checks
+and nanosecond wall/CLI phase summaries. Wrappers select jobs1/4/12 and GNU time
+records process user/system CPU, peak RSS and voluntary/involuntary switches.
+B2 granted the120-second quiet interval; all84 invocations completed0 and the slot
+was explicitly released. The429-byte functions example independently interprets
+720/721 under both variants. No suspended-host sample enters this later run.
+
+| Jobs | Coarse/refined median wall seconds | Coarse/refined median compile seconds |
+| --- | --- | --- |
+| 1 | 1.163714 / 1.170591 | 1.001835 / 1.008041 |
+| 4 | 1.058388 / 1.064316 | 0.878008 / 0.881179 |
+| 12 | 1.066991 / 1.066607 | 0.884235 / 0.884499 |
+
+Excluding each process series' first two warmups, GNU-time CPU(user+system) ranges
+are1.06-1.09/1.07-1.10s at1 worker,1.19-1.21/1.19-1.22s at4 and1.20-1.22s for
+both at12. Peak RSS ranges(KiB) are177960-179036/177816-179372,
+194956-198132/193540-197044 and195644-197120/193212-198192 respectively.
+Process switch ranges are preserved in the raw CSVs and include startup/emission.
+The refinement's wide-grammar microbenchmark gain does not imply whole-compiler
+speedup here. Four lanes modestly improve both variants over serial;12 add no
+useful gain on this workload. The roughly0.6% serial/four-lane median difference
+is not claimed as zero cost or a general regression conclusion.
+
+A separate Tower generator builds4096 independent decltype/loop bodies and a
+staged answer. Both frozen compilers independently interpret42/42. Generation
+first used ordinary executable mode with an exported main, causing a duplicate
+symbol; corrected library compilation plus raw executable linking passes.
+A preflight supplied nonexistent --optimize (rejected1); optimization is already
+the CLI default. Both failed logs remain separate from measurement receipts.
+The generated large source and generator have SHA256 receipts; larger paired
+object measurements await a separately coordinated quiet interval.
+
+### B1/B2 followup: actual module identity gate
+
+Actual CLI compilation of the absolute tests/body_continuation source passes from
+both /work/scaffolding and /cache/native with explicit current grammar files and
+jobs1; canonical bytes are identical. Recompiling its absolute Foundation output
+(import foundation_syntax) from both directories also reaches an exact fixed
+point. These checks alone do not exercise a bare entry beside a local tower module.
+
+B2 filled that gap independently: a root-local relative entry containing
+`import tower; import library.vector; print(0);` fails with duplicate CoreLocation
+rules from tower.tower and /work/scaffolding/tower.tower. The same file with an
+absolute entry path passes from both working directories. Its full body source
+reproduction preserves SHA6369f2d9; exact receipts are in B2's status/logs.
+Thus classification as solely a synthetic fixture was premature. There is a real
+native entry/path identity gap without symlinks or different file contents.
+B2 is investigating lexical absolute anchoring at the existing native boundary,
+while preserving virtual source keys, distinct symlink identities, normal import
+priority and genuine ambiguity diagnostics. This remains an acceptance gate;
+no global name merge or parser diagnostic suppression is proposed.
+
+The large profile source is351269bytes and its optimized object944bytes. It stresses
+checking4096 bodies; ordinary optimization removes unused code. This is not a
+claim to emit4096 machine-code functions. Serial12-pair medians coarse/refined are
+3.103792/3.092429s wall and2.725685/2.713568s compile, with exact object equality.
+Four/twelve-worker measurements remain in progress on the same frozen inputs.
+
+### B1 complete isolated compiler measurements and stage ownership checks
+
+The remaining large-program pairs completed with unchanged frozen binaries and
+resources. All 168 small/large invocations passed exact optimized object checks;
+each workload/width uses two warmups and twelve alternating measured pairs.
+The export in the external B1/compiler_profile directory contains 55 artifacts
+plus receipt_hashes.csv: binaries, source archive, link recipes, wrappers, six
+JSON reports, twelve process-usage CSVs and the Tower generator/input. These are
+development snapshot receipts, preceding the later source-root and path changes.
+
+| Large workload jobs | Coarse/refined median wall seconds | Coarse/refined median compile seconds | Coarse/refined median parse seconds |
+| --- | --- | --- | --- |
+| 1 | 3.103792 / 3.092429 | 2.725685 / 2.713568 | 2.136420 / 2.121926 |
+| 4 | 2.760552 / 2.750861 | 2.343243 / 2.337482 | 1.743667 / 1.739567 |
+| 12 | 2.667037 / 2.671556 | 2.246176 / 2.250631 | 1.645830 / 1.650236 |
+
+Excluding only the first two warmup rows per series, process CPU ranges in seconds
+are 2.95-3.08/2.95-3.02, 3.43-3.52/3.43-3.52 and 3.85-3.96/3.86-3.98.
+Peak RSS ranges in KiB are 659436-660352/659012-660376,
+683712-686396/684468-686448 and 684180-685884/684276-686584.
+The isolated LR policy has no established whole-compiler speedup in these samples;
+median differences remain within about 0.6%. More workers reduce large compilation
+latency while increasing CPU and memory. The earlier wide-grammar microbenchmark
+improvement remains a separate latency tradeoff, not an end-to-end claim.
+
+The registered entity_stage_concurrent fixture passes native and actual LLVM
+AddressSanitizer/LeakSanitizer instrumentation, including real worker barriers,
+publication, cancellation, worker failure, name collision, partial admission and
+exact ownership teardown. Native reports 57,792 finalizers, 97,194 microseconds
+process CPU and 1,676 KiB peak RSS; GNU time records 0.10s wall, 0.01s user and
+0.07s system. ASan/LSan reports the same finalizer count, 321,121 microseconds CPU
+and 62,336 KiB; GNU time records 0.27s wall, 0.07s user and 0.26s system, with
+detect_leaks=1:halt_on_error=1 and no report. This is valid-workload coverage only.
+
+The first TSan execution failed before fixture work: its ASLR setup called
+personality(ADDR_NO_RANDOMIZE), denied by Docker's default seccomp policy, then
+terminated with CHECK/SIGSEGV and raw exit 139. Preserve entity_stage_thread_checks.log;
+this is neither a race report nor a pass. An ephemeral container with the same
+base image (06e0a5e3...), CPU 0-11 and 24 GiB limit, but seccomp=unconfined, permits
+that sanitizer runtime operation. Its first wrapper failed 127 because the base
+image lacks GNU time installed in the long-lived container. The raw successor
+then passed exit 0 with halt_on_error=1, 57,792 finalizers, 249,112 microseconds
+process CPU and 25,908 KiB peak RSS, without a TSan report. Container startup is
+not test wall time. Both failed logs and the successful raw receipt remain under
+build/ecs_b1/logs. No binary/source changed between these runtime attempts.
+These results cover the standalone stage framework; the new joined compiler
+still requires its own final applicable sanitizer/native/browser validation.
+
+Reviewed B2 native identity and ordinary-fixture import patches are now joined.
+The native request owns absolute lexical entry/root/grammar paths, additional
+units anchor before snapshotting, and the existing module suite checks one-time
+effects through relative and absolute names. No realpath or global name merge is
+introduced. The public predecessor compiles the smallest request unit in 1.43s
+wall, 1.38s user, 0.21s system and 203,872 KiB peak RSS. Source-root and request
+layout changes require refreshed dependents; grouped native validation is underway.
+The driver-request test manifest still omits production platform path definitions
+and is routed to its owner. General early-capture and synthetic module-key fixes
+remain owner gates; no acceptance claim depends on suppressing their diagnostics.
+
+The grouped native refresh completed all twelve requested steps in 20.74s wall,
+40.69s user, 6.15s system and 832636 KiB peak RSS. The independently run native
+module-path suite passes in 9.43s wall, 9.50s user, 1.38s system and 190188 KiB,
+including the once-only import effect regression. Thirteen focused CTest checks
+pass in 4.32s: LR equivalence/admission/overlap, query continuations, formatter,
+shared work budgets/ready queues, signal observation, output identity and stage
+ownership. These source-root/request-layout results supersede earlier compile-only
+notes without changing the outstanding whole-release gates.
+
+D1's reviewed parser_retention_validated handoff now updates the original parser
+benchmark. It enumerates owners of every actual page, including full pages outside
+partial-page lists, and requires each observed count to equal page.live. Its
+requested-byte calculation checks the actual type layout against the independent
+allocator contract. Stable semantic/cache ownership and exact session/world
+teardown replace the incorrect assumption that every retained buffer count must
+be identical across page rollover. The live-owner page bound is deliberately loose;
+it is neither a low-fragmentation guarantee nor sanitizer evidence. Preserve the
+original timing CSV; ownership diagnostics remain outside its parse timer.
+The two cache snapshot arrays now use the existing BenchmarkCacheCapacity instead
+of repeating 64, following the user's size-derivation guidance. Local execution
+of this newer benchmark is pending; earlier frozen observer receipts stay intact.
+
+The focused backend-overlap selector is also registered after its owner-provided
+shared helper: it retains the existing serial object reference, two-worker barrier,
+exact bytes and thirty-second deadline. It supplements the full matrix.
+Browser preparation verifies the repository-pinned WASI 34 archive and uses the
+public bootstrap through build-wasm.sh, with IDE tests enabled, outer build budget
+one and compiler budget four. Only the portable frontend is being built here;
+root coordinates final immutable LLVM/Binaryen dependencies and release generation.
+
+### B1 joined parser retention, request ownership and browser failure receipts
+
+The portable public-bootstrap build passed all 28 steps and its foreign fixture:
+99.94s wall, 79.65s user, 14.09s system and 910120 KiB peak RSS. The resulting
+IDE test failed exit 1 in the first completion group, with an unreachable trap.
+Removing strip-all from the Tower link did not supply names. A diagnostic-only
+WASI SDK Clang/LLD relink of the exact same objects reproduced the failure with
+symbols: abort, semantic_body_kernel, work_kernel_execute, work_pool_batch,
+sem_bodies_pump, sem_query_pipeline_pump, sem_declarations_execute, sem_run,
+completion_analyze and tw_complete. Both link recipes and all failed logs are
+retained. The production Tower linker remains unchanged. A1 treats this as the
+existing semantic editor gate; no browser runtime or release pass is claimed.
+
+After coordinator cross-review, the exact B2 ea7 blanket fixture-prefix patch was
+reversed. Authoritative D1 explicit Foundation imports per differential/C fixture
+and scalar JSON case, plus D2's measured kernel/generator repairs, are applied
+instead. Existing fixture language selection and source diagnostics are preserved.
+The one-line driver-request manifest correction uses TOWER_DRIVER_PRODUCTION_SOURCE;
+the target now builds and its complete allocation/ownership sweep passes in 0.19s.
+A subsequent B2 followup supplies path-specific errors and requires every failed
+request trial to expose a diagnostic; that newer assertion awaits a targeted run.
+
+The original parser benchmark passes normal and 128-reset stress runs at each
+256/512/1024/2048-symbol input. Normal process observations are 0.07s wall,
+0.02s user, 0.02s system and 52404 KiB peak RSS; stress is 0.46s wall, 0.24s user,
+0.05s system and 52852 KiB. These are correctness-run observations, not controlled
+before/after speed claims. At the final 2048-symbol sample, 3582 entities and
+3583 components occupy 65 pages requesting 529375 bytes, with 227936 live payload
+bytes and 94616 unused slot bytes. The loose owner-derived bound is 27291745 bytes;
+two cached revisions remain stable. Exact teardown releases all fixture ownership.
+
+A current-source ASan/LSan refresh completed 71 steps in 87.29s wall. With default
+quarantine and detect_leaks=1:halt_on_error=1, one full parser stress run passes
+in 2.87s wall, 2.29s user, 0.33s system and 438092 KiB, with byte-identical ownership
+diagnostics to native and no findings. The current formatter suite also passes
+in 4.47s wall, 1.51s user, 0.63s system and 541328 KiB. These cover the recorded
+joined source closure, preceding the pending A1 general capture/editor fixes.
+They do not establish source-language UBSan or whole-release sanitizer closure.
+D1's separate older-source three-pair parser ASan receipts are retained as such;
+no duplicate three-pair matrix was run here.
+
+B2's executable-function index and null-symbol guard are joined. Its smallest
+public compile passes; the backend API suite passes, as does the source-emitter
+rejection/retained-root suite (1.24s wall, 181268 KiB). The latter checks source
+graph ownership and capabilities independently of backend normalization timing.
+L1 has measured a separate roughly 47% regression on identical 118962-byte
+canonical Foundation, prior to the newest capture/source-root drafts. Current
+parser FIRST/state/LALR/runtime entry points all take unchanged serial routines
+before new admission/grain/pool logic when effective world capacity is one.
+That conditional source observation does not identify the old/new binary cost;
+matched hotspot samples and effective-budget evidence are still required.
+
+Timing-label clarification from the current driver source: the CLI object path's
+`parse` field stops immediately before backend_lower, after the execution program
+has already been constructed and checked. It includes frontend semantic work;
+it is not an isolated lexer/parser timer. The tables above preserve that raw CLI
+phase name. Do not use their `parse` values to attribute L1's checker/storage
+regression to LR construction without sampled stacks or a narrower measurement.
+
+### B1 completion regression resolved on native and portable WASI
+
+A1's six-line editor-background correction clears only the private editor state
+when a required dependency body lies outside the completion hole. SemanticEditor
+contains borrowed observations, so the reset neither drops owned allocations nor
+publishes a caller's unrelated scope. The dependency body is still checked. This
+is separate from the pending general capture-range/descendant-lease work.
+
+After the smallest public-pin compile passed (14.58s wall), native dependents
+rebuilt in five steps (21.05s), and the normal public build-wasm.sh refreshed the
+semantic object and production-linked reactor in two steps (22.27s). The same
+complete IDE test now passes exit 0. Reactor SHA256 is
+4a4a48067a3498c7309a3389b6c4649c700491ffd6b466addeeb3da80fe059fc.
+The native editor-unit and query suites pass in 5.64s and 0.07s respectively.
+Original failing browser receipts remain alongside editor_browser_ide_checks.log
+and editor_native_checks.log. No browser-specific workaround or oracle change was
+made. This closes the observed completion abort for this closure, not the pending
+capture/performance/full merged publication gates.
+
+The path-diagnostic request followup also passes its full failure/ownership sweep
+in 0.21s. The backend execution-root fixture compiles without optimization in
+1.61s, prints the independent expected 45 and 2, and its raw LLVM definitions retain
+direct/callback/recursive/retained_export while omitting unused type helpers.
+The canonical Foundation context run preserves source SHA6f2571a1..., outputs
+2147483647/-2147483648/3, and observes 10.63s wall, 10.45s user, 0.13s system and
+213776 KiB. Its complete compiler (SHA7af4c66b...), adjacent resources and source
+archive are frozen in build/ecs_b1/same_foundation_context before the editor edit.
+This single current-host run is not an isolated comparison with L1's old/new data.
+
+### B1 registry fixture closure and general capture validation
+
+Root explicitly authorized the shared entity-registry fixture repair and both
+audited callers. The fixture now imports Foundation, accepts the resource root,
+owns a configured module provider, and closes it before its unchanged exact
+entity/component count oracle. The parser passes its existing dot resource root;
+storage passes argv[1]. No registry, finalizer or lifetime assertion was relaxed.
+The smallest public compile passes in 1.39s; native storage passes in 0.23s.
+The parser cache's seven-step refresh passes in 20.70s, and all 15 parser CTest
+entries pass in 6.09s, including the formerly failing aggregate (4.38s).
+Original failed 14/15 and exit134 receipts remain intact. This repairs a fixture
+contract, so the failed baseline is not a valid before/after performance sample.
+The narrow incremental three-path export has SHA256
+64d554175d62e1237b1790983bd73d960415ceaa2ff3bc5e03143b7875e965ab;
+it excludes previously exported formatter caller changes.
+
+The corrected A1 capture v3 patch f5d3f2bd was reviewed and applied after its exact
+late-prepare prerequisite, without an intermediate build or any withdrawn draft.
+Initializer-range payloads are attached and individually leased before lowering
+dispatch; receipt revision/profile/dispatch checks and final admission closure
+remain explicit. The smallest public compile passes in 16.22s, then all six
+native dependent steps pass in 21.37s. Type-smoke passes in 134.05s wall, 136.80s
+user, 6.23s system and 263680 KiB peak RSS, including the previously failing early
+capture, canonical reparse, serial/worker and focused cycle/error cases. This uses
+the existing 23-case lifecycle fixture; the owner's expanded 30-case matrix and
+aggregate/private-storage review remain separate gates. The older run aborted
+early, so its shorter duration does not establish a performance comparison.
+
+The existing staged-aggregate suite also passes on v3: 10.28s wall, 10.19s user,
+0.97s system and 303680 KiB peak RSS, with graph/fast execution, canonical
+reconstruction and 32/64-bit serial/worker cases. The known-binding suite fails
+exit 1 in 18.08s because its expected generic compile-time failure differs from
+the new capture restriction. Coordination independently identified address- and
+comparison-derived values being incorrectly accepted; those are semantic bugs,
+not diagnostic updates. A1 owns their interpreter-policy correction; L2 owns
+only the measured effect/parameter diagnostic updates. No negative oracle is
+relaxed here.
+
+The newly transported 30-case lifecycle fixture replaces the exact 23-case
+patch after a successful reverse check. The source-proof fixture adds retained
+syntax-root, generic-extension and consumed-proof invalidation checks. Public
+runner refresh passes four steps in 8.22s. Expanded type-smoke then fails raw 134
+after 61.45s wall/62.30s user/2.89s system/211784 KiB, reporting a runtime-storage
+capture restriction for a valid lifecycle source. The GNU time footer says zero
+after signal 6; that footer is not a successful process result. The failure is
+preserved in capture_v3_expanded_type_checks.log. The original staged-aggregate
+pass does not cover these new global/local aggregate captures. All jobs drained
+before granting B2 its next isolated normalization measurement slot.
+
+### B1 derived lexical extents and trace failure/buffer bounds
+
+The remaining lexical completion priority count duplicated its raw-array extent,
+and the suffix-search limit independently duplicated its output-array capacity.
+Both callers now derive their counts with sizeof(decltype(array))/sizeof(element).
+The named search policy defines the path storage once. The public predecessor
+compiles before/after in 13.27/13.14s wall, 11.01/10.96s user, 1.81/1.77s system,
+632064/632604 KiB. Objects are byte-identical SHA256
+b105b9f9af8cb643899da32b2e595d826d54ef67b4fd5f6b90e3a1cd692cae3c.
+This establishes unchanged generated runtime work, not a measured speedup.
+
+The parser tracing setter had ignored allocation and relationship-attachment
+failures. Its only caller is the parser CLI. The setter now returns bool, and the
+caller reports an actionable failure with a nonzero exit. The existing parser
+fixture sweeps injected allocation failures through first success, verifies no
+partial marker or leaked ownership, checks allocation-free repeated toggles and
+restores the caller's setting. The first refreshed link exposed a stale unused
+entity_child_member declaration in that fixture; using the actual existing
+member-index/child-at API fixes it without changing the entity framework. The
+failed link log remains parser_trace_sizes_build.log.
+
+A valid --trace --parse examples/foreach.tower comparison then exposed garbage
+bytes in both old and intermediate traces. Source review found that trace_step
+passed a length-bearing formatter vector to a null-terminated writer. The writer
+now accepts the real extent; the separate tree-string ABI still measures its
+guaranteed terminator. Two corrected complete traces match SHA256
+d7db32b7a81803d1c81a5237a2814e80e0b607bef843f2b8a75cdf486e5392f9.
+Single old/corrected CLI observations are 0.18/0.18s wall, 0.07/0.09s user,
+0.03/0.02s system, 41860/42120 KiB; these are context, not statistical claims.
+Tracing is ordered coordinator output and has no parallel scaling contract.
+No deliberate invalid-memory probe was run. All 15 normal parser tests pass
+again in 6.24s, including the new fault/ownership sweep. Valid traced-input ASan
+and final merged publication checks remain required.
 ### 2026-11-22 — L2 type/generic completion audit and baseline
 
 L2 started from clean main 6282238779034442e0578d76b921ca117df819f1 and read the
@@ -57500,3 +58596,342 @@ nongeneric element-growth helper to reduce measured public compiler import work;
 A2 will review its export rather than build a competing helper. No helper patch
 or packed component storage is implemented in this checkpoint. Goal stays active,
 with no publication request/lease or final integrated release claim.
+### B1 coherent checkpoint merge and trace instrumentation boundary
+
+Committed reviewed joined inputs as 3a18a43, pulled/rebased main successfully,
+verified the coordinator bundle SHA ac7e1f5f, and merged exact checkpoint 7ac22f4
+as 8112320. Eleven conflicts were resolved at their individual hunks, preserving
+newer stage/overlap registrations, source-span rejection, allocation-root hooks,
+derived extents and initialized receipt contexts. Both journal histories remain.
+The checkpoint's Linux reachability profile remains until D1's separate-target
+migration. D1's explicit Foundation root fixture import is included. No source
+reset, feature branch, todo modification, publication lease or push occurred.
+
+The first ASan refresh failed to link the real-worker LR consumer because the
+new trace fault sweep was in its shared parser fixture object and required the
+serial-only allocation-failure API. Its failure log is retained. The sweep now
+lives in parser_trace_failures.tower, imported only by serial parser_main and
+parser_failures. The shared parser fixture retains a valid traced sequence with
+root-span and world-teardown checks. No production allocator stubs or global
+instrumentation were introduced. The eight-step successor rebuild passes in
+23.16s. The corrected six-path trace export a2618c72 fully replaces the earlier
+330f/c8 drafts; exact reverse application was checked.
+
+On merged 8112320 plus these trace test changes, actual ASan/LSan passes formatter
+3.66s, real serial/threaded LR equivalence 19.44s and query/source-proof continuations
+0.45s (3/3, total 23.59s). Parser retention stress passes in 3.04s wall, 2.51s user,
+0.29s system and 437436 KiB, preserving per-page ownership and exact teardown.
+The traced-sequence/fault fixtures still require the coordinated focused parser
+selector; these passes do not claim those fixtures executed. PowerShell decorates
+GNU time's stderr as NativeCommandError in the CTest log, while the actual child
+exit is zero and all three tests pass. No failed test was converted into a pass.
+
+The approved A1 capture policy 595209af and full 42-case lifecycle fixture were
+then reviewed and integrated after job drain. Policy is frozen for the exact
+capture producer before preparation dispatch. Address/comparison negative source
+programs and expectations remain intact. The separate aggregate consumer ABI
+handoff is not yet present and has not been partially applied. Current native
+refresh uses the public predecessor; previous sanitizer receipts apply to the
+preceding closure, not this policy change.
+
+## CURRENT remaining scope — 2026-11-22 23:40 UTC
+
+Coverage is 173/173 identified assigned or discovered Tower paths: 105 compiler,
+unit-manifest and root-language resources, plus 68 parser/formatter-specific
+fixtures. The census includes every current primary production family path
+(100/100) and primary fixture family path (63/63), with additional dependencies
+and reference oracles. Five module/frontend aggregate manifests were missing
+review rows in the earlier reconciliation; they have now been read and recorded.
+The new parser_trace_failures.tower is reviewed. No identified assigned path is
+unreviewed. Cross-owner files are identified as dependencies, not claimed as a
+complete audit of those owners' scope.
+
+| Requirement | Current disposition and concrete remaining work |
+| --- | --- |
+| World/component ownership and locality | Implemented and measured: parser_nodes/syntax_nodes use world-owned stable component payloads; lr_analysis/lr_states/lr_runtime use packed derived records, not another AST. Per-page census and exact teardown pass. The 2048-declaration stress snapshot has 65 pages, 529375 requested bytes, 227936 live payload bytes and 94616 unused slot bytes. These are distinct from RSS. Stable page payloads are not claimed to be fully packed archetype columns. Preserve this lifetime/locality contract in final merged sanitizer runs. |
+| Shared worker and memory admission | parser_workers.ParserAdmission reserves shared extra worker lanes and releases after joins/publication; saturated/partial-grant and caller/worker barrier checks pass. **Actual missing contract:** its zero-byte reservation does not bound parser scratch or table heap. Coordinate an explicit world-owned byte-accounting/admission contract with A2 for FIRST/state/LALR/runtime work; a Docker memory cap or lane-only ledger does not complete that requirement. |
+| Between/within-unit profitable parallelism | Within-unit LR kernels and cross-unit frontend/backend streams are implemented with real-overlap evidence. LR wide-grammar latency improves at higher CPU/RSS cost; ordinary small/large compiler comparisons did not establish an LR-refinement speedup. Incremental grammar activation, ordered interning and effect publication remain serial for their documented dependencies. Final joined browser worker execution and useful scaling remain unvalidated; B2 owns outer-unit services and D2 browser transport. |
+| Staging, invalidation and effects | Shared semantic producer suspension, source-root proofs, generic extension/invalidation and exact capture policy are implemented by A1/L1. Current aggregate consumer and publisher ABI is integrated together. Query failure is at interpreter_call_query.input_query_tests' observation boundary; owner correction adds an observable callee local without dropping lifetime assertions. The new aggregate source's only isolated mismatch is its empty-struct size oracle (documented size 1, fixture expected 0). Adopt owner corrections and run full lifecycle42, policy, known/aggregate, canonical and worker matrices; do not report these gates passed yet. |
+| Failure/cancel/drain/stale results | Existing LR/WorkGraph comparison, failure and budget fixtures exercise ticket reuse and cleanup; entity-stage concurrency passes on earlier source closures. parser_set_debug_trace now reports failures, and parser_presentation writes actual vector lengths. The bounded serial fault sweep and valid trace pass normal parser tests. Exact new trace/fault ASan execution still needs D1's focused parser selector. Repeat affected ownership/stale/cancel stress after the joint aggregate ABI and stage join. |
+| Serial CPU/RSS | A2's entity_stage_prepare/publish membership guard is implemented. B1's two matched serial pairs on canonical SHA6f2571a1 improve 6.56–7.11s to 1.85–1.94s; CPU falls and RSS remains about 209 MiB (213392–214208 KiB). Same input/resources/output, only stage implementation changed. This does not compare different hosts or prove multicore scaling. L1 still owns the original normalized-backend deadline check. |
+| Canonical formatting and grammar contracts | Explicit constructor goldens, exact source spans, malformed constructors, independent LR/reference behavior and incremental grammar fixtures pass. Current normal parser matrix is 15/15, including registry/provider and storage reset ownership. Final formatter/repository and browser round trips must use the final frozen semantic/ABI closure. No second serializer or ambient grammar/type fallback was introduced. |
+| Supported instrumentation and host limits | Actual ASan/LSan format/LR/query/retention pass on 8112320 plus trace tests, before the newest aggregate ABI. Earlier TSan/DRD/Memcheck receipts remain source-specific. Final affected ASan and TSan are required. Source-language UBSan is unsupported; system LLVM/uninstrumented libraries and browser hosts are outside these native instrumentation claims. TSan startup needs the documented same-image container ASLR capability; denied startup is not a test pass. |
+| Bootstrap/browser/publication | Public Linux x64 predecessor builds pass without a private bootstrap override. Fresh portable IDE passed before later capture/layout joins; current native and browser generations need a coherent final refresh and full applicable checks. Shared LLVM/Binaryen builds remain coordinator-owned. Main contains checkpoints 3a18a43/8112320; later source changes remain to commit/rebase. No publication lease, atomic main/gh-pages push, or hosted verification has occurred. These are mandatory completion work. |
+
+Documentation updates themselves add no runtime cost. The remaining implementation
+and validation work above is not demoted to optional follow-up by focused passes.
+## B1 parser allocation and retention inventory for A2 contract � 2026-11-22 23:51 UTC
+
+Source review of current 8112320 + joined handoffs; these are allocation sites and ownership facts, not measured totals or an implemented memory limit. Existing raw vector capacity grows geometrically in library/vector.tower; length is not allocated bytes. compiler_buffer_allocate adds its own header; allocator usable size/RSS is a separate metric.
+
+| Owner / exact source | Requested storage and retirement |
+| --- | --- |
+| parser_table_open/build/clear_runtime/destroy | ParserHostTable allocation; states capacity * sizeof(ParserHostState); each contexts capacity * sizeof(FrontendContextPosition). Retained through table/cache borrowing, retired by clear_runtime/destroy, not when LR workers join. Root/match kind can identify world before first allocation. |
+| lr_grammar_create/destroy/detach | LRGrammar; name objects/text, buckets, productions/rule metadata, symbols/symbol metadata/capture text, unresolved vector. Build borrows source entities; detach retires source indexes but name/capture snapshots survive with table. Account exact field capacities and objects, not borrowed entities again. |
+| lr_analysis_create/destroy, lr_analysis_compute | LRAnalysis and nonterminal_count * sizeof(LRNonterminal), each FIRST range and production-index vector. Rules/symbols are borrowed grammar buffers. Lives through table construction, retired after contexts/runtime construction. |
+| lr_analysis_work (lr_first_work) | nonterminal_count arrays of LRFirstResult, vector(usize), bool; dependents, frontier/next vectors; result FIRST vectors. FIRST vectors swap with analysis.nonterminals.first after join: charge follows actual buffer, not job object. Fixed task arrays are stack; job entity payloads/WorkGraph belong to world/shared framework accounting. |
+| lr_items_create/destroy and lr_items_closure (lr_analysis) | LRItems plus values/pending vectors; closure temporary ranges, expanded sets, membership/expansion hash slots. Dynamic during closure, shared by serial and worker calls; no finite accurate size from only worker count. |
+| lr_states_begin/create/destroy (lr_states), lr_states_create_work | LRStates; states pointer, pending and bucket vectors; each LRState, LRItems, symbols/edges/actions. Worker result vector holds new LRItems until deterministic interning; duplicate sets destroyed, accepted sets transferred into retained build states. Analysis pointer borrowed. |
+| lr_kernel_closure, lr_states_lalr_work (lr_lalr/lr_work) | Cache pointer array plus item/needed arrays; each LRKernelClosure owns state.items, state.symbols and next LRItems/vector. Memoized only for one table build. Action result vectors move to states; link vectors retire after application. Ownership transfer cannot release bytes at join. |
+| lr_propagation_create/destroy + lr_propagation_work | LRPropagation, count * LRPropagationNode, per-node ranges/edges, pending; parallel incoming/result vector arrays and changed array, target queue. Range buffers swap with graph nodes at publication; retire at graph destruction. |
+| lr_runtime_create[_work]/destroy | LRRuntime plus rules/states/rows vectors, each unique LRRow actions/direct index, per-state gotos. Parallel results array/buckets are temporary; unique rows/gotos transfer to runtime, duplicate rows retire after interning. Runtime survives table build and all request borrows. |
+| lr_runtime_specialize / lexer_table | Optional SymbolSequence + rule.count * SymbolRange and sequence_states; LexerTable alphabet/transitions/accepting vectors for DFA consumers. Must remain charged through final runtime/table destruction, including unsuccessful optional specialization allocations. |
+| parser_request_create/recognizer_destroy; lr_parser/probe/completion | Request and error vectors, LRParser stack/evidence, LRProbe frames, LRCompletion base/follow, completion path temporaries; forest entities own references through common world. Runtime/table borrowed, never double count. Retirement on request failure/cancel/close after worker drain. |
+| parser_stream_create/destroy | Stream plus subtype payload; UTF8 copied source capacity, error/buffered_error vectors; buffered node ownership transfers, but node bytes belong to world/entity accounting. Source/errors can survive across reads and request return. |
+
+Contract requested: a small explicit shared world-owned allocation/reservation API usable by generic typed buffers and vectors, with checked count * sizeof(T), actual capacity growth, failure preserving old owner/storage, retained-owner transfer/swaps, and release only on physical retirement. Must distinguish owned buffer bytes (possibly including known compiler header) from world entity slabs, allocator/RSS overhead and outer-unit reservations; same bytes must not be counted twice. Low-level standalone LR callers with no compiler world need an explicit unlimited/null boundary, while compiler table constructors propagate world ownership through every derived object and worker job. No process-global/TLS owner or counter.
+
+Known predispatch arrays can be charged exactly before allocation and launch. Closure/FIRST/range/hash growth is data-dependent, including worker-side allocation; A2 must define gated byte-only reservation on growth versus preadmitted bounded worker arenas. B1 will adopt the agreed API throughout the above objects, preserve bounded no-wait lane admission, and test denial at allocation/growth, transfer, retained table totals, cancellation/failure and exact zero after destruction. Merely adding a byte estimate to ParserAdmission would miss serial and retained buffers and does not complete this requirement.
+
+Inventory refinement after reading exact low-level layouts: LRCompletion owns LRProbe `original` and embeds LRProbeBudget; each completion path owns a probe snapshot. It has no base/follow buffers. Also include regex_compile_tree's RegexLowering vectors (visits/values/patches/pending/characters) and Automaton state ranges plus automaton_compile's AutomatonWork/subsets/links/row/alphabet. These retire after token-table construction while LexerTable survives. Automaton currently repeats its 512-state storage limit in allocation/fill/add and fixed work arrays; derive the bound from a shared named semantic limit and actual extents when adopting its buffers, preserving the existing limit and diagnostics. Its finite limit is not a bound for LR state/item expansion.
+
+## B1 focused handoff integration � 2026-11-22, current 8112320 working closure
+
+Applied owner query observation ef0147df and aggregate v2 25e8f5ab, with all lifetime assertions and stdout0 retained. Applied focused selectors22ee/2d94, aggregate registration ec4e, and exact two address/equal diagnostic corrections3fe after independent rejection. Migrated Linux x64 reachability profiling to full standalone9f1c plus opt-in CMakef542; removed all four portable execution hooks. The README context differed, so preserved current scheduler/overlap text and inserted only the reviewed new section. Full patch check failure is not represented as an applied patch.
+
+Public bootstrap smallest corrected query compile and 15-step native runner/compiler/standalone profile refresh pass (21.14s wall,41.17s user,6.82s system,404220KiB peak). Query-smoke and focused parser pass; parser output includes actual valid trace and bounded serial fault sweep. Focused capture-policy passes51.54s wall/52.72user/2.36system. New aggregate-capture matrix passes graph/fast,32/64-bit,Foundation and1/2/4/8 workers; combined aggregate-stages passes19.40s wall/19.74user/1.45system.
+
+The broader known-binding run fails1 at forward initializer case `fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));`: compiler accepts a source whose fixture expects rejection. This is not an obsolete diagnostic-string mismatch. No source/oracle changed; original failure log retained (28.32s wall/28.90user/2.08system,315108KiB). Semantic owners notified. Full42 type-smoke is still active at this entry. Exact updated ASan fixture execution, fresh current-source WASI and final memory-contract adoption remain open; earlier sanitizer/browser receipts retain their old source identity.
+
+## B1 current sanitizer and portable frontend receipt
+
+The corrected42 lifecycle/type-smoke passes227.27s wall/232.53user/10.18system. Current18-step ASan instrumentation and links pass71.14s/90.92user/13.39system,844324KiB peak. Actual focused parser execution with ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 passes0.11s (87804KiB), including valid tracing and every bounded failure prefix. Joint aggregate query serial/threaded32/64 passes0.46s (167620KiB). These are actual current-code instrumented executions; no serial allocator check is substituted for threaded coverage.
+
+Fresh portable WASI public-bootstrap build12steps passes29.54s/58.36user/9.45system,915464KiB peak. Full IDE fixtures pass. Unchanged comptime_capture source succeeds with empty output; inference_alias_invalid rejects with Cannot infer type argument T; decltype_aggregate_operator rejects with Binary operators require scalar or pointer operands; aggregate_inferred_copy rejects with Expected Other, got Item. Fresh browser raw results at32/64 match eight independently executed native CLI observations. D1 owns browser oracle alignment; no shared browser fixture was edited. The new untracked observer is only an ignored browser ABI transport, with all input programs in Tower.
+
+Exact wasm SHA8bcc91caea17791b89feb640b8372f7b95d6bca3ab52b4b0b7994eee595b32a2 (1549736bytes), public bootstrap9653f818, source parent8112320 plus patch80eab0be and source-file manifest670b146d. Complete resources/source/wasm/provenance/log archive B1/browser_current_receipt.tgz SHA438bceb6432f1f71706e5e215d2c3e204592e3325f929eefa433515fbc258b12. Existing old LLVM reactor was not used. This frontend receipt does not validate LLVM/Binaryen, browser worker transport, final generation or publication.
+
+After the archive and jobs drained, adopted reviewed L1 edge tests d9827cd8: whole-empty capture with zero projections and exact immutable store/copy/fill messages. Smallest/public/native refresh, query and aggregate-stages pass; no production change. The saved browser snapshot intentionally predates these two fixture additions. Root contract review resolved the known forward-initializer mismatch as an obsolete negative oracle: optional evaluation preserves runtime order; demanded early capture must still reject. D1 owns exact original stdout7, strengthened0/7/7 and demanded-negative fixtures; no production rejection is added and original failed log remains retained. Concrete test patch still pending.
+
+Remaining implementation: explicit world-owned memory accounting/admission for parser/LR/lexer temporary and retained buffers, using A2's agreed shared API; current ParserAdmission bounds lanes only. Final coherent memory/race/stress, clean public/bootstrap/generation/browser/backend publication evidence remains open. No publication lease has been requested and no asset has been published.
+
+## B1 memory adoption and public-bootstrap expansion boundary, 2026-11-23
+
+Correction to the previous known-order entry: Foundation raw uninitialized reads
+have no portable value guarantee. The saved graph0/7/7 versus normalized7/7/7
+observation is not a demonstrated compiler defect, and root withdrew that
+classification. Preserve exact failed logs and strict demanded early-read
+rejection. D1 owns replacement observations with initialized state/effects1/1/7;
+no implicit zero initialization or backend semantics change is justified here.
+
+Committed the preceding reviewed integration as60d9b24/tree04839111. Plain rebase
+attempted to flatten the earlier resolved merge and was aborted without losing
+work; merge-preserving rebase passes. At the next pull, an intent-to-add fixture
+prevented autostash. Removing only that index intent preserved the file; pull
+--rebase=merges --autostash then passed with identical HEAD/tree. No force push,
+publication or todo change. Verified checkpoint bundle SHA524eed90 is in B1's
+coordination directory.
+
+Adopted exact A2 WorkBuffer/WorkVector v3 SHA3b03fc54 and B2 host allocation-size/
+alignment helper07e634dd; then L1 type-only split7f9fa3c4. Physical receipts include
+the actual compiler header, charge overlapping replacement allocations, move
+with storage and release after physical retirement. World budgets must outlive
+retained tables. No process-global owner or duplicate outer estimate was added.
+
+First parser slice accounts ParserHostTable, its states and each context vector.
+New Tower fixture denies object allocation and growth by reserving remaining
+capacity, verifies failure cleanup and successful retry, retained direct subtotal,
+reuse without duplicate grants and final zero. Public smallest production/test
+compile and full dependent native build pass; build35.04wall/111.53user/16.87sys,
+839124KiB peak, focused parser0.02s. Preserved initial unknown-private-helper and
+compiler_buffer_free declaration failures; explicit imports and existing ABI
+declaration fix those causes. Export9e4d5f50 is only this validated first slice.
+
+Controlled first-slice profile uses immutable complete before4713e89f and
+after98c4ad23 packages, identical current draft resources, canonical input6f2571a1
+(118962bytes), checked expected result, jobs1, warmup plus two alternating pairs.
+Environment remains Ryzen AI MAX+395/WSL2, Ubuntu24.04 container CPUs0-11/24GiB,
+LLVM19.1.1/public predecessor9653f818. Before wall1.85/2.00,user1.68/1.84,
+sys0.10/0.09,RSS213952/213500KiB; after1.84/1.82,1.68/1.66,0.09/0.09,
+214908/214652KiB. All six runs/comparisons pass. No speed claim from two pairs;
+about1MiB additional peak. CLI interpretation is an unbound standalone path, so
+these timings do not measure shared ledger contention. Bound caller profiling
+and real production transport overlap remain required; serial fault transport
+cannot establish either. Script/parser_table_memory_profile.sh and raw results
+remain under build/ecs_b1 and /cache/parser_memory_profile/table_slice_results.
+
+Next draft accounts LR runtime/row objects, action/direct/goto/rule/state vectors,
+row interning results and buckets, and specialized symbol-sequence storage.
+Workers carry the immutable ledger pointer; dedup frees discarded owners and
+publication transfers goto receipts. Serial fallback preserves the anchor's
+budget; standalone constructor explicitly accepts null. Existing lane fixture
+uses an explicit byte allowance while retaining its final zero receipts; bounded
+byte-denial coverage remains separate. Smallest runtime public compile passes
+3.78s. Runtime checks have NOT passed for this subsequent draft yet.
+
+Measured blocker: combined parser_modules_work exceeds public predecessor65536
+template nodes. Parser_work without module fixture also fails10.41s/587444KiB;
+the type split plus required direct generic imports still fails11.23s/584820KiB;
+base parser with all fixtures removed also fails. No raised cap/private compiler
+or duplicate-strong-export workaround. Read-only export/import audit identifies
+C/Roku source emitters as an existing isolated declaration ABI: only two manifest
+imports include their implementations, and their only public definitions are
+c_emit/roku_emit. Moving them together to units/source_emitters is the minimal
+candidate, preserving private shared helpers. Root authorized source-unit work;
+D1 owns registration. Public compile/link/export checks are pending at this entry.
+
+Audit census175 includes the new budget fixture and source-emitter unit; shared
+library handoffs remain cross-owner dependencies. Remaining grammar/FIRST/state/
+propagation, lexer/automaton and request/control/stream allocations are explicit
+gaps. New code invalidates earlier layout-specific sanitizer/browser evidence;
+final merged ownership, bound performance, canonical build/generation/browser
+and leased atomic publication checks remain required. This documentation has no
+runtime performance effect.
+
+Follow-on evidence: emitter separation alone still fails the parser cap, despite
+its own public compile passing2.08s and llvm-nm showing exactly c_emit/roku_emit.
+The owner-authorized shared non-generic WorkBuffer growth helper also falls short
+alone. Replacing the frozen-size LRRuntimeResult scratch vector with an exactly
+sized WorkBuffer removes an unnecessary template specialization/spare capacity.
+With both changes, the FULL ORIGINAL parser_modules_work including emitters
+compiles on the public pin in16.93wall/13.98user/2.15sys. No cap increase, private
+compiler or manifest change. Restored parser_frontend imports; moved the unused
+emitter candidate to build/ecs_b1/source_emitters_candidate.tower. Correct current
+repository audit census is174; the175 entry above included that temporary draft.
+
+Shared-helper export B1/work_vector_shared_growth.patch SHAae81979141aaa8bd5f11c98fd5d45c878781d9f5582191a0ad015e6ac20b4b4b
+is incremental after v4/type split and D2 explicit WorkBuffer import. Typed early
+validation and no-growth return retain their original ordering; shared policy
+preserves size/alignment/overflow, minimum8, doubling, overlapping replacement
+grants and unchanged owner on failure. Existing normal/shared-four-thread/serial
+fault fixtures all pass stdout0/exit0 using A2's manual link composition. A direct
+executable invocation first failed duplicate main; --library plus the existing
+production/serial runtime respectively is the documented correct boundary, with
+no source workaround. Failed log remains. Final instrumentation and actual bound
+caller performance for this helper remain pending.
+
+Independent symbol-sequence owner tests pass in the existing lexer target, plus
+150 random NFA and500 seeded DFA/reference comparisons,0.01s/1368KiB peak. Bounds
+derive from real array extents and allocator-size helper; check below-object,
+object-only, below-total and exact-total caps, exact retirement and empty storage.
+Initial raw-array foreach failed the nominal-collection contract; changed only
+that new loop to counted iteration with derived extent. New LR runtime budget
+fixture's smallest compile passes: measure retained serial bytes, deny worker
+construction with one byte less available, require exact joined cleanup and
+successful retry after releasing a competitor. Joined execution pending.
+
+Integrated exact B2 frontend snapshots c654/joint6e961 and backend-retention93b9;
+smallest frontend compile passes. Shared ledger includes direct input subtotals
+and parser owners; finite compilation allowance is held during tight input denial
+checks and released before compilation. D2 direct nominal imports a4eb preserved.
+Reviewed/staged A2 arena v4 without live adoption. Current full dependent native
+refresh is frozen and running; earlier binaries are not relabeled as these inputs.
+
+### B1 runtime memory, index deduplication and current instrumentation
+
+The full original parser aggregate now builds with the public predecessor, without
+a manifest split or private override. Dependent native build:62 steps,
+52.32wall/154.99user/23.46system/840008KiB. Parser0.03s, real-production LR1.80s
+and joint frontend units18.58s pass, including the new retained-byte denial,
+join/cleanup and retry fixture. Accounting remains partial: grammar analysis,
+FIRST/items/states/propagation, automata, requests/control/streams and shared
+world/store/pool construction still need their coordinated physical owners.
+
+Measured redundant work: parallel LR construction indexed every private row
+before deduplication; serial construction indexes only unique retained rows.
+Inspection proves row hash/equality depend only on actions. Move indexing to
+the unique-row publication branch; retain result ownership until publication
+succeeds, including allocation failure. This changes no source-state publication
+order or conflict priority. The native18-step refresh passes18.68wall/33.20user/
+5.05system/723524KiB; focused parser, real LR1.75s, allocations1.18s and corrected
+known-value gate50.44s pass. The latter uses D1's defined state/effect oracle
+(1/1/7), exact raw-source compile admission and demanded-before-initialization
+negative; it does not impose a portable result on an uninitialized raw read.
+
+Extended the existing LR benchmark with optional runtime mode, finite256MiB world
+budget, a caller lane, production allocation/transport, serial action/goto oracle
+outside timing, physical peak/retention/ledger reporting and exact owner retirement.
+Small50states/128constructions and wide1538states/1construction use three warmups
+plus15measured intervals per process, three alternating fresh-process pairs at
+each requested width1/4. Forty-five intervals are nested in three processes, not
+forty-five independent process samples. Environment: Ryzen AI MAX+395, WSL2,
+Ubuntu24.04 container CPUs0–11/24GiB, Clang/LLVM19.1.1, public pin9653f818,
+Release production native objects. Frozen binaries befored1b27b03/afterb0b0589a,
+same profile objecte9d1cfee. Raw CSV/time files and OS linking/timing scripts stay
+in build/ecs_b1 and /cache/parser_memory_profile/runtime_dedup.
+
+Small median wall/CPU ms before→after: width1 1.948825/2.016332→1.907413/1.974477;
+requested4 1.918748/1.986255→1.917170/1.980806, actual peak lanes1. Wide width1
+3.500081/3.501519→3.520029/3.521397; width4
+4.688037/7.776873→3.769639/5.982793. Wide4 charged peak16058704→7571824,
+retained952592 unchanged, ledger327680→163840. RSS medians193404→192116KiB;
+wide1 RSS192364→192484KiB, charged peak988312/retained956672 unchanged.
+Small charged peak32968/retained32128/ledger5120 unchanged. Every comparison,
+retirement assertion and all24 child exits pass. Four-worker latency and charged
+peak improve19.6%/52.8%, but remain7% slower than serial; no profitable scaling
+claim. CPU exceeds wall for wide4 and separate production barriers establish
+transport overlap; reserved lane counts alone do not prove it. Serial fault
+transport is not used for this timing or as threaded-sanitizer evidence.
+
+Scheduling evidence: the initial10-second lease was started late, which was
+immediately corrected in status. B2 separately confirmed no heavy overlap during
+that actual interval. A subsequent30-second grant expired before launch; the clock
+guard ran nothing. A live OS watcher then launched the ready24-run script55ms
+after a fresh60-second grant: actual01:12:56.2247554Z–01:13:02.2480343Z on
+2026-11-23, automatic release after drain. The accepted paired timing is this
+last interval. No build or source mutation occurred during it.
+
+Current71-step ASan/LSan dependent refresh and all three focused runs pass:
+allocations9.29wall/8.36user/.81system/772160KiB, parser.11wall/87936KiB,
+productionLR21.20wall/26.78user/1.67system/850176KiB. Source inputs include
+the shared growth helper, physical runtime owners and dedup indexing change.
+Current thread-instrumented dependent build is running; prior sanitizer receipts
+are not substituted. The original helper-only full aggregate still fails the
+public65536 expansion cap even after smaller import experiments; preserve those
+logs and the missing matched macro baseline. Speculative upfront action reserve
+is deferred because duplicate input actions can make that upper bound excessive;
+capacity and budget admission need a measured policy, not a guessed optimization.
+
+Pull --rebase=merges --autostash passes, preserving60d9b24 and current changes.
+AGENTS derived-size/count guidance is already committed in3a18a43. No todo change,
+source push, publication lease or final release claim. Next: current race checks,
+source/receipt checkpoint for the coordinator's complete union, then remaining
+owned memory adoption and coherent bootstrap/browser/publication validation.
+
+Current TSan outcome:71-step build passes69.67wall/186.72user/25.75system/
+839360KiB. Focused serial allocations and parser pass; three real-production LR
+stress runs each pass, no sanitizer report, halt_on_error=1. Same base image
+06e0a5e3, CPU0–11/24GiB, no network, ephemeral seccomp=unconfined required by
+the previously diagnosed sanitizer ASLR/personality boundary. Container-inclusive
+elapsed seconds22.0413557/0.3855816 and52.0525107/53.4955628/54.5919617
+are execution receipts, not isolated performance measurements. All children
+drained. Actual Tower IR ASan/LSan and TSan coverage is distinguished from serial
+allocation injection; unsupported arithmetic-UB instrumentation remains a gap,
+and repeated stress does not prove every possible race absent.
+
+The exact joined D1 numeric-import corrections also pass the native narrow and
+integer-negation selectors. The extended LR benchmark's original small/one-worker
+state mode passes its exact item/transition and final ownership comparisons.
+These are functional checks without a quiet-window timing claim. The runtime
+slice export55f6187460357daff569d2ebc3fc852d5a7a12092a5ae20b5d00acb4be53ec34
+supersedes earlier e627 and includes unique-row index publication; it requires
+the same shared growth helper and physical buffer/type contracts.
+
+### Coordinator complete eight-lane source union (2026-11-23)
+
+Integrated complete main histories from L1 b8dfc676, L2 64af7bf0, A1 04d63191,
+A2 2031d90d, B1 8ee486cd, B2 152b58c3, D1 f6358ea0 and D2 643ceb46. Every
+bundle hash, advertised head and sole published60741 prerequisite was verified.
+Merge resolutions preserve the newer interpreter typed resource failures and
+both startup-denial cases, defined initializer-order oracle, physical backend
+headers, derived frontend receipt counts, explicit defining imports and complete
+fixture registrations. B1's shared growth helper and LR physical-buffer owners
+are retained, including direct-index construction only for unique rows. A2's
+comments distinguish dense pointer indexes from packed payloads and execution
+leases from retained byte grants. Audit/journal history remains intact.
+
+The merged source is not yet a validated release. B1 is building its joined root
+checkpoint; exact source comparison is required before using that evidence here.
+Each owner's before/after profiles, memory and sanitizer receipts cover only their
+recorded frozen inputs. No sleep-straddling timing or manually estimated message
+timestamp supplies performance or lease evidence. Git diff checks found isolated
+CR endings in new A1/B1 audit additions and an extra LR fixture EOF blank; these
+were corrected without changing assertions or historical findings. The user-owned
+todo.txt remains unstaged and byte-identical to hash8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
+
+Pending new work remains outside this union: constructor/store/page/payload
+accounting, packed payload lifecycle, fallible Publish scratch and other semantic
+owners, public clone-result consumers and full failure classification, final
+fixture hooks and updated bootstrap import policy. Final coherent native,
+bootstrap-generation, browser, scaling and supported sanitizer validation plus
+atomic publication/hosted verification remain required. No public refs changed.
