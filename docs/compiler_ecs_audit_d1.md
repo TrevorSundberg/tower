@@ -1688,3 +1688,50 @@ passed the coherent pair in0.018994s/51460KiB. These are owner evidence, not D1
 execution. Entry conversion preserves every trial body and oracle. Local public
 smallest units, paired runtime, cache profiling and current instrumentation remain
 pending. Scope becomes1,065tracked/484D1direct after adding this one reviewed file.
+
+### Six-lane source reconciliation at root 1fec1b91
+
+Reviewed complete coordinator bundle SHA79350aa1, sole published60741
+prerequisite. Merge into D1 main preserves both histories. Two conflicts are
+resolved by content: newer L1 startup test covers both first-buffer and subsequent
+initialization-map denial, while D1's resource helper entry preserves the same
+A1 trial bodies under existing query registration. All original trial assertions
+survive or are strengthened; no source was chosen by arbitrary file order.
+No merged executable has run yet. These seven new direct files bring the roster
+to1,074 tracked Tower paths /491 D1 direct paths, all substantively reviewed.
+
+| New path / lines at reviewed 1fec1b91 | Ownership, coverage and disposition |
+| --- | --- |
+| `scaffolding/tests/compiler_buffer_contract.tower` /44 | Queries exact four-word header/overflow margin without huge allocations, checks two-word alignment and a typed u64/f64 record, initializes and frees sizes0–129. Shared native/WASI test; no concurrent allocator claim. Existing owner fixture checks fault tickets and zero buffer delta around it. |
+| `scaffolding/tests/foreign_tool_checks.tower` /63 | B2 serial fault boundary for plain/quoted/comment/backtick output growth and wrap-flag allocation. Original source bytes must survive rejection; all private byte buffers and foreign names retire. Exact successful mangled output and wrap bytes independently asserted. Existing runtime binder chooses the alternate entry; no native test adapter or threaded sanitizer claim. |
+| `scaffolding/tests/generic_clone_fixture.tower` /134 | L2 shared fixture builds ordered/named syntax in one explicit world via actual registry/deferred-header APIs. Each branch records source offsets, exact declaration/use provenance and named next links. Empty deferred destination is required before publication. Root release precedes checked world disposal; fixture owns no alternate clone algorithm or authoritative IR. |
+| `scaffolding/tests/generic_clone_storage.tower` /100 | Serial fault trials cover wide256x1, deep1x600, node quota, first allocation and physical growth denial. Exact copied count distinguishes Memory/Capacity/None; discard restores entity/component counts and empty destination. Stage held before last view closes, publish before ready marking, scratch receipts checked before world/budget disposal. Kernel allocation count and physical peak are reported; failure injection is deliberately serial. |
+| `scaffolding/tests/generic_clone_parallel.tower` /182 | Production WorkPool/CompilerKernel with explicit shared lane+byte budget, per-job tickets/access declarations, private stages and frozen inputs. Admission barrier requires distinct pthreads; measured clone intervals exclude barrier. Serial/two/up-to-four runs cover publish, cancel and failed peer, exact ordered/provenance results, stale-ticket rejection, joined stage retirement and zero ledger. Overlap assertion is not a speedup claim; four jobs are stress when available, not a host-wide budget exemption. |
+| `scaffolding/tests/module_cache_checks.tower` /16 | Thin B2 entry reuses existing module/cache/session regression function and propagates exact failure code. Requires parser_modules composition and scaffolding cwd; no duplicated cache checker. Correct linking/runtime evidence belongs to that explicit composition. |
+| `scaffolding/tests/token_text.tower` /27 | Ordinary Tower program independently checks backtick names, generic calls, negative signed minimum, floating negative-zero bits, exponent literal, booleans/null, escaped string bytes, comptime and decltype. Expected stdout0. No compiler owner/scheduler implementation; canonical/reparse validation must preserve value/bit semantics. |
+
+Existing direct files were re-reviewed against the merged successor:
+
+| Path | Changed behavior and evidence boundary |
+| --- | --- |
+| `scaffolding/tests/interpreter_call_query.tower` | Newer startup captures actual first-buffer retained bytes, then separately denies memory and initialization map. Both require Capacity, exact buffer-specific diagnostic, expected partial ownership, and zero residual grants after disposal. Retains D1/L1 prior growth and input isolation assertions. |
+| `scaffolding/tests/semantic_world.tower` | Owned trial records route all returns through pool close/drain, invocation disposal, view close and world release. Full-slot admission failures1/3 and early stage cancellation preserve original failure codes plus cleanup failures. Stage publication/discard explicitly forgets retired owners. This closes the earlier fixture early-return ownership gap; current merged runtime/instrumentation still required. |
+| `scaffolding/tests/backend_execution_index.tower` | Pure execution_functions import replaces full lowering import, eliminating duplicate backend implementations in a serial fixture client. Exact Foundation identity, retention, failure sweep and canonical-byte assertions unchanged. Prior generic registration blocker is now structurally resolved; entry wiring still pending. |
+| `scaffolding/tests/backend_units.tower` | Target snapshot expectation includes allocator header via shared independent size helper; exact cap-minus-one rejection and exact-cap admission remain. Joined frontend baseline/overlap/object assertions preserved. |
+| `scaffolding/tests/compiler_buffer_owner.tower` | Registers shared size/alignment contract; allocation-free boundary queries and overflow rejection must preserve the injected failure ticket. Successful retry then restores baseline. |
+| `scaffolding/tests/compiler_storage.tower` | Comment clarifies explicit grammar activation from Bedrock for module-free session resets; no behavior or performance change. |
+| `scaffolding/tests/driver_unit_budget.tower` | Derives argument/invalid-case bounds from actual arrays; all malformed numbers, missing value, jobs and retained-byte assertions unchanged. No source generation or policy registry. |
+| `scaffolding/tests/driver_units.tower` | Adds explicit three-byte source containing interior NUL, exact filename:1:2 rejection, then restores original source before serial/four-worker builds. Expected answer42 and object checks retained. |
+| `scaffolding/tests/frontend_session_format.tower` | Adds rejection of unimported ambient Statement rule, then uses self-declared grammar for old/current/reset sessions. Existing failure diagnostic/baseline-retention checks preserved; aligns immutable Bedrock contract. |
+| `scaffolding/tests/frontend_session_scan.tower` | Activates grammar in each independent source before testing completion and incomplete-call recovery; no ambient baseline inheritance assumption. |
+| `scaffolding/tests/frontend_units.tower` | Derives array/world count and receipt lower bounds from named source/shared snapshot quantities. Same independent42/43/44, canonical/world separation, failure/cancellation and retention assertions. |
+| `scaffolding/tests/frontend_units_memory.tower` | Names three shared/two source snapshot receipts; exact byte sums, replacement overlap, rollback, source cap and finite compilation allowance unchanged. |
+| `scaffolding/tests/lr_work_main.tower` | Root adds existing generic_clone_parallel_tests to query selection before width/worker evaluation checks. D1 resource helper registration remains in evaluation_query_checks, without a second main. |
+| `scaffolding/tests/storage_main.tower` | Registers generic_clone_storage in existing serial fault runner before registry checks. Same caller resource root and final ownership checks. |
+| `scaffolding/tests/type_execution_receipts.tower` | Complete default initialization of existing program/context precedes actual initialization; request/identity/oracle behavior unchanged. |
+
+New backend execution_functions and benchmark reference generator remain B2/D2
+production/measurement ownership. Root checkpoint contains the clone-stack
+prerequisite but excludes later publicclone_result25503293 and its paired B2
+service/cache handling. Do not run a half-ABI combination. Source review does not
+inherit another lane's old runtime or sanitizer receipt for the integrated union.

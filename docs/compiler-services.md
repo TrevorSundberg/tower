@@ -134,13 +134,28 @@ Create a batch with `frontend_units_create(count, budget, pointer_bytes, revisio
 profile, bedrock, foundation, library)`. The grammar/library strings are copied.
 Supply each one-based ordinal with `frontend_units_source(batch, ordinal, path,
 source, length)` before stepping. Paths and bounded source bytes are copied;
-embedded NUL is rejected. Configure every unit before calling
+bytes after the explicit length are excluded. Embedded NUL is rejected before
+parsing; `frontend_units_error` and `frontend_units_error_offset` describe that
+configuration failure immediately. The next valid configuration attempt clears
+that diagnostic, and failed replacement preserves the prior source. Configure every unit before calling
 `frontend_units_step(batch, wait)` repeatedly until it returns true. One
 coordinator owns these calls; workers exclusively own the admitted unit worlds.
 `frontend_units_environment` borrows a unit's environment before dispatch or after
 all workers join, for module configuration, diagnostics and dependency output.
 Do not retain that borrow across a step or disposal. `frontend_units_error_offset`
 supplies the selected failure's source offset.
+
+The in-progress bounded API is
+`frontend_units_create_bounded(count, budget, retained_bytes, pointer_bytes,
+revision, profile, bedrock, foundation, library)`. It rejects zero and the
+unbounded sentinel. The original create entry remains an explicit compatibility
+wrapper without a finite declared-byte cap. Copied grammar/library/path/source
+buffers reserve their exact capacity including NUL before allocation. Replacing
+a configured input reserves the entire new snapshot while the old snapshot is
+still live, then commits all buffers together. A denied cap or allocation failure
+preserves the old configured input and receipt. Temporary replacement capacity
+therefore counts against the limit. These are retained-byte reservations, not a
+bound on parser/semantic/LLVM allocations, entity stores, or total process RSS.
 
 For document/hover work, select `frontend_units_inspect(batch, ordinal, mode)`
 before stepping. Compile and inspection jobs may share a batch and the same ECS
@@ -151,9 +166,12 @@ Invalid or incomplete inspected source may produce a recovered document with
 any failed unit suppresses both kinds of result. Debug entity IDs/component counts
 describe temporary world storage and are not stable semantic identifiers.
 
-The immutable budget is split between outer unit lanes and each world's nested
-parser/semantic kernels. It bounds concurrently executing compilation lanes, not
-the number of retained idle OS threads. Portable hosts use the same queries with
+The draft shares one synchronized budget between outer unit jobs and each world's
+nested parser/semantic kernels. Each outer job reserves one lane; nested work
+reserves available extras and also runs on its caller. Empty grants run inline
+without waiting for capacity. Grants survive joins and result publication.
+This bounds admitted compilation lanes, not retained idle OS threads or all heap
+allocations. Portable hosts use the same queries with
 the serial transport. Pools also respect transport capacity; nested browser
 workers run their inner phases inline instead of waiting for occupied outer slots.
 Worker count does not affect program semantics, canonical
@@ -185,6 +203,17 @@ whole-batch success. Check `backend_units_failed`, `backend_units_error` and
 Before dispatch, `backend_units_library(batch, ordinal, library)` may override
 the default entry-point policy for a unit. `backend_units_error_offset` supplies
 the selected backend failure's source offset.
+Streaming backends inherit that same declared-byte cap. Their copied target text
+reserves capacity before allocation; LLVM exposes object length only after its
+foreign allocation returns. The coordinator obtains a retained-output receipt
+before publication, or destroys the rejected LLVM owner and reports failure.
+Execution grants remain live through publication/bookkeeping. For a later
+standalone backend phase, `backend_units_create_bounded(frontend, count, budget,
+retained_bytes, triple, library, optimize)` caps its own retained target/object
+bytes; the frontend's separately owned inputs remain live. In streaming mode the
+explicit cap must equal the existing frontend cap. The original backend create
+wrapper preserves compatibility. These new paths still await the complete joined
+threading, allocation-failure and sanitizer milestone described in the journal.
 Close the backend batch before its frontend owner. A second backend batch cannot
 acquire that frontend while the first still holds its lease. Failed target queries
 settle without discarding completed frontend queries; explicit cancellation makes
@@ -199,6 +228,29 @@ concurrently; it owns its synchronization and must not mutate compiler state.
 Target registration uses native platform once primitives. Browser backends use
 isolated reactors. Linking retains exclusive ownership. The outer executor does
 not remove remaining structural coordinator phases inside one unit.
+
+The standalone ELF, PE, Mach-O and Wasm linker requests use `link.workers` as
+their own pool ceiling; they do not borrow a frontend `WorkBudget`. Callers must
+reserve that capacity in any enclosing executor. Current CLI multi-unit linking
+starts after its frontend/backend jobs drain. Ordinary `BackendSession` link
+plans explicitly select one linker worker, and browser compiler builds close
+their compilation worker pool before linking the reactor. The standalone Wasm
+link tool and linker fixtures also own their synchronous request. These caller
+contracts do not establish shared admission for arbitrary concurrent embedders.
+
+The legacy `host/llvm_worker.tower` transport owns one `BackendSource` and decoded
+runtime object in its VM's default world. It has no per-request close export or
+component finalizer: callers retain the VM through each synchronous compile and
+copy returned bytes before reuse. A following request resets the previous LLVM
+backend/decoder and generated link plan, while reusable vector capacity remains.
+The latest backend result, canonical text, response, target, input/output capacity
+and runtime bytes can therefore outlive a request. Explicit `BackendSource`
+owners instead call `backend_source_close`; their supplied runtime bytes remain
+borrowed and must outlive them. Browser compilation-pool close terminates each
+worker VM and awaits the transport's termination result. Dropping a cached
+`loadLLVM` object relies on host garbage collection; its optional `close` call
+does not currently perform a Tower teardown. Whole-VM retention measurements
+remain separate from the native unit snapshot/object budget described above.
 
 The native CLI accepts independent library units alongside its entry source:
 
@@ -216,6 +268,15 @@ the earliest unit in input order, and depfiles include each unit's imports.
 Additional units currently require executable output; interpreter/library modes
 and single-unit IR outputs are rejected. Multi-unit timings report aggregate
 compile wall time, since frontend and LLVM work overlap.
+
+Multi-unit CLI compilation selects the bounded API. `--unit-retained-bytes N`
+overrides `DriverUnitRetainedByteLimit`, provisionally 268435456 bytes (256 MiB),
+and requires an additional `--unit`. It accepts a positive finite decimal count;
+missing, nondecimal, zero and overflowing values fail. The default remains under
+validation against representative retained-byte peaks. It covers the service's
+copied inputs/target and exposed retained objects; original driver input snapshots,
+import caches, compiler/LLVM heaps and linker memory remain outside that count.
+It is neither an OS memory limit nor a promise that compilation fits in 256 MiB.
 
 Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
 the ordinary compiler allocator. Their private header records allocator and

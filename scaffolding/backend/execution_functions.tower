@@ -1,0 +1,45 @@
+import tower;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .library.vector;
+
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool;
+extern fn foundation_execution_reference(node: FoundationNode*): void*;
+
+// This is an index over frozen Foundation entities, not a rewritten program.
+// Private declarations become executable through calls or function values;
+// exported/foreign signatures retain their existing native ABI validation.
+fn backend_execution_functions(root: void*, functions: void**, count: usize, retained: vector(u8)*): bool {
+    if count == 0 || functions[0] != root || !vector_reserve(retained, count) { return false; }
+    retained.length = count;
+    fill(retained.data, 0, count);
+    retained.data[0] = 1;
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    if !vector_push(&pending, root) { return false; }
+    for(var index: usize = 1; index < count; index++) {
+        var node = sem_get(functions[index]);
+        if (node.exported || node.external) && !vector_push(&pending, functions[index]) { return false; }
+    }
+    while pending.length != 0 {
+        var subject = pending.data[--pending.length];
+        if subject == null { continue; }
+        var node = sem_get(subject);
+        if node.kind == KType || node.kind == KLabel { continue; }
+        if node.kind == KFunction {
+            if node.index >= count || functions[node.index] != subject { return false; }
+            if retained.data[node.index] != 0 { continue; }
+            retained.data[node.index] = 1;
+        }
+        if !vector_push(&pending, foundation_execution_reference(node))
+            || !vector_push(&pending, node.left) || !vector_push(&pending, node.right)
+            || !vector_push(&pending, node.value) || !vector_push(&pending, node.target)
+            || !vector_push(&pending, node.body) || !vector_push(&pending, node.otherwise) { return false; }
+        foreach(var item in &node.items) {
+            if foundation_execution_item(node, sem_get(item)) && !vector_push(&pending, item) { return false; }
+        }
+        foreach(var parameter in &node.parameters) { if !vector_push(&pending, parameter) { return false; } }
+    }
+    return true;
+}

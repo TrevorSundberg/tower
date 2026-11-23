@@ -6,6 +6,10 @@ import .library.entity_types;
 import .library.entity_stage;
 import generic_body_types;
 import entity_require;
+import world;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
 
 // Compiler transformations and metadata over the shared entity store.
 
@@ -107,6 +111,16 @@ struct CloneFrame {
     next: usize;
 }
 
+// One private owner per clone job. Sibling branches reuse its physical buffer;
+// growth may invalidate frame pointers, never canonical entity addresses.
+struct CloneStack {
+    frames: work_vector(CloneFrame);
+    budget: WorkBudget*;
+    error: WorkBudgetError;
+}
+
+var CloneInitialFrames: usize = 16;
+
 fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*): Entity* {
     var result = stage == null ? entity_create(source.store) : entity_stage_create_named(stage, parent, name);
     if result == null {
@@ -131,37 +145,31 @@ fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, 
 }
 
 // An explicit work stack preserves deep-tree support without host recursion.
-fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, skip_children: Entity*): Entity* {
+fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, skip_children: Entity*, scratch: CloneStack*): Entity* {
     var exhausted = *remaining == 0;
     if exhausted {
         return null;
     }
-    var capacity: usize = 16;
-    var frames = alloc(CloneFrame, capacity);
-    var failed = frames == null;
-    if failed {
+    var frames = &scratch.frames;
+    frames.length = 0;
+    scratch.error = work_vector_reserve_result(frames, scratch.budget, CloneInitialFrames);
+    if scratch.error != WorkBudgetError.None {
         return null;
     }
     var result = compiler_clone_node(source, context, use, stage, parent, name);
-    failed = result == null;
+    var failed = result == null;
     if failed {
-        free(frames);
         return null;
     }
     *remaining = *remaining - 1;
-    frames[0].source = source;
-    frames[0].destination = result;
-    frames[0].next = 0;
-    var length: usize = 1;
-    loop {
-        if length == 0 {
-            break;
-        }
-        var top = length -1;
-        var frame = &frames[top];
+    frames.data[0] = init(CloneFrame) { source: source, destination: result, next: 0 };
+    frames.length = 1;
+    while frames.length != 0 {
+        var top = frames.length - 1;
+        var frame = &frames.data[top];
         var count = frame.source == skip_children ? 0 : compiler_node_count(frame.source);
         if frame.next == count {
-            length = top;
+            frames.length = top;
             continue;
         }
         exhausted = *remaining == 0;
@@ -169,15 +177,13 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
             failed = true;
             break;
         }
-        if length == capacity {
-            capacity = capacity * 2;
-            var next = realloc(CloneFrame, frames, capacity);
-            failed = next == null;
-            if failed {
+        if frames.length == frames.capacity {
+            scratch.error = work_vector_reserve_result(frames, scratch.budget, frames.length + 1);
+            if scratch.error != WorkBudgetError.None {
+                failed = true;
                 break;
             }
-            frames = next;
-            frame = &frames[top];
+            frame = &frames.data[top];
         }
         var child = entity_child_at(frame.source, frame.next);
         var role = entity_child_name(frame.source, frame.next);
@@ -193,12 +199,10 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
             if !attached { failed = true; break; }
         }
         frame.next++;
-        frames[length].source = child;
-        frames[length].destination = copy;
-        frames[length].next = 0;
-        length++;
+        frames.data[frames.length] = init(CloneFrame) { source: child, destination: copy, next: 0 };
+        frames.length++;
     }
-    free(frames);
+    frames.length = 0;
     if failed {
         if stage == null { entity_release(result); }
         return null;
@@ -208,7 +212,12 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
 
 export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): Entity* {
     var remaining = limit;
-    var result = compiler_clone_branch(source, &remaining, null, null, null, null, null, null);
+    // Legacy synchronous module copies still have fatal allocation callers.
+    // Keep this boundary explicitly unbudgeted until those callers propagate
+    // capacity failure; this is never a fallback after a denied reservation.
+    var scratch: CloneStack = default;
+    defer work_vector_dispose(&scratch.frames);
+    var result = compiler_clone_branch(source, &remaining, null, null, null, null, null, null, &scratch);
     *copied = limit - remaining;
     return result;
 }
@@ -266,11 +275,15 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     if template.kind == GenericKind.Function || defer_type_body && template.kind == GenericKind.TypeConstructor {
         body_source = compiler_node_member(definition, "body");
     }
-    var node = compiler_clone_branch(definition, &remaining, context, use, null, null, null, body_source);
+    var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(context.root)), ..default };
+    defer work_vector_dispose(&scratch.frames);
+    var node = compiler_clone_branch(definition, &remaining, context, use, null, null, null, body_source, &scratch);
     var copied = before -remaining;
     context.copied = context.copied + copied;
     if node == null {
-        context.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
+        context.error = scratch.error != WorkBudgetError.None
+            ? "Cannot allocate template clone work stack within its memory budget"
+            : "Template expansion exceeds 65536 nodes or could not allocate its work stack";
         return null;
     }
     data = generic_component_add(node, context.instance_type);
@@ -433,15 +446,20 @@ export fn compiler_generic_body_kernel(payload: void*): void {
     var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
     var destination = compiler_node_member(node, "body");
     var remaining = result.limit;
+    var scratch: CloneStack = { budget: result.budget, ..default };
+    defer work_vector_dispose(&scratch.frames);
+    result.copied = 0;
+    result.storage_error = WorkBudgetError.None;
     result.success = generic_body_pending(context, node) && destination != null;
     if !result.success { return; }
     for(var i: usize = 0; i < entity_child_count(instance.body_source); i++) {
         var source = entity_child_at(instance.body_source, i);
         var role = entity_child_name(instance.body_source, i);
-        if compiler_clone_branch(source, &remaining, context, instance.use, stage, destination, role, null) == null {
+        if compiler_clone_branch(source, &remaining, context, instance.use, stage, destination, role, null, &scratch) == null {
             result.success = false;
             break;
         }
     }
     result.copied = result.limit - remaining;
+    result.storage_error = scratch.error;
 }

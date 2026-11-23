@@ -72,6 +72,16 @@ remains open. This receipt is for D2 `599e8a8`, whose production compiler source
 match published `60741c5`; it does not validate other lanes' pending changes.
 No source-language UBSan coverage is implemented by this mode.
 
+A later unchanged-source backend diagnostic used a bounded600s run after the
+normal selector passed142.39s. It failed at458.83s with raw exit134 and
+`frontend/backend overlap deadline`, the fixture's internal30s signal wait.
+It is not a TSan pass. Supported user-space sampling identified substantial
+instrumented LALR construction cost before the overlap interval; the final
+producer deadline still needs owner attribution. No deadline, assertion or
+instrumentation was weakened. See the D2 audit/journal for exact input hashes,
+sampling limits and preserved raw status; GNU time's accompanying Exit status0
+does not override its signal6 termination or the actual process134.
+
 ## Manual reproduction of the tool
 
 Run from the frozen repository root in Linux x64. `/cache` must be an exclusively
