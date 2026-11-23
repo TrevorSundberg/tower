@@ -84364,3 +84364,17 @@ A1/cache/a1_checked_merged_*. Sessions93620/7372 reaped0, no owned active jobs.
 Actual process chain: codex.exe12060, node launcher28232, PowerShell36308;
 startup status's PID28232 was the launcher, now corrected. Normal main push
 follows. Shared allocator/diagnostic and integrated release limits above remain.
+
+B2 merged publication receipt: fix6081ceb4 preserved with all incomingfae7f9c6
+history in9ac519d7. README overlap kept both additions; journal auto-merge retains
+both histories. One affected public-pin native build4actions PASS,
+24.324wall/21.300CPU/794612KiB. New CTest actual-producer cases workers1/4 PASS
+(2.52/2.21s), merged query-smoke PASS. Current complete generation1 SHA256
+866c6ed0fa3d81ad5e6d4f8968d6b2dc53911c75f178e26a55ae7a0482817957.
+The exact production semantics command STILL fails1 at semantic_source_bindings:178
+with the same inference diagnostic,14.368wall/9.548CPU/587148KiB, retained in
+build/b2_identity_merged_blocker.log. No complete generation2/3 or identity gate
+is passed. Frozen source/artifact manifests above describe the earlier measured
+fix boundary, before subsequent README/journal/upstream changes; they are not
+relabeled as merged performance evidence. All owned jobs drained. Normal main
+push publishes the tested prerequisite and precise remaining blocker only.
