@@ -96096,3 +96096,16 @@ Automatic review rejected verifier-output preparation/launch: "blocked by policy
 Verifier UNSTARTED; no retry/reconstruction/alternate host; hosted release pending.
 Publication-only turn: inputs/output hashes rechecked, owned jobs drained, no
 runtime changes or performance rerun. Later source identities are not relabeled.
+### 2026-11-23 B2: independent direct-C fixture split peer review
+
+[Two-path review](c_fixture_split_peer_review_b2.md) accepts final direct fixture
+and driver_differentials at7c829287, identical to31bd0359/published70e77b60.
+Read original full fixture, exact patch and registration/capture/platform/emitter
+callers: direct effects122 vs callback123, known0 output, live pointer/slot ownership,
+deferred free before trap, mandatory native graph oracle/raw+optimized comparisons,
+unchanged numeric/package cases and nonzero failure paths. No concrete defect;
+no source edit/build/runtime/profile. D2 C16/16 and LLVM2/2 are attributed owner
+receipts, not B2 execution; original unsupported-C failure remains. Reviewed file
+hashes in B2/c_fixture_peer_7c829287. This closes only the two named peer gaps;
+D1 registration adoption stands. Static manifest94aa8f5b retained; verifier stays
+unstarted after policy rejection, with no retry. ROOT final release remains open.
