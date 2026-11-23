@@ -92971,3 +92971,69 @@ preserved; six restored candidate paths still match pre-experiment023955e1,
 new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
 fixture work retained/excluded from frozenf167 evidence. No browser rerun or
 rejected-fix adoption; normal source publication only. All B2 jobs drained.
+
+### D2 b8d65c37 reactor adoption: malformed grammar and alias residues (2026-11-23)
+
+Frozen mounted main08d209fa6f357ba4c220f1e39673de0e7aef1151, clean after prescribed
+pull; no test/fixture/host/producer changes. ROOT supplied matching public768-built
+sourceb8d65c37d9dd4ef691d700d0d0a52c81e01b593a pair, with ROOT's successful build/
+source checks. Independently verified supplied and fresh own copies before/after:
+portable42fc1cf42ac296d3f17ae0300848a59d71e942d565fd8e75e4214c0b45e149b9,
+LLVM1c1b72fb9d0080d850ddd067476e6f8aeec1181ef06aac67cf4b2626b98b9c76.
+Old eac/47433acf/default files preserved; eager default read exists but loader
+actually selects explicit new overrides. Later backend/session/executable-work
+sources mounted at08d are outside these imported fixture closures and are not
+inside the b8 reactor. No compiler build, later L2/A1/A2/B1 adoption or release claim.
+
+Exactly three fresh finite Node processes, one at a time: execution.test selects
+healthy grammar reuse and malformed override parent+all seven children; portable
+and LLVM compiletime selectors each select only decltype_type_fields, inference_
+alias_invalid and the parameterized256-field-chain registration. Anchored patterns
+and exact expected/completed names saved/compared. PASS: execution9/9TAP entries
+(two top registrations, eight leaves including the reuse control), portable3/3,
+LLVM3/3. Thus eight top registrations/fourteen leaf cases, not fifteen independent
+semantic cases. Zero failures/skips/cancellations/timeouts/unstarted selections.
+No43/45case file aggregate, T1 templates or lifecycle matrix repeated.
+
+Actual unchanged assertions now pass:
+- All seven CoreIf/CoreAssign/CoreCallStatement/CoreAddress/CoreLoad/CoreCall/
+  CoreFunction malformed overrides return source errors with0steps, no throw,
+  required Missing foundation tree|missing capture diagnostic. The prior
+  CoreCallStatement Invalid semantic resource request failure is closed for
+  these b8 browser-target reactor inputs, not merely adopted from native proof.
+- Editing the executable example completes before/after reset; inspected
+  grammarBuilds=0 and grammarCacheHits>=1 retain the original reuse control.
+- decltype_type_fields: Graph source32/64 outputs0; Fast canonical32/64 outputs0
+  with canonical identity. LLVM registration prepares checked Graph32 canonical,
+  executes both original and matching canonical via actual LLVM-emitted wasm32:
+  both done/output0/empty error/no truncation. c93 target-width fix unchanged.
+- Existing Tower stress_fields producer uses StressFieldDepth=256; generated
+  program passes Graph/Fast at32/64 and actual LLVM wasm32 output0. Its original
+  registration does not add a separate LLVM canonical roundtrip; none is claimed.
+- inference_alias_invalid: Graph and LLVM each at32/64 return error and match the
+  unchanged required phrase `Cannot infer type argument 'T'; pass explicit type arguments`.
+  No earlier unsupported-type-body message or alternative error was accepted.
+Earlier eac/47433acf failure receipts remain historical; this is new execution
+on b8 with exact current fixtures, not relabeling old checks or all type semantics.
+
+Host: Deck AMD Custom APU0932/Linux x64, Docker tower-d2-ecs image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+CPU0,2/8GiB memory+swap, Node22.23.5, concurrency1; warm files/fresh reactor process,
+n1/group. Command uses `env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=.../reactors/tower.wasm TOWER_TEST_LLVM_WASM=.../reactors/tower-llvm.wasm TOWER_TEST_PHASES=1 TOWER_TEST_ARTIFACTS=.../llvm_artifacts /usr/bin/time -v -o GROUP.time timeout --foreground --signal=KILL 180s node --test --experimental-test-isolation=none --test-concurrency=1 --test-name-pattern=PATTERN playground/tests/FILE.test.mjs`.
+Full absolute command/pattern files under build/d2_ecs/adopt_b8d65c37_08d209fa.
+Execution:3.50wall/4.31CPU(3.97user+.34system)s,195572KiB peakRSS; portable:
+3.69/4.55(4.23+.32)s,209476KiB; LLVM:5.62/7.29(6.84+.45)s,361576KiB. All exit0/
+0swaps. Validation costs only: documentation-only change needs no before/after
+runtime optimization comparison; CPU>wall does not establish Tower worker overlap.
+
+Exact test hashes: execution820ed005ce175de5329e5b7f166c0a4427e39aa82b356d7dc66efb99146762d9;
+compiletime9d6abf4592c3b57f5b3fe091aaeb073644d238fb1ae01e30e7dfdf580a0fdb1b.
+Host manifestb09c138d687256c973efbf77095ad844b373035193f540c01aa4d9c87eb8ed69;
+mounted Tower resources6218c00c8c9a8f29f3edc1d9f6bd2e6cc576dfd6bcf59a9d5a9a1ab36e67d171;
+focused fixtures/language43fe29d83b494fbf8aafd8d55a6590d5796d19432f1fe25f7de9665303898b7f;
+results manifest ae58ec40b0d25bacb34a0c60993e41f402ebf1b7e6ef809fffc4b6ce9f8069e5.
+All SHA manifests checked after runs. Phase logs retain actual decltype source/
+canonical input, emitted Wasm and done/output0 JSON; all expected/completed names,
+TAP/time/status/resources/host/artifact receipts preserved in that own log root.
+No GUI/browser-retirement, hosted, sanitizer, generation or native OS execution
+claim. All owned jobs drained; successful atomic lock acquisition preceded owner
+write, lock released,127GiB disk/about10GiB RAM available, todo unchanged.
