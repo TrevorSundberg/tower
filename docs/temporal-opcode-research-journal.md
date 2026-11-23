@@ -92444,3 +92444,58 @@ actual module-input boundary without a repeat; added registry files are filtered
 out of that host's supplied baseline. New compiler sources are not baked into
 47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
 group, implementation change or blanket merged compiler validation.
+
+### B2 page-owned browser worker candidate rejected, frozen f167 (2026-11-23)
+
+Host main023955e1 after required pull, owned jobs initially idle, CPU12-23/quota12/
+24GiB/cache924GiB free. Read ROOT retained root_retirement_20261123_2116 original
+strict report: pool4/compiler1 close5/2 with zero targets; compiler4 completes
+Tower work, child closes and retire probe, but coordinator target remains after
+30s. Original36.33wall/4.44CPU, peakRSSnotcaptured. No compiler/browser build.
+
+Implemented exactly one page-owned workerFactory/MessagePort candidate. Page owns
+coordinator and each capacity-bounded native compiler worker; direct ports carry
+existing thread ABI, page controlport handles create/terminate; coordinator
+failure/cancellation closes whole group and guards queued stale messages. Applied
+same helper to actual browser defaults/app/language caller creation and strict
+test. Tower graph/budget/admission/leases unchanged. No cooperative-READY/full-
+Chromium candidate, no D2 diagnose-worker-retirement/control-file edits.
+
+Frozen f167 shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4,
+work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c,
+serialized resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b,
+Chromium159/headless-shell1255 executable24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b.
+Same launch/options/isolation/fixtures and original30s retirement assertion.
+Three fresh strict candidate trials PASS actual5/2/5closes,zeroCDPtargets, full
+serial/parallel canonical and Graph/Fast/output/query/budget checks. Process
+wall6.049525/6.470020/6.411205s, waitedchildCPU1.829615/1.952501/1.993595s,
+RSS205996/205516/205648KiB. Compiler4 closewait26.802/.693/26.565ms versus
+original30011.845ms failure. Compiler4 workload2536.942ms original versus
+2592.395/2896.401/2638.686ms; no compiler speedup claim. Wasmcapacities unchanged:
+pool33947648,compiler1 90177536,compiler4 97648640B; capacity is not retainedbytes.
+
+Focused controls: startupcancel PASS1actualclose/zero targets (before any child
+observed); real lr_work_tests cancellation PASS5/0; coordinator uncaught failure
+PASS5/0; child startup failure PASS5/0. Shared injected guesttrap control then did
+not return before finite120saggregate guard; process/browser forcibly closed,
+page.evaluate Target page, context or browser has been closed, wrapperstatus1.
+120.072523wall/2.326883waitedchildCPU/207756KiB. Final generation-retirement control
+UNSTARTED. Four earlier controls retain their actual completed assertions; forced
+teardown is not a passing drain. First uncompleted observed transition is shared-
+trap result/error delivery; logs do not disambiguate startup-ready from guestcall.
+Existing Node faultadapter's awaited dynamic import versus immediate portdelivery
+is a plausible fixture-handshake concern, not confirmed cause. No retry, extra
+candidate, altered timeout or assertion weakening. Linux gate remains OPEN.
+
+Required gates incomplete: candidate NOT SHIPPED. Saved both patches/all candidate
+files, frozen resources/commands/reports/logs/manifests in C:/Sandbox/build/
+codex_ecs_20261122/B2/page_workers_023955e1 and matching/cache directory. Final
+rejectedpatchSHA80daea98d30b82cc5fad216dd1f0d86d3db8814b1ddd508b9d2fbfec0fb85116;
+helperSHA356a8ca9ace1aa6458cffab748be424ce5cee630c32ae9df99ab9c823bcc0bc5;
+controlreportSHA4636385f15fe7445fbf454d6a4902b9af5622e5a25d5c4209cabb4c1e8f0f629.
+Drained owned processes; restored only six candidate-modified tracked files and
+removed only two new candidate files after preservation. Entire browser source/
+test/script diff against HEAD is empty. Earlier NodeT5/ROOTarchive/todo/D2 work
+intact. Detailed evidence/limits docs/browser_page_worker_candidate_023955e1.md.
+Documentation-only publication; no runtime fix/deployment/browser acceptance or
+Node/generation/sanitizer claim. ROOT retains final release and native diagnosis.
