@@ -17,8 +17,7 @@ export fn im_memory(m: IMState*): u8* {
 
 export fn im_memory_resize(m: IMState*, count: usize): bool {
     var result = work_vector_reserve_result(&m.memory, m.budget, count);
-    var ok = result == WorkBudgetError.None;
-    if !ok && m.storage_error == WorkBudgetError.None { m.storage_error = result; }
+    var ok = im_storage_result(m, result);
     if ok {
         if count > m.memory.length {
             var start = m.memory.data + m.memory.length;
@@ -34,11 +33,11 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     var i: usize = 0;
     for(; i != m.frames.capacity; i++) {
         var frame = &m.frames.data[i];
-        vector_dispose(&frame.tasks);
+        work_vector_dispose(&frame.tasks);
         vector_dispose(&frame.values);
         vector_dispose(&frame.addresses);
     }
-    vector_dispose(&m.frames);
+    work_vector_dispose(&m.frames);
     vector_dispose(&m.node_cache);
     vector_dispose(&m.function_values);
     vector_dispose(&m.type_values);
@@ -50,7 +49,13 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     m.budget = null;
 }
 
-// Internal container allocation failure retains the previous fatal host policy.
+fn im_storage_result(m: IMState*, result: WorkBudgetError): bool {
+    if result == WorkBudgetError.None { return true; }
+    if m.storage_error == WorkBudgetError.None { m.storage_error = result; }
+    return false;
+}
+
+// Remaining map/cache allocation failure retains the previous fatal host policy.
 // Guest allocation itself has a separate, recoverable null-result contract.
 extern fn abort(): void;
 
@@ -148,10 +153,14 @@ export fn im_frame_call(m: IMState*): void* {
     return frame.call;
 }
 
-export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize, call: void*): void {
+export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize, call: void*): bool {
     var needed = m.frames.length + 1;
     var previous = m.frames.capacity;
-    im_storage_require(vector_reserve(&m.frames, needed));
+    // Growth requires every existing depth to be active, so the vector's live
+    // prefix includes all retained per-depth owners before it copies storage.
+    var result = needed == 0 ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(&m.frames, m.budget, needed);
+    if !im_storage_result(m, result) { return false; }
     if m.frames.capacity > previous {
         var extra = m.frames.capacity -previous;
         extra = extra * sizeof(IMFrame);
@@ -165,6 +174,7 @@ export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize
     m.frames.length = needed;
     m.frame_count = needed;
     m.task_count = 0;
+    return true;
 }
 
 export fn im_frame_pop(m: IMState*): void {
@@ -183,12 +193,12 @@ export fn im_frame_pop(m: IMState*): void {
     }
 }
 
-export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize, offset: usize): void {
+export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize, offset: usize): bool {
     var frame = im_frame(m);
     var needed = frame.tasks.length + 1;
-    var valid = needed != 0;
-    im_storage_require(valid);
-    im_storage_require(vector_reserve(&frame.tasks, needed));
+    var result = needed == 0 ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(&frame.tasks, m.budget, needed);
+    if !im_storage_result(m, result) { return false; }
     var task = &frame.tasks.data[frame.tasks.length];
     task.node = node;
     task.loop_resume = convert(u64, loop_resume);
@@ -196,6 +206,7 @@ export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize
     task.offset = offset;
     frame.tasks.length = needed;
     m.task_count = needed;
+    return true;
 }
 
 export fn im_task_pop(m: IMState*, task: IMTask*): void {

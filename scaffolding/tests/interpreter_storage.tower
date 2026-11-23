@@ -2,6 +2,7 @@ import .compiler.interpreter_types;
 import tower;
 import .compiler.interpreter_abi;
 import .compiler.interpreter_storage;
+import .library.work_budget;
 
 // Execution-space ownership and allocation-failure tests, run at both widths.
 extern fn tower_test_buffer_fail_next(): void;
@@ -196,9 +197,9 @@ fn interpreter_container_tests(): i32 {
     }
     var frame: usize = 0;
     for(; frame != 17; frame++) {
-        im_frame_push(&state, null, frame, frame, null);
-        im_task_push(&state, null, true, 1, 3);
-        im_task_push(&state, null, false, 2, 4);
+        if !im_frame_push(&state, null, frame, frame, null)
+            || !im_task_push(&state, null, true, 1, 3)
+            || !im_task_push(&state, null, false, 2, 4) { return InterpreterScheduleFailure; }
         im_values_set(&state, 1, convert(u64, frame));
         im_addresses_set(&state, 2, 42);
     }
@@ -264,5 +265,106 @@ fn interpreter_container_tests(): i32 {
     if !ok {
         return 629;
     }
+    if !interpreter_schedule_trial(true, true) || !interpreter_schedule_trial(true, false)
+        || !interpreter_schedule_trial(false, true) || !interpreter_schedule_trial(false, false) {
+        return InterpreterScheduleFailure;
+    }
     return 0;
+}
+
+var InterpreterScheduleFailure: i32 = 630;
+var InterpreterScheduleBudgetBytes: usize = 1048576;
+
+extern fn puts(message: u8*): i32;
+
+fn interpreter_schedule_check(ok: bool, message: u8*): bool {
+    if !ok { puts(message); }
+    return ok;
+}
+
+// Both scheduling arrays must preserve their live continuation and nested owners
+// on denied replacement. This fixture uses the existing serial failure allocator.
+fn interpreter_schedule_trial(frames: bool, capacity_failure: bool): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 1, InterpreterScheduleBudgetBytes, 1) { return false; }
+    var state: IMState = { budget: &budget, ..default };
+    var occupied: WorkReservation = default;
+    defer {
+        if occupied.active { work_budget_release(&budget, &occupied); }
+        interpreter_storage_dispose(&state);
+        work_budget_dispose(&budget);
+    }
+    if !im_frame_push(&state, null, 0, 0, null) || !im_task_push(&state, null, false, 0, 0) { return false; }
+    var first_tasks = state.frames.data[0].tasks.data;
+    var first_receipt = state.frames.data[0].tasks.reservation;
+    var previous = state.frames.capacity;
+    if frames {
+        // Grow after a pop/reuse cycle: all prior depth owners must survive the
+        // outer vector move, even though frame pops retained their allocation.
+        im_frame_pop(&state);
+        for(var depth: usize = 0; depth <= previous; depth++) {
+            if !im_frame_push(&state, null, depth, depth, null)
+                || !im_task_push(&state, null, false, 0, depth) { return false; }
+        }
+        if !interpreter_schedule_check(state.frames.data[0].tasks.data == first_tasks
+            && state.frames.data[0].tasks.reservation.generation == first_receipt.generation,
+            "Frame growth preserves reused per-depth task ownership") { return false; }
+        while state.frame_count < state.frames.capacity {
+            var depth = state.frame_count;
+            if !im_frame_push(&state, null, depth, depth, null)
+                || !im_task_push(&state, null, false, 0, depth) { return false; }
+        }
+    } else {
+        while state.task_count < state.frames.data[0].tasks.capacity {
+            if !im_task_push(&state, null, false, 0, state.task_count) { return false; }
+        }
+    }
+    var frame_owner = state.frames;
+    var task_owner = im_frame(&state).tasks;
+    var before: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(&budget, &before) { return false; }
+    var owned_bytes = state.frames.reservation.bytes;
+    for(var depth: usize = 0; depth < state.frames.capacity; depth++) {
+        owned_bytes += state.frames.data[depth].tasks.reservation.bytes;
+    }
+    if !interpreter_schedule_check(before.used_bytes == owned_bytes && before.used_lanes == 0,
+        "Scheduling grants count the complete physical owners without worker lanes") { return false; }
+    if capacity_failure {
+        if !work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &occupied) { return false; }
+    } else { tower_test_buffer_fail_next(); }
+    var pushed = frames ? im_frame_push(&state, null, state.frame_count, 0, null)
+        : im_task_push(&state, null, false, 0, state.task_count);
+    var wanted_error = capacity_failure ? WorkBudgetError.Capacity : WorkBudgetError.Memory;
+    if !interpreter_schedule_check(!pushed && state.storage_error == wanted_error
+        && state.frames.data == frame_owner.data && state.frames.length == frame_owner.length
+        && state.frames.capacity == frame_owner.capacity
+        && state.frames.reservation.slot == frame_owner.reservation.slot
+        && state.frames.reservation.generation == frame_owner.reservation.generation
+        && state.frames.reservation.bytes == frame_owner.reservation.bytes
+        && im_frame(&state).tasks.data == task_owner.data && state.task_count == task_owner.length
+        && im_frame(&state).tasks.capacity == task_owner.capacity
+        && im_frame(&state).tasks.reservation.slot == task_owner.reservation.slot
+        && im_frame(&state).tasks.reservation.generation == task_owner.reservation.generation
+        && im_frame(&state).tasks.reservation.bytes == task_owner.reservation.bytes,
+        "Denied scheduling growth preserves counts, payloads and exact grant identity") { return false; }
+    var denied: WorkBudgetSnapshot = default;
+    if !interpreter_schedule_check(work_budget_snapshot(&budget, &denied)
+        && denied.used_bytes == before.used_bytes + occupied.bytes
+        && denied.live == before.live + (occupied.active ? 1 : 0),
+        "Denied scheduling replacement immediately retires its tentative grant") { return false; }
+    for(var depth: usize = 0; depth < state.frame_count; depth++) {
+        var frame = &state.frames.data[depth];
+        for(var task: usize = 0; task < frame.tasks.length; task++) {
+            if !interpreter_schedule_check(frame.tasks.data[task].offset == (frames ? depth : task),
+                "Denied scheduling growth preserves every queued continuation") { return false; }
+        }
+    }
+    if occupied.active && !work_budget_release(&budget, &occupied) { return false; }
+    interpreter_storage_dispose(&state);
+    var after: WorkBudgetSnapshot = default;
+    return interpreter_schedule_check(work_budget_snapshot(&budget, &after)
+        && after.used_bytes == 0 && after.live == 0 && after.peak_bytes <= after.bytes
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Scheduling disposal releases every retained depth and its physical grant");
 }
