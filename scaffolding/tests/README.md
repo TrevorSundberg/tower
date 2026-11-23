@@ -77,6 +77,17 @@ results. Import admission trials include actual interior-NUL byte initializers.
 `backend_void_returns` covers direct/exported and callback pointer results across
 call boundaries, nulls, deeper pointers, store/read/free and true-void effects;
 the source-service tests also require retained result assignments after import.
+`backend_unsigned_overflow` covers ordinary unsigned multiplication guards at
+32/64 bits: zero operands, exact limits, wrapped products and overflow flags.
+The source-service fixture requires the actual optimized LLVM overflow intrinsic
+and successful Foundation reconstruction. The source runner's optional `optimized`
+mode saves that exact optimized LLVM beside the reconstructed `OUTPUT` as
+`OUTPUT.ll`; without this mode it retains the existing unoptimized policy.
+For runtime boundary checks, copy that unchanged output into a fresh directory
+as `backend_unsigned_overflow.tower` and copy `backend_unsigned_overflow_calls.tower`
+beside it. Interpret the caller at the output's target width: expected output is
+`0\n0\n`. This checks calls to the reconstructed exports after optimization;
+the original fixture's top-level constant calls may already be folded by LLVM.
 
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
@@ -1841,6 +1852,10 @@ nominal alias writes, nested shadowing, exactly-once effects and function-body
 controls. It checks Graph/Fast output and canonical equality at32/64 bits with
 one/four workers, exact unknown/recursive diagnostics, Foundation round trips
 and final zero budget owners. It is also registered in `all`.
+The explicit self-address initializer checks its stored address without reading
+uninitialized storage and counts one effect per loop entry. Negative diagnostics
+also assert the configured virtual filename and positions independently derived
+from the unchanged source tokens (unknown1:69, recursive1:37).
 `body-type-reproduce` selects the exact original seven-line failure source.
 The module-loop query selector also checks mutable/escaped header and block
 captures at the original declaration, including shadow identity. Its negative
