@@ -4185,3 +4185,28 @@ final changed link/template selection8pass/4fail, zero skips,12.30wall/14.98CPU 
 edge; two are the existing L1 compositions. This closes supplied-artifact and
 former generic-stack/pointer fixture gates, not overall template or release
 acceptance. ROOT retains semantic-port/reconstruction and final platform gates.
+
+## Three lightweight semantic-port gates at f25799cc (2026-11-23)
+
+Frozen `f25799ccbe62e6ab5b90f61432a7d13c1038e1bc`, supplied matching eac
+portable df541c16/LLVM87c8fbc9; exact source/artifact manifests and commands in
+`build/d1_ecs/semantic_light_f25799cc` and the journal. Shared Node registration
+and Tower inputs untouched. Three independently anchored selections pass1/1
+each, no skips/timeouts, concurrency1/fresh processes with separate180s bounds.
+
+- `tests/semantic_invalid/{inference_cycle,layout_cycle,argument_type,literal_range,template_origin,missing_return,match_duplicate,match_range,match_type,match_scope,match_break,while_type,enum_mix,enum_number,enum_overflow,enum_duplicate,enum_operation,enum_address,enum_index}.tower`:
+  reviewed actual invalid bindings/layouts/literals/control/nominal operations;
+  all19 check interpreter errors at32/64 and exact LLVM-versus64-bit message/offset.
+- `tests/layout_depth_source.tower`: existing ordinary Tower generator retains
+  owned vector/disposal and emits the1024-dependency/512-field workload. Fast
+  generation,32/64 generated execution and LLVM-produced Wasm all reach expected0;
+  independent size/field checks retained. No duplicate generator or new runner.
+- `tests/syntax_invalid/{match_default,while_braces}.tower`: deliberate missing
+  wildcard/unbraced-body cases remain invalid under the current Tower grammar;
+  both interpreter and LLVM reject both. No fixture/diagnostic relaxation.
+
+Wall/CPU/peakKiB respectively6.62/8.30/327416,7.69/9.55/357812 and
+6.01/7.40/317356;0swaps. All owned children reaped and input hashes unchanged.
+These close only the three named gates on eac plus current mounted sources;
+B1's heavy cases and all other unrun/release gates remain separate. Runtime
+profiling is inapplicable to this documentation-only receipt; no speedup claim.

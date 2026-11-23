@@ -90050,3 +90050,51 @@ controls pass, negation/compositions retain final8pass/4fail evidence. Link and
 stack/pointer host successes remain owner evidence only. No provider/package/pin
 change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit records
 both later input boundaries rather than extending acceptance indefinitely.
+### D1 three lightweight semantic-port gates (2026-11-23)
+
+Frozen published main `f25799ccbe62e6ab5b90f61432a7d13c1038e1bc`, scaffolding
+tree `cf18de83e1aa2980130ec43434ce6b78ba871f5e`, host tree
+`967bb9dfb2c4857b9e9ed81e6b6ef544ea53f9f3`. Same thread, PID3135393; clean
+pull, no owned surviving reader/build. B1's shared semantic-port transport and
+L1/A2 fixtures/producers were read-only. No new code or fixture was needed.
+
+Reverified ROOTeac16533 supplied reactors against D1's existing byte-identical
+copies: portable SHA256df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+These retain eac/public768 build provenance; they are not rebuilt current-main
+reactors. Existing eager default files remain present, but absolute
+TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM select the verified eac copies. Inputs and
+commands/status/raw logs are in `build/d1_ecs/semantic_light_f25799cc`.
+
+Inspected exact registrations before executing. Each anchored --test-name-pattern
+selected only its named case in playground/tests/semantic-port.test.mjs, with
+--test-concurrency=1, a fresh Node22.23.5 process, independent `timeout -k 5s 180s`
+and `/usr/bin/time -v`. Docker tower-d1-ecs, Linux x64 Deck, CPU0,2, warm filesystem,
+n1 per case. No npm IDE prefix, full framework loop, repeated passing selection,
+heavy lock or compiler build. All three processes exited0 and were reaped; none
+reached its bound. Measurements include loader/startup and the complete selected
+case, not separately timed inner phases.
+
+| Exact selected case | Completed phase/assertion evidence | Wall / CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Tower semantic diagnostics agree between interpreter and LLVM entry points | All19 existing malformed fixtures: interpreter errors match their expected patterns at pointer widths4/8; LLVM error text and byte offset equal the saved64-bit interpreter result. All57 rejection calls reached, with handles destroyed. No diagnostics or locations normalized. | 6.62 / 8.30 | 327416 |
+| Tower-generated deep layout dependencies compile without recursive traversal | Existing Tower generator runs with Fast execution and correct module entry; emits1024 descending dependencies plus Level0 and512-field Wide. Generated program executes at32/64 and returns0, checking sizes4/2048 and field511 store/read. LLVM compiles the generated source and its executable Wasm returns0. Generator and interpretation handles are released. | 7.69 / 9.55 | 357812 |
+| Tower control-flow parser rejects incomplete and unbraced bodies | Existing syntax_invalid/match_default and while_braces both reject through interpreter and LLVM, four rejection calls. Missing final wildcard and unbraced while body agree with docs/tower.md; source and expectations unchanged. | 6.01 / 7.40 | 317356 |
+
+Each TAP report is1pass/0fail/0skip; all report0swaps. Completed assertions establish
+the listed phase endpoints; no internal phase timing was added to B1's file.
+The shared test SHA256 remains
+fa207f2905fb9b2e08c1bd1db151bc5a3b12442a5d591c943c307d74fc562d03;
+layout_depth_source.tower remains
+d4c97ea980ce86bedb7a95b1b406c364b4a28f1bc142e6e52b962190ee1fe683.
+Full host manifest SHA256a9378283a1c9fb36ba1c0a93015fc44ad80b614c71ea4786eaecd61659ebd6e1;
+resource manifest65405ea53d0c8910a6a268ceced9ca645b4cc7c7fdc1dda137c0295dafc7ceb8.
+Both manifests and reactor bytes rechecked after all runs. Todo SHAe97d67a6 unchanged.
+
+These three previously unrun gates are now accepted on the stated inputs; they
+do not relabel the earlier incomplete semantic-port run as passed. B1 retains
+entity_pages/entity_tables/work_graph/work_resume, other unrun cases retain their
+own gates, and existing L1/A2 type failures remain separate. Documentation-only
+receipt: no production before/after profile applies; reported costs are validation,
+not scaling or race-safety claims. No native rebuild, broad Node/LLVM, generation,
+UI, sanitizer or hosted release validation. ROOT owns final release.
