@@ -91459,3 +91459,24 @@ Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a
 is retained separately from the measured resource identity, not relabeled as a
 new full runtime acceptance. L2 residual inputs/responses remain actionable for
 its newer backend producer; no new reactor was available or adopted here.
+L1 merged acceptance: commit5cb0b0611b55d474890b90afa0bcdcd492477d7d
+preserved via normal merge30b45f5a766edfb2d851e530eda7f80bf0572411 with complete
+origin78650118 history after the required ff-only pull rejected divergence.
+Incoming A2 unary IntegerArgument admission is relevant; L2 backend/session
+ownership and all other published edits remain intact. The test registration
+was moved before A2's type-smoke early return so neither suite is skipped.
+One dependency-aware refresh compiled semantics and the test runner, then linked
+both consumers:37.13wall/35.08CPU/1068692KiB. Frozen merged32/64 workers1/4
+original/nested Graph and canonical outputs equal the earlier checked bytes;
+canonical Fast outputs match; exactly one buffer(i32,2) declaration remains.
+Merged type-errors including16 wrapper negatives PASS29.59wall/28.32CPU/
+293236KiB; query-smoke PASS .24/.27/86528; A2's focused integer-arguments all
+PASS13.26/12.54/253216. These are validation costs, not performance comparisons.
+Merged compiler e3c91d990c7dfd73a289144792284289b3cb8d9197faf2edaa45587e47fb5a2c;
+semantics bffe99fbb9afa801ebad9248126189670d46d674a7f7a8f09a767ffc1356dca9;
+runner3f353218727b007735e3f203c80a1633eeba1de0c06841740b59d3e033a8fa6d;
+entities object unchanged. Exact source/resource/artifact manifests, prior
+failures, costs and limitations are in external L1 `nominal_wrapper_receipt.json`
+and `logs/nominal_wrapper_merged`. Owned jobs drained; todo unchanged. No broad
+matrix or publication claimed. Original positive and all original source hashes
+are preserved; numeric-only ordinary wrapper admission remains a separate limit.
