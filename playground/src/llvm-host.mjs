@@ -22,6 +22,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
   }
   return {
     module,
+    memoryCapacityBytes: () => e.memory.buffer.byteLength,
     configureModules: modules.configure,
     dependencies: modules.dependencies,
     // The coordinator and ticket validation are Tower code. This object owns

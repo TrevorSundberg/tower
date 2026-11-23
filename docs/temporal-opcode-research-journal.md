@@ -95618,6 +95618,40 @@ passes. Raw inventory/blobs/tail checks in build/d2_ecs/ledger_a06ec4b1/.
 No build/test/profile/network-hosted verification; docs-only runtime profiling
 inapplicable. No owned jobs, no heavy lock acquired, idle D2 container preserved;
 initial free disk127GiB/availableRAM9.7GiB, todo unchanged SHAe97d67a6.
+### 2026-11-23 L2: complete actual T8 views/registry on joined a06ec4b1 Wasm
+
+Same thread, CLI PID5932, main; pull froze6b74889b/tree2d2d1424, no surviving owned
+work,109.23GiB disk. First work verified unchanged selectors/actual-process meter.
+One authorized READY wait ended after105.194s (600s bound); ROOT's32 artifacts/
+168232639B all match sourcea06ec4b1/public768 manifest. Selected immutable portable
+f0657574/LLVM8acbaf08 copied into own ignored build path; old25 remains unchanged.
+Host/resources freeze is separately6b74889b (only unrelated packaging-tool delta).
+Full identities/phase hashes/raw-log location and exact command are in
+[the T8 acceptance receipt](compiler_entities_t8_a06ec4b1.md).
+
+Both SAME complete anchored compiler-entities cases PASS, each fresh Node22.23.5,
+CPU4-7/no child isolation, one heavy process, original600s test+OS bound. Views
+PID18456 exits0 before registry PID7228 starts; both tests1/pass1/fail0/skipped0/
+cancelled0, no timeout/unstarted phase. Both widths Graph/Fast/canonical equality,
+both optimized/unoptimized Foundation reconstruction/recheck/reparse/execute and
+both emitted wasm32 profiles retain every original assertion/output0. All12 LLVM
+calls compiled,20 known-output executions passed. Fixture owner/counter cleanup
+checks retained. Current views32 input615658B SHA3841574f; registry665008B SHA9b539d38,
+with explicit published inline-index resource delta. Old requests/failure and
+native repair evidence remain separate; no new producer defect/fix required.
+
+Actual process wall/CPU/observed peakB: views188.618808/306.625/2656043008;
+registry230.258430/364.875/2903080960. Largest logged Node maxRSS2625916/2835040KiB
+also retained; Windows sampling missed views' late peak. Host RSS includes both
+reactors/JIT/JS and is not2GiB linear capacity; per-instance peak/live not exposed.
+These artifact-adoption costs are not speedups or compiler concurrency evidence.
+Initial PowerShell JSON nested-array count assertion stopped before any test;
+corrected after inspecting types, complete hashes verified, error preserved.
+Final host/resource/reactor hashes match after drain; all raw phase inputs/outputs,
+metrics, scripts and manifests in compiler_entities_a06ec4b1_6b74889b. No repeated
+native/full suite, new code, sanitizer, reactor build, agent/goal or deployment.
+Both assigned T8 cases are now closed at this exact artifact/source boundary.
+Final generations/other framework/hosted acceptance remain ROOT's separate gates.
 ### 2026-11-23 D1: published unsigned-overflow reconstruction review
 
 Prerequisite resolved: freezea06ec4b1f9f44419882477bc1a55b6ed39e2200b/tree057500a4a7e8a687ecdb383825709f19c7e2b676,
@@ -95660,6 +95694,63 @@ source review closes this bounded task with the explicit R1 handoff.
 L1 independent review d7635e9c reconciled through complete-history merge 20cba101e427d285d019022373d58d13616b047a with published6b74889b. Library/host/compiler gate and Entity producer blobs are unchanged. Incoming L2 unsigned-overflow reconstruction, package pruning and declaration-oracle work are preserved outside this review. Read changes to the two inventoried legacy-gate fixtures backend_source_native/module_body_type_checks: optimized artifact saving and error/output oracles change; synchronization callbacks/ownership/teardown do not. Frozen66-file review manifest retains its original identity; these later fixture blobs are explicitly separate. No build/test rerun for this documentation review; diff check passes. Normal main push follows.
 
 B2 fault receipt publication: complete-history merge8bcd4a36 preserves implementation2f4361f6 plus incomingd21fb20d. Entity/budget/host/selectedfixture closure unchanged; dependency target saysno work, full defaultcomponent/stage fault modesPASS again with identical b3c778e9/18ecb7f4 binaries. Incoming LLVM/packaging/modulebody changes excluded once. Independent review's corrected16-byte descriptor alignment derivation retained in priorreceipt; measuredtables unchanged. ROOT finalrelease remainsseparate; ownedjobs drained.
+## A2 entity_pages exact Wasm storage frontier and joined inline adoption (2026-11-23)
+
+Completed the bounded request using ROOT's retained965691B/fadb0568 canonical,
+not the older1101861B native fixture. Receipt: docs/entity_pages_wasm_storage_a06ec4b1.md.
+Original25dddd04/ea606d329b selected-test Memory failure remains preserved;
+offsets beyond submitted length were not used to guess the allocator. Isolated
+25 request on4354581c resources confirmed actual2GiB LLVM linear-capacity
+saturation, exit1,172.180s command wall, response CPU238.765s/peak2028912KiB.
+Current joined a06ec4b1 reactor on separately frozen a18d584e resources succeeds,
+exit0,132.545s wall, response CPU195.452s/peak1862976KiB, linear1978990592B.
+Both isolated requests use default input.tower entry, unlike ROOT's module path.
+New output4675795B/5bfbd3be is identical to preserved and current native output.
+The portable/LLVM pair was hash-verified; only LLVM was invoked here.
+
+Current native smallest dependency-aware target (public768, LLVM19/Linux x64,
+CPU0-11/24GiB, production allocator) passes six small/large workers1/4 plain/census
+checks, exact output comparisons and final bytes/grants/lanes0. Whole-process
+large plain10.802s/10.698CPU/2933020KiB serial and8.935s/11.884CPU/2945648KiB
+four workers; n1 is bounded evidence, no universal scaling/overlap claim.
+Joined census confirms original/imported graphs close before recheck (~20MB
+live). ~3million parse entities are material; ParserMatch slots ~100% occupied.
+Foundation449808 payloads/154733952B occupy31409pages/1256360slots,
+509799479B physical pages (~35.8% slots); this limitation stays explicit.
+B2's already-published inline indexes remove344676904B of heap index allocation
+at semantic-dispose entry, larger descriptors add50574632B, exactly explaining
+294102272B lower peak charge (3020547282 ->2726445010). Ledger metadata halves
+335544320 ->167772160B. No further production storage rewrite is justified by
+this successful exact request; foreign LLVM/libc/legacy raw vectors remain
+outside the world ledger, and native sizes do not establish wasm32 byte counts.
+
+Only optional observation/transport changed: backend_source_native reads joined
+physical categories without double-counting descriptor-owned inline indexes;
+its work_vector histogram is keyed by present IDs, not maximum numeric ID.
+The small control exposes sentinel4294967294: old observer admission fails,
+new173/168 groups fit12288B and sum to every parser component. Preserved old-source
+large before/after census output/charged peak matches; optional observation costs
+~6.2% extra wall in n1. Current census overhead~3.7%; plain samples omit it.
+llvm-host exposes read-only exported linear capacity at the necessary host boundary.
+No compiler/backend semantic policy, Entity layout or guest limit was changed.
+
+All failures retained: original Wasm Memory; old observer guard exit134;
+explicit borrowed-foreach compile correction; post-success metadata script's
+obsolete semantics.o name and a metadata-only tr quoting error. Actual link
+provider/dependency hash verification then passed via a literal script, without
+repeating the six measurements. Logs and scripts are in A2/cache/logs/
+entity_pages_25dddd04_4354581c and entity_pages_a06ec4b1_a18d584e; ROOT originals
+remain A2/root_entity_pages_25dddd04. See receipt for full hashes/process scope.
+No Node full selector/package execution, optimized branch, wider target matrix,
+reactor build or sanitizer rerun. ROOT/L2 own later integrated test/release gates;
+service-rejected instrumentation remains open. Three old stashes/todo unchanged.
+### B2: joined a06 shared-Wasm adoption, host/resources a18d584e
+
+All requested gates PASS once, no edits/build/retries: unchanged completeNodeT5 3/3 (128poolcycles, realsharedtrap, complete1/2/4/8 matrix), freshLinux strictbrowser normalpool4/compiler1/compiler4, thenall9ownership selections. SuppliedTWOsharedfiles checked against ROOT32entrymanifest before/after and installedcopies; absentLLVM/crosspayloads notrequired/claimed. Compiledsourcea06ec4b1/public768 staysdistinct fromfrozenhost a18d584e and1190resources (JSON9467a903), currentB2faultfixtureadditionincluded. Previousb8bundlepreserved.
+
+Node23created/terminated/actualendIDs match; all3exit0/no skips,272dependency/80invalid/16worker/16generic/16moduleexecution phasesfinish. Browseractualclose5/2/5, samecontextzeroCDPtargets; ownershipcloses1/4/5/5/5/3/5/5/10 allzero. Realpartialstartupheldport, sharedguesttrap, generationreplydrop, retired-errorreplacementTowerpoolwork andunchangedcanonical/GraphFast/knownresult/zeroowner checksPASS. Original30sretirement andNode30/10/120guards, finite180sNodeouter, no earlypageclose/targetfilter/GC. CPU12-23/quota12/24GiB, Node22.23.5/Chromium159 unchangedhost.
+
+Costs wall/CPU/RSSKiB:Node108.771478/175.003445/405044;browsernormal8.560291/2.326657/206288;ownership9.511546/3.563915/214212. BrowserWasmcapacitypool33947648,compiler1 85065728,compiler4 91947008bytes; capacitynotRSS/liveowners, costsnotscaling. Fullidentities/commands/limits: [shared_wasm_a06_a18d584e.md](shared_wasm_a06_a18d584e.md), B2/shared_a06_a18d584e and/cache/shared_a06_a18d584e. Host/resources/artifacts unchangedafterchecks; ownedjobsdrained. ROOTstaticUI/editedgenerations/publicpin/hostedrelease separate; no deployment.
 B1 combined acceptance publication reconciliation: receipt05daa172 preserves cabc2062 timing freeze. Initial required pull failed DNS (Could not resolve host: github.com); successful DNS recheck and normal pull fetched a18d584e, then refused ordinary divergence. Complete merge a8b4a7efd8183eb22e43242ca558fccd581e7cf2 retains B2 fault-accounting closure/L1 gate review/LLVM importer/package work. No selected frontend/library/runtime/profile producer changed. New B2 tests close the two previously pending gates separately, not retroactively within this performance freeze.
 
 Linked backend change justified only its provider rebuild+profile relink:2actions7.68wall/5.45CPU/491280KiB. Merged profiler e8398c4a0389522b8ee42a6ddd0cae33ac9241a6a679ba61b4f13cd6e764249c. Single merged small1/multi4 output controls pass complete source/canonical/42/42/zero owners, .3838/.3470CPU/165492KiB and2.4460/8.3054/1015780KiB. Retention remains18321471/579913475bytes. Original binaries/resources and separate merged inputs hash-check unchanged. These are correctness controls, not replacement timings or backend reconstruction validation. New receipt EOF whitespace check failure corrected in follow-up; no compiler/runtime failures. Todo unchanged, jobs drained; normal push follows, ROOT retains release.
@@ -95758,3 +95849,16 @@ matching peer review; D1's new review covers the C registration. No producer edi
 One documentation patch context failed before applying and was corrected; no
 partial production change or runtime was involved. Revalidated map/tail/links and
 diff after reconciliation. Historical tail and todo remain byte-identical.
+A2 entity_pages publication reconciliation: implementation/receipt2bad3e52 merged complete published e637ba38 as43a8f16d. Incoming Windows gate fixtures/registration/docs do not alter the measured production closure; all72 source-provider dependencies hash-match, and the compiler/backend/library/host producer diff from tested a18d584e is empty. New Windows cases remain outside this receipt. Frozen a06/a18 and old25/435 boundaries retained; no measurements rerun. Normal main push follows; ROOT release ownership unchanged.
+B2 a06 shared adoption reconciliation: e71956ab preserved through e563167f with upstream e637ba38. LaterWindows/nativefixture additions alterallfilesresources, explicitlyexcluded fromfrozena18/1190files JSON9467a903; no testedsource relabel.146host/script/test hashes andbothinstalledsharedartifacts stillmatch; selectedproductionclosure unchanged. CompleteNode3/browsernormal3/ownership9 passingevidence reused withoutrepeat. No build/productionedit/deployment. Ownedjobsdrained; normalpush follows.
+T8 receipt publication reconciliation: complete-history mergecf0882962dab2ca909531ab52f3ef32d9482d0f1
+preserves publishede637ba38, B2 fault-accounting fixtures, A1 Windows tests and
+D1's independent overflow review. Selected test/host, production compiler/backend/
+library/host and direct views/registry/body-budget fixtures are blob-identical to
+the frozen host source. Incoming unrelated test resources/CMake/docs are explicitly
+outside the6b74889b resource snapshot; no current-main relabel or broad rerun.
+Both historical journal sections survive. The new actual-Wasm receipt closes the
+two selected T8 continuation cases; D1's source-derived i1 issue and additional
+narrow-width/extraction coverage requests remain separate pending producer work,
+not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
+All owned processes drained, unchanged todo, normal push; ROOT owns final release.
