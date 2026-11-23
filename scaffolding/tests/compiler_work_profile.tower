@@ -1,0 +1,137 @@
+import tower;
+import .library.compiler_work;
+import .library.entities;
+import .library.entity_types;
+import .library.work_pool;
+import .host.work_linux;
+import .host.work_dispatch;
+import .host.memory;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct WorkOwnerProfileJob {
+    budget: WorkBudget*;
+    units: usize;
+    rounds: usize;
+    started: i64;
+    finished: i64;
+    checksum: u64;
+    entities: usize;
+    components: usize;
+}
+
+fn work_owner_profile_check(ok: bool): void {
+    if !ok { trap("Compiler work ownership profile mismatch", 0); }
+}
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected compiler work profile lifecycle", 0);
+}
+
+fn work_owner_profile_time(): i64 {
+    var stamp: i64[2];
+    work_owner_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+// Eight identical independent unit plans are partitioned over the existing
+// WorkPool. Each private plan uses the production CompilerWork owner/graph and
+// source-ordered completion; this measures metadata scheduling, not body work.
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(WorkOwnerProfileJob*, payload);
+    job.started = work_owner_profile_time();
+    for(var round: usize = 0; round < job.rounds; round++) {
+        var work: CompilerWork* = null;
+        work_owner_profile_check(compiler_work_create_result(job.units, 1, 17, 29, job.budget, &work) == WorkBudgetError.None);
+        work_owner_profile_check(work != null && work.store.entity_count == job.units + 2
+            && work.store.component_count == job.units);
+        job.entities += work.store.entity_count;
+        job.components += work.store.component_count;
+        for(var ordinal: usize = 1; ordinal <= job.units; ordinal++) {
+            var subject = compiler_work_subject(work, ordinal);
+            var unit = compiler_work_unit(work, ordinal);
+            work_owner_profile_check(subject != null && unit.ordinal == ordinal && unit.task != 0);
+            job.checksum += convert(u64, unit.ordinal);
+            work_owner_profile_check(compiler_work_next(work) == ordinal
+                && compiler_work_accept(work, ordinal, 17, 29, true));
+        }
+        work_owner_profile_check(compiler_work_done(work) && compiler_work_failed(work) == 0
+            && compiler_work_next(work) == 0 && compiler_work_graph(work) != null);
+        compiler_work_close(work);
+    }
+    job.finished = work_owner_profile_time();
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    work_owner_profile_check((argc == 3 || argc == 4) && sizeof(usize) == 8);
+    var accounted = argc == 4;
+    if accounted { work_owner_profile_check(strcmp(argv[3], "budget") == 0); }
+    var units: usize = 0;
+    if strcmp(argv[1], "small") == 0 { units = 64; }
+    if strcmp(argv[1], "large") == 0 { units = 4096; }
+    var workers: usize = 0;
+    if strcmp(argv[2], "1") == 0 { workers = 1; }
+    if strcmp(argv[2], "2") == 0 { workers = 2; }
+    if strcmp(argv[2], "4") == 0 { workers = 4; }
+    if strcmp(argv[2], "8") == 0 { workers = 8; }
+    work_owner_profile_check(units != 0 && workers != 0);
+    var gate = work_signal_open();
+    work_owner_profile_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    work_owner_profile_check(work_budget_init(&budget, workers, 67108864, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var jobs: WorkOwnerProfileJob[8] = default;
+    var pool: WorkPool = default;
+    work_owner_profile_check(work_pool_open_budget(&pool, workers, accounted ? &budget : null) && pool.count == workers);
+    var before: i64[18]; var after: i64[18];
+    work_owner_profile_check(getrusage(0, &before[0]) == 0);
+    var start = work_owner_profile_time();
+    for(var i: usize = 0; i < workers; i++) {
+        jobs[i].units = units;
+        if accounted { jobs[i].budget = &budget; }
+        jobs[i].rounds = 8 / workers;
+        work_owner_profile_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    var elapsed = work_owner_profile_time() - start;
+    work_owner_profile_check(getrusage(0, &after[0]) == 0);
+    work_pool_close(&pool);
+    var checksum: u64 = 0;
+    var entities: usize = 0;
+    var components: usize = 0;
+    var overlap: usize = 0;
+    for(var i: usize = 0; i < workers; i++) {
+        checksum += jobs[i].checksum;
+        entities += jobs[i].entities;
+        components += jobs[i].components;
+        var active: usize = 0;
+        for(var j: usize = 0; j < workers; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { active++; }
+        }
+        if active > overlap { overlap = active; }
+    }
+    work_owner_profile_check(checksum == convert(u64, units) * convert(u64, units + 1) * 4
+        && entities == (units + 2) * 8 && components == units * 8);
+    // Unit count per plan, workers, wall ns, CPU us, process peak RSS KiB,
+    // actual private-plan overlap, checked ordinal sum, entities/components
+    // constructed and completely retired. Counts are not physical heap bytes.
+    print(units); print(workers); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(overlap); print(checksum); print(entities); print(components);
+    var snapshot: WorkBudgetSnapshot;
+    work_owner_profile_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0);
+    if accounted {
+        // Physical graph/descriptor/slot requests only. ECS node/page/index
+        // allocations are not yet charged; this is not a whole-heap census.
+        print(budget.generation); print(snapshot.peak_bytes); print(snapshot.retained);
+    }
+    work_owner_profile_check(work_budget_dispose(&budget));
+    return 0;
+}

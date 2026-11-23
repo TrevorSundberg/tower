@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .library.work_graph;
 
 fn ready_check(ok: bool): void {

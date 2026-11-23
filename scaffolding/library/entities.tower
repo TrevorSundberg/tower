@@ -1,5 +1,8 @@
 import tower;
 import entity_types;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
 
 var EntityComponentPageBytes: usize = 16384;
 var EntityComponentPageRows: usize = 64;
@@ -9,11 +12,24 @@ var EntityComponentPageRows: usize = 64;
 extern fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void;
 
 export fn entity_store_create(): EntityStore* {
-    var store = alloc(EntityStore, 1);
-    if store != null {
-        *store = default;
-    }
+    var store: EntityStore* = null;
+    entity_store_create_result(null, &store);
     return store;
+}
+
+// Reserve before the initial physical allocation. Failure never publishes a
+// partial owner or changes output; callers must pass empty output storage.
+export fn entity_store_create_result(budget: WorkBudget*, output: EntityStore**): WorkBudgetError {
+    if output == null || *output != null { return WorkBudgetError.Invalid; }
+    var allocation: WorkBuffer = default;
+    var result = work_buffer_resize(&allocation, budget, sizeof(EntityStore), 0);
+    if result != WorkBudgetError.None { return result; }
+    var store = bits(EntityStore*, allocation.data);
+    *store = default;
+    store.allocation = allocation;
+    store.budget = budget;
+    *output = store;
+    return WorkBudgetError.None;
 }
 
 export fn entity_store_set_context(store: EntityStore*, context: void*): bool {
@@ -35,20 +51,36 @@ export fn entity_store_dispose(store: EntityStore*): bool {
     if occupied {
         return false;
     }
-    free(store);
+    // The allocation receipt lives inside the memory it owns. Copy it before
+    // freeing that memory, then release its grant from the local descriptor.
+    var allocation = store.allocation;
+    work_buffer_dispose(&allocation);
     return true;
 }
 
 export fn entity_create(store: EntityStore*): Entity* {
+    var error: WorkBudgetError;
+    return entity_create_result(store, &error);
+}
+
+// Coordinator-only structural mutation. The required receipt belongs to this
+// call, not the store or its borrowed budget; success clears a previous error.
+export fn entity_create_result(store: EntityStore*, error: WorkBudgetError*): Entity* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if store == null { return null; }
     if store.views != 0 {
+        *error = WorkBudgetError.Busy;
         return null;
     }
     var next = store.next_id + 1;
     if next == 0 {
+        *error = WorkBudgetError.Exhausted;
         return null;
     }
     var entity = alloc(Entity, 1);
     if entity == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     *entity = default;
@@ -57,6 +89,7 @@ export fn entity_create(store: EntityStore*): Entity* {
     entity.references = 1;
     store.next_id = next;
     store.entity_count++;
+    *error = WorkBudgetError.None;
     return entity;
 }
 
@@ -68,7 +101,13 @@ export fn entity_retain(entity: Entity*): usize {
 
 // Allocate an unattached entity in an existing entity's store.
 export fn entity_create_related(entity: Entity*): Entity* {
-    return entity_create(entity.store);
+    var error: WorkBudgetError;
+    return entity_create_related_result(entity, &error);
+}
+
+export fn entity_create_related_result(entity: Entity*, error: WorkBudgetError*): Entity* {
+    if entity == null { return entity_create_result(null, error); }
+    return entity_create_result(entity.store, error);
 }
 
 // Ownership must be acyclic. Query cursors are invalidated by structural edits.

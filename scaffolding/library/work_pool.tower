@@ -1,4 +1,7 @@
 import tower;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
 
 // The platform implements only thread and semaphore primitives. All admission,
 // ownership and dispatch are Tower. Jobs borrow pinned component payloads. The
@@ -40,6 +43,8 @@ struct WorkPool {
     custom_entry: bool;
     execute: function(void, void*);
     claim: void*;
+    storage: WorkBuffer;
+    resource_error: WorkBudgetError;
 }
 
 // A finite batch is only a transport view of already-ready, pre-leased jobs.
@@ -81,41 +86,54 @@ fn work_pool_entry(argument: void*): void* {
 }
 
 fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
-    return work_pool_open_named(pool, capacity, null, null);
+    return work_pool_open_budget(pool, capacity, null);
+}
+
+fn work_pool_open_budget(pool: WorkPool*, capacity: usize, budget: WorkBudget*): bool {
+    return work_pool_open_named_budget(pool, capacity, null, null, budget);
 }
 
 fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool {
-    return work_pool_open_impl(pool, capacity, entry, windows_entry, work_kernel_execute);
+    return work_pool_open_named_budget(pool, capacity, entry, windows_entry, null);
+}
+
+fn work_pool_open_named_budget(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, budget: WorkBudget*): bool {
+    return work_pool_open_impl(pool, capacity, entry, windows_entry, work_kernel_execute, budget);
 }
 
 // Typed kernels share the ordinary platform entry and semaphore handoff. The
 // callback is a noncapturing function; job owns/borrows its explicit context.
 fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(void, void*)): bool {
-    if execute == null { return false; }
-    return work_pool_open_impl(pool, capacity, null, null, execute);
+    return work_pool_open_kernel_budget(pool, capacity, execute, null);
 }
 
-fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*)): bool {
+fn work_pool_open_kernel_budget(pool: WorkPool*, capacity: usize, execute: function(void, void*), budget: WorkBudget*): bool {
+    return work_pool_open_impl(pool, capacity, null, null, execute, budget);
+}
+
+fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*), budget: WorkBudget*): bool {
     *pool = default;
     pool.execute = execute;
     pool.custom_entry = entry != null || windows_entry != null;
-    if capacity == 0 || capacity > WorkPoolMaximumCapacity {
+    if execute == null || capacity == 0 || capacity > WorkPoolMaximumCapacity {
+        pool.resource_error = WorkBudgetError.Invalid;
         return false;
     }
     // A caller's budget is an upper bound, not permission to exhaust a fixed
     // transport. Browser workers report one lane inside a worker so nested
     // phases execute inline instead of waiting on their occupied outer slots.
     var available = work_thread_capacity();
-    if available == 0 { return false; }
+    if available == 0 { pool.resource_error = WorkBudgetError.Capacity; return false; }
     if capacity > available { capacity = available; }
     pool.threaded = work_thread_available() && capacity > 1;
     if !pool.threaded {
         capacity = 1;
     }
-    pool.slots = alloc(WorkSlot, capacity);
-    if pool.slots == null {
-        return false;
-    }
+    // Reserve the actual clamped slot allocation before opening host handles.
+    // These byte grants do not consume execution lanes a second time.
+    pool.resource_error = work_buffer_resize(&pool.storage, budget, capacity * sizeof(WorkSlot), 0);
+    if pool.resource_error != WorkBudgetError.None { return false; }
+    pool.slots = bits(WorkSlot*, pool.storage.data);
     fill(pool.slots, 0, capacity * sizeof(WorkSlot));
     for (var at: usize = 0; at < capacity; at++) { pool.slots[at].execute = execute; }
     if !pool.threaded {
@@ -124,6 +142,7 @@ fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_ent
     }
     pool.completion = work_signal_open();
     if pool.completion == null {
+        pool.resource_error = WorkBudgetError.Memory;
         work_pool_close(pool);
         return false;
     }
@@ -134,12 +153,14 @@ fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_ent
         slot.finished = work_signal_open();
         pool.count++;
         if slot.start == null || slot.finished == null {
+            pool.resource_error = WorkBudgetError.Memory;
             work_pool_close(pool);
             return false;
         }
         slot.thread = entry == null && windows_entry == null ? work_thread_open(bits(void*, slot))
             : work_thread_open_named(bits(void*, slot), entry, windows_entry);
         if slot.thread == null {
+            pool.resource_error = WorkBudgetError.Memory;
             work_pool_close(pool);
             return false;
         }
@@ -204,21 +225,37 @@ fn work_batch_execute(payload: void*): void {
 // authority moves into this view. The caller already owns its lane. The pool
 // must be drained, and all jobs, leases and contexts must survive this call.
 fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, extra_lanes: usize): bool {
-    if count == 0 { return true; }
-    if pool.running != 0 || pool.count == 0 || jobs == null { return false; }
+    return work_pool_batch_result(pool, jobs, count, offset, extra_lanes) == WorkBudgetError.None;
+}
+
+// Empty input leaves ownership and the previous receipt unchanged. Busy entry
+// does NOT own or drain preexisting jobs. Invalid entry likewise changes no
+// state. A valid drained entry resets its coordinator-owned failure receipt;
+// once dispatch starts, every return joins this call's admitted peers. A failed
+// batch may have executed jobs: discard their outputs, never replay the batch.
+fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: usize,
+    extra_lanes: usize): WorkBudgetError {
+    if count == 0 { return WorkBudgetError.None; }
+    if pool == null { return WorkBudgetError.Invalid; }
+    if pool.running != 0 { return WorkBudgetError.Busy; }
+    if pool.count == 0 || pool.execute == null || jobs == null { return WorkBudgetError.Invalid; }
     var extra = extra_lanes < pool.count ? extra_lanes : pool.count;
     if extra >= count { extra = count - 1; }
     if !pool.threaded { extra = 0; }
+    if extra != 0 && pool.custom_entry { return WorkBudgetError.Invalid; }
+    pool.resource_error = WorkBudgetError.None;
     if extra == 0 {
         for(var i: usize = 0; i < count; i++) {
             pool.execute(bits(void*, bits(u8*, jobs[i]) + offset));
         }
-        return true;
+        return WorkBudgetError.None;
     }
-    if pool.custom_entry { return false; }
     if pool.claim == null {
         pool.claim = work_signal_open();
-        if pool.claim == null { return false; }
+        if pool.claim == null {
+            pool.resource_error = WorkBudgetError.Memory;
+            return pool.resource_error;
+        }
         work_signal_post(pool.claim);
     }
     var batch = init(WorkBatch) {
@@ -229,10 +266,13 @@ fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, e
     // failure. No caller may reclaim the borrowed descriptor before the join.
     defer { while pool.running != 0 { work_pool_receive(pool, true); } }
     for(var lane: usize = 0; lane < extra; lane++) {
-        if !work_pool_admit_execute(pool, bits(void*, &batch), work_batch_execute) { return false; }
+        if !work_pool_admit_execute(pool, bits(void*, &batch), work_batch_execute) {
+            pool.resource_error = WorkBudgetError.Busy;
+            return pool.resource_error;
+        }
     }
     work_batch_execute(bits(void*, &batch));
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Exactly one consumed completion token accounts for one returned result. A
@@ -286,6 +326,8 @@ fn work_pool_close(pool: WorkPool*): void {
     }
     work_signal_close(pool.completion);
     work_signal_close(pool.claim);
-    free(pool.slots);
+    work_buffer_dispose(&pool.storage);
+    var resource_error = pool.resource_error;
     *pool = default;
+    pool.resource_error = resource_error;
 }
