@@ -96083,6 +96083,44 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+## A2 exact abort host capability and two complete T9 selectors (2026-11-23)
+
+Implemented only the shared foreign/host boundary: platformImports supplies an
+exact void/no-argument abort, using a40-byte code-free Wasm import/export type
+adapter and terminating host exception. Existing interpreter request returnType
+feeds optional provider validation; unknown externals and strict staged external
+capability denial remain intact. Native/library abort declarations are intentional;
+no memory policy, fixture simplification, new registry or reactor rebuild.
+Six Tower fixtures cover valid/unused/invoked/wrong-parameter/wrong-result/unknown
+and staged cases.20Graph/Fast32/64 executions+5Wasm controls+both staged entrypoints
+pass; actual invoked control prints7 then stops with Program aborted and OSexit1.
+Full platformfile3pass/1existing canonical-spelling regex failure retained, not
+weakened; targeted abort control with staged checks1pass/3exclusions.
+
+Exact a06 reactors, separately frozen1e428ede+host changes,1251 unchanged resource
+hashes: work_access and work_observe each complete the original32/64 Graph/Fast,
+canonical equality, both LLVM reconstruction profiles/rechecks/execution and
+source+canonicalWasm assertions. Both exit0, each1pass/18 unrelated exclusions.
+Actual childCPU/RSS recorded:43.140s/1167116KiB and63.515s/1343152KiB;
+commandwall21.6901557/34.2589938s, all original guards/fuel intact.17saved hashed
+artifacts each now include emittedWasm bytes. Healthy identical platform-write
+n3 wallmean1.737869->1.747239s (+0.54%), guest capacities unchanged; no scaling
+or zero-world claim. Optional measurement includes actual child/final phases.
+Receipt docs/abort_t9_a06_1e428ede.md; raw cache/logs/abort_t9_a06_1e428ede.
+No rejected instrumentation retried. ROOT owns release; all own jobs drained,
+three original stashes and todo untouched. Final integration recorded in status.
+### 2026-11-23 D2: independent reconstruction observer/accessor review
+
+Freeze1e428ede6c33cba159b753247affd8d5cf3ed67d, both files unchanged2bad3e52.
+Read sparse grouping, actual page/table/index ownership, joined callbacks/vector
+admission/disposal and current-memory byteLength accessor; no scoped defect found.
+Exact two-blob dispositions and limitations appended to compiler_ecs_audit_d2.md.
+Private observation affects budget peaks; fatal utility_check is not recoverable
+OOM cleanup proof; category sums are partial, capacity differs from live/RSS.
+A2 six native and two isolated guest results attributed at their actual freezes,
+not rerun or relabeled current. B1 policy/D1 backend and other peers excluded.
+No build/runtime/instrumentation/ledger rewrite; docs-only profiling inapplicable.
+No D2 jobs/lock; disk127GiB/RAM10GiB. Map: build/d2_ecs/observer_review_1e428ede/.
 ### 2026-11-23 ROOT: bounded completion handoffs and next producer batch
 
 Published evidence through1e428ede is adopted with its original boundaries:
@@ -96137,3 +96175,38 @@ Freeze68345ada29308dfe8334693f6178c6105dde3936/tree167281ed96f2a8406d5504992db4d
 [Full bounded receipt](compiler_lowering_registration_68345ada.md), raw L2/lowering_prepare_68345ada. Existing public768/cache CPU4-7, normal synchronized allocator, one process, unchanged1.25GiB unit ledger. Before76728e7b/candidateccaeaccf binaries frozen; exact previous16/4096 dependency source and full Foundation hashes preserved. One semantic-provider build+two links32.15s. Sixteen counterbalanced n2 timings plus8 separate coarse observations all pass complete byte comparisons, answer42/body_0(36)=42 and checked zero-owner teardown. Large serial/four frontend wall2.925/2.432→2.594/2.339s; CPU2.791/3.070→2.508/2.971; RSS717.18/723.03→717.13/723.27MiB. Lowering371.93/412.84→329.29/326.45ms. Small serial wall0.6634→0.6791 (+2.36%, paired+26.6/+4.7ms), four0.7168→0.6981; small phase +0.04ms, RSS unchanged. Kept for measured large phase improvement without material small-phase/storage regression; total small neutrality/statistical significance are not established. Do not attribute all end-to-end variation to five lines or claim universal scaling. Four actual semantic threads/peak4 unchanged, not queue-width evidence; no8-worker expansion.
 
 Query/type/control-smoke pass3.31/167.29/37.44s, CPU3.76/153.87/32.98, peak348060/338192/248520KiB. Existing selectors already include body continuation/lifecycle/lowering/required-optional staging/canonical/errors/admission/cancel cleanup; no extra body-smoke or broad release matrix. Returned-program retained bytes/grants match exactly, lanes0 at join, checked world/budget disposal after drain succeeds. Initial read-only missing-path and WSL quoting lookups corrected; no compiler/test failure hidden. Source/resource manifests and all samples preserved. L1 importer/D1i1/A1codec/B1page-policy scopes untouched. Current browser/generations/sanitizers/ROOT publication remain separate pending gates; todo unchanged.
+### 2026-11-23 B2: independent direct-C fixture split peer review
+
+[Two-path review](c_fixture_split_peer_review_b2.md) accepts final direct fixture
+and driver_differentials at7c829287, identical to31bd0359/published70e77b60.
+Read original full fixture, exact patch and registration/capture/platform/emitter
+callers: direct effects122 vs callback123, known0 output, live pointer/slot ownership,
+deferred free before trap, mandatory native graph oracle/raw+optimized comparisons,
+unchanged numeric/package cases and nonzero failure paths. No concrete defect;
+no source edit/build/runtime/profile. D2 C16/16 and LLVM2/2 are attributed owner
+receipts, not B2 execution; original unsupported-C failure remains. Reviewed file
+hashes in B2/c_fixture_peer_7c829287. This closes only the two named peer gaps;
+D1 registration adoption stands. Static manifest94aa8f5b retained; verifier stays
+unstarted after policy rejection, with no retry. ROOT final release remains open.
+
+D2 final integration preserves complete68345ada after routine ff-only refusal;
+both reviewed blobs and actual source/caller closure are unchanged. No runtime
+rerun or adoption of unrelated incoming static-app receipts; normal push follows.
+
+
+### 2026-11-23 D2: independent review of D1 i1 overflow reconstruction
+
+Freeze5fc00c8597760ac9c21613cbd78063ddf9f4236d; reviewed158624c7/1e428ede
+against e637ba38. No scoped defect found in i1 AND/false handling, unchanged
+wider formula, distinct extract SSA ownership, canonical/error/cleanup oracles
+or existing storage registration. Six exact blobs/dispositions and immediate
+contract map are recorded in docs/compiler_ecs_audit_d2.md; this finite peer gap
+closes without production edits. Runtime parameters reach import because the
+fixture verifies without O2; no claim of post-O2 or LLVM machine execution.
+D1's12 failing→passing i1 cases,48 wider passes and8 rejection controls remain
+attributed at their tested inputs. Registered check7.91wall/7.65CPU/127068KiB;
+full before/after and executable identity stay in the linked receipt/raw logs.
+No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
+New-path fault injection and unavailable large-request benchmark are not inferred
+from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
+integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.

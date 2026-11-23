@@ -1,0 +1,3 @@
+import foundation;
+extern fn tower_unknown_external(): void;
+tower_unknown_external();

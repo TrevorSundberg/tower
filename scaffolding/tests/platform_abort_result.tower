@@ -1,0 +1,3 @@
+import foundation;
+extern fn abort(): i32;
+print(abort());

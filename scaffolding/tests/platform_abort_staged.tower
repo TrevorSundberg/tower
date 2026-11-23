@@ -1,0 +1,4 @@
+import tower;
+extern fn abort(): void;
+fn stop(): i32 { abort(); return 99; }
+print(comptime(stop()));

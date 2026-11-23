@@ -1,0 +1,5 @@
+import foundation;
+extern fn abort(): void;
+print(7);
+abort();
+print(99);
