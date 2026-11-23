@@ -3,7 +3,7 @@ import .host.memory;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;
-import .host.work_linux;
+import .library.work_gate;
 import .host.work_dispatch;
 
 extern fn pthread_self(): usize;
@@ -131,6 +131,8 @@ fn budget_gate_reuse(): void {
         && work_budget_reserve(&budget, 0, 0, budget.bytes, &bytes));
     budget_shared_check(work_budget_reserve_result(&budget, 1, 1, 0, &denied) == WorkBudgetError.Capacity
         && !denied.active && !work_signal_try(signal));
+    budget_shared_check(work_budget_reserve_result(&budget, 0, 0, 1, &denied) == WorkBudgetError.Capacity
+        && !denied.active && budget.used_lanes == budget.lanes && budget.used_bytes == budget.bytes);
     var old = bytes;
     budget_shared_check(work_budget_release(&budget, &bytes) && !work_signal_try(signal));
     budget_shared_check(work_budget_reserve(&budget, 0, 0, budget.bytes, &bytes)

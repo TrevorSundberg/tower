@@ -95255,3 +95255,51 @@ binary as built from the later B1 source or claiming that batch-gate path execut
 No additional rebuild/run is needed for this unchanged selected path; B1's own
 receipt retains gate adoption. Diff checks pass, no owned work/lock; normal push
 retry follows. Final full-artifact adoption remains ROOT-owned.
+
+## 2026-11-23 A1: actual Windows x64 exclusive-budget gate execution
+
+Published B1 gate05780abb integrated through frozen cabc2062. Actual Windows-native
+PEs built and executed with PUBLIC768 bootstrap, unchanged published Windows
+runtime, LLVM19 and existing SDK10.0.26100.0 kernel32/ucrt imports. No install,
+private bootstrap/resource override, production lock/budget/Entity change or
+compiler rebuild. Link maps/COFF imports identify real work_gate_* definitions,
+work_windows_entry export and SRWLOCK/CreateThread/counting semaphore calls.
+[Receipt](windows_budget_gate_cabc2062.md) records full source/binary/SDK boundaries,
+commands, exact results and limitations; README supplies the reproducible recipe.
+
+Shared budget fixture now imports its gate API, with the same Linux host provider
+supplied by its CMake link boundary. Added exact byte Capacity/no-partial-receipt
+assertion. Windows Tower entry reuses the complete shared-budget and gate-reuse
+oracles, adds protected counter/counting permit checks and cancellation after
+borrowed jobs all reach the barrier. Eight open/join/close cycles, four distinct
+native thread IDs,2048 rounds/worker, stale slot/revision/rejection/wake and zero
+live reservation checks pass. Gate/signal owners outlive joined workers. Separate
+Windows entry runs the unchanged full pool/order/partial/full error-drain tests;
+actual GetCurrentThreadId feeds the existing fixture identity API, not a fake
+thread or lock. Original nonzero main results propagate to native ExitProcess.
+
+Windows final serial1: exit0/output0 newline,.0159975wall/.015625CPU s/3821568B
+native peak working set; contended4 with cancellation:.0416744/.078125/4259840B,
+exit0/output0. Pool: exit0,.0236705/.015625/37318656B, exact0 plus original order
+control message. Invalid mode3: exit1/empty stdout/exact diagnostic on stderr;
+not converted to success. CPU12-23/24GiB jobs drained to active0. Native CPU and
+successful K32GetProcessMemoryInfo counters exclude the outer OS launcher;
+short CPU values have coarse Windows resolution. Separate job RSS/commit logs
+include that launcher. Serial/contended workloads differ: acceptance costs only,
+no Windows speedup or inference from B1 Linux numbers.
+
+Plain Linux shared-budget dependency target rebuilt5 actions and passed0/output0,
+GNUtime.00wall/.01CPU/1652KiB. First accidentally selected pre-existing thread
+cache built11 actions but its binary was NOT RUN; original log retained, no
+sanitizer coverage claimed. Initial Windows missing direct signal API import
+compile failed and was corrected before linking. Initial after-exit .NET RSS
+was unavailable; final native OS memory queries succeed. Pre-cancellation
+successful binary/receipts and all original errors remain preserved separately.
+
+Raw files/maps/imports/depfiles/hashes/SDK provenance/OS-only measurement helpers:
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_windows_gate. Source/test logic
+is Tower; external helpers only launch/cap/measure. Same UUID01a2046f-fec2-7cd1-
+bdc9-0a0c6127c6f7, Codex PID33180; all jobs drained, initial disk338995642368B,
+post-check338874155008B, todo unchanged. No browser/generation/broad matrix or
+new sanitizer execution. ARM64/end-to-end Windows compiler and final deployment
+remain ROOT integration; normal coherent main publication follows.

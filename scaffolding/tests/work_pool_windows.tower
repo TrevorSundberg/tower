@@ -1,0 +1,11 @@
+import tower;
+import work_pool;
+import work_thread_windows;
+import .host.work_dispatch;
+
+extern fn ExitProcess(status: u32): void;
+
+// Retain the complete original normal/partial/full-drain and stale-ticket checks.
+var result = main(0, null);
+if result != 0 { ExitProcess(convert(u32, result)); }
+print(0);
