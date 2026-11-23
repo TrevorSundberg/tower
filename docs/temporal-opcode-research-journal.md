@@ -83128,3 +83128,17 @@ Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
 container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
 This receipt is documentation-only; no additional runtime measurements apply.
 Normal main push follows; historical timeout and ROOT release gates stay pending.
+
+A1 inferred-frontier integration receipt: implementationd9112a01 merged complete
+published9d98c95f history as3f317b2e, including L2 checked known/capture admission
+and B1 LR structure reuse. No conflicts or copied ABI fragments. Seventeen
+required dependency actions passed; all56 focused cases, query/control smoke,
+LR overlap, workers1/4 known/control/imported-capture execution and exact known/
+aggregate canonical comparisons passed. Known-cycle diagnostic still matches
+baseline and canonical reparse prints0. Merged compiler SHA256
+fdc93d0dc578f205227e21764a4ffcd4b3dccaef29979be33dd8781967760d24.
+Logs A1/cache/a1_inferred_merged_*. Sessions67007/67660 reaped0; idle init66612
+only. Existing n1 profiles remain evidence for the frozenb9f2-to-d911 inputs,
+not attribution of concurrently merged owners' changes. Current services/handoff
+paragraphs now reflect the removed inference gate and retain historical receipts.
+No new sanitizer, browser, bootstrap or deployment claim. Normal main push follows.
