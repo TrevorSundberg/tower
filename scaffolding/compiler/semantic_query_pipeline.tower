@@ -12,6 +12,7 @@ import semantic_body_work;
 import semantic_support;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 fn sem_query_pipeline_merge(current: SemanticPumpResult, next: SemanticPumpResult): SemanticPumpResult {
     if current == SemanticPumpResult.Failed || next == SemanticPumpResult.Failed { return SemanticPumpResult.Failed; }
@@ -40,7 +41,7 @@ fn sem_query_pipeline_pump(c: SemanticContext*): SemanticPumpResult {
     }
     if c.type_executions != null && sem_query_pending(c, convert(u32, SemanticQuery.TypeExecution)) {
         if sem_layout_execute(c) != 0 { state = sem_query_pipeline_merge(state, SemanticPumpResult.Progress); }
-        if c.declaration_isolated {
+        if c.declaration_isolated && c.program.resource.error == WorkBudgetError.None {
             // Layout components retain their original diagnostics. As in the
             // body coordinator, let earlier lexical owners settle before the
             // failure walker selects a visible error from those receipts.

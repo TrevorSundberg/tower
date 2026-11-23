@@ -5,6 +5,8 @@ import .compiler.interpreter_context_types;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
 
 extern fn sem_create(parent: void*): void*;
 extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
@@ -12,6 +14,160 @@ extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
 extern fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+
+var ExecutionTypeStorageBytes: usize = 16777216;
+var ExecutionTypeStorageOffset: usize = 37;
+
+fn construction_storage_node(root: void*, width: u32, kind: u32): void* {
+    var node = sem_create(root);
+    sem_attach(node, kind).type = { scalar: SI32, pointer_bytes: width, ..default };
+    return node;
+}
+
+fn construction_storage_fill(budget: WorkBudget*, occupied: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(budget, &snapshot)
+        && work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, occupied)
+            == WorkBudgetError.None, "reserve exactly the remaining type-storage allowance");
+}
+
+// Reach the real interning sites after entry storage succeeds. Shared graph
+// entities outlive every request; only the private index consumes the allowance.
+fn execution_type_storage_tests(width: u32): void {
+    var budget: WorkBudget = default;
+    var world = compiler_world_create_workers(1);
+    execution_check(work_budget_init(&budget, 1, ExecutionTypeStorageBytes, 1)
+        && compiler_world_bind_budget(world, &budget), "type-storage world budget");
+    var root = entity_create(compiler_world_store(world));
+    var program = sem_attach(root, KProgram);
+    program.type.pointer_bytes = width;
+    program.frame_size = convert(usize, width);
+    var seven = construction_storage_node(root, width, KOperand);
+    sem_get(seven).constant = true;
+    sem_get(seven).bits = 7;
+    var printed = construction_storage_node(root, width, KPrint);
+    sem_get(printed).value = seven;
+    var reference = construction_storage_node(root, width, KTypeReference);
+    sem_get(reference).type.scalar = SType;
+    sem_get(reference).element = { scalar: SI32, pointer_bytes: width, ..default };
+    sem_get(reference).start = ExecutionTypeStorageOffset;
+    var converted = construction_storage_node(root, width, KConvert);
+    sem_get(converted).type = sem_get(reference).type;
+    sem_get(converted).value = reference;
+    var declared = construction_storage_node(root, width, KDeclare);
+    sem_get(declared).type = sem_get(reference).type;
+    sem_get(declared).value = converted;
+    sem_get(declared).start = ExecutionTypeStorageOffset;
+    var nine = construction_storage_node(root, width, KOperand);
+    sem_get(nine).constant = true;
+    sem_get(nine).bits = 9;
+    var after = construction_storage_node(root, width, KPrint);
+    sem_get(after).value = nine;
+    execution_check(vector_push(&program.items, printed) && vector_push(&program.items, declared)
+        && vector_push(&program.items, after), "type-storage program statements");
+    var baseline: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &baseline), "type-storage baseline");
+    for(var mode: usize = 0; mode < 4; mode++) {
+        var fast = mode >= 2;
+        var denied = mode % 2 == 0;
+        var session: ExecutionSession = default;
+        entity_retain(root);
+        semantic_initialize(&session.program, root, width);
+        session.machine.stack = 16;
+        session.machine.heap = 4194304;
+        execution_check(execution_session_start(&session), "type-storage entry succeeds before denial");
+        if !fast {
+            for(var step: usize = 0; step < 100 && session.output.length == 0; step++) {
+                execution_session_step(&session, 1);
+            }
+            execution_check(execution_text(&session.output, "7\n") && !session.machine.failed
+                && session.machine.type_values.values.length == 0, "graph reaches effect before first type value");
+        }
+        var occupied: WorkReservation = default;
+        if denied { construction_storage_fill(&budget, &occupied); }
+        if fast {
+            execution_check(execution_session_fast(&session) == !denied,
+                "fast cache propagates type-storage admission result");
+        }
+        execution_run(&session, 1, 1000);
+        if denied {
+            execution_check(session.machine.failed && session.machine.done
+                && session.machine.storage_error == WorkBudgetError.Capacity && session.fast == null
+                && execution_text(&session.error, "Cannot allocate interpreter type storage")
+                && session.machine.error_offset == ExecutionTypeStorageOffset
+                && execution_text(&session.output, fast ? "" : "7\n"),
+                "type-storage denial preserves exact failure and preceding effects only");
+            execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+                "release type-storage occupancy");
+            var steps = session.machine.steps;
+            execution_check(!execution_session_fast(&session), "failed cache cannot fall back after allowance returns");
+            execution_session_step(&session, 1000);
+            execution_check(session.machine.steps == steps
+                && execution_text(&session.output, fast ? "" : "7\n"), "failed request never replays effects");
+        } else {
+            execution_check(session.machine.done && !session.machine.failed
+                && execution_text(&session.output, "7\n9\n"), "admitted type value preserves graph/cache behavior");
+        }
+        execution_session_close(&session);
+        var released: WorkBudgetSnapshot = default;
+        execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
+            && released.live == baseline.live, "type-storage requests release all private receipts");
+    }
+
+    var function = construction_storage_node(root, width, KFunction);
+    sem_get(function).type.scalar = SType;
+    var body = construction_storage_node(root, width, KBlock);
+    sem_get(function).body = body;
+    var construct = construction_storage_node(root, width, KTypeConstruct);
+    sem_get(construct).type = sem_get(reference).type;
+    sem_get(construct).op = convert(u32, TypeConstructionKind.Integer);
+    var integer_width = construction_storage_node(root, width, KOperand);
+    sem_get(integer_width).constant = true;
+    sem_get(integer_width).bits = 32;
+    var signed_integer = construction_storage_node(root, width, KOperand);
+    sem_get(signed_integer).constant = true;
+    sem_get(signed_integer).bits = 1;
+    sem_get(construct).left = integer_width;
+    sem_get(construct).right = signed_integer;
+    var returned = construction_storage_node(root, width, KReturn);
+    sem_get(returned).value = construct;
+    execution_check(vector_push(&sem_get(body).items, printed) && vector_push(&sem_get(body).items, returned),
+        "constructor type-storage statements");
+    var invocation: IMInvocation = default;
+    construction_test_begin(&invocation, function, width, true);
+    construction_test_until_wait(&invocation);
+    var request = &invocation.context.type_construction;
+    execution_check(!invocation.state.failed && invocation.context.waiting_type
+        && request.sequence == 1 && request.first == 32 && request.second == 1
+        && invocation.context.output.length == 2, "constructor operands precede descriptor admission");
+    request.result = { scalar: SI32, pointer_bytes: width, ..default };
+    request.ready = true;
+    var occupied: WorkReservation = default;
+    construction_storage_fill(&budget, &occupied);
+    interpreter_invocation_step(&invocation, 1000);
+    execution_check(invocation.state.failed && invocation.state.storage_error == WorkBudgetError.Capacity
+        && !invocation.context.returned && request.ready && request.subject == construct
+        && invocation.state.type_values.values.length == 0
+        && invocation.context.error.length == strlen("Cannot allocate interpreter type storage")
+        && memcmp(invocation.context.error.data, "Cannot allocate interpreter type storage", invocation.context.error.length) == 0,
+        "denied constructor result remains unconsumed and unpublished");
+    execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "release constructor occupancy");
+    var steps = invocation.state.steps;
+    interpreter_invocation_step(&invocation, 1000);
+    execution_check(invocation.state.steps == steps && request.sequence == 1
+        && invocation.context.output.length == 2 && memcmp(invocation.context.output.data, "7\n", 2) == 0,
+        "constructor failure never replays operands or effects");
+    interpreter_invocation_dispose(&invocation);
+    entity_release(root);
+    execution_check(compiler_world_dispose(world), "type-storage world closes after requests");
+    var released: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "type-storage world and partial caches release every grant");
+}
 
 fn construction_test_function(session: ExecutionSession*, name: u8*): void* {
     foreach(var function in &session.program.functions) {
@@ -41,6 +197,7 @@ fn construction_test_begin(invocation: IMInvocation*, function: void*, width: u3
 // interpreter protocol before frontend/coordinator constructor integration.
 fn execution_type_construction_tests(modules: void*): void {
     for(var width: u32 = 4; width <= 8; width += 4) {
+        execution_type_storage_tests(width);
         var session: ExecutionSession = default;
         defer execution_session_close(&session);
         execution_compile(&session, "import tower; fn first():i32 { print(1); return 8; } fn second():i32 { print(2); return 1; } fn make():type { var ignored:type=i32; return i32; }", width, modules);

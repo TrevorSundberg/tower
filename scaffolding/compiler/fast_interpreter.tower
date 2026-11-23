@@ -6,7 +6,10 @@ import interpreter_abi;
 import interpreter_storage;
 import interpreter;
 import type_objects;
+import type_object_index_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_budget_types;
 import .library.float_bits;
 
 var FMIntegerBinaryBase: usize = 64;
@@ -69,7 +72,9 @@ struct FMFrame {
 struct FMState {
     words: vector(u32);
     constants: vector(u64);
-    type_values: vector(FoundationType);
+    type_values: TypeObjectIndex;
+    budget: WorkBudget*;
+    type_error_offset: usize;
     functions: vector(FMFunction);
     function_indices: vector(usize);
     parameters: vector(FMParameter);
@@ -96,6 +101,12 @@ struct FMState {
     preserve_error_offset: bool;
 }
 
+// Failed type storage invalidates the entire derived cache. Guard emission and
+// patching while unwinding the current expression; no partial cache may execute.
+fn fm_build_ok(f: FMState*): bool {
+    return f.type_values.error == WorkBudgetError.None;
+}
+
 fn fm_push(T: type, values: vector(T)*, value: T*): void {
     var needed = values.length + 1;
     im_storage_require(vector_reserve(values, needed));
@@ -119,6 +130,7 @@ fn fm_trim(T: type, values: vector(T)*): void {
 }
 
 fn fm_register(f: FMState*): usize {
+    if !fm_build_ok(f) { return 0; }
     var result = f.next_register;
     f.next_register = result + 1;
     if f.next_register > f.max_register {
@@ -132,6 +144,7 @@ fn fm_word(f: FMState*, value: usize): void {
 }
 
 fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
+    if !fm_build_ok(f) { return 0; }
     var at = f.words.length;
     var mark = true;
     if f.sources.length != 0 {
@@ -196,6 +209,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
 }
 
 fn fm_patch(f: FMState*, at: usize, operand: usize, target: usize): void {
+    if !fm_build_ok(f) { return; }
     var index = at + operand;
     var header = f.words.data[at] &255;
     if header != 255 {
@@ -205,6 +219,7 @@ fn fm_patch(f: FMState*, at: usize, operand: usize, target: usize): void {
 }
 
 fn fm_constant(f: FMState*, value: u64): usize {
+    if !fm_build_ok(f) { return 0; }
     var index: usize = 0;
     for(; index != f.constants.length; index++) {
         if f.constants.data[index] == value {
@@ -220,6 +235,7 @@ fn fm_constant(f: FMState*, value: u64): usize {
 }
 
 fn fm_type(f: FMState*, type: FoundationType*): usize {
+    if !fm_build_ok(f) { return 0; }
     var index: usize = 0;
     for(; index != f.types.length; index++) {
         var other = f.types.data[index];
@@ -242,6 +258,7 @@ fn fm_tag(type: FoundationType*): usize {
 }
 
 fn fm_function(f: FMState*, node: void*): usize {
+    if !fm_build_ok(f) { return 0; }
     var index: usize = 0;
     for(; index != f.functions.length; index++) {
         if f.functions.data[index].node == node {
@@ -417,6 +434,7 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
 }
 
 fn fm_address(f: FMState*, node: void*): usize {
+    if !fm_build_ok(f) { return 0; }
     var n = im_node(node);
     if n.kind == KLoad {
         return fm_value(f, n.value);
@@ -470,13 +488,14 @@ fn fm_address(f: FMState*, node: void*): usize {
 }
 
 fn fm_value(f: FMState*, node: void*): usize {
+    if !fm_build_ok(f) { return 0; }
     if node == null {
         return fm_constant(f, 0);
     }
     var n = im_node(node);
     if n.kind == KTypeReference {
-        var reference = type_object_intern(&f.type_values, &n.element);
-        im_storage_require(reference != 0);
+        var reference = type_object_index_intern(&f.type_values, f.budget, &n.element);
+        if reference == 0 { f.type_error_offset = n.start; return 0; }
         return fm_constant(f, reference);
     }
     if n.kind == KTypeConstruct {
@@ -615,6 +634,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         return result;
     }
     var value = fm_value(f, n.value);
+    if !fm_build_ok(f) { return 0; }
     if n.kind == KConvert {
         var input = im_node(n.value);
         var descriptor: FMConversion;
@@ -631,6 +651,7 @@ fn fm_value(f: FMState*, node: void*): usize {
 }
 
 fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: usize): void {
+    if !fm_build_ok(f) { return; }
     var n = im_node(node);
     f.current_offset = n.start;
     f.next_register = f.pinned;
@@ -661,6 +682,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     if im_or(fm_condition_18, fm_condition_19) {
         foreach(var & item in &n.items) {
             fm_statement(f, *item, breaks, continue_pc);
+            if !fm_build_ok(f) { return; }
         }
         return;
     }
@@ -764,7 +786,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         m.done = true;
         return null;
     }
-    *f = default;
+    *f = {budget: m.budget, ..default};
     var failed = m.failed;
     if failed {
         return f;
@@ -787,6 +809,13 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             }
             fm_pin_locals(f, i, body);
             fm_statement(f, body, null, 0);
+            if !fm_build_ok(f) {
+                if m.storage_error == WorkBudgetError.None { m.storage_error = f.type_values.error; }
+                im_fail(m, "Cannot allocate interpreter type storage", f.type_error_offset);
+                m.done = true;
+                fast_interpreter_dispose(f);
+                return null;
+            }
             f.next_register = f.pinned;
             fm_emit(f, 16, fm_constant(f, 0), 0, 0);
         }
@@ -827,10 +856,10 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     // still the program and is available to formatting/reflection outside us.
     im_frame_pop(m);
     var graph_frame = &m.frames.data[0];
-    vector_dispose(&graph_frame.tasks);
+    work_vector_dispose(&graph_frame.tasks);
     vector_dispose(&graph_frame.values);
     vector_dispose(&graph_frame.addresses);
-    vector_dispose(&m.frames);
+    work_vector_dispose(&m.frames);
     vector_dispose(&m.node_cache);
     return f;
 }
@@ -842,7 +871,7 @@ export fn fast_interpreter_dispose(f: FMState*): void {
     vector_dispose(&f.locals);
     vector_dispose(&f.words);
     vector_dispose(&f.constants);
-    vector_dispose(&f.type_values);
+    type_object_index_dispose(&f.type_values);
     vector_dispose(&f.functions);
     vector_dispose(&f.function_indices);
     vector_dispose(&f.parameters);
@@ -1233,7 +1262,7 @@ export fn fast_interpreter_stat(f: FMState*, key: usize): usize {
         return bytes;
     }
     var bytes = f.constants.capacity *sizeof(u64);
-    bytes += f.type_values.capacity * sizeof(FoundationType);
+    bytes += f.type_values.values.capacity * sizeof(FoundationType);
     var extra = f.functions.capacity *sizeof(FMFunction);
     bytes = bytes + extra;
     bytes += f.function_indices.capacity * sizeof(usize);

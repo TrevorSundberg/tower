@@ -677,15 +677,22 @@ fn ix_evaluate(m: IMExecution*, node: void*, offset: usize): u64 {
     return ix_evaluate_uncached(m, node, n, offset);
 }
 
+fn ix_type_reference(m: IMExecution*, type: FoundationType*, offset: usize): u64 {
+    var reference = type_object_index_intern(&m.state.type_values, m.state.budget, type);
+    if reference == 0 {
+        if m.state.storage_error == WorkBudgetError.None { m.state.storage_error = m.state.type_values.error; }
+        ix_fail(m, "Cannot allocate interpreter type storage", offset);
+    }
+    return reference;
+}
+
 fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
     if !ix_strict_node(m, n, offset) {
         return 0;
     }
     if n.kind == KFunctionReference { return im_function_reference(m.state, n.binding); }
     if n.kind == KTypeReference {
-        var reference = type_object_intern(&m.state.type_values, &n.element);
-        im_storage_require(reference != 0);
-        return reference;
+        return ix_type_reference(m, &n.element, offset);
     }
     if n.kind == KTypeConstruct { return ix_construct_type(m, node, n, offset); }
     if n.kind == KCall {
@@ -790,11 +797,11 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         if n.op == convert(u32, TypeConstructionKind.Pointer) || n.op == convert(u32, TypeConstructionKind.Array) {
             var reference = request.first;
             request.first = 0;
-            if reference == 0 || reference > convert(u64, m.state.type_values.length) {
+            if reference == 0 || reference > convert(u64, m.state.type_values.values.length) {
                 ix_fail(m, "Type construction operand contains an invalid type value", offset);
                 return 0;
             }
-            request.input = m.state.type_values.data[convert(usize, reference - 1)];
+            request.input = m.state.type_values.values.data[convert(usize, reference - 1)];
         }
     }
     if request.failed {
@@ -812,8 +819,8 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         ix_fail(m, "Type construction result target differs from the invocation target", offset);
         return 0;
     }
-    var reference = type_object_intern(&m.state.type_values, &request.result);
-    im_storage_require(reference != 0);
+    var reference = ix_type_reference(m, &request.result, offset);
+    if reference == 0 { return 0; }
     request.subject = null;
     request.ready = false;
     return reference;
@@ -998,7 +1005,15 @@ fn ix_store(m: IMExecution*, target: void*, value: u64, offset: usize): void {
     }
 }
 
+fn ix_schedule(m: IMExecution*, node: void*, loop_resume: bool, phase: usize, offset: usize): bool {
+    if !ix_ok(m) { return false; }
+    if im_task_push(m.state, node, loop_resume, phase, offset) { return true; }
+    ix_fail(m, "Cannot allocate interpreter task storage", offset);
+    return false;
+}
+
 fn ix_enter(m: IMExecution*, node: void*): void {
+    if !ix_ok(m) { return; }
     var n = im_cached_node(m.state, node);
     var i = n.items.length;
     loop {
@@ -1012,7 +1027,7 @@ fn ix_enter(m: IMExecution*, node: void*): void {
         var test = c.kind == KType;
         omitted = im_or(omitted, test);
         if !omitted {
-            im_task_push(m.state, child, false, 0, 0);
+            if !ix_schedule(m, child, false, 0, c.start) { return; }
         }
     }
 }
@@ -1144,7 +1159,10 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
             i++;
         }
     }
-    im_frame_push(m.state, binding, base, offset, node);
+    if !im_frame_push(m.state, binding, base, offset, node) {
+        ix_fail(m, "Cannot allocate interpreter frame storage", offset);
+        return;
+    }
     ix_enter(m, function.body);
 }
 
@@ -1173,7 +1191,7 @@ fn ix_needs(m: IMExecution*, node: void*): bool {
 
 fn ix_queue(m: IMExecution*, node: void*, phase: usize, offset: usize): void {
     if node != null {
-        im_task_push(m.state, node, false, phase, offset);
+        ix_schedule(m, node, false, phase, offset);
     }
 }
 
@@ -1201,7 +1219,11 @@ export fn ix_init(m: IMExecution*): void {
         m.state.done = true;
         return;
     }
-    im_frame_push(m.state, root, base, 0, null);
+    if !im_frame_push(m.state, root, base, 0, null) {
+        ix_fail(m, "Cannot allocate interpreter frame storage", 0);
+        m.state.done = true;
+        return;
+    }
     if !ix_initialize_frame(m, base, size) {
         return;
     }
@@ -1340,7 +1362,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         }
         if m.context != null && m.context.dependency_kind != null {
             if ix_pending(m, task.node) {
-                im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                 m.state.steps--;
                 break;
             }
@@ -1356,7 +1378,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
             im_cache_clear(m.state);
             if ix_needs(m, task.node) {
                 var resume = task.loop_resume != 0;
-                im_task_push(m.state, task.node, resume, 1, n.start);
+                if !ix_schedule(m, task.node, resume, 1, n.start) { break; }
                 var assign = n.kind == KDeclare;
                 var test = n.kind == KAssign;
                 assign = im_or(assign, test);
@@ -1480,7 +1502,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                 if m.context != null && m.context.waiting_function {
                                     // Callee and arguments are already cached. Resume
                                     // this finish task, never their effects or statements.
-                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                                     m.state.steps--;
                                     break;
                                 }
@@ -1490,7 +1512,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                 // FinishValue; completing its children cannot evaluate the parent.
                                 var result = ix_evaluate_uncached(m, task.node, n, task.offset);
                                 if m.context != null && m.context.waiting_type {
-                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                                     m.state.steps--;
                                     break;
                                 }
@@ -1582,7 +1604,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         return;
     }
     if n.kind == KLoop {
-        im_task_push(m.state, task.node, true, 0, 0);
+        if !ix_schedule(m, task.node, true, 0, n.start) { return; }
         ix_enter(m, n.body);
         return;
     }
@@ -1598,7 +1620,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
             im_task_pop(m.state, &at);
             if at.loop_resume != 0 {
                 if n.kind == KContinue {
-                    im_task_push(m.state, at.node, true, at.phase, at.offset);
+                    ix_schedule(m, at.node, true, at.phase, at.offset);
                 }
                 break;
             }
@@ -1637,7 +1659,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
                 break;
             }
             i--;
-            im_task_push(m.state, body.items.data[i], false, 0, 0);
+            if !ix_schedule(m, body.items.data[i], false, 0, n.start) { return; }
         }
         return;
     }
@@ -1785,12 +1807,12 @@ export fn interpreter_function_result(invocation: IMInvocation*, reference: u64,
 }
 
 export fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool {
-    if reference == 0 || reference > convert(u64, invocation.state.type_values.length) {
+    if reference == 0 || reference > convert(u64, invocation.state.type_values.values.length) {
         var execution: IMExecution = { state: &invocation.state, context: &invocation.context };
         ix_fail(&execution, "Compile-time result contains an invalid type value", offset);
         return false;
     }
-    *type = invocation.state.type_values.data[convert(usize, reference - 1)];
+    *type = invocation.state.type_values.values.data[convert(usize, reference - 1)];
     return true;
 }
 

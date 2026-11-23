@@ -5,6 +5,7 @@ import semantic_program_types;
 import format_types;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .library.work_budget_types;
 
 extern fn compiler_node_type(node: void*, kind: u32): void*;
 
@@ -66,10 +67,11 @@ fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, 
 fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: u32, output: ByteBuffer*, error: ByteBuffer*): bool {
     output.length = 0;
     error.length = 0;
-    if program.error.length != 0 {
-        if !bytes_assign_text(error, program.error.data, program.error.length) {
-            abort();
-        }
+    if program.resource.error != WorkBudgetError.None || program.error.length != 0 {
+        var text = program.error.length != 0 ? program.error.data : sem_resource_message(program.resource.error);
+        var length = program.error.length != 0 ? program.error.length : strlen(text);
+        // A false result and empty output survive diagnostic allocation failure.
+        bytes_assign_text(error, text, length);
         return false;
     }
     var formatted: FormatResult = default;
@@ -99,8 +101,9 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
             execution_session_fail(&canonical, "Cannot allocate .towerbc package", 0);
         }
     }
-    if !ok && !bytes_assign_text(error, canonical.error.data, canonical.error.length) {
-        abort();
+    if !ok {
+        output.length = 0;
+        bytes_assign_text(error, canonical.error.data, canonical.error.length);
     }
     execution_session_close(&canonical);
     format_dispose(&formatted);

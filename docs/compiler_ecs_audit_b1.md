@@ -1358,3 +1358,21 @@ open and no publication lease has been granted.
 This commit only records already-completed checks and findings; runtime inputs
 are exactly source38ca7a33, so no new runtime performance measurement is applicable
 to the documentation delta itself.
+B1 next owner-history join (2026-11-23T08:11:16.5692744Z): verified full root75fdf0bf bundle5fe3be67
+and merged it onto908318d7 without conflicts. Both parents' journal histories
+retain every nonblank line (exact UTF-8 ordinal comparison, zero missing lines).
+B1 world-type and parser/grammar layouts are unchanged. Shared entities/types/API
+and semantic_context exactly match root75, retaining original owner commits.
+Reviewed A2 entity_component_add_result: existing component succeeds while pinned;
+new published mutation reports Busy, bad world/type/extents Invalid, physical page
+and dedicated payload grants use the store ledger, allocation failures preserve
+per-call causes and cleanup. Raw entity/index/table buffers remain explicit gaps.
+This supplies the exact producer API needed by B1 reader/scan/emission follow-on,
+rather than inventing a second receipt or guessing Memory from a null component.
+A1's semantic receipt and L1/L2 storage changes are the complete owner union;
+B2's current output-consumer/world-constructor drafts are not present here.
+No claim of complete shared-world accounting or output-boundary adoption.
+Next establish a matching native baseline and freeze it before new declaration
+changes. Reuse prior38 receipts only for that prior source. Defer the broader
+sanitizer/browser matrix to the next coherent implementation milestone so each
+new handler does not restart unchanged matrices. No publication lease.
