@@ -3980,3 +3980,8 @@ first failing graph32 assertion prevents later64/fast/LLVM trials for those two
 cases; those are pending, not passed. No changes to their production methods,
 D2 LLVM tests/common wrappers, generic hover, native builds or release gates.
 Exact commands/hashes/failed logs: `build/d1_ecs/language_fixtures_e0e3530b/`.
+
+Publication merge7a1e2631 adopts complete upstreambfb47510 history. The actual
+language/library/example and Node inputs for this slice still match; unrelated
+new supplied compiler capabilities retain their separate owner receipts. The
+frozen-reactor failures above are not claims about the later compiled result.

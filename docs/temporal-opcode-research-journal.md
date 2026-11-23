@@ -88725,3 +88725,14 @@ final serial storage2.95/2.64/179424 and native1/4 combined6.35/6.01/220732 pass
 including zero retained buffers. Unchanged merged query-smoke evidence is reused.
 Final manifests/logs are declaration_calls_final1*, with previous failed attempts
 preserved. No broad matrix repeated and no runtime optimization claimed.
+D1 publication reconciliation: implementation8b2bb2d7; required ff-only pull
+foundbfb47510, so complete-history merge7a1e2631 preserves the new owner receipts
+without conflicts. Saved Node/test/transport/reactor hashes still match. Five
+changed and four newly added Tower compiler/test resources are outside the
+imports executed by this four-file slice; language/type/example/stack/vector,
+existing nominal negative and the three new fixture hashes remain identical.
+Incoming semantic_generic_info/declaration-discovery work retains its own owner
+identity; these old reactors cannot accept or reject those later fixes. Reuse
+unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
+two minimal cases on its next affected reactor. Worktree/todo/history preserved,
+all owned jobs drained; normal main push follows, no runtime deployment.
