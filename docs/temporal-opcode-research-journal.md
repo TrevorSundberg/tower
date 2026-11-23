@@ -65096,6 +65096,42 @@ B2's fixed-error gates suppress false success after optional text clearing;
 matching full browser ABI/runtime is still pending. Root's source review has no
 runtime performance delta. Full integrated bootstrap/browser/scaling/sanitizer
 and atomic publication gates remain open; hosted runtime identity is unchanged.
+
+### Coordinator: corrected resource/storage source union, 2026-11-23
+
+Merged complete A1 a693465, L1 4511ed9 and A2 69b208b histories into6d791a0f1.
+Their verified bundles hash2594421d, c3be6007 and74258edf respectively and share
+published60741 as sole prerequisite. The one production conflict was adjacent
+static diagnostic cases: retained A1's Stale/Exhausted messages alongside L1's
+identical shared receipt API. Preserved all interpreter/type-index owner history,
+counted-text corrections, page accounting and existing coordinator changes.
+An imported documentation line retained a CR byte and failed diff-check; narrowly
+renormalized that line in its two documents. Subsequent staged diff-check passes.
+The first check was not a pass. Required post-merge pull is unchanged upstream;
+todo.txt is still unstaged with its recorded hash, and no deployment occurred.
+
+L1's valid bounded-text before tests both fail on e3 as predicted. Corrected451
+passes four public leaves and six native gates. Its32 checked CLI comparisons
+pass; large fast execution74.632->74.574ms no longer shows the prior e3 +12%
+sample, while small preparation/runtime and approximately4MiB RSS costs remain.
+Unchanged frontend binary permits reuse of its32 earlier observations. Current
+451 instrumentation is running. A1's actual28-case order fixture fails before
+and passes after;32 comparison runs preserve canonical/reparsed results. Current
+query/control pass; type and a longer small-input cost comparison remain open.
+
+A2's longer page sample reproduces +9.4% eight-worker accounted overhead while
+four workers provide1.64x useful scaling; eight remain unprofitable. Small Tower
+serial increases2.6%, large Foundation serial matches in that sample. These are
+source-specific owner measurements, not a combined-root performance conclusion.
+Root independently confirmed monotonic page.used/no freed-slot reuse; requested
+bounded removal/refill evidence and lifetime-safe policy investigation after the
+typed stage/view checkpoint. Preserve survivor addresses and stage-pool lifetime.
+
+This union is an integration candidate, not accepted publication input. B2's
+matching output consumers/world-budget constructors and B1's newer grammar
+checkpoint are still pending inclusion. D1 must independently re-run its exact
+growth-phase reproducer against the corrected owner union. Full merged native,
+WASI/browser, instrumentation, scaling and clean bootstrap checks remain required.
 ### A1 canonical evaluation failure frontier (2026-11-23, implementation checkpoint)
 
 Reviewed base7e4bb885 joins ROOT72a218 provider history after the receipt profile.
