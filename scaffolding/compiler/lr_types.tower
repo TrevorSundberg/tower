@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 
 // Transitional parser token sentinels shared by table construction and runtime.
 // These are table indexes, not Foundation program instructions.
@@ -45,6 +46,7 @@ struct LRProbeFrame {
 struct LRProbeBudget {
     remaining: usize;
     complete: bool;
+    resource_error: WorkBudgetError;
 }
 
 struct LRProduction {

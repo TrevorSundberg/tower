@@ -4,6 +4,7 @@ import .compiler.syntax_types;
 import .compiler.format_types;
 import .compiler.component_kinds;
 import .compiler.parser_types;
+import .library.work_budget_types;
 import frontend_format;
 import frontend_table_owner;
 import frontend_parser_text;
@@ -28,6 +29,8 @@ extern fn abort(): void;
 extern fn compiler_host_world(): void*;
 
 extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
 
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 
@@ -84,6 +87,42 @@ extern fn parser_match_create_subtree(parent: void*, id: u32, start: usize, leng
 extern fn parser_decode_utf8_codepoint(begin: u8*, end: u8*, value: u32*): usize;
 
 extern fn parser_encode_utf8_codepoint(value: u32, buffer: u8*, capacity: usize): usize;
+
+fn frontend_world_type_resource_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var error = WorkBudgetError.Memory;
+    frontend_world_check(compiler_world_type_result(null, CompilerSyntax, &error) is null
+        && error == WorkBudgetError.Invalid);
+    var world = compiler_world_create();
+    frontend_world_check(world is not null);
+    var store = compiler_world_store(world);
+    var nodes = entity_store_count(store);
+    var retained = tower_test_buffer_count();
+    frontend_world_check(compiler_world_type_result(world, CompilerComponentCount, &error) is null
+        && error == WorkBudgetError.Invalid && entity_store_count(store) == nodes);
+    tower_test_buffer_fail_after(0);
+    var type = compiler_world_type_result(world, CompilerSyntax, &error);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(type is null && error == WorkBudgetError.Memory
+        && entity_store_count(store) == nodes && tower_test_buffer_count() == retained
+        && compiler_world_type_existing(world, CompilerSyntax) is null);
+    type = compiler_world_type_result(world, CompilerSyntax, &error);
+    frontend_world_check(type is not null && error == WorkBudgetError.None);
+    nodes = entity_store_count(store);
+    var view = entity_view_open(type);
+    frontend_world_check(view is not null);
+    frontend_world_check(compiler_world_type_result(world, CompilerSyntax, &error) == type
+        && error == WorkBudgetError.None);
+    frontend_world_check(compiler_world_type_result(world, CompilerParserRule, &error) is null
+        && error == WorkBudgetError.Busy && entity_store_count(store) == nodes
+        && compiler_world_type_existing(world, CompilerParserRule) is null);
+    frontend_world_check(compiler_world_type(world, CompilerSyntax) == type
+        && compiler_world_type(world, CompilerParserRule) is null && error == WorkBudgetError.Busy);
+    entity_view_close(view);
+    frontend_world_check(compiler_world_type_result(world, CompilerParserRule, &error) is not null
+        && error == WorkBudgetError.None);
+    frontend_world_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers);
+}
 
 fn frontend_constructor_tests(): void {
     var world = compiler_host_world();

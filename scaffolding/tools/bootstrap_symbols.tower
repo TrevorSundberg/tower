@@ -69,7 +69,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     if unit == BootstrapUnit.Interpreter {
         // The mutually exclusive interpreter/evaluation entries own Publish;
         // semantic lookups and the shared arena retain their existing owners.
-        if bootstrap_symbol_in("sem_entry_arena sem_evaluation_get sem_find sem_known_binding sem_query_input_checked work_arena_dispose", symbol, length) { return true; }
+        if bootstrap_symbol_in("sem_context_snapshot sem_entry_arena sem_evaluation_get sem_find sem_known_binding sem_query_input_checked work_arena_dispose", symbol, length) { return true; }
         // Physical input/storage owners use the source world's shared budget.
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_world compiler_world_bind_budget compiler_world_work_budget", symbol, length) { return true; }
         // The configured interpreter unit also owns the upstream staged-call
@@ -97,7 +97,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     }
     if unit == BootstrapUnit.ParserNodes {
         // Grammar snapshots use the world ledger and the entities arena provider.
-        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocation_size compiler_world_bind_budget work_arena_allocate work_arena_dispose work_arena_init", symbol, length) { return true; }
+        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocation_size compiler_world_bind_budget work_arena_allocate work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
         // Table buffers share the world ledger; frontend unit lifecycle and
         // configured parser fixtures retain explicit world/store boundaries.
         if bootstrap_symbol_in("compiler_world_create compiler_world_create_workers compiler_world_dispose compiler_world_work_budget entity_store_component_count entity_store_count", symbol, length) { return true; }
@@ -122,11 +122,12 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_next syntax_parser_diagnostic_read syntax_parser_read syntax_parser_template_read syntax_reset syntax_trace_release", symbol, length)
             || bootstrap_symbol_in("tower_memory_allocate tower_memory_free tower_node_create", symbol, length)
             || bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_free entity_view_close entity_view_open format_same_tree format_syntax_diagnostic", symbol, length)
-            || bootstrap_symbol_in("parser_table_destroy parser_table_finish parser_table_open syntax_description_text syntax_diagnostic_text_finish", symbol, length)
+            || bootstrap_symbol_in("parser_table_destroy parser_table_finish parser_table_finish_result parser_table_open parser_table_open_result syntax_description_text syntax_diagnostic_text_finish", symbol, length)
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
-        if bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_free semantic_known_publish_kernel work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
+        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free semantic_known_publish_kernel work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
+        if bootstrap_symbol_in("frontend_module_resource_error syntax_session_resource_error", symbol, length) { return true; }
         // Nested workers reserve the same world budget; source construction and
         // foreign ABI validation call their existing Tower component owners.
         if bootstrap_symbol_in("compiler_unit_kernel compiler_world_work_budget compiler_world_worker_release compiler_world_worker_reserve frontend_module_root_world_size type_object_abi_safe", symbol, length) { return true; }

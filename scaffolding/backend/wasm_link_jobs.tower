@@ -129,6 +129,9 @@ fn wasm_link_jobs_run(work: WasmLinkWork*, link: WasmLink*, section: ByteBuffer*
     var finished: usize = 0;
     while finished < jobs.length {
         if wasm_link_jobs_cancelled(link) {
+            // Workers borrow the entire owner. Join before releasing graph leases
+            // or publishing an error into that shared owner.
+            while work.pool.running != 0 { work_pool_receive(&work.pool, true); }
             work_cancel(&graph);
             return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link cancelled"));
         }

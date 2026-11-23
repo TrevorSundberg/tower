@@ -159,28 +159,33 @@ fn entity_reclaim(entity: Entity*): void {
 // need not be the root; every type index in this same store becomes stable.
 // Close exactly once, after all borrowed queries/workers finish.
 export fn entity_view_open(anchor: Entity*): EntityView* {
-    var missing = anchor == null;
-    if missing {
-        return null;
-    }
-    if anchor.stage != null { return null; }
+    var error: WorkBudgetError;
+    return entity_view_open_result(anchor, &error);
+}
+
+export fn entity_view_open_result(anchor: Entity*, error: WorkBudgetError*): EntityView* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if anchor == null || anchor.stage != null { return null; }
     var store = anchor.store;
-    var reclaiming = store.reclaiming != 0;
-    if reclaiming {
+    if store.reclaiming != 0 {
+        *error = WorkBudgetError.Busy;
         return null;
     }
     var next = store.views + 1;
     if next == 0 {
+        *error = WorkBudgetError.Exhausted;
         return null;
     }
     var view = alloc(EntityView, 1);
-    missing = view == null;
-    if missing {
+    if view == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     view.store = store;
     view.queries = null;
     store.views = next;
+    *error = WorkBudgetError.None;
     return view;
 }
 

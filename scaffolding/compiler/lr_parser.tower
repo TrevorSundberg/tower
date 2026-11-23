@@ -341,18 +341,25 @@ struct LRProbe {
     frames: LRProbeFrames;
 }
 
+fn lr_probe_failure(budget: LRProbeBudget*, error: WorkBudgetError): void {
+    budget.complete = false;
+    if budget.resource_error == WorkBudgetError.None { budget.resource_error = error; }
+}
+
 fn lr_probe_reserve(value: LRProbe*, needed: usize): bool {
     var frames = &value.frames;
-    if work_buffer_grow_elements(&frames.storage, value.runtime.budget, frames.length,
+    var error = work_buffer_grow_elements(&frames.storage, value.runtime.budget, frames.length,
         frames.storage.capacity / sizeof(LRProbeFrame), needed, sizeof(LRProbeFrame),
-        alignof(LRProbeFrame)) != WorkBudgetError.None { return false; }
+        alignof(LRProbeFrame));
+    if error != WorkBudgetError.None { lr_probe_failure(value.budget, error); return false; }
     frames.data = bits(LRProbeFrame*, frames.storage.data);
     return true;
 }
 
 fn lr_probe_push(value: LRProbe*, frame: LRProbeFrame): bool {
     var needed = value.frames.length + 1;
-    if needed == 0 || !lr_probe_reserve(value, needed) { return false; }
+    if needed == 0 { lr_probe_failure(value.budget, WorkBudgetError.Invalid); return false; }
+    if !lr_probe_reserve(value, needed) { return false; }
     value.frames.data[value.frames.length++] = frame;
     return true;
 }
@@ -368,8 +375,9 @@ export fn lr_probe_destroy(value: LRProbe*): void {
 
 fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize): LRProbe* {
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, runtime.budget, sizeof(LRProbe), 0) != WorkBudgetError.None {
-        budget.complete = false;
+    var error = work_buffer_resize(&storage, runtime.budget, sizeof(LRProbe), 0);
+    if error != WorkBudgetError.None {
+        lr_probe_failure(budget, error);
         return null;
     }
     var value = bits(LRProbe*, storage.data);
@@ -384,6 +392,7 @@ fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize):
 }
 
 export fn lr_probe_create(parser: LRParser*, budget: LRProbeBudget*): LRProbe* {
+    budget.resource_error = WorkBudgetError.None;
     var count = lr_parser_frame_count(parser);
     var value = lr_probe_allocate(parser.runtime, budget, count);
     if value == null {
@@ -434,6 +443,7 @@ export fn lr_probe_accepts(value: LRProbe*, id: u32): bool {
 
 export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
     *before = lr_none();
+    if value.budget.resource_error != WorkBudgetError.None { return 0; }
     var steps: usize = 0;
     loop {
         var exhausted = steps == LRProbeStepLimit;
@@ -516,28 +526,41 @@ struct LRCompletionPaths {
     length: usize;
 }
 
-fn lr_completion_path_add(paths: LRCompletionPaths*, budget: WorkBudget*, value: LRCompletionPath): bool {
+fn lr_completion_path_add(paths: LRCompletionPaths*, budget: WorkBudget*, value: LRCompletionPath): WorkBudgetError {
     var needed = paths.length + 1;
-    if needed == 0 || work_buffer_grow_elements(&paths.storage, budget, paths.length,
+    if needed == 0 { return WorkBudgetError.Invalid; }
+    var error = work_buffer_grow_elements(&paths.storage, budget, paths.length,
         paths.storage.capacity / sizeof(LRCompletionPath), needed, sizeof(LRCompletionPath),
-        alignof(LRCompletionPath)) != WorkBudgetError.None { return false; }
+        alignof(LRCompletionPath));
+    if error != WorkBudgetError.None { return error; }
     paths.data = bits(LRCompletionPath*, paths.storage.data);
     paths.data[paths.length++] = value;
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn lr_completion_create(parser: LRParser*): LRCompletion* {
+    var error = WorkBudgetError.None;
+    return lr_completion_create_result(parser, &error);
+}
+
+export fn lr_completion_create_result(parser: LRParser*, error: WorkBudgetError*): LRCompletion* {
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, parser.runtime.budget, sizeof(LRCompletion), 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&storage, parser.runtime.budget, sizeof(LRCompletion), 0);
+    if *error != WorkBudgetError.None { return null; }
     var c = bits(LRCompletion*, storage.data);
     *c = {storage: storage, ..default};
     c.budget.complete = true;
     c.original = lr_probe_create(parser, &c.budget);
     if c.original == null {
+        *error = c.budget.resource_error;
         lr_completion_destroy(c);
         return null;
     }
     return c;
+}
+
+export fn lr_completion_resource_error(c: LRCompletion*): WorkBudgetError {
+    return c.budget.resource_error;
 }
 
 export fn lr_completion_destroy(c: LRCompletion*): void {
@@ -567,6 +590,7 @@ export fn lr_completion_accepts(c: LRCompletion*, id: u32): bool {
     }
     c.budget.remaining = LRCompletionQuerySteps;
     c.budget.complete = true;
+    c.budget.resource_error = WorkBudgetError.None;
     var probe = lr_probe_clone(c.original);
     if probe == null {
         return false;
@@ -587,6 +611,7 @@ export fn lr_completion_follows(c: LRCompletion*, first: u32, second: u32): bool
     }
     c.budget.remaining = LRCompletionQuerySteps;
     c.budget.complete = true;
+    c.budget.resource_error = WorkBudgetError.None;
     var probe = lr_probe_clone(c.original);
     if probe == null {
         return false;
@@ -613,7 +638,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
     var length: usize = 0;
     var answer = lr_none();
     loop {
-        if c.budget.remaining == 0 {
+        if c.budget.remaining == 0 || c.budget.resource_error != WorkBudgetError.None {
             break;
         }
         var before: usize;
@@ -634,6 +659,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
         var found: bool = false;
         var i: usize = 0;
         for(; i != count; i++) {
+            if c.budget.resource_error != WorkBudgetError.None { break; }
             trial = lr_probe_clone(current);
             missing = trial == null;
             if missing {
@@ -669,7 +695,9 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     }
     c.budget.remaining = LRCompletionSuffixSteps;
     c.budget.complete = true;
+    c.budget.resource_error = WorkBudgetError.None;
     var terminated = lr_completion_terminators(c, ids, count, result, capacity);
+    if c.budget.resource_error != WorkBudgetError.None { return lr_none(); }
     var complete = terminated != lr_none();
     if complete {
         return terminated;
@@ -681,17 +709,17 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     if first.probe == null {
         return lr_none();
     }
-    var added = lr_completion_path_add(&paths, c.original.runtime.budget, first);
-    var failed = !added;
+    var error = lr_completion_path_add(&paths, c.original.runtime.budget, first);
+    var failed = error != WorkBudgetError.None;
     if failed {
-        c.budget.complete = false;
+        lr_probe_failure(&c.budget, error);
         lr_probe_destroy(first.probe);
         return lr_none();
     }
     var at: usize = 0;
     var length = lr_none();
     for(; at != paths.length; at++) {
-        if c.budget.remaining == 0 {
+        if c.budget.remaining == 0 || c.budget.resource_error != WorkBudgetError.None {
             break;
         }
         var path = &paths.data[at];
@@ -721,6 +749,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         if depth < capacity {
             var i: usize = 0;
             for(; i != count; i++) {
+                if c.budget.resource_error != WorkBudgetError.None { break; }
                 if paths.length >= LRCompletionMaximumPaths {
                     break;
                 }
@@ -731,10 +760,10 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 status = lr_probe_step(probe, ids[i], &before);
                 if status == 1 {
                     var next: LRCompletionPath = { probe: probe, parent: at, choice: i, depth: depth + 1 };
-                    added = lr_completion_path_add(&paths, c.original.runtime.budget, next);
-                    failed = !added;
+                    error = lr_completion_path_add(&paths, c.original.runtime.budget, next);
+                    failed = error != WorkBudgetError.None;
                     if failed {
-                        c.budget.complete = false;
+                        lr_probe_failure(&c.budget, error);
                         lr_probe_destroy(probe);
                         break;
                     }
