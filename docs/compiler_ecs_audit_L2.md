@@ -891,3 +891,22 @@ phase values are retained, with no speedup or neutrality claim. Median RSS
 changes are under0.3%. The journal identifies raw170-file receipt692e274e and
 complete source bundlec06c302a. Current instrumentation, late-inspection producer
 coverage, final union/public bootstrap and publication remain open.
+
+ROOT302 narrows provider-policy follow-up to the three actual stage/view result
+imports. Earlier requests to review hypothetical new undefined sem_ exports
+were overbroad: the two actual exported functions already compile/link in the
+single provider. D2 should reconcile observed imports only. The current fixture
+now uses A1's production sem_workers_open and verifies its physical reservation
+owner/extent before real context teardown; compile and merged runtime are pending.
+L1's same-binary installation-path control also limits CLI code-cost attribution
+in26993. Raw observations remain, and a fixed executable/resource-path control
+is required before interpreting those differences as isolated code cost.
+
+Current30558 closes the requested production-pool fixture follow-up on full
+ROOT9d73/A2 reuse: public leaf, coherent native compiler/LR and query-smoke pass.
+The fixture calls the actual semantic pool entry, verifies exact world-budget
+storage ownership and lets real context disposal retire it. All existing Busy,
+copy and zero-ledger controls remain. Later L1 cache ABI, current sanitizers and
+publication are outside this receipt. Fixed-path21641 supplies the stronger d65
+CLI comparison: wall medians differ by at most0.02s and RSS by under100KiB; it
+does not establish a broad speedup or validate later merged runtime changes.
