@@ -251,27 +251,46 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     // the view or publishing graph observations; the component owns its output.
     var context = *c;
     foreach(var result in &batch) { result.context = &context; }
-    if query_kind == SemanticQuery.KnownPublish {
-        sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
-    }
+    sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     var receipt: WorkReservation;
-    var extra = sem_workers_admit(c, batch.length, &receipt);
+    var extra: usize = 0;
+    var dispatch_error = sem_workers_admit_result(c, batch.length, &receipt, &extra);
     defer sem_workers_release(c, &receipt);
-    sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, batch.length, extra));
+    if dispatch_error == WorkBudgetError.None {
+        dispatch_error = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, batch.length, extra);
+    }
+    // Admission requires a drained pool. A valid dispatch returns only after
+    // joining every peer, even when some or all jobs ran before a failure.
+    sem_require(c.workers.running == 0);
     entity_view_close(view);
+    foreach(var result in &batch) { result.context = null; }
     var failed: SemanticKnownWork* = null;
     foreach(var result in &batch) {
-        result.context = null;
-        sem_query_observe(c, &result.ticket, &result.query_reads);
-        sem_require(work_finish(&c.queries, &result.ticket, result.resource_error == WorkBudgetError.None));
-        if failed == null && result.resource_error != WorkBudgetError.None { failed = result; }
+        var success = dispatch_error == WorkBudgetError.None && result.resource_error == WorkBudgetError.None;
+        if (dispatch_error == WorkBudgetError.None && !sem_query_observe_checked(c, &result.ticket, &result.query_reads))
+            || !work_finish(&c.queries, &result.ticket, success) {
+            var graph_error = sem_query_cancel_failure(c);
+            if dispatch_error == WorkBudgetError.None { dispatch_error = graph_error; }
+            // The entire wave is rejected. Select its first source ordinal,
+            // independent of which terminal graph allocation exhausted storage.
+            failed = batch.data[0];
+            break;
+        }
+        if failed == null && !success { failed = result; }
     }
     if failed != null {
+        var error = dispatch_error == WorkBudgetError.None ? failed.resource_error : dispatch_error;
         var message = "Cannot allocate semantic publication storage";
-        if failed.resource_error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
-        if failed.resource_error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
+        if error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
+        if error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
+        if dispatch_error != WorkBudgetError.None {
+            message = "Cannot allocate semantic query work";
+            if error == WorkBudgetError.Capacity { message = "Semantic query work memory budget exceeded"; }
+            if error == WorkBudgetError.Invalid { message = "Invalid semantic query work dispatch"; }
+            if error == WorkBudgetError.Busy { message = "Semantic worker admission failed"; }
+        }
         var length = sem_length(message);
         sem_require(length < c.program.error.capacity);
         copy(c.program.error.data, message, length + 1);

@@ -431,3 +431,22 @@ storage, zero dispatched work and zero live scratch receipts across repeated
 entry. semantic_publish_checks owns these cases through its separate
 cancellation export; existing18 pressure tests also pass on final source.
 This is joined-frontier cancellation coverage, not mid-kernel stop latency.
+
+### Shared constructor join and checked known-work draft
+
+Reviewed e54c1df9 plus the current owned draft. Full census54/54 assigned paths
+includes the new focused source below; a full per-file review is not acceptance.
+Current constructor ABI fails the public semantic aggregate, with exact failed
+receipts in the journal. Earlier22 Publish passes cover the preconstructor ABI.
+
+| Assigned path | Complete current review, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_dispatch_checks.tower | All source reviewed: explicit world/budget/context and real four-worker pool; coordinator-only one-shot host semaphore denial; normal and Memory controls, source-order error, private canonical output, repeated entry and final ownership cleanup. Type-derived array count. Public object compiles after correcting command entry mode; linked runtime/instrumentation pending. |
+| scaffolding/compiler/semantic_context.tower | Checked admission returns the owner's typed reserve result; old wrapper remains for unconverted callers. Checked observation can fail after graph mutation; joined-only cancellation captures the fixed graph resource error and invalidates outstanding receipts. No context layout or worker-shared error mutation. Source implemented, runtime pending. |
+| scaffolding/compiler/semantic_known_work.tower | All borrows cleared after guaranteed drain before graph settlement. Transport or terminal graph failure suppresses all output; only a joined coordinator cancels the graph, preserving the first fixed error. Result vectors and arenas still owned by job disposal. New resource checks before dispatch remain infallible initialization boundaries; not a claim that every allocation path is recovered. Source cap blocks current leaf validation. |
+| scaffolding/compiler/semantic_known_bindings.tower | Scan/Order/Inputs stop and dispose private job storage on a checked wave error. Publish retains atomic all-jobs output gate and cancelled-frontier guard. Proof/snapshot construction still has older sem_require graph allocation boundaries; these are explicit remaining work. |
+| scaffolding/tests/semantic_resource_checks.tower | Merge retains D1 runner signature plus both startup and nested executed-growth modes and all Capacity/cleanup/repeated-wait assertions. New shared constructor ABI requires rerun; older24-case receipt is not reused as current. |
+
+A2's graph arrays are borrowed directly only for reads in the assigned semantic
+callers. L2 generic/type/constructor reservation remains in force. D2 owns the
+five entrypoint imports after L1 agreement; no competing provider is added here.

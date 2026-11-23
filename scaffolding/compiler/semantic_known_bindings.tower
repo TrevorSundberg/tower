@@ -165,6 +165,7 @@ fn sem_known_infer(c: SemanticContext*): void {
         sem_known_job(c, kind, evaluation.subject, evaluation.expression, null, count++, SemanticKnownAction.Scan);
     }
     var scans = sem_known_jobs(c, kind, count, SemanticQuery.KnownScan);
+    if !sem_ok(c) { sem_known_jobs_dispose(&scans); return; }
     foreach(var job in &scans) {
         foreach(var &candidate in &job.candidates) {
             if job.owner != null { sem_known_register(c, candidate.subject, job.owner, candidate.ordinal); }
@@ -192,6 +193,11 @@ fn sem_known_infer(c: SemanticContext*): void {
         job.source_ordinal = index;
     }
     var orders = sem_known_jobs(c, kind, count, SemanticQuery.KnownOrder);
+    if !sem_ok(c) {
+        sem_known_jobs_dispose(&orders);
+        sem_known_jobs_dispose(&scans);
+        return;
+    }
     foreach(var job in &orders) {
         foreach(var declaration in &job.mutations) { sem_known_binding(c, declaration).ordered = false; }
     }
@@ -205,6 +211,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     foreach(var job in &scans) { job.action = SemanticKnownAction.Inputs; }
     var inputs = sem_known_jobs(c, scan_kind, scans.length, SemanticQuery.KnownInputs);
     vector_dispose(&scans);
+    if !sem_ok(c) { sem_known_jobs_dispose(&inputs); return; }
     foreach(var job in &inputs) {
         var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.KnownInputs), 0);
         foreach(var &candidate in &job.candidates) { sem_known_binding(c, candidate.subject).input_query = query; }

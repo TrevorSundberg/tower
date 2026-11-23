@@ -60120,3 +60120,55 @@ void/trapping host ABI. A false submit never drains earlier jobs. No new submit
 API or semantic-layout ownership change was made; L2 owns that caller proof.
 ROOT chose existing evaluation.tower for A1's thin Publish provider, with D2
 manifest/symbol validation. A2 will not add semantic implementation to entities.
+
+### A1 checked known-work transport draft after shared constructor merge
+
+Reviewed current e54c1df9, which merges ROOT6b8355 and A2ecc35d74. The resource
+fixture conflict preserves D1's parameterized runner function and all newer
+A1 startup/nested-growth assertions (six trials per width/worker). The new
+shared constructor closure fails public semantic compilation before further
+A1 changes:13.61wall/8.05user/.95sys/768364KiB at semantic_values522,
+publish_constructor_unit1. A2 independently isolated the constructor increase
+against the passing ROOT3915 parser. Do not substitute preconstructor runtime
+receipts for this ABI; no current full compiler acceptance.
+
+Implemented an unvalidated bounded caller draft using A2's exact typed dispatch:
+checked worker admission preserves the old infallible wrapper for unconverted
+callers; known-job waves reserve fixed diagnostic capacity, drain transport,
+clear every borrowed context, then settle graph observations/tickets. On terminal
+graph allocation failure, invalidate the existing graph only after all workers
+join; preserve the first error and suppress all canonical output. Successful
+earlier tickets may remain Succeeded while remaining tickets are Cancelled:
+this is not falsely reported as every ticket Failed. Scan/Order/Inputs callers
+now dispose their private job owners and return when a wave reports failure,
+rather than continuing to build proof/snapshot queries. No second scheduler,
+new context field, constructor change or speculative worker cancellation added.
+
+New owned semantic_dispatch_checks.tower is the54th assigned semantic path.
+It uses the existing Linux --wrap=work_signal_open test boundary to deny one
+coordinator claim allocation after opening a real four-worker pool. The
+allocator/workers remain production implementations; the mutable fault flag
+has coordinator-only access. Width4/8 controls and denial trials check typed
+Memory receipt, no successful unexecuted tickets, earliest source error,
+unchanged canonical storage, repeated-entry suppression, pool close receipt
+and final zero world-budget ownership. This is a focused executable, not a
+generic harness change; D1 registration remains coordinated.
+
+First unit command omitted --emit object and accidentally requested executable
+linking with the default entry runtime, producing duplicate main; no source
+defect or pass claimed. Correct ordinary-source --emit object (without
+--library, because the fixture owns mutable state) passes3.01wall/2.27user/
+.15sys/220028KiB, semantic_dispatch_unit2. Runtime is not run against old ABI.
+Smallest changed semantic_known_work leaf still fails the shared source cap
+11.38wall/6.68user/1.00sys/729392KiB at line66 (semantic_dispatch_leaf1).
+Both failed processes reaped. Await A2's measured graph storage/import reduction
+and D2's approved five provider imports; continue owned cleanup review. Current
+transport draft has no runtime/profile/sanitizer acceptance yet.
+
+Direct graph-array caller review in assigned semantic files finds only borrowed
+reads of tasks/edges/ready; no ordinary vector growth/free of those buffers.
+A2 owns the nominal borrowed-view plus single physical WorkBuffer proposal.
+The separate layout stream's submit false is pre-admission/invariant-only under
+current pool transport and does not drain previous jobs; actual OS semaphore
+post failure remains an irrecoverable foreign boundary. This differs from
+finite batch claim allocation, which is a recoverable typed Memory failure.
