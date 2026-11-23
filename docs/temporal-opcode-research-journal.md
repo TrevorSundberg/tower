@@ -89775,6 +89775,49 @@ remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
 
+### A2 four-slot declaration stage pages: measured policy retained (2026-11-23)
+
+Bounded follow-up to e9fd7aa5/578437af occupancy, frozen published5b9194e4
+(tree815869aa). No per-kind page policy existed: shared allocator fixed64rows/
+16KiB. Added immutable entity_register_stage_result with exact Invalid/Busy,
+legacy registration compatibility, and u8 policy in existing Entity padding
+(still184B native). Only SemanticDeclaration requests four stage rows, at kind
+creation before dispatch; store/default kinds retain existing policy. Stage
+pool transfer/reuse, stable addresses, joins/leases/queued refs/finalizers and
+first resource causes remain unchanged. No scheduler or early-disposal rewrite.
+
+Same8/512 bodies and new8x256-local fuller stream at1/4workers, production
+allocator, CPU0-11/24GiB, public768a0cdf/LLVM19/native Release, explicit2GiB ledger.
+Smallest component-layout build/test passed, then one dependency build22actions
+48.095wall/76.298CPU seconds/1066272KiB. Focused page reuse (default/four), finite
+cap/invalid/Busy/retry/stable publication/zero grants, concurrent stages,48 real
+2/4worker component-budget publication/cancellation/denial trials, stage-result
+normal/default, query-smoke and declaration-calls all pass. No compilation or
+runtime test failure. No instrumentation/rejected-operation retry occurred.
+
+Large declarations retain2096 records and579pages:9264->3120slots,
+9101301->3153909B, exactly5947392B saved, occupancy22.63->67.18%. World live
+93825589->87878197B (6.34% lower), same grants. Fuller stream140->524pages,
+384 extra allocations/grants,88704B extra headers/alignment,92928B fewer unused
+slots: net4224B saved, not a universal dense-stream saving. Default record lifetime
+and post-program/module/cache retention unchanged; all84 profile processes assert
+zero final byte/lane/live grants, then dispose separate ledger metadata.
+
+Initial separate n3 cohorts suggested large speedup; one bounded paired n3 repeat
+with preserved baseline and reversed sample2 order removed that claim. Process
+median changes -1.39..+1.34%, CPU -1.55..+1.54%; large RSS -1920/-1784KiB at1/4.
+Fuller4worker process637.700->646.219ms, CPU650.723->660.328ms, RSS209900->210588KiB.
+Four workers still lose on these inputs. Kept material retained-byte benefit with
+small observed cost; n3 is not a statistical bound. No foreign/allocator bytes
+are turned into a fake process cap; dense pointer indexes are not packed payloads.
+
+Exact source/link/tool hashes, commands, individual samples, outputs, API and
+limits: docs/compiler_ecs_declaration_pages_5b9194e4.md and external
+A2/cache/logs/declaration_stage_pages_5b9194e4. Baseline exe fd3892a5, candidate
+4ccdd459, identical profile971fd1c5. Original canonical/reference checksums match;
+fuller canonical8211171274327935316/260424B, reference42. All three old stashes and
+todo untouched. ROOT retains later merged-source/release and open service-blocked
+instrumentation requirements. Normal main reconciliation/publication follows.
 L2 current-dependency publication reconciliation: receipt2f0220bd; required
 ff-only pull refused ordinary divergence, then full-history merge7340d7ba
 preserved published5b9194e4 and both journals without conflict. ROOT's incoming
@@ -89872,3 +89915,11 @@ compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
 
 Merged acceptance: implementation928764f3 merged complete published bcd0e3ab history as eaa09b9f; the caller conflict preserves D2's bounded execution loops/phases and LLVM trap localization, including the new independent-loader loop using the same execution budget. The16 affected portable units rebuilt through the documented public-bootstrap target. Merged reactor `07135ce36e11e5c2239d0a662c469a43569ca8e8366816e4263658ad1866b620`:6/6 package gates, no skips; large32 normalized direct+independent-load check0 at37.04s/53.26s/1,538,868KiB; real Memory rollback/same-instance retry check0 at81.24s/105.74s/2,097,636KiB. Failure/retry ends with zero handles/views/package bytes/capacity/grants; the Wasm heap stays at its2GiB high-water mark. Original32/64/native/scaling measurements above remain explicitly base94dd evidence, not relabeled merged measurements. The final host-only guard also destroys a just-loaded handle if source-map capture throws, preserving that first exception. The six package gates were rerun after it. JS metadata allocation failure itself was not injected. Node syntax checks for both affected callers pass. Full LLVM-reactor differential/candidate generations and final hosted release remain D2/ROOT pending; no local LLVM reactor was installed and no missing-artifact skip was treated as a pass. No active owned jobs remain before publication.
+A2 declaration-page publication reconciliation: implementation f4e42223; required
+ff-only pull reported normal divergence, resolved by full-history merge646a0927
+of bcd0e3ab. Only incoming docs/browser and separate type-composition fixtures;
+all378 imported/changed hash entries match measured inputs, so reused unchanged
+build/functional/performance evidence rather than repeat a matrix. No conflicts,
+source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
+stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
+and final-source instrumentation/release exclusions. Normal main push follows.
