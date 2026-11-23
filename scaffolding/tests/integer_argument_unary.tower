@@ -1,0 +1,45 @@
+import tower;
+
+fn buffer(T: type, count: usize): type {
+    struct Result { data: T[count]; }
+    return Result;
+}
+fn narrow(count: i8): type {
+    struct Result { data: u8[bits(u8, count)]; }
+    return Result;
+}
+fn minimum32(value: i32): type { return i32; }
+fn minimum64(value: i64): type { return i64; }
+fn target_mask(value: usize): type {
+    struct Result { data: u8[value == ~convert(usize, 0) ? sizeof(usize) : 1]; }
+    return Result;
+}
+fn untaken(): usize { print(123); trap("Untaken integer argument", 0); return 0; }
+fn known(): usize {
+    var count: usize = 2;
+    var value: buffer(i32, -(-count));
+    return sizeof(decltype(value));
+}
+fn second(): usize {
+    var value: buffer(i32, -(true ? -2 : untaken()));
+    return sizeof(decltype(value));
+}
+var value: buffer(i32, -(-2));
+var minimum: narrow(-128);
+var wrapped: narrow(-(-128));
+var signed32: minimum32(-2147483648);
+var signed64: minimum64(-9223372036854775808);
+var mask: target_mask(-1);
+var array: i32[-(-2)];
+var word: integer_type(-(-32), 1);
+var operand: usize = 2;
+var runtime = -(-operand);
+var low: i8 = -128;
+var failures: i32 = 0;
+if sizeof(decltype(value)) != 8 || sizeof(decltype(array)) != 8 || sizeof(decltype(word)) != 4 { failures++; }
+if sizeof(decltype(minimum)) != 128 || sizeof(decltype(wrapped)) != 128 || -(-low) != low { failures++; }
+if sizeof(decltype(signed32)) != 4 || sizeof(decltype(signed64)) != 8 { failures++; }
+if sizeof(decltype(mask)) != sizeof(usize) || known() != 8 || second() != 8 { failures++; }
+print(sizeof(decltype(value)));
+print(runtime);
+print(failures);
