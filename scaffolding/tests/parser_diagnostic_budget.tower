@@ -1,0 +1,176 @@
+import tower;
+import frontend_world;
+import frontend_table_owner;
+import utility_checks;
+import .compiler.parser_diagnostic_types;
+import .compiler.syntax_session_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.vector;
+
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn parser_recognizer_create(table: ParserHostTable*, stream: void*): void*;
+extern fn parser_recognizer_destroy(request: void*): void;
+extern fn parser_recognizer_step(request: void*, running: bool*): void*;
+extern fn parser_recognizer_read_id(request: void*): void;
+extern fn parser_return_lookahead(request: void*): void;
+extern fn parser_recognizer_resource_error(request: void*): WorkBudgetError;
+extern fn parser_recognizer_get_error(request: void*): u8*;
+extern fn parser_recognizer_diagnostic_result(request: void*, reader: ParserDiagnosticReader,
+    source: void*, error: WorkBudgetError*): ParserDiagnostic*;
+extern fn parser_diagnostic_destroy(diagnostic: ParserDiagnostic*): void;
+extern fn parser_stream_utf8_null_terminated_create(text: u8*): void*;
+extern fn parser_stream_destroy(stream: void*): void;
+extern fn parser_stream_get_userdata(stream: void*): void*;
+extern fn parser_stream_set_error(stream: void*, text: u8*): void;
+extern fn parser_stream_get_error(stream: void*): u8*;
+extern fn parser_stream_return(stream: void*, node: void**, id: u32, start: usize, length: usize, error: vector(u8)*): void;
+extern fn parser_stream_read(stream: void*, id: u32*, start: usize*, length: usize*): void*;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn entity_release(node: void*): usize;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn syntax_session_diagnostic(session: SyntaxSession*, request: void*, repairs: bool): u8*;
+extern fn parser_stream_resource_error(stream: void*): WorkBudgetError;
+
+fn diagnostic_budget_equal(diagnostic: ParserDiagnostic*): void {
+    utility_check(diagnostic != null && diagnostic.complete && diagnostic.offset == strlen("a")
+        && diagnostic.insertion_offset == strlen("a") && !diagnostic.at_start
+        && diagnostic.options.length == strlen("b"), "Diagnostic positions and complete deterministic options");
+    var option = &diagnostic.options.data[0];
+    var wanted: u8* = "b";
+    utility_check(option.id == convert(u32, wanted[0]) && strcmp(option.label, "'b'") == 0
+        && option.insertion && option.count != 0, "Diagnostic preserves label, repair and context views");
+    utility_check(option.contexts[0].term == strlen("a"), "Detached context retains consumed prefix");
+}
+
+fn parser_diagnostic_budget_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Diagnostic byte ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Diagnostic world");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Diagnostic kinds");
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Utf8, convert(u32, ParserReadMode.WholeInput));
+    utility_check(table != null && parser_table_build(table, false), "Diagnostic table");
+    var stream = parser_stream_utf8_null_terminated_create("a");
+    var request = parser_recognizer_create(table, stream);
+    utility_check(request != null, "Diagnostic recognizer");
+    var running = true;
+    while running { utility_check(parser_recognizer_step(request, &running) == null, "Missing suffix remains syntax failure"); }
+    utility_check(strcmp(parser_recognizer_get_error(request), "Unexpected end of input.") == 0
+        && parser_recognizer_resource_error(request) == WorkBudgetError.None, "Original syntax diagnostic retained");
+    var error = WorkBudgetError.None;
+    var diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+        parser_stream_get_userdata(stream), &error);
+    utility_check(error == WorkBudgetError.None, "Warm diagnostic receipt metadata");
+    diagnostic_budget_equal(diagnostic);
+    parser_diagnostic_destroy(diagnostic);
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Diagnostic base ledger");
+    var retained = tower_test_buffer_count();
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+        == WorkBudgetError.None, "Exhaust diagnostic bytes");
+    var calls = tower_test_buffer_allocations();
+    diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+        parser_stream_get_userdata(stream), &error);
+    utility_check(diagnostic == null && error == WorkBudgetError.Capacity
+        && tower_test_buffer_allocations() == calls, "Diagnostic descriptor denies before allocation");
+    var session: SyntaxSession = default;
+    utility_check(syntax_session_diagnostic(&session, request, false) == null
+        && session.resource_error == WorkBudgetError.Capacity, "Syntax diagnostic caller retains Capacity without dereferencing a partial view");
+    session.resource_error = WorkBudgetError.Busy;
+    utility_check(syntax_session_diagnostic(&session, request, false) == null
+        && session.resource_error == WorkBudgetError.Busy, "Syntax diagnostic caller preserves its earlier failure");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release diagnostic blocker");
+    calls = tower_test_buffer_allocations();
+    diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+        parser_stream_get_userdata(stream), &error);
+    var allocations = tower_test_buffer_allocations() - calls;
+    diagnostic_budget_equal(diagnostic);
+    var held: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &held) && held.used_bytes > before.used_bytes
+        && held.used_lanes == before.used_lanes && allocations != 0, "Diagnostic owns physical storage without lanes");
+    var footprint = held.used_bytes - before.used_bytes;
+    parser_diagnostic_destroy(diagnostic);
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes - (footprint - 1), &occupied)
+        == WorkBudgetError.None, "Admit less than retained diagnostic footprint");
+    diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+        parser_stream_get_userdata(stream), &error);
+    utility_check(diagnostic == null && error == WorkBudgetError.Capacity, "Partial diagnostic denial returns no partial view");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release partial diagnostic blocker");
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        tower_test_buffer_fail_after(failure);
+        diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+            parser_stream_get_userdata(stream), &error);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(diagnostic == null && error == WorkBudgetError.Memory,
+            "Every required probe, option, context and label failure preserves Memory");
+        var failed: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
+            && failed.live == before.live && tower_test_buffer_count() == retained,
+            "Failed diagnostic discards every partial owner");
+        utility_check(strcmp(parser_recognizer_get_error(request), "Unexpected end of input.") == 0
+            && parser_recognizer_resource_error(request) == WorkBudgetError.None,
+            "Diagnostic failure leaves recognizer syntax error and retry state intact");
+    }
+    utility_check(parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8, null, &error) == null
+        && error == WorkBudgetError.Invalid, "Reader source ownership is required");
+    diagnostic = parser_recognizer_diagnostic_result(request, ParserDiagnosticReader.Utf8,
+        parser_stream_get_userdata(stream), &error);
+    utility_check(error == WorkBudgetError.None, "Diagnostic retry succeeds");
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(stream);
+
+    // Return a budgeted lookahead diagnostic through the old stream view. The
+    // receipt moves with the text and survives destruction of its request.
+    stream = parser_stream_utf8_null_terminated_create("");
+    request = parser_recognizer_create(table, stream);
+    utility_check(request != null, "Returned diagnostic request");
+    var input_error: vector(u8) = default;
+    var original: u8* = "original input failure";
+    utility_check(vector_reserve(&input_error, strlen(original) + 1), "Input error text");
+    input_error.length = strlen(original);
+    copy(input_error.data, original, input_error.length + 1);
+    var node: void* = null;
+    var prefix: u8* = "a";
+    parser_stream_return(stream, &node, convert(u32, prefix[0]), 0, strlen(prefix), &input_error);
+    parser_recognizer_read_id(request);
+    utility_check(parser_recognizer_resource_error(request) == WorkBudgetError.None, "Request copies input error under its budget");
+    parser_return_lookahead(request);
+    parser_recognizer_destroy(request);
+    var id: u32;
+    var start: usize;
+    var length: usize;
+    utility_check(parser_stream_read(stream, &id, &start, &length) == null
+        && id == convert(u32, prefix[0]) && length == strlen(prefix)
+        && strcmp(parser_stream_get_error(stream), original) == 0, "Returned text owner survives request destruction");
+    parser_stream_set_error(stream, "replacement input failure");
+    utility_check(strcmp(parser_stream_get_error(stream), "replacement input failure") == 0,
+        "Stream replaces returned storage through its owning allocator");
+    var text = parser_stream_get_error(stream);
+    utility_check(work_budget_snapshot(&budget, &held)
+        && work_budget_reserve_result(&budget, 0, 0, held.bytes - held.used_bytes, &occupied) == WorkBudgetError.None,
+        "Exhaust returned diagnostic replacement bytes");
+    parser_stream_set_error(stream, text);
+    utility_check(parser_stream_resource_error(stream) == WorkBudgetError.Capacity
+        && strcmp(text, "replacement input failure") == 0,
+        "Failed aliased replacement preserves its owner and exact Capacity");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release stream diagnostic blocker");
+    parser_stream_destroy(stream);
+    parser_table_destroy(table);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world), "Detached diagnostic no longer borrows its world or runtime");
+    diagnostic_budget_equal(diagnostic);
+    utility_check(!work_budget_dispose(&budget), "Detached diagnostic retains live physical receipts");
+    parser_diagnostic_destroy(diagnostic);
+    utility_check(work_budget_snapshot(&budget, &held) && held.used_bytes == 0 && held.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Diagnostic destroy releases final contexts, labels and descriptor");
+}

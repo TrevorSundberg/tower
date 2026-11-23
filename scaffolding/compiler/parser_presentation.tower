@@ -6,8 +6,13 @@ import format_api;
 import .library.vector;
 import parser_table_types;
 import format_parser_table_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
 
 extern fn syntax_parser_token_name(context: void*, id: u32): u8*;
+extern fn syntax_parser_token_name_result(context: void*, id: u32, error: WorkBudgetError*): u8*;
+extern fn parser_table_non_terminal_id_to_string_result(context: void*, id: u32, error: WorkBudgetError*): u8*;
 
 extern fn syntax_parser_describe(context: void*, rule: usize): u8*;
 
@@ -32,6 +37,35 @@ fn parser_trace_write(text: u8*, length: usize): void {
 // service only answers names/descriptions and returns text through the existing
 // host allocation API. Formatter vectors keep their own allocation family.
 export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): u8* {
+    var request = parser_presentation_format(table, kind, first, second);
+    if request == null { return null; }
+    var output = parser_format_result(request);
+    var text: u8* = null;
+    if !output.failed { text = format_parser_host_text(output); }
+    parser_format_destroy(request);
+    return text;
+}
+
+// Formatter scratch retains its existing allocation contract. The returned
+// bytes have an explicit physical receipt, including their terminating byte.
+export fn parser_presentation_buffer_result(table: ParserHostTable*, kind: ParserFormatKind,
+    first: usize, second: usize, budget: WorkBudget*, output: WorkBuffer*): WorkBudgetError {
+    if table == null || output == null { return WorkBudgetError.Invalid; }
+    var request = parser_presentation_format(table, kind, first, second);
+    if request == null { return WorkBudgetError.Memory; }
+    defer parser_format_destroy(request);
+    var text = parser_format_result(request);
+    if text.failed { return WorkBudgetError.Memory; }
+    var bytes = text.text.length + 1;
+    if bytes == 0 { return WorkBudgetError.Invalid; }
+    var error = work_buffer_resize(output, budget, bytes, 0);
+    if error != WorkBudgetError.None { return error; }
+    if text.text.length != 0 { copy(output.data, text.text.data, text.text.length); }
+    output.data[text.text.length] = 0;
+    return WorkBudgetError.None;
+}
+
+fn parser_presentation_format(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): ParserFormat* {
     var names = table.presentation != ParserPresentation.Numeric;
     var descriptions = table.presentation == ParserPresentation.Syntax;
     var request = parser_format_create(table, kind, first, second, names, descriptions);
@@ -51,13 +85,19 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
             var id = convert(u32, index);
             match table.presentation {
                 ParserPresentation.Utf8 => {
-                    text = parser_table_utf8_id_to_string(null, id);
+                    var error = WorkBudgetError.None;
+                    text = parser_table_utf8_id_to_string_result(null, id, &error);
+                    if error != WorkBudgetError.None { request.result.failed = true; }
                 }
                 ParserPresentation.NonTerminal => {
-                    text = parser_table_non_terminal_id_to_string(table.userdata, id);
+                    var error = WorkBudgetError.None;
+                    text = parser_table_non_terminal_id_to_string_result(table.userdata, id, &error);
+                    if error != WorkBudgetError.None { request.result.failed = true; }
                 }
                 ParserPresentation.Syntax => {
-                    text = syntax_parser_token_name(table.userdata, id);
+                    var error = WorkBudgetError.None;
+                    text = syntax_parser_token_name_result(table.userdata, id, &error);
+                    if error != WorkBudgetError.None { request.result.failed = true; }
                 }
                 _ => {}
             }
@@ -74,13 +114,7 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
             compiler_buffer_free(bits(void*, text));
         }
     }
-    var output = parser_format_result(request);
-    var text: u8* = null;
-    if !output.failed {
-        text = format_parser_host_text(output);
-    }
-    parser_format_destroy(request);
-    return text;
+    return request;
 }
 
 // Callers guard this before any formatter request or debug string allocation.

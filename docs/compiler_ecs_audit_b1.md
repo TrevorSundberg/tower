@@ -2244,3 +2244,27 @@ neither batching activation past a declaration nor sharing mutable session cache
 is justified. Next evidence should distinguish cache misses from LR phase cost
 using existing counters/sparse timing, not thousands of GDB breakpoints. No claim
 that this alone explains the unresolved300second fullfrontend timeout.
+
+Bounded diagnostic ownership follow-up (2026-11-23): parser_state.tower now owns
+request error text and transactional diagnostic results through WorkBuffer and
+work_vector; parser_stream.tower transfers allocator identity and physical receipts
+with returned lookahead. frontend_diagnostics.tower and frontend_diagnostic_types.tower
+charge probe descriptors/options/contexts and retain the first LR/resource cause.
+parser_presentation.tower charges retained labels; format_parser.tower,
+parser_table.tower, syntax_emission_lexical.tower and syntax_version_presentation.tower
+distinguish failed label allocation from an absent name. syntax_session_diagnostic,
+syntax_session_next and syntax_template_build carry the exact cause through their
+immediate callers and keep the original syntax message on construction failure.
+The public ParserDiagnostic view stays unchanged; ParserStream ownership fields and
+FrontendExpectation contexts change together with all dependent native consumers.
+No B2 startup or cache-sharing implementation is touched.
+
+The new parser_diagnostic_budget fixture and existing parser/diagnostic-location/
+regex checks pass, including detached lifetime and complete allocation-failure
+cleanup. An actual wrong-allocator crash during implementation was reproduced,
+preserved and fixed with an explicit stream storage-family flag: null-budget work
+buffers cannot be identified by an inactive receipt. Shared formatter scratch and
+description/final-text allocation remain legacy boundaries; this is not complete
+compiler allocation coverage. The small native comparison and exact provenance
+are in the journal. Final integrated instrumentation and deployment remain ROOT's
+pending gates. The earlier open-ended cache investigation is outside this task.

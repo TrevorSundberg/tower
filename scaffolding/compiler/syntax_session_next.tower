@@ -281,7 +281,7 @@ export fn syntax_next(opaque: void*): void* {
             }
             var message = syntax_session_diagnostic(value, recognizer, true);
             defer compiler_buffer_free(bits(void*, message));
-            return syntax_session_fail(value, message);
+            return syntax_session_fail(value, message ?? parser_recognizer_get_error(bits(void*, recognizer)));
         }
         var span = syntax_session_match(root);
         value.cursor = span.start + span.length;

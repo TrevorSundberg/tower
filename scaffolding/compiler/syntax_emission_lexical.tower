@@ -333,6 +333,12 @@ fn emission_literal_name(value: SyntaxEmission*, id: u32): u8* {
 }
 
 export fn syntax_emission_token_text(value: SyntaxEmission*, id: u32): u8* {
+    var error = WorkBudgetError.None;
+    return syntax_emission_token_text_result(value, id, &error);
+}
+
+export fn syntax_emission_token_text_result(value: SyntaxEmission*, id: u32, error: WorkBudgetError*): u8* {
+    *error = WorkBudgetError.None;
     var prefix: u8* = "";
     var suffix: u8* = "";
     var text: u8* = null;
@@ -368,7 +374,9 @@ export fn syntax_emission_token_text(value: SyntaxEmission*, id: u32): u8* {
     if text is null {
         return null;
     }
-    return format_parser_label_text(text, syntax_text_length(text), prefix, suffix);
+    var result = format_parser_label_text(text, syntax_text_length(text), prefix, suffix);
+    if result == null { *error = WorkBudgetError.Memory; }
+    return result;
 }
 
 fn emission_suffix_priority(text: u8*, priorities: u8**, count: usize): bool {
