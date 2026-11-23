@@ -732,3 +732,38 @@ metadata/cleanup. Frame peaks are unchanged; increased suite time/RSS and exact
 source/binary/log identities are in the journal. The original D2failure remains
 recorded. Crosshost/current instrumented validation is still required, and a
 passing finite sample cannot guarantee overlap under every scheduler delay.
+
+## Type-storage continuation draft after9bdbc81
+
+The following is implementation under review, not caller or release acceptance.
+It adds three production paths to the owned audit (two new files and one existing
+file changed). No canonical entity, nominal equality or traversal order changes.
+
+| Path under scaffolding | Full-file review and ownership | Evidence / remaining work |
+| --- | --- | --- |
+| compiler/type_object_index_types.tower | One invocation-private WorkVector owner plus fixed first-error receipt. Descriptors borrow retained canonical roots; copying the owner does not transfer its allocation. Four-byte index representation remains explicit. | Public predecessor smallest passes through implementation/fixture; graph/fast state adoption and dependent ABI rebuild pending L1. |
+| compiler/type_object_index_api.tower | Declaration-only index intern/dispose and two fallible traversal operations. Every intern call supplies the same frozen budget, including existing-entry hits. Semantic boolean output is usable only on None. | L1 reviewed the API; A1 ABI/B2 driver typed-error propagation and D2 actual import/export closure still pending. |
+| compiler/type_objects.tower | Existing semantic identity scan retained. New index validates owner before lookup, preserves old allocation on denied growth, and latches first error. ABI/program scratch uses shared WorkVector with explicit budget and deferred cleanup. Legacy vector/bool entry points remain compatible with explicit null-budget boundaries. | Public smallest passes; prior known-correct type/ABI/reachability suite is the independent semantic oracle. New runtime failure fixture, paired query profiles, caller migration and current instrumentation remain open. Legacy wrappers are not claimed as bounded compiler paths. |
+| tests/type_object_storage.tower | Serial existing-storage-runner fixture uses actual nominal entities and bound recursive calls. It covers widths4/8, start/growth Capacity and Memory, same-budget-on-hit enforcement, semantic identity, first-error preservation and cleanup. Both traversal queries measure successful allocation prefixes and peak, then deny every allocation and the peak-minus-one capacity. | Current expanded fixture smallest passes. Proposed two-line existing runner hook awaits D1 coordination; fault execution remains unrun. Fault transport remains serial and is not race evidence. |
+
+The complete review of semantic_type_execution, semantic_generic_body_work and
+semantic_constructor_work also identifies remaining sem_require calls at
+fallible graph/dispatch boundaries. A2's proposed typed graph errors and A1's
+coordinator error/drain helpers must be joined consistently before changing these
+owned pumps. In particular, TypeExecution currently writes the request receipt
+before terminal graph completion, and GenericBody assumes dispatch success.
+No new failure-handling pass or resource completeness is inferred from the
+successful old graph contract. This next migration is explicitly still open.
+
+The coherent current native compiler ea8daf26 and matching LR/execution/profile
+runners pass query-smoke, required type-smoke and the full type execution suite.
+This independently preserves ABI rejection, ordinary/staged type identity,
+constructors, both widths, canonical reconstruction and worker determinism while
+legacy wrappers now call the fallible traversal implementation. It does not
+execute the new TypeObjectIndex owner or fault fixture. Eight matched profile
+processes preserve all exact outputs/canonical graphs and entity/component counts;
+sampled query medians and process RSS show no observed regression, with material
+large-query timing variation and intervening owner changes explicitly retained in
+the journal. No general speedup, whole-program byte accounting, current sanitizer
+or release acceptance is claimed. The new root97b inspection history and L1 frame
+history are not part of these frozen runtime/profile receipts.

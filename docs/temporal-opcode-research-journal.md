@@ -62235,3 +62235,201 @@ all exit0. Source manifests before/after/final match. Complete cache saved to
 /root/.cache/tower/l1_before_type_index_ad79ff5 and matching scaffolding to
 l1_resources_type_index_ad79ff5. This validates that merged source baseline;
 it does not validate the new stashed TypeIndex consumers or nested-denial phase.
+
+After checkpoint9bdbc814, restored preserved TypeIndex stash043c6b9 without
+conflicts, retaining both journal histories. Reviewed the complete draft again.
+Extended its own storage fixture to exercise canonical exported-function/bound-call
+recursion and both traversal APIs at every measured successful allocation prefix.
+An additional cap exactly one byte below each measured successful peak tests
+partial-scratch rollback without copying an assumed private capacity formula.
+These latest test additions are not yet compiled or executed. Proposed only two
+lines in existing storage_main (import and call); patcha4cf282a46f14e93bf242574150f93bee4d01491e6001e2ac982b1ff6e23ce9b
+passes apply-check but is not applied pending D1 coordination. Fixture export
+2e47896ea50693b7ea81555d270b5c01b5f40dab39ba85b8f410801bf95ae9eb accompanies
+unchanged three-production-path API patch2088. No new standalone test runner.
+
+Source-only review of owned type/generic pumps records still-infallible graph
+request/access/seal/suspend/finish and dispatch assumptions. Requested A1's exact
+shared fixed-resource diagnostic/cleanup helper and A2's finalized graph/transport
+contract before compatible adoption. In particular, terminal completion can fail
+after mutation in the new graph, and dispatch may have admitted jobs before
+failure. Drain before closing input views; do not cancel or borrow ownership of
+unrelated busy-on-entry work. No edits to A1 context/lifecycle or A2 graph in L2.
+L1 owns the current host slot; all this review/fixture work is source-only.
+### L2: next type storage boundary draft after the grammar join, 2026-11-23
+
+After87413 drained, saved the complete7ba14c94 compiler and3cb65c6 resources
+including matching runtime files in l2_type_index_before_3cb (21MiB, full SHA
+manifest). Merged verified root86e7ec98 grammar/arena history into mainb0a051ab;
+post-merge pull preserves that identity and all owned histories. No native rebuild
+of this newer source is claimed yet. Its grammar ABI requires dependent rebuilds.
+
+Full caller audit of type_objects finds two temporary ordinary-vector owners
+(ABI descriptor traversal and runtime-root reachability) plus a descriptor index
+shared by graph execution, FastInterpreter and LLVM lowering. Boolean semantic
+answers cannot encode allocation failure: returning false after denial could
+permit an unsafe foreign ABI or discard canonical type identity. Proposed and
+now drafted additive APIs return WorkBudgetError separately from that answer.
+TypeObjectIndex owns work_vector(FoundationType) plus the first fixed error;
+entries borrow retained canonical descriptors. Callers pass the same explicit
+budget on each operation; a live receipt rejects a different owner. A failed
+replacement retains old entries/capacity/grant. Private indices remain one-based
+with the existing32-bit limit and ordinary semantic_type_equal comparisons.
+
+Only L2-owned production files are changed: type_objects plus new declaration-only
+type_object_index_types/api. Existing vector interning and boolean exports remain
+compatible; boolean wrappers explicitly request a standalone null budget and
+keep their legacy fatal allocation boundary until callers migrate. The traversal
+order and followed relationships are unchanged. L1 acknowledges graph/fast caller
+ownership after its independent frame/task profile. B2 backend/driver and A1 ABI
+consumers, D2 imports/provider audit remain coordinated pending work; no shared
+caller layout was changed by this draft. This does not account every type/entity
+payload or introduce another authoritative graph.
+
+The new unregistered type_object_storage fixture covers32/64 descriptors, exact
+nominal identity, denied initial/growth allocation, preserved entries, wrong-budget
+rejection, first-error latch, independent expected ABI/program answers, real
+recursive world-owned records and every measured ABI scratch allocation-failure
+prefix with zero final grants/buffers. D1 was asked to add the single existing
+serial storage-runner import/call; no new runner or concurrency claim. All tests
+are currently unbuilt, and additional typed program/index failure coverage and
+matching native worker caller validation remain required before acceptance.
+
+L1 granted one subordinate public-pin smallest compilation while its ordinary
+regressions ran. It fails nonzero at type_objects:26: Unknown type constructor
+work_vector,2.48wall/2.20CPU seconds,174088KiB. Transitive imports do not replace
+the defining module import. After actual drain, add direct work_vector_types to
+the implementation and direct defining types to the fixture. No retry under the
+expired grant; L1's paired profile now owns the quiet host. Preserve
+L2/logs/type_index_draft_smallest.log/.time. This is an import error, not a public
+component-cap failure or runtime result. Equivalent before-profile transport is
+prepared from frozen3cb resources and old matching production objects, not run.
+
+Root reports an independent materialization hazard: copying a draft preserved
+older source mtimes than dependent objects, despite changed hashes and correct
+Ninja depfiles. L1 invalidated the resulting partial runtime receipt, drained,
+then rewrote only the three changed inputs byte-identically before rebuilding.
+Frozen hashes alone do not prove object freshness. This lane's new source was
+written freshly; the root merge uses normal Git checkout materialization.
+
+### L2: restored type-storage draft, current leaf evidence (2026-11-23)
+
+The earlier draft's unbuilt labels above describe its original checkpoint.
+Corrected explicit imports then passed public9653 smallest core2.70wall/2.41CPU/
+191348KiB and fixture2.47/2.22/183176, actual46761 drain0 with source hashes
+unchanged. Before overwriting the old native objects, prepared the existing
+type_reachability_profile against matching3cb/7ba resources and objects. The
+first raw-fixture link failed on driver_platform_write because the normal CMake
+host wrapper was omitted. Kept that failed log; the corrected retry used the
+exact existing CMake-generated Tower wrapper and original object link order,
+x86_64-pc-linux-gnu, public9653. No new benchmark logic or entrypoint architecture.
+Actual22980 validation passed5.89wall/5.54CPU/224332KiB. The16/256/1000-function
+independent stdout oracles and canonical/zero-entity-retention checks passed;
+1000-function256-query intervals were1043503363/1073935219/1066610977ns. This
+single validation is not a paired performance claim. Complete before binary,
+object/package manifests and corrected/failed link logs remain outside the live
+cache under l2_type_index_before_3cb and L2/logs/type_index_before_profile_*.
+
+After clone checkpoint9bdbc81, restored the draft and expanded its own fixture
+as recorded above. L1 explicitly granted two sequential one-job public leaf
+compiles during its current TSan aggregate run. Actual11272 drained0; current
+type_objects passed2.79wall/2.62CPU/191396KiB and expanded fixture2e47896e passed
+3.43/2.36/184128. Complete source manifests match. These overlap another lane's
+validation and are costs only, not qualified performance measurements. The grant
+closed after drain; L1 retains the primary host slot. Read-only llvm-nm reports
+exactly one definition of each of the seven legacy/new type_object exports in
+the leaf object, not yet an actual multi-object native/WASI provider proof.
+
+Caller review notes that all five alternative interpreter/evaluation units
+currently receive the implementation through compiler.interpreter's full
+type_objects import; fast_interpreter also imports it in the same lexical unit.
+If thin API imports replace those calls, D2 must retain one explicit provider
+per alternative entry before removing the last implementation import. L1 has
+read the complete2088 API and scheduled graph/fast TypeObjectIndex migration
+after its frozen instrumentation receipt. A1 ABI, B2 driver, D2 provider and D1
+two-line existing storage hook coordination remain open. Prepared fail-fast
+coherent build/storage/query/type and matched reachability-profile transport;
+neither has run. No current API runtime, caller budget, sanitizer or release
+acceptance is inferred from smallest compilation.
+
+Coordinator02:57:48 reports independent B2 acceptance of the exact unchanged
+inspection fixture8178 on ca05 plus complete B1 typed-session patch65074438 and
+consumer613ed. All width4/8 by workers1/4 cases require null on denial, then
+preserved-cache recovery and zero byte/lane/live/world ownership. The17-target
+public ABI build is30.769wall/844120KiB and editor11.6866wall/1031352KiB. This
+resolves that particular prior134 in its stated owner source closure, not yet in
+L2's worktree. Preserve earlier failure and distinguish the remaining early
+version/overlay/seed/lexicon error paths and final sanitizer coverage. Await the
+complete committed owner bundle before coherent local integration; no incompatible
+getter-only adoption or claim that every grammar resource path is complete.
+
+### L2: coherent typed-traversal semantics and matched profile (2026-11-23)
+
+L1 released its primary slot after all jobs/grants drained and explicitly agreed
+to independent L2 core validation while D1's new storage hook was still pending.
+Actual19104 froze main9bdbc81 plus the three2088 production changes and current
+fixture2e47896e. Public9653, Release Linuxx64, per-compiler jobs1, CMake -j2,
+same WSL/LLVM19 host and warm dependency cache. All60 affected build steps for
+compiler/LR/execution/existing reachability profile passed125.49wall/200.59CPU/
+791660KiB. Query-smoke passed .17wall/.19CPU/73660KiB, including calibrated
+8192-node clone overlap,22 publication and24 resource cases. Required type-smoke
+passed284.39wall/305.26CPU/248624KiB; full type execution passed66.12/70.75/432684.
+These include canonical reparsing, errors/cycles, graph/cache engines, type
+constructors/captures, target widths and worker determinism. New index/fault
+fixture execution remains NOT RUN because its proposed existing-runner hook is
+not yet registered. Smallest compilation is not a substitute for that gate.
+
+Compiler ea8daf26c65a3460d004328c2b8a2d1d639b43d7a9ca409645a2219d286d74c7,
+LR8d533e34c13ee98d807445d7991ebddd05c1330c4ee0cfbedb14b0122fd28675,
+execution04e8789d17736a9839c50680e6c50b884bd7aaa8a6b3e2bafc24dc383b35aa23,
+profile60a05c2138aa9b4c0a5cf71a29d6c81ef6fdaa6a96db8fd0a43f2fa409a6ab6d.
+Source Tower/CMakeLists/cmake manifests match. Exact logs type_index_core_*.
+The rebuild incorporated root0c's previously unbuilt compiler/provider changes;
+it is not validation of the subsequently announced root97b or L1 frame layouts.
+
+Actual17088 then ran eight existing reachability-profile processes on the quiet
+owned host: one warmup pair plus three retained alternating before/after pairs.
+Before is the preserved3cb/7ba linked profile; after is60a05c21. Both consume the
+same immutable3cb resources and identical16/256/1000-function generated source.
+Each process checks the independent numeric output, runs three256-query serial
+samples per size, compares canonical Foundation before/after, and verifies no
+entity/component retention. All eight exit0. Pre/post binary, package and source
+hashes match; no source changes or sibling builds/profiles overlap this window.
+
+Median of the nine retained inner query samples per size (each256 queries):
+
+| Functions | Before / after wall ms | Before / after CPU ms |
+| --- | --- | --- |
+| 16 | 2.612 / 2.400 | 2.674 / 2.457 |
+| 256 | 80.846 / 77.118 | 82.711 / 78.899 |
+| 1000 | 989.831 / 913.574 | 1008.715 / 938.008 |
+
+All underlying samples are retained. Large-query intervals vary .791-1.231s before
+and .736-.965s after; the ranges overlap. Per-process retained medians are4.84 to
+4.53wall,5.36 to4.92CPU,223192 to220152KiB peak RSS. The whole process includes
+checking/interpretation/formatting beyond the timed read-only query. Entity counts
+17258/34537/88105 and component counts19851/41929/110377 agree across every run.
+Zero final entity retention is not a complete allocation-count measurement; the
+typed failure fixture will separately observe physical grants and allocations.
+The pure reachability scan is serial within one graph; the semantic suites above
+cover worker compatibility, not parallel speedup of this scan. These samples show
+no observed regression for this workload but do not establish a general speedup
+or isolate all intervening root0c changes from the old3cb executable. No algorithm
+change was introduced to chase these noisy timings. Logs type_index_profile_*.
+
+Both19104 and17088 drained0; released the exact L2 host lock to L1. Fetched but
+did not merge verified complete L145dd8eb bundle9757903559ff1564a3637fc19f80bf1cadc7375bc66b9cc75baadcb21a1c9c6c
+during the freeze. Git again emitted pack-index-unavailable diagnostics; afterward
+that old pack was absent, current multi-pack-index verification and connectivity
+fsck passed. No pack deletion/force/reset was attempted. The earlier diagnostic
+remains recorded, rather than presenting its invocation as warning-free.
+
+Root03:13 announces complete97b10daa inspection union, still unmerged here, and
+reports D1 independently reproduced the old clone2-worker failure before beginning
+the exact2cb32 remediation matrix. Clone output/world/grants retire before the
+overlap assertion, but graph and synchronization handles still use lexical defer
+and require normal return; do not claim every handle is closed before fatal
+assertion. Broader grammar/phase/resource/provider issues and current joined
+ASan/TSan, public bootstrap/generation/browser, coordinator-leased atomic push and
+hosted verification remain open. This is a compatible API/source checkpoint,
+not full type-storage or compiler completion.
