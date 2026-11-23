@@ -131,3 +131,14 @@ Commands: `tower-frontend-units-profile /work/scaffolding 1 W N dependencies
 build logs retain exact invocations. Later-source integrated platform,
 generation, browser and sanitizer acceptance remain pending and ROOT-owned.
 The accepted whole-generation receipt and public pin are unchanged.
+
+Publication reconciliation: implementation `f16cde13` merged complete incoming
+history through `cc21bb4e` as `4fd5ab83c11dbcb41a39eaff166a0a9d6dbacadc`.
+No observation/scheduling file conflicted and both journal histories remain.
+Incoming generic-inspection inputs required four native build actions; query
+smoke and unit-admission/cancellation pass again. Merged4096-body1/4 controls
+retain exact source/canonical bytes, known42 results and peak4 semantic kernels.
+Their canonical SHA256 is
+`9c0daad4b6b7d0d94eeb27c99fe30c27e37cee1cabc3555c7db83a67278d0039`.
+These are separate affected-source correctness checks, not a relabeling of the
+frozen performance samples. `b2_within_merged_*` logs retain this validation.
