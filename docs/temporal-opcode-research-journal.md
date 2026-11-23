@@ -49002,3 +49002,64 @@ production suite above passed. Two-file incremental handoff
 B2_frontend_derived_counts.patch SHA5ded8e80017fcfb58f140b9b95d3613f2f165bfc3b869a7e3b58ecb86b2a2dee
 follows6e961029. This checkpoint precedes a8ec/bad3 storage-error reporting and
 its semantic coordinator counterpart; no partial-ABI acceptance or publication.
+
+### B2 joint arena and defined initialization-order validation
+
+Adopted A2_work_memory_v5 b8b0c9b7 after source comparison: the eight existing
+buffer/type/fixture files match current content apart from a removed blank EOF;
+only six additive arena library/fixture paths were copied. Reviewed stable
+chunk allocation, checked alignment/overflow, physical-header charging, rollback,
+whole-owner append after joins, cancellation and free-before-release. The arena
+is worker-private; slices have no individual free/destructor. WorkBudget metadata
+and pointer-index storage remain explicit separate costs. Owner receipt86b357b9
+contains normal/shared/serial-fault, supported ASan/TSan and actual WASI32 checks;
+that receipt covers those exact library artifacts, not this combined compiler.
+
+Local public-pin arena normal/shared/fault/profile smallest units PASS in
+1.655783167/1.714525630/1.592963256/1.761417798wall seconds; peakRSS
+210708/217564/208832/217588KiB. Fresh native normal/shared/serial-fault tests PASS
+.000955115/.003256212/.000714914wall; sharedCPU.003201s/RSS1664KiB. These tiny
+checks are functional evidence, not useful speed measurements (CPU resolution
+rounds two observations to zero). Shared fixture proves four distinct worker
+threads with barriers and checks retained stable slices after transfer/denial/
+cancellation, then final zero grants. Logs build/b2_joint_additions_smallest.log
+and build/b2_joint_additions_runtime.log retain all observations.
+
+D1 known-order8ee87576 now admits the original raw-forward-read source without
+executing it as a portable comparison. Fully initialized state independently
+expects1,1,7 across graph/fast/cache/reparse/worker counts at both target widths;
+demanded earlier-read staging retains the exact before-initialization diagnostic.
+D1 numericf9187ba5 adds only missing Foundation imports; numeric expectations
+remain unchanged. D2ad306d0a supplies three defining imports. D1c6ad23af/dfb232e4
+register existing serial snapshot faults with a focused allocations selector;
+B2's existing root wrapper was retained. README context check failed without
+mutation; source hunk applied, identical selector paragraph appended to current
+README. Smallest frontend/known/query units PASS; native42-step refresh
+33.243253497wall/176.481654CPU/838708KiB. Focused allocations PASS
+1.144592676/1.104470/163228. Known suite PASS47.396460936/52.863772/352040,
+aggregate18.327805497/20.431039/340736, narrow20.284136324/21.827894/348924,
+negation1.436375511/1.452184/192268. No failed/unsupported raw-read result was
+reclassified as a defined-value pass. Current shared error-field ABI is pending.
+
+### B2 cache handoff identity correction
+
+Root/D2 reported warm18-layer diamond queries slower than cold parses in their
+current source. Source inspection identifies an integration mismatch: their
+recursive module_cache_valid lacks B2's existing a3aa646 fix documented above.
+No new production cache implementation was needed. Exported only the two cache
+hunks, excluding unrelated explicit source-length changes:
+B2_module_cache_unique_graph.patch SHAdeba07ac09bed03e9ef2afd057d336e02fa65f2f6676eb060116cf2609745f6d.
+Reverse applicability check passes on current B2. The unique graph.order scan
+checks every import edge's current lexical resolution and returned source bytes;
+no persistent validity memo or alternate graph was added. Completed-dependency
+and cycle invariants establish cacheability. Original quiet n6 before/after
+measurements above remain the matched performance evidence.
+
+Fresh unchanged093 measurement entry, current complete IM ABI and production
+native allocator/transport closure PASS. Binary585941002b6a7fecef8f5bd6fe350b27c6f2a9257d635118d7618e45106b4498;
+whole process.095590157wall/.094852CPU/62216KiB. Three18-layer warm samples at
+world limit1 are.210242/.181075/.158210ms, limit4 .157519/.151317/.146889ms;
+retained counts7047entities/8725components unchanged, changed shared-leaf grammar
+invalidation and final teardown pass. This refresh had no quiet lease; it is
+functional/current-source evidence, not a new isolated performance comparison
+or proof of useful cache parallelism. Log build/b2_cache_joint_current.log.

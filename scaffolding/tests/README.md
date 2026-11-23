@@ -854,3 +854,8 @@ counts, then closes each session. Query wall/CPU exclude compilation, execution
 and formatting; process peak RSS includes them. Entity/component counts do not
 measure all temporary buffer allocations. No parallel-query or end-to-end
 speedup is implied.
+
+`tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
+frontend snapshot allocation-failure checks without the unrelated body/parser
+matrix. The default frontend invocation still runs these checks. This selector
+does not provide production threading or whole compiler sanitizer coverage.

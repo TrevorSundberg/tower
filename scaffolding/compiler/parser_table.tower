@@ -5,6 +5,7 @@ import lr_api;
 import lr_types;
 import frontend_diagnostic_types;
 import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_budget_types;
 import .library.work_vector;
 import parser_markers;

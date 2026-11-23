@@ -2,6 +2,7 @@ import tower;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.interpreter_context_types;
+import .compiler.interpreter_types;
 import .compiler.format_api;
 import .library.vector;
 import .library.work_budget;

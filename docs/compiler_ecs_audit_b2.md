@@ -509,3 +509,16 @@ current production units/actual backend overlap pass after the full ABI rebuild.
 Other interpreter vectors and the previously listed constructor/store/module/
 WorkPool/backend scope remain open. Shared storage-error propagation, matched
 combined caller costs and complete current instrumentation are still pending.
+
+A2v5 adds reviewed library/work_arena.tower, work_arena_types.tower and four
+work_arena{,_shared,_faults,_profile} fixtures. Private stable chunks use the
+shared ledger and whole-owner transfer after joins; no per-object grants or
+second scheduler. Census243 assigned +37 supporting +87 fixtures =367/367 paths.
+Local normal/shared/fault passes and owner scoped instrumentation/WASI receipts
+are recorded in the journal; this is not joint-compiler sanitizer acceptance.
+Known/aggregate/numeric/serial snapshot selectors pass current IM ABI. Root/D2's
+cache regression source lacked existinga3aa646 unique-index traversal; exported
+minimal cache-only patch and refreshed current093 functional measurement. No
+new production cache change or duplicate memo was introduced. Constructor/store/
+WorkPool budget integration and current shared storage-error propagation remain
+open with A2/A1/L1; backend target physical-header accounting is under validation.
