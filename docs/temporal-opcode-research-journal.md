@@ -87713,3 +87713,25 @@ is inapplicable. All normal/shared/LLVM/cross outputs remain their prior frozen
 b0 artifacts until affected providers are rebuilt. Documentation publication
 reuses the current verified Pages runtime and cannot claim the new compiler
 has deployed. The original todo.txt bytes remain unchanged.
+Publication reconciliation: complete public7ebb80d5 merged as9e1662d2f0df4269507c8ddafc334655c2e0c1e9,
+including B1 LR, L2 known-scan, A2 source-comment and L1 backend repairs.
+The two preexisting non-UTF8 journal bytes were restored exactly from31e16e9e
+before merging; final journal diff against public is appended evidence only.
+Affected native providers rebuilt33.78s wall/47.88s CPU; both registered alias
+suites PASS in22.66s total on this merged source. Fixture
+4f0e9f8217468f89b53cb69cec31227fa0ef7f2ac6efef654aa64f2a94c7b07c;
+compiler11a448be22d0cbd46eafa8fc5481d43c6ab9b30de478a419cdf2cfc847adfca4.
+Portable parser/semantics providers rebuilt23.79s wall/33.45s CPU; Wasm
+224e189c87d572dd108a3e0872ec2abeed5840a72fe596d0ea454ff998d40e55.
+Unchanged Node IDE runner passes every completion section, then fails the same
+pointer/array hover assertion (exit1,14.36s wall/12.93s CPU/197928KiB RSS).
+Frozen source/build/bootstrap manifestcc185dd0e08eaad5329f1a80dff5d2cdf4b3c770f1537e0c67f5e543f9a46c5e
+matches after both runs; exact a1_alias_merged_* logs/artifacts remain in A1 cache.
+Ordinary hidden-name diagnostics again match public predecessor bytes at3:7,
+and qualified calls execute20 at jobs1/4. A minimal merged healthy sample gives
+jobs1:1.05s wall/.86s CPU/184020KiB; jobs4:1.15s/1.28s/188108KiB (n=1).
+The incoming LR changes intervene, so neither this improvement versus the prior
+freeze nor the small worker-count difference is attributed to the alias fix.
+No useful parallel speedup is claimed for this tiny sample. All owned jobs are
+drained. Normal main push publishes the repaired alias producer; the separate
+full IDE/generation/hosted acceptance remains ROOT's recorded pending gate.
