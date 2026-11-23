@@ -21,15 +21,22 @@ add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
 if(policy_triple MATCHES "^x86_64-.*linux")
+  # Both declaration-only entity clients share one implementation object. Each
+  # executable selects its existing normal or single-owner fault allocator.
+  tower_runtime_object(entity-create-provider
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower" "${policy_triple}")
   # Buffer/arena fixtures import host.memory; the ledger fixture links the
   # existing memory object. All use the single-owner fault allocator/transport.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation)
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
     set(fault_memory)
-    if(unit STREQUAL "work_budget_allocation")
+    if(unit STREQUAL "work_budget_allocation" OR unit STREQUAL "entity_create_faults")
       list(APPEND fault_memory "${host_memory_OBJECT}")
+    endif()
+    if(unit STREQUAL "entity_create_faults")
+      list(APPEND fault_memory "${entity-create-provider_OBJECT}")
     endif()
     add_executable(tower-${name}-tests
       "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")

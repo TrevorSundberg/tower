@@ -2156,3 +2156,23 @@ registry wrappers carry sanitizer attributes/init but no payload-access hooks.
 Two overstrict evidence-script failures were corrected from inspected IR/symbols,
 not ignored. No UBSan support in this TowerLLVM19 path, external libraries remain
 uninstrumented, and no universal race/whole-compiler claim follows.
+
+### ROOT72a integration and durable entity registration at a7c569cc
+
+Tracked inventory1,095 /509 D1 direct (497tests/editor/playground+12examples),
+all direct bodies reviewed. Snapshots current_a7c_all.txt/current_a7c_d1.txt in
+external D1/roster. New fixture rows at reviewed root72a218b8:
+
+| Path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/entity_create_result.tower | Typed declaration-only client with private per-call receipts. Covers null owner/output, pinned Busy before Exhausted, finite counter boundary, independent error variables, unchanged seeded store error/count/reference state, same-store unattached related entity then ordered named attachment. Releases all entities/store. Legitimate finite counter mutation avoids huge allocations; no concurrency or packed-storage claim. Owner evidence retained; new D1 normal registration implemented, unrun. |
+| scaffolding/tests/entity_create_faults.tower | Existing serial allocator injects one physical denial in each creation API, resets injection before assertions, preserves identity/live buffers/references/children and counts exact attempts, then retries same next ID and returns to baseline. Distinct from production concurrent instrumentation. Declaration-only client needs shared entities/memory providers and serial allocator; new D1 fault registration implemented, unrun. |
+| scaffolding/tests/entity_views.tower | Full prior view cases retained. New finalizer traps because all fixture registrations have lifecycle0; completes standalone linking without accepting unexpected finalization. No altered invalid-view oracle or lifetime guarantee. |
+
+D1 extends only existing normal/fault CMake mechanisms, with one compiled entities
+object shared across the two executables and the existing memory object once per
+link. Normal guest runtime and fault runtime/serial transport remain distinct.
+No new Tower implementation, allocator, entry wrapper or fixtures. Root assigned
+these exact generic registrations; D2 manifest coordination sent before edits.
+Current newly merged production inputs and registrations still require D1 runtime
+validation; prior target_once evidence remains tied to prejoin7f84.

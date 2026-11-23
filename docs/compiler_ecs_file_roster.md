@@ -1395,3 +1395,19 @@ D1 owns only the approved semantic_resource_checks phase adaptation and its
 lr_work_main resource-smoke registration. L2 owns the separately authorized
 storage_main type-object hook, B1 the frontend grammar-resource selector.
 No new runner/manifest/provider is introduced by D1.
+
+### ROOT72a integrated at D1a7c569cc
+
+Current tracked census1,095 Tower paths /509 D1 direct paths. External snapshots
+D1/roster/current_a7c_all.txt and current_a7c_d1.txt match exact tracked paths.
+Both new files have substantive rows at reviewed72a218b8 in the D1 audit:
+
+| New tracked path | Roster owner | Specific implementation reservation |
+| --- | --- | --- |
+| scaffolding/tests/entity_create_result.tower | D1 | A2 fixture/producer; D1 normal registration assigned by root |
+| scaffolding/tests/entity_create_faults.tower | D1 | A2 fixture/producer; D1 serial fault registration assigned by root |
+
+Existing entity_views finalizer and target_once memory-provider delta retain
+prior fixture intent. New A1 semantic receipt/dispatch fixtures remain outside
+this tracked census until complete producer handoff; no declaration-only partial
+ABI or count-only acceptance is claimed.

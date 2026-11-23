@@ -828,6 +828,22 @@ retain charges after joins/cancellation until disposal. The shared fixture uses
 four real worker threads. The separate faults fixture uses only the existing
 single-owner allocation injector and serial transport; it is not race coverage.
 
+The declaration-only entity creation fixtures use the same registration rules:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
+  tower-entity-create-result-tests tower-entity-create-faults-tests
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
+  -R '^tower-entity-create-(result|faults)-tests$'
+```
+
+Both link the shared entities implementation and exactly one existing memory
+provider. The result fixture uses the production allocator and checks private
+receipts, pinned views, finite identities, ordered relations and cleanup. The
+fault fixture uses the existing single-owner allocator/serial transport and checks
+denied allocation, unchanged ownership and successful retry. These fixtures are
+serial API checks; neither establishes worker overlap.
+
 Five measurement targets are excluded from the default build and CTest. Request
 one explicitly, with exclusive host budget and frozen inputs:
 
