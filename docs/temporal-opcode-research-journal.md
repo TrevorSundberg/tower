@@ -95450,3 +95450,11 @@ docs-only performance inapplicable. No owned child build, container only sleep;
 disk127GiB/RAM9.8GiB, todo unchanged, D2 heavy slot untouched. Publish this precise
 prerequisite if final normal reconciliation still lacks a5ffb99d, then stop; the
 requested changed-source review remains open for ROOT/L2 publication.
+
+T8 final publication race recovery: normal push rejected while D1 published its
+9e481050 review-prerequisite receipt. Merge18a5d3b0b4cbc4fc546aca171e21ee77f153650d
+preserves that honest blocked review unchanged; publication here supplies its
+missing complete implementation history, not an independent approval. Incoming
+changes are documentation only; backend/compiler/library/host/CMake blobs match
+the validated gate adoption exactly. No runtime rerun. Todo SHA remainsb927852f,
+all owned jobs drained, source checks reused by identity; retry normal main push.
