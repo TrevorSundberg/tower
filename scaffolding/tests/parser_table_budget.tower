@@ -8,11 +8,32 @@ import lr_control_types;
 import .compiler.parser_table_types;
 import .compiler.grammar_types;
 import .compiler.format_types;
+import .compiler.parser_types;
+import .compiler.component_kinds;
 import .library.work_budget;
 import .library.work_budget_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn parser_stream_utf8_null_terminated_create(text: u8*): void*;
+extern fn parser_stream_destroy(stream: void*): void;
+extern fn parser_recognizer_create(table: ParserHostTable*, stream: void*): void*;
+extern fn parser_recognizer_destroy(request: void*): void;
+extern fn parser_recognizer_step(request: void*, running: bool*): void*;
+extern fn parser_recognizer_resource_error(request: void*): WorkBudgetError;
+extern fn parse_forest_create_result(budget: WorkBudget*, error: WorkBudgetError*): void*;
+extern fn parse_forest_destroy(forest: void*): void;
+extern fn parse_forest_resource_error(forest: void*): WorkBudgetError;
+extern fn parse_forest_leaf(forest: void*, node: void*, result: ForestBudgetSpan*): bool;
+extern fn parse_forest_join(forest: void*, result: ForestBudgetSpan*, first: usize, last: usize, capture: u8*): bool;
+extern fn parse_forest_attach(forest: void*, parent: void*, first: usize): bool;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_create(store: void*): void*;
+extern fn tower_node_get_child_member(node: void*, name: u8*): void*;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn lr_completion_create(parser: void*): void*;
@@ -35,6 +56,166 @@ fn parser_control_occupy(budget: WorkBudget*, available: usize, reservation: Wor
     utility_check(work_budget_reserve_result(budget, 0, 0,
         snapshot.bytes - snapshot.used_bytes - available, reservation) == WorkBudgetError.None,
         "Reserve competing parser control bytes");
+}
+
+struct ForestBudgetSpan { first: usize; last: usize; }
+var ForestGrowthProbeLimit: usize = 128;
+
+// Isolate the temporary index ledger from entity storage. Discover its actual
+// growth boundary by denial rather than duplicating the vector's capacity policy.
+fn parser_forest_budget_test(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Forest physical ledger");
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    var error = WorkBudgetError.None;
+    utility_check(parse_forest_create_result(&budget, &error) == null && error == WorkBudgetError.Capacity,
+        "Forest descriptor denial retains exact Capacity");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release forest descriptor blocker");
+    tower_test_buffer_fail_after(0);
+    var forest = parse_forest_create_result(&budget, &error);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(forest == null && error == WorkBudgetError.Memory, "Forest descriptor allocation failure is Memory");
+    forest = parse_forest_create_result(&budget, &error);
+    utility_check(forest != null && error == WorkBudgetError.None, "Forest descriptor retry");
+    var opened: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &opened) && opened.used_bytes != 0 && opened.live == 1
+        && opened.used_lanes == 0, "Forest descriptor retains physical bytes without worker lanes");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Forest entity owner");
+    var node = entity_create(compiler_world_store(world));
+    var parent = entity_create(compiler_world_store(world));
+    utility_check(node != null && parent != null, "Forest supplied leaf and parent");
+    var span = init(ForestBudgetSpan) {first: frontend_world_unlimited(), last: frontend_world_unlimited()};
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(!parse_forest_leaf(forest, node, &span)
+        && parse_forest_resource_error(forest) == WorkBudgetError.Capacity
+        && span.first == frontend_world_unlimited(), "Denied first leaf preserves caller ownership and output");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release forest leaf blocker");
+    tower_test_buffer_fail_after(0);
+    var inserted = parse_forest_leaf(forest, node, &span);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(!inserted && parse_forest_resource_error(forest) == WorkBudgetError.Memory,
+        "Leaf physical allocation failure preserves its exact cause");
+    utility_check(parse_forest_leaf(forest, node, &span)
+        && parse_forest_resource_error(forest) == WorkBudgetError.None, "Leaf retry transfers ownership once");
+    var denied = false;
+    for(var probe: usize = 0; probe < ForestGrowthProbeLimit && !denied; probe++) {
+        var before: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &before), "Capture growth snapshot");
+        var joined = init(ForestBudgetSpan) {first: frontend_world_unlimited(), last: frontend_world_unlimited()};
+        parser_control_occupy(&budget, 0, &occupied);
+        var ok = parse_forest_join(forest, &joined, span.first, span.last, "outer");
+        if !ok {
+            denied = true;
+            var failed: WorkBudgetSnapshot = default;
+            utility_check(parse_forest_resource_error(forest) == WorkBudgetError.Capacity
+                && joined.first == frontend_world_unlimited() && joined.last == frontend_world_unlimited()
+                && work_budget_snapshot(&budget, &failed)
+                && failed.used_bytes == before.used_bytes + occupied.bytes && failed.live == before.live + 1,
+                "Denied capture growth keeps the old index and receipts intact");
+        }
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release capture growth blocker");
+        if !ok {
+            utility_check(parse_forest_join(forest, &joined, span.first, span.last, "outer")
+                && parse_forest_resource_error(forest) == WorkBudgetError.None, "Capture growth retry");
+        }
+        span = joined;
+    }
+    utility_check(denied, "Forest fixture reaches an actual child-index growth boundary");
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(!parse_forest_attach(forest, parent, span.first)
+        && parse_forest_resource_error(forest) == WorkBudgetError.Capacity && entity_child_count(parent) == 0,
+        "Denied traversal storage preserves the unattached leaf");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release traversal blocker");
+    tower_test_buffer_fail_after(0);
+    var attached = parse_forest_attach(forest, parent, span.first);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(!attached && parse_forest_resource_error(forest) == WorkBudgetError.Memory
+        && entity_child_count(parent) == 0, "Traversal allocation failure preserves ownership");
+    utility_check(parse_forest_attach(forest, parent, span.first)
+        && parse_forest_resource_error(forest) == WorkBudgetError.None
+        && entity_child_count(parent) == 1 && tower_node_get_child_member(parent, "outer") == node,
+        "Traversal retry preserves the entity and outer capture");
+    parse_forest_destroy(forest);
+    utility_check(work_budget_snapshot(&budget, &opened) && opened.used_bytes == 0 && opened.live == 0,
+        "Forest retirement releases descriptor and both index receipts");
+    utility_check(tower_node_get_child_member(parent, "outer") == node, "Attached entity outlives its forest");
+    entity_release(parent);
+    utility_check(compiler_world_dispose(world) && work_budget_dispose(&budget), "Forest owners retire in lifetime order");
+    utility_check(tower_test_buffer_count() == buffers, "Forest denial and retry retain no physical buffers");
+}
+
+// The table and request already exist. Deny the first real match-component page
+// in a shift or empty reduction, then retry after releasing the competing grant.
+fn parser_tree_budget_trial(shape: TableOwnerFixture, specialize: bool, warm_match: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Tree page ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Tree world binds its ledger before entity storage");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Tree page component kinds");
+    var root = table_owner_grammar(&kinds, shape);
+    if warm_match {
+        var warm = entity_create(compiler_world_store(world));
+        utility_check(warm != null && compiler_world_component(world, warm, CompilerParserMatch) != null,
+            "Warm match storage so the next byte denial reaches forest growth");
+        entity_release(warm);
+    }
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && parser_table_build(table, specialize), "Tree page frozen table");
+    var input: u8* = shape == TableOwnerFixture.Sequence ? "ab" : "x";
+    var control = lr_parser_create(table.runtime, false, specialize);
+    utility_check(control != null, "Tree page control reference");
+    var first: LRStep = default;
+    var action = shape == TableOwnerFixture.Sequence ? (specialize ? LRSequenceShift : LRShift) : LRReduce;
+    utility_check(lr_parser_step(control, true, convert(u32, input[0]), false, 0, 1, &first) == action,
+        "Tree page denial targets the intended shift or empty reduction");
+    lr_parser_destroy(control);
+    var stream = parser_stream_utf8_null_terminated_create(input);
+    var request = parser_recognizer_create(table, stream);
+    utility_check(stream != null && request != null, "Tree page request exists before denial");
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Tree page initial ownership");
+    var entities = entity_store_count(compiler_world_store(world));
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    var running = false;
+    var result = parser_recognizer_step(request, &running);
+    utility_check(result == null && !running
+        && parser_recognizer_resource_error(request) == WorkBudgetError.Capacity,
+        "Tree component or forest growth denial preserves Capacity through the recognizer");
+    var failed: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &failed)
+        && failed.used_bytes == before.used_bytes + occupied.bytes
+        && failed.live == before.live + 1 && failed.used_lanes == before.used_lanes
+        && entity_store_count(compiler_world_store(world)) == entities,
+        "Denied tree page releases its unpublished node and retains prior owners");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release tree page blocker");
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(stream);
+    stream = parser_stream_utf8_null_terminated_create(input);
+    request = parser_recognizer_create(table, stream);
+    utility_check(stream != null && request != null, "Tree page request retries");
+    running = true;
+    while running { result = parser_recognizer_step(request, &running); }
+    utility_check(result != null && parser_recognizer_resource_error(request) == WorkBudgetError.None,
+        "The unchanged tree input succeeds when capacity returns");
+    var data = bits(ParserMatchData*, compiler_world_component(world, result, CompilerParserMatch));
+    utility_check(data != null && data.start == 0 && data.length == strlen(input),
+        "Tree retry preserves the complete counted source span");
+    entity_release(result);
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(stream);
+    parser_table_destroy(table);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && work_budget_dispose(&budget),
+        "Tree page ledger outlives all parser and world owners");
+    utility_check(tower_test_buffer_count() == buffers, "Tree denial and retry release every buffer");
 }
 
 fn parser_control_budget_trial(specialize: bool): void {
@@ -389,6 +570,12 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
 }
 
 fn parser_table_budget_tests(): void {
+    parser_forest_budget_test();
+    parser_tree_budget_trial(TableOwnerFixture.Sequence, false, false);
+    parser_tree_budget_trial(TableOwnerFixture.Sequence, true, false);
+    parser_tree_budget_trial(TableOwnerFixture.EmptyClosure, false, false);
+    parser_tree_budget_trial(TableOwnerFixture.Sequence, false, true);
+    parser_tree_budget_trial(TableOwnerFixture.Sequence, true, true);
     parser_table_budget_trial(TableOwnerFixture.Sequence);
     parser_table_budget_trial(TableOwnerFixture.Closure);
     parser_control_budget_trial(false);

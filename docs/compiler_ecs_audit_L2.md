@@ -930,3 +930,22 @@ The complete before/after packages and source hashes are immutable; matched cost
 and current instrumentation remain pending. Structural node/metadata accounting
 still requires shared result APIs and coordinated callers, separately from this
 accepted local scratch behavior.
+
+Quiet86934 now supplies32 checked processes at one actual executable/resource
+path on9cedd12, with one warmup and three alternating retained pairs per case.
+Constructor wall medians1.53->1.55s (j1),1.28->1.30s (j4); generic1.54->1.58s
+and1.30->1.32s. Serial generic CPU1.52->1.57s remains a measured positive cost,
+not neutrality. RSS medians change by -832 to+24KiB. Source-window revisitation
+and new ledger admission are candidate costs, not isolated causal findings.
+The complete117-file receipt3073a8d3 and exact environment/input/package hashes
+are recorded in the journal. Current supported instrumentation remains pending
+the next coherent L1 ownership union; old ASan/TSan receipts are not relabeled.
+
+ROOT also assigned L2 the existing-provider late-inspection phase extraction
+and preserved D1 Cancel4 failure diagnosis. Neither is implemented/closed by
+these scratch results. Actual ff3 logs show sequential distinct-thread kernels
+and correctly failing overlap134 on cpuset0,2, while get_nprocs admitted4.
+ROOT assigned the affinity-aware Linux provider to D2. The serial calibration
+was not a lower bound for worker duration; controlled calibration diagnosis
+remains open without weakening overlap. Late inspection will reuse the current
+completion_semantic_failed owner after the frozen scratch instrument milestone.

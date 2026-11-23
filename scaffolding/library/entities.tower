@@ -635,7 +635,8 @@ export fn entity_member_index(parent: Entity*, name: u8*): usize {
 
 fn entity_unlink(child: Entity*): void {
     var parent = child.parent;
-    var index = entity_child_index(parent, child);
+    var index = parent.child_count - 1;
+    if parent.children[index].entity != child { index = entity_child_index(parent, child); }
     free(parent.children[index].name);
     parent.child_count--;
     var following = index + 1;
@@ -648,32 +649,40 @@ fn entity_unlink(child: Entity*): void {
 // Ordered, named containment owns children. Other semantic links remain borrowed.
 // Reserve/copy before changing ownership; a failed allocation leaves links intact.
 export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
-    if child.stage != null || (parent != null && parent.stage != null) { return false; }
-    var pinned = child.store.views != 0;
-    if pinned {
-        return false;
-    }
-    if child == parent {
-        return false;
-    }
-    var named: u8* = null;
+    return entity_attach_result(child, parent, name) == WorkBudgetError.None;
+}
+
+export fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): WorkBudgetError {
+    if child == null || child == parent { return WorkBudgetError.Invalid; }
+    if parent != null && parent.store != child.store { return WorkBudgetError.Invalid; }
+    if child.stage != null || (parent != null && parent.stage != null)
+        || (child.parent != null && child.parent.stage != null)
+        || child.store.views != 0 { return WorkBudgetError.Busy; }
+    var attached = child.parent != null;
     var attaching = parent != null;
+    var maximum = ~convert(usize, 0);
+    if attaching && !attached && child.references == maximum { return WorkBudgetError.Exhausted; }
+    var named: u8* = null;
+    var replaced: Entity* = null;
     if attaching {
-        if parent.store != child.store {
-            return false;
+        if name != null && *name != 0 {
+            var previous = entity_member_index(parent, name);
+            if previous < parent.child_count {
+                replaced = parent.children[previous].entity;
+                if replaced.stage != null { return WorkBudgetError.Busy; }
+            }
         }
         if parent.child_count == parent.child_capacity {
+            var limit = maximum / sizeof(EntityChild);
+            if parent.child_capacity > limit / 2 { return WorkBudgetError.Invalid; }
             var capacity = parent.child_capacity *2;
-            if capacity < parent.child_capacity {
-                return false;
-            }
             if capacity < 4 {
                 capacity = 4;
             }
             var next = realloc(EntityChild, parent.children, capacity);
             var failed = next == null;
             if failed {
-                return false;
+                return WorkBudgetError.Memory;
             }
             parent.children = next;
             parent.child_capacity = capacity;
@@ -682,17 +691,19 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
         has_name &&= *name != 0;
         if has_name {
             var length: usize = 0;
-            for(; !(name[length] == 0); length++) {}
+            for(; name[length] != 0; length++) {
+                if length == maximum { return WorkBudgetError.Invalid; }
+            }
+            if length == maximum { return WorkBudgetError.Invalid; }
             length++;
             named = alloc(u8, length);
             var failed = named == null;
             if failed {
-                return false;
+                return WorkBudgetError.Memory;
             }
             copy(named, name, length);
         }
     }
-    var attached = child.parent != null;
     if attached {
         // Transfer the old parent's reference directly to the new relationship.
         entity_unlink(child);
@@ -702,14 +713,9 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
         }
     }
     if attaching {
-        var has_name = named != null;
-        if has_name {
-            var previous = entity_member_index(parent, named);
-            if previous < parent.child_count {
-                var replaced = parent.children[previous].entity;
-                entity_unlink(replaced);
-                entity_release(replaced);
-            }
+        if replaced != null && replaced != child {
+            entity_unlink(replaced);
+            entity_release(replaced);
         }
         parent.children[parent.child_count].entity = child;
         parent.children[parent.child_count].name = named;
@@ -720,7 +726,7 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
             entity_release(child);
         }
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entity*): bool {

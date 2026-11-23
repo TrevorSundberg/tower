@@ -1,4 +1,5 @@
 import tower;
+import .compiler.component_kinds;
 import .library.entity_types;
 import .library.work_budget;
 import .library.work_budget_types;
@@ -54,6 +55,7 @@ fn world_constructor_trial(cap: usize, allowed: usize, wanted: WorkBudgetError):
 
 export fn world_constructor_tests(): void {
     utility_check(!work_thread_available(), "World constructor allocation faults require serial transport");
+    world_component_results();
     var unlimited = ~convert(usize, 0);
     // Use the actual successful constructor footprint, not a copied world layout
     // or an imported second implementation in this linked consumer fixture.
@@ -70,4 +72,72 @@ export fn world_constructor_tests(): void {
     utility_check(compiler_world_create_result(1, &uninitialized, &empty) == WorkBudgetError.Invalid
         && compiler_world_create_result(0, null, &empty) == WorkBudgetError.Invalid && empty == null,
         "Invalid world policies fail before construction");
+}
+
+// Component admission preserves the physical store's failure cause before
+// callers publish parser/provenance payloads or fall back to diagnostic text.
+extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn compiler_world_component_result(world: void*, owner: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_store_component_count(store: void*): usize;
+
+var WorldComponentBudgetBytes: usize = 1048576;
+
+fn world_component_results(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, WorldComponentBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Component result fixture constructs its bounded world");
+    var store = compiler_world_store(world);
+    var node = entity_create(store);
+    var error = WorkBudgetError.None;
+    utility_check(node != null && compiler_world_type_result(world, CompilerParserMatch, &error) != null
+        && error == WorkBudgetError.None, "Component result fixture prepares its registered kind");
+    var components = entity_store_component_count(store);
+    utility_check(compiler_world_component_result(null, node, CompilerParserMatch, &error) == null
+        && error == WorkBudgetError.Invalid
+        && compiler_world_component_result(world, null, CompilerParserMatch, &error) == null
+        && error == WorkBudgetError.Invalid, "Invalid component owners retain their exact cause");
+    var view = entity_view_open(node);
+    utility_check(view != null, "Component result fixture pins its owner");
+    utility_check(compiler_world_component_result(world, node, CompilerParserMatch, &error) == null
+        && error == WorkBudgetError.Busy && entity_store_component_count(store) == components,
+        "Pinned structural admission preserves Busy and publishes no payload");
+    entity_view_close(view);
+    tower_test_buffer_fail_after(0);
+    var failed = compiler_world_component_result(world, node, CompilerParserMatch, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(failed == null && error == WorkBudgetError.Memory
+        && entity_store_component_count(store) == components,
+        "Physical component allocation denial preserves Memory");
+    var before: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_snapshot(&budget, &before)
+        && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+            == WorkBudgetError.None, "Component denial reserves only the actual remainder");
+    utility_check(compiler_world_component_result(world, node, CompilerParserMatch, &error) == null
+        && error == WorkBudgetError.Capacity && entity_store_component_count(store) == components,
+        "Bounded component admission preserves Capacity and publishes no payload");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release component pressure before retry");
+    var payload = compiler_world_component_result(world, node, CompilerParserMatch, &error);
+    utility_check(payload != null && error == WorkBudgetError.None
+        && entity_store_component_count(store) == components + 1,
+        "Component admission retries through the same world");
+    view = entity_view_open(node);
+    utility_check(view != null
+        && compiler_world_component_result(world, node, CompilerParserMatch, &error) == payload
+        && error == WorkBudgetError.None, "Existing component lookup requires no structural mutation");
+    entity_view_close(view);
+    entity_release(node);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(compiler_world_dispose(world) && work_budget_snapshot(&budget, &final)
+        && final.live == 0 && final.used_bytes == 0 && final.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Component result fixture retires every physical owner and grant");
 }
