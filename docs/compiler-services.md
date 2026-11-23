@@ -1,13 +1,14 @@
 # Tower compiler services
 
 Coverage review: frozen published main
-`68f89640de8f188912a6c98e7a00f21f2702c1c7`, 2026-11-23. The API contracts below
+`b83eeca71edbe3770e7b576692a5702cb3ff42fa`, 2026-11-23. The API contracts below
 describe implemented source. They are not a final native/browser acceptance
 receipt. The [completion gates](compiler_ecs_threading_handoff.md#finite-completion-gates-at-the-frozen-revision)
 separate exact-source checks, older focused receipts, unchecked callers and
-pending release evidence. In particular, ROOT's positive address/thread run on
-`5c5a308c` is pending; the subsequent grammar observer/table changes need their
-own affected-input accounting. No runtime build was run for this review.
+pending release evidence. ROOT's positive address/leak/thread receipt on
+`5c5a308c` now passes its selected ownership cases; subsequent grammar, Fast
+storage and staging-frontier changes remain outside those binaries. No runtime
+build was run for this review.
 
 `scaffolding/compiler/services.tower` is the compiler-services library entry
 module. The native and Wasm builds import this same Tower module. It brings
@@ -162,18 +163,23 @@ identity, writes/escapes and initialization order before a type or known-value
 consumer uses a capture. Declaration/frame ownership survives suspension.
 `semantic_execution_work::sem_executable_request/sem_executables_pump` requests
 the ordinary body/lowering producers and publishes `IMFunctionInput` only when
-the checked executable is ready. `semantic_type_execution` and
+the checked executable is ready. Unevaluated `decltype` retains the shared
+semantic type-query contract. `semantic_type_execution` and
 `semantic_constructor_work` use the ordinary interpreter for helper calls,
-`decltype`/`comptime` dependencies and supported representation construction;
-only executed reads/calls/constructions demand their producers. Untaken branches
+`comptime` and supported representation construction; only executed reads/calls/
+constructions demand their value producers. Untaken branches
 do not manufacture value dependencies. Runtime type construction remains an
 explicit capability rejection, not a constant-folder fallback.
 
 The shared `SemanticPumpResult` protocol preserves continuations, cached
 arguments and source effects across progress/waiting/completion/failure.
 `sem_lifecycle_lowering_pump` mixes independent AggregatePrepare/Lowering work
-with function-specific dependencies; global initialization/effect proofs and
-publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
+with function-specific dependencies. `sem_lifecycle_queries_pump` now alternates
+joined lowering and ready executed-stage producers through root-owned
+`semantic_phase_work` joins. Explicit stages wait on signatures and their owner;
+inferred execution waits on all canonical lowering. This is resumable admission,
+not simultaneous lowering/evaluation kernels. Global initialization/effect proofs
+and publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
 The lifecycle/capture/type fixtures and actual mixed-kernel rendezvous have
 source-specific journal receipts. They do not prove every staging capability,
 all structural failure paths or final release equivalence. In particular,

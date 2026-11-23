@@ -82614,3 +82614,21 @@ OS wrappers are root_ownership_sanitizers.sh and root_thread_supported.sh.
 No project runtime code changed in this receipt; new runtime profiling is
 inapplicable. Current-source final integration, full native/browser/generation,
 remaining scaling/implementation gates and atomic hosted publication remain open.
+
+D2 publication reconciliation: required ff-only pull refused the complete upstream
+advance to published b83eeca71edbe3770e7b576692a5702cb3ff42fa. Normal mergea2dda5c8
+preserved both histories and every journal entry. Before pushing, scoped source/
+receipt review superseded the initial68f8 draft with this ONE final audit boundary:
+compilerba5457d083698335be45801b65bf7f282298d574, scaffolding32581bcb8ba150a0038e81e44513f9f4de827310,
+CMake6d3db921295697f16f936f2278d7fb3bb3748c6b. The published audit now credits L1's
+checked Fast descriptor/arrays, A1's lowering/stage phase joins and actual durable
+flow/lifecycle/staging registrations. It removes those obsolete implementation
+gates. Remaining L1 diagnostic/output/package owners are distinct raw boundaries.
+ROOTb83 records supported positive address/leak/thread PASS on5c5a, superseding
+the task-entry pending status only for that exact source/case set. It excludes
+later grammar/Fast/staging inputs and remains short of final release acceptance.
+No test was rerun here. Git confirms the listed unchecked semantic/entity/stage
+providers are unchanged by this integration. Exact census is now1141: ten additions
+to b042, with explicit owners and separate producer/D1-adoption evidence in the
+handoff. Current merged source/profile/platform acceptance remains ROOT's gate;
+older phase timings are no longer described as matching the new final frozen union.

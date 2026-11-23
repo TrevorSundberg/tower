@@ -1,10 +1,12 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
 Current-source review: **2026-11-23**, frozen published main
-**`68f89640de8f188912a6c98e7a00f21f2702c1c7`** (confirmed against origin/main).
-Compiler tree `e5cf39860eb71b39fd513020816a6189ae189bb8`; scaffolding tree
-`545af54b67b398f6c3b659d0ce69f0af4e6cfb38`; CMake tree
-`a3093f633cc591b41250c50bbc3c5c1afdab0ff5`. Later merges do not silently move
+**`b83eeca71edbe3770e7b576692a5702cb3ff42fa`** (published origin/main).
+Compiler tree `ba5457d083698335be45801b65bf7f282298d574`; scaffolding tree
+`32581bcb8ba150a0038e81e44513f9f4de827310`; CMake tree
+`6d3db921295697f16f936f2278d7fb3bb3748c6b`. This final boundary incorporates
+the complete Fast/staging/sanitizer history received during publication; it
+supersedes the initial `68f89640` draft. Later merges do not silently move
 this review's boundary. This documentation review ran no compiler or runtime
 tests. The old completion percentage is retired; there is no measured percentage
 or ETA for the remaining gates.
@@ -77,9 +79,21 @@ recorded sources, not current-release scaling results. `frontend_units_step`,
 an empty nested grant executes inline. Requested workers or pool occupancy
 alone prove neither overlap nor useful speedup.
 
+A1 `7cea85cf` additionally replaces the blanket lowering-before-evaluation drain
+with `sem_lifecycle_queries_pump` and root-owned `semantic_phase_work` joins.
+Explicit stages wait on signature publication and their owner's lowering;
+inferred execution still waits for all canonical lowering. Pumps alternate after
+joins, so this establishes resumable admission while unrelated lowering remains
+ready, **not simultaneous lowering/evaluation kernels**. Merged `b235f2f4`
+passes 46 focused flow/lifecycle/staging trials, query smoke and checked workers1/4
+execution/canonical reparse. All three fixtures now have supported CMake targets.
+L1 `908515e4` also charges the Fast descriptor, all 15 arrays and lexical scratch
+to their owning budget; final merged core evidence is `127cfa00`, not a new
+whole-union instrumentation pass.
+
 Remaining lifecycle boundaries are checking, foreign-signature validation,
-defer hygiene, known-write/order proof and snapshots, the transformation join,
-evaluation windows, attributes, known publication, module initialization and late
+defer hygiene, known-write/order proof and snapshots, joined transformation and
+evaluation windows with explicit phase edges, attributes, known publication, module initialization and late
 flow. Grammar activation, effects, interning and callback/publication mutation
 have ordered contracts. Remove a boundary only after proving narrower dependency
 and publication ownership and measuring useful work; the remaining phase calls
@@ -137,8 +151,7 @@ Paths below are relative to `scaffolding/`.
 | Gate / owner | Precise remaining boundary and acceptance action |
 | --- | --- |
 | Checked semantic failure paths — A1, ROOT executable owner, L2 shared helpers | `compiler/semantic_lowering_work.tower::sem_lower_register/sem_lower_frontier` still wraps graph admission, component creation, stage lease/publication and scratch growth in `sem_require`; `semantic_flow.tower::sem_flow_request/sem_flows_pump` likewise retains structural/view/vector assertions. `semantic_execution_work.tower::semantic_executable_kernel` still uses unchecked `entity_component_add` for its cloned aggregate signature. `semantic_support.tower::sem_list/sem_table` and diagnostic growth have fatal allocation callers. `semantic_context.tower::sem_require(false)` aborts. Missing contract: recoverable producer error/owning offset, no ready/partial publication, joined cleanup and terminal retry behavior for these real denial boundaries. The successful request/startup/hold fixes do not cover these kernels. |
-| Physical ownership accounting — A2; L1 execution; B1/B2 presentation/host | `library/entities.tower::entity_create_result` allocates raw `Entity` storage outside `store.budget`; node/index storage and `entity_stage.tower` node/reference/cancellation/lease vectors remain outside the charged component-page owners. `compiler/fast_interpreter.tower::FMState/fm_push` retains ordinary vectors and fatal `im_storage_require` growth; graph-interpreter work vectors are already implemented. `syntax_provenance` splice scratch and shared formatter/final diagnostic text remain ordinary allocations. Missing contract: complete declared ownership/peak accounting and typed failure at required compiler boundaries, with rollback and zero retained grants; the unit retained-byte cap explicitly excludes these heaps and LLVM. Owner-specific source review must delimit coverage rather than call that cap a process limit. |
-| Durable focused acceptance entry — D1 with A1/ROOT manifest owner | `tests/semantic_flow_checks.tower` and `semantic_lifecycle_frontier_checks.tower` export standalone production-linked fixtures; their A1 audit explicitly leaves registration pending. Current `TowerWorkPolicyTests.cmake`/LR runner do not compose them. Adopt the existing fixtures into the supported final target once, retaining the 26 flow and 10 mixed-frontier oracles; standalone passes are preserved. This is harness closure, not a missing flow/lowering implementation. |
+| Physical ownership accounting — A2; L1 execution; B1/B2 presentation/host | `library/entities.tower::entity_create_result` allocates raw `Entity` storage outside `store.budget`; node/index storage and `entity_stage.tower` node/reference/cancellation/lease vectors remain outside the charged component-page owners. Fast arrays are now checked work vectors; the remaining L1 boundaries include `compiler/interpreter_context.tower` error/output vectors and `bytecode_package.tower::bytecode_encode`'s raw package allocation. `syntax_provenance` splice scratch and shared formatter/final diagnostic text remain ordinary allocations. Missing contract: complete declared ownership/peak accounting and typed failure at required compiler boundaries, with rollback and zero retained grants; the unit retained-byte cap explicitly excludes these heaps and LLVM. Owner-specific source review must delimit coverage rather than call that cap a process limit. |
 
 Cross-unit shared import/revision reuse is **not implemented** by independent
 unit worlds. It is a performance option with an outstanding immutable
@@ -154,8 +167,8 @@ fixed vectors and optional backend ambitions are outside these compiler gates.
 | Gate / owner | Existing evidence and exact remaining work |
 | --- | --- |
 | Representative serial/scaling cost — B1/B2/A1, D2 measurements, ROOT final | D2's frozen `baf2a5a0` Linux/LLVM19 Deck comparison uses matched generated 16/1000-function Tower/C bodies, outputs 15/999, optimized object output, warm filesystem/fresh processes, one warmup each, small n=3 and large n=1. Tower wall/CPU/peak RSS: 2.26/2.22 s/183,576 KiB small medians, 2.44/2.41/212,312 large; Clang .04/.03/97,536 and .16/.15/108,196. Large Tower jobs4 on two admitted CPUs costs 3.28/3.65/224,544, with identical object/output and no measured useful speedup. Parse/check accounts for about 86% of Tower's internal time; these timers do not split parsing from semantics. Link/startup are separately recorded in the journal, not hidden in those object times. Repeat affected small/large body/parser/import/staging costs on the final source, record real overlap, CPU/idle/critical path and memory, and investigate regressions. This is a specific workload gap, not a language ranking. |
-| Actionable frontend cost — B1 with B2 cache ownership | B1 `f2f12e5b` measures one ordinary answer42 request: 185 lookups, 155 version builds, 159 tables. Fresh-session construction 1004.855 ms includes table work 930.539 ms; lookup .513 ms (warm filesystem, n=1). Installed baselines retain the same request counts. The merged `00d3f856` check, whose runtime inputs equal this frozen main, retains those counts and canonical output at 1.05 wall/1.00 CPU s/165,596 KiB; earlier phase times are not relabeled as merged measurements. Largest identified subcost is repeated LR construction through `syntax_session_declare -> syntax_version_cached/build -> parser_table_open_result`. Establish which versions are equivalent and separate per-version userdata/emission/provenance before reuse. Counts do not prove avoidable misses. Historical full-frontend 300 s/124 timeout remains unresolved; this approximately 1 s request does not reproduce it. Isolate its named request/phase rather than claim it fixed or silently extend a deadline. |
-| Integrated behavior and instruments — ROOT, D1 | Earlier query/type/control/storage/units fixtures cover captures, executed dependencies, aliases, canonical round trips, failures and real worker overlap at the journal's distinct sources. No one receipt covers this entire frozen union. Confirm combined lazy staging/imported-unit/forward/untaken coverage through the existing unit observer; independent outer jobs are not a cross-file declaration-query cache. ROOT's positive address/thread ownership run on `5c5a308c` is **pending**, per current task input. B1 subsequently changes grammar observation/table inputs, so even a later successful 5c5a receipt needs an affected-input delta check. Source-language UBSan and Windows/macOS/browser sanitizers are unsupported. The documented negative probe has a known missing buffer-provider link; preserve its earlier sensitivity receipts and ROOT's instruction not to rerun it. Serial allocator faults do not sanitize threaded work. |
+| Actionable frontend cost — B1 with B2 cache ownership | B1 `f2f12e5b` measures one ordinary answer42 request: 185 lookups, 155 version builds, 159 tables. Fresh-session construction 1004.855 ms includes table work 930.539 ms; lookup .513 ms (warm filesystem, n=1). Installed baselines retain the same request counts. The merged `00d3f856` check retains those counts and canonical output at 1.05 wall/1.00 CPU s/165,596 KiB; neither receipt covers this later Fast/staging union. Largest identified subcost is repeated LR construction through `syntax_session_declare -> syntax_version_cached/build -> parser_table_open_result`. Establish which versions are equivalent and separate per-version userdata/emission/provenance before reuse. Counts do not prove avoidable misses. Historical full-frontend 300 s/124 timeout remains unresolved; this approximately 1 s request does not reproduce it. Isolate its named request/phase rather than claim it fixed or silently extend a deadline. |
+| Integrated behavior and instruments — ROOT, D1 | Earlier query/type/control/storage/units fixtures cover captures, executed dependencies, aliases, canonical round trips, failures and real worker overlap at the journal's distinct sources. No one receipt covers this entire frozen union. Confirm combined lazy staging/imported-unit/forward/untaken coverage through the existing unit observer; independent outer jobs are not a cross-file declaration-query cache. ROOT's `b83eeca7` receipt now records **passing** Linux x64 LLVM19 address/leak and thread ownership checks on frozen `5c5a308c`: work, concurrent stages, query, unit-admission and 44 executable-admission trials per mode. LR hashes are address `2034ada65cc7f0b8739762c99f9f1dfde06d7cf6af9b48d4c3f23f68bd37705d`, thread `d67356813bea8f06cd32245a7f3bed8208282e07cf96f767857a3b796e4fcfbd`. The original Docker TSan startup failure remains failed; identical binaries passed with the documented per-container seccomp accommodation. Later B1 grammar, L1 Fast and A1 staging inputs are explicitly excluded. Source-language UBSan and Windows/macOS/browser sanitizers are unsupported. The documented negative probe has a known missing buffer-provider link; preserve its earlier sensitivity receipts and ROOT's instruction not to rerun it. Serial allocator faults do not sanitize threaded work. |
 | Public bootstrap, providers and portable execution — ROOT, D2 policy | Current predecessor manifest SHA256 `cf7d84b11d025c708310827c56f3071fa69e36b010ea50dd992855ecc438e896`, executable `9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, remains unchanged. Its complete resources are usable bootstrap inputs, not the new compiler. Finish one clean canonical Linux x64 Docker/no-override build and predecessor/successor checks on frozen inputs. Rebuild the affected dependency closure and collect actual native/WASI consumer/provider/export identities; exact generic/module/diagnostic policy fixes do not establish new WASI reports. Current shared prelude/layout changes prevent reusing old complete compiler objects merely because entry files are unchanged. Implemented portable code and target-policy strings are not Windows runtime acceptance. |
 | Browser, generations and deployment — ROOT | Pages ref remains `6f142bef15f58380831ed344ab5eac5c4b3c2840`; its recorded manifest `eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c` builds from `98ade8cc`, not this compiler. Old runtime assets/receipts stay historical. Re-export current project/actual link recipe, build normal/threads/LLVM/cross Tower closures, run mandatory thread/IDE/worker cancellation and deterministic-error checks, both compiler generations, local deployment and exact hosted assets/desktop/mobile behavior. Reuse unchanged vendor/UI assets only with matching inputs; preserve CNAME and newer receipts. Source/build must be reachable from published main and final main+Pages pushed atomically. No current browser/generation/hosted pass is asserted here. |
 
@@ -176,25 +189,32 @@ identity**, not the earlier checklist's cached objects. In particular,
 use distinct `-DTOWER_SANITIZER=address`/`thread` native caches and record actual
 instrumented object/link and execution identities. No broad matrix was run for
 this documentation change; runtime profiling is inapplicable.
+The new `tower-semantic-staging-smoke` target builds the three registered
+frontier executables; it does not run them. Their existing CTest selection is
+`ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure -R '^tower-semantic-(flow|lifecycle-frontier|staging-frontier)-tests$'`.
 
 ### Full-file inventory ownership and review freshness
 
-`git ls-tree -r --name-only 68f89640` contains **1,137 tracked `.tower` paths**.
+`git ls-tree -r --name-only b83eeca7` contains **1,141 tracked `.tower` paths**.
 The [roster's b042 census](compiler_ecs_file_roster.md#integrated-census-at-b0421447-2026-11-23)
 remains the 1,131-path historical ownership set; its per-lane audit links are
-the substantive evidence, not an all-current pass. Six additions reconcile it:
+the substantive evidence, not an all-current pass. Ten additions reconcile it:
 
 | New path under `scaffolding/` | Existing domain owner / receipt disposition |
 | --- | --- |
 | `compiler/semantic_lowering_types.tower` | A1; full-file receipt in A1 lifecycle follow-up. |
 | `compiler/grammar_observer.tower` | B1; bounded observer implementation/measurement receipt; consolidate an explicit path-specific owner row. |
-| `tests/semantic_flow_checks.tower` | D1 audit / A1 implementation; full A1 review, D1 adoption and durable registration pending. |
-| `tests/semantic_lifecycle_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review, D1 adoption and durable registration pending. |
+| `tests/semantic_flow_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
+| `tests/semantic_lifecycle_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
 | `tests/parser_diagnostic_budget.tower` | D1 audit / B1 implementation; B1 diagnostic receipt, D1 substantive adoption pending. |
 | `tests/frontend_iteration_profile.tower` | D1 audit / B1 implementation; B1 measured oracle/observer receipt, D1 substantive adoption pending. |
+| `compiler/fast_interpreter_types.tower` | L1; private ownership layout and provider composition reviewed in bounded Fast receipt. |
+| `compiler/semantic_phase_work.tower` | A1; full-file phase-query/ownership review in staging-frontier receipt. |
+| `tests/execution_fast_storage.tower` | D1 audit / L1 implementation; L1 admission/cleanup receipt and core registration, D1 substantive adoption pending. |
+| `tests/semantic_staging_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and registration, D1 substantive adoption pending. |
 
-Thus domain inventory counts are A1 44, A2 43, B1 101, B2 276, L1 25, L2 17,
-D1 546, D2 85. These derive from the roster plus the exact six-path Git delta,
+Thus domain inventory counts are A1 45, A2 43, B1 101, B2 276, L1 26, L2 17,
+D1 548, D2 85. These derive from the roster plus the exact ten-path Git delta,
 not review-completion counts. D1's later full grammar-builder/generic-result
 reviews close those two historical missing receipts. B2 still needs explicit
 adoption of B1's reviews for `units/parser_modules_checks.tower`,
