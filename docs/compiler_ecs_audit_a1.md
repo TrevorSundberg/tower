@@ -423,3 +423,11 @@ and deterministic query-order errors. A2 was asked for precise submit failure
 semantics; L2 review remains required before changing layout behavior.
 
 Focused Publish runtime supersedes pending-runtime wording above: all18 cases pass with current refreshed LR objects plus the one typed kernel object. Production provider placement, canonical linked targets, current ASan/TSan and end-to-end profiles remain open.
+
+Cancellation follow-up: semantic_known_bindings.sem_known_publish now checks
+work_ok before capture finalization or query/component creation. Valid joined
+cancellation previously aborted; four width/worker cases now preserve graph,
+storage, zero dispatched work and zero live scratch receipts across repeated
+entry. semantic_publish_checks owns these cases through its separate
+cancellation export; existing18 pressure tests also pass on final source.
+This is joined-frontier cancellation coverage, not mid-kernel stop latency.

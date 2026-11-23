@@ -17,7 +17,7 @@ extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn puts(text: u8*): i32;
 
-enum PublishPressure: u32 { None, Startup, Arena, Growth, Mixed }
+enum PublishPressure: u32 { None, Startup, Arena, Growth, Mixed, Cancelled }
 
 struct PublishCase { block: void*; count: usize; dispatch: u64; }
 
@@ -41,6 +41,7 @@ fn publish_items(block: void*, count: usize, width: u32): void {
 
 fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     var failures: u32 = 0;
+    var cancelled = pressure == PublishPressure.Cancelled;
     var budget: WorkBudget = default;
     var gate = work_signal_open();
     sem_require(gate != null);
@@ -49,7 +50,7 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     sem_require(work_budget_init(&budget, workers, 1048576, 71)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
     var occupied: WorkReservation = default;
-    if pressure != PublishPressure.None {
+    if pressure != PublishPressure.None && !cancelled {
         var available: usize = pressure == PublishPressure.Startup ? 1
             : pressure == PublishPressure.Arena ? 512 : 8192;
         sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - available, &occupied) == WorkBudgetError.None);
@@ -84,17 +85,18 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
             || (pressure == PublishPressure.Mixed && index == 1) ? 512 : 8;
         publish_items(block, cases[index].count, width);
     }
+    if cancelled { work_cancel(&context.queries); }
     sem_known_publish(&context);
     publish_check(context.workers.running == 0 && context.queries.running == 0,
         "Publication failure drains every reserved peer and ticket", &failures);
     var success = pressure == PublishPressure.None;
-    publish_check(success ? program.error.length == 0
+    publish_check(success || cancelled ? program.error.length == 0
         : program.error.length != 0 && program.error_offset == (pressure == PublishPressure.Mixed ? 29 : 11),
         "Publication selects the first source-ordered resource failure", &failures);
     for(var index: usize = 0; index < case_count; index++) {
         var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
         var succeeded = success || (pressure == PublishPressure.Mixed && index != 1);
-        publish_check(query != 0 && work_task(&context.queries, query).state
+        publish_check(cancelled ? query == 0 : query != 0 && work_task(&context.queries, query).state
             == (succeeded ? WorkState.Succeeded : WorkState.Failed),
             "Every publication ticket records its own result after joining", &failures);
         var items = &sem_get(cases[index].block).items;
@@ -107,7 +109,12 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
                 "Compaction preserves source order and literal values", &failures);
         }
     }
-    if !success {
+    if cancelled {
+        sem_known_publish(&context);
+        publish_check(context.queries.tasks.length == 0 && !work_ok(&context.queries),
+            "Cancelled publication never creates work or revives its graph", &failures);
+    }
+    if !success && !cancelled {
         var count = context.queries.tasks.length;
         for(var index: usize = 0; index < case_count; index++) {
             var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
@@ -151,5 +158,16 @@ export fn semantic_publish_tests(): u32 {
         failures += publish_trial(width, 1, PublishPressure.Mixed);
     }
     if failures == 0 { puts("Semantic publication: checked scratch, joined failures and atomic storage output pass."); }
+    return failures;
+}
+
+export fn semantic_publish_cancellation_tests(): u32 {
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            failures += publish_trial(width, workers, PublishPressure.Cancelled);
+        }
+    }
+    if failures == 0 { puts("Cancelled semantic publication preserves storage without dispatch."); }
     return failures;
 }
