@@ -60062,3 +60062,57 @@ changes no runtime behavior; runtime measurements for the correction itself are
 inapplicable. Current equivalent profiles, resource-error fix, final supported
 instrumentation, clean public-bootstrap/generation/browser and leased atomic
 main/Pages publication remain required. No todo edits or public refs changed.
+
+### B2 independent inspection failure: earlier grammar boundary still open
+
+Integrated L2 complete3cb65c66 into e2b5716a, preserving own source/history. The
+exact fixture8178ff55 leaf passed3.056610321 wall/2.762352 CPU/234792 KiB;
+existing LR entry rebuilt5.233736611/4.851236/304184. Independent editor selector
+FAILED134 after ordinary editor units passed: nonnull entries[] complete:false
+at the first4-byte/1-worker trial, with recovery and final-grant cleanup completed
+before the assertion. Receipt7.224774791/13.047022/927788. This supersedes any
+inference that df736baa's module getter alone fixes the reported document bug.
+
+A temporary Tower-only diagnostic in the owned language query printed the retained
+syntax session error before output: "Unable to build grammar". That is the
+syntax_version_build parser_table_open/finish path, before cached-module clone
+failure. Trace build20.350769721/18.714299/844132 passed; trace run failed134
+7.269396721/13.148929/908416. Both logs preserved as build/b2_inspection_trace_*.
+Removed the trace after all children drained; no diagnostic-text classification
+was added. B1 owns typed grammar/table construction status through
+SyntaxVersionDiagnostic and SyntaxSession. Requested its complete ABI closure
+and syntax_session_resource_error accessor; LR control allocation classification
+alone does not cover this earlier construction path. B2 will consume that cause
+in completion, rebuild all dependants, then repeat the exact independent fixture.
+
+### B2 explicit calibrated overlap variant
+
+Root approved a separate instrumentation selector after the unchanged old TSan
+case timed out before frontend1 completed. Implemented
+backend_units_overlap_calibrated_tests(root) in the existing fixture. It measures
+only the already-required complete four-unit serial frontend baseline, then
+freezes max(30 seconds, measured duration) in the observer context before dispatch.
+That bound applies only to frontend2 waiting for backend1; backend1 waiting for
+frontend2 always retains30 seconds. Ordinary overlap and full-suite calls retain
+30 seconds. Time checks now use elapsed monotonic nanoseconds rather than rounded
+whole seconds, with negative/range/overflow/backwards-clock checks. No extra
+baseline compilation, environment inference, multiplier or retry extension.
+Calibration and individual event timestamps are flushed before assertions.
+
+The exact decltype/comptime source, serial object oracle, held second frontend,
+shared budgets and distinct-thread assertion are unchanged. Public leaf passed
+3.351612460 wall/3.099080 CPU/246992 KiB. The matching normal closure rebuilt
+3steps20.321054475/23.698664/842428, also removing the temporary inspection trace.
+An ignored Tower entry invokes only the new export through the existing native
+link/transport objects; no tracked runner/target was added. Entry compile passed
+3.472319628/3.223488/250872. D1 owns registration of the new selector in the
+existing runner.
+
+Normal ordinary overlap passed8.155279569/10.452026/531808. Calibrated overlap
+passed8.058203025/10.386438/532908 with serial_frontend_ns4490850755,
+frontend_wait_ns30000000000 and backend_wait_ns30000000000. Distinct frontend2
+and backend1 thread IDs and exact output comparisons passed. Backend1 entered
+191952ns after frontend1 left in the calibrated run. Logs build/b2_overlap_*.
+These are n1 nonquiet functional/cost observations, not a measured speedup or
+instrumented acceptance. The original L1 TSan failure remains FAIL134; final
+instrumentation must name the explicit calibrated variant and preserve failures.
