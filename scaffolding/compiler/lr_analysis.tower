@@ -149,19 +149,53 @@ fn lr_range_merge(destination: vector(SymbolRange)*, source: vector(SymbolRange)
 }
 
 fn lr_range_merge_result(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): WorkBudgetError {
-    if destination == source {
+    if destination == source || source.length == 0 {
         return WorkBudgetError.None;
     }
-    var index: usize = 0;
-    loop {
-        if index == source.length {
-            return WorkBudgetError.None;
-        }
-        var range = &source.data[index];
-        var error = lr_range_insert_result(destination, range.first, range.last, changed);
-        if error != WorkBudgetError.None { return error; }
-        index++;
+    if source.length == 1 {
+        return lr_range_insert_result(destination, source.data[0].first, source.data[0].last, changed);
     }
+    // FIRST, suffix and propagation callers supply distinct owned vectors (or
+    // the identical descriptor handled above). Both sets are already sorted.
+    // Count only new exact ranges: overlapping intervals must stay distinct.
+    var left: usize = 0;
+    var right: usize = 0;
+    var added: usize = 0;
+    while right < source.length {
+        if left == destination.length { added += source.length - right; break; }
+        var a = &destination.data[left];
+        var b = &source.data[right];
+        if a.first == b.first && a.last == b.last { left++; right++; }
+        else {
+            if a.first < b.first || (a.first == b.first && a.last < b.last) { left++; }
+            else { added++; right++; }
+        }
+    }
+    if added == 0 { return WorkBudgetError.None; }
+    if added > ~convert(usize, 0) - destination.length { return WorkBudgetError.Invalid; }
+    var count = destination.length + added;
+    var error = lr_reserve_result(destination, count);
+    if error != WorkBudgetError.None { return error; }
+    // Backward merge consumes each old slot before overwriting it. No scratch
+    // owner or per-insert shifting is needed; denial leaves the old set intact.
+    left = destination.length;
+    right = source.length;
+    var out = count;
+    while right != 0 {
+        var b = source.data[right - 1];
+        if left != 0 {
+            var a = destination.data[left - 1];
+            if a.first == b.first && a.last == b.last { left--; right--; destination.data[--out] = a; }
+            else {
+                if b.first < a.first || (b.first == a.first && b.last < a.last) {
+                    left--; destination.data[--out] = a;
+                } else { right--; destination.data[--out] = b; }
+            }
+        } else { right--; destination.data[--out] = b; }
+    }
+    destination.length = count;
+    *changed = true;
+    return WorkBudgetError.None;
 }
 
 export fn lr_analysis_destroy(value: LRAnalysis*): void {

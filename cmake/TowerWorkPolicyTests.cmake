@@ -113,6 +113,18 @@ function(tower_lr_work_policy_test)
   endif()
 
   if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(completion-alias-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/completion_alias_checks.tower" "${triple}")
+    add_executable(tower-completion-alias-tests ${sources} "${completion-alias-checks_OBJECT}")
+    set_target_properties(tower-completion-alias-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-completion-alias-tests PRIVATE ${libraries})
+    target_link_options(tower-completion-alias-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    foreach(workers IN ITEMS 1 4)
+      add_test(NAME tower-completion-alias-${workers}
+        COMMAND tower-completion-alias-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${workers} checks)
+      set_tests_properties(tower-completion-alias-${workers} PROPERTIES TIMEOUT 60)
+    endforeach()
+
     tower_runtime_object(semantic-capture-admission-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_capture_admission_checks.tower" "${triple}")
     add_executable(tower-semantic-capture-admission-tests ${sources} "${semantic-capture-admission-checks_OBJECT}")

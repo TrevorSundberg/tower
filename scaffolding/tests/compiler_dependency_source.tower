@@ -1,0 +1,6 @@
+import tower;
+
+// Shared ordinary-language input for correctness and production-unit profiles.
+fn dependency_unit_helpers_source(): u8* {
+    return "fn pick(take:bool):i32{if take{return Selected;}return imported_later();}fn imported_later():i32{return 42;}fn chosen_type():type{return type_later();}fn type_later():type{return i32;}fn identity(T:type,value:T):T{return value;}fn unused(T:type,value:T):T{return missing_dormant_body;}";
+}
