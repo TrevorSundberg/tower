@@ -984,6 +984,17 @@ initialization and the extra parallel-only fixtures prevent interpreting total
 trial times as a scaling benchmark. Hosted service-worker isolation, other
 browsers and the release matrix remain separate checks.
 
+The fixture's page owns coordinator termination. After Tower joins its jobs and
+closes its owner, the test observes every nested browser worker's `close` event,
+probes the coordinator's still-active message loop, then terminates it. Calling
+`terminate()` only requests shutdown; counting those calls is not retirement.
+The coordinator must keep its event loop available during child shutdown rather
+than also calling `self.close()`. Acceptance requires every observed worker's
+close notification **and** zero worker targets in the unchanged browser context;
+it does not filter out the coordinator or close the page to satisfy that check.
+The journal's D2 retirement receipt retains the original Chromium159 failures
+and the independent OS-thread observation supporting this transport correction.
+
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
 checksum in the manifest, preserving the custom domain on future publications.
