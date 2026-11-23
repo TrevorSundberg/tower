@@ -81539,6 +81539,85 @@ No production change or skipped check was hidden. Earlier baseline comparison
 retains its measured source identity. This receipt is documentation only; no new
 runtime measurement applies. All owned jobs drained; normal main push follows,
 with ROOT deployment and the explicitly listed remaining chains still pending.
+
+### L2: constructor and evaluation admission (2026-11-23)
+
+Starting from published3912f25b with no surviving build. The selected continuation closes constructor state, evaluation state/readiness, and preparation/clone admission with their direct consumers. Existing lazy interpreted reads, declaration/frame ownership and phase tickets remain authoritative. ROOT executable admission, A1 lifecycle and A2 queued-stage ownership remain separate. Implementation and focused evidence follow; broad release checks remain pending.
+
+Implemented checked constructor kind/payload admission, including the declaration
+state and query-registration prerequisite used by constructor callers. Legacy
+asserting wrappers remain for their existing consumers; the constructor frontier
+uses the nullable result path and checks it before discovery/demand/publication.
+Constructor declaration/frame/lexical identities and retained query identity are
+preserved. The existing constructor-add and evaluation-expression entry points
+are exported to the declaration-only query API for linked focused clients; there
+is still one production implementation, not a test substitute.
+
+Evaluation kind pairs publish together or retire the private first kind. Result
+and readiness payloads are checked before entering the cleanup index; that index
+owns later partial projection/query cleanup. Evaluation request and preparation/
+clone registration retain exact graph or structural failures, advance only the
+completed registration frontier, and cannot dispatch a missing payload. Type,
+constructor and capture consumers guard failed output nodes/evaluations before
+using them. A capture's early resource exit relinquishes its still-owned ticket.
+Known-binding and inferred-evaluation admission use the same checked kinds/state;
+known-producer links publish only after their storage and dependency succeed.
+No lazy executed-read discovery, frame provenance, interpreter semantics or query
+completion order was replaced. A2 stage open/lease/hold/publish/discard hunks,
+ROOT semantic_execution_work and A1 lifecycle remain unchanged in this batch.
+
+Existing storage fixtures cover constructor frame/query identity, atomic evaluation
+kind startup, state/readiness, preparation and known-clone admission at widths4/8.
+Actual allocation counts bound the serial begin/expression/preparation/clone fault
+sweeps; constructor tests use physical Busy/Exhausted/Capacity because its legacy
+name scratch is explicitly outside that allocation sweep. Page pressure fills
+actual remaining component slots, not an assumed count. All failures require the
+first producer offset, no evaluated value, no repeated allocation/query admission,
+and zero final physical buffers/grants. Healthy preparation only registers work;
+it does not start interpreters or force dependencies. Existing query-smoke retains
+lazy reads, untouched stages, serial/threaded resumption and frame/capture checks.
+
+Native build uses the existing dependency-aware compiler/LR/storage targets only,
+max2 jobs, CPUs4..7 and4GiB per-process virtual-memory cap. Initial constructor_eval0
+compiled all11 actions but its new fixture wrongly expected component-page Capacity
+from kind-only creation. Entity descriptors/containment are not page grants; the
+correct result is None. The first added diagnostic used tower_print, absent from
+the storage serial transport, so constructor_eval1 failed at link without runtime.
+Existing Tower formatting/puts fixed that boundary; constructor_eval2 identified
+the precise false expectation. All failed outputs/source manifests and recipes are
+retained. No production fallback changed. Constructor_eval3/18625 passed the final
+two-action incremental build10.66wall/7.78CPU seconds/323304KiB, full storage
+.28/.22/99612 and query-smoke.20/.23/74956, empty stderr and source0. Earlier compiler
+provider successes remain valid; the earlier whole failed runs are not passes.
+
+Four checked constructor processes48861 compare immutable layout compiler9c5db90f
+against current1a504887 at one actual executable path with identical frozen baseline
+resources and unchanged inputbbc45255. WSL2 Linux6.18.33.2 x64/LLVM19 Release,
+--interpret --jobs1/4, affinity4..7, fresh processes/warm file copies; no competing
+build in the start inventory. One sample per variant/count, exact independent0
+stdout oracle, empty stderr and final source/input/resource hashes all pass.
+Before also predates integrated frontend admission, so these costs do not isolate
+this lane's changes.
+
+| Constructor jobs | Before wall/CPU seconds/peak KiB | After wall/CPU seconds/peak KiB |
+| --- | --- | --- |
+| 1 | 1.61 / 1.50 / 179412 | 1.51 / 1.47 / 179916 |
+| 4 | 1.22 / 1.50 / 198940 | 1.25 / 1.53 / 199072 |
+
+Retain the positive four-worker cost: +.03s wall/CPU and+132KiB; serial RSS+504KiB.
+This small sample is neither a scaling result nor a neutrality/speedup claim.
+Raw evidence is L2/semantic_admission_constructor_eval* and constructor_eval_pair*;
+existing immutable packages/logs/todo were preserved, with no archive campaign.
+
+Remaining type/staging gaps are concrete: legacy semantic name/table/scratch
+allocation (including constructor name resolution), aggregate-projection and
+cloned-alias synthesis, capture metadata kind/payload creation, and known scan/
+order/publication work-component admission still have asserting paths. Non-constructor
+legacy declaration callers retain their assertion contract. These are not claimed
+covered by the new result chain. ROOT executable admission, A2 queued-reference
+cancellation and A1 lifecycle remain separately owned. Supported sanitizers,
+full scaling/bootstrap/browser/generation and hosted deployment remain pending
+ROOT's integrated milestone. This bounded task publishes main only.
 Lifecycle merged receipt: post-commit pull fetched3912f25b and refused divergent
 fast-forward-only history. Normal complete-history merge7f6ca8806fbf691ad9c516181aad5a1a6a1cb4b6
 preserved both sides without conflicts. All A1 production/fixture files match
@@ -81846,6 +81925,17 @@ SHA256517abdba21612824d76b182810aa07a8ce66da325456966a21343ccd6b0cf75f.
 All owned jobs drained. The final commit includes the two exact upstream
 foreign-world assertions and this receipt; normal main push follows. Earlier
 matched measurements retain their afca-based identity. No hosted release claim.
+Post-commit integration:2cf4154a merged complete publishedbaf2a5a0 as728380d1,
+including ROOT executable stages, A1 lifecycle/lowering, parser admission and
+budget/pool wake changes. No owned admission hunk conflicted or changed. Because
+shared provider types changed, merged37152 rebuilt29 dependency actions in the
+same native cache:118.66wall/185.65CPU seconds/768740KiB. Full storage
+(.30/.24/98644), query-smoke(.23/.25/74696) and constructor --jobs1/4 exact0
+oracles all passed, empty stderr and final source0. All owned jobs drained before
+release. The earlier four-process comparison retains its3912f25b+batch identity;
+it is not relabeled as timing for merged scheduler/lifecycle changes. This final
+receipt is documentation only, so it requires no new runtime measurement.
+Normal main push follows; no deployment or deferred release-gate pass is claimed.
 ### A2 checked queued-stage ownership implemented, 2026-11-23
 
 The new explicit user grant includes `syntax_provenance` and its immediate
@@ -81978,3 +82068,13 @@ SHA2566544ec7318afb5bb5463704cff44fe66508dc134e48f530ba088c45a6f662364. Logs: L1
 No repeated performance or instrument/platform matrix; earlier comparable
 measurements keep their original source scope. This documentation receipt does
 not change runtime inputs. All children drained; normal main publication follows.
+Final publication integration also preserved A2's complete0aee8b07 ownership
+batch as e30efe5f. Its provider/provenance/generic-body changes are separate from
+this lane's unchanged constructor/evaluation hunks. A2's audit confirms the
+other preparation publication paths do not themselves enqueue provenance borrows;
+those compatibility stage wrappers were preserved. Affected18926 rebuilt six
+dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
+(.28/.22/98012), query-smoke(.19/.22/75236) and constructor --jobs1/4 exact0
+oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
+or broad matrix; the committed receipts and earlier remaining-gap list retain
+their precise scopes. Normal push includes both complete histories and journals.

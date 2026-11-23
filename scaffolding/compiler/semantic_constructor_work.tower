@@ -95,14 +95,16 @@ fn sem_type_construct_value(c: SemanticContext*, node: void*, name: u8*,
 
 fn sem_constructor_state(c: SemanticContext*, node: void*): SemanticConstructor* {
     sem_require(c.entity_stage == null);
+    if !sem_ok(c) { return null; }
+    var error: WorkBudgetError;
     if c.type_constructors == null {
-        c.type_constructors = sem_create(c.program.root);
-        sem_require(entity_register(c.type_constructors, sizeof(SemanticConstructor), alignof(SemanticConstructor), 0));
+        c.type_constructors = sem_kind_result(c.program.root, sizeof(SemanticConstructor), alignof(SemanticConstructor), &error);
+        if c.type_constructors == null { sem_type_resource(c, node, error); return null; }
     }
     var component = entity_component_get(node, c.type_constructors);
     if component != null { return bits(SemanticConstructor*, entity_component_data(component)); }
-    var result = bits(SemanticConstructor*, entity_component_data(entity_component_add(node, c.type_constructors)));
-    sem_require(result != null);
+    var result = bits(SemanticConstructor*, entity_component_data(entity_component_add_result(node, c.type_constructors, &error)));
+    if result == null { sem_type_resource(c, node, error); return null; }
     *result = default;
     return result;
 }
@@ -143,10 +145,14 @@ fn sem_type_query_syntax(c: SemanticContext*, node: void*): bool {
         || sem_resolve(c, c.type_functions, name_node, name) != null;
 }
 
-fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
-    var result = sem_declaration_state(c, node);
+export fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
+    if !sem_ok(c) { return null; }
+    if node == null || parent == null { sem_type_resource(c, node, WorkBudgetError.Invalid); return null; }
+    var result = sem_declaration_state_result(c, node);
+    if result == null { return null; }
     if result.query != 0 { sem_require(result.constructor != null); return result; }
     result.constructor = sem_constructor_state(c, node);
+    if result.constructor == null { return null; }
     if sem_member(node, "args") == null && sem_value_binding(c, node) != null {
         result.constructor.phase = SemanticConstructorPhase.Execute;
     }
@@ -156,8 +162,7 @@ fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclara
     result.scope = parent.scope;
     result.current = parent.current;
     result.lexical = parent.lexical;
-    sem_declaration_add(c, node);
-    return result;
+    return sem_ok(c) && sem_declaration_add_result(c, node) ? result : null;
 }
 
 fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
@@ -188,9 +193,11 @@ fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
 
 fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): SemanticDeclaration* {
     var source = call.constructor;
-    var result = sem_declaration_state(c, source.instance);
+    var result = sem_declaration_state_result(c, source.instance);
+    if result == null { return null; }
     if result.query != 0 { sem_require(result.constructor != null); return result; }
     var work = sem_constructor_state(c, source.instance);
+    if work == null { return null; }
     result.constructor = work;
     result.construction_owner = call.construction_owner;
     result.construction_identity = call.construction_identity;
@@ -207,8 +214,7 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
         work.phase = SemanticConstructorPhase.Ready;
         result.checked = true;
     }
-    sem_declaration_add(c, source.instance);
-    return result;
+    return sem_ok(c) && sem_declaration_add_result(c, source.instance) ? result : null;
 }
 
 // Returns true only when a changed continuation needs readmission. Waiting
@@ -258,9 +264,11 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
         // Structural statement checking can have reached this instance first.
         // Its retained failure predates query registration; discovery must not
         // overwrite it with an empty diagnostic or reuse its partial identity.
-        var prior = sem_declaration_state(c, work.instance);
+        var prior = sem_declaration_state_result(c, work.instance);
+        if prior == null { return false; }
         if prior.query == 0 && sem_declaration_restore_error(c, prior) { return false; }
         var instance = sem_constructor_instance(c, result);
+        if instance == null { return false; }
         sem_declaration_discover(c);
         if !sem_ok(c) { return false; }
         if instance == null || instance.query == 0 {
@@ -329,11 +337,13 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             sem_captures_begin(c);
             var value = sem_operand(c, result.subject, sem_type_new(c, SType, 0, null));
             if !sem_ok(c) { return false; }
-            var output = sem_control_node(c, result.subject, KOperand);
+            var output = sem_evaluation_node(c, result.subject);
+            if output == null { return false; }
             var expression = sem_defer_clone(c, output, value, sem_table(c), sem_list(c));
             sem_evaluation_expression(c, output, expression, null, false);
             if !sem_ok(c) { return false; }
             work.evaluation = sem_evaluation_get(c, output);
+            if work.evaluation == null { sem_type_resource(c, result.subject, WorkBudgetError.Invalid); return false; }
             sem_evaluation_work_register(c, false);
             if !sem_ok(c) { return false; }
         }
