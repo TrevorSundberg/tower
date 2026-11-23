@@ -93,9 +93,75 @@ fn generic_pump_publication_trial(width: u32, busy: bool): void {
         "Generic pump failure retires every world and budget owner");
 }
 
+// Exhaust the selected scratch ledger after real admission has succeeded. A
+// ready request must fail before dispatch; an empty pump needs no scratch.
+fn generic_pump_scratch_trial(width: u32, ready: bool): void {
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, GenericPumpBudgetBytes, 1), "Generic scratch budget");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, GenericPumpBranches, GenericPumpDepth, 1, &budget);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    utility_check(sem_workers_open(&context), "Generic scratch production pool");
+    var instance = generic_clone_fixture_instance(&fixture);
+    var registered: SemanticGenericBodyWork* = null;
+    if ready {
+        registered = sem_generic_body_request(&context, instance, 0);
+        utility_check(registered != null && registered.query != 0, "Generic scratch real ready query");
+    }
+    var entities = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var before: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_snapshot(&budget, &before) && before.used_bytes < before.bytes
+        && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+            == WorkBudgetError.None, "Generic scratch denies only after query setup");
+    var progress = sem_generic_copies_execute(&context);
+    if ready {
+        utility_check(!progress && program.resource.error == WorkBudgetError.Capacity
+            && context.queries.cancelled && registered.ticket.task == registered.query
+            && !registered.request.success && registered.request.copied == 0
+            && registered.request.storage_error == WorkBudgetError.None
+            && registered.request.stage == null,
+            "Generic scratch denial precedes clone dispatch and preserves exact Capacity");
+    } else {
+        utility_check(!progress && program.resource.error == WorkBudgetError.None && !context.queries.cancelled,
+            "Empty generic pump needs no scratch admission");
+    }
+    utility_check(context.queries.running == 0 && context.workers.running == 0
+        && generic_body_pending(fixture.context, instance)
+        && entity_child_count(generic_clone_fixture_body(instance)) == 0
+        && entity_store_count(fixture.store) == entities
+        && entity_store_component_count(fixture.store) == components,
+        "Generic scratch rejection preserves entities and drains taken work");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release generic scratch pressure");
+    var after: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes
+        && after.live == before.live && after.used_lanes == before.used_lanes,
+        "Generic scratch rejection retains no private grant");
+    if ready {
+        program.error.length = 0;
+        utility_check(!sem_generic_copies_execute(&context) && program.resource.error == WorkBudgetError.Capacity
+            && registered.request.copied == 0 && generic_body_pending(fixture.context, instance),
+            "Returned allowance cannot replay a failed generic scratch request");
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget), "Generic scratch teardown releases every owner");
+}
+
 export fn generic_pump_publication_tests(): void {
     for(var width: u32 = 4; width <= 8; width *= 2) {
         generic_pump_publication_trial(width, false);
         generic_pump_publication_trial(width, true);
+        generic_pump_scratch_trial(width, false);
+        generic_pump_scratch_trial(width, true);
     }
 }

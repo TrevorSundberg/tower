@@ -1,0 +1,180 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn pthread_self(): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+var NodeProfileBudgetBytes: usize = 268435456;
+struct NodeProfileJob {
+    stage: EntityStage*;
+    root: Entity*;
+    nodes: Entity**; // Derived check index; the stage owns the canonical nodes.
+    count: usize;
+    made: usize;
+    tree: bool;
+    thread: usize;
+    started: i64;
+    finished: i64;
+}
+fn node_profile_check(ok: bool): void { if !ok { trap("Entity node ownership profile mismatch", 0); } }
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Node profile has no component lifecycle", 0);
+}
+fn node_profile_time(): i64 {
+    var stamp: i64[2];
+    node_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(NodeProfileJob*, payload);
+    job.thread = pthread_self();
+    job.started = node_profile_time();
+    for(var i: usize = 0; i < job.count; i++) {
+        var parent = job.root;
+        if job.tree && i != 0 { parent = job.nodes[(i - 1) / 2]; }
+        var node = entity_stage_create(job.stage, parent);
+        if node == null { break; }
+        job.nodes[i] = node;
+        job.made++;
+    }
+    job.finished = node_profile_time();
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    node_profile_check(argc == 4 && sizeof(usize) == 8);
+    var count: usize = 0;
+    if strcmp(argv[1], "small") == 0 { count = 1024; }
+    if strcmp(argv[1], "large") == 0 { count = 65536; }
+    var workers: usize = 0;
+    if strcmp(argv[2], "1") == 0 { workers = 1; }
+    if strcmp(argv[2], "2") == 0 { workers = 2; }
+    if strcmp(argv[2], "4") == 0 { workers = 4; }
+    if strcmp(argv[2], "8") == 0 { workers = 8; }
+    var tree = strcmp(argv[3], "tree") == 0;
+    node_profile_check(count != 0 && workers != 0 && count % workers == 0
+        && (tree || strcmp(argv[3], "flat") == 0));
+    var jobs: NodeProfileJob[8] = default;
+    var job_count = sizeof(decltype(jobs)) / sizeof(NodeProfileJob);
+    var payloads: void*[8];
+    node_profile_check(workers <= job_count && count % job_count == 0
+        && sizeof(decltype(payloads)) / sizeof(void*) == job_count);
+    var gate = work_signal_open();
+    node_profile_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    node_profile_check(work_budget_init(&budget, workers + 1, NodeProfileBudgetBytes, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var store: EntityStore* = null;
+    node_profile_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    node_profile_check(root != null);
+    var identity = store.next_id;
+    var pool: WorkPool = default;
+    node_profile_check(work_pool_open_budget(&pool, workers, &budget) && pool.count == workers);
+    var outer: WorkReservation = default;
+    var parallel: WorkReservation = default;
+    var extra = pool.threaded ? workers - 1 : 0;
+    node_profile_check(work_budget_reserve(&budget, 1, 1, 0, &outer)
+        && work_budget_reserve(&budget, extra, extra, 0, &parallel));
+    // Keep the same eight canonical subtrees and publication order at every
+    // worker count. Only scheduling changes; the shared batch refills workers.
+    for(var i: usize = 0; i < job_count; i++) {
+        var job = &jobs[i];
+        job.stage = entity_stage_open(root);
+        job.root = root;
+        job.count = count / job_count;
+        job.tree = tree;
+        job.nodes = alloc(Entity*, job.count);
+        payloads[i] = bits(void*, job);
+        node_profile_check(job.stage != null && job.nodes != null);
+    }
+    var view = entity_view_open(root);
+    node_profile_check(view != null);
+    var before: i64[18]; var after: i64[18];
+    node_profile_check(getrusage(0, &before[0]) == 0);
+    var start = node_profile_time();
+    var okay = work_pool_batch(&pool, &payloads[0], job_count, 0, extra);
+    var allocation_ns = node_profile_time() - start;
+    var overlap: usize = 0;
+    for(var i: usize = 0; i < job_count; i++) {
+        okay &&= jobs[i].made == jobs[i].count;
+        var active: usize = 0;
+        for(var j: usize = 0; j < job_count; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { active++; }
+        }
+        if active > overlap { overlap = active; }
+    }
+    start = node_profile_time();
+    for(var i: usize = 0; i < job_count; i++) { entity_stage_hold(jobs[i].stage); }
+    entity_view_close(view);
+    for(var i: usize = 0; i < job_count; i++) {
+        if okay && entity_stage_publish(jobs[i].stage) { jobs[i].stage = null; }
+        else {
+            okay = false;
+            entity_stage_discard(jobs[i].stage);
+            jobs[i].stage = null;
+        }
+    }
+    var publication_ns = node_profile_time() - start;
+    if okay {
+        node_profile_check(store.entity_count == count + 1 && root.references == 1
+            && root.child_count == (tree ? job_count : count));
+        for(var i: usize = 0; i < job_count; i++) {
+            var job = &jobs[i];
+            for(var j: usize = 0; j < job.count; j++) {
+                var node = job.nodes[j];
+                var parent = root;
+                if tree && j != 0 { parent = job.nodes[(j - 1) / 2]; }
+                node_profile_check(node.store == store && node.id == identity + i * job.count + j
+                    && node.parent == parent && node.references == 1 && node.stage == null
+                    && node.storage == null && node.component_count == 0 && node.table == null);
+                if !tree { node_profile_check(root.children[i * job.count + j].entity == node); }
+                else {
+                    if j == 0 { node_profile_check(root.children[i].entity == node); }
+                    var first = j * 2 + 1;
+                    var children: usize = 0;
+                    if first < job.count { children = job.count - first; if children > 2 { children = 2; } }
+                    node_profile_check(node.child_count == children);
+                    for(var k: usize = 0; k < children; k++) {
+                        node_profile_check(node.children[k].entity == job.nodes[first + k]);
+                    }
+                }
+            }
+        }
+    }
+    start = node_profile_time();
+    entity_release(root);
+    var release_ns = node_profile_time() - start;
+    node_profile_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store));
+    for(var i: usize = 0; i < job_count; i++) { free(jobs[i].nodes); }
+    work_pool_close(&pool);
+    if parallel.active { node_profile_check(work_budget_release(&budget, &parallel)); }
+    node_profile_check(work_budget_release(&budget, &outer));
+    var snapshot: WorkBudgetSnapshot;
+    node_profile_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+        && snapshot.live == 0 && snapshot.used_lanes == 0 && getrusage(0, &after[0]) == 0);
+    var generation = budget.generation;
+    node_profile_check(work_budget_dispose(&budget));
+    // Any allocation/publication failure drains and discards every admitted
+    // owner before reporting nonzero. No failed batch is replayed.
+    node_profile_check(okay);
+    // Count, workers, shape, descriptor bytes, create/join, publication, release
+    // ns, CPU us (includes reference checking), RSS KiB, actual overlap,
+    // physical grant generations/peak bytes, retained ledger metadata, stages.
+    print(count); print(workers); print(tree ? 1 : 0); print(count * sizeof(Entity));
+    print(allocation_ns); print(publication_ns); print(release_ns);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(overlap); print(generation); print(snapshot.peak_bytes); print(snapshot.retained);
+    print(job_count);
+    return 0;
+}

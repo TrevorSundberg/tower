@@ -15,8 +15,14 @@ The regression uses actual tool code with the existing single-owner allocator.
 It checks failed appends for plain text, strings, comments, ordinary quoted names,
 expanded foreign names and wrap flags, restores input bytes, and verifies no
 retained allocations. The normal wrap case checks exact source and response bytes.
-It does not establish fault tolerance of every foreign mangler allocation or
-threaded sanitizer coverage.
+The mangler also retains its first failure independently of diagnostic allocation,
+checks ownership insertion and text construction, and suppresses partial symbols.
+Twelve exact ABI inputs currently exercise 515 allocation-denial positions derived
+from their successful calls. Two malformed inputs exercise 18 more positions,
+including recovery after a failed diagnostic-prefix allocation. Every failed call
+must preserve a useful error, publish no symbol and release its owned buffers.
+These cases do not establish all-input fault tolerance or threaded sanitizer
+coverage.
 
 After a default public-bootstrap native build with `TOWER_BACKEND_TESTS=ON`, run
 inside the documented Linux x64 environment (set `native` to that build cache):
