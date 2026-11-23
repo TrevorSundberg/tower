@@ -1,0 +1,7 @@
+import tower;
+import .nominal_wrapper_module as types;
+print(123);
+fn read(): usize { return later; }
+var earlier: usize = read();
+var later: usize = 2;
+var value: types.wrapped(i32, earlier);
