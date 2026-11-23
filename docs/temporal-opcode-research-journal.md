@@ -49165,3 +49165,23 @@ Sourcee925b205, local compile/paired profile pending Deck slot. D1 has exact
 source and composition for opt-in native Linuxx64 registration, no heavy default
 CTest. This is a measured diagnostic fix for the accidental-serial acceptance
 gap, not a claimed compiler speedup or unrun test pass.
+
+Source review strengthened the pending frontend guard before execution:
+interval overlap must include different already-recorded pthread IDs, alongside
+actualouterpeak>1/reservedpeak>1 for the equal-unit control. v2full delta93994062
+replaces447a277c, source57e392d9. Check stays outside timed region and retains
+failed JSON; no extra worker/scheduler or changed workload. D1 notified not to
+stack drafts. Runtime/measurement still pending shared slot.
+
+Reviewed/integrated L1 data-only split7f9fa3c4 after v3 with root's source
+handoff: single WorkBuffer definition and ordinary work_vector type producer
+move to *_types, borrowed iteration hooks stay with type producer, old modules
+import them. No duplicate type/layout/allocator/cap changes. New type resources
+are automatically discovered by the four reviewed packaging paths; exact new
+resource set remains a build check. Owner previously failing semantics_checks
+now compiles with public pin; D2 local smallest/build/runtime pending. Parser
+shared-layout migration and joint-budget test correction remain B1/B2 work,
+not silently applied here. Full owner validation/A2 API review is not inferred
+from this source integration; no new syntax adoption/private pin. First diff
+check rejected patch-introduced blank line at work_vector EOF; removed only
+that extra blank, no wider formatting.

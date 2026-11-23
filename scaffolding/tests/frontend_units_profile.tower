@@ -158,6 +158,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var entities: usize = 0;
     var components: usize = 0;
     var peak: usize = 0;
+    var separate_workers = false;
     var worker_ns: u64 = 0;
     for(var i: usize = 1; i <= count; i++) {
         var span = &spans[i - 1];
@@ -165,7 +166,10 @@ export fn main(argc: i32, argv: u8**): i32 {
         worker_ns += span.end - span.start;
         var active: usize = 0;
         for(var j: usize = 0; j < count; j++) {
-            if spans[j].start <= span.start && spans[j].end > span.start { active++; }
+            if spans[j].start <= span.start && spans[j].end > span.start {
+                active++;
+                if spans[j].thread != span.thread { separate_workers = true; }
+            }
         }
         if active > peak { peak = active; }
         var program = frontend_units_program(batch, i);
@@ -216,7 +220,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     // Keep failed observations above. Equal independent units are the control
     // for native concurrency; requested lanes alone cannot validate this run.
     if count > 1 && budget > 1 && bodies == 0 {
-        units_check(peak > 1 && reservation.peak_lanes > 1,
+        units_check(peak > 1 && separate_workers && reservation.peak_lanes > 1,
             "profile equal-unit control did not overlap native work");
     }
     return 0;

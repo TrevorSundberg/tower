@@ -1439,3 +1439,29 @@ serial linkage being accepted as native-concurrency measurement, grounded in
 B2's observed16serial runs. Local predecessor compile and paired equivalent
 input profile remain pending. D1 owns opt-in CMake registration and received
 exact draft/source contracts; no duplicate link implementation added.
+
+The unexecuted frontend guard v2 supersedes447a277c: full delta939940621aedbee1a635bd89a5c9f6b9d5222e2cf5d18d62aac84144387e9841
+after2e4b produces57e392d98413b07c6f8467fe09651562e3fecd8d8d1041c4585b66736b52a42e.
+The existing post-timing interval scan also requires different captured pthread
+IDs among overlapping spans for the equal-unit control. This strengthens actual
+concurrency evidence without changing measured work or treating queue width as
+overlap. D1 received replacement instructions; both versions remain unrun here.
+
+#### Data-only buffer type import closure
+
+Root-reviewed L1 split7f9fa3c4317a2331dc9f9981dcd2ed45a7f9832a8d7ac179a04c7923f6831412
+is source-integrated after v3/drain; local execution pending. All four files
+read. New library/work_buffer_types.tower contains the sole unchanged WorkBuffer
+fields and budget lifetime contract. New library/work_vector_types.tower owns
+the sole ordinary work_vector type producer and four allocation-free borrowed
+iteration hooks (resolved in that producer's module); both old implementations
+import these definitions. No duplicate nominal type, changed layout/allocator
+behavior, cap increase or new language syntax. A2 remains API owner, L1 handoff
+owner. Existing native/browser/project/bootstrap library discovery includes both
+new files; final exact resource closure now requires46resources if nothing else
+changes. Types-only clients must import *_types explicitly; full implementation
+clients retain methods. Owner public-pin formerly failing semantics unit passes;
+full owner/runtime and D2 predecessor/affected tests still separate open evidence.
+This limits import expansion before any parser unit split; no measured local
+iteration speedup yet. Removed only the extra terminal blank line introduced
+by this patch after diff --check rejected it, retaining the source failure.
