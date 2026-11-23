@@ -92971,3 +92971,24 @@ preserved; six restored candidate paths still match pre-experiment023955e1,
 new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
 fixture work retained/excluded from frozenf167 evidence. No browser rerun or
 rejected-fix adoption; normal source publication only. All B2 jobs drained.
+
+### 2026-11-23 A1: complete Node T5 adoption on ROOT shared b8d65c37
+
+The unchanged compiler-threads.test.mjs runs ONCE and passes3/3, exit0,
+no skips/cancellations/timeouts/unstarted cases. Pool128 cycles and injected
+worker trap pass; the entire original compiler matrix completes workers1/2/4/8,
+widths4/8 and Graph/Fast, including the formerly blocking inference_alias_invalid.
+Exact source/artifact/host boundaries, commands, phase counts, timings and remaining
+release limits are in [node_threads_b8d65c37.md](node_threads_b8d65c37.md).
+ROOT compilerd2e7a2ae/work6411c389 verified before/after; executable sourceb8d65c37,
+mounted main08d209fa. Newer backend fallback/executable producers are excluded.
+No compiler rebuild or fixture/transport/assertion/deadline change. Both eager
+paths were absent; installed exact supplied pair with absolute overrides.
+GNUtime110.75wall/179.07CPU seconds,420932KiB RSS, n1; acceptance cost only.
+23 worker creations/termination requests/actual end events, natural process exit,
+no surviving child. All1169 Tower/46 host/test/artifact checksums revalidate.
+CPU12-23/24GiB own container/cache; same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7,
+actual Codex PID14996. Disk340487884800B before/340461453312B after, todo unchanged.
+Logs C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_b8d65c37. This is scoped
+Node T5 closure, not B2 browser retirement, newer compiler acceptance or ROOT
+release/sanitizer/generation evidence. Normal complete-history publication follows.
