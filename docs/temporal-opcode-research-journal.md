@@ -90175,6 +90175,53 @@ The change against published main is receipt/journal only. Reused unchanged
 compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
 
+## 2026-11-23 B1 four real ECS semantic-port observations: blocked
+
+Frozen host/resources bcd0e3abf9bd2d970c771133b95d11990defb02c/tree
+b949eaa1c9a06c4128452c97c558e7f430546636 plus transport-only semantic-port patch.
+ROOT eac16533 reactors independently SHA256 checked: portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Explicit overrides, no rebuild/pin/cap change. KinmenB CPU0-11/24GiB, Node22.23.5,
+fresh single-process test runner per exact anchored case, concurrency1, one180s
+guard each. GNU time covers actual Node/V8 process; no killed-child exclusion.
+
+All four return status1 before their guard: entity_pages50.06wall/100.38CPU s/
+2826728KiB; entity_tables50.41/101.02/2847968; work_graph36.04/73.21/2353568;
+work_resume30.67/66.34/2321244. Each TAP reports exactly1test/1fail/0skip, phases
+only selected name. Preceding32-bit Graph/Fast outputs0 and both canonical
+reparse/output/text-equality checks pass. All fail the unchanged compiled-status
+assertion at LLVM Foundation32 optimize=false: Compiler resource request failed.
+Later reconstructed execution, optimize=true,64-bit and executable LLVM modes
+remain pending, as do unselected cases. This is not a retroactive Deck60s pass,
+leak proof or established Memory category. All original assertions preserved.
+
+One reduced request sequence submits saved entity_pages canonical Tower text
+(1101861bytes, SHA7db91392a90c5d3a85e23899dc4b05c6836635bbc0160de6d79f4c453ed06fbd)
+to a fresh LLVM-only reactor, same entry/resources/options; no preceding portable
+reactor or Graph/Fast execution. It also fails49.33wall/78.50CPU s/2110560KiB,
+exit1, inside its sole180s guard. Exact response status/error plus mapped
+errorFile .tower/tests/entity_pages.tower/errorOffset4998499 preserved. Offset
+exceeds submitted length; do not infer culprit location from that transport map.
+No LLVM/reconstructed text returned, so no invented expansion-stage conclusion.
+Canonical inspected once: imported ECS definitions explain substantial text,
+but size alone does not identify the denied producer. No second reduction.
+
+Concrete handoff: backend/source_session.tower:67 sees program.resource.error
+but calls backend_session_resource_failure without transferring error/offset;
+backend/session.tower:140 reads different backend.resource_error, defaulting to
+generic response. Response-buffer denial also uses that fallback. Both initial
+frontend and reconstructed-source validation use this caller, so exact first
+resource category/stage remains obscured. ROOT/L1 diagnostic boundary and actual
+producer handoff; D2 Foundation investigation separate. No production edits.
+
+Only JS transport changes: honor overrides before default reads, split existing
+phase logs, optional canonical/LLVM artifact saving. Test body/source/expectations,
+widths/profiles remain unchanged. node --check/diff checks pass; complete source
+manifest verified after observations. Logs/commands/manifests/canonical inputs
+and isolated API transport remain build/ecs_b1/cache/semantic_port_bcd0; receipt
+docs/semantic_port_four_bcd0e3ab.md. Four gates FAILED/pending, not passed; no
+full Node/browser/native/generation/sanitizer round. Owned jobs drained, todo
+unchanged; ROOT final release separate. Prior rejected LR receipts untouched.
 Merged acceptance: implementation928764f3 merged complete published bcd0e3ab history as eaa09b9f; the caller conflict preserves D2's bounded execution loops/phases and LLVM trap localization, including the new independent-loader loop using the same execution budget. The16 affected portable units rebuilt through the documented public-bootstrap target. Merged reactor `07135ce36e11e5c2239d0a662c469a43569ca8e8366816e4263658ad1866b620`:6/6 package gates, no skips; large32 normalized direct+independent-load check0 at37.04s/53.26s/1,538,868KiB; real Memory rollback/same-instance retry check0 at81.24s/105.74s/2,097,636KiB. Failure/retry ends with zero handles/views/package bytes/capacity/grants; the Wasm heap stays at its2GiB high-water mark. Original32/64/native/scaling measurements above remain explicitly base94dd evidence, not relabeled merged measurements. The final host-only guard also destroys a just-loaded handle if source-map capture throws, preserving that first exception. The six package gates were rerun after it. JS metadata allocation failure itself was not injected. Node syntax checks for both affected callers pass. Full LLVM-reactor differential/candidate generations and final hosted release remain D2/ROOT pending; no local LLVM reactor was installed and no missing-artifact skip was treated as a pass. No active owned jobs remain before publication.
 ### D1 supplied-artifact and blocked-fixture adoption (2026-11-23)
 
@@ -90389,6 +90436,19 @@ actual failures/metrics remain in type_composition_adopted_controls and
  type_composition_adoption_triage, appended to the external receipt. No passing
 claim for nested negation or for unsupported numeric nominal forwarding.
 
+B1 semantic-port publication reconciliation: required ff-only pull refused
+normal divergence; complete-history merge cff9d3ae062d3185ff0f02e9261b27d4538209dc preserves published5e1c92c9
+without conflicts. Measured semantic-port transport, fixture loader and LLVM
+host are unchanged; Node syntax/diff checks pass. Incoming Tower host hunks
+only register packaged/loaded bytecode handles, APIs not used by this four-case
+slice. A2 entity registration/type/page-policy and semantic inputs did change:
+the old failed observations are NOT acceptance of those newer resources.
+All original frozen hashes, canonical requests, statuses and raw diagnostics
+remain intact; no repeat of the bounded four cases or isolated failure. The
+new inspector/tool and independent owner receipts are preserved, not rerun.
+Source boundary remains bcd0e3ab plus transport patch, reactor eac16533; source
+history is complete and public. Four gates remain unpassed, ROOT/L1 producer
+handoff exact; normal push follows.
 D1 three-gate reconciliation: receipt80ca7d85 merged complete published5e1c92c9
 asbc681ac3 after the required ff-only pull refused divergence. Selected test
 bodies, fixtures, language resources and vector/platform imports are unchanged.
@@ -90487,3 +90547,82 @@ Optimized emitted lengths132187/42848B respectively; exact sources and responses
 are saved. No compiler rebuild, full IDE, unrelated Node selector, sanitizer,
 generation or hosted deployment run; final integrated release remains ROOT's.
 All owned processes drained, todo unchanged.
+### D2 synthetic deployment packaging gate (2026-11-23)
+
+Frozen published source c8e1d10b; scope is the existing
+playground/tests/build-packaging.test.mjs filesystem/process boundary, not
+compiler execution or hosted deployment. Reviewed the complete changed fixture,
+production build.mjs/build-bootstrap.sh callers, targets.mjs input contract,
+package_playground_assets.tower, build_tools.tower, and relevant shared file/gzip
+helpers. README Checks and the earlier Tower packager migration receipt define
+the division: Node collects/bundles files and enforces capability prerequisites;
+Tower compresses LLVM/cross bytes and hashes sorted emitted paths, publishing the
+manifest last. Existing production rules are correct for the tested contract;
+no Tower producer/runtime change or alternate packaging implementation is needed.
+
+The old cached packager dated Nov22 has a stale depfile referring to removed
+scaffolding/types/integer.tower and other split type modules. Preserved its bytes
+and depfile; did not relabel it current. Built only package_playground_assets and
+its tool/runtime prerequisites with the documented public entry:
+`TOWER_BUILD_JOBS=1 TOWER_TOOLS_BUILD=/tmp/tower-home/.cache/tower/tools bash
+playground/scripts/build-bootstrap.sh --tools package_playground_assets`, with
+TOWER_BOOTSTRAP_COMPILER unset. The entry verified the checked-in pin/resources.
+Release/Linux x86_64, TOWER_COMPILER_JOBS=1; public towerc SHA256
+768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+result packager SHA256
+9d257830c23ad71229805950a1d9aefb69ab2a9cbf6f50794f0e0be8d5ec13ef;
+unchanged producer source SHA256
+0a02745815c05570e01dde32b3257dbe43810815b46e63bfa32172bdc7c66a41.
+Compiler-generated depfile and its actual import hashes are preserved with logs;
+closure checked unchanged after execution. No compiler/reactor build.
+
+Before: the original gate failed during fixture copy with ENOENT for the absent
+third_party/llvm-project/llvm/LICENSE.TXT, before bundling. A synthetic boundary
+fixture should not require that large source checkout. Supplied explicitly marked
+synthetic LLVM/libcxx notice bytes inside its unique temporary directory. These
+are not real distribution licenses. Source audit also found that the old fixture
+omitted the shared reactor while inheriting TOWER_REQUIRE_THREADS. Added synthetic
+threads input for the required success case; every invocation now sets BOTH
+backend/thread requirements explicitly, with an independently checked nonzero
+missing-required-threads case. Optional cases explicitly clear those requirements;
+the required case is never satisfied by absence or a skip. No production check
+or expected failure message was weakened.
+
+Added missing declared compiler-support rejection, gzip-byte comparison via
+Node's independent zlib decoder, explicit stale threads/backend/target/project
+files, and checksum/CNAME checks for both complete and optional bundles. Retained
+required-project, present-cross/missing-target and required-backend rejection.
+Spawn errors/signals cannot count as expected rejection. Each synthetic Wasm/
+archive input contains only the string `fixture`; nothing attempts to execute it.
+Cleanup remains confined to mkdtemp's owned fixture directory, including failures.
+No compiler semantics or model is implemented in JavaScript.
+
+One final affected aggregate, Node22.23.5/esbuild0.25.12, concurrency1:
+`TOWER_PLAYGROUND_ASSET_PACKAGER=/tmp/tower-home/.cache/tower/tools/bin/package_playground_assets
+TOWER_REQUIRE_BACKENDS=1 TOWER_REQUIRE_THREADS=1 node --test --test-concurrency=1
+playground/tests/build-packaging.test.mjs`. PASS1/1, zero skips, exit0. Actual
+full/optional manifests checked91/78 emitted assets respectively, including exact
+CNAME; five distinct missing-input rejection paths pass. Raw cross is removed
+only after gzip; decompressed LLVM/cross bytes equal their synthetic input.
+All owned jobs drained and heavy slot released. Syntax/diff checks pass, todo
+unchanged. Complete fixture source SHA256
+ a74681775486341c23960844b28b94415abfed6f60d2e71fbe1dedd91dcf9610
+is D1's adoption identity; production build.mjs remains
+7da1520dfe99e3691c3f762b9e7893e1af2c64b82f88faf751badd82025266fc.
+
+Measurements (`/usr/bin/time -v`, n1 each, fresh processes, filesystem caches not
+flushed; no throughput/scaling comparison): tool-only build15.21wall/14.58CPU
+seconds, peak217572KiB, exit0; original setup failure0.48wall/0.46CPU,
+peak61600KiB, exit1; repaired seven-invocation gate3.91wall/2.29CPU,
+peak66200KiB, exit0. The expanded successful check is more work than the failed
+setup, not a production performance regression or speedup. GNU time peak RSS is
+process high-water accounting, not summed concurrent live buffers or a whole-world
+memory cap; allocator retention is not measured by this filesystem gate.
+Docker tower-d2-ecs image4be584fb42a6, cpuset0,2, memory/swap limit8GiB,
+Clang19.1.1/CMake3.28.3, host dynamic frequency; disk128GiB free and RAM~10GiB
+available afterward, preexisting swap5.9GiB. No observed swaps in timed commands.
+Logs, statuses, exact source/producer/depfile identities and failed baseline:
+build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
+project assets, real notices, final bundle checks and hosted verification retain
+separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
+Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
