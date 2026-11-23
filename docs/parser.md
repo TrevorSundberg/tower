@@ -476,3 +476,42 @@ symbols, elapsed nanoseconds, instrumented buffer allocation calls and retained
 buffer count; five warmups precede eleven recorded parses at each size. This
 measures the list grammar and accepted-tree release, excluding reset and grammar
 construction. It does not count every host allocation or measure browser latency.
+
+### LR phase results and physical scheduling storage
+
+The FIRST, LR(0) state and LALR constructors expose per-call results through
+`lr_analysis_create_result`, `lr_analysis_compute_result`,
+`lr_analysis_compute_parallel_result`, `lr_states_create_result`,
+`lr_states_create_parallel_result`, `lr_states_lalr_result` and
+`lr_states_lalr_parallel_result`. Existing bool/pointer entry points remain wrappers.
+Counted input/buffer overflow and invalid reached references report `Invalid`;
+actual raw allocation failure reports `Memory`. Entity, pool, view, admission and
+transport failures retain their own `WorkBudgetError`. A logical work-graph
+failure without a storage error is `Invalid`, never an inferred allocation error.
+
+Workers keep causes in private task/item storage. The coordinator finishes every
+joined ticket, then reads results in the phase's source/frontier order before
+publication. Frozen grammar/index inputs remain borrowed until that join. The
+counted private closure cache validates lookup bounds. FIRST does not inspect a
+reference after a nonnullable prefix; state closure can diagnose it later when
+that path is actually reached. Ordinary public lookahead create/seed/edge/solve
+operations also have result variants and validate their counts/endpoints.
+
+A compiler world's retained parser pool now charges its actual clamped slot
+buffer, including the shared allocator's footprint, to that world's budget.
+FIRST/state/LALR/runtime work graphs charge their own temporary storage to the
+same budget. These are byte-only owners, separate from extra-lane admission.
+Joining releases execution grants; pool storage remains charged until its cache
+closes or the world is disposed. Standalone entity stores retain the explicit
+null-budget boundary. World budget binding already rejects a retained pool, so
+its storage owner cannot silently change ledgers.
+
+The table owns and discards partial derived construction on failure. FIRST can
+retry after storage becomes available; a successful compute clears its failure
+flag. Callers must discard incomplete LR item/state/lookahead products or restore
+their documented producer state before reuse. A descriptor/cache denial that
+has not modified inputs permits retry directly, as covered by the fixtures.
+Raw FIRST/item/state/lookahead vectors and other request/lexer allocations remain
+outside this physical-accounting change; it is not a process-memory limit or a
+claim of complete parser resource coverage. Validation and measurements for this
+implementation are tracked in the B1 audit and project journal.

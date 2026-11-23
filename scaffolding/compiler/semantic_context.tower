@@ -99,6 +99,17 @@ fn sem_query_cancel_failure(c: SemanticContext*): WorkBudgetError {
     return error;
 }
 
+// Joined phase owners select the graph failure before exposing ready outputs.
+// Release any undispatched private stages before calling this cancellation path.
+fn sem_query_check(c: SemanticContext*, subject: void*, ok: bool): bool {
+    if ok { return true; }
+    var error = sem_query_cancel_failure(c);
+    var message: vector(u8) = default;
+    var operation = sem_get(subject);
+    sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
+    return false;
+}
+
 // Inspect only demanded queries of this phase. An empty ready queue is a
 // suspension point, not permission to diagnose a cycle or replay its consumer.
 fn sem_query_pending(c: SemanticContext*, query: u32): bool {

@@ -18,8 +18,10 @@ extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 var InterpreterFinishValuePhase: usize = 4;
+var InterpreterFinishAddressPhase: usize = 5;
 var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
 var InterpreterStackBytes: usize = 4194304;
+var InterpreterHeapBytes: usize = 268435456;
 var InterpreterCallDepth: usize = 128;
 
 fn ix_ok(m: IMExecution*): bool {
@@ -96,6 +98,7 @@ fn ix_pending(m: IMExecution*, node: void*): bool {
 // Stage eligibility constrains effects and storage, never arithmetic semantics.
 // Eligible nodes execute through the same handlers as ordinary runtime code.
 fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
+    if !ix_ok(m) { return false; }
     if !ix_strict(m) {
         return true;
     }
@@ -332,7 +335,7 @@ fn ix_write_size(m: IMExecution*, address: u64, value: u64, size: usize, offset:
 }
 
 export fn ix_allocate(m: IMExecution*, count: usize): u64 {
-    if count > 268435456 {
+    if !ix_ok(m) || count > InterpreterHeapBytes {
         return 0;
     }
     if count == 0 {
@@ -346,32 +349,37 @@ export fn ix_allocate(m: IMExecution*, count: usize): u64 {
             break;
         }
         if available >= convert(u64, count) {
+            if !im_heap_admit(m.state)
+                || !im_allocations_set(m.state, at, convert(u64, count)) { return 0; }
             im_free_blocks_erase(m.state, at);
             if available > convert(u64, count) {
                 var tail = at + convert(u64, count);
                 var rest = available - convert(u64, count);
-                im_free_blocks_set(m.state, tail, rest);
+                if !im_free_blocks_set(m.state, tail, rest) {
+                    ix_fail(m, "Invalid prepaid interpreter free-range storage", 0);
+                    return 0;
+                }
             }
-            im_allocations_set(m.state, at, convert(u64, count));
             return at;
         }
         var next = at + 1;
         at = im_free_neighbor(m.state, next, false, &available);
     }
     var heap = m.state.heap;
-    var remaining: usize = 268435456;
+    var remaining = InterpreterHeapBytes;
     remaining = remaining - heap;
     if count > remaining {
         return 0;
     }
+    if !im_heap_admit(m.state) { return 0; }
     var end = heap + count;
     var grown = im_memory_resize(m.state, end);
     if !grown {
         return 0;
     }
-    m.state.heap = end;
     at = convert(u64, heap);
-    im_allocations_set(m.state, at, convert(u64, count));
+    if !im_allocations_set(m.state, at, convert(u64, count)) { return 0; }
+    m.state.heap = end;
     return at;
 }
 
@@ -380,7 +388,7 @@ export fn ix_deallocate(m: IMExecution*, at: u64): void {
 }
 
 fn ix_deallocate_at(m: IMExecution*, at: u64, offset: usize): void {
-    if at == 0 {
+    if !ix_ok(m) || at == 0 {
         return;
     }
     var found = false;
@@ -410,7 +418,9 @@ fn ix_deallocate_at(m: IMExecution*, at: u64, offset: usize): void {
             im_free_blocks_erase(m.state, prev);
         }
     }
-    im_free_blocks_set(m.state, at, count);
+    if !im_free_blocks_set(m.state, at, count) {
+        ix_fail(m, "Invalid prepaid interpreter free-range storage", offset);
+    }
 }
 
 export fn ix_reallocate(m: IMExecution*, at: u64, count: usize): u64 {
@@ -418,6 +428,7 @@ export fn ix_reallocate(m: IMExecution*, at: u64, count: usize): u64 {
 }
 
 fn ix_reallocate_at(m: IMExecution*, at: u64, count: usize, offset: usize): u64 {
+    if !ix_ok(m) { return 0; }
     if at == 0 {
         return ix_allocate(m, count);
     }
@@ -495,7 +506,10 @@ fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: us
         }
         var terminator = index + n.name.length;
         memory[terminator] = 0;
-        im_strings_set(m.state, im_key(node), at);
+        if !im_strings_set(m.state, im_key(node), at) {
+            ix_fail(m, "Cannot allocate interpreter string storage", offset);
+            return 0;
+        }
         return at;
     }
     if n.constant {
@@ -1043,6 +1057,7 @@ fn ix_enter(m: IMExecution*, node: void*): void {
 fn ix_returned(m: IMExecution*, value: u64): void {
     if !ix_ok(m) { return; }
     var call = im_frame_call(m.state);
+    var offset = im_frame(m.state).call_offset;
     // A staged aggregate producer owns its final frame until its fields have
     // been copied into relocatable Foundation values. Guest callers still pop
     // normally; this private result buffer never becomes a program pointer.
@@ -1062,12 +1077,8 @@ fn ix_returned(m: IMExecution*, value: u64): void {
         m.context.result = value;
         m.context.returned = true;
     }
-    if m.state.frame_count != 0 {
-        if call != null {
-            if ix_ok(m) {
-                im_values_set(m.state, im_key(call), value);
-            }
-        }
+    if m.state.frame_count != 0 && call != null && !im_values_set(m.state, im_key(call), value) {
+        ix_fail(m, "Cannot allocate interpreter value storage", offset);
     }
 }
 
@@ -1134,8 +1145,8 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
                 return;
             }
             var result = ix_foreign(m, binding, args, n.items.length);
-            if ix_ok(m) {
-                im_values_set(m.state, im_key(node), result);
+            if ix_ok(m) && !im_values_set(m.state, im_key(node), result) {
+                ix_fail(m, "Cannot allocate interpreter value storage", offset);
             }
             return;
         }
@@ -1175,8 +1186,8 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
     ix_enter(m, function.body);
 }
 
-fn ix_needs(m: IMExecution*, node: void*): bool {
-    if node == null {
+fn ix_needs(m: IMExecution*, node: void*, offset: usize): bool {
+    if node == null || !ix_ok(m) {
         return false;
     }
     var found = false;
@@ -1190,11 +1201,13 @@ fn ix_needs(m: IMExecution*, node: void*): bool {
     result = im_or(result, test);
     test = n.kind == KReallocate;
     result = im_or(result, test);
-    result = im_or(result, ix_needs(m, n.left));
-    result = im_or(result, ix_needs(m, n.right));
-    result = im_or(result, ix_needs(m, n.value));
-    result = im_or(result, ix_needs(m, n.target));
-    im_sequenced_set(m.state, im_key(node), convert(u64, result));
+    result = im_or(result, ix_needs(m, n.left, offset));
+    result = im_or(result, ix_needs(m, n.right, offset));
+    result = im_or(result, ix_needs(m, n.value, offset));
+    result = im_or(result, ix_needs(m, n.target, offset));
+    if ix_ok(m) && !im_sequenced_set(m.state, im_key(node), convert(u64, result)) {
+        ix_fail(m, "Cannot allocate interpreter sequencing storage", offset);
+    }
     return result;
 }
 
@@ -1390,7 +1403,9 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         }
         if task.phase == 0 {
             im_cache_clear(m.state);
-            if ix_needs(m, task.node) {
+            var needs = ix_needs(m, task.node, offset);
+            if !ix_ok(m) { break; }
+            if needs {
                 var resume = task.loop_resume != 0;
                 if !ix_schedule(m, task.node, resume, 1, n.start) { break; }
                 var assign = n.kind == KDeclare;
@@ -1484,7 +1499,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                     if found {
                         continue;
                     }
-                    ix_queue(m, task.node, 5, offset);
+                    ix_queue(m, task.node, InterpreterFinishAddressPhase, offset);
                     if n.kind == KLoad {
                         ix_queue(m, n.value, 2, offset);
                     }
@@ -1505,9 +1520,11 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                     }
                     continue;
                 } else {
-                    if task.phase == 5 {
+                    if task.phase == InterpreterFinishAddressPhase {
                         var address = ix_address(m, task.node, task.offset);
-                        im_addresses_set(m.state, im_key(task.node), address);
+                        if ix_ok(m) && !im_addresses_set(m.state, im_key(task.node), address) {
+                            ix_fail(m, "Cannot allocate interpreter address storage", task.offset);
+                        }
                         continue;
                     } else {
                         if task.phase == InterpreterFinishValuePhase {
@@ -1530,7 +1547,9 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                     m.state.steps--;
                                     break;
                                 }
-                                im_values_set(m.state, im_key(task.node), result);
+                                if ix_ok(m) && !im_values_set(m.state, im_key(task.node), result) {
+                                    ix_fail(m, "Cannot allocate interpreter value storage", task.offset);
+                                }
                             }
                             continue;
                         }
@@ -1999,13 +2018,6 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     execution.state = m;
     execution.context = null;
     ix_call(&execution, node, offset);
-}
-
-fn im_needs(m: IMState*, node: void*): bool {
-    var execution: IMExecution;
-    execution.state = m;
-    execution.context = null;
-    return ix_needs(&execution, node);
 }
 
 fn im_queue(m: IMState*, node: void*, phase: usize, offset: usize): void {

@@ -2,6 +2,7 @@ import tower;
 import lr_types;
 import lexer_table;
 import .library.vector;
+import .library.work_budget_types;
 
 // Disposable FIRST/nullable and LR item indexes over the shared grammar entities.
 // Character and token streams use the same integer ranges and closure algorithm.
@@ -26,6 +27,13 @@ struct LRItems {
     values: vector(LRItem);
     pending: vector(LRItem);
     failed: bool;
+    resource_error: WorkBudgetError;
+}
+
+fn lr_items_fail(value: LRItems*, error: WorkBudgetError): bool {
+    value.failed = true;
+    if value.resource_error == WorkBudgetError.None { value.resource_error = error; }
+    return false;
 }
 
 fn lr_none(): usize {
@@ -47,9 +55,30 @@ fn lr_append(T: type, values: vector(T)*, value: T*): bool {
     return ok;
 }
 
+// Existing vectors remain raw derived indexes. Validate the element bound before
+// interpreting a failed allocation; a size overflow is not allocator exhaustion.
+fn lr_reserve_result(T: type, values: vector(T)*, count: usize): WorkBudgetError {
+    if sizeof(T) == 0 || count > ~convert(usize, 0) / sizeof(T) { return WorkBudgetError.Invalid; }
+    return vector_reserve(values, count) ? WorkBudgetError.None : WorkBudgetError.Memory;
+}
+
+fn lr_push_result(T: type, values: vector(T)*, value: T): WorkBudgetError {
+    var count = values.length + 1;
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_result(values, count);
+    if error != WorkBudgetError.None { return error; }
+    values.data[values.length] = value;
+    values.length = count;
+    return WorkBudgetError.None;
+}
+
 // Preserve distinct range identities here: overlapping ranges can represent
 // different parse actions. Union/partition belongs to action construction.
 fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): bool {
+    return lr_range_insert_result(values, first, last, changed) == WorkBudgetError.None;
+}
+
+fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): WorkBudgetError {
     var low: usize = 0;
     var high = values.length;
     loop {
@@ -76,13 +105,13 @@ fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed:
         var end_same = value.last == last;
         same &&= end_same;
         if same {
-            return true;
+            return WorkBudgetError.None;
         }
     }
     var count = values.length + 1;
-    if !vector_reserve(values, count) {
-        return false;
-    }
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_result(values, count);
+    if error != WorkBudgetError.None { return error; }
     var moved = values.length -low;
     var bytes = moved *sizeof(SymbolRange);
     var next = low + 1;
@@ -91,22 +120,25 @@ fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed:
     values.data[low].last = last;
     values.length = count;
     *changed = true;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn lr_range_merge(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): bool {
+    return lr_range_merge_result(destination, source, changed) == WorkBudgetError.None;
+}
+
+fn lr_range_merge_result(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): WorkBudgetError {
     if destination == source {
-        return true;
+        return WorkBudgetError.None;
     }
     var index: usize = 0;
     loop {
         if index == source.length {
-            return true;
+            return WorkBudgetError.None;
         }
         var range = &source.data[index];
-        if !lr_range_insert(destination, range.first, range.last, changed) {
-            return false;
-        }
+        var error = lr_range_insert_result(destination, range.first, range.last, changed);
+        if error != WorkBudgetError.None { return error; }
         index++;
     }
 }
@@ -127,6 +159,24 @@ export fn lr_analysis_destroy(value: LRAnalysis*): void {
 
 // Production/symbol arrays are borrowed and immutable for this analysis lifetime.
 export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize, nonterminal_count: usize): LRAnalysis* {
+    var error = WorkBudgetError.None;
+    return lr_analysis_create_result(rules, rule_count, symbols, symbol_count, nonterminal_count, &error);
+}
+
+export fn lr_analysis_create_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
+nonterminal_count: usize, error: WorkBudgetError*): LRAnalysis* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if (rule_count != 0 && rules == null) || (symbol_count != 0 && symbols == null)
+        || rule_count > ~convert(usize, 0) / sizeof(LRProduction)
+        || symbol_count > ~convert(usize, 0) / sizeof(LRSymbol)
+        || nonterminal_count > ~convert(usize, 0) / sizeof(LRNonterminal) { return null; }
+    for(var i: usize = 0; i < rule_count; i++) {
+        var rule = &rules[i];
+        if rule.owner >= nonterminal_count || rule.begin > symbol_count
+            || rule.count > symbol_count - rule.begin { return null; }
+    }
+    *error = WorkBudgetError.Memory;
     var result = alloc(LRAnalysis, 1);
     var failed = result == null;
     if failed {
@@ -153,24 +203,12 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
     index = 0;
     loop {
         if index == rule_count {
+            *error = WorkBudgetError.None;
             return result;
         }
         var rule = &rules[index];
-        var invalid = rule.owner >= nonterminal_count;
-        if rule.begin > symbol_count {
-            invalid = true;
-        }
-        if invalid {
-            lr_analysis_destroy(result);
-            return null;
-        }
-        var available = symbol_count -rule.begin;
-        invalid = rule.count > available;
-        if invalid {
-            lr_analysis_destroy(result);
-            return null;
-        }
-        if !vector_push(&result.nonterminals[rule.owner].productions, index) {
+        *error = lr_push_result(&result.nonterminals[rule.owner].productions, index);
+        if *error != WorkBudgetError.None {
             lr_analysis_destroy(result);
             return null;
         }
@@ -179,6 +217,11 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
 }
 
 export fn lr_analysis_compute(value: LRAnalysis*): bool {
+    return lr_analysis_compute_result(value) == WorkBudgetError.None;
+}
+
+export fn lr_analysis_compute_result(value: LRAnalysis*): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
     loop {
         var changed: bool = false;
         var index: usize = 0;
@@ -199,22 +242,22 @@ export fn lr_analysis_compute(value: LRAnalysis*): bool {
                 var symbol_index = rule.begin + position;
                 var symbol = &value.symbols[symbol_index];
                 var terminal = symbol.nonterminal == lr_none();
-                var ok: bool = true;
+                var error = WorkBudgetError.None;
                 if terminal {
-                    ok = lr_range_insert(&owner.first, symbol.first, symbol.last, &changed);
+                    error = lr_range_insert_result(&owner.first, symbol.first, symbol.last, &changed);
                     nullable = false;
                 } else {
                     if symbol.nonterminal >= value.nonterminal_count {
                         value.failed = true;
-                        return false;
+                        return WorkBudgetError.Invalid;
                     }
                     var referenced = &value.nonterminals[symbol.nonterminal];
-                    ok = lr_range_merge(&owner.first, &referenced.first, &changed);
+                    error = lr_range_merge_result(&owner.first, &referenced.first, &changed);
                     nullable = referenced.nullable;
                 }
-                if !ok {
+                if error != WorkBudgetError.None {
                     value.failed = true;
-                    return false;
+                    return error;
                 }
                 if !nullable {
                     break;
@@ -230,7 +273,8 @@ export fn lr_analysis_compute(value: LRAnalysis*): bool {
             index++;
         }
         if !changed {
-            return true;
+            value.failed = false;
+            return WorkBudgetError.None;
         }
     }
 }
@@ -320,12 +364,10 @@ export fn lr_items_insert(value: LRItems*, item: LRItem*): bool {
         }
     }
     var count = value.values.length + 1;
-    var ok = vector_reserve(&value.values, count);
-    ok &&= lr_append(LRItem, &value.pending, &saved);
-    if !ok {
-        value.failed = true;
-        return false;
-    }
+    if count == 0 { return lr_items_fail(value, WorkBudgetError.Invalid); }
+    var error = lr_reserve_result(&value.values, count);
+    if error == WorkBudgetError.None { error = lr_push_result(&value.pending, saved); }
+    if error != WorkBudgetError.None { return lr_items_fail(value, error); }
     var moved = value.values.length -low;
     var bytes = moved *sizeof(LRItem);
     var next = low + 1;
@@ -343,23 +385,23 @@ export fn lr_items_data(value: LRItems*): LRItem* {
     return value.values.data;
 }
 
-fn lr_suffix(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: vector(SymbolRange)*): bool {
+fn lr_suffix_result(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: vector(SymbolRange)*): WorkBudgetError {
     var changed: bool = false;
     loop {
         if position >= rule.count {
-            return lr_range_insert(ranges, item.first, item.last, &changed);
+            return lr_range_insert_result(ranges, item.first, item.last, &changed);
         }
         var index = rule.begin + position;
         var symbol = &value.symbols[index];
         if symbol.nonterminal == lr_none() {
-            return lr_range_insert(ranges, symbol.first, symbol.last, &changed);
+            return lr_range_insert_result(ranges, symbol.first, symbol.last, &changed);
         }
+        if symbol.nonterminal >= value.nonterminal_count { return WorkBudgetError.Invalid; }
         var next = &value.nonterminals[symbol.nonterminal];
-        if !lr_range_merge(ranges, &next.first, &changed) {
-            return false;
-        }
+        var error = lr_range_merge_result(ranges, &next.first, &changed);
+        if error != WorkBudgetError.None { return error; }
         if !next.nullable {
-            return true;
+            return WorkBudgetError.None;
         }
         position++;
     }
@@ -383,18 +425,19 @@ fn lr_item_hash(item: LRItem*): usize {
     return (hash ^ convert(usize, item.last)) * multiplier;
 }
 
-fn lr_item_index_reserve(index: LRItemIndex*, values: vector(LRItem)*): bool {
+fn lr_item_index_reserve_result(index: LRItemIndex*, values: vector(LRItem)*): WorkBudgetError {
     var minimum_capacity: usize = 32;
     var load_divisor: usize = 2;
-    if values.length < index.slots.length / load_divisor { return true; }
+    if values.length < index.slots.length / load_divisor { return WorkBudgetError.None; }
     var capacity = index.slots.length;
     if capacity == 0 { capacity = minimum_capacity; }
     while values.length >= capacity / load_divisor {
         var next = capacity * load_divisor;
-        if next <= capacity { return false; }
+        if next <= capacity { return WorkBudgetError.Invalid; }
         capacity = next;
     }
-    if !vector_reserve(&index.slots, capacity) { return false; }
+    var error = lr_reserve_result(&index.slots, capacity);
+    if error != WorkBudgetError.None { return error; }
     index.slots.length = capacity;
     // Zero is vacant; occupied slots contain the item index plus one.
     fill(index.slots.data, 0, capacity * sizeof(usize));
@@ -403,13 +446,14 @@ fn lr_item_index_reserve(index: LRItemIndex*, values: vector(LRItem)*): bool {
         while index.slots.data[slot] != convert(usize, LRItemSlot.Vacant) { slot = (slot + 1) & (capacity - 1); }
         index.slots.data[slot] = i + 1;
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, queue: bool): bool {
     if items.failed { return false; }
     var saved = *item;
-    if !lr_item_index_reserve(index, &items.values) { items.failed = true; return false; }
+    var error = lr_item_index_reserve_result(index, &items.values);
+    if error != WorkBudgetError.None { return lr_items_fail(items, error); }
     var mask = index.slots.length - 1;
     var slot = lr_item_hash(&saved) & mask;
     while index.slots.data[slot] != convert(usize, LRItemSlot.Vacant) {
@@ -419,8 +463,10 @@ fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, que
         slot = (slot + 1) & mask;
     }
     var count = items.values.length + 1;
-    if count == 0 || !vector_reserve(&items.values, count) ||
-        (queue && !vector_push(&items.pending, saved)) { items.failed = true; return false; }
+    if count == 0 { return lr_items_fail(items, WorkBudgetError.Invalid); }
+    error = lr_reserve_result(&items.values, count);
+    if error == WorkBudgetError.None && queue { error = lr_push_result(&items.pending, saved); }
+    if error != WorkBudgetError.None { return lr_items_fail(items, error); }
     items.values.data[items.values.length] = saved;
     items.values.length = count;
     index.slots.data[slot] = count;
@@ -455,6 +501,8 @@ fn lr_items_sort(values: vector(LRItem)*): void {
 }
 
 export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {
+    if value == null || items == null { return false; }
+    if value.failed { return lr_items_fail(items, WorkBudgetError.Invalid); }
     var ranges: vector(SymbolRange);
     vector_init(&ranges);
     // Many items reach the same nonterminal with identical lookahead. Expand
@@ -481,6 +529,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
         items.pending.length--;
         var item: LRItem;
         copy(&item, &items.pending.data[items.pending.length], sizeof(LRItem));
+        if item.rule >= value.rule_count { lr_items_fail(items, WorkBudgetError.Invalid); break; }
         var rule = &value.rules[item.rule];
         done = item.position >= rule.count;
         if done {
@@ -491,16 +540,18 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
         if symbol.nonterminal == lr_none() {
             continue;
         }
+        if symbol.nonterminal >= value.nonterminal_count { lr_items_fail(items, WorkBudgetError.Invalid); break; }
         ranges.length = 0;
+        var error = WorkBudgetError.None;
         if lookahead {
             var position = item.position + 1;
-            ok = lr_suffix(value, rule, position, &item, &ranges);
+            error = lr_suffix_result(value, rule, position, &item, &ranges);
         } else {
             var changed: bool = false;
-            ok = lr_range_insert(&ranges, 0, 0, &changed);
+            error = lr_range_insert_result(&ranges, 0, 0, &changed);
         }
-        if !ok {
-            value.failed = true;
+        if error != WorkBudgetError.None {
+            lr_items_fail(items, error);
             break;
         }
         var productions = &value.nonterminals[symbol.nonterminal].productions;
@@ -518,7 +569,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             var previous = expanded.values.length;
             ok = lr_item_index_insert(&expansion, &expanded, &key, false);
             if !ok {
-                value.failed = true;
+                lr_items_fail(items, expanded.resource_error);
                 break;
             }
             if previous == expanded.values.length {
@@ -550,10 +601,15 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
 }
 
 export fn lr_items_shift(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, output: LRItems*): bool {
+    if value == null || input == null || symbol == null || output == null { return false; }
     var index: usize = 0;
     for(; index != input.values.length; index++) {
         var item: LRItem;
         copy(&item, &input.values.data[index], sizeof(LRItem));
+        if item.rule >= value.rule_count {
+            value.failed = true;
+            return lr_items_fail(output, WorkBudgetError.Invalid);
+        }
         var rule = &value.rules[item.rule];
         if item.position < rule.count {
             var at = rule.begin + item.position;
@@ -588,6 +644,10 @@ export fn lr_items_goto(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, 
     return lr_items_close(value, output, lookahead);
 }
 
+fn lr_items_error(items: LRItems*): WorkBudgetError {
+    return items.resource_error != WorkBudgetError.None ? items.resource_error : WorkBudgetError.Invalid;
+}
+
 // LALR lookahead dependencies refer to kernel items by temporary dense indices.
 // Propagate only changed sets; cyclic grammars converge without recursive calls.
 struct LRPropagationNode {
@@ -618,6 +678,15 @@ export fn lr_propagation_destroy(value: LRPropagation*): void {
 }
 
 export fn lr_propagation_create(count: usize): LRPropagation* {
+    var error = WorkBudgetError.None;
+    return lr_propagation_create_result(count, &error);
+}
+
+export fn lr_propagation_create_result(count: usize, error: WorkBudgetError*): LRPropagation* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if count > ~convert(usize, 0) / sizeof(LRPropagationNode) { return null; }
+    *error = WorkBudgetError.Memory;
     var value = alloc(LRPropagation, 1);
     var missing = value == null;
     if missing {
@@ -633,7 +702,8 @@ export fn lr_propagation_create(count: usize): LRPropagation* {
     value.count = count;
     var bytes = sizeof(LRPropagationNode) *count;
     fill(value.nodes, 0, bytes);
-    if !vector_reserve(&value.pending, count) {
+    *error = lr_reserve_result(&value.pending, count);
+    if *error != WorkBudgetError.None {
         lr_propagation_destroy(value);
         return null;
     }
@@ -652,28 +722,43 @@ fn lr_propagation_queue(value: LRPropagation*, index: usize): void {
 }
 
 export fn lr_propagation_seed(value: LRPropagation*, index: usize, first: u32, last: u32): bool {
+    return lr_propagation_seed_result(value, index, first, last) == WorkBudgetError.None;
+}
+
+export fn lr_propagation_seed_result(value: LRPropagation*, index: usize, first: u32, last: u32): WorkBudgetError {
+    if value == null || index >= value.count { return WorkBudgetError.Invalid; }
     var changed: bool = false;
-    var ok = lr_range_insert(&value.nodes[index].ranges, first, last, &changed);
+    var error = lr_range_insert_result(&value.nodes[index].ranges, first, last, &changed);
     if changed {
         lr_propagation_queue(value, index);
     }
-    return ok;
+    return error;
 }
 
 export fn lr_propagation_edge(value: LRPropagation*, source: usize, destination: usize): bool {
+    return lr_propagation_edge_result(value, source, destination) == WorkBudgetError.None;
+}
+
+export fn lr_propagation_edge_result(value: LRPropagation*, source: usize, destination: usize): WorkBudgetError {
+    if value == null || source >= value.count || destination >= value.count { return WorkBudgetError.Invalid; }
     // Duplicate dependencies do not change the fixed point or queued work.
-    var ok = vector_push(&value.nodes[source].edges, destination);
-    if ok {
+    var error = lr_push_result(&value.nodes[source].edges, destination);
+    if error == WorkBudgetError.None {
         lr_propagation_queue(value, source);
     }
-    return ok;
+    return error;
 }
 
 export fn lr_propagation_solve(value: LRPropagation*): bool {
+    return lr_propagation_solve_result(value) == WorkBudgetError.None;
+}
+
+export fn lr_propagation_solve_result(value: LRPropagation*): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
     loop {
         var done = value.pending.length == 0;
         if done {
-            return true;
+            return WorkBudgetError.None;
         }
         value.pending.length--;
         var index = value.pending.data[value.pending.length];
@@ -688,9 +773,8 @@ export fn lr_propagation_solve(value: LRPropagation*): bool {
             var destination = source.edges.data[edge];
             var target = &value.nodes[destination];
             var changed: bool = false;
-            if !lr_range_merge(&target.ranges, &source.ranges, &changed) {
-                return false;
-            }
+            var error = lr_range_merge_result(&target.ranges, &source.ranges, &changed);
+            if error != WorkBudgetError.None { return error; }
             if changed {
                 lr_propagation_queue(value, destination);
             }
