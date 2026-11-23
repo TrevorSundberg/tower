@@ -59,6 +59,24 @@ fn lr_lifecycle_range(root: u8*, first: SemanticLifecycleCase, last: SemanticLif
     }
 }
 
+fn lr_resource_cases(width: u32, workers: usize): void {
+    var started = unit_stream_clock();
+    utility_check(semantic_resource_tests(width, workers) == 0,
+        "Semantic resource phase, deterministic failure and ownership checks");
+    var elapsed = unit_stream_elapsed(started);
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var out: FormatEngine = {result: &text, ..default};
+    format_text(&out, "Resource cases width=");
+    format_unsigned(&out, convert(u64, width));
+    format_text(&out, " workers=");
+    format_unsigned(&out, convert(u64, workers));
+    format_text(&out, " wall_ns=");
+    format_unsigned(&out, elapsed);
+    utility_check(!text.failed && vector_push(&text.text, 0), "Resource measurement formatting");
+    puts(text.text.data);
+}
+
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if argc >= 3 && strcmp(argv[2], "lifecycle") == 0 {
         if argc < 4 || argc > 5 {
@@ -123,8 +141,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if resources {
         for(var width: u32 = 4; width <= 8; width *= 2) {
             for(var workers: usize = 1; workers <= 4; workers *= 4) {
-                utility_check(semantic_resource_tests(width, workers) == 0,
-                    "Semantic resource phase, deterministic failure and ownership checks");
+                lr_resource_cases(width, workers);
             }
         }
         puts("Resource smoke: 24 startup/growth cases at 32/64 bits and workers 1/4 passed.");

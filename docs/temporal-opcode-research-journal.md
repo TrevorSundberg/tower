@@ -62946,3 +62946,10 @@ Its old peak-only success must not count as new phase evidence. Sourcepatchv3
 98356f8a0db694c3567625c811151e7968e8b988043f917f9f685421ac0e80fc,
 still UNCOMPILED/UNRUN pending slot. Inventory1,093/507direct with exact new paths,
 substantive review and implementation reservations recorded. No todo edit.
+
+The resource-only mode also records per-width/worker wall nanoseconds with the
+runner's existing checked monotonic clock, excluding formatting. This avoids
+GNUtime's centisecond wall granularity masking the small six-case groups, while
+the process wrapper still records CPU and peak RSS. Same report code belongs to
+before/after variants; no overlap/throughput claim follows from configured worker
+width. Still unexecuted while D2 owns the slot.

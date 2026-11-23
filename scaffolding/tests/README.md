@@ -976,6 +976,10 @@ production kernel and observe the exact growth failure before disposal. Startup
 cases separately require the initial-memory failure after constructor setup.
 This mode isolates phase/cleanup checks and before/after measurements from the
 adaptive clone workload; all/query retain their existing resource coverage.
+Each width/worker group reports wall nanoseconds through the runner's existing
+checked monotonic clock, excluding report formatting. Pair these small-group
+measurements with process CPU/peak-RSS receipts; configured width is not overlap
+or throughput evidence.
 
 The same query entry runs `semantic_publish_checks.tower` once before its
 width/worker loop:18 pressure cases plus4 pre-cancelled cases. These check joined
