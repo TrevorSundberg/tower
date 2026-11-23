@@ -76,7 +76,12 @@ for (const [name, source, expected, failure, canonicalProfile] of cases) test(`L
     for(const optimize of [false,true]) {
       const optimized=llvm.compile(formatted.source,{emit:'foundation',optimize});
       assert.equal(optimized.status,'compiled',optimized.error);
-      const guest=tower.compile(optimized.foundation);
+      // LLVM has already formatted Foundation. Use the production package
+      // entry point to check those exact bytes and create fresh guest storage.
+      // Keeping a compiled guest while snapshotting it reconstructs a second
+      // large graph unnecessarily and can exhaust the reactor's memory ceiling.
+      const prepared=tower.prepareFoundationPackage(optimized.foundation,{optimizationProfile:optimized.optimizationProfile});
+      const guest=prepared.handle;
       try {
         tower.useFast(guest);
         let state, text='';
@@ -84,9 +89,19 @@ for (const [name, source, expected, failure, canonicalProfile] of cases) test(`L
         state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
         for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
         assert.equal(text,output,`LLVM bytecode ${optimize} output`);
-        const packageBytes=tower.bytecode(guest,{optimizationProfile:optimized.optimizationProfile});
+        const packageBytes=prepared.bytecode;
         assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),canonicalProfile??(optimize?1:2));
       } finally {tower.destroyExecution(guest);}
+      // Independent envelope/cache verification still reconstructs the package,
+      // after releasing the previous guest rather than retaining both graphs.
+      const restored=tower.loadBytecode(prepared.bytecode);
+      try {
+        let state,text='';
+        do {state=tower.execute(restored,10000);text+=state.output;}while(state.status==='executing');
+        state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
+        for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`loaded LLVM bytecode ${optimize} ${key}`);
+        assert.equal(text,output,`loaded LLVM bytecode ${optimize} output`);
+      } finally {tower.destroyExecution(restored);}
     }
     const roundtrip = tower.compileFoundation(formatted.source);
     try { assert.equal(tower.foundation(roundtrip).source, formatted.source); }

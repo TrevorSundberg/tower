@@ -1,0 +1,157 @@
+import tower;
+import .host.ide_api;
+import .host.ide_state;
+import .host.ide_text;
+import .host.ide_execution;
+import .host.ide_artifacts;
+import .library.entity_types;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_store(world: void*): void*;
+
+var PackageProfileExecutionKind: u32 = 1;
+var PackageProfileHeaderOffset: usize = 24;
+var PackageProfileStepBudget: u32 = 10000;
+var PackageProfileStepChunks: usize = 1000;
+
+// Freeze the exact interchange input from an existing verified CLI envelope.
+// The browser/OS harness transports bytes; Tower owns the envelope contract.
+export fn ide_package_source_copy(packet: u8*, size: usize): u8* {
+    var error = bytecode_validate(packet, size);
+    if error != 0 { ide_error(bytecode_error(error)); return null; }
+    var out = &ide_state().execution;
+    if !bytes_assign_text(out, packet + IdePackageHeaderBytes, bytecode_source_size(packet)) { return null; }
+    return ide_result(out);
+}
+
+// Joined, read-only census. Pool capacity is physical payload storage, not total
+// RSS: descriptors, external buffers, libc and the retained Wasm heap are separate.
+export fn ide_package_census(): u8* {
+    var state = ide_state();
+    var store = bits(EntityStore*, compiler_world_store(compiler_node_world(core_component_type())));
+    var pages: usize = 0;
+    var capacity: usize = 0;
+    var live: usize = 0;
+    var pools: EntityComponentPool*[2];
+    pools[0] = &store.storage;
+    pools[1] = &store.buffers;
+    for(var i: usize = 0; i < sizeof(decltype(pools)) / sizeof(EntityComponentPool*); i++) {
+        var pool = pools[i];
+        var page = pool.first;
+        while page != null {
+            pages++;
+            capacity += page.allocation.capacity;
+            live += page.live;
+            page = page.next;
+        }
+    }
+    var out = &state.execution;
+    out.length = 0;
+    ide_text(out, "{\"nodes\":"); ide_number(out, store.entity_count);
+    ide_field(out, "components", store.component_count);
+    ide_field(out, "views", store.views);
+    ide_field(out, "poolPages", pages);
+    ide_field(out, "poolBytes", capacity);
+    ide_field(out, "poolLiveSlots", live);
+    ide_field(out, "handles", host_handles_count(&state.handles, PackageProfileExecutionKind));
+    ide_field(out, "packageBytes", state.bytecode.length);
+    ide_field(out, "packageCapacity", state.bytecode.capacity);
+    ide_field(out, "packageGrants", state.bytecode.reservation.active ? 1 : 0);
+    ide_text(out, "}");
+    return ide_result(out);
+}
+
+fn package_profile_run(handle: u32, wanted: u8*, length: usize): bool {
+    var session = ide_execution(handle);
+    if session == null || session.machine.steps != 0 || session.fast == null { return false; }
+    for(var chunk: usize = 0; chunk < PackageProfileStepChunks && !session.machine.done; chunk++) {
+        ide_execution_step(session, PackageProfileStepBudget);
+    }
+    if !session.machine.done || session.machine.failed || session.machine.output_truncated
+        || session.output.length != length { return false; }
+    for(var i: usize = 0; i < length; i++) {
+        if session.output.data[i] != wanted[i] { return false; }
+    }
+    return true;
+}
+
+// Transport supplies frozen LLVM/Foundation bytes and an independent expected
+// output. All checks use the ordinary public package/session producers. Retire
+// the executed guest before independently loading its copied envelope; the
+// compiler graphs never need to coexist to prove reconstruction equivalence.
+export fn ide_package_source_check(source: u8*, length: usize, width: u32, profile: u32,
+    wanted: u8*, wanted_length: usize): u32 {
+    var state = ide_state();
+    var handles = host_handles_count(&state.handles, PackageProfileExecutionKind);
+    var prepared = tw_exec_prepare_foundation_package(source, length, width, profile);
+    if prepared == 0 { return 1; }
+    defer tw_exec_destroy(prepared);
+    defer tw_exec_bytecode_release();
+    var size = tw_exec_bytecode_size();
+    var packet = alloc(u8, size);
+    if packet == null { return 2; }
+    defer free(packet);
+    copy(packet, tw_exec_bytecode_data(), size);
+    if bytecode_validate(packet, size) != 0 || bytecode_pointer_bytes(packet) != convert(usize, width)
+        || convert(u32, packet[PackageProfileHeaderOffset]) != profile || bytecode_source_size(packet) != length { return 3; }
+    if !package_profile_run(prepared, wanted, wanted_length) { return 4; }
+    tw_exec_destroy(prepared); prepared = 0;
+    tw_exec_bytecode_release();
+    var nodes = tw_live_nodes();
+    var allocations = tw_live_allocations();
+    var store = bits(EntityStore*, compiler_world_store(compiler_node_world(core_component_type())));
+    var components = store.component_count;
+    var restored = tw_exec_load_bytecode(packet, size);
+    if restored == 0 { return 5; }
+    var checked = package_profile_run(restored, wanted, wanted_length);
+    tw_exec_destroy(restored);
+    if !checked { return 6; }
+    if tw_live_nodes() != nodes || tw_live_allocations() != allocations
+        || store.component_count != components || store.views != 0
+        || host_handles_count(&state.handles, PackageProfileExecutionKind) != handles
+        || state.bytecode.length != 0 || state.bytecode.capacity != 0 || state.bytecode.reservation.active { return 7; }
+    return 0;
+}
+
+// Run only with the frozen large normalized fixture in the ordinary 2GiB
+// reactor. This requires a real Memory denial, not a manufactured receipt or
+// a success fallback. Native hosts with a larger address space use source_check.
+export fn ide_package_memory_recovery(source: u8*, length: usize, width: u32, profile: u32,
+    wanted: u8*, wanted_length: usize): u32 {
+    var previous = "import foundation; print(42);";
+    var seed = tw_exec_prepare_foundation_package(previous, ide_length(previous), width, 0);
+    if seed == 0 { return 8; }
+    tw_exec_destroy(seed);
+    defer tw_exec_bytecode_release();
+    var size = tw_exec_bytecode_size();
+    var data = tw_exec_bytecode_data();
+    var saved = alloc(u8, size);
+    if saved == null { return 9; }
+    defer free(saved);
+    copy(saved, data, size);
+    var state = ide_state();
+    var handles = host_handles_count(&state.handles, PackageProfileExecutionKind);
+    var original = tw_exec_create_target(source, length, width);
+    if original == 0 { return 10; }
+    defer tw_exec_destroy(original);
+    if tw_exec_fast(original) == 0 || !package_profile_run(original, wanted, wanted_length) { return 11; }
+    var session = ide_execution(original);
+    var steps = session.machine.steps;
+    var output = session.output.length;
+    if tw_exec_bytecode_options(original, profile) != 0 { return 12; }
+    var message = sem_resource_message(WorkBudgetError.Memory);
+    var failure = tw_last_error();
+    var count = ide_length(message);
+    if ide_length(failure) != count { return 13; }
+    for(var i: usize = 0; i < count; i++) { if failure[i] != message[i] { return 13; } }
+    if session.program.resource.error != WorkBudgetError.None || session.machine.failed
+        || session.machine.steps != steps || session.output.length != output
+        || tw_exec_bytecode_size() != size || tw_exec_bytecode_data() != data
+        || host_handles_count(&state.handles, PackageProfileExecutionKind) != handles + 1 { return 14; }
+    for(var i: usize = 0; i < size; i++) { if data[i] != saved[i] { return 14; } }
+    tw_exec_destroy(original); original = 0;
+    tw_exec_bytecode_release();
+    // The same allocator/world must recover after the failed reconstruction
+    // drains and the caller retires its own large source snapshot.
+    return ide_package_source_check(source, length, width, profile, wanted, wanted_length);
+}
