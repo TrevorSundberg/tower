@@ -93995,3 +93995,56 @@ comparison remains attached to902f7c4d. All processes exit0/drained, no broad
 matrix or private bootstrap adoption, todo/history preserved; normal push follows.
 
 A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
+
+### B2 lowering stage attribution, frozen ef59b0aa (2026-11-23)
+
+Pulled published ef59b0aa2400676a2f76ea20588e3e273a7bbba3 after transientDNS
+recovery with fresh per-command resolution/TLS unchanged. Ownedjobsidle,
+CPU12-23/quota12/24GiB; compilerjobs1/buildjobs6;923GiBcache/112GiBhostfree.
+Preserved accepted b8dist fd79fc4b and prior rejected fast-append. One existing
+profile target/dependency build, same16/4096ordinaryloop/decltype/dependency
+inputs, productionallocator. Baseline wall/CPU/RSSKiB:16w1 .357359/.355897/177876,
+16w4 .431233/.472183/180856;4096w1 1.987156/1.985475/812672,
+4096w4 1.940013/2.700806/816624. Coarse lowering4105jobs,actualpeak1/4,
+summedkernelCPU117.553/317.013ms(2.70x). No scaling sweep or speedup claim.
+
+Temporary Tower diagnostic samples one function ordinal in128, private result/
+stage counters, existing worldobserver read afterjoin.1056timednodes/33kernels
+out of135194 generatednodes;16896fineclockcalls, not every-node timing. Exact
+selectedindexallocations1056x104requestedbytes. Serial/four CPUms:stagecreate
+.874489/1.440467,semanticattach3.573878/5.191415,payloadallocation.664801/.813793,
+componentlistbudgetreserve.511376/1.448382,physicalheap.579928/.707038.
+ReserveCPU2.83x/wall3.65x versus heap/payloadCPU1.22x; about58%ofsampledattachCPU
+increase lies in sharedreserveinterval. Nestedtimes not additive/production
+percentages. Probe overhead remains material: serialkernelCPU191.503ms,
+parallel352.306ms; no absolute extrapolation. Diagnosticcorrectoutputs pass.
+
+Bothwidths identical135194nodes,8198descriptorpages(135194/139366slots,97.0%),
+4102payloadpages(135194/164080slots,82.4%). No duplicatednodecreation/different
+pageoccupancy; not a hardwarecache/wholeworldfragmentation measurement. Retained
+largebytes566923302/566920478,peak656513170/656475698 below1.25GiB;
+ledger83,886,080bytes separately. No unchargedpool or changed admission.
+
+First amplified boundary: entity_component_add_result -> entity_reserve_components
+-> entity_buffer_resize_result -> work_buffer_resize -> work_budget_reserve_result.
+Freshcomponentlists take separate physicalbytegrants despite private descriptor/
+payloadpages. Interval includes gate,ledgerupdates/growth; it does not isolate
+mutexwait versus cache/criticalsection cost or prove whole2.70x cause. B1 owns
+this exact commonbudgetfollowup. No duplicate synchronization implementation or
+unjustified local allocation change; no production candidate shipped.
+
+Two temporarybuild failures retained: stageopaqueforeignsignature and clock
+nominalparameter mismatches. Drained jobs before correcting only probes. Then
+canonical/ordinarysource/importsources exactlymatch acrossbaseline/probe1/4.
+Known42/42 and resourcecleanup pass. All10probe files restored, dependency
+rebuild produces BYTEIDENTICAL baseline486996f61cc242fb7c61e6477949729a38f1b42ff3ff5a32d1c135bfc6bb2b77.
+Restored16w1/4096w4 outputs match but times .646078/3.199438s exceed initial
+baseline despite identicalbinary/inputs; hostcause unmeasured, retained honestly,
+not a source regression or reason to repeat tuning. No new alias/defer/error/
+object/sanitizer/browser/generation matrix claimed; rejected operation not retried.
+
+Fullsources,patch,binaries,failures,commands,measurements: B2/lowering_stage_ef59b0aa
+and /cache/lowering_stage_ef59b0aa. Receipt docs/compiler_lowering_stage_ef59b0aa.md.
+ProbeSHA655b50408b54b60beee70342bb828a12485fa594a0ed88bd312cd29084830f31.
+Allownedjobsdrained; sourcecode restored, evidence-only publication follows.
+ROOT runtime/Pages ownership unchanged, B1 sharedlibrary attribution retained.
