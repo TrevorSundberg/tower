@@ -1905,3 +1905,13 @@ pre-merge evidence only. Shared statement/control sem_node wrappers still have
 allocation assertions before some begin helpers can return. No whole-worker
 allocator or integrated-release acceptance is claimed. See the journal blocker
 and retained a1_body_build_merged/concrete.log; no main push or deployment.
+
+2026-11-23 successor preflight follow-up: exact3288b834 input was tested with
+ROOT/B2's complete verified b5 successor, exe f71fd0d58bb0231c55600bd7bf2d70911147e5bba9b7ca18e44dee00ba1d5881.
+It still fails semantic capacity. Production/check unit files are byte-identical;
+fixtures are already separate providers.327db58e changes only19 traversals in
+semantic_body_work.tower and semantic_declarations.tower to counted loops over
+actual frozen work-vector lengths, preserving typed payload/storage/reservations,
+source order and publication/disposal. The reduced candidate also fails; no
+runtime or bootstrap acceptance is claimed. Journal/status retain exact timing,
+peak RSS, hashes and prerequisite. No additional file-audit scope was introduced.

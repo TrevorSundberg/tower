@@ -85059,3 +85059,32 @@ WorkBuffer reservations, source order and identical disposal/dispatch ownership.
 This is distinct from the already-failed completion-helper consolidation. It
 changes no fixture, scheduler, provider ABI, capacity policy or shared allocator.
 Its build/runtime result is pending; the preceding failure remains the baseline.
+
+A1 candidate reduction result:327db58e (19 work-vector traversals only) also
+fails with the verified b5 candidate: exit1, wall14.14s, user8.29s+sys0.97s=
+9.26CPU seconds, peak RSS821108KiB, n1. Diagnostic moved to
+/work/scaffolding/compiler/compiler_kernel.tower:17:1: Semantic memory budget
+exceeded. Source/status hashes verified unchanged; no object success. Session3695
+drained. Logs/source manifests are in A1/cache/root_b5_successor_preflight_loops.
+This measured experiment is insufficient; no runtime speedup, successful unit,
+canonical-bootstrap pass or validation of the changed loops is claimed.
+
+No test-only provider expansion exists to remove, and the prior completion-helper
+consolidation was not repeated. Core and editor service exports share semantic
+implementations; splitting them requires a coordinated declaration-only provider
+boundary rather than dropping exports or importing duplicate implementation
+providers. No such broad ABI/build-manifest change was attempted here. The
+candidate's b5 source still has a128MiB semantic component allowance; both the
+exact original and narrowly reduced provider exceed an enforced semantic budget
+with ample room below the24GiB container ceiling. This is not a host OOM.
+
+ROOT prerequisite: a built/validated complete successor whose justified capacity
+policy admits this provider, then publish/pin executable+resources+provenance
+before adoption, or a coordinated provider decomposition retaining every export
+and fixture. The supplied fixed-point candidate alone does not remove this gate.
+No semantic runtime, sanitizer, bootstrap/browser/generation or hosted matrix was
+run against stale objects. B1 lookup, L2 constructor/create admission, L1 offsets
+and A2 storage checks were left untouched. All132 historical focused trials and
+unpublished merge history remain intact. Main stays local until canonical merged
+acceptance is available. Final source/history bundle and receipt hashes are in
+A1 status; no active compiler/build/test jobs or goal waits remain.
