@@ -28,6 +28,7 @@ async function compare(source,expected){
  }
 }
 test('generic calls infer collection element types and reuse explicit specializations',async()=>{
+ await compare((await read('scaffolding/tests/generic_stack_module.tower')).toString(),'42\n');
  await compare(`import tower; import library.vector; import library.stack; import library.queue;
  var values:vector(i32); vector_init(&values); defer vector_dispose(&values);
  print(vector_push(&values,41)); print(vector_push(i32,&values,42));
@@ -60,6 +61,7 @@ test('deduction preserves argument effect order and exact pointer/array nominal 
  var array:i32[2];array[1]=17;print(element(&array));`, '1\n2\n42\n17\n');
 });
 test('nested specializations and straight-return aliases preserve nominal type identity',async()=>{
+ await compare((await read('scaffolding/tests/generic_pointer_alias.tower')).toString(),'true\n');
  await compare(`import tower;
  fn box(U:type):type{struct Result{value:U;}return Result;}
  fn alias(V:type):type{return box(V);}
