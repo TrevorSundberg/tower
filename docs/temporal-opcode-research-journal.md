@@ -87865,3 +87865,76 @@ Exact Node IDE again passes all completion sections, then exits1 at the same
 later pointer/array hover boundary. Logs a1_alias_push_retry_* retain final
 frozen input hashes, timings, diagnostic and exit; all jobs drained. Earlier
 measurements retain their exact source identities. Normal push retry follows.
+
+### A1 generic inspection constructor ownership repair (2026-11-23)
+
+Frozen starting source 141ef1e40665fe0429a8aad22384b58ea484d2f8. Existing
+alias/body history and original portable a3559c7fbd6b21beafea73190bb8bf77025b60290e2ce626bbb3ecaeb2bd7404
+failure remain preserved. `git log -S 'c.entity_stage = a.stage'` identifies
+5b4a587b93b4a151e9f8ef7b7181e09d58f69409: generic_resolved_type began installing
+an annotation stage, but sem_array_intern requires coordinator publication.
+The exact ide_hover_generic_checks.tower pointer/array input reproduces natively
+on the starting provider: SIGABRT, shell134, 0.35s wall/0.17s CPU/102644KiB peak
+RSS (GNU time's signal receipt prints exit0; the retained shell exit is134).
+Baseline fixture hash ac22ed0fae454105fbde8080332c0c8a14b929a5ee7760854569add8719a7b26.
+
+Implementation: bind original entities first, publish/release that stage's source
+leases while retaining a query-private metadata kind, then register concrete type
+annotations with existing constructor/array declaration queries. Ordinary pumps
+join their dependency work before the next annotation stage leases those sources.
+Inspection root queries own the existing constructed-layout continuation because
+the unused generic definition has no declaration job to demand storage layout.
+Resolved annotations consume these receipts; failed optional constructors retain
+failed graph receipts and cannot fall through into synchronous staged construction.
+Dependent annotations remain symbolic. No interner assertion was relaxed, stage
+pointer bypass introduced, or parser/span/node-copy ownership changed. Resource
+failures remain terminal; the service disposes the query after joined work, and
+no client receives the private metadata kind on failure.
+
+Focused fixture generic_inspection_types_checks.tower is registered for workers1/4,
+with targets4/8 bytes. It asserts the exact original hover types (including absent
+array-dereference type), canonical identity/extent/16-byte layout, nested function
+and pointer annotations, array_type spelling, optional invalid extent, executed
+helper extent with an untaken division-by-zero branch, byte-identical normalized
+serial/worker responses, repeated entity/component retention, actual budget denial,
+stable terminal retry, recovery and retained ordinary diagnostic/source offset.
+Each world retires with zero budget allocations/bytes/lanes. Existing alias CTests
+remain unchanged and pass (8.26s/10.28s); new registered checks pass (0.93s/1.14s).
+
+Development failures were retained: the new fixture initially used unsupported
+pointer subtraction/order (now explicit address bits); a strengthened layout check
+found the missing root layout demand, fixed through the existing continuation.
+A new representation-spelling check incorrectly expected formatted i32[4] for
+written array_type; canonical entity/layout checks now validate identity directly.
+A new test incorrectly treated document JSON complete as semantic success; it is
+parse completeness. The final test checks symbolic recovery and the actual
+inspection boundary's diagnostic/offset preservation. Existing IDE assertions and
+the Node runner were never weakened or changed.
+
+Host KinmenA Windows11/Docker Linux x64, CPU12-23/24GiB unchanged, Release, public
+bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138
+verified with playground/scripts/build-bootstrap.sh, no override. Dependency build:
+cmake --build /cache/native --target tower-generic-inspection-types-tests
+tower-completion-alias-tests --parallel4 (compiler jobs1). Small healthy pointer-only
+input, warm cache/fresh process, n1 each, checked identical output: before/after
+workers1 wall0.21/0.21s, CPU0.15/0.15s, peak103296/102652KiB; workers4
+wall0.24/0.23s, CPU0.19/0.18s, peak102984/102708KiB. This small sample establishes
+neither useful overlap nor a speedup claim. Budget retirement is real counter
+evidence; total allocation-volume profiling and broad scaling remain unmeasured.
+
+Portable incremental tower-browser build passed on the same inputs. Unchanged
+`node playground/scripts/test-ide.mjs /cache/a1_alias_browser/tower.wasm` passes
+all completion/hover, candidate, session and ordinary execution sections, then
+exits1 with fixture code73 (IdeResourceCheck.Package). Exact next boundary:
+ide.tower's ide_test_resource_width, after Capacity is recorded on print(42),
+requires tw_exec_prepare_package(handle,0)==0, unchanged bytecode size and null
+bytecode data. No subcondition was instrumented or inferred. Later resource and
+request checks remain pending. Node wall11.43s/CPU9.94s/peak229064KiB. This is a
+later package-denial contract, outside the repaired inspection path; ROOT owns
+its follow-up and final release. No new sanitizer/generation/hosted pass is claimed.
+
+Logs are C:\Sandbox\build\codex_ecs_20261122\A1\cache\a1_inspection_*.
+Frozen source/build/resource list hash71579e6b27cb6147f9d13b7dd9f08cf862618d67b3237fd9d993abb7f21cc645;
+checked native fixture ae630be0746767bede07a70c19d071d21022e748c35b534f995104760e66c699;
+portable c5de8efaf7ceb94c9aa464ef6e3f367b5cbaf64661b86ab7c608a2042c5a994b.
+All owned jobs drained before commit/reconciliation. Deployment remains ROOT-owned.
