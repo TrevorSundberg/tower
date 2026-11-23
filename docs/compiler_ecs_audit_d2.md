@@ -1465,3 +1465,11 @@ full owner/runtime and D2 predecessor/affected tests still separate open evidenc
 This limits import expansion before any parser unit split; no measured local
 iteration speedup yet. Removed only the extra terminal blank line introduced
 by this patch after diff --check rejected it, retaining the source failure.
+
+Split closure correction: independent public-pin normal fixture failed at76:17
+Unknown type constructor work_vector (93271, raw1). Four unaffected type/profile
+units passed50787. Coordinated import-only deltaa4eb4477 adds defining
+work_buffer_types to implementation/four fixtures and work_vector_types to the
+normal fixture; no implementation/layout/oracle change. This supersedes any
+inference that importing the old implementation exposes moved types. Corrected
+local compilation/runtime remains a distinct required check.

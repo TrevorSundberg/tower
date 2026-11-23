@@ -49185,3 +49185,15 @@ not silently applied here. Full owner validation/A2 API review is not inferred
 from this source integration; no new syntax adoption/private pin. First diff
 check rejected patch-introduced blank line at work_vector EOF; removed only
 that extra blank, no wider formatting.
+
+D2 independent predecessor check atbc1ca21 reproduces missing defining imports:
+work_buffer fixture76:17 Unknown type constructor 'work_vector', raw exit1
+session93271. Logs/time/source identity in build/d2_ecs/buffer_types_bc1ca21.
+No dependent runtime ran. Unaffected data-only types, frontend guardv2 and
+module_cache units all pass50787 with unchanged source hashes. After drain,
+coordinated exact import-only correction with D1/L1/A2 via inbox/status:
+work_vector implementation explicitly imports work_buffer_types; all four buffer
+fixtures import it; normal fixture also imports work_vector_types. This follows
+modules194–211 (no implicit re-exports), preserving one nominal definition and
+all tests/ownership. Export D2/buffer_type_imports.patch SHAa4eb447703eba60802941dae6f0143ce8152bc534443ab90e2d9837bf8fe6591.
+Corrected compile/runtime still pending; no failed result relabeled.
