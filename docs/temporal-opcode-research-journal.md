@@ -79745,3 +79745,26 @@ actual ParserNodes WASI/policy slot next. This is a native harness checkpoint,
 not final integrated acceptance. Negative probe is unchanged and unexecuted;
 current broad native/address/thread, oldff3 restricted-host Cancel4, final clean
 bootstrap/browser/generation and leased atomic hosted publication remain open.
+
+### A2 finite inventory reconciliation at b0421447 (2026-11-23)
+
+Direct bounded documentation task; no continuation of the former diagnostic
+work. Verified complete ROOT bundlee25f1456 and fast-forwarded main to
+b04214474ac14588abffea1c6c27b2a0b2ebb2ed after confirming no owned child job.
+Exact Git census:1131 Tower paths =1011+134-14; diff against60741 is407 paths
+(134added/259modified/14deleted),28008 additions/3914 deletions. Reconciled all
+original assignments and eight audit reports; roster now supplies the complete
+134-path addition table, explicit55 structured-entry repairs and14 retired paths.
+Normalized relative, extensionless, prose and45 bootstrap provenance receipts;
+1126 owner receipts are located, without upgrading their historical revisions to
+current-source acceptance. Five owner-report gaps remain explicit: B2's three
+parser_modules composition units already reviewed by B1, and D1's separately
+assigned grammar_builder_results/generic_result_storage reviews. No owner is
+missing from the1131-path union. An initial tree-list wildcard query returned an
+empty set; corrected to enumerate the full Git tree and filter its .tower suffix,
+then independently checked exact set equality and unchanged original owners.
+Only roster and this entry change. Runtime performance is inapplicable; no build,
+allocation/error probe, sanitizer or profile was run. ROOT retains integrated
+validation/deployment; this inventory receipt claims neither compiler completion
+nor current runtime acceptance. Exact union/one-owner and receipt-exception checks pass;
+the scoped commit/push receipt is recorded in the existing A2 status.
