@@ -1,0 +1,7 @@
+import foundation;
+fn identity(x: usize): usize { return x; }
+var n: usize = sizeof(i32*[3]);
+n = identity(n);
+print(n);
+var p: i32** = alloc(i32*, 2);
+free(p);

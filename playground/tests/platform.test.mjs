@@ -1,13 +1,53 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
 import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=p=>readFile(new URL('../../'+p,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+const tower=await loadTower(process.env.TOWER_TEST_WASM?undefined:await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM?undefined:await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+if(process.env.TOWER_TEST_PHASES){
+ const phase=(label,context)=>console.log(JSON.stringify({case:context.name,phase:label,pid:process.pid,
+  milliseconds:performance.now(),cpu:process.cpuUsage(),maxRssKiB:process.resourceUsage().maxRSS,
+  portableCapacityBytes:tower.exports.memory.buffer.byteLength,llvmCapacityBytes:llvm.memoryCapacityBytes()}));
+ test.beforeEach(context=>phase('start',context));test.afterEach(context=>phase('released',context));
+}
 const platform='import library.platform;\n';
+test('platform abort preserves its exact foreign signature and terminates on invocation',async()=>{
+ for(const [name,output,error] of [
+  ['platform_abort_unused','42\n',''],['platform_abort','7\n','Program aborted'],
+  ['platform_abort_parameter','',"Unsupported signature for external function 'abort': expected fn(): void"],
+  ['platform_abort_result','',"Unsupported signature for external function 'abort': expected fn(): void"],
+  ['platform_unknown_external','',"No implementation registered for external function 'tower_unknown_external'"]]){
+  const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
+  for(const pointerBytes of [4,8])for(const fast of [false,true]){
+   const handle=tower.compile(source,{pointerBytes});
+   try{
+    if(fast)tower.useFast(handle);
+    const result=tower.execute(handle,100000);
+    assert.equal(result.status,error?'error':'done',name);assert.equal(result.error,error,name);assert.equal(result.output,output,name);
+   }finally{tower.destroyExecution(handle);}
+  }
+  const compiled=llvm.compile(source);assert.equal(compiled.status,'compiled',compiled.error);
+  if(name==='platform_abort_parameter'||name==='platform_abort_result'){
+   await assert.rejects(executeWasm(compiled),WebAssembly.LinkError);continue;
+  }
+  if(name==='platform_unknown_external'){
+   await assert.rejects(executeWasm(compiled),{message:error});continue;
+  }
+  assert.ok(WebAssembly.Module.imports(await WebAssembly.compile(compiled.wasm)).some(item=>item.module==='env'&&item.name==='abort'));
+  const result=await executeWasm(compiled);assert.equal(result.status,error?'error':'done');assert.equal(result.error,error);assert.equal(result.output,output);
+ }
+ const staged=(await read('scaffolding/tests/platform_abort_staged.tower')).toString();
+ const handle=tower.compile(staged);
+ try{
+  const result=tower.execute(handle,100000);assert.equal(result.status,'error');
+  assert.match(result.error,/External call requires an explicit evaluation capability/);assert.equal(result.output,'');
+ }finally{tower.destroyExecution(handle);}
+ const compiled=llvm.compile(staged);assert.equal(compiled.status,'error');
+ assert.match(compiled.error,/External call requires an explicit evaluation capability/);
+});
 test('platform writes share byte ordering and UTF-8 decoding across interpreter and Wasm',async()=>{
  const source=platform+`var p: u8* = "hello λ\\n"; var n: i64 = platform_write(1, p, 9); print(n);
  n = platform_write(2, p, 5); n = platform_write(0, p, 5); print(n);
@@ -28,13 +68,41 @@ test('pure Wasm exports bind directly as external imports, and tables can supply
  const table=new WebAssembly.Table({element:'anyfunc',initial:1});table.set(0,instance.exports.twice);
  assert.equal((await executeWasm(consumer,()=>{},{imports:{twice:{wasm:table.get(0)}}})).output,'42\n');
 });
-test('built-ins and ordinary functions share calls and typed argument validation',()=>{
- const source='import foundation; fn identity(x: usize): usize { return x; } var n: usize = sizeof(i32*[3]); n = identity(n); print(n); var p: i32** = alloc(i32*, 2); free(p);';
- const h=tower.compile(source);try{
-  const result=tower.execute(h);assert.equal(result.status,'done',result.error);assert.equal(result.output,'12\n');
-  const text=tower.foundation(h).source;assert.match(text,/sizeof\(array_type\(pointer_type\(integer_type\(32, 1\)\), 3\)\)/);
-  const second=tower.compile(text);try{assert.equal(tower.execute(second).output,result.output);}finally{tower.destroyExecution(second);}
- }finally{tower.destroyExecution(h);}
+test('built-ins and ordinary functions share calls and typed argument validation',async()=>{
+ const source=(await read('scaffolding/tests/platform_calls.tower')).toString();
+ const independent=await loadTower(process.env.TOWER_TEST_WASM?undefined:await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+ const canonical=new Map();
+ for(const pointerBytes of [4,8])for(const fast of [false,true]){
+  const expected=`${pointerBytes * 3}\n`;
+  const h=tower.compile(source,{pointerBytes});let text;
+  try{
+   if(fast)tower.useFast(h);
+   const result=tower.execute(h);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
+   text=tower.foundation(h).source;
+   assert.ok(text.startsWith('import foundation_syntax;\n'));
+   assert.match(text,/^var i32: type = integer_type\(32, 1\);$/m);
+   assert.match(text,/^var usize: type = address_type\(\);$/m);
+   assert.ok(text.includes('fn identity(x: usize): usize {\n    return x;\n}'));
+   assert.match(text,/^var n: usize = sizeof\(array_type\(i32\*, 3\)\);$/m);
+   assert.ok(text.includes('\nn = identity(n);\nprint(n);\nvar p: i32** = alloc(i32*, 2);\nfree(p);\n'));
+  }finally{tower.destroyExecution(h);}
+  if(fast)assert.equal(text,canonical.get(pointerBytes));else canonical.set(pointerBytes,text);
+  // Recheck only copied Foundation in another host after the source handle retires.
+  const second=independent.compile(text,{pointerBytes});
+  try{
+   if(fast)independent.useFast(second);
+   const result=independent.execute(second);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
+   assert.equal(independent.foundation(second).source,text);
+  }finally{independent.destroyExecution(second);}
+ }
+ for(const text of [source,canonical.get(4)]){
+  const compiled=llvm.compile(text);assert.equal(compiled.status,'compiled',compiled.error);
+  const result=await executeWasm(compiled);assert.equal(result.status,'done',result.error);assert.equal(result.output,'12\n');
+ }
+ if(process.env.TOWER_TEST_ARTIFACTS){
+  await mkdir(process.env.TOWER_TEST_ARTIFACTS,{recursive:true});
+  for(const [width,text] of canonical)await writeFile(`${process.env.TOWER_TEST_ARTIFACTS}/platform_calls_${width*8}.tower`,text);
+ }
  for(const source of ['print();','alloc(i32);','free(1);','var n: i32 = print(1);','fn print(x: i32): void {}']){
   const h=tower.compile('import foundation; '+source);try{const r=tower.execute(h);assert.equal(r.status,'error',source);assert.equal(r.steps,0);}finally{tower.destroyExecution(h);}
  }

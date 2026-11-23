@@ -6,7 +6,17 @@ import .library.bytes_types;
 import .compiler.host_text;
 import .tools.tool_files_posix;
 import .tools.tool_streams_posix;
+import .tools.tool_capture_linux;
+import .tools.tool_process_linux;
+import .library.vector;
 import .host.driver_files;
+
+fn gzip_reference(path: u8*, limit: usize, output: ByteBuffer*): i32 {
+    var args: vector(u8*) = default; defer vector_dispose(&args);
+    utility_check(tool_process_argument(&args, "/usr/bin/gzip") && tool_process_argument(&args, "-dc")
+        && tool_process_argument(&args, path) && tool_process_argument(&args, null), "reference decoder arguments");
+    return tool_capture(args.data[0], args.data, limit, output);
+}
 
 fn gzip_fixture(directory: u8*, name: u8*, input: ByteBuffer*): void {
     var encoded: ByteBuffer = default; var repeated: ByteBuffer = default;
@@ -27,6 +37,44 @@ fn gzip_fixture(directory: u8*, name: u8*, input: ByteBuffer*): void {
         && driver_write_file(source.data, input.data, input.length), "write independent gzip reference");
     utility_check(tool_join(&path, directory, name) && bytes_append(&path, ".gz", 3)
         && host_text_terminate(&path) && driver_write_file(path.data, encoded.data, encoded.length), "write gzip member");
+    var decoded: ByteBuffer = default; defer bytes_dispose(&decoded);
+    utility_check(gzip_reference(path.data, input.length, &decoded) == 0 && decoded.length == input.length
+        && utility_equal(decoded.data, input.data, input.length), "Tower-owned round trip through independent gzip decoder");
+}
+
+fn gzip_rejection_checks(directory: u8*): void {
+    var encoded: ByteBuffer = default; var decoded: ByteBuffer = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&encoded); defer bytes_dispose(&decoded); defer bytes_dispose(&path);
+    var input = "123456789"; var length = strlen(input);
+    utility_check(gzip_compress(input, length, &encoded) && tool_join(&path, directory, "malformed.gz")
+        && bytes_assign_text(&decoded, input, length), "prepare gzip rejection control");
+    var checksum: u32 = 3421780262; // Independent IEEE CRC-32 check vector.
+    var trailer = encoded.length - GzipWordBytes * 2;
+    for (var byte: usize = 0; byte < GzipWordBytes; byte++) {
+        utility_check(encoded.data[trailer + byte] == convert(u8, checksum & 255), "known gzip checksum bytes");
+        checksum >>= GzipByteBits;
+    }
+    var retained = decoded.data;
+    for (var cut: usize = 0; cut < encoded.length; cut++) {
+        utility_check(driver_write_file(path.data, encoded.data, cut)
+            && gzip_reference(path.data, length, &decoded) != 0
+            && decoded.data == retained && decoded.length == length
+            && utility_equal(decoded.data, input, length), "truncated gzip rejected without partial publication");
+    }
+    // Reject a reserved block type and then a bad checksum, preserving the good bytes.
+    var offsets: usize[2]; offsets[0] = GzipHeaderBytes; offsets[1] = trailer;
+    for (var at: usize = 0; at < sizeof(decltype(offsets)) / sizeof(usize); at++) {
+        var offset = offsets[at];
+        var saved = encoded.data[offset];
+        encoded.data[offset] = offset == GzipHeaderBytes ? 7 : saved ^ 1;
+        utility_check(driver_write_file(path.data, encoded.data, encoded.length)
+            && gzip_reference(path.data, length, &decoded) != 0 && decoded.data == retained
+            && utility_equal(decoded.data, input, length), "malformed gzip rejected without partial publication");
+        encoded.data[offset] = saved;
+    }
+    utility_check(driver_write_file(path.data, encoded.data, encoded.length)
+        && gzip_reference(path.data, length, &decoded) == 0 && decoded.length == length
+        && utility_equal(decoded.data, input, length), "reference decoder recovers after malformed inputs");
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
@@ -52,11 +100,31 @@ export fn main(argc: i32, argv: u8**): i32 {
         utility_check(bytes_push(&input, convert(u8, state >> high_byte)), "incompressible fixture byte");
     }
     gzip_fixture(argv[1], "random", &input);
+    var lazy = "abcdefghijklmnopqrstuvwx!Yabc?Yabcdefghijklmnopqrstuvwx";
+    utility_check(bytes_assign_text(&input, lazy, strlen(lazy)), "lazy match input");
+    gzip_fixture(argv[1], "lazy", &input);
+    // Reproducible mixed literals/backreferences, with different short histories.
+    var trials: usize = 32; var maximum: usize = 2048; var seed: u32 = 1729;
+    for (var trial: usize = 0; trial < trials; trial++) {
+        var size = convert(usize, utility_random(&seed)) % maximum;
+        utility_check(bytes_reserve(&input, size), "seeded corpus storage");
+        for (var at: usize = 0; at < size; at++) {
+            var random = utility_random(&seed);
+            input.data[at] = at != 0 && (random & 3) != 0
+                ? input.data[convert(usize, random >> 2) % at] : convert(u8, random & 255);
+        }
+        input.length = size;
+        var name: ByteBuffer = default; defer bytes_dispose(&name);
+        utility_check(bytes_append(&name, "seeded_", strlen("seeded_"))
+            && host_json_unsigned(&name, convert(u64, trial)) && host_text_terminate(&name), "seeded corpus name");
+        gzip_fixture(argv[1], name.data, &input);
+    }
+    gzip_rejection_checks(argv[1]);
     if argc == with_payload {
         var payload_limit: usize = 67108864;
         utility_check(tool_read_file(argv[2], payload_limit, &input), "read real support payload");
         gzip_fixture(argv[1], "support", &input);
     }
-    puts("Gzip corpus written; independent decompression and byte comparison required");
+    puts("Gzip corpus, deterministic/aliased publication, reference round trips and malformed checks passed");
     return 0;
 }

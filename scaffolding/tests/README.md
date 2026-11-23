@@ -394,6 +394,13 @@ expected files; validate/extract it with a standard ZIP reader, then compare the
 directories byte for byte. Both build as library objects linked with the existing
 `guest-host-library.o`, with no zlib dependency. The journal's in-house archive
 entry records the Docker/WSL commands, codec scope and compression tradeoff.
+The DEFLATE suite also checks a specified lookahead token sequence against the
+greedy-match regression. `gzip_checks.tower DIRECTORY [PAYLOAD]` now uses the
+existing Linux process/capture boundary and `/usr/bin/gzip` for Tower-owned byte
+comparisons, seeded mixed inputs, truncation/corruption rejection and recovery.
+`deflate_profile.tower INPUT OUTPUT` measures the shared encoder on an immutable
+file (10,000 tiny, 100 small or one large compression), prints input/output bytes,
+retained output capacity and repetition count, then checks buffer disposal.
 
 `tool_process_checks.tower` validates the Linux tool runner with exact child
 arguments, empty strings, ordinary exits, signals, exec/redirection failures,
@@ -1933,3 +1940,19 @@ no partial publication; an earlier diagnostic keeps its text/offset. Both worlds
 buffer counts and budget grants drain. The existing CTest registration includes
 all of this once; its 120-second limit is unchanged. These are single-owner
 native importer/interpreter checks, not LLVM machine execution or worker scaling.
+
+`tower-lr-work-tests RESOURCE_ROOT dependency-stress` runs three fixed seeds
+through three independent units with two bodies each. It combines imported
+forward `decltype`/`comptime`, nominal aliases, owning-frame/shadow captures,
+ordered effects and an untaken cycle edge. Each seed first cancels admitted
+units at the existing observer hook, then uses changed input/revision in fresh
+batches under the same virtual filenames. Serial/two-worker canonical bytes and
+cycle-first diagnostics/offsets must agree; all results are hidden on failure or
+cancellation. The ordinary interpreter checks an independent arithmetic oracle.
+`dependency-stress-serial`/`dependency-stress-parallel` select equivalent six-batch
+cost samples without gated cancellation. `dependency-stress-wrong-result` expects
+one deliberately wrong value and must return1 after cleanup. CTests
+`tower-dependency-stress` and `tower-dependency-stress-wrong-result` use the existing
+native binary/180s convention; the latter has `WILL_FAIL`. `all` includes only the
+correct paired fixture once. These target64 checks require two native lanes;
+observed unit overlap is not a body-overlap, race-safety or general speedup claim.
