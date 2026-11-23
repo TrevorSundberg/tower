@@ -91,6 +91,7 @@ export fn backend_source_tests_runtime(environment: void*, runtime: u8*, runtime
     var type_identity_failure: i32 = 17;
     if !backend_source_type_values(environment, runtime, runtime_size) { return type_identity_failure; }
     if !backend_source_nominal_result(environment, runtime, runtime_size) { return type_identity_failure; }
+    if !backend_source_pointer_result(environment, runtime, runtime_size) { return type_identity_failure; }
     var link_failure: i32 = 16;
     if !backend_source_link_tests(environment, runtime, runtime_size) { return link_failure; }
     var left = backend_source_create(runtime, runtime_size);
@@ -223,4 +224,15 @@ fn backend_source_nominal_result(environment: void*, runtime: u8*, runtime_size:
     var result = backend_source_compile(source, text, strlen(text), BackendSourceImport | BackendSourceUnoptimized, environment, null);
     return backend_source_test_has(result, "\"optimizationProfile\":2")
         && backend_source_test_has(backend_source_foundation(source), "bits(u32,");
+}
+
+fn backend_source_pointer_result(environment: void*, runtime: u8*, runtime_size: usize): bool {
+    var source = backend_source_create(runtime, runtime_size);
+    if source == null { return false; }
+    defer backend_source_close(source);
+    var text = "import foundation;export fn opaque(value:void*):void*{return value;}export fn forwarded(value:void*):void*{return opaque(value);}var value:void*=forwarded(null);";
+    var result = backend_source_compile(source, text, strlen(text), BackendSourceImport | BackendSourceUnoptimized, environment, null);
+    return backend_source_test_has(result, "\"optimizationProfile\":2")
+        && backend_source_test_has(backend_source_foundation(source), "= opaque(")
+        && backend_source_test_has(backend_source_foundation(source), "= forwarded(");
 }
