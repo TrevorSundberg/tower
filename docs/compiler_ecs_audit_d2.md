@@ -2982,3 +2982,52 @@ supersedes its112-line hash above. The other three reviewed Tower files retain
 exact hashes. Upstream A1 semantic completion changes are outside this owner
 review; affected merged consumers are rebuilt/rechecked separately, and paired
 performance remains tied to the stated36ad inputs rather than relabeled.
+
+## Single-unit observation coverage — D2 2026-11-23
+
+Scoped review at published `c20dc56ac5344834a95e8de1f505abe9aea515ac`; no
+production/fixture changes. Runtime receipt deliberately remains exact1906afcd,
+with unchanged relevant LR/semantic admission sources and language resources;
+43 other imported-source changes prohibit claiming complete current validation.
+Full-file rereview of existing profiles, for D1 adoption:
+
+| Path and SHA256 | Ownership, scheduling and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/frontend_units_profile.tower` — `8159ea1782b203b43f54d862a33c0bc13cbe5d007ecfbc0e1b55cadc5261ceca` (407 lines) | World-exclusive inputs through production frontend_units/shared budget; normal allocator, borrowed result lifetime through reference execution/formatting, batch close after drain. Event slots are disjoint by unit/phase. `kernel_peak` covers outer Unit/Backend queries only, not nested kernels; summed durations/outer vacancy cannot establish eligible idle. One1000-body unit workers1/2 checked42 outputs, canonical17450187450754183643 and equal162093/198371 counts. Ledger snapshot excludes uncharged storage; metadata reported separately. No fixture defect requiring a change found. |
+| `scaffolding/tests/compiler_work_profile.tower` — `385bbea430f12f8127053e36a7c02e90ec7c3aeb9883e1e5873ce2ed3ce49984` (139 lines) | Eight independent CompilerWork plan rounds, worker-private graph/store/checksum, optional synchronized budget; closes owners and asserts zero grants. Overlap describes metadata plans, not semantic body readiness or ordinary compiler throughput. Reused source review only; no extra run. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2` (131 lines) | Explicit single-world/single-lane ledger before creation, synchronous world-owned grammar observer and complete cleanup. Allocation counters require serial transport. Lookup/Build/Table intervals nest; reused exact small-request receipts cannot supply missing large-unit phase timings. No real-overlap instrumentation claim. |
+
+See the journal's bounded single-unit receipt for every warmup/sample, thread
+identity, retained/peak memory, current/frozen source distinction and software
+sampling limitation. Dominant identified cost remains LR construction, not outer
+queue refill. Source-reviewed ordered grammar activation/state interning and
+semantic stage publication retain their dependency/access/lifetime contracts.
+The single proposed B1 follow-up is immutable per-analysis suffix FIRST/nullable
+reuse with bounded storage and exact incoming lookahead handling; its gain is
+unmeasured. No new D1 registration, production ownership transfer, broad audit
+count, race-freedom claim or final all-core acceptance is implied.
+
+## Suffix-FIRST implementation / D1 adoption — frozen 2e77d747
+
+Full changed-file review, public-bootstrap dependency build and focused checks;
+production sources retain B1's state-core changes. Hashes below are final before
+publication reconciliation. Evidence and preserved failed/noisy experiments are
+in the journal's D2 suffix-FIRST receipt and build/d2_ecs/lr_suffix.
+
+| Changed Tower file / SHA256 | Storage, world, scheduling, ownership and disposition |
+| --- | --- |
+| `scaffolding/compiler/lr_analysis.tower` — `3d99bd416a81c84f3a793818e987bce0f7c89eedffb86a1e5c3daab6fd10ca3c` (988 lines) | One derived index per analysis, typed pointer and two WorkBuffers; count/alignment/overflow checked. Production bases handle overlapping spans. Partial storage rolls back, completed rows/ranges are immutable, analysis destroys owner after readers join. Exact overlapping ranges/propagation/nullable behavior and deferred Invalid preserved. Standalone null budget explicit; remaining raw LR descriptors/FIRST/scratch are outside this subtotal. Full-file review includes unchanged closure ordering/indexes and lookahead propagation; no second semantic authority or interning-order change. |
+| `scaffolding/compiler/lr_first_work.tower` — `cc3cbd674bb5e923a4092b76b453cd29a54890cccedb04bde129b6c5117c71cf` (236 lines) | Narrow parallel frontiers call serial FIRST only; outer completion builds the index with the world budget after all producer joins. Existing frozen snapshots, disjoint ranges, graph tickets, lane grants, private errors, typed failures and drain order preserved. Native exact equivalence/rendezvous passes. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `b7efe4418dd010afb7404494de84512c9a1cc1396e78329c7c6b8c2f80452a23` (183 lines) | Extends existing serial profile with the actual closure caller and independent oracle.32 seeds/2000 rounds define fixture data; bounds derive from arrays/types. Checks every ordered result outside timed interval, releases all owners, requires counter-safe serial transport. Cold/installed entries unchanged; no real-worker counter use. |
+| `scaffolding/tests/frontend_main.tower` — `e3c7da9333576fab424c9fc1601cf5ef9a9c5731b1b7b490adaca6f0c7978e2e` (148 lines) | Adds only lr-suffix selector, preserving all B1 entries and lr-order failure checks. Reuses existing target/transport; no D1 generic harness or manifest change. Full entry/default path reviewed. |
+| `scaffolding/tests/lr_analysis_comparisons.tower` — `0e153cc0989355ba78f811adf357e0a654f790b1c895151ed96e05d8b639c129` (173 lines) | Nullable/nonnullable recursive range fixtures, shared symbol spans with distinct ends, names/counts derived from data. Existing independent oracle compares full items/states/actions/probes, not queue width. B1 duplicate-core cases and150 random trials preserved; all temporary graphs/buffers retire. |
+| `scaffolding/tests/lr_analysis_failures.tower` — `ea36898c5ee7d344873fa0fb233b650967907c28be88c154cf1cfbe649b72acf` (313 lines) | Finite world-budget exhaustion returns Capacity before publishing index; same-analysis retry/reuse and408-byte charged census, final zero grants/buffers. Allocation sweep now checks same-analysis recovery, and a reached invalid suffix must fail after FIRST deliberately accepted its unreachable tail. Serial instrumentation only. Unchanged runtime/control/probe failure helpers reviewed; broad control allocation sweep was not rerun in this batch. |
+
+Pinned Deck medians cold1.65->1.60s and installed1.78->1.72s; caller17.858->16.701ms
+for2000 checked closures. Peak ledger grows30656B, final retained bytes unchanged.
+The initial unpinned installed regression and all outliers remain visible in the
+journal. Normal native LR equivalence passes; the1000-body workers1/2 control is
+only modestly faster with increased CPU, not final all-core acceptance. No ABI
+export additions, persistent cache, cross-world sharing, hardware-counter claim
+or universal race-freedom claim. Full integrated sanitizers/platform/bootstrap/
+browser/generation/deployment remain ROOT's pending milestone.

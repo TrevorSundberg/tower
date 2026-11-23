@@ -178,7 +178,7 @@ fn sem_defer_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticDef
         sem_fail(c, n, "defer cannot be combined with explicit function labels or jumps");
         return false;
     }
-    sem_node(c, n, KBlock);
+    if sem_node_result(c, n, KBlock) == null { return default; }
     c.has_defer = true;
     var function = sem_get(c.current);
     state.deferred = c.deferred;
@@ -257,6 +257,7 @@ export fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     var cleanup = sem_defer_emit(c, n, null, loops);
     if !sem_ok(c) { return FlowStop; }
     var terminal = sem_control_node(c, n, kind);
+    if terminal == null { return default; }
     sem_get(terminal).value = result;
     if !sem_push_checked(c, &value.items, terminal) { return default; }
     if(cleanup &FlowNext) == 0 {

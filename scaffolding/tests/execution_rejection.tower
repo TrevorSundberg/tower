@@ -1,4 +1,6 @@
 import tower;
+import .library.work_vector;
+import .library.work_vector_types;
 import execution_support;
 import execution_graph;
 import frontend_units;
@@ -56,20 +58,23 @@ fn execution_encoder_rejection_tests(modules: void*): void {
     var source = "import tower; print(42);";
     execution_compile(&session, source, 8, modules);
     execution_check(execution_session_fast(&session), "encoder input cache starts");
-    var size: usize = 1;
-    var data = bytecode_encode(session.fast, source, strlen(source), 8, 3, &size);
-    execution_check(data == null && size == 0, "invalid profile clears encoded length");
+    var package: work_vector(u8) = default;
+    defer work_vector_dispose(&package);
+    var result = bytecode_encode(session.fast, source, strlen(source), 8, 0, &package);
+    execution_check(result == WorkBudgetError.None && bytecode_validate(package.data, package.length) == 0, "valid envelope remains encodable");
+    var saved = package;
+    result = bytecode_encode(session.fast, source, strlen(source), 8, 3, &package);
+    execution_check(result == WorkBudgetError.Invalid && package.data == saved.data && package.length == saved.length,
+        "invalid profile preserves complete previous package owner");
     for(var width: usize = 0; width < 10; width++) {
         if width == 4 || width == 8 { continue; }
-        size = 1;
-        data = bytecode_encode(session.fast, source, strlen(source), width, 0, &size);
-        execution_check(data == null && size == 0, "encoder rejects unsupported target width");
+        result = bytecode_encode(session.fast, source, strlen(source), width, 0, &package);
+        execution_check(result == WorkBudgetError.Invalid && package.data == saved.data, "encoder rejects unsupported target width");
     }
-    size = 1;
-    data = bytecode_encode(session.fast, source, ~convert(usize, 0), 8, 0, &size);
-    execution_check(data == null && size == 0, "oversized source rejects before size arithmetic or reads");
-    data = bytecode_encode(session.fast, source, strlen(source), 8, 0, &size);
-    execution_check(data != null && bytecode_validate(data, size) == 0, "valid envelope remains encodable");
+    result = bytecode_encode(session.fast, source, ~convert(usize, 0), 8, 0, &package);
+    execution_check(result == WorkBudgetError.Invalid && package.data == saved.data, "oversized source rejects before arithmetic or reads");
+    var data = package.data;
+    var size = package.length;
     execution_check(data[8] == 1 && data[12] == 9 && data[16] == 6,
         "constructor packages carry current container, semantics and cache versions");
     data[12] = 8;
@@ -79,7 +84,6 @@ fn execution_encoder_rejection_tests(modules: void*): void {
     execution_check(bytecode_validate(data, size) == 5, "previous cache encoding rejected before execution");
     data[16] = 6;
     execution_check(bytecode_validate(data, size) == 0, "restored package retains original checksum");
-    bytecode_free(data);
     puts("Encoder profile, target and bounded-size rejection passed.");
 }
 
@@ -140,7 +144,7 @@ fn execution_source_reachability_tests(modules: void*, root: u8*): void {
         error.length = 0;
         if trial == 0 { c_emit(&text, &error, session.program.root, 4, true); }
         else { roku_emit(&text, &error, session.program.root, 4, true); }
-        execution_check(text.length == 0 && execution_text(&error,
+        execution_check(text.length == 0 && execution_buffer_text(&error,
             "This source backend does not yet implement type values; use LLVM native/Wasm output"),
             "reached type values retain their source capability diagnostic");
     }

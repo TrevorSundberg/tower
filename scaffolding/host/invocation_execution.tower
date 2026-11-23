@@ -21,14 +21,8 @@ export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
     ix_fail(&execution, text, offset);
 }
 export fn im_append(machine: IMState*, text: u8*, count: usize): void {
-    var output = &bits(IMInvocation*, machine).context.output;
-    var end = output.length + count;
-    if end < output.length || !vector_reserve(u8, output, end) {
-        im_fail(machine, "Cannot allocate interpreter output", 0);
-        return;
-    }
-    copy(output.data + output.length, text, count);
-    output.length = end;
+    var execution: IMExecution = { state: machine, context: &bits(IMInvocation*, machine).context };
+    ix_append(&execution, text, count);
 }
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
     im_fail(machine, "Interpreter invocation requires an explicit foreign-call capability", offset);

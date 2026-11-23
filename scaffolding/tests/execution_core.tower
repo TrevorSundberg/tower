@@ -109,7 +109,7 @@ fn execution_type_same(a: FoundationType*, b: FoundationType*): bool {
     fill(&right, 0, sizeof(ByteBuffer));
     semantic_format_type(a, bits(vector(u8)*, &left));
     semantic_format_type(b, bits(vector(u8)*, &right));
-    var same = execution_equal(&left, &right);
+    var same = execution_bytes_equal(left.data, left.length, right.data, right.length);
     bytes_dispose(&left);
     bytes_dispose(&right);
     return same;

@@ -2,10 +2,67 @@ import tower;
 import .library.vector;
 import .compiler.lr_types;
 import utility_checks;
-import storage_api;
 import lr_analysis_oracle_types;
 import lr_control_types;
 import lr_analysis_api;
+import .library.work_budget;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn lr_analysis_compute_parallel_result(analysis: void*, anchor: void*): WorkBudgetError;
+
+var LRSuffixTestBytes: usize = 1048576;
+
+fn lr_suffix_budget_failure(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, LRSuffixTestBytes, 1), "Suffix finite budget");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null && compiler_world_bind_budget(world, &budget), "Suffix world budget binding");
+    var root = entity_create(compiler_world_store(world));
+    utility_check(root != null, "Suffix budget anchor");
+    var rules: LRProduction[3] = default;
+    var symbols: LRSymbol[3] = default;
+    rules[0].count = 2;
+    rules[1] = {owner: 1, begin: 2, count: 1, precedence: 0, associativity: 0};
+    rules[2] = {owner: 1, begin: 2, count: 0, precedence: 0, associativity: 0};
+    symbols[0].nonterminal = 1; symbols[1].nonterminal = 1;
+    symbols[2] = {nonterminal: oracle_none(), first: 10, last: 20};
+    var analysis = lr_analysis_create(&rules[0], sizeof(decltype(rules)) / sizeof(LRProduction),
+        &symbols[0], sizeof(decltype(symbols)) / sizeof(LRSymbol), rules[1].owner + 1);
+    utility_check(analysis != null, "Suffix budget analysis");
+    var before: WorkBudgetSnapshot = default;
+    var after: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before) && before.used_bytes < before.bytes, "Suffix budget baseline");
+    var held: WorkReservation = default;
+    utility_check(work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &held), "Suffix exhausted byte allowance");
+    utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.Capacity,
+        "Suffix publication reports Capacity after FIRST converges");
+    utility_check(work_budget_release(&budget, &held) && work_budget_snapshot(&budget, &after)
+        && after.used_bytes == before.used_bytes && after.live == before.live, "Denied suffix index publishes no retained buffers");
+    utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
+        && work_budget_snapshot(&budget, &after) && after.used_bytes > before.used_bytes,
+        "Same FIRST analysis retries and charges immutable suffix storage");
+    var retained = after.used_bytes;
+    utility_check(dprintf(2, "suffix index charged_bytes=%zu\n", retained - before.used_bytes, 0, 0) >= 0,
+        "Suffix charged byte report");
+    utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
+        && work_budget_snapshot(&budget, &after) && after.used_bytes == retained,
+        "Repeated FIRST completion reuses the published index");
+    lr_analysis_destroy(analysis);
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes,
+        "Analysis destruction retires the complete suffix owner");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Suffix budget fixture cleanup");
+}
 
 fn lr_failure_rule(rule: LRProduction*, owner: usize, begin: usize, count: usize): void {
     fill(rule, 0, sizeof(LRProduction)); rule.owner = owner; rule.begin = begin; rule.count = count;
@@ -30,6 +87,12 @@ fn lr_analysis_allocation_trial(): bool {
     var seed: LRItem; seed.rule = 0; seed.position = 0; seed.first = LRTokenEnd; seed.last = LRTokenEnd;
     error = lr_analysis_compute_result(analysis);
     utility_check(error == WorkBudgetError.None || error == WorkBudgetError.Memory, "Valid FIRST analysis fails only at denied storage");
+    if error == WorkBudgetError.Memory {
+        tower_test_buffer_fail_after(oracle_none());
+        utility_check(lr_analysis_compute_result(analysis) == WorkBudgetError.None,
+            "FIRST or suffix allocation denial permits retry on the same analysis");
+        return false;
+    }
     var ok = input is not null && output is not null && error == WorkBudgetError.None && lr_items_insert(input, &seed)
         && lr_items_close(analysis, input, true) && lr_items_goto(analysis, input, &symbols[0], output, true);
     {
@@ -117,6 +180,20 @@ fn lr_analysis_invalid_inputs(): void {
         "FIRST does not visit the invalid reference following a terminal");
     utility_check(lr_states_create_result(value, &error) == null && error == WorkBudgetError.Invalid,
         "LR closure reports Invalid when it actually reaches that reference");
+    lr_analysis_destroy(value);
+    var suffix_tail: LRSymbol[3] = default;
+    suffix_tail[0] = terminal;
+    suffix_tail[1].nonterminal = 0;
+    suffix_tail[2].nonterminal = 1;
+    rule.count = sizeof(decltype(suffix_tail)) / sizeof(LRSymbol);
+    value = lr_analysis_create(&rule, 1, &suffix_tail[0], rule.count, suffix_tail[2].nonterminal);
+    utility_check(value != null && lr_analysis_compute_result(value) == WorkBudgetError.None,
+        "Suffix index defers an unreachable invalid suffix after a terminal");
+    var demanded = lr_items_create();
+    var seed: LRItem = {rule: 0, position: 1, first: LRTokenPropagation, last: LRTokenPropagation};
+    utility_check(demanded != null && lr_items_insert(demanded, &seed)
+        && !lr_items_close(value, demanded, true), "Demanded invalid suffix fails instead of returning a cached empty set");
+    lr_items_destroy(demanded);
     lr_analysis_destroy(value);
     rule.count = 1;
     value = lr_analysis_create_result(&rule, 1, &terminal, 1, 1, &error);
@@ -210,14 +287,19 @@ fn lr_kernel_resize_trial(): void {
     utility_check(final_action.rule == 0 && final_action.first == 4294967294 && final_action.last == 4294967294,
         "LR kernel resize final EOF reduction");
 }
-fn lr_analysis_failure_tests(): void {
+fn lr_analysis_storage_failures(): void {
     lr_analysis_invalid_inputs();
+    lr_suffix_budget_failure();
     var baseline = tower_test_buffer_count(); var success = false;
     for (var attempt: usize = 0; attempt < 1024 && !success; ++attempt) {
         tower_test_buffer_fail_after(attempt); success = lr_analysis_allocation_trial(); tower_test_buffer_fail_after(oracle_none());
         utility_check(tower_test_buffer_count() == baseline, "LR analysis allocation failure releases every buffer");
     }
     utility_check(success, "LR analysis allocation sweep reaches success");
+}
+fn lr_analysis_failure_tests(): void {
+    lr_analysis_storage_failures();
+    var baseline = tower_test_buffer_count(); var success = false;
     for (var mode: u32 = 0; mode < 2; ++mode) {
         success = false;
         for (var attempt: usize = 0; attempt < 4096 && !success; ++attempt) {

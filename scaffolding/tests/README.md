@@ -422,6 +422,14 @@ retry. Sweep bounds and retained test arrays derive from each successful run's
 allocation count. This uses the single-owner fault allocator; real concurrency
 is checked separately by `tower-lr-work-tests RESOURCE_ROOT lr` and unit profiles.
 
+`tower-storage-tests RESOURCE_ROOT diagnostic-faults` selects the diagnostic
+construction oracle with the same single-owner allocator. At both target widths
+it denies every observed allocation boundary for plain and generic-trace
+diagnostics, checks physical budget denial, preserves the explicit source offset
+when generated spans differ, and verifies private current/scope restoration.
+Retained semantic and resource failures reject later declaration admission without
+another allocation or diagnostic. This selector needs no grammar bootstrap run.
+
 Formatter fixtures now run in Tower. Configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
@@ -1163,16 +1171,18 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
-and emits unoptimized x86_64-pc-linux-gnu library objects. The older backend
+and emits unoptimized x86_64-pc-linux-gnu library objects; `optimized` selects
+the existing O2 pipeline and default code-generation policy as a control. The older backend
 workload did not export its functions and could emit empty objects; those
 measurements are not useful code-generation evidence. The profile checks exported
 names, known interpreter results (answer and loop body return42), canonical
 Foundation and object hashes. Compare each workload's hashes across worker counts.
-Its explicit byte ceiling is `(UNITS + 1) * DriverUnitRetainedByteLimit`; the
+Its explicit byte ceiling is `(UNITS + UnitsProfileTransientUnits) * DriverUnitRetainedByteLimit`
+(four transient units accommodate tracked scratch for4096 bodies); the
 production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
 are supported, with workers bounded by the current host transport capacity.
 
@@ -1411,6 +1421,19 @@ build/native/tower-lr-work-tests scaffolding query-smoke
 build/native/tower-lr-work-tests scaffolding control-smoke
 ```
 
+`RESOURCE_ROOT` accepts relative and absolute directory spellings. Body fixtures
+anchor their virtual source filenames to that same root through `units_source`;
+using a bare filename beside an absolute library root could load relative and
+absolute copies of the type prelude when the working directory was scaffolding.
+The harness joins paths without resolving symlinks or merging explicit imports.
+From scaffolding, run the existing native binary with `. control-smoke` and with
+`"$PWD" control-smoke`. Its focused `resource-roots` selector additionally checks
+aliased vector/module use, quoted/dotted identity, known output `10`, serial/four-worker
+canonical reparse, and ambiguity between two distinct imported `Item` definitions.
+Use both root spellings for the explicit `resource-roots` selector too.
+These are fixture-path checks, not a new module-resolution policy or a scaling
+claim. The D1 journal names the exact reused compiler and rebuilt fixture closure.
+
 The flow fixture checks idempotent admission, deterministic errors, waits,
 cancellation and graph failures. The lifecycle fixture includes actual mixed
 signature/lowering rendezvous. The staging fixture checks required and optional
@@ -1533,6 +1556,19 @@ receipt and audit for measured source identity and limits.
 
 A1 body/declaration admission checks are imported by semantic_lifecycle_frontier_checks.tower (tower-semantic-lifecycle-frontier-tests and query-smoke). The46 new real-pump trials cover workers1/4, kind/component pins, graph/world capacity, partial takes and foreign leases, joined completion/body-count denial, cancellation, deterministic owner offsets, no successful check prefix, stable terminal retries and zero retained budget owners. Existing flow/lifecycle/staging coverage totals132 trials; build with tower-semantic-staging-smoke. Broader release instrumentation remains ROOT's integration work.
 
+The execution `core` selector includes `execution_output_storage.tower`: counted
+first-error/output admission, no replay after capacity returns, graph/Fast parity,
+producer teardown with a retained package snapshot, transactional replacement and
+complete world/grant retirement at both target widths. `type-construction` covers
+counted constructor-diagnostic transfer without a second allocation; `query-smoke`
+observes typed capacity failures even when diagnostic storage is unavailable.
+
+For the changed Wasm/host boundary, enable `TOWER_IDE_PACKAGE_TESTS=ON`, build only
+`tower-browser`, and run `TOWER_TEST_WASM=/absolute/path/tower.wasm node --test
+playground/tests/bytecode.test.mjs`. The file closes its host transport and uses the
+selected artifact without requiring an unrelated default browser build. This is
+package coverage, not the browser concurrency or integrated release matrix.
+
 ### Focused LR closure ordering and frontend iteration cost
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
@@ -1545,6 +1581,7 @@ closures, state/action identities and parser error/probe behavior.
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-frontend-tests tower-lr-work-tests
 cd scaffolding
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-order
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-suffix
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" grammar-equivalence
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" structure-reuse
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" parser
@@ -1562,6 +1599,16 @@ up the Bedrock/Foundation baseline before the measured source phases. Observer
 Lookup/Build/Table times are nested, not additive. Whole-process time also includes
 startup, resource reads, canonical formatting, checked interpretation and cleanup;
 no backend/link output is timed here.
+
+`lr-suffix` times 2,000 production closure calls against a precomputed independent
+oracle, with 32 incoming lookaheads including propagation/end markers. It checks
+every ordered output item outside the timed closure interval. `lr-order` also
+covers nullable/nonnullable recursive suffixes, overlapping ranges and production
+spans, deferred invalid tails, finite-budget denial/retry and allocation cleanup.
+Use the same frozen executable/resources for comparisons; pin serial samples to
+one admitted CPU if core migration dominates noise. Preserve the unpinned results
+and record the affinity change. This caller microbenchmark does not measure full
+compiler latency or native worker overlap.
 
 The iteration fixture requires its existing serial instrumentation transport,
 binds a 256MiB ledger before the first entity, reports charged live/peak bytes,
@@ -1592,3 +1639,16 @@ Every owned receipt is gone before ledger teardown. Run `parser` for immediate
 request/admission callers and `grammar-equivalence` for canonical live grammar and
 replacement coverage. These focused checks do not replace integrated sanitizers,
 bootstrap, browser or release verification.
+
+### Scratch identity lookup regression
+
+`tower-storage-tests RESOURCE_ROOT scratch` runs the focused semantic scratch
+allocation/denial/retry tests and a 1,024-list ownership-index regression. It
+checks exact pointer identity, bounded lookup probes, ordinary-vector fallback,
+private scan storage, lexical parent borrowing, allocation-free joined transfer,
+failed-registration atomicity and zero grants after teardown. The optional
+`sem_scratch_find` probe output is caller-owned; lookup never mutates the parent.
+Run the existing native `tower-lr-work-tests . query-smoke` and `control-smoke`
+from the `scaffolding` directory for the affected continuation/canonical checks.
+The separately observed absolute-resource-root control diagnostic is retained in
+the B1 journal; it is not a passing variant of this command.

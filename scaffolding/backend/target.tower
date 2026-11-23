@@ -4,15 +4,25 @@ import bindings;
 import context;
 import foreign_symbol;
 import text;
+import codegen_types;
 
 // Target selection is explicit. Never derive program layout from the compiler host.
 export fn backend_open(triple: u8*): Backend* {
+    // Compatibility: legacy callers select IR passes separately.
+    return backend_open_codegen(triple, BackendCodegen.Default);
+}
+
+export fn backend_open_codegen(triple: u8*, codegen: BackendCodegen): Backend* {
     var b = alloc(Backend, 1);
     var failed = b == null;
     if failed {
         return null;
     }
     *b = default;
+    if codegen != BackendCodegen.None && codegen != BackendCodegen.Default {
+        backend_fail(b, "Unsupported backend code-generation policy");
+        return b;
+    }
     backend_initialize_targets();
     b.wasm = backend_prefix(triple, "wasm");
     b.foreign_profile = foreign_profile_for_target(triple);
@@ -25,8 +35,9 @@ export fn backend_open(triple: u8*): Backend* {
         LLVMDisposeMessage(error);
         return b;
     }
-    // LLVMCodeGenLevelDefault, LLVMRelocPIC, LLVMCodeModelDefault.
-    b.machine = LLVMCreateTargetMachine(target, triple, "generic", "", 2, 2, 0);
+    var relocation_pic: u32 = 2;
+    var code_model_default: u32 = 0;
+    b.machine = LLVMCreateTargetMachine(target, triple, "generic", "", convert(u32, codegen), relocation_pic, code_model_default);
     failed = b.machine == null;
     if failed {
         backend_fail(b, "Unable to create LLVM target");

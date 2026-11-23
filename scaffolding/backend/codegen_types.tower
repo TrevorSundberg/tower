@@ -1,0 +1,4 @@
+import tower;
+
+// LLVM19 C ABI values. Independent of the IR pass pipeline; fixed at creation.
+enum BackendCodegen: u32 { None = 0, Default = 2 }

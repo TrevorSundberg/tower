@@ -98,7 +98,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
     var index: usize = 0;
     loop {
         var done = index == count;
-        if done {
+        if done || !sem_module_ok(program) {
             break;
         }
         var input = &sources[index];
@@ -184,12 +184,11 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
                 }
             }
             if duplicate { dependency++; continue; }
-            sem_module_record(program, current);
             var base = source.length;
+            if !sem_module_record(program, current, base) || !sem_module_position(program, current, base) { break; }
             sem_require(vector_push(&published, current));
             sem_require(vector_push(&published_bases, base));
             frontend_module_position(current, base);
-            sem_module_position(program, current, base);
             var data = frontend_module_source(current);
             var length = frontend_module_size(current);
             sem_require(bytes_append(&source, data, length));
@@ -210,13 +209,18 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
                         node = sem_child(node, 0);
                     }
                 }
-                sem_require(entity_attach(root, program.root, ""));
+                var attached = entity_attach_result(root, program.root, "");
+                if attached != WorkBudgetError.None {
+                    sem_module_error(program, attached, sem_module_offset(root, base));
+                    break;
+                }
                 var target = sem_get(program.root);
                 sem_require(vector_push(&target.items, node));
                 sem_require(vector_push(&roots, root));
                 sem_require(vector_push(&bases, base));
                 n++;
             }
+            if !sem_module_ok(program) { break; }
             dependency++;
         }
         index++;

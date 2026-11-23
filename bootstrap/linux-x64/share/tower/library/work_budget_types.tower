@@ -1,0 +1,64 @@
+import tower;
+import vector;
+
+// Admission accounting, serialized by one coordinator or an explicitly bound
+// gate. Declared bytes are reservations, not an allocator/RSS limit. Execution
+// grants release after all nested/outer jobs join and stages publish. Physical
+// buffers use separate byte-only grants until storage is freed, including any
+// retained results. Move receipts with their owners; never duplicate ownership.
+enum WorkBudgetError: u32 { None, Capacity, Invalid, Memory, Stale, Busy, Exhausted }
+
+struct WorkBudgetEntry {
+    lanes: usize;
+    bytes: usize;
+    generation: u64;
+    next: usize;
+    active: bool;
+}
+
+struct WorkBudget {
+    entries: vector(WorkBudgetEntry);
+    lanes: usize;
+    bytes: usize;
+    used_lanes: usize;
+    used_bytes: usize;
+    peak_lanes: usize;
+    peak_bytes: usize;
+    live: usize;
+    free_slot: usize;
+    revision: u64;
+    generation: u64;
+    initialized: bool;
+    gate: void*;
+    enter: function(void, void*);
+    leave: function(void, void*);
+    // One coordinator's nonblocking notification, armed by denied lane admission.
+    // Bound before dispatch and detached only after all borrowers have drained.
+    wake_context: void*;
+    wake: function(void, void*);
+    wake_armed: bool;
+    // Last operation for serial diagnostics only. Concurrent callers use the
+    // per-call result APIs; reading this field without the gate would race.
+    error: WorkBudgetError;
+}
+
+struct WorkReservation {
+    owner: WorkBudget*;
+    revision: u64;
+    slot: usize;
+    generation: u64;
+    lanes: usize;
+    bytes: usize;
+    active: bool;
+}
+
+struct WorkBudgetSnapshot {
+    lanes: usize;
+    bytes: usize;
+    used_lanes: usize;
+    used_bytes: usize;
+    peak_lanes: usize;
+    peak_bytes: usize;
+    live: usize;
+    retained: usize;
+}

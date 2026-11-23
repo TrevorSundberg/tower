@@ -21,6 +21,7 @@ import presentation_budget;
 import parser_diagnostic_budget;
 import frontend_diagnostic_text;
 import lr_analysis_comparisons;
+import lr_analysis_failures;
 
 extern fn parser_tests(): void;
 extern fn syntax_tests(): void;
@@ -45,7 +46,12 @@ export fn main(argc: i32, argv: u8**): i32 {
         return 0;
     }
     if argc == 3 && strcmp(argv[2], "lr-order") == 0 {
+        lr_analysis_storage_failures();
         lr_analysis_comparison_tests(true);
+        return 0;
+    }
+    if argc == 3 && strcmp(argv[2], "lr-suffix") == 0 {
+        frontend_suffix_profile();
         return 0;
     }
     if argc == 3 && strcmp(argv[2], "structure-reuse") == 0 {

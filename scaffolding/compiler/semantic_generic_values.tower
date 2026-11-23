@@ -13,7 +13,7 @@ import inspection_policy;
 import .library.vector;
 import .library.work_budget_types;
 
-extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
+extern fn compiler_clone_tree_owned_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*, owner: void*): void*;
 
 fn generic_step(a: GenericAnalysis*, depth: usize): bool {
     if a.context.program.resource.error != WorkBudgetError.None { return false; }
@@ -197,10 +197,7 @@ fn generic_resolve_view(a: GenericAnalysis*, view: GenericInfo*, depth: usize): 
     if substitutions != null {
         return;
     }
-    var type = sem_type(a.context, view.annotation);
-    if sem_ok(a.context) {
-        view.resolved = sem_type_entity(a.context, type, view.annotation);
-    }
+    view.resolved = generic_resolved_type(a, view.annotation);
     a.context.program.error.length = 0;
 }
 
@@ -357,6 +354,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
 
 fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth: usize): void {
     var info = generic_info_add(a, node, node, GenericInfoKind.Member);
+    if info == null { return; }
     var record = generic_record(a, source, depth);
     if record == null {
         return;
@@ -448,7 +446,8 @@ fn generic_expression_seed(a: GenericAnalysis*, source: void*, copy: void*, dept
         if info.resolved == null {
             return false;
         }
-        var value = sem_attach(copy, KOperand);
+        var value = sem_node_result(a.context, copy, KOperand);
+        if value == null { return false; }
         var resolved = sem_get(info.resolved);
         sem_set_type(&value.type, &resolved.type);
         return true;
@@ -504,7 +503,7 @@ fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: voi
     }
     var copied: usize = 0;
     var storage_error = WorkBudgetError.None;
-    var clone = compiler_clone_tree_result(node, a.budget, &copied, &storage_error);
+    var clone = compiler_clone_tree_owned_result(node, a.budget, &copied, &storage_error, a.stage);
     a.budget = a.budget - copied;
     if clone == null {
         if storage_error == WorkBudgetError.None { a.truncated = true; }
@@ -568,6 +567,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             var source = generic_info(base, a.component);
             if sem_member(node, "index") != null {
                 info = generic_info_add(a, node, node, GenericInfoKind.Index);
+                if info == null { return; }
                 generic_element(a, node, info, source, next);
             } else {
                 generic_member(a, node, source, next);
@@ -576,6 +576,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
     }
     if sem_is(node, "CoreLoad") {
         info = generic_info_add(a, node, node, GenericInfoKind.Load);
+        if info == null { return; }
         generic_element(a, node, info, generic_info(sem_member(node, "name"), a.component), next);
     }
     if a.context.program.resource.error != WorkBudgetError.None { return; }
@@ -594,6 +595,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
                 kind = GenericInfoKind.Assignment;
             }
             info = generic_info_add(a, node, node, kind);
+            if info == null { return; }
             if assignment {
                 generic_view_copy(info, generic_info(left, a.component));
             }
@@ -601,6 +603,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         } else {
             if sem_child_count(node) != 1 {
                 info = generic_info_add(a, node, node, GenericInfoKind.Value);
+                if info == null { return; }
                 if left == null && right != null && sem_equal(sem_surface_operator(a.context, node, null), "*") {
                     info.kind = GenericInfoKind.Load;
                     generic_element(a, node, info, generic_info(right, a.component), next);
@@ -641,11 +644,13 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             generic_info_bind(a, node, name);
         } else {
             info = generic_info_add(a, node, node, GenericInfoKind.Assignment);
+            if info == null { return; }
             generic_element(a, node, info, generic_info(name, a.component), next);
         }
     }
     if sem_is(node, "CoreAssign") {
         info = generic_info_add(a, node, node, GenericInfoKind.Assignment);
+        if info == null { return; }
         var target = generic_info(sem_member(node, "target"), a.component);
         generic_view_copy(info, target);
         generic_expression_check(a, sem_member(node, "value"), info.resolved, next);

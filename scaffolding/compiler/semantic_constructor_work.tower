@@ -46,7 +46,8 @@ fn sem_type_construct_value(c: SemanticContext*, node: void*, name: u8*,
         var type = sem_constructor_prepared(c, node);
         if type == null { sem_fail(c, node, "Function type value requires its type construction query"); }
         else {
-            var value = sem_node(c, node, KTypeReference);
+            var value = sem_node_result(c, node, KTypeReference);
+            if value == null { return true; }
             value.type = sem_type_value(c, SType, 0, null);
             value.element = *type;
         }
@@ -60,7 +61,8 @@ fn sem_type_construct_value(c: SemanticContext*, node: void*, name: u8*,
     if !integer && !floating && !pointer && !array {
         var type = sem_type_primitive(c, node, name);
         if sem_ok(c) {
-            var value = sem_node(c, node, KTypeReference);
+            var value = sem_node_result(c, node, KTypeReference);
+            if value == null { return true; }
             value.type = sem_type_value(c, SType, 0, null);
             value.element = *type;
         }
@@ -71,7 +73,8 @@ fn sem_type_construct_value(c: SemanticContext*, node: void*, name: u8*,
         sem_fail(c, node, "Wrong argument count for representation type constructor");
         return true;
     }
-    var value = sem_node(c, node, KTypeConstruct);
+    var value = sem_node_result(c, node, KTypeConstruct);
+    if value == null { return true; }
     value.type = sem_type_value(c, SType, 0, null);
     value.op = convert(u32, integer ? TypeConstructionKind.Integer : floating ? TypeConstructionKind.Floating
         : pointer ? TypeConstructionKind.Pointer : TypeConstructionKind.Array);

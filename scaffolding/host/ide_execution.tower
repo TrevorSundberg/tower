@@ -9,9 +9,14 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
 import .compiler.interpreter_types;
+import .compiler.interpreter_text;
+import .library.work_vector;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 import .library.work_budget_types;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
@@ -21,11 +26,11 @@ fn ide_execution_close(session: IdeExecution*): void {
     if session.fast != null {
         fast_interpreter_dispose(session.fast);
     }
+    work_vector_dispose(&session.error);
+    work_vector_dispose(&session.output);
     interpreter_storage_dispose(&session.machine);
     semantic_program_dispose(&session.program);
     entity_release(session.program.root);
-    bytes_dispose(&session.error);
-    bytes_dispose(&session.output);
     free(session);
 }
 
@@ -35,6 +40,7 @@ fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, fou
     ide_require(exists);
     *session = default;
     semantic_initialize(&session.program, tower_node_create(), width);
+    session.machine.budget = compiler_world_work_budget(compiler_node_world(session.program.root));
     var state = ide_state();
     var rejected = false;
     if foundation {
@@ -52,15 +58,15 @@ fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, fou
         syntax_destroy(lease);
     }
     if session.program.resource.error != WorkBudgetError.None {
+        session.machine.storage_error = session.program.resource.error;
         session.machine.error_offset = session.program.resource.offset;
         session.machine.failed = true;
         session.machine.done = true;
         return session;
     }
-    ide_require(bytes_assign_text(&session.error, session.program.error.data, session.program.error.length));
-    session.machine.error_offset = session.program.error_offset;
-    session.machine.failed = session.error.length != 0;
-    session.machine.done = session.machine.failed;
+    if session.program.error.length != 0 {
+        im_text_fail(&session.machine, &session.error, session.program.error.data, session.program.error.length, session.program.error_offset);
+    }
     session.machine.stack = 16;
     session.machine.heap = 4194304;
     interpreter_init(&session.machine);
@@ -262,11 +268,7 @@ export fn tw_exec_fail(handle: u32, error: u8*, length: usize): void {
     if session == null {
         return;
     }
-    if session.error.length == 0 {
-        ide_require(bytes_assign_text(&session.error, error, length));
-        session.machine.failed = true;
-        session.machine.error_offset = 0;
-    }
+    im_text_fail(&session.machine, &session.error, error, length, 0);
 }
 
 export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
@@ -279,8 +281,7 @@ export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
         session.machine.output_truncated = true;
         return;
     }
-    ide_require(bytes_append(&session.output, data, length));
-    session.machine.output_bytes = session.machine.output_bytes + length;
+    im_text_append(&session.machine, &session.output, &session.error, data, length);
 }
 
 var IdeExecutionStepLimit: u32 = 100000;
@@ -312,12 +313,16 @@ export fn tw_exec_step(handle: u32, budget: u32): u8* {
         return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
     }
     ide_execution_step(session, budget);
-    if session.machine.failed && session.error.length == 0 {
-        return "{\"status\":\"error\",\"error\":\"Execution failed without a diagnostic\"}";
-    }
+
     var state = ide_state();
     var out = &state.execution;
-    ide_require(host_execution_json(out, session.error.data, session.error.length, session.machine.error_offset, session.machine.done, session.output.data, session.output.length, session.machine.steps, session.machine.output_truncated));
+    var message = session.error.data;
+    var length = session.error.length;
+    if session.machine.failed && length == 0 {
+        message = session.machine.storage_error == WorkBudgetError.None ? "Execution failed without a diagnostic" : sem_resource_message(session.machine.storage_error);
+        length = ide_length(message);
+    }
+    ide_require(host_execution_json(out, message, length, session.machine.error_offset, session.machine.done, session.output.data, session.output.length, session.machine.steps, session.machine.output_truncated));
     session.output.length = 0;
     return ide_result(out);
 }
@@ -391,11 +396,7 @@ export fn im_has_foreign(machine: IMState*): bool {
 
 export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
     var session = bits(IdeExecution*, machine);
-    if session.error.length == 0 {
-        ide_assign(&session.error, text);
-        machine.failed = true;
-        machine.error_offset = offset;
-    }
+    im_text_fail(machine, &session.error, text, ide_length(text), offset);
 }
 
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
@@ -410,8 +411,7 @@ export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): voi
 
 export fn im_append(machine: IMState*, text: u8*, count: usize): void {
     var session = bits(IdeExecution*, machine);
-    ide_require(bytes_append(&session.output, text, count));
-    machine.output_bytes = machine.output_bytes + count;
+    im_text_append(machine, &session.output, &session.error, text, count);
 }
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {

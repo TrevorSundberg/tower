@@ -70,7 +70,7 @@ fn type_profile_trial(modules: void*, count: usize): void {
     defer bytes_dispose(&output);
     type_profile_number(&output, convert(u64, count)); type_profile_text(&output, "\n");
     execution_check(session.machine.done && session.error.length == 0
-        && execution_equal(&session.output, &output), "Type profile independent output");
+        && execution_bytes_equal(session.output.data, session.output.length, output.data, output.length), "Type profile independent output");
     var canonical: FormatResult = default;
     var after: FormatResult = default;
     defer format_dispose(&canonical);

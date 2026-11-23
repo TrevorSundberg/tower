@@ -21,7 +21,7 @@ import .library.work_budget_types;
 // Candidate lists retain borrowed entity handles only for the duration of a query.
 extern fn syntax_completion_create(source: u8*, mode: u32): void*;
 
-extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_session_open_result(world: void*, environment: void*, source: u8*, module: void*, mode: u32, error: WorkBudgetError*): SyntaxSession*;
 
 extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
 extern fn frontend_module_resource_error(module: void*): WorkBudgetError;
@@ -36,8 +36,15 @@ extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 // The query borrows its world/environment until disposal. Legacy callers select
 // that owner once at their boundary; recovery never switches an ambient world.
-fn completion_session(q: CompletionQuery*, source: u8*, mode: u32): void* {
-    return bits(void*, syntax_session_open(q.world, q.environment, source, null, mode));
+fn completion_session(q: CompletionQuery*, source: u8*, mode: u32, base: usize): void* {
+    if q.resource_error != WorkBudgetError.None { return null; }
+    var error: WorkBudgetError;
+    var session = syntax_session_open_result(q.world, q.environment, source, null, mode, &error);
+    if session == null {
+        q.resource_error = error;
+        sem_module_error(&q.program, error, base);
+    }
+    return bits(void*, session);
 }
 
 extern fn syntax_destroy(session: void*): void;
@@ -96,16 +103,18 @@ fn completion_session_failed(q: CompletionQuery*, session: void*): bool {
     return q.resource_error != WorkBudgetError.None;
 }
 
-fn completion_attach(q: CompletionQuery*, root: void*, base: usize): void {
+fn completion_attach(q: CompletionQuery*, root: void*, base: usize): bool {
     var node = sem_child(root, 0);
     if sem_is(node, "Statement") {
         node = sem_unwrap(node);
     }
-    sem_require(entity_attach(root, q.program.root, ""));
+    var error = entity_attach_result(root, q.program.root, "");
+    if error != WorkBudgetError.None { return sem_module_error(&q.program, error, sem_module_offset(root, base)); }
     var target = sem_get(q.program.root);
     sem_push(&target.items, node);
     sem_push(&q.roots, root);
     sem_require(vector_push(&q.bases, base));
+    return true;
 }
 
 fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): bool {
@@ -115,9 +124,13 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var length = sem_length(source);
     sem_require(bytes_append(&q.input, source, length));
     sem_require(vector_push(&q.input, 10));
-    var session = completion_session(q, source, mode);
+    var session = completion_session(q, source, mode, base);
+    if session == null { return false; }
+    var retained = false;
+    defer { completion_semantic_failed(q); if !retained { syntax_destroy(session); } }
     var entries: vector(void*);
     vector_init(&entries);
+    defer { foreach(var entry in &entries) { entity_release(entry); } vector_dispose(&entries); }
     var count: usize = 0;
     loop {
         if count == 1024 {
@@ -147,7 +160,12 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                 language_templates_refresh(q, session);
                 // Keep grammar entities for inspection without adding them to
                 // the executable statement list consumed by ordinary checking.
-                sem_require(entity_attach(root, q.program.root, ""));
+                var attached = entity_attach_result(root, q.program.root, "");
+                if attached != WorkBudgetError.None {
+                    sem_module_error(&q.program, attached, sem_module_offset(root, base));
+                    entity_release(root);
+                    return false;
+                }
                 sem_push(&q.roots, root);
                 sem_require(vector_push(&q.bases, base));
             }
@@ -159,27 +177,24 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var clean = error[0] == 0;
     var parsed_module = syntax_completion_module(session);
     if completion_session_failed(q, session) {
-        foreach(var & entry in &entries) { entity_release(*entry); }
-        vector_dispose(&entries);
-        syntax_destroy(session);
         return false;
     }
     if parsed_module != null {
         // Recovery sees only the declarations from this file's actual imports.
-        sem_module_graph(&q.program, parsed_module);
+        if !sem_module_graph(&q.program, parsed_module, base) { return false; }
         // Entry statements collected during recovery may not be in the normal
         // module roots yet; retain their same explicit owner before teardown.
-        var owner = sem_module_scope(&q.program, parsed_module);
-        sem_module_position(&q.program, parsed_module, base);
+        var owner = sem_module_scope(&q.program, parsed_module, base);
+        if owner == null || !sem_module_position(&q.program, parsed_module, base) { return false; }
         var root_index: usize = 0;
         for(; root_index < entries.length; root_index++) {
-            sem_module_link(entries.data[root_index], q.program.modules.owner_kind, owner);
+            if !sem_module_link(&q.program, entries.data[root_index], q.program.modules.owner_kind, owner, base) { return false; }
         }
         // Grammar declarations also carry a definition scope for replacement
         // inspection, without modifying cached template trees.
         root_index = first_root;
         for(; root_index < q.roots.length; root_index++) {
-            sem_module_link(q.roots.data[root_index], q.program.modules.owner_kind, owner);
+            if !sem_module_link(&q.program, q.roots.data[root_index], q.program.modules.owner_kind, owner, base) { return false; }
         }
     }
     // Only the entry's actual import closure contributes external declarations.
@@ -198,7 +213,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                 var dependency = frontend_module_at(module, i);
                 if dependency != module {
                     var dependency_base = q.input.length;
-                    sem_module_position(&q.program, dependency, dependency_base);
+                    if !sem_module_position(&q.program, dependency, dependency_base) { return false; }
                     if q.inspection {
                         sem_push(&q.comment_modules, dependency);
                         sem_require(vector_push(&q.comment_bases, dependency_base));
@@ -214,7 +229,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                         if done {
                             break;
                         }
-                        completion_attach(q, frontend_module_tree(dependency, n), dependency_base);
+                        if !completion_attach(q, frontend_module_tree(dependency, n), dependency_base) { return false; }
                         n++;
                     }
                 }
@@ -223,14 +238,14 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         }
     }
     foreach(var & entry in &entries) {
-        completion_attach(q, *entry, base);
-        entity_release(*entry);
+        if !completion_attach(q, *entry, base) { return false; }
     }
-    vector_dispose(&entries);
+
     if q.inspection {
         // Keep the normal module/lexer metadata alive until semantic checking
         // has attached Foundation components for the shared comment pass.
         q.inspection_session = session;
+        retained = true;
         var module = syntax_completion_module(session);
         var present = module != null;
         if present {
@@ -238,8 +253,6 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
             sem_push(&q.comment_modules, module);
             sem_require(vector_push(&q.comment_bases, base));
         }
-    } else {
-        syntax_destroy(session);
     }
     return clean;
 }
@@ -338,7 +351,8 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         q.input.length = 0;
         text.length = prefix_end;
         sem_require(host_text_terminate(&text));
-        var probe = completion_session(q, text.data, mode);
+        var probe = completion_session(q, text.data, mode, 0);
+        if probe == null { vector_dispose(&text); return; }
         syntax_completion_enable(probe);
         for(var i: usize = 0; i != 1024; i++) {
             var root = syntax_next(probe);

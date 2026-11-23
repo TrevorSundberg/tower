@@ -129,16 +129,17 @@ struct CloneStack {
     frames: work_vector(CloneFrame);
     budget: WorkBudget*;
     error: WorkBudgetError;
+    source_owner: EntityStage*;
 }
 
-fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, error: WorkBudgetError*): Entity* {
+fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, owner: EntityStage*, error: WorkBudgetError*): Entity* {
     var result = stage == null ? entity_create_result(source.store, error)
         : entity_stage_create_named_result(stage, parent, name, error);
     if result == null {
         return null;
     }
     if stage == null {
-        *error = compiler_node_copy_metadata_result(source, result);
+        *error = compiler_node_copy_metadata_owned_result(source, result, owner);
     } else {
         *error = compiler_node_copy_metadata_staged_result(source, result, stage);
     }
@@ -171,7 +172,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
     if scratch.error != WorkBudgetError.None {
         return null;
     }
-    var result = compiler_clone_node(source, context, use, stage, parent, name, &scratch.error);
+    var result = compiler_clone_node(source, context, use, stage, parent, name, scratch.source_owner, &scratch.error);
     var failed = result == null;
     if failed {
         return null;
@@ -202,7 +203,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         }
         var child = entity_child_at(frame.source, frame.next);
         var role = entity_child_name(frame.source, frame.next);
-        var copy = compiler_clone_node(child, context, use, stage, frame.destination, role, &scratch.error);
+        var copy = compiler_clone_node(child, context, use, stage, frame.destination, role, scratch.source_owner, &scratch.error);
         failed = copy == null;
         if failed {
             break;
@@ -233,12 +234,16 @@ export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): En
 // Capacity and allocation failure are distinct from the caller's node quota.
 // Sources outside a compiler world retain the explicit standalone boundary.
 export fn compiler_clone_tree_result(source: Entity*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): Entity* {
+    return compiler_clone_tree_owned_result(source, limit, copied, storage_error, null);
+}
+
+export fn compiler_clone_tree_owned_result(source: Entity*, limit: usize, copied: usize*, storage_error: WorkBudgetError*, owner: EntityStage*): Entity* {
     if copied != null { *copied = 0; }
     if storage_error == null { return null; }
     *storage_error = WorkBudgetError.Invalid;
     if source == null || copied == null { return null; }
     var remaining = limit;
-    var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(source)), ..default };
+    var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(source)), source_owner: owner, ..default };
     defer work_vector_dispose(&scratch.frames);
     var result = compiler_clone_branch(source, &remaining, null, null, null, null, null, null, &scratch);
     *copied = limit - remaining;

@@ -47,6 +47,7 @@ struct GenericInfo {
 struct GenericAnalysis {
     context: SemanticContext*;
     component: void*;
+    stage: void*;
     definition: void*;
     constructor: bool;
     resolve_types: bool;
@@ -62,9 +63,11 @@ fn generic_info(node: void*, component: void*): GenericInfo* {
 }
 
 fn generic_info_add(a: GenericAnalysis*, node: void*, declaration: void*, kind: GenericInfoKind): GenericInfo* {
-    var result = bits(GenericInfo*, entity_component_data(entity_component_add(node, a.component)));
-    var allocated = result != null;
-    sem_require(allocated);
+    if !sem_ok(a.context) { return null; }
+    var error = entity_stage_lease_result(a.stage, node);
+    if error != WorkBudgetError.None { sem_scratch_error(a.context, node, error); return null; }
+    var result = bits(GenericInfo*, entity_component_data(entity_component_add_result(node, a.component, &error)));
+    if result == null { sem_scratch_error(a.context, node, error); return null; }
     fill(result, 0, sizeof(GenericInfo));
     result.kind = kind;
     result.definition = a.definition;
@@ -79,6 +82,7 @@ fn generic_info_bind(a: GenericAnalysis*, node: void*, declaration: void*): void
         return;
     }
     var result = generic_info_add(a, node, declaration, meaning.kind);
+    if result == null { return; }
     copy(result, meaning, sizeof(GenericInfo));
 }
 
@@ -149,11 +153,19 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
     if sem_equal(sem_tokens(a.context, annotation), "type") {
         return;
     }
-    var type = sem_type(a.context, annotation);
-    if sem_ok(a.context) {
-        meaning.resolved = sem_type_entity(a.context, type, annotation);
-    }
+    meaning.resolved = generic_resolved_type(a, annotation);
     a.context.program.error.length = 0;
+}
+
+fn generic_resolved_type(a: GenericAnalysis*, annotation: void*): void* {
+    var c = a.context;
+    var previous = c.entity_stage;
+    defer c.entity_stage = previous;
+    // Function-type parameters belong to the leased annotation. Only this
+    // query uses its stage; independently owned expression clones do not.
+    if a.stage != null { c.entity_stage = a.stage; }
+    var type = sem_type(c, annotation);
+    return sem_ok(c) ? sem_type_entity(c, type, annotation) : null;
 }
 
 fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, types: SemanticScope*, depth: usize): void {
@@ -164,17 +176,20 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     var name: void* = null;
     if sem_is(node, "CoreStruct") {
         declaration = generic_info_add(a, node, node, GenericInfoKind.Structure);
+        if declaration == null { return; }
         declaration.dependent = true;
         generic_info_name(a, types, node);
         name = sem_member(node, "name");
     }
     if sem_is(node, "CoreField") {
         declaration = generic_info_add(a, node, node, GenericInfoKind.Field);
+        if declaration == null { return; }
         name = sem_member(node, "name");
     }
     var local = sem_is(node, "CoreDeclare");
     if local {
         declaration = generic_info_add(a, node, node, GenericInfoKind.Variable);
+        if declaration == null { return; }
         name = sem_member(node, "name");
     }
     if sem_is(node, "CoreParameter") {
@@ -185,10 +200,12 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     }
     if sem_is(node, "CoreType") {
         declaration = generic_info_add(a, node, node, GenericInfoKind.TypeExpression);
+        if declaration == null { return; }
         declaration.annotation = node;
     }
     if sem_is(node, "CoreReturn") {
         declaration = generic_info_add(a, node, node, GenericInfoKind.Return);
+        if declaration == null { return; }
         declaration.annotation = sem_member(a.definition, "type");
     }
     if sem_is(node, "CoreCall") {
@@ -196,12 +213,14 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
         var representation = sem_type_representation_name(sem_identifier(c, callee));
         if !sem_ok(a.context) { return; }
         declaration = generic_info_add(a, node, node, representation ? GenericInfoKind.PrimitiveType : GenericInfoKind.Call);
+        if declaration == null { return; }
         // Attach the callable meaning to the callee, not its argument leaves.
         // Argument traversal below can independently bind parameters and literals.
         generic_info_bind(a, callee, node);
     }
     if sem_is(node, "Number") || sem_is(node, "FloatNumber") {
         declaration = generic_info_add(a, node, node, GenericInfoKind.Value);
+        if declaration == null { return; }
     }
     // Bind names by their semantic tree roles, not token spelling. In particular
     // a member name is never mistaken for a same-named parameter or local.
@@ -275,13 +294,21 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
 
 // Query clients opt into this pass; executable compilation still checks each
 // concrete instance normally. Type/value bindings stay on the source entities.
-fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
+export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
+    if !sem_ok(c) { return null; }
     *truncated = false;
-    if c.program.resource.error != WorkBudgetError.None { return null; }
-    var component = sem_create(c.program.root);
-    sem_require(entity_register(component, sizeof(GenericInfo), alignof(GenericInfo), 0));
+    var error: WorkBudgetError;
+    var component = sem_kind_result(c.program.root, sizeof(GenericInfo), alignof(GenericInfo), &error);
+    if component == null { sem_scratch_error(c, c.program.root, error); return null; }
+    var committed = false;
+    defer { if !committed { sem_require(entity_attach_result(component, null, null) == WorkBudgetError.None); } }
+    var stage = entity_stage_open_result(c.program.root, &error);
+    if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
+    // New annotations are private until both binding and value passes finish.
+    // Discard removes their kind references before the private kind retires.
+    defer { if !committed { entity_stage_discard(stage); } }
     var a: GenericAnalysis = {context: c, component: component, resolve_types: resolve_types,
-        budget: InspectionNodeLimit, ..default};
+        stage: stage, budget: InspectionNodeLimit, ..default};
     var i: usize = 0;
     for(; i < c.template_nodes.length && c.program.resource.error == WorkBudgetError.None; i++) {
         var definition = c.template_nodes.data[i];
@@ -292,7 +319,7 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
         if a.constructor {
             kind = GenericInfoKind.Constructor;
         }
-        generic_info_add(&a, definition, definition, kind);
+        if generic_info_add(&a, definition, definition, kind) == null { return null; }
         var values = sem_scope(c, null);
         if !sem_ok(c) { return default; }
         var types = sem_scope(c, null);
@@ -310,7 +337,7 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
             if is_type {
                 parameter_kind = GenericInfoKind.TypeParameter;
             }
-            generic_info_add(&a, parameter, parameter, parameter_kind);
+            if generic_info_add(&a, parameter, parameter, parameter_kind) == null { return null; }
             if is_type {
                 generic_info_name(&a, types, parameter);
             }
@@ -328,6 +355,9 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
         generic_value_walk(&a, a.definition, 0);
     }
     *truncated = a.truncated;
-    if c.program.resource.error != WorkBudgetError.None { return null; }
+    if !sem_ok(c) { return null; }
+    error = entity_stage_publish_result(stage);
+    if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+    committed = true;
     return component;
 }

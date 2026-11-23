@@ -138,7 +138,7 @@ fn backend_unit_execute(payload: void*): void {
     var observation = batch.observation;
     observation.ordinal = job.ordinal;
     backend_observation_event(&observation, BackendPhase.Setup, true);
-    job.backend = backend_open(batch.target.data);
+    job.backend = backend_open_codegen(batch.target.data, batch.optimize ? BackendCodegen.Default : BackendCodegen.None);
     backend_observation_event(&observation, BackendPhase.Setup, false);
     if job.backend == null { return; }
     job.backend.observation = observation;

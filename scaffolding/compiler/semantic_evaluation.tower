@@ -93,15 +93,24 @@ export fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvalu
 
 // Retain an early stage failure on its producer, so independent body checking
 // can select diagnostics in source order after joining all continuations.
-fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, offset: usize): void {
+fn sem_evaluation_fail_counted(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, length: usize, offset: usize): void {
     if result.error.length == 0 {
-        var length: usize = 0;
-        while message[length] != 0 { length++; }
-        sem_require(vector_reserve(&result.error, length + 1));
-        copy(result.error.data, message, length + 1);
+        result.error_offset = offset;
+        if length == ~convert(usize, 0) || !vector_reserve(&result.error, length + 1) {
+            if result.resource_error == WorkBudgetError.None { result.resource_error = WorkBudgetError.Memory; }
+            return;
+        }
+        copy(result.error.data, message, length);
+        result.error.data[length] = 0;
         result.error.length = length;
         result.error_offset = offset;
     }
+}
+
+fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, offset: usize): void {
+    var length: usize = 0;
+    while message[length] != 0 { length++; }
+    sem_evaluation_fail_counted(c, result, message, length, offset);
 }
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
@@ -137,7 +146,11 @@ fn sem_evaluation_failed(c: SemanticContext*, result: SemanticEvaluation*): bool
         result.resource_error = invocation.state.storage_error;
     }
     if result.inferred && result.resource_error == WorkBudgetError.None { return true; }
-    var message = invocation.context.error.data;
+    if invocation.context.error.length != 0 {
+        sem_evaluation_fail_counted(c, result, invocation.context.error.data, invocation.context.error.length, sem_get(result.subject).start);
+        return false;
+    }
+    var message: u8* = null;
     if result.resource_error != WorkBudgetError.None {
         message = "Compile-time evaluation storage reservation failed";
         if result.resource_error == WorkBudgetError.Capacity {
@@ -210,6 +223,11 @@ fn sem_evaluation_node(c: SemanticContext*, parent: void*): void* {
         sem_require(entity_attach_result(node, null, null) == WorkBudgetError.None);
         return null;
     }
+    // A synthetic result has no expression span. Retain its own source-base
+    // fallback, not the parent's operation span used for admission failures.
+    var value = sem_get(node);
+    value.start = sem_offset(c, node);
+    value.end = value.start;
     return node;
 }
 
@@ -291,6 +309,12 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
 // Explicit stages and required integer arguments share execution and result
 // materialization. Callers own readiness; a type argument has no runtime frame.
 export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
+    var result = sem_evaluation_expression_impl(c, n, expression, owner, requested);
+    return c.program.resource.error == WorkBudgetError.None ? result : null;
+}
+
+fn sem_evaluation_expression_impl(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
     if !sem_ok(c) { return n; }
     var input = sem_get(expression);
     if input == null { sem_type_resource(c, n, WorkBudgetError.Invalid); return n; }
@@ -307,6 +331,7 @@ export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: v
         if !sem_ok(c) { return default; }
         underlying.record = null;
         literal = sem_surface_constant(c, n, underlying, 0);
+        if literal == null { return default; }
         value.kind = KConvert;
         value.constant = false;
         value.value = literal;
@@ -348,8 +373,10 @@ export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: v
 }
 
 fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): void* {
+    if !sem_ok(c) { return null; }
     if result.function == null {
         result.function = sem_control_node(c, result.subject, KFunction);
+        if result.function == null { return default; }
         sem_set_type(&sem_get(result.function).type, &sem_get(result.subject).type);
         if result.aggregate {
             sem_get(result.function).type = result.aggregate_type;
@@ -363,13 +390,16 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
     // Capture validity follows executed interpreter reads, after ordinary
     // lowering has preserved lazy branches. This clone computes no values.
     var function = sem_evaluation_function(c, result);
+    if function == null { return; }
     var previous = c.current;
     c.current = function;
+    defer { c.current = previous; }
     var clones = sem_table(c);
     if !sem_ok(c) { return; }
     var nodes = sem_list(c);
     if !sem_ok(c) { return; }
-    result.expression = sem_defer_clone(c, function, result.expression, clones, nodes);
+    var expression = sem_defer_clone(c, function, result.expression, clones, nodes);
+    if expression == null { return; }
     foreach(var node in nodes) {
         var value = sem_get(node);
         if value.binding != null {
@@ -377,19 +407,23 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
             if local != null { value.binding = local.value; }
         }
     }
-    c.current = previous;
+    result.expression = expression;
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if !sem_ok(c) { return; }
     if result.expression == null {
         sem_require(result.function != null && sem_get(result.function).body != null);
         return;
     }
     if result.aggregate { sem_evaluation_aggregate_prepare(c, result); return; }
     var function = sem_evaluation_function(c, result);
+    if function == null { return; }
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
+    if definition.body == null { return; }
     var returned = sem_control_node(c, definition.body, KReturn);
+    if returned == null { return; }
     sem_get(returned).value = result.expression;
     if !sem_push_checked(c, &sem_get(definition.body).items, returned) { return; }
     var previous = c.current;

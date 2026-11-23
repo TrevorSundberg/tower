@@ -34,7 +34,12 @@ export fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
     return empty;
 }
 
-fn lr_state_hash(analysis: LRAnalysis*, items: LRItems*): usize {
+// State identity uses the shifted core only. Closure adds dot-zero items,
+// including nullable reductions and (in recursive grammars) the start rule.
+// Those remain LALR kernels via lr_kernel, but are derived from this core and
+// must not require expansion before lookup. The initial state is distinguished
+// separately by its absent origin. All keys are local to one frozen analysis.
+fn lr_state_hash(items: LRItems*): usize {
     var hash: usize = 2166136261;
     var index: usize = 0;
     loop {
@@ -42,7 +47,7 @@ fn lr_state_hash(analysis: LRAnalysis*, items: LRItems*): usize {
             return hash;
         }
         var item = &items.values.data[index];
-        if lr_kernel(analysis, item) {
+        if item.position != 0 {
             hash = hash ^ item.rule;
             hash = hash * 16777619;
             hash = hash ^ item.position;
@@ -52,18 +57,18 @@ fn lr_state_hash(analysis: LRAnalysis*, items: LRItems*): usize {
     }
 }
 
-fn lr_state_equal(analysis: LRAnalysis*, a: LRItems*, b: LRItems*): bool {
+fn lr_state_equal(a: LRItems*, b: LRItems*): bool {
     var left: usize = 0;
     var right: usize = 0;
     loop {
         for(; left != a.values.length; left++) {
-            var kernel = lr_kernel(analysis, &a.values.data[left]);
+            var kernel = a.values.data[left].position != 0;
             if kernel {
                 break;
             }
         }
         for(; right != b.values.length; right++) {
-            var kernel = lr_kernel(analysis, &b.values.data[right]);
+            var kernel = b.values.data[right].position != 0;
             if kernel {
                 break;
             }
@@ -202,13 +207,13 @@ fn lr_states_rehash_result(value: LRStates*): WorkBudgetError {
 }
 
 // Takes ownership of items on every path, including an existing kernel match.
-fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, error: WorkBudgetError*): usize {
+fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, closed: bool, error: WorkBudgetError*): usize {
     defer lr_items_destroy(items);
     *error = lr_states_rehash_result(value);
     if *error != WorkBudgetError.None {
         return lr_none();
     }
-    var hash = lr_state_hash(value.analysis, items);
+    var hash = lr_state_hash(items);
     var bucket_count = value.buckets.length;
     if bucket_count == 0 {
         *error = WorkBudgetError.Invalid;
@@ -221,14 +226,20 @@ fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, err
             break;
         }
         var state = value.states.data[index];
-        var same = hash == state.hash;
+        var same = hash == state.hash && (origin == lr_none()) == (state.origin == lr_none());
         if same {
-            same = lr_state_equal(value.analysis, items, state.items);
+            same = lr_state_equal(items, state.items);
             if same {
                 return index;
             }
         }
         index = state.next;
+    }
+    // Only a new serial state needs closure. Worker results are already closed
+    // before their ordered join; never repeat that work or publish partial items.
+    if !closed && !lr_items_close(value.analysis, items, false) {
+        *error = lr_items_error(items);
+        return lr_none();
     }
     var state = alloc(LRState, 1);
     if state == null {
@@ -272,13 +283,12 @@ fn lr_states_begin_result(analysis: LRAnalysis*, error: WorkBudgetError*): LRSta
     }
     var seed: LRItem = default;
     var ok = lr_items_insert(items, &seed);
-    ok &&= lr_items_close(analysis, items, false);
     if !ok {
         *error = lr_items_error(items);
         lr_items_destroy(items);
         return null;
     }
-    var start = lr_states_intern_result(value, items, lr_none(), error);
+    var start = lr_states_intern_result(value, items, lr_none(), false, error);
     missing = start == lr_none();
     if missing {
         return null;
@@ -332,7 +342,7 @@ fn lr_state_transition_result(value: LRStates*, state: LRState*, symbol: usize):
     if missing {
         return WorkBudgetError.Memory;
     }
-    ok = lr_items_goto(analysis, state.items, &analysis.symbols[symbol], next, false);
+    ok = lr_items_shift(analysis, state.items, &analysis.symbols[symbol], next);
     if !ok {
         var error = lr_items_error(next);
         lr_items_destroy(next);
@@ -341,7 +351,7 @@ fn lr_state_transition_result(value: LRStates*, state: LRState*, symbol: usize):
     var edge: LRTransition;
     edge.symbol = symbol;
     var error = WorkBudgetError.None;
-    edge.state = lr_states_intern_result(value, next, symbol, &error);
+    edge.state = lr_states_intern_result(value, next, symbol, false, &error);
     missing = edge.state == lr_none();
     if missing {
         return error;

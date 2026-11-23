@@ -1,9 +1,12 @@
 import tower;
+import .library.work_budget_types;
+import .library.work_vector_types;
 import .library.bytes_types;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 import .compiler.interpreter_types;
 import .compiler.format_types;
+import .backend.codegen_types;
 
 // Borrowed views of the existing compiler services, with request-owned results.
 extern fn bytes_assign_text(out: ByteBuffer*, text: u8*, length: usize): bool;
@@ -58,13 +61,13 @@ extern fn bytecode_source_size(data: u8*): usize;
 
 extern fn bytecode_pointer_bytes(data: u8*): usize;
 
-extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, length: usize*): u8*;
+extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, output: work_vector(u8)*): WorkBudgetError;
 
 extern fn bytecode_matches(fast: void*, data: u8*): bool;
 
-extern fn bytecode_free(data: u8*): void;
 
 extern fn backend_open(target: u8*): void*;
+extern fn backend_open_codegen(target: u8*, codegen: BackendCodegen): void*;
 
 extern fn backend_close(backend: void*): void;
 
