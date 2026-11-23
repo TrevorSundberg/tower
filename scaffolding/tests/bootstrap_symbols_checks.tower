@@ -148,7 +148,7 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
     symbol_case(BootstrapUnit.Semantics, false,
-        " U entity_stage_open_result\n U entity_stage_publish_result\n U entity_view_open_result\n", null);
+        " U entity_stage_open_result\n U entity_stage_publish_result\n U entity_stage_hold_result\n U entity_view_open_result\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U entity_stage_open_result_extra\n", "entity_stage_open_result_extra");
     symbol_case(BootstrapUnit.Semantics, false, " U entity_stage_publish_resul\n", "entity_stage_publish_resul");
     symbol_case(BootstrapUnit.Semantics, false, " U entity_view_open_result_extra\n", "entity_view_open_result_extra");

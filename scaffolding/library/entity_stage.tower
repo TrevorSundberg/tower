@@ -12,8 +12,18 @@ struct EntityStage {
     nodes: vector(EntityStageNode);
     references: vector(Entity*);
     held: usize;
+    cancellations: vector(EntityStageCancellation);
     leases: vector(EntityStageLease);
     storage: EntityComponentPool;
+}
+
+// One complete payload's pending references. Context and borrowed fields stay
+// private and address-stable until hold/publication or discard, after join.
+struct EntityStageCancellation {
+    first: usize;
+    stop: usize;
+    cancel: function(void, void*);
+    context: void*;
 }
 
 struct EntityStageNode {
@@ -154,7 +164,7 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
         if added > maximum - components { return WorkBudgetError.Invalid; }
         components += added;
     }
-    if count == 0 && components == 0 { return WorkBudgetError.None; }
+    if count == 0 && components == 0 { return entity_stage_hold_result(stage); }
     if components > maximum - store.component_count { return WorkBudgetError.Invalid; }
     if components > maximum - count { return WorkBudgetError.Invalid; }
     var entries = components + count;
@@ -168,6 +178,7 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
     var counts: vector(EntityStageCount);
     vector_init(EntityStageCount, &counts);
     if !vector_reserve(EntityStageCount, &counts, capacity) { return WorkBudgetError.Memory; }
+    defer vector_dispose(&counts);
     counts.length = capacity;
     fill(counts.data, 0, capacity * sizeof(EntityStageCount));
     for(var i: usize = 0; i < count; ++i) {
@@ -208,7 +219,6 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
             node.instance_capacity = instances;
         }
     }
-    vector_dispose(EntityStageCount, &counts);
     if result != WorkBudgetError.None { return result; }
     for(var i: usize = 0; result == WorkBudgetError.None && i < stage.nodes.length; i++) {
         result = entity_table_prepare_result(stage.nodes.data[i].node, null, null);
@@ -221,7 +231,28 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
             result = entity_table_prepare_result(lease.node, null, null);
         }
     }
+    // Reserve type ownership together with queued payload ownership. A queued
+    // target may itself be a component type; both increments share its limit.
+    var reserved: usize = 0;
+    if result == WorkBudgetError.None {
+        while reserved < counts.length {
+            var entry = &counts.data[reserved];
+            if entry.entity != null {
+                if entry.instances > maximum - entry.entity.references {
+                    result = WorkBudgetError.Exhausted;
+                    break;
+                }
+                entry.entity.references += entry.instances;
+            }
+            reserved++;
+        }
+        if result == WorkBudgetError.None { result = entity_stage_hold_result(stage); }
+    }
     if result != WorkBudgetError.None {
+        for(var i: usize = 0; i < reserved; i++) {
+            var entry = &counts.data[i];
+            if entry.entity != null { entry.entity.references -= entry.instances; }
+        }
         foreach(var &entry in &stage.nodes) { entity_table_unprepare(entry.node); }
         foreach(var &lease in &stage.leases) { entity_table_unprepare(lease.node); }
     }
@@ -235,7 +266,7 @@ fn entity_stage_components(node: Entity*, first: usize): void {
         component.type_index = type.instance_count;
         type.instances[type.instance_count] = component;
         type.instance_count++;
-        entity_retain(type);
+        // Preparation already reserved this component's type ownership.
         node.store.component_count++;
     }
 }
@@ -248,7 +279,6 @@ export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
     if stage == null || stage.anchor == null { return WorkBudgetError.Invalid; }
     var result = entity_stage_prepare_result(stage);
     if result != WorkBudgetError.None { return result; }
-    entity_stage_hold(stage);
     var store = stage.anchor.store;
     for(var i: usize = 0; i < stage.nodes.length; ++i) {
         var node = stage.nodes.data[i].node;
@@ -276,6 +306,7 @@ export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
     }
     vector_dispose(EntityStageNode, &stage.nodes);
     vector_dispose(Entity*, &stage.references);
+    vector_dispose(&stage.cancellations);
     vector_dispose(EntityStageLease, &stage.leases);
     entity_component_pool_transfer(&stage.storage, &store.storage);
     entity_release(stage.anchor);
@@ -287,7 +318,29 @@ export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
 // Call only after the owning worker joins. Finalizers run on the coordinator;
 // discarded payloads must not have escaped into an existing published payload.
 export fn entity_stage_discard(stage: EntityStage*): void {
-    entity_stage_hold(stage);
+    if entity_stage_discard_result(stage) != WorkBudgetError.None { trap("Cannot discard unowned stage references", 0); }
+}
+
+// Cancellable payloads need no retain to discard. Legacy queue entries have no
+// way to clear borrowed fields: acquire them first, or leave the entire stage
+// intact with an exact error. Never invoke a finalizer on unowned references.
+export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
+    if stage == null || stage.anchor == null || stage.held > stage.references.length { return WorkBudgetError.Invalid; }
+    if stage.held != stage.references.length {
+        var covered = stage.held;
+        foreach(var &entry in &stage.cancellations) {
+            if entry.stop <= stage.held { continue; }
+            if entry.first != covered { break; }
+            covered = entry.stop;
+        }
+        if covered != stage.references.length {
+            var error = entity_stage_hold_result(stage);
+            if error != WorkBudgetError.None { return error; }
+        }
+        foreach(var &entry in &stage.cancellations) {
+            if entry.first >= stage.held { entry.cancel(entry.context); }
+        }
+    }
     for(var i: usize = 0; i < stage.nodes.length; ++i) {
         var node = stage.nodes.data[i].node;
         for(var j: usize = 0; j < node.component_count; ++j) {
@@ -319,11 +372,13 @@ export fn entity_stage_discard(stage: EntityStage*): void {
     }
     vector_dispose(EntityStageNode, &stage.nodes);
     vector_dispose(Entity*, &stage.references);
+    vector_dispose(&stage.cancellations);
     vector_dispose(EntityStageLease, &stage.leases);
     entity_component_pool_detach(&stage.storage);
     if stage.anchor != null { entity_release(stage.anchor); }
     stage.anchor = null;
     free(stage);
+    return WorkBudgetError.None;
 }
 
 // Names are owned by the stage until publication transfers them into containment.
@@ -399,6 +454,11 @@ export fn entity_stage_references(stage: EntityStage*, nodes: Entity**, count: u
 }
 
 export fn entity_stage_references_result(stage: EntityStage*, nodes: Entity**, count: usize): WorkBudgetError {
+    return entity_stage_references_record_result(stage, nodes, count, null, null);
+}
+
+fn entity_stage_references_record_result(stage: EntityStage*, nodes: Entity**, count: usize,
+    cancel: function(void, void*), context: void*): WorkBudgetError {
     if stage == null || stage.anchor == null || (count != 0 && nodes == null)
         || count > ~convert(usize, 0) - stage.references.length { return WorkBudgetError.Invalid; }
     var needed = stage.references.length + count;
@@ -418,24 +478,65 @@ export fn entity_stage_references_result(stage: EntityStage*, nodes: Entity**, c
             borrowed = true;
         }
     }
+    var nonempty = false;
     for(var i: usize = 0; i < count; i++) {
         var node = nodes[i];
         if node != null && (node.store != stage.anchor.store || node.stage != null) { return WorkBudgetError.Invalid; }
+        nonempty ||= node != null;
+    }
+    if !nonempty { return WorkBudgetError.None; }
+    if cancel != null {
+        if stage.cancellations.length >= ~convert(usize, 0) / sizeof(EntityStageCancellation) { return WorkBudgetError.Invalid; }
+        if !vector_reserve(&stage.cancellations, stage.cancellations.length + 1) { return WorkBudgetError.Memory; }
     }
     if !vector_reserve(&stage.references, needed) { return WorkBudgetError.Memory; }
     if borrowed { nodes = &stage.references.data[offset]; }
+    var first = stage.references.length;
     for(var i: usize = 0; i < count; i++) {
         if nodes[i] != null { stage.references.data[stage.references.length++] = nodes[i]; }
+    }
+    if cancel != null {
+        stage.cancellations.data[stage.cancellations.length++] = {
+            first: first, stop: stage.references.length, cancel: cancel, context: context };
     }
     return WorkBudgetError.None;
 }
 
 // Coordinator only, after the worker joins and before releasing the last input
 // pin. This transfers queued ownership into references without publishing rows.
-// Publication retries do not retain twice; discard retains before finalization.
+// Publication retries do not retain twice. The compatibility wrapper fails
+// fast on error; recoverable callers use the checked form while inputs live.
 export fn entity_stage_hold(stage: EntityStage*): void {
-    while stage.held < stage.references.length {
-        entity_retain(stage.references.data[stage.held]);
-        stage.held++;
+    if entity_stage_hold_result(stage) != WorkBudgetError.None { trap("Cannot hold stage references", 0); }
+}
+
+export fn entity_stage_hold_result(stage: EntityStage*): WorkBudgetError {
+    if stage == null || stage.anchor == null || stage.held > stage.references.length { return WorkBudgetError.Invalid; }
+    var stop = stage.held;
+    var error = WorkBudgetError.None;
+    while stop < stage.references.length {
+        var node = stage.references.data[stop];
+        if node.stage != null { error = WorkBudgetError.Busy; break; }
+        if node.references == ~convert(usize, 0) { error = WorkBudgetError.Exhausted; break; }
+        node.references++;
+        stop++;
     }
+    if error != WorkBudgetError.None {
+        // No callbacks or ownership publication occurred. Restore raw counts,
+        // including zero-count entities still protected by the input view.
+        while stop > stage.held { stage.references.data[--stop].references--; }
+        return error;
+    }
+    stage.held = stop;
+    return WorkBudgetError.None;
+}
+
+// Admission is private and atomic: reserve cancellation metadata before queue
+// growth, then install borrowed fields only after success. Cancel clears those
+// fields without releasing their targets; ordinary finalizers still free owned
+// buffers. A callback must not mutate this stage/queue or other payloads.
+export fn entity_stage_references_cancellable_result(stage: EntityStage*, nodes: Entity**, count: usize,
+    cancel: function(void, void*), context: void*): WorkBudgetError {
+    if cancel == null { return WorkBudgetError.Invalid; }
+    return entity_stage_references_record_result(stage, nodes, count, cancel, context);
 }
