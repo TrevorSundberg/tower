@@ -81265,3 +81265,20 @@ No production change or skipped check was hidden. Earlier baseline comparison
 retains its measured source identity. This receipt is documentation only; no new
 runtime measurement applies. All owned jobs drained; normal main push follows,
 with ROOT deployment and the explicitly listed remaining chains still pending.
+Lifecycle merged receipt: post-commit pull fetched3912f25b and refused divergent
+fast-forward-only history. Normal complete-history merge7f6ca8806fbf691ad9c516181aad5a1a6a1cb4b6
+preserved both sides without conflicts. All A1 production/fixture files match
+74afc0d0. Incoming layout/body/module changes required a6-action dependency rebuild.
+The linked focused fixture then passed10 trials again, query-smoke and
+control-smoke passed, and comptime_aggregates at jobs1/4 retained both expected0
+execution and byte-identical baseline Foundation. Original paired timings remain
+specific to afca69b1+the A1 patch; they are not relabeled as measurements of the
+new upstream changes. Merged compiler09bc55e17dd54067c24ea7fdd6a8aa7e0e6f6c97f39421eb5d3c429f47f242c5,
+fixture31a6fd60f3b2018996da335e24ce4665c86acbd9a461a92b814a7da7535f3a6d,
+semantic providerd131c125295b18764cdd32a5a6dfd1c5851ebbb88da5c32c6410fbba8452a211.
+Exact merged commands/logs: cache/a1_lifecycle_merged_build.log and
+cache/a1_lifecycle_merged_checks.sh with separate fixture/query/control/output logs.
+All owned children drained. Existing graph registration request/depend/access/seal
+assertions also remain a fallible-admission follow-up; this batch checked partial
+take, transport, observation and completion paths rather than claiming every
+allocation boundary converted. Main publication only; deployment stays with ROOT.
