@@ -60172,3 +60172,134 @@ The separate layout stream's submit false is pre-admission/invariant-only under
 current pool transport and does not drain previous jobs; actual OS semaphore
 post failure remains an irrecoverable foreign boundary. This differs from
 finite batch claim allocation, which is a recoverable typed Memory failure.
+
+### B1 complete-history join and grammar storage continuation
+
+B1 committed8ee486cd, exported complete history8b36934c, then merged root1fec into
+d1a23181 (tree4f91d250). Read-only committed-union export7cdfa6ee has published60741
+as its sole prerequisite. Resolved10 conflicted paths by preserving the coherent
+new interpreter storage/error types and consumers, newer backend physical target
+oracle and common test registrations, plus B1's shared growth helper. Root-facing
+resolved implementation files match1fec exactly. No todo change or publication.
+The54-step public-pin native rebuild passes53.79wall/154.96user/22.48system/
+847300KiB. Query-smoke passes0.09s with large/budgeted input storage at both widths;
+LR, serial parser/allocations, real frontend units18.81wall/27.31user/2.21system/
+735464KiB, storage/clone and four buffer/arena normal/shared CTests pass. A Windows
+shell quoting error in the first combined wrapper ran no checks; the corrected
+direct CTest invocation passes, preserving the error. These new normal receipts
+do not relabel older ASan/TSan evidence as validating the changed interpreter ABI.
+
+Root3915 source comparison: production/build differences from d1a are comments
+in worker_policy, entity_types and work_budget_types; build rules identical.
+README and three unregistered fixtures/profiles are additional inputs, not covered
+by B1's preceding runs. Both bundle hashes and separate identities are retained.
+
+Next measured baseline uses the existing production frontend_units_profile target,
+not a new runner. Frozen d1a executableed857ed74a2ffcbc67ded5f02a5f0ce54141cffa2161a8cf6c9902a2db59c281
+and complete identical resources are under /cache/parser_memory_profile/grammar.
+Initial functional pilot3units/4lanes/0extra bodies reports three overlapping
+outer workers, peak lanes4, exact answer42 and canonical hash1173729914654460811.
+Retained5389158, charged peak164357118, ledger20971520 bytes; RSS461256KiB.
+The entry uses the legacy byte ceiling with a synchronized physical ledger;
+it is not a demonstrated finite compiler-memory limit. Pilot timing is not a
+quiet comparison and does not establish a performance claim. Matched before/after
+small/large caller measurements remain required for the following draft.
+
+New parser budget fixture first reproduces grammar storage escaping the ledger:
+permit only sizeof(ParserHostTable) plus the real allocator header, then grammar
+creation unexpectedly succeeds. Baseline build2steps passes; focused parser exits1
+at the exact capacity assertion. The fixture also tests one byte less than observed
+retained open-grammar storage, partial cleanup and retry after releasing capacity.
+
+The draft grammar migration uses the root's explicit world budget, WorkBuffer
+object/sort storage and accounted index columns. First version with inline name
+records/per-string buffers compiled as a leaf but exceeded public65536 expansion
+nodes in the aggregate,12.15s/554908KiB. Rule/metadata columns are instead exactly
+sized from source rule count plus augmented start; no spare vector capacity or
+unnecessary specialization. Immutable names/records/captures share the validated
+arena and retire together; minimum chunk derives from actual descriptor/name
+sizes and the existing initial-element policy, without a hardcoded byte size.
+Snapshots never escape their grammar lifetime. No new arena implementation.
+
+The fixed-column and arena aggregate retries fail earlier at frontend_table's old
+grammar.rules.data read, not another template-cap failure; my initial status
+interpretation was corrected after reading the complete error. Caller audit finds
+frontend_table rule/name/anchor reads and the owned lr_tree generated-rule read.
+Existing public getters preserve the former's ordering; B2 is coordinating its
+tiny callsite change, and lr_tree now uses lr_grammar_generated. Other grammar
+consumers use the existing API. No private compiler, raised cap or new manifest
+split. The draft has not yet passed joined execution or performance checks.
+
+Follow-on: root/B2 approved the getter conversion; preserve order and first
+nonnull anchor. A2 exported arena boundary819a9542/API2f16b385 now has one provider
+in entities, typed declarations in grammar. llvm-nm confirms exactly six provider
+symbols and none duplicated in parser. Smallest consumer15.05wall/12.03user/
+2.36system/664196KiB and original aggregate/dependents7steps/24.38wall/25.23user/
+4.75system/727224KiB pass. No cap increase or new unit. Bounded sequence/capture
+regressions, real LR/units, serial allocation and storage/clone checks pass.
+
+Matched grammar caller profile completes16 successful processes: frozen before
+ed857ed74a2ffcbc67ded5f02a5f0ce54141cffa2161a8cf6c9902a2db59c281 and after
+46d30e30f44cd8edbcdff4245baabd42eb4711ad346cf90f1abf9f2488f74ad2, identical
+resources, three units,0/4096 bodies in the last unit,1/4 requested lanes, two
+alternating pairs. Small canonical hash1173729914654460811 with48240entities/
+55014components; large4242261087906147675 with646269/792327. All match, including
+independent42 execution. Every four-lane run observes three distinct overlapping
+outer threads and peak lanes4. Complete wall/CPU/RSS ranges are in the B1 audit's
+grammar table; raw JSON/time files are in parser_memory_profile/grammar/results.
+Same Ryzen/WSL2/Ubuntu24.04/Clang19 environment, CPUs0–11/24GiB, Release native
+production transport; measured batch setup/snapshots/compilation precede oracles.
+
+New tracked retention is exactly282912 bytes each case; peak charge rises4044048
+bytes at one lane and about11.3–11.6MB at four. These are newly accounted grammar
+owners, not equivalent RSS increases. Ledger remains5242880/20971520 bytes.
+The two pairs suggest1–2% time cost; physical RSS generally falls1–6MiB, with
+overlapping small/four-worker ranges. Gated physical-owner/growth grants are new
+work; common-lifetime arena snapshots remove old per-name/text allocation churn.
+No excessive retained-memory regression is observed, nor a broad improvement
+claimed from this sample. Between-unit overlap remains profitable on this input;
+no new within-unit/all-host-core claim. Actual quiet interval01:44:31.0101531Z–
+01:45:20.8570022Z on2026-11-23 starts61ms after the fresh grant; all children drain
+before automatic release. No build/input mutation during timing. Current ASan
+refresh includes the joined interpreter and new grammar/provider; execution,
+TSan and final browser/publication remain pending, not inherited old passes.
+
+Current grammar instrumentation completes successfully. ASan/LSan74-step build
+100.87wall/248.16user/33.25system/847688KiB; parser0.11s/88960KiB,
+allocations8.34s/771920KiB, query0.57s/223548KiB, LR19.79s/853304KiB and
+three-worker frontend9.62s/1107132KiB all pass, no leak/error reports. That
+frontend uses /work/scaffolding rather than the frozen resource-root path; its
+29 fewer path bytes explain retained5672041 versus5672070. Outputs/counts match.
+
+TSan74-step build62.86wall/163.23user/24.63system/842676KiB passes. Parser,
+query, production LR and two concurrent outer-frontend stress runs all exit0
+with halt_on_error=1, no report. Outer intervals24.869228/24.929080s,
+CPU79.492666/79.862859s, RSS1436828/1426976KiB; both observe three distinct
+overlapping outer threads/peak4 lanes, canonical1173729914654460811,
+48240entities/55014components and5672070 retained bytes. Container-inclusive
+elapsed0.469507/1.352595/47.368425s for parser/query/LR and25.463686/25.532267s
+for outer runs is not isolated compiler timing. Same image06e0a5e3, CPUs0–11,
+24GiB, no network, documented sanitizer-only seccomp=unconfined. All children
+drained. Actual Tower LLVM IR is instrumented; unsupported arithmetic-UB/browser
+sanitizers and universal race freedom remain explicit gaps. Next is targeted
+portable32-bit frontend validation using the existing WASI cache/public pin;
+no duplicate backend vendor build or final publication claim.
+
+Portable frontend follow-up: the public bootstrap/WASI SDK34 build passes all28
+steps (44.65wall/88.01user/13.99system seconds,920828KiB peak RSS). Current
+build/browser-wasi/tower.wasm is1593977 bytes, SHA256
+9ffa385cce88915ef844081b0bbfab60d4fd6ff7dfc55fd5b45f4c352e914893.
+Full existing Tower IDE fixtures pass; a confirmation invocation has captured
+exit0 in grammar_memory_wasi_ide_confirm.log. Existing browser ABI observation
+transport also exits0: at both target pointer widths4/8, comptime_capture
+completes with empty output; inference_alias_invalid rejects at146 with Cannot
+infer type argument 'T'; decltype_aggregate_operator rejects at95 with Binary
+operators require scalar or pointer operands; aggregate_inferred_copy rejects
+at103 with Expected Other, got Item. Raw diagnostics remain in
+build/ecs_b1/logs/grammar_memory_wasi_observe.log. This is portable32-bit-host
+frontend/IDE coverage of this grammar/provider slice and joined1fec ABI, not
+new LLVM backend, threaded-browser, public-clone-v2 or release acceptance.
+The existing LLVM Wasm asset was deliberately not used as current evidence.
+All owned children are drained; next is the source checkpoint and coordinated
+root6b8355 clone/caller union. Remaining LR analysis/state/automata/request
+storage and shared world/store/constructor accounting stay explicitly open.

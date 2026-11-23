@@ -40,18 +40,18 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
     if lr_grammar_pending(grammar) != lr_none() {
         return 3;
     }
-    var analysis = lr_analysis_create(grammar.rules.data, grammar.rules.length,
-    grammar.symbols.data, grammar.symbols.length, grammar.names.length);
+    var analysis = lr_analysis_create(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar));
     if analysis == null {
         return 1;
     }
-    for(var index: usize = 0; index != grammar.names.length; index++) {
-        lr_analysis_order(analysis, index, grammar.names.data[index].order);
+    for(var index: usize = 0; index != lr_grammar_name_count(grammar); index++) {
+        lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
     }
     var states: LRStates* = null;
     var anchor: void* = null;
-    for(var i: usize = 0; i < grammar.rule_metadata.length && anchor == null; ++i) {
-        anchor = grammar.rule_metadata.data[i].node;
+    for(var i: usize = 0; i < lr_grammar_rule_count(grammar) && anchor == null; ++i) {
+        anchor = lr_grammar_rule_node(grammar, i);
     }
     var ok = lr_analysis_compute_parallel(analysis, anchor);
     if ok {
