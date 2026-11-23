@@ -1415,3 +1415,27 @@ production native/LR composition, report allocator/transport explicitly and
 establish actual >1 admission/overlap for an eligible equal-unit control before
 interpreting multiworker timings. Source6388747 API changes are not yet locally
 built; this inspection is exact146 binary attribution, not new runtime credit.
+
+#### Production frontend/import profile entrypoints
+
+B2 delivered current native recipe7749a2a378e3b0fc98e62c9a00bc3be6d19ad9ceba8178ebf2198f7af4f02725
+and README60801b9dda1af3a45bc54726a976815536c684386e50ef1942523b5c4b133a96.
+It reuses LR/backend production sources/libraries, replaces lr-work-main and
+exports work_thread_entry/backend_register_targets/backend_thread_entry; omits
+test-only named_worker_entry and serial/instrumented allocator overrides.
+Owner pilot actualouterpeak3/reserved4 confirms transport, not controlled timing.
+Both source hashes match earlier full review rows: frontend2e4b, cache093.
+Imported exact module_cache_profile093 into local tests; it remains Linux x64
+opt-in, explicit world/module/cached grammar ownership and invalidation control,
+four first/warm samples,3/18layers and1/4requested budgets, not overlap evidence.
+
+D2 frontend delta447a277c produces sourcee925b20530fd00db3664f19428e4779c9a3d258a95d6bbb9880b223db7854981:
+reject non-native thread transport before timing; after checked JSON output
+require actualouterpeak>1 and reservedpeaklanes>1 for equal independent control
+(count>1,budget>1,bodies0). Failed observations remain printed with nonzero
+failure; skewed/serial runs still report their actual measurements. All timed
+operations, answer42 and canonical checks unchanged. This prevents accidental
+serial linkage being accepted as native-concurrency measurement, grounded in
+B2's observed16serial runs. Local predecessor compile and paired equivalent
+input profile remain pending. D1 owns opt-in CMake registration and received
+exact draft/source contracts; no duplicate link implementation added.

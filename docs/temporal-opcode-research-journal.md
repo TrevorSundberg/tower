@@ -49151,3 +49151,17 @@ from serial fixtures. New frontend profile composition must reuse production
 native/LR and establish real eligible control overlap. No runtime was executed
 for this source/link audit and no timing claim is added. Current638new sources
 remain unbuilt until shared slot.
+
+D2 now owns frontend/import measurement entrypoints per root. Verified B2's
+exact recipe7749a2a3/README60801b9d and unchanged sourcefrontend2e4b/cache093,
+read module_cache body again and imported093 unchanged. Recipe uses production
+LR/backend object/archive closure, three actual dynamic exports, no lr-work-main/
+named_worker_entry or serial/instrumented override. Owner pilot actualouterpeak3
+is link evidence only. Added D2 frontend guard447a277c: production transport
+required before timing; after reporting checked observations, equal-unit control
+must have actualouterpeak>1 and reservedpeaklanes>1 or fail nonzero. Timed body,
+source/reference/canonical checks unchanged; skewed cases do not imply overlap.
+Sourcee925b205, local compile/paired profile pending Deck slot. D1 has exact
+source and composition for opt-in native Linuxx64 registration, no heavy default
+CTest. This is a measured diagnostic fix for the accidental-serial acceptance
+gap, not a claimed compiler speedup or unrun test pass.
