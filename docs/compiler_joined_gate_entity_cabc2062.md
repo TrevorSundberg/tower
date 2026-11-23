@@ -238,7 +238,8 @@ physical Memory distinction, retry, ordered diagnostics, independent worlds,
 nested budgets, cancellation/drain and zero owners. Existing concurrent gate
 reserve/release/revision/generation/wake controls and nine strict native symbol
 closures retain their recorded evidence; they are not relabeled newly executed.
-B2's two older Entity fault-suite failures remain separate pending repairs.
+At the measured freeze, B2's two older Entity fault-suite failures remained
+separate pending repairs; the later publication update below records their closure.
 
 No new compiler/test failure or timed sample was discarded. Two read-only source
 lookups used a nonexistent path/Windows wildcard and were corrected; no work ran
@@ -256,3 +257,33 @@ All source/resource/binary hashes verify after execution. Owned work is drained;
 disk remains111GiB free. No todo, public pin or deployment changes. ROOT owns
 integrated generations and release; profitable full-core completion remains open.
 
+## Publication reconciliation
+
+Receipt commit `05daa172` preserves the measured cabc2062 freeze. The first
+required pull failed with `Could not resolve host: github.com`; DNS then resolved
+and the next normal pull fetched a18d584e. Its ff-only refusal was ordinary
+divergence. Complete published history merged at
+`a8b4a7efd8183eb22e43242ca558fccd581e7cf2`, with no conflicts.
+
+Incoming B2 [fault-accounting acceptance](entity_fault_accounting_6019450c.md)
+closes the two previously pending controls, and L1's independent
+[gate/storage review](entity_budget_gate_review_6019450c.md) is preserved.
+Their new tests were not substituted into the old measured receipt. LLVM importer
+and packaging changes also remain outside that freeze. Frontend, scheduler,
+budget, Entity implementation and selected profile inputs are unchanged.
+
+The linked backend provider changed, so one dependency refresh compiled that
+provider and relinked the profile:2 actions,7.68wall/5.45CPU/491280KiB.
+Separate merged executable SHA256
+`e8398c4a0389522b8ee42a6ddd0cae33ac9241a6a679ba61b4f13cd6e764249c`.
+Small1 and multi4 controls pass full source/canonical bytes,42/42 and zero-owner
+teardown:0.3838wall/0.3470CPU/165492KiB and2.4460/8.3054/1015780KiB,
+respectively. Exact retention remains18,321,471/579,913,475 bytes.
+These are merged output controls, not additions to the n2 timing claims or
+new LLVM reconstruction acceptance. Evidence is in the separate `merged`
+directory; original binary/resource manifests still verify unchanged.
+
+A final diff check caught an extra blank line at the new receipt's EOF after
+staging; the receipt was committed before that check result was acted upon.
+The extra line is removed in this follow-up. No compiler warning/error or runtime
+failure occurred. All owned work drained; normal main publication follows.
