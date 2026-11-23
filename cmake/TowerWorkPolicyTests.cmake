@@ -260,7 +260,7 @@ function(tower_lr_work_policy_test)
 
     # These entries own main and use the production compiler closure directly.
     # No instrumented allocator, serial override or test-only named callback.
-    foreach(unit IN ITEMS frontend_units module_cache)
+    foreach(unit IN ITEMS frontend_units module_cache frontend_storage)
       string(REPLACE "_" "-" name "${unit}")
       set(profile_target "tower-${name}-profile")
       tower_runtime_object(${profile_target}
