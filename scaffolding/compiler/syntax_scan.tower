@@ -219,7 +219,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         node = entity_create_related_result(input.context, &result.resource_error);
         ok = node != null;
         if ok {
-            var component = entity_component_add(node, input.match_kind);
+            var component = entity_component_add_result(node, input.match_kind, &result.resource_error);
             ok = component != null;
             if ok {
                 var data = bits(ParserMatchData*, entity_component_data(component));

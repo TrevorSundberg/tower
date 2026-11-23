@@ -133,10 +133,12 @@ tokens: void**, token_count: usize, kind: void*, error: WorkBudgetError*): Front
     return revision;
 }
 
-fn syntax_revision_error(error: vector(u8)*, message: u8*, name: u8*, length: usize): void {
+fn syntax_revision_error(error: vector(u8)*, message: u8*, name: u8*, length: usize, resource_error: WorkBudgetError*): void {
     error.length = 0;
     if !bytes_append(error, message, syntax_text_length(message)) || !bytes_append(error, name, length) {
         error.length = 0;
+        if error.data is not null { error.data[0] = 0; }
+        *resource_error = WorkBudgetError.Memory;
     }
 }
 
@@ -144,30 +146,40 @@ fn syntax_revision_error(error: vector(u8)*, message: u8*, name: u8*, length: us
 // Undefined |= and lexical collisions are checked against the local revision,
 // before adding the inherited Bedrock view, as at the original boundary.
 export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: void*, error: vector(u8)*): FrontendRevision* {
+    var resource_error = WorkBudgetError.None;
+    return syntax_revision_declare_result(base, entity, kind, error, &resource_error);
+}
+
+export fn syntax_revision_declare_result(base: FrontendRevision*, entity: void*, kind: void*, error: vector(u8)*, resource_error: WorkBudgetError*): FrontendRevision* {
+    *resource_error = WorkBudgetError.None;
+    if entity is null || kind is null { *resource_error = WorkBudgetError.Invalid; return null; }
     var node = syntax_revision_node(entity, kind);
+    if node is null { *resource_error = WorkBudgetError.Invalid; return null; }
     var previous = syntax_revision_rule(base, node.name.data, node.name.length);
     if node.kind != SyntaxRule {
         if previous is not null {
-            syntax_revision_error(error, "Name already defines a parse rule: ", node.name.data, node.name.length);
+            syntax_revision_error(error, "Name already defines a parse rule: ", node.name.data, node.name.length, resource_error);
             return null;
         }
         var count = base ?. tokens.length ?? 0;
         var tokens = base ?. tokens.data;
         if count >= SyntaxRevisionTokenLimit && syntax_revision_token(tokens, count, node.name.data, node.name.length, kind) == count {
-            syntax_revision_error(error, "Token rule limit is 64", null, 0);
+            syntax_revision_error(error, "Token rule limit is 64", null, 0, resource_error);
             return null;
         }
-        return syntax_revision_overlay(base, null, 0, &entity, 1, kind);
+        return syntax_revision_overlay_result(base, null, 0, &entity, 1, kind, resource_error);
     }
     if node.append && previous is null {
-        syntax_revision_error(error, "Cannot extend undefined rule: ", node.name.data, node.name.length);
+        syntax_revision_error(error, "Cannot extend undefined rule: ", node.name.data, node.name.length, resource_error);
         return null;
     }
     var alternatives: vector(void*);
     vector_init(&alternatives);
     var before = node.append ? previous.count: 0;
     var total = before + node.items.length;
-    var ok = total >= before && vector_reserve(&alternatives, total);
+    if total < before { *resource_error = WorkBudgetError.Invalid; return null; }
+    var ok = vector_reserve(&alternatives, total);
+    if !ok { *resource_error = WorkBudgetError.Memory; }
     var result: FrontendRevision* = null;
     if ok {
         for(var i: usize = 0; i < before; ++i) {
@@ -177,7 +189,7 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
             alternatives.data[before + i] = node.items.data[i];
         }
         var rule: SyntaxRuleView = { name: node.name.data, name_length: node.name.length, alternatives: alternatives.data, count: total };
-        result = syntax_revision_overlay(base, &rule, 1, null, 0, kind);
+        result = syntax_revision_overlay_result(base, &rule, 1, null, 0, kind, resource_error);
     }
     vector_dispose(&alternatives);
     return result;
