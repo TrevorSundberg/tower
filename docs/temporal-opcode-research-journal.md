@@ -62252,3 +62252,15 @@ grammar failure typing. No shared mutable budget last-error is authorized.
 All eight original CLI processes were verified live; no restart or new context.
 Final integrated instrumentation, scaling, bootstrap/browser and publication
 remain open, with existing runtime/build identity preserved.
+
+Coordinator provider follow-up: D1 found the same import-composition defect in
+work_instrumented as the previously corrected work_named fixture. Confirmed that
+TowerWorkPolicyTests.cmake explicitly compiles tests/work_instrumented and
+host/memory into separate objects for the existing serial target. Removed only
+the newly added fixture import of host.memory, retaining the authoritative CMake
+provider and its reuse by work_budget_allocation. No test body, oracle, allocator
+implementation or target changes. This is source-level evidence; the actual old
+duplicate-symbol failure and corrected target/runtime checks are delegated to
+D2 on the matching frozen integration source. They are not passed yet. Runtime
+algorithm/performance is unchanged by this import correction; preserve compile,
+link and normal execution costs without comparing a failed link to a speedup.
