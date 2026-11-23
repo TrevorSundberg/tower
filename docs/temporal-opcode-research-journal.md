@@ -77681,3 +77681,51 @@ passed. Compiler1/j6 changed command identities and correctly regenerated affect
 providers once. No fixture declaration failure or retry in this batch. Minimal
 matched serial/parallel profiles follow; current broad supported instrumentation,
 clean portable/generation/hosted release remain pending for ROOT's integrated gate.
+
+
+B1 measured batch evidence, 2026-11-23. Request47973 and pattern6871 both
+actually drained0, with no remaining Docker child. Frozen equivalent resources,
+installation path/cwd, public Linux9653/LLVM19.1.1, warm caches,3units, bodies0/4096,
+runtime workers1/4, CPU0-11/24GiB. Request n2 alternating before6fd/after5f;
+pattern n1 before5f/after110419. No runtime compiler inputs changed during runs.
+Pattern native85600:43-step dependency-aware build34.59s/155.62CPU/749960KiB,
+parser.04s/54092KiB, regex.04s/51968KiB, query.18s/73696KiB, all exit0.
+Compiler generation used1 worker/object with outerj6; prior generation used4/j3,
+while measured programs used the same explicit runtime budgets on both sides.
+
+| Request case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean RSS KiB before -> after |
+| --- | --- | --- | --- |
+|Small,1|3452.075 -> 3469.453|3250.501 -> 3263.006|197460 -> 197686|
+|Large,1|4812.176 -> 4728.252|4611.431 -> 4515.921|679714 -> 679500|
+|Small,4|1354.442 -> 1396.209|4056.142 -> 4152.727|461554 -> 461432|
+|Large,4|2515.416 -> 2526.391|5743.238 -> 5823.190|939484 -> 933678|
+
+Request unitwall deltas +0.50/-1.74/+3.08/+0.44%, with exact retained memory,
+canonical strings, entity/component counts and ledger storage in every pair.
+Small parallel overhead is observed, not called zero-cost; it does not establish
+a precise regression from n2. Editor beforewall11.02/11.14s, CPU16.96/17.19s,
+RSS988400/860088KiB; after11.07/11.09s,17.06/16.97s,904168/1026172KiB. Mean RSS
+924244->965170KiB lies in broad overlapping ranges also seen in prior receipts;
+no memory-neutrality claim or new per-helper followup matrix. Current request
+artifacts editor1801a36c26b94c7d72e5f6e4acfbb5a25dd9c240d309c37a034dc8b60306e8d7,
+units8cc54e3007e97febfe0a03e782b938cfeaf08293ced5af0ad3f7616c29fbedc3.
+
+| Pattern case | Wall ms before -> after | CPU ms before -> after | RSS KiB before -> after |
+| --- | --- | --- | --- |
+|Small,1|3431.475 -> 3441.336|3231.153 -> 3237.427|197660 -> 197824|
+|Large,1|4697.008 -> 4701.129|4497.709 -> 4492.313|679848 -> 679244|
+|Small,4|1365.775 -> 1378.327|4064.963 -> 4085.432|455948 -> 459696|
+|Large,4|2457.509 -> 2432.682|5702.910 -> 5642.285|932128 -> 933644|
+
+Pattern wall +0.29/+0.09/+0.92/-1.01%, n1 mixed; no speedup/neutrality claim.
+All exact canonical/entity/component/retention/ledger comparisons passed. Actual
+outer overlap peaks1/3, lane ceilings1/4; retained bytes15158986/15150626 small
+and289307675/289299315 large serial/parallel. Canonical1173729914654460811 and
+4242261087906147675 match as exact integers, not rounded floating JSON values.
+Pattern units5ad27934372d92a8b70beec3feb287a2bf9870571582153a209fb6e8f3bf5f8c;
+shared resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+Raw results stay in build/ecs_b1/cache/parser_memory_profile/request_6fd430af
+(results and pattern_results). GitHub DNS recovered at110419 commit pull, no
+source rebase occurred. No current sanitizer/portable pass is claimed: these are
+pending integrated milestones under ROOT's revised cadence. The full goal and
+publication/hosted gates remain open.
