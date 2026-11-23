@@ -95991,6 +95991,9 @@ two selected T8 continuation cases; D1's source-derived i1 issue and additional
 narrow-width/extraction coverage requests remain separate pending producer work,
 not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
 All owned processes drained, unchanged todo, normal push; ROOT owns final release.
+### 2026-11-23 L2: T9 stage/work current-artifact adoption blocked
+
+[Exact receipt and ROOT handoff](t9_stage_work_a06ec4b1.md): reused installed a06 pair/current a976 host; entity_stage_ownership exits1 at optimized32 recheck after full unoptimized32 execution0, compiler_work unstarted. Saved953744B request/native reproduction isolates LLVM pointer-order comparison emitted as forbidden Foundation u8*>u8*, distinct from D1's i1 fix and A2 memory. Actual Node341.425wall/554.391CPU/3765198848B observedpeak; native3.86s/702860KiB, resourceNone/finalowners0. No producer edits/build or broader run; all errors/rawlogs retained, owned jobs drained. CLI11124,107.6GiB startupdisk, unchangedtodo; publish bounded blocker then stop.
 ## A2 bounded current-artifact T9 work pair (2026-11-23)
 
 Receipt docs/work_pair_t9_a06_6649bbe1.md: exact a06 pair, host6649bbe1 plus
@@ -96078,3 +96081,4 @@ Incoming source-native census/Node transport and owner receipts are preserved,
 not relabeled as independently executed. No invalidated storage dependency or
 runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
+T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
