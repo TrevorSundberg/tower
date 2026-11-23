@@ -975,8 +975,12 @@ worker supplies COOP/COEP headers and performs one startup reload before the edi
 opens; it does not cache assets or compiler results. When isolation is unavailable,
 the portable frontend remains usable. Native/LLVM unit compilation and the shared
 frontend are separate execution paths; packaging this reactor does not make every
-compiler phase parallel. Switching compiler generations retires the old frontend's
-nested workers. Cancellation terminates its owning worker and nested workers.
+compiler phase parallel. The page creates shared frontend coordinators with
+`createCompilerWorker`; that owner also creates their bounded compiler-thread
+group. Direct MessagePorts carry the existing worker ABI. Cancellation or a
+coordinator failure terminates the entire group and rejects queued old replies.
+Node keeps its existing worker transport; explicit custom factories retain their
+own lifetime responsibility. The separate LLVM compiler-unit pool is unchanged.
 
 For a focused current-source shared-Wasm check without LLVM reactors or UI
 packaging, build `tower-browser` and `tower-work-tests` in that threads profile,
@@ -999,16 +1003,21 @@ initialization and the extra parallel-only fixtures prevent interpreting total
 trial times as a scaling benchmark. Hosted service-worker isolation, other
 browsers and the release matrix remain separate checks.
 
-The fixture's page owns coordinator termination. After Tower joins its jobs and
-closes its owner, the test observes every nested browser worker's `close` event,
+The fixture uses that same production ownership hook. After Tower joins its jobs
+and closes its owner, the test observes every compiler worker's `close` event,
 probes the coordinator's still-active message loop, then terminates it. Calling
 `terminate()` only requests shutdown; counting those calls is not retirement.
-The coordinator must keep its event loop available during child shutdown rather
-than also calling `self.close()`. Acceptance requires every observed worker's
+The page owns the native workers directly; it does not depend on nested-child
+shutdown inside the coordinator. Acceptance requires every observed worker's
 close notification **and** zero worker targets in the unchanged browser context;
 it does not filter out the coordinator or close the page to satisfy that check.
-The journal's D2 retirement receipt retains the original Chromium159 failures
-and the independent OS-thread observation supporting this transport correction.
+Append `ownership` to run the focused startup/cancellation/failure/generation
+controls, or `ownership:shared-trap,partial-startup-cancel,generation-retire` for
+that subset. Partial startup uses a real child port held before guest
+initialization, without sleeps. Failure adapters must install their message
+handler before an initial port can arrive; the injected guest trap and shared
+failure-state assertions remain mandatory. The journal retains the original
+Chromium159 failures and the separate native trace evidence.
 
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its

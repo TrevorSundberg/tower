@@ -2,14 +2,16 @@
 import {compilerThreads} from '../src/compiler-threads.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
 import {loadTower} from '../src/tower-host.mjs';
+import {compilerWorkerFactory} from '../src/compiler-worker-group.mjs';
 
 self.onmessage = async ({data}) => {
   if (data.probe) { self.postMessage({probe:data.probe}); return; }
   const {capacity, mode, files, builtins, fixtures} = data;
   const children = new Set(), phases = [], logs = [];
   let opened = 0, closed = 0, spawns = 0, owner, reply;
+  const createThread = await compilerWorkerFactory(capacity);
   const workerFactory = url => {
-    const worker = new Worker(url, {type:'module'});
+    const worker = createThread(url);
     children.add(worker); opened++;
     const terminate = worker.terminate.bind(worker), post = worker.postMessage.bind(worker);
     worker.terminate = () => {

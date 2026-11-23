@@ -9,8 +9,11 @@ import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {files, builtins} from '../tests/compiler-fixtures.mjs';
 
-const [compilerPath, workPath, reportPath] = process.argv.slice(2);
+const [compilerPath, workPath, reportPath, selection] = process.argv.slice(2);
 if (!compilerPath || !workPath || !reportPath) throw new Error('Usage: node playground/scripts/test-shared-compiler.mjs COMPILER.wasm WORK.wasm REPORT.json');
+const ownershipModes = ['startup-cancel', 'partial-startup-cancel', 'busy-cancel', 'coordinator-error', 'startup-error', 'shared-trap', 'generation-retire'];
+const selectedModes = selection === 'ownership' ? ownershipModes : selection?.startsWith('ownership:') ? selection.slice('ownership:'.length).split(',') : null;
+if (selection !== undefined && (!selectedModes || selectedModes.some(mode => !ownershipModes.includes(mode)))) throw new Error('Unknown shared compiler selection');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const compiler = await readFile(compilerPath), work = await readFile(workPath);
@@ -39,6 +42,13 @@ try {
   browser = await chromium.launch({headless:true});
   report.browser = browser.version();
   const context = await browser.newContext(), page = await context.newPage();
+  report.boundaries = [];
+  page.on('console', message => {
+    if (message.text().startsWith('compiler-boundary ')) {
+      report.boundaries.push(JSON.parse(message.text().slice('compiler-boundary '.length)));
+      console.log(message.text());
+    }
+  });
   await page.goto('http://127.0.0.1:'+server.address().port);
   report.host = await page.evaluate(() => ({userAgent:navigator.userAgent, hardwareConcurrency:navigator.hardwareConcurrency,
     isolated:crossOriginIsolated, sharedArrayBuffer:typeof SharedArrayBuffer !== 'undefined'}));
@@ -73,11 +83,89 @@ try {
   });
   const cdp = await context.newCDPSession(page);
   const {targetInfo} = await cdp.send('Target.getTargetInfo');
-  for (const trial of [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {
+  if (selectedModes) {
+    const capacity = 4;
+    for (const mode of selectedModes) {
+      workers = [];
+      const start = performance.now();
+      const receipt = await page.evaluate(async data => {
+        const {createCompilerWorker} = await import('/playground/src/compiler-worker-group.mjs');
+        return new Promise((resolve, reject) => {
+          const busy = data.mode === 'busy-cancel';
+          const worker = createCompilerWorker('/playground/tests/'+(busy ? 'shared_compiler_worker' : 'compiler_group_control')+'.mjs',
+            {type:'module', capacity:data.capacity});
+          let closed = false, ready = false;
+          const timer = setTimeout(() => finish({error:'Ownership control exceeded 180 seconds'}, true), 180000);
+          const finish = (result, failed = false) => {
+            if (closed) return;
+            closed = true; clearTimeout(timer); worker.terminate();
+            // Let already-queued messages cross their event boundary; the owner
+            // must suppress them. This does not wait for or substitute retirement.
+            setTimeout(() => failed ? reject(new Error(result.error)) : resolve({...result, ready}), 0);
+          };
+          worker.onerror = event => {
+            event.preventDefault();
+            const expected = data.mode === 'coordinator-error' ? /Injected compiler coordinator failure/
+              : data.mode === 'startup-error' ? /Compiler thread failed during startup/ : null;
+            finish({error:event.message}, !expected?.test(event.message));
+          };
+          worker.onmessage = ({data:message}) => {
+            if (closed) { reject(new Error('Retired compiler forwarded an old-generation message')); return; }
+            if (message.ready) {
+              ready = true;
+              if (data.mode === 'coordinator-error') worker.postMessage({crash:true});
+              else if (data.mode === 'generation-retire') worker.postMessage({retire:true});
+              else finish({error:'Unexpected completed startup'}, true);
+            } else if (data.mode === 'generation-retire' && message.retireBoundary) {
+              finish({cancelled:'generation'});
+            } else if (data.mode === 'partial-startup-cancel' && message.partialStarted) {
+              finish({cancelled:'partial-startup', threadReadyCount:message.threadReadyCount, heldCount:message.heldCount});
+            } else if (data.mode === 'startup-cancel' && message.progress === 'creating') {
+              finish({cancelled:'startup'});
+            } else if (busy && message.progress === 'lr_work_tests') {
+              finish({cancelled:'lr_work_tests'});
+            } else if (message.error) {
+              finish({error:message.error, sharedFailure:message.failed},
+                data.mode !== 'shared-trap' || !message.failed || !/Injected compiler worker failure/.test(message.error));
+            } else if (message.result) finish({error:'Cancellation did not interrupt the selected workload'}, true);
+          };
+          worker.postMessage(busy ? {...data, mode:'compiler'} : data);
+        });
+      }, {mode, capacity, files, builtins, fixtures});
+      receipt.mode = mode; receipt.results = []; receipt.wallMilliseconds = performance.now()-start;
+      report.trials.push(receipt);
+      retirementDeadline = performance.now()+30000;
+      let remaining;
+      do {
+        remaining = (await cdp.send('Target.getTargets')).targetInfos.filter(target =>
+          target.browserContextId === targetInfo.browserContextId && target.type === 'worker');
+        if (remaining.length) await new Promise(resolve => setTimeout(resolve, 25));
+      } while (remaining.length && performance.now()<retirementDeadline);
+      receipt.remainingWorkerTargets = remaining;
+      assert.equal(remaining.length, 0, 'Ownership control must close every worker: '+JSON.stringify(remaining));
+      await waitClosed(workers);
+      assert.ok(workers.every(worker => worker.closed));
+      assert.ok(workers.length >= 1 && workers.length <= capacity+1, 'No workers beyond the declared group');
+      if (!['startup-cancel', 'partial-startup-cancel', 'startup-error'].includes(mode)) assert.equal(workers.length, capacity+1);
+      if (mode === 'startup-cancel') assert.equal(receipt.ready, false);
+      if (mode === 'partial-startup-cancel') {
+        assert.ok(workers.length > 1, 'Cancellation must observe an actual child');
+        assert.ok(receipt.heldCount > 0 && receipt.threadReadyCount < capacity);
+        assert.equal(receipt.ready, false);
+      }
+      if (mode === 'generation-retire') assert.ok(report.boundaries.some(item => item.label === 'coordinator:old-reply-posted'),
+        'The retiring coordinator must actually post its old-generation reply');
+      receipt.browserWorkersClosed = workers.length;
+      receipt.browserWorkersAfterClose = remaining.length;
+      console.log('Ownership control passed: '+mode);
+    }
+  } else for (const trial of [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {
     workers = [];
     const start = performance.now();
-    const receipt = await page.evaluate(data => new Promise((resolve, reject) => {
-      const worker = new Worker('/playground/tests/shared_compiler_worker.mjs', {type:'module'});
+    const receipt = await page.evaluate(async data => {
+      const {createCompilerWorker} = await import('/playground/src/compiler-worker-group.mjs');
+      return new Promise((resolve, reject) => {
+      const worker = createCompilerWorker('/playground/tests/shared_compiler_worker.mjs', {type:'module', capacity:data.capacity});
       const timer = setTimeout(() => { worker.terminate(); reject(new Error('Selected browser compiler trial exceeded 180 seconds')); }, 180000);
       const finish = action => { clearTimeout(timer); worker.terminate(); action(); };
       let result, started = false;
@@ -103,7 +191,8 @@ try {
         }
       };
       worker.postMessage({probe:'start'});
-    }), {...trial, files, builtins, fixtures});
+      });
+    }, {...trial, files, builtins, fixtures});
     receipt.wallMilliseconds = performance.now()-start;
     // Retain canonical hashes in evidence, but compare the full text first.
     report.trials.push(receipt);
@@ -125,12 +214,14 @@ try {
     assert.ok(workers.every(worker => worker.closed), 'Every observed worker emitted close');
     receipt.browserWorkersClosed = workers.length;
   }
+  if (!selectedModes) {
   const serial = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 1);
   const parallel = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 4);
   assert.deepEqual(parallel.results, serial.results, 'Serial/parallel output and canonical Foundation');
   for (const trial of [serial, parallel]) for (const fixture of fixtures) {
     const [graph, fast] = trial.results.filter(result => result.name === fixture.name);
     assert.equal(graph.canonical, fast.canonical);
+  }
   }
   assert.deepEqual(errors, []);
   report.passed = true;
