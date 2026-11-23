@@ -65629,3 +65629,120 @@ ordinary reparse/reexecution returns the reference output. Final page checkpoint
 therefore retains explicit overhead/fragmentation limits alongside improved
 physical ownership and exact errors. ROOT requested typed stage/view/publication
 results next; proposal is in status, no implementation/caller adoption yet.
+
+### 2026-11-23 L1: shared-source join and node-cache proposal
+
+Reviewed ROOT75's semantic producer receipt/owner-order changes and A2 component
+page/result API with their tests and journal evidence; merged complete history
+without conflict at eafc5c9804f706fb5dbd5506e6e0b32bc62ac36f after current451 jobs
+drained. The branch still includes the corrected451 and38fee42 evidence. This
+union has no fresh runtime acceptance yet. A2 explicitly limits current page
+charging to stores actually bound to budgets; B2's world/store binding is pending.
+Do not infer ordinary world-page accounting from the new component API alone.
+
+Next owned proposal: IMState.node_cache uses an ordinary vector and fatal lazy
+reserve in im_cached_node. interpreter_invocation_init calls it before ix_init
+binds the root's world budget. Direct callers assume a valid FoundationNode, so
+returning null throughout the lookup path would spread unchecked failure. Move
+cache reservation into checked ix_init startup after explicit budget binding;
+validate the initial function using existing im_node before startup. Use shared
+work_vector ownership, one named power-of-two cache policy, actual cache extent
+for its mask/clear size, and existing storage_error/ix_fail propagation. Change
+both normal disposal and Fast graph-handoff retirement. Existing both-width
+startup pressure tests will add the cache as their first measured owner and
+check exact retention/cleanup, no effects and no retry after failure. No second
+IR, component mutation, worker-global error or new allocator is proposed.
+
+Audited all lookup/cache uses with rg: only interpreter, interpreter_abi,
+interpreter_types/storage and Fast handoff. Before changing production, prepare
+a coherent public-pin eaf baseline and complete immutable cache/resource snapshot
+for matched measurements. L2 owns the already authorized type-smoke then quiet
+profile host window; no L1 build/profile starts during it. Other graph maps,
+function index, Fast storage and opaque owners remain separate open allocations.
+Guest heap map migration must reserve bookkeeping before erasing free ranges or
+publishing heap growth, preserving recoverable allocation-null semantics. That
+larger transactional change is not silently folded into the cache proposal.
+
+Eaf baseline84729 drained0:16 coherent build steps64.21wall/96.99CPU/737112KiB,
+query/core/type-construction/editor all0, equal before/after/final inputs. Complete
+before cache l1_before_node_cache_eafc5c9 and immutable scaffolding resources are
+saved. Added only a new zero-allowance cache assertion to the existing startup
+fixture; production remained unchanged. Public leaf and2-step LR rebuild pass
+(8.23wall/6.35CPU/323452KiB). Before query prints the hidden-cache failure for
+small/large32-bit input cases. The existing LR utility_check aborts when that
+fixture returns nonzero, so actual query status is134, not the script's expected1;
+wrapper90352 drains1 and records the unexpected-status message. Preserve both
+statuses and raw stderr/time rather than rewriting them. The harness abort stops
+the remaining width/worker combinations; they were not exercised in this before
+run. Source manifests remain equal. This is a valid startup/ownership assertion,
+not an invalid-memory experiment. No child survives this failure.
+
+After that drain, implemented the seven-path cache change and existing-fixture
+extensions described above. The cache is a work_vector admitted after world
+binding, before frame/memory/effects; pre-init function validation uses im_node.
+Lookup derives its mask from actual cache length; initialization derives clear
+bytes from that length and IMEntry. Both normal and Fast handoff dispose its
+physical receipt. Startup records explicitly name which owners exist instead of
+inferring ownership from numeric trial positions, and derive allowances from a
+successful invocation's measured receipts. Denial checks also release pressure
+before trying another step, ensuring the terminal invocation cannot replay.
+Serial storage fixtures prewarm ledger metadata then cover Capacity and physical
+Memory failures, exact no-partial-owner rollback, retained first failure on
+low-level retry and complete cleanup. Runtime validation of this draft is still
+pending. L2 receives a quiet12-process editor attribution slot while L1 edits;
+no WSL build/probe overlaps its measurements.
+
+After70890 and55227 both drained1 before runtime: the reused standalone entry
+first lacked type_object_index_dispose, then importing actual type_objects also
+exported unrelated semantic traversal/intern helpers with unresolved providers.
+Both link failures are preserved. V3 uses the same public predecessor's optimized
+LLVM output, Clang19 -O1 function/data sections and ELF --gc-sections to retain
+reachable actual implementation, including type_object_index_dispose. It adds
+no provider stub or semantic allowance. This is native standalone storage coverage,
+not full TypeObject API linkage coverage. First public compiler/storage leaf time
+was overwritten by the test leaf's identical basename; control flow shows both
+commands succeeded, but that first timing is unavailable. Future leaf log names
+include the full unit path; unchanged commands were not needlessly repeated.
+
+V3 runtime44969 failed119 (named fixture result631), before coherent compilation.
+The fixture prewarmed a ledger receipt then released it. Shared work_budget_release
+sets active=false but deliberately preserves historical bytes; the Memory trial
+incorrectly compared live used_bytes with that inactive receipt's one byte.
+Corrected only this expectation to active ? bytes : 0. V4 recompiles the changed
+Tower fixture/provider entry and passes all three serial executions; Capacity/
+Memory rollback, first-error retention, exact successful physical grant and zero
+raw allocation/live-budget owners are now actually exercised. Native coherent
+rebuild/gates66013 remain running; production cache code stayed unchanged through
+these test transport/oracle corrections. ROOT reviewed b318's seven paths with no
+blocking finding, explicitly requiring the already planned measurements and
+instrumentation. Newer shared-stage/provider packages remain outside this freeze.
+
+Coherent66013 native14-step build passes53.39wall/76.67CPU/738040KiB; core-static
+and full core pass. Query then exits134 with three old semantic_resource_checks
+"Nested growth denial follows successful charged entry storage" assertions.
+The new hidden-cache, five startup-owner and no-replay assertions emit no failures.
+Observed32-bit guest retained pair bytes rise4992->13248 small and529024->537280 large:8256B,
+exactly two newly charged4128B node-cache owners. Peak values rise by the same
+amount in these fixture observations; this is charged storage, not process RSS.
+
+Root cause of the remaining query failure: the shared old growth fixture reserves
+15360 of16384 bytes before preparing invocations, leaving1024. A4128B cache now
+correctly fails at entry, so the old weak peak-only growth assertion catches that
+changed phase. L1 has not edited the shared fixture. Routed exact failure/status
+and narrow owner coordination to A1/D1. Root556 now contains D1's gated exact-phase
+fixture; reviewed its source delta after fetching verified complete bundleb47a3c0.
+It prepares both entry frames before imposing measured pressure for nested growth,
+but its separate startup observer still specifically expects the old memory error.
+D1 must adapt that observer to the explicit cache phase without broad message OR
+or weakening successful-entry/nested-failure checks. Request a test-only owner
+update atop current eaf production, preserving the matched before snapshot; newer
+ROOT556 production inputs are queued rather than mixed into this measurement.
+
+Current compilerfcc34a3ba458e3c0e539edb4f9b0b66512bc454fad1205dc5d8f5d360830686f,
+LR40411543f0e88cf29e9623539a72a977fc324876a2fa8dca3b536d26453aaac8,
+execution6ee5e57bd029e122af6e9ea1e8d31c7c204a079d4d2f4c782f32953643b0e0ea.
+Later type-construction/editor/backend gates did not run after this failure.
+Full7path v2 patch0344e37480657067da5eaa71ba8af6f5debb22502541ab809d1dd8ad5b2edfd8
+changes only the inactive-receipt test expectation relative to reviewed b318.
+All L1 children drained and primary released to L2's requested bounded current
+publication-before check; performance/current instrumentation remain pending.

@@ -402,10 +402,40 @@ cleared. Error-report allocation failure preserves failed/done and package false
 zero-output, without aborting to format the failure. Existing ordinary diagnostics
 and recoverable guest allocation-null behavior retain their contracts.
 
-Final own patchafb3cc69 plus exact A1V2b255 atop ROOT72/L2301 passes public leaves,
+Initial patchafb3cc69 plus exact A1V2b255 atop ROOT72/L2301 passed public leaves,
 coherent native rebuild and six native gates including full execution/canonical
 packages and actual backend overlap. New fixtures cover both pointer widths,
 empty/present diagnostics, no effects/replay, root cleanup and clean recompile.
 Actual diagnostic allocator denial and full frontend producer integration remain
 separate evidence gaps; hand-seeded shared receipts do not prove those producers.
-Current performance/instrumentation and final publication are still pending.
+Independent ROOT review subsequently rejected its NUL assumption for counted
+frontend diagnostics. The valid trailing-buffer regressions fail on that initial
+implementation and pass on corrected4511ed9/fac27420. Corrected32 CLI samples,
+32 unchanged-binary frontend samples and five address/leak plus five thread gates
+now pass; costs and coverage limits remain in the headline and journal. Final
+publication and integrated producer acceptance remain open.
+
+### Node-cache ownership after the shared receipt/page join
+
+Reviewed ROOT75 joins at eafc5c9. Its coherent public-pin native baseline passes
+query/core/type-construction/editor; this is not full source-union acceptance.
+An added zero-allowance startup assertion reproduces the hidden ordinary-vector
+cache allocation before budget binding. The harness reports both small/large
+32-bit failures then aborts134; later width/worker cases do not run on that failed
+before candidate. Raw statuses and the wrapper's incorrect expected1 remain.
+
+The current seven-path draft moves node_cache to shared work_vector admission in
+ix_init, validates the initial function through plain im_node, and retires the
+receipt in normal/Fast disposal. Lookup masks and clear sizes derive from actual
+cache extent; the fixed power-of-two policy has one named declaration. Startup
+fixtures derive five admission allowances from observed successful owners and
+name retained-owner expectations. They check exact grants, no effects and no
+retry after pressure is released. The existing serial storage entry separately
+checks capacity and physical allocation failure; it is not invoked by ordinary
+execution core and must run explicitly. It now passes three serial runs; coherent
+native core-static/core also pass. Query catches the shared old1KiB growth
+allowance denying the newly charged cache at startup. D1's exact-phase fixture
+update, remaining native gates, profiles and instrumentation are pending. Graph
+maps, function indexes, Fast arrays and diagnostic/
+opaque owners remain open; type indexes and counted receipt consumers are
+implemented with their source-specific evidence above.
