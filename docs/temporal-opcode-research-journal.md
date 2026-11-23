@@ -82628,3 +82628,12 @@ and canonical reparse prints0. Final compiler SHA256
 Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
+
+Second push advanceb9f2c443 added A1 staging frontiers. Mergefecd8ef2 preserves
+both journals/README additions. Eight-action dependency rebuild and the final
+small16/8, single4096/12 known-result/canonical/object checks pass, retaining the
+same frozen hashes. Admission/cancellation and exact-object backend overlap also
+pass. Logs b2_scaling_frontier_merge_{build,small,single,admission,overlap}.log.
+The profile remains byte-identical to9dd90fc1; no broadened matrix or relabeled
+scaling evidence. All owned jobs drained. Retry normal main push within the
+user's bounded remote-advance policy; final receipt stays in B2/status.md.
