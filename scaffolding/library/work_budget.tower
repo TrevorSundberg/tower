@@ -19,6 +19,7 @@ fn work_budget_init(budget: WorkBudget*, lanes: usize, bytes: usize, revision: u
     return true;
 }
 
+// Serial diagnostics only; shared users inspect their own result or snapshot.
 fn work_budget_ok(budget: WorkBudget*): bool {
     return budget != null && budget.initialized && budget.error == WorkBudgetError.None;
 }
@@ -53,6 +54,8 @@ fn work_budget_snapshot(budget: WorkBudget*, output: WorkBudgetSnapshot*): bool 
     return true;
 }
 
+// Owner-only teardown after every borrower has drained, including users that
+// currently hold no reservation. The counter alone does not prove quiescence.
 fn work_budget_dispose(budget: WorkBudget*): bool {
     if budget == null { return false; }
     if budget.live != 0 {
