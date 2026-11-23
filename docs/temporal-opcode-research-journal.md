@@ -95182,3 +95182,9 @@ D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
 remain unchanged after merge; existing evidence is reused without another run.
+
+### B2: close both complete Entity fault modes on6019450c
+
+Reproduced both historical failures on coherent currentmain (exit134). First component failure is published small allocationboundary3: exactMemory, bytes20908→21044/live7→8, because its still-owned next-type instance index retains136physicalbytes. First stage failure is uninjected SUCCESS: bytes36887→32664/live17→15 after destination indexes/page transfers and stage cleanup. Fixed-total fixture assumptions conflict with the existing capacity-retention/publication contract; no production leak/rollback change needed.
+
+Added test-only independent physical owner/receipt census, exact retained-index delta, typed publication error, unchanged semantic/index/payload state, explicit finalizer counts and zero lanes. Both ORIGINAL COMPLETE modes PASS every dynamic allocation boundary (component6/6/2/2, lease1, publish5), exactMemory/retry and zero drain. Inline, layout, production component-budget and stage-concurrent controls PASS;57792finalizers retained. Costs/identities/failed diagnostic setup attempts preserved in [entity_fault_accounting_6019450c.md](entity_fault_accounting_6019450c.md), B2/entity_faults_6019450c and /cache/entity_faults_6019450c. Public768/LLVM19, CPU12-23/quota12/24GiB. Fixture-only: no runtime profile rerun or change to Entity/B1gate/other-owner production. Historical failure receipts stayFAILED; current controls close them without exclusions or tolerance. Final integrated sanitizer/platform/generation remainsROOT-owned.

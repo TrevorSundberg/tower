@@ -5,19 +5,24 @@ import .library.entity_stage;
 import .library.work_budget;
 import .library.work_budget_types;
 import .host.memory;
+import entity_fault_accounting;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
+extern fn printf(format: u8*, value: usize): i32;
 var StageFaultBudgetBytes: usize = 1048576;
 var StageFaultLifecycle: usize = 1;
 struct StageFaultPayload { target: Entity*; value: usize; }
+struct StageFaultState { finalized: usize; }
 fn stage_fault_check(ok: bool): void {
     if !ok { trap("Typed stage/view allocation failure regression", 0); }
 }
 export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
     stage_fault_check(lifecycle == StageFaultLifecycle);
+    bits(StageFaultState*, entity_context(component.owner)).finalized++;
     var payload = bits(StageFaultPayload*, data);
     if payload.target != null { entity_release(payload.target); }
 }
@@ -48,6 +53,7 @@ fn stage_fault_open(): void {
 }
 
 fn stage_fault_lease(failure: usize, allocations: usize*): bool {
+    printf("lease trial failure=%zu\n", failure); fflush(null);
     var baseline = tower_test_buffer_count();
     var store = entity_store_create();
     var root = entity_create(store);
@@ -92,11 +98,14 @@ fn stage_fault_payload(stage: EntityStage*, node: Entity*, type: Entity*, target
 }
 
 fn stage_fault_publish(failure: usize, allocations: usize*): bool {
+    printf("publish trial failure=%zu\n", failure); fflush(null);
     var baseline = tower_test_buffer_count();
     var budget: WorkBudget = default;
     stage_fault_check(work_budget_init(&budget, 1, StageFaultBudgetBytes, 1));
     var store: EntityStore* = null;
     stage_fault_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var state: StageFaultState = default;
+    stage_fault_check(entity_store_set_context(store, bits(void*, &state)));
     var root = entity_create(store);
     var existing = entity_create(store);
     var first_type = entity_create(store);
@@ -118,9 +127,11 @@ fn stage_fault_publish(failure: usize, allocations: usize*): bool {
     stage_fault_check(fresh != null);
     var fresh_component = stage_fault_payload(stage, fresh, type, target);
     var leased_component = stage_fault_payload(stage, existing, type, target);
+    var expected_finalizers = stage.nodes.length + stage.leases.length;
     var address = leased_component.data;
-    var bytes = budget.used_bytes;
-    var receipts = budget.live;
+    var roots: Entity*[4]; roots[0] = root; roots[1] = first_type; roots[2] = type; roots[3] = target;
+    var root_count = sizeof(decltype(roots)) / sizeof(Entity*);
+    entity_fault_census(store, &roots[0], root_count, stage);
     var entities = store.entity_count;
     var components = store.component_count;
     var identity = store.next_id;
@@ -135,18 +146,32 @@ fn stage_fault_publish(failure: usize, allocations: usize*): bool {
             && target.references == 1 && type.instance_count == 0 && store.entity_count == entities
             && store.component_count == components && store.next_id == identity && fresh.id == 0
             && existing.table == table && existing.pending_table == null && fresh.pending_table == null
-            && existing.stage == bits(void*, stage) && leased_component.data == address
-            && budget.used_bytes == bytes && budget.live == receipts);
+            && existing.stage == bits(void*, stage) && fresh.stage == bits(void*, stage)
+            && fresh.components[0] == fresh_component && existing.components[0] == stable
+            && leased_component.data == address && *bits(usize*, stable.data) == 9876
+            && bits(StageFaultPayload*, address).value == 4567 && state.finalized == 0);
+        // Preparation retains checked index capacity but publishes no members,
+        // references or table reservations. Account every surviving physical
+        // owner instead of assuming that capacity growth allocated nothing.
+        var census = entity_fault_census(store, &roots[0], root_count, stage);
+        stage_fault_check(tower_test_buffer_count() == baseline + census.receipts
+            + (budget.entries.data != null ? 1 : 0));
         result = entity_stage_publish_result(stage);
     }
     stage_fault_check(result == WorkBudgetError.None && fresh.components[0] == fresh_component
         && existing.stage == null && fresh.stage == null && root.child_count == 2
-        && type.instance_count == 2 && target.references == 3 && leased_component.data == address
-        && *bits(usize*, stable.data) == 9876 && bits(StageFaultPayload*, address).value == 4567
-        && budget.used_bytes == bytes && budget.live == receipts);
+        && type.instance_count == expected_finalizers && target.references == 1 + expected_finalizers
+        && leased_component.data == address && *bits(usize*, stable.data) == 9876
+        && bits(StageFaultPayload*, address).value == 4567 && state.finalized == 0);
+    // Publication transfers private pages/names and frees stage vectors and its
+    // descriptor. Success need not retain the pre-publication byte/receipt sum.
+    var census = entity_fault_census(store, &roots[0], root_count, null);
+    stage_fault_check(tower_test_buffer_count() == baseline + census.receipts
+        + (budget.entries.data != null ? 1 : 0));
     entity_release(target); entity_release(type); entity_release(first_type); entity_release(root);
-    stage_fault_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
-        && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget)
+    stage_fault_check(state.finalized == expected_finalizers && store.entity_count == 0
+        && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget)
         && tower_test_buffer_count() == baseline);
     return succeeded;
 }
