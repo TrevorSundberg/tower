@@ -1746,3 +1746,22 @@ history union is queued after drain; this lane intentionally avoids an obsolete
 premerge sanitizer matrix. Typed entity producers are available, but checked
 semantic callers and failure cleanup remain implementation work, not an inferred
 pass from new API signatures. Journal records exact identities, timings and gaps.
+
+## Capture milestone on complete union60159efc
+
+The source review of capture_work and its new continuation fixture remains the
+2872820b delta; complete ROOTd3/A2dfcef histories are now joined. Native92focused
+(including durable capture/pool targets)+12caller/query/resource/units/control/
+capture-policy/type/parser/grammar-resource PASS. Current ASan+LSan92/12/query/
+resource and ten92-case/query repetitions PASS. TSan is still running; independent
+ROOT/D1 review and new20-case registration remain pending. Exact source/build,
+profiling limits, artifact hashes and unrun next executable probe are in the
+journal's union60159 entry. These receipts do not close unconverted typed entity/
+metadata callers or the full integrated release gates. No A1 publication lease.
+
+Current60159 TSan also PASS:92focused+12caller/query/resource24 and ten92-case/
+query stress repetitions, no report, session5992 drained/container reaped.
+Together with native/ASan/LSan this completes the bounded capture-transition
+validation milestone. It does not complete the full lane, independent review,
+unsupported/full-control instrumentation, or clean-bootstrap/browser/generation/
+publication gates. ROOTdba metadata-result history remains a subsequent input.
