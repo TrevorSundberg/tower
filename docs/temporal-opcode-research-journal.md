@@ -88455,8 +88455,165 @@ Merged-resource check PASS17/17,0skip,6.31wall/7.15CPU/183236KiB, exit0. All own
 Node jobs drained. Reused the unchanged49-case and relative-path receipts;
 remaining broad failures are preserved, not waived. Normal main push follows.
 
+### L2 declaration-call discovery concern: current prerequisite rules it out (2026-11-23)
+
+Bounded follow-up to accepted3a7f4b39. Started on clean main, no surviving owned
+build, CLI PID32440; required ff-only/rebase-merges/autostash pull froze published
+a3fbe0a4. No production Tower source changed. A1 constructor/IDE preparation and
+other owners' implementations remain untouched. Earlier full48d791a8 acceptance
+and later focused603fa60a adoption retain their exact source identities.
+
+The proposed direct allocation-underflow is not reachable: the call loop pops
+one DeclarationCallScan, keeps its allocation/capacity, and the nominal branch
+re-pushes that same nonnull node before any other scan push. vector_reserve returns
+true without allocation for that reclaimed slot. Sibling calls to the helper
+only enqueue work; this is its only caller that subsequently indexes the last
+entry. No sibling assumes an append succeeded by reading a scan slot.
+
+There is a superficially more plausible semantic-error path: the spelling
+function makes sem_type_identity_call's final OR true even if callable resolution
+reports ambiguity. However its production caller runs after declaration discovery.
+sem_declaration_dependencies uses the same roots and resolves templates/functions
+first; sem_callable_visible checks the union of functions/templates/type-functions
+for ambiguity regardless of the selected table. The failed discovery ticket is
+finished unsuccessfully, and the checking query depends on it. This rules out the
+late ambiguity for those frozen module/name indexes. The execute transition first
+requires a resolved ordinary callee; alias roots retain their type role and child
+query ownership. These continuations do not introduce an unchecked ambiguous
+function spelling into this nominal-value branch.
+
+Fallible token/identifier work in sem_call_uses_value and sem_identifier is followed
+by the existing sem_ok check before the final callable resolutions. Unqualified
+callable resolution otherwise only reads ownership/import links and name tables;
+its only error construction is the ambiguity above. Qualified resolution may
+allocate identifier text, but failed namespace resolution returns null and failed
+field decoding cannot find a named callable; qualified spelling is not function.
+Thus an allocation denial cannot turn that final result into true on this path.
+No mock failed context or manually emptied scan was used to bypass these guards.
+No defensive runtime change is claimed necessary for the audited current chain.
+
+Reusable tests: tests/declaration_call_checks.tower, selected by existing
+native/storage runners with declaration-calls. Two real imported files both
+export ordinary functions named function; the root calls function(i32). This
+preserves the exact ambiguity, combined semantic-source offset, no published
+program and stable terminal retries. Fresh healthy source exercises the nominal
+function type identity, struct/type alias, forward ordinary comptime helper,
+generic identity and decltype, executes answer42, and formats Foundation. Native
+1/4-worker diagnostics/offsets and complete canonical bytes agree at32/64-bit.
+The serial storage composition runs four failed/fresh trials, ends with zero
+retained buffer delta, and unit close asserts world/budget retirement. Terminal
+retry also preserves live grants/bytes with zero lanes. No allocation injection
+or sanitizer was added. Existing query-smoke additionally passes unchanged.
+
+A debugger observation of these real production sources (not a patched helper)
+records436 call-push entries,332 identity queries and zero failed-context pushes.
+Ambiguity originates in sem_callable_visible; optimized deeper stack frames are
+not used as source-line proof. The dependency gate conclusion also relies on the
+source/graph invariants above. GDB changes timing; this is reachability evidence,
+not performance, exhaustive proof for arbitrary future callers or race freedom.
+Reusable debugger commands and raw output are under external L2 lane
+`declaration_call_probe/prerequisite.{gdb,out,err,log}`. Symbol/structure offsets
+were derived from this binary's disassembly, not portable debug APIs.
+
+Environment: existing WSL Orchestral-Revng native cache l2_ecs_native, Ryzen9
+5900HX, CPU4-7, public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138,
+compiler jobs1/build parallel2, one build owner. Only test objects/links rebuilt;
+compiler/provider inputs are unchanged. Costs (wall/CPU seconds; peak RSS KiB):
+serial declaration-calls2.28/2.08/179492; normal allocator native1/4-worker combined
+5.06/4.93/220936; query-smoke0.39/0.37/104184. These are validation costs, not
+matched speedup measurements or a concurrency claim from requested worker count.
+The query smoke retains its actual normal-allocator clone-overlap oracle; the
+previous integrated milestone remains the full language/overlap receipt.
+
+Preserved failures: initial test compilation rejected reserved local expected,
+raw-pointer subtraction, transitive foreign imports (including an unnecessary
+backend clock declaration conflict), then a missing explicit format API import.
+The first runtime test incorrectly assumed frontend_units_error_offset was a
+file-local offset; it is the combined semantic-source offset. That assertion
+failure134 is retained; the corrected test compares the full offset across
+worker settings and terminal retries. An exploratory existing CLI returned the
+expected ambiguity; it was not treated as proof of the suspect write. Initial
+GDB unqualified-symbol/early-abort probes are also retained. Final selected
+storage/native/query runs all exit0, stderr empty, source hashes unchanged.
+
+Receipts are external L2 logs/declaration_calls* plus source/binary manifests;
+no full frontend/body/bootstrap/browser/generation/sanitizer rerun. Later merged
+source adoption is recorded separately below. ROOT owns final release. This
+corrects the audit's suspected edge; it does not claim a repaired runtime defect.
 B2 normal push recovery: preserved incoming69391085 in merge381fc109 after one fetch-first rejection. Changes are browser transport/tests/docs only, outside the affected native closure; reused unchanged e292754d native checks and frozen d5b65afe timings. No rebuild, relabeling or hosted claim. Both journal histories retained; normal push retry follows.
 
+### D1 four-file Node language fixtures (2026-11-23)
+
+Bounded follow-up; thread01a2046a-4644-7ab1-a0ae-abd80210f013, PID3116180.
+Clean main fast-forwarded to e0e3530b84472be5ba1bc4e331b74bab4dba01bd; no owned
+surviving job or heavy lock. ROOT-supplied f7e764ab0807376025700b2a3176c6f6130e34a8
+portable SHA256b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42
+and LLVMba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543
+both verified, copied unchanged into own Docker-visible log root. Existing eager
+read default artifacts remain unchanged; absolute TOWER_TEST_WASM and
+TOWER_TEST_LLVM_WASM select the matched pair. Public bootstrap768 provenance is
+ROOT's receipt, not a rebuild here. These reactors exclude later alias/metadata/
+hover work; current Tower inputs and Node host hashes are recorded separately.
+
+Node22.23.5, SteamDeck Linux x64, tower-d1-ecs CPU0,2, --test-concurrency=1;
+fresh processes/warm file cache, one sample per phase. Commands use node --test
+with ONLY forward-references/foundation-storage/inference/generic-inference;
+no IDE prefix, broad51-file/native/generation/sanitizer matrix or compiler build.
+Before7pass/15fail; selected failed cases11/15 then focused edges2/4; final
+20pass/2fail, zero skips, all exit1 honestly retained. Validation cost wall/CPU/
+peakKiB: before13.17/16.87/372176; affected14.50/18.71/360452;
+edges6.90/6.72/294344; final19.42/20.18/377616, all0swaps. The final run reaches
+more assertions and uses corrected fixtures, so these costs are not equivalent
+compiler throughput samples or speedup claims. No compiler/runtime ownership or
+worker scheduling implementation changed. The small saved-document transport
+change preserves known wrapper imports before local edits; it adds no parser or
+semantic model. Runtime scaling/performance acceptance remains ROOT-owned.
+
+Read actual seed/modules, canonical format_expected, struct-copy, type-value and
+generic-inference contracts plus the current callers. Seed-only forward rules
+need Statement=, not extending an absent rule; two-step/revision1 checks stay
+exact. Executable sources import Foundation. Canonical data now uses the exact
+integer_type/boolean_type/pointer_type/address_type representations already in
+Tower formatter references. The inference_bindings Tower fixture imports the
+real example and observes two stores; it preserves the expected printed values
+while avoiding a demand that canonical output retain eliminated known bindings.
+Reused semantic_invalid/aggregate_inferred_copy rather than rejecting supported
+same-type struct copies; both interpreter and LLVM assert the exact nominal
+Expected Other, got Item error before effects. Its known import prefix is checked
+and replaced with the harness language boundary before inserting print99. An
+intermediate check correctly rejected the initial attempt to put that import
+after print99; that failure remains in edges.log.
+
+Confirmed separate UI transport bug: upgradeLegacyFoundation returned saved
+lexer edits unchanged when the current Foundation wrapper had no inline parse
+statement. For the exact known foundation_syntax import wrapper, keep its imports
+first, then saved lexical/body overrides. Unknown bundle fallback stays intact.
+Legacy source data no longer synthesizes an empty grammar from a failed indexOf;
+CoreFunction/CoreCallArgument assertions address their actual syntax producer.
+Custom lexer/comment/order/idempotency and unsupported-bundle negatives pass.
+No compiler imports or language behavior changed to supply ambient syntax.
+
+Two exact compiler/compatibility failures remain, registered through existing
+compare in generic-inference with unchanged original combined assertions:
+(1) tests/generic_stack_module.tower: explicit tower/library.stack, initialized
+stack(i32), defer stack_dispose, expected42. Graph32 rejects constructor stack
+at deferred call5:7. Direct disposal passed all compare stages in affected.log;
+adding defer alone reproduces the failure in edges/final. The captured direct
+control is generic_stack_direct_before.tower under the log root. This is not a
+missing import. (2) tests/generic_pointer_alias.tower: type-producing return T*,
+null pointer instance, expectedtrue. Graph32 rejects the pointer spelling as a
+value; retained original straight-return alias expectation, no pointer_type
+workaround. sem_constructor_arguments and semantic_expressions emit the exact
+failures; generics registration and defer context transitions were read, but a
+specific bad dependency/owner edge is not yet proved. ROOT/L2 should own producer
+repair, with A1 defer/call context if needed. These first assertions prevent
+later64/fast/LLVM executions for the failures; no passing claim for those paths.
+
+All data/source hashes, raw failed/final logs, commands and time/status receipts:
+build/d1_ecs/language_fixtures_e0e3530b. New Tower fixtures are substantively listed
+with hashes in the D1 audit; no census expansion or other-owner source edits.
+The two failures keep this group unaccepted as a whole; independently correct
+fixture/transport fixes are ready to publish. No deployment or hosted claim.
 L1 final normal reconciliation preserved complete e0e3530b history in3cb252c4202072a21ce61d00a28e5803e8ad4e1a. Incoming LR worker grain/observer changes affected grammar headers; dependency targets refreshed once (59.33wall/92.34CPU/1058424KiB). Source-world, backend target/codegen, backend-IR serial/parallel/retention/cancellation, native execution roots2 and package modules8 all pass. Costs respectively0.81/0.61/140208KiB, backend-ir2.08/1.88/237092KiB, roots2.98/2.71/191884KiB, modules16.97/14.22/148248KiB (wall/CPU/RSS). The browser wrapper's actual depfile includes grammar_types, so recompiled that one WASI object; it remains exactly d32c6b6d. No browser matrix repeated. Current towerc00d68588ffe71bb1b48bde3dac487784ad7dde3e96d92c946d7b63f4b6f4d412, backend objecta6f03ff7 unchanged; frozen source manifestc6110592521f9d9fb96cf495f0a692c192c4f43d8cad2e665c1691b7d8f4c94a. Exact logs/backend_acceptance_worker_merge and backend_acceptance_wrapper_merge extend the external receipt without relabeling earlier full-corpus inputs. All owned jobs drained; receipt-only commit and normal main push, with ROOT's final platform/release gates still separate.
 B1 generation receipt publication reconciliation: required ff-only pull fetched
 e0e3530b and correctly refused divergence; normal merge 95c33836307f23150073f3e96a2932a880542db0
@@ -88607,3 +88764,34 @@ reactor0be1798cc07be921fb0b6da212064e4f5336fcfef1e3234915b517e7eb006130.
 Exact commands, outputs, exit codes, timings and prior failures are retained at
 C:\Sandbox\build\codex_ecs_20261122\A1\cache\a1_package_*.
 All jobs drained before commit/reconciliation; normal main push follows.
+L2 merged adoption for the declaration-call correction: full-history merge
+5b023f63 retains22167104 and published9d9329db, including A1's64450fc1 inspection
+preparation and52895b4f LR worker policy. The five audited producer/caller files
+are byte-unchanged. A1's new preparation explicitly uses sem_declaration_discover
+before sem_declarations_execute; it does not bypass this prerequisite. Rebuilt
+only affected dependencies of the existing native/storage targets (13 actions,
+67.34wall/92.63CPU seconds/1063844KiB). Merged storage/native/query selections pass,
+source/status0, empty stderr:2.82/2.51/179400,6.04/5.73/218632,
+0.38/0.36/86660 (wall/CPU seconds/RSS KiB). Query production allocator records
+actual intersecting four-worker clone intervals, separate from serial counting.
+
+Final fixture-only iteration derives its case bound from the actual bool input
+array. An attempted borrowed foreach on a raw fixed array was correctly rejected
+by the public compiler; the failed log is preserved, and a counted loop with
+sizeof(array)/sizeof(element) is used. No runtime/provider inputs changed in this
+last edit. Test objects/links rebuilt4 actions in15.49wall/20.28CPU/458204KiB;
+final serial storage2.95/2.64/179424 and native1/4 combined6.35/6.01/220732 pass,
+including zero retained buffers. Unchanged merged query-smoke evidence is reused.
+Final manifests/logs are declaration_calls_final1*, with previous failed attempts
+preserved. No broad matrix repeated and no runtime optimization claimed.
+D1 publication reconciliation: implementation8b2bb2d7; required ff-only pull
+foundbfb47510, so complete-history merge7a1e2631 preserves the new owner receipts
+without conflicts. Saved Node/test/transport/reactor hashes still match. Five
+changed and four newly added Tower compiler/test resources are outside the
+imports executed by this four-file slice; language/type/example/stack/vector,
+existing nominal negative and the three new fixture hashes remain identical.
+Incoming semantic_generic_info/declaration-discovery work retains its own owner
+identity; these old reactors cannot accept or reject those later fixes. Reuse
+unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
+two minimal cases on its next affected reactor. Worktree/todo/history preserved,
+all owned jobs drained; normal main push follows, no runtime deployment.
