@@ -95052,3 +95052,6 @@ exited. Raw source/environment/logs/phase counts/timing/artifacts/process eviden
 C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
 before/339077795840B after, todo unchanged. Normal source-bound documentation
 publication follows; ROOT retains later-provider builds/generations/hosted release.
+
+
+L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
