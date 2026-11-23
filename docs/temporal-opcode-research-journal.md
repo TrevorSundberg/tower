@@ -95951,6 +95951,24 @@ two selected T8 continuation cases; D1's source-derived i1 issue and additional
 narrow-width/extraction coverage requests remain separate pending producer work,
 not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
 All owned processes drained, unchanged todo, normal push; ROOT owns final release.
+## A2 bounded current-artifact T9 work pair (2026-11-23)
+
+Receipt docs/work_pair_t9_a06_6649bbe1.md: exact a06 pair, host6649bbe1 plus
+optional existing semantic-port child CPU/RSS/capacity/released metrics;1242
+host/resource hashes and both reactors unchanged. work_access actualexit1,
+20.8506912s wall, childCPU42.953s/peak1169772KiB; portable509804544B,
+LLVM496435200B. Four32/64 Graph/Fast executions, four canonical executions/byte
+equalities and four raw/optimized Foundation reconstructions/rechecks/Fast
+executions pass0newline. First source-Wasm executable compile passes, then
+executeWasm rejects external abort before instantiation (host ABI capability,
+no typed resource denial and no evidence abort executed). Canonical executable
+and work_observe unstarted as ordered; TAP0pass/1fail/18 unrelated exclusions.
+No retry, cap/fixture/assertion change, compiler build or sanitizer. Fourteen
+artifacts plus exact request/failure/process/phase receipts retained in
+A2/cache/logs/work_pair_a06_6649bbe1. Source-Wasm bytes were not saved by the
+existing selector; no hash invented. Native7e54b96a remains a separate boundary.
+ROOT owns foreign ABI resolution/final release; T9 gaps remain open. Jobs drained,
+three prior stashes/todo preserved. No performance claim for optional transport.
 Second D2 publication reconciliation: ff-only pull fetched6649bbe1 and refused
 ordinary divergence; complete merge51ab5a02 preserves all work. Received actual
 new a06 evidence55a6a91f (full views/registry), e71956ab (Node3/strict browser3+9),
@@ -95996,3 +96014,15 @@ Instrumented-cache BUILD-only receipt stays unexecuted. No build/profile/code or
 ledger rewrite; D1 heavy lock untouched. Initial disk127GiB/RAM9.8GiB; no D2 jobs.
 Other C/packager and A2 observer/accessor peer gaps remain explicit. Local map:
 build/d2_ecs/peer_fault_windows_6e8001fd/. Docs-only profiling inapplicable.
+## 2026-11-23 A1: two remaining compiler-entities registrations pass
+Mounted05e90f72 / compileda06 pair, verified separately. Exact anchored two-name
+selection:2pass/0fail/2excluded, exit0, original600s/fuel/caps/assertions.
+Both layouts/canonical byte equality, both source/canonical actual LLVM executables,
+and real300-component query-index/zero-count disposal pass. Excluded view/registry
+receipt980898ed reused, not rerun. No entity_pages repeat or production edit/build.
+Actual child7.1571wall/16.0781CPU/508813312B peakRSS; two job processes drained to0.
+Before/after manifests identical; unchanged retained-native-handle OS transport.
+[Short receipt](compiler_entities_remaining_a06_a1.md) records hashes, command,
+phase costs and raw A1/compiler_entities_a06_05e90f72 logs. No Wasm-capacity or
+global-owner census inferred from RSS; no throughput claim. ROOT retains fullT2/
+release, L1/D1 the earlier optimized failure. Todo preserved; normal publication.

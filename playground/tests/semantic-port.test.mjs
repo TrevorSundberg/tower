@@ -38,10 +38,13 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
 // Behavioral checks live in Tower; this adapter runs the same fixtures through
 // the browser transports and checks their failure-code output and round trips.
 for(const [name,output] of [['language_control','42\n0\n'],['language_collections','0\n'],['language_enums','0\n'],['entity_pages','0\n'],['entity_tables','0\n'],['entity_stage_ownership','0\n'],['work_graph','0\n'],['work_access','0\n'],['work_resume','0\n'],['work_observe','8192\n256\n0\n'],['compiler_work','0\n'],['compiler_batch','0\n'],['backend_popcount','0\n'],['backend_stack','0\n'],['backend_import_constants','0\n']]) {
- test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
+ test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async context=>{
   const phase=label=>console.error(process.env.TOWER_TEST_PHASES
-   ?JSON.stringify({case:name,phase:label,milliseconds:performance.now(),rss:process.memoryUsage().rss})
+   ?JSON.stringify({case:name,phase:label,pid:process.pid,milliseconds:performance.now(),
+    cpu:process.cpuUsage(),rss:process.memoryUsage().rss,maxRssKiB:process.resourceUsage().maxRSS,
+    portableCapacityBytes:tower.exports.memory.buffer.byteLength,llvmCapacityBytes:llvm.memoryCapacityBytes()})
    :`${name}: ${label}`);
+  if(process.env.TOWER_TEST_PHASES)context.after(()=>phase('released'));
   const save=async(suffix,text)=>{if(artifacts)await writeFile(`${artifacts}/${name}_${suffix}`,text);};
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
   tower.configureModules({entry:`.tower/tests/${name}.tower`});
