@@ -112,7 +112,10 @@ fn lr_symbol_less(analysis: LRAnalysis*, a: usize, b: usize): bool {
     return less;
 }
 
-fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool {
+fn lr_state_symbol_result(analysis: LRAnalysis*, state: LRState*, symbol: usize): WorkBudgetError {
+    if symbol >= analysis.symbol_count { return WorkBudgetError.Invalid; }
+    var name = analysis.symbols[symbol].nonterminal;
+    if name != lr_none() && name >= analysis.nonterminal_count { return WorkBudgetError.Invalid; }
     var low: usize = 0;
     var high = state.symbols.length;
     loop {
@@ -130,20 +133,20 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
     }
     if low < state.symbols.length {
         if !lr_symbol_less(analysis, symbol, state.symbols.data[low]) {
-            return true;
+            return WorkBudgetError.None;
         }
     }
     var count = state.symbols.length + 1;
-    if !vector_reserve(&state.symbols, count) {
-        return false;
-    }
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_result(&state.symbols, count);
+    if error != WorkBudgetError.None { return error; }
     var moved = state.symbols.length -low;
     var bytes = moved *sizeof(usize);
     var next = low + 1;
     copy(&state.symbols.data[next], &state.symbols.data[low], bytes);
     state.symbols.data[low] = symbol;
     state.symbols.length = count;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn lr_state_destroy(state: LRState*): void {
@@ -167,16 +170,19 @@ export fn lr_states_destroy(value: LRStates*): void {
     free(value);
 }
 
-fn lr_states_rehash(value: LRStates*): bool {
-    var needed = value.states.length *2;
+var LRStateBucketGrowth: usize = 2;
+var LRStateBucketSeed: usize = 17;
+
+fn lr_states_rehash_result(value: LRStates*): WorkBudgetError {
+    if value.states.length > ~convert(usize, 0) / LRStateBucketGrowth { return WorkBudgetError.Invalid; }
+    var needed = value.states.length * LRStateBucketGrowth;
     if value.buckets.length > needed {
-        return true;
+        return WorkBudgetError.None;
     }
-    needed = value.buckets.length * 2;
-    needed = needed + 17;
-    if !vector_reserve(&value.buckets, needed) {
-        return false;
-    }
+    if value.buckets.length > (~convert(usize, 0) - LRStateBucketSeed) / LRStateBucketGrowth { return WorkBudgetError.Invalid; }
+    needed = value.buckets.length * LRStateBucketGrowth + LRStateBucketSeed;
+    var error = lr_reserve_result(&value.buckets, needed);
+    if error != WorkBudgetError.None { return error; }
     value.buckets.length = needed;
     var index: usize = 0;
     for(; index != needed; index++) {
@@ -185,7 +191,7 @@ fn lr_states_rehash(value: LRStates*): bool {
     index = 0;
     loop {
         if index == value.states.length {
-            return true;
+            return WorkBudgetError.None;
         }
         var state = value.states.data[index];
         var bucket = state.hash % needed;
@@ -196,15 +202,16 @@ fn lr_states_rehash(value: LRStates*): bool {
 }
 
 // Takes ownership of items on every path, including an existing kernel match.
-fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
+fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, error: WorkBudgetError*): usize {
     defer lr_items_destroy(items);
-    var ok = lr_states_rehash(value);
-    if !ok {
+    *error = lr_states_rehash_result(value);
+    if *error != WorkBudgetError.None {
         return lr_none();
     }
     var hash = lr_state_hash(value.analysis, items);
     var bucket_count = value.buckets.length;
     if bucket_count == 0 {
+        *error = WorkBudgetError.Invalid;
         return lr_none();
     }
     var bucket = hash % bucket_count;
@@ -225,6 +232,7 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     }
     var state = alloc(LRState, 1);
     if state == null {
+        *error = WorkBudgetError.Memory;
         return lr_none();
     }
     fill(state, 0, sizeof(LRState));
@@ -234,9 +242,9 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     state.hash = hash;
     state.next = value.buckets.data[bucket];
     index = value.states.length;
-    ok = vector_push(&value.pending, index);
-    ok &&= vector_push(&value.states, state);
-    if !ok {
+    *error = lr_push_result(&value.pending, index);
+    if *error == WorkBudgetError.None { *error = lr_push_result(&value.states, state); }
+    if *error != WorkBudgetError.None {
         lr_state_destroy(state);
         return lr_none();
     }
@@ -244,7 +252,11 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     return index;
 }
 
-fn lr_states_begin(analysis: LRAnalysis*): LRStates* {
+fn lr_states_begin_result(analysis: LRAnalysis*, error: WorkBudgetError*): LRStates* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if analysis == null || analysis.failed || analysis.rule_count == 0 { return null; }
+    *error = WorkBudgetError.Memory;
     var value = alloc(LRStates, 1);
     var missing = value == null;
     if missing {
@@ -262,10 +274,11 @@ fn lr_states_begin(analysis: LRAnalysis*): LRStates* {
     var ok = lr_items_insert(items, &seed);
     ok &&= lr_items_close(analysis, items, false);
     if !ok {
+        *error = lr_items_error(items);
         lr_items_destroy(items);
         return null;
     }
-    var start = lr_states_intern(value, items, lr_none());
+    var start = lr_states_intern_result(value, items, lr_none(), error);
     missing = start == lr_none();
     if missing {
         return null;
@@ -275,9 +288,8 @@ fn lr_states_begin(analysis: LRAnalysis*): LRStates* {
     return result;
 }
 
-fn lr_state_symbols(analysis: LRAnalysis*, state: LRState*): bool {
+fn lr_state_symbols_result(analysis: LRAnalysis*, state: LRState*): WorkBudgetError {
     var done = false;
-    var ok = true;
     // Kernel items precede closure items, as in the ordinary LR builder.
     var pass: usize = 0;
     loop {
@@ -300,49 +312,50 @@ fn lr_state_symbols(analysis: LRAnalysis*, state: LRState*): bool {
             if include {
                 if present {
                     var symbol = rule.begin + item.position;
-                    ok = lr_state_symbol(analysis, state, symbol);
-                    if !ok {
-                        return false;
-                    }
+                    var error = lr_state_symbol_result(analysis, state, symbol);
+                    if error != WorkBudgetError.None { return error; }
                 }
             }
             position++;
         }
         pass++;
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
-fn lr_state_transition(value: LRStates*, state: LRState*, symbol: usize): bool {
+fn lr_state_transition_result(value: LRStates*, state: LRState*, symbol: usize): WorkBudgetError {
     var analysis = value.analysis;
     var ok = true;
     var missing = false;
     var next = lr_items_create();
     missing = next == null;
     if missing {
-        return false;
+        return WorkBudgetError.Memory;
     }
     ok = lr_items_goto(analysis, state.items, &analysis.symbols[symbol], next, false);
     if !ok {
+        var error = lr_items_error(next);
         lr_items_destroy(next);
-        return false;
+        return error;
     }
     var edge: LRTransition;
     edge.symbol = symbol;
-    edge.state = lr_states_intern(value, next, symbol);
+    var error = WorkBudgetError.None;
+    edge.state = lr_states_intern_result(value, next, symbol, &error);
     missing = edge.state == lr_none();
     if missing {
-        return false;
+        return error;
     }
-    ok = lr_append(LRTransition, &state.edges, &edge);
-    if !ok {
-        return false;
-    }
-    return true;
+    return lr_push_result(&state.edges, edge);
 }
 
 export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
-    var value = lr_states_begin(analysis);
+    var error = WorkBudgetError.None;
+    return lr_states_create_result(analysis, &error);
+}
+
+export fn lr_states_create_result(analysis: LRAnalysis*, error: WorkBudgetError*): LRStates* {
+    var value = lr_states_begin_result(analysis, error);
     if value == null { return null; }
     defer lr_states_destroy(value);
     loop {
@@ -355,14 +368,16 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
         value.pending.length--;
         var index = value.pending.data[value.pending.length];
         var state = value.states.data[index];
-        if !lr_state_symbols(analysis, state) { return null; }
+        *error = lr_state_symbols_result(analysis, state);
+        if *error != WorkBudgetError.None { return null; }
         var position: usize = 0;
         loop {
             done = position == state.symbols.length;
             if done {
                 break;
             }
-            if !lr_state_transition(value, state, state.symbols.data[position]) { return null; }
+            *error = lr_state_transition_result(value, state, state.symbols.data[position]);
+            if *error != WorkBudgetError.None { return null; }
             position++;
         }
     }

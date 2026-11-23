@@ -2040,3 +2040,101 @@ These are currentac65 scoped checks on the full d1ff producer union, not a relab
 B1 attachment milestone portable checks completed onac65. Independent parser build21.24s/30.61CPU/797332KiB, lr-analysis reference/tree/allocation oracle.22s/6072KiB PASS. Canonical public-pin/SDK34 WASI build33.76s/40.93CPU/867736KiB PASS, reactor SHA256c66a889ba08efdd670c7dd08d96f7cec689dd06fc3b128629ca90c6a97b39d2c. Actual IDE7687 passed27.5835455s; its entire log and timing trailer are UTF8 this time. Jobs39965/7687 drained0. The native/ASan/TSan/profile gates above and these portable checks complete this narrow attachment consumer correction, not the whole ECS/threading acceptance goal.
 
 All current source remainsac65 for artifact identity. This evidence-only documentation adds no runtime input or performance delta; measurements apply to the recorded code and binaries. No new ParserNodes import is introduced by calling entity_attach_result inside the Entities unit. D2 still owns the two previous forest imports. ROOTdba metadata bundleef383e94 was verified/fetched and its host_metadata/syntax_provenance changes reviewed read-only; its destination-discard/hold-before-unpin contract must be honored by future owned consumers, and no half producer signature was copied. The union is not adopted until this milestone's receipt jobs drain. Full frontend300s failure, earlier LR/pool/graph storage, remaining raw request/lexer/metadata allocations, final clean bootstrap/generation and atomic hosted publication remain open. No publication lease/push; originalsession/PID33768 and todo unchanged.
+
+B1 FIRST result follow-through on merged5b6140ae (implementation, checks in progress):
+`lr_analysis.tower` now validates borrowed array counts and rule bounds before
+allocation and has explicit create/compute results; range/vector helpers preserve
+Invalid overflow versus Memory. `lr_first_work.tower` owns each worker cause,
+finishes all joined tickets before selecting the first frontier result, propagates
+typed world/component/view/pool/admission/dispatch errors and preserves serial
+fallback. `lr_work.tower` uses the complete checked attachment producer for job
+nodes and distinguishes graph storage errors from logical Invalid. `lr_api.tower`
+and `parser_table.tower` consume these complete functions; no signature-only
+producer adoption. The old state/LALR fallback remains explicitly open.
+
+`tests/lr_work.tower` now derives its FIRST grammar counts from actual arrays and
+named shape constants, checks exact reached Invalid/unreached success, and adds
+retained-pool Busy followed by same-analysis retry on the unbudgeted fixture.
+The shared-budget exhausted-lane fixture keeps its serial fallback. Existing
+`lr_analysis_api.tower`/`lr_analysis_failures.tower` exercise malformed raw counts,
+overflow, exact Memory and retry through the serial fault allocator. No new harness
+or non-Tower logic. Native smallest ParserNodes and dependent link passed; actual
+LR/parser and independent parser-only oracle job76458 are still being inspected.
+Baseline and frozen hashes are in the journal. Physical FIRST vectors, state/LALR,
+pool/graph charging and fullfrontend timeout are not declared complete.
+
+B1 state/LALR and physical scheduling follow-through (same5b before-input batch):
+`lr_analysis.tower` now retains item failures and diagnoses references only when
+closure reaches them; lookahead creation/seed/edge/solve return per-call causes.
+`lr_states.tower`/`lr_state_work.tower` propagate reserve/intern/transition and
+worker causes, preserving serial order and private results. `lr_lalr.tower` carries
+explicit closure-cache counts and complete closure/link/solve/action errors;
+`lr_work.tower` joins before reading private causes and cleans cancelled logical
+tickets before releasing grants. `parser_table.tower` consumes the whole phase
+chain, removing its old Memory fallback. Unused private bool adapters were removed;
+public wrappers remain. `lr_api.tower` is the opaque unit boundary, not another IR.
+
+`parser_workers.tower` now charges retained slots to the world's stable ledger.
+`lr_first_work.tower`, `lr_state_work.tower`, `lr_work.tower` and
+`lr_runtime_work.tower` bind WorkGraph storage to that same borrowed ledger.
+`world.tower` was inspected read-only: late budget binding rejects existing pool
+slots, so no uncharged retained pool can be rebound. Explicit null-budget library
+boundaries remain. Host thread handles/stacks and raw analysis vectors are not
+claimed as charged; byte reservations and lane admission remain separate.
+
+Owned `lr_budget.tower` measures actual pool storage for a one-byte-short denial,
+checks unchanged execution lanes and retry, then derives retained-owner counts
+from live receipts and requires zero physical bytes after world disposal.
+`lr_work.tower` checks Capacity in FIRST/state/LALR work-graph setup, matching
+snapshot restoration and retry, while preserving the no-extra-lanes serial path.
+No allocation index/array size was guessed. Serial allocation and malformed-input
+oracle coverage is in `lr_analysis_failures.tower`; real overlap uses production
+allocation. State intermediate29710 and LALR95124 passed native LR/parser and
+independent 150-grammar/reference/allocation cases. New physical-storage native
+validation is still running; missing-import and null deferred fixture cleanup
+failures and their corrections are preserved in the journal and raw logs.
+
+B1 frozen68fa validation update: native7424 has now passed the complete affected
+LR/parser/query/grammar-resource/fullunits/editor/storage/runtimefaults/resource
+checks. ASan/LSan27265 passed the new LR phase/pool denial and cleanup fixtures,
+parser/query and real3unit4lane overlap. TSan34245 passed LR50.120s,
+parser.352s/query1.301s and two real overlap processes25.837/25.474s internal,
+peak3, identical canonical1173729914654460811 and retained15152976 bytes;
+both jobs actually drained0. The thread build33.95s/65.07CPU/761076KiB used the
+existing ephemeral-container recipe, not changed persistent host security.
+No reports; no standalone UBSan/system LLVM/libc/browser instrumentation or
+universal race-freedom claim. Earlier5ce full-unit sanitizer coverage stays5ce.
+
+The fixed-path20 comparison used immutable5b resources, identical runner paths,
+CPU0-11/24GiB, warm caches and two alternating pairs at3units/0 or4096 bodies,
+workers1/4. All output/canonical/entity/component checks passed; serial retention
+is unchanged and four-worker retention rises by exactly768 accounted pool bytes.
+Mean wall changes -2.80/+1.64/-0.07/-1.25% for small1/large1/small4/large4 are
+mixed, with n2 insufficient for a precise performance claim. Editor RSS mean rose
+with a wide range; a focused four-process follow-up is queued for a fresh quiet
+grant. Full raw CPU/RSS/retention/hash/command evidence is in the journal and
+parser_memory_profile/analysis_results_5b6140ae. Independent parser/publicWASI/IDE
+and final artifact receipt remain pending; the full acceptance goal is open.
+
+Next boundary only: ROOT12:40:39 approved B1 ownership of GrammarBuilder's
+resource_error field and checked init/finish/regex constructor producers.
+Read-only caller audit: regex_grammar.tower is the only production builder caller;
+frontend_table.tower owns its downstream pattern-table consumer (ROOT). The other
+callers are frontend_bedrock/parser_text/table_owner, parser_integration and
+parser_table_budget fixtures. No callback or shared global builder was found.
+parser_nodes text storage and counted UTF8 append need their actual error causes
+audited before classification; do not infer Memory from a generic bool. Shared
+field adoption waits for complete source history and coherent providers. No code
+for that proposal is included in68fa or its current receipts.
+
+Current68fa portable closure: independent parser-only reference/allocation/tree/
+precedence/randomized oracle passed. Public-pin/SDK34 WASI built without override;
+reactor SHA256cfcf1ffb44a65cd65056dbee7e0b7b29e56ebf9a3442ceb031d14fd9d66881e8.
+Actual IDE72640 passed26.341924s, jobs48223/72640 drained0. Editor follow-up71703
+also passed and released its fresh quiet slot: n4 RSS mean921521 ->939343KiB,
+about+1.93%, broad overlapping ranges; initial n2 +7.84% did not persist. Neither
+memory neutrality nor a speedup is claimed. All24 raw process receipts, current
+sanitizer logs and source/binary identities are retained. This closes the narrow
+68fa implementation, not the full acceptance goal, remaining raw storage or final
+joined clean/public/hosted release. Evidence-only documentation adds no runtime
+performance delta. No publication lease or push; todo remains unchanged.

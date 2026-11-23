@@ -3,6 +3,7 @@ import .compiler.lr_types;
 import .compiler.lr_api;
 import .compiler.compiler_kernel;
 import .compiler.parser_workers;
+import .compiler.worker_policy;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;
@@ -19,6 +20,43 @@ extern fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool;
 extern fn lr_first_work_trial(root: void*, mode: usize): bool;
 extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
     symbols: LRSymbol*, length: usize, names: usize): bool;
+
+fn lr_pool_memory_budget(root: void*, budget: WorkBudget*): bool {
+    var before: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(budget, &before) { return false; }
+    var capacity = compiler_worker_capacity(root);
+    var probe: WorkPool = default;
+    if !work_pool_open_budget(&probe, capacity, budget) { return false; }
+    var bytes = probe.storage.reservation.bytes;
+    var charged: WorkBudgetSnapshot = default;
+    var measured = work_budget_snapshot(budget, &charged) && bytes != 0
+        && charged.used_bytes == before.used_bytes + bytes && charged.used_lanes == before.used_lanes
+        && charged.live == before.live + 1;
+    work_pool_close(&probe);
+    if !measured { return false; }
+    var competing: WorkReservation = default;
+    if work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes - (bytes - 1),
+        &competing) != WorkBudgetError.None { return false; }
+    defer {
+        if competing.active && work_budget_release_result(budget, &competing) != WorkBudgetError.None {
+            trap("LR pool fixture lost storage grant", 0);
+        }
+    }
+    var lease: ParserWorkers = default;
+    var error = parser_workers_open_result(&lease, root, capacity);
+    parser_workers_close(&lease);
+    if error != WorkBudgetError.Capacity || !work_budget_snapshot(budget, &charged)
+        || charged.used_bytes != before.used_bytes + competing.bytes || charged.live != before.live + 1
+        || charged.used_lanes != before.used_lanes { return false; }
+    if work_budget_release_result(budget, &competing) != WorkBudgetError.None { return false; }
+    error = parser_workers_open_result(&lease, root, capacity);
+    if error != WorkBudgetError.None { return false; }
+    var valid = lease.pool.storage.reservation.bytes == bytes && work_budget_snapshot(budget, &charged)
+        && charged.used_bytes == before.used_bytes + bytes && charged.live == before.live + 1
+        && charged.used_lanes == before.used_lanes;
+    parser_workers_close(&lease);
+    return valid;
+}
 
 // Use a measured retained lower bound to force denial inside runtime creation,
 // including worker-produced rows. Joined failure must restore the original
@@ -40,6 +78,12 @@ fn lr_runtime_memory_budget(root: void*, budget: WorkBudget*): bool {
     if states == null { return false; }
     defer lr_states_destroy(states);
     if !lr_states_lalr(states, false) { return false; }
+    var width: usize = 2;
+    if width > lr_states_count(states) { width = lr_states_count(states); }
+    // Retained pool storage is a separate owner, not a runtime-table leak.
+    var workers: ParserWorkers = default;
+    if !parser_workers_open(&workers, root, width) { return false; }
+    parser_workers_close(&workers);
     var before: WorkBudgetSnapshot = default;
     if !work_budget_snapshot(budget, &before) { return false; }
     var error = WorkBudgetError.None;
@@ -59,8 +103,6 @@ fn lr_runtime_memory_budget(root: void*, budget: WorkBudget*): bool {
             trap("LR memory fixture lost competing storage", 0);
         }
     }
-    var width: usize = 2;
-    if width > lr_states_count(states) { width = lr_states_count(states); }
     value = lr_runtime_create_owned_result(states, budget, &error);
     var denied = value == null && error == WorkBudgetError.Capacity;
     lr_runtime_destroy(value);
@@ -169,12 +211,14 @@ fn lr_shared_worker_budget(): bool {
     }
     var world = compiler_world_create_workers(limit);
     if world == null { return false; }
-    defer { if !compiler_world_dispose(world) { trap("LR budget fixture retained world", 0); } }
+    defer { if world != null && !compiler_world_dispose(world) { trap("LR budget fixture retained world", 0); } }
     if !compiler_world_bind_budget(world, &budget) || compiler_world_bind_budget(world, &budget) { return false; }
     var root = entity_create(compiler_world_store(world));
     if root == null { return false; }
-    defer entity_release(root);
+    defer { if root != null { entity_release(root); } }
+    if !lr_pool_memory_budget(root, &budget) { return false; }
     if !lr_runtime_memory_budget(root, &budget) { return false; }
+    if !lr_first_work_trial(root, 0) { return false; }
     if !lr_state_wide_admission(root, 512, true) { return false; }
     var other: WorkReservation = default;
     defer {
@@ -203,6 +247,14 @@ fn lr_shared_worker_budget(): bool {
     var rule: LRProduction = {owner: 0, begin: 0, count: count, precedence: 0, associativity: 0};
     if !lr_work_trial(root, &rule, 1, &symbols[0], count, 1) { return false; }
     var snapshot: WorkBudgetSnapshot = default;
-    return work_budget_snapshot(&budget, &snapshot) && snapshot.used_lanes == outer.lanes
-        && snapshot.live == 1 && snapshot.used_bytes == 0 && snapshot.peak_lanes <= limit;
+    var retained = &compiler_world_grammar(world).workers.storage.reservation;
+    var owners: usize = (outer.active ? 1 : 0) + (retained.active ? 1 : 0);
+    if !work_budget_snapshot(&budget, &snapshot) || snapshot.used_lanes != outer.lanes
+        || snapshot.live != owners || snapshot.used_bytes != retained.bytes || snapshot.peak_lanes > limit { return false; }
+    entity_release(root);
+    root = null;
+    if !compiler_world_dispose(world) { return false; }
+    world = null;
+    return work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+        && snapshot.used_lanes == outer.lanes && snapshot.live == (outer.active ? 1 : 0);
 }
