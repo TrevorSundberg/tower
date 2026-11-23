@@ -87557,3 +87557,65 @@ build is warranted. Incoming known-scan cleanup retains its own owner receipt,
 not validation by this frozen browser reactor. git diff --check passes and todo
 is unchanged. This is source publication only; completion/retirement/generation
 and hosted gates remain separately owned. Normal push retry follows.
+
+### 2026-11-23 A2: ordinary bounded locality/fragmentation acceptance
+
+Separate direct user task; no restart/substitution of rejected instrumentation.
+Preserved old frontend_modules+1/storage_main+8 in named path-limited stash
+37894097de0fd0465c75e1e5097c10f6d96c7643 before pulling. Stash retained/unapplied;
+todo excluded. No A2 surviving job; frozen published source
+d5b65afee426f2576d44a60f44249010a15ace1d. Public768a0cdf, LLVM19.1.1,
+KinmenA RyzenAI MAX+395/WSL2, CPU0-11 logical CPUs/24GiB/network-none, one owner.
+All32 actual ordinary fixture/runtime depfile sources match42c1e142 and were
+unchanged through checks; earlier physical-accounting ownership evidence reused,
+older performance not relabeled across changed bootstrap. No production/test/
+allocator/scheduler/backend change. Primary Flecs Systems/ComponentTraits and
+Burst aliasing docs informed the lifetime/index distinction, not speed claims.
+
+Existing entity_locality CMake target rebuilt once (5 actions,3.792wall/5.116CPU
+seconds/259248KiB); unregistered entity_node_profile used its existing ordinary
+public LLVM/Clang-O1 recipe once (2.769/2.428/294668). Both passed. Metadata copy
+then failed on wrong guest-work-tests.ll.d name; preserved build.log/status1,
+used actual guest-work-tests.d and retained successful objects without rebuilding.
+No service rejection or failing runtime check occurred in this distinct task.
+
+31 production-allocator processes passed:3 four-path scans,4 layout/order pairs,
+24 node trials at1024/65536 xflat/tree x1/4workers x3 samples. Raw logs/outputs/
+exit/timing/hashes: A2/cache/logs/locality_d5b65afe, run.status0. Source manifest
+1431ca39a9895eb2049ea215b323b482b9c8037d428b908602d42aadf1b7b9e2,
+artifact manifest28c67352191ce87d02b123bc228ce2c3d7d704a4824a3defaf25edb90fe3e208.
+Every reference sum, identity/order/parent/refcount, sparse survivor address,
+refill and final world/page/grant/lane/ledger cleanup passed. Four-worker node
+trials show four overlapping job intervals, not a barrier proof of four busy cores.
+
+Large full traversal median wall/CPU ms: direct21.795/21.801, type-index4.643/4.645,
+archetype-pointer-column4.630/4.634, copied packed1.512/1.517. Packed copy costs
+0.987ms plus separately unisolated allocation/setup; its2MiB is derived storage,
+not authoritative payload. Copy alone needs about21 large traversals to amortize.
+Whole scan process median165.340wall/121.159CPU ms, peak37164-37176KiB. Per-path
+RSS attribution/cache-miss/false-sharing/NUMA counters were not measured.
+
+One survivor per64-slot page pins6,003,712B for32,768B payload (1.5625% slots,
+183.219x physical/payload). Mixed2048-owner full/sparse/refill physical=charged
+1185328/1159489/1185328B; peak1209226B; separate ledger163840B. No new payload
+pages on refill, survivor addresses unchanged; index allocations still occur.
+Dense indexes are pointers to48B component descriptors and40B strides holding
+32B values, not packed data. Full/fragmented logical counts and all exclusions
+are recorded in docs/compiler_ecs_locality_d5b65afe.md.
+
+Large creation1->4 workers improves6.717->4.501ms flat,6.452->4.697ms tree;
+publication/release/setup limit whole-process22.097->20.797ms and27.491->26.081ms
+with higher CPU. Small cases favor serial. Node peaks19.156MB flat/21.646MB tree;
+large tree's32768 extra child-index grants raise ledger metadata to2.621MB.
+All final ownership zero; these are not process caps or compiler throughput claims.
+
+Disposition: retain mixed stable-page/dense-index model for measured workloads;
+no demonstrated production hot consumer justifies authoritative packing. Existing
+sem_flows_pump already uses the kind index and an ordered pointer list. Remaining
+whole-compiler locality requirement is an actual phase/kind occupancy and repeated-
+scan census. If sparse retention persists, a bounded proposed64-vs16 page-row
+experiment must replay identical baseline survivor IDs, measure full/fragmented/
+refill memory and allocation trade-offs, preserve stable pointers/borrows and
+ordinary failure contracts, and precede any per-kind policy. No experiment or
+storage rewrite implemented. Prior static review keeps exactb0/252b/2013 scope;
+current sanitizer gate remains service-blocked/open, ROOT release gates pending.
