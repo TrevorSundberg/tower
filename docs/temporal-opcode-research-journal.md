@@ -96000,3 +96000,16 @@ those later bytes once, keep original failed result/inputs, no broad rerun.
 Selected test/production behavior unchanged; todo/diff checks pass. L2's two
 selected T8 successes are separately preserved, not counted as this full-file
 run. Normal push follows; no active A1 test/build or deployment.
+
+## 2026-11-23 A1: two remaining compiler-entities registrations pass
+Mounted05e90f72 / compileda06 pair, verified separately. Exact anchored two-name
+selection:2pass/0fail/2excluded, exit0, original600s/fuel/caps/assertions.
+Both layouts/canonical byte equality, both source/canonical actual LLVM executables,
+and real300-component query-index/zero-count disposal pass. Excluded view/registry
+receipt980898ed reused, not rerun. No entity_pages repeat or production edit/build.
+Actual child7.1571wall/16.0781CPU/508813312B peakRSS; two job processes drained to0.
+Before/after manifests identical; unchanged retained-native-handle OS transport.
+[Short receipt](compiler_entities_remaining_a06_a1.md) records hashes, command,
+phase costs and raw A1/compiler_entities_a06_05e90f72 logs. No Wasm-capacity or
+global-owner census inferred from RSS; no throughput claim. ROOT retains fullT2/
+release, L1/D1 the earlier optimized failure. Todo preserved; normal publication.
