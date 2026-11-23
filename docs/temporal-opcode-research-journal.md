@@ -81341,3 +81341,9 @@ final current-source instrumentation/bootstrap/browser/generation/deployment;
 the separate queued-provenance ownership prerequisite remains open. All owned
 jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
 and exact remote verification follow, recorded in D2's existing status.
+
+Lifecycle push retry1: the first normal push lost a race toe66666c9's exact
+bootstrap-symbol policy/fixture update. Complete-history merge preserved both
+journal entries. No compiler/library/runtime or A1 fixture input changed from the
+validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
+runtime build or broad matrix. Retrying normal main push within the user's bound.
