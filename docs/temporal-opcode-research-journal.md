@@ -96082,3 +96082,17 @@ not relabeled as independently executed. No invalidated storage dependency or
 runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
+
+### 2026-11-23 B2: preserve a06 static packaging and unstarted verifier boundary
+
+[Scoped receipt](static_app_a06_6649bbe1.md): compiled a06/public768 and UI/resources/
+packager6649 remain distinct; current6b74889b packager built alone. All32 inputs,
+101 packaged asset hashes and four unchanged desktop/mobile static checks pass.
+Exact manifest94aa8f5b688793618401ae5b096f0abe72367fc4fc232107998a45259f3fd31b
+and tested_dist retained in B2/static_a06_6649bbe1 with original logs/source/prior
+assets. 110,779,134 installed bytes, gzip decode identities and raw-duplicate
+absence checked. CPU12-23/24GiB; static28.188321wall/15.955930CPU/375748KiB.
+Automatic review rejected verifier-output preparation/launch: "blocked by policy".
+Verifier UNSTARTED; no retry/reconstruction/alternate host; hosted release pending.
+Publication-only turn: inputs/output hashes rechecked, owned jobs drained, no
+runtime changes or performance rerun. Later source identities are not relabeled.
