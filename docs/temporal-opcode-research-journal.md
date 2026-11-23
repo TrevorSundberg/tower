@@ -82479,3 +82479,12 @@ This receipt changes documentation only. Normal push follows as the last of
 three permitted retries after the initial concurrent-main rejection. Remaining
 diagnostic/output and package-encoding storage plus ROOT integrated release
 checks are pending; no deployment or broader validation is claimed.
+
+A1 push retry2: concurrent L1 Fast-storage publication13c8652b merged asb235f2f4.
+Seven affected build actions pass; all46 focused cases and query-smoke pass,
+jobs1/4 CLI results and canonical bytes match the original checked outputs,
+and canonical reparse prints0. Final compiler SHA256
+3f9b54bac07abe4c8c5682c3ac388a941afa2c90cd020389d77d62ddf6719aff.
+Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
+in a comment; unchanged control/LR evidence is reused from retry1. No new profile
+or release claim. Owned jobs drained; retry normal push within the user's bound.
