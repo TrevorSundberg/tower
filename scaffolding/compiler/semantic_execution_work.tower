@@ -81,7 +81,8 @@ fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
 }
 
 fn semantic_executable_kernel(result: SemanticExecutable*): void {
-    var context = *result.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
     context.editor = null;
@@ -163,7 +164,8 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         sem_require(vector_push(&batch, result));
     }
     if batch.length == 0 { return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete; }
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     foreach(var result in &batch) { result.context = &context; }
