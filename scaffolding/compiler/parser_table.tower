@@ -10,6 +10,7 @@ import .library.work_budget_types;
 import .library.work_vector;
 import parser_markers;
 import grammar_observer;
+import parser_structure;
 
 
 extern fn entity_child_count(root: void*): usize;
@@ -38,12 +39,16 @@ fn parser_table_none(): usize {
 }
 
 fn parser_table_clear_runtime(table: ParserHostTable*): void {
-    lr_runtime_destroy(table.runtime);
-    table.runtime = null;
-    foreach(var & state in &table.states) {
-        work_vector_dispose(&state.contexts);
+    if table.structure != null {
+        parser_structure_release(table.structure);
+        table.structure = null;
+        table.states = default;
+    } else {
+        lr_runtime_destroy(table.runtime);
+        foreach(var & state in &table.states) { work_vector_dispose(&state.contexts); }
+        work_vector_dispose(&table.states);
     }
-    work_vector_dispose(&table.states);
+    table.runtime = null;
     table.built = false;
 }
 
@@ -177,6 +182,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     if table.built {
         return true;
     }
+    defer { table.reuse = null; }
     var grammar = table.grammar;
     var missing = grammar == null;
     if missing {
@@ -185,13 +191,18 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     parser_table_clear_runtime(table);
     table.error = null;
     table.resource_error = WorkBudgetError.None;
-    var world = compiler_node_world(table.match_kind);
-    if world != null { grammar_observe(world, GrammarPhase.Table, true, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); }
-    defer { if world != null { grammar_observe(world, GrammarPhase.Table, false, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); } }
     if lr_grammar_pending(grammar) != parser_table_none() {
         table.error = "Unresolved grammar rule";
         return false;
     }
+    var world = compiler_node_world(table.match_kind);
+    if parser_structure_reuse(table, specialize) {
+        grammar_observe(world, GrammarPhase.Reuse, true, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar));
+        grammar_observe(world, GrammarPhase.Reuse, false, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar));
+        return true;
+    }
+    if world != null { grammar_observe(world, GrammarPhase.Table, true, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); }
+    defer { if world != null { grammar_observe(world, GrammarPhase.Table, false, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); } }
     var analysis = lr_analysis_create_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
     lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), &table.resource_error);
     missing = analysis == null;
@@ -234,6 +245,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
         lr_grammar_detach(grammar);
         table.built = true;
         table.error = null;
+        parser_structure_publish(table, specialize);
     }
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);

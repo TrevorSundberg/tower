@@ -600,4 +600,45 @@ isolation, cache reset/churn, lexical patterns and replacement provenance.
 It excludes the separate allocation-failure selector. Counts and timings alone
 do not establish interchangeable versions: tables retain version userdata,
 emission and replacement/provenance bindings. The journal records the measured
-prerequisite for wider immutable runtime reuse; no wider cache was implemented.
+prerequisite and the session-owned structural reuse implementation below.
+
+### Immutable LR structure reuse
+
+Each `SyntaxVersionCache` now owns a bounded `ParserStructureCache`, using the
+existing `FrontendCacheLimit`. The whole-version cache is scoped to its explicit
+world, budget identity and retained Bedrock revision; changing any clears its
+indexes. Formatting forks copy private indexes and retain immutable owners.
+There is no process-wide cache or persistence between fresh worlds.
+
+Every new grammar revision still validates pending rules, emits its ordered
+grammar, resolves imported/token names and activates at the original boundary.
+Only then may the structural cache reuse a completed LR runtime and diagnostic
+state/context columns. Its exact field comparison covers ordered production
+owners/begins/counts/precedence/associativity, ordered terminal/nonterminal ranges,
+names and name order, plus read mode and specialization profile. No padding,
+hash or rule-count approximation establishes equivalence. Compiler algorithm and
+target are fixed by the running executable; entries are never serialized.
+
+Bedrock and ordered imported/local revision dependencies are thus evaluated
+before lookup. Their LR consequences are compared in full; their source identity,
+pending diagnostics, captures, emission, replacements and provenance remain on
+the new version and its own grammar snapshot. A structure hit never substitutes
+another version's userdata or semantic bindings. Authoritative grammar remains
+on ordinary Tower entities; these records are derived execution indexes.
+
+`ParserStructure` pins the frozen grammar key, runtime and context columns.
+Tables and cache entries own coordinator-managed references; request workers
+borrow the already frozen table. Eviction, cache reset or source-table destruction
+releases only its pin. The last pin destroys the shared payload. Cache entries,
+owner descriptors and their payload use existing work buffers/vectors and the
+same explicit budget; that budget must outlive every retained table/fork.
+Borrowed table aliases must never be disposed separately or mutated. Grammar
+resolve/detach/finish operations precede publication of a structural key.
+
+Only successful conflict-free structures are indexed. Required construction
+failures retain their exact result and publish nothing partial; optional cache
+admission/copy may decline without invalidating a usable uncached table. The
+`Reuse` observer counter reports successful reuse; its marker duration is not
+saved construction time. `Table` counts only actual LR builds. Run the focused
+`structure-reuse` selector for metadata separation, scope invalidation, request
+cancellation/retry, Capacity cleanup and ownership-order checks.

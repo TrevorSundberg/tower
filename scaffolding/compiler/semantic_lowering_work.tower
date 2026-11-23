@@ -261,18 +261,7 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
         if error == WorkBudgetError.None {
             error = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, count, extra);
         }
-        entity_view_close(view);
-        for(var i: usize = 0; i < count; ++i) {
-            sem_require(entity_stage_publish(batch.data[i].stage));
-            batch.data[i].stage = null;
-            batch.data[i].context = null;
-        }
-        if error != WorkBudgetError.None {
-            var message: vector(u8) = default;
-            work_cancel(&c.queries);
-            sem_restore_resource(c, error, &message, sem_get(batch.data[0].subject).start);
-            return SemanticPumpResult.Failed;
-        }
+        if !sem_stage_wave(c, batch.data, count, view, error, batch.data[0].subject, null) { return SemanticPumpResult.Failed; }
         for(var i: usize = 0; i < count; ++i) {
             var result = batch.data[i];
             if !sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads)) {

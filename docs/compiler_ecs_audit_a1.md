@@ -1832,3 +1832,20 @@ Reviewed main189e3927 plus this batch. Earlier full-campaign gaps remain open.
 
 No payload storage migration or allocation/locality speed claim. Full measurements,
 failed experiments and exact remaining barriers are in the matching journal entry.
+
+## 2026-11-23 inferred-stage scheduling follow-up
+
+Reviewed b9f2c443 plus this batch; supersedes only the prior all-lowering
+inference gate and its fixture expectations, not the full campaign acceptance.
+
+| File | Ownership, storage and scheduling review | Evidence / remaining limits |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_phase_work.tower` | Entire helper reviewed. Existing world-owned joins and tickets; inferred stages now share the signature/own-owner gate with required stages. Their KnownProof/KnownClone prerequisites remain per subject. Full lowering join still controls diagnostic publication/completion, not inferred execution. | Real early Ready-backlog progress, own-owner wait, repeated waits, errors/cancellation. Shared signature and join/mutation barriers remain. |
+| `scaffolding/compiler/semantic_evaluation.tower` | Request/start/pump/failure closure reviewed. Both policies reserve ROOT's existing executable metadata before dispatch. Reached calls request body/snapshot work through the same pump. Optional relocation, constructor/capture capability flags and known_producer role remain unchanged. L2 allocation admission, A2 stage transitions, ROOT producer preserved. | Inferred nested calls, module/local capture identities, optional fallback/required and resource errors, lazy calls, canonical equivalence. No new layout, allocator, scheduler or alternative IR. |
+| `scaffolding/tests/semantic_staging_frontier_checks.tower` | Entire extended fixture reviewed. Canonical nodes and actual WorkGraph inputs, invocation-owned probe components, bounded shared worker budget; signal lifetimes end after joins. Counts follow the production window and modes. |20 trials: real evaluation rendezvous at4, early progress, known versus required captures including coincident offsets, suspended callee, optional fallback/source errors, untouched lazy dependencies and teardown. Budget width alone is not overlap. |
+| `scaffolding/tests/semantic_resource_checks.tower` | Directly affected setup reviewed. Publish the existing checked IMFunctionInput in both policies so denial still targets executed nested frame growth. Ownership, budget injection, exact receipt and order assertions unchanged. | First stale-oracle failure preserved; corrected query-smoke passes at32/64-bit targets and workers1/4. This is targeted resource coverage, not threaded sanitization. |
+
+Source evidence includes known_bindings before/after canonical equivalence,
+module alias capture, invalid import-cycle diagnostics and aggregate/callback
+identity. Journal records n1 wall/CPU/RSS and exact retained barriers. No packed
+storage, universal alias/race freedom or integrated release completion claim.

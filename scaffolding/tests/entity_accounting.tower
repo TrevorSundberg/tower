@@ -1,0 +1,249 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_buffer;
+import .library.work_budget;
+import .host.memory;
+
+extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strlen(text: u8*): usize;
+var AccountingBudgetBytes: usize = 1048576;
+var AccountingLifecycle: usize = 1;
+struct AccountingValue { value: u64; borrowed: Entity*; }
+struct AccountingState { finalized: usize; }
+struct AccountingSample {
+    buffers: usize;
+    nodes: usize;
+    children: usize;
+    indexes: usize;
+    tables: usize;
+    queries: usize;
+    stages: usize;
+}
+struct AccountingPeaks { buffers: usize; retained: usize; }
+
+fn accounting_check(ok: bool, message: u8*): void { if !ok { trap(message, 0); } }
+fn accounting_label(text: u8*): void {
+    accounting_check(puts(text) >= 0 && fflush(null) == 0, "Accounting output failed");
+}
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    accounting_check(lifecycle == AccountingLifecycle, "Unexpected accounting lifecycle");
+    var state = bits(AccountingState*, entity_context(component.owner));
+    state.finalized++;
+    var value = bits(AccountingValue*, data);
+    if value.borrowed != null { entity_release(value.borrowed); }
+}
+fn accounting_cancel(context: void*): void {
+    bits(AccountingValue*, context).borrowed = null;
+}
+fn accounting_node(sample: AccountingSample*, node: Entity*): void {
+    if node == null { return; }
+    sample.nodes += sizeof(Entity);
+    sample.children += node.child_capacity * sizeof(EntityChild);
+    for(var i: usize = 0; i < node.child_count; i++) {
+        if node.children[i].name != null { sample.children += strlen(node.children[i].name) + 1; }
+    }
+    sample.indexes += (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
+}
+fn accounting_pages(pool: EntityComponentPool*): usize {
+    var bytes: usize = 0;
+    var page = pool.first;
+    while page != null {
+        bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+        page = page.next;
+    }
+    return bytes;
+}
+
+// Ownership census of this bounded normal-allocator workload. Tables store rows
+// and columns in one allocation. Query match.columns borrows query.columns.
+// This is requested storage, not malloc usable size or RSS. No allocator wrapper,
+// failure injection, global counter, worker or second authoritative graph exists.
+fn accounting_sample(label: u8*, store: EntityStore*, root: Entity*, kind: Entity*,
+    nodes: Entity**, count: usize, stage: EntityStage*, view: EntityView*, peaks: AccountingPeaks*): void {
+    var sample: AccountingSample = default;
+    sample.buffers = compiler_buffer_allocation_size(store.allocation.capacity) + accounting_pages(&store.storage);
+    accounting_node(&sample, root);
+    accounting_node(&sample, kind);
+    for(var i: usize = 0; i < count; i++) { accounting_node(&sample, nodes[i]); }
+    var buckets = sizeof(decltype(store.tables)) / sizeof(EntityTable*);
+    for(var i: usize = 0; i < buckets; i++) {
+        var table = store.tables[i];
+        while table != null {
+            sample.tables += sizeof(EntityTable) + table.arity * sizeof(usize)
+                + table.capacity * (sizeof(Entity*) + table.arity * sizeof(EntityComponent*));
+            table = table.next;
+        }
+    }
+    if view != null {
+        sample.queries = sizeof(EntityView);
+        var query = view.queries;
+        while query != null {
+            sample.queries += sizeof(EntityTableQuery) + query.arity * sizeof(usize)
+                + query.count * (sizeof(EntityTableMatch) + query.arity * sizeof(usize));
+            query = query.next;
+        }
+    }
+    if stage != null {
+        sample.stages = sizeof(EntityStage) + stage.nodes.capacity * sizeof(EntityStageNode)
+            + stage.references.capacity * sizeof(Entity*)
+            + stage.cancellations.capacity * sizeof(EntityStageCancellation)
+            + stage.leases.capacity * sizeof(EntityStageLease);
+        sample.buffers += accounting_pages(&stage.storage);
+        foreach(var &entry in &stage.nodes) {
+            accounting_node(&sample, entry.node);
+            if entry.name != null { sample.stages += strlen(entry.name) + 1; }
+        }
+    }
+    var snapshot: WorkBudgetSnapshot;
+    accounting_check(work_budget_snapshot(store.budget, &snapshot), "Accounting snapshot failed");
+    var raw = sample.nodes + sample.children + sample.indexes + sample.tables + sample.queries + sample.stages;
+    var retained = sample.buffers + raw;
+    if sample.buffers > peaks.buffers { peaks.buffers = sample.buffers; }
+    if retained > peaks.retained { peaks.retained = retained; }
+    accounting_label(label);
+    print(sample.buffers); print(sample.nodes); print(sample.children); print(sample.indexes);
+    print(sample.tables); print(sample.queries); print(sample.stages); print(retained);
+    print(snapshot.used_bytes); print(snapshot.peak_bytes); print(snapshot.retained);
+    // Excludes ledger metadata, printed separately. The signed delta also makes
+    // a future overcharge visible rather than silently wrapping an unsigned sum.
+    print(convert(i64, retained) - convert(i64, snapshot.used_bytes));
+}
+fn accounting_query(root: Entity*, kind: Entity*, count: usize, wanted: u64): EntityView* {
+    var view = entity_view_open(root);
+    accounting_check(view != null, "Accounting view failed");
+    var terms: Entity*[1]; terms[0] = kind;
+    var query = entity_view_tables(view, &terms[0], sizeof(decltype(terms)) / sizeof(Entity*));
+    accounting_check(query != null && entity_table_query_count(query) == count, "Accounting query count mismatch");
+    var sum: u64 = 0;
+    for(var range: usize = 0; range < entity_table_query_ranges(query); range++) {
+        var column = entity_table_query_column(query, range, 0);
+        for(var row: usize = 0; row < entity_table_query_range_count(query, range); row++) {
+            sum += bits(AccountingValue*, column[row].data).value;
+        }
+    }
+    accounting_check(sum == wanted, "Accounting canonical payload mismatch");
+    return view;
+}
+fn accounting_profile(): void {
+    var budget: WorkBudget = default;
+    accounting_check(work_budget_init(&budget, 1, AccountingBudgetBytes, 1), "Accounting budget failed");
+    var store: EntityStore* = null;
+    accounting_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Accounting store failed");
+    var state: AccountingState = default;
+    accounting_check(entity_store_set_context(store, bits(void*, &state)), "Accounting context failed");
+    var nodes: Entity*[32] = default;
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    var peaks: AccountingPeaks = default;
+    accounting_label("fields: compiler_buffer_live,node_bytes,child_bytes,index_bytes,table_bytes,query_bytes,stage_bytes,world_retained,ledger_live,ledger_peak,ledger_metadata,omitted_bytes");
+    accounting_sample("store", store, null, null, &nodes[0], count, null, null, &peaks);
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    accounting_check(root != null && kind != null
+        && entity_register(kind, sizeof(AccountingValue), alignof(AccountingValue), AccountingLifecycle), "Accounting roots failed");
+    var wanted: u64 = 0;
+    for(var i: usize = 0; i < count; i++) {
+        nodes[i] = entity_create(store);
+        accounting_check(nodes[i] != null && entity_attach(nodes[i], root, i == 0 ? "first" : null), "Accounting attachment failed");
+        var component = entity_component_add(nodes[i], kind);
+        accounting_check(component != null, "Accounting component failed");
+        var value = convert(u64, i) + 1;
+        *bits(AccountingValue*, component.data) = init(AccountingValue) {value: value, borrowed: null};
+        wanted += value;
+    }
+    var view = accounting_query(root, kind, count, wanted);
+    accounting_sample("created_query", store, root, kind, &nodes[0], count, null, view, &peaks);
+    entity_view_close(view);
+    for(var i: usize = 0; i < count; i += 2) {
+        accounting_check(entity_component_remove(nodes[i], kind) && entity_attach(nodes[i], null, null), "Accounting detach failed");
+    }
+    accounting_sample("detached", store, root, kind, &nodes[0], count, null, null, &peaks);
+    for(var i: usize = 0; i < count; i += 2) {
+        accounting_check(entity_attach(nodes[i], root, null), "Accounting reattach failed");
+        var component = entity_component_add(nodes[i], kind);
+        accounting_check(component != null, "Accounting reuse failed");
+        *bits(AccountingValue*, component.data) = init(AccountingValue) {value: convert(u64, i) + 1, borrowed: null};
+    }
+    view = accounting_query(root, kind, count, wanted);
+    accounting_sample("reused_query", store, root, kind, &nodes[0], count, null, view, &peaks);
+    entity_view_close(view);
+    var stage = entity_stage_open(root);
+    accounting_check(stage != null && entity_stage_lease(stage, nodes[0]), "Accounting stage lease failed");
+    var staged: Entity*[4] = default;
+    var staged_count = sizeof(decltype(staged)) / sizeof(Entity*);
+    for(var i: usize = 0; i < staged_count; i++) {
+        staged[i] = entity_stage_create(stage, root);
+        accounting_check(staged[i] != null, "Accounting staged node failed");
+        var component = entity_component_add(staged[i], kind);
+        accounting_check(component != null, "Accounting staged component failed");
+        var value = bits(AccountingValue*, component.data);
+        *value = default;
+        if i == 0 {
+            var references: Entity*[1]; references[0] = root;
+            accounting_check(entity_stage_references_cancellable_result(stage, &references[0],
+                sizeof(decltype(references)) / sizeof(Entity*), accounting_cancel, bits(void*, value)) == WorkBudgetError.None,
+                "Accounting cancellable queue failed");
+            value.borrowed = root;
+        }
+    }
+    view = entity_view_open(root);
+    accounting_check(view != null, "Accounting staged input pin failed");
+    accounting_sample("private_stage", store, root, kind, &nodes[0], count, stage, view, &peaks);
+    accounting_check(entity_stage_discard_result(stage) == WorkBudgetError.None, "Accounting discard failed");
+    entity_view_close(view);
+    accounting_check(root.references == 1 && nodes[0].stage == null, "Accounting stage ownership leaked");
+    for(var i: usize = 0; i < count; i++) {
+        accounting_check(entity_attach(nodes[i], null, null), "Accounting final detach failed");
+        entity_release(nodes[i]); nodes[i] = null;
+    }
+    accounting_check(state.finalized == count + (count + 1) / 2 + staged_count, "Accounting finalizer count mismatch");
+    entity_release(kind); entity_release(root);
+    accounting_check(store.entity_count == 0 && store.component_count == 0 && store.storage.first == null, "Accounting world retained entities");
+    accounting_sample("released", store, null, null, &nodes[0], count, null, null, &peaks);
+    accounting_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget), "Accounting final ledger cleanup failed");
+    accounting_label("peaks: compiler_buffers,observed_world_retained; final_world_and_ledger=0");
+    print(peaks.buffers); print(peaks.retained);
+}
+
+// Desired whole-store admission gate, intentionally separate from the passing
+// ownership/profile oracle. Current raw Entity allocation bypasses this cap.
+// No WILL_FAIL/skip conversion: eventual producer correction must return Capacity.
+fn accounting_cap(): i32 {
+    var calibration: WorkBudget = default;
+    accounting_check(work_budget_init(&calibration, 1, AccountingBudgetBytes, 1), "Cap calibration failed");
+    var store: EntityStore* = null;
+    accounting_check(entity_store_create_result(&calibration, &store) == WorkBudgetError.None, "Cap calibration store failed");
+    var limit = calibration.used_bytes;
+    accounting_check(entity_store_dispose(store) && work_budget_dispose(&calibration), "Cap calibration cleanup failed");
+    var budget: WorkBudget = default;
+    accounting_check(work_budget_init(&budget, 1, limit, 1), "Finite cap initialization failed");
+    store = null;
+    accounting_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None && budget.used_bytes == limit,
+        "Calibrated finite store footprint changed");
+    var buffer: WorkBuffer = default;
+    accounting_check(work_buffer_resize(&buffer, &budget, sizeof(u8), 0) == WorkBudgetError.Capacity
+        && buffer.data == null, "Charged buffer must respect exhausted cap");
+    var identity = store.next_id;
+    var error = WorkBudgetError.None;
+    var node = entity_create_result(store, &error);
+    var accepted = node == null && error == WorkBudgetError.Capacity && store.next_id == identity
+        && store.entity_count == 0 && budget.used_bytes == limit;
+    accounting_label("cap: limit,ledger_after_create,raw_node_bytes,error,expected_error");
+    print(limit); print(budget.used_bytes); print(node == null ? 0 : sizeof(Entity));
+    print(convert(u32, error)); print(convert(u32, WorkBudgetError.Capacity));
+    if node != null { entity_release(node); }
+    accounting_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget), "Finite cap failure must still clean up");
+    if !accepted { accounting_label("FAIL: raw entity creation bypassed the finite store budget; cleanup passed"); return 1; }
+    accounting_label("PASS: exhausted store budget rejected entity creation without publication");
+    return 0;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 2 && strcmp(argv[1], "profile") == 0 { accounting_profile(); return 0; }
+    if argc == 2 && strcmp(argv[1], "cap") == 0 { return accounting_cap(); }
+    accounting_label("usage: entity_accounting profile|cap"); return 2;
+}

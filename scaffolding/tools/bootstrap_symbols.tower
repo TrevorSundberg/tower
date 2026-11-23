@@ -101,6 +101,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     if unit == BootstrapUnit.ParserNodes {
         // Diagnostic text retains the ParserFormat provider's buffer result.
         if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
+        if bootstrap_symbol_in("parser_structure_cache_copy parser_structure_cache_dispose", symbol, length) { return true; }
         // Configured module startup fixtures consume world and unit ownership.
         if bootstrap_symbol_in("compiler_world_create_result frontend_units_close frontend_units_create_bounded_result", symbol, length) { return true; }
         // Grammar admission retains exact results from the existing entities unit.

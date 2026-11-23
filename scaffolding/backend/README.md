@@ -84,8 +84,8 @@ context/module still has one owner. Link services use separate request worlds.
    the shared root and its ordered function index. The caller must supply a
    successful semantic result. The library flag excludes the synthesized entry
    and rejects executable module statements. Lowering verifies the module and
-   retains its raw LLVM text.
-4. `backend_optimize(backend, enabled)` verifies again and retains the resulting
+   retains its raw LLVM text by default.
+4. `backend_optimize(backend, enabled)` verifies again and by default retains the resulting
    LLVM text. With optimization enabled it runs
    `function(sroa,mem2reg,instcombine<no-verify-fixpoint>,simplifycfg),default<O2>`
    with verification at the lowering/optimization boundaries. Set the Tower
@@ -95,6 +95,13 @@ context/module still has one owner. Link services use separate request worlds.
 5. `backend_emit(backend)` produces target object bytes in memory.
 6. Read `backend_raw`, `backend_optimized`, `backend_bytes`, `backend_size`,
    `backend_error` and `backend_error_offset`. Call `backend_close` once.
+
+Object-only consumers can call `backend_retain_ir(backend, false)` before
+lowering to skip both LLVM text snapshots. It rejects a result that has already
+started lowering; verification, optimization and object emission are unchanged.
+The two text getters then return null. Default retention preserves existing API
+behavior. The native CLI opts out for object/executable output unless IR sidecars
+are requested; explicit LLVM output keeps text.
 
 Native `backend_units_create(frontend, count, budget, triple, library, optimize)`
 extends a configured or successfully completed FrontendUnits batch. It attaches
@@ -113,6 +120,17 @@ select the first unit in source order. Cancellation drains admitted jobs before
 unpinning, and a cancelled graph cannot be reused. Linking remains a separate
 exclusive stage. Browser LLVM compilation continues to use isolated reactors;
 the native callback selection API is not a browser shared-memory LLVM backend.
+
+`backend_units_retain_ir(batch, retain)` configures the same text policy before
+dispatch. `backend_units_observer(batch, context, event)` optionally observes
+phase entry/exit with a source ordinal and `BackendPhase` from
+`observation_types.tower`. Both reject changes after dispatch or completion.
+The callback/context remain borrowed through cancellation and the final join;
+independent unit callbacks can run concurrently and must not mutate compiler or
+LLVM state. Phases are setup, preparation/reachability, declarations, body IR,
+verification, raw text, optimization (including its verification), optimized text
+and emission. Each unit still exclusively owns one LLVM context/module/machine;
+phase observation does not introduce parallelism within a unit.
 
 Perform each stage once on a fresh result. Text and byte views remain borrowed
 until close; copy them to retain downloads beyond that lifetime. The Foundation
