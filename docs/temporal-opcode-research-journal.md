@@ -93660,3 +93660,20 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+### 2026-11-23 D1: original twelve-row ledger reconciliation at7890ebd7
+
+Required pull froze7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2; exact root/compiler/
+library trees recorded in handoff and D1 audit. Same original12 requirements,
+historical3ea/c20 rows preserved. Reconciled b8 builds versus Windows/A1 fullT5/
+D2 actual alias-malformed execution, B1 grammar/uniform evidence, L1 loop receipts,
+L2 published amplification/byte correction and pending void* execution. B2's
+repair is now published with exact matching host bytes and scoped f167 controls;
+current-successor adoption remains separate. No final-release claim or percentage.
+Finite delta92 Tower/3CMake:73 exact independent source-review matches;19 Tower/
+2contracts mapped to owner receipts and explicitly pending full independent
+final-source review. Actual shared registrations/negative gap checked; no new
+census or implementation. Source map in D1 audit; evidence
+build/d1_ecs/ledger_7890ebd7. Unpushed fixes excluded; nativeRSS is not guest capacity.
+No tests/builds/profiles/sanitizer or rejected-operation retry; docs-only profiling
+inapplicable. Same D1 UUID, PID3169473; disk127GiB/RAM9.8GiB available, no owned
+jobs/heavy lock, todo unchanged. ROOT owns final-source/generation/pin/hosted gates.
