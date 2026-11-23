@@ -1,0 +1,128 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn puts(text: u8*): i32;
+var StageFaultLimit: usize = 96;
+var StageFaultBudgetBytes: usize = 1048576;
+var StageFaultLifecycle: usize = 1;
+struct StageFaultPayload { target: Entity*; value: usize; }
+fn stage_fault_check(ok: bool): void {
+    if !ok { trap("Typed stage/view allocation failure regression", 0); }
+}
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    stage_fault_check(lifecycle == StageFaultLifecycle);
+    var payload = bits(StageFaultPayload*, data);
+    if payload.target != null { entity_release(payload.target); }
+}
+
+fn stage_fault_open(): void {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    stage_fault_check(store != null && root != null);
+    var live = tower_test_buffer_count();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(0);
+    stage_fault_check(entity_stage_open_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    stage_fault_check(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Memory);
+    tower_test_buffer_fail_after(0);
+    stage_fault_check(entity_view_open_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    stage_fault_check(entity_view_open_result(root, &error) == null && error == WorkBudgetError.Memory);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    stage_fault_check(tower_test_buffer_count() == live && root.references == 1 && store.views == 0);
+    var stage = entity_stage_open_result(root, &error);
+    stage_fault_check(stage != null && error == WorkBudgetError.None);
+    var view = entity_view_open_result(root, &error);
+    stage_fault_check(view != null && error == WorkBudgetError.None);
+    entity_view_close(view);
+    entity_stage_discard(stage);
+    entity_release(root);
+    stage_fault_check(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+}
+
+fn stage_fault_payload(stage: EntityStage*, node: Entity*, type: Entity*, target: Entity*): EntityComponent* {
+    var component = entity_component_add(node, type);
+    stage_fault_check(component != null);
+    var payload = bits(StageFaultPayload*, component.data);
+    *payload = default;
+    payload.value = 4567;
+    stage_fault_check(entity_stage_references(stage, &target, 1));
+    payload.target = target;
+    return component;
+}
+
+fn stage_fault_publish(failure: usize): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    stage_fault_check(work_budget_init(&budget, 1, StageFaultBudgetBytes, 1));
+    var store: EntityStore* = null;
+    stage_fault_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var existing = entity_create(store);
+    var first_type = entity_create(store);
+    var type = entity_create(store);
+    var target = entity_create(store);
+    stage_fault_check(root != null && existing != null && first_type != null && type != null && target != null
+        && entity_attach(existing, root, "existing")
+        && entity_register(first_type, sizeof(usize), alignof(usize), 0)
+        && entity_register(type, sizeof(StageFaultPayload), alignof(StageFaultPayload), StageFaultLifecycle));
+    entity_release(existing);
+    var stable = entity_component_add(existing, first_type);
+    stage_fault_check(stable != null);
+    *bits(usize*, stable.data) = 9876;
+    var table = existing.table;
+    var error = WorkBudgetError.None;
+    var stage = entity_stage_open_result(root, &error);
+    stage_fault_check(stage != null && error == WorkBudgetError.None && entity_stage_lease(stage, existing));
+    var fresh = entity_stage_create_named(stage, root, "fresh");
+    stage_fault_check(fresh != null);
+    var fresh_component = stage_fault_payload(stage, fresh, type, target);
+    var leased_component = stage_fault_payload(stage, existing, type, target);
+    var address = leased_component.data;
+    var bytes = budget.used_bytes;
+    var receipts = budget.live;
+    var entities = store.entity_count;
+    var components = store.component_count;
+    var identity = store.next_id;
+    tower_test_buffer_fail_after(failure);
+    var result = entity_stage_publish_result(stage);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var succeeded = result == WorkBudgetError.None;
+    if !succeeded {
+        stage_fault_check(result == WorkBudgetError.Memory && root.child_count == 1 && stage.held == 0
+            && target.references == 1 && type.instance_count == 0 && store.entity_count == entities
+            && store.component_count == components && store.next_id == identity && fresh.id == 0
+            && existing.table == table && existing.pending_table == null && fresh.pending_table == null
+            && existing.stage == bits(void*, stage) && leased_component.data == address
+            && budget.used_bytes == bytes && budget.live == receipts);
+        result = entity_stage_publish_result(stage);
+    }
+    stage_fault_check(result == WorkBudgetError.None && fresh.components[0] == fresh_component
+        && existing.stage == null && fresh.stage == null && root.child_count == 2
+        && type.instance_count == 2 && target.references == 3 && leased_component.data == address
+        && *bits(usize*, stable.data) == 9876 && bits(StageFaultPayload*, address).value == 4567
+        && budget.used_bytes == bytes && budget.live == receipts);
+    entity_release(target); entity_release(type); entity_release(first_type); entity_release(root);
+    stage_fault_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == baseline);
+    return succeeded;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    stage_fault_open();
+    var succeeded = false;
+    for(var failure: usize = 0; failure < StageFaultLimit; failure++) {
+        if stage_fault_publish(failure) { succeeded = true; break; }
+    }
+    stage_fault_check(succeeded);
+    puts("0");
+    return 0;
+}
