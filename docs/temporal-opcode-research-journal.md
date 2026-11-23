@@ -69017,7 +69017,7 @@ stage before checking publication. The default production pool callback is used.
 This supersedes the earlier global observation proposal; no guessed offsets,
 duplicate component definition or new scheduler. Retry2 remains unrun.
 
-## 2026-11-23 — L2 complete caller/provider convergence before publication regression
+## 2026-11-23 - L2 complete caller/provider convergence before publication regression
 
 Same L2 session/PID12136, gpt-6-astra/xhigh/default tier. Complete ROOT556
 and A1 caller0beeb histories now merge at eec97f62f87ffe7c559efbba393212c014231d09.
@@ -69122,7 +69122,7 @@ package, source and input hashes pass. Source bytes equal committed d65c110
 use the identical beforeeec runtime resources and explicit Bedrock/Foundation,
 ordinary --interpret --timings, jobs1/4. Host: same WSL Linux6.18.33.2 x64,
 glibc2.39-0ubuntu8.12, Ryzen5900HX8 cores/16 threads. Arena, mmap threshold and
-GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06–09:32:55UTC; one
+GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06-09:32:55UTC; one
 warmup per combination discarded, then three alternating before/after pairs.
 No cold-cache or isolated-kernel speed claim. Constructor input3846 bytes has
 SHA256bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071
@@ -69132,17 +69132,17 @@ expected lines28,36,504,504,73. Both exact input files are retained.
 
 Medians of three retained samples (CPU=user+system, RSS KiB):
 
-| Workload / jobs | Wall before ? after, s | CPU before ? after, s | RSS before ? after, KiB |
+| Workload / jobs | Wall before -> after, s | CPU before -> after, s | RSS before -> after, KiB |
 | --- | --- | --- | --- |
-| Constructor /1 |1.55 ?1.50|1.53 ?1.50|179908 ?180376|
-| Constructor /4 |1.30 ?1.26|1.59 ?1.57|198932 ?199048|
-| Generic /1 |1.54 ?1.59|1.53 ?1.56|184808 ?184920|
-| Generic /4 |1.31 ?1.30|1.62 ?1.61|206300 ?206548|
+| Constructor /1 |1.55 ->1.50|1.53 ->1.50|179908 ->180376|
+| Constructor /4 |1.30 ->1.26|1.59 ->1.57|198932 ->199048|
+| Generic /1 |1.54 ->1.59|1.53 ->1.56|184808 ->184920|
+| Generic /4 |1.31 ->1.30|1.62 ->1.61|206300 ->206548|
 
 The generic one-worker median increases3.2% wall/2.0% CPU; it is not recorded as
-neutral or faster. Retained wall ranges are1.52–1.55s before and1.53–1.64s after.
+neutral or faster. Retained wall ranges are1.52-1.55s before and1.53-1.64s after.
 CLI phase review locates most of that difference in compilation: median1388.413
-?1444.867ms (ranges1376.975–1412.658 and1381.404–1478.624). These three samples
+->1444.867ms (ranges1376.975-1412.658 and1381.404-1478.624). These three samples
 do not establish a persistent cause; no additional identical rerun is justified
 solely to obtain a better result. Other configurations vary in the opposite
 direction; the four-worker generic median is close. All median RSS increases are
@@ -70731,17 +70731,18 @@ expected lines28,36,504,504,73. Both exact input files are retained.
 
 Medians of three retained samples (CPU=user+system, RSS KiB):
 
-| Workload / jobs | Wall before ? after, s | CPU before ? after, s | RSS before ? after, KiB |
+| Workload / jobs | Wall before -> after, s | CPU before -> after, s | RSS before -> after, KiB |
 | --- | --- | --- | --- |
-| Constructor /1 |1.55 ?1.50|1.53 ?1.50|179908 ?180376|
-| Constructor /4 |1.30 ?1.26|1.59 ?1.57|198932 ?199048|
-| Generic /1 |1.54 ?1.59|1.53 ?1.56|184808 ?184920|
-| Generic /4 |1.31 ?1.30|1.62 ?1.61|206300 ?206548|
+| Constructor /1 |1.55 ->1.50|1.53 ->1.50|179908 ->180376|
+| Constructor /4 |1.30 ->1.26|1.59 ->1.57|198932 ->199048|
+| Generic /1 |1.54 ->1.59|1.53 ->1.56|184808 ->184920|
+| Generic /4 |1.31 ->1.30|1.62 ->1.61|206300 ->206548|
 
 The generic one-worker median increases3.2% wall/2.0% CPU; it is not recorded as
 neutral or faster. Retained wall ranges are1.52-1.55s before and1.53-1.64s after.
 CLI phase review locates most of that difference in compilation: median1388.413
 ?1444.867ms (ranges1376.975-1412.658 and1381.404-1478.624). These three samples
+->1444.867ms (ranges1376.975-1412.658 and1381.404-1478.624). These three samples
 do not establish a persistent cause; no additional identical rerun is justified
 solely to obtain a better result. Other configurations vary in the opposite
 direction; the four-worker generic median is close. All median RSS increases are
@@ -71338,3 +71339,98 @@ code costs, because executable-derived fallback paths also affect allocations.
 L2 and B1 are controlling that variable in their next bounded comparisons. This
 does not establish that the explicit primary Foundation resource trees differed.
 All final combined acceptance and publication gates remain open.
+
+### Root302 pool integration and CLI installation-path control
+
+After all L2 frozen jobs drained, complete ROOT351 then ROOT302 histories merged
+at6d253 and edde50b8080f9e7c5e57285ae3a3e403d546ebc8 respectively. Both merges
+preserve991/d65 and all owner histories. Renewed Git connectivity-only checks
+pass after repeated transient fetch pack-index warnings; no cleanup/discard was
+used. The changed world/pool contracts are not validated by prior52036 binaries.
+
+ROOT explicitly assigned the owned publication fixture's production pool entry
+follow-up. It now calls A1's actual sem_workers_open, checks that retained slot
+storage belongs to the fixture world budget, derives byte extent from actual
+count*sizeof(WorkSlot), verifies charged physical bytes and no lane grant, and
+lets sem_context_dispose perform its real pool close. All copied-work, Busy,
+publication, stale-failure and zero-final-ledger assertions remain. Public compile
+and current union runtime evidence are pending. No production implementation is
+copied into the fixture.
+
+L1's independent control observes materially different costs for the SAME binary
+at different installation paths. Explicit Foundation selects the primary module
+base; executable-derived fallback paths are still constructed/allocated. This is a real
+attribution limit for L2's differently located CLI comparisons, including26993:
+the raw observed numbers remain valid for those installations, but isolated code
+cost is unproved. Do not erase the slower samples or claim the explicit grammar
+paths alone removed this confound. Prepare a control with both immutable variants
+copied outside timing to ONE fixed executable and resource path, no child alive
+while replacing it, and checked input/output hashes. Preserve the existing52036
+binary/resource package before rebuilding the now-changed live cache. No such
+control has yet run; L1 currently owns quiet measurements.
+
+### Fixed-installation control21641 for typed publication
+
+The complete52036 after package was verified against recorded binary hashes and
+saved before any newer cache build at /root/.cache/tower/l2_generic_stage_after_52036.
+Its builtin resources are byte-identical to beforeeec. Both immutable compilers
+then execute at ONE actual path, /root/.cache/tower/l2_generic_stage_profile_fixed/towerc,
+with that same directory's resource root and identical workload paths. Every copy
+and byte/hash check occurs outside timing, after the previous child has exited.
+This addresses executable-derived fallback/path allocation without asserting that
+explicit Foundation previously selected different primary imports.
+
+Dedicated09:48:29-09:49:15UTC, same host/glibc/default allocator, ordinary graph
+interpretation and jobs1/4; one warmup discarded and three alternating pairs per
+case. All32 processes/independent output oracles pass. Before package, after
+package, staging resource and input hashes all pass. No source in the newly
+merged current checkout participates in this frozen d65 comparison.
+
+| Workload / jobs | Median wall before -> after, s | Median CPU before -> after, s | Median RSS before -> after, KiB |
+| --- | --- | --- | --- |
+| Constructor /1 |1.51 ->1.52|1.50 ->1.52|179848 ->179932|
+| Constructor /4 |1.27 ->1.29|1.57 ->1.58|198744 ->198700|
+| Generic /1 |1.56 ->1.55|1.55 ->1.52|184832 ->184896|
+| Generic /4 |1.30 ->1.31|1.62 ->1.63|206328 ->206328|
+
+This stronger control does not reproduce26993's generic one-worker median
+increase. Wall differences are within0.02s and median RSS differences under100KiB
+in these samples. It does not prove all earlier variation came from installation
+path, establish a broad speedup, or validate the later ROOT world/pool/reuse
+union. Retain both runs and their scopes. No further identical rerun is planned.
+The earlier f035 editor RSS observation remains a separate workload/ABI comparison;
+this narrow CLI control does not erase it.
+
+Fixed-control raw receipt L2_typed_publication_fixed_receipt.tgz contains121 files,
+15922 bytes, SHA2569a0e52f5921c4bd6f880fce352d82e449d09092f717f69a6c648d209710593e8.
+The previous raw170-file receipt and complete991 source history remain retained.
+
+### Production semantic-pool fixture30558 on ROOT9d73
+
+Complete ROOT9d73/A2 reuse history merged atbecff6fba41b4fcdb806881dcb2422a23350a50a.
+Owned three-path draft379e3eaf restored once with no conflicts. After the incoming
+journal repair, one remaining raw0x97 belonged to MY earlier L2 convergence
+heading; it was changed to an ASCII separator, with original bytes/context saved.
+My question-mark arrow substitutions in the measurement tables were also restored
+to ASCII -> without changing values. Use explicit UTF8 appends. Current journal
+passes strict UTF8 and git diff --check. This is documentation encoding repair,
+not runtime evidence, and preserves unrelated history.
+
+Actual30558 process0/source0: the changed fixture public leaf passes4.83s wall,
+3.96s CPU,216864KiB RSS; coherent15-step native compiler/LR-j2 passes77.11s wall,
+118.35s CPU,747664KiB; query-smoke passes0.20s wall,0.23s CPU,74604KiB. Compiler
+SHA2568318e3872a07107745134ad1549e27996fcc560b23ebc50276b38ea8d99e1bd3;
+LR SHA256c0e9d8854bb5a71aac347cbb499c5e91585602b21f2bc741eb2b085ff8b9aec2.
+The fixture now proves the actual sem_workers_open slot allocation belongs to
+its world budget, derives extent from real count/type, and reaches real context
+teardown without manually closing the pool. All original completed-copy, Busy,
+no-publication, sticky-failure and zero-final-owner checks pass at widths4/8.
+Existing query/overlap/cancellation oracles also pass. These validation costs do
+not isolate the performance of this test-only change from the merged ABI work.
+The d65 production change retains its separate fixed-path comparison21641.
+
+All jobs drained and the host reservation was released before further edits.
+L1's newly delivered full64c15 cache union is not in these binaries; its changed
+IMState requires a coherent affected rebuild. Current instrumentation, late
+inspection and final clean/public/bootstrap/browser/publication remain open.
+The separate B1/A1 finite-capacity producer failure is not closed by query-smoke.
