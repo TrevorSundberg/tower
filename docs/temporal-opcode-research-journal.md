@@ -81560,3 +81560,13 @@ shared ceilings and cancellation. Final backend-overlap-calibrated again passes
 exact objects and distinct live threads. Logs b2_admission_push_merge_{build,test,
 backend}.log. Reuse unchanged startup/ordered-failure and cost evidence above;
 no rerun of unrelated matrices. All owned jobs drained; retrying normal main push.
+
+Second remote advance189e3927 brought B1 parser diagnostic ownership. Merge2f20652c
+preserved both histories and README/journal additions. Seven-action dependency
+rebuild passed; final merged unit-admission passes with76819ns refill, units
+passes canonical output/ordered diagnostics/cancellation, module-cache admission
+and retry passes, and backend-overlap-calibrated passes exact objects/distinct
+worker overlap. Logs b2_admission_parser_merge_{build,test,units,modules,backend}.log.
+B2 implementation remains dbce8d7f unchanged; no retiming of the isolated cost
+sample. All owned children drained; normal push retry follows. Broad gates and
+hosted deployment stay pending ROOT, with exact module-provider handoff above.
