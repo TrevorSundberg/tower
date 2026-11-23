@@ -85432,3 +85432,22 @@ work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
 
 Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
+B1 integration receipt: implementation3415d9c8; complete published3dc3251e,
+including L2 node admission1137b6ce, merged cleanly as4bea26d6. Only the separate
+sem_node region changed upstream in semantic_support; index/registration/transfer
+and metadata remained intact. Five dependent native actions passed in24.23wall/
+24.78CPU seconds/821028KiB. Merged scratch, query and local-root control checks
+pass;1024 lists still max17 probes, live268956/peak273084B and zero final grants.
+Frozen actual semantics compilation completes with merged compiler
+6d1430861cc79ed564d3f163ba960a9ee5b3de8b339ae27e00b347f16a84d083:
+workers1 23.88wall/18.48CPU seconds/999584KiB; workers4 21.18/19.47/1039488KiB.
+Both outputs are byte-identical, SHA256
+0195137140baa65ee9b8cc6c575f16e53fab83bee5c8fdc0a61bff07811670a6.
+Comparison against the pre-merge known-good object differs after L2's producer
+changes; retained as a failed cross-version byte comparison, not hidden or
+attributed to the index. Defined-symbol names/types match; only float_pack and
+float_parse sizes differ (0x26a->0x28b and0x83e->0x84f), other addresses shift.
+This bounded check does not diagnose that separate compiler-generation delta;
+ROOT/B2 retain complete-generation identity acceptance. Original exact reference
+comparison remains valid for3415d9c8. All owned jobs drained, todo unchanged;
+normal main push follows this receipt, with no pin/deployment change.
