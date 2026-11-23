@@ -91440,3 +91440,13 @@ Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a
 is retained separately from the measured resource identity, not relabeled as a
 new full runtime acceptance. L2 residual inputs/responses remain actionable for
 its newer backend producer; no new reactor was available or adopted here.
+T7 publication reconciliation: implementation56e04876 merged complete published
+78650118 as66657986808f7097e448c613ab0cd3c5dfc52af7 after ff-only pull correctly
+refused divergence. All recorded Node/host inputs and all eight supplied artifact
+hashes still match. Resource verification reports exactly one changed existing
+entry, tests/stress/comment_functions.tower, from A1's separate source-backend
+fixture repair; it is registered but not imported or executed by any T7 source.
+The cross main/language closure remains unchanged. Preserve that mismatch log;
+reuse scoped execution without claiming the entire later registry was rerun.
+Incoming five Node files/owner receipts are outside this assignment. No repeated
+tests, compiler builds or owner edits; final joined release stays ROOT-owned.

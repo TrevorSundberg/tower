@@ -4440,3 +4440,8 @@ These are validation costs, not equivalent-success production performance data.
 Fixture-only boundary repair has no production optimization/scaling claim. No
 compiler build, repeated aggregate, generation, sanitizer or unrelated gate run.
 All owned jobs drained and shared heavy lock released before publication.
+
+Merged adoption66657986 retains all T7 test/host/artifact hashes. The only changed
+existing mounted resource is A1's tests/stress/comment_functions.tower, outside
+these executed imports. Its mismatch is preserved in merged_resources_check.log;
+the original full-registry identity is not relabeled as a fresh merged test run.
