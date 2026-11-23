@@ -253,11 +253,12 @@ fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
     pipeline.jobs = sem_known_jobs_begin(c, kind, count, SemanticQuery.SourceBindings);
     if !sem_ok(c) { return 0; }
     pipeline.query = work_request(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    if !sem_known_query_check(c, subject, pipeline.query != 0) { return 0; }
     foreach(var job in &pipeline.jobs) {
-        sem_require(work_depend(&c.queries, pipeline.query,
-            work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0)));
+        if !sem_known_query_check(c, subject, work_depend(&c.queries, pipeline.query,
+            work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0))) { return 0; }
     }
-    sem_require(work_seal(&c.queries, pipeline.query));
+    if !sem_known_query_check(c, subject, work_seal(&c.queries, pipeline.query)) { return 0; }
     if owner == null { c.source_binding_proof = pipeline.query; }
     return pipeline.query;
 }
@@ -293,11 +294,19 @@ export fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult {
         if state == SemanticPumpResult.Progress || state == SemanticPumpResult.Failed { return state; }
         if state == SemanticPumpResult.Waiting { waiting = true; continue; }
         var ticket: WorkTicket;
-        if !work_take_task(&c.queries, &ticket, pipeline.query) { waiting = true; continue; }
+        var subject = work_task(&c.queries, pipeline.query).subject;
+        if !work_take_task(&c.queries, &ticket, pipeline.query) {
+            if !sem_known_query_check(c, subject, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+            waiting = true;
+            continue;
+        }
         sem_source_bindings_publish(c, &pipeline.jobs, pipeline.extension);
-        sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
+        var finished = work_finish(&c.queries, &ticket, sem_ok(c));
+        // Joined facts have already published. Retire their private owners once,
+        // even if enqueueing a dependent consumer cannot grow the graph.
         pipeline.published = true;
         sem_known_jobs_dispose(&pipeline.jobs);
+        if !sem_known_query_check(c, subject, finished) { return SemanticPumpResult.Failed; }
         return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
     }
     return waiting ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;

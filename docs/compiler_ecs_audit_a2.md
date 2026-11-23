@@ -1635,3 +1635,41 @@ before finalizers. Simply returning Exhausted cannot safely finalize unowned fie
 Typed references_result is a separate producer prerequisite with preserved ignored
 null entries; durable failed-hold ownership still needs design and evidence. This
 supersedes any inference that the earlier stage lifetime tests cover counter limits.
+
+### Typed containment/stage producer review,08c383ef plus A2 draft (2026-11-23)
+
+These rows extend the full earlier per-file audit. They are implementation and
+focused-review receipts; integrated validation and publication remain open.
+
+| Assigned path | Storage/ownership/scheduling conclusion and evidence |
+| --- | --- |
+| `library/entities.tower` | Exact attach result preserves named/ordered containment and old owning references on failed admission; checks old-parent and displaced-child leases in addition to incoming/destination owners. The before regression fails4 assertions. New retain checks exhaustion; existing ownership transfer needs no additional retain. A measured wide-tail removal path now checks the actual last child before the ordered linear fallback, with no new index/layout. Raw nodes/names/child arrays remain uncharged. replace_child/take_last_child affected-child leases and general retain/hold exhaustion remain open; no universal mutation closure. |
+| `library/entity_api.tower` | Adds exact declaration for attach_result; existing bool ABI retained. No implementation or independent world lives here. |
+| `library/entity_stage.tower` | Typed worker-private create/named-create and reference-queue results preserve wrappers and exact Invalid/Busy/Memory. Failed create/queue leaves published identities/links and queued length/holds unchanged; reserved capacities may grow. Null entries remain optional. Stable component pages/derived archetype indexes are unchanged; these new raw node allocations are not packed payload storage or accounted pages. Hold exhaustion still requires a durable ownership design. |
+| `tests/entity_attach_leases.tower` | Regression against authoritative entities/stages, before4failed assertions/exit1 versus corrected0. Keeps external children alive while proving forbidden source-parent/displaced-child mutations; restores only old implementation's bad state for leak-free observation. Native/wasm and final instrumentation receipts pending below. |
+| `tests/entity_mutation_results.tower` | Serial allocator fixture covers null/foreign/self/pin/other-stage/overflow/retain exhaustion, reordering/named replacement, duplicated/null references and unchanged queue on invalid input. Successful allocation count determines every failure point; preserved containment/name/refcounts and complete teardown are asserted. Existing serial runtime/portable transport only, never concurrent sanitizer evidence. |
+| `tests/entity_containment_profile.tower` | New Tower observer checks full canonical ordered membership and reference counts for1024/65536 nodes, four reverse tail transfers. Reports phasewall/CPU/RSS, exact descriptor/retained child-buffer capacities; process observer adds whole-execution metrics. Source input/actual path frozen for comparisons. No parallelism is claimed for ordered shared containment publication, and no total-heap accounting claim is inferred. |
+| `compiler/syntax_provenance.tower` (ROOT interface review only) | Sole current production reference-queue caller prepares temporary arrays/component before queueing; installs owning fields after success. ROOT owns precise metadata result adoption; A2 makes no foreign production edit. Pin only protects lifetime; coordinator must acquire queued holds before last view closes. |
+Typed/tail candidate validation now passes3public leaf units/5focused executables,
+24 ASan+LSan/TSan runs with production runtime and real concurrent stage/node
+work, canonical native/query/resource/receipt/units/control/parser/grammar-resource/
+storage+12caller gates, and actual Node WASI lease regression. Source hashes
+frozen; final compiler2415f8e8/wasmb6704534. Serial fault injection is separate.
+Unsupported sourceUBSan/Windows/system-library/whole-release coverage remains.
+
+152matched checked executions plus canonical serial/parallel equality/reparse
+use exact same install paths/cwd and hashed08c resources;3pairs+warmup. Tail
+transfer phase for65536children improves1.798113s->2.253766ms with identical
+2MiB retained child arrays; wholeprocess1.811670s->15.172485ms. Typed-only linear
+prototype remains preserved, so this is attributed to the last-child check,
+not result-enum speed. Compiler wall-2.32% to+0.24%, CPU-2.97% to+0.23%; no
+blanket neutrality claim. Raw-node1/4 timings are noisier: initial4tree whole
+wall+11.5%/CPU+5.1%, while other shapes improve. A bounded9-pair control is
+pending; all initial results remain explicit in the journal. Four workers help
+large creation phase, small work and8workers do not justify broad scaling claims.
+Node descriptors remain uncharged; this patch does not implement node pages.
+
+Adjacent replace/take lease regression is now actually reproduced2failures/exit1
+in cache-only Tower fixture. Their checked APIs remain a separately proposed
+next change. Current tests do not establish universal race freedom, exhaustion-
+safe queued holds or closed raw-Foundation ownership policy.

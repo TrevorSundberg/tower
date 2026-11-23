@@ -504,3 +504,13 @@ Body reserved width4 alone is not evidence of four concurrent body workers.
 The journal preserves complete timing/RSS/retention data and limitations.
 Current supported instrumentation, independent source review, graph maps,
 Fast arrays, diagnostics/opaque owners and integrated release gates remain open.
+
+Direct-return follow-up: the table regression exposed unguarded ix_returned
+publication after an operand fails. The two before direct-return cases fail at
+width4; minimal ix_ok guard now passes both widths and all five native gates.
+The unchanged02a8 candidate separately passed six address/leak gates. Guarded
+same-path64 passes outputs/canonicals/source checks; retained bytes are identical,
+with graphlarge execution217.627->218.626ms and variable small wall/CPU costs
+preserved in the journal. Joined L2 address/thread evidence is still pending;
+no prior-source pass is transferred to this change. No new syntax or effect
+policy is introduced: an already-failed invocation retains its frame for cleanup.
