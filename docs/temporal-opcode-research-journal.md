@@ -80849,6 +80849,44 @@ a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
 still match ROOT's three committed entity-stage files exactly. Final publication
 for this bounded task is normal main push only; gh-pages remains ROOT-owned.
 
+### 2026-11-23 D1: bounded grammar/generic fixture audit at b0421447
+
+Fully reviewed grammar_builder_results.tower (166 lines) and
+generic_result_storage.tower (243 lines) against actual builder/UTF8/regex,
+registry/instantiate/lifecycle producers and default frontend/storage registration.
+The D1 audit records exact ownership, sticky first causes, measured fault extents,
+physical-budget pressure, retry/cleanup and cache identity assertions. No source
+regression found; existing parser/default and storage/default callers suffice.
+UTF8 rollback permits retained capacity; clone-work counter rollback, full grammar
+round trips, real threaded cancellation/stale results and staged body execution
+are not established by these fixtures. Production helper readiness remains the
+implemented shared producer, not the historical handoff gap.
+
+SteamDeck Linux, thread01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3035169.
+Owned jobs were drained before integration. Required
+`git pull --rebase=merges --autostash --ff-only` exited128 on divergent histories;
+verified supplied full ROOT bundle SHAe25f1456 and merged complete origin/main
+without conflicts as c3eb1b4997c7580bd75fad9b31384b7b6c15f8c3. Both requested
+fixtures, reviewed producers and registration files match b0421447 exactly.
+Direct Git census advances540/1129 to542/1131 at b042, then543/1132 in the
+merged tree; semantic_flow_checks is the additional path, outside this review.
+Older file receipts retain their original identities; A2's global roster is untouched.
+The be0d123bb eight-line stale-ticket change, native logs and todo are preserved.
+Documentation-only checks: tree/set and unchanged-input comparisons, scoped diff
+and whitespace validation. No runtime input changes, hence no profile/build/test
+rerun; no sanitizer/bootstrap/browser/deployment pass claimed. Normal main push
+and final commit/check receipt belong in existing D1 status; ROOT retains release
+verification. No old goal, polling or new worker is started for this bounded task.
+
+Final required pull fetched afca69b17 and again exited128 on divergent history;
+complete merge ab7dfe7fe succeeded without conflicts. Census remains543/1132.
+Reviewed the full L2 generic fixture delta (now400 lines), added semantic create/
+attach and root-init producers, plus early frontend/lifecycle guards. The audit
+distinguishes new no-replay/root-admission checks from the b042 oracles. Grammar
+construction/UTF8, generic result producers and registration remain unchanged;
+ParserNodes' new label wrapper does not alter the reviewed append. Stale-ticket
+fixture and todo remain byte-identical to their preserved versions. No code is
+authored by this review and no merged runtime pass is inferred from source checks.
 Post-commit integration: admission commit1525e54ff7e3db635e8f6f263e659ec8a71fa439
 was merged with newer origina2ffdedb (complete L1 counted-diagnostic/ownership and
 ROOT flow changes) asaa01512c6476ab1d7eeb6f242c0465b5275814eb. No admission producer
@@ -80894,3 +80932,157 @@ Source receipts were reviewed, not relabeled or rerun. /home129GiB free and
 9.7GiB RAM available at inspection; no cleanup or other owner's changes.
 ROOT retains final runtime/assets/deployment. This bounded audit commits/pushes
 main only; its exact publication result is recorded in D2's existing status.
+### B2 checked module startup transaction (2026-11-23)
+
+Direct bounded task on main6714a030 (includes complete ROOTb042 history), PID25884.
+No surviving owned build existed before pull. The three frontend units now use
+checked module/environment constructors and actual entity admission results.
+Startup prepares graph, optional environment, anchor and source privately;
+active/active_graphs and binding publish only after success. Failed startup leaves
+existing cache/session/source diagnostics intact. Partial owners unwind without
+an unmatched tracked-graph decrement. Ordinary import construction/completion
+also preserves the graph's first typed cause. frontend_compilation records it
+before presentation; frontend_units_create_bounded_result exposes constructor
+errors while existing signatures remain compatible. This does not budget raw
+module strings/vectors or change B1's parser/session allocation policy.
+
+The existing module-cache target covers normal imports, a prebound world's real
+remaining-budget Capacity denial, preserved active graph/cache/idle session/source
+map, unpublished unbound anchors, private-environment cleanup, exact retained
+ledger/entity/component counts, and successful retry. Existing invalidation,
+cycles and session regressions pass too. One added unit-constructor expectation
+initially failed134: a request larger than the TOTAL ledger is Invalid under
+work_budget_reserve_locked, whereas exhausted remaining bytes are Capacity.
+Corrected that new expectation; the real Capacity oracle and producer semantics
+were unchanged. Failure log b2_startup_after_modules.log is retained. Initial
+/usr/bin/time invocation failed127 because it is absent; used existing
+/cache/process_profile for measurement, without installing another tool.
+
+One dependency-aware native target build per revision, compiler jobs1/buildj6,
+public bootstrap9653f818, Release Linux x64, WSL2 kernel6.18.33.2, CPU12-23/24GiB.
+Commands: cmake --build /cache/native --target tower-module-cache-tests
+tower-frontend-units-profile --parallel 6; module tests run from /work/scaffolding.
+Changed production build22.587s/36.245CPU/748852KiB; final focused suite0.0535s,
+0.0522CPU,54568KiB, exit0. No separate leaf compile or broad matrix was run.
+
+Minimal comparison uses one fixed /cache/b2_startup_profile path, unchanged
+/work/scaffolding resources, fresh processes/warm filesystem, three units with
+4096 bodies only in the final unit, workers1/4. Before binary is preserved at
+/cache/b2_startup_before_profile; final at /cache/b2_startup_after_profile.
+Compilation interval wall/CPU seconds and peakRSS KiB, one before/final sample:
+
+| Workers | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | --- | --- |
+| 1 | 4.720 / 4.605 / 679936 | 4.637 / 4.529 / 680076 |
+| 4 | 2.328 / 5.505 / 942532 | 2.329 / 5.554 / 942720 |
+
+Canonical4242261087906147675,646269entities/792327components and per-worker-budget
+retained/peak-ledger counts match exactly. Outer overlap peaks1/3. These small
+observations establish neither a speedup nor broad scaling; earlier after samples
+before the final fixture count assertions remain in their original logs. Logs:
+build/b2_startup_{before,after,final}_*.log. All owned children drained. Supported
+instrumentation, broad scaling/bootstrap/browser/generation and deployment remain
+pending with ROOT's integrated milestone; no hosted-runtime claim. todo unchanged.
+
+Post-commit pull found concurrent A1/L1 changes on origina2ffdedb. The required
+fast-forward-only pull rejected divergence; explicit merge-preserving rebase
+completed without conflict. Rebuilt the two affected targets coherently against
+those new semantic/interpreter inputs (8actions,22.973s/48.368CPU/751600KiB).
+Merged module suite passes0 in0.0530s; workers1/4 actual profiles pass with the
+same canonical/entity/component/retained counts and outer peaks1/3. Their
+4.443s/2.373s observations are merged-union checks, not isolated B2 cost estimates.
+No owned child remains. Scoped main push follows; deployment remains ROOT-owned.
+
+Integration note for ROOT/D2: actual nm imports now include
+frontend_module_root_world_size_result, frontend_modules_create_result and
+frontend_modules_bind_world_result. The exact Semantics allowlist in
+scaffolding/tools/bootstrap_symbols.tower still names the prior entry points;
+its owned update is needed before the final bootstrap-symbol gate. That tooling
+file is outside this bounded four-source grant and was not changed. Existing
+entity result imports are already allowed. Native focused acceptance above is
+not a claim that this deferred packaging gate has passed.
+
+The first normal push was rejected because another lane advanced main. Fetched
+636f7f93 and rebased without conflict; the newly integrated changes affect
+policy/tests/documentation, not the measured startup implementation. Verified
+all four scoped Tower sources byte-identical to the validated prior commit,
+rebuilt affected targets after checkout timestamps changed, and reran the focused
+module suite successfully. Logs b2_startup_push_merge_{build,modules}.log retain
+that final affected check. No repeated performance or broad matrix was needed.
+
+The second normal push also received fetch-first rejection: remote main advanced
+again during the required merged validation. Per this bounded task's stop rule,
+no further integration/push loop was attempted. The focused-tested batch remains
+committed locally; its final commit and exact push blocker are in B2/status.md.
+No force push, deployment, goal continuation or new assignment was attempted.
+
+### A2 queued-stage ownership prerequisite, 2026-11-23 (blocked, not implemented)
+
+Reviewed integrated `afca69b171c790ce9386ae85c3f3d493d21cec59` after the requested
+`git pull --rebase=merges --autostash --ff-only`. No owned build was running;
+the worktree was clean. This bounded task did not resume the former goal or
+inventory campaign. The explicit task leaves final deployment with ROOT.
+
+Source inspection confirms `entity_stage_hold` increments every unheld queue
+entry without checking exhaustion. The queue stores target entities and a held
+prefix, not the payload locations whose finalizers release them. Publish and
+discard both invoke that unchecked hold. Duplicate targets require cumulative
+accounting; checking each against its initial count is insufficient. Existing
+queue-slice alias rebasing already handles queue growth and must be preserved.
+
+The only production queue writer found by `rg` is
+`compiler/syntax_provenance.tower:syntax_origin_copy_staged_result`. It builds a
+temporary entity array, queues it, installs borrowed expansion/splice pointers in
+`SyntaxOrigin`, then disposes the temporary array. Its ordinary finalizer releases
+all those pointers. The lifecycle dispatcher supplies no cancellation operation.
+Consequently a failed checked hold cannot safely proceed into today's discard:
+unheld payload pointers would still be released. Skipping finalizers would leak
+their owned buffers. Suppressing selected entity releases is also insufficient:
+`syntax_trace_release` may detach and traverse a uniquely owned history before
+calling `entity_release`. A pin protects lifetime, not ownership of that history.
+
+**Prerequisite:** include this immediate provenance producer in the ownership
+batch, or have ROOT supply its cancellation contract. The current grant permits
+library stage/helpers/fixtures and the immediate generic-body hold caller; it
+does not permit changing `syntax_provenance.tower`. No production edits were
+made across that boundary, and no unsafe preflight-only patch was installed.
+
+Proposed protocol (design only): each queued payload registers stable private
+cancellation metadata before installing borrowed references. A checked hold
+acquires all pending references, counting repeated targets, or returns the exact
+error with that pending ownership untransferred. Already-held ownership remains
+distinct. After joins, discard cancels only unheld borrowed fields before ordinary
+finalization; held fields release normally. Source owners/views remain live
+through either outcome. Queue admission and metadata allocation must be atomic,
+and retries must not retain twice. Existing compatibility wrappers and empty
+queue paths must remain available. The precise API is not implemented or agreed.
+
+Caller handoff: production search found publish callers in `semantic_body_work`,
+`semantic_declarations`, `semantic_evaluation_work`, `semantic_lowering_work`,
+`semantic_execution_work` and `semantic_generic_body_work`; declarations also
+exist in `semantic_context`. The generic-body pump joins, holds every stage, then
+closes its view; its deferred discard must safely handle hold failure before
+that view closes. The execution pump currently closes its view before publishing;
+ROOT owns its checked-hold adoption. The remaining publish callers need their
+actual queued-reference behavior checked when the protocol is integrated; this
+call-site inventory is not a completed substantive review of those pipelines.
+Twenty test/profile files reference hold/publish/discard/queue APIs, including
+the existing stage ownership, result, concurrent, reentrant, page reuse and
+generic clone fixtures. No fixtures or generic harness files changed.
+
+Evidence is read-only source inspection, caller searches and Git state checks.
+One initial `rg` command used an unsupported Windows filename glob and reported
+an OS path error; the subsequent directory search with `-g '*.tower'` completed.
+No allocation/sanitizer/error/node-control probes or runtime builds ran. Runtime
+profiling is inapplicable to this documentation-only change; the requested
+implementation, focused lifecycle/query checks and before/after sample remain
+pending. ROOT's integrated instrumentation/bootstrap/browser/release checks are
+also pending, not passed. Stop this bounded attempt on the explicit producer
+ownership prerequisite; do not claim queued-stage or compiler completion.
+
+Publication reconciliation: the required ff-only pull stopped on concurrent
+`fd1ba4de`. `git rebase --rebase-merges origin/main` preserved the published
+history and replayed only this journal entry without conflict. Incoming changes
+touch frontend admission and documentation, not the reviewed stage/provenance
+contract. `git diff --check` and the scoped documentation diff remain the
+applicable validation; no runtime evidence is relabeled for the merged source.
