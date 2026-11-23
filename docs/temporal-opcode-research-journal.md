@@ -67634,3 +67634,26 @@ below actual67,945,316-byte compilation peak; a same-input reference-derived
 allowance now passes original finite-cap replacement/retry/output assertions.
 This fixture correction is not an arbitrary cap increase or memory-regression
 clearance. L2 editor memory analysis and full-source acceptance remain open.
+D1 integration review 2026-11-23 09:06 UTC: same CLI2918210/thread01a2046a,
+main44c1dc10 after complete ROOT556 join, no production edits. Substantively read
+all2new/12changed assigned fixtures and their owner contracts; direct census now
+518/518 of1106tracked Tower files. New stage/view tests need existing normal/fault
+registration; both already own entities+host.memory providers. Reviewed fullB1
+3992 declaration result producer/consumer/test slice,7production+3fixture deltas;
+owner source evidence and limitations recorded in audit, no fresh localruntime
+claim. Complete source history will be merged, not copied declarations.
+
+ROOT priority node-cache handoff: verified full L1 candidate77a36f6 bundle81e91069
+and exact7path0344 patch. Delivered external TEST-ONLY D1_phase_node_cache_77a.patch
+SHA3d9608c09c429247add0a5b3be783a51ccb026be70d625f162c728180c13de7e,
+against exactL1 candidate fixture. Supplies already accepted gated24cases/typed
+program receipts plus exact startup-node-cache denial and owned successful-cache
+preparation observations. Original16KiB budget and8KiB nestedframe unchanged;
+no message OR or guessed allowance increase. This is an UNRUN candidate until
+L1 validates matching new IMState layout; repository production remains untouched.
+L1 owns actual matched profiles/instrumentation, oldquery failure retained. D1
+will integrate accepted fullhistory later. No Deck ABI build merely for handoff.
+D2 actual09:02 release/drain observed, both D1 containers init/sleep only. Disk136GiB
+free/RAM9.9GiBavailable/preexisting swap5.8GiB. No cleanup/publication lease; all
+final combined/bootstrap/browser/generation/release gates remain open. These audit
+and handoff records alone change no runtime and need no performance profile.
