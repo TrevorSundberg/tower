@@ -47,17 +47,33 @@ test('integer type arguments preserve identity, forward through constructors and
  const source=(await read('scaffolding/tests/type_numeric_composition.tower')).toString();
  const text=await compare(source,'42\n7\n8\n12\n9\n');
  assert.equal((text.match(/struct `buffer\(i32, 2\)`/g)||[]).length,1);
- for(const [program,error] of [
-  ['var x: buffer(i32,0);',/Array length/],
-  ['var x: buffer(i32,1048577);',/Array length/],
-  ['var x: buffer(i32,-1);',/out of range/],
-  ['var size: usize = 2; var x: buffer(i32,size);',/compile-time integer argument/],
-  ['var x: buffer(i32,i32);',/compile-time integer argument/],
-  ['fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
- ]) {
-  const result=execute('import tower; fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
-  assert.equal(result.status,'error',program);assert.match(result.error,error);
- }
+});
+for(const [name,program,error] of [
+ ['zero length','var x: buffer(i32,0);',/Array length/],
+ ['excessive length','var x: buffer(i32,1048577);',/Array length/],
+ // Unsigned negation wraps; the resulting extent must fail the array bound.
+ ['negative unsigned argument','var x: buffer(i32,-1);',/Array length must be between 1 and 1,048,576/],
+ ['type instead of integer','var x: buffer(i32,i32);',/^Expected usize, got type; use an explicit conversion$/],
+ ['boolean argument type','fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
+]) {
+ test('invalid integer type argument: '+name,()=>{
+  const result=execute('import tower; print(123); fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
+  assert.equal(result.status,'error',program);
+  assert.equal(result.output,'');assert.equal(result.steps,0);
+  assert.match(result.error,error);
+ });
+}
+test('invalid integer type argument: mutable storage',async()=>{
+ const result=execute((await read('scaffolding/tests/semantic_invalid/type_numeric_mutable.tower')).toString());
+ assert.equal(result.status,'error');
+ assert.equal(result.output,'');assert.equal(result.steps,0);
+ assert.match(result.error,/^Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer/);
+});
+test('immutable known storage supplies an integer type argument',async()=>{
+ await compare((await read('scaffolding/tests/type_numeric_known.tower')).toString(),'8\n');
+});
+test('nested integer negation supplies a valid array extent',async()=>{
+ await compare((await read('scaffolding/tests/type_numeric_negation.tower')).toString(),'8\n');
 });
 test('generic calls bind types without replacing value identifiers or duplicating effects',async()=>{
  await compare(`import tower;

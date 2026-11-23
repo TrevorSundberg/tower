@@ -89993,6 +89993,94 @@ The change against published main is receipt/journal only. Reused unchanged
 compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
 
+### D1 supplied-artifact and blocked-fixture adoption (2026-11-23)
+
+Frozen main `bcd0e3abf9bd2d970c771133b95d11990defb02c`, clean after the required
+pull; thread01a2046a-4644-7ab1-a0ae-abd80210f013, PID3132571. ROOT's matching
+`eac16533ad7169988c53af934ece62e083b39bad` public768-built reactors are distinct
+from these mounted source/host inputs. Verified supplied bytes and copied only
+into D1's new receipt directory and previously empty build/linking after checking
+there was no owned reader. Immutable9d/f7 and D2 artifacts remain untouched.
+
+SHA256 identities:
+- portable `df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99`
+- LLVM `87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472`
+- Tower foreign archive `7a2ea4eeb2dd1ff89dcbf35292f709df7682fc75687da4531ff5fb6f2eb9d63e`
+- native-produced Wasm `cc8387f92412874691521f841a8d38a33c1ebbe8cd6030bebf5b328cdb6e0d7e`
+
+Both absolute TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM overrides selected the new
+copies; existing eager default-read paths remain present but did not select the
+executed reactors. Node22.23.5, Linux x64 Deck, Docker tower-d1-ecs CPU0,2,
+--test-concurrency=1, fresh processes/warm filesystem, n1 per selection.
+No compiler build or shared heavy lock. All commands/statuses/time/raw output,
+source/host and artifact manifests: `build/d1_ecs/adoption_bcd0e3ab`.
+
+Initial focused adoption passed7/7, zero skips: the two archive/native executions,
+stack/defer collection case, pointer/nominal alias case, generic deduction negatives,
+module forward binding and module initializer ordering. Both formerly blocked
+cases now execute complete Graph/Fast at32/64, canonical equality/re-execution and
+LLVM source/canonical comparisons with their independent expected outputs.
+L2's96cd1eda repairs deferred-module query preparation; L1's056cc17e corrects the
+pointer type-value/inference contract, not a new inversion capability. Read their
+owner receipts and actual fixtures/callers. No production method changed here.
+
+Earlier four-file20/22 remains a historical run. Forward-references,
+foundation-storage, inference and their unchanged input fixtures retain exact
+blobs from8b2bb2d7; the Foundation storage producer and all of its input data are
+also byte-identical, so its four reactor-independent host checks are reused.
+Five compiler-dependent cases ran now (one forward, one inference, three generic);
+other unchanged passing cases retain their earlier f7 receipt, not a new full
+22-case eac execution claim. The two previously failing generic cases are closed
+on eac plus the corrected current pointer fixture. ROOT's already checked three
+invocation/world/stage exports were not repeated.
+
+The archive/native cases now actually produce full linkedOutput
+33/true/true/42/42/18446744073709551615/0/true/5/42, including the callback into
+exported tower_twice. Both assert completion, export and tower-only imports;
+archive checks retain malformed archive rejection and subsequent print42 recovery.
+The old C title now says Tower foreign archive, matching foreign_fixture.tower.
+The existing optional native-input clause did not skip: both real inputs were
+present and executed. Neither ROOT's build success nor prior missing-artifact
+failure/skip is relabeled as execution evidence.
+
+Separated six formerly blocked numeric-negative assertions into independently
+registered Node transport cases. Initial unchanged data/diagnostics:3pass/3fail,
+exit1. Ordinary type/computed-argument/narrow-integer contracts and actual
+semantic_type_values/types/support/expressions/capture producers were inspected.
+An initialized immutable size is now legal: retain that source as
+`type_numeric_known.tower`, expected sizeof8 through32/64/canonical/LLVM. The
+replacement invalid `semantic_invalid/type_numeric_mutable.tower` adds a later
+write; exact capture rejection, empty output and zero steps pass. Passing i32 as
+an integer argument now requires the exact usize-versus-type mismatch. Zero,
+excessive extent and bool parameter rejections remain; print123 is never executed.
+The existing type_numeric_composition/type_identity_composition fixtures are
+untouched and still fail on eac; L1 owns their wrapper/zero-argument dependency
+repair. Their original expected values and first-error evidence remain visible.
+
+One newly exposed real preparation defect is retained, not accepted as an alternate
+diagnostic: `type_numeric_negation.tower` calls buffer(i32,-(-2)), expected size8,
+but first Graph32 checking returns "Expected a compile-time integer argument".
+The original unsigned -1 negative also fails with that message instead of reaching
+the array bound. Unary minus wraps, so the former out-of-range literal expectation
+was retired in favor of the actual invalid extent, not loosened to any error.
+Source chain (unchanged from eac): semantic_type_values::sem_type_value_simple uses
+semantic_support::sem_literal, which recursively treats unary minus as a literal;
+sem_type_value_request therefore skips an evaluation query. semantic_expressions
+builds subtraction as ordinary KBinary, while semantic_types::sem_constant_value
+requires a constant and rejects it. ROOT/type-query owner follow-up (coordinate
+L2 with L1's ongoing wrapper work); no compiler patch, alternate constant folder,
+or workaround. Later64/canonical/LLVM paths for that valid reproducer are unrun.
+
+Costs (wall/CPU seconds, peakKiB; all0swaps): adoption7/7 19.76/25.31/394476;
+numeric-before3/6 3.79/5.04/294000; corrected numeric6/8 6.91/8.57/337624;
+final affected aggregate8/12 12.30/14.98/345540, exit1, zero skips. Final failures
+are the two unchanged compositions plus the negative-bound and valid-negation
+receipts for the same preparation defect. All remaining checks passed, including
+both supplied link assets. Fixture/registration changes execute more assertions;
+these are validation costs, not production speedup/scaling profiles. No runtime
+algorithm, resource policy or compiler ownership change. No broad Node/LLVM,
+semantic-port, native, sanitizer, generation or hosted release check. Resource,
+final host, new fixture and artifact hashes rechecked; jobs drained, todo unchanged.
 A2 declaration-page publication reconciliation: implementation f4e42223; required
 ff-only pull reported normal divergence, resolved by full-history merge646a0927
 of bcd0e3ab. Only incoming docs/browser and separate type-composition fixtures;
@@ -90012,3 +90100,15 @@ measurements without a repeated full struct or package run; they are not tests
 of newer executable providers. Diff/syntax/hash checks remain clean. All jobs
 drained, heavy slot released, todo unchanged; ROOT/L1 retain the full failure
 reduction and first-typed-cause handoff. Normal main push follows.
+D1 adoption publication reconciliation: implementation7f936c33 merged complete
+published0d789444 as67123620 without conflicts after the required ff-only pull
+reported divergence. All recorded Node host/test files, seven focused Tower
+fixtures and supplied artifact bytes remain unchanged. The eleven full-resource
+manifest differences are the incoming declaration-page compiler/library files,
+five storage test/profile files and tests/README; the exact list is preserved in
+merged_resources_check.log. They are neither compiled into the frozen eac pair
+nor imported by the selected language/collection/link fixtures. New files remain
+explicitly in focused_fixtures.sha256. Reuse the checked evidence without a new
+compiler build or passing-case rerun; incoming page-policy implementation keeps
+its own source-specific owner receipt. Inspected negation producer chain still
+matches eac exactly. No complete current-main reactor or release claim.
