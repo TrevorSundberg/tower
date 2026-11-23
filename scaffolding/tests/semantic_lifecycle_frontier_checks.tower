@@ -1,0 +1,236 @@
+import tower;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_lowering_types;
+import .compiler.semantic_work_ids;
+import .compiler.compiler_kernel;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget_types;
+
+extern fn sem_lifecycle_lowering_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn semantic_lowering_kernel(result: SemanticLowering*): void;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, flags: u32): bool;
+extern fn sem_member(node: void*, name: u8*): void*;
+extern fn puts(message: u8*): i32;
+
+enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, Count }
+var LifecycleExpressionStatements: usize = 32;
+var LifecycleMalformedDepth: u32 = 130;
+var LifecycleInvalidParameters: usize = 64;
+// Each function owns its probe. The callback uses the real worker's function
+// lease; signal handles are frozen before admission and closed after final join.
+struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; }
+
+fn lifecycle_kernel(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    sem_require(kernel.kind == CompilerKernelKind.Lower);
+    var result = bits(SemanticLowering*, kernel.payload);
+    var kind = sem_member(result.context.program.root, "lifecycle_probe");
+    var probe = bits(LifecycleProbe*, entity_component_data(entity_component_get(result.subject, kind)));
+    if probe != null && probe.signature == result.signature {
+        probe.calls++;
+        if probe.arrived != null {
+            work_signal_post(probe.arrived);
+            work_signal_wait(probe.peer);
+        }
+    }
+    semantic_lowering_kernel(result);
+}
+
+fn lifecycle_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn lifecycle_node(owner: void*, kind: u32, offset: usize): void* {
+    var node = sem_create(owner);
+    sem_attach(node, kind).start = offset;
+    var syntax = bits(ParserMatchData*, compiler_world_component(compiler_node_world(node), node, CompilerParserMatch));
+    sem_require(syntax != null);
+    syntax.start = offset;
+    return node;
+}
+
+fn lifecycle_function(c: SemanticContext*, offset: usize): void* {
+    var subject = lifecycle_node(c.program.root, KFunction, offset);
+    var function = sem_get(subject);
+    function.type.scalar = SVoid;
+    function.index = c.program.functions.length;
+    function.body = lifecycle_node(subject, KBlock, offset);
+    sem_require(entity_attach(function.body, subject, "body"));
+    sem_push(&c.program.functions, subject);
+    return subject;
+}
+
+fn lifecycle_complete(c: SemanticContext*, id: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, id) && work_finish(&c.queries, &ticket, true));
+}
+
+fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    var first = lifecycle_function(&c, 17);
+    var aggregate = lifecycle_function(&c, 29);
+    var scalar = lifecycle_function(&c, 41);
+    var record = lifecycle_node(root, KType, 0);
+    sem_get(record).type = { scalar: SStruct, pointers: 0, record: record, pointer_bytes: program.pointer_bytes };
+    sem_get(aggregate).type = sem_get(record).type;
+    var original_body = sem_get(aggregate).body;
+    for(var i: usize = 0; i < LifecycleExpressionStatements; i++) {
+        var statement = lifecycle_node(scalar, KPrint, 41);
+        var expression = lifecycle_node(statement, KBinary, 41);
+        var value = sem_get(expression);
+        value.type.scalar = SI32;
+        value.op = OAdd;
+        value.left = lifecycle_node(expression, KOperand, 41);
+        value.right = lifecycle_node(expression, KOperand, 41);
+        sem_get(value.left).type.scalar = SI32;
+        sem_get(value.right).type.scalar = SI32;
+        sem_get(value.left).constant = true;
+        sem_get(value.right).constant = true;
+        sem_get(statement).value = expression;
+        sem_push(&sem_get(sem_get(scalar).body).items, statement);
+    }
+    // Shared callback ABI is an ordered publication, not worker scratch.
+    var callback_node = lifecycle_node(root, KType, 0);
+    var callback = sem_get(callback_node);
+    callback.type = { scalar: SFunction, pointers: 0, record: callback_node, pointer_bytes: program.pointer_bytes };
+    callback.element = sem_get(record).type;
+    sem_push(&c.type_arguments, callback_node);
+    var body_gate: usize = 0;
+    if mode == LifecycleCase.Waiting {
+        body_gate = work_request(&c.queries, first, convert(u32, SemanticQuery.Body), 0);
+        sem_require(body_gate != 0 && work_seal(&c.queries, body_gate));
+    }
+    var snapshot: usize = 0;
+    if mode == LifecycleCase.PartialTake {
+        snapshot = work_request(&c.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        sem_require(snapshot != 0 && work_seal(&c.queries, snapshot));
+    }
+    if mode == LifecycleCase.Failure {
+        // The earlier expression fails too; aggregate diagnostics retain their
+        // existing phase priority even when both kernels share one dispatch.
+        c.has_defer = true;
+        var parent = sem_get(first).body;
+        for(var depth: u32 = 0; depth < LifecycleMalformedDepth; depth++) {
+            var child = lifecycle_node(parent, KBlock, 17);
+            sem_push(&sem_get(parent).items, child);
+            parent = child;
+        }
+        for(var p: usize = 0; p < LifecycleInvalidParameters; p++) {
+            var parameter = lifecycle_node(aggregate, KParameter, 29);
+            sem_get(parameter).type.scalar = SI32;
+            sem_push(&sem_get(aggregate).parameters, parameter);
+        }
+    }
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    var signature_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(aggregate, probe_kind)));
+    var expression_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(scalar, probe_kind)));
+    sem_require(signature_probe != null && expression_probe != null);
+    *signature_probe = default;
+    *expression_probe = default;
+    signature_probe.signature = true;
+    var overlap = workers > 1 && (mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting);
+    if overlap {
+        signature_probe.arrived = work_signal_open();
+        expression_probe.arrived = work_signal_open();
+        signature_probe.peer = expression_probe.arrived;
+        expression_probe.peer = signature_probe.arrived;
+        sem_require(signature_probe.arrived != null && expression_probe.arrived != null);
+    }
+    sem_require(work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    if overlap { sem_require(c.workers.threaded && c.workers.count > 1); }
+    if mode == LifecycleCase.Cancelled { work_cancel(&c.queries); }
+    var state = sem_lifecycle_lowering_pump(&c);
+    if mode == LifecycleCase.PartialTake {
+        lifecycle_check(state == SemanticPumpResult.Waiting && signature_probe.calls == 0 && expression_probe.calls == 0,
+            "Known snapshot blocks all transformation admission", &failures);
+        var query = work_find(&c.queries, scalar, convert(u32, SemanticQuery.Lowering), 0);
+        work_task(&c.queries, query).dispatch = ~convert(u64, 0);
+        lifecycle_complete(&c, snapshot);
+        state = sem_lifecycle_lowering_pump(&c);
+        lifecycle_check(state == SemanticPumpResult.Failed && c.queries.cancelled
+            && c.queries.running == 0 && signature_probe.calls == 0 && expression_probe.calls == 0,
+            "Partial admission discards undispatched stages and cancels tickets", &failures);
+    }
+    if mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting {
+        lifecycle_check(state == SemanticPumpResult.Progress && signature_probe.calls == 1 && expression_probe.calls == 1
+            && sem_get(aggregate).body != original_body && callback.element.scalar == SStruct,
+            "One frontier runs signature and independent expression work before shared ABI publication", &failures);
+        var aggregate_query = work_find(&c.queries, aggregate, convert(u32, SemanticQuery.Lowering), 0);
+        lifecycle_check(work_task(&c.queries, aggregate_query).dispatch == 0,
+            "Aggregate lowering waits for its own published signature", &failures);
+        while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+        if mode == LifecycleCase.Waiting {
+            lifecycle_check(state == SemanticPumpResult.Waiting && callback.element.scalar == SStruct,
+                "Independent transforms complete while an earlier owner waits", &failures);
+            lifecycle_check(sem_lifecycle_lowering_pump(&c) == SemanticPumpResult.Waiting
+                && signature_probe.calls == 1 && expression_probe.calls == 1,
+                "Repeated suspension replays no kernel or shared ABI mutation", &failures);
+            lifecycle_complete(&c, body_gate);
+            state = sem_lifecycle_lowering_pump(&c);
+            while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+        }
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_get(aggregate, c.lowering_results)));
+        lifecycle_check(state == SemanticPumpResult.Complete && result.block == sem_get(aggregate).body
+            && result.block != original_body && callback.element.scalar == SVoid && callback.parameters.length == 1,
+            "Dependent lowering consumes the new prelude and successful join publishes callback ABI once", &failures);
+    } else { if mode == LifecycleCase.Failure {
+        lifecycle_check(state == SemanticPumpResult.Failed && program.error_offset == 29
+            && sem_equal(program.error.data, "A struct return requires one internal result parameter; at most 63 source parameters are supported")
+            && callback.element.scalar == SStruct && callback.parameters.length == 0,
+            "Mixed frontier preserves signature error priority and suppresses shared ABI publication", &failures);
+    } else { if mode == LifecycleCase.Cancelled {
+        lifecycle_check(state == SemanticPumpResult.Failed && callback.element.scalar == SStruct
+            && program.resource.error == WorkBudgetError.Invalid, "Cancelled entry is terminal before ABI publication", &failures);
+    } } }
+    var components = entity_store_component_count(store);
+    var task_count = c.queries.tasks.length;
+    var saved = state;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        lifecycle_check(sem_lifecycle_lowering_pump(&c) == saved && c.queries.tasks.length == task_count
+            && entity_store_component_count(store) == components && c.workers.running == 0 && c.queries.running == 0,
+            "Repeated terminal lifecycle pumps preserve metadata and drain all work", &failures);
+    }
+    sem_context_dispose(&c);
+    if signature_probe.arrived != null { work_signal_close(signature_probe.arrived); }
+    if expression_probe.arrived != null { work_signal_close(expression_probe.arrived); }
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Lifecycle frontier releases its world", &failures);
+    return failures;
+}
+
+export fn main(): i32 {
+    sem_require(work_thread_available());
+    var failures: u32 = 0;
+    for(var mode: u32 = 0; mode < convert(u32, LifecycleCase.Count); mode++) {
+        failures += lifecycle_trial(1, convert(LifecycleCase, mode));
+        failures += lifecycle_trial(4, convert(LifecycleCase, mode));
+    }
+    return failures == 0 ? 0 : 1;
+}

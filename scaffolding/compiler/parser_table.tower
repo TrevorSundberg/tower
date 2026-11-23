@@ -298,6 +298,12 @@ export fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*
 }
 
 export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* {
+    var error = WorkBudgetError.None;
+    return parser_table_non_terminal_id_to_string_result(userdata, id, &error);
+}
+
+export fn parser_table_non_terminal_id_to_string_result(userdata: void*, id: u32, error: WorkBudgetError*): u8* {
+    *error = WorkBudgetError.None;
     var table = bits(ParserHostTable*, userdata);
     parser_table_require(table);
     var index = convert(usize, id);
@@ -309,7 +315,7 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     for(; source[length] != 0; length++) {}
     var size = length + 1;
     var text = bits(u8*, compiler_buffer_allocate(size));
-    if text == null { return null; }
+    if text == null { *error = WorkBudgetError.Memory; return null; }
     copy(text, source, size);
     return text;
 }

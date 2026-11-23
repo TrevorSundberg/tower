@@ -80906,6 +80906,186 @@ policy/checker and24-case fixture inputs are identical, so their passing receipt
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
 
+### B1 bounded parser diagnostic ownership batch (2026-11-23)
+
+The prior parser/pattern batch5b1144bc is published: DNS recovered on the next
+user-authorized attempt, complete published636f7f93 merged as f33770ba and normal
+main push/remote-SHA verification succeeded. No prior work or logs were discarded.
+This follow-up owns diagnostic construction/destruction and its immediate callers;
+no B2 frontend startup, cache sharing, new syntax or general allocator migration.
+
+Findings and implementation: parser_recognizer_diagnostic formerly allocated its
+owner/options/labels outside the request budget and returned partial state on
+failure. Its frontend diagnostic descriptor/context arrays also lacked receipts,
+although the underlying LR probes already charged their runtime budget. The new
+parser_recognizer_diagnostic_result(request, reader, source, error) returns a whole
+owned view with None or null with the first exact WorkBudgetError. WorkBuffer and
+work_vector own these bytes; the old wrapper and public ParserDiagnostic layout
+remain. frontend_diagnostic_create_result/resource_error propagate constructor and
+probe failures. Named semantic quotas preserve normal bounded/incomplete behavior;
+candidate capacity comes from the actual array. The public FrontendExpectation
+context container and ParserStream ownership fields change with their complete
+producer/consumer history, not isolated ABI copies.
+
+Request error/lookahead text now carries its runtime budget. The allocation-free
+parser_stream_return_owned moves both the receipt and allocator identity; legacy
+parser_stream_return still accepts ordinary vectors. A returned diagnostic drops
+its LR runtime borrows and retains copied numeric contexts/owned labels, so it can
+outlive request, stream, table and world. Its explicit caller-owned WorkBudget
+must remain alive until diagnostic destruction; live receipts reject disposal.
+Shared formatter scratch and final host-text/description storage retain their
+existing contracts. Checked label-name producers distinguish absent names from
+actual allocation failure, preserving valid numeric fallback. Syntax-session and
+template callers preserve the first resource cause and original syntax message
+when optional diagnostic construction cannot complete.
+
+Validation uses one dependency-aware native target set (frontend-tests and the
+existing units-profile) and incremental recompilation of changed inputs only:
+Linux x64, public bootstrap9653, LLVM19.1.1, CPU0-11/24GiB, object jobs6/compiler1,
+existing B1 native cache. Initial failures were missing direct work_vector/vector
+imports, unsupported indexing of a string literal, reserved local name expected,
+and missing strlen prototype. All original logs remain under
+build/ecs_b1/logs/parser_diagnostic_build_*. No failing build was a test pass.
+The first runtime attempt then failed SIGSEGV inside compiler_buffer_free.
+GDB/disassembly located parser_stream_dispose freeing a legacy Tower vector with
+the compiler-buffer allocator. The corrected handoff stores an explicit storage
+family flag: an inactive ledger receipt also occurs for standalone work buffers
+and cannot identify their allocator. The failing log and read-only debugger traces
+are preserved; they are not performance measurements or sanitizer evidence.
+
+After that fix, coherent native build20.48s wall/15.20s CPU/721444KiB RSS passed.
+Focused parser (.04s/53872KiB), diagnostic revision/location (.02s/52744KiB), regex
+(.04s/51516KiB) all exited0. The fixture then added direct syntax-caller first-cause
+and aliased stream replacement checks; only fixture/relink work repeated
+(11.42s wall/7.95s CPU/442464KiB), and all three selectors passed again. Existing
+grammar-resource/template caller checks also passed1.27s/1.24s CPU/52324KiB.
+The new Tower fixture measures actual allocation count and retained footprint:
+zero-capacity rejection before allocation, partial-footprint denial, every required
+allocation failing with Memory and full cleanup, invalid reader source, preserved
+syntax message/positions/options, retry, detached lifetime through world teardown,
+and stream text/receipt ownership through request destruction. Budget disposal
+fails while a detached diagnostic remains, then succeeds with zero live bytes.
+
+One four-process comparison reused the preserved c07203d8 units baseline (its
+parser batch is unchanged through f33770ba), the same run path/cwd and immutable
+6fd resources. The after executable includes unrelated published semantic changes,
+so this is a representative integration comparison, not isolation of diagnostic
+construction cost. Warm processes, three units/bodies0, workers1/4, n1 each side:
+serial wall3459.003->3456.223ms, CPU3229.815->3233.196ms, RSS196924->197276KiB;
+parallel wall1333.833->1338.250ms, CPU3980.773->3953.630ms, RSS456756->458876KiB.
+Canonical1173729914654460811, entities48240/components55014, retained bytes
+15158986(serial)/15150626(parallel), and ledger bytes5242880/20971520 are exactly
+equal. Outer peaks1/3 and lane ceilings1/4 confirm real parallel overlap. Peak
+reserved bytes vary with schedule; all processes exit0. No precise speedup,
+neutrality or error-path latency claim follows. Error-path allocation/retention is
+covered by the checked fixture, not a separate latency microbenchmark.
+
+Profile artifacts: build/ecs_b1/cache/parser_diagnostic_profile, including source
+identities/patch and original logs. Before units SHA256
+52e31b5eb2af64f5810d9791b10dfbf0e91e2a183796f41ba4ee0cf4c0b2cd68;
+after de29797dd0ecad4d3f6b9d2bb84c3cf0f207192d81bfd80e1a7444ec8433b220;
+resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+Final fixture-only additions do not change those runtime providers. All owned
+jobs (25590,15043,84970) drained0. todo.txt remains e97d67a6 unchanged;
+git diff --check passes. Supported sanitizers, full scaling, bootstrap/browser/
+generation and hosted deployment remain pending ROOT's integrated milestone.
+Old receipts are not relabeled. Normal commit/pull/merge/push follows; B1 status
+records the final source and publication result. This bounded task then ends.
+## 2026-11-23 A1 lifecycle mixed transformation frontier
+
+Bounded follow-up to published a2ffdedb, on clean main
+ afca69b171c790ce9386ae85c3f3d493d21cec59. Existing jobs were drained before
+inputs changed. Session01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, PID24256. L2's
+sem_context/root admission and semantic_initialize hunks are unchanged; A2's
+queued-stage hold protocol and ROOT's executable admission are untouched.
+
+Removed barrier: the lifecycle's expression-lowering entry previously drained
+ALL AggregatePrepare work before admitting ANY Lowering work. It now registers
+both producer/consumer sets and fills one mixed ready frontier using existing
+WorkGraph tickets, CompilerKernel dispatch and shared WorkPool grants. Each
+function's lowering depends on its own signature preparation plus existing Body
+and KnownSnapshot prerequisites. Unrelated ready functions lower concurrently
+with aggregate preparation; this is not a queue around the former phase loop.
+Lowering reads only its own aggregate return metadata; call argument/result
+lowering uses checked expression types rather than callee parameter vectors.
+The aggregate read claim is therefore narrowed to that function's ordinal.
+Shared callback ABI mutation remains an ordered successful-join publication.
+
+A necessary ownership fix accompanies registration before preparation: a
+signature worker can replace function.body with an aggregate prelude. Lowering
+refreshes that pointer only after its producer publishes, rather than consuming
+the pre-registration body. Stages publish after every admitted peer joins and
+before ticket completion. Partial take discards undispatched stages; checked
+transport/observe/finish failures cancel receipts after joining. Ordinary errors
+remain on the function's work component across waits. Selection retains the old
+priority (signature phase before expression phase, source order within each).
+The lifecycle pump exposes Progress/Waiting/Complete/Failed. Only its owning,
+quiescent wrapper diagnoses unfinished producers/cycles. Existing single-phase
+pump entry points retain their progress convention and are still supported.
+
+Reviewed executable helper closure: semantic_expression_lowering accesses its
+own aggregate result metadata; aggregate argument lowering uses each operand's
+checked type; field-copy lowering reads immutable nominal layout. No new callee
+signature read, type registry, constant folder, scheduler or AST was introduced.
+The unchanged SemanticLowering layout moved to a declaration-only types module
+so the focused fixture links the actual production implementation once.
+
+Validation: KinmenA Windows11, Docker tower-a1-environment, CPU0-11/24GiB,
+Linux x64/LLVM19.1.1/public bootstrap9653, max6 build actions with compiler --jobs1.
+Before/after production builds used only the dependency-aware target:
+`cmake --build /cache/native --parallel 6 --target towerc tower-lr-work-tests`.
+First changed compile needed the existing entity_stage_discard extern declaration.
+Fixture compilation caught missing explicit initializer fields and unsupported
+mutable globals in library mode; the final observer uses function-owned ECS
+probe components instead. Failed logs are preserved, not counted as passing.
+The final standalone fixture is declaration-only, built/linked through the exact
+commands in `/cache/a1_lifecycle_fixture.sh`, using the same semantic provider.
+No shared harness/build-manifest edit was made.
+
+New `semantic_lifecycle_frontier_checks.tower`:10 trials (5 modes at workers1/4)
+passed. Ready and waiting multiworker cases rendezvous a REAL signature kernel
+with a REAL independent lowering kernel on two fresh semaphores; separate phase
+drains cannot satisfy this rendezvous. Other assertions cover snapshot/body
+gating, published-prelude consumption, repeat waits/terminal calls, signature
+error priority over an earlier expression error, callback publication suppression,
+cancellation, partial ticket admission, joined workers and world cleanup.
+This establishes simultaneous mixed-phase invocations, not universal race freedom
+or measured end-to-end speedup. Existing production LR overlap/equivalence suite
+passed1.78wall/2.31CPU seconds/120432KiB; query-smoke .23/.23/88204; control-smoke
+32.16/34.96/260676. Control smoke checks execution, serial/parallel canonical
+reparse, lexical cleanup and ordered diagnostics. No broad matrix was run.
+
+Small frozen-input comparison: comptime_aggregates.tower SHA256
+10fc9c7811a6e0b0dde8a7a70707ef00a32055b777756c7f76abf0dadde1d64a,
+--interpret --jobs1/4, explicit /work/scaffolding/bedrock.tower and foundation.tower,
+warm filesystem/fresh process, n=1 per configuration. Every output is exactly0.
+
+| Workers | Before wall / CPU seconds / peak RSS KiB | After wall / CPU seconds / peak RSS KiB |
+| --- | --- | --- |
+| 1 | 1.14 / 1.08 / 178160 | 1.14 / 1.07 / 178944 |
+| 4 | 1.00 / 1.17 / 197708 | 1.02 / 1.19 / 197276 |
+
+No material regression is visible at this sample resolution; no scaling claim.
+Canonical Foundation emitted by both compilers at both worker counts is byte-equal,
+SHAf2b3811c6cae66312b88eaec5301aa7516da2f872338ea97da3d6d297154f030.
+Preserved before compiler `/cache/a1_lifecycle_afca_before_towerc` SHA
+7545e1f392298072145c9bfd3196e7d239d74d57400ab5901daa09fcbf799f7d;
+after compiler98c23a86418cd91b6e50c76592c85c4f5d49edbc4f4349c3b1b1ab0d742a660a,
+fixture6fe6d9cbc0120fd6f81044733fc5ebb4ca4b23acc5d9e848a407f0ce86672bfc.
+All commands/errors/output/time logs remain in
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_lifecycle_*.
+
+Remaining barriers are explicit: sem_run; foreign-signature validation; defer
+hygiene; global known-write/order proof and inferred-expression snapshot; the
+mixed transformation join before evaluation; evaluation preparation/execution
+windows; attribute publication; known-value publication; module-initializer
+validation; late flow. This milestone removes the aggregate-to-expression barrier
+inside lifecycle lowering, not every top-level phase boundary. Dependency-window
+joins and shared callback publication remain deliberate. Structural/view/vector
+allocation assertions and the separate queued-stage hold work remain owned
+follow-ups. Generic fixture registration, broader allocation/critical-path/scaling
+measurement, sanitizers, clean bootstrap/browser/generation and deployment remain
+pending with ROOT. Documentation-only receipt edits need no runtime profiling.
 
 ### L2: bounded layout admission continuation (2026-11-23)
 
@@ -81087,6 +81267,77 @@ no further integration/push loop was attempted. The focused-tested batch remains
 committed locally; its final commit and exact push blocker are in B2/status.md.
 No force push, deployment, goal continuation or new assignment was attempted.
 
+### 2026-11-23 B2: nested lane release wakes outer admission
+
+Published the checked module-startup batch b21bdb2d through merge fd1ba4de.
+Preserved complete local/published histories: merged afca69b1, then the docs-only
+6d19d9ba advance. Native module-cache regression passed on the integrated source;
+normal push succeeded after one remote advance and one transient DNS failure.
+The earlier unpublished receipt above is superseded, not removed. ROOT portable
+policy integration needs these exact ParserNodes providers from
+scaffolding/compiler/frontend_modules.tower: frontend_module_root_world_size_result,
+frontend_modules_create_result, frontend_modules_bind_world_result. The bounded
+batch constructor frontend_units_create_bounded_result is provided by
+scaffolding/compiler/frontend_units.tower. Existing wrappers remain compatible.
+
+Source finding: frontend_units_step breaks on WorkBudgetError.Capacity, then
+waits solely for outer WorkPool completion. A nested extra-lane release did not
+notify that wait. New existing-harness selector unit-admission constructs three
+uneven independent units and a real nested world-owned Bedrock grammar job. The
+nested job observes the actual failed outer admission under the budget gate,
+then returns its grant; its parent stays live until another ready unit starts.
+Before the fix this fails the 30-second assertion, exit134 (33.311s wall,
+3.501s CPU,197648KiB RSS). The two initial fixture compile errors (unsupported
+array initializer and missing direct component-kind import) are retained in logs.
+
+Implemented one generic, gate-owned, one-shot lane-availability notification in
+WorkBudget. Failed lane admission arms it; a lane release disarms and posts the
+existing outer pool completion signal under the same gate, closing the lost-wake
+window. No extra production pool, wait channel, global state or spin polling.
+WorkPool adds an event receive operation; existing receive/reserve callers keep
+their job-only/result contracts. frontend_units consumes wake events and reruns
+its existing backend-first ready dispatch. Cancellation drains borrowers; close
+detaches the sender before destroying the signal. Byte-only denials do not arm
+lane notifications. Binding requires owner-enforced quiescence; the callback
+must be nonblocking and cannot reenter the budget. Diagnostics still settle in
+existing graph order. WorkBudget layout changed: consumers must rebuild together.
+
+Validation: one dependency-aware incremental build (27 actions; shared types
+recompiled coherently) of tower-lr-work-tests, tower-frontend-units-profile and
+tower-module-cache-tests. unit-admission passes: distinct live threads, exact
+serial/parallel canonical bytes, cancellation drain and shared lane/byte ceilings;
+release-call to next-unit entry80877ns. Whole fixture6.486s wall/7.845s CPU/
+476836KiB RSS. Existing units suite passes (21.614s/32.097s/808652KiB): ordered
+cycle/syntax diagnostics, memory ownership, cancellation and canonical equality.
+backend-overlap-calibrated passes exact objects/distinct worker overlap
+(8.207s/10.523s/523824KiB); backend1 starts197945ns after frontend1 leaves while
+frontend2 remains live. Module-cache/startup admission/retry suite passes too.
+Logs: build/b2_admission_{before_test,after_build,after_test,units,backend,modules}.log.
+
+Small cost comparison: same saved baseline executable and changed executable at
+/cache/b2_admission_profile, same /work/scaffolding resources, three units with
+4096 independent bodies only in the final unit, warm filesystem, fresh processes,
+one paired sample per budget. Linux x64 WSL2 kernel6.18.33.2, Docker CPU12-23 /
+24GiB, Release O2, public pinned towerc9653f8187a10, build compiler jobs1.
+Sibling containers had only sleep processes before/after this final paired run;
+initial contended samples remain logged but are excluded from this comparison.
+Profile phase wall seconds / CPU seconds / peak process RSS KiB, before -> after:
+
+| Worker budget | Wall | CPU | Peak RSS |
+| --- | --- | --- | --- |
+| 1 | 4.695 -> 4.642 | 4.579 -> 4.534 | 679844 -> 679528 |
+| 4 | 2.444 -> 2.372 | 5.660 -> 5.572 | 942140 -> 941284 |
+
+Canonical hash4242261087906147675,646269entities/792327components and each
+budget's exact retained/peak bytes and ledger capacity match before/after.
+Outer peak1/3; shared lane peaks1/4. This small cost sample establishes no general
+speedup or scaling result. The forced-admission fixture establishes the previously
+idle eligible lane and its prompt refill; it does not measure all scheduler idle
+time or parser bottlenecks. Logs build/b2_admission_pair_{before,after}{1,4}.log;
+saved baseline /cache/b2_admission_before_profile. Broader supported sanitizers,
+scaling, portable/bootstrap/browser/generation and hosted deployment remain
+pending ROOT's integrated milestone, not passed here. No todo edit, other-lane
+implementation, session/goal/agent creation or publication lease polling.
 ### A2 queued-stage ownership prerequisite, 2026-11-23 (blocked, not implemented)
 
 Reviewed integrated `afca69b171c790ce9386ae85c3f3d493d21cec59` after the requested
@@ -81249,3 +81500,289 @@ covered by the new result chain. ROOT executable admission, A2 queued-reference
 cancellation and A1 lifecycle remain separately owned. Supported sanitizers,
 full scaling/bootstrap/browser/generation and hosted deployment remain pending
 ROOT's integrated milestone. This bounded task publishes main only.
+Lifecycle merged receipt: post-commit pull fetched3912f25b and refused divergent
+fast-forward-only history. Normal complete-history merge7f6ca8806fbf691ad9c516181aad5a1a6a1cb4b6
+preserved both sides without conflicts. All A1 production/fixture files match
+74afc0d0. Incoming layout/body/module changes required a6-action dependency rebuild.
+The linked focused fixture then passed10 trials again, query-smoke and
+control-smoke passed, and comptime_aggregates at jobs1/4 retained both expected0
+execution and byte-identical baseline Foundation. Original paired timings remain
+specific to afca69b1+the A1 patch; they are not relabeled as measurements of the
+new upstream changes. Merged compiler09bc55e17dd54067c24ea7fdd6a8aa7e0e6f6c97f39421eb5d3c429f47f242c5,
+fixture31a6fd60f3b2018996da335e24ce4665c86acbd9a461a92b814a7da7535f3a6d,
+semantic providerd131c125295b18764cdd32a5a6dfd1c5851ebbb88da5c32c6410fbba8452a211.
+Exact merged commands/logs: cache/a1_lifecycle_merged_build.log and
+cache/a1_lifecycle_merged_checks.sh with separate fixture/query/control/output logs.
+All owned children drained. Existing graph registration request/depend/access/seal
+assertions also remain a fallible-admission follow-up; this batch checked partial
+take, transport, observation and completion paths rather than claiming every
+allocation boundary converted. Main publication only; deployment stays with ROOT.
+
+### D2 exact current module-startup symbol policy (2026-11-23)
+
+Bounded implementation on main3912f25b6368ebdb15ce332af8370eb57bf37f00, after
+pulling complete published history and checking the owned container was idle.
+Refreshed only Semantics, ParserNodes and frontend-units through one existing
+dependency-aware CMake invocation. Public9653/Linux x64/LLVM19.1.1, Deck image
+4be584fb, CPU0,2, build/compiler jobs1. Three object actions passed in80.43wall/
+77.91CPU seconds,760104KiB peak RSS. Source manifests verify before/after.
+
+Actual native nm U/T boundaries determine the additions, not the earlier audit's
+tentative grouping. Semantics imports frontend_module_root_world_size_result from
+ParserNodes. Current integrated L2 consumers additionally import
+compiler_world_component_result, entity_attach_result, entity_component_add_result,
+entity_create_related_result and entity_create_result from Entities. The configured
+parser_modules_work entry includes B2's module fixture, which imports
+compiler_world_create_result from Entities and frontend_units_create_bounded_result
+plus its paired frontend_units_close from the separate frontend-units provider.
+All nine were rejected by the retained old checker; add exactly those six
+Semantics and three ParserNodes permissions. No producer, layout or scheduler edit.
+
+Provider SHA256 identities:
+
+- Semantics:214d9217688e5eb3aa705888e28dcc1ae1ddd059ea6b5ac3d7c14ee81dc656fa.
+- ParserNodes:79fbe19031f05fde50b91a7af1ac3a66b8b750fe02863f6c6cb047c3ce1bb491.
+- frontend-units:ab30e9322092a25725f0e8c332a4ea9ac848a79195ec8ecb0dc9420206440a5c.
+- Entities:030ae5b4ec3c21805e92b57a3d9be0baa9cde30fdbf1f5fe400e514d2fd4b57c;
+  unchanged object/import closure reused from the prior current native receipt.
+
+frontend_modules_create_result/bind_world_result are U only in frontend-units,
+T in ParserNodes; module_new_result is a local t symbol there. None justifies
+a Semantics permission. The existing seven-unit comparison has no standalone
+frontend-units policy profile; this batch does not invent one or claim that
+report passed such a profile. New negative cases explicitly retain these rejects.
+Nine scoped fixture groups cover four target-policy spellings, exact truncation,
+suffix and wrong consumer/provider rejection; two normalized underscore cases
+also pass. Two historical negative expectations were updated only for their
+newly observed imports. No generic result-suffix permission or new normalization.
+
+Smallest public fixture compile/link/run passes (compile3.25s/180496KiB), canonical
+selected checker build passes (4.37s/197628KiB), then both full native reports
+pass with empty stdout/stderr. Checker3706ce5e4a5aa61b6ccc168d17dec969b1cf31b5334063c65bcdf1e773870a4e;
+fixturec2ea21785a5da5e38cac232e592b0ffbc3d71e4a996537fc7daf88a92cacc70f.
+Same frozen reports/target/flags, warm filesystem, fresh processes, n1 per unit
+and side: before/after wall and CPU all below0.01s resolution; peak RSS1352->1616
+KiB (Semantics),1348->1616 (ParserNodes). This establishes no speed or regression
+bound. Matcher additions allocate nothing and borrow input; whole-process live
+allocation/retention was not separately measured. This serial lookup has no
+worker scheduling/scaling change. Raw commands, hashes, expected old exit1s,
+after exit0s and profiles remain in build/d2_ecs/module_policy_3912. A diagnostic
+summary initially hit absent container rg (127); nm files were already complete
+and host rg inspected them without another build. No failure was counted passed.
+
+No WASI objects, Windows runtime, broad native/backend, sanitizers or browser
+matrix were executed. Portable cases validate policy strings only. ROOT retains
+final current-source instrumentation/bootstrap/browser/generation/deployment;
+the separate queued-provenance ownership prerequisite remains open. All owned
+jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
+and exact remote verification follow, recorded in D2's existing status.
+
+B2 publication integration: implementation dbce8d7f, then merge5a6ec257 preserves
+both published/local histories and both journal additions. Required ff-only pull
+reported divergence; explicit merge incorporated remote e66666c9. Incoming L2
+layout-admission changes required a coherent five-action rebuild; B2's six Tower
+sources stayed byte-identical. Merged unit-admission passes (87656ns refill,
+6.539s wall/7.879s CPU/476336KiB RSS), backend-overlap-calibrated passes exact
+objects/distinct overlap (7.787s/9.986s/523380KiB), units passes ordered failures
+and ownership/cancellation (21.337s/31.637s/803528KiB), and module-cache/startup
+retry checks pass. Logs b2_admission_merged_{build,test,backend,units,modules}.log.
+Unchanged isolated before/after cost evidence above is reused, not relabeled as
+a measurement of the merged semantic changes. All owned jobs drained.
+
+ROOT symbol handoff confirmed with actual nm --undefined-only: native frontend
+units import frontend_modules_create_result and frontend_modules_bind_world_result;
+Semantics imports frontend_module_root_world_size_result. All three are exported
+by frontend_modules.tower (ParserNodes). Incoming e66666c9 adds the last name to
+Semantics policy; the first two are still absent by exact name in that policy
+source. Tooling remains ROOT/D2-owned; no portable gate or deployment is claimed.
+Normal main push follows this receipt. Final pushed hash is recorded in B2/status;
+no pending assignment or idle goal follows this bounded task.
+B1 final merged receipt: published e66666c9 advanced during the batch; the required
+fast-forward-only pull refused divergence and normal merge preserved both complete
+histories as73c48dacc7d16937ec7d6fefa1f4fb05ad8120f3. All diagnostic batch files
+remain identical to production d5132ed5. Incoming module/semantic changes required
+six dependency-build actions,23.57s wall/45.42s CPU/756324KiB RSS. Merged parser
+.04s/53616KiB, diagnostics .02s/52644KiB, regex .04s/51552KiB and grammar-resource
+1.26s/52520KiB all exit0. Session67630 drained0; container only init. Logs/source/
+artifact hash: build/ecs_b1/logs/parser_diagnostic_merged_*. Frontend executable
+SHA256795b9ec5c5a1bbf7972773f0699c83e28b1da39f31e1e818d0cf1d145b71f5ba.
+No profiling or broad matrix repeated; prior profiles retain their frozen source.
+
+Exact observed native interface handoff: ParserNodes now imports
+parser_presentation_buffer_result from ParserFormat; ParserFormat imports
+parser_table_non_terminal_id_to_string_result and syntax_parser_token_name_result
+from ParserNodes; TemplateBuild imports syntax_session_diagnostic_result and
+parser_recognizer_get_error from ParserNodes. The linked focused checks resolve
+these complete providers. Strict bootstrap symbol-policy/release validation is a
+ROOT/D2 integrated gate, pending for these newly observed names, not claimed passed.
+The pointer wrappers remain available. Public checked diagnostic signature is
+parser_recognizer_diagnostic_result(request, ParserDiagnosticReader, source,
+WorkBudgetError*) -> ParserDiagnostic*; syntax_session_diagnostic_result(session,
+request, repairs, WorkBudgetError*) -> u8*. Both return null on resource failure;
+the latter retains the existing compiler_buffer_free text ownership on success.
+parser_stream_return_owned accepts work_vector(u8)* and transfers its receipt;
+legacy vector handoff remains unchanged. Remaining formatter allocation and budget
+lifetime limits are documented in docs/parser.md. Final normal push/status follows;
+no gh-pages deployment is part of this bounded task.
+Lifecycle push retry1: the first normal push lost a race toe66666c9's exact
+bootstrap-symbol policy/fixture update. Complete-history merge preserved both
+journal entries. No compiler/library/runtime or A1 fixture input changed from the
+validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
+runtime build or broad matrix. Retrying normal main push within the user's bound.
+### ROOT executable-stage admission and pinned-input ownership (2026-11-23)
+
+Implementation is based on published f33770baf0 with the complete existing
+compiler histories. The executable pump previously asserted successful stage
+open/lease, view creation, worker admission/dispatch and stage publication.
+It also closed its input view before acquiring queued payload references.
+The new pinned-input fixture reproduces the old lease path's process abort134;
+the healthy control passes. This is an ordinary compiler lifecycle regression,
+not evidence that every allocation or concurrency failure is covered.
+
+The pump now preserves exact producer errors, uses a common lexical cleanup for
+undispatched/private stages and contexts, cancels unsettled tickets after cleanup,
+and holds its worker reservation through publication/cleanup. Joined stages acquire
+queued ownership before the last input view closes, including partial dispatch
+failure. Failed publication never exposes an executable-ready input. Source
+position comes from the canonical Foundation operation, matching the existing
+query failure path. The first candidate used parser-match offsets and the new
+fixture correctly failed all four position assertions; that failure and candidate
+patch are preserved, and the corrected operation offset passes.
+
+Focused native evidence: nine executable selectors at widths4/8 and workers1/4
+(36 trials), including the new pinned Busy case, pass; query-smoke passes its
+32/64-bit lazy staging, continuation, ownership and real clone-overlap checks.
+Existing query/edge/access/take/partial/observe/finish controls remain unchanged.
+CMake registers the new selector through the existing fixture/provider target.
+No new scheduler, allocator, AST/IR, language syntax or public layout is added.
+
+Environment: KinmenA, canonical Docker Linux x64/LLVM19 Release, ROOT's separate
+tower-c-validation container, CPUs24-31 and24GiB, six independent build actions
+and one bootstrap compiler lane. The fresh root_ecs_native cache uses the checked-in
+public bootstrap and complete resources with no private bootstrap override.
+Other host agents remained active; this is not an isolated-host speed claim.
+Initial environment setup lacked GNU time (exit127); installing time preserved
+that log. Initial focused target selection omitted TOWER_BACKEND_TESTS (unknown
+target/exit1); enabling the documented fixture option reused the completed native
+build. Neither setup failure is counted as a passing check. The corrected final
+six-action build took24.47wall/38.52CPU seconds, peak761424KiB.
+
+Same actual paths, equivalent inputs and checked outputs, one before/after sample
+for three-unit workloads: bodies0 workers1 wall3.2626->3.4129s, CPU3.1495->3.3012s,
+RSS197628->197880KiB; bodies0 workers4 wall1.2677->1.3140, CPU3.8607->4.0443,
+RSS462900->462160; bodies4096 workers1 wall4.4800->4.5703, CPU4.3626->4.4542,
+RSS679212->678804; bodies4096 workers4 wall2.4825->2.3394, CPU5.6544->5.4986,
+RSS940536->941512. Canonical hashes, entity/component counts, retained bytes and
+ledger storage match exactly; actual outer peaks are1/3. Concurrent small-unit
+peak charged bytes vary201707929->201766085 (+58156, about0.03%), while retained
+storage matches. An initial observer incorrectly required identical concurrent
+peak occupancy; its mismatch remains explicit, not hidden as an exact match.
+
+The affected ordinary comptime helper program outputs0 at both worker counts.
+Its initial serial sample was1.06->1.15s, motivating only a bounded same-path
+alternating follow-up: one warmup plus three pairs, executable copies outside
+timing and identical resource paths. Medians wall/CPU/RSS: workers1
+1.10/1.08/176716 ->1.08/1.07/176484; workers4 .96/1.18/197008 ->
+.95/1.17/195608. All outputs match. These small samples do not establish a speedup;
+they provide no persistent slowdown/retention signal warranting a broad rerun.
+
+Logs, scripts, manifests and original failures are retained under
+build/codex_ecs_20261122/ROOT_executable_before and ROOT_executable_after,
+and /cache/root_executable_baseline_f337, /cache/root_executable_before,
+and /cache/root_executable_after on the ROOT container. Candidate compiler SHA256
+5f527118e1f8833b6c7a57e7f5e9fb6590a2d9c5f975de390dd7c799237c2db1.
+The original source manifest remains frozen through baseline completion.
+No private cache compiler is adopted as a public bootstrap.
+
+Remaining: A2 owns the checked queued-hold/cancellation provenance protocol and
+its immediate producer/consumer changes; this patch uses the existing hold API
+and must adopt its checked successor when published. Executable kind/component
+startup admission and wider lifecycle acceptance are separate remaining work.
+Supported integrated memory/thread instrumentation, final public bootstrap,
+browser/generation/hosted deployment and complete core-scaling acceptance remain
+pending under the user's batched milestone workflow. Current focused tests are
+not proof of universal race freedom or final compiler completion.
+
+Merged executable admission validation: source2be47c9ebbbd30891af3ce3ff57b4648c948c9ad
+contains published3912f25b and this executable-stage patch. Its nine selectors
+(36 width/worker trials), query-smoke and comptime_flow jobs1/4 pass with exact
+expected output and empty comptime stderr. Input SHA256 manifest verifies after
+the run. Compiler SHA256:
+aa1fb00222d200ed2e18cc3f891798bf18807e67a38de6a30d63172680685d4e.
+Comptime jobs1 wall1.12/CPU1.10/RSS179472KiB; jobs4 .96/1.19/193644.
+These are merged correctness/cost receipts, not a new before/after speed claim.
+
+The Docker bind-mounted Git index check was an iteration bottleneck: recursive
+status was interrupted143; ignoring submodules still refreshed the Windows index
+slowly. Native Windows Git had already verified clean tracked inputs. Future
+wrapper uses that host receipt plus the frozen build-input manifest instead.
+A second attempted interrupt found the status process already finished; an
+unnecessary second wrapper consequently reran the focused checks after the
+14-action build. Both wrappers exited0, but the same output directory was reused:
+the retained build log/timing is the second no-work build, not the original
+compilation timing. No timing claim is made for that overwritten first build.
+Both observed runs passed; retained final checks/manifests are authoritative.
+No source was edited during compilation and no second compiler build action was
+observed concurrently. This wrapper error is recorded rather than counted as
+additional performance evidence. Logs are retained in ROOT_executable_merged_2be47
+under the existing coordinator build directory and the matching container cache.
+The remote pre-integration candidate remains preserved in a named Git stash;
+its three scoped source files match committed2be47 ignoring line endings.
+
+First scheduling-batch push met a remote advance. Fetched cc2d4e6a and merged as
+bc378610 without dropping either journal; incoming A1 lifecycle changes required
+only Semantics regeneration and relinking the focused worker target. B2 Tower
+sources remain byte-identical to dbce8d7f. Final merged unit-admission passes
+(66991ns refill,6.548s wall/7.905s CPU/476828KiB RSS), including canonical equality,
+shared ceilings and cancellation. Final backend-overlap-calibrated again passes
+exact objects and distinct live threads. Logs b2_admission_push_merge_{build,test,
+backend}.log. Reuse unchanged startup/ordered-failure and cost evidence above;
+no rerun of unrelated matrices. All owned jobs drained; retrying normal main push.
+
+Second remote advance189e3927 brought B1 parser diagnostic ownership. Merge2f20652c
+preserved both histories and README/journal additions. Seven-action dependency
+rebuild passed; final merged unit-admission passes with76819ns refill, units
+passes canonical output/ordered diagnostics/cancellation, module-cache admission
+and retry passes, and backend-overlap-calibrated passes exact objects/distinct
+worker overlap. Logs b2_admission_parser_merge_{build,test,units,modules,backend}.log.
+B2 implementation remains dbce8d7f unchanged; no retiming of the isolated cost
+sample. All owned children drained; normal push retry follows. Broad gates and
+hosted deployment stay pending ROOT, with exact module-provider handoff above.
+Final scoped integration receipts before normal main publication: source816ff583
+joined A1 lifecycle frontier74afc0d0 and D2 symbol policy; source43ecc98d then
+joined B1 diagnostic ownership189e3927. Both frozen builds pass all36 executable
+admission trials, query-smoke including actual clone overlap, and comptime_flow
+jobs1/4 exact output/empty stderr. Their source manifests verify unchanged.
+The lifecycle incremental build took23.29wall/36.20CPU seconds,767700KiB peak;
+the parser join took19.92wall/24.41CPU seconds,715876KiB. Final compiler SHA256
+bfdd33e91b498df69d5a588bedab69fd904c96795d56c952a3d85fdf3d7a4b94.
+Logs remain in /cache/root_executable_lifecycle_816ff and
+/cache/root_executable_parser_43ecc. All owned jobs drained. Complete validated
+source histories remain ancestors of main; none was replaced by an isolated ABI
+copy. This receipt is documentation only and adds no runtime performance change.
+The earlier before/after data retain their original source identities.
+
+Normal source push publishes this coherent batch. Runtime gh-pages deployment
+and the final supported sanitizer/bootstrap/browser/scaling acceptance remain
+pending while the separately assigned implementation batches finish; no current
+runtime publication or100% completion is claimed. A1 continues ready evaluation
+frontiers, A2 checked queued provenance, B1 measured grammar/cache iteration cost
+and its own symbol boundary closure, B2 nested budget wake/refill, L1 interpreter
+storage, L2 constructor/evaluation admission, D1 cross-file staging integration,
+and D2 the existing independent C-reference cost comparison. No extra contexts
+were spawned, and completed windows were replaced in their existing sessions.
+
+B2's nested-lane wake implementation931115b1 arrived during publication
+reconciliation. It changes the shared budget/pool layout, so its additional
+integration is validated separately rather than relabeling the previous binaries.
+Sourcea093bf01f1116babec62daf205945766eaa028d7 retains the earlier tested source
+histories and complete B2 implementation. Its29-action dependency build passes
+in50.83wall/151.59CPU seconds,771340KiB peak. Executable36 trials, query-smoke,
+comptime_flow jobs1/4 exact outputs and the source manifest pass. The added
+unit-admission regression passes in6.59wall/7.95CPU seconds,476304KiB, observing
+nested lane release refill before parent completion and preserving canonical
+output/cancellation cleanup. Final compiler SHA256:
+648fb110dea0260b4f37489f52d0d54a4738344bce93023216c5ba369863491f.
+Logs remain /cache/root_budget_join_a093; all owned processes drained. This
+documentation receipt changes no runtime path. Final milestone gates remain
+pending; source publication is not a browser/runtime deployment receipt.

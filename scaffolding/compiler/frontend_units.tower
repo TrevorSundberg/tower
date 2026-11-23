@@ -278,6 +278,9 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
     if batch.work is not null {
         frontend_units_cancel(batch);
     }
+    if batch.budget.wake != null && !work_budget_set_wake(&batch.budget, null, null) {
+        trap("Compilation budget wake still borrowed", 0);
+    }
     work_pool_close(&batch.pool);
     if batch.work is not null {
         for(var i: usize = 1; i <= batch.count; i++) {
@@ -373,6 +376,9 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error:
         *error = batch.pool.resource_error;
         frontend_units_close(batch);
         return null;
+    }
+    if batch.pool.threaded && !work_budget_set_wake(&batch.budget, work_pool_wake_signal(&batch.pool), work_signal_post) {
+        *error = WorkBudgetError.Invalid; frontend_units_close(batch); return null;
     }
     batch.count = count;
     *error = compiler_work_create_result(count, batch.pool.count, revision, profile, &batch.budget, &batch.work);
@@ -476,11 +482,10 @@ fn frontend_unit_receive(payload: void*): void {
 }
 
 fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
-    var kernel = bits(CompilerWorkKernel*, work_pool_receive(&batch.pool, wait));
-    if kernel is null {
-        return false;
-    }
-    kernel.receive(kernel.payload);
+    var event: void* = null;
+    if !work_pool_receive_event(&batch.pool, wait, &event) { return false; }
+    var kernel = bits(CompilerWorkKernel*, event);
+    if kernel != null { kernel.receive(kernel.payload); }
     return true;
 }
 
@@ -509,7 +514,8 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
         while batch.pool.running < batch.pool.count && compiler_work_failed(batch.work) == 0 {
             // Ready downstream queries get the released lane immediately. Both
             // phases use this pool, so their total dispatch cannot exceed its
-            // budget, and any completion wakes this same coordinator.
+            // budget. Completion and nested lane release both wake this owner;
+            // the latter retries readiness before the outer unit has finished.
             var kernel: CompilerWorkKernel* = null;
             if batch.next != null { kernel = batch.next(batch.continuation); }
             if batch.finished { return true; }

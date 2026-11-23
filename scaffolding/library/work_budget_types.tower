@@ -32,6 +32,11 @@ struct WorkBudget {
     gate: void*;
     enter: function(void, void*);
     leave: function(void, void*);
+    // One coordinator's nonblocking notification, armed by denied lane admission.
+    // Bound before dispatch and detached only after all borrowers have drained.
+    wake_context: void*;
+    wake: function(void, void*);
+    wake_armed: bool;
     // Last operation for serial diagnostics only. Concurrent callers use the
     // per-call result APIs; reading this field without the gate would race.
     error: WorkBudgetError;

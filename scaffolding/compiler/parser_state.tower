@@ -11,6 +11,8 @@ import .library.vector;
 import .library.work_buffer;
 import .library.work_buffer_types;
 import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 import lr_types;
 import parser_types;
 import lr_grammar;
@@ -64,8 +66,8 @@ struct ParserRequest {
     complete: bool;
     has_lookahead: bool;
     prefix: bool;
-    lookahead_error: vector(u8);
-    error: vector(u8);
+    lookahead_error: work_vector(u8);
+    error: work_vector(u8);
     work: ParserRequestWork;
 }
 
@@ -82,8 +84,8 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
     if request.read_node_or_null != null {
         entity_release(request.read_node_or_null);
     }
-    vector_dispose(&request.lookahead_error);
-    vector_dispose(&request.error);
+    work_vector_dispose(&request.lookahead_error);
+    work_vector_dispose(&request.error);
     var storage = request.storage;
     work_buffer_dispose(&storage);
 }
@@ -144,7 +146,25 @@ export fn parser_recognizer_get_error(opaque: void*): u8* {
     if request.error.length == 0 && request.resource_error != WorkBudgetError.None {
         return "Unable to acquire parser resources";
     }
-    return parser_state_text(&request.error);
+    return request.error.data ?? "";
+}
+
+fn parser_request_error_assign(request: ParserRequest*, output: work_vector(u8)*, text: u8*): WorkBudgetError {
+    if text == null { return WorkBudgetError.Invalid; }
+    var length: usize = 0;
+    while text[length] != 0 { length++; }
+    if length == 0 {
+        output.length = 0;
+        if output.data != null { output.data[0] = 0; }
+        return WorkBudgetError.None;
+    }
+    var bytes = length + 1;
+    if bytes == 0 { return WorkBudgetError.Invalid; }
+    var error = work_vector_reserve_result(output, request.runtime.budget, bytes);
+    if error != WorkBudgetError.None { return error; }
+    copy(output.data, text, bytes);
+    output.length = length;
+    return WorkBudgetError.None;
 }
 
 export fn parser_recognizer_read_id(request: ParserRequest*): void {
@@ -163,10 +183,8 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
         }
         request.read_length = 0;
     }
-    if !parser_state_try_assign(&request.lookahead_error, parser_stream_get_error(request.stream)) {
-        request.resource_error = WorkBudgetError.Memory;
-        return;
-    }
+    request.resource_error = parser_request_error_assign(request, &request.lookahead_error, parser_stream_get_error(request.stream));
+    if request.resource_error != WorkBudgetError.None { return; }
     var capture = request.capture_completion;
     capture &&= end;
     capture &&= request.lookahead_error.length == 0;
@@ -181,7 +199,7 @@ export fn parser_return_lookahead(request: ParserRequest*): void {
     if !request.has_lookahead {
         return;
     }
-    parser_stream_return(request.stream, &request.read_node_or_null, request.read_id, request.read_start, request.read_length, &request.lookahead_error);
+    parser_stream_return_owned(request.stream, &request.read_node_or_null, request.read_id, request.read_start, request.read_length, &request.lookahead_error);
     request.has_lookahead = false;
 }
 
@@ -330,8 +348,8 @@ export fn parser_recognizer_resource_error(request: ParserRequest*): WorkBudgetE
 }
 
 fn parser_request_fail(request: ParserRequest*, message: u8*): void {
-    if request.resource_error == WorkBudgetError.None && !parser_state_try_assign(&request.error, message) {
-        request.resource_error = WorkBudgetError.Memory;
+    if request.resource_error == WorkBudgetError.None {
+        request.resource_error = parser_request_error_assign(request, &request.error, message);
     }
     request.complete = true;
 }
@@ -352,11 +370,10 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     match action {
         ParserAction.Unexpected => {
             if request.lookahead_error.length != 0 {
-                parser_request_fail(request, parser_state_text(&request.lookahead_error));
+                parser_request_fail(request, request.lookahead_error.data);
             } else {
                 var message = parser_presentation_text(request.table, ParserFormatKind.Unexpected, convert(usize, request.read_id), 0);
-                var present = message != null;
-                parser_state_require(present);
+                if message == null { request.resource_error = WorkBudgetError.Memory; }
                 parser_request_fail(request, message);
                 compiler_buffer_free(bits(void*, message));
             }
@@ -455,36 +472,60 @@ export fn parser_diagnostic_destroy(result: ParserDiagnostic*): void {
     if result == null {
         return;
     }
-    var index: usize = 0;
-    while index < result.options.length {
-        compiler_buffer_free(bits(void*, result.options.data[index].label));
-        index = index + 1;
-    }
-    vector_dispose(&result.options);
+    var owner = bits(ParserDiagnosticOwner*, result);
+    foreach(var & label in &owner.labels) { work_buffer_dispose(label); }
+    work_vector_dispose(&owner.labels);
+    work_vector_dispose(&owner.options);
     frontend_diagnostic_destroy(bits(FrontendDiagnostic*, result.probe));
-    compiler_buffer_free(bits(void*, result));
+    var storage = owner.storage;
+    work_buffer_dispose(&storage);
 }
+
+// The public view remains first and keeps its existing ABI. Only this owner
+// destroys its option/label receipts; callers borrow the public vector view.
+struct ParserDiagnosticOwner {
+    value: ParserDiagnostic;
+    storage: WorkBuffer;
+    options: work_vector(SyntaxDiagnosticOption);
+    labels: work_vector(WorkBuffer);
+}
+
+extern fn parser_presentation_buffer_result(table: ParserHostTable*, kind: ParserFormatKind,
+    first: usize, second: usize, budget: WorkBudget*, output: WorkBuffer*): WorkBudgetError;
 
 // Read-only with respect to table, recognizer, stream, entities and world.
 // Probe stacks/format buffers are local to this diagnostic, never cached there.
 export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDiagnosticReader, source: void*): ParserDiagnostic* {
-    var result = bits(ParserDiagnostic*, compiler_buffer_allocate(sizeof(ParserDiagnostic)));
-    var missing = result == null;
-    if missing {
-        return null;
-    }
-    fill(result, 0, sizeof(ParserDiagnostic));
+    var error = WorkBudgetError.None;
+    return parser_recognizer_diagnostic_result(request, reader, source, &error);
+}
+
+export fn parser_recognizer_diagnostic_result(request: ParserRequest*, reader: ParserDiagnosticReader,
+    source: void*, error: WorkBudgetError*): ParserDiagnostic* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if request == null || request.table == null || request.control == null
+        || (reader != ParserDiagnosticReader.None && source == null) { return null; }
+    *error = request.resource_error;
+    if *error != WorkBudgetError.None { return null; }
+    var budget = request.runtime.budget;
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(ParserDiagnosticOwner), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var owner = bits(ParserDiagnosticOwner*, storage.data);
+    *owner = {storage: storage, ..default};
+    var result = &owner.value;
+    var ready = false;
+    defer { if !ready { parser_diagnostic_destroy(result); } }
     result.offset = request.read_start;
     result.insertion_offset = lr_parser_consumed(request.control);
     result.at_start = lr_parser_shifted(request.control) == false;
     var input = reader != ParserDiagnosticReader.None;
     var bad_input = request.lookahead_error.length != 0;
-    var probe = frontend_diagnostic_create(request.control, request.prefix, input, bad_input, request.read_id, request.read_start);
+    var probe = frontend_diagnostic_create_result(request.control, request.prefix, input, bad_input,
+        request.read_id, request.read_start, error);
     result.probe = bits(void*, probe);
-    missing = probe == null;
-    if missing {
-        return result;
-    }
+    if probe == null { return null; }
     loop {
         var need = frontend_diagnostic_next(probe);
         if need == 0 {
@@ -524,28 +565,42 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
         }
     }
     result.complete = frontend_diagnostic_complete(probe);
+    *error = frontend_diagnostic_resource_error(probe);
+    if *error != WorkBudgetError.None { return null; }
     var index: usize = 0;
     var count = frontend_diagnostic_count(probe);
-    if !vector_reserve(&result.options, count) {
-        result.complete = false;
-        return result;
-    }
+    *error = work_vector_reserve_result(&owner.options, budget, count);
+    if *error != WorkBudgetError.None { return null; }
+    *error = work_vector_reserve_result(&owner.labels, budget, count);
+    if *error != WorkBudgetError.None { return null; }
     while index < count {
         var value = frontend_diagnostic_expected(probe, index);
-        var option = &result.options.data[index];
+        var option = &owner.options.data[index];
+        *option = default;
         option.id = value.id;
-        option.label = parser_presentation_text(request.table, ParserFormatKind.Expected, convert(usize, value.id), 0);
-        missing = option.label == null;
-        if missing {
-            result.complete = false;
-            break;
-        }
+        var label = &owner.labels.data[owner.labels.length++];
+        *label = default;
+        *error = parser_presentation_buffer_result(request.table, ParserFormatKind.Expected,
+            convert(usize, value.id), 0, budget, label);
+        if *error != WorkBudgetError.None { return null; }
+        option.label = label.data;
         option.insertion = value.insertion;
         option.completes = value.completes;
         option.contexts = value.contexts.data;
         option.count = value.contexts.length;
-        result.options.length = result.options.length + 1;
+        owner.options.length++;
         index = index + 1;
     }
+    result.options = {data: owner.options.data, length: owner.options.length, capacity: owner.options.capacity};
+    // Returned contexts are numeric owned copies. No request/table/runtime
+    // borrow is needed after the bounded probe has finished.
+    lr_probe_destroy(probe.original);
+    lr_probe_destroy(probe.stack);
+    lr_probe_destroy(probe.continuation);
+    probe.original = null;
+    probe.stack = null;
+    probe.continuation = null;
+    probe.runtime = null;
+    ready = true;
     return result;
 }

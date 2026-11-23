@@ -42,6 +42,20 @@ fn work_budget_synchronize(budget: WorkBudget*, gate: void*,
     return true;
 }
 
+// The callback may only notify; it runs under the admission gate and must not
+// reenter this budget. The owner keeps its context alive through all releases.
+// Binding/detaching requires quiescent borrowers, not merely zero lane usage.
+fn work_budget_set_wake(budget: WorkBudget*, context: void*, wake: function(void, void*)): bool {
+    if budget == null { return false; }
+    if budget.gate != null { budget.enter(budget.gate); }
+    defer { if budget.gate != null { budget.leave(budget.gate); } }
+    if !budget.initialized || budget.used_lanes != 0 || (context == null) != (wake == null) { return false; }
+    budget.wake_context = context;
+    budget.wake = wake;
+    budget.wake_armed = false;
+    return true;
+}
+
 fn work_budget_snapshot(budget: WorkBudget*, output: WorkBudgetSnapshot*): bool {
     if budget == null || output == null { return false; }
     if budget.gate != null { budget.enter(budget.gate); }
@@ -102,6 +116,9 @@ fn work_budget_reserve_locked(budget: WorkBudget*, minimum: usize, preferred: us
     if output.active { budget.error = WorkBudgetError.Busy; return false; }
     var available = budget.lanes - budget.used_lanes;
     if available < minimum || bytes > budget.bytes - budget.used_bytes {
+        // Arm under the release gate: a lane cannot be returned between a
+        // failed admission and registration of its coordinator's wakeup.
+        if available < minimum && budget.wake != null { budget.wake_armed = true; }
         budget.error = WorkBudgetError.Capacity;
         return false;
     }
@@ -199,5 +216,9 @@ fn work_budget_release_locked(budget: WorkBudget*, receipt: WorkReservation*): b
     budget.free_slot = receipt.slot;
     receipt.active = false;
     budget.error = WorkBudgetError.None;
+    if entry.lanes != 0 && budget.wake_armed {
+        budget.wake_armed = false;
+        budget.wake(budget.wake_context);
+    }
     return true;
 }
