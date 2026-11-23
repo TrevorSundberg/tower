@@ -5,6 +5,10 @@ import .library.entity_types;
 
 var failures: u32 = 0;
 
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Pinned-view fixture has no lifecycle payloads", 0);
+}
+
 fn check(ok: bool): void {
     if !ok {
         failures++;

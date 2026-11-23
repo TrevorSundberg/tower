@@ -1,5 +1,6 @@
 import tower;
 import entity_types;
+import work_budget_types;
 
 // Typed declarations for separately compiled clients of the shared Tower ECS.
 // The owning program links entities.tower once; this file owns no implementation.
@@ -7,6 +8,10 @@ extern fn entity_store_create(): EntityStore*;
 extern fn entity_store_set_context(store: EntityStore*, context: void*): bool;
 extern fn entity_store_dispose(store: EntityStore*): bool;
 extern fn entity_create(store: EntityStore*): Entity*;
+// Required private receipt; coordinator-only mutation, no shared last-error.
+extern fn entity_create_result(store: EntityStore*, error: WorkBudgetError*): Entity*;
+extern fn entity_create_related(entity: Entity*): Entity*;
+extern fn entity_create_related_result(entity: Entity*, error: WorkBudgetError*): Entity*;
 extern fn entity_release(entity: Entity*): usize;
 extern fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool;
 extern fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent*;

@@ -62213,3 +62213,107 @@ no new contexts, window changes or relaunches occurred. User todo.txt remains
 unstaged and unchanged. Final combined validation, useful scaling, remaining
 storage/ownership work, bootstrap/browser generations and atomic publication are
 open. No new runtime, main or Pages publication is claimed.
+
+### A2 per-call entity creation results, 2026-11-23
+
+ROOT/B1 requested the owner API because entity_create's null return conflated
+pinned-store Busy, exhausted identities and allocation Memory. Base90009cef
+contains corrected native checkpoint9bfc8e91 and reviewed ROOT97b10; their
+histories were merged without conflicts after all builds drained. The corrected
+standalone bundle A2_main_9bfc8e91.bundle remains independently available.
+
+Implemented entity_create_result(store,error*) and related_result(entity,error*)
+using the existing Entity and WorkBudgetError types. The required receipt is
+private caller storage, overwritten on every call. Null receipt changes nothing;
+null owner returns Invalid. Busy precedes Exhausted, matching prior check order.
+One failed raw allocation reports Memory without consuming identity or publishing
+an entity; retry returns None. Legacy wrappers use stack-local receipts. No
+shared store/budget last-error write, additional allocation, layout change,
+new identity, effect replay or noalias assertion. Entity node allocation remains
+raw and unbudgeted; this API does not claim a whole-world physical memory cap.
+
+Public predecessor9653f818 compiles API1.470s, implementation1.875s, provider2.063s,
+normal typed client1.570s and fault client1.589s. Separate declaration-only clients
+link one entities+host.memory provider. Normal tests cover exact result values,
+same-world unattached related nodes, ordered named attachment, independent
+receipts, Busy precedence and no mutation on denial. The finite-ID boundary
+sets the legitimate counter near maximum, without allocating a huge world.
+Serial allocation injection verifies exactly one allocation attempt per failed
+create, unchanged live allocation/count/identity, successful retry and complete
+cleanup. This injection is not concurrency or sanitizer evidence.
+
+The first broader run stopped at the preexisting standalone entity_views fixture:
+its lifecycle-zero-only registrations still required a link-time finalizer.
+The original failed log entity_create_checks.log remains. Added an unexpected
+finalizer trap to this fixture, preserving every assertion and test operation.
+After reaping the failed job, resumed remaining work in entity_create_resume.sh.
+Views/pages/tables/stage-ownership and the existing real2/4-worker stage fixture
+pass. Twelve ASan/LSan/TSan executions pass (three per mode for typed client+provider
+and real concurrent stage): production allocator/runtime and transport are
+instrumented, with99 provider,3 client and220 stage-unit function definitions.
+TSan uses Docker seccomp=unconfined. No UBSan support is asserted, nor absence of
+races in every execution. Exact input hashes remained unchanged through the run.
+The already-linked LR client contains no allocator provider, confirming the
+earlier work_named correction. All owned processes exited/reaped.
+
+Logs are A2/cache/logs/entity_create_checks.log, entity_create_resume.log and
+entity_create*.log /entity_stage_concurrent.create*.log. Normal fixture binary
+b4c2dcc8ec913cccfa3e1a67c6798ca584a1a896a6bcb3c9bef8640e5705734a;
+serial faults5f1343271635123869be737eed19055691739cff26300cb42267131d23ad834c.
+Two-file API artifact A2_entity_create_result.patch is available to B1/ROOT;
+generic harness registration remains D1 coordination. Current whole-compiler
+provider/public-bootstrap/native/WASI policy checks and paired locality analysis
+remain pending for this exact delta; earlier full native receipts stay tied to
+their earlier source. No publication/acceptance claim.
+
+Next page-accounting review found an integration gap: compiler_world_bind_budget
+sets world.work_budget but not world.store.budget. A2's planned page receipts
+would otherwise apply only to stores constructed with a budget, not ordinary
+bound compiler worlds. B2/ROOT have the explicit proposal; no foreign source
+was changed. Store/world constructor allocation, future binding and any explicit
+existing-descriptor adoption must state their actual accounting timing.
+
+Paired result-API locality measurement completed03:31:55.509-03:31:57.016 UTC,
+fresh A1 quiet ACK03:31:10; released immediately after exit. Same fixture
+09f61805a6d9fce9f152db4d138702cd263816509093725cff2230c8af363d75,
+before binary4de2e9b019c24e3d5e0a37e4728a5826ce70bece5c8b4f251b78a56db0ee0d2b,
+after492cd50d12d5997f3ae59a923e1e16dac43e30b2d575095cb6abcdce533c6286.
+Public9653f818, clang19 -O1, x86_64 Linux Docker, affinity12-23/24GiB,
+single coordinator, production allocator, fresh processes/warm host cache,
+one warmup plus three alternating pairs. Eight runs checked all reference sums,
+stable sparse addresses, exact page occupancy/retention and empty teardown.
+The existing Tower median tool was extended only in an own-cache .tower
+experiment from112 to128 fields to parse this118-field receipt; no Python/JS
+analysis or generic harness changes.
+
+| Metric, median of3 | Before | After |
+| --- | ---: | ---: |
+| Create1024 entities/components, wall us | 685.308 | 573.350 |
+| Create65536 entities/components, wall ms | 10.696688 | 9.663307 |
+| Complete process, wall ms | 189 | 172 |
+| Complete process, user+system CPU ms | 140 | 126 |
+| Process peak RSS KiB | 26844 | 26912 |
+| Large component pages / allocator usable bytes | 1024 /5873664 | 1024 /5873664 |
+| Retained bytes after one survivor per page | 5873664 | 5873664 |
+| Useful surviving payload bytes | 32768 | 32768 |
+
+This is a diagnostic-correctness change, not an optimization claim. The short
+window also shows variation in unchanged traversal code, including29.504ms
+versus17.554ms for large entity lookup scans; that variability prevents attributing
+all timing differences to the new branch/wrapper surface. Page allocation count,
+usable bytes and retained ownership are identical. Serial injection independently
+checks exactly one allocation attempt per entity creation; the production profile
+does not count every libc call. End-to-end compiler CPU/RSS and idle/critical-path
+scaling are not established by this microbenchmark. Creation is coordinator-owned
+structural mutation, so this profile deliberately measures its serial path;
+separate production2/4-worker stage tests supply actual overlap evidence, not a
+claim that shared-store creation is parallel-safe. Packed scratch traversal is
+still only a derived reference snapshot, never canonical packed storage.
+
+Primary research re-read during the next storage review:
+Flecs ComponentTraits https://www.flecs.dev/flecs/ComponentTraits.html,
+Flecs Systems https://www.flecs.dev/flecs/Systems.html and
+Unity Burst aliasing https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html.
+Transfer only explicit storage policy, staged mutation/read-write declarations
+and proven alias information; no implementation-language or unmeasured speed
+claims. Current Tower pins protect lifetime; they do not establish disjoint writes.

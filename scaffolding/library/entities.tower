@@ -59,15 +59,28 @@ export fn entity_store_dispose(store: EntityStore*): bool {
 }
 
 export fn entity_create(store: EntityStore*): Entity* {
+    var error: WorkBudgetError;
+    return entity_create_result(store, &error);
+}
+
+// Coordinator-only structural mutation. The required receipt belongs to this
+// call, not the store or its borrowed budget; success clears a previous error.
+export fn entity_create_result(store: EntityStore*, error: WorkBudgetError*): Entity* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if store == null { return null; }
     if store.views != 0 {
+        *error = WorkBudgetError.Busy;
         return null;
     }
     var next = store.next_id + 1;
     if next == 0 {
+        *error = WorkBudgetError.Exhausted;
         return null;
     }
     var entity = alloc(Entity, 1);
     if entity == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     *entity = default;
@@ -76,6 +89,7 @@ export fn entity_create(store: EntityStore*): Entity* {
     entity.references = 1;
     store.next_id = next;
     store.entity_count++;
+    *error = WorkBudgetError.None;
     return entity;
 }
 
@@ -87,7 +101,13 @@ export fn entity_retain(entity: Entity*): usize {
 
 // Allocate an unattached entity in an existing entity's store.
 export fn entity_create_related(entity: Entity*): Entity* {
-    return entity_create(entity.store);
+    var error: WorkBudgetError;
+    return entity_create_related_result(entity, &error);
+}
+
+export fn entity_create_related_result(entity: Entity*, error: WorkBudgetError*): Entity* {
+    if entity == null { return entity_create_result(null, error); }
+    return entity_create_result(entity.store, error);
 }
 
 // Ownership must be acyclic. Query cursors are invalidated by structural edits.
