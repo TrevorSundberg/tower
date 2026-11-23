@@ -912,3 +912,8 @@ Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
 the30-second internal deadline are unchanged. Phase messages identify baseline
 versus streaming work; directional deadline errors identify the waiting side.
 The focused selector does not replace the full backend matrix or its failures.
+
+`tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
+frontend snapshot allocation-failure checks without the unrelated body/parser
+matrix. The default frontend invocation still runs these checks. This selector
+does not provide production threading or whole compiler sanitizer coverage.

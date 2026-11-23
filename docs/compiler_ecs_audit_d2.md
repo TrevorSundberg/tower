@@ -1494,3 +1494,12 @@ D1 registration41d2bc06 inspected/applied without competing manifest logic:
 production LR/backend closure, three real callback exports, Linux x64 opt-in,
 no default heavy test or serial allocator. Existing frontend/cache full source
 reviews remain applicable; measurement runtime/current ABI proof is pending.
+
+Current00caeef public-pin12units/native13steps/linked21steps pass with source
+hash checks. Immutable compiler07474566 has46exact resources (four new library
+files versus146, old42 unchanged); source/current runtime remains separate from
+next typed failure propagation and arena integration. D1-authored focused
+allocations selectordfb232 adopted after all jobs drained: existing snapshot
+fault cases can run without invoking the body/parser matrix, default unchanged.
+This reuses the registered serial allocator and is neither parallel evidence
+nor a new test implementation. Current measurements and runtime checks follow.

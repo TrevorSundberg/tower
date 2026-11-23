@@ -49232,3 +49232,25 @@ opt-in, no default/CTest or serial/fault transport. Entry sources remain
 D2guard57e392d9/B2cache0930654a. Local build, actual overlap, paired costs and
 current ABI instrumentation are next; older API passes are not relabeled.
 No new vendor build or publication lease.
+
+D2 public predecessor units88251 all12PASS at00caeef (parser tables/new budget
+fixture, frontend units/memory/backend, interpreter types/storage/context/core/
+query), frozen hashes verified. Canonical native62355 passes13steps:
+113.92wall/111.68CPU/790824KiB, jobs1 on Docker CPUset0,2, no override or child
+swaps. Complete immutable package07474566 +46resources saved; previous14642
+resources all unchanged, exactly work_buffer/work_vector and their defining
+modules added and byte-identical to source. All21 affected linked target steps
+also pass (73.82wall/72.28CPU/354256KiB), including production frontend/cache
+profile executables and current query/storage/execution/buffer fixtures.
+This is build evidence, runtime next.
+
+After62355 drained, applied D1 requested allocations selectordfb232: four-line
+branch in existing frontend_main calls existing snapshot allocation checks;
+default still includes them. Avoids unrelated body/parser matrix for this
+focused failure path. No test logic or oracle altered. README patch context
+checks rejected absent owner-only paragraphs; exact runner and intended five
+README lines added preserving current prose. Source-level request was grounded
+in existing body matrix costs; new selector time will be measured. Only this
+runner needs rebuilding; compiler package retains00caeef source identity.
+Upcoming L1 first-storage-error ABI/A1 coordinator propagation and A2v4 arenas
+are reviewed separately, not folded into this frozen runtime claim.
