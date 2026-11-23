@@ -82356,3 +82356,18 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+L1 final bounded publication retry: complete68f8964 history is preserved in
+127cfa00. The shared grammar layout required11 dependency actions in the existing
+native cache; build passed51.42wall/79.64CPU seconds,770784KiB peak RSS.
+The merged core suite passed11.47wall/13.15CPU seconds,317236KiB with empty
+stderr, including Fast budget ownership, graph/Fast differential, both target
+widths, Foundation round trips and package contracts. Before/after input
+manifests match SHA256 a65aaf7089db648fc5ef3bb0d6941e14818639c2fad5d1a3e9697c71cd437174.
+All owned jobs drained; logs are L1/logs/fast_storage_publish_retry3. Fast source
+and its ownership fixture remain identical to908515e; earlier function,
+constructor and checked performance evidence retain their recorded identities.
+This receipt changes documentation only. Normal push follows as the last of
+three permitted retries after the initial concurrent-main rejection. Remaining
+diagnostic/output and package-encoding storage plus ROOT integrated release
+checks are pending; no deployment or broader validation is claimed.
