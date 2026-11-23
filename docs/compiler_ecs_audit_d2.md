@@ -1883,3 +1883,31 @@ not adopted main or a successful compiler build. A selected snapshot helper woul
 add an exact `sem_context_snapshot` import to separate Publish providers, subject
 to actual object checks. New arithmetic-error consistency findings in graph growth
 were routed to A2; no huge allocation or fabricated invalid payload test was run.
+
+The selected owner patch is now `8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c`,
+reviewed/apply-checked against `c4aa1713`. It **removes** the graph/pool API
+experiment and all its extra exports/import swaps. The proposed standalone
+provider fixes above are therefore historical and must not be applied to this
+candidate. Original internal methods and provider membership remain. The selected
+graph adds checked length increments and typed index-doubling rejection, preserving
+the first resource error. The corrected snapshot-only patch `5acefe43` preserves
+all 16 replacements while avoiding unrelated dispatch context. Owner parser/
+semantic and focused instrumentation results are reported separately; D2 has not
+compiled/adopted this candidate or relabeled earlier receipts.
+
+Two incoming measurement files were read completely, including their selected
+import composition. Both remain proposed source until the owner history is joined:
+
+| Path, reviewed base and proposal | Substantive disposition |
+| --- | --- |
+| `scaffolding/tests/compiler_work_profile.tower`, c4aa +8e4e2d | Eight fixed independent plans use private `CompilerWork` owners and a synchronized shared budget; exact ordinal checksum, entities/components and final zero grants are checked. Measures descriptor/graph creation and scheduling, not compiler body throughput. Pool setup is excluded; dispatch/join included. Charged buffers explicitly exclude ECS pages/payloads. Selected imports restore full graph and native dispatch in the same object, removing the intermediate API recipe gap. |
+| `scaffolding/tests/work_vector_profile.tower`, c4aa +8e4e2d | Fixed 4096/262144 elements are partitioned across private ordinary/accounted vectors; every value, sum, retained capacity and charged bytes are checked. Growth requests are not called physical allocation counts. Existing same-object native pool/dispatch and synchronized ledger remain; all vectors/grants retire after joining. Linux x64 clock/rusage layout is an explicit host boundary. Interval overlap alone establishes neither useful scaling nor per-core utilization. |
+
+Also reviewed L2's complete clone-calibration fixture delta at `9bdbc814`, fetched
+without merging its other source dependencies. The finite serial calibration uses
+the faster of two fresh trials, caps width at1536, and freezes the chosen workload
+before concurrent trials. Production intervals still exclude the admission
+barrier; exact nodes/output, distinct threads, overlap and cleanup remain required.
+Diagnostics precede the explicit failure assertion after cleanup. D1 owns current
+independent native/instrumented validation; original D2 exit134 remains historical
+failure evidence, not erased by calibration or the owner's three passing runs.

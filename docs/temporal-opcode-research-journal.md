@@ -60555,3 +60555,28 @@ the v2-only build plan pending that result. Complete04589f snapshot patch review
 scratch replacement; existing semantics owns the export. No literal-provider
 imports are needed. Exact known_work patch context differs from root0c's older
 dispatch and must be reconciled without importing unvalidated surrounding changes.
+
+Root03:01:52 selected the smaller nominal-view/nongeneric-storage plus snapshot
+candidate, removing the graph/pool API experiment. D2 verified selected patch
+8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c and
+snapshot-root patch5acefe43; both apply-check onc4aa without source adoption.
+Selected pool/graph delta preserves internal implementation/provider membership,
+adds checked graph increments/index doubling, and retains first typed failure.
+Withdrawn link_wasi/serial-provider drafts and inactive v2 source remain historical;
+no redundant builds or literal imports were made. Full owner native/profile/history
+closure and independent matched checks remain pending.
+
+Full incoming compiler_work_profile/work_vector_profile audit records fixed work,
+private owners, exact outputs, synchronized ledger, measured intervals/CPU/RSS,
+retention and cleanup limits. The selected CompilerWork profile restores its
+same-object graph/transport providers. Neither is a compiler-throughput or core
+utilization result merely because it reports interval overlap. Documentation-only
+review adds no new runtime measurements.
+
+Verified/fetched L2 complete9bdbc814 bundlecde1b559, read its full bounded clone
+calibration/diagnostic delta, and left main unmerged. Root assigned independent
+native/instrumented acceptance to D1; oldD2 query134 stays preserved. Initial
+`git show 2cb32` failed128 because that prefix identifies the patch hash, not a
+commit; corrected lookup uses advertised9bdbc814. No mutation or passing-check
+claim from that failed inspection. D2 does not hold the heavy slot while waiting
+for selected source delivery; no publication request or completion claim.
