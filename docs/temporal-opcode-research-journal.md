@@ -85157,3 +85157,142 @@ Consequently the retained memory and semantic source audit above remain explicit
 LR helpers, the chosen suffix candidate, profile source and five language resources
 remain unchanged. Saved executable/evidence hashes, documentation diff checks and
 todo preservation pass; no broad rebuild or relabeled performance acceptance.
+
+## D2 suffix-FIRST reuse — frozen 2e77d747, 2026-11-23
+
+Implemented the bounded follow-up to87a5da1a on published
+`2e77d74713bb44fd74b8605919c1b1b68eefaf1f`, including B1's complete81381afb
+state-core optimization and current A1/A2/L2 ownership changes. B1's
+lr_states/lr_state_work and their tests are preserved. No new grammar authority,
+cache format, global mutable state, state-interning order or scheduler.
+
+`LRAnalysis` now owns one typed suffix-index pointer. A checked WorkBuffer holds
+its descriptor, production-base array and dense suffix records; a second holds
+flat sorted SymbolRanges. Counts, offsets, alignment and overflow checks derive
+from actual productions/types. Only suffixes following nonterminals are populated.
+The serial FIRST helper and parallel dependency pump publish this index only after
+convergence/joins. Parser calls supply their world's WorkBudget; standalone
+analysis explicitly uses null. All partial index storage retires on typed
+Memory/Capacity/Invalid failure; the same analysis can retry. Published buffers
+are immutable through worker borrows and retire with the analysis after joins.
+Existing raw analysis/FIRST/scratch allocations are not a whole-world memory cap.
+
+`lr_suffix_result` copies the precomputed exact ranges to its existing private
+scratch and inserts incoming lookahead only when the suffix is nullable. Range
+overlap remains distinct, not interval union. Production bases distinguish shared
+symbol spans with different ends. Unreachable invalid references retain per-row
+errors until a closure demands them; FIRST does not begin rejecting such tails.
+Pre-completion standalone closure calls retain the original uncached path.
+
+Measured the unchanged caller before editing production: new `lr-suffix` selector
+in the existing frontend profile constructs32 seeds (including LRTokenPropagation
+and LRTokenEnd), then times2,000 production closures against the independent
+sorted-insertion oracle. Every closure's100 ordered items are checked outside
+its timed interval. Initial baseline41.593ms and first candidate38.565ms were only
+preliminary; neither is used alone as acceptance. Full nullable/nonnullable,
+recursive, overlapping-range and overlapping-production-span graph cases also
+compare exact states, transitions, actions, conflicts and parser controls.
+
+Frozen paired frontend binaries, same resources/fixtures and public bootstrap
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`:
+before `0acdb444e6be65419e28ed6ad40b90ef36fd6a8065ca89e00106bea11e61a385`,
+after `701c558e7a3824f89b7b2e0c0eb767acfb38e86226c055fd6093d8de6e55d6c6`.
+Production hashes after:
+`lr_analysis.tower`=`3d99bd416a81c84f3a793818e987bce0f7c89eedffb86a1e5c3daab6fd10ca3c`,
+`lr_first_work.tower`=`cc3cbd674bb5e923a4092b76b453cd29a54890cccedb04bde129b6c5117c71cf`.
+Later fixture-only additions exercise nonnullable/deferred-error cases and print
+charged bytes; their true profile input/timed loop and production stay identical.
+
+Steam Deck Linux6.16.12-valve24.5, Docker tower-d2-ecs/image4be584fb42a6,
+Release/native x86_64, LLVM19, jobs1 builds from the checked-in public compiler.
+Container admits CPUs0,2 (two physical cores). Powersave governors, observed
+CPU0~1.077GHz/CPU2~2.42GHz; no fixed-frequency or isolated-host claim. Steam/KWin
+and CLI background activity remained. One warmup per variant/mode followed by
+three pairs, order before/after, after/before, before/after. Fresh processes/worlds,
+warm filesystem, no OS-cache flush. Cold starts from the seed; installed sets up
+Bedrock/Foundation before the source phases. No backend/link compilation timed.
+
+Initial cpuset0,2 pairs were noisy and mixed, ALL retained:
+closure ms before[33.766,43.710,42.451], after[38.867,39.444,16.471];
+cold wall s before[1.87,2.74,2.52], after[2.14,1.69,4.17];
+installed before[1.78,1.79,1.77], after[1.88,1.88,2.27]. In particular the initial
+installed median REGRESSED1.78->1.88s; it was not deleted or called a pass.
+One justified confirmation pinned both serial variants to CPU2, same three-pair
+order, already-warm files. No governor/timeout changes or long sweep:
+
+| CPU2 case/sample | Before wall / CPU s / RSS KiB | After wall / CPU s / RSS KiB |
+| --- | --- | --- |
+| Cold1 | 2.35 /2.33 /181384 | 2.03 /2.02 /181908 |
+| Cold2 | 1.65 /1.64 /181392 | 1.60 /1.58 /181908 |
+| Cold3 | 1.65 /1.63 /181376 | 1.60 /1.59 /181892 |
+| Installed1 | 1.78 /1.76 /184636 | 1.72 /1.71 /184748 |
+| Installed2 | 1.77 /1.75 /184792 | 1.72 /1.70 /184872 |
+| Installed3 | 1.79 /1.78 /184744 | 1.73 /1.71 /184800 |
+
+Pinned closure ns before[17844821,17882398,17857560],
+after[19417034,16701091,16601203]: median17.858->16.701ms (~6.5% lower), including
+one losing pair. Whole caller processes are.04-.05s, CPU.03-.04s and~50MiB RSS;
+those coarse numbers do not resolve the caller's modest improvement. Keep the
+candidate for measured ~3% cold /~3.4% installed latency reductions in this pinned
+sample, not a universal speedup. Median LR Table times1.412443->1.354141s cold,
+1.388957->1.335148s installed source phase. Startup/table intervals nest; do not
+sum them. Remaining ordinary cold cost is still about1.6s on this setup.
+
+All cold/installed canonical outputs remain976bytes/hash13832670361687071853,
+answer()==42,185 lookups/155 builds/123 tables/36 structural reuses. Peak charged
+bytes58004592->58035248 (+30656); end-of-request charged live1893528 and ledger
+metadata5242880 unchanged. Cold allocation calls2257340->2257152; installed
+2792242->2792318. Retained buffer counts36677/48979 unchanged. Caller-loop
+allocations40000 before/after; analysis creation is outside that micro-interval.
+The explicit finite-budget fixture measures408 charged index bytes, exhausts
+remaining byte allowance, requires Capacity with no retained partial grant,
+releases the denial grant, retries the SAME analysis, verifies reuse without new
+retained storage, then requires full index/world/ledger cleanup. Raw LRAnalysis
+and existing FIRST/scratch ownership remain outside that index subtotal.
+
+Normal native control on the final production, one1,000-body unit, workers1/2:
+6.632633/6.477665s request wall,6.593407/8.687970CPU seconds,
+335372/347448KiB peak RSS. Charged retained162947257/162944321,
+peak254185397/254139013, ledger metadata20971520 each. Canonicalhash
+17450187450754183643,162093 entities/198371 components, answer/body0=42 match.
+This is one post-change control, not a matched comparison to older1906: upstream
+ownership and semantics changed before this task. Its outer peak1 and reserved
+lanes1/2 do not measure nested overlap or idle. The separate native LR rendezvous
+and serial/threaded exact graph/lifetime suite pass with the normal allocator;
+no unsynchronized failure counters run during real overlap. Useful all-core
+scaling remains unestablished by this pair.
+
+Validation: lr-order passes existing allocation sweeps (now checking retry after
+FIRST/index denial), B1 duplicate-core cases,33 order permutations,150 independent
+grammar/propagation trials and new suffix cases; final charged-byte/deferred-error
+cases pass. structure-reuse, grammar-equivalence and diagnostics pass. Native
+`.../tower-lr-work-tests RESOURCE_ROOT lr` passes actual caller/worker rendezvous,
+shared budgets, exact serial/threaded tables/conflicts and lifetimes. Source and
+resource hashes/todo preservation pass. No broad frontend/type/sanitizer/browser/
+generation matrix was run; ROOT retains those final integrated release gates.
+
+Commands use the existing dependency-aware cache, `cmake --build
+/tmp/tower-home/.cache/tower/native-coherent-f13c8f6 --parallel 1 --target
+tower-frontend-tests tower-lr-work-tests`, then the existing units profile target
+for the one native control. The initial current-provider refresh took27 actions;
+subsequent production changes rebuilt only parser-nodes plus dependent links/main.
+Run focused entries from scaffolding; measurement is `/usr/bin/time -v [taskset
+-c 2] SAVED_FRONTEND "$PWD" lr-suffix|iteration-cold|iteration-installed`.
+No private override, manifest changes or extra framework.
+
+Preserved build failures: fixture local `token` was reserved (renamed lookahead);
+missing direct work_vector_types import; the embedded generic-vector variant was
+rejected with "Template expansion exceeds 65536 nodes or could not allocate its
+work stack". Replaced it with a typed pointer/two work buffers without raising
+limits or claiming to have isolated which branch of that diagnostic fired. Final fixture
+byte reporting initially linked an unavailable tower_print; changed only that
+report to the existing dprintf boundary. Every failed job drained before edits.
+The corrected final builds/checks pass; failures remain in build_before,
+build_after, build_after_import and build_final_fixture logs.
+
+All logs, noisy samples, before/after executables and hashes are preserved under
+`build/d2_ecs/lr_suffix`. Final frontend2e1ff09c, native LR40694db2, units profile
+be7e53cc and ParserNodes05b03be6 full hashes are in final_binaries.sha256;
+final_compiled_imports.sha256 records431 actual imported Tower sources.
+Full changed-file review and D1 adoption hashes are in compiler_ecs_audit_d2.md.
+Jobs drained, heavy lock released; disk129GiB free/RAM~10GiB available, no cleanup.
