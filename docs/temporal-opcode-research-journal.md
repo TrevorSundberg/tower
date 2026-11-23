@@ -85589,3 +85589,28 @@ This bounded check does not diagnose that separate compiler-generation delta;
 ROOT/B2 retain complete-generation identity acceptance. Original exact reference
 comparison remains valid for3415d9c8. All owned jobs drained, todo unchanged;
 normal main push follows this receipt, with no pin/deployment change.
+
+### D2 suffix-FIRST publication boundary — 2026-11-23
+
+Implementation and frozen evidence committed as21359923. Required ff-only pulls
+refused diverging histories; complete published3dc3251 and e3fc5766 were merged
+without conflicts as832dffbc and165470213c334c2ccf01039972b28e8c48f25150.
+All six D2 Tower hashes above remain exact. The incoming20 semantic source files
+include checked node admission and bounded scratch identity lookup; they do not
+inherit the frozen2e77 runtime measurements. Source-only verification also checks
+141 existing ParserNodes/Entities imported inputs unchanged against the built
+receipt (manifest SHA2560b2937d01504cb08da8eb6127bf305417b88ba4c81b75636bbc5cc9ebd49537d).
+The prospective merged two-target closure contains429 paths, manifest
+383cf30a8c8997a58ead9c19dc03e75934a68c3738405a00cb961bf8a367cdc4;
+this is source identity, not a successful merged build.
+
+Publication stopped at the shared-host prerequisite: D1's live heavy.lock owner
+PID3084871 remained in place after an internal release-after-drain request.
+D2 has no surviving child/build and did not remove the sibling lock or overlap it.
+The remaining narrow action is the changed semantic-provider dependency rebuild
+for tower-frontend-tests/tower-lr-work-tests, then lr-order, iteration-cold and
+native lr at this merged source. These merged checks and normal main push are
+PENDING, not passed. Already-passed frozen oracle/failure/retry/native-worker
+checks, all paired/noisy samples and final source hashes remain preserved.
+No whole-matrix restart or new task is needed; ROOT still owns final release.
+This bookkeeping changes no executable input, so adds no runtime profile.
