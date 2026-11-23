@@ -1,0 +1,153 @@
+import tower;
+import semantic_known_types;
+import semantic_context_types;
+import semantic_query_api;
+import semantic_evaluation_types;
+import semantic_work_ids;
+import foundation_types;
+import foundation_tags;
+import .library.vector;
+import .library.work_arena_api;
+import .library.work_budget_types;
+
+// The existing identity index already owns one stable entry per visited node.
+// Its otherwise unused value payload links those entries in first-seen order;
+// no second pending-node array or duplicate container index is necessary.
+// These private entries never bind source declarations or escape the arena.
+struct SemanticPublishQueue {
+    index: SemanticTable;
+    first: SemanticEntry*;
+    last: SemanticEntry*;
+}
+
+fn sem_publish_result(result: SemanticKnownWork*, error: WorkBudgetError): bool {
+    if result.resource_error == WorkBudgetError.None { result.resource_error = error; }
+    return error == WorkBudgetError.None;
+}
+
+fn sem_publish_entry(result: SemanticKnownWork*, table: SemanticTable*, node: void*): SemanticEntry* {
+    var entry: SemanticEntry* = null;
+    sem_publish_result(result, sem_entry_arena(&result.scratch, table, null, node, &entry));
+    return entry;
+}
+
+fn sem_publish_push(result: SemanticKnownWork*, pending: SemanticPublishQueue*, node: void*): bool {
+    if node == null { return true; }
+    var entry = sem_publish_entry(result, &pending.index, node);
+    if entry == null { return false; }
+    if entry.number != 0 { return true; }
+    entry.number = 1;
+    if pending.last == null { pending.first = entry; }
+    else { pending.last.value = bits(void*, entry); }
+    pending.last = entry;
+    return true;
+}
+
+// Only owned executable edges, in the same order as sem_known_edges. Null
+// edges add no observation and do not need a retained traversal slot.
+fn sem_publish_edges(result: SemanticKnownWork*, pending: SemanticPublishQueue*, node: FoundationNode*): bool {
+    if node.kind == KFunction || node.kind == KType || node.kind == KLabel { return true; }
+    if !sem_publish_push(result, pending, node.left)
+        || !sem_publish_push(result, pending, node.right)
+        || !sem_publish_push(result, pending, node.value)
+        || !sem_publish_push(result, pending, node.target)
+        || !sem_publish_push(result, pending, node.body)
+        || !sem_publish_push(result, pending, node.otherwise) { return false; }
+    foreach(var item in &node.items) {
+        if !sem_publish_push(result, pending, item) { return false; }
+    }
+    return true;
+}
+
+// Canonical output vectors retain their existing ownership and are transferred
+// only after every job succeeds. Their allocation can fail independently of
+// scratch admission; discard partially built outputs on every early return.
+fn sem_publish_storage(c: SemanticContext*, result: SemanticKnownWork*, nodes: SemanticPublishQueue*): void {
+    var dropped: SemanticTable = default;
+    var dead: SemanticPublishQueue = default;
+    foreach(var &patch in &result.patches) {
+        if !patch.declaration || sem_get(patch.subject).attributes.length != 0 { continue; }
+        var binding = sem_known_binding(c, patch.subject);
+        if binding.block == null { continue; }
+        var block = sem_get(binding.block);
+        for(var at = binding.begin; at < binding.end; at++) {
+            var item = block.items.data[at];
+            if item == null { continue; }
+            var mark = sem_publish_entry(result, &dropped, item);
+            if mark == null { return; }
+            mark.number = 1;
+            if !sem_publish_push(result, &dead, item) { return; }
+        }
+    }
+    for(var entry = dead.first; entry != null; entry = bits(SemanticEntry*, entry.value)) {
+        var value = sem_get(entry.entity);
+        if value != null && !sem_publish_edges(result, &dead, value) { return; }
+    }
+    for(var entry = nodes.first; entry != null; entry = bits(SemanticEntry*, entry.value)) {
+        var node = entry.entity;
+        var value = sem_get(node);
+        if value == null || (value.kind != KProgram && value.kind != KFunction && value.kind != KBlock) { continue; }
+        var update: SemanticKnownStorage = default;
+        defer vector_dispose(&update.items);
+        defer vector_dispose(&update.locals);
+        update.subject = node;
+        foreach(var item in &value.items) {
+            update.replace_items ||= item == null || sem_find(&dropped, null, item) != null;
+        }
+        foreach(var local in &value.locals) { update.replace_locals ||= sem_find(&dead.index, null, local) != null; }
+        if update.replace_items {
+            foreach(var item in &value.items) {
+                if item != null && sem_find(&dropped, null, item) == null && !vector_push(&update.items, item) {
+                    sem_publish_result(result, WorkBudgetError.Memory);
+                    return;
+                }
+            }
+        }
+        if update.replace_locals {
+            foreach(var local in &value.locals) {
+                if sem_find(&dead.index, null, local) == null && !vector_push(&update.locals, local) {
+                    sem_publish_result(result, WorkBudgetError.Memory);
+                    return;
+                }
+            }
+        }
+        if update.replace_items || update.replace_locals {
+            if !vector_push(&result.storage, update) {
+                sem_publish_result(result, WorkBudgetError.Memory);
+                return;
+            }
+            update.items = default;
+            update.locals = default;
+        }
+    }
+}
+
+export fn semantic_known_publish_kernel(result: SemanticKnownWork*): void {
+    defer work_arena_dispose(&result.scratch);
+    var context = *result.context;
+    context.query_reads = &result.query_reads;
+    var pending: SemanticPublishQueue = default;
+    if !sem_publish_push(result, &pending, result.subject)
+        || !sem_publish_push(result, &pending, result.root) { return; }
+    for(var entry = pending.first; entry != null; entry = bits(SemanticEntry*, entry.value)) {
+        var subject = entry.entity;
+        var value = sem_get(subject);
+        if value == null { continue; }
+        if !sem_publish_edges(result, &pending, value) { return; }
+        var declaration = value.kind == KDeclare;
+        var binding = sem_known_binding(&context, declaration ? subject : value.kind == KOperand ? value.binding : null);
+        if binding == null || binding.evaluation == null { continue; }
+        var evaluation = sem_evaluation_get(&context, binding.evaluation);
+        if !sem_query_input_checked(&context, binding.evaluation, convert(u32, SemanticQuery.Evaluation)) {
+            sem_publish_result(result, WorkBudgetError.Memory);
+            return;
+        }
+        if !evaluation.ready.ready || evaluation.ready.failed { continue; }
+        var patch = init(SemanticKnownPatch) {subject: subject, literal: evaluation.literal, declaration: declaration};
+        if !vector_push(&result.patches, patch) {
+            sem_publish_result(result, WorkBudgetError.Memory);
+            return;
+        }
+    }
+    sem_publish_storage(&context, result, &pending);
+}

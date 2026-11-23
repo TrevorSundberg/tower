@@ -20,17 +20,26 @@ extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*)
 // Each dispatched work component owns this read log. Only the coordinator
 // updates the dependency graph, after joining readers of its immutable indexes.
 fn sem_query_read(c: SemanticContext*, query: usize): void {
-    if c.query_reads == null { return; }
+    sem_require(sem_query_read_checked(c, query));
+}
+
+fn sem_query_read_checked(c: SemanticContext*, query: usize): bool {
+    if c.query_reads == null { return true; }
     var reads = c.query_reads;
     if reads.length == 0 || reads.data[reads.length - 1] != query {
-        sem_require(vector_push(reads, query));
+        return vector_push(reads, query);
     }
+    return true;
 }
 
 fn sem_query_input(c: SemanticContext*, subject: void*, query: u32): void {
-    if c.query_reads == null { return; }
+    sem_require(sem_query_input_checked(c, subject, query));
+}
+
+export fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u32): bool {
+    if c.query_reads == null { return true; }
     var id = work_find(&c.queries, subject, query, 0);
-    if id != 0 && work_task(&c.queries, id).state == WorkState.Succeeded { sem_query_read(c, id); }
+    return id == 0 || work_task(&c.queries, id).state != WorkState.Succeeded || sem_query_read_checked(c, id);
 }
 
 fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): void {
