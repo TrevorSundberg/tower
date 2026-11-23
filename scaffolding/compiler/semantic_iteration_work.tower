@@ -36,6 +36,7 @@ struct SemanticIterationResolution {
     query_reads: vector(usize);
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
 }
 
 fn sem_iteration_resolution_check(c: SemanticContext*, result: SemanticIterationResolution*): void {
@@ -95,6 +96,7 @@ fn semantic_iteration_kernel(result: SemanticIterationResolution*): void {
     sem_iteration_resolution_check(&context, result);
     result.error = program.error;
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     result.allocations = context.allocations;
     result.lists = context.lists;
     stack_dispose(&context.scan);
@@ -107,10 +109,10 @@ fn sem_iteration_resolution_publish(c: SemanticContext*, result: SemanticIterati
     foreach(var list in &result.lists) { sem_push(&c.lists, list); }
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
-    if result.error.length != 0 {
-        c.program.error = result.error;
-        result.error = default;
-        c.program.error_offset = result.error_offset;
+    if result.resource.error != WorkBudgetError.None || result.error.length != 0 || !sem_ok(c) {
+        if !sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset) {
+            sem_restore_error(c, &result.error, result.error_offset);
+        }
         sem_body_preparation_failed(c, owner);
     } else {
         var ticket: WorkTicket;
@@ -192,7 +194,7 @@ fn sem_iteration_resolutions(c: SemanticContext*, batch: SemanticBodyWork**, cou
     foreach(var result in &jobs) {
         result.context = null;
         sem_query_observe(c, &result.ticket, &result.query_reads);
-        sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0));
+        sem_require(work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
     }
     foreach(var result in &jobs) { sem_iteration_resolution_publish(c, result); }
     return jobs.length;

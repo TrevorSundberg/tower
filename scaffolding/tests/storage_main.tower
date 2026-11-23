@@ -10,6 +10,7 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import compiler_storage;
 import generic_clone_storage;
+import type_object_storage;
 import entity_registry;
 import entity_page_faults;
 import entity_table_faults;
@@ -42,6 +43,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     *request.slot = null;
     compiler_storage_tests();
     generic_clone_storage_tests();
+    type_object_storage_tests();
     entity_registry_tests(argv[1]);
     entity_page_fault_tests();
     entity_table_fault_tests();
