@@ -224,3 +224,12 @@ transport the existing Tower profiler. No failed compiler/test sample occurred.
 Initial inspection wildcard/missing-file errors and an oversized report parse
 were tooling errors, corrected without rerunning any sample. No generation,
 browser, sanitizer, public pin or hosted deployment; ROOT owns final acceptance.
+
+Publication reconciliation: receipt `2ed6d839` merged complete published
+`d55d1c0d` history at `14a03cf4a898123abad2c46b6055262009ab3ed6` after the
+required ff-only pull refused divergence. Both journal histories survive.
+Incoming L2 formatter/reconstruction changes and D1 review are outside the
+measured freeze. The profile source and receipt are unchanged; all frozen
+resource bytes were rechecked against the original expected hashes, and the
+measured executable is unchanged. This source-bound documentation does not
+claim those later compiler inputs passed these timings or rebuild them.

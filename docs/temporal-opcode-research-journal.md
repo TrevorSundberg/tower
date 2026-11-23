@@ -93417,3 +93417,12 @@ and excluded from this fixed05edbfb3 review. The nine reviewed Tower blobs,
 unchanged64MiB test and D1 audit text still match exactly; merged diff --check
 passes. No build/runtime repeat or newer-source adoption claim. Normal source
 push follows; ROOT retains final artifact/release ownership.
+
+B1 uniform scaling publication reconciliation: receipt2ed6d839 merged complete
+published d55d1c0d history at14a03cf4a898123abad2c46b6055262009ab3ed6 after the
+required ff-only pull refused divergence. No conflicts; both journal histories
+retained. Incoming L2 formatter/reconstruction and D1 review are outside frozen
+3ad7d5f0 evidence. Exact frozen resource hashes and profile binary rechecked;
+profile source and receipt unchanged. No rebuild or newer-source performance
+claim for this docs-only task. All30 scoped samples pass, owned jobs drained;
+normal push follows, ROOT final acceptance unchanged.
