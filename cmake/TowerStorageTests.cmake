@@ -35,5 +35,22 @@ function(tower_storage_tests)
   set_tests_properties(tower-storage-backend-import-bytes-wrong-byte tower-storage-backend-import-bytes-wrong-guard
     PROPERTIES WILL_FAIL TRUE)
   set_tests_properties(tower-storage PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  if(TOWER_BACKEND_TESTS AND triple MATCHES "^x86_64-.*linux")
+    set(reference_input "${CMAKE_CURRENT_BINARY_DIR}/tower_overflow_native.tower")
+    file(GENERATE OUTPUT "${reference_input}" CONTENT "${source}import tests.backend_overflow_native;\n")
+    tower_runtime_object(tower-overflow-native "${reference_input}" "${triple}")
+    add_executable(tower-overflow-native-tests ${sources} "${tower-overflow-native_OBJECT}" "${runtime_instrumented}")
+    set_target_properties(tower-overflow-native-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-overflow-native-tests PRIVATE ${libraries})
+    foreach(mode IN ITEMS correct wrong)
+      file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${mode}")
+      add_test(NAME tower-overflow-native-${mode} COMMAND tower-overflow-native-tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${TOWER_BACKEND_HOST_CC}"
+        "${CMAKE_CURRENT_BINARY_DIR}/share/tower" "${mode}")
+      set_tests_properties(tower-overflow-native-${mode} PROPERTIES TIMEOUT 120 LABELS "native;backend;focused"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${mode}")
+    endforeach()
+    set_tests_properties(tower-overflow-native-wrong PROPERTIES WILL_FAIL TRUE)
+  endif()
 endfunction()
 cmake_language(DEFER CALL tower_storage_tests)

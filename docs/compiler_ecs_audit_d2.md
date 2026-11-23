@@ -3371,3 +3371,18 @@ Owner binary SHA256 `219736c8770a7a0368a19f9758e4e552c680dfbfb74eab99bc6aeafacdd
 Local exact path/context map: `build/d2_ecs/umul_peer_5fc00c85/{paths,blobs}.txt`; implementation drift file is empty. Immediate contracts were traced only as needed, not a new full-file audit of all mapped callees.
 Limits: widths2–7/nonstandard widths are source-reviewed, not added runtime cases; poison/undef totalization and other intrinsic families are unchanged and not newly validated. The unavailable608636B entity_views large-request comparison remains unrun; no substitute benchmark, sanitizer/threaded coverage, reactor/generation/hosted adoption claimed.
 L1's separate pointer-ordering `bi_compare` repair is excluded; this helper fix does not close entity_pages/stage-ownership failures. ROOT retains integrated artifacts/release. Documentation-only profiling is inapplicable; D1's heavy slot, twelve-row ledger, todo and other owners' sources are unchanged.
+
+## Native overflow reference extension — ae5d34b2 (2026-11-23)
+
+Frozen published `ae5d34b20574dd8a9bc5cb041e2e6332e87ba0dd` plus this focused delta; full changed-fixture review by D2 (author review, **not independent peer approval**).
+
+| Path | Tested Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/tests/backend_overflow_fixture.tower` | `623da5f2115ad9b887163005d4055cacc9cac4c2` | Same generator/oracles; default wrong=false preserves old callers. Negative changes one expected argument. Fixture-only O2 refresh disposes its prior LLVM text; call census borrows verified module and allocates nothing. |
+| `scaffolding/tests/backend_import_overflow.tower` | `9e3fcc03c0565e12f669c889989fa020094bfbe5` | Existing exact-zero entry delegates to shared expected-output checker; terminal/step/error/cleanup assertions unchanged. |
+| `scaffolding/tests/backend_overflow_native.tower` | `527f21ebe0ebb78662765575b42fe3efa093d990` | New focused entry reuses generator, Backend emission, existing driver link/process/file APIs and canonical session checker. Local buffers/argv stay alive through synchronous child reap; copied link buffers are borrowed, not disposed twice. LLVM world closes before recheck; budgets and buffer baseline drain even on deliberate mismatch. |
+| `cmake/TowerStorageTests.cmake` | `6028afa7f9bb7237d1521637f724a77ef506ca87` | Linux x64/backend-only sibling target reuses production providers and existing single-owner allocator/serial transport. Correct and intentional-nonzero CTests retain120s limit; other registrations unchanged. |
+
+Existing README documents the explicit executable/resource inputs and fresh artifact cwd. GNU time and complete IR/object/canonical/stdout evidence: `build/d2_ecs/overflow_native_ae5d34b2/`; the journal's native-reference receipt records exact results/costs.
+30 native raw/O2 comparisons and60 target64 Graph/Fast checks pass; direct wrong control returns1 after exact1 outputs and zero ownership delta. Both selected CTests pass; no skips. Raw machine code still calls the probe (checked i1:4, i64:10); O2 folds main to a constant print, so only raw runs establish dynamic intrinsic reference coverage.
+Original D1 target32/64 verifier-only and unsupported-consumer evidence remains separately attributed; no fresh repeat or machine32 claim. No production importer, scheduler, storage or arithmetic policy changed. This extension needs peer adoption; ROOT owns integrated artifacts/instrumentation/release.

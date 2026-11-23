@@ -96239,3 +96239,49 @@ integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
+
+
+### 2026-11-23 D2: native reference for the existing overflow fixture
+
+Source freeze `ae5d34b20574dd8a9bc5cb041e2e6332e87ba0dd` plus focused test delta.
+Reused D1's exact LLVM generator/truth table/factor oracles; no arithmetic evaluator,
+JIT, producer helper or pointer-ordering change. Linux-only sibling target shares
+storage providers, ordinary Backend emission, driver runtime/link recipes and
+existing process transport. Its negative flips only one expected product argument.
+The old exact-zero checker and capability-negative registrations remain intact.
+
+Deck Docker tower-d2-ecs, CPU0,2/8GiB, LLVM/Clang19.1.1, Release/public compiler
+`768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`, jobs1,
+existing native-coherent-f13c8f6 cache, single-owner transport/counters; no sanitizers.
+Native target x86_64-unknown-linux-gnu, default machine-code policy, raw versus O2 IR.
+Only `cmake --build CACHE --target tower-overflow-native-tests --parallel 1` used.
+Final executable SHA256 `2601f081e705b7630c457781a5578b93836e0218659b26db37a02f7b4295ed7d`;
+existing runtime-host-linux-x64.ll SHA256 `6dca6c9bfd926f64f92188ce350f304e4c9635cefc07c1fd6c277ddab97637dd`.
+Five setup failures retained: fread ABI collision, two missing direct imports,
+unsupported library global string initializer, missing interpreter callbacks.
+No source mutated during a build; failed jobs drained before each narrow correction.
+Initial stale-dependency refresh/failure122.36wall/119.36CPU/1076828KiB;
+final entry/link10.54wall/10.26CPU/318460KiB. Different build work, not a speedup.
+
+Selected CTests `^tower-overflow-native-(correct|wrong)$`:2/2 pass, no skips/timeouts,
+15.22wall/14.47CPU/128344KiB, one fresh aggregate, warm filesystem, no warmup.
+Correct: i1/i8/i16/i32/i64 × both/product/flag × raw/O2 =30 native exits0/output0,
+60 fresh Graph/Fast target64 canonical executions match; final world grants/bytes/
+lanes zero and compiler-buffer baseline restored. Correct CTest13.2275s.
+Wrong: i1/both raw/O2 native and both interpreters output exactly1; harness rejects
+zero comparison after cleanup. WILL_FAIL CTest1.94789s; separate direct invocation
+proves exit1,1.64wall/1.56CPU/120892KiB. No catch-and-ignore or altered positive oracle.
+Each pre-O2 module has one actual intrinsic call. Raw disassembly retains4 i1/10 i64
+probe calls in main. O2 folds every main to print0 (wrong1); wider both/flag probes
+retain8 intrinsic call sites, i1/product-only retain none. Do not equate retained
+unused functions with dynamic post-O2 intrinsic execution. Raw native/Graph/Fast
+covers that execution; optimized emission/reconstruction/output is a distinct check.
+
+Raw logs/times/exits, all generated IR/objects/executables/Foundation/stdout and
+source/artifact hashes: `build/d2_ecs/overflow_native_ae5d34b2/` (2.2MiB).
+All source hashes match across checks. Full changed-file author review/blob map is
+in compiler_ecs_audit_d2.md; independent peer adoption remains separate.
+No previous native route exists for a comparable timing baseline; these are validation
+costs. D1's32/64 verifier-only results remain attributed, not rerun or relabeled.
+No machine32/Windows, scaling, reactor, generation or hosted claim. ROOT retains
+integrated gates; own jobs drained/lock released, todo and other owners preserved.
