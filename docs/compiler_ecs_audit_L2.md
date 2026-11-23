@@ -767,3 +767,23 @@ large-query timing variation and intervening owner changes explicitly retained i
 the journal. No general speedup, whole-program byte accounting, current sanitizer
 or release acceptance is claimed. The new root97b inspection history and L1 frame
 history are not part of these frozen runtime/profile receipts.
+
+## Registered TypeIndex fault gate on7d223
+
+ROOT03:18:50 assigned L2 the exact reviewed a4cf282a two-line storage_main hook.
+It is now applied, retaining the serial allocator host guard and all older tests.
+The fixture's width, nominal identity, typed failure and ownership audit above is
+unchanged. Execution remains pending a coherent build in the next agreed host
+slot. ROOT97b's inspection fix and L145dd's frame/task layout are now integrated;
+the earlier ea8daf26 runtime/profile receipt does not validate these newer inputs.
+
+The gate now has actual runtime evidence: first81690 fails because the fixture
+reinitialized a disposed budget with the same revision. The fixture now advances
+the retained revision, preserving stale-receipt rejection. Corrected34805 passes
+public leaf, two-step existing-target rebuild and all three serial executions;
+full source hashes match. Both target widths cover all index cases and every
+measured traversal allocation prefix, nominal entities and zero retained grants.
+ABI scratch is3 allocator calls/320 peak charged bytes; reachability is5/544.
+The exact source/binary, failure and corrected timing/RSS receipts are preserved
+in the journal. This validates the new API's physical-failure fixture, separately
+from still-pending caller adoption, shared resource ABI and instrumentation.
