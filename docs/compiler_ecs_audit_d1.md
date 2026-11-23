@@ -1996,3 +1996,26 @@ All owned jobs drained and lock released02:57:06 UTC before merging D2 policy
 history. Corpus remains499 direct/1,084 tracked. Final clean merged release,
 current full instrumentation, browser/generation and hosted publication remain
 open; these scoped passes do not complete the lane acceptance objective.
+
+### L2 clone overlap remediation2cb32: review and before failure
+
+Applied only the approved one-file patch2cb32a9cb07b950fdd9ca65976bbc5233fadce31a320fcc0d20da065d59c09b2
+after its complete review and root03:00:50 assignment. Production remains8f46;
+the full L2 bundle is deferred until its inspection fixture has matched producers.
+The source now measures two fresh serial clones per candidate, uses the faster
+kernel interval, and grows width256 through a finite1536 cap at unchanged depth8.
+Chosen width freezes before all parallel trials. This is a workload-selection
+heuristic; actual distinct-thread interval overlap remains mandatory. Intervals
+exclude admission waiting. Exact copy/node/metadata/stage/cancellation/failed-peer
+and final world/byte/lane assertions remain. New reports include threads, selected
+shape, timestamps, duration and charged peak before an explicit FAILED message.
+Pool/world/budget cleanup precedes the moved assertion; graph/signal scope defers
+still require normal return and are bypassed by a fatal abort until process exit.
+
+D1's unchanged5e78fbed baseline independently fails134 on its first requested query
+trial, at the same workers2/Publish interval assertion. Only workers1 completed.
+Measured1.25wall/.07CPU/53392KiB; signal6 overrides GNUtime's trailing0. Source and
+binary hashes verify unchanged. Remaining before trials were not run; no retry
+turns this failure into a pass. Candidate native and matching instrumented checks
+are next. Extra workload cost must be reported as changed test coverage, not a
+compiler speed comparison or acceptance from selected width alone.

@@ -60661,3 +60661,24 @@ successor pool/graph/frame API and A1 review are required before implementing it
 The current peak-above-occupancy assertion alone cannot prove the intended phase
 once additional entry owners are charged. Do not call an early setup failure a
 successful nested-growth test or merely increase its arbitrary allowance.
+
+### D1 independently reproduces clone interval failure before2cb32
+
+Root03:00:50 assigns current-production validation of L2's one-file calibration
+patch2cb32a9cb07b950fdd9ca65976bbc5233fadce31a320fcc0d20da065d59c09b2.
+D2 confirms no active work or lock request. D1 acquires the shared slot and runs
+an unchanged baseline with current compiler1a9476, runner5e78fbed and fixtureea0a4909.
+The first query aborts134/signal6 after only workers1/Publish completes, exactly
+at the workers2 interval-overlap assertion. Wall1.25s, CPU.07s, RSS53392KiB;
+GNUtime's final0 is not the process result. Logs/source/binary hashes are preserved
+under build/d1_ecs/clone_calibrated_2cb32. The two remaining before trials were not
+run. All children drained before any edit; source/binary hash verification passed.
+
+Reviewed and applied only L2's bounded serial calibration/reporting change, keeping
+production at8f46. Chosen width is a heuristic and never replaces actual parallel
+interval overlap. New observations stay outside timed production kernels; output,
+stage ownership, failed-peer, cancellation and cleanup oracles remain. Native
+three-run and exact matching address/thread LR closure validation are pending.
+No new runner, invalid-memory probe, accepted width-only result or full L2 bundle
+merge. Root's subsequent03:06:13 A1-reviewed authority permits the graph-gated
+resource phase fixture after this frozen validation; no competing edit now.
