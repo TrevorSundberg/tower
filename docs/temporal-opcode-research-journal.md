@@ -96229,3 +96229,25 @@ from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
 
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
+
+## A2 platform canonical binding oracle closure (2026-11-23)
+
+The stale fourth platform assertion expected recursively expanded integer_type
+at the use; retained output instead correctly declares i32 then uses i32*.
+Foundation/type-value/function contracts require preserved bindings, exact
+signatures and stable independently compilable text. Only test/fixture changed:
+exact prelude i32/usize bindings, identity usize parameter/result, array/pointer
+use and call/effect order assertions; original positive logic moved to Tower.
+Source handles retire before independent-host parse/recheck/GraphFast execution
+at32/64, exact12/24 outputs, byte-stable canonical reformat, source/canonical
+wasm32 output12. Five original malformed built-in controls remain steps0 failures.
+
+Full unfiltered platform file on exact a06 pair, host26f99a40 plus test-only edit:
+4pass/0fail/0skip/0cancelled, actualexit0,2.1922186s command wall; actualchildCPU
+3.343s/peak343556KiB.1252 frozen resource hashes unchanged. Both1083B canonical
+files SHA4d2a49dc are equal; target-layout behavior checked independently.
+Prior abort_t9_a06_1e428ede/focused.log remains3pass/1failure at its old oracle.
+Receipt docs/platform_binding_a06_26f99a40.md; raw cache/logs/platform_binding_a06_26f99a40.
+No production change, so before/after profiling inapplicable; no T9/rebuild/backend/
+sanitizer/release run. L1's separate optimization error remains outside scope.
+Owned jobs drained, three old stashes/todo preserved; final integration in status.

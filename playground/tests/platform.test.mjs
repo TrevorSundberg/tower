@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
 import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=p=>readFile(new URL('../../'+p,import.meta.url));
@@ -68,13 +68,41 @@ test('pure Wasm exports bind directly as external imports, and tables can supply
  const table=new WebAssembly.Table({element:'anyfunc',initial:1});table.set(0,instance.exports.twice);
  assert.equal((await executeWasm(consumer,()=>{},{imports:{twice:{wasm:table.get(0)}}})).output,'42\n');
 });
-test('built-ins and ordinary functions share calls and typed argument validation',()=>{
- const source='import foundation; fn identity(x: usize): usize { return x; } var n: usize = sizeof(i32*[3]); n = identity(n); print(n); var p: i32** = alloc(i32*, 2); free(p);';
- const h=tower.compile(source);try{
-  const result=tower.execute(h);assert.equal(result.status,'done',result.error);assert.equal(result.output,'12\n');
-  const text=tower.foundation(h).source;assert.match(text,/sizeof\(array_type\(pointer_type\(integer_type\(32, 1\)\), 3\)\)/);
-  const second=tower.compile(text);try{assert.equal(tower.execute(second).output,result.output);}finally{tower.destroyExecution(second);}
- }finally{tower.destroyExecution(h);}
+test('built-ins and ordinary functions share calls and typed argument validation',async()=>{
+ const source=(await read('scaffolding/tests/platform_calls.tower')).toString();
+ const independent=await loadTower(process.env.TOWER_TEST_WASM?undefined:await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+ const canonical=new Map();
+ for(const pointerBytes of [4,8])for(const fast of [false,true]){
+  const expected=`${pointerBytes * 3}\n`;
+  const h=tower.compile(source,{pointerBytes});let text;
+  try{
+   if(fast)tower.useFast(h);
+   const result=tower.execute(h);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
+   text=tower.foundation(h).source;
+   assert.ok(text.startsWith('import foundation_syntax;\n'));
+   assert.match(text,/^var i32: type = integer_type\(32, 1\);$/m);
+   assert.match(text,/^var usize: type = address_type\(\);$/m);
+   assert.ok(text.includes('fn identity(x: usize): usize {\n    return x;\n}'));
+   assert.match(text,/^var n: usize = sizeof\(array_type\(i32\*, 3\)\);$/m);
+   assert.ok(text.includes('\nn = identity(n);\nprint(n);\nvar p: i32** = alloc(i32*, 2);\nfree(p);\n'));
+  }finally{tower.destroyExecution(h);}
+  if(fast)assert.equal(text,canonical.get(pointerBytes));else canonical.set(pointerBytes,text);
+  // Recheck only copied Foundation in another host after the source handle retires.
+  const second=independent.compile(text,{pointerBytes});
+  try{
+   if(fast)independent.useFast(second);
+   const result=independent.execute(second);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
+   assert.equal(independent.foundation(second).source,text);
+  }finally{independent.destroyExecution(second);}
+ }
+ for(const text of [source,canonical.get(4)]){
+  const compiled=llvm.compile(text);assert.equal(compiled.status,'compiled',compiled.error);
+  const result=await executeWasm(compiled);assert.equal(result.status,'done',result.error);assert.equal(result.output,'12\n');
+ }
+ if(process.env.TOWER_TEST_ARTIFACTS){
+  await mkdir(process.env.TOWER_TEST_ARTIFACTS,{recursive:true});
+  for(const [width,text] of canonical)await writeFile(`${process.env.TOWER_TEST_ARTIFACTS}/platform_calls_${width*8}.tower`,text);
+ }
  for(const source of ['print();','alloc(i32);','free(1);','var n: i32 = print(1);','fn print(x: i32): void {}']){
   const h=tower.compile('import foundation; '+source);try{const r=tower.execute(h);assert.equal(r.status,'error',source);assert.equal(r.steps,0);}finally{tower.destroyExecution(h);}
  }
