@@ -130,3 +130,12 @@ OS launch scripts live at
 `C:/Sandbox/build/codex_ecs_20261122/L2/compiler_entities_a06ec4b1_6b74889b`.
 No production/test implementation change, reactor/native rebuild, broad matrix,
 sanitizer/service retry or deployment was needed. ROOT retains final release.
+## Publication reconciliation
+
+Complete-history merge `cf0882962dab2ca909531ab52f3ef32d9482d0f1` preserves
+published `e637ba38` and both journals. Selected tests/host, production
+compiler/backend/library/host and direct fixture blobs are unchanged. Later
+fault-accounting/Windows test resources and their CMake registrations are excluded
+from the frozen resource snapshot, not runtime-adopted by this receipt. D1's
+independent `i1` importer finding and extra extraction/width coverage remain
+separate pending work; these exact T8 successes do not waive them.

@@ -95734,3 +95734,15 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+T8 receipt publication reconciliation: complete-history mergecf0882962dab2ca909531ab52f3ef32d9482d0f1
+preserves publishede637ba38, B2 fault-accounting fixtures, A1 Windows tests and
+D1's independent overflow review. Selected test/host, production compiler/backend/
+library/host and direct views/registry/body-budget fixtures are blob-identical to
+the frozen host source. Incoming unrelated test resources/CMake/docs are explicitly
+outside the6b74889b resource snapshot; no current-main relabel or broad rerun.
+Both historical journal sections survive. The new actual-Wasm receipt closes the
+two selected T8 continuation cases; D1's source-derived i1 issue and additional
+narrow-width/extraction coverage requests remain separate pending producer work,
+not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
+All owned processes drained, unchanged todo, normal push; ROOT owns final release.
