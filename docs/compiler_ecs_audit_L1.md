@@ -640,3 +640,10 @@ Remaining gaps are diagnostic/output/constructor-message and package encoding
 storage, physical allocator-fault coverage for this new caller chain, and ROOT's
 final supported instrumentation/platform/release validation. This batch does not
 claim those gaps closed or any deployed runtime.
+
+Complete publishedbaf2a5a merged into20e46f49. After adapting two owned
+execution_world assertions to upstream's exact Invalid/offset0 contract, merged
+86777 passes the coherent native closure, core/functions/constructor and exact
+Fast CLI1/4-worker-request controls, with frozen input hashes. Shared semantic
+producers remain untouched by L1. All final release/instrumentation gaps above
+remain explicit; this is the bounded main-only Fast storage completion.

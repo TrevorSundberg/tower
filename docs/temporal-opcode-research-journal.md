@@ -81825,3 +81825,24 @@ output/cancellation cleanup. Final compiler SHA256:
 Logs remain /cache/root_budget_join_a093; all owned processes drained. This
 documentation receipt changes no runtime path. Final milestone gates remain
 pending; source publication is not a browser/runtime deployment receipt.
+
+Integration: commit908515e merged complete publishedbaf2a5a into20e46f49.
+Upstream adds WorkBudget wake fields and compiler producer/front-end changes;
+required merged24-action native build85141 passes109.40s wall/164.95CPU/763148KiB.
+Core's Fast ownership/differential/package checks pass, then old execution_world
+foreign-environment text assertions fail. The published frontend now calls
+frontend_module_root_world_size_result and retains exact Invalid/offset0 instead
+of the former untyped text. Adapted the two owned assertions to that producer
+contract, requiring terminal state/no steps and the exact resource message; no
+semantic producer changes. Original failing log and subsequent unrun gates remain
+explicit. The retry rebuilds only the changed test closure, then resumes gates.
+
+Merged retry86777 completes0: affected test build13.11s wall/9.26CPU/396688KiB;
+core11.45/13.31/310708, functions12.42/14.56/336344 and constructor1.22/1.53/189304
+all pass with empty stderr. Exact Fast CLI workload outputs pass at jobs1/4
+(1.72s/1.73CPU/181648KiB and1.60/1.90/215300). These are integration controls,
+not new comparative performance claims. Full compiler/build manifests agree
+SHA256517abdba21612824d76b182810aa07a8ce66da325456966a21343ccd6b0cf75f.
+All owned jobs drained. The final commit includes the two exact upstream
+foreign-world assertions and this receipt; normal main push follows. Earlier
+matched measurements retain their afca-based identity. No hosted release claim.

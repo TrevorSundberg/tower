@@ -79,9 +79,10 @@ fn execution_input_normalization_trial(width: u32, foreign_modules: void*): void
     execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
         && released.live == baseline.live, "Denied input descriptors retire every grant");
     execution_check(!execution_session_compile_sources_world(&session, world, &sources[0], count, width, foreign_modules)
-        && session.program.resource.error == WorkBudgetError.None && session.error.data != null
-        && strstr(session.error.data, "another compiler world") != null,
-        "Admitted empty input reaches the existing foreign-world rejection");
+        && session.program.resource.error == WorkBudgetError.Invalid && session.program.resource.offset == 0
+        && session.machine.failed && session.machine.done && session.machine.steps == 0 && !session.started
+        && execution_text(&session.error, sem_resource_message(WorkBudgetError.Invalid)),
+        "Admitted empty input preserves the exact foreign-world rejection");
     execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
         && released.live == baseline.live, "Frontend failure releases normalized input descriptors");
     execution_session_close(&session);
@@ -207,7 +208,10 @@ fn execution_world_tests(request: DriverRequest*): void {
     input.data = source;
     input.length = strlen(source);
     execution_check(!execution_session_compile_sources_world(&failed, first, &input, 1, 8, second_modules), "foreign compiler environment rejected");
-    execution_check(strstr(failed.error.data, "another compiler world") is not null, "foreign compiler environment diagnostic");
+    execution_check(failed.program.resource.error == WorkBudgetError.Invalid && failed.program.resource.offset == 0
+        && failed.machine.failed && failed.machine.done && failed.machine.steps == 0 && !failed.started
+        && execution_text(&failed.error, sem_resource_message(WorkBudgetError.Invalid)),
+        "foreign compiler environment preserves its exact resource diagnostic");
     execution_session_close(&failed);
     execution_close_checked(&graph);
     frontend_modules_destroy(first_modules);
