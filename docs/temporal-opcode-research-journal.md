@@ -94916,3 +94916,12 @@ owners' entries. Reuse the four passing CTests at the recorded frozen inputs;
 new unrelated driver cases are not claimed tested here. Diff checks pass, no
 owned build/test remains, todo unchanged. No broad rerun or deployment; normal
 main push follows.
+D2 publication reconciliation: preserved complete upstream history through
+ad0a0c34 after one normal push race. That later counted-byte batch changes
+scaffolding/tests/backend_import_fixture.tower and storage_main.tower and adds
+backend_import_bytes.tower (plus registration/docs); these are outside this
+four-file execution's imports and are **not adopted by this receipt**. The
+measured complete resource snapshot remains3a0b5e41, not later merged main.
+All four tests, loader, host files, reactors and their language/compiler/library
+providers remain byte-unchanged; their hashes were checked again. No unaffected
+runtime check was repeated and no later resource change was silently relabeled.
