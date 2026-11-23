@@ -1,0 +1,7 @@
+import tower;
+import .nominal_wrapper_module as types;
+fn effect(count: usize): type {
+    trap("Ordinary effect must execute", 0);
+    return types.buffer(i32, 2);
+}
+var value: effect(2);

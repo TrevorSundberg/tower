@@ -1,0 +1,9 @@
+import tower;
+fn buffer(T: type, count: usize): type { struct R { data: T[count]; } return R; }
+fn integers(count: usize): type { return buffer(i32, count); }
+var value: buffer(i32, 2);
+var alias: integers(2)* = &value;
+value.data[1] = 42;
+print(alias.data[1]);
+print(sizeof(integers(2)));
+print(type_value(integers(2)) == type_value(buffer(i32, 2)));

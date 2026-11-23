@@ -1,0 +1,4 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+var count: usize = sizeof(numeric.direct(count));
+var value: numeric.direct(count);

@@ -1,16 +1,11 @@
 import tower;
 import frontend_units;
 import .library.vector;
+import .library.work_budget;
 
 extern fn frontend_units_error_offset(batch: void*): usize;
 
 fn nominal_wrapper_errors(root: u8*): void {
-    var bedrock: vector(u8) = default;
-    var foundation: vector(u8) = default;
-    defer vector_dispose(&foundation);
-    defer vector_dispose(&bedrock);
-    units_read(root, "/bedrock.tower", &bedrock);
-    units_read(root, "/foundation.tower", &foundation);
     var paths: u8*[4];
     paths[0] = "/tests/semantic_invalid/nominal_wrapper_runtime.tower";
     paths[1] = "/tests/semantic_invalid/nominal_wrapper_mismatch.tower";
@@ -21,7 +16,18 @@ fn nominal_wrapper_errors(root: u8*): void {
     messages[1] = "Expected buffer(i32, 2)*, got buffer(i32, 3)*";
     messages[2] = "before its initialization";
     messages[3] = "needs a compile-time storage or value capability";
-    for(var index: usize = 0; index < sizeof(decltype(paths)) / sizeof(u8*); index++) {
+    nominal_wrapper_failures(root, &paths[0], &messages[0], sizeof(decltype(paths)) / sizeof(u8*));
+    puts("Nominal wrappers: 16 runtime, identity, initializer-order and effect failures passed.");
+}
+
+fn nominal_wrapper_failures(root: u8*, paths: u8**, messages: u8**, count: usize): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var index: usize = 0; index < count; index++) {
         var source: vector(u8) = default;
         var diagnostic: vector(u8) = default;
         defer vector_dispose(&diagnostic);
@@ -49,8 +55,16 @@ fn nominal_wrapper_errors(root: u8*): void {
                     units_check(offset == first_offset && strcmp(error, diagnostic.data) == 0,
                         "Nominal wrapper exact error and offset across target widths and workers");
                 }
+                var before: WorkBudgetSnapshot = default;
+                var after: WorkBudgetSnapshot = default;
+                units_check(work_budget_snapshot(frontend_units_work_budget(batch), &before)
+                    && before.used_lanes == 0 && frontend_units_step(batch, false)
+                    && frontend_units_step(batch, true)
+                    && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+                    && after.used_bytes == before.used_bytes && after.live == before.live
+                    && after.used_lanes == 0 && strcmp(error, diagnostic.data) == 0,
+                    "Terminal wrapper failure drains lanes and retains no new owners or effects");
             }
         }
     }
-    puts("Nominal wrappers: 16 runtime, identity, initializer-order and effect failures passed.");
 }

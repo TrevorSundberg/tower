@@ -1,6 +1,6 @@
 import {test, after} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {loadTower, loadLLVM, executeWasm, generatedSource} from './compiler-fixtures.mjs';
 
 const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
@@ -86,12 +86,35 @@ for (const name of ['decltype', 'decltype_expressions', 'declaration_continuatio
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   llvm.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
-  // Independently selectable: retain the original checked 64-bit canonical input.
-  const canonical = execute(source, 8, false);
-  for (const input of [source, canonical]) {
-   const result = llvm.compile(input);
-   assert.equal(result.status, 'compiled', result.error);
-   assert.equal((await executeWasm(result)).output, '0\n');
+  // Foundation layout constants belong to the target that produced them.
+  // The portable registration above retains both 32- and 64-bit coverage.
+  const target = 'wasm32-unknown-unknown', canonicalPointerBytes = 4;
+  const artifacts = process.env.TOWER_TEST_ARTIFACTS;
+  if (artifacts) await mkdir(artifacts, {recursive:true});
+  const phase = message => {
+   if (process.env.TOWER_TEST_PHASES) console.error(`${name}: ${message}`);
+  };
+  phase(`Graph canonical begin pointerBytes=${canonicalPointerBytes}`);
+  const canonical = execute(source, canonicalPointerBytes, false);
+  phase('Graph canonical done output="0\\n"');
+  for (const [kind, input] of [['source', source], ['canonical', canonical]]) {
+   const label = `${name} ${kind} -> ${target} (canonical pointerBytes=${canonicalPointerBytes})`;
+   const path = artifacts && `${artifacts}/${name}.${kind}`;
+   if (path) await writeFile(`${path}.tower`, input);
+   phase(`${label}: compile begin`);
+   const result = llvm.compile(input, {target});
+   if (path) await writeFile(`${path}.compile.json`, JSON.stringify({target, canonicalPointerBytes,
+    status:result.status, error:result.error, errorOffset:result.errorOffset}));
+   phase(`${label}: compile ${result.status}`);
+   assert.equal(result.status, 'compiled', `${label}: ${result.error}`);
+   if (path) await writeFile(`${path}.wasm`, result.wasm);
+   const executed = await executeWasm(result);
+   if (path) await writeFile(`${path}.execution.json`, JSON.stringify(executed));
+   phase(`${label}: execute ${executed.status} output=${JSON.stringify(executed.output)}`);
+   assert.equal(executed.status, 'done', `${label}: ${executed.error}`);
+   assert.equal(executed.error, '', label);
+   assert.equal(executed.outputTruncated, false, label);
+   assert.equal(executed.output, '0\n', label);
   }
  });
 }

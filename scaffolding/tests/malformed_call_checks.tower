@@ -1,0 +1,166 @@
+import tower;
+import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import .compiler.syntax_version_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_pool;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
+extern fn frontend_modules_location(environment: void*, offset: usize, line: usize*, column: usize*): u8*;
+
+var MalformedCallBudget: usize = 2147483648;
+
+fn malformed_call_compile(world: void*, environment: void*, source: u8*, width: u32, program: SemanticProgram*): void* {
+    var owner = entity_create(compiler_world_store(world));
+    units_check(owner != null, "Malformed shape program owner");
+    semantic_initialize(program, owner, width);
+    var input: FrontendSource = {data: source, length: strlen(source)};
+    frontend_compile_sources(program, &input, 1, environment);
+    return owner;
+}
+
+fn malformed_call_diagnostic(world: void*, environment: void*, source: u8*, width: u32,
+    wanted: u8*, offset: usize*): bool {
+    var program: SemanticProgram = default;
+    var owner = malformed_call_compile(world, environment, source, width, &program);
+    defer entity_release(owner); defer semantic_program_dispose(&program);
+    units_check(vector_push(&program.error, 0), "Malformed shape error terminator");
+    program.error.length--;
+    puts(program.error.data);
+    if program.resource.error != WorkBudgetError.None { puts(sem_resource_message(program.resource.error)); }
+    *offset = program.error_offset;
+    if program.resource.error == WorkBudgetError.None && strcmp(program.error.data, wanted) == 0
+        && strcmp(wanted, "Malformed CoreCallStatement tree: missing capture 'call'") == 0 {
+        // Semantic offsets span the concatenated imports. Check the public
+        // source map, not that internal offset against a local source index.
+        var line: usize = 0; var column: usize = 0;
+        var file = frontend_modules_location(environment, program.error_offset, &line, &column);
+        var expected_line: usize = 1; var expected_column: usize = 1;
+        for(var i: usize = 0; i < strlen(source) - strlen("broken"); i++) {
+            if source[i] == 10 { expected_line++; expected_column = 1; }
+            else { expected_column++; }
+        }
+        units_check(strstr(file, "malformed_call.tower") != null && line == expected_line && column == expected_column,
+            "Malformed call original source location including UTF8 prefix");
+    }
+    return program.resource.error == WorkBudgetError.None && strcmp(program.error.data, wanted) == 0;
+}
+
+fn malformed_call_world(root: u8*, bedrock: u8*, foundation: u8*, width: u32, workers: usize, reproduce: bool): bool {
+    var source = "import foundation;\nparse CoreCallStatement = 'broken'; broken";
+    var wanted = "Malformed CoreCallStatement tree: missing capture 'call'";
+    var healthy = "import foundation;fn answer():i32{return 42;}";
+    var gate = work_signal_open(); units_check(gate != null, "Malformed shape budget gate");
+    defer work_signal_close(gate); work_signal_post(gate);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, workers, MalformedCallBudget, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Malformed shape shared budget");
+    var world: void* = null;
+    units_check(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None, "Malformed shape world");
+    var environment = frontend_modules_create();
+    units_check(environment != null && frontend_modules_bind_world(environment, world), "Malformed shape environment");
+    frontend_modules_configure(environment, "malformed_call.tower", root);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    var installed = syntax_baseline_install(world, environment, bedrock, false, &diagnostic)
+        && syntax_baseline_install(world, environment, foundation, true, &diagnostic);
+    syntax_version_diagnostic_dispose(&diagnostic); units_check(installed, "Malformed shape baselines");
+    // Retain an older successful program while another input fails in this world.
+    var previous: SemanticProgram = default;
+    var previous_owner = malformed_call_compile(world, environment, healthy, width, &previous);
+    units_check(previous.error.length == 0 && previous.resource.error == WorkBudgetError.None, "Older healthy program");
+    units_memory_answer(&previous);
+    var offset: usize = 0;
+    var ok = malformed_call_diagnostic(world, environment, source, width, wanted, &offset);
+    if !reproduce && ok {
+        var sources: u8*[6]; var errors: u8*[6];
+        sources[0] = "import foundation;parse CoreIf = 'broken'; broken";
+        errors[0] = "Malformed CoreIf tree: missing capture 'condition'";
+        sources[1] = "import foundation;parse CoreAssign = 'broken'; broken";
+        errors[1] = "Malformed CoreAssign tree: missing capture 'target'";
+        sources[2] = "import foundation;parse CoreAddress = 'broken'; var p: i32* = broken;";
+        errors[2] = "Malformed CoreAddress tree: missing capture 'name'";
+        sources[3] = "import foundation;parse CoreLoad = 'broken'; var a: i32 = broken;";
+        errors[3] = "Malformed CoreLoad tree: missing capture 'name'";
+        sources[4] = "import foundation;parse CoreCall = 'broken'; var a:i32=broken;";
+        errors[4] = "Malformed CoreCall tree: missing capture 'name'";
+        sources[5] = "import foundation;parse CoreFunction = 'broken'; broken";
+        errors[5] = "Malformed CoreFunction tree: missing capture 'name'";
+        for(var i: usize = 0; i < sizeof(decltype(sources)) / sizeof(u8*); i++) {
+            units_check(malformed_call_diagnostic(world, environment, sources[i], width, errors[i], &offset), "Independent malformed control");
+        }
+        var moved = "import foundation;\n// λ source coordinates\nparse CoreCallStatement = 'broken';\nbroken";
+        units_check(malformed_call_diagnostic(world, environment, moved, width, wanted, &offset), "Moved UTF8 invocation diagnostic");
+        var valid = "import foundation;parse CoreCallStatement = 'invoke' $call:CoreCall ';';fn answer():i32{return 42;}invoke answer();";
+        var recovered: SemanticProgram = default;
+        var recovered_owner = malformed_call_compile(world, environment, valid, width, &recovered);
+        units_check(recovered.error.length == 0 && recovered.resource.error == WorkBudgetError.None, "Valid override after failed input");
+        units_memory_answer(&recovered);
+        semantic_program_dispose(&recovered); entity_release(recovered_owner);
+    }
+    units_memory_answer(&previous);
+    semantic_program_dispose(&previous); entity_release(previous_owner);
+    frontend_modules_destroy(environment);
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Malformed shape world cleanup");
+    var final: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget), "Malformed shape final zero grants");
+    return ok;
+}
+
+fn malformed_call_batch(root: u8*, bedrock: u8*, foundation: u8*, width: u32, workers: usize, cancel: bool, expected_offset: usize*): void {
+    var sources: u8*[3];
+    sources[0] = "import foundation;parse CoreCallStatement = 'broken';fn rejected():void{broken}";
+    sources[1] = "import foundation;fn answer():i32{return 42;}";
+    sources[2] = "import foundation;fn later():i32{return 17;}";
+    var count = sizeof(decltype(sources)) / sizeof(u8*);
+    var batch = frontend_units_create(count, workers, width, 81, 23, bedrock, foundation, root);
+    units_check(batch != null, "Malformed call sibling batch");
+    defer frontend_units_close(batch);
+    for(var i: usize = 0; i < count; i++) {
+        units_check(units_source(batch, i + 1, root, "/malformed_call_sibling.tower", sources[i], strlen(sources[i])), "Malformed call sibling source");
+    }
+    var done = frontend_units_step(batch, false);
+    if cancel { frontend_units_cancel(batch); }
+    else { while !done { done = frontend_units_step(batch, true); } }
+    if !cancel {
+        units_check(frontend_units_failed(batch) == 1
+            && strcmp(frontend_units_error(batch), "Malformed CoreCallStatement tree: missing capture 'call'") == 0,
+            "Malformed body retains its diagnostic across sibling joins");
+        var offset = frontend_units_error_offset(batch);
+        if workers == 1 { *expected_offset = offset; }
+        units_check(offset == *expected_offset, "Malformed body deterministic joined offset");
+        frontend_units_cancel(batch);
+        units_check(strcmp(frontend_units_error(batch), "Malformed CoreCallStatement tree: missing capture 'call'") == 0,
+            "Post-failure cancellation preserves first diagnostic");
+    }
+    units_check(frontend_units_step(batch, false), "Malformed call cancellation drained");
+    for(var i: usize = 1; i <= count; i++) {
+        units_check(frontend_units_program(batch, i) == null, "No failed/cancelled sibling result is published");
+    }
+    var snapshot: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
+        && snapshot.used_lanes == 0, "Malformed call all worker grants returned before close");
+}
+
+fn malformed_call_checks(root: u8*, mode: u8*): i32 {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock); defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    if strcmp(mode, "reproduce") == 0 { return malformed_call_world(root, bedrock.data, foundation.data, 4, 1, true) ? 0 : 1; }
+    units_check(strcmp(mode, "all") == 0, "Malformed call selector");
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        var expected_offset: usize = 0;
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            units_check(malformed_call_world(root, bedrock.data, foundation.data, width, workers, false), "Structured missing-call rejection");
+            malformed_call_batch(root, bedrock.data, foundation.data, width, workers, false, &expected_offset);
+            malformed_call_batch(root, bedrock.data, foundation.data, width, workers, true, &expected_offset);
+        }
+    }
+    puts("Malformed call shapes, exact controls, original offsets, retained programs and zero-grant recovery pass");
+    return 0;
+}
