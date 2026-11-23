@@ -93886,3 +93886,35 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
+
+### 2026-11-23 D1: finite pending-source closure at 1e60c511
+
+Freeze1e60c51167c6cc0438d10fe2366614ad872fa85b/tree72820a3b863adc36e29ef382c532708c5b2b40ae,
+compiler21b00de919403346f3f852a387a2b50b07b667d2/library62350befa8df3e261fd184a23a64e6bb7263204a.
+Same D1 thread01a2046a-4644-7ab1-a0ae-abd80210f013, CLI3173284, main only.
+Read nineteen pending Tower paths/two CMake contracts from7890 plus the five
+explicitly requested current shape/void-result deltas, enclosing functions,
+callers and registrations. Sixteen original Tower blobs still match7890; the
+three changed fixtures/runner and changed Work CMake were reviewed at this freeze.
+The D1 audit records all paths and source-specific ownership/query/measurement
+conclusions; local exact26-path manifest: build/d1_ecs/source_review_1e60c511/.
+
+Concrete source-only discrepancy: driver_c_cases registers backend_void_returns
+as successful C output, but its exported function-valued return/indirect callback
+hits ce_collect's explicit unsupported-function-values rejection. Exact existing
+fixture, minimal Tower source, call chain and owner command are in the audit.
+ROOT/L2 handoff; no C run or producer edit. L2's actual native reconstructed/full
+execution0 receipts remain valid within their identities. Raw65/0/128/255/0/67
+initializer passes the source counted-copy/fill review, but its storage fixture
+only imports/formats/cleans that global; executed byte/guard checks remain a test
+coverage limit, not a demonstrated producer bug. A2 required-shape controls,
+loop-header shared queries/current nine negatives, native probe ABI/fallback,
+and uniform profile timing-versus-observer boundaries substantively reviewed.
+Published owner measurements/tests are attributed, not rerun or authenticated
+from inaccessible raw logs. Current D2 CTest repair/later producers excluded.
+
+No compiler/build/test/profile/sanitizer/publication operation; documentation-only
+performance inapplicable. D2 heavy lock untouched; no D1 child job to drain,
+disk127GiB free, todo preserved. Required pull froze inputs; focused git/diff
+checks and normal history reconciliation/publication complete this receipt,
+not the original whole-compiler goal or ROOT's final artifact/release milestone.
