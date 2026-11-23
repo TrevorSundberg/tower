@@ -89845,3 +89845,51 @@ their owners' evidence; the frozen runners do not claim those new tests passed.
 The change against published main is receipt/journal only. Reused unchanged
 compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
+
+## 2026-11-23 B1 four real ECS semantic-port observations: blocked
+
+Frozen host/resources bcd0e3abf9bd2d970c771133b95d11990defb02c/tree
+b949eaa1c9a06c4128452c97c558e7f430546636 plus transport-only semantic-port patch.
+ROOT eac16533 reactors independently SHA256 checked: portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Explicit overrides, no rebuild/pin/cap change. KinmenB CPU0-11/24GiB, Node22.23.5,
+fresh single-process test runner per exact anchored case, concurrency1, one180s
+guard each. GNU time covers actual Node/V8 process; no killed-child exclusion.
+
+All four return status1 before their guard: entity_pages50.06wall/100.38CPU s/
+2826728KiB; entity_tables50.41/101.02/2847968; work_graph36.04/73.21/2353568;
+work_resume30.67/66.34/2321244. Each TAP reports exactly1test/1fail/0skip, phases
+only selected name. Preceding32-bit Graph/Fast outputs0 and both canonical
+reparse/output/text-equality checks pass. All fail the unchanged compiled-status
+assertion at LLVM Foundation32 optimize=false: Compiler resource request failed.
+Later reconstructed execution, optimize=true,64-bit and executable LLVM modes
+remain pending, as do unselected cases. This is not a retroactive Deck60s pass,
+leak proof or established Memory category. All original assertions preserved.
+
+One reduced request sequence submits saved entity_pages canonical Tower text
+(1101861bytes, SHA7db91392a90c5d3a85e23899dc4b05c6836635bbc0160de6d79f4c453ed06fbd)
+to a fresh LLVM-only reactor, same entry/resources/options; no preceding portable
+reactor or Graph/Fast execution. It also fails49.33wall/78.50CPU s/2110560KiB,
+exit1, inside its sole180s guard. Exact response status/error plus mapped
+errorFile .tower/tests/entity_pages.tower/errorOffset4998499 preserved. Offset
+exceeds submitted length; do not infer culprit location from that transport map.
+No LLVM/reconstructed text returned, so no invented expansion-stage conclusion.
+Canonical inspected once: imported ECS definitions explain substantial text,
+but size alone does not identify the denied producer. No second reduction.
+
+Concrete handoff: backend/source_session.tower:67 sees program.resource.error
+but calls backend_session_resource_failure without transferring error/offset;
+backend/session.tower:140 reads different backend.resource_error, defaulting to
+generic response. Response-buffer denial also uses that fallback. Both initial
+frontend and reconstructed-source validation use this caller, so exact first
+resource category/stage remains obscured. ROOT/L1 diagnostic boundary and actual
+producer handoff; D2 Foundation investigation separate. No production edits.
+
+Only JS transport changes: honor overrides before default reads, split existing
+phase logs, optional canonical/LLVM artifact saving. Test body/source/expectations,
+widths/profiles remain unchanged. node --check/diff checks pass; complete source
+manifest verified after observations. Logs/commands/manifests/canonical inputs
+and isolated API transport remain build/ecs_b1/cache/semantic_port_bcd0; receipt
+docs/semantic_port_four_bcd0e3ab.md. Four gates FAILED/pending, not passed; no
+full Node/browser/native/generation/sanitizer round. Owned jobs drained, todo
+unchanged; ROOT final release separate. Prior rejected LR receipts untouched.
