@@ -62378,3 +62378,81 @@ inapplicable to this evidence commit. Next: preserve all9b/root histories, quali
 the corrected growth fixture with its owner, capture a matching type-index baseline
 and migrate the graph/fast callers to L2's shared typed API. Existing implementation
 providers stay intact until D2's complete native/WASI symbol audit.
+
+### L2 storage registration and merged-input boundary (2026-11-23)
+
+Coordinator03:18:50 explicitly assigned the existing storage runner's two-line
+TypeObjectIndex registration to L2 after reviewing patcha4cf282a; D1 has no
+conflicting edit. Applied only its import and call after generic_clone_storage.
+The single-owner host guard and every existing assertion remain intact. The
+expanded fixture is already in7a8e07b and public-predecessor leaf compilation
+passes; registration is implementation, not evidence that the fault suite ran.
+
+Current main7d223 preserves full ROOT97b and L145dd histories. The only L1 merge
+conflicts were older frontend module error handling/assertions; both resolutions
+are byte-identical to ROOT97b's newer typed-error behavior. Earlier ea8daf26 core
+and profile receipts cover the pre-merge closure and are not relabeled as current
+ABI validation. L1 holds the host slot for matching interpreter caller checks;
+L2 prepares the serial storage build without overlapping that immutable work.
+
+The required merge-aware pull briefly stopped on index.lock after a concurrent
+status refresh. No git process or lock remained on inspection; rebase --continue
+completed successfully, preserving exact7d223 HEAD and tree. Subsequent Git
+mutations and status reads are serialized. No work was reset or discarded and
+todo.txt retains SHA256b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9.
+
+Open acceptance: execute the registered allocation-prefix/nominal/width fixture
+on a coherent build, integrate caller-owned resource receipts and provider
+closure, then final merged instrumentation/public bootstrap and publication.
+The two-line hook adds no production algorithm; runtime cost and memory will be
+recorded for its actual existing-runner execution, not inferred from compilation.
+
+The first actual registered run,81690, failed and is retained. Public predecessor
+storage_main compilation passes5.71wall/4.83CPU/246644KiB; the coherent37-step
+storage build passes177.07wall/146.96CPU/792540KiB with one compiler child. L1's
+ordinary functional checks overlapped under an explicit subordinate grant, so
+these are validation costs, not quiet performance samples. Storage binary is
+71968dc5f27703ace22555bb51e3dac907f51693cb59ea237099a298bfdece76.
+
+The first execution terminates with SIGABRT at "Type query measured capacity
+boundary",0.42wall/0.15CPU/95028KiB. The shell reports1; GNU time's final zero
+line is not a successful execution status because its first line records signal6.
+Later two runs and the script's final hash check did not execute. Raw logs/times
+and initial full source manifest remain under L2/type_index_storage_*.
+
+Source inspection finds a fixture lifecycle error: work_budget_dispose preserves
+the revision specifically to reject stale receipts, but this fixture restarted
+the same budget at revision1. Both subsequent initializations now advance from
+budget.revision. This preserves the production contract instead of resetting its
+owner or weakening the capacity assertion. Shared-formatter reports now expose
+the actual allocation-prefix count and charged peak outside injection regions.
+The corrected fixture is not yet executed; no production API change or compiler
+regression is inferred from this setup failure. All L2 jobs drained and the grant
+closed before L1's quiet paired profile began. The primary lock remains L1-owned.
+
+Corrected execution34805 completes successfully after L1's quiet profile drains.
+Public9653 leaf passes2.86wall/2.54CPU/183944KiB; the existing target rebuilds only
+its fixture object and link,9.37wall/6.98CPU/271380KiB. All three serial storage
+executions pass0.27wall each,0.22/0.22/0.23CPU and99608/99588/99600KiB. Exact
+production source remains7d223 plus the registered hook and corrected fixture;
+the final complete Tower/CMake source hashes match. Storage runner is
+cdd621ae32db0dfba1fa62c54e67d53576bb901e5d90a34b40253acfb0b0ae62,
+fixture SHA80b6f106da1739e585552dd08e2346de460559bd11a2987bdeba3b9780286215.
+
+At both four- and eight-byte targets, recursive ABI traversal performs3 allocator
+calls with320 peak charged bytes; recursive runtime reachability performs5 calls
+with544 peak charged bytes. Every measured allocation prefix fails explicitly
+with Memory and cleans up; one byte below the measured peak returns Capacity.
+Index start/growth denial, preserved entries, wrong-owner existing hit, first
+error latch, nominal identity and exact disposal all pass. Canonical entity and
+component counts remain unchanged and all scratch/grants retire. These counts
+cover the test's real traversal scratch and ledger allocation, not the entire
+compiler heap. The allocator fault transport is serial and supplies no race proof.
+
+Logs/scripts/manifests are L2/type_index_storage_retry_*; the transport now records
+process and source-hash statuses even on failure. Both are0 for34805. The original
+failed81690 remains failed. Primary ownership was released immediately after
+actual drain, ahead of L1's current-source instrumentation. No compiler algorithm
+changed for this fixture correction; the earlier matched traversal profile and
+the current costs above are distinct evidence. Caller/resource/provider joins,
+merged sanitizers and public-bootstrap publication remain open.

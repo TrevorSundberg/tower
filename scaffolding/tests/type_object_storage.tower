@@ -3,6 +3,7 @@ import .compiler.type_object_index_api;
 import .compiler.type_object_index_types;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
+import .compiler.format_api;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.vector;
@@ -22,6 +23,15 @@ extern fn sem_get(node: void*): FoundationNode*;
 
 var TypeObjectStorageBytes: usize = 65536;
 enum TypeIndexOutcome: u32 { Success, CapacityStart, CapacityGrow, MemoryStart, MemoryGrow, WrongOwner }
+
+fn type_object_storage_number(value: usize): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var formatter: FormatEngine = {result: &text, ..default};
+    format_unsigned(&formatter, convert(u64, value));
+    utility_check(!text.failed && vector_push(&text.text, 0), "Type storage measurement text");
+    puts(text.text.data);
+}
 
 fn type_object_budget_close(budget: WorkBudget*): void {
     var snapshot: WorkBudgetSnapshot = default;
@@ -47,15 +57,21 @@ fn type_object_query_failures(type: FoundationType*, root: void*, wanted: bool):
     var snapshot: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.peak_bytes != 0 && allocations != 0,
         "Type query measures real traversal scratch");
+    puts(type != null ? "Type ABI traversal: allocator calls, peak charged bytes"
+        : "Type reachability traversal: allocator calls, peak charged bytes");
+    type_object_storage_number(allocations);
+    type_object_storage_number(snapshot.peak_bytes);
     type_object_budget_close(&budget);
-    utility_check(work_budget_init(&budget, 1, snapshot.peak_bytes - 1, 1), "Type query measured capacity boundary");
+    // Disposal retains the session revision so stale receipts cannot revive.
+    utility_check(work_budget_init(&budget, 1, snapshot.peak_bytes - 1, budget.revision + 1),
+        "Type query measured capacity boundary");
     utility_check(type_object_storage_query(type, root, &budget, &answer) == WorkBudgetError.Capacity,
         "Type query fails below its measured physical peak without a semantic answer");
     type_object_budget_close(&budget);
     // Every actual allocator prefix is denied with a fresh ledger. This serial
     // fault transport exercises rollback; it provides no threaded race evidence.
     for(var failure: usize = 0; failure < allocations; failure++) {
-        utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, 1), "Type query fault budget");
+        utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, budget.revision + 1), "Type query fault budget");
         tower_test_buffer_fail_after(failure);
         var error = type_object_storage_query(type, root, &budget, &answer);
         tower_test_buffer_fail_after(~convert(usize, 0));
@@ -226,6 +242,8 @@ fn type_object_storage_graph(width: u32): void {
 
 fn type_object_storage_tests(): void {
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        puts("Type storage target pointer bytes");
+        type_object_storage_number(convert(usize, width));
         type_object_index_trial(width, TypeIndexOutcome.Success);
         type_object_index_trial(width, TypeIndexOutcome.CapacityStart);
         type_object_index_trial(width, TypeIndexOutcome.CapacityGrow);
