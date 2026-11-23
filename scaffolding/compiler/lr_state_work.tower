@@ -187,7 +187,7 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
             if !ok { lr_items_destroy(items); continue; }
             var edge: LRTransition;
             edge.symbol = state.symbols.data[i];
-            edge.state = lr_states_intern_result(value, items, edge.symbol, error);
+            edge.state = lr_states_intern_result(value, items, edge.symbol, true, error);
             ok = edge.state != lr_none();
             if ok { *error = lr_push_result(&state.edges, edge); ok = *error == WorkBudgetError.None; }
         }
