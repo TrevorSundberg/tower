@@ -80988,3 +80988,75 @@ again during the required merged validation. Per this bounded task's stop rule,
 no further integration/push loop was attempted. The focused-tested batch remains
 committed locally; its final commit and exact push blocker are in B2/status.md.
 No force push, deployment, goal continuation or new assignment was attempted.
+
+### 2026-11-23 B2: nested lane release wakes outer admission
+
+Published the checked module-startup batch b21bdb2d through merge fd1ba4de.
+Preserved complete local/published histories: merged afca69b1, then the docs-only
+6d19d9ba advance. Native module-cache regression passed on the integrated source;
+normal push succeeded after one remote advance and one transient DNS failure.
+The earlier unpublished receipt above is superseded, not removed. ROOT portable
+policy integration needs these exact ParserNodes providers from
+scaffolding/compiler/frontend_modules.tower: frontend_module_root_world_size_result,
+frontend_modules_create_result, frontend_modules_bind_world_result. The bounded
+batch constructor frontend_units_create_bounded_result is provided by
+scaffolding/compiler/frontend_units.tower. Existing wrappers remain compatible.
+
+Source finding: frontend_units_step breaks on WorkBudgetError.Capacity, then
+waits solely for outer WorkPool completion. A nested extra-lane release did not
+notify that wait. New existing-harness selector unit-admission constructs three
+uneven independent units and a real nested world-owned Bedrock grammar job. The
+nested job observes the actual failed outer admission under the budget gate,
+then returns its grant; its parent stays live until another ready unit starts.
+Before the fix this fails the 30-second assertion, exit134 (33.311s wall,
+3.501s CPU,197648KiB RSS). The two initial fixture compile errors (unsupported
+array initializer and missing direct component-kind import) are retained in logs.
+
+Implemented one generic, gate-owned, one-shot lane-availability notification in
+WorkBudget. Failed lane admission arms it; a lane release disarms and posts the
+existing outer pool completion signal under the same gate, closing the lost-wake
+window. No extra production pool, wait channel, global state or spin polling.
+WorkPool adds an event receive operation; existing receive/reserve callers keep
+their job-only/result contracts. frontend_units consumes wake events and reruns
+its existing backend-first ready dispatch. Cancellation drains borrowers; close
+detaches the sender before destroying the signal. Byte-only denials do not arm
+lane notifications. Binding requires owner-enforced quiescence; the callback
+must be nonblocking and cannot reenter the budget. Diagnostics still settle in
+existing graph order. WorkBudget layout changed: consumers must rebuild together.
+
+Validation: one dependency-aware incremental build (27 actions; shared types
+recompiled coherently) of tower-lr-work-tests, tower-frontend-units-profile and
+tower-module-cache-tests. unit-admission passes: distinct live threads, exact
+serial/parallel canonical bytes, cancellation drain and shared lane/byte ceilings;
+release-call to next-unit entry80877ns. Whole fixture6.486s wall/7.845s CPU/
+476836KiB RSS. Existing units suite passes (21.614s/32.097s/808652KiB): ordered
+cycle/syntax diagnostics, memory ownership, cancellation and canonical equality.
+backend-overlap-calibrated passes exact objects/distinct worker overlap
+(8.207s/10.523s/523824KiB); backend1 starts197945ns after frontend1 leaves while
+frontend2 remains live. Module-cache/startup admission/retry suite passes too.
+Logs: build/b2_admission_{before_test,after_build,after_test,units,backend,modules}.log.
+
+Small cost comparison: same saved baseline executable and changed executable at
+/cache/b2_admission_profile, same /work/scaffolding resources, three units with
+4096 independent bodies only in the final unit, warm filesystem, fresh processes,
+one paired sample per budget. Linux x64 WSL2 kernel6.18.33.2, Docker CPU12-23 /
+24GiB, Release O2, public pinned towerc9653f8187a10, build compiler jobs1.
+Sibling containers had only sleep processes before/after this final paired run;
+initial contended samples remain logged but are excluded from this comparison.
+Profile phase wall seconds / CPU seconds / peak process RSS KiB, before -> after:
+
+| Worker budget | Wall | CPU | Peak RSS |
+| --- | --- | --- | --- |
+| 1 | 4.695 -> 4.642 | 4.579 -> 4.534 | 679844 -> 679528 |
+| 4 | 2.444 -> 2.372 | 5.660 -> 5.572 | 942140 -> 941284 |
+
+Canonical hash4242261087906147675,646269entities/792327components and each
+budget's exact retained/peak bytes and ledger capacity match before/after.
+Outer peak1/3; shared lane peaks1/4. This small cost sample establishes no general
+speedup or scaling result. The forced-admission fixture establishes the previously
+idle eligible lane and its prompt refill; it does not measure all scheduler idle
+time or parser bottlenecks. Logs build/b2_admission_pair_{before,after}{1,4}.log;
+saved baseline /cache/b2_admission_before_profile. Broader supported sanitizers,
+scaling, portable/bootstrap/browser/generation and hosted deployment remain
+pending ROOT's integrated milestone, not passed here. No todo edit, other-lane
+implementation, session/goal/agent creation or publication lease polling.

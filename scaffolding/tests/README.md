@@ -1096,6 +1096,16 @@ and the full backend suite retain their30-second bound. Name the selected varian
 in instrumentation receipts; a successful calibrated run does not erase an older
 ordinary timeout or establish a performance improvement.
 
+`tower-lr-work-tests RESOURCE_ROOT unit-admission` holds the first of three
+uneven units live while a real nested grammar job releases a lane from the same
+two-worker budget. The next ready unit must enter on another thread before that
+parent can finish. The observer waits for actual denied admission under the
+budget gate, reports release-to-entry latency, compares serial/parallel canonical
+Foundation, and checks cancellation drain and peak lane/byte bounds. Its bounded
+observer waits are test-only; production refill uses the existing pool completion
+signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
+the accompanying immediate backend handoff and exact object comparison.
+
 The existing LR query entry also calls `semantic_receipt_checks.tower` and
 `semantic_failure_order_checks.tower` once each. `receipt-smoke` selects just
 these unchanged fixtures: allocation-free typed receipt restoration, diagnostic
