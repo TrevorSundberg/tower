@@ -82036,6 +82036,10 @@ identity and repeat affected metrics at ROOT's final frozen release, rather than
 relabel or rebuild this bounded one-build receipt. No new sanitizer/browser/
 generation/deployment claim. This journal-only change needs no runtime rerun;
 normal main commit/push and remote identity are recorded in D2 status.
+The first normal push lost a ref race tod56c2903. Required ff-only pull refused
+divergence; normal merge preserved both complete histories without conflict.
+Later executable/type admission inputs retain their owner receipts and require
+final frozen-source profiling; this baf2 measurement was not relabeled or rerun.
 ### ROOT executable startup and checked ownership transfer (2026-11-23)
 
 Implemented against published84e919eb, including complete A2 queued provenance
