@@ -392,6 +392,14 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     return result;
 }
 
+// The document's single owner invokes this phase on its initialized context.
+export fn language_document_inspect(q: CompletionQuery*, checked: bool): bool {
+    if completion_semantic_failed(q) { return false; }
+    q.program.error.length = 0;
+    q.generic_info = sem_generic_inspect(&q.context, checked, &q.truncated);
+    return !completion_semantic_failed(q) && q.generic_info != null;
+}
+
 export fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, pointer_bytes: u32): CompletionQuery* {
     var source_error = host_source_error(source, length);
     if source_error[0] != 0 {
@@ -452,9 +460,7 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
         // symbolic annotations of its registered templates. Inspect those even
         // when executable checking failed; keep Foundation presentation gated
         // by the original result so partially checked values are never exposed.
-        q.program.error.length = 0;
-        q.generic_info = sem_generic_inspect(c, checked, &q.truncated);
-        if completion_semantic_failed(q) || q.generic_info == null {
+        if !language_document_inspect(q, checked) {
             completion_dispose(q);
             return null;
         }

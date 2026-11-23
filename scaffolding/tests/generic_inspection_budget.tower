@@ -1,6 +1,9 @@
 import tower;
 import frontend_units;
 import .compiler.syntax_version_types;
+import .compiler.completion_types;
+import .compiler.format_api;
+import .compiler.format_types;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
@@ -9,6 +12,9 @@ import .library.work_pool;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_create_workers(workers: usize): void*;
 extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
 extern fn frontend_world_clear(world: void*): bool;
 extern fn frontend_modules_create(): void*;
 extern fn frontend_modules_destroy(environment: void*): void;
@@ -20,8 +26,62 @@ extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): 
 extern fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, width: u32): void*;
 extern fn language_document_result(query: void*): u8*;
 extern fn completion_dispose(query: void*): void;
+extern fn language_document_inspect(query: CompletionQuery*, checked: bool): bool;
 
 var GenericInspectionBudgetBytes: usize = 134217728;
+
+// Keep the successful document alive, then deny its actual inspection producer.
+// The legacy world binder charges selected scratch, not physical entity pages.
+fn generic_inspection_late(query: void*, budget: WorkBudget*, source: u8*): void {
+    var q = bits(CompletionQuery*, query);
+    units_check(q.generic_info != null && q.program.resource.error == WorkBudgetError.None,
+        "Late inspection begins on a successfully checked generic document");
+    var before: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    units_check(work_budget_snapshot(budget, &before) && before.used_bytes < before.bytes
+        && work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes, &occupied) == WorkBudgetError.None,
+        "Late inspection pressure starts after parsing, checking and initial inspection");
+    var accepted = language_document_inspect(q, true);
+    var expression = strstr(source, "1 + 2");
+    units_check(expression != null, "Late inspection source provenance");
+    var expression_offset = bits(usize, expression) - bits(usize, source);
+    var rejected = !accepted && q.generic_info == null && q.resource_error == WorkBudgetError.Capacity
+        && q.program.resource.error == WorkBudgetError.Capacity
+        && q.program.resource.offset == expression_offset
+        && q.context.queries.running == 0 && q.context.workers.running == 0;
+    if !rejected {
+        var text: FormatResult = default;
+        defer format_dispose(&text);
+        var f: FormatEngine = {result: &text, ..default};
+        format_text(&f, "Late inspection accepted=");
+        format_unsigned(&f, accepted ? 1 : 0);
+        format_text(&f, " query_error=");
+        format_unsigned(&f, convert(u64, q.resource_error));
+        format_text(&f, " program_error=");
+        format_unsigned(&f, convert(u64, q.program.resource.error));
+        format_text(&f, " offset=");
+        format_unsigned(&f, convert(u64, q.program.resource.offset));
+        format_text(&f, " expected_offset=");
+        format_unsigned(&f, convert(u64, expression_offset));
+        units_check(!text.failed && vector_push(&text.text, 0), "Late inspection receipt diagnostic");
+        puts(text.text.data);
+    }
+    units_check(rejected, "The actual inspection expression producer rejects its phase without live work");
+    units_check(language_document_result(query) == null,
+        "A late producer failure cannot expose the prior successful document output");
+    var store = compiler_world_store(q.world);
+    var failed_nodes = entity_store_count(store);
+    var failed_components = entity_store_component_count(store);
+    units_check(work_budget_release_result(budget, &occupied) == WorkBudgetError.None,
+        "Release late pressure before checking that the failed phase cannot replay");
+    q.program.error.length = 0;
+    units_check(!language_document_inspect(q, true) && q.generic_info == null
+        && q.resource_error == WorkBudgetError.Capacity && q.program.resource.error == WorkBudgetError.Capacity
+        && q.program.resource.offset == expression_offset
+        && entity_store_count(store) == failed_nodes && entity_store_component_count(store) == failed_components
+        && q.context.queries.running == 0 && q.context.workers.running == 0,
+        "Cleared diagnostics do not replay or erase the late producer failure");
+}
 
 fn generic_inspection_baseline(world: void*, environment: void*, source: u8*, foundation: bool): void {
     var diagnostic: SyntaxVersionDiagnostic = default;
@@ -55,9 +115,11 @@ fn generic_inspection_budget_trial(root: u8*, width: u32, workers: usize): bool 
     var query = language_document_world(world, environment, source, strlen(source), 0, width);
     units_check(query != null, "Inspection setup query");
     var output = language_document_result(query);
+    units_check(output != null, "Successful inspection setup exposes its document output");
     if strstr(output, "\"complete\":true") == null { puts(output); }
     units_check(strstr(output, "\"complete\":true") != null && strstr(output, "function template") != null,
         "Inspection fixture is a valid complete generic document before denial");
+    generic_inspection_late(query, &budget, source);
     completion_dispose(query);
     var before: WorkBudgetSnapshot = default;
     units_check(work_budget_snapshot(&budget, &before) && before.used_bytes < before.bytes,
@@ -69,7 +131,8 @@ fn generic_inspection_budget_trial(root: u8*, width: u32, workers: usize): bool 
     var rejected = query == null;
     if query != null {
         puts("Resource-denied inspection returned a partial query:");
-        puts(language_document_result(query));
+        var partial = language_document_result(query);
+        if partial != null { puts(partial); }
         completion_dispose(query);
     }
     units_check(work_budget_release(&budget, &occupied), "Release inspection denial occupancy");
