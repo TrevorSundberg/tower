@@ -149,17 +149,16 @@ export fn work_kernel_execute(payload: void*): void {
 fn schedule_shared(): void {
     var jobs: ScheduleBudgetJob[4] = default;
     var count = sizeof(decltype(jobs)) / sizeof(ScheduleBudgetJob);
-    var gate = work_signal_open();
+    var gate = work_gate_open();
     var entered = work_signal_open();
     var release = work_signal_open();
     schedule_check(gate != null && entered != null && release != null);
-    defer work_signal_close(gate);
+    defer work_gate_close(gate);
     defer work_signal_close(entered);
     defer work_signal_close(release);
-    work_signal_post(gate);
     var budget: WorkBudget = default;
     schedule_check(work_budget_init(&budget, count, 1048576, 1));
-    schedule_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    schedule_check(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
     var pool: WorkPool = default;
     schedule_check(work_pool_open_budget(&pool, count, &budget) && pool.threaded && pool.count == count);
     var slot_bytes = compiler_buffer_allocation_size(count * sizeof(WorkSlot));

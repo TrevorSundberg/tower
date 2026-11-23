@@ -11,6 +11,19 @@ extern fn dispatch_semaphore_wait(signal: void*, timeout: u64): i64;
 extern fn dispatch_semaphore_signal(signal: void*): i64;
 extern fn dispatch_release(object: void*): void;
 
+// os/lock.h (macOS 10.12+): os_unfair_lock is one uint32_t, initialized to
+// OS_UNFAIR_LOCK_INIT={0}. Keep its address stable until all borrowers drain.
+extern fn os_unfair_lock_lock(gate: void*): void;
+extern fn os_unfair_lock_unlock(gate: void*): void;
+export fn work_gate_open(): void* {
+    var gate = alloc(u32, 1);
+    if gate != null { *gate = 0; }
+    return bits(void*, gate);
+}
+export fn work_gate_close(gate: void*): void { free(gate); }
+export fn work_gate_enter(gate: void*): void { os_unfair_lock_lock(gate); }
+export fn work_gate_leave(gate: void*): void { os_unfair_lock_unlock(gate); }
+
 export fn work_thread_available(): bool { return true; }
 extern fn sysctlbyname(name: u8*, value: void*, size: usize*, input: void*, input_size: usize): i32;
 export fn work_thread_capacity(): usize {
