@@ -49,12 +49,15 @@ export fn backend_source_close(source: BackendSource*): void {
 fn backend_source_program_close(program: SemanticProgram*): void {
     var root = program.root;
     semantic_program_dispose(program);
-    entity_release(bits(Entity*, root));
+    if root != null { entity_release(bits(Entity*, root)); }
+    *program = default;
 }
 
 fn backend_source_program(program: SemanticProgram*, world: void*, text: u8*, length: usize, width: u32, environment: void*): bool {
-    var root = entity_create(bits(EntityStore*, compiler_world_store(world)));
-    if root == null { return false; }
+    *program = default;
+    var error = WorkBudgetError.None;
+    var root = entity_create_result(bits(EntityStore*, compiler_world_store(world)), &error);
+    if root == null { program.resource.error = error; return false; }
     semantic_initialize(program, bits(void*, root), width);
     var input: FrontendSource;
     input.data = text;
@@ -63,8 +66,19 @@ fn backend_source_program(program: SemanticProgram*, world: void*, text: u8*, le
     return true;
 }
 
+fn backend_source_resource(source: BackendSource*, error: WorkBudgetError, offset: usize): u8* {
+    var backend = source.backend.backend;
+    var previous = backend.source_offset;
+    backend.source_offset = offset;
+    backend_resource_fail(backend, error);
+    backend.source_offset = previous;
+    return backend_session_failure(source.backend, backend_error(backend), backend.error_offset);
+}
+
 fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* {
-    if program.resource.error != WorkBudgetError.None { return backend_session_resource_failure(source.backend); }
+    if program.resource.error != WorkBudgetError.None {
+        return backend_source_resource(source, program.resource.error, program.resource.offset);
+    }
     // Frontend errors are length-delimited; never assume their storage has a NUL.
     var message: vector(u8);
     vector_init(&message);
@@ -76,46 +90,55 @@ fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* 
 }
 
 fn backend_source_import(source: BackendSource*, program: SemanticProgram*, width: u32, optimize: bool, environment: void*): u8* {
-    var imported: SemanticProgram;
+    var imported: SemanticProgram = default;
+    defer backend_source_program_close(&imported);
     var world = compiler_node_world(program.root);
     var error: WorkBudgetError;
     var root = entity_create_result(bits(EntityStore*, compiler_world_store(world)), &error);
     if root == null {
-        backend_resource_fail(source.backend.backend, error);
-        return backend_session_failure(source.backend, backend_error(source.backend.backend), source.backend.backend.error_offset);
+        return backend_source_resource(source, error, 0);
     }
     semantic_initialize(&imported, bits(void*, root), width);
     var backend = source.backend;
     if imported.resource.error != WorkBudgetError.None {
-        backend_resource_fail(backend.backend, imported.resource.error);
-        backend_source_program_close(&imported);
-        return backend_session_failure(backend, backend_error(backend.backend), backend.backend.error_offset);
+        return backend_source_error(source, &imported);
     }
     var result = backend_session_response(backend);
     var preserve = false;
     error = type_object_program_result(program.root, compiler_world_work_budget(world), &preserve);
     if error != WorkBudgetError.None {
         backend_resource_fail(backend.backend, error);
-        backend_source_program_close(&imported);
         return backend_session_failure(backend, backend_error(backend.backend), backend.backend.error_offset);
     }
     if preserve || backend_session_import(backend, program.root, program.functions.data,
     program.functions.length, width, optimize, imported.root) {
-        var formatted: FormatResult = default;
+        var formatted: FormatResult = {checked: true, budget: compiler_world_work_budget(world), ..default};
+        defer format_dispose(&formatted);
+        var candidate: vector(u8) = default;
+        defer vector_dispose(&candidate);
         var output = preserve ? program.root : imported.root;
         format_entity(&formatted, output, compiler_node_type(output, CompilerSyntax),
             null, compiler_node_type(output, CompilerParserMatch));
-        if formatted.failed || !vector_reserve(&source.foundation, formatted.text.length + 1) {
-            result = backend_session_failure(backend, "Unable to allocate canonical formatted source", 0);
+        if formatted.failed {
+            return backend_source_resource(source, formatted.resource_error == WorkBudgetError.None
+                ? WorkBudgetError.Invalid : formatted.resource_error, 0);
+        }
+        if !vector_reserve(&candidate, formatted.text.length + 1) {
+            result = backend_source_resource(source, WorkBudgetError.Memory, 0);
         } else {
-            copy(source.foundation.data, formatted.text.data, formatted.text.length);
-            source.foundation.length = formatted.text.length;
-            source.foundation.data[source.foundation.length] = 0;
-            var checked: SemanticProgram;
-            if !backend_source_program(&checked, world, source.foundation.data, source.foundation.length, width, environment) {
-                format_dispose(&formatted);
-                backend_source_program_close(&imported);
-                return backend_session_failure(backend, "Unable to allocate compiler root", 0);
+            copy(candidate.data, formatted.text.data, formatted.text.length);
+            candidate.length = formatted.text.length;
+            candidate.data[candidate.length] = 0;
+            // Import and format have joined. The standalone text is now the
+            // only recheck input; neither graph nor formatter spans are read
+            // again. Keep the previous session output until validation commits.
+            format_dispose(&formatted);
+            backend_source_program_close(&imported);
+            backend_source_program_close(program);
+            var checked: SemanticProgram = default;
+            defer backend_source_program_close(&checked);
+            if !backend_source_program(&checked, world, candidate.data, candidate.length, width, environment) {
+                return backend_source_error(source, &checked);
             }
             if checked.resource.error != WorkBudgetError.None || checked.error.length != 0 {
                 result = backend_source_error(source, &checked);
@@ -123,14 +146,16 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
             else {
                 result = preserve ? backend_session_foundation_report(backend, ExecutionProfile.Canonical)
                     : backend_session_import_report(backend, optimize);
+                if backend.response_fallback == null {
+                    vector_dispose(&source.foundation);
+                    source.foundation = candidate;
+                    candidate = default;
+                }
             }
-            backend_source_program_close(&checked);
         }
-        format_dispose(&formatted);
     } else {
         result = backend_session_response(backend);
     }
-    backend_source_program_close(&imported);
     return result;
 }
 
@@ -169,20 +194,18 @@ export fn backend_source_compile_world(source: BackendSource*, world: void*, tex
     var program: SemanticProgram;
     var created = backend_source_program(&program, world, terminated, length, width, environment);
     free(terminated);
-    if !created { return backend_session_failure(backend, "Unable to allocate compiler root", 0); }
+    if !created { return backend_source_error(source, &program); }
     var result: u8* = null;
     if program.resource.error != WorkBudgetError.None || program.error.length != 0 {
         result = backend_source_error(source, &program);
     }
     else {
-        source.foundation.length = 0;
-        if source.foundation.data != null {
-            source.foundation.data[0] = 0;
-        }
         if(flags &BackendSourceImport) != 0 {
             result = backend_source_import(source, &program, width,
             (flags &BackendSourceUnoptimized) == 0, environment);
         } else {
+            source.foundation.length = 0;
+            if source.foundation.data != null { source.foundation.data[0] = 0; }
             result = backend_session_compile(backend, program.root, program.functions.data,
             program.functions.length, width, flags);
         }

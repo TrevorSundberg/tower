@@ -31,6 +31,13 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_resul\n", "node_match_set_label_resul");
+    symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result_extra\n U node_match_set_label_result\n", "node_match_set_label_result_extra");
+    symbol_case(BootstrapUnit.Interpreter, false, " U node_match_set_label_result\n", "node_match_set_label_result");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_world_grammar", "compiler_world_grammar_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_component_owner", "entity_component_owner_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_register_stage_result", "entity_register_stage_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_clone_tree_owned_result", "compiler_clone_tree_owned_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "frontend_module_cyclic_result", "frontend_module_cyclic_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "syntax_session_open_result", "syntax_session_open_result_extra");
