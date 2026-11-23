@@ -8,6 +8,20 @@ import .library.work_budget_types;
 
 enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
 
+// Independent facts: mutation/escape analysis proves a fixed binding; ordinary
+// interpreter execution may then prove its value. Neither fact implies the other.
+struct SemanticKnownBinding {
+    owner: void*;
+    ordinal: usize;
+    immutable: bool;
+    ordered: bool;
+    input_query: usize;
+    evaluation: void*;
+    block: void*;
+    begin: usize;
+    end: usize;
+}
+
 struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
 struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
 

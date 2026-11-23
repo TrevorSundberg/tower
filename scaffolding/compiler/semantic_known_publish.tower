@@ -1,10 +1,8 @@
 import tower;
 import semantic_known_types;
 import semantic_context_types;
-import semantic_context;
-import semantic_known_bindings;
-import semantic_evaluation;
-import semantic_support;
+import semantic_query_api;
+import semantic_evaluation_types;
 import semantic_work_ids;
 import foundation_types;
 import foundation_tags;
@@ -124,7 +122,7 @@ fn sem_publish_storage(c: SemanticContext*, result: SemanticKnownWork*, nodes: S
     }
 }
 
-fn semantic_known_publish_kernel(result: SemanticKnownWork*): void {
+export fn semantic_known_publish_kernel(result: SemanticKnownWork*): void {
     defer work_arena_dispose(&result.scratch);
     var context = *result.context;
     context.query_reads = &result.query_reads;

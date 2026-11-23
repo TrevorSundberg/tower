@@ -58955,3 +58955,74 @@ owners, public clone-result consumers and full failure classification, final
 fixture hooks and updated bootstrap import policy. Final coherent native,
 bootstrap-generation, browser, scaling and supported sanitizer validation plus
 atomic publication/hosted verification remain required. No public refs changed.
+
+### A1 Publish source boundary and transport cleanup audit (2026-11-23)
+
+Source under review: f9c40fad, the complete ROOT3915 union plus the explicitly
+unaccepted Publish draft; public Linux x64 predecessor9653f818, LLVM19, jobs1,
+own Docker CPU0-3/4CPU/8GiB. The immutable own-cache ROOT3915 baseline compiles
+semantics_checks successfully:21.57wall/15.00user/1.07sys/793440KiB. The candidate
+still fails the same public component cap after traversal deduplication:
+12.83wall/7.57user/.92sys/744484KiB, vector_reserve(&jobs,count), log
+publish_queue_unit2. Both processes drained. This attributes the new failure to
+the added Publish closure; the root union itself passes this unit. No compiler
+limit, resource cap or private bootstrap override was changed.
+
+Prepared an ordinary Tower declaration boundary: SemanticKnownBinding moves
+unchanged to its existing defining-type module; existing sem_find,
+sem_entry_arena, sem_known_binding, sem_evaluation_get and
+sem_query_input_checked become exported implementations, declared through the
+existing semantic_query_api. The Publish kernel now imports those declarations
+instead of recursively importing the semantic implementation, and its caller
+uses the typed kernel declaration. Single authoritative graph, table and arena
+implementations remain. This is implemented source separation, but the sole
+linked provider placement is still a proposal routed to D2/B2/A2; no foreign
+unit or manifest was edited without agreement.
+
+The isolated kernel now passes2.72wall/2.08user/.14sys/219528KiB, and the semantic
+aggregate passes20.54wall/15.13user/1.14sys/791084KiB (publish_link_kernel1 and
+publish_link_semantics1). These are single-sample build receipts, not a compiler
+speedup claim or runtime acceptance. The updated focused fixture derives its
+case count from the actual fixed array type and also compiles2.84wall/2.15user/
+.17sys/211452KiB. Its18 runtime cases remain pending a complete ABI rebuild.
+A2's separately measured thin arena call boundary costs38-59% in its large
+serial microbenchmark; end-to-end Publish cost remains unknown and must be
+measured. Do not label the API free or neutral.
+
+Expanded transport audit finds eleven dispatch callsites across ten semantic
+files, including the L2-owned generic body implementation. The two body sites
+are source discovery and continuation execution. Besides previously reported
+evaluation/known waves, declaration discovery/checking, executable preparation,
+iteration resolution, lowering and flow also abort on false transport. Existing
+worker admission traps on reservation failure. A2's proposed typed result must
+distinguish invalid Busy entry (does not own earlier jobs) from a valid drained
+batch failure; partial submission may already have executed every queue item.
+
+Cleanup needs phase-specific ownership, not a blanket stage discard. Body,
+declaration, executable, evaluation preparation and lowering may have installed
+links from leased canonical payloads to private-stage nodes. Join all peers and
+publish those structural ownership stages before releasing leases; suppress
+successful semantic readiness and external result publication on transport
+failure. Body workers also transfer allocations/lists, pending evaluations,
+aliases and lexical continuations; these owners must be adopted or disposed
+without resuming statements. Iteration resolution transfers scratch before
+ordinary signature preparation; failed transport must skip that preparation and
+retire its arrays. Flow and known analysis own private result vectors and no
+structural stage. Interpreter invocations must all retire before borrowed
+producer projections. Current cancellation remains at joined frontiers, without
+unsynchronized WorkGraph mutation or an invented bounded whole-kernel latency.
+This is an audit/design, not implemented typed-dispatch cleanup.
+
+Logs remain in the A1 cache; disk328.77GiB free at this boundary, no outstanding
+owned build, no publication lease. Current instrumented/runtime/normal-WASI-
+generation link closure and final release remain open. No todo modification.
+
+Focused current-ABI runtime evidence now exists: all existing LR dependency
+objects refreshed in34steps126.02wall/93.82user/7.44sys/790240KiB, then the owned
+fixture linked with exactly one isolated Publish kernel object through the
+existing Tower linker. All18 cases pass (.03wall/.01CPU/51988KiB), including
+serial mixed success/failure and actual four-worker all-denied waves, both
+target widths, no partial canonical output and zero retained scratch receipts.
+Logs publish_objects1, publish_runtime_unit1/link1/runtime1. This scoped manual
+composition is not the still-pending production provider/native/WASI/generation
+closure. It uses no private compiler override or alternate implementation.

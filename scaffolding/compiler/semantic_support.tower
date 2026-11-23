@@ -453,7 +453,7 @@ fn sem_table(c: SemanticContext*): SemanticTable* {
     return t;
 }
 
-fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
+export fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
     if t.capacity == 0 {
         return null;
     }
@@ -545,7 +545,7 @@ fn sem_entry(c: SemanticContext*, t: SemanticTable*, text: u8*, entity: void*): 
 // Fallible common-lifetime storage uses the same semantic index and identity
 // rules as ordinary scratch. Existing entries remain stable through growth;
 // a failed insertion never publishes a partial entry or replaces the output.
-fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*,
+export fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*,
     output: SemanticEntry**): WorkBudgetError {
     var found = sem_find(table, text, entity);
     if found != null { *output = found; return WorkBudgetError.None; }

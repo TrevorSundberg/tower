@@ -10,7 +10,6 @@ import semantic_context;
 import semantic_evaluation;
 import semantic_expressions;
 import semantic_known_bindings;
-import semantic_known_publish;
 import semantic_source_bindings;
 import semantic_support;
 import semantic_work_ids;
@@ -25,6 +24,7 @@ extern fn entity_table_query_count(query: void*): usize;
 extern fn entity_table_query_ranges(query: void*): usize;
 extern fn entity_table_query_range_count(query: void*, index: usize): usize;
 extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+extern fn semantic_known_publish_kernel(result: SemanticKnownWork*): void;
 
 var SemanticKnownArenaChunkBytes: usize = 4096;
 var SemanticKnownDiagnosticBytes: usize = 128;

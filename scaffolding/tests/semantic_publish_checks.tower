@@ -19,6 +19,8 @@ extern fn puts(text: u8*): i32;
 
 enum PublishPressure: u32 { None, Startup, Arena, Growth, Mixed }
 
+struct PublishCase { block: void*; count: usize; dispatch: u64; }
+
 fn publish_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
 }
@@ -63,9 +65,9 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     // An empty known-binding set is valid after every candidate is rejected.
     // Canonical container compaction still has real private output to publish.
     context.known_bindings = sem_create(root);
-    var blocks: void*[3];
-    var counts: usize[3];
-    for(var index: usize = 0; index < 3; index++) {
+    var cases: PublishCase[3];
+    var case_count = sizeof(decltype(cases)) / sizeof(PublishCase);
+    for(var index: usize = 0; index < case_count; index++) {
         var function = index == 0 ? root : sem_create(root);
         var value = index == 0 ? sem_get(root) : sem_attach(function, KFunction);
         value.type.pointer_bytes = width;
@@ -77,10 +79,10 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
             value.body = block;
             sem_require(vector_push(&program.functions, function));
         }
-        blocks[index] = block;
-        counts[index] = pressure == PublishPressure.Growth
+        cases[index].block = block;
+        cases[index].count = pressure == PublishPressure.Growth
             || (pressure == PublishPressure.Mixed && index == 1) ? 512 : 8;
-        publish_items(block, counts[index], width);
+        publish_items(block, cases[index].count, width);
     }
     sem_known_publish(&context);
     publish_check(context.workers.running == 0 && context.queries.running == 0,
@@ -89,17 +91,17 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     publish_check(success ? program.error.length == 0
         : program.error.length != 0 && program.error_offset == (pressure == PublishPressure.Mixed ? 29 : 11),
         "Publication selects the first source-ordered resource failure", &failures);
-    for(var index: usize = 0; index < 3; index++) {
+    for(var index: usize = 0; index < case_count; index++) {
         var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
         var succeeded = success || (pressure == PublishPressure.Mixed && index != 1);
         publish_check(query != 0 && work_task(&context.queries, query).state
             == (succeeded ? WorkState.Succeeded : WorkState.Failed),
             "Every publication ticket records its own result after joining", &failures);
-        var items = &sem_get(blocks[index]).items;
-        publish_check(items.length == counts[index] + (success ? 0 : 1),
+        var items = &sem_get(cases[index].block).items;
+        publish_check(items.length == cases[index].count + (success ? 0 : 1),
             "Any failed peer suppresses all canonical storage replacement", &failures);
         if !success { publish_check(items.data[0] == null, "Earlier successful output remains private on peer failure", &failures); }
-        for(var i: usize = 0; i < counts[index]; i++) {
+        for(var i: usize = 0; i < cases[index].count; i++) {
             var node = items.data[i + (success ? 0 : 1)];
             publish_check(node != null && sem_get(node).bits == convert(u64, i + 1),
                 "Compaction preserves source order and literal values", &failures);
@@ -107,17 +109,16 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     }
     if !success {
         var count = context.queries.tasks.length;
-        var dispatch: u64[3];
-        for(var index: usize = 0; index < 3; index++) {
+        for(var index: usize = 0; index < case_count; index++) {
             var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
-            dispatch[index] = work_task(&context.queries, query).dispatch;
+            cases[index].dispatch = work_task(&context.queries, query).dispatch;
         }
         sem_known_publish(&context);
         publish_check(context.queries.tasks.length == count,
             "Repeated failed publication cannot replay work", &failures);
-        for(var index: usize = 0; index < 3; index++) {
+        for(var index: usize = 0; index < case_count; index++) {
             var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
-            publish_check(work_task(&context.queries, query).dispatch == dispatch[index],
+            publish_check(work_task(&context.queries, query).dispatch == cases[index].dispatch,
                 "Repeated failed publication keeps each dispatch identity", &failures);
         }
     }

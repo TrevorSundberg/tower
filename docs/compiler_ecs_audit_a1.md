@@ -381,3 +381,45 @@ Supported current semantic instrumentation, final clean public-bootstrap/browser
 Current complete source review coverage is53/53 assigned paths, including new scaffolding/tests/semantic_publish_checks.tower. Its explicit worlds, synchronized independent budget holder, three ordinary Foundation jobs, source-ordered receipts, all-output suppression and joined cleanup are source-reviewed; public leaf compile passes but runtime is pending. The existing semantic_known_publish.tower draft now reuses stable private identity entries as an ordered traversal chain and removed-node set, avoiding duplicate pending/container indexes. No canonical payload or shared SemanticContext layout is changed; actual behavior/performance is unproved until coherent build.
 
 Arena API-only linkage measurably advances the current aggregate bootstrap failure but does not eliminate its component cap. The current union itself is unbuilt; an independent root3915 baseline check is required before attributing all excess to this draft. False transport return cleanup remains an actual missing semantic capability; A2 owns precise typed failure result and A1 owns affected callsites. Valid-entry deferred draining must not be generalized to Busy/preexisting jobs. Existing admitted lane grants, revision/profile/dispatch rejection and joined stage publication already work and must not be reimplemented. L2 constructor/type/generic ownership remains reserved. Final fullscope/instrumentation/bootstrap/browser/publication gates remain open.
+
+### Publish declaration boundary and complete dispatch-site review
+
+Reviewed f9c40fad plus the owned boundary draft. Census remains53 assigned
+semantic paths; no new implementation file was introduced by this boundary.
+Source review is complete for these changed paths, while runtime acceptance is
+explicitly pending the coherent provider/link and instrumentation.
+
+| Path | Current finding, ownership and disposition |
+| --- | --- |
+| scaffolding/compiler/semantic_known_publish.tower | Complete worker traverses first-seen stable arena entries; frozen proof/evaluation reads use typed linked declarations. No global context or second semantic graph. Private output vectors transfer only after all jobs succeed; failed peers suppress every canonical replacement. Public leaf compiles;18-case runtime fixture pending. |
+| scaffolding/compiler/semantic_known_types.tower | Existing binding proof declaration moves here unchanged; one nominal definition, same fields/order, no extra registry or context layout. Work component retains complete arena owner and fixed error receipt. Dependent source rebuild required. |
+| scaffolding/compiler/semantic_known_bindings.tower | Existing typed binding lookup exported; late phase still gates all value/storage publication on complete success. Function source order defines publication, independent of archetype row or completion order. |
+| scaffolding/compiler/semantic_query_api.tower | Five existing helper declarations and one private kernel declaration preserve one implementation each. Read-only worker borrows and scratch ownership documented; provider placement requires D2/B2/A2 coordination. |
+| scaffolding/compiler/semantic_support.tower | Exported common lookup/checked arena insertion preserve identity and stable entry addresses. Capacity growth remains arena-retained until worker disposal; canonical output backing is still outside that ledger. |
+| scaffolding/compiler/semantic_context.tower | Checked query input exported with unchanged algorithm. Shared admission still traps on nonNone; needs typed caller propagation. Existing receipt outlives join AND structural publication. |
+| scaffolding/compiler/semantic_evaluation.tower | Lookup exported with unchanged component ownership. Interpreter dispatch failure must mark all claimed tickets failed, retain resource receipt, drain invocations before producer projection disposal and avoid literal/alias publication. Existing helper readiness remains implemented, not reintroduced. |
+| scaffolding/compiler/semantic_body_work.tower | Both discovery and continuation transports still trap. Joined continuation failure must preserve structural node ownership and retire/adopt all transferred scratch/evaluations without replaying lexical effects. Whole-function fallback remains required whenever bounded lease proof fails. |
+| scaffolding/compiler/semantic_evaluation_work.tower | Failed preparation can have canonical links to generated nodes: structural stages must publish after all joins for normal graph cleanup. Do not equate failure with permission to discard referenced nodes. Readiness/error tickets require explicit transport failure handling. |
+| scaffolding/compiler/semantic_declarations.tower | Shared dispatch serves discovery and checking; typed failure must be returned to both owners. Preserve constructor reservation with L2; no constructor semantics edited. |
+| scaffolding/compiler/semantic_execution_work.tower | Producer already publishes IMFunctionInput after joined preparation. On transport failure, preserve owned stage nodes but suppress ready/function success, retire error/query/alias arrays; no second helper-readiness service. |
+| scaffolding/compiler/semantic_iteration_work.tower | Resolution worker owns retained scratch/type/order arrays; normal publication transfers owners before signature construction. Failed transport must retire owners and skip signature construction, preserving suspended preparation failure. |
+| scaffolding/compiler/semantic_lowering_work.tower | All stages currently publish before cross-job aliases and ticket completion. That structural lifetime requirement also applies after partial transport failure; semantic success must not be inferred from untouched empty error vectors. |
+| scaffolding/compiler/semantic_flow.tower | Source-ordered result vector and private flow state; transport failure must not turn default flow/error fields into successful checks. No staged node owner to publish. |
+| scaffolding/compiler/semantic_known_work.tower | Private Publish kernel now typed external boundary; aggregate public unit passes. All known actions share the currently trapping transport; failed valid batches may have run any/all jobs and may never be replayed. |
+| scaffolding/tests/semantic_publish_checks.tower | Full fixture review: fixed-array type determines count, real capped world, first/middle source failure, parallel all-denied peers, all-output suppression, repeated dispatch identity and zero ledger after cleanup. Compiles; runtime still pending. |
+
+L2-owned semantic_generic_body_work is excluded from the assigned file audit;
+its single transport site was discovered by the cross-caller search and routed
+for owner adaptation. Eleven sites total across ten files is a callsite count,
+not a completed cleanup claim. No runtime profiling applies to the audit text
+itself; changed implementation profiling and current ABI checks remain required.
+
+Separate retained layout stream: semantic_layout.tower has one direct
+work_pool_submit and blocking/nonblocking receive loop in addition to the
+eleven finite batch sites. Failed submit currently traps while earlier jobs may
+remain active. Its replacement must drain those owned peers and retire the
+claimed ticket, preserving the disjoint completed-layout publication contract
+and deterministic query-order errors. A2 was asked for precise submit failure
+semantics; L2 review remains required before changing layout behavior.
+
+Focused Publish runtime supersedes pending-runtime wording above: all18 cases pass with current refreshed LR objects plus the one typed kernel object. Production provider placement, canonical linked targets, current ASan/TSan and end-to-end profiles remain open.

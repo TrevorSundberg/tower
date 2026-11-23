@@ -20,21 +20,7 @@ import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 
-// Independent facts: mutation/escape analysis proves a fixed binding; ordinary
-// interpreter execution may then prove its value. Neither fact implies the other.
-struct SemanticKnownBinding {
-    owner: void*;
-    ordinal: usize;
-    immutable: bool;
-    ordered: bool;
-    input_query: usize;
-    evaluation: void*;
-    block: void*;
-    begin: usize;
-    end: usize;
-}
-
-fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding* {
+export fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding* {
     if declaration == null || c.known_bindings == null { return null; }
     return bits(SemanticKnownBinding*, entity_component_data(entity_component_get(declaration, c.known_bindings)));
 }

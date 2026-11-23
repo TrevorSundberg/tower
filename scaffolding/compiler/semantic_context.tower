@@ -36,7 +36,7 @@ fn sem_query_input(c: SemanticContext*, subject: void*, query: u32): void {
     sem_require(sem_query_input_checked(c, subject, query));
 }
 
-fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u32): bool {
+export fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u32): bool {
     if c.query_reads == null { return true; }
     var id = work_find(&c.queries, subject, query, 0);
     return id == 0 || work_task(&c.queries, id).state != WorkState.Succeeded || sem_query_read_checked(c, id);
