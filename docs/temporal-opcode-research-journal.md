@@ -73322,3 +73322,157 @@ unchanged instrumented memory object2d94b59fcf129b9de503c81208acc7e3a7107d3ca9b4
 All children drained before granting B1 its next quiet profile. Full combined
 compiler instrumentation/publication remains open. Updated foreign checks docs
 only describe this scoped coverage; documentation adds no runtime cost.
+### 2026-11-23 D2: complete next-union source integration
+
+Own measured commit3020df41f was committed after checks, pulled/rebased (already
+current), then fullROOT76 merged cleanly asd799e6f9. Source bundle2c31a098 and
+76MiB policy_count_3020_receipt.tar1fcb88fb were verified/exported to coordination.
+Receipt includes original0ce source/compiler/resources/native objects, every count
+attempt and failure, final identities and actual symbol/driver instrumentation.
+It is explicitly not a validation of the later A2/L1/B1 shared layouts.
+
+Read root_capture_fixture_note, full A19549559a bundle4f07ace8 and L260fc53e
+bundle12b36669, then merged both complete histories and D1e47 registration
+bundleb96febac. Current clean source isdee8076e89411d64ddb2bffb80b8924e511e4580.
+All production/test deltas reviewed; audit lists concrete ownership conclusions.
+The capture admission gate allocates no partial metadata on graph failure;
+component-level capture storage remains future owner work. The16-case fixture
+pressures only the graph and executes no workers. Generic publication now uses
+actual semantic pool ownership, preserving Busy and cleanup checks. D1's three
+normal registrations reuse original providers, no adapter or second scheduler.
+
+Strict UTF8, diff checks, own source preservation and unchanged todo pass. D1
+owns the next heavy group; no D2 job/lock. Prepared independent next build
+policy_dee8076e/source.tarc7aab05be1862f90542806bf2bcd33442f86b9b46acc09caaf4905477876d49a
+uses public leaves/canonical native, query, formerly failing fullunits, runtime
+faults and actual native symbol reports. It is unrun. Wait for the real slot
+release; no redundant intermediate/full matrix solely to acknowledge a merge.
+Final clean bootstrap/browser/generation and atomic leased publication stay open.
+
+Read-only release baseline during the shared-slot wait10:18UTC: origin/main is
+still60741c515b3ca40b3b39aed61fb38a82694ae9ea and gh-pages is6f142bef15f58380831ed344ab5eac5c4b3c2840.
+HTTPS deployment-manifest.json fetched with no-cache matches that exact Pages
+Git blob byte-for-byte, SHA256eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c.
+Its buildSourceCommit98ade8ccde255c445797ad51a1a2def0b41c85fb is reachable from
+published main. Headers and both copies are retained in release_baseline_3020.
+This verifies only the existing manifest and ancestry, not every served asset,
+hosted behavior or any new ECS source. No publication lease/request/push occurred;
+future publication must re-fetch and preserve newer receipts and custom domain.
+
+### 2026-11-23 D2: next-union concurrency gate remains failing
+
+D1 reports current ff3a (same compiler core as D2 dee8076e) native build and all
+16 capture-admission cases in three processes pass, then query-smoke exits134
+(signal6). In the existing generic_clone_parallel cancellation case, four distinct
+workers each copy2048 nodes, but their actual kernel intervals do not overlap:
+job3[677236917274422,677236918694787],
+job0[677236918704497,677236920709143],
+job2[677236920721873,677236922269620],
+job1[677236922289960,677236923665524].
+The calibration selected width256 with faster serial2069996ns against its2ms
+threshold. Publish2/4 had observed overlap; Cancel4 did not. This is evidence of
+no observed concurrency in that case, not an assertion that query semantics or
+capture admission failed. No timer/barrier was moved, oracle weakened or
+unchanged test repeated until it passed. L2 owns the bounded calibration followup.
+D1's later tests were unrun after fail-fast. The report arrived on D2's host
+around10:21UTC with an owner message labeled10:23; actual raw sample/status
+receipts, rather than prose timestamps, identify the failing run.
+
+D2 acquired the actually released slot and started session69901, host2969659/
+container2969688, policy_dee8076e/run_native.sh. All three public leaves pass;
+canonical native is running. Whole query-smoke remains explicitly pending/failing.
+Independent registered dependency-failure, resource24, full units and runtime
+fault selectors are planned to advance unaffected evidence. Review of current
+fixture main caught stale names in the prepared wrapper (default/admission/source
+versus constructor/body/declaration). The live script/source will stay untouched
+until drain; a separate guarded resume script is prepared, requiring successful
+native/focused build and the exact expected unknown-selector rejection. No
+production or imported test source is modified by this invocation correction.
+
+D2 also independently reviewed D1_capture_registration.patch95f78b31: one
+ordinary exported-main fixture, existing production source/library composition,
+actual work_thread_entry and four60s selectors. README explicitly states graph
+pressure, no worker execution and preservation of a prior Memory receipt. No
+source issue found; this registration has not been adopted during D2's freeze.
+
+### 2026-11-23 D2: coherent Capacity validation and exact parser-view import
+
+The prepared dee8076e comparison has now run. Three public leaf objects pass:
+LR runtime, interpreter storage and capture work. The capture leaf takes
+24.14wall/23.94CPU/686636KiB. Canonical no-override native13targets pass
+151.79wall/147.87CPU/747808KiB; focused11targets65.41/63.58/412024.
+All use the same public9653 compiler, warm filesystem caches, one build/compiler
+job and Docker CPUs0,2. They are one validation sample each, not paired compiler
+speed measurements. Current compiler SHA256da9f8a4cf0562db57d779e19bf3f422bbaf085ee8d18d25ad9734462e7e6f0f7
+and all adjacent resources plus seven native objects are retained.
+
+Initial69901 correctly fails1 on the stale wrapper's unknown default selector
+after both builds passed. Original script/group/status/stdout remain. Actual
+children drain; source hashes pass; guarded resume50431 runs only pending steps
+with constructor/body/declaration. All three dependency-failure selectors pass,
+as does resource-smoke24. Full units passes59.19wall/75.94CPU/802532KiB with the
+unchanged Capacity/no-output/retry oracles, independent worlds, nested budgets,
+decltype/comptime, deterministic failures and cancellation. Runtime-faults passes
+.02wall/.01CPU/50196KiB with the serial-instrumented physical-failure transport.
+These successes do not replace the separately failed Cancel4 overlap gate in
+whole query-smoke, which was deliberately not repeated unchanged.
+
+The old exact checker6c6e44b5 passes the first five actual native reports and
+rejects ParserNodes solely on entity_view_open_result. Semantics was checked
+separately after drain and passes. Existing entities defines that exact symbol
+(T0d00); current LR worker caller uses the per-call view result. Added only this
+ParserNodes permission, plus positive, truncated, suffixed and wrong-unit cases
+in the existing Tower fixture. No speculative LR-result export allowances or
+second provider. Owned two-file patcheaca3107 is frozen only after all jobs drain.
+
+Smallest fixture compile/link/normal execution pass; compile3.23wall/3.20CPU/
+179936KiB. New checkerf502529a builds through the canonical tool entry in
+4.94/4.81/196176. All seven native reports pass. Identical old/new ParserNodes
+report scans are below.01s wall/CPU and1616KiB RSS each; old rejects1, new accepts0.
+The synchronous fixed-string policy has no new heap owner, retained buffer,
+shared mutation or useful worker scaling. No throughput claim follows from
+below-resolution scans. Fresh WASI ParserNodes24.17/23.97/759768 and Semantics
+27.67/27.45/785280 compile/policy checks pass. Old checker on that same fresh
+WASI parser report fails1 on exactly entity_view_open_result; the corrected
+checker passes0. Raw failure diagnostics are retained.
+
+Current symbol fixture has11definitions,109ASan report-call sites and11TSan
+read/write calls. The current normal guest object is byte-identical to the
+preserved matching instrumentation input. Address/LSan run passes
+.01wall/below.01CPU/11568KiB, thread .02/.01/21748; exact normal stdout and empty
+stderr, all measured swaps0. This is actual instrumentation of the changed
+synchronous policy fixture, not source UBSan, external LLVM coverage or complete
+current threaded-compiler instrumentation. No unsupported instrumentation is
+represented as passed.
+
+After-session77959/controller2971296 returns0; frozen after-source hashes pass;
+Docker contains only init/sleep. Saved own lock receipt precedes release at
+10:32:45UTC and direct D1 handoff. Logs, source archive, patch, native/WASI objects,
+both checkers, all nonzero failures and instrumented products are retained under
+policy_dee8076e and native_package_dee8076e. Current source was never mutated
+during a live build/test. D1's corrected clock receipts put its earlier release
+at10:21:18.598 and D2's actual acquire at10:22:43, confirming no heavy overlap.
+
+ROOT has taken ownership of the stopped B2 session's compiler/linker contracts.
+D2's pending tool constructor/budget ordering details are routed in status:
+init precedes normal option/input processing, so a host budget must exist before
+world allocation; guest memory limits cannot supply it retroactively. Await one
+complete typed contract and A2's validated parent reservation, with lifetime
+through join/publication and explicit coverage of remaining raw allocations.
+The latest public manifest remains only the old baseline. Final whole-query
+concurrency, current compiler instrumentation, clean release bootstrap/browser/
+generation, named publication lease and atomic source/Pages verification remain
+open. No partial lane milestone is labeled overall completion.
+
+### 2026-11-23T10:44:04.2867939Z ROOT: current parser import policy
+
+Reviewed D2 complete b5a740e0, verified bundle9777f596. Actual current native/WASI
+ParserNodes requires the existing entities export entity_view_open_result. Add
+only that name, with positive, prefix/suffix and wrong-unit checks. All seven
+native object policies, fresh WASI parser/semantics and matching checker
+address/leak/thread runs pass on owner's frozen dee+policy sources. Full units,
+resource and dependency-failure checks pass there; the separate Deck Cancel4
+measured-overlap failure remains open. Root checks the exact policy delta and
+preserves the complete evidence/history without claiming combined runtime or
+publication acceptance. No compiler runtime code changes; no runtime performance
+cost is attributed to this policy/documentation integration. todo.txt untouched.

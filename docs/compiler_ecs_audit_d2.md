@@ -2359,3 +2359,57 @@ Exact D1 registration2d03795d is also independently source-reviewed: one existin
 production pool main/worker entry plus two normal entity fixture factory entries,
 no duplicate provider or wrapper;16slot cases and stable/reentrant oracles remain.
 It is not yet part of this D2 source or its runtime receipts.
+
+### Complete histories now adopted at dee8076e
+
+After the0ce count/policy jobs drained, merged complete ROOT76 asd799e6f9,
+A19549559a, L260fc53e and D1e47e571c asdee8076e89411d64ddb2bffb80b8924e511e4580.
+Own3020df41f measured changes remain intact, todo matches, and the journal's
+incoming encoding repair now passes strict UTF8. The prospective table above is
+now an actual source review; runtime evidence remains explicitly0ce until the
+prepared coherent build runs. No intermediate obsolete ABI build was launched.
+
+| Additional reviewed path | Disposition at dee8076e |
+| --- | --- |
+| `compiler/semantic_capture_work.tower` | Query/semantic failure gates precede capture metadata creation. Reserve/seal the shared graph request first; failure restores a caller-owned cause and declaration offset without attaching a partial capture component. Existing request identity is reused. Later capture component/storage assertion paths remain outside this narrow admission fix; no claim of complete capture allocation accounting. |
+| `tests/semantic_capture_admission_checks.tower` | Sixteen32/64-target,1/4-requested-worker cases exercise healthy/cancelled/Capacity/prior-Memory receipts and exactly-once metadata. Capacity pressure belongs only to the graph budget; its world is deliberately separate. No worker executes in this admission fixture, so requested width is not overlap. D1 owns its durable four-selector registration. |
+| `tests/generic_pump_publication.tower` | Actual sem_workers_open replaces a fixture-only unbudgeted pool. The fixture checks physical slot bytes, owning world ledger, unchanged lane admission, and normal semantic-context disposal. Existing Busy, copy/stable-address and zero-final-owner oracles survive. This is a test correction; production is unchanged. |
+| `cmake/TowerWorkPolicyTests.cmake`, `cmake/TowerWorkTests.cmake`, `tests/README.md` | D1's reviewed2d037 normal registrations are now adopted through completee47 history. They reuse existing providers, main entry and worker transport, preserve output/object checks and do not register the churn measurement as a default test. D1's85c native receipt remains separate from pending current-union instrumentation. |
+
+Original40 assigned tools/benchmarks remain complete; these supplemental files
+were reviewed because they affect consumer layouts and validation composition.
+Documentation-only adoption notes require no runtime profiling of their text.
+Prepared source archivec7aab05b and current-manifest checks will identify the next
+actual build; no publication readiness is inferred from source integration.
+
+Current integration gate: D1's matching ff3a query-smoke fails134 because Cancel4
+has four distinct but nonoverlapping clone intervals after a2ms serial calibration.
+This is not a passed concurrency case. L2 owns calibration followup; D2 preserves
+the failure and advances independent native/resource/units/provider evidence.
+No unchanged repeat-until-pass or oracle relaxation. D1 capture registration
+95f78b31 was source-reviewed separately: original provider/main composition,
+four modes, explicit graph-only/no-execution scope; not adopted during live build.
+
+### Actual coherent evidence and final exact parser permission
+
+Reviewed/built dee8076e plus two-file eaca3107. The prospective next-build notes
+above are superseded by actual native13targets151.79wall/147.87CPU/747808KiB and
+focused11targets65.41/63.58/412024 passes. Current compilerda9f8a4c and complete
+resources are preserved. Correct constructor/body/declaration failures, resource24,
+fullunits59.19/75.94/802532 and runtimefaults pass. The unchanged Capacity oracle
+is now independently passing on this union. Original invalid wrapper selector1
+is retained and only pending checks resumed. Whole query-smoke's actual Cancel4
+nonoverlap remains a separate failed gate owned by L2.
+
+| Changed owned path | Disposition and evidence |
+| --- | --- |
+| `tools/bootstrap_symbols.tower` | Actual ParserNodes report requires entities-owned entity_view_open_result. Add this one exact permission to its existing typed-admission list. Old native and fresh WASI reports reject1 solely this name; new all7native and freshWASI parser/semantics pass. Fixed-string serial scan remains below.01s wall/CPU,1616KiB before/after; no heap/concurrency owner or speedup claim. |
+| `tests/bootstrap_symbols_checks.tower` | Adds exact positive, truncation, suffix and wrong-Utf8-unit negatives. Public smallest compile/link/normal pass. Actual current address/LSan and thread fixture checks with matching guest pass,109ASan report sites/11TSan accesses,11definitions; no full compiler/race/UBSan claim. |
+
+Fresh WASI parser24.17wall/23.97CPU/759768KiB, semantics27.67/27.45/785280
+pass. Checkerf502529a builds canonically4.94/4.81/196176. All child swaps0.
+All children drained/source hashes passed before10:32:45 heavy-lock release.
+No old partial-stage/header/cache receipt is relabeled as this union. Root now
+owns the stopped B2 lane's remaining linker-budget contract; tool adoption waits
+its complete constructor/argument-order/lifetime coverage. Final release remains
+open. Documentation review/receipt additions themselves require no runtime profile.
