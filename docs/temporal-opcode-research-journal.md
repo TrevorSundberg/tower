@@ -62477,3 +62477,140 @@ L1's ten new callers prove capacity failure, normal controls, exact diagnostics,
 no replay/unconsumed producer result and cleanup. Broader allocation accounting,
 shared SemanticProgram typed receipt consumer integration, paired performance,
 current supported instrumentation and final publication remain open.
+
+### 2026-11-23 L1: frozen type-index caller profiles and narrower controls
+
+Native profile29353 and follow-up95504 both drained0:100 processes total,22 warmups
+and78 retained observations. Before is clean ad79 compiler e2da861a94c4fe73a823b6ff47b6199026a88af7542cb74804c43c93427a4999;
+after is f46b3e2559ae383ffc3909d334db55bacbde8354 compiler5fb924b6. Both complete
+packages and the common ad79 resources were retained. Ryzen5900HX/WSL Orchestral-Revng,
+LLVM19.1.1 Release/public bootstrap, native x64; CLI uses jobs1,--no-optimize,
+--timings and graph/fast modes. The .tower workload alternates i32/u64 type values
+through a call and checks exact5000/500000 sums for1000/100000 iterations. Existing
+frontend profiles use four independent units or one unit with256 bodies, budgets1/4.
+Order alternates before/after; original1warmup+3pairs, controls1warmup+5pairs.
+All100 statuses/reference oracles and source/binary hash checks pass; original
+resources/package manifests also match. Logs are Linux-local during execution and
+copied to L1/logs/type_index_profiles and type_index_controls after actual drain.
+No sibling build/profile overlapped either set.
+
+Original median wall/CPU/RSSKiB before -> after:
+- graph small1.36/1.48/180312 ->1.36/1.47/179904;
+  large1.59/1.69/180152 ->1.56/1.69/180384.
+- fast small1.46/1.53/180968 ->1.61/1.64/180464;
+  large1.58/1.63/180688 ->1.64/1.65/180920.
+- bodies budget1:1.55/1.54/186036 ->2.51/1.55/186148;
+  budget4:1.29/1.70/209320 ->1.27/1.67/209024.
+- four units budget1:5.73/5.86/211716 ->5.74/5.76/211732;
+  budget4:2.05/7.79/561316 ->2.06/7.76/568988.
+The parallel RSS samples span overlapping~560000-570000KiB ranges; the median increase
+is retained, not claimed to be a systematic extra retained allocation. Four-unit
+actual outer overlap is4 in every parallel observation. Exact canonical hashes,
+compared as decimal strings, remain17697577322696030917 (units) and
+12683198132697182263 (bodies). Entity/component counts and reported retained,
+ledger and nonparallel peak byte counts are unchanged. These are the reported
+charged owners, not whole-heap accounting or packed-payload locality evidence.
+
+The original serial-body external gaps are0.969/1.014s after and1.033s before,
+while extra CPU is only0.024-0.043s. A parallel after warmup also has0.925s gap.
+Inner body compilation medians1.499->1.496s do not show the external slowdown.
+The Linux semaphore/join transport has no fixed1s timeout in the reviewed paths.
+The existing profile times compilation before validation/formatting/cleanup, so the
+gap is outside that measured region; it is not proof specifically of process-exit
+or filesystem cost. strace is unavailable here; no trace-based cause is claimed.
+
+The36-process narrow control retains identical binaries/resources/ext4 output and
+avoids additional WSL diagnostic launches while timing. Body medians are now
+1.54/1.57/186184 ->1.53/1.55/186156, inner1.505->1.493s, and post-region gaps29-40ms.
+Fast small1.51/1.55/180880 ->1.54/1.56/180476; large1.58/1.61/180664 ->1.60/1.63/180928.
+Small compile1369.554->1407.119ms; large1380.329->1385.211ms. Large fast execution
+70.563->69.814ms, preparation3.013->2.604ms; these small samples are not universal
+speedup evidence. One BEFORE small control still takes2.39s externally with a
+0.878s gap beyond its internal total. Thus the body gap did not recur, but neither
+its cause nor its elimination is established. Original slow samples stay included.
+Retain roughly2%/1% median fast end-to-end cost in these controls and the wider
+original variance; no performance-neutrality claim. Current address/thread gates
+are still pending on this frozen production source.
+
+L2's shared serial storage first run81690 failed at a fixture revision reset,
+before type-query admission: work_budget_dispose preserves revision, so the same
+ledger cannot restart at1. The owner corrected only the fixture to revision+1 and
+registered the approved existing-runner hook. Exact3018633, full bundle7c4f8e77,
+passes all3 serial suites: ABI3 allocation prefixes/320 peak charged bytes and
+reachability5/544 at both widths, peak-minus-one Capacity and zero owners. Original
+failure is preserved. Production API2088 is unchanged; this independent receipt
+is not threaded sanitizer coverage and its source hook is not yet in L1's freeze.
+
+### 2026-11-23 L1: current type-index address instrumentation
+
+Address61923 drained0 on frozen f46 production/test inputs. Clean configured
+l1_ecs_address_20261123 uses public bootstrap, LLVM19.1.1 Release, address mode,
+compiler jobs1/build jobs2, ASAN_OPTIONS detect_leaks=1:halt_on_error=1:exitcode=66.
+The72-step build took185.67s wall,321.73s CPU,846776KiB peak RSS. All six gates exit0
+and all six stderr files are empty: constructor11.25s/767184KiB; query3x
+0.76/0.81/0.82s; four-unit profile19.01s/1212232KiB; calibrated overlap
+93.19s/125.37CPU/1060660KiB. The profile observes actual outer peak4, canonical
+17697577322696030917,64320 entities/73352 components and7561557 retained bytes.
+The overlap fixture measures serial_frontend_ns50346182152 and uses exactly that
+frozen50.346s frontend bound, while backend handoff remains30s; exact object equality
+and distinct-worker overlap pass. Original old-closure30s failures remain failed.
+
+Source manifests before/after/final equal the native frozen input set. Required
+__asan_ references and hashes were checked in actual generated LR, execution,
+evaluation and profile IR, not inferred only from the configured manifest.
+Binaries: LRe7abb91ba5baf92d2df2378c4976df505848fc30de0c9cb2981cfcf7132462ca,
+execution4b57afe70d5e7e92de432a0c860375621a3e4081b33624e8c6cf51a21048936d,
+profile85cc7f9be5fc2c92fb0f41df6d5bf20bccbbf6a55091229c6bc3d5c42d0e2ae9.
+These are supported valid-program checks, not a sensitivity probe or proof of
+all memory correctness. Foreign LLVM/system code is not fully instrumented;
+native Tower UBSan remains unsupported. Current thread validation33454 starts
+only after this full drain. Old e68 thread cache and f46 native cache are preserved
+as l1_tsan_frame_tasks_e68e2b2 and l1_type_index_native_f46b3e2 before rebuilding.
+
+A1 resource contractV2 b255ff12 was read in full but remains outside this freeze;
+it supersedes V1, supplies static sem_resource_message and a no-allocation
+first-receipt restore helper. L1 session/package guards can use that exact shared
+shape after coherent adoption; B2 owns host consumers. Preserve recoverable raw
+guest allocation-null behavior: ix_allocate can return0 after im_memory_resize
+fails without setting machine.failed. Output consumers must keep machine.failed
+sticky and honor semantic program.resource, rather than infer fatal runtime
+failure solely from a historical IMState.storage_error. No related code was
+changed during instrumentation.
+
+### 2026-11-23 L1: current type-index thread checks complete
+
+Thread33454 drained0 on the same frozen f46 inputs. The72-step public-bootstrap
+Release/thread build passed in133.91s wall/214.39s CPU/792828KiB. Actual generated
+LR, execution, evaluation and profile IR contains the required __tsan_ references;
+their hashes, configured manifest and binaries are retained with the raw logs.
+All six gates pass with empty stderr: constructor29.17s wall/36.68s CPU/561832KiB,
+query-smoke three times, real four-unit profile45.93s/180.98s/1861592KiB, and
+calibrated backend overlap247.26s/333.12s/1275232KiB. The latter uses its measured
+serial_frontend_ns132740310188 as the frontend bound and the unchanged30s backend
+bound; exact objects and distinct-worker overlap pass within the600s process bound.
+The profile observes outer peak4, canonical17697577322696030917,64320 entities,
+73352 components and7561557 retained bytes, matching the native/address oracles.
+Before/after/final source manifests match. LR binary3d5d6db708f39edba6a061ea669f54d4f81b98a44096c31c6f61ab49ab3d1fc8,
+execution3bdb456495e2f465b4729c5ccea2b471d49f368ddb1f6c3b0da4efc018d7a91d,
+profile0edee7758f0572642394a2944030f8b8c0b22ab77e479dbc22f922c5fdaf64c2.
+
+After this build drained, L2 received an explicit one-child subordinate slot for
+its separate clean944 baseline. Only the final runtime gate overlapped it; these
+are validation costs, not isolated performance measurements. L1 retains the host
+lock until that grant also drains. All paired performance samples were separate
+and quiet. No deliberate invalid-memory/race probe was run. This evidence covers
+the current generated Tower paths, not foreign LLVM/system libraries, unsupported
+native Tower UBSan, or universal race freedom. Earlier e68 full aggregate evidence
+keeps its original identity; it was not relabeled as a full f46 aggregate run.
+
+The next coherent source joins ROOT's entity/backend checkpoint and L2's corrected
+storage fixture before adopting A1's shared resource receipt. Session/package
+consumers, remaining derived-map/cache owners and final merged public bootstrap,
+generation/browser/hosted publication remain open. This entry changes only evidence
+and therefore needs no separate runtime performance experiment.
+
+Complete raw type-index receipt: L1_type_index_f46_receipt.tgz SHA256
+af82fcd4342ca1c5d0202885f149f4688fe03678513ef6a6a8c2f13b429d47a1.
+Includes native/baseline, both profile sets, address/thread logs/statuses/source
+identities, actual IR/binary manifests, commands and the Tower workloads.
+

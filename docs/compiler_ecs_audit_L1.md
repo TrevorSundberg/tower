@@ -1,6 +1,15 @@
 # L1 execution ownership audit
 
-Current owned follow-up: main15ff plus the six-file frame/task WorkVector change
+Current owned checkpoint f46b3e2 uses the shared budgeted TypeObjectIndex in graph
+and fast execution. Four public-bootstrap leaves, five coherent native gates and
+the ten new caller cases pass. All100 profile/control processes retain their
+reference results; four-unit runs show actual overlap4 and matching canonical
+output. Narrow fast controls retain about2%/1% small/large wall-time cost; broader
+variance and occasional non-CPU gaps outside the compilation interval remain
+explicit in the journal. Current address/thread checks are pending. New shared
+semantic receipts, remaining allocation owners and final release gates stay open.
+
+Earlier frame/task checkpoint: main15ff plus the six-file WorkVector change
 passes a coherent native rebuild and query/storage/control/units/backend-overlap/
 aggregate/types checks. The existing low-level storage fixture passes three times,
 including physical denial, exact rollback and retained child-owner cleanup.
@@ -357,3 +366,16 @@ The newly coordinated SemanticProgram.resource receipt also requires an executio
 session success-boundary update after its exact shared header lands. Neither this
 native milestone nor the earlier frame/task sanitizer receipt is final merged
 bootstrap/browser/generation/hosted acceptance.
+
+The frozen f46 milestone now also has100 checked before/after profile processes,
+six address/leak gates and six thread gates, all completed successfully. The small
+and large fast controls retain roughly2%/1% median end-to-end costs and wider
+original variance; unexplained external delays occurred in both binaries and are
+preserved. Actual four-unit overlap reaches4 with unchanged canonical output and
+reported retention. Instrumented calibrated backend checks preserve exact objects
+and distinct-worker overlap. Source manifests and actual generated IR/binary hashes
+are retained; foreign libraries/native Tower UBSan remain outside coverage.
+L2's corrected301 fixture independently passes three serial allocation-prefix
+suites with unchanged production API; its new source hook still awaits adoption
+here. These receipts supersede the preceding pending labels only for their exact
+source scopes. Shared resource consumer and remaining map/cache work stays open.
