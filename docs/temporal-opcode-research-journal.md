@@ -90959,3 +90959,55 @@ library/language and public predecessor inputs are unchanged; the focused
 fixture and all9 frozen nm closures pass again on merged policy. Source snapshot,
 allbuilds, archives and hashes retain their original measured boundary. No
 unnecessary second generation/matrix; ROOT must choose later-source adoption.
+
+## 2026-11-23 B1 eight real Node compiler-worker cases: PASS
+
+Freeze614aaa304501cd52e9941675346c7d45f64c1082/tree7b1f48e3adf5f76ed623d77c468261029db2d5da,
+plus test-transport patch, supplied frozen eac16533 reactors/project. Verified
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472,
+cross e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1,
+project420d6de1421f4c3c7ae2efe40ed235537860b61168c13f4dea72e8b7c1b875d9.
+Cross archive3ae60fc20303f8b91b8398e3eda0dd6c2939c60bdb4a6c03e5c207fec1c452a1
+checked before exact cross+files.json extraction into a new owned directory.
+Selected manifest bytes/hashes match. Old LLVM/cross/project defaults backed up
+with hashes before required copies installed. No target/support packs consumed
+by library-object tests; no compiler build. Parent compiles exact verified module
+and transfers that module/full frozen files+grammar to every real Node worker.
+
+Original first-case initialization failed Cannot read imported module:
+foundation_syntax, .55wall/.38CPU/163432KiB. Existing caller provided only three
+language strings and omitted builtins. Derive complete language/type dictionary
+from actual project files as production compileUnits does, supply it to parent/
+cross loaders. Optional test transport records call metrics/objects and actual
+IR. No grammar/semantic logic in JS, no production scheduler/worker change,
+no assertion/fixture/profile/cap weakening. Original failed input/log preserved.
+
+All eight existing cases PASS separately in fresh processes, exact anchored
+selectors, concurrency1, one180s outer guard each, Node22.23.5/Linux KinmenB
+CPU0-11/24GiB. Every report1test/1pass/0fail/0skip. Wall/CPU/RSS KiB:
+objects3.85/12.02/694832; generics3.43/10.24/700456; cancel1.65/2.12/348712;
+staging2.82/7.53/662928; diagnostics1.73/3.08/428640; held receipt1.79/3.24/426900;
+vectorization1.98/2.79/434416; iteration3.17/9.13/699832. Whole Node process
+accounting includes worker threads, no swaps. Existing real-overlap intervals,
+source-ordered publication/exact1vs2/4 objects, child exit/drain observers,
+no failed objects, independent recovery and unchanged30s deadlock guard allpass.
+Actual optimized x86/ARM IR has <4 x i32> loads/mul/add/store; scalar Wasm hasnone.
+No speculative noalias or native execution/speedup inference; all52 object files
+and original actual IR retained (48matched batches+recovery+3targets).
+
+Per-call n1 dense wall1/2/4=.950/.993/1.178s, CPU1.758/3.190/6.321s,
+cumulative RSS278552/491296/694832KiB. Generic/staged four-worker samples also
+slower; borrowed two-worker .788 vsserial.898 is one ordered sample, no general
+scaling claim. Pools initialize fresh compilers; serial reuses its parent.
+These are acceptance costs, not retained-allocation proof or tuning results.
+
+Project557 sources remain eac; selected entities/entity_types/semantic_context/
+semantic_type_values differ from current checkout and have separate hashes.
+Five language roots match; six actual Tower fixtures unchanged fromeac. Full
+host/fixture and installed-artifact hashes pass before/after. Current testSHA
+3ca1e2ebf994e58a6f8612deb31455075f9793bd51601cb5da077bca8c34b6d5.
+Raw evidence build/ecs_b1/cache/worker_integration_614a; receipt
+ docs/compiler_workers_614aaa30.md. Existing generation48 artifacts/source freeze,
+L2 four ECS reconstruction failures and L1 numeric-wrapper producer gates remain
+unchanged. No broad Node/browser/generation/sanitizer repeat or publicpin adoption.
+Owned jobs drained; ROOT final release remains separate.
