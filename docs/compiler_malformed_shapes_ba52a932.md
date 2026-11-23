@@ -167,3 +167,22 @@ preserves D1's scoped grammar audit and L2's separate reconstructed-void-pointer
 finding. All447 executed input hash entries and three own code/registration
 hashes still match the tested d4fc3225 boundary. Reuse its evidence without
 another runtime build; the new backend finding remains a separate owner gate.
+Second push race included actual L1 loop/condition producer changes in `fa7917c5`.
+They are preserved, untouched, in merge `182f5652bf00ac9a5707c857ab8f973396029f14`,
+tree `2fbc72df4fd3130e3707d707fc876389702570aa`; both main-runner registrations remain.
+The four affected build actions were refreshed (33.986 wall /26.179 CPU s,
+1,071,644KiB). All32 shape configurations, query-smoke and RootCall canonical/
+roundtrip checks pass at this final native boundary: respectively19.440/28.206s,
+436,564KiB;3.424/4.279s,412,768KiB;1.947/1.811s,224,568KiB. Two healthy samples
+pass at1/4workers (0.457/0.401s,177,756KiB;0.534/0.521s,180,508KiB), with zero
+ownership and the same11,412-byte canonical hash13963953848021265584.
+
+Final runner SHA256 `da44fe562c20df8a125915b84d1947adb3a55a71ea63eb306a378c30b70e3901`;
+profile `580aa88475640b542a4f312afa56bc958fdb7b50203317119bebbe6d931d35e0`;
+semantics `b71d43833ea136ca58034695b9897d2446e7c26bac23cb7e381e558dd79f942e`.
+The final80-entry fixture and368-entry profile manifests are
+`2be000e7299cf15d845da6a99118fe61f1537221b33b7b3fbd35534a97b06722` and
+`b3f154d7b69015bf1853f74cd371747f2ffd2d313d6f6f88686e27028beb97e2`.
+`final.sh` records the exact final checks and all zero exit statuses. Earlier
+paired measurements remain unchanged and source-bound. No L1 loop fixture or
+method was edited by A2, and no full control matrix was repeated.
