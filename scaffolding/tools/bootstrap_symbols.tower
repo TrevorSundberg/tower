@@ -49,6 +49,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     // table and its relocation base; neither is an external implementation.
     if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics)
         && bootstrap_symbol_in("indirect_function_table table_base", symbol, length) { return true; }
+    if wasm && unit == BootstrapUnit.Interpreter
+        && bootstrap_symbol_in("indirect_function_table", symbol, length) { return true; }
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics {
@@ -65,11 +67,14 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         if bootstrap_symbol_in("work_signal_open work_thread_available work_thread_open compiler_node_get compiler_node_world compiler_world_worker_limit", symbol, length) { return true; }
     }
     if unit == BootstrapUnit.Interpreter {
+        // The mutually exclusive interpreter/evaluation entries own Publish;
+        // semantic lookups and the shared arena retain their existing owners.
+        if bootstrap_symbol_in("sem_entry_arena sem_evaluation_get sem_find sem_known_binding sem_query_input_checked work_arena_dispose", symbol, length) { return true; }
         // Physical input/storage owners use the source world's shared budget.
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_world compiler_world_bind_budget compiler_world_work_budget", symbol, length) { return true; }
         // The configured interpreter unit also owns the upstream staged-call
         // continuation fixture; its world and Foundation builders are Tower.
-        if bootstrap_symbol_in("compiler_world_create_workers compiler_world_dispose compiler_world_store entity_component_add entity_create entity_register entity_release puts sem_attach sem_create", symbol, length) { return true; }
+        if bootstrap_symbol_in("compiler_world_create_workers compiler_world_dispose compiler_world_store entity_component_add entity_create entity_register entity_release puts sem_attach sem_create tower_node_create", symbol, length) { return true; }
         if bootstrap_symbol_in("format_dispose format_unsigned foundation_execution_item foundation_execution_reference strcmp", symbol, length) { return true; }
         return bootstrap_symbol_in("abort tower_allocate tower_trap im_append im_fail im_foreign im_has_foreign im_missing_foreign", symbol, length)
             || bootstrap_symbol_in("im_pointer_bytes im_root sem_get semantic_alignment semantic_mask semantic_signed semantic_size", symbol, length)
@@ -80,6 +85,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("fopen fread fwrite ferror feof fclose closedir opendir readdir strcmp", symbol, length);
     }
     if unit == BootstrapUnit.Entities {
+        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free", symbol, length) { return true; }
         return bootstrap_symbol_in("compiler_entity_store abort tower_allocate tower_entity_finalize compiler_node_label", symbol, length)
             || bootstrap_symbol_in("compiler_name_is compiler_name_equal compiler_node_copy_metadata compiler_generic_type compiler_component_add", symbol, length)
             || bootstrap_symbol_in("bytes_assign_text compiler_host_world foundation_node_init node_match_id node_match_label node_match_length node_match_rule", symbol, length)
@@ -90,6 +96,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Grammar snapshots use the world ledger and the entities arena provider.
+        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocation_size compiler_world_bind_budget work_arena_allocate work_arena_dispose work_arena_init", symbol, length) { return true; }
         // Table buffers share the world ledger; frontend unit lifecycle and
         // configured parser fixtures retain explicit world/store boundaries.
         if bootstrap_symbol_in("compiler_world_create compiler_world_create_workers compiler_world_dispose compiler_world_work_budget entity_store_component_count entity_store_count", symbol, length) { return true; }
@@ -118,6 +126,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        if bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_free semantic_known_publish_kernel work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
         // Nested workers reserve the same world budget; source construction and
         // foreign ABI validation call their existing Tower component owners.
         if bootstrap_symbol_in("compiler_unit_kernel compiler_world_work_budget compiler_world_worker_release compiler_world_worker_reserve frontend_module_root_world_size type_object_abi_safe", symbol, length) { return true; }

@@ -52,6 +52,24 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Host, false, " U compiler_world_work_budget\n", "compiler_world_work_budget");
     symbol_case(BootstrapUnit.ParserNodes, false, " U type_object_abi_safe\n", "type_object_abi_safe");
     symbol_case(BootstrapUnit.Interpreter, false, " U compiler_unit_kernel\n", "compiler_unit_kernel");
+    symbol_case(BootstrapUnit.Entities, false,
+        " U compiler_buffer_alignment\n U compiler_buffer_allocate\n U compiler_buffer_allocation_size\n U compiler_buffer_free\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false,
+        " U compiler_buffer_alignment\n U compiler_buffer_allocation_size\n U compiler_world_bind_budget\n U work_arena_allocate\n U work_arena_dispose\n U work_arena_init\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false,
+        " U sem_entry_arena\n U sem_evaluation_get\n U sem_find\n U sem_known_binding\n U sem_query_input_checked\n U work_arena_dispose\n", null);
+    symbol_case(BootstrapUnit.Semantics, false,
+        " U compiler_buffer_allocate\n U compiler_buffer_free\n U semantic_known_publish_kernel\n U work_arena_allocate_result\n U work_arena_dispose\n U work_arena_init\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U sem_entry_arena\n", "sem_entry_arena");
+    symbol_case(BootstrapUnit.Host, false, " U work_arena_dispose\n", "work_arena_dispose");
+    symbol_case(BootstrapUnit.Interpreter, false, " U work_arena_allocate\n", "work_arena_allocate");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U semantic_known_publish_kernel\n", "semantic_known_publish_kernel");
+    symbol_case(BootstrapUnit.Semantics, false, " U semantic_known_publish_kernel_extra\n", "semantic_known_publish_kernel_extra");
+    symbol_case(BootstrapUnit.Interpreter, false, " U sem_entry\n", "sem_entry");
+    symbol_case(BootstrapUnit.Interpreter, false, " U tower_node_create\n", null);
+    // Check-only allocator hooks are not production bootstrap dependencies.
+    symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_count\n", "tower_test_buffer_count");
+    symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_fail_next\n", "tower_test_buffer_fail_next");
     symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_clone_tree_result\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_clone_tree_result\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U compiler_clone_tree_result\n", "compiler_clone_tree_result");
@@ -76,6 +94,9 @@ export fn main(): i32 {
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm64-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __table_base\n", null);
+    symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi", " U __indirect_function_table\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U __indirect_function_table\n", "__indirect_function_table");
+    symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi", " U __table_base\n", "__table_base");
     symbol_case(BootstrapUnit.Semantics, false, " U __table_base\n", "__table_base");
     symbol_target_case(BootstrapUnit.Bytes, "wasm32-unknown-unknown", " U __table_base\n", "__table_base");
     symbol_case(BootstrapUnit.Semantics, false, " U __indirect_function_table\n", "__indirect_function_table");
