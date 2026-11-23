@@ -61011,3 +61011,171 @@ portable release/bootstrap generations or hosted deployment. No publication
 lease is held. Next: export committed full history, merge coherent root source
 without discarding newer owned paths, then complete early grammar and probe
 resource typing with producer diagnostics; broader memory ownership remains open.
+
+### B2 complete publication-source union and seed fixture termination
+
+Merged root0c8b7d66 into ca05b240, preserving complete owner histories and both
+L2 generic_inspection_budget and A1 semantic_publish_checks imports in the one
+runner conflict. Root bundle SHAba76f764 verified with sole60741 prerequisite.
+Reviewed the approved frontend_table getter conversion, existing entity-unit
+arena provider, declaration-only arena API and semantic publication worker.
+No new constructor API was smuggled into this union. The pending constructor
+patch86605 and fixture remain preserved, awaiting A2's public-admission closure.
+
+Public bootstrap native66-step build passed49.393337700 wall/190.184190 CPU/
+841676 KiB. Module cache passed.053830657/.051679/54528; query smoke passed
+.094835697/.097366/60868, including22 publication and24 resource cases;
+units/cancellation passed18.771993155/29.460665/771732; standard editor passed
+12.458133409/11.778303/277472. Logs build/b2_publish_union_*. No current sanitizer
+or whole-inspection-denial acceptance follows from these normal checks.
+
+B1's valid new session-budget test exposed an existing bug in B2's helper
+world_session_prepare: FormatResult.text has a length but no promised trailing
+NUL. The helper passed it directly to syntax_baseline_install's C-string input.
+B1 ASan reported a one-byte heap overread exactly after the3520-byte formatting
+buffer, through syntax_text_length -> syntax_baseline_install ->
+world_session_install -> world_session_prepare. This rejected the earlier ABI
+corruption hypothesis. B1 retained its actual failure log and removed temporary
+tracing; no intentional invalid-memory probe was used.
+
+Added only a direct vector import and checked vector_push of the terminator before
+installation. Public leaf passed2.323331412/2.068538/199316. After restoring the
+current full frontend closure (5steps22.729872205/50.489418/841812), a focused
+ignored Tower entry invoked the unchanged frontend_session_world_tests body:
+imports, source invalidation, cycles, foreign owners and complete physical-buffer
+cleanup passed.028610995 wall/.025978 CPU/56460 KiB. Entry compile passed
+2.394505420/2.161625/205708. Parent patch B2_session_seed_termination.patch
+SHA51ac39bd57ade65d701784e63b2bfed0a67f476ab9232cac0e570d1eed224c2f.
+The known unterminated input is not a valid before-performance baseline and will
+not be rerun deliberately. The fix adds one checked terminator byte; B1 is
+validating the corrected positive case with ASan in its changed session closure.
+
+For an equivalent module-guard cost comparison, froze ca05's after editor binary,
+then temporarily reverse-applied only df736's four production files and its two
+module-fixture getter assertions using checked patch0390d570. The editor fixture,
+including incomplete-syntax recovery, stayed identical. The before closure
+rebuilt4steps22.200007159/42.413385/840756; restored the exact patch after drain.
+Frozen binaries b2_inspection_guard_before f867eeb6f3d055a47b798c7320bdef2510bdc7ebc2642d754514264a6fbad3a1
+and b2_inspection_guard_after067a3467f0e2b70ff7553384713c6627966ea3264076e748f2615ae9e4f413f8
+both precede the seed-helper change; that helper is not executed by their editor
+selector. Four alternating matched process observations are prepared for a fresh
+coordinated quiet slot. This measures the module guard, not the still-missing
+parser/grammar typed failure propagation or the entire ECS migration.
+
+### B2 equivalent editor-guard measurements
+
+Finished the four serial-transport observations in a fresh B1 quiet slot
+02:43:29.8671134--02:44:19.4940070 UTC; all children passed and automatic release
+was delivered. The first50-second watcher expired without any grant or run; its
+cancelled request was replaced by a180-second watcher. Frozen inputs, executable
+hashes, sample order before/after/after/before and raw logs are retained.
+The frontend test runner links tower_work_serial.o: its configured worker1/6
+comparisons exercise the serial fallback, not concurrency. This corrects the
+imprecise serial/parallel wording in the initial slot request.
+
+Prepared a separate ignored Tower entry calling the unchanged editor_units_tests
+with an explicit work_thread_available check, linked against the production
+native transport and matching full compiler objects. It executes the same valid
+compile/inspection batches with requested worker limits1/6, normalized canonical
+comparison, cancellation and deterministic mixed-job failure. The first link
+recipe unnecessarily requested the optional named_worker_entry test export,
+which this entry does not define. Preserved that failure and removed only that
+inapplicable export flag; the retry linked and ran successfully. No compiler
+implementation fallback or skipped check was substituted.
+
+For the matching native before, temporarily reversed the same five-path0390d570
+patch, rebuilt the complete affected closure4steps21.447112850 wall/
+40.946365 CPU/844208 KiB, recompiled the entry against those exact inputs, linked,
+and froze its executable. Restored the source patch only after all children
+drained. Before SHA10dd1be6a6737c564dcc3cffbdf780b2b5e136effe582714268540dab3ea93e1;
+after6998b364a9cfb82b50abd0a9053f63762ddf6b5bbc1582f962b6f51c408c7e86.
+Native quiet slot02:50:02.6028526--02:50:27.2980375 UTC ran four checked children
+in the same alternating order, then released automatically.
+
+Median process observations, n2 per version, on the existing KinmenB Docker
+12-CPU/24GiB allocation and public Linux x64 bootstrap/LLVM19.1.1:
+
+| Workload/transport | Wall seconds before -> after | CPU seconds before -> after | Peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| Full editor suite, serial transport | 12.3447990475 -> 12.305043182 | 11.6573145 -> 11.6176955 | 278988 -> 278288 |
+| Mixed editor units, native transport | 6.1258046365 -> 6.0504097215 | 12.1021995 -> 12.0371705 | 943802 -> 957348 |
+
+The serial differences are below0.4%. Native wall differs about1.2%, CPU about0.5%,
+and median RSS rises about1.4%; native before RSS926124--961480 overlaps after
+957136--957560. Small n2 observations do not establish speedup, regression or
+neutrality. The two rows have different workloads and must not be compared as a
+scaling ratio. Native transport is asserted, but this entry adds no independent
+job-interval overlap measurement. Current serial buffer cleanup and both output
+oracles pass; this is not a sanitizer or universal race-freedom claim. Every
+process_profile ran in its own docker exec with the inherited-child-usage guard.
+Logs build/b2_inspection_guard_pair_* and b2_inspection_native_pair_*.
+
+### B2 consumption of B1 typed grammar/control failure
+
+Reviewed and applied B1's complete18-path65074438 slice after profiling drained,
+including all SyntaxSession/SyntaxVersionDiagnostic/ParserHostTable layout and
+provider changes. Excluded only the already-applied NUL helper fix (same behavior,
+different direct-import placement). Completion now reads the session's typed
+resource cause before its module graph cause. Public leaf passed
+19.104005853 wall/18.358884 CPU/841024 KiB. Consumer-only patch
+B2_inspection_session_consumer.patch SHA613ed5513e81f995a5b0a2d161b300c443f473d458e183993b0f08396d0e0945
+requires df736's module/query latch and the complete B1 slice; no getter-only ABI
+adoption is valid. Full dependent rebuild and original independent L2 denial test
+are next, after B1's granted120-second profile slot releases.
+
+Current typed scope is table construction and real LR control. B1 explicitly
+retains coarse Memory for legacy FIRST/state/runtime bool failures, and has not
+claimed typed pretable validation/lexicon/replacement coverage. Review also found
+that physical probe/completion-query failures still share quota.complete=false or
+false/null with other incomplete results. Routed that remaining error channel to
+B1; no diagnostic-text matching or global last-error inference was added here.
+
+### B2 exact inspection denial: joined native and ASan acceptance
+
+The complete18-path B1 layout plus session-first consumer rebuilt17 affected
+native targets with the public pin:30.769384510 wall/96.217835 CPU/844120 KiB.
+The unchanged independent8178ff55 fixture now passes all widths4/8 and worker
+limits1/4: a complete generic document before denial, null result while its
+budget is fully occupied, successful cache recovery after release, and zero final
+bytes/lanes/live grants after world retirement. The existing native editor selector
+also runs normalized mixed-unit output, cancellation and deterministic failure;
+combined receipt11.686624551/18.532699/1031352. No diagnostic text matching or
+fixture weakening was used. Earlier failed134 receipts remain preserved.
+
+Surrounding native module cache passed.051761957/.046925/54544; parser checks
+passed.025890665/.023191/54132; standard editor including legitimate incomplete
+syntax passed12.754092174/12.056583/279024. The small import-placement alignment
+in the NUL helper makes all18 B1 code/test paths byte-identical to its eventual
+committed175d2a3 checkpoint; its behavior is unchanged.
+
+Rebuilt the existing address cache from these frozen inputs,71 steps
+85.916141372 wall/274.947588 CPU/846240 KiB, with the checked-in public bootstrap.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1. Parser tests passed
+.178755577/.177977/137848, including the corrected seed helper's valid input.
+Native editor plus the exact four-case inspection denial fixture passed
+81.474179020/134.841750/1187524 with no address or leak diagnostic. Logs are
+build/b2_inspection_session_address_{build,parser,denial}.log. All children drained.
+This is supported generated Tower address/leak instrumentation; system/LLVM
+libraries are outside that instrumentation, UBSan is unsupported, and B2 has not
+claimed TSan acceptance for this exact consumer union. B1's independently recorded
+TSan/WASI results retain B1 source identity and narrower frontend scope.
+
+Verified B1 complete bundle0054f5b2808690fbc6b10d10bc35a76d6e66c8b3b0243aa5b0552fac53aff9c8,
+main175d2a3feb16fa52cbcabe8eb4d90e94e6d64a00, sole published60741 prerequisite.
+All18 code/test paths match the locally validated working tree exactly. Merging
+that actual owner history preserves the tested closure; no loose getter-only
+publication. The wider early grammar/probe outcome gaps and final integrated
+bootstrap/browser/sanitizer/publication work remain open.
+
+### B2 committed inspection closure and owner-history merge
+
+Merged the actual B1 checkpoint175d2a3 as a84ca7a. The sole README conflict was a
+moved duplicate runtime-benchmark paragraph; retained its existing copy together
+with the newer Publish, type-errors, budget-allocation and arena-linkage entries.
+Applied the saved working changes without conflict. Comparison against frozen
+treee853a0e7d1995abe6c3df8e123882648f3d97b5c shows no difference anywhere in
+scaffolding, cmake or CMakeLists.txt, so the preceding native and ASan receipts
+still name the exact compiler/test inputs. Documentation changes only describe
+this merge; they require no new runtime performance measurement. A requested
+allocator declaration correction in host/syntax_baseline will be a separate
+source change with its own affected validation.

@@ -25,6 +25,7 @@ extern fn syntax_session_open(world: void*, environment: void*, source: u8*, mod
 
 extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
 extern fn frontend_module_resource_error(module: void*): WorkBudgetError;
+extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 
 extern fn compiler_world_store(world: void*): void*;
 
@@ -60,9 +61,12 @@ export fn completion_resource_error(q: CompletionQuery*): WorkBudgetError {
     return q.resource_error;
 }
 
-// A failed imported snapshot is infrastructure failure, not recoverable syntax.
-// Latch its typed cause while the session still owns the module graph.
+// Resource failures in grammar/control or imported snapshots cannot use syntax
+// recovery. Latch their typed cause while the session owns its parser/module data.
 fn completion_session_failed(q: CompletionQuery*, session: void*): bool {
+    if q.resource_error == WorkBudgetError.None {
+        q.resource_error = syntax_session_resource_error(session);
+    }
     if q.resource_error == WorkBudgetError.None {
         q.resource_error = frontend_module_resource_error(syntax_completion_module(session));
     }
