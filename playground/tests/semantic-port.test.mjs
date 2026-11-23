@@ -47,6 +47,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
   if(process.env.TOWER_TEST_PHASES)context.after(()=>phase('released'));
   const save=async(suffix,text)=>{if(artifacts)await writeFile(`${artifacts}/${name}_${suffix}`,text);};
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
+  await save('source.tower',source);
   tower.configureModules({entry:`.tower/tests/${name}.tower`});
   llvm.configureModules({entry:`.tower/tests/${name}.tower`});
   let canonical, canonical32;
@@ -104,7 +105,9 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
   for(const text of [source,canonical32]) {
    phase(`LLVM executable ${text === source ? 'source' : 'canonical'}`);
    const compiled=llvm.compile(text);
+   if(compiled.status!=='compiled')await save(`executable_${text===source?'source':'canonical'}_error.json`,JSON.stringify(compiled,null,2));
    assert.equal(compiled.status,'compiled',compiled.error);
+   await save(`executable_${text===source?'source':'canonical'}.wasm`,compiled.wasm);
    phase(`LLVM executable run ${text === source ? 'source' : 'canonical'}`);
    assert.equal((await executeWasm(compiled)).output,output);
   }

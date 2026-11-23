@@ -96082,3 +96082,30 @@ not relabeled as independently executed. No invalidated storage dependency or
 runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
+
+## A2 exact abort host capability and two complete T9 selectors (2026-11-23)
+
+Implemented only the shared foreign/host boundary: platformImports supplies an
+exact void/no-argument abort, using a40-byte code-free Wasm import/export type
+adapter and terminating host exception. Existing interpreter request returnType
+feeds optional provider validation; unknown externals and strict staged external
+capability denial remain intact. Native/library abort declarations are intentional;
+no memory policy, fixture simplification, new registry or reactor rebuild.
+Six Tower fixtures cover valid/unused/invoked/wrong-parameter/wrong-result/unknown
+and staged cases.20Graph/Fast32/64 executions+5Wasm controls+both staged entrypoints
+pass; actual invoked control prints7 then stops with Program aborted and OSexit1.
+Full platformfile3pass/1existing canonical-spelling regex failure retained, not
+weakened; targeted abort control with staged checks1pass/3exclusions.
+
+Exact a06 reactors, separately frozen1e428ede+host changes,1251 unchanged resource
+hashes: work_access and work_observe each complete the original32/64 Graph/Fast,
+canonical equality, both LLVM reconstruction profiles/rechecks/execution and
+source+canonicalWasm assertions. Both exit0, each1pass/18 unrelated exclusions.
+Actual childCPU/RSS recorded:43.140s/1167116KiB and63.515s/1343152KiB;
+commandwall21.6901557/34.2589938s, all original guards/fuel intact.17saved hashed
+artifacts each now include emittedWasm bytes. Healthy identical platform-write
+n3 wallmean1.737869->1.747239s (+0.54%), guest capacities unchanged; no scaling
+or zero-world claim. Optional measurement includes actual child/final phases.
+Receipt docs/abort_t9_a06_1e428ede.md; raw cache/logs/abort_t9_a06_1e428ede.
+No rejected instrumentation retried. ROOT owns release; all own jobs drained,
+three original stashes and todo untouched. Final integration recorded in status.
