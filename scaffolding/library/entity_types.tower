@@ -28,6 +28,7 @@ struct EntityStore {
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
 struct EntityComponentPool { first: EntityComponentPage*; }
 struct EntityComponentPage {
+    allocation: WorkBuffer;
     pool: EntityComponentPool*;
     previous: EntityComponentPage*;
     next: EntityComponentPage*;
@@ -96,6 +97,13 @@ struct EntityComponent {
     data: u8*;
     type_index: usize;
     page: EntityComponentPage*;
+}
+
+// Oversized stable payloads own one physical allocation, like pooled pages.
+// Copy the receipt out before freeing the allocation that contains this header.
+struct EntityComponentAllocation {
+    allocation: WorkBuffer;
+    component: EntityComponent;
 }
 
 // Dense entity rows and component-pointer columns for an exact type signature.

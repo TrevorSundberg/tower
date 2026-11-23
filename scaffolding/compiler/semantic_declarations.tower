@@ -1129,6 +1129,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     copy(&result.evaluations, &context.evaluation_jobs, sizeof(vector(void*)));
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     // Body continuations and completion may retain newly created lexical data.
     // Transfer that ownership at publication; ordinary jobs reclaim scratch.
     // Enum member lookup retains its derived name table until this context
@@ -1161,7 +1162,8 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
 // Copy an owned producer diagnostic without publishing its scratch or changing
 // the scheduler. Structural cache consumers use this same failure receipt.
 fn sem_declaration_restore_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
-    return result != null && sem_restore_error(c, &result.error, result.error_offset);
+    return result != null && (sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset)
+        || sem_restore_error(c, &result.error, result.error_offset));
 }
 
 fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
@@ -1171,7 +1173,7 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
     foreach(var list in &result.lists) { sem_push(&c.lists, list); }
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
-    if result.error.length == 0 { return false; }
+    if result.resource.error == WorkBudgetError.None && result.error.length == 0 { return false; }
     if !c.declaration_isolated { sem_declaration_restore_error(c, result); }
     // Retain the producer diagnostic for later dependent body continuations.
     // The compilation owns it until declaration disposal.
@@ -1179,11 +1181,21 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
 }
 
 fn sem_declaration_capture_error(c: SemanticContext*, result: SemanticDeclaration*): void {
-    if result.error.length != 0 || sem_ok(c) { return; }
+    if result.resource.error != WorkBudgetError.None || result.error.length != 0 || sem_ok(c) { return; }
+    result.resource = c.program.resource;
+    result.error_offset = c.program.error_offset;
+    // Keep the selected program diagnostic attached to its sticky receipt.
+    // A retained producer may omit text rather than allocate after denial.
+    if result.resource.error != WorkBudgetError.None {
+        if c.program.error.length != 0 && c.program.error.length < result.error.capacity {
+            copy(result.error.data, c.program.error.data, c.program.error.length + 1);
+            result.error.length = c.program.error.length;
+        }
+        return;
+    }
     sem_require(vector_reserve(&result.error, c.program.error.length + 1));
     copy(result.error.data, c.program.error.data, c.program.error.length + 1);
     result.error.length = c.program.error.length;
-    result.error_offset = c.program.error_offset;
 }
 
 // A failed shared signature retains its diagnostic even after its first body
@@ -1807,7 +1819,8 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
             // selected error. Independent successful receipts remain reusable.
             var selected_error = c.program.error;
             var selected_offset = c.program.error_offset;
-            c.program.error = default;
+            if c.program.resource.error == WorkBudgetError.None { c.program.error = default; }
+            else { selected_error = default; }
             var type_first = c.program.types.length;
             foreach(var job in &result.evaluations) {
                 var evaluation = bits(SemanticEvaluation*, job);
@@ -1934,15 +1947,18 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
                     else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
                 }
             }
-            if c.declaration_isolated {
-                vector_dispose(&c.program.error);
-                vector_dispose(&selected_error);
-            } else {
-                if selected_error.length != 0 {
+            if c.program.resource.error != WorkBudgetError.None { vector_dispose(&selected_error); }
+            else {
+                if c.declaration_isolated {
                     vector_dispose(&c.program.error);
-                    c.program.error = selected_error;
-                    c.program.error_offset = selected_offset;
-                } else { vector_dispose(&selected_error); }
+                    vector_dispose(&selected_error);
+                } else {
+                    if selected_error.length != 0 {
+                        vector_dispose(&c.program.error);
+                        c.program.error = selected_error;
+                        c.program.error_offset = selected_offset;
+                    } else { vector_dispose(&selected_error); }
+                }
             }
             index++;
         }
@@ -1955,7 +1971,7 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
             // Layouts refill workers as they finish. Structural continuations
             // must publish types/signatures in stable request order afterwards.
             sem_require(work_order_ready(&c.queries));
-            if c.declaration_isolated { vector_dispose(&c.program.error); }
+            if c.declaration_isolated && c.program.resource.error == WorkBudgetError.None { vector_dispose(&c.program.error); }
             else {
                 foreach(var query in &layouts) {
                     if sem_ok(c) { sem_layout_cycle(c, query); }

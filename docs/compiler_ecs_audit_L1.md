@@ -1,6 +1,24 @@
 # L1 execution ownership audit
 
-Current owned follow-up: main15ff plus the six-file frame/task WorkVector change
+Current counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
+execution and package boundaries even when presentation text is absent. Public
+leaves, coherent rebuild and six native gates pass, including first-error/replay
+and canonical-package regressions at both pointer widths. Current paired
+performance and supported instrumentation are pending; frontend producer
+integration, remaining allocation owners and final release gates stay open.
+Independent ROOT review rejected e3's assumption that frontend diagnostics are
+NUL-terminated. Both valid counted-buffer regressions reproduce that failure on
+e3 and pass after the explicit-length correction. Earlier e3 passes/profiles keep
+their original source identity and do not establish this corrected contract.
+
+Earlier f46b3e2 uses the shared budgeted TypeObjectIndex in graph and fast execution.
+Four public-bootstrap leaves, five native gates, ten new caller cases,100 checked
+profile/control processes, six address/leak gates and six thread gates pass on
+that frozen source. Actual four-unit overlap4 and canonical output agree. Narrow
+fast controls retain about2%/1% small/large wall-time cost; broader variance and
+occasional non-CPU gaps outside compilation remain explicit in the journal.
+
+Earlier frame/task checkpoint: main15ff plus the six-file WorkVector change
 passes a coherent native rebuild and query/storage/control/units/backend-overlap/
 aggregate/types checks. The existing low-level storage fixture passes three times,
 including physical denial, exact rollback and retained child-owner cleanup.
@@ -328,3 +346,63 @@ optional semantic queries. No API draft is credited as implemented. Incoming
 resource-growth tests must prove they reach the nested allocation after the newly
 charged entry owners. Current supported instrumentation, merged source rebuilds,
 public-bootstrap/generation/browser closure and leased publication remain open.
+
+### Type-value owner migration after the frame/task milestone
+
+The six-path11f6b5b6 caller patch now uses L2's shared TypeObjectIndex in graph and
+fast engines. Its descriptors remain borrowed canonical Foundation types; private
+one-based indexes never become another semantic graph. The world budget is passed
+on every intern request, including existing-value hits. Both graph interning sites
+retain the first resource error, failed constructor delivery stays unconsumed, and
+fast construction disposes its partial cache before returning a failed session.
+Capacity-owned graph scheduling storage remains available for normal failed-session
+disposal. Retained index reads, disposal and fast payload statistics use the shared
+owner layout. Existing semantic evaluation already preserves storage_error before
+optional source-diagnostic clearing. Both implementation imports remain present.
+
+Four public-bootstrap leaves, a coherent14-step native rebuild, the new ten caller
+cases at32/64bits, query/type smoke, full types, and calibrated exact-object overlap
+all pass on c1560f8 plus this patch. Complete ad79 baseline binaries/resources were
+saved before adoption. Journal/raw receipts retain exact hashes, costs and the
+concurrent-validation qualification. L2 reviewed the full caller patch. Its newly
+registered serial Memory-prefix suite is separate and still awaiting actual exit;
+paired performance and current instrumented gates are pending, not passed.
+
+The remaining map/cache/diagnostic/opaque owners in the previous section still
+need closure. Node-cache accounting additionally requires binding the budget before
+invocation_init's first cached function lookup; no such migration is claimed here.
+The newly coordinated SemanticProgram.resource receipt also requires an execution
+session success-boundary update after its exact shared header lands. Neither this
+native milestone nor the earlier frame/task sanitizer receipt is final merged
+bootstrap/browser/generation/hosted acceptance.
+
+The frozen f46 milestone now also has100 checked before/after profile processes,
+six address/leak gates and six thread gates, all completed successfully. The small
+and large fast controls retain roughly2%/1% median end-to-end costs and wider
+original variance; unexplained external delays occurred in both binaries and are
+preserved. Actual four-unit overlap reaches4 with unchanged canonical output and
+reported retention. Instrumented calibrated backend checks preserve exact objects
+and distinct-worker overlap. Source manifests and actual generated IR/binary hashes
+are retained; foreign libraries/native Tower UBSan remain outside coverage.
+L2's corrected301 fixture independently passes three serial allocation-prefix
+suites with unchanged production API; its new source hook still awaits adoption
+here. These receipts supersede the preceding pending labels only for their exact
+source scopes. Shared resource consumer and remaining map/cache work stays open.
+
+### Fixed semantic resource receipts at execution boundaries
+
+The execution_session compile/start/cache/step gates and execution_package encode
+now honor A1's shared SemanticProgram.resource independently of optional diagnostic
+text. Static shared fallback messages and the first offset remain available; an
+already failed session cannot acquire a later error's text or resume after text is
+cleared. Error-report allocation failure preserves failed/done and package false/
+zero-output, without aborting to format the failure. Existing ordinary diagnostics
+and recoverable guest allocation-null behavior retain their contracts.
+
+Final own patchafb3cc69 plus exact A1V2b255 atop ROOT72/L2301 passes public leaves,
+coherent native rebuild and six native gates including full execution/canonical
+packages and actual backend overlap. New fixtures cover both pointer widths,
+empty/present diagnostics, no effects/replay, root cleanup and clean recompile.
+Actual diagnostic allocator denial and full frontend producer integration remain
+separate evidence gaps; hand-seeded shared receipts do not prove those producers.
+Current performance/instrumentation and final publication are still pending.

@@ -1,7 +1,11 @@
 import tower;
 import foundation_types;
 import foundation_tags;
+import type_object_index_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
 
 extern fn semantic_type_equal(left: FoundationType*, right: FoundationType*): bool;
 extern fn sem_get(node: void*): FoundationNode*;
@@ -13,37 +17,50 @@ extern fn foundation_execution_reference(node: FoundationNode*): void*;
 // its declared payload, including callback signatures and recursive records.
 // The visited list is a disposable traversal index over the existing entities.
 export fn type_object_abi_safe(type: FoundationType*): bool {
-    var pending: vector(FoundationType) = default;
-    var visited: vector(void*) = default;
-    defer vector_dispose(&pending);
-    defer vector_dispose(&visited);
-    sem_require(vector_push(&pending, *type));
+    var safe = false;
+    sem_require(type_object_abi_safe_result(type, null, &safe) == WorkBudgetError.None);
+    return safe;
+}
+
+export fn type_object_abi_safe_result(type: FoundationType*, budget: WorkBudget*, safe: bool*): WorkBudgetError {
+    *safe = false;
+    var pending: work_vector(FoundationType) = default;
+    var visited: work_vector(void*) = default;
+    defer work_vector_dispose(&pending);
+    defer work_vector_dispose(&visited);
+    var error = work_vector_push_result(&pending, budget, *type);
+    if error != WorkBudgetError.None { return error; }
     while pending.length != 0 {
         var current = pending.data[--pending.length];
-        if current.scalar == SType { return false; }
+        if current.scalar == SType { return WorkBudgetError.None; }
         if current.scalar != SStruct && current.scalar != SArray && current.scalar != SFunction { continue; }
-        if current.record == null { return false; }
+        if current.record == null { return WorkBudgetError.None; }
         var seen = false;
         foreach(var record in &visited) { if record == current.record { seen = true; break; } }
         if seen { continue; }
-        sem_require(vector_push(&visited, current.record));
+        error = work_vector_push_result(&visited, budget, current.record);
+        if error != WorkBudgetError.None { return error; }
         var record = sem_get(current.record);
-        if record == null { return false; }
+        if record == null { return WorkBudgetError.None; }
         if current.scalar == SArray || current.scalar == SFunction {
-            sem_require(vector_push(&pending, record.element));
+            error = work_vector_push_result(&pending, budget, record.element);
+            if error != WorkBudgetError.None { return error; }
         }
         if current.scalar == SStruct {
             foreach(var field in &record.items) {
-                sem_require(vector_push(&pending, sem_get(field).type));
+                error = work_vector_push_result(&pending, budget, sem_get(field).type);
+                if error != WorkBudgetError.None { return error; }
             }
         }
         if current.scalar == SFunction {
             foreach(var parameter in &record.parameters) {
-                sem_require(vector_push(&pending, sem_get(parameter).type));
+                error = work_vector_push_result(&pending, budget, sem_get(parameter).type);
+                if error != WorkBudgetError.None { return error; }
             }
         }
     }
-    return true;
+    *safe = true;
+    return WorkBudgetError.None;
 }
 
 // LLVM's scalar return path cannot reconstruct opaque type identity after it
@@ -51,11 +68,19 @@ export fn type_object_abi_safe(type: FoundationType*): bool {
 // Runtime roots and function references share the source emitters' policy.
 // Keep canonical declarations intact; this is a disposable derived traversal.
 export fn type_object_program(root: void*): bool {
-    var pending: vector(void*) = default;
-    var functions: vector(void*) = default;
-    defer vector_dispose(&pending);
-    defer vector_dispose(&functions);
-    sem_require(vector_push(&pending, root));
+    var contains = false;
+    sem_require(type_object_program_result(root, null, &contains) == WorkBudgetError.None);
+    return contains;
+}
+
+export fn type_object_program_result(root: void*, budget: WorkBudget*, contains: bool*): WorkBudgetError {
+    *contains = false;
+    var pending: work_vector(void*) = default;
+    var functions: work_vector(void*) = default;
+    defer work_vector_dispose(&pending);
+    defer work_vector_dispose(&functions);
+    var error = work_vector_push_result(&pending, budget, root);
+    if error != WorkBudgetError.None { return error; }
     while pending.length != 0 {
         var subject = pending.data[--pending.length];
         if subject == null { continue; }
@@ -65,33 +90,81 @@ export fn type_object_program(root: void*): bool {
             var seen = false;
             foreach(var function in &functions) { if function == subject { seen = true; break; } }
             if seen { continue; }
-            sem_require(vector_push(&functions, subject));
+            error = work_vector_push_result(&functions, budget, subject);
+            if error != WorkBudgetError.None { return error; }
         }
-        if node.kind == KTypeReference || node.type.scalar == SType || node.element.scalar == SType { return true; }
+        if node.kind == KTypeReference || node.type.scalar == SType || node.element.scalar == SType {
+            *contains = true;
+            return WorkBudgetError.None;
+        }
         if node.kind == KLabel { continue; }
-        sem_require(vector_push(&pending, foundation_execution_reference(node)));
-        sem_require(vector_push(&pending, node.left));
-        sem_require(vector_push(&pending, node.right));
-        sem_require(vector_push(&pending, node.value));
-        sem_require(vector_push(&pending, node.target));
-        sem_require(vector_push(&pending, node.body));
-        sem_require(vector_push(&pending, node.otherwise));
+        error = work_vector_push_result(&pending, budget, foundation_execution_reference(node));
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.left);
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.right);
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.value);
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.target);
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.body);
+        if error != WorkBudgetError.None { return error; }
+        error = work_vector_push_result(&pending, budget, node.otherwise);
+        if error != WorkBudgetError.None { return error; }
         foreach(var item in &node.items) {
-            if foundation_execution_item(node, sem_get(item)) { sem_require(vector_push(&pending, item)); }
+            if foundation_execution_item(node, sem_get(item)) {
+                error = work_vector_push_result(&pending, budget, item);
+                if error != WorkBudgetError.None { return error; }
+            }
         }
-        foreach(var parameter in &node.parameters) { sem_require(vector_push(&pending, parameter)); }
-        foreach(var attribute in &node.attributes) { sem_require(vector_push(&pending, attribute)); }
+        foreach(var parameter in &node.parameters) {
+            error = work_vector_push_result(&pending, budget, parameter);
+            if error != WorkBudgetError.None { return error; }
+        }
+        foreach(var attribute in &node.attributes) {
+            error = work_vector_push_result(&pending, budget, attribute);
+            if error != WorkBudgetError.None { return error; }
+        }
     }
-    return false;
+    return WorkBudgetError.None;
 }
 
 // Disposable execution indexes for opaque type values. The canonical payload
 // remains a Foundation type descriptor, including its nominal entity binding.
 // Index order is private; formatting and staging relocate descriptors, never IDs.
 export fn type_object_intern(values: vector(FoundationType)*, type: FoundationType*): u64 {
-    for(var i: usize = 0; i < values.length; i++) {
-        if semantic_type_equal(&values.data[i], type) { return convert(u64, i) + 1; }
-    }
-    if values.length == convert(usize, ~convert(u32, 0)) || !vector_push(values, *type) { return 0; }
+    var found = type_object_find(values.data, values.length, type);
+    if found != 0 { return found; }
+    if values.length == TypeObjectIndexLimit || !vector_push(values, *type) { return 0; }
     return convert(u64, values.length);
+}
+
+fn type_object_find(values: FoundationType*, count: usize, type: FoundationType*): u64 {
+    for(var i: usize = 0; i < count; i++) {
+        if semantic_type_equal(&values[i], type) { return convert(u64, i) + 1; }
+    }
+    return 0;
+}
+
+export fn type_object_index_intern(index: TypeObjectIndex*, budget: WorkBudget*, type: FoundationType*): u64 {
+    if index.error != WorkBudgetError.None { return 0; }
+    var values = &index.values;
+    if values.length > values.capacity || (values.data != null && values.reservation.owner != budget) {
+        index.error = WorkBudgetError.Invalid;
+        return 0;
+    }
+    var found = type_object_find(values.data, values.length, type);
+    if found != 0 { return found; }
+    if values.length == TypeObjectIndexLimit {
+        index.error = WorkBudgetError.Capacity;
+        return 0;
+    }
+    index.error = work_vector_push_result(values, budget, *type);
+    return index.error == WorkBudgetError.None ? convert(u64, values.length) : 0;
+}
+
+export fn type_object_index_dispose(index: TypeObjectIndex*): void {
+    work_vector_dispose(&index.values);
+    index.error = WorkBudgetError.None;
 }

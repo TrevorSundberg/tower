@@ -12,12 +12,81 @@ import execution_support;
 import execution_core_cases;
 import .compiler.foundation_tags;
 import .library.vector;
+import .library.work_budget_types;
 import .host.driver_support;
 
 extern fn semantic_format_type(type: FoundationType*, text: vector(u8)*): void;
 
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+
+enum ExecutionResourceBoundary: u32 { Compile, Start, Cache, Step }
+var ExecutionResourceStepLimit: usize = 10000;
+
+fn execution_resource_trial(modules: void*, width: u32, boundary: ExecutionResourceBoundary,
+    resource: WorkBudgetError, diagnostic: u8*): void {
+    var source = "import tower; print(7); print(9);";
+    var offset = bits(usize, strstr(source, "print(9)")) - bits(usize, source);
+    var session: ExecutionSession = default;
+    execution_compile(&session, source, width, modules);
+    if boundary == ExecutionResourceBoundary.Step {
+        execution_check(execution_session_fast(&session), "resource fixture prepares a valid cache");
+    }
+    var cache = session.fast;
+    if diagnostic != null {
+        var length = strlen(diagnostic);
+        var trailing = " ignored trailing bytes";
+        var extra = strlen(trailing) + 1;
+        execution_check(vector_reserve(&session.program.error, length + extra), "resource fixture diagnostic");
+        copy(session.program.error.data, diagnostic, length);
+        copy(session.program.error.data + length, trailing, extra);
+        session.program.error.length = length;
+    }
+    sem_resource_record(&session.program, resource, offset);
+    sem_resource_record(&session.program, WorkBudgetError.Busy, strlen(source));
+    if boundary == ExecutionResourceBoundary.Compile {
+        execution_check(execution_session_program_failed(&session), "compile success boundary sees fixed failure");
+    }
+    if boundary == ExecutionResourceBoundary.Start {
+        execution_check(!execution_session_start(&session), "fixed failure refuses graph start");
+    }
+    if boundary == ExecutionResourceBoundary.Cache {
+        execution_check(!execution_session_fast(&session), "fixed failure refuses cache construction");
+    }
+    execution_session_step(&session, 1);
+    execution_check(session.machine.failed && session.machine.done && session.machine.steps == 0
+        && session.output.length == 0 && session.fast == cache
+        && session.machine.error_offset == offset && session.program.resource.offset == offset
+        && session.program.resource.error == resource
+        && execution_text(&session.error, diagnostic ?? sem_resource_message(resource)),
+        "fixed resource failure keeps first receipt and forbids effects");
+    session.error.length = 0;
+    session.program.error.length = 0;
+    execution_session_fail(&session, "Later unrelated error", strlen(source));
+    execution_check(session.error.length == 0 && session.machine.error_offset == offset,
+        "later reporting cannot pair a new message with the first failure offset");
+    execution_check(!execution_session_start(&session) && !execution_session_fast(&session),
+        "clearing diagnostics never recovers a failed session");
+    execution_session_step(&session, 1);
+    execution_check(session.machine.steps == 0 && session.output.length == 0
+        && session.machine.error_offset == offset, "failed session cannot replay after diagnostic clearing");
+    execution_close_checked(&session);
+    execution_compile(&session, source, width, modules);
+    execution_run(&session, 1, ExecutionResourceStepLimit);
+    execution_check(!session.machine.failed && execution_text(&session.output, "7\n9\n"),
+        "new compilation resets the old resource receipt");
+    execution_close_checked(&session);
+}
+
+fn execution_resource_tests(modules: void*): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        execution_resource_trial(modules, width, ExecutionResourceBoundary.Compile, WorkBudgetError.Capacity, null);
+        execution_resource_trial(modules, width, ExecutionResourceBoundary.Start, WorkBudgetError.Memory, null);
+        execution_resource_trial(modules, width, ExecutionResourceBoundary.Cache, WorkBudgetError.Invalid, "Retained source-specific resource diagnostic");
+        execution_resource_trial(modules, width, ExecutionResourceBoundary.Step, WorkBudgetError.Busy, null);
+    }
+}
 
 fn execution_structure_detail(left: FoundationNode*, right: FoundationNode*, part: u8*): void {
     var detail: ByteBuffer = default;
@@ -339,6 +408,7 @@ fn execution_target_tests(modules: void*): void {
 }
 
 fn execution_core_tests(modules: void*): void {
+    execution_resource_tests(modules);
     execution_structure_binding_tests(modules);
     var session: ExecutionSession;
     fill(&session, 0, sizeof(ExecutionSession));
