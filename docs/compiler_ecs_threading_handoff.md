@@ -1,73 +1,54 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-Checkpoint date: 2026-11-22. This report records the current implementation and
-the next work in the same migration. It is a handoff, not a claim of completion.
-The later type-value checkpoint supersedes the staging status below: executed
-helper calls now use the production dependency-graph body producer. Its shared
-`IMFunctionInput`/`executable_functions` protocol replaces the experimental
-`IMCallInput`/`call_inputs` names, preserving this checkpoint's argument-effect,
-failure and cancellation fixtures. The detailed type-protocol continuation is
-recorded in the journal's “Remaining work after the type-value checkpoint” entry.
-Read it with [the research journal](temporal-opcode-research-journal.md),
-[computed type arguments](computed-type-arguments.md), and
-[compiler services](compiler-services.md).
+Current-source review: **2026-11-23**, frozen published main
+**`b83eeca71edbe3770e7b576692a5702cb3ff42fa`** (published origin/main).
+Compiler tree `ba5457d083698335be45801b65bf7f282298d574`; scaffolding tree
+`32581bcb8ba150a0038e81e44513f9f4de827310`; CMake tree
+`6d3db921295697f16f936f2278d7fb3bb3748c6b`. This final boundary incorporates
+the complete Fast/staging/sanitizer history received during publication; it
+supersedes the initial `68f89640` draft. Later merges do not silently move
+this review's boundary. This documentation review ran no compiler or runtime
+tests. The old completion percentage is retired; there is no measured percentage
+or ETA for the remaining gates.
 
-## Status and checkpoint boundary
+**Executable helpers and type staging are implemented.** Production
+`semantic_execution_work.tower::sem_executable_request/sem_executables_pump`
+publish function-owned `IMFunctionInput` through the `executable_ready` kind after
+body/lowering dependencies complete; `executable_functions` holds the producer
+work components. `semantic_type_execution.tower` and
+`semantic_constructor_work.tower` consume the ordinary interpreter's executed
+requests. The former `IMCallInput` experiment and rejected producer below are
+historical, not missing production capabilities. See [type values](type-values.md),
+[computed type arguments](computed-type-arguments.md), [services](compiler-services.md)
+and the scoped [journal receipts](temporal-opcode-research-journal.md).
 
-The overall estimate remains approximately **80–85%** of the current compiler
-ECS/dependency/threading migration. This is engineering judgment about the
-acceptance work, not a measured percentage of lines, elapsed time, or core
-utilization. The journal's November 22 weighted audit estimated 78/100, rounded
-to 80; the subsequent body-continuation and local-capture milestones improve
-that baseline. Do not turn this range into an almost-finished or speedup claim.
-
-The major published milestones relevant to this chain are:
-
-| Source milestone | Implemented behavior |
-| --- | --- |
-| `6850468` | Resumable evaluation and declaration phase pumps; focused native query checks. |
-| `49d75be` | Persistent body/lowering pumps and cross-phase continuation work. |
-| `bf2a3e8` | Shared finite dispatcher, retained structural body preparations, and deferred-expression resumption. |
-| `ecc4333` | Lazy threaded lexical binding proofs and immutable local captures in integer type arguments, including nested `comptime`. |
-
-This checkpoint adds an **interpreter call-suspension primitive**, moves its
-ordinary-Foundation fixture into interpreter compilation units, and reuses the
-shared dispatcher for generic-body clone batches. The transport loop is shared;
-only the typed projection from each job component to its kernel is generic.
-There is no added queue allocation or new thread pool.
-
-The primitive is deliberately separate from a production compiler producer.
-`IMContext.call_inputs` supplies an optional component kind. An executed ordinary
-call can return `waiting_call`, retain its finish task and cached arguments, and
-resume after its `IMCallInput` becomes ready. It does not check or lower a body
-on an interpreter worker. **Production type-argument evaluation does not yet
-install this service**, so executed helper calls in those expressions still
-receive the existing unsupported-staging diagnostic. Ordinary supported
-compile-time calls elsewhere are not a new feature of this checkpoint.
-
-An attempted producer integration was removed from the release candidate after
-the public predecessor exceeded its semantic component budget. It was never
-validated end to end and must not be described as implemented. Its design and
-specific unresolved problems are preserved below. There is no hidden private
-bootstrap prerequisite, dormant experimental producer, or separate constant
-folder in this checkpoint.
-
-## What is already real
+## Implemented contracts and evidence boundary
 
 ### Shared entities, storage, and ownership
 
 Syntax, parse metadata, Foundation operations, and semantic metadata use
-world-owned entities/components. The store has stable payload storage and dense
-archetype row/component-pointer columns, with sparse/derived indexes where
-appropriate. This does not mean every payload is packed SoA or every traversal
-is a table query. Neither condition should become a cosmetic completion gate.
+world-owned entities/components: `world.tower`, `library/entities.tower`,
+`entity_types.tower` and `entity_stage.tower` retain the
+authoritative graph and ordered/named owning relationships. Stable component
+pages and sparse identity lookup coexist with dense archetype row/pointer
+columns and contiguous work buffers. These indexes are not packed payload SoA;
+parser tables, interpreter caches and query indexes remain derived state.
+Stable addresses help leased workers but can retain fragmented pages. A2's
+page-churn receipts demonstrate free-slot reuse, not universal locality or a
+whole-compiler memory bound. Raw node/index and stage-vector accounting remains
+open below. Neither converting every traversal to a query nor adding `noalias`
+without proof is a completion criterion.
 
 Workers receive immutable published inputs and own their scratch, diagnostics,
 interpreter state, and staged output. Structural writes and shared-index changes
 publish after joins. Views pin input lifetimes; leases/access declarations govern
 mutation. A pinned view is not a payload lock. Generic clone batches retain their
 existing memory budget and acquire queued stage ownership before the last input
-view closes.
+view closes. Explicit `frontend_units` worlds, module environments,
+`execution_session` and backend source owners now exist; legacy `host_world`,
+document/completion adapters and `host/llvm_worker` remain boundary contracts,
+not permission to share a default world between workers. The latter retains its
+latest request until reuse/VM retirement and has no Tower close export.
 
 ### Queries and worker execution
 
@@ -86,11 +67,38 @@ they do not replay checked statements when a dependency completes. Bounded
 source windows are independent of worker count and can admit later producers
 while an earlier body waits.
 
-This is useful threading, but the lifecycle still contains phase barriers.
-`semantic_lifecycle.tower` calls checking, defer hygiene, known inference,
-lowering, evaluation, attributes, known-value publication, module initialization,
-and flow processing in order. Having worker paths inside those phases does not
-make the entire lifecycle one fully interleaved scheduler.
+The lifecycle now interleaves AggregatePrepare and Lowering through
+`sem_lifecycle_lowering_pump`/`sem_lower_pipeline_pump`: each function waits on
+its own Body/KnownSnapshot/signature producers. A1's `cc2d4e6a` receipt includes
+two real mixed-kernel rendezvous trials in `semantic_lifecycle_frontier_checks`.
+B2's `baf2a5a0` unit-admission receipt observes distinct live threads and outer
+refill after nested lane release (80,877 ns); its backend trace starts one LLVM
+job while another frontend remains live. These are observed overlap at their
+recorded sources, not current-release scaling results. `frontend_units_step`,
+`work_budget_set_wake` and `work_pool_receive_event` share admission/wakeups;
+an empty nested grant executes inline. Requested workers or pool occupancy
+alone prove neither overlap nor useful speedup.
+
+A1 `7cea85cf` additionally replaces the blanket lowering-before-evaluation drain
+with `sem_lifecycle_queries_pump` and root-owned `semantic_phase_work` joins.
+Explicit stages wait on signature publication and their owner's lowering;
+inferred execution still waits for all canonical lowering. Pumps alternate after
+joins, so this establishes resumable admission while unrelated lowering remains
+ready, **not simultaneous lowering/evaluation kernels**. Merged `b235f2f4`
+passes 46 focused flow/lifecycle/staging trials, query smoke and checked workers1/4
+execution/canonical reparse. All three fixtures now have supported CMake targets.
+L1 `908515e4` also charges the Fast descriptor, all 15 arrays and lexical scratch
+to their owning budget; final merged core evidence is `127cfa00`, not a new
+whole-union instrumentation pass.
+
+Remaining lifecycle boundaries are checking, foreign-signature validation,
+defer hygiene, known-write/order proof and snapshots, joined transformation and
+evaluation windows with explicit phase edges, attributes, known publication, module initialization and late
+flow. Grammar activation, effects, interning and callback/publication mutation
+have ordered contracts. Remove a boundary only after proving narrower dependency
+and publication ownership and measuring useful work; the remaining phase calls
+alone are not evidence of a scheduler bug. Cycles belong to the owning pipeline's
+quiescent wrapper, not an individual waiting pump.
 
 ### `decltype`, staging, and inferred values
 
@@ -103,16 +111,134 @@ deferred writes, and loop updates participate in the proof.
 Immutability and known value are independent facts. Eligible captured initializers
 become ordinary interpreter jobs. Executed reads demand their producers; merely
 mentioning a capture in an untaken branch does not force its value or create a
-cycle. Nested explicit stage expressions retain the same behavior. Snapshot
+cycle. `semantic_source_bindings.tower` resolves module aliases and lexical
+declarations; `semantic_capture_work.tower` retains the owning declaration/frame.
+`semantic_lifecycle_checks` covers two aliases of one imported capture, writes,
+escapes, early initialization, untaken mutable/forward reads and nested stages.
+Conservative rejection of an unproved extension statement or runtime-storage
+capture is a supported limit, not permission to infer knownness from spelling.
+Nested explicit stage expressions retain the same behavior. Snapshot
 receipts protect inferred initializers before runtime lowering changes them.
 
 No pre-LLVM arithmetic folding implementation was introduced. Known-value
 execution uses the ordinary Tower interpreter and its target/semantic contract.
 This remains a hard requirement for future inference and specialization.
 
-## Immediate next milestone: executed helpers in integer type arguments
+### Ordering, failure and ownership
 
-Start here before broad legacy-adapter cleanup or another feature.
+Graph revision/profile/dispatch tickets and read/write ranges precede dispatch;
+worker scratch, diagnostics, interpreter state and output stages remain private.
+Source/phase ordering selects diagnostics after joins, including failed peers.
+`work_order.tower`'s portable stale-revision/profile fixture is unchanged from
+`be0d123bb`; that is source-specific evidence, not a new current run.
+A2 `0aee8b07` and ROOT `d56c2903` supersede the queued-provenance gap:
+`entity_stage_hold_result` checks the pending suffix atomically (duplicates
+included); cancellable unheld fields clear before finalization. Generic and
+executable pumps hold or discard before the last input view closes, and publish
+before later structural mutation. Unit/backend cancellation drains workers before
+world/view disposal. Remaining unchecked callers are listed separately below;
+passing these fixtures is not universal race freedom.
+
+## Finite completion gates at the frozen revision
+
+### Blocking implementation and contract closures
+
+These are source-confirmed gaps, not new failure-injection results. Each owner
+must either close the listed boundary or document a justified supported limit;
+do not reopen helper readiness, module captures or the completed hold protocol.
+Paths below are relative to `scaffolding/`.
+
+| Gate / owner | Precise remaining boundary and acceptance action |
+| --- | --- |
+| Checked semantic failure paths — A1, ROOT executable owner, L2 shared helpers | `compiler/semantic_lowering_work.tower::sem_lower_register/sem_lower_frontier` still wraps graph admission, component creation, stage lease/publication and scratch growth in `sem_require`; `semantic_flow.tower::sem_flow_request/sem_flows_pump` likewise retains structural/view/vector assertions. `semantic_execution_work.tower::semantic_executable_kernel` still uses unchecked `entity_component_add` for its cloned aggregate signature. `semantic_support.tower::sem_list/sem_table` and diagnostic growth have fatal allocation callers. `semantic_context.tower::sem_require(false)` aborts. Missing contract: recoverable producer error/owning offset, no ready/partial publication, joined cleanup and terminal retry behavior for these real denial boundaries. The successful request/startup/hold fixes do not cover these kernels. |
+| Physical ownership accounting — A2; L1 execution; B1/B2 presentation/host | `library/entities.tower::entity_create_result` allocates raw `Entity` storage outside `store.budget`; node/index storage and `entity_stage.tower` node/reference/cancellation/lease vectors remain outside the charged component-page owners. Fast arrays are now checked work vectors; the remaining L1 boundaries include `compiler/interpreter_context.tower` error/output vectors and `bytecode_package.tower::bytecode_encode`'s raw package allocation. `syntax_provenance` splice scratch and shared formatter/final diagnostic text remain ordinary allocations. Missing contract: complete declared ownership/peak accounting and typed failure at required compiler boundaries, with rollback and zero retained grants; the unit retained-byte cap explicitly excludes these heaps and LLVM. Owner-specific source review must delimit coverage rather than call that cap a process limit. |
+
+Cross-unit shared import/revision reuse is **not implemented** by independent
+unit worlds. It is a performance option with an outstanding immutable
+world/Bedrock/import/profile/provenance identity contract, not a correctness
+prerequisite for the existing isolated-unit API. Likewise the remaining
+source-defined primitive operation protocol and constructor compatibility forms
+in [type values](type-values.md) are separate language milestones; they do not
+mean executed type constructors are absent. Stronghold safety/initialization,
+fixed vectors and optional backend ambitions are outside these compiler gates.
+
+### Measured cost and pending acceptance
+
+| Gate / owner | Existing evidence and exact remaining work |
+| --- | --- |
+| Representative serial/scaling cost — B1/B2/A1, D2 measurements, ROOT final | D2's frozen `baf2a5a0` Linux/LLVM19 Deck comparison uses matched generated 16/1000-function Tower/C bodies, outputs 15/999, optimized object output, warm filesystem/fresh processes, one warmup each, small n=3 and large n=1. Tower wall/CPU/peak RSS: 2.26/2.22 s/183,576 KiB small medians, 2.44/2.41/212,312 large; Clang .04/.03/97,536 and .16/.15/108,196. Large Tower jobs4 on two admitted CPUs costs 3.28/3.65/224,544, with identical object/output and no measured useful speedup. Parse/check accounts for about 86% of Tower's internal time; these timers do not split parsing from semantics. Link/startup are separately recorded in the journal, not hidden in those object times. Repeat affected small/large body/parser/import/staging costs on the final source, record real overlap, CPU/idle/critical path and memory, and investigate regressions. This is a specific workload gap, not a language ranking. |
+| Actionable frontend cost — B1 with B2 cache ownership | B1 `f2f12e5b` measures one ordinary answer42 request: 185 lookups, 155 version builds, 159 tables. Fresh-session construction 1004.855 ms includes table work 930.539 ms; lookup .513 ms (warm filesystem, n=1). Installed baselines retain the same request counts. The merged `00d3f856` check retains those counts and canonical output at 1.05 wall/1.00 CPU s/165,596 KiB; neither receipt covers this later Fast/staging union. Largest identified subcost is repeated LR construction through `syntax_session_declare -> syntax_version_cached/build -> parser_table_open_result`. Establish which versions are equivalent and separate per-version userdata/emission/provenance before reuse. Counts do not prove avoidable misses. Historical full-frontend 300 s/124 timeout remains unresolved; this approximately 1 s request does not reproduce it. Isolate its named request/phase rather than claim it fixed or silently extend a deadline. |
+| Integrated behavior and instruments — ROOT, D1 | Earlier query/type/control/storage/units fixtures cover captures, executed dependencies, aliases, canonical round trips, failures and real worker overlap at the journal's distinct sources. No one receipt covers this entire frozen union. Confirm combined lazy staging/imported-unit/forward/untaken coverage through the existing unit observer; independent outer jobs are not a cross-file declaration-query cache. ROOT's `b83eeca7` receipt now records **passing** Linux x64 LLVM19 address/leak and thread ownership checks on frozen `5c5a308c`: work, concurrent stages, query, unit-admission and 44 executable-admission trials per mode. LR hashes are address `2034ada65cc7f0b8739762c99f9f1dfde06d7cf6af9b48d4c3f23f68bd37705d`, thread `d67356813bea8f06cd32245a7f3bed8208282e07cf96f767857a3b796e4fcfbd`. The original Docker TSan startup failure remains failed; identical binaries passed with the documented per-container seccomp accommodation. Later B1 grammar, L1 Fast and A1 staging inputs are explicitly excluded. Source-language UBSan and Windows/macOS/browser sanitizers are unsupported. The documented negative probe has a known missing buffer-provider link; preserve its earlier sensitivity receipts and ROOT's instruction not to rerun it. Serial allocator faults do not sanitize threaded work. |
+| Public bootstrap, providers and portable execution — ROOT, D2 policy | Current predecessor manifest SHA256 `cf7d84b11d025c708310827c56f3071fa69e36b010ea50dd992855ecc438e896`, executable `9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, remains unchanged. Its complete resources are usable bootstrap inputs, not the new compiler. Finish one clean canonical Linux x64 Docker/no-override build and predecessor/successor checks on frozen inputs. Rebuild the affected dependency closure and collect actual native/WASI consumer/provider/export identities; exact generic/module/diagnostic policy fixes do not establish new WASI reports. Current shared prelude/layout changes prevent reusing old complete compiler objects merely because entry files are unchanged. Implemented portable code and target-policy strings are not Windows runtime acceptance. |
+| Browser, generations and deployment — ROOT | Pages ref remains `6f142bef15f58380831ed344ab5eac5c4b3c2840`; its recorded manifest `eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c` builds from `98ade8cc`, not this compiler. Old runtime assets/receipts stay historical. Re-export current project/actual link recipe, build normal/threads/LLVM/cross Tower closures, run mandatory thread/IDE/worker cancellation and deterministic-error checks, both compiler generations, local deployment and exact hosted assets/desktop/mobile behavior. Reuse unchanged vendor/UI assets only with matching inputs; preserve CNAME and newer receipts. Source/build must be reachable from published main and final main+Pages pushed atomically. No current browser/generation/hosted pass is asserted here. |
+
+B2's earlier bounded cost receipt supplies a complementary large-unit observation:
+three units, 4096 bodies in the last, warm filesystem/fresh processes, n=1 on its
+Linux x64 LLVM19 host. After the wake fix, budgets1/4 take 4.642/2.372 s wall,
+4.534/5.572 s CPU and 679,528/941,284 KiB peak RSS, with equal canonical output.
+Observed outer peaks are1/3 and shared lane peaks1/4. This is useful work at a
+recorded source/host with a memory tradeoff, not a statistical scaling result or
+evidence for the newer Deck compiler. Full timing, allocation/retention and host
+identities remain in the journal's B2 nested-lane receipt.
+
+Use the existing commands in [D2's publication-readiness checklist](compiler_ecs_audit_d2.md#bounded-publication-readiness-review-2026-11-23),
+[sanitizer checks](compiler_sanitizer_checks.md#shared-build-entry) and
+[playground checks](../playground/README.md#checks), with the **new frozen input
+identity**, not the earlier checklist's cached objects. In particular,
+`TOWER_REQUIRE_THREADS=1` must make the separate test reactor mandatory;
+use distinct `-DTOWER_SANITIZER=address`/`thread` native caches and record actual
+instrumented object/link and execution identities. No broad matrix was run for
+this documentation change; runtime profiling is inapplicable.
+The new `tower-semantic-staging-smoke` target builds the three registered
+frontier executables; it does not run them. Their existing CTest selection is
+`ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure -R '^tower-semantic-(flow|lifecycle-frontier|staging-frontier)-tests$'`.
+
+### Full-file inventory ownership and review freshness
+
+`git ls-tree -r --name-only b83eeca7` contains **1,141 tracked `.tower` paths**.
+The [roster's b042 census](compiler_ecs_file_roster.md#integrated-census-at-b0421447-2026-11-23)
+remains the 1,131-path historical ownership set; its per-lane audit links are
+the substantive evidence, not an all-current pass. Ten additions reconcile it:
+
+| New path under `scaffolding/` | Existing domain owner / receipt disposition |
+| --- | --- |
+| `compiler/semantic_lowering_types.tower` | A1; full-file receipt in A1 lifecycle follow-up. |
+| `compiler/grammar_observer.tower` | B1; bounded observer implementation/measurement receipt; consolidate an explicit path-specific owner row. |
+| `tests/semantic_flow_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
+| `tests/semantic_lifecycle_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
+| `tests/parser_diagnostic_budget.tower` | D1 audit / B1 implementation; B1 diagnostic receipt, D1 substantive adoption pending. |
+| `tests/frontend_iteration_profile.tower` | D1 audit / B1 implementation; B1 measured oracle/observer receipt, D1 substantive adoption pending. |
+| `compiler/fast_interpreter_types.tower` | L1; private ownership layout and provider composition reviewed in bounded Fast receipt. |
+| `compiler/semantic_phase_work.tower` | A1; full-file phase-query/ownership review in staging-frontier receipt. |
+| `tests/execution_fast_storage.tower` | D1 audit / L1 implementation; L1 admission/cleanup receipt and core registration, D1 substantive adoption pending. |
+| `tests/semantic_staging_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and registration, D1 substantive adoption pending. |
+
+Thus domain inventory counts are A1 45, A2 43, B1 101, B2 276, L1 26, L2 17,
+D1 548, D2 85. These derive from the roster plus the exact ten-path Git delta,
+not review-completion counts. D1's later full grammar-builder/generic-result
+reviews close those two historical missing receipts. B2 still needs explicit
+adoption of B1's reviews for `units/parser_modules_checks.tower`,
+`parser_modules_work.tower`, `parser_modules_work_checks.tower`. A2 owns the
+roster reconciliation; every lane must bind changed-file findings to its reviewed
+source, including later modifications of already-inventoried paths. D2's 45
+pinned resource rows remain provenance-only. No filename/LOC census closes this
+review-freshness gate.
+
+Audit principles: [Flecs systems](https://www.flecs.dev/flecs/Systems.html)
+and [storage traits](https://www.flecs.dev/flecs/ComponentTraits.html) motivate
+explicit access, staged publication and deliberate stable/sparse storage;
+[Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+requires actual alias information before optimization. These principles supply
+neither Tower implementation credit nor performance measurements.
+
+## Historical November 22 helper experiment (superseded)
+
+The numbered experiment below predates production executable readiness. Its
+failed budget/build attempts and proposed APIs are retained as history; it is
+**not the current remaining-work list**. Production uses `IMFunctionInput`,
+not the experimental `IMCallInput`. The current gates above supersede it.
+
+At that checkpoint, the proposed sequence was:
 
 ### 1. Remove the bootstrap unit-size bottleneck
 
@@ -236,32 +362,20 @@ For the future end-to-end fixture, the attempted cases included
 Those cases were removed from the passing suite with the unvalidated integration;
 they are acceptance ideas, not current supported syntax/behavior claims.
 
-## Remaining chain after helper readiness
+## Disposition of the former numbered remaining chain
 
-1. **Module-level captures and initialization/effect proofs.** Extend lazy proofs
-   beyond function-local bindings. Account for module order, aliases, writes,
-   escapes, and effects across calls. A global's unchanged spelling or an
-   initializer literal alone does not establish a reusable compile-time value.
-   Keep executed dependency discovery and ordinary interpreter evaluation.
-2. **Lifecycle integration.** Replace remaining whole-phase barriers where
-   narrower receipts permit useful overlap. Separate admission, execution,
-   deterministic publication, and quiescent diagnostics. Preserve the lexical
-   continuations already implemented; do not rewrite them into another scheduler.
-3. **Explicit world/session coverage.** Audit legacy entry points in `host_world`,
-   `frontend_world`, `frontend_modules`, `execution_session`, backend
-   `source_session`, and `host/legacy`. Keep explicit production APIs and narrowly
-   scoped compatibility adapters. Do not share mutable default-world state just
-   because its implementation is Tower.
-4. **Shared imports and revision reuse.** Unit workers currently isolate worlds
-   and import caches. Reuse across units/revisions needs immutable ownership,
-   grammar/source/target/policy identities, dependency invalidation, and lifetime
-   cleanup. Stale-ticket checks are not a persistent semantic cache. Preserve
-   lexical module identity and grammar import/update order.
-5. **Measure representative scaling.** Compare serial and 1/2/4/8-worker runs on
-   body-heavy, parser-heavy, multi-unit/import-heavy, and staging-heavy inputs.
-   Record total time, useful overlap, total work, peak live storage, and the
-   remaining critical path. Improve the measured bottleneck. Small programs and
-   dependent chains will not saturate all cores merely because storage is ECS.
+1. **Module captures:** implemented with initialization/effect and alias proofs;
+   current-source integrated acceptance is separate from those older fixtures.
+2. **Lifecycle integration:** mixed aggregate/lowering frontier implemented;
+   retain justified ordered boundaries and close the specific failure callers above.
+3. **Explicit ownership:** production world/session APIs and checked startup are
+   implemented; legacy VM lifetime and uncharged/fatal allocation boundaries are
+   explicitly scoped above and in services, not an unperformed blanket audit.
+4. **Shared imports/revisions:** isolated worlds are supported; broader immutable
+   cache reuse remains a measured optimization candidate requiring a complete key.
+5. **Scaling:** bounded observations now exist, including useful overlap and a
+   slower Deck jobs4 control. The final representative cost/critical-path gate
+   remains open; queue width cannot close it.
 
 Ordered grammar changes, effects, type interning, and short publication sections
 can legitimately remain serialized. Completion means independent eligible work
@@ -291,8 +405,9 @@ deterministic—not that every loop runs on multiple threads.
 - Publish and verify the hosted result, then leave a clean tree and update this
   report/journal with the actual source/deployment identities and test outcomes.
 
-The current development cache is container-local at
-`/tmp/tower-home/.cache/tower/ecs-local-query-new-pin` in `tower-parser-retirement`.
+The November 22 development cache was container-local at
+`/tmp/tower-home/.cache/tower/ecs-local-query-new-pin` in `tower-parser-retirement`;
+it is historical evidence, not a current shared build location.
 `cmake --build` does not copy the executable into `build/native`; the documented
 `playground/scripts/build-native.sh` does. Do not infer a current `build/native`
 binary from a successful cache build. The public Linux x64 bootstrap is a
@@ -382,7 +497,7 @@ Reuse the unaffected browser/generation results and record the source equivalenc
 explicitly in the deployment manifest. Preserve upstream Pages `3937cad`'s
 additional IDE-migration receipt and its unchanged target assets.
 
-## Publication and later upstream integration
+## Historical publication and later upstream integration
 
 The final documentation-only rebase produced implementation commit
 `cf47b568f34c39249aee8e4377d47a1c3fbeddd0` and report commit
@@ -405,13 +520,13 @@ Concurrent publications then changed the increment example and its documentation
 receipt. Compare the manifests: only `increment.tower` changed among the 104
 assets, while the compiler/project/runtime identities stayed at `cf47b56`.
 Preserve that published example and the newer manifest instead of overwriting
-them or accepting a mismatched manifest. The exact current manifest used for the
+them or accepting a mismatched manifest. The exact manifest used for that
 final hosted run has SHA-256
 `2264cdbfd0dc671a4404f3971be5e4552a80f3fc24267a72dff181bdadeb46f8`.
 
 Upstream also merged the separate hosted-linker/bootstrap milestone through
-`8c51600fa6160e81aa2e7efd60bbebcd7b1be39d`. The repository's **current** public
-Linux x64 bootstrap now hashes to
+`8c51600fa6160e81aa2e7efd60bbebcd7b1be39d`. The repository's then-current public
+Linux x64 bootstrap at that historical integration hashed to
 `c59e8bab69340cfcea7f03e3fa081b339dcf12230e84fd0c51870eb766551a75`.
 A fresh documented native build with the private override unset and its successor
 proof-unit compilation both pass after this integration. That native executable
@@ -420,7 +535,7 @@ Evidence: `staging-checkpoint-linker-rebase-native.log` and
 `staging-checkpoint-linker-rebase-successor.log`. This is native rebase validation;
 it does not relabel the already published browser artifacts as a new linker build.
 
-Before resuming the helper-body experiment, test the current public pin and its
-unit budget again. The earlier budget failure was measured with the older
-predecessor; it remains evidence of the attempted integration's failure, not a
-claim that every later bootstrap must hit exactly the same limit/location.
+The earlier budget failure was measured with that older predecessor; it remains
+evidence of the attempted integration's failure. Production helper readiness and
+the current public pin are described above; do not resume this superseded
+experiment or transfer its failure to a later bootstrap.

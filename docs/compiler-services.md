@@ -1,5 +1,15 @@
 # Tower compiler services
 
+Coverage review: frozen published main
+`b83eeca71edbe3770e7b576692a5702cb3ff42fa`, 2026-11-23. The API contracts below
+describe implemented source. They are not a final native/browser acceptance
+receipt. The [completion gates](compiler_ecs_threading_handoff.md#finite-completion-gates-at-the-frozen-revision)
+separate exact-source checks, older focused receipts, unchecked callers and
+pending release evidence. ROOT's positive address/leak/thread receipt on
+`5c5a308c` now passes its selected ownership cases; subsequent grammar, Fast
+storage and staging-frontier changes remain outside those binaries. No runtime
+build was run for this review.
+
 `scaffolding/compiler/services.tower` is the compiler-services library entry
 module. The native and Wasm builds import this same Tower module. It brings
 together semantic checking, completion, document inspection, source metadata,
@@ -54,9 +64,13 @@ the runtime world's budget. Their per-call result preserves allocation denials
 through shifts/reductions; the legacy standalone forest constructor uses no ledger.
 Forest attachment also preserves the entity producer's structural admission and
 allocation results before transferring the leaf, including `Busy` and `Invalid`.
-Early grammar phases, other entity attachment callers and some candidate allocation outcomes
-still need complete propagation; the getters do not establish coverage of every
-allocation path.
+Checked grammar/pattern/table constructors, module startup, parser diagnostic
+owners and generic result producers now propagate per-call errors. This
+supersedes the earlier blanket missing-grammar/startup claim. Shared formatter
+scratch/final diagnostic text and other unchecked semantic callers still need
+complete propagation; the getters do not establish coverage of every allocation
+path. Ordinary presentation vectors can report Memory without being charged to
+the world's ledger.
 
 Hover results include a canonical signature, resolved type/layout where present,
 attached comments, and file/line/column locations. Grammar references retain the
@@ -142,6 +156,36 @@ job ownership. Remaining default-world compatibility entry points and structural
 semantic preparation still require ordered ownership. They use the existing AST,
 symbol lookup and Foundation graph rather than defining another semantic model.
 
+## Lazy semantic execution
+
+`semantic_source_bindings` and `semantic_capture_work` prove module/local binding
+identity, writes/escapes and initialization order before a type or known-value
+consumer uses a capture. Declaration/frame ownership survives suspension.
+`semantic_execution_work::sem_executable_request/sem_executables_pump` requests
+the ordinary body/lowering producers and publishes `IMFunctionInput` only when
+the checked executable is ready. Unevaluated `decltype` retains the shared
+semantic type-query contract. `semantic_type_execution` and
+`semantic_constructor_work` use the ordinary interpreter for helper calls,
+`comptime` and supported representation construction; only executed reads/calls/
+constructions demand their value producers. Untaken branches
+do not manufacture value dependencies. Runtime type construction remains an
+explicit capability rejection, not a constant-folder fallback.
+
+The shared `SemanticPumpResult` protocol preserves continuations, cached
+arguments and source effects across progress/waiting/completion/failure.
+`sem_lifecycle_lowering_pump` mixes independent AggregatePrepare/Lowering work
+with function-specific dependencies. `sem_lifecycle_queries_pump` now alternates
+joined lowering and ready executed-stage producers through root-owned
+`semantic_phase_work` joins. Explicit stages wait on signatures and their owner;
+inferred execution waits on all canonical lowering. This is resumable admission,
+not simultaneous lowering/evaluation kernels. Global initialization/effect proofs
+and publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
+The lifecycle/capture/type fixtures and actual mixed-kernel rendezvous have
+source-specific journal receipts. They do not prove every staging capability,
+all structural failure paths or final release equivalence. In particular,
+lowering/flow admission and executable aggregate-synthesis callers still contain
+fatal allocation assertions; checked executable startup is a narrower contract.
+
 
 ## Concurrent compilation units
 
@@ -167,11 +211,15 @@ all workers join, for module configuration, diagnostics and dependency output.
 Do not retain that borrow across a step or disposal. `frontend_units_error_offset`
 supplies the selected failure's source offset.
 
-The in-progress bounded API is
+The implemented bounded API is
 `frontend_units_create_bounded(count, budget, retained_bytes, pointer_bytes,
 revision, profile, bedrock, foundation, library)`. It rejects zero and the
 unbounded sentinel. The original create entry remains an explicit compatibility
-wrapper without a finite declared-byte cap. Copied grammar/library/path/source
+wrapper without a finite declared-byte cap. Its `_result` variant preserves the
+typed startup cause. `frontend_modules_create_result`,
+`frontend_modules_bind_world_result` and `frontend_module_root_world_size_result`
+likewise use checked module/root-world startup; failed construction retires
+private owners before exposing an environment. Copied grammar/library/path/source
 buffers reserve their exact capacity including NUL before allocation. Replacing
 a configured input reserves the entire new snapshot while the old snapshot is
 still live, then commits all buffers together. A denied cap or allocation failure
@@ -188,12 +236,17 @@ Invalid or incomplete inspected source may produce a recovered document with
 any failed unit suppresses both kinds of result. Debug entity IDs/component counts
 describe temporary world storage and are not stable semantic identifiers.
 
-The draft shares one synchronized budget between outer unit jobs and each world's
-nested parser/semantic kernels. Each outer job reserves one lane; nested work
+The implementation shares one synchronized budget between outer unit jobs and
+each world's nested parser/semantic kernels. Each outer job reserves one lane; nested work
 reserves available extras and also runs on its caller. Empty grants run inline
 without waiting for capacity. Grants survive joins and result publication.
+`work_budget_set_wake` arms a one-shot notification after denied outer lane
+admission; nested release wakes the existing pool receiver, and
+`frontend_units_step` refills eligible work while other units remain live.
+B2's `baf2a5a0` admission fixture observes this on distinct threads, including
+cancellation and byte/lane ceilings; it is not a full scaling result.
 This bounds admitted compilation lanes, not retained idle OS threads or all heap
-allocations. Portable hosts use the same queries with
+allocations. Hosts without a thread transport use the same queries with
 the serial transport. Pools also respect transport capacity; nested browser
 workers run their inner phases inline instead of waiting for occupied outer slots.
 Worker count does not affect program semantics, canonical
@@ -234,7 +287,8 @@ standalone backend phase, `backend_units_create_bounded(frontend, count, budget,
 retained_bytes, triple, library, optimize)` caps its own retained target/object
 bytes; the frontend's separately owned inputs remain live. In streaming mode the
 explicit cap must equal the existing frontend cap. The original backend create
-wrapper preserves compatibility. These new paths still await the complete joined
+wrapper preserves compatibility. B2's bounded unit and backend-overlap checks
+have recorded native passes; these paths still await the complete joined
 threading, allocation-failure and sanitizer milestone described in the journal.
 Close the backend batch before its frontend owner. A second backend batch cannot
 acquire that frontend while the first still holds its lease. Failed target queries
