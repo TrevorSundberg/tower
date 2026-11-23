@@ -92773,6 +92773,60 @@ out of that host's supplied baseline. New compiler sources are not baked into
 47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
 group, implementation change or blanket merged compiler validation.
 
+### B2 page-owned browser worker candidate rejected, frozen f167 (2026-11-23)
+
+Host main023955e1 after required pull, owned jobs initially idle, CPU12-23/quota12/
+24GiB/cache924GiB free. Read ROOT retained root_retirement_20261123_2116 original
+strict report: pool4/compiler1 close5/2 with zero targets; compiler4 completes
+Tower work, child closes and retire probe, but coordinator target remains after
+30s. Original36.33wall/4.44CPU, peakRSSnotcaptured. No compiler/browser build.
+
+Implemented exactly one page-owned workerFactory/MessagePort candidate. Page owns
+coordinator and each capacity-bounded native compiler worker; direct ports carry
+existing thread ABI, page controlport handles create/terminate; coordinator
+failure/cancellation closes whole group and guards queued stale messages. Applied
+same helper to actual browser defaults/app/language caller creation and strict
+test. Tower graph/budget/admission/leases unchanged. No cooperative-READY/full-
+Chromium candidate, no D2 diagnose-worker-retirement/control-file edits.
+
+Frozen f167 shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4,
+work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c,
+serialized resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b,
+Chromium159/headless-shell1255 executable24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b.
+Same launch/options/isolation/fixtures and original30s retirement assertion.
+Three fresh strict candidate trials PASS actual5/2/5closes,zeroCDPtargets, full
+serial/parallel canonical and Graph/Fast/output/query/budget checks. Process
+wall6.049525/6.470020/6.411205s, waitedchildCPU1.829615/1.952501/1.993595s,
+RSS205996/205516/205648KiB. Compiler4 closewait26.802/.693/26.565ms versus
+original30011.845ms failure. Compiler4 workload2536.942ms original versus
+2592.395/2896.401/2638.686ms; no compiler speedup claim. Wasmcapacities unchanged:
+pool33947648,compiler1 90177536,compiler4 97648640B; capacity is not retainedbytes.
+
+Focused controls: startupcancel PASS1actualclose/zero targets (before any child
+observed); real lr_work_tests cancellation PASS5/0; coordinator uncaught failure
+PASS5/0; child startup failure PASS5/0. Shared injected guesttrap control then did
+not return before finite120saggregate guard; process/browser forcibly closed,
+page.evaluate Target page, context or browser has been closed, wrapperstatus1.
+120.072523wall/2.326883waitedchildCPU/207756KiB. Final generation-retirement control
+UNSTARTED. Four earlier controls retain their actual completed assertions; forced
+teardown is not a passing drain. First uncompleted observed transition is shared-
+trap result/error delivery; logs do not disambiguate startup-ready from guestcall.
+Existing Node faultadapter's awaited dynamic import versus immediate portdelivery
+is a plausible fixture-handshake concern, not confirmed cause. No retry, extra
+candidate, altered timeout or assertion weakening. Linux gate remains OPEN.
+
+Required gates incomplete: candidate NOT SHIPPED. Saved both patches/all candidate
+files, frozen resources/commands/reports/logs/manifests in C:/Sandbox/build/
+codex_ecs_20261122/B2/page_workers_023955e1 and matching/cache directory. Final
+rejectedpatchSHA80daea98d30b82cc5fad216dd1f0d86d3db8814b1ddd508b9d2fbfec0fb85116;
+helperSHA356a8ca9ace1aa6458cffab748be424ce5cee630c32ae9df99ab9c823bcc0bc5;
+controlreportSHA4636385f15fe7445fbf454d6a4902b9af5622e5a25d5c4209cabb4c1e8f0f629.
+Drained owned processes; restored only six candidate-modified tracked files and
+removed only two new candidate files after preservation. Entire browser source/
+test/script diff against HEAD is empty. Earlier NodeT5/ROOTarchive/todo/D2 work
+intact. Detailed evidence/limits docs/browser_page_worker_candidate_023955e1.md.
+Documentation-only publication; no runtime fix/deployment/browser acceptance or
+Node/generation/sanitizer claim. ROOT retains final release and native diagnosis.
 ### A2 executable coordinator batch: explicit world budget (2026-11-23)
 
 Frozen published fcaad5a64d9504fda35c4260204811d5458db0ef/tree34c396cea58a872edebf1d772314fee132594df0. Audited sem_executables_pump's take/prepare/lease/dispatch/join/hold/publish and final cleanup against work_vector/work_buffer and neighboring semantic_flow. Only its temporary pointer batch now uses checked work_vector admission on compiler_world_work_budget(compiler_node_world(c.program.root)); persistent query_reads/aliases remain separate. Same window/order and empty path, exact Capacity versus Memory, stages discarded under the input view before query cancellation, lane receipt release and scratch disposal. Existing shared replacement-peak ownership is reused; no scheduler, body/admission or allocator rewrite.
@@ -92806,6 +92860,36 @@ acquired. Local manifests build/d1_ecs/numeric_review_22e15d5b/. Deck PID3155813
 127GiB disk free,9.8GiB available RAM. Documentation-only profiling inapplicable.
 No production/test/todo edits, browser artifact adoption, sanitizer or generation
 claim. Later alias work is excluded; ROOT retains joined-release validation.
+
+### 2026-11-23 D1 — unpublished L2 reconstruction snapshot review
+
+Reviewed only ROOT_l2_source_review_2130's12Tower files against manifest published
+base779de775b227f7f9bba1bcaa35cc420a4e7f0bb7, UTC2026-11-23T21:30:29.4611350Z.
+Archive0405e5479f92b734c124dfdfe81c0f2e3097eb4fbf9746e5d395bef74649455f,
+manifestb422e2014d8b8836900e3d88b9018891440cc2def2062af60e8e4ca40fec93ca and all
+copied hashes/lengths verified. Used git show/base diff, whole changed methods,
+tests/registrations and immediate formatter/import/lexer/session consumers;
+no active L2 file copied into this clone's compiler closure. Full path/hash map
+and source conclusions are appended to compiler_ecs_audit_d1.md.
+
+R1 for ROOT/L2: bi_initializer's new arbitrary nonzero-run KString path emits
+isolated128/255 as raw source bytes. LLVM19.1 ConstantDataSequential isString
+checks i8 array shape, not UTF-8; Core.cpp's counted getAsString includes all NULs.
+The existing formatter escapes no such high bytes; the byte lexer cannot match
+that malformed UTF-8 string, and the browser decoder cannot preserve it either.
+This is a concrete source-level encoding defect, not an executed draft failure.
+Proposed smallest Tower provider test feeds counted[65,0,128,255,0] through the
+existing LLVM constant/import/format/recheck path with exact byte/sentinel checks.
+Current added fixture covers only ASCII escapes/trailingNUL. No repair overlaps
+L2; exact producer and proposed regression sent through D1 status.
+
+No concrete additional defect found in inspected postfix-pointer, prior type
+binding, nominal-result cast or stage-cleanup paths; missing lexical/byte boundary
+execution remains explicit. Owner native17.32s/3.16GiB progress is not release or
+Wasm2GiB acceptance. No runtime repeat/build/sanitizer; docs-only profiling is
+inapplicable. Deck PID3160007,127GiB disk free/9.9GiB available RAM; no owned jobs
+or heavy lock, D2's slot untouched, todo unchanged. Local evidence under
+build/d1_ecs/l2_review_2130/. Final-source adoption remains L2/ROOT work.
 D2 trace publication reconciliation: scoped5a3ead88 merged full publishedfcaad5a6
 after required ff-only pull detected divergence. Both histories retained. Final
 diagnostic/strict/coordinator/boundary and browser hashes match; Node syntax/diff
@@ -92966,3 +93050,9 @@ Merged small/large objects/executions exact15/999; nm strict Semantics/ParserNod
 policies pass. Source manifests stable; compiler141a2b5a5cae4030d090678dda334412d17ebbfe34693243c3b71f9d20d804ae.
 These checks do not relabel paired7e46 timings. All jobs drained, todo/public768
 unchanged; no generation/pin/hosted publication. Complete history and prior receipts preserved.
+B2 page-worker rejection reconciliation: receipt82f20518 merged completea2bd2987
+history as18b441f3 after required ff-only pull refused divergence. Both journals
+preserved; six restored candidate paths still match pre-experiment023955e1,
+new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
+fixture work retained/excluded from frozenf167 evidence. No browser rerun or
+rejected-fix adoption; normal source publication only. All B2 jobs drained.
