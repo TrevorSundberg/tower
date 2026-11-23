@@ -89201,3 +89201,18 @@ inputs. Current native closure is complete; browser reactor rebuild/adoption,
 independent pointer-type-value limits and final release remain their existing
 owners' gates. No browser/LLVM/generation/sanitizer or deployment claim. All owned
 processes drained; prior call-discovery correction and all earlier logs preserved.
+A2 occupancy publication reconciliation: e9fd7aa5 plus published1a5241cb merged
+as aa4bbc53b6c2b7174b7b48ed23e0d42f681696cd; README append conflict preserved both
+sections, full histories kept. B2 WorkPool ABI/observer and L2 compiler callers
+changed measured dependencies, so rebuilt ONLY production profile target21actions
+66.588wall/91.469CPU/1069040KiB. All8 merged plain/observed8/512-body1/4-worker
+cases pass at that input, source/canonical checksums/reference42/zero grants.
+Per-kind occupancy/page/used/live bytes unchanged, serial ledger+16B matches
+world WorkPool growth; old9d receipt remains separate. Merged executable05df5042,
+full source/link/transport hashes in occupancy receipt; profile source40189226
+unchanged. Merged large plain1/4 process .679171/.809990wall,
+.622207/.881147CPU,255564/257660KiB n1. Four-worker result is higher than original;
+preserved as observation, not attributed causally or called zero overhead. No
+storage-policy fix, new sanitizer operation or broad matrix. All28 ordinary
+processes across distinct binary boundaries passed, not pooled repetitions.
+Owned jobs drained; documentation/whitespace checks and normal main push follow.

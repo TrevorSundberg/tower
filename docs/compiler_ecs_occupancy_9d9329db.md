@@ -228,3 +228,47 @@ The old sanitizer stash remains untouched; unsupported coverage and the rejected
 current-source sanitizer gate remain open. ROOT owns subsequent affected-source
 adoption and release. This receipt is real compiler occupancy evidence and a
 specific measured architectural trade-off, not overall compiler completion.
+
+## Affected merged-source adoption
+
+Review/measurement commit `e9fd7aa5` was followed by the required pull. Normal
+fast-forward-only divergence was resolved by merge
+`aa4bbc53b6c2b7174b7b48ed23e0d42f681696cd`, preserving published `1a5241cb` and
+both independent README additions. Incoming B2 WorkPool observation fields and
+compiler/L2 callers changed actual dependencies, so hash-only adoption would not
+suffice. The same dependency-aware target rebuilt21 affected actions using the
+same public pin, 66.588 wall/91.469 CPU s, peak1,069,040 KiB. No other suite ran.
+
+Eight affected plain/observed cases (8/512 bodies x1/4 workers) passed at this
+merged input, including checksums/reference values, complete kind/page census,
+no outstanding view/lease/worker ownership, and zero final grants. The profile
+source is still40189226; all per-kind live/used/page/slot/physical-byte counts
+above remain identical. Serial charged totals/peaks are16 B higher, matching the
+larger world-owned WorkPool descriptor; e.g. large joined93,825,589 B,
+cache-cleared2,322,406 B, disposed0. Original9d timings/identities stay original.
+
+| Merged identity | SHA256 |
+| --- | --- |
+| Executable | `05df504275a84e6a09d40ac49723dd5d22e40bcae30599f9b1cec31ee3e49d49` |
+| Profile object | `8f70f51289b1f80e1c0667b9bd4f6267f2090c5cd06d1452c71906f3a050ac3b` |
+| Expanded imported source manifest | `e3fd92e8c3d9a0f4a4fa5bba166a1e22fd08b6bf41f3c8407a6ff557d147a9f0` |
+| Actual link-object manifest | `7d99223f158d625b3e58788a33b518baaa492d8663d99f1676e4076b684b8bc3` |
+| Memory/transport manifest | `f1d424e46694304b5a1e1cbf60ab0b42540369296854e9330db4ab58fca441c2` |
+
+Merged disabled-observer n=1, milliseconds wall/CPU, whole-process RSS KiB:
+
+| Bodies / workers | Compile wall / CPU | Process wall / CPU | Process peak RSS |
+| --- | ---: | ---: | ---: |
+| 8 /1 | 366.188 /337.425 | 498.800 /442.137 | 176556 |
+| 8 /4 | 442.834 /459.056 | 585.933 /576.861 | 178876 |
+| 512 /1 | 505.794 /476.377 | 679.171 /622.207 | 255564 |
+| 512 /4 | 600.862 /696.712 | 809.990 /881.147 | 257660 |
+
+The merged large four-worker sample is higher than the original plain sample;
+retain it, rather than claiming neutral overhead or attributing a single sample
+to one incoming change. Serial and four-worker counts/outputs still agree, and
+both boundaries favor serial on this workload. B2/ROOT own further scheduling
+attribution. All owned jobs drained; no additional performance campaign,
+instrumentation, generation, browser check or deployment occurred. Twenty-eight
+ordinary processes across the original/final/merged observer boundaries passed;
+these are not twenty-eight independent samples of one identical binary.
