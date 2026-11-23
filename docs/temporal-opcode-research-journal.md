@@ -95700,3 +95700,35 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+## 2026-11-23 A1: actual a06 entity-pages T2 acceptance stops at optimized reconstruction
+
+Frozen mounted main e637ba384037a6305fd945dd1e7c6296f5a98635, compiled source
+a06ec4b1f9f44419882477bc1a55b6ed39e2200b. Verified ROOT portable f0657574 / LLVM
+8acbaf08 full hashes and SOURCE/files provenance. Exactly one anchored
+entity_pages semantic-port run, all old assertions, 600s test/outer guard,
+Node21.7.3 Windows11 CPU12-23/24GiB; no rebuild or private compiler override.
+32-bit Graph/Fast/canonical equality PASS, unoptimized LLVM Foundation
+reconstruction/reparse/Fast output0 LF PASS. First failure: optimized32 LLVM
+Foundation "This operation requires integer operands", offset1290736,
+errorFile .tower/tests/entity_pages.tower. This is not a Memory result.
+Potential relation to D1 i1 finding is an inference, not a diagnosed producer;
+exact input/response are routed in status to ROOT/D1/L2. No overlapping fix.
+
+Actual Node child exit1, wall302.3651s, CPU454.2656s, kernel peak working
+set3840491520B from retained handle; OS job wall302.5201s, two processes,
+zero active before close. No timeout. Source/resource/artifact manifests
+unchanged before/after. Raw canonical972596B, unoptimized Foundation4709291B,
+IR and exact optimized error retained externally under
+A1/wasm_t2_a06_e637ba38. This differs from the older isolated A2 request.
+No per-phase CPU/Wasm-capacity/live-owner census inferred from RSS.
+
+One selected failure/zero passes;18 filtered cases excluded, later64/optimized
+execution/actual executable phases unrun. Conditional compiler-entities
+unstarted (current file registers four tests). No tests weakened/repeated,
+limits raised, production source edited or release claimed. Documentation-only
+runtime comparison inapplicable; recorded costs are this acceptance run.
+Full identities, command, measurements, hashes and limits:
+[wasm_entity_pages_a06_a1.md](wasm_entity_pages_a06_a1.md).
+Todo unchanged; owned work drained, disk338717982720B free. Normal receipt
+commit/reconciliation/push follows; ROOT retains final release.
