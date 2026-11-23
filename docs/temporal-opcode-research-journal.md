@@ -91653,3 +91653,47 @@ The cross main/language closure remains unchanged. Preserve that mismatch log;
 reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
+
+### ROOT joined compiler build and Windows shared acceptance at47433acf (2026-11-23)
+
+Frozen published47433acff17e8ca6b3fffb6ce9875a37b38aec08 joins A2 unary argument
+queries, L1 known nominal wrappers, L2 transactional reconstruction/error
+handoff, declaration-page policy and prior package fixes. ROOT read the changed
+production methods and owner receipts; this is artifact integration, not a new
+compiler implementation. Pending numeric-only wrappers, malformed grammar shape,
+parse-memory and grammar reuse work are excluded. Protected todo.txt unchanged.
+
+The documented public768 bootstrap paths ran with no private compiler override,
+WASI SDK34/LLVM19 public seed and frozen LLVM source/tablegen/WASI caches.
+Local WSL Orchestral-Revng, CPU8-15, buildjobs4/compilerjobs1. Dependency-aware
+portable6actions49.35wall/57.65CPU seconds/1100088KiB peak; LLVM/cross13actions
+80.44/123.03/1100276; shared30actions64.12/125.87/1101036. All exit0,
+source checksums match before/after each phase, no warning/error build diagnostics.
+RSS is GNU-time process/child high-water, not summed concurrent or live ownership.
+No throughput/regression claim from different build-cache contents.
+
+SHA256:
+- portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad
+- LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6
+- cross4822d31dcb33720cbe49d4a917f3597826bd317a0622d3737619e2ead9aaa8a2
+- project037878ce2273b3df139e877a7c56ff9876b0e66ae9c9e30fee8d7bf20ae4e25e
+- shared50f2ba6054b38057613a8d3e6a47c6f517ee17240a9a29ed67e9e76a634625a8
+- work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c
+
+The original strict test-shared-compiler.mjs passes on Windows Chromium159.0.8154.6,
+Playwright1.65.1/Node21.7.3: pool4/compiler1/compiler4 trials321/1425/3237ms,
+actual close counts5/2/5 and zero worker targets, full serial/parallel canonical
+and Graph/Fast output equality. Final Wasm capacities33947648/90308608/97845248B,
+not process RSS/live owners. Actual input JSON
+46525264891a73cb34302340530ffb182704cf7082bc3e057e99956ec66cc0cc.
+Whole exec-command wall5.99s; aggregate browser CPU/RSS not captured. This is
+current Windows scoped acceptance, not resolution of intermittent Linux retirement,
+the full Node thread file, hosted isolation, final sanitizer or current generations.
+
+Evidence /root/.cache/tower/root_release_47433acf and
+C:/Sandbox/build/codex_ecs_20261122/ROOT_browser_inputs_47433acf: all32 artifacts
+copied with per-file lengths/hashes, source identity and shared_windows.json.
+Old eac/f167 bundles and old ROOT shared binaries remain preserved. New portable/
+LLVM copies were independently rehashed on Deck before D1's focused T1/alias
+adoption launch. All ROOT build/test jobs drained. Runtime publication and new
+public pin remain pending; this receipt reuses verified hosted assets unchanged.
