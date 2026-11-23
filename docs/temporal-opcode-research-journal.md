@@ -93082,3 +93082,26 @@ without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
 compiler build or relabeled current-source validation. All jobs remain drained.
+
+### 2026-11-23 D1: independent scoped grammar reuse source review
+
+Reviewed all nine Tower changes in54f3baab against parent7e46f025 at fixed merged
+05edbfb3, plus immediate ParserStructureCache/table/version/session/world/pool
+consumers and actual fixture/policy registration. Exact changed blobs also match
+B1's validated75c15ee7 merge. Findings and identities are appended to
+[the D1 audit](compiler_ecs_audit_d1.md#2026-11-23-d1-published-scoped-grammar-structure-reuse-review).
+No concrete new defect found: world/budget/seed/profile identity, private grammar
+metadata, independent table/cache pins, synchronous worker drain and cleanup
+support the scoped lifetime. Checked entity attach preserves the first Capacity
+cause; the original64MiB negative units gate is byte-unchanged. New Semantics
+policy admits one exact Tower cross-object symbol with wrong-unit/name negatives.
+B1's published measurements/failures remain attributed to their frozen inputs;
+external raw logs are not independently authenticated. No runtime/build/profile
+repeat or production edits: documentation-only profiling is inapplicable.
+Source review does not establish race freedom, new failure-injection coverage,
+joined bootstrap/browser/generation/instrumentation or hosted release acceptance.
+Commands: required pull, git show/diff/grep on fixed commits, nine blob comparisons,
+registration/caller reads and diff --check. Evidence directory
+build/d1_ecs/grammar_review_05edbfb3; clone initially3ad7d5f0, same D1 thread,
+Codex PID3164353. Disk127GiB free/RAM9.8GiB available at start; no owned jobs,
+heavy lock or compiler inputs modified; todo preserved. ROOT owns final adoption.

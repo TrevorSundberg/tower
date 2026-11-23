@@ -4762,3 +4762,85 @@ runtime receipts, so those are attributed progress only. Wasm2GiB fit, joined
 reactors/generations, instrumentation and hosted release are unproved here.
 No build/test/runtime repeat; documentation-only performance profiling is
 inapplicable. Existing full-audit history and earlier acceptance scopes stand.
+
+### 2026-11-23 D1: published scoped grammar structure reuse review
+
+Independent source review of implementation
+`54f3baab74db1c792632804160d0e0c1946173bd` against parent
+`7e46f0250a790023130b05292759716eb31ce133`, frozen at merged
+`05edbfb3b9c0b7db81c69a210a7ed425ae947f91`. All nine changed Tower blobs
+are identical at implementation, B1's validated merge `75c15ee7`, and this
+freeze. The checkout was pulled to `3ad7d5f0`; later work is not adopted here.
+Read the changed methods and immediate cache/table/version/session, world,
+worker and test consumers. **No new concrete defect found in this scope.**
+This is source review, not D1 execution or authentication of B1's external logs.
+
+Paths below are relative to `scaffolding/`; Git blob IDs identify the exact
+reviewed contents, not just the last authoring commit.
+
+| Path / blob | Substantive finding |
+| --- | --- |
+| `compiler/frontend_compilation.tower` / `05b43c94dfedc463b8dbe219d0df9cb8ce248e85` | Clears the world's surplus structural index after the synchronous parsing loop, including normal failed-parse exits, before semantic checking. Module/session versions still own their tables. It neither publishes grammar globally nor changes ordered module/root attachment. |
+| `compiler/syntax_baselines.tower` / `272a5b4fe57a4633cb1aa3ac282d33872135c406` | Optional owner is a checked WorkBuffer charged to the explicit world's budget. Pinned worlds cannot construct it. Seed pointer or budget mismatch retires cache pins and the old retained seed before reset. Clear detaches the owner first, disposes pins, then frees a copied storage descriptor; baseline teardown invokes it before releasing seed/document ownership. |
+| `compiler/syntax_emission.tower` / `28144a3630c83793384f291cecdb42a2a6bf9cdd` | `emission_child` records the actual `entity_attach_result` cause before dropping the local child reference. `syntax_emit_inherit_result` propagates that cause before partial emission destruction. This preserves Capacity instead of substituting the old Memory fallback; other boolean attach callers/declaration remain. |
+| `compiler/syntax_session_next.tower` / `3ea6872cb727eac70c63ba6797270e5e06e585b4` | Install passes the owning world/seed's optional structural cache. Failed construction retains the prior version/revision and checked cause. `syntax_next` closes its recognizer/stream scope before import or declaration activation; candidate pins are released on both outcomes. Local overrides still create/install immutable revisions after the declaration boundary. |
+| `compiler/syntax_session_setup.tower` / `a8a158eaa3e1298cc6a9006f07c4d12e9c705588` | Reset uses the same explicit world/Bedrock scope, retaining module-world checks and first resource-cause latching. The seed, session grammar, source/progress and resulting version ownership stay separate; there is no ambient Foundation/Tower activation. |
+| `compiler/syntax_version_cache.tower` / `98bca71bb153461b12f94a813f424de30460baaf` | Original entry point delegates with no external cache. The new entry point retains exact full-version lookup/reset and uses the supplied cache only during a miss's synchronous construction. It stores no borrowed external cache pointer. Optional index/snapshot denial returns a usable uncached version; required table failure still returns null with its diagnostic. |
+| `tests/parser_structure_reuse.tower` / `7e94c445acc9019a752d99d82d4b0cceec59484d` | Added cases distinguish same-world independent session versions sharing LR runtime from two worlds sharing one budget but never runtime. They check seed-identity invalidation, optional metadata denial/retry, live version pins after index clear, and zero final bytes/grants. Existing capture isolation, changed terminal/precedence/mode/specialization, required Capacity, unresolved grammar, cancellation/retry and imported override/reset cases remain. |
+| `tests/bootstrap_symbols_checks.tower` / `9623d74305f48dca726696b7b29bbc1062b2fc0b` | New exact symbol is tested through the actual policy for four target spellings, with truncated/suffixed names and wrong ParserNodes/Entities units rejected. Existing negative unexpected-import cases remain; target spelling tests are not execution on those targets. Standalone exported main imports the real tool. |
+| `tools/bootstrap_symbols.tower` / `c38c315e4441338ab3425cb5fba52475c7c2db25` | Only Semantics gains exact `syntax_world_structures_clear` admission. It is a Tower-defined cross-object extern, provided by the Parser unit's parser_frontend -> frontend_world/syntax_session -> syntax_baselines closure, not newly foreign-owned runtime logic. Exact length/token matching remains; no prefix allowance. |
+
+Immediate ownership/identity trace: `parser_structure_same` compares ordered
+production owner/begin/count/precedence/associativity, symbol ranges/nonterminals,
+and ordered names. Reuse additionally requires the same world, budget, parser
+mode and specialization. The shared object owns numeric LR grammar/runtime/state
+storage; each table retains its own grammar entities, userdata, captures and
+emission/lexicon/replacement metadata. No second authoritative syntax tree is
+introduced. Seed identity resets this bounded derived index even for equivalent
+seed contents. A cache hit does not bypass the version's remaining construction.
+
+`parser_structure_publish` takes a table pin before optional cache insertion;
+failure to grow that index leaves the table usable. Eviction/clear releases only
+cache pins. `parser_table_clear_runtime` and `syntax_version_release` release the
+table's pin before its remaining grammar/source ownership. `compiler_world_bind_budget`
+forbids rebinding a populated world, so the new owner cannot silently outlive or
+switch its allocation ledger. `frontend_world_clear` rejects busy/pinned worlds,
+closes the pool, then clears syntax before other baselines; final world disposal
+refuses remaining frontend owners/views/entities. The caller must keep the budget
+alive until those releases complete.
+
+Join trace: `lr_first_work` reserves graph tickets/access, opens its input view,
+calls `compiler_kernel_dispatch_admitted_result`, then closes the view and selects
+failure in frontier order. The underlying `work_pool_batch_result` defers draining
+all admitted peers on success or partial submission failure while its descriptor
+is alive. Table construction is synchronous and clears its construction-only
+cache borrow on exit. Cache pins/refcounts remain coordinator-owned, not atomic
+general-purpose sharing. These inspected callers justify the new post-parse
+clear; they do not prove arbitrary concurrent cache mutation safe.
+
+Registration and limits: `frontend_main`'s explicit `structure-reuse` selector
+calls this provider; `tower-frontend-structure-reuse` retains timeout60 and
+`native;focused` labels. The provider also invokes `frontend_session_world_tests`.
+The new live-version check after world-index clear checks retained runtime
+pointers; the older owner test actually parses after cache/table retirement.
+Its cancellation case cancels before the first recognizer step, not mid-dispatch
+concurrency stress. Required OS allocation failure is not newly injected here.
+`tests/frontend_units_memory.tower` is byte-unchanged from the implementation's
+parent: `import_allowance = 67108864` still requires the exact Capacity diagnostic,
+no output and no cancellation. Passing that gate means correct finite-budget
+denial, not successful compilation within64MiB.
+
+Evidence attribution: [B1's grammar-cause receipt](compiler_grammar_cause_7e46f025.md)
+records the original wrong Memory cause, restored transitive attach declaration,
+wrong-cwd grammar invocation and corrected checks. It reports merged full units
+13.41wall/22.79CPU seconds/815948KiB RSS, exact small/large object/execution outputs
+15/999 and strict import checks at `75c15ee7`. Its paired parent/candidate timings
+remain at their own frozen inputs: e.g. large serial CLI .635 -> .600s and
+four-unit workers4 1.4429 -> 1.1389s. Four-worker CLI still trails serial; metadata
+retention and the 205.08 -> 213.83ms observer regression remain disclosed.
+Those external raw logs were not available for independent authentication here.
+No D1 build, test, runtime/profile or sanitizer repeat; documentation-only
+profiling is inapplicable. Final joined-source bootstrap, browser/generation,
+source-specific instrumentation and hosted adoption remain ROOT's separate gate.
+No production edits, race-proof claim, census expansion or new implementation
+assignment results from this bounded review.
