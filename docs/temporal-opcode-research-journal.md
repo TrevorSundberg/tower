@@ -94989,3 +94989,38 @@ changed createCompilerWorker page-owned path is not invoked by these ordinary
 Node fixtures (compilerThreads takes the non-shared module return or Node worker
 factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
 hosts, compilerThreads and Tower providers still match the measured freeze.
+
+## 2026-11-23 A1: joined25 Node T5 adoption
+
+The complete unchanged compiler-threads.test.mjs runs once: PASS3/3, exit0,
+no skips/cancellations/timeouts/unstarted cases.128 pool lifecycles, real injected
+worker trap and full1/2/4/8 matrix finish with original30/10/120s deadlines and
+unused180s outer guard. Exact identities/command/coverage/limits in
+[node_threads_25dddd04.md](node_threads_25dddd04.md). No production/fixture edit,
+compiler build or browser rerun. Previous b8 eager files and receipts preserved.
+
+Supplied compiled25 compiler671fb95d...fc402a/work6411c389...4e32c verified before
+installation and after execution; both absolute overrides and eager paths match.
+Mounted host/resources0fe314efe1b8d740a1be3fa829124e92d2cf1f6c, tree5f01ec03,
+remain separate from compiled providers and newer browser transport. A2new125efb11
+and in-flight B1/B2 producers excluded from compiled25 acceptance. All1186 Tower,
+47 host,3 selected test/helper and2 artifact checksum checks pass after the run.
+
+Phase evidence:128 pool completions; capacities1/2/4/8;272 dependency executions,
+16 worker/16 generic/16 imported executions,80 negative cases,8 world checks and
+all window/iteration/LR/closure controls.23 created/terminated/actual-end worker
+IDs match exactly. Natural Node exit and idle-only Docker inventory prove this
+run drained; requested lane counts/terminate calls alone do not. No browser or
+universal race-freedom inference. No expected error or known output diluted.
+
+GNUtime116.80wall/180.84CPU(47.51user+133.33system)s/518316KiB peakRSS, zero swaps.
+TAP pool5.295210s/trap.161854s/matrix111.190725s; matrix stays below120s with8.81s
+margin. One fresh process tree/hash-warmed files, phase/debug overhead included;
+CPU covers waited descendants, RSS is process high-water, not aggregate memory
+or live guest owners. Acceptance cost only, not speedup versus different b8 inputs.
+KinmenA/WSL2 Linux6.18.54.1, Node22.23.5, CPU12-23/24GiB own container/cache.
+Same UUID01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, Codex PID34720; all owned work
+exited. Raw source/environment/logs/phase counts/timing/artifacts/process evidence:
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
+before/339077795840B after, todo unchanged. Normal source-bound documentation
+publication follows; ROOT retains later-provider builds/generations/hosted release.
