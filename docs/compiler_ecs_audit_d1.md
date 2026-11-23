@@ -2787,3 +2787,24 @@ build and successful checks. Runtime wall/CPU/RSS samples and limitations are in
 the journal. Newly joined scoped instrumentation and current full-query/release
 gates remain pending; incoming ROOT metadata/child-owner fixtures will require
 coherent revalidation. No existing failed Cancel4 oracle was weakened or relabeled.
+
+### Metadata/provenance consumer fixture review (2026-11-23)
+
+Reviewed complete dba1f69970907e0f1f0bb768eaad95209f2de429 after bf093's native
+checkpoint drained and exported. Only one assigned Tower path changes; the
+joined roster remains537/1126. No D1 build runs during this review.
+
+| Assigned path | Ownership/storage/scheduling review, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/world_constructor.tower | dba adds118 lines under the existing serial-transport guard. Each trial owns a bounded world, source, destination and trace owner. Parser span/label and provenance expansion+splice intentionally alias the same immutable history through two owning fields. Successful serial/staged allocation counts bound every physical fault position. Invalid null/stage, pinned serial Busy, physical Memory and occupied-ledger staged Capacity preserve exact causes. Success checks scalar metadata, distinct owned label/splice storage, every label byte including terminator, and unchanged shared references until staged hold. Hold precedes closing the source view; discarded destination/source release their exact history retains and all final buffers/grants. Capacity retry is at the denied first component boundary, not permission to retry arbitrary incomplete destinations. Physical failures always discard their destination. ROOT's public leaves/native allocations/query/units and scoped address/thread evidence are recorded; D1 current-union execution remains pending. No actual worker dispatch in this serial fault sweep. Foreign-stage variants, self-copy, already-populated staged destination and hold exhaustion are not newly covered. Existing frontend allocations registration is retained. |
+
+Read the two matching producer files to verify this consumer contract. Results
+are private per call, preserving component and staged-reference queue causes;
+raw label/splice allocations still return Memory without ledger charging. Serial
+copies reject pins/leases; staged copies require a new destination owned by that
+stage/world and install owning history only after queue admission succeeds.
+Wrappers remain compatible; incomplete destination cleanup belongs to callers.
+This is not atomic replacement of existing payloads or complete shared-counter
+exhaustion handling. Source review changes no runtime, so profiling the audit is
+inapplicable. ROOT's measured costs and L2's older2e3d instrumentation retain
+their actual source identities; none accepts the forthcoming D1 joined release.

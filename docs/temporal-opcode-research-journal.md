@@ -75711,3 +75711,37 @@ and leased atomic publication remain OPEN. Original D1 Cancel4 failure is not
 closed by a different affinity profile; unsupported source UBSan/foreign LLVM
 instrumentation is unchanged. No new Tower body, production edit, todo change,
 publication request or lease in this harness checkpoint.
+
+### D1 metadata fixture review and queued coherent validation, 2026-11-23
+
+Native checkpoint bf093459e commits/pulls clean. Full history bundle
+D1_proof_affinity_native.bundle SHAdf69cbd04707ce8ef5c8d382b317e0d65bc7d3695e278bca7b77c9737937b8ae
+and55MiB native receiptSHAe48939a480a2890567f68a23a2ffcb5b17eb74db204898450cc52754e9e96068
+verify; these do not claim the pending new instrumentation or publication.
+D2's earlier review clock label was corrected to11:48:13; no test timing or
+acceptance depends on the draft minute. Heavy-slot release11:50:06 is recorded.
+
+Complete ROOT dba bundleSHAef383e94ee9a2773c1a6e8c5aa5f5e8156ac99e9bad1a858e750ebec3d3608cc
+verifies sole60741 and is fetched after all D1 jobs drained. Read world_constructor
+118-line metadata delta, both producer diffs, ROOT's exact API/cleanup contracts
+and performance/sanitizer records. Audit preserves the distinction between
+serial physical denial, stage queue admission and coordinator retain/hold. The
+new alias trace is owned twice by separate metadata fields, not copied as an
+unowned raw pointer. Every measured denial trial starts with fresh destination
+state and discards partial results. Labels/splices remain raw/unbudgeted and
+hold-counter exhaustion remains open. No new assigned path/count change.
+
+ROOT same-path32 three-unit samples retain exact output/entity/component/retained
+bytes; wall increases0.25-0.92%, CPU-.02..+1.25%, realouter_peak3, small RSS changes.
+These are owner measurements, not newly run D1 results. Also read full L2 ff23
+instrument record: frozen2e3d97-step address/thread builds and11 gates each,
+seven actual IR units, three strict clone-query runs each and real4unit overlap.
+That supports the scratch/return union on L2's host, not the D1 restricted-host
+Cancel4 failure or new metadata/node changes. Original failures and unsupported
+source UBSan/foreign/browser coverage remain explicit.
+
+ROOT's later child lease/transfer fixture updates are still pending complete
+handoff. No cross-owner edit or second implementation is made. Next D1 work is
+same-path proof-query timing control and coherent native/address/thread checks
+using the next accepted complete source union after D2's slot. This review is
+documentation only; runtime profiling is inapplicable to the text change itself.
