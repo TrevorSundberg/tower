@@ -77468,6 +77468,66 @@ Independent review/registration, unchecked semantic graph/entity/metadata paths,
 full-control TSan and final integrated publication gates remain open. The queued
 ROOTdba metadata history is adopted only after this completed freeze; subsequent
 runtime evidence must identify its actual source separately.
+### ROOT typed metadata and provenance copies, measured d3a871295 baseline
+
+Implementation adds per-call WorkBudgetError results to serial/staged metadata
+and provenance copies, preserving legacy wrappers. Exact world component and A2
+reference-queue results now reach the caller. Serial mutation rejects pinned or
+leased nodes; staged copies require a new private destination in the same world.
+Parser fields are installed after label allocation, and owning provenance fields
+only after successful queueing. Failed destinations remain caller-discard-owned;
+this is not atomic replacement of an existing payload. Raw labels/splice vectors
+remain uncharged allocation paths; hold-counter exhaustion is still open.
+
+Extend existing world_constructor allocation checks, not a second metadata
+implementation. Successful serial/staged allocation counts determine every
+physical denial position. Cases verify exact Invalid/Busy/Memory, actual remaining
+ledger Capacity and retry, label bytes/terminator and scalar metadata, independent
+splice storage, coordinator-only staged retains and complete reference/buffer/
+grant cleanup. Production helpers compile as three smallest public-pin units.
+The new native allocations, query-smoke and full ECS unit suites pass.
+
+Baseline d3 native/query/allocations and before executable/resources were frozen
+before copying these three changed sources into ROOT-owned B2. Native after build
+performs six actual actions, 9.945wall/14.102CPU/453492KiB; nm confirms the new
+metadata/provenance exports and world_metadata_trial in the actual test binary.
+Supported address and thread builds regenerate the actual Entities provider:
+new definitions are present in tower-compiler-entities-address.ll and -thread.ll.
+ASan/LSan allocation sweep/query/real3unit4lane pass; TSan query and real overlap
+pass, outer_peak3/canonical1173729914654460811. TSan measured25.524wall/80.538CPU/
+1427240KiB. These validation costs are not performance comparisons. Source
+manifests match after all children drain; no reports. LLVM-source UBSan coverage
+and universal race freedom are not claimed.
+
+KinmenB CPU12-23/24GiB, canonical public bootstrap, existing native cache, identical
+cwd /work and immutable d3 resources: warmup plus three alternating pairs for each
+3-unit case, installed at exactly /cache/root_metadata_profile_d3/runner. B1
+explicit quiet grant11:33:06 precedes execution; actual32-process drain releases
+the slot before B1's next profile. Installation copies/cmp/hash run outside the
+measured child. Every process/canonical/entity/component/retained-byte comparison
+and final source/resource/binary freeze passes. Medians (wall ns; CPU us; RSS KiB):
+
+- bodies0/jobs1: 3191289514 ->3220788913;3184222 ->3212591;198164 ->197568.
+- bodies0/jobs4: 1306734246 ->1318740754;4097430 ->4148634;460208 ->457332.
+- bodies4096/jobs1: 4546227701 ->4557423539;4536641 ->4548585;679588 ->679692.
+- bodies4096/jobs4: 2403606339 ->2418282560;5749386 ->5748158;940108 ->941168.
+
+Wall medians increase0.25-0.92%, CPU -0.02 to+1.25%; retained bytes are identical
+per case (15161360/15152232/289310049/289300921), RSS -0.62 to+0.11%.
+Parallel outer_peak3 is real measured overlap, within the four-lane budget.
+This small n3 sample is not a zero-cost or general speedup claim. Preserve all32
+raw records in build/root_metadata_profiles, before/after build and exact source
+receipts in build/root_metadata_before and root_metadata_after, address logs in
+build/root_metadata_sanitizers, thread logs /home/trevo/root_metadata_d3.
+
+ROOT also integrated complete L2 ff23b882 scratch instrumentation history; those
+receipts remain scoped to its frozen2e3d source. Generic clone consumers are L2's
+next integration, not complete just because these producers exist. A2 original
+session stopped at11:20:36 with service cyber_policy; no retry/replacement/context
+was launched. Completed dfcef history remains integrated. ROOT now owns its
+remaining ordinary entity ownership work and cancelled the unused profiling hold.
+Current metadata checkpoint is not final bootstrap/browser/generation/hosted
+release acceptance; source publication remains coordinated at the final boundary.
 ### D1 six-target native harness checkpoint, 2026-11-23
 
 Complete d3+cbe merges cleanly as fa15ea45cf15bcfc3f4b123bfd4375fc46d6fb0f;
@@ -80099,6 +80159,85 @@ work artifacts fail rather than skip. Current local browser files have incomplet
 old identities and are not executed as current evidence. D2 supplies its own
 browser setup; no duplicated install or new JS test logic. Final source-matched
 portable/threaded/LLVM assets, project manifest and leased publication remain open.
+## 2026-11-23 A1 bounded late-flow admission and continuation batch
+
+User's bounded task supersedes the earlier open-ended campaign: this receipt
+covers `semantic_flow.tower` and one new `semantic_flow_checks.tower` fixture.
+ROOT retains integrated sanitizers/bootstrap/browser/generation/deployment.
+Baseline main82b994886e99b0197a5eb2e38a313c36f4c8760c includes complete ROOT
+b04214474ac14588abffea1c6c27b2a0b2ebb2ed history. The verified bundle SHA256 is
+e25f1456f1476685ce775f733b815d58c5af2409ebef48937cfc6345fae9a60d.
+The three prior entity-stage edits already in ROOT d66efb8007 remain backed up
+in `a1_root_d66_handoff_backup_20261123`; no duplicate patch was reapplied.
+No todo, shared context, execution producer or type/generic source changed.
+
+Implementation: request/dependency/access/seal failures now preserve the actual
+graph cause before flow metadata publication. Duplicate requests retain the first
+complete dependency list, ordinal and result. The late pump takes individual
+ready tasks through WorkGraph, reserves existing shared worker grants, dispatches
+through the existing kernel/pool and joins before publishing ticket outcomes.
+A partial take or joined transport/finish failure cancels outstanding tickets;
+no completed kernel is replayed. Waiting is distinct from failure. Later semantic
+failures remain on their function components until earlier source owners settle.
+The final lifecycle wrapper alone diagnoses unfinished/cyclic work after the
+preceding owning pipelines have drained. It checks graph-walker failures too.
+Lowering/evaluation/known-publication/module-initializer order is unchanged;
+this is explicitly not permission to run flow earlier without those edges.
+The archetype query is a derived index over stable world-owned payloads, not a
+claim of packed payload storage. Its term count derives from the array type.
+
+Validation on KinmenA/Windows11, Linux x64 Docker ba707de6a29fd47e22b186ce711f82e51146fd0d38f7c557dadaf77f7e087156,
+CPU0-11,24GiB, LLVM/Clang19.1.1. One owned build at a time; max6 build jobs,
+each Tower compiler --jobs1. Dependency-aware command, before and after:
+`cmake --build /cache/native --parallel 6 --target towerc tower-lr-work-tests`.
+The first changed compile rejected `sizeof(terms)`; corrected to the predecessor's
+supported `sizeof(decltype(terms))`. Fixture development caught reserved `expected`,
+unsupported positional array initialization and missing ParserMatch provenance
+in synthetic diagnostic nodes. All failed logs are retained; subsequent checks
+passed. No failed run is counted as acceptance.
+
+The declaration-only new fixture links the existing semantic provider once.
+Public compiler9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02
+compiles it with --jobs1 --library --target x86_64-pc-linux-gnu and the documented
+Bedrock/Foundation resources. Link uses the native tower-lr-work-tests provider
+objects/libraries, replacing its main/receipt/failure-order fixture objects with
+`a1_semantic_flow_checks.o`. Exact compile/link commands are preserved in
+`/cache/a1_flow_fixture.sh`; no generic harness/manifest change was made.
+26 trials passed: 13 cases at workers1/4, checking repeated requests/waits/terminal
+calls, independent ready batches, reverse readiness and source diagnostics,
+query/edge/access/demand capacity denial, exhausted/partial admission, finish
+ready-index growth denial, cancellation, quiescent dependency paths and actual
+retained evaluation failure receipts. World and graph ledgers reach zero.
+`timeout 180 /cache/native/tower-lr-work-tests /work/scaffolding query-smoke`
+passed serial/threaded 32/64-bit staging and continuations: .23wall/.24CPU seconds,
+88336KiB peak RSS. Fixture executable SHA799363a816a7d4a35f0522bfc8110bdb0010fca90f8f4620280ee2908b88104d;
+semantic provider SHA545576ece61a284eb27e9588f713f3d589db0f4d960616aae6c4daa6e48c7538.
+
+Small checked runtime comparison: existing `scaffolding/tests/comptime_flow.tower`
+SHA2d3ed9f30af7eb4fb093df7c0e06e82e99339f06d112e0d2dd3c897d100b7adb;
+--interpret --jobs1/4, same explicit Bedrock/Foundation resources, warm filesystem,
+fresh processes, one sample per configuration. Each output is exactly0; before,
+after and serial/parallel outputs compare equal. `/usr/bin/time` wall,user,sys,RSS:
+
+| Workers | Before wall / CPU seconds / peak KiB | After wall / CPU seconds / peak KiB |
+| --- | --- | --- |
+| 1 | 1.14 / 1.07 / 179756 | 1.13 / 1.06 / 179816 |
+| 4 | 1.01 / 1.19 / 197252 | 1.00 / 1.16 / 196952 |
+
+Before executable `/cache/a1_flow_82b99488_before_towerc` SHA
+f49b3233e65f848d9386ee13c342dfef1591e53367c30a960142d31088c507aa is preserved;
+after `/cache/native/towerc` SHA56f4e3e63f3be77358da851215772d8d5b888e40eaf7a5f0abe1f1fa4972f188.
+This small comparison finds no material regression, but does not measure useful
+worker overlap, flow critical path, allocation counts or broad scaling. The
+fixture's checked budget retention is distinct from process RSS. Its error
+cases exercise real graph grants, not a threaded allocator sanitizer.
+Shared structural component/view/vector allocation still has existing asserted
+boundaries; changing those belongs to the shared constructor/storage work.
+No new language syntax, constant folder, scheduler, or authoritative graph added.
+Integrated instrumentation, clean bootstrap/native/browser/generation, standard
+fixture registration and hosted verification remain pending with ROOT; none are
+claimed passed here. Documentation updates need no separate runtime profile.
+All logs/scripts remain under C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_flow_*.
 ### A2 finite inventory reconciliation at b0421447 (2026-11-23)
 
 Direct bounded documentation task; no continuation of the former diagnostic
@@ -80169,3 +80308,20 @@ processes: wall/user/system0.00 at0.01s resolution, RSS1352KiB before/1616KiB af
 This tiny sample establishes no speed or retention claim; the policy remains
 allocation-free and serial. Logs and both failures from fast-forward-only pulls
 are preserved in the session; no forced update, abandoned work or broad rerun.
+Merged validation: the required post-commit fast-forward-only pull fetched
+origin/e2ace4c4 but correctly refused divergent history. `git merge --no-edit
+origin/main` preserved both complete histories without conflicts, producing
+1c9f723dc701fbea2b217784949e1e781375d3f4. Upstream changed interpreter/execution
+ownership, so the same dependency-aware target rebuilt10 affected actions.
+The fixture was recompiled/relinked against that provider:26/26 trials passed;
+query-smoke passed; comptime_flow --interpret --jobs1/4 still matched the
+preserved expected0 outputs. Flow source/fixture are unchanged from8b7da722.
+The original before/after timing comparison remains evidence for its frozen
+82b99488+flow inputs, not a new measurement of unrelated upstream changes.
+Merged compiler SHA8b442c4593f17c90eb10194d2c10d16fe86e1e01583617387ed5bf4b6643e328,
+fixture4a652c072d422644950e585e75ab4db62b95aa868d61d51ab3043e432b56cd23,
+semantic providerc02fa58100e7a8b0e2d13e2f7def4257e019bce775e6519c971200fcd3001b9e.
+Commands/logs: a1_flow_merged_build.log, a1_flow_merged_checks.sh,
+a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
+still match ROOT's three committed entity-stage files exactly. Final publication
+for this bounded task is normal main push only; gh-pages remains ROOT-owned.
