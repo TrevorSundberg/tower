@@ -60238,3 +60238,47 @@ WASI smallest provider receipts remain its evidence; D1 local whole closure and
 actual linked symbol uniqueness remain pending. Resource helper hashes match
 across lanes. The newer unsupported constructor/dispatch advertised tip remains
 excluded. No heavy D1 job overlaps D2's canonical build.
+
+### Coordinator: publication provider join and independent failures, 2026-11-23
+
+Root merged D2 406d1709 and D1 aa22d592 at 1dfe22ec after verifying complete
+bundles, source ancestry and exact owner diffs. This includes A1 ab603725's
+publication scratch/cancellation changes, five mutually exclusive provider
+entries, both publication regression exports, TypeErrors and arena/ledger
+registrations. Root scaffolding and CMake trees match D1 aa22d592 exactly.
+Reviewed all new publication production paths; the traversal preserves first
+encounter order and transfers output only after successful joined work.
+The merge moved older journal text; checked that every removed line remains
+present elsewhere. No todo.txt changes were made.
+
+D2's seven public provider leaves and native build pass on their stated source.
+Its first combined query run failed at the existing generic clone interval-overlap
+assertion, before either new publication export executed. The initially reported
+publication attribution was incorrect. The same executable later passed under a
+debugger and in ten ordinary repetitions, including all22 publication and24
+resource cases. Those successes do not erase the original failure. L2 owns
+interval diagnostics and representative-work calibration; admission barriers and
+distinct threads alone do not prove overlapping kernel intervals. Final joined
+instrumentation, full browser/generation checks and publication remain open.
+
+L2's independent exhausted-budget inspection test exposed a separate real failure:
+language_document_world returns a nonnull partial result. The test verifies cache
+recovery and complete cleanup before rejecting that result. B2's typed module/
+completion propagation draft is compiling; no successful denial test is claimed.
+Preserve legitimate incomplete-document recovery while rejecting resource failure.
+
+L1 identified stale ABI objects after Copy-Item preserved source timestamps older
+than baseline outputs. Its partial run, including an eventual control-smoke139,
+is invalid evidence for the changed source. Re-materializing only the three
+changed inputs with identical bytes triggered the full dependency rebuild;
+query/storage/control/units/backend/aggregate/types then passed. Frozen hashes
+alone do not prove object freshness. The frame/task patch was reviewed in full;
+paired measurement analysis and current instrumentation are still pending.
+
+The old TSan overlap diagnostic records frontend2 waiting29.889s before frontend1
+has completed or any backend entry occurs, without a TSan report. Approved an
+explicit calibrated instrumentation selector using the already required serial
+four-unit frontend duration as a finite bound, keeping the ordinary30s selector
+and all workload/output/overlap assertions. Its implementation and execution
+are pending; the original timeout remains failed. A2 constructor/graph/pool
+changes still exceed public aggregate limits and are not in this root checkpoint.
