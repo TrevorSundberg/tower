@@ -24,7 +24,7 @@ extern fn entity_query_at(kind: void*, index: usize): void*;
 extern fn entity_stage_discard(stage: void*): void;
 extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
 extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
-extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_hold_result(stage: void*): WorkBudgetError;
 extern fn entity_stage_publish_result(stage: void*): WorkBudgetError;
 extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
 
@@ -49,15 +49,32 @@ struct SemanticExecutable {
     lowered: bool;
 }
 
+fn sem_executable_admission_failure(c: SemanticContext*, subject: void*, error: WorkBudgetError): usize {
+    sem_executable_resource(c, subject, error);
+    work_cancel(&c.queries);
+    return 0;
+}
+
+fn sem_executable_kind(c: SemanticContext*, size: usize, alignment: usize): void* {
+    var error: WorkBudgetError;
+    var kind = sem_create_result(c.program.root, &error);
+    if kind != null && !entity_register(kind, size, alignment, 0) {
+        sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
+        kind = null;
+        error = WorkBudgetError.Invalid;
+    }
+    if kind == null { sem_executable_admission_failure(c, c.program.root, error); }
+    return kind;
+}
+
 fn sem_executables_begin(c: SemanticContext*): void {
-    if c.executable_functions != null { return; }
-    c.executable_functions = sem_create(c.program.root);
-    sem_require(entity_register(c.executable_functions, sizeof(SemanticExecutable), alignof(SemanticExecutable), 0));
-    c.executable_ready = sem_create(c.program.root);
-    sem_require(entity_register(c.executable_ready, sizeof(IMFunctionInput), alignof(IMFunctionInput), 0));
+    if !sem_ok(c) || c.executable_functions != null { return; }
+    c.executable_functions = sem_executable_kind(c, sizeof(SemanticExecutable), alignof(SemanticExecutable));
+    if !sem_ok(c) { return; }
+    c.executable_ready = sem_executable_kind(c, sizeof(IMFunctionInput), alignof(IMFunctionInput));
+    if !sem_ok(c) { return; }
     if c.aggregate_signatures == null {
-        c.aggregate_signatures = sem_create(c.program.root);
-        sem_require(entity_register(c.aggregate_signatures, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), 0));
+        c.aggregate_signatures = sem_executable_kind(c, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature));
     }
 }
 
@@ -77,16 +94,31 @@ fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
         && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), id, 1, WorkAccessMode.Write)
         && work_seal(&c.queries, id)) { return 0; }
     sem_executables_begin(c);
-    var result = bits(SemanticExecutable*, entity_component_data(entity_component_add(subject, c.executable_functions)));
-    sem_require(result != null);
+    if !sem_ok(c) { return 0; }
+    var error: WorkBudgetError;
+    var component = entity_component_add_result(subject, c.executable_functions, &error);
+    if component == null { return sem_executable_admission_failure(c, subject, error); }
+    var result = bits(SemanticExecutable*, entity_component_data(component));
     *result = default;
     result.subject = subject;
-    result.root = sem_control_node(c, subject, KBlock);
+    result.root = sem_create_result(subject, &error);
+    if result.root == null { return sem_executable_admission_failure(c, subject, error); }
+    if sem_node_result(c, result.root, KBlock) == null || !sem_ok(c) {
+        // The synthetic block has no source token. Its admission belongs to
+        // the executable request's canonical function, not offset zero.
+        if c.program.resource.error != WorkBudgetError.None {
+            c.program.resource.offset = sem_get(subject).start;
+            c.program.error_offset = c.program.resource.offset;
+        }
+        work_cancel(&c.queries);
+        return 0;
+    }
     result.ordinal = body.ordinal;
     result.kernel.kind = CompilerKernelKind.PrepareFunction;
     result.kernel.payload = bits(void*, result);
-    var input = bits(IMFunctionInput*, entity_component_data(entity_component_add(subject, c.executable_ready)));
-    sem_require(input != null);
+    component = entity_component_add_result(subject, c.executable_ready, &error);
+    if component == null { return sem_executable_admission_failure(c, subject, error); }
+    var input = bits(IMFunctionInput*, entity_component_data(component));
     *input = default;
     return id;
 }
@@ -164,6 +196,10 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
     if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticExecutable*) = default;
     var receipt: WorkReservation = default;
+    var view: void* = null;
+    // Failed ownership transfer must discard private stages while their
+    // borrowed inputs are still pinned. This defer runs after batch cleanup.
+    defer { if view != null { entity_view_close(view); } }
     defer {
         foreach(var result in &batch) {
             if result.stage != null {
@@ -215,9 +251,8 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
     var context: SemanticContext;
     sem_context_snapshot(&context, c);
     var view_error: WorkBudgetError;
-    var view = entity_view_open_result(c.program.root, &view_error);
+    view = entity_view_open_result(c.program.root, &view_error);
     if view == null { return sem_executable_resource(c, batch.data[0].subject, view_error); }
-    defer { if view != null { entity_view_close(view); } }
     foreach(var result in &batch) { result.context = &context; }
     var extra: usize = 0;
     var admitted = sem_workers_admit_result(c, batch.length, &receipt, &extra);
@@ -225,7 +260,13 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
     var dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, batch.length, extra);
     // Joined private payloads must own their queued inputs before the last
     // lifetime pin closes, including the partial-dispatch failure path.
-    foreach(var result in &batch) { entity_stage_hold(result.stage); }
+    foreach(var result in &batch) {
+        var held = entity_stage_hold_result(result.stage);
+        if held != WorkBudgetError.None {
+            return sem_executable_resource(c, result.subject,
+                dispatched != WorkBudgetError.None ? dispatched : held);
+        }
+    }
     entity_view_close(view);
     view = null;
     if dispatched != WorkBudgetError.None { return sem_executable_resource(c, batch.data[0].subject, dispatched); }

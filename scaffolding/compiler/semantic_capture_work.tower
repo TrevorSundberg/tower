@@ -127,10 +127,12 @@ fn sem_capture_range(c: SemanticContext*, node: void*, block: void*, begin: usiz
 }
 
 fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void {
-    var output = sem_control_node(c, result.subject, KOperand);
+    var output = sem_evaluation_node(c, result.subject);
+    if output == null { return; }
     sem_evaluation_expression(c, output, result.subject, null, false);
     if !sem_ok(c) { return; }
     var evaluation = sem_evaluation_get(c, output);
+    if evaluation == null { sem_type_resource(c, result.subject, WorkBudgetError.Invalid); return; }
     var function = sem_evaluation_function(c, evaluation);
     var body = sem_control_node(c, function, KBlock);
     sem_get(function).body = body;
@@ -175,6 +177,11 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
     }
     var subject = work_task(&c.queries, ticket.task).subject;
+    defer {
+        if c.program.resource.error != WorkBudgetError.None && work_ticket_valid(&c.queries, &ticket) {
+            sem_query_check(c, subject, work_finish(&c.queries, &ticket, false));
+        }
+    }
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
     var binding = sem_get(subject);
     if result.proof == null {
@@ -213,6 +220,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
                 result.evaluation.capture_order = result.proof.owner == null;
                 result.evaluation.capture_ordinal = result.proof.ordinal;
                 sem_evaluation_work_register(c, false);
+                if !sem_ok(c) { return SemanticPumpResult.Failed; }
                 if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket,
                     work_find(&c.queries, result.evaluation.subject, EvaluationQuery, 0))) { return SemanticPumpResult.Failed; }
                 return SemanticPumpResult.Progress;
@@ -249,7 +257,8 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
             // its runtime initialization in source order.
             binding.value = value;
         }
-        var output = sem_control_node(c, subject, KOperand);
+        var output = sem_evaluation_node(c, subject);
+        if output == null { return SemanticPumpResult.Failed; }
         var clones = sem_table(c);
         var nodes = sem_list(c);
         var expression = sem_defer_clone(c, output, value, clones, nodes);
@@ -259,9 +268,11 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         c.integer_arguments = previous;
         if sem_ok(c) {
             result.evaluation = sem_evaluation_get(c, output);
+            if result.evaluation == null { sem_type_resource(c, subject, WorkBudgetError.Invalid); return SemanticPumpResult.Failed; }
             result.evaluation.capture_order = result.proof.owner == null;
             result.evaluation.capture_ordinal = result.proof.ordinal;
             sem_evaluation_work_register(c, false);
+            if !sem_ok(c) { return SemanticPumpResult.Failed; }
             if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket,
                 work_find(&c.queries, output, EvaluationQuery, 0))) { return SemanticPumpResult.Failed; }
             return SemanticPumpResult.Progress;

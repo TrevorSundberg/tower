@@ -49,12 +49,17 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
     state.finalized++;
 }
 
+fn stage_reference_cancel(context: void*): void {
+    bits(StageReference*, context).target = null;
+}
+
 fn stage_reference(job: StageJob*, node: Entity*, ordinal: usize): bool {
     var value = bits(StageReference*, entity_component_data(entity_component_add(node, job.type)));
     if value == null { return false; }
     *value = default;
     var target = job.target;
-    if !entity_stage_references(job.stage, &target, 1) { return false; }
+    if entity_stage_references_cancellable_result(job.stage, &target, 1,
+        stage_reference_cancel, bits(void*, value)) != WorkBudgetError.None { return false; }
     value.target = target;
     value.ordinal = ordinal;
     job.holds++;

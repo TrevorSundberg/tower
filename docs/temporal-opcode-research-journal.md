@@ -81421,6 +81421,85 @@ No production change or skipped check was hidden. Earlier baseline comparison
 retains its measured source identity. This receipt is documentation only; no new
 runtime measurement applies. All owned jobs drained; normal main push follows,
 with ROOT deployment and the explicitly listed remaining chains still pending.
+
+### L2: constructor and evaluation admission (2026-11-23)
+
+Starting from published3912f25b with no surviving build. The selected continuation closes constructor state, evaluation state/readiness, and preparation/clone admission with their direct consumers. Existing lazy interpreted reads, declaration/frame ownership and phase tickets remain authoritative. ROOT executable admission, A1 lifecycle and A2 queued-stage ownership remain separate. Implementation and focused evidence follow; broad release checks remain pending.
+
+Implemented checked constructor kind/payload admission, including the declaration
+state and query-registration prerequisite used by constructor callers. Legacy
+asserting wrappers remain for their existing consumers; the constructor frontier
+uses the nullable result path and checks it before discovery/demand/publication.
+Constructor declaration/frame/lexical identities and retained query identity are
+preserved. The existing constructor-add and evaluation-expression entry points
+are exported to the declaration-only query API for linked focused clients; there
+is still one production implementation, not a test substitute.
+
+Evaluation kind pairs publish together or retire the private first kind. Result
+and readiness payloads are checked before entering the cleanup index; that index
+owns later partial projection/query cleanup. Evaluation request and preparation/
+clone registration retain exact graph or structural failures, advance only the
+completed registration frontier, and cannot dispatch a missing payload. Type,
+constructor and capture consumers guard failed output nodes/evaluations before
+using them. A capture's early resource exit relinquishes its still-owned ticket.
+Known-binding and inferred-evaluation admission use the same checked kinds/state;
+known-producer links publish only after their storage and dependency succeed.
+No lazy executed-read discovery, frame provenance, interpreter semantics or query
+completion order was replaced. A2 stage open/lease/hold/publish/discard hunks,
+ROOT semantic_execution_work and A1 lifecycle remain unchanged in this batch.
+
+Existing storage fixtures cover constructor frame/query identity, atomic evaluation
+kind startup, state/readiness, preparation and known-clone admission at widths4/8.
+Actual allocation counts bound the serial begin/expression/preparation/clone fault
+sweeps; constructor tests use physical Busy/Exhausted/Capacity because its legacy
+name scratch is explicitly outside that allocation sweep. Page pressure fills
+actual remaining component slots, not an assumed count. All failures require the
+first producer offset, no evaluated value, no repeated allocation/query admission,
+and zero final physical buffers/grants. Healthy preparation only registers work;
+it does not start interpreters or force dependencies. Existing query-smoke retains
+lazy reads, untouched stages, serial/threaded resumption and frame/capture checks.
+
+Native build uses the existing dependency-aware compiler/LR/storage targets only,
+max2 jobs, CPUs4..7 and4GiB per-process virtual-memory cap. Initial constructor_eval0
+compiled all11 actions but its new fixture wrongly expected component-page Capacity
+from kind-only creation. Entity descriptors/containment are not page grants; the
+correct result is None. The first added diagnostic used tower_print, absent from
+the storage serial transport, so constructor_eval1 failed at link without runtime.
+Existing Tower formatting/puts fixed that boundary; constructor_eval2 identified
+the precise false expectation. All failed outputs/source manifests and recipes are
+retained. No production fallback changed. Constructor_eval3/18625 passed the final
+two-action incremental build10.66wall/7.78CPU seconds/323304KiB, full storage
+.28/.22/99612 and query-smoke.20/.23/74956, empty stderr and source0. Earlier compiler
+provider successes remain valid; the earlier whole failed runs are not passes.
+
+Four checked constructor processes48861 compare immutable layout compiler9c5db90f
+against current1a504887 at one actual executable path with identical frozen baseline
+resources and unchanged inputbbc45255. WSL2 Linux6.18.33.2 x64/LLVM19 Release,
+--interpret --jobs1/4, affinity4..7, fresh processes/warm file copies; no competing
+build in the start inventory. One sample per variant/count, exact independent0
+stdout oracle, empty stderr and final source/input/resource hashes all pass.
+Before also predates integrated frontend admission, so these costs do not isolate
+this lane's changes.
+
+| Constructor jobs | Before wall/CPU seconds/peak KiB | After wall/CPU seconds/peak KiB |
+| --- | --- | --- |
+| 1 | 1.61 / 1.50 / 179412 | 1.51 / 1.47 / 179916 |
+| 4 | 1.22 / 1.50 / 198940 | 1.25 / 1.53 / 199072 |
+
+Retain the positive four-worker cost: +.03s wall/CPU and+132KiB; serial RSS+504KiB.
+This small sample is neither a scaling result nor a neutrality/speedup claim.
+Raw evidence is L2/semantic_admission_constructor_eval* and constructor_eval_pair*;
+existing immutable packages/logs/todo were preserved, with no archive campaign.
+
+Remaining type/staging gaps are concrete: legacy semantic name/table/scratch
+allocation (including constructor name resolution), aggregate-projection and
+cloned-alias synthesis, capture metadata kind/payload creation, and known scan/
+order/publication work-component admission still have asserting paths. Non-constructor
+legacy declaration callers retain their assertion contract. These are not claimed
+covered by the new result chain. ROOT executable admission, A2 queued-reference
+cancellation and A1 lifecycle remain separately owned. Supported sanitizers,
+full scaling/bootstrap/browser/generation and hosted deployment remain pending
+ROOT's integrated milestone. This bounded task publishes main only.
 Lifecycle merged receipt: post-commit pull fetched3912f25b and refused divergent
 fast-forward-only history. Normal complete-history merge7f6ca8806fbf691ad9c516181aad5a1a6a1cb4b6
 preserved both sides without conflicts. All A1 production/fixture files match
@@ -81550,6 +81629,100 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+
+### B1 bounded syntax iteration measurement and diagnostic symbol closure (2026-11-23)
+
+Started on clean published189e3927 with the required preserving pull; owned
+container was idle. No agent, branch, goal or inbox loop. Existing Linux x64
+public9653 bootstrap/LLVM19.1.1, tower_ecs_b1 CPU0-11/24GiB, native cache,
+compiler jobs1/object jobs6. No B2 frontend_units implementation changed.
+
+Implemented sparse optional world-owned grammar observation at exact cache
+lookup, version build and parser-table build boundaries. Compiler code borrows
+callback/context and adds no clocks, allocation or global counters. The Linux
+Tower fixture isolates ordinary frontend_compile_sources with explicit world and
+module owners, optional installed baselines, answer42 execution and canonical
+output. Lookup/Build/Table are nested measurements, not additive phase times.
+The grammar-equivalence selector reuses parser/live grammar, reset/cache churn,
+lexical patterns, declaration boundaries, imported isolation and provenance tests.
+
+Measured final source with warm filesystem/fresh process, n1 per mode:
+installed startup138 lookups/83 builds/84 tables, .737ms/70.766ms/52.120ms;
+source185 lookups/155 builds/159 tables, .601ms/955.857ms/884.569ms.
+Cold source185/155/159, .513ms/1004.855ms/930.539ms. Both canonical outputs:
+976bytes/hash13832670361687071853, checked interpreter answer42. Whole installed
+process1.17wall/1.12CPU seconds/168564KiB, cold1.12/1.08/165680. Earlier ordinary
+samples with the same counts were also successful (logs retained). Lookup is
+less than0.1% of construction here; there is no evidence for optimizing its exact
+structural comparisons. Baseline installation does not eliminate subsequent
+source-session construction. Counts prove repeated builds, not equivalence or
+that a miss is avoidable.
+
+Evidence-backed prerequisite, not an implemented optimization: current
+SyntaxVersion owns ready grammar, pending diagnostics, emitted rules, lexicon,
+replacement capture/provenance and Bedrock pins. parser_table_open_result stores
+that version as userdata; source replacement positions and ordered alternatives
+are observable. Session cache snapshots compare full rule/token structures and
+source-sensitive replacements, then own private recency and version pins.
+Sharing a table solely by ready rule counts, omitting pending/provenance or
+widening the current session key to other Bedrock/profile/import revisions is
+not safe. Reusing whole immutable versions needs a complete world, Bedrock,
+ordered source/import revision, mode/profile and provenance key with pinned
+lifetime. Reusing only the LR runtime across different versions additionally
+needs a boundary separating it from per-version bindings. Neither equivalence
+is established by these counts; validate boundaries and invalidation before
+adoption. No mutable cache sharing, activation
+batching, guessed equivalence or new cache policy was introduced.
+
+The historical full frontend300s/124 failure remains FAILED. Read-only inspection
+of retained phase logs places later work in frontend_compile_sources/import/
+syntax-version/LR construction, but does not identify that individual source or
+its duration. The full entry also contains exhaustive fault sweeps and hundreds
+of independent body cases. This ordinary small source completes in about1s and
+does not reproduce that timeout. Exact remaining prerequisite for attributing
+that failure is a named ordinary source/request and owning phase/counters isolated
+from those sweeps. No debugger or rejected operation was replayed, and the broad
+suite was not rerun. This bounded task stops at that measured prerequisite rather
+than claiming the old timeout fixed or a speculative speedup.
+
+Own diagnostic interface closure now uses exact observed native nm reports.
+ParserNodes imports parser_presentation_buffer_result from ParserFormat.
+ParserFormat imports syntax_parser_token_name_result from ParserNodes and
+parser_table_non_terminal_id_to_string_result from ParserIntegration (correction
+to the earlier prose grouping; actual nm -A T report establishes the provider).
+TemplateBuild imports syntax_session_diagnostic_result and
+parser_recognizer_get_error from ParserNodes. Added separate parser-format and
+template-build policy identities with their observed complete native import
+sets; no wildcard result suffixes or speculative target imports. Existing
+seven-unit comparison manifest is unchanged. Five fixture groups cover exact
+names, truncation, suffix, wrong consumer/provider, Entities rejection and four
+target-policy strings. Portable strings are not portable object/runtime checks.
+
+Checks: one dependency-aware native target closure, then incremental fixture-only
+corrections. Original failures preserved: conflicting dprintf ABI, explicit void*
+context cast and missing diagnostic-dispose prototype; each failed build drained
+before editing. The first live suite invocation lacked its documented resource
+working directory and aborted on missing bedrock; corrected working directory
+passed. That first successful combined selector also called existing regex_tests,
+including its existing failure fixtures; no new fault probe was created. Removed
+that extra call from the final grammar-equivalence selector; live syntax already
+covers lexical regex behavior. Standalone symbol fixture passes; selected canonical
+build-bootstrap.sh --tools verify_bootstrap_symbols passes; all three actual
+native consumer reports pass. No broader symbol/release gate is claimed.
+
+Small checked before/after control: frozen resource archive91c12368, old units
+de29797d vs observed source units60151045, 3units/0extra bodies, workers1/4,
+warm n1 each. Serial wall3499.291->3470.039ms, CPU3415.537->3385.980ms,
+RSS197376->197640KiB. Parallel wall1373.784->1351.862ms,
+CPU4250.304->4169.634ms, RSS459172->458552KiB. All canonical hashes
+1173729914654460811, entities48240/components55014; outer peaks1/3 within budgets.
+Retained bytes rise48 for3 worlds, exactly16bytes/world observer storage; serial
+peak ledger bytes rise48, parallel peak changes with scheduling. No speedup or
+regression bound follows from single samples. No LR ownership or cache retention
+policy changed. Logs, source/object hashes, U/T reports and OS wrapper are in
+build/ecs_b1/cache_iteration. Current supported sanitizers, scaling,
+bootstrap/browser/generation and hosted release checks remain ROOT milestone
+work, pending. No deployment claimed. Normal scoped main publication follows.
 ### ROOT executable-stage admission and pinned-input ownership (2026-11-23)
 
 Implementation is based on published f33770baf0 with the complete existing
@@ -81809,3 +81982,334 @@ and b2_scaling_exported_{small,large,single}_w*_{warmup,sample}.log include full
 All owned jobs drained. Sanitizers, full scaling/bootstrap/browser/generation and
 hosted deployment remain pending ROOT's integrated milestone. No todo edits,
 new agent/session/goal, inbox polling or publication-lease wait.
+B2's nested-lane wake implementation931115b1 arrived during publication
+reconciliation. It changes the shared budget/pool layout, so its additional
+integration is validated separately rather than relabeling the previous binaries.
+Sourcea093bf01f1116babec62daf205945766eaa028d7 retains the earlier tested source
+histories and complete B2 implementation. Its29-action dependency build passes
+in50.83wall/151.59CPU seconds,771340KiB peak. Executable36 trials, query-smoke,
+comptime_flow jobs1/4 exact outputs and the source manifest pass. The added
+unit-admission regression passes in6.59wall/7.95CPU seconds,476304KiB, observing
+nested lane release refill before parent completion and preserving canonical
+output/cancellation cleanup. Final compiler SHA256:
+648fb110dea0260b4f37489f52d0d54a4738344bce93023216c5ba369863491f.
+Logs remain /cache/root_budget_join_a093; all owned processes drained. This
+documentation receipt changes no runtime path. Final milestone gates remain
+pending; source publication is not a browser/runtime deployment receipt.
+
+Post-commit integration:2cf4154a merged complete publishedbaf2a5a0 as728380d1,
+including ROOT executable stages, A1 lifecycle/lowering, parser admission and
+budget/pool wake changes. No owned admission hunk conflicted or changed. Because
+shared provider types changed, merged37152 rebuilt29 dependency actions in the
+same native cache:118.66wall/185.65CPU seconds/768740KiB. Full storage
+(.30/.24/98644), query-smoke(.23/.25/74696) and constructor --jobs1/4 exact0
+oracles all passed, empty stderr and final source0. All owned jobs drained before
+release. The earlier four-process comparison retains its3912f25b+batch identity;
+it is not relabeled as timing for merged scheduler/lifecycle changes. This final
+receipt is documentation only, so it requires no new runtime measurement.
+Normal main push follows; no deployment or deferred release-gate pass is claimed.
+### A2 checked queued-stage ownership implemented, 2026-11-23
+
+The new explicit user grant includes `syntax_provenance` and its immediate
+caller/lifecycle changes, removing the prerequisite recorded in `53d63157`.
+Base: `53d631572cb62fc45f3c3a4b22e3bb541eaa0f88`, clean main, no owned surviving
+build. Current session remains `01a2046f-fec2-7c71-be46-cad28f9ac147`; resumed
+Codex PID21712 was verified through the command process's parent. No goal,
+additional agent, inbox polling, sibling-cache mutation or todo edit occurred.
+
+Implemented `entity_stage_references_cancellable_result(stage, nodes, count,
+cancel: function(void, void*), context)` with private stable payload cancellation
+records admitted atomically before borrowed fields are installed. The existing
+queue validation and self-alias rebasing remain shared by both admission APIs.
+The provenance callback clears only expansion/splice pointers; the usual
+finalizer still frees owned vectors. Empty/null-only admissions allocate no
+cancellation metadata. No global state, alternate graph or release suppression.
+
+`entity_stage_hold_result(stage): WorkBudgetError` acquires the entire pending
+suffix without allocation. Temporary increments cumulatively account for
+duplicate targets; failure restores every increment without reclaiming pinned
+zero-count inputs. `held` advances only on success. Invalid stage/held bounds
+return Invalid, a newly leased queued target returns Busy, and counter exhaustion
+returns Exhausted. Earlier held ownership is unchanged. Publication reserves
+component-type ownership before the queued transaction, detecting their combined
+count when a queued target is also a component type. Failure restores temporary
+type counts and unprepares table rows; no semantic publication has occurred.
+
+`entity_stage_discard_result(stage): WorkBudgetError` cancels unheld borrowed
+fields before ordinary finalizers. For a legacy queue without cancellation
+metadata it first performs checked hold; failure preserves the entire stage and
+returns the exact error. Legacy void hold/discard wrappers trap on failure,
+instead of wrapping counts, leaking silently or finalizing unowned pointers.
+Already-held/empty discard skips the cancellation scans. Producers must keep
+callback contexts stable, forbid queue mutation/releasing targets in callbacks,
+and retain source owners/views through hold success or failure cleanup.
+
+The generic-body pump now drains and discards every peer before its last view
+close on hold failure, then propagates the exact dispatch/hold receipt. A real
+provenance fixture verifies repeated/null splices, an unchanged previous-history
+chain, no published clone and complete stage/world/budget cleanup on Exhausted
+at target widths4/8. Shared stage tests cover held-prefix preservation, zero-count
+rollback, alias input, retry idempotence, combined type/payload counts, legacy
+safe failure/retry and finalizer totals. The concurrent fixture uses the real
+allocator/transport and the new admission API; its original overlap and ownership
+oracles remain. The exact semantic import allowlist and its existing fixture add
+only `entity_stage_hold_result`, the immediate ABI consequence of the caller edit.
+
+Validation used one dependency-aware native target set, incrementally resumed
+after actionable compile errors: `cmake --build /cache/native --parallel 2
+--target tower-entity-stage-result-tests tower-entity-stage-concurrent-tests
+tower-lr-work-tests`. Baseline and final normal stage tests pass; concurrent
+output checks57792 finalizers across original2/4-worker trials. Final
+`tower-lr-work-tests /work/scaffolding query-smoke` and `lifecycle 14 16` pass,
+including workers1/4 and32/64-bit staging. The small standalone
+`bootstrap_symbols_checks.tower` check also passes using the same pinned compiler
+and existing `guest-work-tests.o` runtime. This was no second compiler build or
+platform/bootstrap matrix. `git diff --check` passes.
+
+Preserved failures: `stage_hold_after.log` reports an undeclared abort, corrected
+to the library's supported trap; `stage_hold_check.log` rejects the positional
+array initializer, replaced with element assignments; `stage_hold_focused.log`
+rejects reserved `expected` and a missing explicit vector import;
+`stage_hold_validation.log` requires `sizeof(decltype(references))`. Every failed
+container drained before edits. Final evidence: `stage_hold_final.log`,
+`stage_hold_symbols.log`, `stage_hold_final_sources.csv`, all under
+`C:\Sandbox\build\codex_ecs_20261122\A2\cache\logs`. Earlier successful
+`stage_hold_regressions.log` precedes the already-held discard fast-path guard;
+the final affected checks were rerun after that change. No failed gate is passed.
+
+Small before/after measurement: Windows11 host, Docker Linux x64, CPU12-23,
+24GiB limit, Clang/LLVM19, Release, public bootstrap SHA256
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, compiler jobs1.
+Before binaries were built on the frozen base and retained. Three paired samples
+per case followed one warm-up per binary. Existing Tower `ecs_process_profile`,
+`profile_process_values` and `profile_medians_all` checked child status and parsed
+wall/CPU/RSS receipts. Serial uses the original ordinary stage operations and
+unchanged payload/state layouts (`profile` argument skips only new regression
+cases); concurrent uses the same entity workload and finalizer oracle. They are
+different workloads and must not be divided into a scaling ratio.
+
+| Checked workload | Median wall ms before -> after | CPU ms | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Ordinary serial stage process | 3.457795 -> 3.927438 | 1.106 -> 1.144 | 1372 -> 1096 |
+| Existing concurrent stage trials,2/4 workers | 102.659565 -> 103.315155 | 98.554 -> 99.720 | 1656 -> 1612 |
+
+The serial process wall increase is13.6% (0.470ms), CPU3.4% (0.038ms); concurrent
+wall/CPU increase0.6%/1.2%. Do not claim neutral cost or speedup. These short
+process samples include startup, page faults and the added fixture dispatch
+branch: the serial executable grew67032->71672 bytes and median major faults
+were1->2. Most additional wall time is outside measured child CPU; this suggests
+startup/scheduling contribution but does not isolate the ownership algorithm.
+The earlier three-pair window is retained in `stage_hold_profile.log`, not
+substituted for the final guard's evidence. Raw final CSV/output/value files,
+medians and all binary SHA256s are in `stage_hold_final_profile.log` and matching
+`stage_hold_final_*` files. Complete store/component and world-budget teardown is
+checked; ordinary private-vector allocation counts/retention are not claimed as
+instrumented. No allocation-failure instrumentation or old node-control probe ran.
+
+API handoff to ROOT: leave `semantic_execution_work` and its executable fixture
+under ROOT ownership. After dispatch joins, call checked hold on every stage
+before closing the final input view; on failure, discard all peers while inputs
+remain live, clear stage pointers and propagate the exact receipt. Held peers
+release ownership; cancellable unheld peers clear borrows. The other existing
+production stage publishers have no direct queue producer on the inspected
+current path and retain compatibility wrappers. Their general resource-admission
+rewrites are outside this batch. Full sanitizer/UB/thread, useful scaling,
+canonical bootstrap/browser/generation and deployed release verification remain
+ROOT's pending integrated checks. No overall compiler or hosted-release claim.
+
+Merged validation: the required ff-only pull fetched `baf2a5a0` and stopped on
+divergence. `git rebase --rebase-merges origin/main` preserved complete published
+history and replayed the owned commit cleanly. The six stage/producer/consumer
+and runtime fixture files are byte-identical to measured commit `00bd5e10`;
+incoming work-pool/budget, parser, semantic and test inputs changed. The same
+dependency-aware focused target set rebuilt28 affected steps, then stage result,
+57792-finalizer concurrent coverage, query-smoke and lifecycle14-16 all passed
+on the merged source (`stage_hold_merged.log`). The merged exact-symbol fixture
+also passed (`stage_hold_merged_symbols.log`), preserving D2's incoming policy
+changes. Performance receipts remain scoped to the original frozen base/batch,
+not relabeled for the merged scheduler. ROOT's incoming execution pump now holds
+before view close using the void wrapper; checked-result failure adoption remains
+ROOT's explicitly assigned follow-up. All owned jobs drained before commit/push;
+final deployment remains ROOT-owned.
+
+Final publication integration also preserved A2's complete0aee8b07 ownership
+batch as e30efe5f. Its provider/provenance/generic-body changes are separate from
+this lane's unchanged constructor/evaluation hunks. A2's audit confirms the
+other preparation publication paths do not themselves enqueue provenance borrows;
+those compatibility stage wrappers were preserved. Affected18926 rebuilt six
+dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
+(.28/.22/98012), query-smoke(.19/.22/75236) and constructor --jobs1/4 exact0
+oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
+or broad matrix; the committed receipts and earlier remaining-gap list retain
+their precise scopes. Normal push includes both complete histories and journals.
+
+### D2 bounded current-main C-like compilation receipt (2026-11-23)
+
+Measured frozen published mainbaf2a5a02477550ab0bcf0fa909a884e33e8e37a. Waited
+for D1's actual drain/release, then acquired the shared lock; one jobs1 production
+`cmake --build .../native-coherent-f13c8f6 --parallel 1 --target towerc` refresh,
+22 actions,217.37wall/211.34CPU seconds/764884KiB. Existing Release cache uses
+public bootstrap9653f818, LLVM19.1.1, WORK/MODULE/BACKEND_TESTS=ON, no sanitizer
+or private compiler override. No separate public leaf, new harness or broad suite.
+Deck Linux6.16.12-valve24.5, Docker4be584fb, CPU0,2, amd-pstate-epp/powersave;
+130GiB free and9.8GiB RAM available after runs. No measured child swapped.
+
+Current native compiler SHA256
+f4ce80b2e9ec0602f4039bac97e3082a92de8feb23ce52c62a8a98c0634a23d1;
+source manifest a6192c155ffd51eb9dc0733e4950e7070c0fbecf043192d76d73b6852944f97b;
+installed-resource manifest432acbdcaff4327cf76576ecdab1d041e9f7e111f9aa2b6fd87bdbe9ff7403a4.
+Independent Clang19.1.1(1ubuntu1~24.04.2) executable SHA256
+f6d5286a52de10b1e3e8841457c9903a1ea28f222ac0f58cd616697d0dcd9db3.
+These identify a successor built from published source, not a newly deployed pin.
+
+Reused the existing generator's frozen inputs, not Tower-emitted C. Generator
+compiler_reference_inputs.tower remains SHA86eb23867a65a06381622898a094f1696ab26f0f477014eb006b12aaaf628381;
+all prior input-manifest hashes verify, with independently counted16/1000 functions.
+Small Tower/C are558/806 bytes; large37699/45819. Exact input SHA256:
+
+| Input | SHA256 |
+| --- | --- |
+| small.tower | 5966271c7144afe728376214c0289d60c0e682be71a0c7f29da386f962ba9fd2 |
+| small.c | 7c64cbcf8a292931d83140a882a78e1f971de63ef263237c6d3b87ce338ac003 |
+| large.tower | 583024d07c2c70a84e6c8cf5167d972fb44e8e2d0c6c74645bd4fb75da120639 |
+| large.c | 56fa3e0cd18504b5681522e9990ded78018c6a0b7ae8bb7870e4f8fc921f1fe6 |
+
+Tower: --jobs1 --target x86_64-unknown-linux-gnu --emit object --timings, explicit
+Bedrock/Foundation from its frozen installed resources, normal O2 pipeline.
+Clang: same target, -std=c11 -m64 -O2 -fwrapv -c. Both compile constant-return
+functions and ordered calls to native objects, separately link, and execute.
+Tower's editable grammar/type prelude and print runtime differ from C's builtin
+grammar/32-bit-int assertion/headerless printf declaration; optimization pipelines
+are not identical. Both optimizers remove the function bodies: large objects
+define only tower_main versus main plus its constant string,904 versus1240 bytes.
+This measures frontend/body processing, not runtime throughput or all C programs.
+
+One warmup per size/compiler, then three small and one large fresh-process samples;
+Tower precedes Clang in each pair. Filesystem is warm, not deliberately OS-cold.
+Warmup compile wall small/large: Tower5.98/2.90s, Clang.06/.22s. Keep the first
+Tower outlier; its cause was not isolated. Clang warmups alone emit -ftime-trace;
+retained throughput samples do not. Existing GNU time records wall/user/system/RSS.
+
+| Object compilation | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Small Tower jobs1, median of3 | 2.26 (2.26/2.14/2.98) | 2.22 | 183576 |
+| Small Clang, median of3 | .04 (.04/.04/.04) | .03 | 97536 |
+| Large Tower jobs1, n1 | 2.44 | 2.41 | 212312 |
+| Large Clang, n1 | .16 | .15 | 108196 |
+| Large Tower jobs4 control, n1, same CPU0,2 | 3.28 | 3.65 | 224544 |
+
+All13 native programs print exact15/999. Repeated objects match their own warmups;
+Tower jobs4 also matches jobs1. Requested workers do not measure overlap. This
+control is slower and uses more CPU/RSS; it supports no useful scaling claim.
+The small Tower range and single large/control samples preclude a regression bound.
+Peak process RSS is not live world retention; no allocation/idle counters were
+exposed by this CLI. This command supports --timings, not a --measure switch.
+
+Separate link medians small/large, wall/CPU/RSS: Tower .02/.01/50752 and
+.02/.01/50736; Clang .07/.05/73968 and .05/.04/73948 (seconds/KiB). The paired
+compile+link wall sums are2.28/.11s small medians and2.46/.21s large, not a separately
+measured one-process end-to-end CLI. Tower runtime IR874fbb7b was compiled once
+at.38wall/.37CPU/94672KiB, outside each sample. Existing --version startup probes
+cost Tower.03/.02/50296 and Clang.05/.04/73716; these are diagnostic floors, not
+subtractable startup corrections. Execution checks and warmups are excluded.
+
+Largest measured hot path is driver_compile_program -> execution_session ->
+frontend_compile_sources: syntax_next/import preparation followed by semantic_compile.
+The median-wall small sample reports bootstrap288.474ms, parse+check1914.774,
+LLVM lowering1.948, optimization2.839, emission1.865, internal total2218.788.
+Large serial reports170.890/2084.842/16.122/114.172/2.019/2406.769ms respectively.
+Combined parse/check is about86% of internal total in both; bootstrap plus that
+span is about99%/94%. The large span lies within the small1912–2554ms range.
+The remaining single-thread gap is therefore dominated by frontend work with a
+large fixed cost, not explained by the measured link or process-startup floors.
+Clang's diagnostic warmup traces separately show Frontend15.859/28.019ms and
+Backend6.936/161.024ms; those boundaries include different work and are not retained
+sample medians. Existing Tower counters do not separate parser from semantic work.
+
+Proposed next fix for B1/B2, with A1 if semantic admission dominates: eliminate
+repeated preparation of unchanged imported language/type preludes through the
+existing world/revision-owned grammar/module caches. First split the measured
+span at its syntax loop and semantic_compile boundary and count cache rebuilds;
+duplicate reconstruction is a hypothesis to verify, not established by these
+timers. Preserve source-order grammar/effects, revision identity and canonical
+Foundation. No conflicting producer change or unmeasured cache-speedup claim here.
+The independent reference confirms a substantial remaining frontend latency/RSS
+gap on these specific matched bodies; it is not a general language ranking.
+
+Logs, exact commands, compiler/resources, traces, profiles, outputs and all source
+checks remain in build/d2_ecs/reference_current (group.status0); prior comparable
+reference receipts remain untouched. No generator/harness defect or code edit was
+needed. Jobs drained and D2 released its lock before integration. Later pull to
+84e919eb preserves complete stage/provenance/generic/constructor/evaluation changes;
+these invalidate reuse as a profile of that newer compiler. Keep the exact baf2
+identity and repeat affected metrics at ROOT's final frozen release, rather than
+relabel or rebuild this bounded one-build receipt. No new sanitizer/browser/
+generation/deployment claim. This journal-only change needs no runtime rerun;
+normal main commit/push and remote identity are recorded in D2 status.
+The first normal push lost a ref race tod56c2903. Required ff-only pull refused
+divergence; normal merge preserved both complete histories without conflict.
+Later executable/type admission inputs retain their owner receipts and require
+final frozen-source profiling; this baf2 measurement was not relabeled or rerun.
+### ROOT executable startup and checked ownership transfer (2026-11-23)
+
+Implemented against published84e919eb, including complete A2 queued provenance
+and L2 checked semantic-node providers. Executable kind/component admission now
+uses checked shared entity creation and component APIs. Failure retains the
+canonical request owner position, cancels pending queries and exposes no runnable
+executable input. The synthetic block reuses L2's sem_node_result; its resource
+position is attributed to the owning function because the generated block has no
+source token. Constructor and integer-type callers stop immediately after failed
+executable/capture admission. Successfully allocated partial metadata stays
+world-owned for ordinary disposal; no parallel AST or allocator is introduced.
+
+The joined executable pump consumes entity_stage_hold_result before closing its
+input view. Its lexical cleanup now discards private stages before the last input
+view closes, including ownership-transfer failure; dispatch failure retains
+priority if both fail. A2's shared discard protocol cancels only unheld borrowed
+fields. Executable clones currently do not themselves enqueue SyntaxOrigin
+borrows; the new error path preserves the shared contract without claiming that
+the executable fixture independently injects every provenance failure.
+
+Before production edits, new startup and metadata pinned-view cases both abort134
+on the previous implementation; the healthy control passes. Afterward all11
+selectors at32/64-bit widths and requested workers1/4 (44 trials) pass, including
+exact Busy/owner position, no published entity/component, cancelled queries,
+terminal replay and world cleanup. CMake registers both new selectors. Query
+smoke passes its real clone-overlap, lazy staging and A2 provenance-exhaustion
+cases. All before/after comptime_flow executions print exact0 with empty stderr.
+
+Performance baseline rebuilt from84e919eb after both providers landed, separate
+from the older failure reproduction. Same actual executable/resource paths,
+Linux x64 Release public bootstrap, ROOT tower-c-validation CPUs24-31/24GiB,
+six build actions/one compiler lane, warm filesystem and fresh process, n1:
+comptime jobs1 wall/CPU/RSS1.12/1.10/179364KiB ->1.08/1.06/179232;
+jobs4 .95/1.17/195344 ->.98/1.19/197616. These small concurrent-host samples
+show no excessive memory signal and do not establish speedup or a regression
+bound. New admission calls do not add retained storage; fixture node/component
+counts and teardown check ownership. The affected9-action build passed in
+24.64wall/54.33CPU seconds with777252KiB peak RSS. Frozen source manifest verifies.
+
+Baseline compiler SHA256:
+581aa374aa9ccb4886407bf79ac13828debcea419119d075e37a1060afaefedf.
+Candidate compiler SHA256:
+c32d5517befb9445cf32df99776af9fdfb255bb25a092340e35c025b7aa3e28f.
+Logs/scripts are /cache/root_executable_storage_before,
+root_executable_storage_integrated_before and root_executable_storage_after,
+with OS wrappers in build/codex_ecs_20261122. Original aborts remain failures,
+not passing old-code tests. Runtime source changes are scoped to the executable
+producer and four immediate caller guards; no syntax/bootstrap adoption occurs.
+Remaining execution-kernel synthesis assertions and other worker caller closures
+are not claimed solved. A2 owns remaining stage callers, L2 known/capture
+admission, and ROOT final integrated sanitizer/bootstrap/browser/deployment gates.
+
+B1 merged receipt: production f2f12e5b and published5c5a308c were preserved in
+00d3f856 with no conflicts. Incoming stage/budget/frontend/semantic changes
+required22 dependency actions:38.82wall/117.25CPU seconds/770712KiB. Merged
+parser/live grammar/cache/lexical checks passed .31wall/.24CPU/63156KiB;
+ordinary cold request passed1.05/1.00/165596, same185/155/159 counts and
+976byte canonical hash. Merged symbol fixture and selected checker rebuilt;
+all three refreshed native nm consumer reports pass. No broad tests or performance
+pairs repeated; previous timing retains its frozen pre-merge source identity.
+Session30917 drained0; container only init. Logs and current hashes are
+build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
+only; no runtime profiling applies to those edits. Normal main push follows.

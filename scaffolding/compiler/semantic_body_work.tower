@@ -61,10 +61,10 @@ fn sem_bodies_begin(c: SemanticContext*): SemanticBodyPipeline* {
     state.kind = sem_create(c.program.root);
     sem_require(entity_register(state.kind, sizeof(SemanticBodyWork), alignof(SemanticBodyWork), 0));
     sem_control_names(c);
-    sem_evaluation_begin(c);
     c.body_demands = sem_create(c.program.root);
     sem_require(entity_register(c.body_demands, sizeof(SemanticBodyDemand), alignof(SemanticBodyDemand), 0));
     c.body_seen = sem_table(c);
+    sem_evaluation_begin(c);
     return state;
 }
 
@@ -1958,6 +1958,7 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
         return SemanticPumpResult.Failed;
     }
     var state = sem_bodies_begin(c);
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
     // Early executed helpers can create this pipeline before module expressions
     // are checked. Publish ordinary root calls only after that graph is final;
     // an early traversal would cache incomplete ancestors in body_seen.

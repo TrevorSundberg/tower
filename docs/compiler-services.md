@@ -321,9 +321,26 @@ incomplete destination on failure: this is
 not transactional replacement of an existing payload. Parser labels and splice
 arrays still use ordinary vectors, so their physical allocation failures report
 `Memory`; this does not claim those buffers are charged to the world budget.
-Staged history fields become owning only after queuing succeeds, with the usual
-coordinator hold-before-unpin contract. Reference-counter exhaustion remains a
-separate entity-stage contract gap.
+Staged history fields remain borrowed after queue admission. The producer uses
+`entity_stage_references_cancellable_result(stage, nodes, count, cancel, context)`
+to register stable private cancellation metadata before installing those fields.
+After joining workers, the coordinator calls `entity_stage_hold_result(stage)`
+before closing the last input view. It acquires all pending references, including
+duplicate targets, or returns `Exhausted`/`Busy` without transferring any of that
+pending ownership; earlier successful holds remain owned. Repeated holds do not
+retain twice. Publication also checks the combined component-type and queued
+reference counts before committing either ownership transfer.
+
+`entity_stage_discard_result` clears only unheld borrowed fields through their
+callbacks, then runs ordinary finalizers so owned buffers still release. Source
+owners/views must survive this cleanup on hold failure. Cancellation callbacks
+must not release the borrowed targets, mutate the queue, or change other payloads.
+Legacy `entity_stage_references[_result]` callers retain their existing behavior,
+but without cancellation metadata discard must first acquire their ownership;
+failure leaves the stage intact and returns its exact error. The void hold/discard
+wrappers trap on error instead of wrapping counters or finalizing unowned fields.
+Production provenance uses the cancellable protocol. Its private vectors remain
+ordinary allocations, not a new claim of world-budget accounting.
 
 Ordered containment also offers `entity_replace_child_result(parent, index,
 replacement)` and `entity_take_last_child_result(parent, error)`. Replacement

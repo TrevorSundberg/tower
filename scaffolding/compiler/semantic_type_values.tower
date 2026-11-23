@@ -111,12 +111,15 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
     if !sem_ok(c) { return 0; }
     if result.integer_evaluation == null {
         sem_executables_begin(c);
+        if !sem_ok(c) { return 0; }
         sem_captures_begin(c);
+        if !sem_ok(c) { return 0; }
         if !semantic_integer(&sem_get(result.value).type) {
             sem_fail(c, result.subject, "Expected a compile-time integer argument");
             return 0;
         }
-        var subject = sem_control_node(c, result.subject, KOperand);
+        var subject = sem_evaluation_node(c, result.subject);
+        if subject == null { return 0; }
         var clones = sem_table(c);
         var nodes = sem_list(c);
         var expression = sem_defer_clone(c, subject, result.value, clones, nodes);
@@ -126,6 +129,7 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
         c.integer_arguments = previous;
         if !sem_ok(c) { return 0; }
         result.integer_evaluation = sem_evaluation_get(c, subject);
+        if result.integer_evaluation == null { sem_type_resource(c, result.subject, WorkBudgetError.Invalid); return 0; }
         sem_evaluation_work_register(c, false);
         if !sem_ok(c) { return 0; }
     }

@@ -235,7 +235,68 @@ fn executable_admission_trial(width: u32, workers: usize, mode: ExecutableAdmiss
     return failures;
 }
 
+fn executable_storage_trial(width: u32, workers: usize, startup: bool): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 83;
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    var subject = root;
+    if !startup {
+        subject = executable_admission_function(&context, world);
+        var state = sem_bodies_pump(&context);
+        while state == SemanticPumpResult.Progress { state = sem_bodies_pump(&context); }
+        sem_require(state == SemanticPumpResult.Complete && sem_ok(&context));
+        sem_executables_begin(&context);
+        sem_require(sem_ok(&context));
+    }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var pin = entity_view_open(root);
+    sem_require(pin != null);
+    if startup { sem_executables_begin(&context); }
+    else { executable_admission_check(sem_executable_request(&context, subject) == 0,
+        "Pinned executable metadata admission returns no runnable query", &failures); }
+    executable_admission_check(program.resource.error == WorkBudgetError.Busy
+        && program.resource.offset == (startup ? 83 : 17) && context.queries.cancelled,
+        "Executable storage failure retains exact cause and owner position", &failures);
+    executable_admission_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+        "Pinned executable storage admission publishes no entity or component", &failures);
+    entity_view_close(pin);
+    var tasks = context.queries.tasks.length;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        sem_executables_begin(&context);
+        executable_admission_check(sem_executable_request(&context, subject) == 0
+            && sem_executables_pump(&context) == SemanticPumpResult.Failed
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks && context.workers.running == 0,
+            "Released input pin cannot revive failed executable admission", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    executable_admission_check(compiler_world_dispose(world), "Executable storage failure releases its world", &failures);
+    return failures;
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc > 1 && (strcmp(argv[1], "startup") == 0 || strcmp(argv[1], "metadata") == 0) {
+        var failures: u32 = 0;
+        for(var width: u32 = 4; width <= 8; width += 4) {
+            for(var workers: usize = 1; workers <= 4; workers += 3) {
+                failures += executable_storage_trial(width, workers, strcmp(argv[1], "startup") == 0);
+            }
+        }
+        return failures == 0 ? 0 : 1;
+    }
     var mode = ExecutableAdmissionMode.Healthy;
     if argc > 1 {
         if strcmp(argv[1], "pinned") == 0 { mode = ExecutableAdmissionMode.Pinned; }
