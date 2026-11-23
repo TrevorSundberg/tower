@@ -153,3 +153,19 @@ raw logs, failed baseline logs/stacks, full source/canonical artifacts and means
 
 Entity layout changed: consumers must rebuild from a coherent source/package;
 old and new Entity layouts cannot be mixed. No public bootstrap adoption implied.
+
+## Publication reconciliation
+
+Implementation/evidence commit `f9565c46` is preserved through merge
+`280429f67c4f5c2835e023905b8fcba5963d2680` with published `0fe314ef`.
+Incoming browser changes and counted-byte backend test fixtures are excluded from
+frozen performance claims. The ECS/compiler/host producer files and focused test
+inputs are unchanged. CMake reconfiguration rebuilt the native backend binding
+object because its checks import the incoming backend fixture, then relinked the
+profile; no measured frontend producer object rebuilt. The merged profile hash is
+`f170b5f208f66e9e4c605b1adb82ccb5c135a9f35b9beb69e3d63da32747c11e`.
+Merged16/w1 and4096/w4 independently pass known outputs, exact frozen canonical
+comparison and cleanup; inline growth/cancellation and injected failure controls
+also pass. These checks validate the merged boundary without relabeling the
+retained before/after measurements. B1's gate change is still absent. All owned
+work is drained. No Pages/runtime deployment was requested or performed.
