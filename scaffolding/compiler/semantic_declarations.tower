@@ -48,6 +48,9 @@ var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
 var ArrayTypeQuery: u32 = convert(u32, SemanticQuery.ArrayType);
 var TypeConstructionQuery: u32 = convert(u32, SemanticQuery.TypeConstruction);
 var SemanticProjectionDepthLimit: usize = 128;
+// Body/declaration stages usually install only a few records. Store allocations
+// keep the default page policy; the world-owned kind is sealed before dispatch.
+var SemanticDeclarationStageRows: u8 = 4;
 
 
 struct DeclarationScan {
@@ -77,7 +80,8 @@ fn sem_declaration_state_result(c: SemanticContext*, node: void*): SemanticDecla
     if !sem_ok(c) { return null; }
     var error: WorkBudgetError;
     if c.declaration_state == null {
-        c.declaration_state = sem_kind_result(c.program.root, sizeof(SemanticDeclaration), alignof(SemanticDeclaration), &error);
+        c.declaration_state = sem_kind_stage_result(c.program.root, sizeof(SemanticDeclaration),
+            alignof(SemanticDeclaration), SemanticDeclarationStageRows, &error);
         if c.declaration_state == null { sem_work_resource(c, node, error); return null; }
     }
     var component = entity_component_get(node, c.declaration_state);

@@ -26,7 +26,7 @@ fn reuse_add(owner: Entity*, kind: Entity*, target: Entity*, stage: EntityStage*
     else { reuse_check(entity_stage_references(stage, &target, 1)); }
     return component;
 }
-export fn main(argc: i32, argv: u8**): i32 {
+fn reuse_trial(stage_rows: u8): void {
     var budget: WorkBudget = default;
     reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
     var store: EntityStore* = null;
@@ -39,11 +39,16 @@ export fn main(argc: i32, argv: u8**): i32 {
     var target = entity_create(store);
     var stable = entity_create(store);
     reuse_check(root != null && kind != null && extra != null && target != null && stable != null
-        && entity_register(kind, sizeof(ReuseValue), alignof(ReuseValue), ReuseLifecycle)
+        && entity_register_stage_result(kind, sizeof(ReuseValue), alignof(ReuseValue),
+            ReuseLifecycle, stage_rows) == WorkBudgetError.None
         && entity_register(extra, sizeof(usize), alignof(usize), 0)
         && entity_attach(stable, root, null));
     entity_release(stable);
     var original = reuse_add(stable, kind, target, null);
+    reuse_check(entity_register(kind, sizeof(ReuseValue), alignof(ReuseValue), ReuseLifecycle)
+        && kind.stage_page_rows == stage_rows
+        && entity_register_stage_result(kind, sizeof(ReuseValue), alignof(ReuseValue),
+            ReuseLifecycle, stage_rows == 0 ? convert(u8, 4) : convert(u8, 0)) == WorkBudgetError.Busy);
     var original_data = original.data;
     var first = entity_stage_open(root);
     var second = entity_stage_open(root);
@@ -55,6 +60,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var b = reuse_add(entity_stage_create(second, root), kind, target, second);
     var count = a.page.capacity + 1;
     reuse_check(b.page.capacity == a.page.capacity);
+    if stage_rows != 0 { reuse_check(a.page.capacity == convert(usize, stage_rows) && original.page.capacity > a.page.capacity); }
     var nodes = alloc(Entity*, count);
     var components = alloc(EntityComponent*, count);
     reuse_check(nodes != null && components != null);
@@ -116,6 +122,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     entity_release(extra);
     reuse_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
         && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    reuse_trial(0);
+    reuse_trial(4);
     print(0);
     return 0;
 }

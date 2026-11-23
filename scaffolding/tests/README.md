@@ -1011,6 +1011,12 @@ query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
 
+The portable `semantic_world_tests` export runs the same denial cases inline.
+Its fixture binds a one-lane ledger/world/pool because the portable host has no
+thread transport or synchronization signals. Native cases retain synchronized
+ledgers and the requested one/four-worker coverage; portable success is not
+evidence of concurrent execution.
+
 `tower-lr-work-tests RESOURCE_ROOT resource-smoke` selects only those24 resource
 cases, using the same query-checks object and production transport. Growth cases
 first gate Evaluate until both owning entry frames prepare successfully, then
@@ -1761,7 +1767,8 @@ build/tower-frontend-storage-profile scaffolding 512 4 plain
 ```
 
 Arguments are resource root, independent body count (1..4096), worker budget
-(1 or4), and `observe`/`plain`. Both modes compile the same imported generic,
+(1 or4), `observe`/`plain`, and optional extra locals per body (default0).
+For a fuller declaration stream use `8 1 observe 256`. Both modes compile the same imported generic,
 `decltype`/`comptime` input, execute reference answers, report comparable canonical
 checksums and dispose to zero byte/lane grants. `plain` skips all storage walks.
 The census runs at coordinator joins, never through a worker/global allocator hook.
@@ -1774,7 +1781,11 @@ page slots, physical page bytes, strided slot bytes, one-live-slot pages,
 bytes. `used` rows report phase/label/ID/ever-used slots in remaining pages;
 `metric` rows give phase/key/value totals and separately identify observer and
 ledger metadata. Core and dynamic component counts are checked against the store.
+Joined metrics also report live grants and successful grant generation (including
+lane/buffer admissions, not raw malloc calls). Plain mode omits this census.
 Payload pages, descriptor pages and dense pointer indexes must not be added to
 logical payload twice. Raw vectors/foreign allocations and RSS remain separate.
 See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md)
 for exact identities, limits, phase retention and the bounded page-policy proposal.
+The [four-slot experiment](../../docs/compiler_ecs_declaration_pages_5b9194e4.md)
+records its implementation, matched costs and fuller-stream allocation trade-off.

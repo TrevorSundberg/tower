@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadTower, runToEnd } from './compiler-fixtures.mjs';
 import { byteOffsets } from '../src/offsets.mjs';
-import { configureTower } from '../src/bootstrap.mjs';
 const bytes = await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
 const bootstrap = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
 const tower = await loadTower(bytes, undefined, bootstrap);
 const example = await readFile(new URL('../../scaffolding/examples/foreach.tower', import.meta.url), 'utf8');
-const base = "parse Variable = Identifier;parse Expression = Identifier | Number;parse Statement = Expression ';';";
+const numeric = await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8');
+const base = numeric + "parse Variable = Identifier;parse Expression = Identifier | Number;parse Statement = Expression ';';";
 const loop = "parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';parse Statement |= ForEach;";
 
 function analyze(source) {
@@ -19,11 +19,11 @@ function analyze(source) {
 test('all native node, parser and syntax tests also pass in WASM without exceptions', () => {
   assert.equal(tower.exports.tw_self_test(), 0);
 });
-test('real example crosses seven grammar revisions and retains named nested captures', () => {
+test('real example crosses eight grammar revisions and retains named nested captures', () => {
   const { events, end, snapshot } = analyze(example);
-  assert.equal(end.status, 'done'); assert.equal(end.revision, 7);
-  assert.deepEqual(events.map(e => e.revision), [1,2,3,4,5,6,6,7,7]);
-  const first = events[6].nodes;
+  assert.equal(end.status, 'done'); assert.equal(end.revision, 8);
+  assert.deepEqual(events.map(e => e.revision), [1,2,3,4,5,6,7,7,8,8]);
+  const first = events[7].nodes;
   assert.equal(first.filter(n => n.role === 'Variable').length, 2);
   assert.equal(first.filter(n => n.role === 'Statement').length, 2);
   assert.deepEqual(snapshot.keywords, [...new Set([...analyze('').snapshot.keywords, 'foreach', 'in'])].sort());
@@ -35,8 +35,8 @@ test('construct lookahead continues shared prefixes, preserves boundaries and re
     const source = example.replace('parse Statement |= ForEach;', `parse Statement |= ${alternatives};`);
     const { events, end } = analyze(source);
     assert.equal(end.status, 'done', end.error);
-    assert.equal(events.length, 9);
-    assert.equal(events[6].nodes.filter(node => node.label === 'ForEach').length, 2);
+    assert.equal(events.length, 10);
+    assert.equal(events[7].nodes.filter(node => node.label === 'ForEach').length, 2);
   }
   const prefix = base + loop + "parse Statement |= 'for';";
   const source = prefix + 'for /* boundary */ item;for\n' +
@@ -64,7 +64,7 @@ test('keyword classification follows declaration boundaries, including removal a
   const { end, snapshot } = analyze(source);
   assert.equal(end.status, 'done');
   assert.deepEqual(snapshot.highlights.filter(t => source.slice(t.start,t.end) === 'for').map(t => [t.kind,t.revision]),
-    [['identifier',3],['keyword',5],['identifier',6]]);
+    [['identifier',4],['keyword',6],['identifier',7]]);
   assert.equal(snapshot.highlights.find(t => source.slice(t.start,t.end) === 'forest').kind, 'identifier');
 });
 
@@ -97,7 +97,7 @@ test('highlight preview never consumes input or commits future declarations', ()
   try {
     assert.equal(tower.inspect(handle).revision, 0);
     assert.equal(tower.inspect(handle).offset, 0);
-    for (let revision = 1; revision <= 5; revision++) {
+    for (let revision = 1; revision <= 6; revision++) {
       assert.equal(tower.step(handle).revision, revision);
       const preview = tower.inspect(handle);
       assert.equal(tower.inspect(handle).offset, preview.offset);
@@ -110,14 +110,14 @@ test('invalid grammar returns an error, preserves revision, and does not poison 
     const source = base + '\nparse Statement |= ' + quotes + ';';
     const { end } = analyze(source);
     assert.equal(end.status, 'error');
-    assert.equal(end.revision, 3);
+    assert.equal(end.revision, 4);
     assert.match(end.error, /Token literal is empty/);
     assert.equal(end.errorOffset, source.indexOf(quotes));
   }
   for (const bad of ["parse Statement |= Expression ';';", 'parse Statement = Missing;', 'parse Bad = Bad;',
     "parse Bad = 'a b';", 'parse Bad = $Expression $Expression;', 'parse Statement = ;']) {
     const { end } = analyze(base + bad);
-    assert.equal(end.status, 'error', bad); assert.equal(end.revision, 3, bad); assert.ok(end.error);
+    assert.equal(end.status, 'error', bad); assert.equal(end.revision, 4, bad); assert.ok(end.error);
   }
   assert.equal(analyze(base + '42;').end.status, 'done');
 });
@@ -132,7 +132,7 @@ test('UTF-8 spans, emoji, strings and comments survive the JSON and editor bound
   assert.equal(offsets.at(-1), source.length);
 });
 test('new multi-character punctuation and malformed lexical input use the native scanner', () => {
-  const source = "parse Statement = Identifier '=>' Number ';';x=>42;";
+  const source = numeric + "parse Statement = Identifier '=>' Number ';';x=>42;";
   const good = analyze(source);
   assert.equal(good.end.status, 'done');
   assert.ok(good.snapshot.highlights.some(t => t.kind === 'operator' && source.slice(t.start,t.end) === '=>'));
@@ -146,8 +146,9 @@ test('new multi-character punctuation and malformed lexical input use the native
 });
 
 test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => {
-  const module = tower.createFoundation(bootstrap), pinned = tower.create('print(3);');
+  const module = tower.createFoundation(bootstrap), pinned = tower.create('import foundation; print(3);');
   try {
+    assert.equal(tower.step(pinned).revision, 1); // Freeze the imported grammar before editing its source.
     const initial = runToEnd(tower, module);
     assert.equal(initial.end.status, 'done', initial.end.error);
     assert.ok(tower.inspect(module).rules.some(rule => rule.name === 'CoreFunction'));
@@ -155,15 +156,15 @@ test('one foundation module bootstraps itself, installs idempotently and pins ex
     assert.equal(runToEnd(tower, module).end.status, 'done');
     assert.equal(tower.inspect(module).grammarBuilds, 0);
     tower.configure(bootstrap); tower.configure(bootstrap);
-    assert.equal(analyze('fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);').end.status, 'done');
-    const edited = bootstrap.replace("parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';", "parse CoreCall = 'invoke' $name:CoreLocation '(' $args:CoreArguments? ')';");
+    assert.equal(analyze('import foundation; fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);').end.status, 'done');
+    const edited = bootstrap + "\nparse CoreCall = 'invoke' $name:CoreLocation '(' $args:CoreArguments? ')';";
     assert.notEqual(edited, bootstrap);
     tower.configure(edited); tower.configure(edited);
-    assert.equal(analyze('invoke print(4);').end.status, 'done');
-    assert.equal(analyze('print(4);').end.status, 'error');
+    assert.equal(analyze('import foundation; invoke print(4);').end.status, 'done');
+    assert.equal(analyze('import foundation; print(4);').end.status, 'error');
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
     assert.throws(() => tower.configure(edited + '\nprint(5);'), /only token, skip and parse/);
-    assert.equal(analyze('invoke print(4);').end.status, 'done');
+    assert.equal(analyze('import foundation; invoke print(4);').end.status, 'done');
     tower.reset(module, bootstrap + '\nvar forbidden: i32;');
     assert.match(runToEnd(tower, module).end.error, /only token, skip and parse/);
   } finally { tower.configure(bootstrap); tower.destroy(module); tower.destroy(pinned); }
@@ -187,15 +188,16 @@ test('ABI rejects unsupported input and handles; repeated analysis releases nati
 test('edits reuse compiled grammars while matching fresh parsing, including changed syntax and recovery', () => {
   const normalize = result => JSON.parse(JSON.stringify(result, (key, value) =>
     ['id', 'grammarBuilds', 'grammarCacheHits', 'cachedGrammars'].includes(key) ? undefined : value));
+  analyze(example); // Populate the retained import cache before measuring session ownership.
   const nodes = tower.exports.tw_live_nodes(), allocations = tower.exports.tw_live_allocations();
   const handle = tower.create(example);
   const parse = () => ({ ...runToEnd(tower, handle), snapshot: tower.inspect(handle) });
   try {
-    assert.equal(parse().snapshot.grammarBuilds, 7);
+    assert.equal(parse().snapshot.grammarBuilds, 9); // Import transition, token and grammar declarations.
     tower.reset(handle, example.replace('item;', 'another;'));
     const edited = parse();
     assert.equal(edited.snapshot.grammarBuilds, 0);
-    assert.equal(edited.snapshot.grammarCacheHits, 8);
+    assert.equal(edited.snapshot.grammarCacheHits, 9); // The import boundary and eight local reader states.
     assert.deepEqual(normalize(edited), normalize(analyze(example.replace('item;', 'another;'))));
     for (const input of [
       base + 'for;' + loop + 'for(x in xs){}', // Cached future keywords must not activate early.
@@ -285,13 +287,13 @@ test('lexical replacements activate at declaration boundaries; failures preserve
 test('foundation inherits bedrock tokens, adds its own tokens and installs atomically', () => {
   const handle = tower.create("parse Statement = Identifier ';';original;");
   try {
-    configureTower(tower.exports, String.raw`token Word = /@[a-z]+/ as string;`);
-    assert.equal(analyze("parse Statement = Word ';';@hello;").end.status, 'done');
+    tower.configure(String.raw`token Word = /@[a-z]+/ as string;`);
+    assert.equal(analyze("import foundation; parse Statement = Word ';';@hello;").end.status, 'done');
     assert.equal(analyze("parse Statement = Identifier ';';hello;").end.status, 'done');
-    assert.throws(() => configureTower(tower.exports, 'token Bad = /a*/;'), /empty input/);
-    assert.equal(analyze("parse Statement = Word ';';@hello;").end.status, 'done');
+    assert.throws(() => tower.configure('token Bad = /a*/;'), /empty input/);
+    assert.equal(analyze("import foundation; parse Statement = Word ';';@hello;").end.status, 'done');
     assert.equal(runToEnd(tower, handle).end.status, 'done'); // Existing session's seed is pinned.
     tower.reset(handle, "parse Statement = Identifier ';';original;");
     assert.equal(runToEnd(tower, handle).end.status, 'done');
-  } finally { configureTower(tower.exports, bootstrap); tower.destroy(handle); }
+  } finally { tower.configure(bootstrap); tower.destroy(handle); }
 });

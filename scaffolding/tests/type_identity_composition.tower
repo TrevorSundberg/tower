@@ -1,0 +1,5 @@
+import tower;
+fn id(T: type, value: T): T { return value; }
+var value = 42; var p = id(i32*, &value); print(*p);
+fn same(T: type): type { return T; } var x: same(i32) = 7; print(x);
+fn fixed(): type { return i32; } var y: fixed() = 8; print(y);

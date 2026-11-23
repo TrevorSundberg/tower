@@ -235,30 +235,35 @@ export fn entity_view_query(view: EntityView*, type: Entity*, first: usize, coun
 
 // Component types are ordinary entities with a consistent layout/lifecycle.
 export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool {
-    if type.stage != null { return false; }
-    var zero = alignment == 0;
-    if zero {
-        return false;
-    }
+    if type == null { return false; }
+    return entity_register_stage_result(type, size, alignment, lifecycle,
+        type.registered ? type.stage_page_rows : convert(u8, 0)) == WorkBudgetError.None;
+}
+
+// Coordinator-only registration, before dispatch. Repeating the same contract
+// is read-only; even an empty registered kind cannot change its page policy.
+export fn entity_register_stage_result(type: Entity*, size: usize, alignment: usize,
+    lifecycle: usize, stage_rows: u8): WorkBudgetError {
+    if type == null || alignment == 0 || stage_rows == 1
+        || convert(usize, stage_rows) > EntityComponentPageRows { return WorkBudgetError.Invalid; }
+    if type.stage != null { return WorkBudgetError.Busy; }
     var mask = alignment -1;
     var bits = alignment &mask;
-    if bits != 0 {
-        return false;
-    }
+    if bits != 0 { return WorkBudgetError.Invalid; }
     if type.registered {
         var same = type.data_size == size;
         same &&= type.data_alignment == alignment;
         same &&= type.lifecycle == lifecycle;
-        return same;
+        same &&= type.stage_page_rows == stage_rows;
+        return same ? WorkBudgetError.None : WorkBudgetError.Busy;
     }
-    if type.store.views != 0 {
-        return false;
-    }
+    if type.store.views != 0 { return WorkBudgetError.Busy; }
     type.data_size = size;
     type.data_alignment = alignment;
     type.lifecycle = lifecycle;
+    type.stage_page_rows = stage_rows;
     type.registered = true;
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Published membership only. This never reads a worker's mutable private
@@ -468,8 +473,10 @@ fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetErr
     var pool = owner.storage;
     if owner.stage != null && pool == null { *error = WorkBudgetError.Invalid; return null; }
     if pool == null { pool = &owner.store.storage; }
+    var rows = EntityComponentPageRows;
+    if owner.stage != null && type.stage_page_rows != 0 { rows = convert(usize, type.stage_page_rows); }
     var component = entity_storage_allocate(pool, owner.store.budget, type.id, type.data_size,
-        type.data_alignment, EntityComponentPageRows, EntityComponentPageBytes, error);
+        type.data_alignment, rows, EntityComponentPageBytes, error);
     if component != null { component.owner = owner; component.type = type; }
     return component;
 }

@@ -39,6 +39,14 @@ separate nominal struct declarations remain distinct. Arithmetic, numeric casts,
 printing a private type number, and a bare zero `default` for a type value are
 rejected. Initialize a type value with an actual type.
 
+Pointer suffixes remain type spelling: `return T*;` is not a value expression.
+Use `return type_value(T*);` to return that descriptor, or
+`return pointer_type(T);` for ordinary staged construction. Both can define a
+type-producing alias used in an explicit specialization. Generic deduction does
+not invert these calls: with `p: pointer(T)`, pass `indirect(i64, &value)`.
+A structural parameter `p: T*` supports `indirect(&value)`. This is the existing
+[inference subset](generic-call-inference.md), not runtime type construction.
+
 Typed declaration attributes and staged aggregate results can contain type
 values. These remain metadata until a particular protocol consumer defines and
 validates their meaning; an annotation does not itself change arithmetic/layout.
