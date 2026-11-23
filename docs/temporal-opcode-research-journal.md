@@ -59348,3 +59348,23 @@ effect in this documentation-only audit, so new runtime profiling is inapplicabl
 Own last measured package remainsfa725bf/8388c79a+48resources. Current full42,
 matched clone/constructor/fallible arena callers, final whole-compiler instrumentation,
 clean public/native/browser/generation and leased atomic hosted release remain open.
+### Joined-source comparison and regression entry integration
+
+Compared B1's validated d1a23181 against root3915aee8 across scaffolding, CMake,
+bootstrap and build transport. Production differences are three comment blocks
+(worker_policy, entity_types and work_budget_types); build rules are identical.
+Other differences are README and three unregistered A2 measurement/fixture files.
+B1's public-pin 54-step native build and query, LR, parser, allocation, units,
+storage/clone and buffer/arena checks therefore exercise the same production
+behavior, with their original d1a source identity. They do not validate the three
+new standalone entries or constitute a byte-identical root release build.
+
+Integrated D1 80ecb11b's resource test entry, bounded lifecycle selector, serial
+execution-index selector and conditional existing native module-cache target.
+Integrated D2 2a8646ee's observed bootstrap import-policy correction and exact-name,
+wrong-unit and suffix regression checks. The full D2 bundle already contains the
+eight-lane union and D1 hooks; the reviewed merge adds only those two tool/test
+files and owner evidence. D2's tool verification and seven recorded object checks
+pass on their stated older closure; final generation validation remains open.
+The new native selector compile/link/runtime checks are pending D1's current
+frozen build. No earlier checks are relabelled as validation of these additions.
