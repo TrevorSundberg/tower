@@ -90540,3 +90540,40 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+### ROOT independent frozen shared-browser host control (2026-11-23)
+
+B2's f167c444 retirement failure remains OPEN. ROOT copied the exact blocked
+archive7382481192a567d0ecfdb8e019ec0ab10d9020934d12488849aa4fe9ea5e6aff
+and independently verified all1288 manifest files after extraction. Compiler
+8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4 and work
+6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c match B2.
+No source, transport, timeout, target filtering or assertion change was made.
+
+Two fresh Windows Chromium159.0.8154.6/Playwright1.65.1 trials with Node21.7.3
+passed the original strict script from the frozen extracted source directory.
+Each observed actual pool4/compiler1/compiler4 closure counts5/2/5 and zero
+remaining CDP worker targets, preserving full serial/parallel canonical and
+Graph/Fast output comparisons. Trial wall milliseconds were350/1389/3580 and
+311/1397/3147; final Wasm capacities were33947648/90701824/97779712 and
+33947648/90701824/97845248bytes. These capacities are not live ownership or RSS.
+Second whole Node process:5.9344243s wall,1.375s CPU; peak RSS unavailable
+(the collector returned null, not zero), no aggregate browser-tree CPU/RSS.
+First whole-process timing/peak were not captured. No speedup claim.
+
+The actual resource JSON hash on Windows is
+97b3a30fdda7482932070c0c0a6b56a077a4d3c1e84efea4ccb48d91686b5bd8,
+different from B2's Linux serialized resource identity67561156...; every archived
+file byte was verified, but input ordering/serialization equivalence has not
+been independently established. Do not attribute the outcome solely to OS or
+silently combine the input identities. Two passes do not erase B2's intermittent
+Linux failures or establish universal retirement. ROOT owns the remaining runtime/
+gate investigation; B2 owns a minimal browser lifecycle control diagnosis.
+
+Evidence: C:/Sandbox/build/codex_ecs_20261122/ROOT_shared_browser_f167c444,
+root_windows_baseline*.json/stdout/stderr and root_manifest_verification.txt.
+All ROOT processes drained. This journal-only change has no runtime performance
+delta; these are existing-artifact diagnostic costs. Later A1/A2/L1/compiler
+changes remain excluded, current native/browser generations and final release
+remain pending. The service-rejected compiler instrumentation gate is untouched.
+Protected todo.txt hash remains8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
