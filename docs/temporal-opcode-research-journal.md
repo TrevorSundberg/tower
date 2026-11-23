@@ -60238,3 +60238,39 @@ one separate provider in existing fixture recipe). The resolved resource helper
 SHA14e0d6db matches D1. Default/all/type-smoke behavior and every owner assertion
 remain intact. These source additions require their own public smallest/native
 build and runtime; no new pass is inferred from D1's earlier lifecycle42 receipt.
+
+### D1 provider-history reconciliation and next validation boundary
+
+At actual2026-11-23 02:28UTC, D1 verifies D2 bundle39f2efd5180a6dd4ed767f22f9730fef20c515de61abaf2b852cae87b5b986d1,
+sole60741 prerequisite, and merges406d1709 asfc7662bc. Only D2 audit/journal
+content differs from the existingaa22 tree; compiler, test, CMake, bootstrap and
+build-script bytes remain identical. Original provider commit1fa854a5 is now
+reachable alongside D1's hooks/ledger target and all source histories. No todo
+change. Runtime profiling is inapplicable to this history/documentation merge;
+new code introduced by earlier checkpoints still awaits D1's next measured run.
+
+D2 corrects its joined query failure attribution at02:24:02: the first fatal
+check is generic_clone_parallel.tower:149, workers2/Publish production interval
+overlap, not a semantic Publish result. Runnerbe56164e and fixtureea0a4909 identify
+the failure. Debugger execution and ten bounded subsequent plain query runs pass,
+but the original134 remains open with L2. D1 source review confirms the barrier
+covers admission only, and intervals exclude barrier waiting. Do not manufacture
+overlap by moving timestamps or replace the oracle with requested queue width.
+Later successful22 publication/24 resource cases retain their separate identity.
+No D1 duplicate reproduction or competing owner edit is performed while D2 owns
+the single Deck heavy slot.
+
+The L1 stale-object failure informs the next build recipe: changed copied source
+must be newer than dependent objects or those targets explicitly rebuilt. D1's
+current semantic_known_types/lr_grammar/interpreter entry/LR main inputs have
+normal checkout/apply timestamps newer than their existing native objects. This
+check does not replace actual rebuild logs. Prepared OS-only build transport
+under build/d1_ecs/registered_units_next compiles the smallest three changed
+entries, then the canonical no-override native build and affected targets; source
+hashes and before/after object timestamps are recorded. Independent arena linkage
+and type-errors checks precede the query suite, retain nonzero failures and exact
+symbol/output assertions. Scripts pass bash syntax checking but have NOT run.
+The sanitizer caches still require clearing an old CMAKE_PROJECT_INCLUDE override
+and enabling backend tests for the thread profile before wholecompiler checks.
+No deliberate invalid-memory/race probes are added. Available RAM9.3GiB,
+free disk138GiB and existing host swap6.6GiB do not require cleanup.

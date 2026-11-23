@@ -1924,3 +1924,24 @@ Generic hook49927ff7 is exported for D2's matched provider build. D1 awaits D2's
 exact five provider imports before any local build; this joined source is not
 runtime evidence. L2/B2 partial inspection resource recovery remains separately
 open, and later constructor/dispatch drafts must not enter via advertised tip.
+
+### D2 provider history reconciliation and overlap failure
+
+Merged verified complete D2 bundle39f2efd5 at406d1709 into mainfc7662bc after
+checking the sole60741 prerequisite. This preserves the original five-provider
+commit1fa854a5 and all three D1 hooks; compiler, fixture and build inputs are
+byte-identical to D1aa22 before this merge. The D1 ledger target and README
+coverage remain present. Census remains1,084 tracked/499 direct reviewed files.
+No local runtime acceptance follows from this history/documentation-only merge.
+
+D2's first joined query run failed134 in generic_clone_parallel.tower's two-worker
+Publish interval-overlap assertion, before semantic publication checks. Its
+initial attribution to Publish was corrected using the actual fatal diagnostic
+and debugger. The admission barrier precedes both production-kernel intervals;
+distinct threads and simultaneous admission do not ensure a short kernel pair
+will overlap after wakeup. D2's ten later successful same-binary runs establish
+successful executions, not resolution of the original failure. L2 owns the
+fixture correction; preserve timing outside the admission barrier and actual
+work/ownership assertions. D1 has not rerun or weakened this assertion. This
+follow-up qualifies the earlier generic_clone_parallel audit row; it does not
+establish a production race, deadlock, speedup or reliable overlap on every run.
