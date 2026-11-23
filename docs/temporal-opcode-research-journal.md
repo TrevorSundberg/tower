@@ -77282,3 +77282,66 @@ sem_type_execution_error ownership: preserve its first receipt and source offset
 use the request's actual invocation ledger, and use counted failure propagation
 instead of ix_construct_type's redundant termination allocation. This is a future
 proposal, absent from this frozen code and not validation evidence for it.
+### L2 typed generic results: frozen matched costs (2026-11-23)
+
+Quiet job22333 completed all32 exact-output runs, one warmup and three retained
+alternating before/after pairs per constructor/generic workload and jobs1/4.
+Before000a960 and afterd6bad03 use the immutable native packages recorded above.
+Each process ran at the same actual executable and resource path,
+/root/.cache/tower/l2_generic_results_profile_fixed/towerc; binary copies/hash
+checks were outside timing. Complete before/after packages, byte-identical
+resources and external inputs passed pre/final verification. No source/build or
+other lane WSL work overlapped the granted quiet interval. The actual command is
+in L2/generic_results_fixed_pairs.sh: --interpret --jobs 1/4 --timings with explicit
+Bedrock/Foundation paths and GNU time -v. WSL2 Linux6.18.33.2 x64, glibc2.39,
+LLVM19 Release/native x64, public bootstrap9653f818; allocator overrides unset.
+Fresh processes used a warm filesystem; this is not cold-start evidence.
+
+| Workload/jobs | Before median wall/CPU seconds/peak KiB | After median wall/CPU seconds/peak KiB | Wall/CPU change |
+| --- | --- | --- | --- |
+| constructor/1 | 1.45 / 1.52 / 179856 | 1.52 / 1.51 / 179832 | +4.83% / -0.66% |
+| constructor/4 | 1.20 / 1.58 / 198860 | 1.28 / 1.58 / 198952 | +6.67% / 0% |
+| generic/1 | 1.54 / 1.53 / 184480 | 1.57 / 1.55 / 184548 | +1.95% / +1.31% |
+| generic/4 | 1.26 / 1.60 / 206136 | 1.31 / 1.63 / 206040 | +3.97% / +1.88% |
+
+Retained wall ranges before -> after: constructor/1 1.37..1.66 ->1.40..1.52;
+constructor/4 1.18..1.28 ->1.20..1.28; generic/1 1.48..1.57 ->1.46..2.17;
+generic/4 1.18..1.29 ->1.20..1.31. The2.17s after trial remains in the raw set.
+Its compiler timing reports total1546.312ms, compile1419.550ms, bootstrap113.393ms,
+execute3.879ms; GNU CPU is1.55s. The extra elapsed time is outside the compiler's
+reported interval, but its cause is not assigned. Other serial samples have CPU
+above external wall; the old late-inspection GDB control is not a trace of these
+new samples. No clock or concurrency explanation is invented from that evidence.
+
+Read-only inspection of driver_posix/driver_linux/driver_timing confirms ordinary
+clock_gettime with the Linux monotonic clock selector and elapsed phase marks.
+Median compile milliseconds before -> after are1308.333 ->1378.636 (constructor1),
+1067.040 ->1128.449 (constructor4),1397.530 ->1417.592 (generic1), and1109.449
+->1154.979 (generic4). Thus the retained samples also show positive compile-phase
+costs; this is not a speedup or performance-neutrality claim. Additional typed
+admission/first-cause checks are retained for correctness. These short samples do
+not isolate each check's cost from host variation. No repeat-until-favorable run
+was substituted. Peak RSS medians change by at most96KiB, with no excessive memory
+increase here. Actual serial storage sweeps separately require zero final tracked
+world/buffer ownership; peak RSS is not a retained-allocation measurement.
+
+Inputs remain generic_stage_constructor.tower3846B, SHA256
+bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071,
+and generic_receipt_workload.tower4613B, SHA256
+c7348160a58a5dfd987a8a96a705e6ddb92f3d7586d42448928f94fb5087e41f.
+Independent expected stdout is0 and28/36/504/504/73 respectively, each newline
+terminated. All32 comparisons and five final statuses pass. Raw117-file archive
+L2/L2_generic_results_d6_profile_receipt.tgz SHA256
+989bd324bcea1153b99659a353a06cabfe9011b3c0a2933c1bab2aea1f8c947e
+includes all warmup/retained times, outputs, phase timings, environment, recipes,
+inputs and manifests. These modest workloads are matched affected-path evidence,
+not large-program, cross-language, idle-time or universal scaling proof.
+
+This documentation update changes no executable input, so additional runtime
+measurements for the update itself are inapplicable. Current generic native and
+cost evidence is scoped to the recorded delta. The next unstarted source boundary
+must join fullROOT2252 before coherent affected ASan/LSan and TSan validation;
+public bootstrap/browser/generation and leased atomic hosted publication remain
+open. ROOT has granted the next sem_create_result/sem_attach_result and owned
+admission closure only after that current instrument milestone. No new helpers
+are adopted during the freeze. The original active goal is not complete.

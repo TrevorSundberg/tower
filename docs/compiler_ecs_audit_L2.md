@@ -1045,3 +1045,11 @@ Parameter bounds derive from their actual arrays; true parameter/depth limits ar
 named. Native validation is scoped, not final acceptance: paired costs, supported
 memory/thread instruments, latest shared ABI join, D2 exact export policy, canonical
 public-bootstrap/browser/generation and hosted atomic publication remain open.
+The d6bad03 generic result delta now has matched quiet22333 evidence: all32
+same-path outputs and complete input/resource/package checks pass. Three retained
+pairs per jobs1/4 workload show median wall increases1.95..6.67%, CPU -0.66..+1.88%,
+and RSS changes no greater than96KiB. Compiler phase timings also retain positive
+costs. The generic/1 2.17s outlier and serial CPU/wall discrepancies are preserved,
+with no invented cause or favorable replacement. The journal records full metrics,
+limits and117-file archive989bd324. This closes the paired measurement step only;
+coherent current supported instruments and publication acceptance remain open.
