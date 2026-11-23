@@ -88999,3 +88999,16 @@ before reconciliation. Earlier f7 four-file20/22 stays exact; its stack/defer L2
 and pointer-alias L1 cases were not rerun or claimed passed. Current-source full
 Node/shared/IDE/generation/hosted acceptance remains ROOT's separate milestone.
 B2 publication reconciliation: f16cde13 merged complete published cc21bb4e history at4fd5ab83c11dbcb41a39eaff166a0a9d6dbacadc; both journal entries retained without conflicts. Four dependency-aware native actions rebuilt incoming generic-inspection inputs. Query smoke and nested admission/cancellation PASS; merged4096-body workers1/4 retain exact frozen source/canonical bytes, known42 and actual semantic overlap4. Canonical SHA2569c0daad4b6b7d0d94eeb27c99fe30c27e37cee1cabc3555c7db83a67278d0039. Original e0e3530b throughput/source identities remain intact; this is affected-source correctness only. Logs in the existing within_unit_e0e3530b receipt folder. ROOT retains final deployment and integrated acceptance.
+
+D1 publication reconciliation: implementation499648cf; required ff-only pull
+refused normal divergence, so mergec1d599fd39133638d60948fb053280f4537c9328
+preserves complete published7facb35f history without conflicts. Incoming eleven
+Tower changes are compiler/work-pool/other-fixture providers, outside the ordinary
+language/example imports executed by this Node slice; their code is not present
+in the frozen9d reactors. Full-resource manifest correctly records those eleven
+mismatches, not an all-current pass. Node transport/four tests, numeric fixture,
+actual language/examples and eight inspected failure-provider source hashes
+remain unchanged, as do both reactors. Reuse exact23/25 evidence; no additional
+aggregate or compiler build. New owner observer/package/lifecycle receipts are
+separate acceptance, not silently covered here. Diff check passes; todo and all
+previous logs preserved. Normal source push follows, ROOT retains deployment.
