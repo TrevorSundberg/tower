@@ -48,12 +48,26 @@ fn units_check(ok: bool, message: u8*): void {
     if !ok { puts(message); fflush(null); abort(); }
 }
 
+// Names begin with '/': fixture reads and virtual source identities use the
+// same resource root. This joins spellings; it does not resolve filesystem aliases.
+fn units_path(root: u8*, name: u8*, path: vector(u8)*): void {
+    path.length = 0;
+    for(var i: usize = 0; i < strlen(root); i++) { units_check(vector_push(path, root[i]), "resource root"); }
+    for(var i: usize = 0; i < strlen(name); i++) { units_check(vector_push(path, name[i]), "resource name"); }
+    units_check(vector_push(path, 0), "resource terminator");
+}
+
+fn units_source(batch: void*, ordinal: usize, root: u8*, name: u8*, source: u8*, length: usize): bool {
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    units_path(root, name, &path);
+    return frontend_units_source(batch, ordinal, path.data, source, length);
+}
+
 fn units_read(root: u8*, name: u8*, out: vector(u8)*): void {
     var path: vector(u8) = default;
     defer vector_dispose(&path);
-    for(var i: usize = 0; i < strlen(root); i++) { units_check(vector_push(&path, root[i]), "resource root"); }
-    for(var i: usize = 0; i < strlen(name); i++) { units_check(vector_push(&path, name[i]), "resource name"); }
-    units_check(vector_push(&path, 0), "resource terminator");
+    units_path(root, name, &path);
     var file = fopen(path.data, "rb");
     units_check(file is not null, "resource open");
     defer fclose(file);

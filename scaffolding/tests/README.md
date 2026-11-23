@@ -1411,6 +1411,19 @@ build/native/tower-lr-work-tests scaffolding query-smoke
 build/native/tower-lr-work-tests scaffolding control-smoke
 ```
 
+`RESOURCE_ROOT` accepts relative and absolute directory spellings. Body fixtures
+anchor their virtual source filenames to that same root through `units_source`;
+using a bare filename beside an absolute library root could load relative and
+absolute copies of the type prelude when the working directory was scaffolding.
+The harness joins paths without resolving symlinks or merging explicit imports.
+From scaffolding, run the existing native binary with `. control-smoke` and with
+`"$PWD" control-smoke`. Its focused `resource-roots` selector additionally checks
+aliased vector/module use, quoted/dotted identity, known output `10`, serial/four-worker
+canonical reparse, and ambiguity between two distinct imported `Item` definitions.
+Use both root spellings for the explicit `resource-roots` selector too.
+These are fixture-path checks, not a new module-resolution policy or a scaling
+claim. The D1 journal names the exact reused compiler and rebuilt fixture closure.
+
 The flow fixture checks idempotent admission, deterministic errors, waits,
 cancellation and graph failures. The lifecycle fixture includes actual mixed
 signature/lowering rendezvous. The staging fixture checks required and optional

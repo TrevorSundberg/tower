@@ -85338,3 +85338,111 @@ work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
 
 Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
+
+## 2026-11-23 D1: exact Semantics imports and RESOURCE_ROOT fixture identity
+
+Bounded source freeze `3dc3251ea97ef6c83557fb318bcf1021a1cd6a86`, preserving the
+accepted ef40 ledger and earlier receipts. The reported Semantics names are real
+Tower providers: library/entity_stage::entity_stage_create_result is consumed by
+semantic_control::sem_control_node and semantic_defer::sem_defer_clone; checked
+failure keeps its typed cause and stage ownership until joined publish/discard.
+library/work_arena::work_arena_append is consumed by semantic_support::
+sem_scratch_append and joined body/declaration/iteration publication; same-budget
+chunks and descriptor links transfer without payload copies or fresh grants.
+The exact Semantics import contract now names only those two additional exports.
+No foreign classification, wildcard or permission for another unit was added.
+The existing Tower policy test adds positive target spellings plus truncation,
+suffix and wrong-unit rejection for each name; all earlier negatives remain.
+
+Reproduced the other failure with one existing native binary, cwd
+`/home/deck/tower-agent-1/scaffolding`, identical resources: absolute RESOURCE_ROOT
+aborted134 with `Ambiguous imported type 'i32'; use an import alias` then
+`Body continuation compilation`; `.` passed. tests/body_runs passed bare virtual
+filenames to frontend_units_source. That producer snapshots the path and configures
+its module environment; module_resolve searches its importing lexical directory
+before the library. Bare continuations.tower finds relative tower/types in cwd,
+while library.vector's import falls back to the absolute RESOURCE_ROOT and obtains
+a distinct lexical type prelude. docs/modules.md explicitly separates lexical
+identity from filesystem aliases. This is a harness path-mixing defect, not an
+unsupported absolute invocation or a reason to realpath all imports.
+
+Factor tests/frontend_units' existing root/name concatenation into units_path and
+use units_source for all body_runs virtual files. The provider owns its snapshot
+before the temporary path vector is disposed. Add explicit resource-roots to the
+existing LR runner: ordinary plus quoted same-path imports, vector/module aliases,
+left/right Item nominal definitions and known output10; workers1/4 must agree on
+canonical text, then the ordinary interpreter executes the canonical reparse.
+Unaliased imports of both distinct files must report ambiguous Item at both worker
+counts. No second parser/interpreter or production module implementation changed.
+
+Validation uses Docker tower-d1-ecs, Linux x64 Steam Deck, LLVM19, public bootstrap
+SHA9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+jobs1, clang-O2 fixture lowering and the existing native providers. Existing LR
+binary SHA658026490f5b02a8cc06c711a1a838da586a8eeb22d9d22e294ed058041f6897
+has its actual complete source manifest in dependency_units_53d631572/
+source_frontier.sha256: all scaffolding hashes match commit
+873f9447a55ac9dcf0254fd3d2959e4a9620499b. Both touched body/frontend_units fixture
+files were unchanged between that commit and the source freeze. A complete git
+archive of that source, verified against the manifest, receives just this fixture
+delta and the explicit selector. Its entry object is relinked with unchanged
+recorded providers; no partial production ABI copies, compiler rebuild or private
+bootstrap substitution. Current-source symbol tools compile separately. The
+existing CMake compile/bind/link recipe is one dependency-aware focused Ninja
+target with jobs1. All provider hashes still match. New LR binary SHA
+a3c893aa4e2b32619fbefe082242640c2b54166a4b84ba39a6f984ec2a8de110.
+
+Logs, commands, depfiles, source/provider hashes, binaries and failures stay in
+`build/d1_ecs/symbol_root_3dc3251/`. An early metadata plan selected the wrong older
+source receipt and a newer configured CMake link list; the missing unbuilt
+lifecycle-frontier object was caught before any invalid link. Recovered using the
+actual binary's complete873f944 receipt and original two-receipt link contract.
+An initial --interpret invocation only parsed the exported policy main: its0 is
+excluded as execution evidence. The compiled new positive cases with old policy
+abort134 (`accepted closure`); the rebuilt current policy tests pass. The new root
+negative initially expected `Ambiguous imported type`; actual direct-import scope
+lookup says `Ambiguous imported name 'Item'`. Both first failed runs remain logged;
+the corrected negative checks and both root spellings pass. These are fixture
+expectation corrections, not suppressed production errors.
+
+First six-action build:27.38s wall/26.53s CPU/332156KiB peak; correcting the negative
+expectation rebuilt only the fixture entry/link:13.43s/13.10s/332412KiB. No full
+compiler/type/generation/browser/sanitizer matrix was run. Compiler policy data
+and fixture-path metadata do not change production runtime cost; these small
+checked end-to-end samples describe test execution only, not a scaling claim.
+
+Checked native results (one warm-cache sample each; no cold-cache reset):
+
+| Case | Exit | Wall s / CPU s / peak KiB |
+| --- | --- | --- |
+| Original binary, absolute root, control-smoke |134, reproduced failure |6.64 /5.58 /267564 |
+| Original binary, relative root, control-smoke |0 |85.99 /94.12 /232984 |
+| Rebuilt fixture, absolute root, control-smoke |0 |89.29 /96.16 /229636 |
+| Rebuilt fixture, relative root, control-smoke |0 |89.19 /97.41 /231732 |
+| Rebuilt fixture, absolute root, resource-roots |0 |11.80 /12.69 /202644 |
+| Rebuilt fixture, relative root, resource-roots |0 |14.82 /15.74 /202908 |
+
+Both selectors run serial/four-worker checks; these aggregate costs do not measure
+worker overlap or isolate scaling. The comparable relative-root control sample is
+3.7% slower with slightly lower peak RSS; n1 cannot attribute that difference to
+fixture path allocation versus host noise. No production path changed. The failed
+absolute baseline is not a speed comparison. Initial controls used timeout90s;
+post-fix controls used120s because the passing Deck baseline nearly exhausted90s.
+Both completed below90s, but only the actual120s command is claimed. The focused
+resource-roots commands retained90s. Original failures and all timeout parameters
+remain in the command logs; no broad repetition was needed.
+
+Current native policy fixture exits0, including all preexisting negatives.
+verify_bootstrap_symbols semantics with exactly the two requested U-symbols
+exits0; each suffixed name exits1 with its exact Unexpected runtime dependency
+message. The cached native Semantics object's real llvm-nm undefined list also
+passes. This is not a claim to possess or have executed B1's new scratch objects:
+ROOT/B1 must rerun their current object policy check with this rebuilt verifier.
+Policy checks binary SHA7ca0418e2d03223790ad54bc9dc46acbac0c96e135225667f5aa62c718d29e60;
+verifier SHA4574ca28dd52e1c0e3965aef36de3db01354e68ea92f18d1c97dc1cad0ff277b.
+Input hashes: tested_sources.sha256 SHA4ff890a89b04e59db4235500494a8c308d18d4be76f5abb216d8a2cf0779d8f4;
+provider manifest SHA081d41fdf7f39584c4a85e6ad6c38d2572b0e09dfbe06df754d9ef6fff3d90f7.
+All provider and tested-source hashes rechecked unchanged after execution. Jobs
+are drained; D1 releases only its own heavy lock. Disk129GiB free, available RAM
+9.9GiB. Existing todo is unchanged. Current integrated compiler/platform/sanitizer
+and hosted acceptance remain ROOT's explicit pending gates, not these fixture
+receipts. No new production performance or universal race-freedom claim.
