@@ -1,5 +1,7 @@
 # D1 compiler ECS acceptance audit
 
+Current source adoption: [published5b05d6bb](#current-fixture-adoption-at-published-5b05d6bb-2026-11-23),550 direct paths. Earlier census and execution receipts retain their historical identities.
+
 This is a growing review receipt, not completion or release evidence. Initial
 review source: `6282238779034442e0578d76b921ca117df819f1` (2026-11-22).
 The initial tracked roster contains 1,011 Tower files; D1's direct scope is
@@ -3200,3 +3202,80 @@ storage changes. Seven affected actions and the same three focused gates pass;
 dependency-units20.90wall/35.28CPU/788128KiB, zero swaps. Known answers, canonical/
 diagnostic parity and observed four-thread/peak4 overlap remain checked. Source
 hashes match; no broader Fast/platform/race acceptance is inferred.
+
+### Current fixture adoption at published 5b05d6bb (2026-11-23)
+
+Frozen source: `5b05d6bb5288591794d378c1802c2a790357b204`. ROOT has integrated
+the entire preserved dependency batch and reports independent dependency-units,
+query-smoke, unit-admission and structural-reuse validation on this union. The
+earlier fetch-first blocker is resolved. Those are ROOT's execution receipts;
+this batch performs source/caller and Git identity checks, with no runtime rerun.
+
+The last complete direct census at `2ff9c7ff7` was 540/1129. The current census is
+**550 D1 paths / 1144 tracked Tower paths**. D1 has ten additions, 22 modified
+paths and no retirements since that review; the other 518 current D1 files retain
+their unchanged source reviews. All 32 delta paths are accounted for below.
+The eight new files after b042, and the current generic-result file, were read
+completely. Earlier complete reviews plus all intervening changes supply the
+remaining rows; unchanged fixture bodies are not mechanically rereviewed or
+rewritten. Every row here binds to the frozen revision above.
+
+| Path under scaffolding/tests/ | Current substantive finding and disposition |
+| --- | --- |
+| `semantic_flow_checks.tower` | Thirteen modes use actual world-owned functions, evaluation dependencies and a separate graph ledger at budgets1/4. Reversed readiness cannot select a later error; ordinary Waiting does not diagnose cycles, while the quiescent wrapper checks the exact17→41→17 path. Query/access/edge/finish denial, exhausted tickets, cancellation, repeated terminal calls and teardown are checked. Preserve; Ready dispatch counts alone do not demonstrate overlap, and component/view/vector allocation assertions in the producer are outside this fault oracle. |
+| `semantic_lifecycle_frontier_checks.tower` | Five modes at1/4 use function-owned probe components and production lowering. A signal rendezvous establishes simultaneous signature and independent expression kernels; aggregate lowering must consume the published replacement body. KnownSnapshot/body gates, signature-error priority, partial admission, no premature callback ABI publication and final joins are checked. Signals outlive joins and components outlive context disposal. Preserve; forced rendezvous proves concurrency, not profitable natural scaling. |
+| `semantic_staging_frontier_checks.tower` | Four modes plus a naturally ready backlog at1/4 use canonical Foundation and the ordinary interpreter. A local increment survives a nested producer wait exactly once; an untaken divide-by-zero producer is neither demanded nor started. Owner lowering gates explicit stages; inferred execution waits for the whole lowering join. Private stage errors remain hidden until lowering error priority settles. Repeated waits check frame/memory/step identity; terminal calls drain tickets. Preserve; alternating joined phases do not establish simultaneous lowering/evaluation kernels. |
+| `parser_diagnostic_budget.tower` | Derives descriptor/probe/label/context allocation sweeps and footprint-minus-one pressure from an actual missing-suffix parse. Checks exact positions/options, first Capacity/Memory, retry without consuming the stream, returned lookahead text ownership and failed self-aliased replacement. A detached diagnostic remains usable after request/table/world destruction and retains its budget until destruction. Preserve; serial allocator instrumentation is not threaded sanitization. |
+| `frontend_iteration_profile.tower` | Single-world synchronous observer records separate grammar phases without a compiler clock. Cold/installed paths compile the same source, independently interpret42 and report canonical hash/length, then retire observer and world. Counts derive from GrammarPhase and vectors. Preserve as an opt-in Linux timing fixture: it does not itself compare modes' canonical bytes or claim useful overlap. |
+| `execution_fast_storage.tower` | Both target widths compare graph/Fast output7,6,8,78,65,true,9; added unreachable canonical labels exercise cache ownership without changing output. Exact physical descriptor/array owner sums exclude the graph scratch retired at admission. Measured generation positions drive Exhausted sweeps; actual frame/register growth denial follows argument effects and must skip callee effects/replay. Normal, suspended-close and failure teardown restore the world ledger. Preserve; generation exhaustion is not a physical allocator-failure sweep, and runtime guest-memory/output/package owners remain separate. |
+| `parser_structure_reuse.tower` | Exact LR structure reuse must succeed under zero remaining capacity while keeping capture names/userdata private. Cache fork/original-table retirement, parsing with the new capture, pre-step cancellation/retry, changed terminal/mode/specialization/precedence, unresolved rule and Bedrock/world scope changes have concrete oracles. Final structure pins release all grants. Preserve; cache eviction, reference-count exhaustion and concurrent cache writers are not tested. |
+| `compiler_dependency_units.tower` | Byte-identical to the preserved `e7b388b` fixture. Four private imported snapshots combine ordinary type/value helpers, forward local producers and dormant generic decltype bodies; known answers42–45, exact canonical bytes, ordinal2 cycle before ordinal3 missing-name error and complete error/offset parity remain asserted. Success requires actual four distinct threads and overlapping intervals, with serial peak1 control. Batch close precedes input/observer destruction. Preserve earlier native evidence; no shared semantic world or filesystem-invalidation claim. |
+| `generic_result_storage.tower` | All756 current lines reviewed, superseding the earlier243/400-line receipts. In addition to registry/clone/root admission, real layout discovery must suspend and publish one canonical size; known-source/capture admission and joined immutable-fact publication distinguish exact failures and cannot publish captured values early. Constructor ownership retains the declaration/frame; evaluation kind pairs and prepare/clone frontiers publish only complete metadata. Widths4/8, actual allocation counts/page slots/remaining bytes, first-cause offsets and zero cleanup drive the oracle. Constructor lexical scratch is explicitly excluded from a complete Memory sweep; Begin under page pressure legitimately succeeds when only kinds are required. Preserve those limits. |
+| `grammar_builder_results.tower` | Unchanged from the full b042 review above: typed first-cause builder admission, root consumption, exact pressure/retry and malformed UTF8 logical rollback. Current parser-failure caller still reaches it. Preserve; no canonical grammar roundtrip or full malformed-prefix coverage is added. |
+| `backend_units.tower` | New admission fixture reserves a real nested lane, waits under the budget gate for outer Capacity, then requires the released lane to start another ready unit before its parent ends. Private worlds and three actual sources retain canonical serial/two-worker equality. Cancellation drains and hides results; grants are zero before deferred signal/pool/batch cleanup. Preserve; the nested probe intentionally synchronizes admission and is not a throughput benchmark. |
+| `bootstrap_symbols_checks.tower` | New exact provider spellings cover grammar/generic/diagnostic/module/structural APIs, with truncation, suffix and wrong-unit negatives. Target-name variants check allowlist policy, not target execution. ParserNodes' world-constructor permission now reflects the observed module fixture closure. Preserve; whole policy source freshness remains D2's separate roster action. |
+| `entity_stage_concurrent.tower` | Reference payloads now register cancellation before installing borrowed targets. Callback clears unheld fields so finalizers cannot release ownership never acquired; existing real-worker barriers, joins and failed-peer cleanup remain. Preserve; the callback itself supplies no synchronization. |
+| `entity_stage_result.tower` | Added checked leases reject invalid/foreign/pinned/reclaiming/competing inputs without partial storage. Cumulative/aliased hold exhaustion rolls back a zero-count pinned input, preserves held prefixes, retries idempotently and cancels only unheld borrows. Combined component-type/queued ownership and exact finalizer counts are checked. Default runs new hold cases; optional argument deliberately retains the old cost workload. |
+| `entity_stage_result_faults.tower` | Lease allocation sweep derives actual successful calls, requires no published lease or leaked buffer on denial, then retries and checks allocation-free repeated admission. Existing publish sweep follows. Preserve the serial instrumentation boundary. |
+| `execution_main.tower` | Imports Fast storage and reaches it from all/core, before existing core execution. It does not add the heavy fixture to core-static, functions or constructor selectors. Preserve this exact registration scope. |
+| `execution_type_construction.tower` | Counted constructor failure fills the actual allocated extent without a terminator, preserves producer pointer/capacity/bytes and continuation offset, and forbids operand-effect replay. Fast whole-cache admission now correctly precedes the narrower type-storage denial. Preserve both-width cases and named continuation phase contract. |
+| `execution_world.tower` | Normalized source descriptors are private; capacity/foreign-world/root Busy or Invalid failures stop before frontend effects and remain terminal. Counted source buffers can be overwritten/freed after compilation because frontend owns copies; NUL preflight leaves an unbound environment unchanged. Graph/Fast worlds and widths remain independent. Preserve. |
+| `frontend_main.tower` | Adds focused structure-reuse, grammar-equivalence, iteration and diagnostics selectors. Default still reaches parser failures/regex; structure reuse and iteration return only from their explicit selectors. This is a registration distinction, not evidence of default execution. |
+| `frontend_modules.tower` | Checked startup snapshots a real active graph, parser lease, cached imports and source pointers before exact capacity denial. Bound, unbound and private environments must remain unchanged/retire private owners; retry reuses the preserved parser. A one-byte total unit ledger is Invalid, distinct from remaining Capacity. Default module tests reach the new case. |
+| `frontend_units_profile.tower` | Private phase/ordinal slots now cover frontend/backend spans, variable body prefixes and actual host worker capacity. Checks42 through the interpreter and object exports/envelope, then reports canonical/object hashes, shared peaks, refill gaps and an explicitly qualified upper bound on vacant outer capacity. Equal-unit control asserts overlap; spread workloads only measure it. Preserve; hashed output is not an internal serial/parallel byte comparison or proof of avoidable idle time. |
+| `generic_clone_fixture.tower` | New world-taking entry transfers ownership of an already budget-bound world into the same fixture; existing open delegates after construction/binding. Close remains the sole world disposer. Preserve; copying the fixture would not clone ownership. |
+| `generic_clone_storage.tower` | Adds exact Busy/Exhausted/Invalid public-clone admission and physically bounded component-page denial after reserving actual clone-frame bytes. Holds stage references before closing the view, discards failed private bodies, then retries through a fresh stage. Default storage calls the expanded generic-result fixture. Preserve; existing narrow failure-index sample is not a complete clone allocation sweep. |
+| `generic_pump_publication.tower` | New request admission cannot publish a query/body on typed failure. Real SyntaxOrigin/trace payloads with repeated/null splices force hold exhaustion, verifying source histories/refcounts unchanged and all joined stages discarded before teardown. Both widths retain prior scratch/publication checks. Preserve; test-only reference saturation is not ordinary overflow workload evidence. |
+| `interpreter_call_query.tower` | Wide-call argument count derives from inline storage and exceeds it with the pointer argument. Weighted expected sum checks evaluation order independently; pressure is applied at the actual FinishValue continuation after argument effects. Denial preserves caller frames/stack, skips callee effects and stays terminal after pressure release in runtime/staged modes. Existing query-smoke chain reaches it. |
+| `lr_work_main.tower` | Preserves dependency-units in units/all and unit-admission in all/its focused selector, including validation/usage handling. Existing tower-native-units CTest therefore reaches dependency coverage; the backend and units selectors do not reach admission. |
+| `parser_failures.tower` | Imports/calls diagnostic budget and grammar-builder results before existing trace/table failures. Frontend default/parser reach this chain; earlier allocation-only selector does not. No duplicated implementation/provider. |
+| `parser_table_budget.tower` | Adds whole-input/prefix request descriptor/forest/control footprint and actual allocation sweeps. Denial before allocation or mid-construction must retain exact cause and leave the stream unconsumed; retry parses the complete original span. Default parser failures reach both modes. |
+| `regex.tower` | Cold constructor and cached-reader pressure preserve Capacity/Busy separately from syntax errors. Actual Memory sweep allows optional successful work only with the independently checked accepted language. Every attempt restores node/buffer/grant baselines; invalid counted pointer is explicit. Existing regex caller reaches it. |
+| `semantic_executable_admission_checks.tower` | Added pinned dispatch and separate startup/metadata selectors reject Busy without canonical counts/readiness publication; released pins cannot revive a failed owner. Both widths and budgets retain repeated terminal no-allocation/query checks. Preserve; widths/budgets alone do not establish overlap. |
+| `type_execution_receipts.tower` | Adds kind/component admission and canonical array/layout denial while the original evaluation ticket is suspended. Existing identity can survive without a layout query; healthy layout publishes one result, whereas failures retain the SU8 sentinel, first cause and zero running tickets. Count enum supplies iteration bound; query-smoke reaches both target widths. |
+| `work_order.tower` | Exactly the committed `be0d123bb` eight-line addition: stale revision/profile cannot publish, fail or release the current dispatch. Existing yield/retry ordering remains. Preserve the focused native receipt without rerunning its matrix. |
+
+Caller/producer cross-checks use the actual `semantic_flow` request/pump/quiescent
+wrapper, `semantic_phase_work` joins and lifecycle pumps, constructor/evaluation
+admission APIs, Fast call/storage owners, parser diagnostic result/destructor and
+structural cache key/pin implementation. No parallel scheduler or secondary graph
+is introduced by these fixtures. `TowerWorkPolicyTests.cmake` registers the three
+flow/lifecycle/staging executables with one semantic provider and a60-second
+timeout; its executable-admission list includes pinned/startup/metadata. Storage,
+execution core, parser failures, query-smoke and generic-clone-parallel retain the
+other stated callers.
+
+**Concrete automatic-coverage gaps:** `parser_structure_reuse.tower` is only
+reached by frontend's `structure-reuse` selector, absent from the default CTest
+command. `backend_units_admission_tests` is reached by all/unit-admission, absent
+from the registered units/backend CTest commands. ROOT's explicit focused runs
+remain valid evidence; ordinary CTest coverage must not be claimed for either.
+Iteration/profile entries are deliberately opt-in measurements, not missing default
+regressions. No demonstrated test-code defect warrants a build in this review.
+
+The [current shared roster](compiler_ecs_file_roster.md#frozen-adoption-reconciliation-at-5b05d6bb-2026-11-23)
+reconciles every tracked path, adopts the three unchanged B1 wrapper receipts and
+lists finite remaining owner-review actions. This D1 source adoption does not
+upgrade other lanes' changed production sources, pinned resources or historical
+validation to current acceptance. Documentation-only profiling is inapplicable;
+no runtime, sanitizer, browser, bootstrap, generation or deployment gate was run.

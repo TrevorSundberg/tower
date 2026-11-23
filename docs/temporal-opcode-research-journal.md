@@ -83167,3 +83167,44 @@ Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
 container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
 This receipt is documentation-only; no additional runtime measurements apply.
 Normal main push follows; historical timeout and ROOT release gates stay pending.
+
+### D1 bounded current audit adoption — published5b05d6bb, 2026-11-23
+
+ROOT integrated the preserved dependency batch and independently revalidated
+its dependency/query/admission plus B1 structural-reuse cases on
+`5b05d6bb5288591794d378c1802c2a790357b204`. Required
+`git pull --rebase=merges --autostash --ff-only` fast-forwarded cleanly to that
+published freeze; the old fetch-first blocker is resolved without lost history.
+D1 thread01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3058104, existing Deck clone.
+Owned containers were init-only; D2 held the heavy lock during review, and no
+D1 compiler/build/test process was started. Initial disk130GiB free/RAM9.7GiB
+available. No goal/session/agent or publication lease was created.
+
+Under ROOT's explicit roster assignment, exact Git sets reconcile all1144 tracked
+Tower paths across eight audits:1011+147-14,13 additions after b042, no missing,
+extra or duplicate owner. D1 is550, not the historical548/540: ten additions and
+22 changes since2ff9c7ff7, with518 unchanged source reviews reusable. The D1 audit
+records substantive per-path producer/caller/oracle/lifetime findings, including
+all eight recent fixtures and the complete756-line generic-result successor.
+No test defect was established. Concrete default-registration gaps remain for
+structure-reuse and unit-admission; ROOT's explicit focused runs are preserved.
+The stale-ticket eight-line change and dependency fixture match their preserved
+commits; their native matrices were not rerun.
+
+The roster adopts three B2 wrappers only after exact62822387/current blob matches,
+and13 explicitly named matching cross-owner production receipts. A finite26-path
+production review-action list remains; historical receipts or successful runtime
+checks do not automatically approve those sources. Comparing214 non-D1 changed
+paths with last non-merge implementation blobs exposed three merged combinations:
+frontend_compilation and semantic_evaluation/evaluation_work differ from their
+individual b21bdb2/7cea85c receipts. Their current hashes and required follow-up
+are explicit. Pinned45-resource entries remain provenance-only; no pin is edited.
+
+Checks use Git tree/diff/blob queries, sorted exact owner/prefix sets, all-eight
+report receipt lookup, actual Tower source/caller/CMake inspection and
+`git diff --check`; metadata remains in ignored `build/d1_ecs/audit_5b05/`.
+Only D1 audit, roster, handoff inventory and this journal change. Runtime profiling
+is inapplicable to documentation-only work. No broad/native/sanitizer/browser/
+bootstrap/generation or hosted check ran; ROOT retains final integrated release
+and gh-pages ownership. Commit/upstream reconciliation result is recorded in D1
+status; no old evidence is relabeled as validation of later compiler inputs.
