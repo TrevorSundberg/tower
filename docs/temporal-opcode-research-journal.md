@@ -94087,3 +94087,19 @@ comparison remains attached to902f7c4d. All processes exit0/drained, no broad
 matrix or private bootstrap adoption, todo/history preserved; normal push follows.
 
 A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
+
+Publication reconciliation: complete-history merge0cf83e8a5baed4019b851974a43fa81476a90277
+preserves published25dddd04, including L1 module lexical-binding capture3bc0a726,
+A1 joined executable-alias publicationb78d606b, B1's rejected/restored LR trial
+and B2's browser-adoption receipts. Read the two actual production deltas:
+module-frame lexical locals now bind before known-read scanning; executable
+joins validate tickets and all alias acceptance before readiness, retaining first
+worker failures. Neither changes backend importer/formatter/library/source-probe
+blobs. Their scoped owner checks remain in their own published receipts (A1's
+merged17-selector/query/lifecycle tests atc98d64f2; L1 capture controls at its
+recorded source), not silently adopted as tests of these exact large requests.
+This turn changes only evidence: the native T2/T3 acceptance remains exactly
+c2c97058 with its input/provider hashes. Later semantic sources are explicitly
+excluded from that frozen run and await ROOT's final integrated adoption; no
+rebuild/repetition or claim that a prior binary tests newer source. All complete
+histories and original failures remain preserved. Diff checks pass; normal push.
