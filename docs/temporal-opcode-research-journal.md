@@ -81747,6 +81747,100 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+
+### B1 bounded syntax iteration measurement and diagnostic symbol closure (2026-11-23)
+
+Started on clean published189e3927 with the required preserving pull; owned
+container was idle. No agent, branch, goal or inbox loop. Existing Linux x64
+public9653 bootstrap/LLVM19.1.1, tower_ecs_b1 CPU0-11/24GiB, native cache,
+compiler jobs1/object jobs6. No B2 frontend_units implementation changed.
+
+Implemented sparse optional world-owned grammar observation at exact cache
+lookup, version build and parser-table build boundaries. Compiler code borrows
+callback/context and adds no clocks, allocation or global counters. The Linux
+Tower fixture isolates ordinary frontend_compile_sources with explicit world and
+module owners, optional installed baselines, answer42 execution and canonical
+output. Lookup/Build/Table are nested measurements, not additive phase times.
+The grammar-equivalence selector reuses parser/live grammar, reset/cache churn,
+lexical patterns, declaration boundaries, imported isolation and provenance tests.
+
+Measured final source with warm filesystem/fresh process, n1 per mode:
+installed startup138 lookups/83 builds/84 tables, .737ms/70.766ms/52.120ms;
+source185 lookups/155 builds/159 tables, .601ms/955.857ms/884.569ms.
+Cold source185/155/159, .513ms/1004.855ms/930.539ms. Both canonical outputs:
+976bytes/hash13832670361687071853, checked interpreter answer42. Whole installed
+process1.17wall/1.12CPU seconds/168564KiB, cold1.12/1.08/165680. Earlier ordinary
+samples with the same counts were also successful (logs retained). Lookup is
+less than0.1% of construction here; there is no evidence for optimizing its exact
+structural comparisons. Baseline installation does not eliminate subsequent
+source-session construction. Counts prove repeated builds, not equivalence or
+that a miss is avoidable.
+
+Evidence-backed prerequisite, not an implemented optimization: current
+SyntaxVersion owns ready grammar, pending diagnostics, emitted rules, lexicon,
+replacement capture/provenance and Bedrock pins. parser_table_open_result stores
+that version as userdata; source replacement positions and ordered alternatives
+are observable. Session cache snapshots compare full rule/token structures and
+source-sensitive replacements, then own private recency and version pins.
+Sharing a table solely by ready rule counts, omitting pending/provenance or
+widening the current session key to other Bedrock/profile/import revisions is
+not safe. Reusing whole immutable versions needs a complete world, Bedrock,
+ordered source/import revision, mode/profile and provenance key with pinned
+lifetime. Reusing only the LR runtime across different versions additionally
+needs a boundary separating it from per-version bindings. Neither equivalence
+is established by these counts; validate boundaries and invalidation before
+adoption. No mutable cache sharing, activation
+batching, guessed equivalence or new cache policy was introduced.
+
+The historical full frontend300s/124 failure remains FAILED. Read-only inspection
+of retained phase logs places later work in frontend_compile_sources/import/
+syntax-version/LR construction, but does not identify that individual source or
+its duration. The full entry also contains exhaustive fault sweeps and hundreds
+of independent body cases. This ordinary small source completes in about1s and
+does not reproduce that timeout. Exact remaining prerequisite for attributing
+that failure is a named ordinary source/request and owning phase/counters isolated
+from those sweeps. No debugger or rejected operation was replayed, and the broad
+suite was not rerun. This bounded task stops at that measured prerequisite rather
+than claiming the old timeout fixed or a speculative speedup.
+
+Own diagnostic interface closure now uses exact observed native nm reports.
+ParserNodes imports parser_presentation_buffer_result from ParserFormat.
+ParserFormat imports syntax_parser_token_name_result from ParserNodes and
+parser_table_non_terminal_id_to_string_result from ParserIntegration (correction
+to the earlier prose grouping; actual nm -A T report establishes the provider).
+TemplateBuild imports syntax_session_diagnostic_result and
+parser_recognizer_get_error from ParserNodes. Added separate parser-format and
+template-build policy identities with their observed complete native import
+sets; no wildcard result suffixes or speculative target imports. Existing
+seven-unit comparison manifest is unchanged. Five fixture groups cover exact
+names, truncation, suffix, wrong consumer/provider, Entities rejection and four
+target-policy strings. Portable strings are not portable object/runtime checks.
+
+Checks: one dependency-aware native target closure, then incremental fixture-only
+corrections. Original failures preserved: conflicting dprintf ABI, explicit void*
+context cast and missing diagnostic-dispose prototype; each failed build drained
+before editing. The first live suite invocation lacked its documented resource
+working directory and aborted on missing bedrock; corrected working directory
+passed. That first successful combined selector also called existing regex_tests,
+including its existing failure fixtures; no new fault probe was created. Removed
+that extra call from the final grammar-equivalence selector; live syntax already
+covers lexical regex behavior. Standalone symbol fixture passes; selected canonical
+build-bootstrap.sh --tools verify_bootstrap_symbols passes; all three actual
+native consumer reports pass. No broader symbol/release gate is claimed.
+
+Small checked before/after control: frozen resource archive91c12368, old units
+de29797d vs observed source units60151045, 3units/0extra bodies, workers1/4,
+warm n1 each. Serial wall3499.291->3470.039ms, CPU3415.537->3385.980ms,
+RSS197376->197640KiB. Parallel wall1373.784->1351.862ms,
+CPU4250.304->4169.634ms, RSS459172->458552KiB. All canonical hashes
+1173729914654460811, entities48240/components55014; outer peaks1/3 within budgets.
+Retained bytes rise48 for3 worlds, exactly16bytes/world observer storage; serial
+peak ledger bytes rise48, parallel peak changes with scheduling. No speedup or
+regression bound follows from single samples. No LR ownership or cache retention
+policy changed. Logs, source/object hashes, U/T reports and OS wrapper are in
+build/ecs_b1/cache_iteration. Current supported sanitizers, scaling,
+bootstrap/browser/generation and hosted release checks remain ROOT milestone
+work, pending. No deployment claimed. Normal scoped main publication follows.
 ### ROOT executable-stage admission and pinned-input ownership (2026-11-23)
 
 Implementation is based on published f33770baf0 with the complete existing
@@ -82251,3 +82345,14 @@ The affected semantics rebuild88933 plus core and constructor suites pass with
 empty stderr and unchanged source manifests (L1/logs/fast_storage_publish_retry2).
 Earlier function, CLI and matched-profile evidence keeps its recorded identity.
 No A2/semantic implementation edits, broad matrices or new performance claim.
+B1 merged receipt: production f2f12e5b and published5c5a308c were preserved in
+00d3f856 with no conflicts. Incoming stage/budget/frontend/semantic changes
+required22 dependency actions:38.82wall/117.25CPU seconds/770712KiB. Merged
+parser/live grammar/cache/lexical checks passed .31wall/.24CPU/63156KiB;
+ordinary cold request passed1.05/1.00/165596, same185/155/159 counts and
+976byte canonical hash. Merged symbol fixture and selected checker rebuilt;
+all three refreshed native nm consumer reports pass. No broad tests or performance
+pairs repeated; previous timing retains its frozen pre-merge source identity.
+Session30917 drained0; container only init. Logs and current hashes are
+build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
+only; no runtime profiling applies to those edits. Normal main push follows.

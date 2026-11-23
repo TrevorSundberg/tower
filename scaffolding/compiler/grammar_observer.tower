@@ -1,0 +1,12 @@
+import tower;
+import grammar_types;
+
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+
+// Optional sparse phase observation, borrowed from the world's coordinator.
+// No clock, allocation or global state in the compiler; the caller owns the
+// observer until its synchronous compilation has drained.
+fn grammar_observe(world: void*, phase: GrammarPhase, entering: bool, rules: usize, tokens: usize): void {
+    var observer = &compiler_world_grammar(world).observer;
+    if observer.event != null { observer.event(observer.context, phase, entering, rules, tokens); }
+}

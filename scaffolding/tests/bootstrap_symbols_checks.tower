@@ -31,6 +31,13 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "parser_presentation_buffer_result", "parser_presentation_buffer_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "parser_table_non_terminal_id_to_string_result", "parser_table_non_terminal_id_to_string_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_parser_token_name_result", "syntax_parser_token_name_result_extra");
+    symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_diagnostic_result", "syntax_session_diagnostic_result_extra");
+    symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "parser_recognizer_get_error", "parser_recognizer_get_error_extra");
+    utility_check(bootstrap_unit("parser-format") == BootstrapUnit.ParserFormat
+        && bootstrap_unit("template-build") == BootstrapUnit.TemplateBuild, "separate diagnostic consumers");
     symbol_case(BootstrapUnit.Utf8, false, "\n \t\r\n", null);
     symbol_case(BootstrapUnit.Utf8, false, "         U memcpy\n", "memcpy");
     symbol_case(BootstrapUnit.Bytes, false, " U memcpy\n U __memset\n\tU ___tower_reallocate\r\n", null);
