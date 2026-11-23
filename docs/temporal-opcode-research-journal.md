@@ -61694,3 +61694,24 @@ searches used nonexistent guessed filenames or returned no matches, and early
 combined output truncated; corrected reads used discovered paths and bounded output.
 Those inspection failures were not validation passes. A status patch with incomplete
 line context failed without writing; the corrected exact-context patch succeeded.
+
+### D2 typed semantic-receipt consumer readiness (2026-11-23)
+
+Following coordinator03:24's approved SemanticResourceFailure proposal, read the
+actual tools/benchmark consumers and their execution boundaries at5e0b3f36.
+No assigned tool directly inspects SemanticProgram; existing synchronous child
+status/product checks remain its contract. Found concrete text-only success gates
+in execution_session/package, IDE execution/artifacts, backend/source_session and
+frontend units/compilation. Read complete surrounding branches to distinguish
+success admission from driver_compile_package's diagnostic-selection-only branch.
+Routed exact paths/lines to root for L1/B2 ownership through D2status; no competing
+field/API, diagnostic string classifier or production edit was introduced.
+
+When the shared typed receipt arrives, these gates must reject failure even with
+empty diagnostic storage, retain its offset and stop execution/lowering/encoding
+or partial publication. Existing asserting diagnostic allocation is explicitly
+not fixed by this audit. Worker-private receipt transfer must preserve joins and
+source-order selection. The updated per-file audit records these proposal-readiness
+findings. They are not reproduced runtime failures or merged implementation.
+Documentation-only review needs no runtime profiling; D1 still owns the shared
+heavy slot and D2's earlier exact-source receipts remain unchanged.

@@ -1934,3 +1934,21 @@ storage. Caller audit against `0c3876e8` found these additional link contracts:
 This review changes documentation only; new runtime performance/memory or sanitizer
 measurements are inapplicable. Corrected complete owner source, actual symbols,
 native/WASI links and final coherent release validation remain required.
+
+The coordinator's 03:24 UTC semantic-receipt proposal was checked against current
+`5e0b3f36` tooling callers. Tools/benchmarks have no direct `SemanticProgram`
+consumer; synchronous child status and checked products remain their boundary.
+The following existing callers must consume the shared typed receipt before the
+new ABI can be accepted. They belong to L1/B2, and were routed without edits:
+
+| Caller | Concrete text-only gate and required disposition |
+| --- | --- |
+| `compiler/execution_session.tower`, `execution_package.tower` | Compile success and package admission use diagnostic length. CLI compilation trusts the session boolean. Typed resource failure must remain failure even when copying diagnostic text fails; stop execution/encoding and retain the owning offset. Existing aborting diagnostic-allocation paths are a separate unresolved boundary. |
+| `host/ide_execution.tower`, `ide_artifacts.tower` | Execution failure, formatting, canonical package preparation and type presentation use text length. Check the typed receipt before starting the interpreter, formatting, encoding or exposing types. A failed resource query is not ordinary incomplete syntax. |
+| `backend/source_session.tower` | Both original and canonically reconstructed programs enter backend lowering/reporting when ordinary diagnostic text is empty. They need the same typed admission check and allocation-independent failure presentation. |
+| `compiler/frontend_units.tower`, `frontend_compilation.tower` | Worker success and source compilation/comment-publication gates use text length. Preserve worker-private program receipts and coordinator drain/source order; do not publish a failed private result or reset its receipt while clearing diagnostic text. |
+
+This is proposal-readiness source evidence, not an executed failure or an adopted
+second diagnostic system. `driver_compile_package`'s separate text-length branch
+only chooses presentation after failure; it is not another success gate. Final
+consumer changes must share the one owner-defined receipt and matching ABI.
