@@ -1,0 +1,34 @@
+import tower;
+import .tools.tool_process_linux;
+
+extern fn puts(text: u8*): i32;
+
+// Exercise the actual manual profile's argument boundary without a shell.
+// The caller supplies the real allowed capacity for the valid control.
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { return 2; }
+    var invalid: u8*[8];
+    invalid[0] = ""; invalid[1] = "+1"; invalid[2] = "-1"; invalid[3] = " 1";
+    invalid[4] = "1x"; invalid[5] = "0"; invalid[6] = "18446744073709551616"; invalid[7] = "1.0";
+    var arguments: u8*[4];
+    arguments[0] = argv[1]; arguments[3] = null;
+    for (var i: usize = 0; i < sizeof(decltype(invalid)) / sizeof(u8*); i++) {
+        arguments[1] = argv[2]; arguments[2] = invalid[i];
+        var result = tool_process(argv[1], &arguments[0]);
+        if result.kind != ToolProcessKind.Exited || result.exit_code != 2 {
+            puts("Invalid query rounds did not fail with argument status2"); return 1;
+        }
+        arguments[1] = invalid[i]; arguments[2] = "1";
+        result = tool_process(argv[1], &arguments[0]);
+        if result.kind != ToolProcessKind.Exited || result.exit_code != 2 {
+            puts("Invalid capacity did not fail with argument status2"); return 1;
+        }
+    }
+    arguments[1] = argv[2]; arguments[2] = "1";
+    var result = tool_process(argv[1], &arguments[0]);
+    if result.kind != ToolProcessKind.Exited || result.exit_code != 0 {
+        puts("Valid one-query profile failed"); return 1;
+    }
+    puts("0");
+    return 0;
+}
