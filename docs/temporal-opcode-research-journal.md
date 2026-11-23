@@ -81300,3 +81300,24 @@ final current-source instrumentation/bootstrap/browser/generation/deployment;
 the separate queued-provenance ownership prerequisite remains open. All owned
 jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
 and exact remote verification follow, recorded in D2's existing status.
+
+B2 publication integration: implementation dbce8d7f, then merge5a6ec257 preserves
+both published/local histories and both journal additions. Required ff-only pull
+reported divergence; explicit merge incorporated remote e66666c9. Incoming L2
+layout-admission changes required a coherent five-action rebuild; B2's six Tower
+sources stayed byte-identical. Merged unit-admission passes (87656ns refill,
+6.539s wall/7.879s CPU/476336KiB RSS), backend-overlap-calibrated passes exact
+objects/distinct overlap (7.787s/9.986s/523380KiB), units passes ordered failures
+and ownership/cancellation (21.337s/31.637s/803528KiB), and module-cache/startup
+retry checks pass. Logs b2_admission_merged_{build,test,backend,units,modules}.log.
+Unchanged isolated before/after cost evidence above is reused, not relabeled as
+a measurement of the merged semantic changes. All owned jobs drained.
+
+ROOT symbol handoff confirmed with actual nm --undefined-only: native frontend
+units import frontend_modules_create_result and frontend_modules_bind_world_result;
+Semantics imports frontend_module_root_world_size_result. All three are exported
+by frontend_modules.tower (ParserNodes). Incoming e66666c9 adds the last name to
+Semantics policy; the first two are still absent by exact name in that policy
+source. Tooling remains ROOT/D2-owned; no portable gate or deployment is claimed.
+Normal main push follows this receipt. Final pushed hash is recorded in B2/status;
+no pending assignment or idle goal follows this bounded task.
