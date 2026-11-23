@@ -9,6 +9,27 @@ after(() => tower.close());
 test('Tower package preparation owns independent verified execution sessions', {skip:!tower.exports.ide_package_tests}, () => {
   assert.equal(tower.exports.ide_package_tests(),0);
 });
+test('prepared and loaded package handles retain their own diagnostic source map',async()=>{
+  const source=(await read('playground/tests/fixtures/package_runtime_error.tower')).toString();
+  for(const width of [4,8]){
+    const original=tower.compile(source,{pointerBytes:width});
+    const reference=tower.execute(original,10000);tower.destroyExecution(original);
+    assert.equal(reference.status,'error');assert.equal(reference.error,'Division by zero');
+    assert.equal(reference.errorOffset,source.indexOf('var answer'));
+    const prepared=tower.prepareFoundationPackage(source,{pointerBytes:width});
+    let loaded;
+    try{
+      loaded=tower.loadBytecode(prepared.bytecode);
+      // A later compilation changes the environment's current source-map ledger.
+      // Both earlier handles must keep their own independent map snapshot.
+      const later=tower.compile('import foundation; print(7);',{pointerBytes:width});tower.destroyExecution(later);
+      for(const handle of [prepared.handle,loaded]){
+        const result=tower.execute(handle,10000);
+        for(const key of ['status','error','errorOffset','errorFile','output','outputTruncated'])assert.equal(result[key],reference[key],key);
+      }
+    }finally{tower.destroyExecution(prepared.handle);if(loaded)tower.destroyExecution(loaded);}
+  }
+});
 const source='import tower; struct Pair { x: i32; y: i32; } fn sum(p: Pair*): i32 { var sum = p.x + p.y; return sum; } var pair: Pair; pair.x = 20; pair.y = 22; print(sum(&pair)); var text = "snow 雪"; print(text[5]); print(sizeof(usize));';
 function finish(handle){let result,output='';do{result=tower.execute(handle,7);output+=result.output;}while(result.status==='executing');assert.equal(result.status,'done',result.error);return output;}
 function checksum(bytes){const data=bytes.slice();let hash=14695981039346656037n;for(let i=0;i<data.length;i++){hash^=BigInt(i>=48&&i<56?0:data[i]);hash=BigInt.asUintN(64,hash*1099511628211n);}new DataView(data.buffer).setBigUint64(48,hash,true);return data;}

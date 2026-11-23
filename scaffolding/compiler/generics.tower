@@ -455,6 +455,11 @@ export fn generic_type_result_read(instance: Entity*, error: u8**): Entity* {
     loop {
         var children = compiler_node_count(returned);
         if children == 1 {
+            // Only unnamed wrappers are transparent. Keep a named reference
+            // for dependency discovery and a zero-argument call for ordinary
+            // execution; their identifier token alone loses those contracts.
+            var role = entity_child_name(returned, 0);
+            if role != null && role[0] != 0 { return returned; }
             returned = entity_child_at(returned, 0);
         } else {
             return returned;

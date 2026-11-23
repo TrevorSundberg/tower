@@ -158,5 +158,13 @@ if(TARGET towerc)
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     set_tests_properties(tower-generic-pointer-alias-${workers} PROPERTIES
       PASS_REGULAR_EXPRESSION "true")
+    add_test(NAME tower-type-return-dependencies-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/type_return_dependencies.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(tower-type-return-dependencies-${workers} PROPERTIES
+      PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8")
   endforeach()
 endif()

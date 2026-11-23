@@ -460,6 +460,20 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
                 continue;
             }
         }
+        // A cloned alias exposes named type reads after initial discovery.
+        // Admit their ordinary producers before checking the continuation,
+        // including a ready producer whose read lease is new to this query.
+        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
+            && sem_member(node, "args") == null && sem_member(node, "base") == null {
+            var binding = sem_resolve(c, c.types, node, sem_identifier(c, node));
+            if !sem_ok(c) { return 0; }
+            if binding != null && (sem_get(binding).global || semantic_enum(&sem_get(binding).type)) {
+                var query = sem_declaration_query(c, binding);
+                if query != 0 && (sem_declaration_input(c, result, query)
+                    || work_task(&c.queries, query).state != WorkState.Succeeded) { waiting = query; }
+                continue;
+            }
+        }
         if !type && sem_is(node, "TowerComptime") {
             // A staged aggregate immediately enumerates its scalar leaves.
             // A callable's return identity can publish before record fields;
