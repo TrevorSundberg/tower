@@ -1,0 +1,129 @@
+import tower;
+import .library.work_buffer;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn pthread_self(): usize;
+
+struct BufferProfileJob {
+    budget: WorkBudget*;
+    data: u8*;
+    buffer: WorkBuffer;
+    started: i64;
+    finished: i64;
+    thread: usize;
+    checksum: u64;
+    allocations: usize;
+    rounds: usize;
+}
+
+fn profile_buffer_check(ok: bool): void {
+    if !ok { trap("Retained buffer profile reference mismatch", 0); }
+}
+
+fn profile_buffer_time(): i64 {
+    var stamp: i64[2];
+    profile_buffer_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(BufferProfileJob*, payload);
+    job.thread = pthread_self();
+    job.started = profile_buffer_time();
+    if job.budget == null { job.data = bits(u8*, compiler_buffer_allocate(4096)); }
+    else {
+        profile_buffer_check(work_buffer_resize(&job.buffer, job.budget, 4096, 0) == WorkBudgetError.None);
+        job.data = job.buffer.data;
+    }
+    profile_buffer_check(job.data != null);
+    fill(job.data, 53, 4096);
+    job.allocations = 1;
+    for(var i: usize = 0; i < job.rounds; i++) {
+        var size: usize = i % 2 == 0 ? 8192 : 4096;
+        if job.budget == null {
+            var next = bits(u8*, compiler_buffer_allocate(size));
+            profile_buffer_check(next != null);
+            copy(next, job.data, 4096);
+            compiler_buffer_free(bits(void*, job.data));
+            job.data = next;
+        } else {
+            profile_buffer_check(work_buffer_resize(&job.buffer, job.budget, size, 4096) == WorkBudgetError.None);
+            job.data = job.buffer.data;
+        }
+        job.allocations++;
+        job.checksum += convert(u64, job.data[i % 4096]);
+    }
+    job.finished = profile_buffer_time();
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    profile_buffer_check(sizeof(usize) == 8 && argc == 3);
+    var accounted = strcmp(argv[1], "budget") == 0;
+    profile_buffer_check(accounted || strcmp(argv[1], "baseline") == 0);
+    var workers: usize = 0;
+    if strcmp(argv[2], "1") == 0 { workers = 1; }
+    if strcmp(argv[2], "2") == 0 { workers = 2; }
+    if strcmp(argv[2], "4") == 0 { workers = 4; }
+    if strcmp(argv[2], "8") == 0 { workers = 8; }
+    profile_buffer_check(workers != 0);
+    var gate = work_signal_open();
+    profile_buffer_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    profile_buffer_check(work_budget_init(&budget, workers, workers * 16384, 1));
+    profile_buffer_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var jobs: BufferProfileJob[8] = default;
+    var pool: WorkPool = default;
+    profile_buffer_check(work_pool_open(&pool, workers) && pool.count == workers);
+    var before: i64[18]; var after: i64[18];
+    profile_buffer_check(getrusage(0, &before[0]) == 0);
+    var start = profile_buffer_time();
+    for(var i: usize = 0; i < workers; i++) {
+        if accounted { jobs[i].budget = &budget; }
+        jobs[i].rounds = 262144 / workers;
+        profile_buffer_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    var elapsed = profile_buffer_time() - start;
+    profile_buffer_check(getrusage(0, &after[0]) == 0);
+    work_pool_close(&pool);
+    var overlap: usize = 0;
+    var allocations: usize = 0;
+    for(var i: usize = 0; i < workers; i++) {
+        profile_buffer_check(jobs[i].checksum == convert(u64, 53 * jobs[i].rounds)
+            && jobs[i].allocations == jobs[i].rounds + 1);
+        for(var byte: usize = 0; byte < 4096; byte++) { profile_buffer_check(jobs[i].data[byte] == 53); }
+        var active: usize = 0;
+        for(var j: usize = 0; j < workers; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { active++; }
+        }
+        if active > overlap { overlap = active; }
+        allocations += jobs[i].allocations;
+    }
+    var snapshot: WorkBudgetSnapshot;
+    profile_buffer_check(work_budget_snapshot(&budget, &snapshot));
+    profile_buffer_check(snapshot.used_bytes == (accounted ? workers * (4096 + 4 * sizeof(usize)) : 0));
+    // workers, budgeted, wall ns, CPU us, peak RSS KiB, useful-worker overlap,
+    // physical buffer allocation calls, retained payload bytes, charged peak,
+    // retained ledger metadata bytes (separate from the declared byte limit).
+    print(workers); print(accounted ? 1 : 0); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(overlap); print(allocations); print(workers * 4096);
+    print(snapshot.peak_bytes); print(snapshot.retained);
+    for(var i: usize = 0; i < workers; i++) {
+        if accounted { work_buffer_dispose(&jobs[i].buffer); }
+        else { compiler_buffer_free(bits(void*, jobs[i].data)); }
+    }
+    profile_buffer_check(work_budget_dispose(&budget));
+    return 0;
+}

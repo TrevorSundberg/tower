@@ -1,0 +1,111 @@
+import tower;
+import vector;
+import work_buffer;
+import work_budget_types;
+
+extern fn compiler_buffer_alignment(): usize;
+
+// Same explicit element ownership and growth invalidation as vector(T), with a
+// physical-storage receipt. It is a distinct type so an ordinary vector free or
+// realloc cannot accidentally lose the receipt or compiler allocation header.
+fn work_vector(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        capacity: usize;
+        reservation: WorkReservation;
+    }
+    return Result;
+}
+
+fn work_vector_init(T: type, value: work_vector(T)*): void {
+    *value = default;
+}
+
+fn work_vector_reserve(T: type, value: work_vector(T)*, budget: WorkBudget*, needed: usize): bool {
+    return work_vector_reserve_result(value, budget, needed) == WorkBudgetError.None;
+}
+
+fn work_vector_reserve_result(T: type, value: work_vector(T)*, budget: WorkBudget*, needed: usize): WorkBudgetError {
+    if value == null || value.length > value.capacity
+        || (value.data != null && value.reservation.owner != budget) { return WorkBudgetError.Invalid; }
+    if needed <= value.capacity { return WorkBudgetError.None; }
+    var size = sizeof(T);
+    if size == 0 || alignof(T) > compiler_buffer_alignment()
+        || needed > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
+    var capacity = value.capacity * 2;
+    if capacity < value.capacity { capacity = needed; }
+    if capacity < 8 { capacity = 8; }
+    if capacity < needed || capacity > ~convert(usize, 0) / size { capacity = needed; }
+    // This temporary is a transactional borrow, not an independently disposable
+    // copy. resize either preserves it or retires exactly this old allocation.
+    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * size,
+        reservation: value.reservation};
+    var result = work_buffer_resize(&buffer, budget, capacity * size, value.length * size);
+    if result != WorkBudgetError.None { return result; }
+    value.data = bits(T*, buffer.data);
+    value.capacity = capacity;
+    value.reservation = buffer.reservation;
+    return WorkBudgetError.None;
+}
+
+fn work_vector_push(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): bool {
+    return work_vector_push_result(value, budget, element) == WorkBudgetError.None;
+}
+
+fn work_vector_push_result(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
+    var needed = value.length + 1;
+    if needed == 0 { return WorkBudgetError.Invalid; }
+    var result = work_vector_reserve_result(value, budget, needed);
+    if result != WorkBudgetError.None { return result; }
+    value.data[value.length] = element;
+    value.length = needed;
+    return WorkBudgetError.None;
+}
+
+fn work_vector_pop(T: type, value: work_vector(T)*, output: T*): bool {
+    if value.length == 0 || output == null { return false; }
+    var last = value.length - 1;
+    *output = value.data[last];
+    value.length = last;
+    return true;
+}
+
+fn work_vector_dispose(T: type, value: work_vector(T)*): void {
+    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * sizeof(T),
+        reservation: value.reservation};
+    work_buffer_dispose(&buffer);
+    *value = default;
+}
+
+fn work_vector_move(T: type, destination: work_vector(T)*, source: work_vector(T)*): void {
+    if destination == source { return; }
+    work_vector_dispose(destination);
+    *destination = *source;
+    *source = default;
+}
+
+fn work_vector_swap(T: type, left: work_vector(T)*, right: work_vector(T)*): void {
+    var previous = *left;
+    *left = *right;
+    *right = previous;
+}
+
+fn work_vector_iterate_begin(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {
+    state.data = source.data;
+    state.length = source.length;
+    state.index = 0;
+}
+
+fn work_vector_iterate_next(T: type, source: work_vector(T)*, state: vector_iteration(T)*): bool {
+    if state.index == state.length { return false; }
+    state.index++;
+    return true;
+}
+
+fn work_vector_iterate_element(T: type, source: work_vector(T)*, state: vector_iteration(T)*): T* {
+    return &state.data[state.index - 1];
+}
+
+fn work_vector_iterate_end(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {}

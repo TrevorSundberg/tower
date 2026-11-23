@@ -10,6 +10,7 @@ extern fn entity_child_count(node: void*): usize;
 extern fn entity_references(node: void*): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
 
 // Single-owner failure instrumentation belongs only to serial test consumers.
 fn parser_trace_failure_tests(): void {
@@ -17,16 +18,21 @@ fn parser_trace_failure_tests(): void {
     var enabled = entity_member_index(owner, "parser.trace") != ParserNoIndex();
     utility_check(parser_set_debug_trace(false) && parser_set_debug_trace(true)
         && parser_set_debug_trace(false), "Parser trace configuration warmup");
+    var started = tower_test_buffer_allocations();
+    utility_check(parser_set_debug_trace(true), "Measure successful parser trace allocation count");
+    var allocations = tower_test_buffer_allocations() - started;
+    utility_check(allocations != 0 && parser_set_debug_trace(false), "Measured parser trace toggle cleanup");
     var children = entity_child_count(owner);
     var references = entity_references(owner);
     var buffers = tower_test_buffer_count();
-    var failures: usize = 0;
-    loop {
+    var completed = false;
+    for(var failures: usize = 0; failures <= allocations; failures++) {
         tower_test_buffer_fail_after(failures);
         var ok = parser_set_debug_trace(true);
         tower_test_buffer_fail_after(~convert(usize, 0));
         var slot = entity_member_index(owner, "parser.trace");
         var marker = slot == ParserNoIndex() ? null : entity_child_at(owner, slot);
+        utility_check(ok == (failures == allocations), "Every parser trace failure prefix precedes terminal success");
         if ok {
             utility_check(failures != 0 && marker != null && entity_references(marker) == 1,
                 "Parser trace fault sweep reaches owned publication after actual failures");
@@ -40,8 +46,8 @@ fn parser_trace_failure_tests(): void {
         }
         utility_check(entity_child_count(owner) == children && entity_references(owner) == references
             && tower_test_buffer_count() == buffers, "Parser trace failure and removal release ownership");
-        if ok { break; }
-        failures++;
+        completed = ok;
     }
+    utility_check(completed, "Parser trace fault sweep reaches its measured successful bound");
     utility_check(parser_set_debug_trace(enabled), "Restore caller parser trace configuration");
 }

@@ -7,6 +7,7 @@ import .library.work_budget;
 import .library.work_budget_types;
 import .library.compiler_work_types;
 import .library.vector;
+import .library.work_buffer;
 
 // The unit service owns orchestration and retention, and calls the one linked
 // compiler/editor implementation through its typed service boundary.
@@ -89,14 +90,19 @@ enum FrontendUnitAction: u32 {
     Compile, Inspect
 }
 
+struct FrontendText {
+    storage: WorkBuffer;
+    length: usize;
+}
+
 struct FrontendUnit {
     kernel: CompilerWorkKernel;
     batch: FrontendUnits*;
     ordinal: usize;
     world: void*;
     modules: void*;
-    path: vector(u8);
-    source: vector(u8);
+    path: FrontendText;
+    source: FrontendText;
     program: SemanticProgram;
     diagnostic: SyntaxVersionDiagnostic;
     inspection: CompletionQuery*;
@@ -105,7 +111,6 @@ struct FrontendUnit {
     success: bool;
     configured: bool;
     execution: WorkReservation;
-    inputs: WorkReservation;
 }
 
 struct FrontendUnits {
@@ -114,14 +119,13 @@ struct FrontendUnits {
     pool: WorkPool;
     budget: WorkBudget;
     budget_gate: void*;
-    inputs: WorkReservation;
     resource_error: u8*;
     resource_offset: usize;
     kind: void*;
     view: void*;
-    bedrock: vector(u8);
-    foundation: vector(u8);
-    library: vector(u8);
+    bedrock: FrontendText;
+    foundation: FrontendText;
+    library: FrontendText;
     width: u32;
     revision: u64;
     profile: u64;
@@ -136,7 +140,7 @@ struct FrontendUnits {
     observer_context: void*;
 }
 
-struct FrontendSnapshot { output: vector(u8)*; source: u8*; length: usize; }
+struct FrontendSnapshot { output: FrontendText*; source: u8*; length: usize; }
 var FrontendSnapshotLimit: usize = 3;
 // Compatibility callers have no declared-byte policy. New bounded callers must
 // supply a finite cap; neither policy accounts opaque compiler/LLVM allocations.
@@ -148,42 +152,35 @@ fn frontend_units_release(batch: FrontendUnits*, receipt: WorkReservation*): voi
     }
 }
 
-// Immutable snapshots need exact storage, not geometric growth. Reserve the
-// complete replacement before allocating, while the previous snapshots remain
-// owned. A denied grant or failed copy leaves every old buffer/receipt intact.
-fn frontend_units_snapshot(batch: FrontendUnits*, receipt: WorkReservation*, inputs: FrontendSnapshot*, count: usize): bool {
+// Immutable snapshots need exact storage, not geometric growth. Each physical
+// buffer reserves its full request before allocation; publish only after every
+// replacement exists. Denial/failure leaves every old buffer and receipt intact.
+fn frontend_units_snapshot(batch: FrontendUnits*, inputs: FrontendSnapshot*, count: usize): bool {
     if count == 0 || count > FrontendSnapshotLimit { return false; }
     var bytes: usize = 0;
     for(var i: usize = 0; i < count; i++) {
         var length = inputs[i].length;
-        if length == ~convert(usize, 0) || length + 1 > ~convert(usize, 0) - bytes { return false; }
-        bytes += length + 1;
+        if length == ~convert(usize, 0) { return false; }
+        var allocated = compiler_buffer_allocation_size(length + 1);
+        if allocated == 0 || allocated > ~convert(usize, 0) - bytes { return false; }
+        bytes += allocated;
     }
-    var next: WorkReservation = default;
-    if work_budget_reserve_result(&batch.budget, 0, 0, bytes, &next) != WorkBudgetError.None { return false; }
-    var copies: vector(u8)[FrontendSnapshotLimit] = default;
+    var copies: FrontendText[FrontendSnapshotLimit] = default;
     defer {
-        for(var i: usize = 0; i < count; i++) { vector_dispose(&copies[i]); }
-        frontend_units_release(batch, &next);
+        for(var i: usize = 0; i < count; i++) { work_buffer_dispose(&copies[i].storage); }
     }
     for(var i: usize = 0; i < count; i++) {
         var input = &inputs[i];
         var output = &copies[i];
-        output.data = alloc(u8, input.length + 1);
-        if output.data == null { return false; }
-        output.capacity = input.length + 1;
-        copy(output.data, input.source, input.length);
-        output.data[input.length] = 0;
+        if work_buffer_resize(&output.storage, &batch.budget, input.length + 1, 0) != WorkBudgetError.None { return false; }
+        copy(output.storage.data, input.source, input.length);
+        output.storage.data[input.length] = 0;
         output.length = input.length;
     }
     for(var i: usize = 0; i < count; i++) {
-        vector_dispose(inputs[i].output);
-        *inputs[i].output = copies[i];
-        copies[i] = default;
+        work_buffer_move(&inputs[i].output.storage, &copies[i].storage);
+        inputs[i].output.length = copies[i].length;
     }
-    frontend_units_release(batch, receipt);
-    *receipt = next;
-    next = default;
     return true;
 }
 
@@ -207,13 +204,13 @@ export fn compiler_unit_kernel(payload: void*): void {
 
 fn frontend_unit_compile(job: FrontendUnit*): void {
     var batch = job.batch;
-    job.success = syntax_baseline_install(job.world, job.modules, batch.bedrock.data, false, &job.diagnostic);
-    job.success &&= syntax_baseline_install(job.world, job.modules, batch.foundation.data, true, &job.diagnostic);
+    job.success = syntax_baseline_install(job.world, job.modules, batch.bedrock.storage.data, false, &job.diagnostic);
+    job.success &&= syntax_baseline_install(job.world, job.modules, batch.foundation.storage.data, true, &job.diagnostic);
     if !job.success {
         return;
     }
     if job.action == FrontendUnitAction.Inspect {
-        job.inspection = language_document_world(job.world, job.modules, job.source.data, job.source.length, job.mode, batch.width);
+        job.inspection = language_document_world(job.world, job.modules, job.source.storage.data, job.source.length, job.mode, batch.width);
         job.success = job.inspection is not null;
         if !job.success {
             job.diagnostic.fallback = "Unable to create inspection query";
@@ -227,7 +224,7 @@ fn frontend_unit_compile(job: FrontendUnit*): void {
     }
     semantic_initialize(&job.program, root, batch.width);
     var source: FrontendSource;
-    source.data = job.source.data;
+    source.data = job.source.storage.data;
     source.length = job.source.length;
     frontend_compile_sources(&job.program, &source, 1, job.modules);
     job.success = job.program.error.length == 0;
@@ -294,19 +291,17 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
                 trap("Compilation unit world still borrowed", 0);
             }
             syntax_version_diagnostic_dispose(&job.diagnostic);
-            vector_dispose(&job.path);
-            vector_dispose(&job.source);
-            frontend_units_release(batch, &job.inputs);
+            work_buffer_dispose(&job.path.storage);
+            work_buffer_dispose(&job.source.storage);
         }
     }
     if batch.kind is not null {
         entity_release(batch.kind);
     }
     compiler_work_close(batch.work);
-    vector_dispose(&batch.bedrock);
-    vector_dispose(&batch.foundation);
-    vector_dispose(&batch.library);
-    frontend_units_release(batch, &batch.inputs);
+    work_buffer_dispose(&batch.bedrock.storage);
+    work_buffer_dispose(&batch.foundation.storage);
+    work_buffer_dispose(&batch.library.storage);
     if !work_budget_dispose(&batch.budget) { trap("Compilation budget still borrowed", 0); }
     work_signal_close(batch.budget_gate);
     free(batch);
@@ -371,7 +366,7 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
     inputs[0] = { output: &batch.bedrock, source: bedrock, length: frontend_source_length(bedrock) };
     inputs[1] = { output: &batch.foundation, source: foundation, length: frontend_source_length(foundation) };
     inputs[2] = { output: &batch.library, source: library, length: frontend_source_length(library) };
-    ok &&= frontend_units_snapshot(batch, &batch.inputs, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot));
+    ok &&= frontend_units_snapshot(batch, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot));
     if !ok {
         frontend_units_close(batch);
         return null;
@@ -421,8 +416,8 @@ export fn frontend_units_source(batch: FrontendUnits*, ordinal: usize, path: u8*
     var inputs: FrontendSnapshot[2];
     inputs[0] = { output: &job.path, source: path, length: frontend_source_length(path) };
     inputs[1] = { output: &job.source, source: source, length: length };
-    if !frontend_units_snapshot(batch, &job.inputs, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot)) { return false; }
-    frontend_modules_configure(job.modules, job.path.data, batch.library.data);
+    if !frontend_units_snapshot(batch, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot)) { return false; }
+    frontend_modules_configure(job.modules, job.path.storage.data, batch.library.storage.data);
     job.configured = true;
     return true;
 }
@@ -581,6 +576,19 @@ export fn frontend_units_peak(batch: FrontendUnits*): usize { return batch.pool.
 // Borrowed immutable binding; callers use synchronized per-call ledger APIs.
 // The frontend (including retained input receipts) outlives all borrowers.
 export fn frontend_units_work_budget(batch: FrontendUnits*): WorkBudget* { return &batch.budget; }
+
+// Retained input subtotal, separate from parser/world/output owners sharing the
+// ledger. The coordinator configures these buffers before dispatch; workers
+// borrow them unchanged until the batch closes.
+export fn frontend_units_input_bytes(batch: FrontendUnits*): usize {
+    var bytes = batch.bedrock.storage.reservation.bytes
+        + batch.foundation.storage.reservation.bytes + batch.library.storage.reservation.bytes;
+    for(var i: usize = 1; i <= batch.count; i++) {
+        var job = frontend_units_job(batch, i);
+        if job != null { bytes += job.path.storage.reservation.bytes + job.source.storage.reservation.bytes; }
+    }
+    return bytes;
+}
 
 export fn frontend_units_work_extend(batch: FrontendUnits*, context: void*,
     next: function(CompilerWorkKernel*, void*), settle: function(void, void*, bool)): bool {

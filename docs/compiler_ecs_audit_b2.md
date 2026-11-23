@@ -475,3 +475,26 @@ The current640-666 MiB large-source RSS observations are evidence for investigat
 not a substitute for tracking actual retained Tower allocations.
 
 Current added fixture compiler_buffer_contract.tower reviewed: pure request-size queries plus valid native/WASI typed allocations, no world/global ownership; existing compiler_buffer_owner calls it and retains serial fault-ticket and live-buffer checks. Census now243 assigned production +31 supporting production/entry +78 related fixtures =352/352 reviewed existing paths. Exact helper source and native/WASI/ASan/n6 paired measurements are recorded in the2026-11-23 journal. Retained WorkBuffer v2 staged but not yet adopted; no memory-budget completion claim.
+
+Retained-buffer handoff v2 adds reviewed supporting production paths
+library/work_buffer.tower and library/work_vector.tower, and fixtures
+work_buffer, work_buffer_shared, work_buffer_faults and work_buffer_profile.
+Census243 assigned production +33 supporting production/entry +82 fixtures =
+358/358 existing paths reviewed. Native normal/shared tests passed; serial
+fault fixture link composition remains delegated to A2/D1. Outer frontend
+snapshots now use WorkBuffer receipts per physical buffer and pass exact-budget,
+replacement-failure and cancellation checks. Constructor/world/module/parser/
+semantic/WorkPool/backend allocations remain separately open; do not infer
+whole-memory coverage from snapshot totals. Matched cost and ASan evidence pending.
+
+Joint checkpoint after parser/table9e4 and snapshot6e961: native units, serial
+partial-copy failure, parser budget/retirement, query storage bounds and actual
+backend overlap pass. backend93b999 preserves exact output retirement relative
+to the joined frontend baseline. Exact input subtotal is now separate from total
+world/parser ledger bytes. New reviewed parser_table_budget fixture raises census
+to243 assigned +33 supporting +83 fixtures =359/359. All are reviewed; execution
+coverage remains the specific receipts in the journal. Production native profile
+recipe is corrected to exclude serial/instrumented test overrides; earlier16
+samples remain serial-only. Native paired samples prove3outer/4reserved lanes,
+with measured overhead and memory limits documented. IM ownership adoption and
+final current-ABI instrumentation/publication remain pending.

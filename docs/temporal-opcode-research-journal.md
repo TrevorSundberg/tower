@@ -48800,3 +48800,166 @@ Handoffs: helper-only07e634dd, full helper+tests e69a3c18 in the external shared
 coordination directory. A2 may adopt the helper independently; full patch replaces,
 not stacks over, helper-only. A2 six-file retained WorkBuffer/WorkVector v2 received
 and staged for review; B1 owns parser/table adoption and B2 outer-unit boundaries.
+
+### B2 retained outer snapshots, implementation and focused evidence, 2026-11-23
+
+Integrated the reviewed A2 WorkBuffer/WorkVector v2 six-file handoff71d28d31 after
+all owned children drained. Two supporting library modules and four specific
+fixtures were reviewed: transactional reserve/allocate/copy/retire, owner-preserving
+move/swap, typed capacity/alignment, nonblocking denial, serial fault rollback,
+real four-thread retention/cancellation and a checked allocator profile. Normal
+retention/vector and actual four-thread shared grow/denial/cancel fixtures pass
+with the existing guest-work-tests runtime composition (.000733614/.000550/1340
+and .004089080/.005236/1316 respectively). This first link composition is the
+existing work-fixture libc/guest runtime; it is not serial fault instrumentation.
+Trying minimal compiler allocator/trap composition first failed to resolve
+tower_print, including the existing --link-executable path. Logs preserved;
+A2/D1 own the serial fixture composition and generic registration. No runtime
+adapter or unsupported fault/parallel combination was added.
+
+Owned frontend_units now uses FrontendText (logical length plus one WorkBuffer)
+for each immutable shared grammar/library and per-unit path/source snapshot.
+Every physical buffer reserves its exact length+1 request plus four-word header
+before allocation. Every new copy exists before any old snapshot is replaced;
+a partial failure disposes all new owners and leaves old contents/configuration
+intact. Move transfers the receipt; disposal frees storage before releasing it.
+Grouped receipts were removed to prevent double counting. The coordinator still
+drains workers before retiring snapshots and destroys its stable budget last.
+These snapshots remain exact-capacity allocations; no geometric padding was added.
+The three shared snapshots plus two per unit now have individual live receipts.
+
+Updated owned bounds/denial/cancellation/fault fixtures independently include
+known header bytes in exact caps and check these physical receipt counts. Public
+predecessor smallest frontend unit PASS2.287574597wall/1.986164CPU/215988KiB.
+Native41-step affected refresh PASS30.962881934/156.733922/836156; current units
+suite PASS17.801743992/27.310291/672912: exact boundaries, replacement denial,
+source-length/NUL diagnostics, independent worlds, nested budgets, staged queries,
+deterministic failure and cancellation. Serial snapshot fault fixture separately
+passes1.141973600/1.100960/161432: failure of either copy preserves old source,
+used bytes/live receipts/buffer baseline, and the old program still compiles.
+A temporary Tower entry uses the unchanged existing frontend test link composition;
+no new permanent executable or generic-main change. Logs build/b2_frontend_buffer_*.
+Full code delta exported B2_frontend_snapshot_buffers.patch SHAc65497c86c279813535916eb38fa9680af07ae53d08b8f782831ac3d6d551344 (-p1 after A2v2/helper07e).
+
+This closes the existing snapshot ownership integration, not the full memory
+requirement: coordinator/world constructors and component storage, WorkPool slots,
+module/parser/semantic scratch, backend indexes/text, and foreign LLVM allocation
+remain the separately enumerated work. A2 owns shared constructor/world binding,
+B1 parser/table propagation, B2 its remaining outer and backend interactions.
+The after/before profile executables are frozen; matched1/4-worker small/large
+runs await B1's current25-second quiet slot release. Snapshot ASan and final
+current-ABI instrumentation remain pending. No publication lease.
+
+The coordinator's requested raw forward-read native control printed7,7,7 while
+its earlier requested oracle was0,7,7. Before any production edit, root withdrew
+that oracle after checking Foundation's explicit raw-uninitialized contract
+(docs/foundation.md325-326,365-367). backend/lowering:255 uses LLVMGetUndef;
+this is not evidence of a defined-semantics bug. The mismatch is retained in
+build/b2_known_order_native.log, not converted to a pass. Demanded comptime(earlier)
+correctly rejects before code generation. The replacement fully initialized
+control (state=0; read increments state; earlier=read(); later=7) gives exact1,1,7
+both graph and actual native executable, build/b2_known_order_initialized.log.
+No zero-initialization or backend optimization change was made.
+
+### B2 snapshot measurements: transport correction and actual native overlap
+
+The first16 paired runs used the frontend test link composition, which explicitly
+selects runtime-instrumented.o and tower_work_serial.o. Both requested worker
+counts1/4 reported outer_peak1/reserved_lanes1. They remain SERIAL-only cost
+observations (build/b2_snapshot_profile_samples.csv), not parallel evidence.
+The source hashes2e4b84e4/0930654a were correct; the initial exported link recipe
+was unsuitable for production concurrency. D2/D1 received an explicit correction.
+
+The corrected recipe reuses the native LR/backend production object/library
+closure without either override. Required dynamic exports are work_thread_entry,
+backend_register_targets and backend_thread_entry. The LR fixture-only export
+named_worker_entry is absent from these profile entrypoints; retaining that
+option caused a preserved undefined-symbol failure before execution. Removing
+that unused export gives actual three-unit overlap and four reserved lanes.
+No runtime adapter or measurement implementation was added. Current recipe
+B2_profiles_native_link.sh SHA7749a2a3, README60801b9d; D2 owns source/profile
+packaging and D1 owns opt-in registration.
+
+The old frontend unit is compiled with the public predecessor from an immutable
+scaffolding archive of8fc2d30; all other linked production objects and the entry
+object are identical between packages. Before53de1923, after03705a42, oldunit
+6c574e9d. Same public resources and checked generated inputs:3units,0/4096 bodies,
+worker budgets1/4, default optimization, warm filesystem/fresh processes on the
+same KinmenB Docker12CPU/24GiB host. Two alternating pairs per configuration,
+16invocations total. Every4-worker sample proves outer_peak3 and reserved_lanes4;
+serial samples show1/1. All eight outputs per input have exact canonical hashes
+1173729914654460811 (small) and4242261087906147675 (large), unchanged entity/
+component counts48240/55014 and646269/792327. Profile reference execution checks
+its expected program results independently.
+
+| Bodies | Budget | Before wall s | After wall s | Before CPU s | After CPU s | Before RSS KiB | After RSS KiB |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+|0|1|3.229147925|3.251118111|3.1145935|3.130626|187100|186844|
+|0|4|1.213802078|1.238041246|3.637826|3.6915805|428280|426286|
+|4096|1|4.656730977|4.682883586|4.5358095|4.5693555|659188|658670|
+|4096|4|2.427277497|2.476004615|5.393909|5.5159795|897478|900188|
+
+These are medians of two samples. Observed source-accounting cost is about0.6%
+serial and2% parallel; n=2 does not establish those small differences. Charges
+increase by exactly288 bytes (nine physical headers) in every case; ledger
+metadata capacity separately rises320->640 bytes. Large input after uses351467
+charged snapshot bytes, which is explicitly not its659-900MiB process RSS.
+Current3-unit four-lane latency is about62% lower for small and47% lower for
+large than serial, with increased CPU/RSS. It is useful real overlap, not linear
+all-core scaling. The source-table/interpreter accounting handoffs are absent
+from these binaries and need their own later combined cost evidence.
+
+Quiet grant00:29:14.880Z, delayed actual start00:30:12.306Z, all16samples drained
+and release00:31:00.077Z. Actual measurement47.77s, grant-to-release105.20s,
+15.20s beyond the requested90s; this is disclosed, not labeled an on-time lease.
+B1 explicitly confirms no heavy child during the actual interval and started its
+next diagnostic only after observing00:31:16 drain. Raw samples/canonical metadata
+are build/b2_snapshot_native_samples.csv. Earlier40 stage/native-object profiles
+used actual production towerc links (no serial/instrumented override); those
+unrelated scoped receipts stand. Native41-step work was build evidence only;
+units used production LR transport, snapshot fault checks explicitly serial.
+
+### B2 joint parser/frontend budget regression closure
+
+Adopted A2v33b03fc54 (WorkBuffer implementation unchanged), B1 parser/table9e4d5f50,
+and the reviewed focused selectors/trace/address-oracle/type-profile migration.
+Root identified the expected shared-ledger integration issue: parser tables now
+retain bytes beside input buffers. Added frontend_units_input_bytes as an exact
+read-only input subtotal. Owned tests preserve exact physical input sizes and
+tight replacement/denial while separately checking whole-ledger lower bounds,
+peak<=cap, drained lanes and teardown's mandatory zero-owner check. Compilation
+gets an explicit finite64MiB allowance, held by a test-only byte reservation
+during tight input checks and released before parsing. No production cap is
+mutated or silently made unbounded. Joint correction6e961029 followsc65497c8.
+
+Public smallest frontend2.346972932/1.993461/216228 and owned allocation entry
+2.590836996/2.245234/203600 pass. Joined16-step native build19.676236613/65.713999/
+708140 passes. Current actual production units PASS18.181202918/27.840531/659680;
+serial partial-copy faults PASS1.114303676/1.073208/162792; focused parser budget,
+bounded trace and retirement PASS .016265336/.012906/51968. Query smoke PASS
+.059278323/.058363/59180, including owner d982/741b tests:64KiB aggregate inputs
+peak131072 live bytes and131136 memory/initialization capacities at32/64-bit
+layouts, with exact immutable diagnostics and disposal checks. These capacities
+are not total allocator/RSS measurements.
+
+Actual backend overlap first failed its obsolete whole-ledger receipt equality
+at7.911215669/10.173545/496660 (retained log). Parser tables are created during
+streaming, so the original pre-parse total cannot be the post-close baseline.
+Owned test correction93b99934 checks exact target+object byte and4object+1target
+receipt release against the joined frontend baseline, retaining input subtotal,
+whole-cap and separate-ledger invariants. An initial missing direct extern failed
+compilation and was corrected. No backend production logic changed. Existing
+30-second deadline, exact object bytes and distinct-worker barriers now PASS
+7.595821310/9.776385/497880; entry rebuild4.307672777/3.980017/287292. This closes
+the requested joint normal/fault/real-overlap regression at this source boundary.
+
+The Linux x64 type profile9f1c/f542 now owns its standalone main; all four prior
+portable execution-main hooks518 were removed before adding capture/aggregate
+selectors22ee/ec4e. f542 README context failed check without mutation; its CMake
+hunk applied and unchanged contract was placed after current documentation.
+Actual opt-in profile PASS2.271689177/2.501115/211000 for16/256/1000 functions,
+three256-query samples each, output/canonical/count checks. Focused parser2d94,
+bounded trace323 and address diagnostics3fe are integrated. New IM budget9228
+and type split7f9 remain pending at this checkpoint; no half-ABI runtime claim.
+Current combined ASan/TSan, clean final bootstrap/browser/generation/publication
+remain open; no publication lease is held.
