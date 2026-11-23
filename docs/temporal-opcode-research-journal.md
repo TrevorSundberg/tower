@@ -69326,3 +69326,68 @@ profiles retain exact outputs/canonical identities/retention; small wall changes
 Joined supported sanitizers and current IDE reactor remain pending. Root union
 not built while other local lanes own their slots. Diff check passes. Final clean
 bootstrap/browser/generation/scaling/memory/race/publication work stays open.
+B1 current merged evidence 2026-11-23T09:35:36.2341154Z: exact503aae66 tree0e94bf8b public native entities12.39s/317084KiB; coherent11step closure32.39s/788744KiB; regex/parser/resource/query/editor all0 (resource1.38s/52464, query0.25s/87788, editor12.06s/1009976). Documented WASI9step42.88s/865012KiB and actual Tower IDE suite29.0005118s exit0, including B2 IdeResourceCheck widths4/8. Reactor SHA25673a368bc4cc9f4ebf73321a523420368d2dc2c72d0f941ea15ed44e1f78a97bf. Public pin9653, SDK34, outer3/compiler4,12CPU/24GiB. No old-source relabel/browser sanitization claim. Unchanged required units oracle reproduced134 in3.46s: Capacity still emitted Memory, replacement_capacity_before.log retained. Exact optimized GDB table phase trace LOCALIZES replacement parser_table_build -> lr_runtime_create_parallel null; FIRST/states/LALR did not fail. Source lr_runtime.tower discards WorkBuffer/WorkVector typed errors and parser_table guesses Memory. Next complete runtime result producer (serial/worker-private results, deterministic publication), no shared budget.error reads/oracle weakening. B2 counted pattern proposal compatible but regex result alone does not close upstream syntax_pattern/LR reader/table outcomes; pending. Do not adopt proposed LR signatures until complete checked history. Planned lr_runtime_create_owned_result/parallel_result/work_result, retaining wrappers. Actual budget operation trace93576 active, native binary/resources frozen, no production edit. A1 pool untouched. No publication lease/full union acceptance; full frontend timeout open. First note append failed invalid rooted Join-Path before writing; corrected absolute-path append now.
+B1 ACTUAL required Capacity repair 2026-11-23T09:41:47.8878203Z: frozen503aae66 + ownedLR runtime result implementation, smallest serial leaf2.40s/257736KiB and worker leaf3.82s/324432KiB PASS. Coherent native20620 drained0; unchanged FULL units selector PASS22.59s/809696KiB, including both original import cap and measuredpeak-minus-one Capacity/no-program/retry oracles. Earlier exactsame fixture failed134 at3.46s and remainsretained. Actual rootcause: parser_table runtime constructor discarded per-call WorkBuffer/WorkVector outcome; serial/parallel runtime constructors now propagate exact results, per-row worker causes joined/publishedsourceorder. Current LR and grammar-resource checks also0. No B2fixture weakening/capraise/sharedlast-error read. Newcode notyetcommitted/profiled/sanitized; next strengthen existing lr_runtime_faults exactMemory/None + derivedcount storage. REQUEST_ROUTE D1/root: authorize existing storage_main narrow argc3 selector runtime-faults calling alreadyimported lr_runtime_fault_tests immediatelyafter current serialtransport guard, before baselineinstall; permitargc2 unchangeddefault, explicitunknownselectorfailure. This avoids rerunning known A2-owned UTF8aggregate RED before reaching actual runtimefaultoracle; no newrunner/CMake/provider. Ownercode remainsB1tests/lr_runtime_faults, do not editA2fixture. Alternatively route completed A2 fullhistory whenready. Broad conditional GDB probe93576 ended1/noadditionalfinding afterbounded120s; allchildren drained, no causal claim from it. Successful narrow table trace preserved. NewROOT302 bundle offered but NOTadopted duringthissource freeze; mergecompletehistory after checkpoint. No finalpublicationlease/acceptance.
+B1 profile correction 2026-11-23T09:45:21.3654967Z: root09:43:13 fixed-executable-path instruction was read after freshB2grant09:43:54.7408452 had launched original4338; earlier09:43:57 wait wording was stale. Owned binary terminated, actual4338drained/auto-release09:44:44.7927969 exit143 (toolwrapper1), no continued child. Initial quoted pkill command failedsyntax2; direct exactownedpath retry succeeded0. Partial different-path results retained under results/, NOT isolated code-cost measurements. Prior completed regex/declaration different-path comparisons likewise retain original outputs but cannot be claimed isolated code costs under this finding. Revised20process recipe uses one run/units and one run/editor path, copy+cmp+hash outsidetimings onlyafterpreviousdrain, SAME resourcearchive and workingdir. Separate results_fixed_path/, freshrequest required; oldgrant neverreused. Rootauthorized existingstorage_main runtime-faults selector nowapplied exactnarrowbranch; no build untilnextprofiledrains. No newrunner/provider. FullROOT302verified34ce, notmerged during freeze.
+
+B1 LR runtime result checkpoint, 2026-11-23T09:56:17.4521900Z (implementation and scoped evidence)
+
+Source: full503aae66 plus the owned runtime result patch, not ROOT9d. The required
+B2 import/peak-minus-one/retry fixture is unchanged: before134, after full units
+PASS22.59s/809696KiB. Native build20.33s/751752KiB; LR1.83s/122012KiB,
+grammar-resource1.32s/53140KiB. Final declaration/invalid-capacity initialization
+cleanup and authorized storage selector rebuilt20.30s/750600KiB; actual selected
+serial+worker-result allocation oracle PASS0.02s/50680KiB, with exact Memory,
+ordinary conflict None, independent row/reference equality, deterministic retry
+and zero retained owners. New sweep storage derives from actual successful calls;
+no fixed1024 scratch bound. Final fault leaf1.43s/196376KiB. This is serial fault
+instrumentation, not the current-source ASan/TSan milestone, which remains pending.
+
+File findings and disposition:
+| Paths under scaffolding | Finding and implemented boundary |
+| --- | --- |
+| compiler/lr_runtime.tower | WorkBuffer/WorkVector outcomes were discarded by owner/row/action/index/goto construction. Per-call result constructors now retain exact errors; overflow/invalid input is Invalid, ordinary LR conflict is None. Existing owners and cleanup remain unchanged. |
+| compiler/lr_runtime_work.tower | Each worker owns its row result/error; coordinator joins all jobs then publishes or reports in source-state order. Exact dispatch, entity/component/view and graph causes propagate. No shared ledger last-error read. |
+| compiler/parser_workers.tower, compiler/lr_work.tower | Typed admission/lease and fresh work-node helpers retain underlying outcomes. Fresh unnamed attachment has only raw relationship allocation failure after successful same-store creation. Retained pool storage and LR graph binding remain unbudgeted work; this change does not claim their closure. |
+| compiler/lr_api.tower, compiler/parser_table.tower | Complete serial/parallel/explicit-width runtime result declarations and actual table consumer preserve Capacity. FIRST/state/LALR bool fallback remains explicit, so this is not all parser resource closure. |
+| tests/lr_budget.tower, tests/lr_work.tower | Measured real byte denial requires Capacity in serial/worker construction; retry, exact receipt cleanup, Busy lease rejection and serial/parallel table/conflict equality remain required. |
+| tests/lr_runtime_faults.tower, tests/storage_main.tower, tests/README.md | Existing allocation oracle now covers both implementations and precise causes; root09:43:13 authorized a narrow runtime-faults selector in existing storage runner, default unchanged. No new provider or runner. |
+
+Performance: actual67212 consumed freshB2 grant09:52:44.1964711UTC, started
+09:52:44.4028250, completed20 children0/released09:54:21.6469874. One fixed
+run/units or run/editor executable path; copy/cmp/SHA outside timings after each
+previous child drains, identical hashed503 resource archive and /work cwd.
+Public pin9653, Linux x64 LLVM19, CPU0-11/24GiB; one process at a time, warm caches,
+3 units, 0/4096 bodies, workers1/4, two alternating pairs. Actual outer peak1/3.
+Mean wall/CPUms before->after: small1 3458.89/3253.02->3456.42/3254.93;
+large1 4557.14/4351.78->4574.17/4370.94; small4 1366.83/4057.17->1383.58/4129.49;
+large4 2242.95/5478.61->2266.18/5529.04. Wall changes -0.07/+0.37/+1.23/+1.04%.
+These exact-error paths add status writes/checks; n2 cannot establish a precise
+cost or speedup. Mean RSSKiB197976->197410,679252->679484,461102->461008,
+936506->934746 (all within0.3%). Retained bytes identical: small15439586/15430458,
+large289423339/289414211 serial/parallel. Canonical1173729914654460811 or
+4242261087906147675; entities48240/646269; components55014/792327 all identical.
+Reserved peak bytes serial78218050/352273165, largeparallel352236285 identical;
+smallparallel202103439-202385266 before versus202402048-202459386 after (overlap
+changes transient peak, no retained growth). Ledger storage5242880/20971520 same.
+Editor before wall11.05/11.16s, CPU17.01/17.26s, RSS1009276/1022568KiB;
+after11.24/11.30s,17.31/17.45s,1027472/878556KiB. Wide RSS variation remains;
+no memory improvement claim. All embedded correctness/cleanup oracles passed.
+
+Frozen hashes: before unitscfd21d9f5d4684621f76d9c5dfbac8253cb8c0e20c2df53308d99c29c5f25e9e,
+editor d4eb27a058f96f0ef6f7f0d1ff2b10db100afc7132b82786feb3cba393d7e012;
+after units6f9db854f94578162d3daaa9b105aabb41ac5a9011426cdcc4292a721f96e9d9,
+editor74506142d6f1984336227f713ba7eefd2d0564daa10d50510543133d95959c75.
+Final source delta SHA01c5183baaaa13fb1868a5b77a435764293db3cad3353ed0c5bac0150efceb8f.
+Raw results: /cache/parser_memory_profile/runtime_results_503aae66/results_fixed_path.
+Partial different-path comparison remains results/ and is NOT isolated code-cost
+evidence. Earlier regex/declaration different-path results retain their stated
+outputs but similarly cannot establish isolated code costs. The failed conditional
+GDB probe added no evidence; successful narrow table trace identified runtime
+construction. All jobs/watchers drained; B2 received next fixed-path foreign slot
+and actually released09:54:44.8989478 exit0. Todo unchanged; no publication lease.
+Next: commit/export complete runtime history, then adopt complete ROOT9d73da0b
+(new page header), coherent native and supported ASan/LSan/TSan plus public WASI
+IDE once on that union. The previous503 reactor/IDE pass stays its source identity.
+Pool physical accounting, FIRST/state/LALR/tree/pattern typed producers, whole
+frontend timeout and final bootstrap/generation/atomic publication remain open.

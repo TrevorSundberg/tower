@@ -12,6 +12,7 @@ import .library.work_graph;
 import .library.work_pool;
 
 extern fn entity_create_related(anchor: void*): void*;
+extern fn entity_create_related_result(anchor: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 
@@ -20,10 +21,12 @@ extern fn entity_release(entity: void*): usize;
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 
 extern fn entity_component_add(node: void*, type: void*): void*;
+extern fn entity_component_add_result(node: void*, type: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_component_data(component: void*): void*;
 
 extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_view_close(view: void*): void;
 
@@ -85,12 +88,20 @@ export fn compiler_lr_kernel(payload: void*): void {
 }
 
 fn lr_work_node(parent: void*): void* {
-    var node = entity_create_related(parent);
+    var error = WorkBudgetError.None;
+    return lr_work_node_result(parent, &error);
+}
+
+fn lr_work_node_result(parent: void*, error: WorkBudgetError*): void* {
+    var node = entity_create_related_result(parent, error);
     if node == null {
         return null;
     }
     if !entity_attach(node, parent, null) {
         entity_release(node);
+        // Creation just proved the same store is writable. This fresh unnamed
+        // child has no stage/parent; only raw relationship storage can fail.
+        *error = WorkBudgetError.Memory;
         return null;
     }
     entity_release(node);

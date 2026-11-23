@@ -2,6 +2,7 @@ import tower;
 import utility_checks;
 import .compiler.lr_api;
 import .compiler.lr_types;
+import .library.vector;
 
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_store(world: void*): void*;
@@ -12,7 +13,8 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn work_thread_available(): bool;
-extern fn lr_runtime_create_work(source: void*, anchor: void*, count: usize): void*;
+
+var LRRuntimeFaultWorkers: usize = 2;
 
 fn lr_fault_equal(left: void*, right: void*, states: usize): bool {
     var a: LRConflict;
@@ -44,7 +46,7 @@ fn lr_fault_equal(left: void*, right: void*, states: usize): bool {
     return true;
 }
 
-fn lr_runtime_fault_trial(mode: usize, failure: usize, complete: bool*): usize {
+fn lr_runtime_fault_trial(mode: usize, workers: bool, failure: usize, complete: bool*): usize {
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
     utility_check(world != null, "Runtime fault world allocation");
@@ -58,7 +60,9 @@ fn lr_runtime_fault_trial(mode: usize, failure: usize, complete: bool*): usize {
     symbols[0].nonterminal = 1;
     symbols[1].nonterminal = ~convert(usize,0);
     symbols[1].first = 65; symbols[1].last = 65;
-    var analysis = lr_analysis_create(&rules[0], 2 + mode, &symbols[0], 2, 2);
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction) - (mode == 0 ? 1 : 0);
+    var symbol_count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    var analysis = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, rules[1].owner + 1);
     utility_check(analysis != null && lr_analysis_compute(analysis), "Runtime fault analysis");
     var states = lr_states_create(analysis);
     utility_check(states != null && lr_states_lalr(states, false), "Runtime fault source states");
@@ -66,15 +70,21 @@ fn lr_runtime_fault_trial(mode: usize, failure: usize, complete: bool*): usize {
     var conflict: LRConflict;
     utility_check(baseline_table != null && lr_runtime_conflict(baseline_table, &conflict) == (mode != 0), "Runtime fault conflict fixture");
     var before = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
     tower_test_buffer_fail_after(failure);
-    var value = lr_runtime_create_work(states, root, 2);
+    var value = workers ? lr_runtime_create_work_result(states, root, LRRuntimeFaultWorkers, &error)
+        : lr_runtime_create_owned_result(states, null, &error);
     tower_test_buffer_fail_after(~convert(usize,0));
     var used = tower_test_buffer_allocations() - before;
     *complete = value != null;
+    utility_check(value == null ? error == WorkBudgetError.Memory : error == WorkBudgetError.None,
+        "Runtime fault reports actual Memory; success and grammar conflict retain None");
     if value != null { utility_check(lr_fault_equal(baseline_table, value, lr_states_count(states)), "Runtime fault preserves the first serial outcome"); }
     lr_runtime_destroy(value);
-    value = lr_runtime_create_work(states, root, 2);
-    utility_check(value != null && lr_fault_equal(baseline_table, value, lr_states_count(states)), "Runtime fault retries cleanly");
+    value = workers ? lr_runtime_create_work_result(states, root, LRRuntimeFaultWorkers, &error)
+        : lr_runtime_create_owned_result(states, null, &error);
+    utility_check(value != null && error == WorkBudgetError.None
+        && lr_fault_equal(baseline_table, value, lr_states_count(states)), "Runtime fault retries cleanly");
     lr_runtime_destroy(value);
     lr_runtime_destroy(baseline_table);
     lr_states_destroy(states);
@@ -86,20 +96,32 @@ fn lr_runtime_fault_trial(mode: usize, failure: usize, complete: bool*): usize {
 
 fn lr_runtime_fault_tests(): void {
     utility_check(!work_thread_available(), "Runtime faults require serial instrumented transport");
+    var worker_modes: bool[2];
+    worker_modes[0] = false;
+    worker_modes[1] = true;
     for(var mode: usize = 0; mode < 2; mode++) {
+      for(var path: usize = 0; path < sizeof(decltype(worker_modes)) / sizeof(bool); path++) {
+        var workers = worker_modes[path];
         var complete = false;
-        var count = lr_runtime_fault_trial(mode, ~convert(usize,0), &complete);
-        utility_check(complete && count < 1024, "Runtime fault sweep budget");
-        var calls: usize[1024];
-        var outcomes: bool[1024];
+        var count = lr_runtime_fault_trial(mode, workers, ~convert(usize,0), &complete);
+        var samples = count + 1;
+        var calls: vector(usize) = default;
+        var outcomes: vector(bool) = default;
+        defer vector_dispose(&calls);
+        defer vector_dispose(&outcomes);
+        utility_check(complete && samples > count && vector_reserve(&calls, samples)
+            && vector_reserve(&outcomes, samples), "Runtime fault sweep derives storage from successful allocation count");
+        calls.length = samples;
+        outcomes.length = samples;
         for(var round: usize = 0; round < 2; round++) {
-            for(var failure: usize = 0; failure <= count; failure++) {
-                var used = lr_runtime_fault_trial(mode, failure, &complete);
-                if round == 0 { calls[failure] = used; outcomes[failure] = complete; }
-                else { utility_check(calls[failure] == used && outcomes[failure] == complete, "Runtime failure counts and outcomes are deterministic"); }
+            for(var failure: usize = 0; failure < calls.length; failure++) {
+                var used = lr_runtime_fault_trial(mode, workers, failure, &complete);
+                if round == 0 { calls.data[failure] = used; outcomes.data[failure] = complete; }
+                else { utility_check(calls.data[failure] == used && outcomes.data[failure] == complete, "Runtime failure counts and outcomes are deterministic"); }
                 if failure == count { utility_check(complete, "Runtime fault sweep reaches success"); }
             }
         }
+      }
     }
     puts("Runtime table allocation failures, retry, conflict order and cleanup passed.");
 }
