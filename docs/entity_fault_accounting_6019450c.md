@@ -120,3 +120,13 @@ timings: `C:/Sandbox/build/codex_ecs_20261122/B2/entity_faults_6019450c` and
 
 ROOT retains final runtime/publication ownership. The earlier inline timing and
 memory receipts remain unchanged; this closes their two named failing controls.
+
+Publication reconciliation: fixture implementation `2f4361f6` is preserved through
+merge `8bcd4a366f7f9819a88eaab124dd1b2aad1aa7b9` with published `d21fb20d`.
+Incoming LLVM importer, packaging, module-body test and documentation changes are
+outside this acceptance. Entity/host/budget and selected fixture inputs remain
+identical: the merged dependency build reports no work, both executable hashes
+match, and both complete default modes pass again. The incoming independent
+review's correction to the earlier inline receipt's **derived** descriptor-page
+alignment/cost is preserved; its measured tables and this ownership census are
+unchanged. No unrelated runtime checks are implied by this reconciliation.
