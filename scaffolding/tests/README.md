@@ -1798,3 +1798,11 @@ See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md
 for exact identities, limits, phase retention and the bounded page-policy proposal.
 The [four-slot experiment](../../docs/compiler_ecs_declaration_pages_5b9194e4.md)
 records its implementation, matched costs and fuller-stream allocation trade-off.
+
+`tower-lr-work-tests RESOURCE_ROOT integer-arguments all` runs the focused unary
+numeric-argument suite, also included in `type-smoke`: contextual widths/minima,
+captures, lazy effects, exact bounds/diagnostics, serial/four-worker canonical
+equality and re-execution at32/64 bits, plus the existing computed-type program.
+`integer-arguments reproduce` compiles D1's unchanged exact negation source and
+returns a normal nonzero result on failure. See the
+[native repair receipt](../../docs/compiler_integer_arguments_b90b6f4e.md).

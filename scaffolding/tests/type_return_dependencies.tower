@@ -1,0 +1,32 @@
+import tower;
+
+fn id(T: type, value: T): T { return value; }
+var value = 42;
+var pointer = id(i32*, &value);
+print(*pointer);
+fn same(T: type): type { return T; }
+var x: same(i32) = 7;
+print(x);
+fn fixed(): type { return i32; }
+var y: fixed() = 8;
+print(y);
+
+// A named alias needs its producer; a nullary call must remain a call.
+fn named(): type { return Word; }
+var Word: type = integer_type(16 * 2, 1);
+fn forwarded(): type { return named(); }
+fn unused(): type { trap("Untaken type-producing branch", 0); return i32; }
+fn selected(take: bool): type {
+    if take { return forwarded(); }
+    return unused();
+}
+fn local(): i32 { var result: selected(true) = 8; return result; }
+fn runtime(): bool { var result: type_type() = selected(true); return result == i32; }
+if local() != y || !runtime() { trap("Type return dependency", 0); }
+
+fn sized(count: i32): type { struct R { data: i32[count]; } return R; }
+var array: sized(3);
+array.data[2] = 9;
+if array.data[2] != 9 || sizeof(sized(3)) != 12 {
+    trap("Integer-only nominal specialization", 0);
+}
