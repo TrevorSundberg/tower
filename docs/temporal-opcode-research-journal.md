@@ -60303,3 +60303,39 @@ The existing LLVM Wasm asset was deliberately not used as current evidence.
 All owned children are drained; next is the source checkpoint and coordinated
 root6b8355 clone/caller union. Remaining LR analysis/state/automata/request
 storage and shared world/store/constructor accounting stay explicitly open.
+
+Extended the owned dispatch fixture to six trials: two target widths each for
+normal publication, denied batch claim, and denied batch claim followed by
+terminal graph scratch growth denial. The terminal case creates32 sealed,
+undemanded consumers before the ordinary phase seals/demands its producer.
+The coordinator-only signal wrapper holds remaining ledger capacity before
+returning the typed claim failure. No graph input changes after the descriptor
+freezes and no worker touches the fault state. Expected results distinguish
+Memory retained by dispatch from Capacity retained by the graph, cancel all
+unsettled receipts after join, preserve the first diagnostic and suppress all
+canonical output. The independent holder retires after context/world cleanup.
+Public object passes3.12wall/2.35user/.17sys/221048KiB
+(semantic_dispatch_unit3); runtime is still pending current ABI closure.
+This does not inject partial worker submission or claim that such a defensive
+invariant path has been exercised.
+
+Additional source scheduling review: sem_workers_open eagerly opens full
+configured capacity before the eventual finite batch width is known; a
+single-job inline dispatch may therefore follow creation of unused native
+thread/signal handles. This is a source-observed cost, not a measured win for
+lazy opening or permission to introduce an arbitrary cutoff. A2 owns any
+measured lazy/upgrade policy and its partial-handle failure/receipt contracts.
+The layout receive loop interprets every completed kernel as layout work;
+mixed live body/layout scheduling requires a coordinated shared prepare,
+dispatch and publication boundary, not merely putting both onto the same pool.
+Existing joins protect structural publication and mutable query indexes.
+
+ROOT86e grammar ownership/getter checkpoint merged after all own jobs drained.
+Its source and A1/A2 drafts are preserved. A bare-hash cancellation bundle
+attempt was rejected as empty, so the actual complete named-main export is
+A1_main_0e36d5c9.bundle4ef71298, sole60741 prerequisite; it contains validated
+ab603725 for the coordinator to select independently of the later unvalidated
+constructor/dispatch draft. D1 was told the22 publication cases are split
+between18-case semantic_publish_tests and4-case semantic_publish_cancellation_tests;
+one call to only the former would omit cancellation. No generic harness edit,
+new provider or publication request was made.

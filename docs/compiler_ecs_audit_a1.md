@@ -450,3 +450,18 @@ receipts in the journal. Earlier22 Publish passes cover the preconstructor ABI.
 A2's graph arrays are borrowed directly only for reads in the assigned semantic
 callers. L2 generic/type/constructor reservation remains in force. D2 owns the
 five entrypoint imports after L1 agreement; no competing provider is added here.
+
+Follow-up full review of semantic_dispatch_checks: six trials now include actual
+terminal scratch-denial setup through the existing WorkGraph API, with all
+relationships sealed before dispatch and only a synchronized ledger hold in the
+coordinator claim wrapper. Graph cancellation is expected after partial terminal
+mutation; the first dispatch failure remains the diagnostic. Public object
+passes; runtime still pending. The failure occurs before worker admission, so
+this fixture is not evidence for partial-submission overlap or threaded allocator
+sanitization. Separate earlier22 Publish tests retain their exact ABI scope.
+
+Remaining scheduling barriers: sem_workers_open can eagerly create configured
+thread capacity before a one-job inline wave; semantic_layout_execute owns its
+typed receive stream and cannot consume body jobs safely. A2 received concrete
+lazy-opening and mixed-frontier contract findings, with no claimed speedup,
+unmeasured cutoff or competing scheduler implementation.
