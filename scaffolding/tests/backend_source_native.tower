@@ -34,7 +34,7 @@ struct ReconstructionProbe {
     parses: usize; deny: bool; census: bool; occupied: WorkReservation;
 }
 
-struct ReconstructionRule { label: u8*; count: usize; leaves: usize; wrappers: usize; bytes: usize; }
+struct ReconstructionRule { id: u32; label: u8*; count: usize; leaves: usize; wrappers: usize; bytes: usize; }
 struct ReconstructionUsage {
     user_seconds: i64; user_micros: i64; system_seconds: i64; system_micros: i64;
     peak_rss: i64; shared: i64; data: i64; stack: i64; minor: i64; major: i64;
@@ -43,8 +43,53 @@ struct ReconstructionUsage {
 }
 extern fn getrusage(who: i32, usage: ReconstructionUsage*): i32;
 
+fn reconstruction_buffer(data: u8*): usize {
+    if data == null { return 0; }
+    var header = bits(EntityBufferAllocation*, data - sizeof(EntityBufferAllocation));
+    return compiler_buffer_allocation_size(header.allocation.capacity);
+}
+
+// Read existing joined owners only. These physical categories overlap logical
+// payload counts below; they must not be added to the ledger a second time.
+fn reconstruction_storage(probe: ReconstructionProbe*, store: EntityStore*): void {
+    var rows: usize = 0; var single: usize = 0; var single_bytes: usize = 0;
+    var components: usize = 0; var children: usize = 0; var instances: usize = 0;
+    var indexes: usize = 0;
+    for(var bucket: usize = 0; bucket < sizeof(decltype(store.tables)) / sizeof(EntityTable*); bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            indexes += reconstruction_buffer(bits(u8*, table.rows));
+            for(var i: usize = 0; i < table.length; i++) {
+                var node = table.rows[i]; rows++;
+                // The first index is descriptor-owned on inline Entities.
+                var bytes = node.components == &node.inline_components[0] ? 0
+                    : reconstruction_buffer(bits(u8*, node.components));
+                components += bytes;
+                children += reconstruction_buffer(bits(u8*, node.children));
+                instances += reconstruction_buffer(bits(u8*, node.instances));
+                if node.component_count == 1 { single++; single_bytes += bytes; }
+            }
+            table = table.next;
+        }
+    }
+    var payload_pages: usize = 0; var descriptor_pages: usize = 0;
+    var page = store.storage.owned;
+    while page != null { payload_pages += compiler_buffer_allocation_size(page.allocation.capacity); page = page.owned_next; }
+    page = store.buffers.owned;
+    while page != null { descriptor_pages += compiler_buffer_allocation_size(page.allocation.capacity); page = page.owned_next; }
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(rows <= store.entity_count && work_budget_snapshot(probe.budget, &snapshot)
+        && payload_pages + descriptor_pages + indexes + components + children + instances <= snapshot.used_bytes,
+        "Joined physical storage categories do not double count");
+    printf("indexed_entities=%zu single_components=%zu single_index_bytes=%zu component_indexes=%zu child_indexes=%zu instance_indexes=%zu table_indexes=%zu\n",
+        rows, single, single_bytes, components, children, instances, indexes);
+    printf("payload_page_bytes=%zu descriptor_page_bytes=%zu unindexed_entities=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        payload_pages, descriptor_pages, store.entity_count - rows, 0, 0, 0, 0);
+}
+
 fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
     var store = bits(EntityStore*, compiler_world_store(probe.world));
+    reconstruction_storage(probe, store);
     for(var id: u32 = 0; id < CompilerComponentCount; id++) {
         var kind = bits(Entity*, compiler_world_type_existing(probe.world, id));
         if kind == null { continue; }
@@ -67,20 +112,22 @@ fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
     if !parsed { return; }
     var kind = bits(Entity*, compiler_world_type_existing(probe.world, CompilerParserMatch));
     var maximum: usize = 0;
-    for(var i: usize = 0; i < kind.instance_count; i++) {
-        var item = bits(ParserMatchData*, kind.instances[i].data);
-        if convert(usize, item.id) > maximum { maximum = convert(usize, item.id); }
-    }
     var rules: work_vector(ReconstructionRule) = default;
     defer work_vector_dispose(&rules);
-    utility_check(work_vector_reserve_result(&rules, probe.budget, maximum + 1) == WorkBudgetError.None,
-        "Observer histogram sized from actual parse IDs");
-    rules.length = maximum + 1;
-    fill(rules.data, 0, rules.length * sizeof(ReconstructionRule));
+    // Parser IDs include sparse/sentinel values. Size this private diagnostic
+    // by groups actually present, never by the numeric high-water ID.
     for(var i: usize = 0; i < kind.instance_count; i++) {
         var component = kind.instances[i];
         var item = bits(ParserMatchData*, component.data);
-        var row = &rules.data[convert(usize, item.id)];
+        if convert(usize, item.id) > maximum { maximum = convert(usize, item.id); }
+        var index: usize = 0;
+        while index < rules.length && rules.data[index].id != item.id { index++; }
+        if index == rules.length {
+            var group: ReconstructionRule = {id: item.id, ..default};
+            utility_check(work_vector_push_result(&rules, probe.budget, group) == WorkBudgetError.None,
+                "Observer histogram group admission");
+        }
+        var row = &rules.data[index];
         row.label = item.label.data; row.count++; row.bytes += item.label.capacity;
         if component.owner.child_count == 0 { row.leaves++; }
         if component.owner.child_count == 1 {
@@ -88,13 +135,18 @@ fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
             if role == null || role[0] == 0 { row.wrappers++; }
         }
     }
+    var counted: usize = 0;
+    foreach(var &row in &rules) { counted += row.count; }
+    utility_check(counted == kind.instance_count, "Observer covers every parser component");
+    printf("parse_groups=%zu largest_parse_id=%zu observer_capacity=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        rules.length, maximum, rules.capacity * sizeof(ReconstructionRule), 0, 0, 0, 0);
     var percent: usize = 100;
     for(var id: usize = 0; id < rules.length; id++) {
         var row = &rules.data[id];
         if row.count < kind.instance_count / percent { continue; }
         puts(row.label ?? "");
         printf("parse_id=%zu count=%zu leaves=%zu unnamed_wrappers=%zu label_capacity=%zu reserved=%zu reserved=%zu\n",
-            id, row.count, row.leaves, row.wrappers, row.bytes, 0, 0);
+            convert(usize, row.id), row.count, row.leaves, row.wrappers, row.bytes, 0, 0);
     }
 }
 
