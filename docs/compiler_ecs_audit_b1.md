@@ -2093,3 +2093,48 @@ allocation. State intermediate29710 and LALR95124 passed native LR/parser and
 independent 150-grammar/reference/allocation cases. New physical-storage native
 validation is still running; missing-import and null deferred fixture cleanup
 failures and their corrections are preserved in the journal and raw logs.
+
+B1 frozen68fa validation update: native7424 has now passed the complete affected
+LR/parser/query/grammar-resource/fullunits/editor/storage/runtimefaults/resource
+checks. ASan/LSan27265 passed the new LR phase/pool denial and cleanup fixtures,
+parser/query and real3unit4lane overlap. TSan34245 passed LR50.120s,
+parser.352s/query1.301s and two real overlap processes25.837/25.474s internal,
+peak3, identical canonical1173729914654460811 and retained15152976 bytes;
+both jobs actually drained0. The thread build33.95s/65.07CPU/761076KiB used the
+existing ephemeral-container recipe, not changed persistent host security.
+No reports; no standalone UBSan/system LLVM/libc/browser instrumentation or
+universal race-freedom claim. Earlier5ce full-unit sanitizer coverage stays5ce.
+
+The fixed-path20 comparison used immutable5b resources, identical runner paths,
+CPU0-11/24GiB, warm caches and two alternating pairs at3units/0 or4096 bodies,
+workers1/4. All output/canonical/entity/component checks passed; serial retention
+is unchanged and four-worker retention rises by exactly768 accounted pool bytes.
+Mean wall changes -2.80/+1.64/-0.07/-1.25% for small1/large1/small4/large4 are
+mixed, with n2 insufficient for a precise performance claim. Editor RSS mean rose
+with a wide range; a focused four-process follow-up is queued for a fresh quiet
+grant. Full raw CPU/RSS/retention/hash/command evidence is in the journal and
+parser_memory_profile/analysis_results_5b6140ae. Independent parser/publicWASI/IDE
+and final artifact receipt remain pending; the full acceptance goal is open.
+
+Next boundary only: ROOT12:40:39 approved B1 ownership of GrammarBuilder's
+resource_error field and checked init/finish/regex constructor producers.
+Read-only caller audit: regex_grammar.tower is the only production builder caller;
+frontend_table.tower owns its downstream pattern-table consumer (ROOT). The other
+callers are frontend_bedrock/parser_text/table_owner, parser_integration and
+parser_table_budget fixtures. No callback or shared global builder was found.
+parser_nodes text storage and counted UTF8 append need their actual error causes
+audited before classification; do not infer Memory from a generic bool. Shared
+field adoption waits for complete source history and coherent providers. No code
+for that proposal is included in68fa or its current receipts.
+
+Current68fa portable closure: independent parser-only reference/allocation/tree/
+precedence/randomized oracle passed. Public-pin/SDK34 WASI built without override;
+reactor SHA256cfcf1ffb44a65cd65056dbee7e0b7b29e56ebf9a3442ceb031d14fd9d66881e8.
+Actual IDE72640 passed26.341924s, jobs48223/72640 drained0. Editor follow-up71703
+also passed and released its fresh quiet slot: n4 RSS mean921521 ->939343KiB,
+about+1.93%, broad overlapping ranges; initial n2 +7.84% did not persist. Neither
+memory neutrality nor a speedup is claimed. All24 raw process receipts, current
+sanitizer logs and source/binary identities are retained. This closes the narrow
+68fa implementation, not the full acceptance goal, remaining raw storage or final
+joined clean/public/hosted release. Evidence-only documentation adds no runtime
+performance delta. No publication lease or push; todo remains unchanged.

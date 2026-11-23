@@ -75586,3 +75586,130 @@ B1 2026-11-23T12:23:32.9724877Z: pool_graph native14579 ACTUALdrain1, nochild re
 B1 2026-11-23T12:25:09.1182572Z: pool_graph retry30455 ACTUALdrain1. Smallestleaf andnativebuild0, first LR runtime crashedSIG11 at1.25s; GNUtime trailingstatus isnotpass. Remainingparser/query/units/editor/storage neverstarted. Rawpool_graph_lr.log preserved, inputsfrozen forbacktrace, no heavyjob remains. PreviousLALR95124 passedbeforephysicalpool/graph/fixturechanges. Investigatingnewdenial/teardown boundary, not weakeningchecks or restartingmatrix.
 
 B1 2026-11-23T12:25:35.4342209Z: unchangedfailedbinary gdb reproducedSIGSEGV in entity_release, caller main, allworkerthreads exited. Sourcecause is newfixture's explicitroot/world teardown followedby unconditional deferred entity_release(root=null); entity_release requiresnonnull. Added guard onlyin lr_budget fixture deferredcleanup; productionpool/graphlogic unchanged. Backtrace pool_graph_lr_backtrace.log and originalSIG11 pool_graph_lr_null_cleanup.log retained. This isnot a runtimepass; rerun affectedfixture thenpendingnativechecks afteractualgdbdrain.
+
+### B1 complete LR phase results and scheduling storage: frozen 68fa validation
+
+Production commit68fa00d947716a441e4db9986b40ca62c3b4f4e0,
+treef8cb16520948d0536e897b1cd6b780d150c26f01, completes the FIRST/state/LALR
+result chain and charges world-retained parser pool slots and phase WorkGraphs.
+The old fallback described above is now removed. Legacy public wrappers remain;
+the private task result fields are derived scratch, not another authoritative IR.
+Raw analysis vectors, grammar construction, request/lexer buffers and host thread
+handles/stacks remain separate uncovered storage. No new syntax was adopted.
+
+Final native job7424 drained0. Smallest production ParserNodes leaf18.35s/
+769172KiB, dependent build7.65s/338424KiB, corrected fixture leaf6.52s/339284KiB
+and relink.96s/73716KiB passed. Actual LR1.84s/116884KiB, parser.04s/54088KiB,
+query.23s/87980KiB, grammar-resource1.25s/52904KiB, fullunits21.55s/806792KiB,
+editor10.68s/838192KiB, storage.25s/99120KiB, runtimefaults.02s/50268KiB and
+resourcephases.04s/51528KiB passed. The added denial/teardown regressions account
+for changed LR test work; these suite times are not an equivalent-input speed test.
+The preceding missing-import and null-defer failures remain failures in the logs.
+
+The fixed-path comparison uses immutable5b6140ae resources and before binaries
+recorded above. After units SHA2563ddc88b5a46d2a8e4e7f8e87dcbb8dfbd0b3b6055997ac3521940653e745cd98,
+editorf8841ee914406dd1465f913a8095bf0455c214959a1ee355146ff01eea98f1ff,
+patch e482405dede6f5ec04345d37b7edff0725563208e7d62105b95ce90ccb1b27f2.
+The existing public Linux x64 pin/LLVM19.1.1 builds ran on the same KinmenB Docker
+CPU0-11/24GiB lane, warm caches, identical executable paths and cwd. Copies,
+byte comparisons and hashes ran outside child timing. Three units, bodies0/4096,
+workers1/4, two alternating pairs plus editor produced20 successful children.
+ROOT's12:31:33 quiet grant preceded start12:32:41.4509295; actual job97259
+drained and released12:34:19.7674724. The wrapper's `docker top -eo args` failed
+to find a PID column; a separate `docker top -eo pid,etime,args` confirmed only
+the container's idle init. That failed inspection is not itself drain evidence.
+
+| Case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| Small,1 |3504.936 ->3406.770|3299.263 ->3203.215|197316 ->197800|
+| Large,1 |4736.781 ->4814.309|4530.083 ->4607.549|679884 ->679284|
+| Small,4 |1367.420 ->1366.447|4077.227 ->4045.753|457356 ->463072|
+| Large,4 |2473.680 ->2442.676|5768.219 ->5669.348|935462 ->933712|
+
+The n2 changes are mixed, approximately -2.80/+1.64/-0.07/-1.25% wall; neither
+a precise speedup nor neutrality is established. Actual outer peaks1/3 respect
+lane ceilings1/4. Canonical1173729914654460811/4242261087906147675,
+entities48240/646269 and components55014/792327 match across every case.
+Serial retained15161395/289310084 bytes are unchanged. Four-worker retained
+15152267/289300956 becomes15153035/289301724: exactly768 extra accounted bytes,
+consistent with charging the existing retained pools. Ledger storage remains
+5242880/20971520; small-parallel reserved peaks vary with phase overlap. No
+claim that changed accounting equals a new physical allocation or a leak.
+
+Editor before wall11.06/11.11s, CPU17.00/17.13s, RSS861644/915808KiB;
+after11.00/10.97s,16.99/16.89s,902708/1014124KiB. The higher after mean and
+wide range need a focused follow-up before closing the memory review. Four
+already-built editor processes are queued for a fresh <=60s quiet slot after
+both lanes' active sanitizer work drains. No immediate/stale grant is assumed.
+ROOT's reciprocal32 profile actually released12:38:07; B1 address/leak job27265
+then started on frozen68fa, including the newly changed LR fixture. Current
+instrumentation, independent parser, public WASI and IDE checks remain pending.
+
+Read-only next-step audit finds GrammarBuilder in grammar_types.tower retains
+only bool failure. grammar_builder.tower loses typed related-node/component/attach
+causes; regex_grammar.tower is its sole production constructor caller, consumed
+by ROOT-owned frontend_table.tower. A shared-definition/result-boundary proposal
+was routed to ROOT before any change. Incoming complete34aa/D1 registrations
+were reviewed, not adopted during the frozen68fa experiment. D2's incoming
+forest imports are complete there; new actual ParserNodes entity_attach_result
+policy remains a separate owner request. No publication lease or release claim.
+
+Supported current68fa checks now passed and actually drained: ASan/LSan27265
+build57.79s/89.10CPU/758088KiB, LR22.95s/30.63CPU/851680KiB,
+parser.28s/149208KiB, query.80s/308108KiB and actual3unit4lane overlap
+10.2265s internal/32.9834CPU/1100136KiB. TSan34245 build33.95s/65.07CPU/
+761076KiB, LR50.120s/81.820CPU, parser.352s/query1.301s and two actual overlap
+processes25.837/25.474s internal,82.408/81.990CPU,1429132/1426176KiB.
+All overlap checks saw peak3, canonical1173729914654460811 and retained15152976.
+Fail-fast address/leak/thread options produced no reports. The changed LR cases
+exercise physical pool/graph denial, exact result propagation, retry and teardown;
+production-allocation overlap is distinct from single-owner fault instrumentation.
+No standalone UBSan, system LLVM/libc or instrumented browser coverage is claimed.
+
+ROOT granted fresh editor4 quiet12:46:07 after both lanes' sanitizer drain.
+Job71703 completed allfour children0; its corrected PID-column inventory verified
+only the idle container before release. Additional before pairs3/4 wall11.14/11.06s,
+CPU17.13/17.04s,RSS981460/927172KiB; after11.05/11.02s,17.03/16.93s,
+904240/936300KiB. Across allfour pairs mean wall11.0925 ->11.0100s,
+CPU17.075 ->16.960s, RSS921521 ->939343KiB (+1.93%). Ranges before861644..981460
+and after902708..1014124 overlap broadly; the initial n2 +7.84% rise does not
+persist. This does not establish memory neutrality or an improvement. All24 raw
+profile processes are retained with exact binary/resource hashes. Source, pin and
+todo hashes were independently rechecked unchanged. Current independent parser/
+public-pin WASI job48223 is running; actual IDE and final receipt follow.
+
+ROOT's complete c9442c6e queue/late-inspection bundle was verified/fetched and
+reviewed read-only. entity_stage references rebases an alias only when it names a
+valid live queue slice, rejecting spare/misaligned/overrun input before reserve;
+there is no new allocation or layout. L2's actual language_document_inspect phase
+rejects retained semantic failure before replay, and its fixture denies the real
+inspection producer after a successful document. The complete history is queued
+for the next unstarted coherence boundary, not copied into current68fa artifacts.
+
+Current68fa portable milestone now passed: job48223 independent parser build
+19.68s/17.92CPU/769564KiB; actual lr-analysis oracle.22s/6156KiB. This includes
+ordered grammar/tree lifetime and allocation failures, closure/state/runtime/
+control/reference comparisons, precedence and150 reproducible random grammar/
+propagation trials. Public checked-in bootstrap9653/SDK34 WASI build21.74s/
+28.57CPU/811092KiB passed without a private compiler override. Reactor SHA256
+cfcf1ffb44a65cd65056dbee7e0b7b29e56ebf9a3442ceb031d14fd9d66881e8.
+Actual IDE job72640 passed26.341924s; complete UTF8 log includes its own timer
+and exit0. Both jobs drained; the normal container contains only its idle init.
+
+The full current native, matched24-profile, address/leak/thread and portable
+evidence closes this LR result/pool/graph change only. Archive construction30450
+is now running, copying source, frozen profile inputs, logs (including failures),
+current native/address/thread binaries/configuration/instrumentation manifests and
+WASI. Stale sanitizer storage binaries are deliberately not included as current
+coverage; native storage is current. This evidence documentation changes no
+runtime input and needs no separate performance comparison. Fullfrontend's
+recorded300s/124 failure, remaining raw parser/grammar/request/lexer allocations,
+clean joined bootstrap/generation, browser publication and hosted verification
+remain open. No publication lease, push, source adoption or new context occurred.
+
+B1 receipt30450 actually drained0. Archive
+B1_pool_graph_receipts_68fa00d9.tgz SHA256
+2ac1def2307573cb928f944d282423849e26167a85bf5cf409580b683030d21b
+contains the exact current artifacts and all24 profile records. No owned job,
+quiet watcher or hold remains. Evidence commit follows without runtime changes;
+complete ROOTc944 adoption and new grammar work have not begun.
