@@ -84871,3 +84871,5 @@ rebuilt in 25 dependency steps; merged query/resource smoke and lifecycle14–16
 Reuse unchanged entity cap/census/concurrent/layout checks from the prior merged
 receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
+
+B2 final reconciliation: merged complete B1 presentation and A2 accounting history42c1e142 as43c680fe, preserving both journal histories. Rebuilt only affected native dependencies (22 steps,33.647wall/113.883CPU/796036KiB). Independent inference CTest workers1/4 PASS; the actual production semantics unit compiled by that merged successor PASS (22.494wall/17.707CPU/972660KiB). Merged fixture canonical bytes match workers1/4 and the frozen baseline. These validate the merged inference behavior; the complete generation fixed point remains explicitly scoped to published b5b585fb and is not relabeled to include later B1/A2 runtime changes. No further whole-generation matrix was run after reconciliation. All owned jobs drained; normal main publication follows.

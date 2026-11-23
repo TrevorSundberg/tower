@@ -20,6 +20,9 @@ Inference searched only the nominal type-constructor registry. The repair also
 resolves type-returning ordinary templates, then applies the existing structural
 constraints and full substituted-signature checks. It changes neither execution
 classification nor query/admission/layout policy. No public symbols were added.
+The checked argument already had the correct nominal vector specialization;
+constraint lookup failed before matching it. No additional type producer or
+recursive forcing was needed.
 
 `generic_cast_inference.tower` independently covers the original cast, aliases,
 nested generic/pointer constraints, ordinary type values and once-only operand
@@ -107,3 +110,9 @@ isolated speedup attribution to the inference edit or whole-machine scaling.
 The pre-repair failing compiler cannot provide a healthy baseline for this case.
 ROOT retains public pin/Pages, integrated instrumentation, portable symbol-policy
 and full release acceptance. Those gates are pending, not passed by this receipt.
+
+After the frozen run, main incorporated B1 presentation and A2 accounting through
+merge `43c680fe`. The affected native rebuild, workers1/4 regression, canonical
+comparison and actual semantics-unit successor compilation pass on that merge.
+The complete generation result above remains scoped to `b5b585fb`; ROOT's final
+integrated milestone must validate later source changes independently.
