@@ -1240,3 +1240,11 @@ It uses ordinary source initialization; native `SOURCE` objects explicitly selec
 object emission. The manual capacity profile and argument oracle require the
 actual allowed capacity and are not default tests. Tests that deliberately require
 four physical worker slots need at least four allowed CPUs; preserve those oracles.
+
+The existing `tower-frontend-tests RESOURCE_ROOT allocations` selector also runs
+the metadata-copy checks in `world_constructor.tower`. It derives every serial
+and staged denial position from actual successful allocation counts, checks
+exact `Memory`/`Capacity`/`Busy`/`Invalid` results and budget-pressure retry,
+compares copied parser/provenance data, and checks reference and byte ownership
+after discarding partial destinations. This selector requires serial allocator
+transport; real parallelism is tested separately by query and unit-overlap runs.
