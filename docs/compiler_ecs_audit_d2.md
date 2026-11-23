@@ -1537,3 +1537,65 @@ source-closure rows are not summed into the40 primary tool/benchmark paths.
 All40 assigned primary paths remain inventoried, no new path appeared there.
 D1 owns generic registration and supplied exactb94c; no duplicate harness.
 Only six new v5 bodies were copied, preserving all eight current buffer files.
+
+#### Pinned guard followup and current bootstrap symbol closure
+
+The six arena rows above are now committed in741de29; their source identities
+remain the listed v5 hashes. D1's independent f635 receipt subsequently passes
+the arena/API checks and actual ASan/TSan stress, but does not validate D2's newer
+643 resource-failure ABI or the final source union. No duplicate arena matrix is
+needed merely to reproduce that owner's receipt.
+
+Pinned CPU2 followup resolves the earlier large guard timing concern only to
+this measured extent: five alternating retained serial128-body samples after
+warmup give before/current medians6.061068/6.139582s, CPU6.017704/6.092433s and
+188880/188880KiB RSS. The earlier32% slowdown was not reproduced; the remaining
+1.3% wall difference stays recorded, with overlapping ranges. All twelve runs
+check answer42 and canonical11163853601021039373. Both use the same immutable
+00caeef resources; its longer archived path adds43 charged bytes equally.
+This is a new controlled experiment, not replacement of the original raw data.
+
+At reviewed commit643ceb4, bootstrap_symbols, bootstrap_comparison and the
+verifier caller were re-audited against all seven actual00caeef component
+objects. The unchanged verifier7465f311 rejects24 exact imports:6 parser,
+12 interpreter and6 semantics; utf8/bytes/entities/host pass. Definitions and
+callers establish these as Tower component boundaries:
+
+| Component | Reviewed export owners and caller contract |
+| --- | --- |
+| ParserNodes | world create/dispose/budget and entity-store counts. Parser table/worker buffers use the owning world's budget; frontend units and configured lr_work fixtures own separate worlds and verify cleanup. No ambient world or native implementation is introduced. |
+| Interpreter | host/memory physical buffer size/alignment/allocate/free; compiler/world node-world/bind/budget; format dispose/unsigned; Foundation execution item/reference; strcmp. Interpreter storage and the configured interpreter_call_query fixture use these explicit boundaries. Diagnostic formatting remains synchronous and owned. |
+| Semantics | compiler_unit_kernel dispatch, world budget/reserve/release, frontend_module_root_world_size and type_object_abi_safe. The shared kernel dispatch and semantic context use the common worker budget; source construction and foreign ABI checking call their existing component owners. |
+
+Implementation changes only exact per-unit strings and extends existing
+bootstrap_symbols_checks with wrong-unit/prefix/suffix cases. The parser and
+semantic lists also admit compiler_clone_tree_result after review of exact
+L2 patch25503293 and root's API coordination. Its matched service consumers
+are still pending here; policy approval is not runtime acceptance. No arbitrary
+prefix/native adapter, second registry, allocation or concurrent mutation was
+added. All seven frozen Linux reports now pass verifier6e97faac; public-pin
+smallest checker and existing boundary cases pass. Actual final cross-target
+generation comparison remains required, with any new imports reviewed afresh.
+
+The existing serial checker allocates no storage; its CLI retains the bounded
+nm report unchanged. One before/after measurement per frozen component is below
+GNU time's0.01s wall/CPU resolution. Interpreter peak RSS1348/1352KiB is process
+startup noise, not evidence of a speed or retention improvement. There is no
+parallel work in these tiny checks and no scaling claim. Exact logs, original
+exit1 reports, input object hashes and source checks are retained under
+build/d2_ecs/bootstrap_closure_00caeef.
+
+D1's semantic_resource_checks fixture0751 was read fully and adopted after
+owner corrected-runtime acceptance, together with its existing query-runner
+import/call. Its three trials preserve explicit budget/world ownership,
+source-ordered failure, matching failed tickets, drained peers, no published
+value/replay and complete disposal. Only the entry changed from the original
+standalone draft; no new runner or generic manifest. Independent current ABI
+execution is still pending at this source checkpoint.
+
+Current exact checker also passes actual11-definition ASan with the existing
+instrumented guest boundary, leak detection and unchanged source hashes. The
+first manual link/compile command reinstrumented IR and failed1; its
+shadow-of-shadow disassembly and raw error are preserved. Corrected canonical
+compile-without-sanitize/link-with-sanitize succeeds separately. No threaded
+mutable path was added here, no race-freedom or source-level UBSan claim.

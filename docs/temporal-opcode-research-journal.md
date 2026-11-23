@@ -49362,3 +49362,66 @@ fixture after that result. No competing unregistered runner was added. This
 change remains prepared source pending independent public units, joint runtime,
 actual memory/race coverage and complete union publication; prior00caeef
 measurements and741de29 bundle do not validate the new ABI.
+
+### D2 pinned timing followup and exact bootstrap import policy (2026-11-23)
+
+After D1 released the shared slot, D2 acquired it atomically and repeated the
+immutable00caeef guard experiment on CPU2 only. Before executablef96ef9bf and
+currentd2385e46 share the same production objects and archived resources.
+Three units/one worker/128 bodies, one warmup plus five alternating pairs:
+before wall6.146159/6.119007/6.018415/6.061068/6.058303s; current6.185144/
+6.139582/6.110278/6.091191/6.219099s. Medians6.061068/6.139582 (+1.30%),
+CPU6.017704/6.092433 (+1.24%), RSS188880/188880KiB. All twelve answer42 and
+canonical11163853601021039373 checks pass; binaries remain byte-identical to
+the recorded inputs, no child swaps. Retained1433041/peak14082865 bytes and
+1310720 metadata bytes match both variants; the frozen archive path adds43
+bytes equally versus the earlier experiment. Frequency snapshots and raw logs
+are in build/d2_ecs/guard_pinned_00caeef. Prior32% apparent regression is not
+reproduced under this control; smaller difference remains, ranges overlap and
+no zero-cost claim follows. Host powersave/governor remained unchanged.
+
+Re-audited bootstrap symbol callers before changing policy. Canonical selected
+public-pin verifier build passed20.13wall/19.61CPU/196764KiB with no override.
+Verifier7465f311 on the seven saved00caeef object nm reports returns group1:
+parser-nodes rejects6, interpreter12, semantics6; other four pass. Exact errors
+are preserved. Each rejected symbol maps to existing Tower world/buffer,
+Foundation/formatter, shared unit dispatch, source-root or ABI-policy exports;
+the audit records caller/lifetime attribution. This is stale cross-unit policy,
+not justification for a native shim or broad symbol-prefix allowance.
+
+Added the24 exact imports only to their observed units. After reading finalized
+L2 public_clone_result_v2 patch25503293, also admitted that exact result-bearing
+clone API alongside oldclone in ParserNodes/Semantics, as root requested.
+Wrong-unit, shortened and suffixed names remain rejected in the existing Tower
+fixture. New API policy is source-reviewed only until the matched L2/B2 runtime
+closure arrives; no partial production API was applied here.
+
+Public9653 smallest checker passes4.01wall/3.91CPU/179988KiB; selected final
+verifier build4.02/3.96/196968, no swaps. Verifier6e97faac passes all seven
+unchanged Linux reports and full checker boundary cases; final source hashes
+match. Both before/after one-sample report checks are below GNU time0.01s
+wall/CPU resolution, interpreter RSS1348/1352KiB. Exact strings change neither
+allocation ownership nor scheduling: spans remain borrowed, CLI report bound
+unchanged, serial work only. No performance/scaling improvement is claimed.
+Logs and object/source hashes: build/d2_ecs/bootstrap_closure_00caeef. The
+original failed checks are not relabeled; complete merged/cross-target
+generation and current instrumentation remain separate requirements.
+
+D1 exact query fixture0751 applied after owner A1/B2 corrected runtime passed.
+The full127-line body preserves all original required/inferred/isolated
+failure, site11/29 ordering, no replay/value publication, drain and zero-ledger
+assertions. Only entry conversion and two-line existing query registration;
+no CMake or duplicate runner. Local full ABI rebuild/runtime pending. Current
+compiler receipts still identify00caeef; they do not prove643 or these changes.
+
+Scoped checker ASan evidence: the first manual command incorrectly passed
+-fsanitize=address while compiling already-instrumented IR, contrary to
+cmake/TowerSanitizers.cmake51. It exited1 with a shadow-of-shadow SEGV; exact
+failed executable, log and disassembly retained. After drain, used the canonical
+-O1 object compilation without that flag and applied it only at object link.
+The same11 instrumented Tower definitions and existing instrumented host
+boundary then pass with leak detection/halt-on-error, source hashes unchanged.
+This is a corrected command, not a production fix or suppressed finding.
+Current checker has no shared mutable/threaded path; this ASan receipt does not
+sanitize the full compiler. Source-level UBSan remains unsupported by this
+LLVM-only workflow; final coherent compiler TSan/stress is still required.
