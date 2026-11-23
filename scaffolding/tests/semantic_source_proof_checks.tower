@@ -8,7 +8,8 @@ import .compiler.semantic_work_ids;
 import .compiler.foundation_tags;
 import .compiler.component_kinds;
 import .compiler.parser_types;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;

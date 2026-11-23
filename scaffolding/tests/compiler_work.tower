@@ -4,6 +4,7 @@ import .library.compiler_work;
 import .library.entities;
 import .library.entity_types;
 import .library.work_graph;
+import .library.work_graph_types;
 
 export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
     trap("Unexpected unit lifecycle", 0);

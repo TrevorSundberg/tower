@@ -1,0 +1,107 @@
+import tower;
+import work_view_types;
+import work_buffer_types;
+import work_budget_types;
+
+// A derived dependency/execution index, never a second semantic graph. Subjects
+// are borrowed shared entities; their payloads remain owned by the caller.
+// Exactly one coordinator mutates this index. Workers receive immutable tickets
+// and isolated inputs, then return owned results for coordinator publication.
+// These functions do not make the entity store or arbitrary payloads thread safe.
+enum WorkState: u32 {
+    Building, Waiting, Ready, Running, Succeeded, Failed, Cancelled
+}
+enum WorkError: u32 {
+    None, Memory, Invalid
+}
+
+enum WorkAccessMode: u32 {
+    Read, Write, Structure
+}
+
+// Domain and component are caller-assigned identities, never host addresses in
+// transported tickets. Ranges are half-open row/byte ranges in that component.
+// Structure excludes every access in the same domain, including other types.
+struct WorkAccess {
+    domain: u64;
+    component: u64;
+    first: usize;
+    end: usize;
+    mode: WorkAccessMode;
+    next: usize;
+}
+
+struct WorkTask {
+    subject: void*;
+    query: u32;
+    argument: u64;
+    state: WorkState;
+    demanded: bool;
+    blocked: bool;
+    active: bool;
+    dependencies: usize;
+    consumers: usize;
+    remaining: usize;
+    visit: u64;
+    access: usize;
+    dispatch: u64;
+    // One-based position in the derived ready index; zero outside Ready.
+    ready_slot: usize;
+}
+
+struct WorkEdge {
+    consumer: usize;
+    dependency: usize;
+    next_dependency: usize;
+    next_consumer: usize;
+}
+
+struct WorkTicket {
+    task: usize;
+    revision: u64;
+    profile: u64;
+    dispatch: u64;
+}
+
+struct WorkFrame {
+    task: usize;
+    edge: usize;
+}
+
+// Physical owners, separate from the typed array views below. Only graph
+// operations may grow or dispose these arrays; never pass a view to ordinary
+// vector allocation/disposal. One nongeneric buffer policy owns every receipt.
+struct WorkGraphStorage {
+    tasks: WorkBuffer;
+    edges: WorkBuffer;
+    task_index: WorkBuffer;
+    edge_index: WorkBuffer;
+    ready: WorkBuffer;
+    scratch: WorkBuffer;
+    frames: WorkBuffer;
+    accesses: WorkBuffer;
+    executing: WorkBuffer;
+}
+
+struct WorkGraph {
+    tasks: work_view(WorkTask);
+    edges: work_view(WorkEdge);
+    task_index: work_view(usize);
+    edge_index: work_view(usize);
+    ready: work_view(usize);
+    scratch: work_view(usize);
+    frames: work_view(WorkFrame);
+    accesses: work_view(WorkAccess);
+    executing: work_view(usize);
+    storage: WorkGraphStorage;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
+    head: usize;
+    running: usize;
+    revision: u64;
+    profile: u64;
+    sweep: u64;
+    cancelled: bool;
+    error: WorkError;
+}
+

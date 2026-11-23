@@ -1,7 +1,8 @@
 import tower;
 import .host.memory;
 import utility_checks;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 extern fn pthread_self(): usize;
 extern fn tower_test_buffer_count(): usize;

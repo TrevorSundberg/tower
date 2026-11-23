@@ -10,10 +10,12 @@ import .compiler.lr_first_work;
 import .compiler.lr_lalr;
 import .compiler.lr_states;
 import .compiler.lr_types;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 import .compiler.parser_workers;
 import .compiler.compiler_kernel;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 extern fn compiler_world_create(): void*;
 

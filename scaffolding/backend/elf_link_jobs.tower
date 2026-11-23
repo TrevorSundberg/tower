@@ -5,8 +5,10 @@ import wasm_bytes;
 import .library.vector;
 import .library.entity_types;
 import .library.entity_api;
-import .library.work_graph;
-import .library.work_pool;
+import .library.work_graph_api;
+import .library.work_graph_types;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 struct ElfLinkJob { link: ElfLink*; object: ElfObject*; output: u8*; ticket: WorkTicket; error: ElfDiagnostic; }
 var ElfInputDomain: u64 = 1;

@@ -1,5 +1,6 @@
 import tower;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 import .library.work_budget_types;
 
 enum CompilerKernelKind: u32 {

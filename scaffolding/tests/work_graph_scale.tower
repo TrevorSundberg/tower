@@ -1,5 +1,6 @@
 import tower;
 import .library.work_graph;
+import .library.work_graph_types;
 import .host.memory;
 
 // Compile this fixture with LLVM for the allocation/throughput scale trial.

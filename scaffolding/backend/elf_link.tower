@@ -3,7 +3,8 @@ import elf_types;
 import elf_link_symbols;
 import elf_link_emit;
 import wasm_bytes;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 // One explicit request owns the link world; inputs remain borrowed until close.
 // Only complete images are published. No files, subprocesses or fallback linker.

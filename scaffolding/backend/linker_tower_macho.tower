@@ -6,7 +6,8 @@ import macho_world;
 import macho_link;
 import wasm_bytes;
 import .library.vector;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 fn backend_macho_input(backend: BackendLink*, link: MachoLink*, name: u8*): bool {
     var found: BackendLinkInput* = null;

@@ -6,7 +6,8 @@ import elf_dynamic_link;
 import elf_link_world;
 import wasm_bytes;
 import .library.vector;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 fn backend_hosted_elf_input(backend: BackendLink*, link: ElfLink*, name: u8*): bool {
     var found: BackendLinkInput* = null;

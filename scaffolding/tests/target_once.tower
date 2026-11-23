@@ -1,7 +1,8 @@
 import tower;
 import utility_checks;
 import .backend.target_api;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 var InitializerLanes: usize = 4;
 var InitializerRepeats: usize = 64;

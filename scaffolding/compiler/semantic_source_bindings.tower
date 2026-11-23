@@ -12,7 +12,8 @@ import semantic_expressions;
 import semantic_work_ids;
 import foundation_tags;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 import .library.stack;
 
 // Lexical mutation/escape facts do not require storage layout or initializer

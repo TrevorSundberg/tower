@@ -1,6 +1,7 @@
 import tower;
 import grammar_types;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 import component_kinds;
 import format_types;
 import frontend_bedrock;

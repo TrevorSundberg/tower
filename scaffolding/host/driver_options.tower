@@ -4,7 +4,8 @@ import tower;
 // Keep option ordering and early --help behavior of the original native driver.
 import driver_types;
 import driver_link_flags;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 fn driver_equal(a: u8*, b: u8*): bool {
     var index: usize = 0;

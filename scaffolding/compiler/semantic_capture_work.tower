@@ -18,7 +18,8 @@ import semantic_work_ids;
 import foundation_tags;
 import interpreter_context_types;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 struct SemanticCapture {
     subject: void*;

@@ -1,5 +1,7 @@
 import tower;
 import library.entities;
+import library.compiler_work;
+import library.work_graph;
 import compiler.parse_tree;
 import compiler.generics;
 import compiler.host_entities;

@@ -11,7 +11,8 @@ import semantic_work_ids;
 import .library.work_arena_types;
 import .library.work_budget_types;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 // Linked clients borrow the same world-owned component types and call the
 // single production implementation. Imports here must remain declaration-only.

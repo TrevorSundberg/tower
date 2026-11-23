@@ -1,9 +1,9 @@
 import tower;
-import work_graph;
+import work_graph_api;
+import work_graph_types;
 import entities;
 import entity_types;
 import compiler_work_types;
-import work_vector_types;
 import work_buffer;
 import work_buffer_types;
 import work_budget_types;

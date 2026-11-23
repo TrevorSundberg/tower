@@ -1,6 +1,7 @@
 import tower;
 import .host.memory;
 import .library.work_graph;
+import .library.work_graph_types;
 
 fn ready_check(ok: bool): void {
     if !ok { trap("Ready selection order or ticket mismatch", 0); }

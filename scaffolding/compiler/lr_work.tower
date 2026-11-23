@@ -8,8 +8,10 @@ import lr_types;
 import lexer_table;
 import parser_workers;
 import .library.vector;
-import .library.work_graph;
-import .library.work_pool;
+import .library.work_graph_api;
+import .library.work_graph_types;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 extern fn entity_create_related(anchor: void*): void*;
 

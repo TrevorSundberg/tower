@@ -2,7 +2,8 @@ import tower;
 import pe_types;
 import pe_link_symbols;
 import pe_link_emit;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 fn pe_link_run(link: PeLink*): bool {
     link.output.length = 0;
     if link.store == null || link.started || link.workers == 0 || link.workers > WorkPoolMaximumCapacity { return pe_fail(&link.error, PeError.Input, link.entry, 0); }

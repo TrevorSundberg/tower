@@ -9,8 +9,10 @@ import .compiler.compiler_kernel;
 import .compiler.interpreter_context_types;
 import .library.work_budget;
 import .library.work_budget_types;
-import .library.work_graph;
-import .library.work_pool;
+import .library.work_graph_api;
+import .library.work_graph_types;
+import .library.work_pool_api;
+import .library.work_pool_types;
 import .library.vector;
 
 extern fn compiler_world_create_workers(workers: usize): void*;

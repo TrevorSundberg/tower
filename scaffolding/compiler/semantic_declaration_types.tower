@@ -5,7 +5,8 @@ import semantic_context_types;
 import semantic_evaluation_types;
 import semantic_constructor_types;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard, AssignmentTarget }
 enum SemanticDeclarationAdmission: u32 { None, Pending, Ready, InferencePending, InferenceReady }

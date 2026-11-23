@@ -18,7 +18,8 @@ import semantic_evaluation;
 import semantic_declarations;
 import semantic_constructor_work;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 extern fn sem_float_parse(c: SemanticContext*, node: void*, text: u8*, value: FoundationNode*): void;
 

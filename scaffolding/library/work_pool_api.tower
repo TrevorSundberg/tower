@@ -1,0 +1,35 @@
+import tower;
+import work_pool_types;
+import work_budget_types;
+
+// Import work_pool_types directly when naming its shared nominal descriptors.
+// Link exactly one existing native, serial or WASI implementation provider.
+
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
+extern fn work_thread_retention(): bool;
+extern fn work_thread_open(argument: void*): void*;
+extern fn work_thread_open_named(argument: void*, posix_entry: u8*, windows_entry: u8*): void*;
+extern fn work_thread_close(thread: void*): void;
+extern fn work_signal_open(): void*;
+extern fn work_signal_close(signal: void*): void;
+extern fn work_signal_post(signal: void*): void;
+extern fn work_signal_wait(signal: void*): void;
+extern fn work_signal_try(signal: void*): bool;
+extern fn work_kernel_execute(job: void*): void;
+
+extern fn work_pool_wait(slot: WorkSlot*): void*;
+extern fn work_pool_complete(slot: WorkSlot*): void;
+extern fn work_pool_open(pool: WorkPool*, capacity: usize): bool;
+extern fn work_pool_open_budget(pool: WorkPool*, capacity: usize, budget: WorkBudget*): bool;
+extern fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool;
+extern fn work_pool_open_named_budget(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, budget: WorkBudget*): bool;
+extern fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(void, void*)): bool;
+extern fn work_pool_open_kernel_budget(pool: WorkPool*, capacity: usize, execute: function(void, void*), budget: WorkBudget*): bool;
+extern fn work_pool_admit(pool: WorkPool*, job: void*): bool;
+extern fn work_pool_admit_execute(pool: WorkPool*, job: void*, execute: function(void, void*)): bool;
+extern fn work_pool_submit(pool: WorkPool*, job: void*): bool;
+extern fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, extra_lanes: usize): bool;
+extern fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: usize, extra_lanes: usize): WorkBudgetError;
+extern fn work_pool_receive(pool: WorkPool*, wait: bool): void*;
+extern fn work_pool_close(pool: WorkPool*): void;

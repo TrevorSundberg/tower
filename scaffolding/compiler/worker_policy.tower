@@ -1,5 +1,6 @@
 import tower;
-import .library.work_pool;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_worker_limit(world: void*): usize;

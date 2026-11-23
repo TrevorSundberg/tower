@@ -3,7 +3,8 @@ import compiler_kernel;
 import foundation_types;
 import foundation_tags;
 import .library.vector;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 extern fn sem_get(node: void*): FoundationNode*;
 extern fn semantic_size(type: FoundationType*): usize;

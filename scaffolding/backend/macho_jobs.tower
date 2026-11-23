@@ -3,8 +3,10 @@ import macho_types;
 import macho_relocate;
 import .library.vector;
 import .library.entity_api;
-import .library.work_graph;
-import .library.work_pool;
+import .library.work_graph_api;
+import .library.work_graph_types;
+import .library.work_pool_api;
+import .library.work_pool_types;
 
 struct MachoLinkJob { link: MachoLink*; object: MachoObject*; ticket: WorkTicket; error: MachoDiagnostic; }
 var MachoInputDomain: u64 = 1;

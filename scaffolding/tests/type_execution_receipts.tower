@@ -6,7 +6,8 @@ import .compiler.semantic_program_types;
 import .compiler.semantic_work_ids;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
-import .library.work_graph;
+import .library.work_graph_api;
+import .library.work_graph_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
