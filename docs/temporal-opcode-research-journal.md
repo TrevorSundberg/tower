@@ -91371,3 +91371,97 @@ Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a
 is retained separately from the measured resource identity, not relabeled as a
 new full runtime acceptance. L2 residual inputs/responses remain actionable for
 its newer backend producer; no new reactor was available or adopted here.
+### 2026-11-23 A1: T9 stage ownership, compiler work and batch observations
+
+Exactly three anchored semantic-port selections, each ONCE in a separate fresh
+process: entity_stage_ownership, compiler_work, compiler_batch. Results:1pass,
+2fail,0skip/timeout/cancelled/unstarted top-level cases. No T8 or accepted f63
+case rerun, no full-file selection and no compiler/reactor rebuild. Existing
+assertions/outputs/lifetimes/widths/profiles remain unchanged. Only transport edit:
+when LLVM returns failure, save its full JSON before the existing compiled-status
+assertion. No semantic producer, fixture setup, cap, deadline or skip change.
+
+Source freeze main7865011829a2fedd7e1bb44d3b63dadf30643ecf; scaffolding tree
+8f87250dfb0430474d19d7b023b0424bfe7572b4, host tree1d2209bbe79671caf9191154e5b4bd21dce5c14c.
+Reviewed the current selector/loader/hosts, three Tower fixtures, parallel_unit,
+CompilerWork ownership, stage-wave contract and relevant journal/handoff receipts.
+Each fixture already imports its language/provider, with entry explicitly set to
+.tower/tests/NAME.tower, preserving relative import and lifecycle identity. No
+stale setup repair was indicated by these observations.
+
+ROOT eac16533ad7169988c53af934ece62e083b39bad pair remains frozen:
+portable SHA256 df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99;
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+They exclude later A2 unary/page-policy, L1 composition and L2 backend error/
+reconstruction repairs. Current resource inputs are separate from executable
+source: source providers are not silently rebuilt into these old reactors.
+
+| Exact selected case | Exit / result | Wall s | CPU s (user+system) | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: |
+| entity_stage_ownership | 1 / fail | 48.86 | 98.28 (88.95+9.33) | 2800584 |
+| compiler_work | 1 / fail | 47.32 | 96.05 (86.94+9.11) | 2758640 |
+| compiler_batch | 0 / pass | 7.97 | 10.59 (9.25+1.34) | 583296 |
+
+Both failures pass source32 Graph/Fast exact0 output and both canonical reparse/
+execution/text-equality checks, then fail at FIRST `LLVM Foundation32 optimize=false`
+with `Compiler resource request failed`. No reconstructed text returned. Exact
+call is llvm.compile(canonical,{emit:'foundation',optimize:false,target:'wasm32-unknown-unknown'}).
+L2/ROOT residuals retain the complete JSON, not an inferred typed Memory/Capacity
+category or a claim that the newer published repair ran:
+
+- entity_stage_ownership: canonical1085877B, SHA256
+  ef3733ab73c7bc6aeab27842fb399c16e19c3c9874b88de91dfb02a55df176a3;
+  response errorFile .tower/tests/entity_stage_ownership.tower, errorOffset5041518.
+- compiler_work: canonical994124B, SHA256
+  83fa8ddbe77e7e856eaf40772825fd6d1f82dfe60ab39b508c7cc518efc8d202;
+  response errorFile .tower/tests/compiler_work.tower, errorOffset5479156.
+
+Both offsets exceed submitted canonical lengths, so these transport mappings do
+not identify a reliable culprit location. First exact internal cause/phase and
+large reparse memory remain L2's active reconstruction task. Later reconstructed
+execution, optimized profile,64-bit and actual LLVM executable modes in THESE TWO
+cases remain unstarted. No budget/timeout increase or additional retry.
+
+compiler_batch completes every original path:32/64 Graph and Fast known0 output,
+canonical execution and byte identity; both LLVM Foundation profiles at both
+widths followed by ordinary reparse/Fast execution; actual LLVM wasm32 source and
+canonical emissions/executions. Its bounds guards, wrapped transform/checksum
+and empty-range behavior remain the existing Tower oracle. Canonical32 and64 both
+11539B/SHA3b45c1833d41d66b34ca14c4176aee633da8ec4295bad0a055e7d95e6acbc7d5.
+Rebuilt unoptimized32/64 lengths123580/124186B; optimized5258/5296B. All LLVM IR,
+reconstructed text and canonical artifacts retained. These fixture behavioral
+checks do not measure native worker overlap or prove universal race freedom.
+
+Environment: KinmenA Windows11/Docker Linux x64, Node22.23.5, CPU12-23/24GiB,
+concurrency1 and one heavy child at a time. Fresh reactors/process per selection,
+warm filesystem/not flushed, n1. GNU time process RSS includes both reactors,
+JIT/host data, not Wasm capacity or live entity bytes. CPU greater than wall is
+not compiler-lane scaling. No runtime implementation changed; before/after runtime
+profiling is inapplicable, and these are acceptance costs. Native/broad browser,
+sanitation, generations and deployment retain ROOT/owner acceptance.
+
+Evidence: C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t9_78650118;
+run.sh, per-case test.log/time.txt/exit.txt, NAME_32_canonical.tower and
+NAME_32_unoptimized_error.json; batch also has64 canonical/all four LLVM outputs.
+Script sets BOTH TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM to verified files in
+A1/cache/a1_node_five_bda11a9b; TOWER_TEST_PHASES=1 and per-case TOWER_TEST_ARTIFACTS;
+unsets TOWER_INTERPRETER_ONLY/TOWER_TEST_INTERPRETER_ONLY/TOWER_TEST_PORTABLE_ONLY.
+Exact execution: `/usr/bin/time -v -o CASE/time.txt timeout -k 5s 180s node --test
+--test-concurrency=1 --test-name-pattern='^Tower NAME agrees across graph, fast,
+LLVM and Foundation text$' playground/tests/semantic-port.test.mjs`.
+Each TAP has exactly1test and phases for only its named selection. Every child
+finished normally before its deadline; aggregate script returns1 for the failures.
+
+Test transport SHA60125d3a5eff284e7ca62c36cf1dfae13c2e28c7465bbe41d63e34150310d379;
+loader495cb14e25e700c8b41710a79423d75310a361039e7486f24c5f0f9a212605fd;
+portable hosta45022885312172dba563be933fc70ec9e5a49c9cb6f949ca6c56e6a3cf9577f;
+LLVM host80be1da99218dca064251c36160d268baa4b3048a501237ff1a73ae860084671.
+Fixtures SHA stage77966b82f8f57375aceebdc366de56e0c2283bdda24963adab968880850d2944,
+workad486c72662313954d42dfee38f593e228be0a3e8160e3de0c9c25e721abf5a9,
+batch38f241d4737b48673744b83bcf170d01ea1edbb04d68df6f84565f93401a1314.
+Resource manifest SHAa982acd0b4e60f46bde097739256a68cc8412f02567f60432a8d7cdbbe49a002;
+host manifest3cfa1dcfb67487cbacb966d6e2c62ab793b1d834ee54e7262cdab4b972b0c4a9;
+artifact manifest23caa11b6a0d1dba9a377de0ff9b4980f382d556f5411940ad32fcd9b6ed6a8c.
+All source/resource/host/reactor hashes checked unchanged after the runs; Node
+syntax and git diff checks pass. All jobs drained; todo unchanged, disk~341GB
+free. D2 work_access/work_observe and B1/A2 selectors untouched and unrun here.
