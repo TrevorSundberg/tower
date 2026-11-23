@@ -26,6 +26,7 @@ extern fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, len
 extern fn abort(): void;
 
 extern fn parse_forest_visits(forest: void*): usize;
+extern fn parse_forest_create_result(budget: WorkBudget*, error: WorkBudgetError*): void*;
 
 struct ParserRequestWork {
     reads: usize;
@@ -113,7 +114,7 @@ fn parser_request_create_result(runtime: LRRuntime*, context: void*, stream: Par
     request.runtime = runtime;
     request.read_id = ParserStreamEnd;
     request.prefix = prefix;
-    request.forest = parse_forest_create();
+    request.forest = parse_forest_create_result(runtime.budget, error);
     if request.forest == null {
         parser_recognizer_destroy(request);
         return null;

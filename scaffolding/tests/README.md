@@ -1063,6 +1063,12 @@ It checks typed resource denial, ordinary grammar diagnostics, optional uncached
 success, pinned type admission and exact cleanup.
 It uses the serial fault allocator; it does not test production worker overlap.
 
+The same parser selector checks forest descriptor, child-index and traversal
+storage: exact Capacity/Memory results, observed growth boundaries, preserved
+receipts and entity ownership, then successful retries and final cleanup.
+Prewarmed match storage exercises forest growth through ordinary and specialized
+recognizers without duplicating a vector's capacity policy.
+
 `tower-frontend-tests RESOURCE_ROOT parser` also checks real match-component page
 denial during ordinary shifts, specialized shifts and empty reductions. Each
 world binds its ledger before construction; the fixture occupies the actual
