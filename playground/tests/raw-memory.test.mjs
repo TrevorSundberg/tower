@@ -106,21 +106,26 @@ test('external host implementations receive scalar values and actual byte views'
   const missing = tower.compile(source); try { assert.match(tower.execute(missing).error, /No implementation registered/); } finally { tower.destroyExecution(missing); }
 });
 
-test('browser LLVM statically links a real C archive, including calls back into exported Tower', async () => {
+test('browser LLVM statically links a Tower foreign archive, including calls back into exported Tower', async () => {
   const library = await read('build/linking/wasm-fixture.a');
   const source = (await read('scaffolding/tests/linking.tower')).toString();
   const compiled = llvm.compile(source, {inputs: {'fixture.a': library}});
   assert.equal(compiled.status, 'compiled', compiled.error);
-  assert.equal((await executeWasm(compiled)).output, linkedOutput);
+  const result = await executeWasm(compiled);
+  assert.equal(result.status, 'done', result.error); assert.equal(result.output, linkedOutput);
   const module = await WebAssembly.compile(compiled.wasm);
   assert.ok(WebAssembly.Module.exports(module).some(x => x.name === 'tower_twice'));
   assert.ok(WebAssembly.Module.imports(module).every(x => x.module === 'tower'));
   const bad = llvm.compile(source, {inputs: {'broken.a': new Uint8Array([1,2,3])}}); assert.equal(bad.status, 'error'); assert.match(bad.error, /Link failed/);
-  const recovery = llvm.compile('import foundation; print(42);'); assert.equal((await executeWasm(recovery)).output, '42\n');
+  const recovery = llvm.compile('import foundation; print(42);'); assert.equal(recovery.status, 'compiled', recovery.error);
+  const recovered = await executeWasm(recovery); assert.equal(recovered.status, 'done', recovered.error); assert.equal(recovered.output, '42\n');
 });
 
 test('native compiler output also executes in the browser Wasm host', {skip: !nativeWasm}, async () => {
-  const result = await executeWasm({wasm: nativeWasm}); assert.equal(result.output, linkedOutput);
+  const result = await executeWasm({wasm: nativeWasm}); assert.equal(result.status, 'done', result.error); assert.equal(result.output, linkedOutput);
+  const module = await WebAssembly.compile(nativeWasm);
+  assert.ok(WebAssembly.Module.exports(module).some(x => x.name === 'tower_twice'));
+  assert.ok(WebAssembly.Module.imports(module).every(x => x.module === 'tower'));
 });
 
 test('separately compiled Tower library objects link without duplicate entry points', async () => {
