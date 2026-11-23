@@ -166,5 +166,16 @@ if(TARGET towerc)
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     set_tests_properties(tower-type-return-dependencies-${workers} PROPERTIES
       PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8")
+    foreach(fixture IN ITEMS type_numeric_composition nominal_wrapper_known)
+      add_test(NAME tower-${fixture}-${workers}
+        COMMAND $<TARGET_FILE:towerc>
+          "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}.tower"
+          --interpret --jobs ${workers}
+          --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+          --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+      set_tests_properties(tower-${fixture}-${workers} PROPERTIES PASS_REGULAR_EXPRESSION "42")
+    endforeach()
+    set_tests_properties(tower-type_numeric_composition-${workers} PROPERTIES
+      PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8[\r\n]+12[\r\n]+9")
   endforeach()
 endif()

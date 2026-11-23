@@ -1,0 +1,56 @@
+import tower;
+import frontend_units;
+import .library.vector;
+
+extern fn frontend_units_error_offset(batch: void*): usize;
+
+fn nominal_wrapper_errors(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var paths: u8*[4];
+    paths[0] = "/tests/semantic_invalid/nominal_wrapper_runtime.tower";
+    paths[1] = "/tests/semantic_invalid/nominal_wrapper_mismatch.tower";
+    paths[2] = "/tests/semantic_invalid/nominal_wrapper_order.tower";
+    paths[3] = "/tests/semantic_invalid/nominal_wrapper_effect.tower";
+    var messages: u8*[4];
+    messages[0] = "binding is mutable, escaped or lacks an initializer";
+    messages[1] = "Expected buffer(i32, 2)*, got buffer(i32, 3)*";
+    messages[2] = "before its initialization";
+    messages[3] = "needs a compile-time storage or value capability";
+    for(var index: usize = 0; index < sizeof(decltype(paths)) / sizeof(u8*); index++) {
+        var source: vector(u8) = default;
+        var diagnostic: vector(u8) = default;
+        defer vector_dispose(&diagnostic);
+        defer vector_dispose(&source);
+        units_read(root, paths[index], &source);
+        var first_offset: usize = 0;
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            for(var workers: usize = 1; workers <= 4; workers *= 4) {
+                var batch = frontend_units_create(1, workers, width, 1, 1, bedrock.data, foundation.data, root);
+                units_check(batch != null, "Nominal wrapper failure batch");
+                defer frontend_units_close(batch);
+                units_check(units_source(batch, 1, root, paths[index], source.data, strlen(source.data)), "Nominal wrapper failure source");
+                while !frontend_units_step(batch, true) {}
+                var error = frontend_units_error(batch);
+                if strstr(error, messages[index]) == null { puts(error); }
+                units_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                    && strstr(error, messages[index]) != null, "Nominal wrapper rejects without publishing partial execution");
+                var offset = frontend_units_error_offset(batch);
+                if diagnostic.length == 0 {
+                    first_offset = offset;
+                    units_check(vector_reserve(&diagnostic, strlen(error) + 1), "Nominal wrapper diagnostic receipt");
+                    copy(diagnostic.data, error, strlen(error) + 1);
+                    diagnostic.length = strlen(error);
+                } else {
+                    units_check(offset == first_offset && strcmp(error, diagnostic.data) == 0,
+                        "Nominal wrapper exact error and offset across target widths and workers");
+                }
+            }
+        }
+    }
+    puts("Nominal wrappers: 16 runtime, identity, initializer-order and effect failures passed.");
+}
