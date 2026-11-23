@@ -83618,3 +83618,9 @@ inferred-frontier cases), resource-smoke and lifecycle14-16 pass on this merged
 input, exit0 in `stage_callers_race_merge.log`. Earlier stage and body receipts
 remain scoped as recorded, not rerun as an unrelated broad matrix. All owned
 jobs are drained. Final profiles remain evidence for their original inputs.
+
+Normal push raced with `1a9eb31b`; fetch and full-history rebase preserved the
+incoming documentation and execution-runner type-staging selector. Its diff
+changes no production source or stage/lr-work fixture in this batch, so focused
+validation is reused. Rebased implementation is `0a958f27`; normal push is
+retried without force or deployment.
