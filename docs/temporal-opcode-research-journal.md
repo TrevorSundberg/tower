@@ -90837,3 +90837,82 @@ hashes still match. They are not baked into the frozen eac reactor. Corrected th
 source citation to sem_type_call; no diagnostic/assertion changes or repeated
 passing executions. Retain45 new passes,1 adopted pass,3 failures and explicit
 unstarted modes; normal source push follows, no deployment claim.
+
+### D2 T9 three backend semantic-port gates (2026-11-23)
+
+Frozen published main45db5aa98966e54b6b1bee710e1f1c7c552e78f6. Ran exactly
+backend_popcount, backend_stack and backend_import_constants once each, fresh
+processes, through existing semantic-port.test.mjs. Reviewed their complete Tower
+fixtures, current transport/module-entry setup and B1/D1's earlier source-bound
+receipts first. No fixture, assertion, host or producer change was needed.
+
+ROOT's matching eac16533ad7169988c53af934ece62e083b39bad/public768 pair was verified
+before and after execution, separately from current host/resources:
+portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99;
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Identical own Docker-visible copies and all raw receipts are under
+build/d2_ecs/semantic_backend_45db5aa9/. Existing default/f7/shared artifacts were
+preserved. No compiler/reactor build or private override relabeled public.
+
+For each NAME, the independent command was `/usr/bin/time -v -o NAME.time
+ timeout --signal=KILL 120s node --test --experimental-test-isolation=none
+ --test-concurrency=1 --test-reporter=tap
+ --test-name-pattern='^Tower NAME agrees across graph, fast, LLVM and Foundation text$'
+ playground/tests/semantic-port.test.mjs`, with absolute TOWER_TEST_WASM and
+TOWER_TEST_LLVM_WASM pointing to the verified copies, TOWER_TEST_PHASES=1, and
+TOWER_TEST_ARTIFACTS pointing to a separate owned NAME directory. Cleared
+TOWER_TEST_INTERPRETER_ONLY/TOWER_TEST_PORTABLE_ONLY; current fixture contains no
+interpreter-only branch. Node22.23.5, tower-d2-ecs Linux x64, Docker image4be584fb42a6,
+cpuset0,2,8GiB memory/swap limit, one heavy process at a time. Each TAP confirms
+exactly1test/1pass/0fail/0skip/0cancelled and its `complete` phase; all exit0.
+No deadline reached, retries, missing-mode substitutions or partial-pass claims.
+
+| Case / source bytes | Wall s | CPU s (user+system) | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| backend_popcount /2258 | 82.31 | 109.99 (106.26+3.73) | 1616676 |
+| backend_stack /751 | 18.30 | 22.07 (21.24+0.83) | 442588 |
+| backend_import_constants /1293 | 9.65 | 12.35 (11.71+0.64) | 372868 |
+
+All original stages completed: source32/64 Graph/Fast exact0 output, canonical
+reparse/execution and byte-identical formatting; unoptimized/optimized LLVM
+Foundation at both widths followed by portable reparse/Fast execution; actual
+LLVM wasm32 emission and execution from source and canonical32, exact0 output.
+Popcount checks every8-bit value via an independent bit-count loop, repeated
+32/64-bit patterns and unsigned edge values; optimized IR's ctpop assertion passed.
+Stack keeps escaping65536-byte local arrays alive across nested calls and checks
+the outer value afterward. This is guest/LLVM Wasm behavior, **not** Windows
+native guard-page/probe execution. Constants checks preserve unsigned64/sign-bit
+patterns across blocks/functions, signed reinterpretation, wrappingu8 and null
+pointer/target-size representation. No semantic outputs or diagnostics altered.
+
+Saved both canonical texts and all four LLVM before/after/rebuilt outputs per
+case, with captured_artifacts.sha256. Canonical32/64 byte sizes: popcount33362/33362,
+stack5463/5463, constants7536/7536. Unoptimized reconstructed32/64 sizes respectively
+538608/541927,78401/78749,43834/43834; optimized38988/39135,3462/3462,1384/1384.
+Popcount's phase log separates first32-bit unoptimized LLVM Foundation22.979s
+from portable reparse20.323s; both eventually passed. Its process RSS reaches
+1655107584B at completion. That includes two reactors/V8/host retention and is
+not a live-world byte ledger or a proved leak. No Wasm capacity/allocator counters
+were added. Later64-bit work shares warm instance caches; no cross-width speed
+comparison or compiler-core overlap claim follows from CPU exceeding wall.
+
+Exact fixture SHA256:
+- popcount8237a722a3c6f088da97ff49e64a775aff719655e7458649f0a046959ae7e94e
+- stackeba4bad9803ef199215203142f383a733ff20a3d6f26a1fc209c9bc78775ee7e
+- constants6129aff5ca4f8eedea6d37c68695486e0bbdf9c26304550f7a30107df2eebcd7
+Test ebe611510dfcced1ad5d57a0151b3af336b8746cdcf331c4b8a2a0f221088b82;
+common loader495cb14e25e700c8b41710a79423d75310a361039e7486f24c5f0f9a212605fd;
+portable hosta45022885312172dba563be933fc70ec9e5a49c9cb6f949ca6c56e6a3cf9577f;
+LLVM host80be1da99218dca064251c36160d268baa4b3048a501237ff1a73ae860084671.
+Full host manifest digest8834462070b12354e81a37dd162828c0b2d30360fde0e54d374f58dcc063dfd4;
+resource manifestbb0d5750f763c90aca76c975c2d3ed2dddb781f35ec88a8ec421fe2c7cabef12.
+Every recorded source/resource/reactor hash rechecked unchanged after runs.
+
+These are n1 acceptance costs, fresh processes/warm filesystem, dynamic host
+frequency,0swaps; no production edit means no before/after optimization profile
+applies. Disk128GiB free/RAM~10GiB available after; preexisting swap5.9GiB unchanged.
+All processes reaped before releasing the owned heavy lock. Todo unchanged.
+This closes only these three cases on the stated eac/current-input boundary.
+L2 reconstruction failures in other fixtures, L1 joined-alias adoption, D1 cross
+checks and ROOT's final release remain separate; no broad Node/LLVM/native/browser,
+generation, sanitizer, Windows runtime or hosted verification was run here.
