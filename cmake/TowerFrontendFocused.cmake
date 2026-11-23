@@ -10,3 +10,6 @@ target_compile_definitions(tower-frontend-tests PRIVATE TOWER_COMPILER_MEMORY_TE
 target_link_libraries(tower-frontend-tests PRIVATE ${test_libraries})
 enable_testing()
 add_test(NAME tower-frontend COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+add_test(NAME tower-frontend-structure-reuse COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" structure-reuse)
+# Match focused producer checks; the full frontend suite keeps its own policy.
+set_tests_properties(tower-frontend-structure-reuse PROPERTIES TIMEOUT 60 LABELS "native;focused")

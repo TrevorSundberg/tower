@@ -1,6 +1,6 @@
 # Compiler ECS file ownership roster
 
-Current inventory: [b0421447 reconciliation](#integrated-census-at-b0421447-2026-11-23), 1,131 tracked Tower paths. Earlier counts below are historical.
+Current frozen inventory/adoption: [ec01291 finite review closure](#finite-review-closure-at-published-ec01291-2026-11-23), 1,146 tracked Tower paths; all51 delegated source-review actions have substantive receipts. Earlier counts below are historical; review closure is not runtime acceptance.
 
 Completeness index at `6282238779034442e0578d76b921ca117df819f1`:
 1,011 tracked `.tower` files, from `git ls-files '*.tower'`.
@@ -1465,6 +1465,9 @@ review credit for incidental filename mentions or reporting false gaps.
 
 ### Unresolved owner-report receipts
 
+Historical b042 status: the five rows below are superseded by the explicit
+D1 reviews and hash-matched B2 adoption in the 5b05 reconciliation below.
+
 | Exact current path | Existing owner | Existing evidence and required follow-up |
 | --- | --- | --- |
 | `scaffolding/compiler/units/parser_modules_checks.tower` | B2 | B1's `units/parser_modules_checks.tower` row records full composition/source review. No corresponding B2 owner receipt was located. B2 must adopt/reference that review or record its own; do not silently transfer ownership. |
@@ -1653,3 +1656,241 @@ allocation/error probes, sanitizers, node-control profiling and performance
 campaigns were not run and are not needed for this inventory result. ROOT retains
 final integrated validation and deployment ownership; no compiler-completion or
 deployment claim is made here.
+
+## Frozen adoption reconciliation at 5b05d6bb (2026-11-23)
+
+Source: published `5b05d6bb5288591794d378c1802c2a790357b204`. ROOT explicitly
+assigned this reconciliation to D1; A2's current accounting work is independent.
+This closes the inventory/D1 adoption batch, **not the remaining production
+review or integrated release gates**. All eight audit reports were consulted,
+including their later path-specific receipts; old journal entries and pinned
+resources remain provenance, not automatic current-source approval.
+
+Exact sets: **1144 = 1011 baseline +147 additions -14 retirements**. Relative to
+b042 there are13 additions and no retirements. The original owner blocks plus
+the134-row b042 additions table, minus its14 retired forwarders, plus the13 rows
+below equal the complete tracked Git tree: no absent path, extra path, duplicate
+or multiple owner. The D1 prefix set independently equals its owner set. Compared
+with baseline62822387, the current tree contains267 modified,147 added and730
+byte-unchanged paths; the14 deleted paths are historical, not missing reviews.
+
+| Owner audit | Current inventory | Review disposition |
+| --- | ---: | --- |
+| [A1](compiler_ecs_audit_a1.md) |45| Retain full original rows and later continuation/phase receipts; current exceptions listed below. |
+| [A2](compiler_ecs_audit_a2.md) |43| Retain storage/graph/kernel/page/lease/queued-owner receipts; wake ABI and provider adoption remain below. |
+| [B1](compiler_ecs_audit_b1.md) |102| Includes grammar observer and structural reuse. Adopt the explicitly transferred A2 provenance receipt below. Existing performance/fault limits remain. |
+| [B2](compiler_ecs_audit_b2.md) |276| Adopt matching wrappers and named cross-owner producer receipts below; startup/refill/provider freshness remains open. |
+| [L1](compiler_ecs_audit_L1.md) |26| Includes Fast private layout; retain source-bound graph/Fast/session/package/emitter receipts and disclosed accounting gaps. |
+| [L2](compiler_ecs_audit_L2.md) |17| Fourteen retired primitive forwarders stay historical. Retain complete type/generic table and later result/index receipts; constructor follow-ups remain below. |
+| [D1](compiler_ecs_audit_d1.md#current-fixture-adoption-at-published-5b05d6bb-2026-11-23) |550|32-path delta from last complete540-path audit reviewed/adopted;518 unchanged reviews reused. No remaining D1 source-review omission at this freeze; two automatic-registration gaps are explicit. |
+| [D2](compiler_ecs_audit_d2.md) |85|40 source paths plus45 pinned resource copies. The copies receive provenance/equivalence credit only; latest symbol-policy source needs the follow-up below. |
+| Total |1144| Counts are ownership inventory, not a runtime or race-freedom result. |
+
+| Added current path since b042 | Owner | Source receipt/adoption |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_lowering_types.tower` | A1 | Complete lifecycle-frontier declaration/borrowed-context review,74afc0d. |
+| `scaffolding/compiler/semantic_phase_work.tower` | A1 | Complete frozen-function joins, owner/inferred prerequisites and ordered publication review,7cea85c. |
+| `scaffolding/compiler/grammar_observer.tower` | B1 | f2f12e5/68f8964 sparse-observer receipt; D1 also read its complete synchronous callback boundary against the iteration fixture. Caller owns descriptor/context until drain; no clock/allocation/global observer. |
+| `scaffolding/compiler/parser_structure.tower` | B1 |222370c immutable structural-cache receipt: exact ordered LR inputs/profile and world/budget scope; private version captures with retained shared runtime ownership. |
+| `scaffolding/compiler/fast_interpreter_types.tower` | L1 |908515e/bc0199c complete private Fast layout/provider ownership receipt. |
+| `scaffolding/tests/compiler_dependency_units.tower` | D1 | Current D1 table; preserved e7b388b bytes and ROOT's separate merged runtime evidence. |
+| `scaffolding/tests/execution_fast_storage.tower` | D1 | Current D1 table; graph/Fast output and physical owner/failure boundaries. |
+| `scaffolding/tests/frontend_iteration_profile.tower` | D1 | Current D1 table; opt-in ordinary frontend phase measurement with42 oracle. |
+| `scaffolding/tests/parser_diagnostic_budget.tower` | D1 | Current D1 table; detached diagnostic lifetime and actual allocation/pressure oracle. |
+| `scaffolding/tests/parser_structure_reuse.tower` | D1 | Current D1 table; private captures, exact structure/scope keys, failure/retry and retirement. |
+| `scaffolding/tests/semantic_flow_checks.tower` | D1 | Current D1 table; source-ordered late flow and quiescent cycle/error behavior. |
+| `scaffolding/tests/semantic_lifecycle_frontier_checks.tower` | D1 | Current D1 table; joined mixed transformation frontier and callback publication. |
+| `scaffolding/tests/semantic_staging_frontier_checks.tower` | D1 | Current D1 table; executed-only dependencies, retained effects and phase error order. |
+
+### Explicit matching receipt adoption
+
+B1's original three complete composition reviews are at62822387. Each entire
+file is byte-identical at5b05 (empty Git diff), with these current Git blob IDs.
+Under ROOT's assignment, **adopt these receipts into B2's inventory** without
+transferring production ownership. They are import/provider manifests, not a
+claim that all transitive providers or their execution evidence stayed unchanged.
+
+| B2 path | Matching62822387/5b05 blob |
+| --- | --- |
+| `scaffolding/compiler/units/parser_modules_checks.tower` | `6c66018e7b73e1078ccd823bad4b4c06cef1d291` |
+| `scaffolding/compiler/units/parser_modules_work.tower` | `17c934ccf354c8be40d1cf56318fd57e26ac4776` |
+| `scaffolding/compiler/units/parser_modules_work_checks.tower` | `12e9f23193202c8fc4d591eb01a3a92599d0ef14` |
+
+The two historical D1 missing receipts, `grammar_builder_results.tower` and
+`generic_result_storage.tower`, are closed by D1's b042 and current756-line
+reviews, respectively. No original b042 missing-owner receipt remains unresolved.
+
+The following13 production paths have a current substantive delta receipt in
+another existing audit. Their complete file blobs still equal the named source
+commit at5b05. Adopt the cited handoff receipts alongside the unchanged earlier
+full-file rows, retaining the original domain owner and all recorded limitations.
+This explicit adoption avoids both ignoring a real review and granting credit
+from incidental filename mentions.
+
+| Retained owner | Exact paths under scaffolding/compiler/ | Matching substantive receipt |
+| --- | --- | --- |
+| A1 | `semantic_call_inference.tower`, `semantic_iteration_work.tower`, `semantic_values.tower` | L2 bounded semantic admission completion at1525e54: actual consumers stop before publication after exact producer failure. |
+| B2 | `completion.tower`, `language_query.tower` | Same L2 receipt at1525e54: checked initial/root admission and existing completion failure owner. |
+| B2 | `../host/driver_compile.tower` | Same L2 receipt at1525e54: immediate root-boundary guard. Path is `scaffolding/host/driver_compile.tower`. |
+| B2 | `frontend_pattern.tower`, `frontend_table.tower`, `frontend_world.tower` | B1 complete pattern-result consumer receipt1104191, with ROOT's explicit producer handoff; typed construction/read causes and world-budgeted character forest. |
+| B2 | `frontend_diagnostic_types.tower`, `frontend_diagnostics.tower` | B1 diagnostic ownership receipt d5132ed: private charged probes/options/contexts and first-error retention. |
+| B1 | `syntax_provenance.tower` | A2 explicitly transferred queued-stage producer review0aee8b0: cancellation registered before borrowed fields, buffers left to existing finalizers. |
+| L2 | `semantic_generic_body_work.tower` | A2 same0aee8b0 receipt: join, checked hold-or-discard while the last input view survives, then propagate exact cause. |
+
+### Finite remaining source-review freshness actions
+
+The following **26 exact current paths** lack a closed current substantive
+review chain in the eight reports after the adoptions above. These are review
+actions, not26 demonstrated runtime defects or claims that the files were never
+read. Journal-only implementation/tests do not replace a path-specific source
+receipt. Older full-file reviews remain useful; review the listed later delta
+and its callers, then bind the conclusion to the actual merged blob. No other
+path is unassigned or awaiting an initial owner receipt in this frozen census.
+
+| Owner | Exact path | Unmatched change / required review |
+| --- | --- | --- |
+| A1 | `scaffolding/compiler/semantic_body_work.tower` |2cf4154 admission consumers after the prior pool/continuation review. |
+| A1 | `scaffolding/compiler/semantic_capture_work.tower` |5230b5d checked capture metadata after the continuation receipt. |
+| A1 | `scaffolding/compiler/semantic_context.tower` |2cf4154 shared admission helpers/declarations; prior full context review is not this delta. |
+| A1 | `scaffolding/compiler/semantic_declarations.tower` |5230b5d first-cause/metadata consumers, including intervening layout/admission changes. |
+| A1 | `scaffolding/compiler/semantic_evaluation.tower` |Merged admission + stage-frontier composition differs from7cea85c; review actual5b05 blob `f5299d77f3d583d5ded05550f06294dea00680e0`. |
+| A1 | `scaffolding/compiler/semantic_evaluation_work.tower` |Merged registration/admission + prerequisite composition differs from7cea85c; actual blob `21fd2dc0f04d47a752ab51ac1451e8631c13368f`. |
+| A1 | `scaffolding/compiler/semantic_execution_work.tower` |a74354c/d56c290 checked stage/metadata/hold closure after the earlier executable receipt. |
+| A1 | `scaffolding/compiler/semantic_known_bindings.tower` |5230b5d known/capture admission and first-cause handling. |
+| A1 | `scaffolding/compiler/semantic_known_work.tower` |5230b5d checked work metadata/publication. |
+| A1 | `scaffolding/compiler/semantic_layout.tower` |0ecf31c fallible layout admission and dependent consumers. |
+| A1 | `scaffolding/compiler/semantic_lowering_work.tower` |5230b5d guards after74afc0d mixed-frontier review. |
+| A1 | `scaffolding/compiler/semantic_query_api.tower` |2cf4154 exact new producer declarations against implementations. |
+| A1 | `scaffolding/compiler/semantic_source_bindings.tower` |5230b5d proof/capture metadata admission and joined publication. |
+| A1 | `scaffolding/compiler/semantic_statements.tower` |5230b5d caller guard after retained known/capture failure. |
+| A1 | `scaffolding/compiler/semantic_support.tower` |2cf4154 admission/error helper consumers. |
+| A2 | `scaffolding/compiler/units/entities.tower` |175d2a3 LR/resource provider exports after prior arena/graph composition receipt; explicit current composition adoption absent. |
+| A2 | `scaffolding/library/work_budget.tower` |dbce8d7 release/wake contract after existing borrowed-reservation review. |
+| A2 | `scaffolding/library/work_budget_types.tower` |dbce8d7 shared wake ABI/lifetime fields. |
+| A2 | `scaffolding/library/work_pool.tower` |dbce8d7 observer/wake handoff and close ordering. |
+| B2 | `scaffolding/compiler/frontend_compilation.tower` |b21bdb2 startup plus merged prior-failure guard; actual blob `106ea785329a9b42c016870ee6ca4509c8eb69d8` differs from b21bdb2. |
+| B2 | `scaffolding/compiler/frontend_modules.tower` |b21bdb2 transactional startup/lease/cache preservation after the prior metadata checkpoint. |
+| B2 | `scaffolding/compiler/frontend_units.tower` |b21bdb2/dbce8d7 typed startup and nested-release refill; tests do not substitute for source review. |
+| B2 | `scaffolding/compiler/host_entities.tower` |175d2a3 result/provider boundary after initial ABI-forwarder row; needs explicit source/caller adoption. |
+| L2 | `scaffolding/compiler/semantic_constructor_work.tower` |2cf4154/d56c290 checked declaration/frame admission and failed executable consumers after1525e54. |
+| L2 | `scaffolding/compiler/semantic_type_values.tower` |2cf4154/d56c290 type-expression consumer guards after earlier constructor review. |
+| D2 | `scaffolding/tools/bootstrap_symbols.tower` |Latest222370c structural-provider permissions plus intervening diagnostic/startup/generic/hold additions; older exact-policy receipts remain scoped to their spellings. |
+
+The full current source history comparison inspected214 non-D1 changed/added
+paths, not just new filenames. In particular, comparing last non-merge source
+commits to the frozen tree found the three merged-blob exceptions above. A last
+commit label or a later documentation merge cannot certify those combinations.
+Other unchanged path receipts remain reusable at their recorded identities;
+source-bound delta receipts in each report retain their own narrower runtime
+limits. No LOC-derived percentage or automatic all-current approval is used.
+
+Checks: exact Git tree/owner sets, additions/retirements, duplicate detection,
+direct D1 prefix equality,32-path D1 source/caller review, all-eight-report receipt
+lookup, current/receipt blob comparisons and whitespace validation. Metadata logs
+are in D1's ignored `build/d1_ecs/audit_5b05/`. Existing logs and todo are preserved.
+No runtime code changed, so profiling is inapplicable. No tests/builds/sanitizers
+or hosted checks ran; no claim that an old runtime receipt validates this freeze.
+ROOT retains final integrated validation and gh-pages publication ownership.
+
+### Publication integration boundary: 36ad337
+
+After the audit commit `e8407e9`, the required fast-forward-only pull fetched
+published `36ad33782b53e1a3c5be50860ab3eb0a7cddae67` and refused divergence.
+Normal merge `91397b779d89a4845ea86eed6def5cd0d7fc08eb` preserves both histories.
+The requested substantive freeze remains5b05; it is not silently advanced by
+that merge. The later tracked tree is **1146 paths**, with these two additions:
+
+| Exact added path | Owner | Post-freeze disposition |
+| --- | --- | --- |
+| `scaffolding/backend/observation_types.tower` | B2 | Backend observation layout; later implementation/receipt needs its own source adoption. |
+| `scaffolding/tests/entity_accounting.tower` | D1 | D2 implementation receipt is preserved; independent D1 adoption is outside the frozen batch. |
+
+The other28 post-freeze modified paths are exactly:
+
+```text
+scaffolding/backend/context.tower
+scaffolding/backend/lowering.tower
+scaffolding/backend/pipeline.tower
+scaffolding/backend/units.tower
+scaffolding/compiler/compiler_kernel.tower
+scaffolding/compiler/semantic_body_work.tower
+scaffolding/compiler/semantic_context.tower
+scaffolding/compiler/semantic_declarations.tower
+scaffolding/compiler/semantic_evaluation.tower
+scaffolding/compiler/semantic_evaluation_work.tower
+scaffolding/compiler/semantic_lowering_work.tower
+scaffolding/compiler/semantic_phase_work.tower
+scaffolding/host/driver_api.tower
+scaffolding/host/driver_compile.tower
+scaffolding/host/driver_units.tower
+scaffolding/tests/backend_units.tower
+scaffolding/tests/bootstrap_symbols_checks.tower
+scaffolding/tests/entity_locality.tower
+scaffolding/tests/entity_stage_concurrent.tower
+scaffolding/tests/entity_stage_result.tower
+scaffolding/tests/execution_main.tower
+scaffolding/tests/frontend_units_profile.tower
+scaffolding/tests/lr_work_main.tower
+scaffolding/tests/parser_state.tower
+scaffolding/tests/semantic_lifecycle_frontier_checks.tower
+scaffolding/tests/semantic_resource_checks.tower
+scaffolding/tests/semantic_staging_frontier_checks.tower
+scaffolding/tools/bootstrap_symbols.tower
+```
+
+Keep these30 later inputs separate from the frozen26-path action list. Some
+already have newly integrated owner receipts; no adoption of those later receipts
+or runtime rerun is claimed here. In particular, the13 later D1 additions/changes
+need source-delta adoption before describing all551 current fixtures as reviewed.
+The exact union is49 paths (seven overlap); it is a finite reconciliation worklist,
+not a claim that49 files lack any substantive review.
+The inventory extension is exact: the frozen1144-owner set plus the two named
+additions equals the later Git tree, without duplicates. B2 becomes277 and D1551;
+other domain counts stay fixed. This finite integration boundary prevents an
+unbounded audit chase or automatic approval of concurrently published inputs.
+
+Final pre-push reconciliation also preserves publishedd21ba95 through normal
+mergef2c7c43. Compared with36ad337, it modifies exactly three more Tower paths:
+`scaffolding/compiler/semantic_execution_work.tower`,
+`scaffolding/tests/frontend_main.tower` and
+`scaffolding/tests/semantic_executable_admission_checks.tower`. No path is added
+or retired. The final post-freeze delta is33 paths, including15 D1 fixtures;
+its union with the frozen26 actions is51 paths. These later signature-admission
+and frontend-phase changes retain their upstream receipts and require separate
+source adoption; neither this final merge nor its normal push extends the5b05
+substantive review. The1146-path inventory equality remains valid.
+
+### Finite review closure at published ec01291 (2026-11-23)
+
+ROOT delegated all51 actions to D1 for independent substantive adoption at
+ec01291eaf8706c29f3bec62ec85a2e7561530d4. The
+[D1 receipt](compiler_ecs_audit_d1.md#delegated-finite-source-adoption-at-ec01291-2026-11-23)
+closes each exact path with its frozen blob, producer/caller/lifetime/dependency
+findings, registration and limits. This supersedes the pending-adoption
+dispositions in the two preceding historical boundaries, without moving their
+runtime evidence. The union is26 +33 -8 =51:36 production/provider paths and15 D1
+fixtures. Zero substantive review actions remain in that bounded union; no
+after-freeze delta is silently adopted.
+
+Inventory remains exactly1,146 Tower paths, including551 D1. The earlier complete
+unchanged-file reviews, three B1 parser-module wrapper adoptions and thirteen
+matching cross-owner receipts remain reusable at their recorded identities.
+Owner counts are A1 45, A2 43, B1 102, B2 277, L1 26, L2 17, D1 551, D2 85;
+there are no additional additions/retirements in this freeze. Pinned resources
+and historical experiments remain provenance-only.
+
+The three original merged-source exceptions were read as composed source.
+Current last-nonmerge comparison additionally resolves the structural-cache
+allowlist/case and lr_work harness compositions; no last-commit label substitutes
+for review. Exact path/blob comparisons are retained in D1's ignored
+build/d1_ecs/review_ec01291/.
+
+One demonstrated defect remains: entity_create_result's raw Entity allocation
+bypasses a fully consumed store budget; the existing entity_accounting cap target
+fails nonzero with cleanup. Whole-world accounting is not accepted. Three focused
+regression selectors (structure-reuse, unit-admission, backend-ir) remain outside
+their default CTest routes. Those are explicit implementation/coverage limits,
+not missing owner adoption. Other already documented release/ownership limits
+remain; this checkpoint does not assert universal OOM recovery or race freedom.
+No code, performance, build, sanitizer or hosted-release evidence was generated
+by this documentation review. ROOT owns final integrated validation/deployment.

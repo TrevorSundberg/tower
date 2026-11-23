@@ -1111,6 +1111,31 @@ It checks syntax-session first-failure propagation and aliased stream replacemen
 revision/location fixture without the complete frontend suite. These are focused
 native checks; integrated sanitizer and hosted release acceptance are separate.
 
+The native work/backend configuration (`TOWER_NATIVE`, `TOWER_BACKEND_TESTS` and
+`TOWER_WORK_TESTS` enabled) also registers these existing focused selectors:
+
+| CTest name | Existing binary and selector | Timeout |
+| --- | --- | --- |
+| `tower-frontend-structure-reuse` | `tower-frontend-tests RESOURCE_ROOT structure-reuse` | 60 s |
+| `tower-native-unit-admission` | `tower-lr-work-tests RESOURCE_ROOT unit-admission` | 180 s |
+| `tower-native-backend-ir` | `tower-lr-work-tests RESOURCE_ROOT backend-ir` | 180 s |
+
+All three carry `native;focused` labels and use the configured source tree's
+`scaffolding` resource root. The 60-second bound follows focused producer checks;
+180 seconds matches existing native unit/backend integration checks. Existing
+default and `all` selectors are unchanged. CTest does not build these binaries:
+refresh the existing `tower-frontend-tests` and `tower-lr-work-tests` targets as
+part of the frozen integrated build before running:
+
+```sh
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure -j 1 \
+  -R '^tower-(frontend-structure-reuse|native-unit-admission|native-backend-ir)$'
+```
+
+Registration/configuration discovery is validated separately from execution.
+Current-source runtime results for these registrations remain pending ROOT's
+integrated milestone; older explicit-selector receipts keep their source identity.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
@@ -1361,6 +1386,14 @@ target uses the ordinary semantic provider and covers `healthy`, `take`,
 `suspend`, `observe` and `finish`. These variants do not themselves demonstrate
 overlap; capture's healthy result is a legitimate suspended query.
 
+The executable selectors `startup`, `metadata` and `pinned` reject real pinned
+admission without publishing readiness. `signature` uses the bounded world
+constructor and a valid oversized metadata kind to deny its worker's aggregate
+signature allocation; `signature-healthy` checks the ordinary successful path.
+Both widths and worker budgets1/4 retain the owning offset, join before cleanup,
+and release all world grants. These are normal-allocator capacity checks, not
+thread sanitizer or overlap claims.
+
 ```sh
 cmake --build build/native --parallel 1 --target tower-semantic-capture-continuation-tests \
   tower-semantic-executable-admission-tests
@@ -1427,6 +1460,24 @@ this one denial does not establish child/index/query/stage accounting. The censu
 must remain tied to the actual allocation layout as those owners migrate.
 See the journal's D2 entity accounting receipt for source hashes and byte totals.
 
+The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
+imports the actual frontend unit producer through
+`generation_layout_frontier.tower`, checks all its bodies and interprets the
+known root result `42`. Run it with
+`ctest --test-dir build/native --output-on-failure -R '^tower-generation-layout-frontier-'`.
+It guards the transition from early executed type/generic helpers to ordinary
+module body admission: a local construction cursor is not proof that every
+unrelated nominal layout has been published. This focused regression does not
+establish whole-compiler generation identity.
+
+The registered semantic flow/lifecycle frontier fixtures also exercise checked
+kind/component pin denial, world-budgeted scratch and worker-pool denial,
+partial lowering lease admission, exhausted stage anchors/views, and graph
+completion pressure. They require canonical error offsets, joined cleanup,
+no successful ticket prefix, preserved foreign leases, stable terminal retries
+and zero retained budget reservations. These focused cases are not sanitizer
+or integrated bootstrap/browser evidence.
+
 ### Bounded entity layout and traversal profile
 
 The same Linux x64 `TOWER_WORK_TESTS` configuration provides an opt-in extension
@@ -1482,3 +1533,44 @@ For the changed Wasm/host boundary, enable `TOWER_IDE_PACKAGE_TESTS=ON`, build o
 playground/tests/bytecode.test.mjs`. The file closes its host transport and uses the
 selected artifact without requiring an unrelated default browser build. This is
 package coverage, not the browser concurrency or integrated release matrix.
+
+### Focused LR closure ordering and frontend iteration cost
+
+The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
+exact closure ordering against the independent insertion-based oracle: empty,
+singleton, odd/even boundary sizes; ordered, reversed and seeded shuffled items;
+then the existing 150 grammar/propagation comparisons, including reopened
+closures, state/action identities and parser error/probe behavior.
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-frontend-tests tower-lr-work-tests
+cd scaffolding
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-order
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" grammar-equivalence
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" structure-reuse
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" parser
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" diagnostics
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD" lr
+/usr/bin/time -v "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" iteration-cold
+/usr/bin/time -v "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" iteration-installed
+```
+
+Use an absolute build path. Live grammar fixtures require the resource directory
+as their working directory. Iteration cases compile the same `answer()` returning
+42, execute it and report canonical text identity. Cold means a fresh world from
+the immutable seed, not flushed OS/hardware caches; installed additionally sets
+up the Bedrock/Foundation baseline before the measured source phases. Observer
+Lookup/Build/Table times are nested, not additive. Whole-process time also includes
+startup, resource reads, canonical formatting, checked interpretation and cleanup;
+no backend/link output is timed here.
+
+The iteration fixture requires its existing serial instrumentation transport,
+binds a 256MiB ledger before the first entity, reports charged live/peak bytes,
+separate ledger metadata, allocation calls and retained buffers, then requires
+zero final buffers/grants. Binding this ledger does not impose a whole-world cap
+on raw entity/index/analysis allocations. Installed allocation counts include its
+startup. These counters must not be used during real overlap; the separate native
+`lr` selector uses normal worker transport. Preserve exact old/new executables and
+resource hashes for alternating timing pairs; requested lanes or passing oracle
+checks do not measure speedup. See the D2 LR iteration journal receipt for the
+measured optimization, rejected experiment and remaining cold frontend cost.
