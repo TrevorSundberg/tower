@@ -1769,9 +1769,16 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
     if sem_ok(c) { sem_body_prefix(c, result); }
-    sem_query_observe(c, &result.ticket, &result.query_reads);
-    sem_evaluation_aliases(c, &result.evaluation_aliases);
-    sem_type_observations_publish(c, &result.type_observations);
+    // A preceding joined body's flow admission may have cancelled the graph.
+    // Still transfer this body's owned buffers below, but never observe or
+    // finish its now-stale ticket or publish more dependent metadata.
+    if sem_ok(c) {
+        sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads));
+    }
+    if sem_ok(c) {
+        sem_evaluation_aliases(c, &result.evaluation_aliases);
+        sem_type_observations_publish(c, &result.type_observations);
+    }
     if !sem_ok(c) {
         sem_body_hold_error(c, result);
         result.done = true;
@@ -1814,8 +1821,8 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
         sem_body_hold_error(c, result);
         result.done = true;
     }
-    if result.done {
-        sem_require(work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
+    if result.done && sem_ok(c) {
+        sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
     }
 }
 
@@ -1929,6 +1936,9 @@ fn sem_bodies(c: SemanticContext*): void {
     // Root expressions have completed before ordinary body roots are demanded.
     // Do not repeat this global scan between declaration frontiers: a newly
     // published nominal identity can still be waiting for its field producer.
+    // Early executed helpers can advance the local-construction frontier before
+    // unrelated module fields finish. Reconcile it once at this safe boundary.
+    if c.body_pipeline != null { c.layout_checked = 0; }
     sem_layout_all(c);
     c.body_roots = true;
     var saved_subjects = c.declaration_subjects;

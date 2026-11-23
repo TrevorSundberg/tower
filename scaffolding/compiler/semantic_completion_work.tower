@@ -1,0 +1,31 @@
+import tower;
+import semantic_context;
+import semantic_context_types;
+import .library.work_graph;
+
+// A joined wave reserves completion's queue growth before marking any ticket
+// successful. Graph cancellation can then retire the entire unpublished wave;
+// a late ready-index allocation must not leave a successful prefix behind.
+fn sem_completion_reserve(T: type, c: SemanticContext*, jobs: T**, count: usize, failing: bool): bool {
+    var needed = c.queries.ready.length;
+    for(var i: usize = 0; i < count; i++) {
+        var result = jobs[i];
+        if !sem_query_check(c, result.subject, work_ticket_valid(&c.queries, &result.ticket)) { return false; }
+        var edge = work_task(&c.queries, result.ticket.task).consumers;
+        while edge != 0 {
+            needed = work_next_length(&c.queries, needed);
+            if !sem_query_check(c, result.subject, needed != 0) { return false; }
+            edge = c.queries.edges.data[edge - 1].next_consumer;
+        }
+        if !sem_query_check(c, result.subject, work_index_reserve(&c.queries, &c.queries.ready,
+            &c.queries.storage.ready, needed)) { return false; }
+    }
+    // A failed producer can visit each consumer edge once. The root occupies
+    // one additional slot. This is existing graph scratch, not another queue.
+    if failing && count != 0 {
+        var scratch = work_next_length(&c.queries, c.queries.edges.length);
+        if !sem_query_check(c, jobs[0].subject, scratch != 0 && work_index_reserve(&c.queries,
+            &c.queries.scratch, &c.queries.storage.scratch, scratch)) { return false; }
+    }
+    return true;
+}

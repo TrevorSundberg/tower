@@ -82,31 +82,48 @@ export fn main(argc: i32, argv: u8**): i32 {
     if argc != 2 {
         return 1;
     }
+    puts("frontend: compiler_buffer_owner_tests");
     compiler_buffer_owner_tests();
+    puts("frontend: compiler_work_owner_tests");
     compiler_work_owner_tests();
+    puts("frontend: frontend_world_tests");
     frontend_world_tests();
+    puts("frontend: frontend_session_world_tests");
     frontend_session_world_tests();
+    puts("frontend: frontend_units_allocation_root_tests");
     frontend_units_allocation_root_tests(argv[1]);
+    puts("frontend: backend_execution_index_tests");
     backend_execution_index_tests(argv[1]);
+    puts("frontend: editor_world_tests");
     editor_world_tests(argv[1]);
     var body_buffers = tower_test_buffer_count();
+    puts("frontend: body_runs_tests");
     body_runs_tests(argv[1]);
     if tower_test_buffer_count() != body_buffers {
         puts("Body continuation scratch cleanup failed");
         return 2;
     }
+    puts("frontend: lr_work_tests");
     var lr_buffers = tower_test_buffer_count();
     if lr_work_tests() != 0 || tower_test_buffer_count() != lr_buffers {
         puts("LR worker graph or scratch cleanup failed");
         return 3;
     }
+    puts("frontend: parser_tests");
     parser_tests();
+    puts("frontend: parser_failure_tests");
     parser_failure_tests();
+    puts("frontend: frontend_diagnostic_revision_tests");
     frontend_diagnostic_revision_tests();
+    puts("frontend: frontend_session_format_tests");
     frontend_session_format_tests();
+    puts("frontend: frontend_session_setup_tests");
     frontend_session_setup_tests();
+    puts("frontend: frontend_session_scan_tests");
     frontend_session_scan_tests();
+    puts("frontend: regex_tests");
     regex_tests();
+    puts("frontend: syntax_lexer_tests");
     syntax_lexer_tests();
     return 0;
 }

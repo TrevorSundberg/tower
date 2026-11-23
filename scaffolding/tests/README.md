@@ -1361,6 +1361,14 @@ target uses the ordinary semantic provider and covers `healthy`, `take`,
 `suspend`, `observe` and `finish`. These variants do not themselves demonstrate
 overlap; capture's healthy result is a legitimate suspended query.
 
+The executable selectors `startup`, `metadata` and `pinned` reject real pinned
+admission without publishing readiness. `signature` uses the bounded world
+constructor and a valid oversized metadata kind to deny its worker's aggregate
+signature allocation; `signature-healthy` checks the ordinary successful path.
+Both widths and worker budgets1/4 retain the owning offset, join before cleanup,
+and release all world grants. These are normal-allocator capacity checks, not
+thread sanitizer or overlap claims.
+
 ```sh
 cmake --build build/native --parallel 1 --target tower-semantic-capture-continuation-tests \
   tower-semantic-executable-admission-tests
@@ -1426,6 +1434,24 @@ producer closure; a passing profile is not finite-cap acceptance, and fixing
 this one denial does not establish child/index/query/stage accounting. The census
 must remain tied to the actual allocation layout as those owners migrate.
 See the journal's D2 entity accounting receipt for source hashes and byte totals.
+
+The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
+imports the actual frontend unit producer through
+`generation_layout_frontier.tower`, checks all its bodies and interprets the
+known root result `42`. Run it with
+`ctest --test-dir build/native --output-on-failure -R '^tower-generation-layout-frontier-'`.
+It guards the transition from early executed type/generic helpers to ordinary
+module body admission: a local construction cursor is not proof that every
+unrelated nominal layout has been published. This focused regression does not
+establish whole-compiler generation identity.
+
+The registered semantic flow/lifecycle frontier fixtures also exercise checked
+kind/component pin denial, world-budgeted scratch and worker-pool denial,
+partial lowering lease admission, exhausted stage anchors/views, and graph
+completion pressure. They require canonical error offsets, joined cleanup,
+no successful ticket prefix, preserved foreign leases, stable terminal retries
+and zero retained budget reservations. These focused cases are not sanitizer
+or integrated bootstrap/browser evidence.
 
 ### Bounded entity layout and traversal profile
 

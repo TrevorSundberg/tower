@@ -161,7 +161,7 @@ Paths below are relative to `scaffolding/`.
 
 | Gate / owner | Precise remaining boundary and acceptance action |
 | --- | --- |
-| Checked semantic failure paths — A1, ROOT executable owner, L2 shared helpers | `compiler/semantic_lowering_work.tower::sem_lower_register/sem_lower_frontier` still wraps graph admission, component creation, stage lease/publication and scratch growth in `sem_require`; `semantic_flow.tower::sem_flow_request/sem_flows_pump` likewise retains structural/view/vector assertions. `semantic_execution_work.tower::semantic_executable_kernel` still uses unchecked `entity_component_add` for its cloned aggregate signature. `semantic_support.tower::sem_list/sem_table` and diagnostic growth have fatal allocation callers. `semantic_context.tower::sem_require(false)` aborts. Missing contract: recoverable producer error/owning offset, no ready/partial publication, joined cleanup and terminal retry behavior for these real denial boundaries. The successful request/startup/hold fixes do not cover these kernels. |
+| Checked semantic failure paths — L2 shared helpers, B1 diagnostics | A1 lowering/flow coordinator admission now uses checked graph/kind/component/lease/view/pool/work-vector paths and the published joined-stage helper. Completion reserves queue growth before any successful ticket; registered denial fixtures verify offsets, no ready prefix, drained ownership and terminal retries. See `compiler_ecs_audit_a1.md`. ROOT196d93c7 checks executable aggregate-signature component admission. Shared `sem_control_names`, `sem_known_edges`, private lowering node/text/list helpers and `sem_restore_error` still contain fatal allocation wrappers; these are not covered by the coordinator gate. Retained pump assertions enforce component/ordinal/lifetime invariants, not allocation admission. |
 | Physical ownership accounting — A2; L1 execution; B1/B2 presentation/host | `library/entities.tower::entity_create_result` allocates raw `Entity` storage outside `store.budget`; node/index storage and `entity_stage.tower` node/reference/cancellation/lease vectors remain outside the charged component-page owners. Fast arrays are now checked work vectors; the remaining L1 boundaries include `compiler/interpreter_context.tower` error/output vectors and `bytecode_package.tower::bytecode_encode`'s raw package allocation. `syntax_provenance` splice scratch and shared formatter/final diagnostic text remain ordinary allocations. Missing contract: complete declared ownership/peak accounting and typed failure at required compiler boundaries, with rollback and zero retained grants; the unit retained-byte cap explicitly excludes these heaps and LLVM. Owner-specific source review must delimit coverage rather than call that cap a process limit. |
 
 Cross-unit shared import/revision reuse is **not implemented** by independent
@@ -206,34 +206,60 @@ frontier executables; it does not run them. Their existing CTest selection is
 
 ### Full-file inventory ownership and review freshness
 
-`git ls-tree -r --name-only b83eeca7` contains **1,141 tracked `.tower` paths**.
-The [roster's b042 census](compiler_ecs_file_roster.md#integrated-census-at-b0421447-2026-11-23)
-remains the 1,131-path historical ownership set; its per-lane audit links are
-the substantive evidence, not an all-current pass. Ten additions reconcile it:
+The current finite adoption checkpoint is published main
+ec01291eaf8706c29f3bec62ec85a2e7561530d4. ROOT delegated independent review of the
+entire51-path union to D1, whose [path/blob receipts](compiler_ecs_audit_d1.md#delegated-finite-source-adoption-at-ec01291-2026-11-23)
+close all26 earlier freshness actions and33 later deltas (eight overlaps),
+including all15 later D1 fixtures and the three composed semantic/frontend
+exceptions. Zero substantive adoption actions remain in that frozen set. The
+[roster closure](compiler_ecs_file_roster.md#finite-review-closure-at-published-ec01291-2026-11-23)
+retains exact1146 ownership coverage: A1 45, A2 43, B1 102, B2 277, L1 26,
+L2 17, D1 551, D2 85. Unchanged reviews and matching B1 wrapper receipts remain
+reusable; later compiler changes need their own receipts at final integration.
 
-| New path under `scaffolding/` | Existing domain owner / receipt disposition |
-| --- | --- |
-| `compiler/semantic_lowering_types.tower` | A1; full-file receipt in A1 lifecycle follow-up. |
-| `compiler/grammar_observer.tower` | B1; bounded observer implementation/measurement receipt; consolidate an explicit path-specific owner row. |
-| `tests/semantic_flow_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
-| `tests/semantic_lifecycle_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and durable registration; D1 adoption pending. |
-| `tests/parser_diagnostic_budget.tower` | D1 audit / B1 implementation; B1 diagnostic receipt, D1 substantive adoption pending. |
-| `tests/frontend_iteration_profile.tower` | D1 audit / B1 implementation; B1 measured oracle/observer receipt, D1 substantive adoption pending. |
-| `compiler/fast_interpreter_types.tower` | L1; private ownership layout and provider composition reviewed in bounded Fast receipt. |
-| `compiler/semantic_phase_work.tower` | A1; full-file phase-query/ownership review in staging-frontier receipt. |
-| `tests/execution_fast_storage.tower` | D1 audit / L1 implementation; L1 admission/cleanup receipt and core registration, D1 substantive adoption pending. |
-| `tests/semantic_staging_frontier_checks.tower` | D1 audit / A1 implementation; full A1 review and registration, D1 substantive adoption pending. |
+This closes source adoption, not runtime acceptance. The demonstrated raw Entity
+allocation bypass of a fully consumed store ledger remains an A2 accounting
+defect: the existing entity_accounting cap target fails nonzero after cleanup.
+The structure-reuse, unit-admission and backend-ir regressions require explicit
+selectors outside default frontend/units/backend CTest routes. Existing assertions,
+raw-storage omissions and integrated instrument/bootstrap/browser/generation/
+deployment limits remain explicit. This docs-only review ran no builds or
+runtime profiles; ROOT retains final integrated validation and publication.
 
-Thus domain inventory counts are A1 45, A2 43, B1 101, B2 276, L1 26, L2 17,
-D1 548, D2 85. These derive from the roster plus the exact ten-path Git delta,
-not review-completion counts. D1's later full grammar-builder/generic-result
-reviews close those two historical missing receipts. B2 still needs explicit
-adoption of B1's reviews for `units/parser_modules_checks.tower`,
-`parser_modules_work.tower`, `parser_modules_work_checks.tower`. A2 owns the
-roster reconciliation; every lane must bind changed-file findings to its reviewed
-source, including later modifications of already-inventoried paths. D2's 45
-pinned resource rows remain provenance-only. No filename/LOC census closes this
-review-freshness gate.
+The following records the prior5b05/36ad reconciliation history, superseded only
+for source-adoption status by the ec01291 receipt above:
+
+Frozen published source `5b05d6bb5288591794d378c1802c2a790357b204` contains
+**1,144 tracked `.tower` paths**. ROOT assigned the bounded reconciliation to D1.
+The [current roster](compiler_ecs_file_roster.md#frozen-adoption-reconciliation-at-5b05d6bb-2026-11-23)
+proves exact ownership-set equality: baseline1011 +147 additions -14 retirements,
+with13 additions after b042 and no further retirements. Inventory counts are
+A1 45, A2 43, B1 102, B2 276, L1 26, L2 17, D1 550 and D2 85.
+
+D1's current path-specific review covers the32 new/changed fixtures since its
+last complete540-path audit;518 unchanged reviews are reused. The grammar/generic
+result omissions are closed, including the current756-line generic-result file.
+All three B2 parser-module wrappers match B1's original reviewed blobs and are
+explicitly adopted into B2's inventory. Thirteen additional matching production
+handoff receipts are adopted with their domain ownership and limitations intact.
+
+The roster lists **26 exact remaining production source-review actions**; no
+blanket current-source approval follows from the census. Three merged files
+differ from their latest non-merge implementation receipts, so source hashes,
+not last-commit labels, govern adoption. D1 also records that structure-reuse and
+unit-admission require explicit focused invocation: default/units/backend CTest
+commands do not reach those cases. ROOT's separate focused runtime receipts are
+preserved; this documentation batch ran no compiler tests or profiles.
+
+Historical journal material and D2's45 pinned resource rows remain provenance-only.
+The unchanged public resources must not be edited or treated as current compiler
+acceptance. ROOT retains integrated instrumentation/bootstrap/browser/generation
+and hosted-release ownership; those gates remain separate and pending.
+
+Publication reconciliation later merged36ad337 without changing this substantive
+freeze. Its inventory is1146 (B2277/D1551); the roster separately enumerates its
+two additions and28 modifications, including13 D1 deltas pending adoption. Those
+later inputs do not inherit the5b05 source or runtime receipts.
 
 Audit principles: [Flecs systems](https://www.flecs.dev/flecs/Systems.html)
 and [storage traits](https://www.flecs.dev/flecs/ComponentTraits.html) motivate
