@@ -4,9 +4,10 @@ import {TowerWASI} from '../src/wasi-host.mjs';
 import {loadTower} from '../src/tower-host.mjs';
 
 self.onmessage = async ({data}) => {
+  if (data.probe) { self.postMessage({probe:data.probe}); return; }
   const {capacity, mode, files, builtins, fixtures} = data;
   const children = new Set(), phases = [], logs = [];
-  let opened = 0, closed = 0, spawns = 0, owner;
+  let opened = 0, closed = 0, spawns = 0, owner, reply;
   const workerFactory = url => {
     const worker = new Worker(url, {type:'module'});
     children.add(worker); opened++;
@@ -74,12 +75,14 @@ self.onmessage = async ({data}) => {
     }
     owner.close();
     if (children.size !== 0 || opened !== capacity || closed !== opened) throw new Error('Nested worker ownership was not closed');
-    self.postMessage({result:{mode, capacity, isolated:crossOriginIsolated, opened, closed, spawns, phases, results, logs}});
+    reply = {result:{mode, capacity, isolated:crossOriginIsolated, opened, closed, spawns, phases, results, logs}};
   } catch (error) {
-    self.postMessage({error:error.stack || error.message, phases, logs});
+    reply = {error:error.stack || error.message, phases, logs};
   } finally {
     owner?.close();
     for (const worker of children) worker.terminate();
-    self.close();
+    // The page owns coordinator termination after observing nested shutdown.
+    // Keep this event loop available for child retirement and the final probe.
   }
+  self.postMessage(reply);
 };

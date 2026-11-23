@@ -7,6 +7,7 @@ import lr_states;
 import lr_types;
 import lexer_table;
 import parser_workers;
+import grammar_observer;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
@@ -52,10 +53,14 @@ struct LRActionTask {
     begin: usize;
     count: usize;
     resource_error: WorkBudgetError;
+    observer: GrammarObserver;
+    ordinal: usize;
 }
 
 export fn compiler_lr_action_kernel(payload: void*): void {
     var task = bits(LRActionTask*, payload);
+    if task.observer.event != null { task.observer.event(task.observer.context, GrammarPhase.LookaheadKernel, true, task.ordinal, task.count); }
+    defer { if task.observer.event != null { task.observer.event(task.observer.context, GrammarPhase.LookaheadKernel, false, task.ordinal, task.count); } }
     task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
         task.resource_error = lr_lalr_state_actions_result(task.states, task.lookahead, i, &task.results[i]);
@@ -67,7 +72,12 @@ export fn compiler_lr_action_kernel(payload: void*): void {
 // ECS/query/semaphore handoff over a contiguous set of dotted productions.
 var LRClosureGrain: usize = 512;
 var LRLookaheadStateGrain: usize = 128;
-var LRPropagationGrain: usize = 64;
+// Item-graph frontiers have cheap range unions: the former 64 destinations
+// dispatched621 waves/173ms in the cold16-body trace, despite cached pools.
+// Amortize private-vector/ticket/lease/signal joins over512 ready destinations
+// per lane; narrow frontiers retain the existing in-place worklist fallback.
+// This is a measured scheduling grain, never a grammar or worker-count limit.
+var LRPropagationGrain: usize = 512;
 
 // Only immutable grammar/FIRST data are shared. LRAnalysis.failed is private:
 // the ordinary closure routines may set it on allocation failure.
@@ -114,6 +124,9 @@ fn lr_work_error(graph: WorkGraph*): WorkBudgetError {
 // vectors. Keep the existing closure pool alive across this phase boundary.
 fn lr_lalr_actions_parallel_result(value: LRStates*, lookahead: LRPropagation*, owner: void*,
 graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
+    var world = compiler_node_world(owner);
+    var observer: GrammarObserver = default;
+    if world != null { observer = compiler_world_grammar(world).observer; }
     var count = value.states.length / LRLookaheadStateGrain;
     if count > pool.count {
         count = pool.count;
@@ -161,6 +174,8 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
         job.states = value;
         job.lookahead = lookahead;
         job.results = results;
+        job.observer = observer;
+        job.ordinal = i;
         job.begin = position;
         job.count = value.states.length / count +(i < value.states.length % count ? 1: 0);
         position += job.count;
@@ -180,7 +195,9 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     if view == null {
         return error;
     }
+    if observer.event != null { observer.event(observer.context, GrammarPhase.ActionWave, true, count, value.states.length); }
     error = compiler_kernel_dispatch_admitted_result(pool, &jobs[0], count, admission.extra);
+    if observer.event != null { observer.event(observer.context, GrammarPhase.ActionWave, false, count, value.states.length); }
     entity_view_close(view);
     if error != WorkBudgetError.None { return error; }
     var ok = true;
@@ -356,10 +373,14 @@ struct LRPropagationTask {
     begin: usize;
     count: usize;
     resource_error: WorkBudgetError;
+    observer: GrammarObserver;
+    ordinal: usize;
 }
 
 export fn compiler_lr_propagation_kernel(payload: void*): void {
     var task = bits(LRPropagationTask*, payload);
+    if task.observer.event != null { task.observer.event(task.observer.context, GrammarPhase.LookaheadKernel, true, task.ordinal, task.count); }
+    defer { if task.observer.event != null { task.observer.event(task.observer.context, GrammarPhase.LookaheadKernel, false, task.ordinal, task.count); } }
     task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
         var node = task.targets[i];
@@ -389,6 +410,9 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
 
 fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     if value == null || pool == null || graph == null { return WorkBudgetError.Invalid; }
+    var world = compiler_node_world(owner);
+    var observer: GrammarObserver = default;
+    if world != null { observer = compiler_world_grammar(world).observer; }
     if pool.count < 2 || value.count < 2 * LRPropagationGrain {
         return lr_propagation_solve_result(value);
     }
@@ -472,6 +496,8 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
                 job.incoming = incoming;
                 job.results = results;
                 job.changed = changed;
+                job.observer = observer;
+                job.ordinal = i;
                 jobs[i] = job;
             }
         }
@@ -502,7 +528,9 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
         if view == null {
             return error;
         }
+        if observer.event != null { observer.event(observer.context, GrammarPhase.PropagationWave, true, count, targets.length); }
         error = compiler_kernel_dispatch_admitted_result(pool, &jobs[0], count, admission.extra);
+        if observer.event != null { observer.event(observer.context, GrammarPhase.PropagationWave, false, count, targets.length); }
         entity_view_close(view);
         if error != WorkBudgetError.None { return error; }
         var ok = true;
@@ -544,6 +572,9 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
 }
 
 export fn lr_states_lalr_parallel_result(value: LRStates*, constructs: bool, anchor: void*): WorkBudgetError {
+    var world = compiler_node_world(anchor);
+    if world != null { grammar_observe(world, GrammarPhase.Lookahead, true, value.states.length, 0); }
+    defer { if world != null { grammar_observe(world, GrammarPhase.Lookahead, false, value.states.length, 0); } }
     var error = WorkBudgetError.None;
     var count = lr_lalr_cache_count(value, &error);
     if error != WorkBudgetError.None { return error; }
@@ -572,11 +603,19 @@ export fn lr_states_lalr_parallel_result(value: LRStates*, constructs: bool, anc
     defer parser_workers_close(&workers);
     // Coordinator builds the derived graph before any worker borrows it. The
     // existing solver/action phases retain their private outputs and ordered joins.
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadGraph, true, value.states.length, 0); }
     var lookahead = lr_states_propagation_items_result(value, constructs, budget, &error);
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadGraph, false, value.states.length, 0); }
     if lookahead == null { return error; }
     defer lr_propagation_destroy(lookahead);
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadSolve, true, lookahead.count, lookahead.pending.length); }
     error = lr_propagation_solve_parallel_result(lookahead, owner, &graph, workers.pool);
-    return error != WorkBudgetError.None ? error : lr_lalr_actions_parallel_result(value, lookahead, owner, &graph, workers.pool);
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadSolve, false, lookahead.count, lookahead.pending.length); }
+    if error != WorkBudgetError.None { return error; }
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadActions, true, value.states.length, 0); }
+    error = lr_lalr_actions_parallel_result(value, lookahead, owner, &graph, workers.pool);
+    if world != null { grammar_observe(world, GrammarPhase.LookaheadActions, false, value.states.length, 0); }
+    return error;
 }
 
 fn lr_states_lalr_closure_parallel_result(value: LRStates*, constructs: bool, anchor: void*): WorkBudgetError {

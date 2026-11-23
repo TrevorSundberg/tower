@@ -38,7 +38,7 @@ test('shared bedrock whitespace, comments and identifiers affect declarations an
     .replace('skip LineComment = /', 'skip LineComment = /#[^\\r\\n]*|');
   try {
     tower.configureBedrock(edited); tower.configure(foundation);
-    const source = 'parse~extra-rule~=~Number;\n# shared comment\nvar~player-name:~i32~=~42;print(~player-name);';
+    const source = 'import foundation;\nparse~extra-rule~=~Number;\n# shared comment\nvar~player-name:~i32~=~42;print(~player-name);';
     const result = inspect(source);
     assert.equal(result.end.status, 'done', result.end.error);
     assert.ok(result.snapshot.highlights.some(t => t.kind === 'comment' && source.slice(t.start, t.end) === '# shared comment'));
@@ -51,10 +51,10 @@ test('shared bedrock whitespace, comments and identifiers affect declarations an
 test('shared grammar rules can be referenced, extended and replaced without a reserved prefix', () => {
   for (const source of [
     "parse Statement = 'assignment' GrammarAssignment ';';assignment =;assignment |=;",
-    "parse GrammarSuffix |= '!';parse Value = Number;parse Statement = Value ';';42;",
-    "parse GrammarAssignment = '=' | '|=';parse Statement = Number ';';42;",
-    "parse __repeat0 = Number;parse Statement = __repeat0* ';';1 2;",
-    "parse `document(0)` = Number;parse Statement = `document(0)` ';';42;",
+    "import foundation;\nparse GrammarSuffix |= '!';parse Value = Number;parse Statement = Value ';';42;",
+    "import foundation;\nparse GrammarAssignment = '=' | '|=';parse Statement = Number ';';42;",
+    "import foundation;\nparse __repeat0 = Number;parse Statement = __repeat0* ';';1 2;",
+    "import foundation;\nparse `document(0)` = Number;parse Statement = `document(0)` ';';42;",
     "parse Statement = 'atom' GrammarAtom ';';atom 'literal';atom $name:Identifier;"
   ]) {
     const result = inspect(source);
@@ -63,19 +63,19 @@ test('shared grammar rules can be referenced, extended and replaced without a re
 });
 
 test('local overrides preserve inherited bindings in other sessions and canonical grammar names round trip', () => {
-  const pinned = tower.create('var x: i32 = 1;print(x);');
+  const pinned = tower.create('import foundation;\nvar x: i32 = 1;print(x);');
   try {
-    const source = "skip Whitespace = /[ ~\\t\\r\\n]+/;parse `rule name` = Number;parse Statement = `rule name` ';';";
+    const source = "import foundation;\nskip Whitespace = /[ ~\\t\\r\\n]+/;parse `rule name` = Number;parse Statement = `rule name` ';';";
     const result = inspect(source);
     assert.equal(result.end.status, 'done', result.end.error);
     assert.equal(inspect(result.formatted.source + '~42;').end.status, 'done');
-    assert.equal(inspect('~print(1);').end.status, 'error');
+    assert.equal(inspect('import foundation;\n~print(1);').end.status, 'error');
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
   } finally { tower.destroy(pinned); }
 });
 
 test('quoted capture names use shared Identifier decoding and survive template formatting', () => {
-  const source = "parse Value = Number;parse Statement = Value ';';" +
+  const source = "import foundation;\nparse Value = Number;parse Statement = Value ';';" +
     "parse Value |= 'keep' '(' $`captured value`:Number ')' => replace { $`captured value` };";
   const first = inspect(source);
   assert.equal(first.end.status, 'done', first.end.error);
@@ -116,7 +116,7 @@ test('foundation declaration formatting preserves grammar and is stable', () => 
 });
 
 test('formatting retains declaration order, replace versus extend, holes and comments', () => {
-  const source = "// before\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n" +
+  const source = "import foundation;\n// before\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n" +
     "parse Expression |= 'one' => replace { /* template */ 1 };\n" +
     "parse /* inside */ Expression = Identifier | Number;\n" +
     "parse Expression |= 'two' => replace { 2 };\n// after\n";
@@ -151,7 +151,7 @@ test('bedrock keyword edits affect following declarations, foundation and source
       if (line.startsWith('parse GrammarSkipDeclaration ')) skipSeen = true;
       return result;
     }).join('\n');
-  const pinned = tower.create('print(7);');
+  const pinned = tower.create('import foundation;\nprint(7);');
   try {
     tower.configureBedrock(edited);
     assert.equal(inspect(edited, 'bedrock').end.status, 'done');
@@ -159,14 +159,17 @@ test('bedrock keyword edits affect following declarations, foundation and source
     const adapted = foundationSyntax.replace(/^parse /gm, 'rule ').replace(/^((?:\[[^\]]+\]\s*)*)token /gm, '$1lex ').replace(/^((?:\[[^\]]+\]\s*)*)skip /gm, '$1ignore ');
     tower.configureModules({builtins:{foundation_syntax:adapted}});
     tower.configure(foundation);
-    const result = inspect("rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
+    const result = inspect("import foundation;\nrule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
     assert.equal(result.end.status, 'done', result.end.error);
     assert.ok(result.events.at(-1).nodes.some(node => node.label === 'CoreCall'));
-    const exec = tower.compile("rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
+    const exec = tower.compile("import foundation;\nrule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
     try { assert.equal(tower.execute(exec).output, '42\n'); } finally { tower.destroyExecution(exec); }
-    // The pinned session keeps its old declaration grammar even across reset.
-    tower.reset(pinned, "parse Extra = Number;print(7);");
-    assert.equal(runToEnd(tower, pinned).end.status, 'done');
+    // Reset rebuilds the owned module from the current explicit import inputs.
+    tower.reset(pinned, "import foundation;\nparse Extra = Number;print(7);");
+    assert.equal(runToEnd(tower, pinned).end.status, 'error');
+    tower.reset(pinned, "import foundation;\nrule Extra = Number;print(7);");
+    const reset = runToEnd(tower, pinned);
+    assert.equal(reset.end.status, 'done', reset.end.error);
     assert.notEqual(inspect(edited.replace(/^parse /gm, 'rule '), 'bedrock').end.status, 'done');
     assert.equal(tower.bedrockSeed(), seed);
   } finally { tower.destroy(pinned); restore(); }
@@ -176,7 +179,7 @@ test('bedrock name tokens affect its following grammar names and downstream sour
   const edited = bedrock.replace('[A-Za-z_][A-Za-z0-9_]*', '[A-Za-z_][A-Za-z0-9_-]*');
   try {
     tower.configureBedrock(edited); tower.configure(foundation);
-    assert.equal(inspect('parse extra-rule = Number;').end.status, 'done');
+    assert.equal(inspect('import foundation;\nparse extra-rule = Number;').end.status, 'done');
     assert.equal(inspect(edited + 'parse extra-rule = Identifier;', 'bedrock').end.status, 'done');
   } finally { restore(); }
 });
@@ -201,7 +204,8 @@ test('every file installs token, trivia and declaration-reader edits at the same
 test('bedrock installation is atomic, validates semantic captures and is idempotent', () => {
   const invalid = bedrock.replace('$name:Identifier', '$wrong:Identifier');
   assert.throws(() => tower.configureBedrock(invalid), /missing capture 'name'/);
-  assert.equal(inspect('print(1);').end.status, 'done');
+  const retained = inspect('import foundation;\nprint(1);');
+  assert.equal(retained.end.status, 'done', retained.end.error);
   const nodes = tower.exports.tw_live_nodes(), allocations = tower.exports.tw_live_allocations();
   tower.configureBedrock(bedrock); tower.configureBedrock(bedrock);
   assert.equal(tower.exports.tw_live_nodes(), nodes);
@@ -224,7 +228,8 @@ test('import grammar edits must preserve path segments, prefixes and declaration
     ['$name:ImportName','ImportName','name'],
   ]) {
     assert.throws(()=>tower.configureBedrock(bedrock.replaceAll(before,after)),new RegExp("preserve capture '"+capture+"'"));
-    assert.equal(inspect('print(1);').end.status,'done');
+    const retained = inspect('import foundation;\nprint(1);');
+    assert.equal(retained.end.status,'done',retained.end.error);
   }
 });
 
