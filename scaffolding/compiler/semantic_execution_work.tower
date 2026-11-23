@@ -147,7 +147,7 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if c.executable_functions == null { return SemanticPumpResult.Complete; }
     sem_control_names(c);
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticExecutable*) = default;
     defer vector_dispose(&batch);
     var query = convert(u32, SemanticQuery.ExecutableFunction);

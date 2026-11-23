@@ -75,19 +75,14 @@ fn im_node(node: void*): FoundationNode* {
 
 // Direct-mapped memoization of component lookup, scoped to an immutable checked
 // program. Collisions are checked with the full entity key, never trusted hashes.
+// ix_init admits and initializes this storage before any executable lookup.
 fn im_cached_node(m: IMState*, node: void*): FoundationNode* {
     var key = convert(u64, bits(usize, node));
     var hash = key / 16;
     var high = key / 4096;
     hash = hash ^ high;
-    hash = hash & 255;
+    hash &= convert(u64, m.node_cache.length - 1);
     var index = convert(usize, hash);
-    if m.node_cache.length == 0 {
-        im_storage_require(vector_reserve(&m.node_cache, 256));
-        var bytes = sizeof(IMEntry) *256;
-        fill(m.node_cache.data, 0, bytes);
-        m.node_cache.length = 256;
-    }
     var entry = &m.node_cache.data[index];
     if entry.key == key {
         return bits(FoundationNode*, convert(usize, entry.value));

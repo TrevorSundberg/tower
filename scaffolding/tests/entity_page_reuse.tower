@@ -1,0 +1,115 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+var ReuseLifecycle: usize = 1;
+var ReuseBudgetBytes: usize = 67108864;
+struct ReuseValue { target: Entity*; value: usize; }
+struct ReuseState { finalized: usize; }
+fn reuse_check(ok: bool): void { if !ok { trap("Stable stage page reuse regression", 0); } }
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    var state = bits(ReuseState*, entity_context(component.owner));
+    var value = bits(ReuseValue*, data);
+    reuse_check(lifecycle == ReuseLifecycle && value.target != null && value.value == component.owner.id);
+    state.finalized++;
+    entity_release(value.target);
+}
+fn reuse_add(owner: Entity*, kind: Entity*, target: Entity*, stage: EntityStage*): EntityComponent* {
+    var component = entity_component_add(owner, kind);
+    reuse_check(component != null && component.page != null);
+    *bits(ReuseValue*, component.data) = init(ReuseValue) {target: target, value: owner.id};
+    if stage == null { entity_retain(target); }
+    else { reuse_check(entity_stage_references(stage, &target, 1)); }
+    return component;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var store: EntityStore* = null;
+    reuse_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var state: ReuseState = default;
+    reuse_check(entity_store_set_context(store, bits(void*, &state)));
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    var extra = entity_create(store);
+    var target = entity_create(store);
+    var stable = entity_create(store);
+    reuse_check(root != null && kind != null && extra != null && target != null && stable != null
+        && entity_register(kind, sizeof(ReuseValue), alignof(ReuseValue), ReuseLifecycle)
+        && entity_register(extra, sizeof(usize), alignof(usize), 0)
+        && entity_attach(stable, root, null));
+    entity_release(stable);
+    var original = reuse_add(stable, kind, target, null);
+    var original_data = original.data;
+    var first = entity_stage_open(root);
+    var second = entity_stage_open(root);
+    reuse_check(first != null && second != null && entity_stage_lease(first, stable));
+    var attached = entity_component_add(stable, extra);
+    reuse_check(attached != null);
+    *bits(usize*, attached.data) = 456;
+    var a = reuse_add(entity_stage_create(first, root), kind, target, first);
+    var b = reuse_add(entity_stage_create(second, root), kind, target, second);
+    var count = a.page.capacity + 1;
+    reuse_check(b.page.capacity == a.page.capacity);
+    var nodes = alloc(Entity*, count);
+    var components = alloc(EntityComponent*, count);
+    reuse_check(nodes != null && components != null);
+    defer free(nodes); defer free(components);
+    nodes[0] = a.owner;
+    components[0] = a;
+    var last_b = b;
+    for(var i: usize = 1; i < count; i++) {
+        nodes[i] = entity_stage_create(first, root);
+        components[i] = reuse_add(nodes[i], kind, target, first);
+        last_b = reuse_add(entity_stage_create(second, root), kind, target, second);
+    }
+    var private_bytes = compiler_buffer_allocation_size(b.page.allocation.capacity)
+        + compiler_buffer_allocation_size(last_b.page.allocation.capacity);
+    var view = entity_view_open(root);
+    reuse_check(view != null && kind.instance_count == 1);
+    entity_stage_hold(first);
+    entity_stage_hold(second);
+    entity_view_close(view);
+    reuse_check(entity_stage_publish(first) && stable.stage == null && stable.storage == null
+        && entity_component_get(stable, kind) == original && original.data == original_data
+        && *bits(usize*, entity_component_get(stable, extra).data) == 456
+        && a.page.pool == null && components[count - 1].page.pool == &store.storage
+        && b.page.pool == null && last_b.page.pool == &second.storage);
+    // Publication assigns identities; payloads remain at their original addresses.
+    for(var i: usize = 0; i < count; i++) {
+        reuse_check(entity_component_get(nodes[i], kind) == components[i]);
+        bits(ReuseValue*, components[i].data).value = nodes[i].id;
+    }
+    var generation = budget.generation;
+    var live_bytes = budget.used_bytes;
+    var probe = entity_create(store);
+    reuse_check(probe != null);
+    var reused = reuse_add(probe, kind, target, null);
+    reuse_check(reused.page == components[count - 1].page && budget.generation == generation
+        && budget.used_bytes == live_bytes && last_b.page.pool == &second.storage);
+    var address = a.data;
+    reuse_check(entity_component_remove(nodes[0], kind));
+    var replacement = reuse_add(nodes[0], kind, target, null);
+    reuse_check(replacement == a && replacement.data == address && budget.generation == generation
+        && budget.used_bytes == live_bytes && components[1].owner == nodes[1]);
+    // The other stage still owns its own full and partial pages. Discard must
+    // release those grants without touching published survivors or pool links.
+    entity_stage_discard(second);
+    reuse_check(budget.used_bytes == live_bytes - private_bytes && state.finalized == count + 1
+        && kind.instance_count == count + 2 && original.data == original_data
+        && components[count - 1].page.pool == &store.storage);
+    entity_release(probe);
+    entity_release(root);
+    reuse_check(state.finalized == count * 2 + 3 && target.references == 1);
+    entity_release(target);
+    entity_release(kind);
+    entity_release(extra);
+    reuse_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    print(0);
+    return 0;
+}

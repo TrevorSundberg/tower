@@ -663,3 +663,35 @@ record serial/parallel wall/CPU/RSS plus physical retention; see the journal for
 sample limits and small observed timing changes. Full joined sanitizers and the
 new IDE reactor cases remain pending. New ROOT556/B13992 and future producer fixes
 are separate owner checkpoints; earlier receipts do not validate that later union.
+
+### ROOT35127448 follow-up review
+
+This complete source union retains all B2 changes and newer owner implementations.
+Native query/editor and calibrated backend overlap pass; matching ASan/LSan checks
+also pass for constructor allocation, both editor transports, backend API and actual
+frontend/backend overlap. Current thread instrumentation is still pending. These
+checks do not waive the measured-peak-minus-one Capacity regression: A1's concrete
+trace places its Memory misclassification in parser replacement preparation before
+semantic_compile, correcting the earlier inferred semantic-producer attribution.
+
+| Paths | Current finding and next owned action |
+| --- | --- |
+| backend/text.tower; backend/foreign_symbol.tower | Unchecked text reserve can return an incomplete plain or wrapped symbol as success. Reproduce with the existing serial foreign tool fixture before changing the output boundary. |
+| backend/foreign_reader.tower | Error text allocation is not a durable failure receipt. Allocation ownership-vector insertion can leak, and node/clone callers need complete null propagation. These source findings need actual per-allocation denial evidence. |
+| backend/foreign_itanium.tower; backend/foreign_microsoft.tower; backend/foreign_declarators.tower; backend/foreign_operators.tower | Derived substitution keys, operator names and decoration append through the same unchecked helper. Preserve target-specific bytes and first failure; no successful fallback may silently change ABI spelling. |
+| tests/foreign_tool_checks.tower; docs/foreign_tool_checks.md | Existing actual tool entry/runtime binder and serial fault allocator can host the new regression. A proposed extra generic frontend selector was withdrawn after this caller audit. |
+| backend/wasm_link_world.tower; backend/elf_link_world.tower; backend/pe_link_world.tower; backend/macho_world.tower | All four standalone stores use legacy unbounded construction. A borrowed shared ledger must be supplied before allocation; preserve an explicit legacy null boundary rather than invent a host memory cap. |
+| backend/wasm_link_jobs.tower; backend/elf_link_jobs.tower; backend/pe_link_jobs.tower; backend/macho_jobs.tower | Pools and graph storage remain unbudgeted. Worker counts/output guest caps do not bound host memory or coordinate outer/nested lane admission. Existing shared pool/graph/budget APIs should carry the contract; private scratch/raw vectors remain separately measurable gaps. |
+| backend/linker_tower_wasm.tower; backend/link_types.tower | Backend adapter currently constructs a standalone link without session ledger ownership. The caller contract and lifetime must precede CLI adoption; D2 owns its tool entry. No new parallel framework or global budget is proposed. |
+
+The linker rows are findings/proposed follow-up, not implementation or full memory
+coverage. Cancellation drain evidence validates that exact repair only. Production
+inputs stay frozen through current instrumentation; todo and owner boundaries are
+preserved. Full acceptance and publication remain open.
+
+The matching ROOT351 TSan query/editor/backend API and calibrated overlap checks
+now also pass, with all children drained. Exact binary identities, WSL host limits,
+observed times and unsupported coverage are in the journal and exported receipts.
+The new standalone foreign fault fixture is unvalidated and the regexdce successor
+is only fetched. These scoped passes do not close the required parser Capacity
+failure, new IDE reactor, remaining accounting contracts or integrated release.

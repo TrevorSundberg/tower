@@ -1126,3 +1126,35 @@ payloads, physical charges and last-live cleanup. Fault cases use the existing
 single-owner allocator and serial transport; their rollback coverage is separate
 from real concurrency. The deliberate compile-negative
 `work_view_invalid_dispose.tower` is not an executable target.
+
+The same factories register typed stage/view admission and publication rollback:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-entity-stage-result-tests tower-entity-stage-result-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-entity-stage-result(-faults)?-tests$'
+```
+
+The normal fixture checks exact admission causes, queued reference ownership,
+stable payloads, publication retry and finalizer cleanup. The fault fixture
+denies serial allocation prefixes and checks rollback before a successful retry.
+Both import their entities and memory providers; no second provider is linked.
+Real worker publication/cancellation coverage remains in
+`tower-entity-stage-concurrent-tests`. Supported address/thread instrumentation
+uses the same targets; the fault allocator remains single-owner.
+
+Dependency-producer failure checks use the same production compiler providers:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-query-failure-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-query-failure-(constructor|body|declaration)$'
+```
+
+Each selector covers 32/64-bit targets and workers1/4. Constructor and body cases
+prove actual interpreter suspension before denied producer admission, then require
+joined peer cleanup without publication or replay. The declaration case rejects
+false idle progress after failed admission. Capacity derives from the live graph
+and shared budget; final ownership must return to zero. The unchanged fixture
+runs with production allocation and supported address/thread instrumentation.
