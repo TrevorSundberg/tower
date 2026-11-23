@@ -74,6 +74,9 @@ diagnostic cost, not an overlap or browser-memory claim. The source tests includ
 bound primitive spelling with lexical shadowing and nominal return reconstruction;
 `backend_import_constants` checks exact escaped string bytes/terminator and enum
 results. Import admission trials include actual interior-NUL byte initializers.
+`backend_void_returns` covers direct/exported and callback pointer results across
+call boundaries, nulls, deeper pointers, store/read/free and true-void effects;
+the source-service tests also require retained result assignments after import.
 
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
