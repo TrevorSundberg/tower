@@ -96026,3 +96026,6 @@ Before/after manifests identical; unchanged retained-native-handle OS transport.
 phase costs and raw A1/compiler_entities_a06_05e90f72 logs. No Wasm-capacity or
 global-owner census inferred from RSS; no throughput claim. ROOT retains fullT2/
 release, L1/D1 the earlier optimized failure. Todo preserved; normal publication.
+Final integration: complete b1d5d314 history merged after routine ff-only refusal;
+all eight reviewed blobs and immediate ownership/host callees still match6e8001fd.
+Source evidence reused unchanged; unrelated new runtime receipts are not this review.
