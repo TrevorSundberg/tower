@@ -1248,3 +1248,13 @@ It uses ordinary source initialization; native `SOURCE` objects explicitly selec
 object emission. The manual capacity profile and argument oracle require the
 actual allowed capacity and are not default tests. Tests that deliberately require
 four physical worker slots need at least four allowed CPUs; preserve those oracles.
+
+`entity_attach_leases.tower` includes replacement/removal of leased children.
+`entity_mutation_results.tower` additionally checks exact invalid, pinned/leased,
+retain-overflow, empty-parent and successful ownership-transfer results. Valid
+replacement/removal must succeed with the next allocation denied and leave the
+allocation count unchanged. `entity_child_transfer_profile.tower` measures the
+same valid replace/take/reattach sequence for small/large iteration counts, checks
+ordered identity/reference counts and final disposal, and is a measurement tool
+rather than a default test. Shared containment publication is serial; this
+microbenchmark does not claim worker scaling or total-heap accounting.
