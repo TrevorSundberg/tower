@@ -59667,7 +59667,7 @@ B2's own closure passes actual full-cache read/write denial and ordinary editor,
 query and cancellation checks. Its 28 paired profile processes preserve canonical
 outputs, counts and retained accounting; two pairs do not establish a speedup.
 These receipts keep their original source identities. The combined caller and
-blackbox inspection-denial checks are still running on the local owners; no final
+blackbox inspection-denial checks are queued with the local owners; no final
 merged runtime, sanitizer or publication acceptance is inferred from a merge.
 
 The old L1 TSan closure passes query, units and the independently instrumented
@@ -59687,4 +59687,3 @@ D2 review, not yet an accepted native/WASI provider. Constructor/page/payload
 accounting, checked dispatch and interpreter frame/task ownership remain active
 owner work. Final clean bootstrap/browser builds, scaling, sanitizers and atomic
 main/Pages publication are still required.
-
