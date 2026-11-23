@@ -66379,6 +66379,133 @@ the complete67669 history is ready but not yet in this root union. D1's current
 phase-fixture public leaves and native compiler pass; paired24-case and successor
 instrumentation remain pending. Full objective and publication remain open.
 
+B1 coordinator join 2026-11-23T07:53:13.2661828Z : merged complete verified root72a onto66f985.
+Only manual conflicts were entity imports and adjacent test README additions:
+kept root's WorkBuffer imports and both test descriptions. entities/entity_api
+now exactly match root72a, so the original A2 per-call API and constructor history
+is preserved. B1 world-type helper, grammar/completion/stream layouts and tests
+remain identical to66f985. The journal auto-merge retains every nonblank line from
+both parents (UTF-8 exact ordinal comparison: zero missing from either parent).
+Root adds the selected scheduler/store constructors, context snapshot helper,
+B2 inspection/backend ordering and D2 standalone allocator providers. It does not
+contain A1's new semantic receipt ABI, L1 frames or B2's new world constructor;
+those remain owner drafts. No private prototype or unpublished syntax adopted.
+Merged source is not yet validated: rebuild native affected closure, run focused
+parser/resource/query/editor/cache/units, then documented public WASI+IDE checks.
+Earlier66f985 profiles/sanitizers stay scoped to that immutable source, with the
+new union requiring its own applicable checks before final publication.
+B1 merged native evidence 2026-11-23T07:54:51.5502011Z : main38ca7a335e38b895412d046a6343b4a59d936616,
+tree97600afede337b5e9eb68659a9de99b2388a4222. Public-bootstrap affected26-step
+native build43.71wall/115.57user/17.06system,771980KiB passed. Parser0.04s/54240,
+grammar-resource1.34s/52912, query0.11s/60728, editor10.86s/948236,
+module-cache0.06s/54488 and nativeunits19.36s/918868 all exit0; actualmixedjobs,
+nestedbudgets, deterministic output/failures and cancellation oracles retained.
+Editor includes root's added physical-denial inspection fixture, so its duration
+is not comparable to the older66 paired editor workload. No new performanceclaim.
+All children drained. Starting documented WASI build with public pin, SDK34,
+IDE_TESTS=ON, jobs4 in ownedbuild/browser-wasi; no privateoverride orcapchange.
+File-level next audit: syntax_revision_declare still has untyped overlay/diagnostic
+failure; syntax_reader has a storage-only syntax_reader_ok failure path and typed
+receipt can be introduced without classifying text. syntax_session_next early
+read/declaration and error-byte helpers remain untyped/abort on diagnostic copying.
+Pattern chain crosses B2 frontend_world/frontend_pattern/frontend_table and B1
+regex_lowering; requires coordinated producer result before session adoption.
+B1 merged WASI evidence 2026-11-23T07:57:24.8153966Z : documented default public-bootstrap build passed
+50.31wall/102.22user/15.01system,848328KiB (28 affected steps, SDK34, jobs4,
+IDE_TESTS=ON). Reactor SHA12a932a792eba43698f1a23ddbcd45d1771f3f6ee3cdd55f5546062505f4a984.
+Existing Tower IDE assertions passed, Node runner exit0/27.5919543s. Eight raw
+portable fixture observations completed exit0/1.7512887s: comptime_capture executes,
+and inference_alias_invalid/decltype_aggregate_operator/aggregate_inferred_copy
+produce their expected distinct errors at offsets146/95/103 for both4/8-byte
+pointer targets. Observation transport reports values, not an independent oracle.
+No browser sanitizer, all-core browser scaling or hosted publication claim.
+Currentroot adds shared graph/store ownership, so a matching scoped native
+ASan/LSan and TSan rebuild/run will precede the next source edits. Earlier66
+instrumentation remains separately identified; no relabeling old checks.
+B1 merged instrumentation checkpoint (2026-11-23T08:02:44.5929691Z).
+On source38ca7a33, ASan/LSan build passed in85.13s wall,203.58s user,
+28.13s system and770304KiB peak RSS. Parser passed0.27s/148696KiB,
+grammar resource cases11.72s/662600KiB, editor81.48s/1191280KiB and
+three-unit/four-worker profile9.83s/1118212KiB. The profile observed three
+simultaneous units and canonical hash1173729914654460811. No findings with
+ASAN_OPTIONS=detect_leaks=1:abort_on_error=1. The editor now includes root's
+physical denial case, so compare neither its wall time nor CPU directly to66.
+Matching TSan build passed57.75s wall,145.13s user,21.70s system,771172KiB.
+All build/ASan children drained before the B2 quiet grant at08:01:58 UTC
+(use the exact grant timestamp in status). TSan runtime remains pending.
+
+Read-only follow-on audit found that syntax_session_error and its byte variant
+abort on diagnostic-copy denial. syntax_baseline_install and syntax_format_into
+then gate publication by error.length alone. A nonallocating session diagnostic
+must be accompanied by resource-aware checks at these consumers; replacing only
+the setter would be incomplete. syntax_session_next also has explicit allocation
+aborts for comments and declaration-index storage. Preserve the first existing
+WorkBudgetError, stop before publication, retain ordinary source diagnostics,
+and dispose every private parse tree on failure. Pattern compilation remains a
+separate cross-owner result chain; B2 has the concrete proposal. No new production
+changes are made while the current merged sanitizer closure remains frozen.
+B1 merged TSan runtime passed (2026-11-23T08:06:52.0203006Z). All five children drained with exit0:
+parser0.353s, grammar-resource19.618s, query1.123s, and two three-unit/four-worker
+runs24.649/25.038s wall,77.767/79.655s processCPU,1428860/1435684KiB peak RSS.
+Both observed outer_peak3 and canonical1173729914654460811 with identical
+entities/components/retained bytes. No findings with halt_on_error=1, same
+bounded180second cases, supported isolated container configuration. No UBSan or
+browser instrumentation capability has been added. Root38 sharedownership now
+has matching native focused, ASan/LSan, TSan and public WASI/IDE evidence.
+A final current parser-only reader/emission run is queued after its rebuild;
+the existing bounded lifecycle0..1 selector will localize the earlier fullfrontend
+300second timeout without changing that deadline or claiming the fullsuite passed.
+Source remains frozen. B2 quiet grant was consumed by its original watcher and
+released08:03:14.8326980+00:00 after four successful children; no duplicate watcher.
+B1 frozen38 closure completed (2026-11-23T08:08:38.6094171Z). Parser-only affected build passed32.99s
+wall/83.52s user/11.94s system,770400KiB. Existing independent reader oracle
+(1000 byte fixtures, exact trees/errors, malformed spans and failure cleanup)
+passed0.20s/50096KiB; emission's400 generated/template/failure cases passed
+0.30s/5540KiB. Existing lifecycle cases0 and1 both passed32/64-bit and1/4-worker
+checks, including valid Foundation reconstruction and deterministic failure, in
+8.67s wall/8.86s user/.54s system,224212KiB under the unchanged60second case bound.
+This rules out an immediate stall in those first two cases on38; it does not
+explain or erase the earlier fullfrontend300s timeout. The full lifecycle has42
+cases, two target widths, two worker budgets and additional valid serial round
+trips before the rest of body_runs begins. No fullsuite acceptance claim.
+All children drained. Current C free134619910144bytes; todo remains untouched.
+
+New root75fdf0bf receipt/pages union arrived only after this freeze completed.
+Its semantic receipt/frame/page ownership changes have not been adopted or tested
+here. Keep these38 native/sanitizer/WASI receipts immutable, publish their complete
+history to the coordinator, then review/adopt the next coherent owner history
+before using the new component-result API in declaration work. Do not rerun these
+unchanged38 matrices or copy only new getters. Final release/publication remains
+open and no publication lease has been granted.
+This commit only records already-completed checks and findings; runtime inputs
+are exactly source38ca7a33, so no new runtime performance measurement is applicable
+to the documentation delta itself.
+### D1 registers the reviewed entity result fixtures after complete owner join
+
+Merged full ROOT72a218b8 provider history into7f84 as a7c569cc after all owned jobs
+drained. Preserved source/journal history; no conflict. New entity result APIs,
+B2 foreign-name ordering fix and D2 two tool provider imports are accepted owner
+source, not a D1 merged-runtime pass. Tracked census becomes1,095/509direct with
+both new entity fixture bodies reviewed in full; no missing residual paths.
+
+Root explicitly assigned durable normal/fault registrations, and D2 was notified
+before the exact manifest edits. Added entity_create_result to the existing
+TowerWorkTests factory and entity_create_faults to the existing fault loop in
+TowerWorkPolicyTests. Both declaration-only clients link one shared compiled
+library/entities object and existing host_memory once. Normal uses guest-work
+production allocation; fault uses policy_runtime and forced serial transport.
+No new runner, allocator or generated Tower adapter. Their original entry/main,
+assertions, legitimate finite-ID input and failure/retry sequence are unchanged.
+README records focused build/CTest commands and serial coverage limits.
+
+These registrations are implemented but UNBUILT/UNRUN while D2 owns the next
+shared heavy slot. No prior named target existed, so earlier owner standalone
+runs remain separately attributed; they do not establish current CMake linkage
+or fixture execution. Pending checks: smallest declaration clients/provider,
+actual normal/fault target and exact allocator symbols/transport, measured
+runtime/retention, and supported positive instrumentation. A1's semantic fixture
+registration awaits complete authoritative producer/entry exports; no partial
+SemanticProgram layout was installed.
 ### D2 same-session resume and scoped policy preparation (2026-11-23)
 
 At actual07:36:57UTC, resumed thread01a2046a-45eb-7452-8fb0-6d924bb320a6,
@@ -67495,6 +67622,121 @@ ordinary malformedNone, retry and lifetime assertions are now executed evidence.
 Declaration tests use the existing frontend_syntax_version world/revision setup;
 no edits to tests/frontend_revision or other B2-owned fixtures.
 
+Frozen after frontend762d758b74f4f1daa529270d3650be2b3eaedfb4260079a6dfe0cda59ff7ded4,
+editor e636445fde8060e17abad76c9c20e04578440fd32e8f277826b6b10893345860; before
+hashes/resources remain ff917 as recorded. Ready20-process alternating comparison
+uses identical3-unit inputs,1/4workers,0/4096bodies and two samples plus four
+editor processes. Fresh180second quiet request sent; watcher68261 active600seconds,
+starts only a fresh grant and releases automatically after child drain. No heavy
+B1 job while waiting. No paired-performance result or current sanitizer/WASI pass
+yet. Fullfrontend300s timeout and finalpublication acceptance remain open.B1 measured declaration profile (2026-11-23T08:38:22.1414466Z), frozen beforeff917/after10paths:
+16 frontend JSON results preserve exact canonical hashes, entities/components and
+retained bytes. Wall/CPU mean ms before->after, n2 each: small/1 3478.48/3273.95
+->3495.91/3293.69; large/1 4538.26/4336.96->4550.84/4351.98;
+small/4 1368.59/4065.79->1368.49/4088.95; large/4 2224.56/5418.18
+->2218.27/5476.80. Actual outer_peak3 for4workers,1 forserial. No speedup or
+established timing regression claimed with n2 overlapping wall ranges. RSSKiB
+serial small197452-198072->197716-198176, large678492-678568->678524-678536;
+parallel small457852-464400->459832-464636, large935164-936148->936528-942848.
+Retained small serial5681405/parallel5672165 and large6028455/6019215 identical;
+ledger storage5242880/20971520 identical; parallel peak grants vary slightly with
+scheduling (small before175792149-175935589, after175925093), not retained growth.
+Editor actual binary is tower-lr-work-tests with editor selector, including mixed
+1/6worker inspection/cancel plus generic budget denial/recovery at4/8widths x1/4.
+All assertions passed; wall11.13,11.14->11.04,11.10s and totalCPU17.06,17.18->
+16.95,17.08s. PeakRSS864792,966556->933016,1024816KiB: +6.9% mean with overlapping
+wide ranges; NOT claiming unchanged editor memory. Source review finds no new
+success-path heap owners: reader receipt is local scratch, declaration wrappers
+forward existing allocations, comments/index allocations unchanged. Existing
+budget/world cleanup assertions pass; this does not alone explain RSS variation.
+Plan bounded four more alternating pairs on these same frozen binaries/resources
+after sanitizer jobs drain and fresh quiet grant; no fixture or allocator change.
+ASan current31stepbuild85.31s/775392KiB, parser and grammar-resource passed;
+editor still live, so no complete sanitizer pass yet. Parser-only instrumentation
+is unsupported by checked CMake profile (requires TOWER_NATIVE, which selects
+native target branch); new independent reader oracle ran native unsanitized,
+while production reader paths run through instrumented frontend parser/resource.
+No new build-profile workaround or shared CMake edit; coverage gap explicit.B1 declaration sanitizer completion 2026-11-23T08:42:08.6528594Z: ASan/LSan36572 exited0 after31step
+build85.31s/775392KiB, parser0.28s/148448KiB, grammar-resource11.87s/660756KiB,
+frontend editor99.17s/945732KiB and real3unit/4worker outer9.81s/1118512KiB.
+No reports. This editor command is frontend-tests editor (explicit-world/completion
+plus mixed units), distinct from the frozen LR editor performance selector.
+TSan15773 exited0 after31stepbuild49.91s/775456KiB; parser0.345s, resource20.471s,
+query1.161s, two outer25.464/25.534s with actualpeak3, canonical1173729914654460811,
+entities48240/components55014. No reports. Supported ephemeral container uses
+sameimage, no network, seccompunconfined, CPU0-11/RAM24GiB, halt_on_error=1 and
+unchanged180s bound per case. Allocation-fault tests are serial, not race proof.
+No standaloneUBSan/browser/systemLLVM instrumentation claim; independent parser
+runner instrumentation gap recorded. Source remains frozen. Next lifecycle0..1
+then documented public-bootstrap WASI/IDE, then additional bounded quiet editor
+RSS pairs before final source/evidence export. No publication lease, fullfrontend
+prior300s timeout remains open. Future build outer parallelism3 x compilerjobs4
+bounds nominal compiler lanes to12 as well as existing hard cpuset12; this changes
+build orchestration only, not the already completed runtime comparison inputs.B1 portable/lifecycle completion 2026-11-23T08:44:41.7834598Z: actual50913/71960 both exit0/drained.
+Current native lifecycle0..1 covers Foundation reconstruction and failed work at
+32/64bit x1/4workers,8.89s/218016KiB. Documentedpublic WASI9stepbuild38.60s/
+857140KiB with outer3/compiler4, no bootstrap override. ReactorSHA
+9b3a8f3ceaa28d096426d171062930cd1743b693bbf34509e695fdec6e99256b.
+Tower IDE session/completion/hover/lifetime assertions PASS27.1537397s. Existing
+transport observations1.750243s: capture fixture succeeds; three independent
+negative fixtures report offsets146/95/103 identically across pointer widths4/8.
+These raw transport observations are not a new independent semantic oracle.
+Currentdraft code paths remain the same10Tower files; docs only updated during
+frozen validation. Owned12path diffcheck clean; todo unchanged e97d67a6...
+Native/sanitizer/WASI jobs all drained before new watcher88074 requested fresh
+NEW120second editor memory slot. It owns8same-input native processes, waits600s,
+starts only a fresh B2 grant and autoreleases after drain. No heavy B1 job while
+waiting. Need inspect that bounded memory follow-up before committing/exporting;
+all current gates are source-specific, no wholecompiler/release acceptance.B1 additional file-level admission findings 2026-11-23T08:46:14.1923940Z, read-only during frozen
+editor profile: compiler/parser_workers.tower: parser_workers_open opens retained
+world pool through work_pool_open, so physical slot storage still has null budget;
+parser_admission_open reserves actual extra lanes but drops WorkBudgetError to
+bool. This is distinct from A1's nested semantic pool and is B1-owned follow-on.
+compiler/lr_first_work.tower uses private FIRST/result/frontier storage but raw
+alloc/vector buffers and bool producer outcomes; entity/register/view/graph setup
+failure can differ from allocation. compiler/lr_state_work.tower likewise drops
+admission/type/component/graph results while preserving deterministic interning
+and drain ordering. compiler/lr_work.tower has corresponding LALR closure/link/
+propagation/action scratch and bool outcomes. Need exact results through these
+producers, then B2 table adapters; no blanket Memory classification. Shared page
+accounting alone does not account these remaining derived buffers or pool slots.
+compiler/regex_lowering.tower has raw owner plus five borrowed-entity work vectors;
+compiler/automaton.tower has explicit allocation/error codes that distinguish NFA/
+DFA semantic limits from actual storage failure. compiler/lexer_table.tower has
+raw owner/alphabet/transitions/accepting buffers, though SymbolSequence is already
+budgeted. Existing APIs validate table shape before allocation, so false cannot
+be blanket Memory. These records extend earlier census rows without claiming new
+implementation or changing current profile inputs. Full memory acceptance remains
+open. B2 accepted proposed regex per-call contract; complete production/test/public
+compiler history will precede consumer adoption.B1 declaration final checkpoint review 2026-11-23T08:47:43.3021348Z: editor memory watcher88074
+consumed fresh08:45:20.8229128Z grant and released08:46:50.6735643Z; all8new
+processes exited0, no overlapping B1 heavy job/source edits. Combined n6 each,
+RSSKiB mean929134.67->936888.67(+0.83%), median931014->921152(-1.06%), ranges
+864792-992044->873032-1024816. The original n2 +6.9% increase did not persist
+consistently; no established memory regression or memory improvement from these
+variable native runs. Checked outputs and exact budget/world cleanup unchanged.
+Wallmean11.2217->11.0883s, CPUmean17.2967->17.0800s; no speedup claim. All raw
+samples and original n2 observation retained. This bounded investigation closes
+that specific performance question without changing allocator or fixture policy.
+
+Final changed production files: syntax_reader exact per-call resource results;
+syntax_revision exact declaration/diagnostic/overlay outcomes; syntax_scan and
+syntax_emission consume A2 component admission; syntax_session_setup keeps first
+resource cause/concrete error with static fallback; syntax_session_next propagates
+reader/declaration/comment/index failures; syntax_session_format rejects typed
+failures before output publication. Existing syntax_reader oracle/fault/pin tests,
+frontend_syntax_version declaration tests and parser_table_budget denied diagnostic
+and formatting fixture cover those contracts. All new/changed project logic is
+Tower. True fixture limits are named; collection/allocation counts derive from
+actual inputs, and raw spans retain explicit lengths. No new syntax adoption.
+Remaining reset/open, legacy attach/highlight/module-record, pattern and LR memory
+paths are documented above; no fullresource/wholecompiler acceptance. Current
+public-bootstrap native leaves+focused/fullownedparser suites+paired profiles+
+ASanLSan+TSan+WASIIDE/lifecycle pass, with unsupported and unrun coverage explicit.
+Ready to commit this complete producer/consumer/test slice and export full main
+history (root75 plus prior B1 checkpoints), not signatures alone. Publication is
+still unleased; earlier fullfrontend300s timeout remains open. No push or hosted
+verification claimed. Documentation-only evidence additions have no runtime cost.
 New root75fdf0bf receipt/pages union arrived only after this freeze completed.
 Its semantic receipt/frame/page ownership changes have not been adopted or tested
 here. Keep these38 native/sanitizer/WASI receipts immutable, publish their complete
@@ -69183,3 +69425,133 @@ profiles retain exact outputs/canonical identities/retention; small wall changes
 Joined supported sanitizers and current IDE reactor remain pending. Root union
 not built while other local lanes own their slots. Diff check passes. Final clean
 bootstrap/browser/generation/scaling/memory/race/publication work stays open.
+clearance. L2 editor memory analysis and full-source acceptance remain open.B1 merged29f44135 native checkpoint 2026-11-23T08:54:00.6777976Z: corrected smallestentities object
+5.16s/312044KiB and coherent native build28.32s/777768KiB PASS. Parser0.04s,
+grammar-resource1.32s, query0.25s (now includes fixed receipts/canonical failure
+order), new24phase resource cases across4/8bytes x1/4workers PASS. Units19.10s/
+866396KiB, LR editor10.81s/883160KiB PASS. All96201 children drained0. No full
+mergedmatrix or sanitizer/browser pass claimed for29; prior3992 remainsimmutable.
+New regex-result baseline starts from exact29, refreshing existing parser-only
+runner and running unchanged regex/lexer suites before editing. Planned counted
+result API preserves old wrapper, exact Memory versus semantic None, and derives
+allocation-fault sweep bound from actual successful calls. No B2 frontend edit.
+B1 regex counted-result draft 2026-11-23T08:58:54.7456204Z, base29f44135, twoTowerpaths+docs. Baseline
+parserbuild21.90s/776860KiB; unchanged regex300generated/500arbitrary0.02s PASS.
+Initial extra command used unsupported selector lexer and exited1, no hiddenpass;
+correct existing lexicon selector thenpassed165inputs/alloffsets/sixcontexts.
+Frozen before frontend3cbaec3acb4a6902fdce6cac9838dd17fb466b75644f7d7e8f43d6e5212e6124,
+editor19fbf0f1a2b5957d975b75ccefcf53060ffe892a3a1c3212e30f73d3c211a1b2,
+exact29resources under /cache/parser_memory_profile/regex_results_29f44135.
+Production regex result keeps explicit countedbytes, checks parse spans, forwards
+actualallocation Memory, ordinarysemantic None, invalid metadata Invalid. Legacy
+wrapper derives rootspan length includingNUL. NegativeNFAstate range rejection
+is no longer guessed asallocation; firstcause preserved. Public productionleaf
+PASS. Existingfaultfixture bound now derives actual successfulallocation count;
+new countedNUL, truncatedspan, nullable/reversed/Unicode semantic tests extend
+existing runner. First testleaf failed1 because expected is a reserved grammar
+word; renamed detail_text, preserved log, allchildren drained before edit. Readonly
+providerreview also showed legacy wrapper must guard nullroot before componentget;
+fixed before retry. Currentleaf+parser+regex+lexicon retryrunning, not yet passed.
+B1 regex first checks and additional classification review 2026-11-23T09:01:55.9728649Z: sourceleaf
+and testleaf retry passed, existing regex300/500 and contextuallexer165/alloffsets
+passed including newcountedNUL/shortspan/semantic/fault assertions. Before broad
+checks, found lex_table_set_alphabet returns false for prepopulatedtable, which
+would still surface allocation code2; newresult now rejects nonempty rows as
+Invalid beforeallocating and tests preserve existingtable acceptance. Escape
+prefix/suffix extents now named grammar-contract constants. Current twoowned
+Towerfiles final draft frozen for99783: publicleaf, parserregex/lexicon/live/emission,
+coherentnative/parser/resource/query/units/editor. No currentpass until actualdrain.
+B1 regex native milestone 2026-11-23T09:07:06.1187445Z: all99783 children exit0. Final publicleaf
+2.13s/235108KiB, parserbuild20.52s/750548KiB, nativebuild19.39s/749408KiB.
+Regex0.02s/3936KiB, lexicon0.01s/2400KiB, live0.42s/47520KiB, emission0.31s/5260KiB,
+parser0.04s/54000KiB, grammarresource1.31s/52592KiB, query0.22s/87972KiB,
+units18.75s/818112KiB and LR editor10.81s/978896KiB allPASS. These are validation
+runtimes, not matchedperformance claims. Frozen after frontend
+1f81b228b6bb793b66062a11881f653697e2f95bfa71f099745406c6d9e8de45,
+editor95faa425d8cc6915c3715b4876e1630e84ec2ee868351923e847a007e245b1b9.
+Original before/resources remain29f44135 as recorded. Currentwatcher47404 requested
+fresh180secondslot09:04:10.9408652Z; B2 earlier90secondgrant09:03:27.1443882Z was
+honored and released09:04:19.0355184Z. No B1heavyjob while awaiting freshgrant,
+no prematureperformancepass or secondwatcher. Sharedfrontend_main regex selector
+coordination remainspending; no unauthorized harness mutation.
+
+Next pool review while frozen: compiler_world_bind_budget already rejects any
+existing worker.slots and registered/entities, so valid worlds cannot rebind after
+pool creation. Preserve that frozenowner contract; do NOT add silent rebinding.
+parser_workers can use existing work_pool_open_budget with world ledger and copy
+its exact per-call pool.resource_error under the existing exclusive lease; default
+nonworld pool stays explicitnull. parser_admission currently discards reserve
+outcome and needs a typed result wrapper. Existing tests/lr_work lifetime covers
+busy rejection, independent worlds, real closure drain and retained threadreuse.
+tests/lr_budget final live1/bytes0 currently assumes uncharged retainedpool; after
+real binding it must account exact pool.storage reservation whilelive and still
+requirezero through world teardown/work_budget_dispose. Add actual Capacity
+pooldenial/retry against measured physicalslot allocation, not an arbitrary cap.
+These are reviewed plans only; no pool code changed during regex freeze.
+B1 regex paired receipt 2026-11-23T09:16:42.5856723Z: originalwatcher47404 consumed ROOT-issued
+legacytoken09:12:32.4444978Z, started09:12:32.5447025Z and autoreleased09:14:07.2713054Z.
+All20processes exit0; no late/duplicate job, frozen binaries/resources identical.
+The reused shell's final stdout still says declaration; exactscript/root/logs and
+binaryhashes identify the regex comparison, not a different run.
+Mean wall/CPUms before->after, n2 each: small/1 3451.32/3243.41->3485.45/3283.53;
+large/1 4552.24/4352.69->4600.62/4395.48; small/4 1360.76/4032.64->1376.13/4115.82;
+large/4 2245.36/5442.83->2226.78/5426.58. Firstthree wallmeans about1%higher,
+large/4 about0.8%lower; no speedup/zero-cost/general-regression claim fromn2.
+Review: new countedspan guards add actual work; allocationcount/lifetime unchanged,
+no broader algorithm/scheduling change. n2 cannot separate that cost from runnoise.
+RSSKiB ranges smallserial197180-197528->197940-198036, largeserial678308-679000
+->678772-678888; smallparallel457992-464308->459788-459988, largeparallel936664-
+938500->939668-940652. Nativepeak changes are below0.4% bymean, no retainedgrowth.
+Exactretained small5681409serial/5672169parallel and large6028459/6019219 unchanged;
+ledger5242880/20971520 unchanged. Every output canonical1173729914654460811 or
+4242261087906147675 and entity/component counts match. Actualouterpeak1/3,
+reservedlanes1/4. Editor n2 wall11.05,11.23->10.94,11.03s, totalCPU17.06,17.31->
+16.80,16.96s; RSS959512,857724->961488,860332KiB; alloldoraclespass.
+
+Applied root09:13:05 exactfrontend_main regexselector authorization only AFTER
+profiledrained; no newrunner/CMake/provider/default changes. D1notified byroot,
+no repeatedACK. Selectednative refresh then actualregex oracle, currentASanLSan
+regex/parser/grammarresource/query/realouter sequence active51494. These new
+sanitizer results not yetclaimed. Two production/testfiles and thisauthorized
+entry now form nextcoherentcheckpoint; B2 has not adopted incomplete signatures.
+A2 owns the narrow compiler_storage obsoleteUTF8diagnostic aggregate correction
+reported byroot09:08; no competingfixtureedit here. That unpassedstorageaggregate
+is not silently included in our earlierparser-specific pass.
+B1 regex ASan milestone 2026-11-23T09:22:03.2135790Z: actual51494 exited0/drained. Authorized existing
+frontendselector nativebuild9.23s/417644KiB and directregex0.04s/53116KiB PASS.
+ASan33stepbuild96.38s/776176KiB; directregex0.22s/132592KiB, parser0.27s/148476KiB,
+grammarresource11.86s/660200KiB, query0.67s/250312KiB and real3unit/4worker outer
+9.82s/1110000KiB allPASS withdetect_leaks=1/abort_on_error=1, no reports.
+CurrentTSan16592 built and directregex0.314s PASS, remainingresource/query/outer
+stillpending. Source remains29+regex/selector, not the newlyofferedROOT351 world
+ABI. Rootgrant09:13 appliesexactselector, README nowdocumentsitsactualexisting
+entry and serialfault/realoverlap distinction. No newharness/providermatrix.
+To avoid redundant oldsourceWASI rebuild, next afterTSandrain: commit/export this
+completecheckedproducer with scopednativeevidence and explicitportablepending;
+then completeROOT351 history join plus matchingnative/WASIIDE including B2's
+existingIdeResourceCheck. Never relabel oldreactor asnewunion. Knownsemantic
+peakminusone Capacity-vs-Memory RED and A2-ownedstorageaggregate remainexplicit.
+B1 regex nativeinstrumentation checkpoint 2026-11-23T09:23:51.4471860Z: TSan16592 completed0/drained,
+no reports. Directregex0.314s, parser0.346s, resource20.844s, query1.320s and two
+real3unit/4worker runs passed withactualpeak3, exactcanonical1173729914654460811,
+48240entities/55014components. See rawlogs for exactbuild/outertimes; unsupported
+sourceUBSan/systemLLVM/browser instrumentation stillnotclaimed. The independent
+regexoracle is now actuallyexecuted under supportedaddress/thread profiles via
+existingselector; its singleownerfailure sweep is distinct from realparallel
+outerruns. This resolves that regex-specificinstrumentation access gap without
+newrunner/adapter. No arbitrarygraph-validity or universalracefreedom proof.
+Complete source producer: regex_compile_tree_result(root,source,source_length,
+match_type,table,error_offset,resource_error), oldwrapper retained. None on valid
+and ordinarysemanticresults; Memory on actualallocation denial; Invalid on bad
+inputspan/outputstate. ExistingnegativeNFAindex no longer mislabeledallocation;
+firstdiagnostic/cause wins. Existingindependentoracle/limitfixtures remainintact.
+Readycommit/export fullthreeTowerpaths+README+audits with matchingnativeprofile/
+sanitizer receipts; portablevalidation deferredto immediatecompleteROOT351join,
+not falselyclaimed on this old29source. ROOT351bundle84a4 verified, not yetadopted.
+No source change during16592; no publicationlease/push/hostedacceptance.
+Receipt transcription correction 2026-11-23T09:24:20.4789641Z: preceding regexTSan note incorrectly
+transcribed parser/resource walltimes. Raw completedlogs are parser0.385s and
+resource20.999s, not0.346/20.844. Build75.06s/777008KiB; outer26.381/26.368s.
+No newrun or changedoutcome: all actual16592children exited0, noreports. Runtime
+source490d488e; this correction changes documentation only, no runtime/memory
+measurement applies to its text. Raw artifacts remain authoritative and retained.
