@@ -85902,3 +85902,11 @@ Full release instrumentation, browser execution, whole-generation acceptance and
 public pin/Pages remain ROOT-owned pending gates; none are claimed by this task.
 The incoming journal contains non-UTF8 bytes; this ASCII receipt was appended
 without decoding or rewriting existing entries after apply_patch rejected them.
+
+B2 publication blocker: normal push failed resolving github.com. Two subsequent
+fetch/pull/push recovery sequences stopped at the same DNS failure; an explicit
+Resolve-DnsName check returned no address. Last successful remote integration
+was origin/main a241935e; local implementation f626ed9e, merge f6d1f167 and
+validation35a6f64b are committed with complete history. No force push, deployment
+or pin change. Publication remains PENDING; this bounded task stops after the
+three failed network attempts rather than polling. All owned jobs are drained.
