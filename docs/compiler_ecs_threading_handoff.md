@@ -1,6 +1,54 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-Current-source review: **2026-11-23**, frozen published main
+## Fixed completion ledger — published c20dc56 (2026-11-23)
+
+Frozen source: **`c20dc56ac5344834a95e8de1f505abe9aea515ac`**; compiler tree
+`42eb931b70b90c778ba1c4d0f92b1e0a1ea2ee63`. The original compiler goal is **not
+accepted as complete**. Implementation, source review and executed acceptance
+are separate below; there is no completion percentage. These twelve rows are
+the fixed closeout scope, not an instruction to start another audit cycle.
+Other workers' unpushed memory/body work is **in progress and excluded** from
+this checkpoint. Later changes need affected owner receipts at final integration.
+
+Publication reconciliation preserved subsequent main87a5da1, including ownership
+and scratch changes with their own receipts. They are outside this review: an
+open defect at c20 is not a claim that its later fix is absent or unvalidated.
+
+Evidence references name frozen receipts in the [journal](temporal-opcode-research-journal.md),
+[services](compiler-services.md) and [D1 composed-source review](compiler_ecs_audit_d1.md#frozen-integration-review-at-c20dc56-2026-11-23).
+`ff6820e2` and this freeze have identical runtime sources/build configuration;
+their only difference is the integration journal receipt. Thus B1's merged
+focused checks cover this source, within their stated selection. Earlier
+receipts retain their own identities and do not validate the whole union.
+
+| Original scope | Implementation at this freeze | Exact evidence source | Remaining acceptance action / owner |
+| --- | --- | --- | --- |
+| Authoritative ECS / storage | World-owned entities, components, ordered/named relations and derived indexes implemented. Stable payload pages plus sparse lookup/archetype pointer columns; not packed payload SoA. | ec01291 finite51 adoption / 98d69cf; A2 storage receipts; D2 stable-page receipt frozen3bee18e2 plus recorded fixture hash. | Close declared storage/accounting omissions; assess locality, fragmentation and representative memory cost without inventing alias guarantees. A2 with production owners; ROOT acceptance. |
+| Lazy decltype / comptime / dependencies | Ordinary interpreter, executable-readiness producers, shared demand/suspend/resume graph and owning-pipeline cycle detection implemented. B2 layout-frontier and executed-wrapper inference fixes present. | ROOT5b05d6bb dependency-units/query; B2 6081ceb4 and 0e9db271/5b16b584 focused regressions, canonical checks and type-smoke; D1 current source review. | Run affected combined staging/import/forward/untaken/capture/cycle/failure cases on final inputs. A1/L1/L2/B2 own remaining implementation; ROOT integrated acceptance. |
+| Within-unit concurrency | Parser/semantic/body/lowering kernels, private scratch/stages and resumable continuations implemented; grammar/effects/interner/publication retain ordered contracts. | A1 cc2d4e6a mixed-kernel rendezvous; 3e9ba56 checked joined completion; earlier body/query receipts. | Finish in-progress body work, validate its final source and show useful overlap, serial cost, idle/critical path and scaling on representative units. A1/B1/L1/L2, ROOT. |
+| Cross-unit / shared worker budget | Isolated unit worlds share outer/nested lane/byte admission and capacity wake/refill; workers without nested transport run inline. Cross-unit immutable import reuse is not implemented. | B2 baf2a5a0 refill/cancellation observer; ROOT5b05 dependency-units observed four threads/peak4; B1 ff6820e2 three-unit control peaks1/3 at workers1/4. | Final shared-budget/cancellation/output checks and profitable-core scaling/memory evidence. Import reuse remains a measured performance option, not a replacement for the goal. B2/ROOT. |
+| Deterministic ordering / cancellation | Source-ordered joins, stale-ticket rejection, hold-before-unpin and drain-before-release contracts implemented. D2 sort restores the same rule/dot/range order before publication. | d9e1b348/1906afcd lr-order and native LR receipts; ff6820e2 canonical unit hash1173729914654460811; ec01291 stage/cancellation review. | Revalidate final-source deterministic errors, aliases, stale/cancel/failure lifetimes and canonical serial/parallel results. Passing selected schedules are not race-freedom proof. ROOT with owners. |
+| Checked resource ownership | Checked components, stages, work buffers and new B1 provenance/formatter/session receipts implemented. Whole-world accounting is incomplete. | 4bc51044/ff6820e2 presentation-budget: diagnostic peak597595 bytes, zero grants after teardown; D2 6b04a149 entity-accounting cap failure. | **Confirmed open defect:** entity_create_result publishes a raw descriptor despite an exhausted store ledger. Finish A2 memory work and required raw-container/interpreter/output/foreign-boundary accounting and typed failure propagation; ROOT validates omissions/cleanup explicitly. |
+| Source audit | ec01291 finite51 adopted; this bounded c20 review adopts the B1/B2/D2 composed closure. Three CTest registration gaps closed. | D1 98d69cf and d75a39ee; current path-specific receipts with exact blob comparisons; owner audits/roster retain earlier unchanged reviews. | At final freeze reconcile only later deltas against owner receipts. Execute registered structure-reuse/unit-admission/backend-ir on the final binaries; registration is not execution. ROOT/owners. |
+| Measured serial / scaling / memory | Some useful overlap and bounded optimizations measured; original strong-serial/profitable-core goal **not met by current evidence**. | D2 d9e1b348 paired cold median2.05→1.93s (n3); B1 4bc51044 adjacent serial3.34→3.51s (n1, about5% slower); baf2a5a0 Deck large jobs4 slower than serial; B2 three-unit4096-body receipt4.642→2.372s with CPU/RSS growth. | Final comparable small/large body/parser/import/staging and C-like reference inputs, checked outputs, wall/CPU/RSS/allocations, serial and observed useful scaling, scheduler/idle/critical-path costs. Investigate excessive memory and regressions. D2/production owners/ROOT; no queue-width or cross-language superiority claim. |
+| Current supported sanitizers | Supported Linux x64 LLVM19 address/leak and thread instrumentation exists; no complete c20 source pass. | ROOT b83eeca7 receipt on5c5a308c; B1 ac65b3e9 focused address/thread and real-overlap receipts. These precede the new presentation/layout/inference union. | Run applicable final-source ASan/LSan/TSan and targeted stress with instrumented identities. Source-language UBSan and Windows/macOS/browser sanitizers remain unsupported, explicitly reported. Serial allocation faults do not sanitize threading. ROOT. |
+| Whole-generation / public bootstrap | Public predecessor remains pinned; successor prerequisites repaired. Actual generation2 semantics object now compiles. Whole-generation closure remains pending. | B2 6081ceb4 saved-before abort134/fixed frontend_units; 0e9db271 actual semantics target pass and development verifier; public executable9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02. | Clean canonical Linux x64 Docker/no-override build; complete generations2/3, all object/executable/resource comparisons and lineage. Earlier predecessor/successor object mismatch is not waived by partial success. B2/ROOT. |
+| Normal / shared / browser generations | Portable normal/shared paths exist with earlier scoped WASI/browser receipts; this union has no complete platform/generation receipt. | L1 shared-Wasm/browser journal receipt on b9f2c443, manifestec2a16a85c5b083a8b103514a2d504cdceaae7838c7a4b9a769c0e0efaedd1db; existing playground checks; B2 generation receipts above. | Build actual normal/shared/LLVM/cross closures, both browser compiler generations, mandatory threads reactor (TOWER_REQUIRE_THREADS=1), IDE, cancellation, errors and real host behavior. Keep unsupported targets explicit. L1/ROOT. |
+| Final atomic hosted release | No hosted release of this frozen compiler is established. Historical Pages/assets stay provenance-only. | Last handoff receipt: Pages6f142bef, manifesteb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c, build source98ade8cc. This is not a fresh remote check. | After integrated gates, preserve newer assets/receipts/CNAME, require reachable source/build commits, atomic normal main+gh-pages push, workflow plus exact served manifest/assets and applicable hosted behavior. ROOT only. |
+
+The earlier 300s frontend run remains a failed deadline. ROOT's separate full
+suite at5b05d6bb passed in328.14s under a declared900s deadline; it neither passes
+the old limit nor validates c20's later changes. B1's historical “timeout open”
+wording must be read with that receipt. This review ran no builds, runtime tests,
+profiles or sanitizers; documentation-only profiling is inapplicable.
+
+## Historical checkpoint and receipts (superseded for current status)
+
+Everything below retains its original source/evidence boundary. The fixed ledger
+above supersedes its current-status and remaining-work wording, including the
+formerly unbudgeted B1 text/splice paths and the now-repaired inference blocker.
+
+Historical source review: **2026-11-23**, frozen published main
 **`b83eeca71edbe3770e7b576692a5702cb3ff42fa`** (published origin/main).
 Compiler tree `ba5457d083698335be45801b65bf7f282298d574`; scaffolding tree
 `32581bcb8ba150a0038e81e44513f9f4de827310`; CMake tree
@@ -22,7 +70,7 @@ historical, not missing production capabilities. See [type values](type-values.m
 [computed type arguments](computed-type-arguments.md), [services](compiler-services.md)
 and the scoped [journal receipts](temporal-opcode-research-journal.md).
 
-## Implemented contracts and evidence boundary
+## Historical implemented contracts and evidence boundary
 
 ### Shared entities, storage, and ownership
 
@@ -150,7 +198,7 @@ before later structural mutation. Unit/backend cancellation drains workers befor
 world/view disposal. Remaining unchecked callers are listed separately below;
 passing these fixtures is not universal race freedom.
 
-## Finite completion gates at the frozen revision
+## Historical completion gates at b83eeca7
 
 ### Blocking implementation and contract closures
 

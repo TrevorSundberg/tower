@@ -211,6 +211,20 @@ remain necessary. The standalone dependency closure and editable browser runtime
 artifact stage still need integration; the removed schema tests never proved
 either requirement.
 
+Keep predecessor/successor adjacency and whole-generation fixed-point results
+separate. Compiler evolution can fail the former while passing the latter;
+retain the failed exact comparison, its original artifacts and diagnostics.
+A native fixed-point receipt requires one frozen published source closure,
+complete verified producers starting at the public pin, identical target/tools/
+flags, every compiler/runtime object and executable, and complete resource hashes.
+Use the same build path when comparing bound runtime LLVM text: `runtime_bind`
+preserves LLVM's input-path ModuleID. Preserve the preceding build before reusing
+that path; never strip names or normalize output to manufacture equality.
+Passing this receipt does not pass an earlier adjacency comparison, prove semantic
+equivalence to an older compiler, authorize pin adoption, or establish a portable
+release. The [2026-11-23 native receipt](compiler_generation_identity.md) records
+an actual complete fixed point and its remaining release limits.
+
 ## Remaining ownership and release gates
 
 | Area | Remaining distribution work |
