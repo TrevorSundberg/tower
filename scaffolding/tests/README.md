@@ -32,7 +32,7 @@ Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build
 `tower-driver-tests`. The existing runner also provides:
 
 - `ctest --test-dir <native-build> -R '^tower-driver-native-differential$' --output-on-failure`
-  compares eight real native programs with the graph interpreter, with both
+  compares the native fixtures with the graph interpreter, with both
   optimized and unoptimized compilation.
 - `ctest --test-dir <native-build> -R '^tower-driver-package-differential$' --output-on-failure`
   compares graph/fast execution, file package loads, Foundation reconstruction,
@@ -47,6 +47,12 @@ and a writable working directory. Each CTest has a separate output directory;
 direct runs retain sources, binaries and capture logs there for inspection.
 Unknown filters fail. Child exit statuses are preserved, including abnormal
 termination, with a 30-second child limit and a 20-minute CTest limit.
+
+The native-only `backend_execution_roots` case reads its Tower fixture from
+this directory and requires the independent output `45\n2\n` before comparing
+raw and optimized native execution. Its direct, callback and recursive calls
+share two observable effects; its uncalled type helper remains in the source.
+The fixture keeps its own explicit language import, without a runner prefix.
 
 The shared scalar-idiom JSON remains browser test data. The Tower runner reads
 only its ASCII string/null table format and rejects unsupported values/escapes;
@@ -796,7 +802,7 @@ replacement source provenance, semantic ABI syntax changes and grammar reuse.
 
 With `TOWER_WORK_TESTS=ON`, native Linux x64 builds register the ready-index,
 reservation ledger, shared-ledger overlap, admitted kernel dispatch, tool output
-identity, semaphore observer and concurrent entity-stage fixtures through the
+identity, semaphore observer, concurrent entity-stage and retained-buffer fixtures through the
 common Tower object/runtime rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
 allocator; configured object manifests alone are not execution evidence.
 
@@ -804,9 +810,10 @@ allocator; configured object manifests alone are not execution evidence.
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
   tower-work-ready-tests tower-work-budget-tests tower-work-budget-shared-tests \
   tower-work-kernel-admission-tests tower-tool-output-identity-tests \
-  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests
+  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests \
+  tower-work-buffer-tests tower-work-buffer-shared-tests tower-work-buffer-faults-tests
 ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
-  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
+  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission|buffer|buffer-shared|buffer-faults)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
 
 These checks preserve explicit stale/owner receipts, independent budget totals,
@@ -815,7 +822,13 @@ handoffs. Fixed four/eight worker cases are concurrency stress, not the host's
 recommended compilation budget. Failures/timeouts stay failures. Neither the
 historical invalid-memory probe nor the intentional-race probe is registered.
 
-Four measurement targets are excluded from the default build and CTest. Request
+The retained-buffer checks reserve replacement storage while the old allocation
+is still live, preserve owners on denial, transfer receipts with buffers, and
+retain charges after joins/cancellation until disposal. The shared fixture uses
+four real worker threads. The separate faults fixture uses only the existing
+single-owner allocation injector and serial transport; it is not race coverage.
+
+Five measurement targets are excluded from the default build and CTest. Request
 one explicitly, with exclusive host budget and frozen inputs:
 
 ```sh
@@ -823,6 +836,7 @@ cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-sel
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-budget-profile
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-overhead
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-profile
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-buffer-profile
 ```
 
 They check workload results and report timing/memory fields; no timing threshold
@@ -832,14 +846,74 @@ Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
 
-For a focused frontend/backend streaming check, use
-`tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native
-worker runner. It builds the independent serial64-bit object baseline, then
-runs the same two-worker streaming case used by the full `backend` selector.
-Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
-the30-second internal deadline are unchanged. Phase messages identify baseline
-versus streaming work; directional deadline errors identify the waiting side.
-The focused selector does not replace the full backend matrix or its failures.
+The buffer measurement target supplies `budget 1`. For equivalent baseline and
+accounted runs, invoke `tower-work-buffer-profile-tests baseline 1` and
+`tower-work-buffer-profile-tests budget 1` in that build directory; repeat both
+with `2` for a two-lane host. Supported counts are1/2/4/8. The workload always
+performs262144 replacements and checks the retained bytes independently. Its ten
+fields are workers, budget mode, wall nanoseconds, CPU microseconds, peak RSS KiB,
+observed interval overlap, allocation calls, retained payload bytes, peak charged
+bytes and retained ledger bytes. Timing excludes pool setup and postjoin
+verification/disposal. Charged bytes include the compiler header but exclude
+ledger storage, allocator-private overhead and RSS; this is buffer-accounting
+cost, not evidence of a complete compiler memory limit or useful core scaling.
+
+The common-lifetime arena fixtures use the same native registration and
+instrumentation rules: `tower-work-arena-tests`,
+`tower-work-arena-shared-tests` and the separate serial allocator target
+`tower-work-arena-faults-tests`. The shared fixture checks four distinct threads,
+cancelled and denied work, stable slice addresses, retained grants after joins,
+and complete chunk transfer before disposal. These checks cover explicit arena
+ownership, not fallible allocation propagation throughout the compiler.
+
+The opt-in `tower-measure-work-arena-profile` target runs `arena16 1 large`.
+Its executable accepts `baseline|arena4|arena16|arena64`, worker count `1|2|4|8`,
+and `small|large` (2,048 or 262,144 objects). Compare equivalent inputs using
+both allocation/join and retirement measurements. It checks every initialized
+byte after timing and reports observed overlap, CPU/RSS, physical allocations,
+payload, retained bytes, peak charge, ledger metadata and the equally unbudgeted
+pointer index. Chunk capacity includes descriptors and alignment gaps; individual
+slices have no free or implicit destructor. Compiler performance requires separate
+caller measurements, and requested workers alone do not prove useful scaling.
+
+Two opt-in Linux x64 compiler measurements reuse the production LR/backend
+source and library composition with `TOWER_WORK_TESTS=ON` and
+`TOWER_BACKEND_TESTS=ON`. Build and run `tower-measure-frontend-units` for three
+independent units with two worker lanes and no extra bodies, or
+`tower-measure-module-cache` for the import-cache cases. Neither is a CTest test
+or part of the default build. They exclude the serial fault allocator/transport
+and export the production worker/backend callbacks.
+
+The frontend executable takes `RESOURCE_ROOT UNIT_COUNT WORKER_BUDGET BODY_COUNT
+[backend]`. Compare identical inputs with worker budgets 1/2, retaining exact
+canonical hashes and the independent answer 42 check. An equal-unit control with
+multiple requested lanes must actually overlap on distinct threads; failure
+keeps its raw measurements and exits nonzero. Skewed body workloads report their
+observed overlap without assuming a speedup. Optional backend mode checks retained
+ELF output envelopes, not independent execution of those objects.
+
+The module-cache executable takes no arguments. It measures 3/18-layer diamond
+imports with fresh and reused environments, checks unique module counts, changes
+a shared leaf and verifies grammar invalidation, then releases every world/cache.
+Its requested worker count alone is not concurrency evidence. Both measurements
+report Linux x64 wall/CPU/RSS and retained counters with no timing pass threshold;
+retain source, transport, samples and actual overlap alongside performance claims.
+
+With both `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`, the separate
+Linux x64 `tower-semantic-layout-profile` executable reuses the native compiler
+unit link closure and production worker transport. It is excluded from default
+builds and CTest; explicitly run `tower-measure-semantic-layout` to build and
+measure it. Two warmups precede three samples at32/512/2048/4096/8192 fields,
+requesting one or four lanes, plus an8192-field case with the other lanes reserved.
+Host capacity can reduce the actual worker count.
+
+Each result has eleven lines: requested lanes, fields, other-lane reservation,
+pump wall nanoseconds, process CPU microseconds, process peak RSS KiB, observed
+overlapping job intervals, caller jobs, summed job nanoseconds, retained derived
+layout-vector bytes and ledger peak lanes. Sizes, alignments, every field offset,
+exactly-once job observations and complete world/budget teardown are checked.
+RSS is cumulative across trials; derived vector bytes are not total live memory.
+This is a layout-pump measurement, not end-to-end compilation or a speed claim.
 
 With `TOWER_EXECUTION_TESTS=ON`, the native Linux x64 build also provides the
 opt-in `tower-type-reachability-profile RESOURCE_ROOT` executable and
@@ -854,3 +928,35 @@ component counts, then closes each session. Query wall/CPU exclude compilation,
 execution and formatting. Process peak RSS includes them; entity/component
 counts do not measure all temporary buffer allocations. No parallel-query or
 end-to-end speedup is implied.
+
+For a focused frontend/backend streaming check, use
+`tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native
+worker runner. It builds the independent serial64-bit object baseline, then
+runs the same two-worker streaming case used by the full `backend` selector.
+Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
+the30-second internal deadline are unchanged. Phase messages identify baseline
+versus streaming work; directional deadline errors identify the waiting side.
+The focused selector does not replace the full backend matrix or its failures.
+
+The existing worker and execution runners accept `capture-policy` for the
+12 address/effect policy cases in the lifecycle fixture. This reuses the same
+32/64-bit, serial/worker and successful canonical reconstruction checks. The
+full42-case lifecycle gate remains in `type-smoke` and the broader body suites.
+The focused selector does not replace aggregate or full-suite acceptance.
+
+`aggregate_capture_inputs.tower` runs through the existing aggregate execution
+helper from the `types`, `known`, `aggregate-stages` and full execution selections.
+It checks nested aggregate/array, type/function/null-pointer and empty-field
+captures, repeated frame use and independent copies. Both engines, target widths,
+canonical reconstruction and worker1/2/4/8 comparisons reuse the original helper;
+the original aggregate rejection fixtures remain unchanged.
+
+`tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
+frontend snapshot allocation-failure checks without the unrelated body/parser
+matrix. The default frontend invocation still runs these checks. This selector
+does not provide production threading or whole compiler sanitizer coverage.
+
+`tower-frontend-tests RESOURCE_ROOT parser` runs the existing parser integration
+and failure suites without the unrelated body matrix. It includes valid trace
+output and serial allocation-failure/ownership checks. Use the serial frontend
+target for this fault allocator; it is not a threaded allocator sanitizer.

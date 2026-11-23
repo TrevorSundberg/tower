@@ -1,5 +1,7 @@
 import tower;
 import frontend_units_memory;
+import frontend_units;
+import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
 
@@ -44,4 +46,14 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
         "Old source remains configured after partial replacement allocation failure");
     frontend_units_close(batch);
     units_memory_check(tower_test_buffer_count() == baseline, "Snapshot allocation fixture releases ownership");
+}
+
+export fn frontend_units_allocation_root_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    frontend_units_allocation_tests(bedrock.data, foundation.data, root);
 }

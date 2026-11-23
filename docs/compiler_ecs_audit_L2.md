@@ -467,3 +467,162 @@ cycle and aggregate contracts remain intact. The journal records exact identitie
 raw outcomes and timings. This coherent local checkpoint is a shared debugging base,
 not a new sanitizer or release acceptance receipt. Final gates and publication stay
 open while A1/L1 investigate the interpreter/producer boundary.
+
+## Reviewed type presentation integration
+
+The B2-owned language_generics/language_components follow-up shares constructor
+descriptions between dependent previews and checked KTypeConstruct operations.
+Checked presentation uses the actual operation kind, without a new spelling
+registry, type identity or graph. The existing generic-preview binding rules are
+preserved. Array count wording permits ordinary evaluated arguments. Focused
+editor tests retain exact token/function-kind assertions and pass after the
+public-pin rebuild: 14.71 s wall / 14.92 s CPU / 258300 KiB RSS. The journal records
+source boundaries and binary hashes. No paired speedup is claimed from this
+correctness repair; earlier failed and newer owner timings are not equivalent
+successful inputs.
+
+The concurrent registry/provider repair compiles, but the storage runner fails
+earlier at the unchanged Session reset parses assertion. GDB and an unbuffered
+retry identify seed-only print fixtures in compiler_storage_tests; D1/B1 own the
+repair. The registry case is unrun in this process, not passed. Final integrated
+capture correctness, instrumentation, bootstrap and publication remain open.
+
+## Independent aggregate/type integration receipt
+
+The complete shared projection ABI, required-capture relocation policy and
+invocation-private snapshot storage now pass L2's independent public-pin build
+and runtime checks. Type and function leaves retain canonical bindings and are
+rematerialized in each consumer; no private numeric identity is transported.
+Consumer disposal precedes release of every producer projection vector. Frame
+cleanup, immutable scalar/copy/fill checks and cancellation pass query smoke.
+
+Original global/local aggregate examples and three separate nominal-type,
+callback and nested-array/null-pointer inputs pass at workers1/4. The combined
+fixture passes both engines at workers1/4. The complete type suite passes in
+44.17 s wall /52.26 s CPU /384848 KiB RSS; full42-case lifecycle/type smoke passes
+in264.72 s /294.14 s /256420 KiB, preserving both widths, serial/worker canonical
+equivalence, address/effect policy and failure/cycle cases. Whole storage and
+three real-worker stage stress runs also pass their exact ownership/teardown
+checks. The journal records compilerba48c54f, all source boundaries and raw logs.
+
+Later focused-harness/profile portability edits are outside this frozen receipt.
+Known-suite precise-message updates, final paired performance, actual updated
+ASan/TSan, public-bootstrap closure and leased publication remain required.
+
+## Portable profile and strengthened harness receipt
+
+The Linux x64 measurement ABI now belongs only to an opt-in standalone target.
+The profile still uses the same production predicate, ordinary execution session,
+canonical formatter, independent output and zero-retention assertions. Its main
+owns the driver request, syntax diagnostics and path buffer with lexical cleanup.
+The existing native execution link closure is reused; no second runtime or new
+portable foreign dependency is introduced. Actual normal execution Tower object
+symbols exclude getrusage; the standalone object imports it. Smallest public-pin
+compilation, runner links and all nine profile samples pass. Current1000-function
+query time is approximately3.542ms; the earlier2.9ms measurement is not a matched
+comparison. L1 owns balanced attribution before any regression conclusion.
+
+Focused query/parser/aggregate/capture-policy checks pass on independent compiler
+596e, execution1d94 and LR7097, exactly matching L1 artifact hashes. Whole empty
+aggregate projections, exact immutable write diagnostics, target widths4/8,
+worker1/2/4/8 canonical equivalence and full measured trace-failure prefix coverage
+are included. The prior f6 complete type/full42 receipts retain their source
+boundaries; no unnecessary full rerun substitutes for the focused additions.
+
+The exact browser alias case remains a generic-inference error, not a newly
+supported arbitrary alias inversion. Initialized immutable capture is accepted
+and independently observed as7,7; aggregate operator and nominal copy errors are
+preserved. The strengthened forward-read source exposes graph/normalized-fast
+output differences in both older/current packages, but reads raw uninitialized
+storage. Foundation explicitly excludes that operation from portable differential
+results. Initial stronger defect attribution is withdrawn; direct-cache and
+defined-order controls remain under owner review. No zero-initialization policy,
+oracle weakening or final known-suite acceptance follows. The journal preserves
+all failed comparisons and exact checked evidence. Updated ownership sanitizers,
+public-bootstrap closure and leased publication remain outstanding.
+
+## Profile attribution and private-storage follow-up
+
+Exact old/current predicate machine-instruction sequences match after relocation
+address normalization. An isolated former wrapper compiled against current shared
+layouts and linked against the exact same production object closure does not
+reproduce the earlier22% standalone penalty: whole-wall medians4.35/4.36s and
+1000-function query medians3.537/3.456ms. An object-order-only control also fails
+to support the proposed alignment fix. Preserve the original measured difference
+and substantial variability; no code-padding, algorithm rewrite or generalized
+speedup claim follows. The journal contains all controlled identities and limits.
+
+The fully initialized order/effect control independently prints1,1,7 through graph,
+optimized/no-opt normalized fast and native paths at the recorded widths/workers.
+The raw uninitialized case remains outside portable defined-result comparison;
+strict compile-time before-initialization rejection remains mandatory.
+
+L1 query measurement741b passes independently with exact compilerd1cda8ec/LR5312e6e6
+artifact identity. Small8-byte and large65536-byte layouts retain bounded private
+frame snapshots, preserve captured scalar bytes and release every
+measured owned vector. Counts are per-invocation capacities, not whole-heap or
+concurrency proof. Proposed physical budget owners in shared semantic/interpreter
+layouts still require joint API validation, coherent build and final instrumentation.
+No new production type/generic code is introduced by these harness follow-ups.
+
+## Generic frame scratch follow-up at9eb01c3 (proposed)
+
+Reaudit generics.tower, generic_body_types.tower, generic_registry.tower,
+semantic_generic_body_work.tower and the public clone callers. Ordered clone
+frames are private transient scratch; one stack per body job removes the current
+per-child allocation lifecycle. The existing stage, node quota, work ticket and
+provenance contracts stay unchanged. Body/header failure consumers can propagate
+a denied physical grant, but frontend_modules module_clone still treats a null
+synchronous clone as fatal. That boundary needs its owner's fallible diagnostic
+repair before world caps can be imposed. Optional generic expression inspection
+already records null as truncated. No typed descriptor alone proves payload
+packing or whole-compilation memory accounting.
+
+The new tests/generic_clone_storage.tower uses real registry/kernel entry points
+without copying GenericContext layout. Wide/deep syntax, exact definition/use
+identity, insufficient node limits and single-owner allocation failures cover the
+intended change; its initial draft is unbuilt. Production-worker transport and
+before/after measurements remain separate required evidence. Root approved the
+slice and coordination requests cover the two-field shared request addition and
+two-line existing storage-runner hook. The journal records the frozen before
+package and discovered module failure-propagation gap.
+
+The baseline fixture now passes smallest public-pin compilation and three complete
+serial storage runs. Exact shape/provenance and failed-stage teardown pass;
+wide256x1 measures1038 total kernel allocation calls and deep1x600 measures2434.
+Four one/eight-specialization CLI runs at workers1/4 match the independent loop
+reference. Earlier import/opaque-interface fixture errors are preserved in the
+journal. Production clone code remains unchanged; this is the before receipt.
+
+## First clone stack implementation receipt
+
+A private typed WorkVector now survives sibling branches, while each branch keeps
+its ordered source/destination/index state and clears length on return. Physical
+stack storage borrows the frozen root budget and returns a fixed resource error;
+coordinator stage/ticket order is unchanged. Wide256node kernel allocation count
+falls1038 to783; deep600 remains2434. Bound peaks416/36928 bytes include replacement
+overlap. Exact denied growth, allocation failure, partial counts, no publication
+and zero retained grants pass serial storage. Public-pin coherent compiler37db,
+query smoke and complete type suite pass. Thirty-two paired reference-output runs
+and eight canonical comparisons pass, with small/noisy end-to-end differences
+recorded in the journal. These are scoped measurements, not all-core proof.
+
+The shared data-only WorkBuffer/WorkVector definitions and four library fixtures
+match A2v5 after newline normalization; the only host addition is the established
+B2 allocation-size/alignment contract. No nominal type, interpreter result or
+Foundation storage identity changes. The public synchronous clone helper remains
+explicitly outside the first cap pending fallible module-cache propagation;
+root requires closing this before acceptance. Real clone-worker overlap/cancel,
+merged resource-error handling, supported compiler instrumentation and leased
+public-bootstrap/deployment closure remain active work.
+
+The added generic_clone_fixture.tower owns only synthetic input construction and
+shared exact provenance checks around real production APIs. generic_clone_parallel
+uses one explicit world, frozen shared byte/lane ledger, private stages and real
+production allocator/worker transport. Three runs confirm distinct native threads
+with overlapping kernel intervals,1/2/4lane results, all-output cancellation,
+failed-peer cleanup, stale-ticket rejection and zero final grants. The extracted
+serial fixture preserves783/2434 allocation counts and denial assertions. The
+compiler hash remains37db021e; these test additions need final instrumented stress,
+not another relabeled compiler-performance claim. Their native POSIX clock uses
+the existing runner's nominal ABI; no portable execution dependency is added.

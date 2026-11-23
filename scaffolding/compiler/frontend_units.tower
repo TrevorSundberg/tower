@@ -8,6 +8,7 @@ import .library.work_budget_types;
 import .library.compiler_work_types;
 import .library.vector;
 import .library.work_buffer;
+import .library.work_buffer_types;
 
 // The unit service owns orchestration and retention, and calls the one linked
 // compiler/editor implementation through its typed service boundary.

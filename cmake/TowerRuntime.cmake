@@ -117,7 +117,7 @@ function(tower_runtime_object name input triple)
       ${binding_command}
       DEPFILE "${ir}.d"
       DEPENDS "${input}" "${TOWER_BOOTSTRAP_COMPILER}" ${binding_dependencies} VERBATIM)
-    tower_sanitizer_object("${name}" "${bound}" "${triple}")
+    tower_sanitizer_object("${name}" "${bound}" "${triple}" "${input}")
     if(input STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower")
       set_property(GLOBAL APPEND PROPERTY TOWER_INSTRUMENTED_RUNTIME_OBJECTS "${${name}_OBJECT}")
     endif()
