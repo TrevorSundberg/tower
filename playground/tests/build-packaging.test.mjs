@@ -8,6 +8,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {gunzipSync} from 'node:zlib';
 import {targets} from '../src/targets.mjs';
+import {fetchBytes} from '../src/fetch-bytes.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const packager = process.env.TOWER_PLAYGROUND_ASSET_PACKAGER || path.join(execFileSync('bash',
@@ -68,9 +69,14 @@ test('deployment bundles remove stale backends, require complete packs and check
     assert.equal(await readFile(path.join(dist,'tower-threads.wasm'),'utf8'), 'fixture');
     assert.equal(await readFile(path.join(dist,'compiler/support-tower-0.a.gz'),'utf8'), 'fixture');
     await assert.rejects(readFile(path.join(dist,'compiler/obsolete-support.o.gz')), {code:'ENOENT'});
-    for (const name of ['tower-llvm.wasm.gz', 'tower-cross.wasm.gz'])
-      assert.equal(gunzipSync(await readFile(path.join(dist,name))).toString(), 'fixture');
-    await assert.rejects(readFile(path.join(dist,'tower-cross.wasm')), {code:'ENOENT'});
+    for (const name of ['tower-llvm.wasm.gz', 'tower-cross.wasm.gz']) {
+      const compressed = await readFile(path.join(dist,name));
+      assert.equal(gunzipSync(compressed).toString(), 'fixture');
+      const loaded = await fetchBytes('data:application/gzip;base64,' + compressed.toString('base64'));
+      assert.equal(new TextDecoder().decode(loaded), 'fixture');
+    }
+    for (const name of ['tower-llvm.wasm', 'tower-cross.wasm'])
+      await assert.rejects(readFile(path.join(dist,name)), {code:'ENOENT'});
     await checkManifest();
     await rm(path.join(fixture, 'build/browser-wasi-threads/tower.wasm'));
     result = build(true, true);
