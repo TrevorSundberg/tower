@@ -71202,3 +71202,111 @@ code costs, because executable-derived fallback paths also affect allocations.
 L2 and B1 are controlling that variable in their next bounded comparisons. This
 does not establish that the explicit primary Foundation resource trees differed.
 All final combined acceptance and publication gates remain open.
+
+### B2 foreign name allocation failures (implementation and scoped evidence)
+
+At d2cff272 (complete ROOT351 plus checked B1 regex history), the expanded existing
+foreign_tool_checks entry reproduces a false success: denying allocation1 for
+ordinary_name returns no error instead of rejecting the result. Exit5,1.685299ms
+wall/1.438ms CPU/1608KiB, retained in b2_foreign_allocation_before.log. This is an
+actual production call with the existing serial allocator. The initial fixture
+compile failed on reserved identifier expected, then on a missing explicit text
+import; corrected smallest fixture passes4.074312224s/3.802838s/258300KiB.
+
+The owned implementation adds a borrowed static first-cause field to ForeignName
+before diagnostic allocation. Foreign output/key/operator/decoration appends now
+check the common helper result, and exported name access hides failed partial
+text. backend_text_append returns a checked result and rejects count overflow
+before copying; unchanged non-foreign callers may still ignore their result and
+are not thereby declared fault-safe. Failed ownership-vector insertion frees the
+new object/string, clone and declaration callers propagate null, and Microsoft
+parameter substitutions restore their outer owner through lexical cleanup.
+No new scheduler, semantic graph, allocator provider or foreign ABI policy is added.
+
+The initial277 failure positions across eight exact ABI cases pass. Expanded
+coverage derives515 positions from successful allocations across twelve cases:
+plain/wrapped C, Itanium const-pointer substitutions, numeric/type-producing
+foreign descriptions, operators, aliases/templates, Microsoft metadata, function
+pointers, multidimensional arrays, member pointers and constructors. Every denial
+requires a nonempty error, empty published name and zero retained owners; each
+case then retries the original exact reference bytes. An invalid-profile call
+also denies its actual final error-presentation allocation while retaining the
+original semantic cause. Existing tool output/wrap/source-restoration checks pass.
+A subsequent temporary local name token was reserved; its failed leaf remains,
+renamed spelling, expanded leaf4.071715359/3.830454/258988 and runtime3.392194ms/
+3.172ms/1652KiB pass. There is no weakened assertion or inferred all-input proof.
+
+The14-step matching native closure passes21.803664480/73.120682/748524, followed by
+independent backend/foreign ABI reference checks.027906728/.026975/70748. Raw-IR
+address instrumentation of the actual standalone fixture and smallest memory unit
+(132 client definitions/12 memory definitions, matching address runtime/trap)
+passes all515 fault positions plus presentation denial with ASan/LSan enabled:
+24.252285ms/20.381ms/13728KiB. Production source is unchanged by the later full
+ROOT9d history merge9e4c4855; that merge changes entity headers and shared semantic
+storage, so it invalidates the broader native/instrumented union identity. The
+standalone foreign closure does not import those entity/semantic implementations.
+Current complete production overlap and final coherent instrumentation remain due.
+
+A single new opaque foreign_name_profile entry links the same objectc66abf88
+against frozen beforebf7071fe and after17c02f92 mangler providers. It checks exact
+ABI bytes on every iteration and reports allocation calls, returned-owner buffer
+peak and zero final retention; the existing process_profile reports wall/CPU/RSS.
+This is a serial mangler measurement, not compiler scaling or whole-heap accounting.
+A one-iteration smoke reports identical96 calls/58 returned-owner buffers/zero
+retention for the complex case. Quiet fixed-path measurements are still pending.
+
+Root's installed-executable-path finding invalidates an isolated-code-cost reading
+of prior different-path constructor/import comparisons. Preserve their raw values
+as observations, not controlled attribution. B2 canceled unstarted foreign watcher
+52201 before any child launch; its exit1 is not a performance result. Crossed B1/B2
+09:48 grants were unused after both watchers had stopped. B1's fresh09:51 request
+now has a new grant; B2's new fixed-path watcher6398 waits its actual release and a
+fresh token. Each measured executable will copy/compare/hash outside timing at one
+fixed pathname after its predecessor has drained, with identical working directory.
+No duplicate profile, timed build overlap or publication claim is intended.
+
+### 2026-11-23 10:31:01 UTC ROOT: foreign failure takeover, measured cost and diagnostic correction
+
+B2's original session stopped with a service rejection; one resume of that same
+session was rejected again. No replacement context or retry loop was launched.
+Root preserved the draft patch (55e7b2a59c7dcb4424ee8e7595a151723dc48eb8eac0f521a6bb9ded6b2c79d2),
+reviewed its eight production paths and continued ordinary compiler validation.
+
+The completed fixed-path sixteen process samples used one opaque entry object,
+one installed executable path, identical working directory and checked exact ABI
+outputs. Four samples per side: small131072 calls wall medians6.899857 to7.309764ms
+(+5.94%), CPU6.675 to7.130ms (+6.82%), RSS1606 to1620KiB. Complex8192 calls:
+wall18.8031005 to21.842530ms (+16.16%), CPU18.455 to21.6005ms (+17.04%),
+RSS1636 to1606KiB. Calls/returned-buffer peak remain262144/2 and786432/58,
+respectively, with zero final retention throughout. The checked failure paths
+have a measurable microbenchmark cost; this is not neutral performance or a
+whole-compiler regression estimate. Complex absolute extra cost is about0.371us
+per call. Retain this correctness tradeoff and inspect end-to-end foreign-heavy
+work before asserting its compiler impact. No allocation/retention increase.
+
+Root found a separate first-cause presentation defect in foreign_expect. The
+existing allocator denies one allocation then recovers. If prefix storage fails,
+the following token append can succeed, hiding the borrowed first cause with
+only a closing parenthesis. An initial last-allocation probe passed because it
+denied the suffix, not the prefix; both initial probe logs are retained. The
+corrected production-API sweep derives all allocation positions from each exact
+malformed input. Missing-parenthesis input void f(int reproduces the token-only
+error at allocation14, wrapper exit1. No memory misuse probe or weakened oracle.
+
+The fix appends context only when the first diagnostic is already present.
+Same public pin, compiler arguments, production API, installed test executable
+path, and serial allocator then pass all515 valid-ABI denial positions plus18
+malformed-diagnostic positions and existing tool output/restoration checks.
+All require empty failed output and zero retained owners. The normal malformed
+reference preserves its full prefix and expected token. Before sweep wall
+182.519669ms/30.004ms CPU/1628KiB; after177.821158ms/29.309ms CPU/1628KiB.
+These are single correctness sweeps including flushed diagnostic I/O, not a
+success-path speedup claim. Smallest public fixture compile/link passed; raw logs
+root_foreign_diagnostic_{before,probe,sweep,after} retain the complete sequence.
+The earlier standalone ASan/LSan pass validates the original draft; this new
+guard/sweep still needs its matching supported instrumentation and final coherent
+root union. No TSan/whole-release/publication claim follows from serial checks.
+
+Complete source remains main with no todo changes. Remaining owned work includes
+typed metadata copies/module constructors and shared standalone linker budgets;
+L2 now owns the exact existing-provider late inspection extraction and fixture.

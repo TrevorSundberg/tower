@@ -7,17 +7,19 @@ import .library.vector;
 fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
     var text: vector(u8);
     vector_init(&text);
+    defer vector_dispose(&text);
     var first = foreign_peek(m);
     m.at++;
-    backend_text(&text, first);
+    foreign_text(m, &text, first);
+    if foreign_failed(m) { return; }
     if backend_equal(first, "(") {
         foreign_expect(m, ")");
-        backend_text(&text, ")");
+        foreign_text(m, &text, ")");
     }
     else {
         if backend_equal(first, "[") {
             foreign_expect(m, "]");
-            backend_text(&text, "]");
+            foreign_text(m, &text, "]");
         }
         else {
             var allocate = backend_equal(first, "new");
@@ -27,7 +29,7 @@ fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
             if allocate {
                 if foreign_take(m, "[") {
                     foreign_expect(m, "]");
-                    backend_text(&text, "[]");
+                    foreign_text(m, &text, "[]");
                 }
             } else {
                 var second = foreign_peek(m);
@@ -55,27 +57,27 @@ fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
                     }
                 }
                 if more {
-                    backend_text(&text, second);
+                    foreign_text(m, &text, second);
                     m.at++;
                 }
                 if backend_equal(text.data, "<<") {
                     if foreign_take(m, "=") {
-                        backend_text(&text, "=");
+                        foreign_text(m, &text, "=");
                     }
                 }
                 if backend_equal(text.data, ">>") {
                     if foreign_take(m, "=") {
-                        backend_text(&text, "=");
+                        foreign_text(m, &text, "=");
                     }
                 }
                 if backend_equal(text.data, "<=") {
                     if foreign_take(m, ">") {
-                        backend_text(&text, ">");
+                        foreign_text(m, &text, ">");
                     }
                 }
                 if backend_equal(text.data, "->") {
                     if foreign_take(m, "*") {
-                        backend_text(&text, "*");
+                        foreign_text(m, &text, "*");
                     }
                 }
             }
@@ -83,7 +85,6 @@ fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
     }
     part.name = foreign_copy(m, text.data, text.length);
     part.operator_name = true;
-    vector_dispose(&text);
 }
 
 fn foreign_operator_code(m: ForeignName*, name: u8*, microsoft: bool): u8* {

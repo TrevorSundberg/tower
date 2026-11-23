@@ -31,6 +31,7 @@ struct ForeignAlias {
 struct ForeignName {
     text: vector(u8);
     error: vector(u8);
+    failure: u8*;
     error_offset: usize;
     tokens: vector(u8*);
     offsets: vector(usize);
@@ -81,7 +82,10 @@ var foreign_linux_x86: u32 = 9;
 var foreign_windows_arm64: u32 = 10;
 
 fn foreign_fail(m: ForeignName*, text: u8*): void {
-    if m.error.length == 0 {
+    if m.failure == null {
+        // Every caller supplies borrowed static text. Retain the first cause
+        // before attempting presentation storage, including its own failure.
+        m.failure = text;
         backend_text(&m.error, text);
         if m.at < m.offsets.length {
             m.error_offset = m.offsets.data[m.at];
@@ -89,13 +93,25 @@ fn foreign_fail(m: ForeignName*, text: u8*): void {
     }
 }
 
+fn foreign_failed(m: ForeignName*): bool { return m.failure != null; }
+
 fn foreign_require(m: ForeignName*, ok: bool): void {
     if !ok {
         foreign_fail(m, "Unable to allocate foreign declaration storage");
     }
 }
 
+fn foreign_text_append(m: ForeignName*, out: vector(u8)*, text: u8*, count: usize): void {
+    if !foreign_failed(m) { foreign_require(m, backend_text_append(out, text, count)); }
+}
+
+fn foreign_text(m: ForeignName*, out: vector(u8)*, text: u8*): void {
+    foreign_text_append(m, out, text, backend_length(text));
+}
+
 fn foreign_copy(m: ForeignName*, source: u8*, count: usize): u8* {
+    if foreign_failed(m) { return ""; }
+    if count == ~convert(usize, 0) { foreign_require(m, false); return ""; }
     var size = count + 1;
     var text = alloc(u8, size);
     var present = text != null;
@@ -103,13 +119,18 @@ fn foreign_copy(m: ForeignName*, source: u8*, count: usize): u8* {
     if present {
         copy(text, source, count);
         text[count] = 0;
-        foreign_require(m, vector_push(&m.memory, bits(void*, text)));
+        if !vector_push(&m.memory, bits(void*, text)) {
+            free(text);
+            foreign_require(m, false);
+            return "";
+        }
         return text;
     }
     return "";
 }
 
 fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
+    if foreign_failed(m) { return null; }
     var type = alloc(ForeignType, 1);
     var present = type != null;
     foreign_require(m, present);
@@ -117,17 +138,24 @@ fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
         *type = default;
         type.kind = kind;
         type.name = "";
-        foreign_require(m, vector_push(&m.types, type));
+        if !vector_push(&m.types, type) {
+            free(type);
+            foreign_require(m, false);
+            return null;
+        }
     }
     return type;
 }
 
 fn foreign_clone(m: ForeignName*, type: ForeignType*): ForeignType* {
+    if type == null || foreign_failed(m) { return null; }
     var result = foreign_node(m, type.kind);
+    if result == null { return null; }
     copy(result, type, sizeof(ForeignType));
     vector_init(&result.args);
     foreach(var & arg in &type.args) {
         foreign_require(m, vector_push(&result.args, *arg));
+        if foreign_failed(m) { return null; }
     }
     return result;
 }
@@ -154,6 +182,7 @@ fn foreign_digit(byte: u8): bool {
 }
 
 fn foreign_lex(m: ForeignName*, source: u8*): void {
+    if foreign_failed(m) { return; }
     var length = backend_length(source);
     if length > 16384 {
         foreign_fail(m, "Foreign declaration exceeds 16384 bytes");
@@ -218,8 +247,12 @@ fn foreign_lex(m: ForeignName*, source: u8*): void {
             }
         }
         var count = i -start;
-        foreign_require(m, vector_push(&m.tokens, foreign_copy(m, &source[start], count)));
+        var spelling = foreign_copy(m, &source[start], count);
+        if foreign_failed(m) { return; }
+        foreign_require(m, vector_push(&m.tokens, spelling));
+        if foreign_failed(m) { return; }
         foreign_require(m, vector_push(&m.offsets, start));
+        if foreign_failed(m) { return; }
     }
     foreign_require(m, vector_push(&m.tokens, ""));
     foreign_require(m, vector_push(&m.offsets, length));
@@ -233,6 +266,7 @@ fn foreign_peek(m: ForeignName*): u8* {
 }
 
 fn foreign_take(m: ForeignName*, text: u8*): bool {
+    if foreign_failed(m) { return false; }
     var `match` = backend_equal(foreign_peek(m), text);
     if `match` {
         m.at++;
@@ -241,13 +275,15 @@ fn foreign_take(m: ForeignName*, text: u8*): bool {
 }
 
 fn foreign_expect(m: ForeignName*, text: u8*): void {
+    if foreign_failed(m) { return; }
     if !foreign_take(m, text) {
         foreign_fail(m, "Expected wordtext in foreign declaration: ");
-        backend_text(&m.error, text);
+        if m.error.length != 0 { backend_text(&m.error, text); }
     }
 }
 
 fn foreign_integer(m: ForeignName*): u64 {
+    if foreign_failed(m) { return 0; }
     var text = foreign_peek(m);
     var value: u64 = 0;
     var i: usize = 0;
@@ -453,11 +489,13 @@ fn foreign_builtin(m: ForeignName*): ForeignType* {
         }
     }
     var type = foreign_node(m, 1);
+    if type == null { return null; }
     type.name = code;
     return type;
 }
 
 fn foreign_name_parts(m: ForeignName*): ForeignType* {
+    if foreign_failed(m) { return null; }
     foreign_take(m, "::");
     var scope: ForeignType* = null;
     loop {
@@ -467,6 +505,7 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
             return foreign_node(m, 2);
         }
         var part = foreign_node(m, 2);
+        if part == null { return null; }
         part.name = word;
         part.scope = scope;
         m.at++;
@@ -485,11 +524,13 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
                     }
                     if literal {
                         argument = foreign_node(m, 9);
+                        if argument == null { return null; }
                         if foreign_take(m, "-") {
                             argument.ref = 1;
                         }
                         argument.count = foreign_integer(m);
                         argument.base = foreign_node(m, 1);
+                        if argument.base == null { return null; }
                         argument.base.name = "i";
                         if argument.count > 2147483647 {
                             argument.base.name = "x";
@@ -507,7 +548,9 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
                         }
                         if boolean {
                             argument = foreign_node(m, 9);
+                            if argument == null { return null; }
                             argument.base = foreign_node(m, 1);
+                            if argument.base == null { return null; }
                             argument.base.name = "b";
                             if backend_equal(wordtext, "true") {
                                 argument.count = 1;
@@ -517,11 +560,13 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
                             argument = foreign_type(m);
                         }
                     }
+                    if argument == null || foreign_failed(m) { return null; }
                     foreign_require(m, vector_push(&part.args, argument));
+                    if foreign_failed(m) { return null; }
                     if foreign_take(m, ",") == false {
                         break;
                     }
-                    if m.error.length != 0 {
+                    if foreign_failed(m) {
                         break;
                     }
                 }
@@ -535,28 +580,32 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
         if backend_equal(foreign_peek(m), "*") {
             break;
         }
-        if m.error.length != 0 {
+        if foreign_failed(m) {
             break;
         }
     }
     return scope;
 }
 
-fn foreign_simple_name(out: vector(u8)*, type: ForeignType*): void {
+fn foreign_simple_name(m: ForeignName*, out: vector(u8)*, type: ForeignType*): void {
+    if type == null || foreign_failed(m) { return; }
     if type.scope != null {
-        foreign_simple_name(out, type.scope);
-        backend_text(out, "::");
+        foreign_simple_name(m, out, type.scope);
+        foreign_text(m, out, "::");
     }
-    backend_text(out, type.name);
+    foreign_text(m, out, type.name);
 }
 
 fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
+    if type == null || foreign_failed(m) { return null; }
     if type.template_id {
         return type;
     }
     var name: vector(u8);
     vector_init(&name);
-    foreign_simple_name(&name, type);
+    defer vector_dispose(&name);
+    foreign_simple_name(m, &name, type);
+    if foreign_failed(m) { return null; }
     var i: usize = 0;
     var result = type;
     for(; i != m.aliases.length; i++) {
@@ -565,11 +614,11 @@ fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
             break;
         }
     }
-    vector_dispose(&name);
     return result;
 }
 
 fn foreign_add_alias(m: ForeignName*, name: u8*, type: ForeignType*): void {
+    if type == null || foreign_failed(m) { return; }
     var index = m.aliases.length;
     var needed = index + 1;
     var ok = vector_reserve(&m.aliases, needed);
@@ -582,33 +631,33 @@ fn foreign_add_alias(m: ForeignName*, name: u8*, type: ForeignType*): void {
 }
 
 fn foreign_type(m: ForeignName*): ForeignType* {
+    if foreign_failed(m) { return null; }
     m.depth++;
+    defer { m.depth--; }
     if m.depth > 64 {
         foreign_fail(m, "Foreign type nesting exceeds 64");
-        m.depth--;
-        var fallback = foreign_node(m, 1);
-        fallback.name = "v";
-        return fallback;
+        return null;
     }
     if foreign_take(m, "param") {
         foreign_expect(m, "(");
         var parameter = foreign_node(m, 10);
+        if parameter == null { return null; }
         parameter.count = foreign_integer(m);
         foreign_expect(m, ")");
-        m.depth--;
         return parameter;
     }
     if foreign_take(m, "value") {
         foreign_expect(m, "(");
         var literal = foreign_node(m, 9);
+        if literal == null { return null; }
         literal.base = foreign_type(m);
+        if literal.base == null { return null; }
         foreign_expect(m, ",");
         if foreign_take(m, "-") {
             literal.ref = 1;
         }
         literal.count = foreign_integer(m);
         foreign_expect(m, ")");
-        m.depth--;
         return literal;
     }
     var cv = foreign_qualifiers(m);
@@ -626,23 +675,29 @@ fn foreign_type(m: ForeignName*): ForeignType* {
         tag = 4;
     }
     var type = foreign_builtin(m);
+    if foreign_failed(m) { return null; }
     if type == null {
         type = foreign_name_parts(m);
         type = foreign_alias(m, type);
+        if type == null { return null; }
         if tag != 0 {
             type = foreign_clone(m, type);
+            if type == null { return null; }
             type.tag = tag;
         }
     }
     cv = cv | foreign_qualifiers(m);
     if cv != 0 {
         type = foreign_clone(m, type);
+        if type == null { return null; }
         type.cv = type.cv | cv;
     }
     var owner = foreign_member_owner(m);
+    if foreign_failed(m) { return null; }
     if owner != null {
         foreign_expect(m, "*");
         var member_type = foreign_node(m, 8);
+        if member_type == null { return null; }
         member_type.base = type;
         member_type.scope = owner;
         member_type.cv = foreign_qualifiers(m);
@@ -667,16 +722,17 @@ fn foreign_type(m: ForeignName*): ForeignType* {
             break;
         }
         var next = foreign_node(m, kind);
+        if next == null { return null; }
         next.base = type;
         next.cv = foreign_qualifiers(m);
         type = next;
     }
     type = foreign_array(m, type);
-    m.depth--;
     return type;
 }
 
 fn foreign_suffix(m: ForeignName*, type: ForeignType*): void {
+    if type == null || foreign_failed(m) { return; }
     type.cv = foreign_qualifiers(m);
     if foreign_take(m, "&") {
         type.ref = 1;
@@ -708,7 +764,7 @@ fn foreign_suffix(m: ForeignName*, type: ForeignType*): void {
                 if foreign_take(m, ",") == false {
                     break;
                 }
-                if m.error.length != 0 {
+                if foreign_failed(m) {
                     break;
                 }
             }
@@ -718,15 +774,15 @@ fn foreign_suffix(m: ForeignName*, type: ForeignType*): void {
 }
 
 fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
+    if function == null || foreign_failed(m) { return; }
     m.depth++;
+    defer { m.depth--; }
     if m.depth > 64 {
         foreign_fail(m, "Foreign function nesting exceeds 64");
-        m.depth--;
         return;
     }
     foreign_expect(m, "(");
     if foreign_take(m, ")") {
-        m.depth--;
         return;
     }
     loop {
@@ -735,6 +791,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
             break;
         }
         var type = foreign_type(m);
+        if type == null || foreign_failed(m) { return; }
         // Parenthesized pointer/reference function declarator: int *name(int).
         if foreign_take(m, "(") {
             var cc = foreign_cc(m);
@@ -763,6 +820,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
             }
             else {
                 callable = foreign_node(m, 7);
+                if callable == null { return; }
                 callable.base = type;
                 callable.convention = cc;
                 foreign_parameters(m, callable);
@@ -772,6 +830,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
                 kind = 8;
             }
             type = foreign_node(m, kind);
+            if type == null || callable == null || foreign_failed(m) { return; }
             type.base = callable;
             type.cv = cv;
             type.scope = owner;
@@ -781,8 +840,10 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
                 m.at++;
             }
             type = foreign_array(m, type);
+            if type == null { return; }
             if type.kind == 6 {
                 var decayed = foreign_node(m, 3);
+                if decayed == null { return; }
                 decayed.base = type.base;
                 if m.abi == 2 {
                     decayed.cv = 1;
@@ -794,6 +855,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
         if m.abi == 1 {
             if type.cv != 0 {
                 type = foreign_clone(m, type);
+                if type == null { return; }
                 type.cv = 0;
             }
         }
@@ -811,27 +873,29 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
         if foreign_take(m, ",") == false {
             break;
         }
-        if m.error.length != 0 {
+        if foreign_failed(m) {
             break;
         }
     }
     foreign_expect(m, ")");
-    m.depth--;
 }
 
 fn foreign_declaration(m: ForeignName*): void {
+    if foreign_failed(m) { return; }
     // Metadata stays inside the single cpp_name(...): using T = ...; struct X;
     loop {
         if foreign_take(m, "using") {
             var name_type = foreign_name_parts(m);
+            if name_type == null { return; }
             var name: vector(u8);
             vector_init(&name);
-            foreign_simple_name(&name, name_type);
+            foreign_simple_name(m, &name, name_type);
             foreign_expect(m, "=");
             var type = foreign_type(m);
             foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
             vector_dispose(&name);
             foreign_expect(m, ";");
+            if foreign_failed(m) { return; }
             continue;
         }
         if foreign_take(m, "typedef") {
@@ -840,6 +904,7 @@ fn foreign_declaration(m: ForeignName*): void {
             m.at++;
             foreign_add_alias(m, name, type);
             foreign_expect(m, ";");
+            if foreign_failed(m) { return; }
             continue;
         }
         var start = m.at;
@@ -858,13 +923,15 @@ fn foreign_declaration(m: ForeignName*): void {
         }
         if tag != 0 {
             var type = foreign_name_parts(m);
+            if type == null { return; }
             if foreign_take(m, ";") {
                 type.tag = tag;
                 var name: vector(u8);
                 vector_init(&name);
-                foreign_simple_name(&name, type);
+                foreign_simple_name(m, &name, type);
                 foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
                 vector_dispose(&name);
+                if foreign_failed(m) { return; }
                 continue;
             }
             m.at = start;
@@ -943,18 +1010,23 @@ fn foreign_declaration(m: ForeignName*): void {
         foreign_expect(m, ")");
     }
     var function = foreign_node(m, 7);
+    if function == null { return; }
     m.function = function;
     if m.special == 0 {
         function.base = foreign_type(m);
     }
     else {
         function.base = foreign_node(m, 1);
+        if function.base == null { return; }
         function.base.name = "v";
     }
     function.convention = foreign_cc(m);
+    if function.base == null || foreign_failed(m) { return; }
     m.name = foreign_name_parts(m);
+    if m.name == null || foreign_failed(m) { return; }
     if m.special != 0 {
         var part = foreign_node(m, 2);
+        if part == null { return; }
         part.scope = m.name;
         part.name = m.name.name;
         m.name = part;
