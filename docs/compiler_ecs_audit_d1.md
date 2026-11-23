@@ -3194,3 +3194,9 @@ admission. Unchanged D1 fixture/caller pass after the15-action affected rebuild:
 dependency-units20.49wall/34.65CPU/810140KiB, query-smoke .22s, unit-admission13.59s.
 All source hashes verify, stderr is empty, and zero swaps are recorded. Exact
 answers/canonical/errors and actual four-thread/peak4 overlap remain checked.
+
+Last allowed retry source84b7719 integrates the executed-stage frontier and Fast
+storage changes. Seven affected actions and the same three focused gates pass;
+dependency-units20.90wall/35.28CPU/788128KiB, zero swaps. Known answers, canonical/
+diagnostic parity and observed four-thread/peak4 overlap remain checked. Source
+hashes match; no broader Fast/platform/race acceptance is inferred.

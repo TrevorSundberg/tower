@@ -82600,3 +82600,17 @@ and canonical reparse prints0. Final compiler SHA256
 Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
+
+Third total push (second retry) was rejected fetch-first. The last authorized
+retry integrates complete b9f2c44 as84b7719662c32705af9ffcaf343012980d7cef18.
+Incoming Fast storage and executed-stage frontier changes affect compiler inputs;
+D1 fixture/caller are unchanged. Seven affected actions pass75.22wall/73.55CPU/
+782420KiB. Focused dependency-units20.90wall/35.28CPU/788128KiB, query-smoke
+.21/.22/71420 and unit-admission12.25/15.16/476376 all pass, empty stderr/zero swaps.
+Success intervals9.329217/3.615311s retain expected answers, canonical/error parity,
+observed1/4 threads and1/4 peak overlap; nested admission wakes in30131ns.
+Complete input hashes verify; runner658026490f5b02a8cc06c711a1a838da586a8eeb22d9d22e294ed058041f6897.
+Jobs drained, affinity restored and own lock released. No extra Fast, type,
+backend, instrument or platform matrix is inferred from these scoped checks.
+Final normal push is the third retry after the initial attempt; status records
+success or the exact blocker without further integration loops.
