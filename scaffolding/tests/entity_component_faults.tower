@@ -10,6 +10,7 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 var ComponentFaultBudgetBytes: usize = 1048576;
 
@@ -83,9 +84,76 @@ fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations:
     return succeeded;
 }
 
+// Inject every physical allocation in inline promotion, including payload
+// preparation after the pending array succeeds. A failed promotion leaves the
+// original index, payload and charges intact; discard drains the private stage.
+fn component_inline_fault(failure: usize, allocations: usize*): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    component_fault_check(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1));
+    var store: EntityStore* = null;
+    component_fault_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var kinds: Entity*[2];
+    var count = sizeof(decltype(kinds)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) {
+        kinds[i] = entity_create(store);
+        component_fault_check(kinds[i] != null && entity_register(kinds[i], sizeof(u64), alignof(u64), 0));
+    }
+    var stage = entity_stage_open(root);
+    var node = entity_stage_create(stage, root);
+    var first = entity_component_add(node, kinds[0]);
+    component_fault_check(first != null && node.components == &node.inline_components[0]);
+    var peer = entity_stage_create(stage, root);
+    component_fault_check(peer != null);
+    var first_calls = tower_test_buffer_allocations();
+    var first_receipts = budget.live;
+    component_fault_check(entity_component_add(peer, kinds[0]) != null
+        && peer.components == &peer.inline_components[0]
+        && tower_test_buffer_allocations() == first_calls && budget.live == first_receipts);
+    *bits(u64*, first.data) = 9876;
+    var address = first.data;
+    var bytes = budget.used_bytes; var receipts = budget.live;
+    var initial = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(failure);
+    var second = entity_component_add_result(node, kinds[1], &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - initial;
+    var succeeded = second != null;
+    if !succeeded {
+        component_fault_check(error == WorkBudgetError.Memory && node.component_count == 1
+            && node.components == &node.inline_components[0] && node.components[0] == first
+            && node.component_capacity == sizeof(decltype(node.inline_components)) / sizeof(EntityComponent*)
+            && budget.used_bytes == bytes && budget.live == receipts
+            && first.data == address && *bits(u64*, address) == 9876);
+        second = entity_component_add_result(node, kinds[1], &error);
+    }
+    component_fault_check(second != null && error == WorkBudgetError.None && node.component_count == count
+        && node.components != &node.inline_components[0] && node.components[0] == first
+        && first.data == address && *bits(u64*, address) == 9876
+        && entity_stage_discard_result(stage) == WorkBudgetError.None);
+    entity_release(root);
+    for(var i: usize = 0; i < count; i++) { entity_release(kinds[i]); }
+    component_fault_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
+    return succeeded;
+}
+
 // This existing deterministic fault allocator is single-owner. Concurrent
 // receipt/allocator/transport execution is in entity_component_budget instead.
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 2 && strcmp(argv[1], "inline") == 0 {
+        var allocations: usize = 0;
+        component_fault_check(component_inline_fault(~convert(usize, 0), &allocations) && allocations != 0);
+        var observed: usize = 0;
+        for(var failure: usize = 0; failure < allocations; failure++) {
+            component_fault_check(!component_inline_fault(failure, &observed));
+        }
+        component_fault_check(component_inline_fault(allocations, &observed) && observed == allocations);
+        puts("0");
+        return 0;
+    }
     var choices: bool[2]; choices[0] = false; choices[1] = true;
     var count = sizeof(decltype(choices)) / sizeof(bool);
     for(var staged: usize = 0; staged < count; staged++) {
