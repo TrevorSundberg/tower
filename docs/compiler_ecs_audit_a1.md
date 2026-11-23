@@ -1937,3 +1937,16 @@ instrumentation, generations and hosted release remain pending integration.
 The body-smoke retry subsequently passed on identical inputs:217.37s wall,
 233.72s CPU,324892KiB peak RSS, exit0. Its earlier180s timeout is retained.
 All selected merged evidence is now complete; integration-only limits above remain.
+
+2026-11-23 alias-completion follow-up, base31e16e9e: semantic_modules.tower
+sem_editor_symbol now resolves the actual world/module owner before installing
+the intentional editor boundary. Exact source spans and already captured owners
+remain stable; sem_namespace's checked failure guard is retained. The regression
+comes from14ce70f7's interaction with the older capture order, before5b4a587b.
+completion.tower exposes the same producer with an explicit target width for
+native callers; browser ABI remains32-bit, first resource causes remain terminal.
+New completion_alias_checks.tower and existing IDE checks cover both reported
+aliases, same-spelling aliases, nominal module separation, invalid/retry/denial
+and full query/world retirement. No parser span, shared arena or type allocation
+hunks changed. Portable completion sections pass; the later hover array-interner
+stage assertion is a separate pending ROOT/L2 boundary, not a successful IDE gate.
