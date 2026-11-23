@@ -91086,6 +91086,117 @@ node counts after independent loads (24446 narrow,41227 control) before final
 reference destruction; the recorded final counts are shared-world owners, not
 an unsupported zero-handle/LLVM-store census. No compiler build or deployed
 runtime adoption is implied. All jobs drained before normal main publication.
+### 2026-11-23 A1: five original Node fixture/transport gates
+
+Bounded adoption on main bda11a9b52c59b4b3b08eab2a5cb17b8fe10c119,
+scaffolding tree 8b87b79c59c3bde34d2660e815b8559c8e2a44ad, host tree
+1d2209bbe79671caf9191154e5b4bd21dce5c14c. No compiler rebuild or producer change.
+ROOT's supplied eac16533 pair was SHA256 verified before copying into A1's cache:
+portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99;
+LLVM 87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+These reactors exclude later A2 unary/page-policy and L1 composition producers;
+loading current resource sources does not validate a rebuilt current compiler.
+The accepted f63de88f narrow/body/trap and previous package/native receipts were
+not rerun or relabeled. D1's historical mixed-artifact failures remain historical.
+
+Reviewed docs/modules.md, Foundation's seed/interchange contracts, README Checks,
+compiler-fixtures and both host transports; actual providers work_buffer,
+host.memory, generic_registry, entity_views, foundation_nodes::foundation_execution_item,
+c_emitter::ce_collect and the existing Tower stress generator. Findings/fixes:
+
+- All five files eagerly read absent default Wasm paths before fixture overrides
+  could apply. They now defer those reads when the matching override is set;
+  ordinary default-path behavior remains. Both overrides were set, interpreter-only
+  shortcuts unset. No substitution of interpreter output for executable LLVM.
+- Ordinary C and formatter inputs and the Statement-extension reset input require
+  an explicit language import. Added import foundation to those input strings;
+  exact formatted expectation gains that same line and still verifies every UTF-8
+  byte span, idempotence and canonical roundtrip. Seed-only custom Unicode grammar,
+  malformed UTF-8/NUL/truncation rejections and invalid C++ identifier assertion
+  are unchanged. No implicit import was added to the host or a generic helper.
+- The entity test saved the last (64-bit) canonical graph, then sent it to LLVM's
+  default wasm32 target, producing Integer literal out of range for usize. Keep
+  the wasm32 canonical text for the wasm32 executable comparison; both interpreter
+  widths still run and now each gets an exact same-width canonical roundtrip.
+  The real library source AND canonical input now execute through LLVM with the
+  original complete expected output.
+- generic_registry's standalone input omitted host.memory. work_buffer explicitly
+  declares compiler_buffer_allocation_size/allocate/free/alignment and expects
+  the owning program to supply them. Import the existing Tower provider at this
+  test boundary (also harmlessly deduplicated in entity_views). The old missing
+  external-function error is obsolete fixture setup, not an allocator to emulate
+  in JS. The new run reaches real Graph/Fast and then LLVM reconstruction.
+- C's collect routine follows foundation_execution_item/reference: private
+  declarations enter executable output through calls, while canonical formatting
+  retains every declaration. After language adoption, the bulk-comment fixture
+  kept all128 canonical comments but emitted only the called last function into C
+  (observed 1 != 128). Its own Tower producer now emits the language import and
+  calls every existing annotated function using StressCommentFunctions, leaving
+  the original print statement intact. The exact128-comment assertion and all
+  canonical per-declaration/order assertions remain unchanged and pass. No C
+  reachability policy change or JS source generator was added.
+
+Entity test transport optionally saves each exact LLVM input/response and emitted
+Foundation via TOWER_TEST_ARTIFACTS, plus existing-style phase timing via
+TOWER_TEST_PHASES. It never accepts an error as success. Lifetime/buffer/denial
+checks remain: C warmed node/allocation equality, byte-buffer failed reserve
+preservation and disposal, entity query index/alignment and zero store counts,
+UTF-8 reference codec/malformed tests and no-import standalone Wasm assertion.
+Legacy allocation counter equality is not proof of enabled allocation accounting.
+
+All five files ran in separate fresh Node22.23.5 processes on KinmenA Windows11,
+Docker Linux x64 tower-a1-environment, CPU12-23/24GiB, concurrency1, one heavy
+process at a time. Filesystem warm/not flushed, n1 each condition; no compiler
+worker-scaling claim. Original semantic baseline (after only override transport
+adoption) was7pass/12fail. Final totals are17pass/2fail, zero skipped/cancelled,
+all19 top-level tests started. Passing UTF-8 evidence reused unchanged. Only C
+needed a second affected run after its reachability fixture correction. Every
+failure/intermediate log is retained; no timeout was reached.
+
+| File | Before pass/fail; wall/CPU s; peak KiB | Final pass/fail; wall/CPU s; peak KiB |
+| --- | --- | --- |
+| c-source | 1/5; 4.73/3.34; 291892 | 6/0; 4.83/3.55; 290104 |
+| compiler-bytes | 2/1; 4.90/4.46; 401284 | 3/0; 5.46/5.11; 401172 |
+| compiler-entities | 1/3; 45.34/86.63; 2628388 | 2/2; 87.46/170.97; 2718504 |
+| compiler-utf8 | 3/0; 6.84/8.82; 437372 | same unchanged run |
+| formatter-port | 0/3; 3.12/1.11; 124440 | 3/0; 4.20/2.49; 165052 |
+
+These are validation costs, not equivalent successful-work before/after speedups:
+the repaired cases reach formerly unstarted work, including another failed large
+LLVM reconstruction. No runtime implementation changed, so a serial/four-worker
+compiler profiling sweep is inapplicable here. GNU time peak RSS includes Node,
+V8/JIT, both reactors and host data; it is not Wasm capacity or live ECS bytes.
+
+L2/ROOT residuals, unchanged compiled-status assertions, both at the FIRST
+llvm.compile(canonical,{emit:'foundation',optimize:false,target:'wasm32-unknown-unknown'}):
+
+| Case | Exact saved input | Response | Call wall/CPU s |
+| --- | --- | --- | --- |
+| entity_views | llvm-3.tower,706287B,SHA256 9d5136499c33b9ccf5b5ca3617b1faec923680aa4a8cded345152c9d6370868d | Compiler resource request failed; errorFile .tower/bedrock.tower; offset0 | 34.640/70.001 |
+| generic_registry | llvm-4.tower,764205B,SHA256 4c6830aa81fd7cb8a7fdb086919d7cea3b0fb747b0f8e51c8f8832113761c9b2 | Compiler resource request failed; errorFile input.tower; offset5475504 | 32.979/69.561 |
+
+Both preceding32-bit Graph and Fast executions return0 and canonical equality
+passes. Neither returns reconstructed text. The response exposes no typed
+Memory/Capacity/etc cause; generic's reported offset exceeds its submitted input
+length, so neither map identifies a reliable culprit location. The exact owning
+internal phase/first typed cause remains L2's systemic reconstruction task; no
+cap increase or unrelated producer repair. Later reconstructed execution,
+optimized profile,64-bit and executable LLVM modes in THESE TWO tests remain
+UNSTARTED, not passed. Other tests/widths above retain their separate passes.
+
+Evidence root: C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_node_five_bda11a9b
+(container /cache/a1_node_five_bda11a9b), before/after/final directories and scripts.
+Exact command form: both TOWER_TEST_WASM and TOWER_TEST_LLVM_WASM point to that
+root; unset TOWER_INTERPRETER_ONLY; /usr/bin/time -v -o CASE/time.txt timeout -k 5s
+600s node --test --test-concurrency=1 playground/tests/NAME.test.mjs. Final C
+bound180s; no compiler build. SHA manifest identities: original complete Tower
+resource list d9bf456293e12903a0d6a2d83936edc2ad1d3ea7077d5a79109628a9f5d84f14;
+final resource list d3f7198f430569e785d3e71a0ac4f39cdf7829edc168fbfae508d0d168d209d9;
+final six fixture files manifest139002d1943ef724f49700b6f44cbda6241e9f07d1e4c5b1488c8b91f36ef4d9.
+Only the dedicated comment generator changes the resource list. Other passing
+files do not import it. Reactors/host hashes and syntax/diff checks pass. All
+owned jobs drained, disk~341GB free, todo unchanged. No full IDE/51-file Node/
+LLVM suite, sanitizer, generation or deployment; ROOT owns integrated release.
 D1 publication reconciliation: ff-only pull fetched bda11a9b but correctly refused
 local divergence; normal merge b6f6893b preserves complete1cfd775c/published
 history. Adopted incoming A1 receipt8de9ce72: actual narrow/body LLVM package
@@ -91112,6 +91223,84 @@ source citation to sem_type_call; no diagnostic/assertion changes or repeated
 passing executions. Retain45 new passes,1 adopted pass,3 failures and explicit
 unstarted modes; normal source push follows, no deployment claim.
 
+### D2 T9 three backend semantic-port gates (2026-11-23)
+
+Frozen published main45db5aa98966e54b6b1bee710e1f1c7c552e78f6. Ran exactly
+backend_popcount, backend_stack and backend_import_constants once each, fresh
+processes, through existing semantic-port.test.mjs. Reviewed their complete Tower
+fixtures, current transport/module-entry setup and B1/D1's earlier source-bound
+receipts first. No fixture, assertion, host or producer change was needed.
+
+ROOT's matching eac16533ad7169988c53af934ece62e083b39bad/public768 pair was verified
+before and after execution, separately from current host/resources:
+portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99;
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Identical own Docker-visible copies and all raw receipts are under
+build/d2_ecs/semantic_backend_45db5aa9/. Existing default/f7/shared artifacts were
+preserved. No compiler/reactor build or private override relabeled public.
+
+For each NAME, the independent command was `/usr/bin/time -v -o NAME.time
+ timeout --signal=KILL 120s node --test --experimental-test-isolation=none
+ --test-concurrency=1 --test-reporter=tap
+ --test-name-pattern='^Tower NAME agrees across graph, fast, LLVM and Foundation text$'
+ playground/tests/semantic-port.test.mjs`, with absolute TOWER_TEST_WASM and
+TOWER_TEST_LLVM_WASM pointing to the verified copies, TOWER_TEST_PHASES=1, and
+TOWER_TEST_ARTIFACTS pointing to a separate owned NAME directory. Cleared
+TOWER_TEST_INTERPRETER_ONLY/TOWER_TEST_PORTABLE_ONLY; current fixture contains no
+interpreter-only branch. Node22.23.5, tower-d2-ecs Linux x64, Docker image4be584fb42a6,
+cpuset0,2,8GiB memory/swap limit, one heavy process at a time. Each TAP confirms
+exactly1test/1pass/0fail/0skip/0cancelled and its `complete` phase; all exit0.
+No deadline reached, retries, missing-mode substitutions or partial-pass claims.
+
+| Case / source bytes | Wall s | CPU s (user+system) | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| backend_popcount /2258 | 82.31 | 109.99 (106.26+3.73) | 1616676 |
+| backend_stack /751 | 18.30 | 22.07 (21.24+0.83) | 442588 |
+| backend_import_constants /1293 | 9.65 | 12.35 (11.71+0.64) | 372868 |
+
+All original stages completed: source32/64 Graph/Fast exact0 output, canonical
+reparse/execution and byte-identical formatting; unoptimized/optimized LLVM
+Foundation at both widths followed by portable reparse/Fast execution; actual
+LLVM wasm32 emission and execution from source and canonical32, exact0 output.
+Popcount checks every8-bit value via an independent bit-count loop, repeated
+32/64-bit patterns and unsigned edge values; optimized IR's ctpop assertion passed.
+Stack keeps escaping65536-byte local arrays alive across nested calls and checks
+the outer value afterward. This is guest/LLVM Wasm behavior, **not** Windows
+native guard-page/probe execution. Constants checks preserve unsigned64/sign-bit
+patterns across blocks/functions, signed reinterpretation, wrappingu8 and null
+pointer/target-size representation. No semantic outputs or diagnostics altered.
+
+Saved both canonical texts and all four LLVM before/after/rebuilt outputs per
+case, with captured_artifacts.sha256. Canonical32/64 byte sizes: popcount33362/33362,
+stack5463/5463, constants7536/7536. Unoptimized reconstructed32/64 sizes respectively
+538608/541927,78401/78749,43834/43834; optimized38988/39135,3462/3462,1384/1384.
+Popcount's phase log separates first32-bit unoptimized LLVM Foundation22.979s
+from portable reparse20.323s; both eventually passed. Its process RSS reaches
+1655107584B at completion. That includes two reactors/V8/host retention and is
+not a live-world byte ledger or a proved leak. No Wasm capacity/allocator counters
+were added. Later64-bit work shares warm instance caches; no cross-width speed
+comparison or compiler-core overlap claim follows from CPU exceeding wall.
+
+Exact fixture SHA256:
+- popcount8237a722a3c6f088da97ff49e64a775aff719655e7458649f0a046959ae7e94e
+- stackeba4bad9803ef199215203142f383a733ff20a3d6f26a1fc209c9bc78775ee7e
+- constants6129aff5ca4f8eedea6d37c68695486e0bbdf9c26304550f7a30107df2eebcd7
+Test ebe611510dfcced1ad5d57a0151b3af336b8746cdcf331c4b8a2a0f221088b82;
+common loader495cb14e25e700c8b41710a79423d75310a361039e7486f24c5f0f9a212605fd;
+portable hosta45022885312172dba563be933fc70ec9e5a49c9cb6f949ca6c56e6a3cf9577f;
+LLVM host80be1da99218dca064251c36160d268baa4b3048a501237ff1a73ae860084671.
+Full host manifest digest8834462070b12354e81a37dd162828c0b2d30360fde0e54d374f58dcc063dfd4;
+resource manifestbb0d5750f763c90aca76c975c2d3ed2dddb781f35ec88a8ec421fe2c7cabef12.
+Every recorded source/resource/reactor hash rechecked unchanged after runs.
+
+These are n1 acceptance costs, fresh processes/warm filesystem, dynamic host
+frequency,0swaps; no production edit means no before/after optimization profile
+applies. Disk128GiB free/RAM~10GiB available after; preexisting swap5.9GiB unchanged.
+All processes reaped before releasing the owned heavy lock. Todo unchanged.
+This closes only these three cases on the stated eac/current-input boundary.
+L2 reconstruction failures in other fixtures, L1 joined-alias adoption, D1 cross
+checks and ROOT's final release remain separate; no broad Node/LLVM/native/browser,
+generation, sanitizer, Windows runtime or hosted verification was run here.
 B1 generation publication reconciliation: complete-history merge 77d01e1f1b642d01252c87655857b52cd3f8d3ff
 preserves published45db5aa9 after required ff-only pull refused divergence.
 Incoming semantic_type_values integer-argument/numeric changes and their tests/
@@ -91226,3 +91415,28 @@ Artifact/resource verification passes after execution; no owned live children,
 heavy lock released,128GiB disk available. Old PID1-owned defunct container nodes
 are unchanged nonreaders, not active test jobs. No new defect/owner handoff arose.
 T7 is scoped closed; ROOT retains final joined-source/artifact adoption/release.
+D2 T9 publication reconciliation: scoped receipt04d72cc9 merged complete
+published84146755 after required ff-only pull reported normal divergence.
+Both journal histories preserved. Exact host/reactor manifests and selected
+fixtures/language/platform imports remain unchanged; reuse all three checked
+runs. Registered-source differences are incoming backend session/source_session,
+backend_source_native, test README/bootstrap-symbol fixture and policy inputs;
+none is imported by these three programs or baked into the frozen eac pair.
+Their new native reconstruction/error work retains its own owner evidence and
+needs joined-artifact adoption; no old reactor relabeled current. Raw mismatch
+list/status preserved beside the original resource manifest. No tests repeated,
+all jobs drained, todo unchanged; normal source push follows, ROOT owns release.
+
+A1 five-file reconciliation: commit61b2bd96 merged complete published779de775
+as775a6577 after the required ff-only pull refused routine divergence. No conflict,
+no history discarded. Incoming backend/session and source_session repairs are
+not inside the supplied eac binaries, and none of these fixture roots imports
+those compiler backend modules. Other incoming resource changes are unrelated
+backend-native/bootstrap-symbol tests/tools. Both reactors, five selected files,
+comment generator, fixture loader and host adapters still match their frozen
+SHA manifests. Actual imported libraries/types/memory/UTF-8/generic registry and
+stress providers are unchanged; no unrelated test rerun or compiler rebuild.
+Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a8d7cdbbe49a002
+is retained separately from the measured resource identity, not relabeled as a
+new full runtime acceptance. L2 residual inputs/responses remain actionable for
+its newer backend producer; no new reactor was available or adopted here.
