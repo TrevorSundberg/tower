@@ -1633,3 +1633,36 @@ documentation. The complete existing allocation fixture was reread: primed recei
 slot, first/second physical failure, exact rollback, successful original-source
 compile and final allocator baseline. Smallest entry compilation and selected
 runtime/cost are pending; reduced selected work is not compiler speedup.
+
+### Executed frozen f6358ea slice
+
+The journal records exact source/package identity, commands, all timing samples
+and coverage limits. Public-predecessor smallest units, complete native11steps
+and all27 linked targets pass; source freeze is verified. One basename collision
+overwrote the initial library arena timing, so that unit was separately remeasured
+under a unique name after drain. No compiler cache object was overwritten.
+
+Normal/fault buffer and arena fixtures, three shared runs each, parser budget,
+query buffers, snapshot allocation selector, native unit lifecycle, exact backend
+objects with distinct worker overlap, aggregate capture round trips, production
+frontend control and import-cache invalidation all pass. Arena actual ASan/TSan
+object hooks and hashes are checked; both modes pass ten additional shared stress
+runs. This is scoped API instrumentation, not complete compiler/UB/browser/race
+acceptance. Earlier default/focused snapshot wrapper export was incomplete by
+itself; exact historical wrapper+two imports now exported0cdc2215 alongside the
+registration and selector, preserving newer B2 fixture bodies.
+
+Equivalent arena allocation profiles show a useful serial common-lifetime cost
+and retention improvement (large arena16 allocation/join4.707ms versus raw18.808;
+4235328B data buffers versus12058624B, plus explicit ledger/index overhead).
+Two workers lose to one despite real large-workload overlap, and small workloads
+sometimes have no overlap. Large chunks waste space for small workloads. These
+measured tradeoffs do not establish profitable compiler scaling or justify a
+blanket scratch migration before fallible error propagation is complete.
+
+The cache workload independently reproduces the missing B2 old fix:18-layer
+warm validation277–309ms versus first35–43ms, with unchanged owner counts. Exact
+unique-order validation fix was read, but is not included in f635 evidence.
+All483 current D1 paths remain substantively reviewed; no new path was added by
+this receipt. New resource-error/clone fixtures and the complete source union
+still require fresh review/registration and coherent validation before release.

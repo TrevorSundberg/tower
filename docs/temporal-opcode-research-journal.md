@@ -49349,3 +49349,125 @@ disposal and both startup/terminal producer paths, including declaration-isolate
 work, then cancel/drain peers before cleanup. A typed error field alone is not
 completed coordinator failure propagation. Existing 9228 prepared source and
 older 1a execution receipts remain distinct from that future shared-layout change.
+
+### D1 frozen f6358ea native, arena and integration evidence — 2026-11-23 01:12 UTC
+
+Source f6358ea0e8bd127465833df2e4cc1f123b694f8b, public bootstrap9653,
+Docker image4be584fb, Linux x64, existing LLVM19.1.1, build jobs1/cpus0,2.
+Both containers were idle before acquiring D2's released lock. No compiler input
+changed during builds/tests; all final source hashes passed. New A2 v5 archive
+b8b0c9b7 matches all14 current API/fixture paths except work_vector's final blank
+line. D1's prior explicit import corrections exactly match the owner successor.
+Owner recipe/receipt86b357b9 includes independent native, actual ASan/TSan and
+WASI32 buffer/arena checks; those remain owner evidence, not D1 browser execution.
+
+All nine smallest public-predecessor unit commands passed, then canonical
+build-native.sh with no private bootstrap override passed11steps in105.57wall /
+102.85CPU seconds, peak793024KiB. All27 affected targets linked in98.51wall /
+95.68CPU, peak353844KiB. This includes both new production profile executables.
+Optional system-library discovery messages were retained; supported build exited0.
+Complete package `build/d1_ecs/native_package_f6358ea` holds compiler SHA256
+9ea51f258da42f15d488d8baee46e0888ce5645c6d41ca91b1b9b776eb9f1299
+and48 hashed resources; exact current library bytes compare equal. This package
+predates the later typed resource-error ABI, cache fix and semantic arena callers.
+
+One measurement-transport mistake was caught: basename-only unit receipt names
+made tests/work_arena overwrite the preceding library/work_arena success log,
+time and temporary object. Native CMake objects were distinct and unaffected.
+The original library timing is unavailable, not reconstructed. After job drain,
+only that smallest library unit was rerun with a unique name:4.26wall/4.15CPU,
+178248KiB, exit0. Preserve this limitation and use module-qualified names next.
+
+All scoped runtime checks passed (session66450), with original assertions:
+
+| Check | Wall s | CPU s | Peak RSS KiB | Scope |
+| --- | --- | --- | --- | --- |
+| storage |0.49|0.46|94416|serial functional/fault ownership|
+| snapshot allocations |2.96|2.92|162152|new selector, same two physical-failure cases|
+| parser |0.03|0.03|51288|table budget denial/retry/retirement and existing bounded trace|
+| query smoke |0.21|0.21|60756|32/64, serial/requested workers, retained private buffers|
+| native units |49.37|65.76|768500|canonical/results/errors/cancellation and shared budgets|
+| backend overlap |17.31|25.72|492604|exact serial objects and distinct overlapping workers|
+| aggregate stages |54.63|60.78|307760|both engines/widths/canonical captures and existing negative cases|
+| frontend profile control |4.58|8.58|314192|three units/two lanes, independent42 and canonical hash|
+| module cache profile |2.53|2.51|61116|unique imports, invalidation and teardown; slow warm path below|
+
+Normal/fault buffer and arena binaries produce exact0; shared fixtures pass three
+runs each. Frontend control internally reports4.4925s/8.5104CPU, actual outer
+overlap2 on distinct pthreads, reserved lanes2, canonical1173729914654460811,
+retained1422356B, peak26373268B and ledger2621440B. This is an overlap control,
+not a speedup measurement. The new allocations selector avoids unrelated body/
+parser work while keeping default coverage; no full-default speed ratio is claimed.
+
+Current arena instrumentation uses existing Tower IR/object rules and separate
+address/thread caches. Verified actual ASan/TSan hook symbols plus IR/object
+hashes. ASan normal/shared/serial fault and TSan normal/shared pass, plus ten
+additional shared runs per mode, each exercising three four-thread scenarios.
+Exact0 stdout, empty stderr, leak detection/halt-on-error enabled. Build costs:
+ASan15.39wall/14.89CPU/188848KiB, TSan9.20/8.94/189020. All jobs exit0 and drain
+before ownership release. This covers the standalone arena API, not whole compiler,
+system LLVM, source-language UBSan, browser threading or universal race freedom.
+
+Arena profiles run64 samples: small2048/large262144 common-lifetime objects,
+baseline/4/16/64KiB chunks,1/2 workers, one warmup plus three ordered measurements
+per combination. Every fresh process checks all initialized bytes and final
+ownership. Filesystem/tool caches are warm. Serial is pinnedCPU2; two workers
+useCPU0,2. Both governors are powersave; before/after frequency snapshots are
+retained but are not continuous in-work frequency traces. Allocation/join excludes
+verification and retirement; retirement is measured separately after verification.
+
+| Objects | Workers | Mode | Median allocation/join ms | Median CPU ms | Median retirement ms | Observed overlap |
+| --- | --- | --- | --- | --- | --- | --- |
+|2048|1|baseline|0.194743|0.214|0.044521|1|
+|2048|1|arena4|0.056011|0.081|0.001440|1|
+|2048|1|arena16|0.048591|0.071|0.001030|1|
+|2048|1|arena64|0.054351|0.078|0.000680|1|
+|2048|2|baseline|0.445218|0.464|0.047281|1–2|
+|2048|2|arena4|0.204913|0.316|0.001310|1–2|
+|2048|2|arena16|0.195093|0.269|0.001070|1–2|
+|2048|2|arena64|0.175783|0.254|0.001230|1–2|
+|262144|1|baseline|18.807967|18.571|3.336488|1|
+|262144|1|arena4|4.819614|4.806|0.073342|1|
+|262144|1|arena16|4.706552|4.608|0.033461|1|
+|262144|1|arena64|4.544279|4.457|0.008620|1|
+|262144|2|baseline|30.531471|52.769|5.694489|2|
+|262144|2|arena4|9.232291|14.719|0.516469|2|
+|262144|2|arena16|6.737007|9.481|0.463308|2|
+|262144|2|arena64|9.206970|10.890|0.407637|2|
+
+Large baseline retains12058624B in262144 data buffers; arena16 retains4235328B
+in258 chunks, plus20480B ledger. Both have3670016B initialized payload and the
+same2097152B unbudgeted pointer index. Serial peak RSS18780–18784KiB versus
+7516–7524KiB; two-worker arena16 is7704KiB. Chunk headers/alignment gaps remain
+included in retention. Small two-worker arena64 retains131136B versus raw94208B,
+so large chunks can waste space. Small timings include substantial clock/scheduling
+overhead and sometimes no worker overlap. Two-worker large arena16 remains slower
+than serial despite overlap2, with a retained12.17ms outlier; all two-worker modes
+lose to their serial counterparts here. This supports common-lifetime allocation
+cost/retention improvement, not profitable Deck scaling or compiler/C superiority.
+
+Own cache profile reproduces the missing older B2 fix:18-layer first35–43ms,
+reused277–309ms, unchanged7047entities/8725components and nearly serial CPU for
+requested1/4. Three-layer warm parses70–98us behave normally. The exact existing
+B2 deba07ac change was read during freeze: traverse the retained unique module
+order, still validate every edge's current lexical resolution and source bytes,
+with no persistent validity memo. It was not applied to this frozen receipt;
+its independent after measurement remains required.
+
+Exported complete committed main as
+`D1/D1_main_f6358ea0e8bd127465833df2e4cc1f123b694f8b.bundle`, SHA256
+b6d960ee0c80c04861bfd68903492f8cb9177b3bc608a81105d6f7e2dfbbdd9b.
+Bundle verification confirms only published60741c5 as prerequisite; todo diff is
+empty and history is preserved. Earlier profile handoff lacked another lane's
+layout-registration context, so a self-contained bundle323ece5c now includes an
+independent Linuxx64 registration against exact B2 preimage plus both exact
+profile sources. Host `patch` was unavailable (exit127 before mutation); existing
+git apply check/application and byte comparison passed. Owner configure/link for
+that preimage remains separate from D2/D1 equivalent target execution.
+
+All D1 jobs drained and the owned lock was released normally to D2 at01:12UTC.
+139GiB disk free,9.7GiB RAM available,6.3GiB existing swap; measured child swaps0.
+New A1/L1 typed resource-error propagation/fixture, B1 shared growth/fixed parser
+buffer, L2 clone budget and B2 cache fix remain subsequent coherent work. Full42,
+current whole-compiler instrumentation, complete union public bootstrap/browser/
+generation and leased atomic publication/hosted verification remain open.
