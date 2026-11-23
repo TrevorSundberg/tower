@@ -93649,3 +93649,27 @@ Retained exit1/log at alias_review_b8d65c37/merged_sources_check.log; this is a
 source-boundary exclusion, not a passing current-main comparison. Audit stays at
 b8/e6be review identity; newer headers, registration and backend/formatter inputs
 remain outside this review. No changing-source build or runtime test launched.
+
+Merged adoption: full-history merge cd73cea18b3e5f0d70569d12157203e0c3a668d2
+preserves published3a00e3b4 and L1's c2af6e0f module control-expression preparation.
+Only semantic_control/semantic_statements and their module-loop registrations
+change production inputs from the initial freeze; backend/import instructions and
+our fixtures remain intact. Rebuilt the semantic provider and three links through
+the existing dependency target (4 actions):38.12wall/27.46CPU s,1074388KiB peak.
+Source-worlds/recheck/storage-import plus module-loop workers1/4 pass5/5 in2.83s.
+The pointer fixture's32/64-bit1/4-worker reconstruction/execution reruns all print0,
+empty stderr, with byte-identical canonical output to the original fixed freeze.
+
+Exact full B1 request repeated only because merged frontend inputs changed:
+serial/four-worker import/recheck AND complete execution pass, exact0 newline,
+empty stderr; Foundation remains4644169B SHA865fe19c52000267058c3921d09342b9be8015ed64f9e5fdb56036118b77cf79,
+identical to the premerge fixed output. Merged wall/CPU/peakKiB n1:
+compile1 17.49/17.41/3317488; compile4 16.33/20.07/3348472;
+execute1 25.47/25.43/3200068; execute4 24.97/27.76/3171732.
+Both service final bytes/grants/lanes0; charged peaks remain3003547507/3003546731B.
+New frozen CLI cedcd6f7836eb4b36a7101d5855368451f73dd072a6301f1eced54e9edff9391,
+service c0be3cb6eaa8afa4d6a6fe30b81f8f25f67eac56785e4607cb731452a58f32fd.
+`merged_source.sha256` and merged scripts/logs preserve exact adoption. Missing
+optional LibEdit/CURL notices did not prevent native build/tests; no release or
+unsupported-platform claim. All owned jobs drained. Original full failure and
+Wasm/other-input/full-struct limits above remain visible; todo SHA unchanged.
