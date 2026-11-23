@@ -82197,3 +82197,78 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+### B1 immutable LR structure reuse precursor (2026-11-23)
+
+Implemented on68f89640 after the preserving pull and idle-job check. This closes
+that audit's ownership prerequisite with code, not another proposal. No B2
+frontend_units/work_pool scheduling change. Existing public9653 bootstrap,
+LLVM19.1.1/Linuxx64, CPU0-11/24GiB, compiler1/objectjobs6, warm filesystem/fresh
+processes. Refreshed only the stale units-profile leaf before preserving baseline.
+
+SyntaxVersionCache now binds world/budget/retained Bedrock identity and owns a
+bounded derived structural index (existing FrontendCacheLimit). Every declaration
+still validates/emits/resolves and activates at its boundary. Exact ordered LR
+productions, symbols, names/name order, precedence/associativity and mode plus
+specialization are compared after current import/revision dependencies resolve.
+Only numeric runtime and diagnostic context columns are shared. Current version
+metadata, userdata, captures, pending errors, lexical/emission/replacement and
+provenance bindings stay private. This content projection includes every input
+to LR construction; it does not treat source revisions as interchangeable.
+Changing world, budget or Bedrock identity clears the whole-version/structure
+scope. No global mutable cache, new authoritative grammar or syntax adoption.
+
+ParserStructure/table/cache pins share frozen payloads; LRGrammar now has a
+coordinator reference count for the immutable key snapshot. Existing work buffers
+and work vectors own all new retained storage and grants. Last-reference cleanup
+releases runtime, contexts, key and descriptor. Cache admission is optional;
+failed required construction publishes no partial entry and retains its exact
+error. Formatting forks retain immutable pins with independent indexes. Budget
+owner must outlive all tables/forks. API/lifetime contract is in docs/parser.md.
+
+Focused structure fixture passes: unchanged reuse with zero available budget,
+changed capture/userdata with independent grammar snapshots, cache/source-table
+retirement followed by actual parsing with the new capture, cancellation/retry,
+changed terminal exact Capacity/no partial publication/retry, mode and
+specialization separation, precedence changes, original unresolved diagnostic,
+Bedrock/world invalidation, imported override/cycle/reset isolation, final zero
+physical budget bytes/live receipts. Existing parser/live grammar/cache/churn/
+lexical/attribute/provenance checks pass. Actual nm resolves cache-copy/dispose
+from ParserIntegration and lr_grammar_retain from ParserNodes. Added two exact
+ParserNodes policy entries and rejection fixtures; symbol tests and current full
+ParserNodes import report pass. No new debugger/allocation-failure sweep.
+
+Build failures were fixture visibility errors only: missing compiler_node_get
+prototype, direct frontend_world helper import, then FrontendCacheLimit import.
+Each drained before correction; original logs remain. Production units compiled
+in the first dependency invocation; later runs rebuilt only the fixture/link.
+The stronger surviving-owner parse assertion also passes. No failed step is
+counted as success. Logs/hashes/reports are build/ecs_b1/lr_reuse.
+
+Measured n1 before/after, same frozen ordinary input and resource root:
+
+- Cold request keeps185 lookups/155 version builds; LR builds159->123 with36 exact
+  reuses (22.6% fewer constructions). Version time926.483->918.798ms, actual LR
+  time863.364->856.290ms. Whole process1.03->1.02wall seconds,
+  .99->.98CPU seconds,165684->164676KiB RSS.
+- Preinstalled startup keeps138/83 lookups/versions; tables84->60 with24 reuses,
+  LR50.750->44.117ms. Source still155 versions, tables159->123; LR855.066->850.371ms.
+  Whole process1.13->1.13wall,1.08->1.07CPU,168244->166964KiB RSS.
+  Both modes execute42 and preserve976bytes/hash13832670361687071853.
+- Normal3-unit compile, fixed archive91c12368, zero extra bodies, workers1:
+  wall3226.183->3164.822ms, CPU3144.556->3081.910ms,
+  RSS197488->196660KiB. Workers4:1294.168->1228.464ms,
+  CPU3970.667->3804.358ms, RSS459344->462972KiB. Real outer peaks1/3;
+  canonicalhash1173729914654460811, entities48240/components55014 unchanged.
+  Retained bytes+1752 across3 worlds; peak ledger bytes77,805,058->76,704,074
+  serial and201,739,119->198,399,216 parallel. The small parallel RSS rise is
+  under1%; samples establish no latency or regression bound.
+
+This is a concrete construction/ownership precursor: savings occur within a
+fresh cold compilation, not only a persistent process. No cross-session/world
+reuse is implemented. Most saved tables are small; about.85s actual LR work and
+.92s total version preparation remain on the cold request. Therefore do not
+claim the fixed CLI/frontend cost solved or a large latency win from these n1
+samples. Repeated distinct large revisions remain the bottleneck. The historical
+300s fullfrontend failure stays FAILED; not rerun/relabelled. ROOT final native
+sanitizer/scaling/bootstrap/browser/generation/hosted gates remain pending.
