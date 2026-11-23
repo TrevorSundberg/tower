@@ -84287,3 +84287,11 @@ A1/cache/a1_checked_merged_*. Sessions93620/7372 reaped0, no owned active jobs.
 Actual process chain: codex.exe12060, node launcher28232, PowerShell36308;
 startup status's PID28232 was the launcher, now corrected. Normal main push
 follows. Shared allocator/diagnostic and integrated release limits above remain.
+
+D1 publication reconciliation: the required ff-only pull fetched fae7f9c and
+refused divergence (exit128); normal merge daf7408 preserved both complete
+histories without conflict. A1's later lowering/flow source and runtime receipts
+remain outside the frozen ec01291 review. D1 audit/roster bytes still match
+ac23e7c, all51 frozen receipts remain exact, and the merged delta over upstream
+contains only the four authorized documentation files. No runtime rerun or
+current-tree inventory expansion was performed.
