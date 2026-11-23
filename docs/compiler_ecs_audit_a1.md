@@ -697,3 +697,44 @@ assertions, other phase transport failures, all scratch accounting or global
 cycle/failure coverage. Normal graph/pool callers still need coordinated world
 budget adoption. Matched successful small/large serial/four-worker profiling,
 current instrumentation and the final integrated release gates remain pending.
+### Frozen admission before/after profile and native gates (2026-11-23)
+
+The selected native compiler/LR/execution/frontend targets now link after the
+reviewed work_named provider correction. Query-smoke passes with the current
+22 Publish and24 interpreter-resource cases; these are before L1's new frame
+owners, so they do not substitute D1's calibrated successor. Control-smoke
+passes34.61wall/35.58user/2.08sys/256480KiB. Type-smoke passes224.84wall/
+229.00user/12.62sys/262596KiB, below its existing240s bound without retry.
+The ten focused dispatch/source-admission cases also pass.
+
+A2 granted a fresh quiet window03:21:40 UTC. After all owned tests drained,
+A1 ran32 checked executions (one warmup and three alternating measured pairs)
+on the same frozen small staged expression and larger aggregate/capture program.
+Native Linux x64 compiler, public9653 bootstrap/LLVM19, targetwasm32 interpretation,
+explicit identical packaged Bedrock/Foundation/types, requested workers1/4,
+warm filesystem after the excluded warmup; own affinity0-3,4CPU/8GiB.
+Before compiler7c5e9d3812d5bb110efd8ccdd73ff8e7b100dd50162e1eea0e8fd07658627859
+is9c1927a; after013a08f9435087a353a2c50fe3f54e02f77ece2147b3526bea496b5c8f6727c3
+is the three production-path872df0e admission/retry change. Resources and source
+hashes are retained in semantic_admission_paired1.log. This comparison does not
+attribute earlier snapshot/graph-constructor changes to the admission fix.
+
+| Input/workers | Median wall seconds before -> after | Median CPU seconds before -> after | Median peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| small/1 |1.18 ->1.18|1.08 ->1.09|178568 ->178880|
+| small/4 |1.08 ->1.06|1.22 ->1.21|194596 ->193140|
+| larger/1 |1.22 ->1.17|1.12 ->1.08|178168 ->179112|
+| larger/4 |1.09 ->1.07|1.23 ->1.21|196600 ->196812|
+
+All outputs match their reference, all four before/after serial/parallel
+Foundation products are byte-identical, and the after-four-worker product
+reparses/executes to the same output. The small serial CPU median increases10ms;
+larger serial peak RSS increases944KiB. Retain those costs; three samples do not
+prove neutrality or a stable speedup. Four requested workers give modest9-11%
+end-to-end wall savings in these inputs, not evidence of four-lane semantic
+overlap, all-core scaling or packed payload locality. No scheduler idle/critical
+path or full-heap allocation counter is measured here. The focused tests
+separately check real transport, exact retained ownership, zero final ledger
+and unchanged entity/component counts across failed retries. Supported current
+instrumentation and final merged bootstrap/browser/generation remain open.
+The quiet window was released immediately after process exit0 and drain.
