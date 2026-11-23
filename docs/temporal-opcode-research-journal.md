@@ -75344,3 +75344,68 @@ Largegraph execute430.703103->449.804704ms (+4.44%), small9.030339->10.072621ms 
 Fourunitcontrol after reports actualouterpeak4, medianphase2040.595866ms vs summedworker8069.144399ms (realoverlap). Serialphase5993.859406ms; fourworkerCPU8.04s vs6.08s serial, so overlap retains scheduling/parallelcost. The one-unit256body case reports outerpeak1 even atbudget4; its wall improvement versusbudget1 does not prove innerthread overlap by itself. Canonicals are units17697577322696030917 andbodies12683198132697182263 throughout. Entities/components identicalbefore/after.
 
 Retainedbytes consistently fall800perworld: units1 20204981->20201781, units4 20192829->20189629; bodies1 22293931->22293131, bodies4 22290851->22290051. Ledgermetadata unchanged5,242,880(singleworld) or20,971,520(fourparallelworlds). This reduction is under investigation: larger IMState changes embedded SemanticEvaluation payload/pagecapacity, so do not infer smaller live objects. Prepared ordinaryTower actualentitypage probe prints sizeof and real page rows/stride/physicalbytes on frozenbefore/after snapshots; UNRUN whileL2 owns affectededitorinstrument slot. This is a bounded accounting diagnosis, not a new performance claim or a reason to repeat passing timings.
+Pageprobe transportretry completed0 forbefore/after, stderrsempty. Actualsizeof IMState592->816,IMFrame160->272,IMInvocation1032->1256,SemanticEvaluation1264->1488. Realallocatedpage rows12->10,stride1272->1496,payload16015->15615,physical16047->15647: -400bytes/page despite+224bytepayload. Observed -800/world isconsistent withtwo suchpages, not yetdirectlycounted inprofileworld; no smallerliveobject claim. Firstlinkfailure11125 wasmissingprint runtime, publicleaf/codegenpassed; retainedlogs. Correctedreuse existingguest-work-tests runtimeonly, no compilerinputchange. Starting supportedaddress7 nowoncommitted6818; source frozen. 2026-11-23T12:30:56.1001389Z
+
+ADDRESS37910 ACTUALDRAIN0/current6818 sourcebefore/after/final0. All7 core/functions/query3/real4unit/typeconstruction statuses0 andruntime stderrsempty; postdrain actualmemory-access callsites confirmed8IR (interpreter11637/evaluation9762/query3230/semantics29932/etc), notjustdeclarations. Build54=182.52wall310.74CPU749868KiB; core54.44/76.41/894212; functions113.34/136.77/930240; query1=1.01/1.11/383064; units20.19/77.68/1240328; constructors10.81/14.15/762476. CurrentmemorycoveragePASS source-specific; threadpending. No newcompilerinputs/ownerjoins. Startingthread7samefreeze, primaryretainedmax2build/oneexclusive runtime. 2026-11-23T12:38:38.3057463Z
+
+### L1 graph-map milestone at6818: current supported instrumentation complete
+
+The committed map code now passes both supported native instrumentation modes
+on the same 1,113 frozen compiler/build inputs. ADDRESS37910 and THREAD11436
+actually drained with status0. Each mode passed seven gates: core execution,
+functions, three query-smoke runs, real four-unit compilation, and type
+construction. Every runtime stderr is empty. Separate post-run checks find
+actual memory-access instrumentation calls in eight relevant IR modules per
+mode, rather than accepting declarations or a successful link as coverage.
+All source manifests match the native milestone and each other.
+
+Thread build56 cost133.88s wall/212.97s CPU/749928KiB RSS. Thread core cost
+130.32/173.66/722844; functions292.81/354.16/750796; query runs2.23,2.20,2.21s
+wall; four units47.80/187.65/1851572; type construction29.60/37.27/558844.
+These are validation costs, not before/after performance comparisons. Address
+costs and the paired native performance table are recorded above.
+
+Both unit controls report actual outer peak4, four reserved lanes and canonical
+hash17697577322696030917. Address measured19.191855560s compilation against
+75.956235158s summed worker intervals; thread46.501880674s against
+184.821477230s. All six query runs include real overlap for Cancel4 at width256;
+the original independent ff3 failure remains historical and is not relabeled.
+Legacy core/functions worlds retain the host ceiling16, and function fixtures
+also request workers1/2/4/8; explicit query/unit controls use1/4. The host was
+exclusive to one runtime process, with at most two build jobs. The earlier
+status shorthand max4runtime was corrected before acceptance.
+
+The ordinary Tower layout probe compiled with the public predecessor and used
+the existing entity allocator. Before->after measured: IMState592->816,
+IMFrame160->272, IMInvocation1032->1256, SemanticEvaluation1264->1488. Real
+component page rows12->10, stride1272->1496, allocation capacity16015->15615,
+physical bytes16047->15647. Thus larger live payloads can reserve400 fewer
+bytes per page; the profile's800-byte decrease per world is consistent with
+two such pages, whose world-level count was not separately traced. No smaller
+live-object claim is made. The first probe link failed because the selected
+storage runtime lacked tower_print; its public leaf/codegen passed. The retry
+reused that object and linked the existing guest-work-tests runtime, then both
+before/after runners returned0 with empty errors. No compiler source changed.
+D1's legacy bind-budget fixture intentionally accounts selected buffers;
+production bounded world creation also binds component storage. These are
+separate contracts, not a total-process memory limit.
+
+Immutable selected instrument binaries, eight checked IR modules per mode,
+configuration/tool/manifest files and exact runtime resources are archived in
+/root/.cache/tower/l1_graph_maps_instruments_6818. The archive explicitly records
+code commit6818abe30e0da944aa0682a3955eeca9f404db9e separately from runtime
+resource commitd3a87129547c7004df4ddb920046d60712526ad8. Every copied file's hash
+was verified. The manifest receipt logs/graph_maps_instrument_archive.sha256
+has SHA25640863fe7d6d68d5b93262292a4eb8a35b2f57677f9aca6d38166c905a72d9fae.
+Native candidate and baseline packages remain independently preserved.
+
+Coverage limits: the current toolchain exposes address and thread modes, not
+UBSan. Native host memory/thread evidence does not cover all foreign libraries,
+wasm/browser execution, unexecuted negative controls or future merged sources,
+and is not a universal race-freedom proof. No publication lease, source push or
+hosted verification is claimed. The host was released after actual drain to
+L2's queued bounded native baseline. Next: commit these receipts, merge the
+complete newer coordinator history without losing edits, validate that merged
+source at the next host slot, then continue wide-call argument, root/snapshot,
+Fast/context/output and remaining owned implementation closure. The full goal
+remains active.
