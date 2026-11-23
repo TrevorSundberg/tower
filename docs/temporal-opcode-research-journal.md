@@ -94989,3 +94989,32 @@ changed createCompilerWorker page-owned path is not invoked by these ordinary
 Node fixtures (compilerThreads takes the non-shared module return or Node worker
 factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
 hosts, compilerThreads and Tower providers still match the measured freeze.
+
+## 2026-11-23 L1 — T6/T7 acceptance of immutable25dddd04 reactors
+
+Complete unchanged compiler-workers8/8 then cross-compilation7/7 PASS, actual
+Node exits0, no skips/cancellations/unstarted coverage. All32 bundle sizes/hashes
+verified before install and after; own ignored build defaults had no predecessors.
+ROOT snapshot untouched. Compiledsource25dddd0420258bc5174a3039293c447fd60ef367 is
+separate from mountedhost/tests0fe314efe1b8d740a1be3fa829124e92d2cf1f6c and excludes
+A2's later125efb11. No compiler/reactor/test-source edits or build. Historical
+b797/c95/eac evidence is not reused as this run. Both complete files ran in fresh
+Node22.23.5 Windows processes, concurrency1/TAP, CPU0-3,300s outer guards, phases
+and fresh artifact directories; no generic artifact overrides.
+
+Original worker object/publication/overlap/world/dependency/cancel/first-error/
+vectorization assertions passed. Six cross targets retain repeat-byte/link/object
+checks, Wasm reference execution and recoverable linker/invalid-target diagnostics.
+All1332 mounted input hashes remain identical;88 checked phase/object/IR/cross
+outputs preserved. No production defect or owner overlap arose. T6 costs26.990wall,
+83.063 observedtreeCPU,684600KiB Nodechildpeak; T7 3.489/8.734/346544. Child CPU is
+82.891/8.641s; parent-only metrics are not substituted. Sampled aggregate working
+sets are lower bounds; phase JSON is a separate scope. No throughput claim.
+
+First T6 had8/8 passing assertions but the OS receipt wrapper failed metric
+summation before preserving Node exit; exact logs/artifacts/error retained, T7
+unstarted then. Corrected only receipt summation/early exit persistence and repeated
+T6 once, capturing exit0; T7 ran once. No hidden failed check or compiler retry.
+Detailed source/hash/command/cost/scope receipt: docs/compiler_workers_cross_25dddd04.md;
+external L1/logs/t6_t7_25dddd04. Jobs drained, todo unchanged; committing and normal
+main reconciliation. ROOT retains deployment/full release ownership.
