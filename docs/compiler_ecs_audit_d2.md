@@ -1633,3 +1633,49 @@ journal. Its unchanged093 entry stays a single serial workload even with request
 The physical-buffer ledger, process RSS, canonical entity counts and true overlap
 remain distinct metrics. Public clone non-stack allocation failure distinction
 was routed to L2/A2/B2 with exact source paths; no competing implementation.
+
+### Current remaining scope at 2a8646e (2026-11-23)
+
+This update supersedes the open/implemented classifications at83ca8a6 above;
+the intervening receipts and failures remain historical evidence. Primary
+coverage remains40/40 paths (33tools,7benchmarks), verified against the current
+directory census; bootstrap provenance remains45/45. Incoming owner API reviews
+below are separate from adoption and runtime acceptance. D2 has no heavy job;
+D1 owns the shared Deck slot. This source/documentation review does not change
+runtime code, so new runtime performance/memory measurements are inapplicable.
+
+| Requirement / exact locus | Current disposition and next concrete evidence |
+| --- | --- |
+| Iteration, tools/build_tools.tower build_tool and canonical build entry | The positive compiler budget/default1 and explicit missing-language measurement fix are implemented and measured. D1's current smallest aggregate checks cost34.05s(parser_modules_work)+30.74s(semantics_checks), then canonical native recompiles both. Future validation keeps direct changed-unit checks first and uses the required canonical build for those aggregate checks; no cache or new scheduler is needed. No claim that unexecuted recipe changes already save measured end-to-end time. |
+| Packaging ownership, compiler_project_files/compiler_project_package/bootstrap_package | Explicit request-owned records and derived source/member indexes remain appropriate; ordered archive/filesystem publication is serial. Final current-artifact packaging CPU/RSS/retention still needs measurement. New work_arena_api will be collected by existing library glob/tree traversal once adopted; no manifest edit is necessary. Actual complete package, one provider and undefined/duplicate symbol checks remain required. |
+| Between/within-unit ready work, semantic_layout.tower sem_layout_execute | The older missing grant-refresh claim is now superseded: current code recomputes profitable ready layouts only after running work reaches zero, with prior receipts released after publication. Threshold is8192fields. Current layout_frontier_profile selects8/1024/4096 and therefore cannot establish this worker path. Routed to A1/A2/D1; need checked at/above-threshold spans and actual useful scaling. Backend distinct-thread overlap passes atfa725bf; common Deck jobs2 benefit remains workload-dependent, not universal. |
+| Serial/reference/import measurements, compiler_reference_inputs and module_cache_profile | Frozen16/1000-function and workers/window independent-reference/canonical evidence exists at1461866; current merged CLI repeat is pending. Cache fixdeba07 is independently measured atfa725bf: pinned18-layer warm median309.109ms to549.529us, exact counts/invalidation/teardown; serial cache traversal is not threading evidence. Pinned128-unit control leaves1.3% residual with equal RSS; initial uncontrolled32% slowdown was not reproduced. |
+| Staging, semantic_capture_work/semantic_evaluation_work/interpreter_storage | Production helper readiness, executed-path capture policy, immutable aggregate snapshots and paired typed resource failure are implemented. fa725bf query tests cover32/64,1/4, failed tickets/no replay/drain; initialized-order and aggregate receipts are source-specific. Full42 lifecycle/current full milestone remains open; no new evaluator or Foundation safety policy is introduced. |
+| Failure/stale/lifetime, entity_stage and compiler/generics | Stage membership fast path has checked native/concurrent evidence; semantic_world owner cleanup is now integrated. Exact current shared-source sanitizer/stress remains pending. Public clone-result handoff25503293 and matched B2 consumers are not adopted; non-stack null allocation can still leave CloneStack.error=None in current source, so optional inspection must not silently treat it as quota. L2/A2 own correction. |
+| Physical retention/locality, work_buffer/work_arena/entity storage | Charged physical buffers and worker-private stable arena slices are implemented and measured separately from RSS. Stable paged entity payloads are not packed archetype columns; retained-count observations are not all-heap accounting. Constructor patchfe458 and matched B2 callers remain pending, and that patch explicitly excludes store pages/component payloads. A1 fallible publication/arena adoption is still owner work. |
+| Instrumentation, instrument_llvm and TowerSanitizers.cmake | Actual LLVM19 Tower ASan/TSan support and earlier scoped passes exist; current exact checker ASan passes11definitions. Its failed double-instrumentation experiment is preserved. New union whole-compiler/query/stage/parser/worker validation remains open; source-level UBSan and other-host sanitizer coverage are unsupported, not passed. Do not substitute serial fault counters. |
+| Canonical build/browser/publication, bootstrap_comparison/verify_compiler/playground Checks | Latest D2 compiled package isfa725bf/8388c79a+48resources, not current2a source. D1 independently built0e544 union, but its receipt is not a D2 build identity. Final frozen clean public build, generation/package closure, native/browser/threaded assets, source-reachable provenance and leased atomic main+Pages/hosted verification remain open. Direct host libLLVM19 boundary requires the supported Docker image. Root owns final vendor/backend assembly; no duplicate Deck vendor build. |
+
+#### Arena declaration handoff and packaging closure review
+
+Reviewed exact patch819a9542 and archive2f16b385 without adopting them. The patch
+exports the existing six arena operations and adds the sole provider import to
+compiler/units/entities.tower, already selected by TowerCompilerUtilities.
+No algorithm, nominal layout or second scheduler is added. D2 will inspect actual
+new component imports before extending exact per-unit symbol policy; no prefix
+allowance or speculative catch-all is justified.
+
+| Incoming path / SHA256 | Substantive review and disposition |
+| --- | --- |
+|scaffolding/library/work_arena_api.tower /5df4ac6bffab97dce2a6148216a94260179d54d813d6059475c30fba98bac656|Typed extern declarations import defining arena/budget types; clients borrow the same explicit private owner, with exactly one linked implementation. No allocation, state, world or scheduling hidden in this boundary. Source-only handoff review; joined consumers/full package remain pending.|
+|scaffolding/tests/work_arena_linkage.tower /ada9e5cc4deb3c850ba194c93a49abdeeed028691509d85131bf5bd64208538e|Separate client object exercises all six provider symbols, explicit finite budget, aligned initialized slices, unchanged output on denial, same-budget transfer, retained-byte snapshot and final zero grants. No threads or overlap claim. Native/ASan/TSan receipts reported by A2, not run by D2; generic registration belongs to D1.|
+
+CMakeLists copies top-level library Tower modules into native resources;
+compiler_project_sources traverses the library tree for editable browser sources;
+playground/scripts/build.mjs includes top-level library builtins; bootstrap_collect
+packages the actual executable's complete share tree. These existing paths cover
+the new declaration file after adoption. They do not prove a built artifact has
+the new file or exactly one provider: final package hashes, source comparisons,
+link and symbol checks must establish that. Prior failed read-only searches of
+guessed build-file paths were corrected using the tracked inventory; no check was
+run or counted as passing by those searches.
