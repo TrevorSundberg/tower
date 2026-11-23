@@ -95750,3 +95750,5 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+A2 entity_pages publication reconciliation: implementation/receipt2bad3e52 merged complete published e637ba38 as43a8f16d. Incoming Windows gate fixtures/registration/docs do not alter the measured production closure; all72 source-provider dependencies hash-match, and the compiler/backend/library/host producer diff from tested a18d584e is empty. New Windows cases remain outside this receipt. Frozen a06/a18 and old25/435 boundaries retained; no measurements rerun. Normal main push follows; ROOT release ownership unchanged.
