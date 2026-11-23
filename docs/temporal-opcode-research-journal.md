@@ -90001,3 +90001,14 @@ build/functional/performance evidence rather than repeat a matrix. No conflicts,
 source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
 stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
 and final-source instrumentation/release exclusions. Normal main push follows.
+D2 struct-isolation publication: fd3a095e committed the scoped fixture/transport
+and receipt. Required ff-only pull reported divergence; complete0d789444 history
+merged asf9fb9cb74af44a15510338096b2ed2cdba8b950f, with no conflict or lost entry.
+Own files/hashes and selected language/type/loader inputs remain identical.
+Incoming tower-host.configure changes only an explicit reconfiguration method
+this probe does not call; compiler/libraries outside the fixture import closure
+and other owners' fixtures retain their own evidence. Reused frozen f7e/578
+measurements without a repeated full struct or package run; they are not tests
+of newer executable providers. Diff/syntax/hash checks remain clean. All jobs
+drained, heavy slot released, todo unchanged; ROOT/L1 retain the full failure
+reduction and first-typed-cause handoff. Normal main push follows.
