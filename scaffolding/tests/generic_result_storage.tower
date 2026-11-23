@@ -2,6 +2,9 @@ import tower;
 import .compiler.generic_body_types;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
+import .compiler.semantic_declaration_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_work_ids;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .library.work_budget;
@@ -34,9 +37,16 @@ extern fn sem_create_result(parent: void*, error: WorkBudgetError*): void*;
 extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
 extern fn sem_layout_discover(context: SemanticContext*, node: void*): usize;
 extern fn sem_layout_execute(context: SemanticContext*): usize;
+extern fn sem_constructor_add(context: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration*;
+extern fn sem_evaluation_begin(context: SemanticContext*): void;
+extern fn sem_evaluation_expression(context: SemanticContext*, node: void*, expression: void*, owner: void*, requested: bool): void*;
+extern fn sem_evaluation_get(context: SemanticContext*, subject: void*): SemanticEvaluation*;
+extern fn sem_evaluation_work_register(context: SemanticContext*, cloning: bool): void*;
+extern fn entity_component_add(node: void*, kind: void*): void*;
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
 enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
+enum SemanticAdmissionOperation: u32 { Constructor, Begin, Expression, Prepare, Clone, Count }
 var GenericResultBudgetBytes: usize = 1048576;
 var GenericResultOrdinaryKind: u32 = 0;
 
@@ -166,6 +176,22 @@ fn generic_result_storage_tests(): void {
     }
     generic_result_admission_tests();
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var tag = convert(u32, SemanticAdmissionOperation.Constructor); tag < convert(u32, SemanticAdmissionOperation.Count); tag++) {
+            var operation = convert(SemanticAdmissionOperation, tag);
+            var calls = semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.None);
+            // Constructor name resolution still uses legacy semantic scratch;
+            // its structural denials below do not claim a full scratch sweep.
+            if operation != SemanticAdmissionOperation.Constructor {
+                for(var allowed: usize = 0; allowed < calls; allowed++) {
+                    semantic_admission_storage_trial(width, operation, allowed, WorkBudgetError.Memory);
+                }
+            }
+            semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.Capacity);
+            semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.Busy);
+            if operation != SemanticAdmissionOperation.Expression {
+                semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.Exhausted);
+            }
+        }
         var initialize_calls = semantic_initialize_storage_trial(width, unlimited, WorkBudgetError.None);
         for(var allowed: usize = 0; allowed < initialize_calls; allowed++) {
             semantic_initialize_storage_trial(width, allowed, WorkBudgetError.Memory);
@@ -176,6 +202,146 @@ fn generic_result_storage_tests(): void {
         generic_result_lifecycle_trial(width, false);
         generic_result_lifecycle_trial(width, true);
     }
+}
+
+fn semantic_admission_storage_trial(width: u32, operation: SemanticAdmissionOperation, allowed: usize, wanted: WorkBudgetError): usize {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Semantic admission bounded world");
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var root = entity_create(bits(void*, store));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var error: WorkBudgetError;
+    sem_attach_result(root, KProgram, &error).start = 73;
+    var subject = generic_clone_child(bits(void*, store), root, "CoreType", null, 73);
+    var value = sem_attach_result(subject, KOperand, &error);
+    value.start = 73;
+    value.type = { scalar: SI32, pointer_bytes: width, ..default };
+    var input = sem_create_result(root, &error);
+    var literal = sem_attach_result(input, KOperand, &error);
+    literal.type = value.type;
+    literal.constant = true;
+    literal.bits = 42;
+    var parent: SemanticDeclaration = { scope: context.scope, current: root, ..default };
+    var preparing = operation == SemanticAdmissionOperation.Prepare || operation == SemanticAdmissionOperation.Clone;
+    if operation == SemanticAdmissionOperation.Constructor {
+        generic_clone_child(bits(void*, store), subject, "args", "args", 73);
+    }
+    if operation == SemanticAdmissionOperation.Expression || preparing {
+        // Warm the separate executable/capture prerequisites outside injection.
+        // Their ownership is independent of evaluation's state/preparation chain.
+        var warm = generic_clone_child(bits(void*, store), root, "CoreOperand", null, 73);
+        sem_evaluation_expression(&context, warm, input, root, false);
+        utility_check(program.resource.error == WorkBudgetError.None, "Admission prerequisite setup");
+    }
+    if preparing {
+        sem_evaluation_expression(&context, subject, input, root, false);
+        if operation == SemanticAdmissionOperation.Clone {
+            var proof = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownProof), 0);
+            utility_check(proof != 0 && work_seal(&context.queries, proof) && work_demand(&context.queries, proof), "Clone proof setup");
+            var ticket: WorkTicket;
+            utility_check(work_take_task(&context.queries, &ticket, proof) && work_finish(&context.queries, &ticket, true), "Clone proof completion");
+            var evaluation = sem_evaluation_get(&context, subject);
+            evaluation.inferred = true;
+            var clone = work_request(&context.queries, subject, convert(u32, SemanticQuery.KnownClone), 0);
+            var preparation = work_find(&context.queries, subject, convert(u32, SemanticQuery.EvaluationPrepare), 0);
+            utility_check(clone != 0 && work_depend(&context.queries, clone, proof)
+                && work_depend(&context.queries, preparation, clone), "Clone dependency setup");
+        }
+    }
+    var occupied: WorkReservation = default;
+    var view: void* = null;
+    var next_id = store.next_id;
+    if wanted == WorkBudgetError.Capacity {
+        if operation == SemanticAdmissionOperation.Expression {
+            var kind_entity = bits(Entity*, context.evaluation_results);
+            utility_check(kind_entity.instance_count != 0, "Warm evaluation component exists");
+            var page = kind_entity.instances[0].page;
+            while page != null && (page.used < page.capacity || page.free_slot != 0) {
+                var filler = sem_create_result(root, &error);
+                utility_check(filler != null && entity_component_add(filler, context.evaluation_results) != null,
+                    "Fill the actual remaining evaluation page slots");
+            }
+        }
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &occupied)
+            == WorkBudgetError.None, "Admission page pressure");
+    }
+    if wanted == WorkBudgetError.Busy { view = entity_view_open(root); utility_check(view != null, "Admission lifetime pin"); }
+    if wanted == WorkBudgetError.Exhausted { store.next_id = ~convert(usize, 0); }
+    var unlimited = ~convert(usize, 0);
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var constructor: SemanticDeclaration* = null;
+    var kind: void* = null;
+    if operation == SemanticAdmissionOperation.Constructor { constructor = sem_constructor_add(&context, subject, &parent); }
+    if operation == SemanticAdmissionOperation.Begin { sem_evaluation_begin(&context); }
+    if operation == SemanticAdmissionOperation.Expression { sem_evaluation_expression(&context, subject, input, root, false); }
+    if preparing { kind = sem_evaluation_work_register(&context, operation == SemanticAdmissionOperation.Clone); }
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if wanted == WorkBudgetError.Exhausted { store.next_id = next_id; }
+    if view != null { entity_view_close(view); }
+    // Entity descriptors and containment are not component-page grants. A
+    // kind-only begin succeeds under page pressure; do not invent Capacity.
+    var cause = operation == SemanticAdmissionOperation.Begin && wanted == WorkBudgetError.Capacity ? WorkBudgetError.None : wanted;
+    if program.resource.error != cause {
+        puts("Semantic admission: operation, width, allowed, actual, wanted");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(convert(usize, width)); generic_clone_number(allowed);
+        generic_clone_number(convert(usize, program.resource.error)); generic_clone_number(convert(usize, cause));
+    }
+    utility_check(program.resource.error == cause, "Semantic admission preserves its exact producer failure");
+    if cause == WorkBudgetError.None {
+        if operation == SemanticAdmissionOperation.Constructor {
+            utility_check(constructor != null && constructor.query != 0 && constructor.current == parent.current
+                && constructor.construction_owner == &parent && !constructor.checked,
+                "Constructor admission retains its exact declaration/frame and unfinished ticket");
+            var jobs = context.declaration_jobs.length;
+            utility_check(sem_constructor_add(&context, subject, &parent) == constructor
+                && context.declaration_jobs.length == jobs, "Constructor admission reuses its retained query identity");
+        } else {
+            utility_check(context.evaluation_results != null && context.evaluation_ready != null, "Evaluation kinds publish together");
+            if preparing {
+                utility_check(kind != null && (operation == SemanticAdmissionOperation.Clone ? context.evaluation_clone_registered
+                    : context.evaluation_registered) == context.evaluation_jobs.length, "Preparation registration advances only its complete frontier");
+            }
+        }
+    } else {
+        utility_check(program.resource.offset == 73 && constructor == null && kind == null
+            && value.bits == 0, "Admission failure cannot publish a constructor or evaluated value");
+        if operation == SemanticAdmissionOperation.Begin {
+            utility_check(context.evaluation_results == null && context.evaluation_ready == null,
+                "Failed evaluation kind pair is retired before publication");
+        }
+        var allocations = tower_test_buffer_allocations();
+        var tasks = context.queries.tasks.length;
+        sem_resource_record(&program, WorkBudgetError.Invalid, 11);
+        if operation == SemanticAdmissionOperation.Constructor { utility_check(sem_constructor_add(&context, subject, &parent) == null, "Failed constructor cannot retry"); }
+        if operation == SemanticAdmissionOperation.Begin { sem_evaluation_begin(&context); }
+        if operation == SemanticAdmissionOperation.Expression { sem_evaluation_expression(&context, subject, input, root, false); }
+        if preparing { utility_check(sem_evaluation_work_register(&context, operation == SemanticAdmissionOperation.Clone) == null, "Failed preparation cannot retry"); }
+        utility_check(program.resource.error == wanted && program.resource.offset == 73
+            && tower_test_buffer_allocations() == allocations && context.queries.tasks.length == tasks,
+            "Fatal admission retains first cause without allocation or query replay");
+    }
+    foreach(var job in &context.evaluation_jobs) {
+        var evaluation = bits(SemanticEvaluation*, job);
+        utility_check(!evaluation.started && evaluation.ready != null && !evaluation.ready.ready,
+            "Admission never starts an interpreter or publishes a partial readiness payload");
+    }
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world), "Admission world cleanup");
+    if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Admission pressure release"); }
+    utility_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == buffers, "Admission releases every partial owner and budget grant");
+    return calls;
 }
 
 fn semantic_initialize_storage_trial(width: u32, allowed: usize, wanted: WorkBudgetError): usize {

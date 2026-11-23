@@ -304,6 +304,16 @@ export fn sem_create_result(parent: void*, error: WorkBudgetError*): void* {
     return attached ? node : null;
 }
 
+// Dynamic kinds share containment admission and retire an unregistered node.
+fn sem_kind_result(parent: void*, size: usize, alignment: usize, error: WorkBudgetError*): void* {
+    var kind = sem_create_result(parent, error);
+    if kind == null { return null; }
+    if entity_register(kind, size, alignment, 0) { return kind; }
+    *error = WorkBudgetError.Invalid;
+    sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
+    return null;
+}
+
 extern fn sem_match(node: void*): ParserMatchData*;
 
 export fn sem_child(node: void*, index: usize): void* {
