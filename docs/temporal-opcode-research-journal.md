@@ -90540,3 +90540,44 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+### D1 fixed Node execution-coverage reconciliation (2026-11-23)
+
+Frozen published48db0f27b439e9d0c7bb15e6f0c4beb932650e89; PID3138849, same
+D1 thread, clean pull/no surviving owned job. Documentation only: no test,
+compiler build, source census, generation or profile executed. Runtime profiling
+is inapplicable. The audit's new fixed checklist maps all51 original top-level
+Node files to actual O1/O2 TAP and later D1/ROOT/A1/B1/B2/D2/L1 receipts, with
+separate reactor and host/resource identities. A text inventory comparison matches
+all51 exact paths (the first extraction omitted the digit in compiler-utf8;
+corrected the extraction, not the documented inventory). Inputs/snapshot and
+comparison are preserved in build/d1_ecs/node_inventory_48db0f27.
+
+Closed scoped receipts: stack/defer and supported pointer aliases E7; ROOT's
+invocation/world/stage; qualified module completion/hover/lifetime G8 plus A1 IDE;
+both real link assets E7; diagnostic/deep-layout/control-body S3. These are not
+one all-current run. D2's newly published packaging test/producer hashes match:
+synthetic contract1/1 passes; real assets/hosted acceptance remains ROOT. A1's
+six package gates pass but do not execute the full narrow/body LLVM comparisons.
+B1's four ECS failures and D2's full struct reconstruction failure are retained
+with their exact earlier inputs; current owner routing is L2. L1 native alias
+repair needs successor browser adoption and its numeric nominal-wrapper contract
+remains an acceptance decision. A2 owns the valid negation reproducer.
+
+Additional unassigned original failures were not lost: twelve unchanged Node
+files (c-source, compiler-bytes, compiler-entities, compiler-utf8, compiletime,
+default, defer, execution, fast-interpreter, for-loops, foreach, formatter-port)
+have no later Node closure in the available receipts. ROOT must route matching
+artifact/fixture triage; native or related export successes are not substitutes.
+Cross's seven original skips and compiler-workers' eight cases unstarted at
+project initialization remain explicit artifact/acceptance gates. Eight other
+semantic-port framework cases failed under old mixed artifacts and remain
+unstarted on the matching-pair follow-ups; the checklist names every one.
+
+Exact commands/prerequisites distinguish ordinary, cross, shared, package-test
+and real project artifacts. In particular global ordinary LLVM/portable overrides
+must not silently replace cross/shared reactors; some raw loader/eager paths
+require actual final default files. Preserved all assertions, historical logs,
+journal and todo. No implementation or other owner's fixture edit. Checklist is
+fixed at48db; later deltas keep their owner receipts for final adoption, not a
+new expanding audit or automatic whole-file approval. ROOT owns final release.
