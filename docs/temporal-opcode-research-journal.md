@@ -86522,3 +86522,104 @@ L2 module/inspection admission and final current-source performance,
 instrumentation, complete generations, browser and hosted release remain pending.
 
 L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+### B1 cold frontend: reuse LR(0) items for lookahead propagation (2026-11-23)
+
+Bounded implementation on main, based on6767cd30 after the required ff-only
+rebase pull. Owned tower_ecs_b1 was idle before inputs changed. KinmenB native
+Linux x64/LLVM19, CPU0-11,24GiB; one dependency-aware /cache/native build tree,
+up to6 independent objects/compiler jobs1, unchanged public bootstrap9653f818.
+No agent, goal, public pin, backend policy, admission or semantic validation edit.
+ROOT owns integrated publication. This replaces no previous failed/timeout gate.
+
+Attribution used temporary Tower-owned sparse phases through the existing world
+GrammarObserver, plus serial kernel-cache-miss clocks. No sampling/debugger or
+allocator probes. Same generated16/1000-function sources and frozen production
+parser_table.tower inputs were used. Small/large totals:183 actual tables,
+lookahead657.6/673.0ms, LR states47.8/47.9ms, FIRST6.3/6.5ms; source parse823.3/
+857.6ms inclusive of grammar construction, semantic checking5.0/69.3ms. The
+production unit had211 tables,1105.1ms lookahead versus68.8ms states and56.6ms
+checking. A further serial small split measured581.7ms graph preparation versus
+47.1ms solve and13.2ms action assembly; kernel closure reconstruction alone
+468.98ms in its detailed run. These diagnostic samples attribute work, not the
+final speedup. All temporary phase/clock code and detailed failure-output edits
+were archived as exact patches and restored before final timing/publication.
+
+Implementation: lr_lalr.tower derives lookahead dependencies directly from the
+already immutable LR(0) items, borrowing D2's completed suffix-FIRST index.
+Each kernel starts a private reachability queue; nullable suffixes propagate
+lookahead and nonempty FIRST contributes spontaneous seeds. Empty nonnullable
+FIRST does not activate otherwise unreachable dot-zero items. Each active item
+is visited once per state; source order, nullable reductions, recursive start
+kernels, propagation sentinel and the existing fixed-point/action algorithm are
+preserved. No second grammar, cross-version identity or persistent cache exists.
+The maximum-state-sized queue/flags use one checked WorkBuffer charged to the
+explicit world budget, retire before dispatch, and unwind the unpublished graph
+on the first exact error. Existing standalone APIs and cached closure wrappers
+remain available. Legacy propagation vectors retain their existing allocation
+contract; this is not a claim that all LR storage or RSS is budgeted.
+
+The first independent oracle rejected unrestricted item propagation: a nested
+terminal-range case acquired an extra reduction. Per-kernel range labels affect
+contained-label goto paths. The final fast path therefore proves completed FIRST
+and disjoint terminal labels in every state; overlapping labels use the original
+closure algorithm. No oracle expectation changed. lr_work.tower selects the same
+safe path, builds its graph on the coordinator, then uses existing WorkGraph/
+WorkPool solver/action jobs, private results, admission and ordered joins. Old
+range closure workers remain intact. No eager worker-core optimization returned.
+
+Focused validation PASS: lr-order (150 independent randomized grammar/propagation
+oracles plus exact state/transition/action/runtime/control comparisons), new empty
+FIRST/reachable/nullable cases with aliased symbol spans, allocation sweep,
+explicit world Capacity rollback/retry and final zero grants; structure-reuse
+(identity/revision/metadata/cancellation/owner lifetime); grammar-equivalence;
+parser malformed/error/provenance; regex300 generated+500 arbitrary byte patterns
+and failures; native lr real-overlap/shared-budget/serial-worker/cancellation/
+lifetime checks (1.75wall/2.28CPU/118244KiB). The new denial fixture's1MiB peak
+includes its intentional full-budget reservation; it is not physical retention.
+No strict symbol policy was loosened and no public imported API was added.
+
+Frozen equivalent timing: before compilerf2261dd21b269b029081c7c7dd3379bcff955bebad0a3595956f0f52559de6e6;
+after11481c16a8fc4a1eb5d3e89b9b8623728e4e313cf320f52e9248291a3f72e5af.
+Fresh processes/warm filesystem, n3 counterbalanced before/after order for each
+fixture/worker count, same source/flags/output path, --emit object --target
+x86_64-pc-linux-gnu --jobs1|4 and explicit frozen Bedrock/Foundation resources.
+Each object was compared, linked with the same frozen runtime and executed.
+All24 executions returned exact15/999; independent Clang-O2-fwrapv C fixtures
+also returned15/999. All before/after/worker objects were byte-identical per input.
+Medians (wall seconds / user+system seconds / peak RSS KiB):
+
+| Input | Workers | Before | After |
+| --- | --- | --- | --- |
+|16 functions|1|1.08 /1.00 /199252|0.62 /0.54 /185596|
+|1000 functions|1|1.32 /1.24 /238860|0.80 /0.72 /238424|
+|16 functions|4|0.96 /1.08 /215528|0.76 /0.82 /188472|
+|1000 functions|4|1.11 /1.25 /263304|0.89 /0.96 /239872|
+
+Serial wall improvement43%/39%; four-worker21%/20%. The production parser_table
+unit (one pair, not a statistical claim) was2.32/1.88/230968 ->1.54/1.11/229096
+serial and2.03/1.99/254224 ->1.67/1.52/233888 at4; all four objects identical.
+These matched KinmenB results are not relabeled as ROOT's KinmenA medians.
+
+Ordinary cold observer canonical remains13832670361687071853/976bytes/answer42;
+185 lookups/155 version builds/123 tables/36 reuses unchanged. Table phase707.1
+->332.5ms, build777.3->401.8ms. Retained charged bytes1893528, peak58035248,
+ledger metadata5242880 and36677 retained buffers unchanged; teardown zero.
+Allocation calls2257150->2323104 (+2.9%): the item graph trades more small edge
+allocations for less closure reconstruction, rather than bypassing accounting.
+The remaining fixed grammar/table cost is still substantial (~333ms here), and
+four-worker execution now trails serial on these fixtures. No second tuning
+campaign or claim of Clang-level latency follows from this batch.
+
+Artifacts: build/ecs_b1/cache/serial_frontend_6767 (container /cache path), frozen
+before/after executables, full inputs, generator, manifest, measure.sh,28 object
+checks,24 output receipts, raw CSV/time/check logs, phase_measurement.patch and
+oracle_failure_output.patch. Small/large object SHA256cdc5a6ec0f2b12f1f7a622f45a27859e374558867df97470c8120cd81ddfb407 /
+ae9e824d75213b15baa1811f9ec4db04a2f044cce25746d291b888c7952f4e08;
+production unit56689c8f2210c813af7644763e9f263fd6d8e37c9506b46fc4cb6d872406156d.
+Preserved failures: generator executable duplicate-main and explicit link-object
+setup errors; missing runtime fixture copy before timing; missing initializer
+field in first candidate build; incompatible diagnostic-only dprintf declaration;
+unrestricted range candidate mismatch. All drained before fixes; none called pass.
+Final checks used public-bootstrap dependency builds only. Sanitizers, full
+scaling/generations/browser/hosted verification remain ROOT milestone work.
+Coherent commit, current-main reconciliation and normal push follow.
