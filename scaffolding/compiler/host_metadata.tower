@@ -143,11 +143,19 @@ export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): vo
 // Callers discard an incomplete destination on failure. Successful component
 // admission may remain cached; the result is private to this copy operation.
 export fn compiler_node_copy_metadata_result(source: Entity*, destination: Entity*): WorkBudgetError {
+    return compiler_node_copy_metadata_owned_result(source, destination, null);
+}
+
+// The coordinator may read its own leased published source while preparing a
+// separately owned clone. This grants no access to another stage or private node.
+fn compiler_node_copy_metadata_owned_result(source: Entity*, destination: Entity*, owner: EntityStage*): WorkBudgetError {
     if source == null || destination == null || source.store != destination.store { return WorkBudgetError.Invalid; }
     var world = compiler_node_world(source);
     // Standalone entity cloning has no compiler metadata to copy.
     if world == null || source == destination { return WorkBudgetError.None; }
-    if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
+    if owner != null && (owner.anchor == null || owner.anchor.store != source.store) { return WorkBudgetError.Invalid; }
+    if source.id == 0 || source.stage != null && source.stage != bits(void*, owner)
+        || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var span = sem_match(source);
     if span != null {
         var error = WorkBudgetError.None;
@@ -159,7 +167,7 @@ export fn compiler_node_copy_metadata_result(source: Entity*, destination: Entit
         target.length = span.length;
         target.rule = span.rule;
     }
-    return syntax_origin_copy_result(world, source, destination);
+    return syntax_origin_copy_owned_result(world, source, destination, owner);
 }
 
 

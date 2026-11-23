@@ -123,11 +123,17 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
 }
 
 export fn syntax_origin_copy_result(world: CompilerWorld*, source: Entity*, destination: Entity*): WorkBudgetError {
+    return syntax_origin_copy_owned_result(world, source, destination, null);
+}
+
+fn syntax_origin_copy_owned_result(world: CompilerWorld*, source: Entity*, destination: Entity*, owner: EntityStage*): WorkBudgetError {
     if source == null || destination == null || source.store != destination.store { return WorkBudgetError.Invalid; }
     if world == null { return compiler_node_world(source) == null ? WorkBudgetError.None : WorkBudgetError.Invalid; }
     if source.store != world.store { return WorkBudgetError.Invalid; }
     if source == destination { return WorkBudgetError.None; }
-    if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
+    if owner != null && (owner.anchor == null || owner.anchor.store != source.store) { return WorkBudgetError.Invalid; }
+    if source.id == 0 || source.stage != null && source.stage != bits(void*, owner)
+        || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var prior = syntax_origin_get(world, source);
     var missing = prior == null;
     if missing {

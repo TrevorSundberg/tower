@@ -395,7 +395,16 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
 // The document's single owner invokes this phase on its initialized context.
 export fn language_document_inspect(q: CompletionQuery*, checked: bool): bool {
     if completion_semantic_failed(q) { return false; }
-    q.program.error.length = 0;
+    // Speculative inspection may ignore its own ordinary diagnostic, but it
+    // cannot erase the document's earlier error or its allocation-free receipt.
+    var previous = q.program.error;
+    var offset = q.program.error_offset;
+    q.program.error = default;
+    defer {
+        vector_dispose(&q.program.error);
+        q.program.error = previous;
+        if previous.length != 0 { q.program.error_offset = offset; }
+    }
     q.generic_info = sem_generic_inspect(&q.context, checked, &q.truncated);
     return !completion_semantic_failed(q) && q.generic_info != null;
 }

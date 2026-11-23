@@ -85832,6 +85832,22 @@ work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
 
 Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
+### 2026-11-23 L2 module and generic inspection registry admission (implementation; validation pending)
+
+Bounded continuation of accepted1137b6ce/3dc3251e; CLI PID2564. Initial required pull was current, no owned surviving job. Audited semantic_modules and semantic_generic_info producers and immediate frontend/completion/query callers. Registry kinds can retain their owner through published components: module registry now constructs all kinds/scopes privately and attaches its root component last; individual scopes initialize metadata before named attachment. Generic annotations use an entity stage, discard before retiring their kind, and expose the handle only after checked publication. First resource receipt/source offset is allocation-free; prior query diagnostics survive speculative inspection. Cycle traversal now uses checked world-budgeted work_vector scratch because it is an immediate scope prerequisite. No scheduler/stage protocol rewrite.
+
+Frozen BEFORE: production3dc3251e with only focused existing editor_units fixture/selector (alias cyclic module + forward generic binding + existing grammar unit). Same three units, mode8, resource root scaffolding, Linux WSL native cache l2_ecs_native, affinity4-7, jobs1/4, normal allocator. Baseline build reused providers; runner SHA256126c925eea75e2244a7982be4ef8d41f5e719dbec3ac08d0d3a153c9ff2cc998, towerc d709276a7a1eaf5440bd9d393bfe72b3737d536fa2b7b72f9cb12219effe59ab. Immutable binaries /root/.cache/tower/l2_module_registry/before; external lane module_registry_baseline_source.sha256 and logs/module_registry_before_{1,4}.*. Both checked samples and frozen manifest passed; no overwrite of prior baselines.
+
+Adding actual module registry/metadata and public language_document_inspect failure trials using existing storage fixture entities. Memory sweep derives allocation count from healthy call; exact Capacity and pinned Busy, prior diagnostic/resource, no-allocation terminal retry, no partial kind/scope/annotation, final zero buffers and budget grants. Existing editor/import and query/control/type coverage will be reused narrowly. ROOT owns final integrated sanitizer/browser/deployment gates; no such result claimed here. todo unchanged.
+L2 registry validation checkpoint: module0 link failed because cycle traversal named a nonexistent budget accessor; corrected to compiler_world_work_budget and drained session60484. module1 and module2 dependency builds, complete storage/admission suite and query-smoke passed with frozen manifests and empty stderr. The focused editor subset then passed mixed modules/inspection/cancellation but stopped134 at the new unused generic function-type fixture (setup query null). GDB hardware watchpoint on the actual SemanticProgram.resource located Busy in generic_expression_check: the ordinary metadata clone rejects all leased source nodes. Inspection's disposable metadata stage therefore needs an explicit source-owner contract, not a relaxed global guard. Extended existing clone/metadata/provenance result helpers with the calling stage, retaining foreign-stage, private-node and pinned-store rejection; existing no-owner callers keep their old contract. Function-type synthetic parameters use the same inspection stage only during type resolution, while temporary expression clones remain independently owned. Added direct same/foreign lease, pin, Memory and cleanup fixture coverage. module3 build/tests now owns frozen inputs; earlier failure logs preserved, no full acceptance/sanitizer campaign.
+Further focused evidence: explicit owned clone fixed the function-annotation setup. The editor denial then correctly reported Capacity at the root registry admission before reaching the old expression-offset expectation; the test now derives the expected position from the actual program root and additionally checks unchanged entity/component counts. The next denied public-query attempt exposed a pre-existing null syntax-session dereference (SIGSEGV in syntax_get_revision from completion_parse, GDB receipt retained). Its immediate completion_session/probe callers now use syntax_session_open_result, latch the first receipt and return before dereference, without changing session allocation policy. module3 storage/query passed; subset3's outdated-offset assertion and subset4's null-session failure are failures, not passes. module5 rechecks the resulting production closure through the same dependency target and focused fixtures.
+Final local evidence on3dc3251e plus this closure: module5 dependency build (towerc, tower-lr-work-tests, tower-storage-tests), storage/admission and query-smoke passed; session55045 drained0. Storage covers Begin/Scope/Record/public Inspect, every actual allocation index from healthy demand, Memory/Capacity/pinned Busy, prior Exhausted plus ordinary diagnostic, no-allocation terminal retries, zero partial registry/kind/scope/annotation counts and final zero buffer/budget ownership. Owned-clone coverage rejects missing/foreign lease and pinned store, preserves Memory, copies ordered metadata under the matching lease, and releases everything. Prior ordinary diagnostics are retained during optional editor inspection.
+
+subset5/session68904 passed and drained0: editor mixed compile/inspection normal workers1/6 with byte-equivalent normalized output, cancellation/source-order failure suppression, ordinary aliased/cyclic import and forward generic bindings; public function-type inspection at32/64-bit workers1/4 with late Capacity, exact root offset, no partial metadata or exposed output, terminal retry, denied fresh query, cache recovery and final zero grants. control-smoke passed (86.45s). Lifecycle5 nominal/generic aliases and24 module captures passed at32/64-bit workers1/4 with known outputs and canonical Foundation recompilation. Query smoke provides the existing real overlap/barrier and lazy/resumable staging evidence; serial fault injection makes no race-freedom claim. Every successful phase had empty stderr and frozen-source verification0; failed module0/subset0/3/4 and GDB logs remain in the external lane.
+
+Matched healthy sample, same editor-sample fixtures/resources verified byte-identical to baseline, WSL/Linux native, normal allocator, taskset4-7, warm resources, one process sample per jobs setting. jobs1 before -> after: wall3.14 ->2.91s, CPU(user+system)2.96 ->2.76s, peakRSS245060 ->245236KiB. jobs4: wall1.80 ->1.64s, CPU3.94 ->3.59s, peakRSS421992 ->421780KiB (218% process CPU). Both outputs checked and compared exactly; no causal performance or full scaling claim from n1. Retained ownership is checked independently by fault/query teardown budgets, not inferred from RSS. Immutable after towerc SHA256ec17744f43c2a7060afce874a3c4041117d34ad10e6d3df77148905fddecaf43; runner5299bfe6767d37916cdb8c80de00ae1bc4bfbebe876ad6f93c2807171af336ee; /root/.cache/tower/l2_module_registry/after. Existing baseline/old accepted evidence untouched.
+
+Remaining boundaries at this source, audited once: no asserting module or inspection registry wrappers remain; unused frontend_module_cyclic wrapper removed. sem_create's three production body-coordinator calls in semantic_body_work belong to A1's86843700 batch; not changed here. Backend import_foundation/import_module still use sem_create/sem_attach via import_bindings: these are production legacy import consumers under B2, not claimed to be external-only. Exported sem_create/sem_attach and declaration-only semantic_query_api also support linked fixture/compatibility callers. Other lexical/name/format/session internals and integrated sanitizer/bootstrap/browser/generation/publication gates remain outside this finite closure. ROOT owns final deployment; none performed or claimed. todo SHA256 unchanged b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Commit/integration/push follows, preserving full histories.
 
 ## 2026-11-23 D1: exact Semantics imports and RESOURCE_ROOT fixture identity
 
@@ -86546,3 +86562,66 @@ Full exact receipt: docs/compiler_generation_252b424a.md. Historical public-vs-
 successor object mismatch stays FAILED; this complete current fixed point is
 separate evidence. ROOT retains pin/Pages, later-source acceptance and integrated
 instrumentation. No broad browser/type/frontend/sanitizer campaign was run.
+L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+### ROOT public capacity bootstrap and paired reference receipt (2026-11-23)
+
+Required prerequisite: A1's preserved body/declaration provider legitimately
+exceeds the prior128MiB semantic-node payload policy. A2 measured128.56MiB
+and published the explicit160MiB default policy without changing caller limits
+or claiming a process-memory cap. B2 rebuilt complete generations from the
+public9653f818 predecessor on frozen published252b424ab770a0b334f31fa68eede1f1584a5acc.
+Its generations2/3 match all34 actual compiler/runtime/helper binary artifacts
+and complete package payloads, including path-sensitive runtime LLVM resources.
+This is a Linux x64 development bootstrap, not standalone portable acceptance.
+
+ROOT independently copied the complete immutable generation3 package, verified
+all SHA256SUMS, executable mode/hash and relocated development checks on KinmenA
+tower-c-validation. Receipt /cache/root_capacity_pin_252b/status0, full command/
+verification logs retained; current verifier /cache/narrow-verify-tools/bin/verify_compiler.
+Executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+payload checksumsbd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+ROOT transport archive94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e.
+Complete linux-x64 payload and exact manifest replace the prior pin together;
+the old directory remains outside the checkout and is recoverable in Git.
+Publish before A1's canonical no-override adoption. This package predates L2's
+6767cd30 admission batch and still-unpublished A1/L1 work; those do not inherit
+the generation receipt. Final current-source generations/release remain pending.
+
+Separately, ROOT measured unchanged existing compiler_reference_inputs fixtures
+(16/1000 functions, exact expected15/999) against frozen196d and merged f72179d2
+(runtime-identical252b). No project source or fixture logic was added. Host
+Ryzen AI MAX+395, Linux WSL2/LLVM19.1.1, Docker CPU24-31/24GiB. Tower explicit
+Bedrock/Foundation/target x86_64-unknown-linux-gnu, normal optimized object
+pipeline, workers1/4; Clang same target, -std=c11 -m64 -O2 -fwrapv -c. Headerless
+C source, built-in grammar/printf and Tower editable grammar/prelude/runtime
+differ; this is a concrete body/frontend reference, not a language ranking.
+All imported language-resource bytes used here match between Tower versions.
+
+One warmup each, then3 counterbalanced fresh-process samples per size/compiler;
+warm filesystem, no intentional OS-cache flush. GNU time wall/CPU/peak RSS:
+| Input/compiler | Median wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Small frozen196d workers1 | .99 | .99 |184016|
+| Small current workers1 | .89 | .89 |198436|
+| Small current workers4 | .80 | .99 |215276|
+| Small Clang | .02 | .01 |98928|
+| Large frozen196d workers1 |1.13|1.12|211728|
+| Large current workers1 |1.03|1.02|239168|
+| Large current workers4 | .93|1.14|263060|
+| Large Clang | .06| .06|109716|
+
+All32 separately linked executions pass. Repeated own-compiler objects, current
+serial/four-worker objects and these cross-version Tower objects match exactly.
+Both optimizers eliminate private constant-return bodies (only main/tower_main
+and the C constant string remain). Object compile timings exclude link/runtime
+preparation and execution checks. Current serial is about9-10% faster than
+frozen196d on these inputs with about8%/13% higher RSS; intervening ownership/
+index changes prevent attributing this to a single fix. Four workers save about
+10% wall with increased CPU/RSS, not proof of whole-machine scaling. CLI
+parse+check remains about.78/.87s and dominates; the comparable-C speed goal
+is not met. No live-allocation/retention or idle-time data is exposed by this CLI.
+All logs/objects/host/inputs/compiler hashes: /cache/root_reference_f72179d2,
+copied to ROOT_reference_f72179d2 in coordination storage. Original shell
+readback quoting failed without changing results; raw receipt copy then passed.
+No new source implementation was measured or runtime release claimed here.

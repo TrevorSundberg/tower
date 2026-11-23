@@ -1,5 +1,6 @@
 import tower;
 import entity_types;
+import work_budget_types;
 
 // Typed declarations for separately compiled clients of the shared Tower ECS.
 // The owning program links entities.tower once; this file owns no implementation.
@@ -7,13 +8,24 @@ extern fn entity_store_create(): EntityStore*;
 extern fn entity_store_set_context(store: EntityStore*, context: void*): bool;
 extern fn entity_store_dispose(store: EntityStore*): bool;
 extern fn entity_create(store: EntityStore*): Entity*;
+// Required private receipt; coordinator-only mutation, no shared last-error.
+extern fn entity_create_result(store: EntityStore*, error: WorkBudgetError*): Entity*;
+extern fn entity_create_related(entity: Entity*): Entity*;
+extern fn entity_create_related_result(entity: Entity*, error: WorkBudgetError*): Entity*;
 extern fn entity_release(entity: Entity*): usize;
 extern fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool;
 extern fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent*;
+extern fn entity_component_add_result(owner: Entity*, type: Entity*, error: WorkBudgetError*): EntityComponent*;
+extern fn entity_component_remove_result(owner: Entity*, type: Entity*): WorkBudgetError;
 extern fn entity_component_get(owner: Entity*, type: Entity*): EntityComponent*;
 extern fn entity_component_data(component: EntityComponent*): u8*;
 extern fn entity_member_index(parent: Entity*, name: u8*): usize;
 extern fn entity_child_at(entity: Entity*, index: usize): Entity*;
 extern fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool;
+extern fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): WorkBudgetError;
+extern fn entity_replace_child_result(parent: Entity*, index: usize, replacement: Entity*): WorkBudgetError;
+extern fn entity_take_last_child_result(parent: Entity*, error: WorkBudgetError*): Entity*;
 extern fn entity_view_open(anchor: Entity*): EntityView*;
+extern fn entity_view_open_result(anchor: Entity*, error: WorkBudgetError*): EntityView*;
 extern fn entity_view_close(view: EntityView*): void;
+extern fn entity_view_tables_result(view: EntityView*, terms: Entity**, count: usize, error: WorkBudgetError*): EntityTableQuery*;

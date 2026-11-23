@@ -48,8 +48,8 @@ fn editor_units_trial(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, o
     units_check(batch is not null, "Editor unit batch");
     defer frontend_units_close(batch);
     var sources: u8*[3];
-    sources[0] = "import tower; fn answer():i32 {return comptime(40+2);}";
-    sources[1] = "import tower; struct Pair {field:i32;} fn identity(T:type,value:T):T{return value;} var p:Pair; p.field=identity(7);";
+    sources[0] = "import tower; import tests.known_cycle_a as cycle; fn answer():i32 {return comptime(cycle.cycle_total());}";
+    sources[1] = "import tower; struct Pair {field:i32;} fn forward(T:type,value:T):T{return identity(value);} fn identity(T:type,value:T):T{return value;} var p:Pair; p.field=forward(7);";
     sources[2] = "parse Choice = 'first' | 'second';";
     for(var i: usize = 1; i <= 3; i++) {
         units_check(frontend_units_source(batch, i, "inspect.tower", sources[i -1], strlen(sources[i -1])), "Editor unit input snapshot");
@@ -74,6 +74,22 @@ fn editor_units_trial(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, o
         units_check(strstr(text, "\"complete\":true") is not null, "Inspection unit complete output");
         editor_units_snapshot(text, output);
     }
+}
+
+// The same healthy module/inspection inputs support a small matched process
+// sample without repeating cancellation and denial fixtures in that measurement.
+export fn editor_units_sample(root: u8*, workers: usize): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var output: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&output);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    editor_units_trial(workers, bedrock.data, foundation.data, root, &output);
+    units_check(output.length != 0, "Module/inspection sample has checked output");
+    puts("Module/inspection sample passed.");
 }
 
 export fn editor_units_tests(root: u8*): void {

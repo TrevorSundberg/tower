@@ -13,9 +13,7 @@ fn vector(T: type): type {
 }
 
 fn vector_init(T: type, value: vector(T)*): void {
-    value.data = null;
-    value.length = 0;
-    value.capacity = 0;
+    *value = default;
 }
 
 fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
@@ -71,7 +69,7 @@ fn vector_push(T: type, value: vector(T)*, element: T): bool {
 
 fn vector_dispose(T: type, value: vector(T)*): void {
     free(value.data);
-    vector_init(value);
+    *value = default;
 }
 
 // Empty/null-output failure preserves both storage and the output value.

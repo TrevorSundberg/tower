@@ -27,27 +27,31 @@ extern fn language_document_world(world: void*, environment: void*, source: u8*,
 extern fn language_document_result(query: void*): u8*;
 extern fn completion_dispose(query: void*): void;
 extern fn language_document_inspect(query: CompletionQuery*, checked: bool): bool;
+extern fn sem_get(node: void*): FoundationNode*;
 
 var GenericInspectionBudgetBytes: usize = 134217728;
 
 // Keep the successful document alive, then deny its actual inspection producer.
-// The legacy world binder charges selected scratch, not physical entity pages.
-fn generic_inspection_late(query: void*, budget: WorkBudget*, source: u8*): void {
+// Checked registry/stage admission now precedes the expression clone. Denying
+// all remaining capacity must report that first owner, not a later expression.
+fn generic_inspection_late(query: void*, budget: WorkBudget*): void {
     var q = bits(CompletionQuery*, query);
     units_check(q.generic_info != null && q.program.resource.error == WorkBudgetError.None,
         "Late inspection begins on a successfully checked generic document");
+    var expected_offset = sem_get(q.program.root).start;
+    var store = compiler_world_store(q.world);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
     var before: WorkBudgetSnapshot = default;
     var occupied: WorkReservation = default;
     units_check(work_budget_snapshot(budget, &before) && before.used_bytes < before.bytes
         && work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes, &occupied) == WorkBudgetError.None,
         "Late inspection pressure starts after parsing, checking and initial inspection");
     var accepted = language_document_inspect(q, true);
-    var expression = strstr(source, "1 + 2");
-    units_check(expression != null, "Late inspection source provenance");
-    var expression_offset = bits(usize, expression) - bits(usize, source);
     var rejected = !accepted && q.generic_info == null && q.resource_error == WorkBudgetError.Capacity
         && q.program.resource.error == WorkBudgetError.Capacity
-        && q.program.resource.offset == expression_offset
+        && q.program.resource.offset == expected_offset
+        && entity_store_count(store) == nodes && entity_store_component_count(store) == components
         && q.context.queries.running == 0 && q.context.workers.running == 0;
     if !rejected {
         var text: FormatResult = default;
@@ -62,14 +66,13 @@ fn generic_inspection_late(query: void*, budget: WorkBudget*, source: u8*): void
         format_text(&f, " offset=");
         format_unsigned(&f, convert(u64, q.program.resource.offset));
         format_text(&f, " expected_offset=");
-        format_unsigned(&f, convert(u64, expression_offset));
+        format_unsigned(&f, convert(u64, expected_offset));
         units_check(!text.failed && vector_push(&text.text, 0), "Late inspection receipt diagnostic");
         puts(text.text.data);
     }
-    units_check(rejected, "The actual inspection expression producer rejects its phase without live work");
+    units_check(rejected, "The actual inspection registry rejects its first denied phase without partial metadata or live work");
     units_check(language_document_result(query) == null,
         "A late producer failure cannot expose the prior successful document output");
-    var store = compiler_world_store(q.world);
     var failed_nodes = entity_store_count(store);
     var failed_components = entity_store_component_count(store);
     units_check(work_budget_release_result(budget, &occupied) == WorkBudgetError.None,
@@ -77,7 +80,7 @@ fn generic_inspection_late(query: void*, budget: WorkBudget*, source: u8*): void
     q.program.error.length = 0;
     units_check(!language_document_inspect(q, true) && q.generic_info == null
         && q.resource_error == WorkBudgetError.Capacity && q.program.resource.error == WorkBudgetError.Capacity
-        && q.program.resource.offset == expression_offset
+        && q.program.resource.offset == expected_offset
         && entity_store_count(store) == failed_nodes && entity_store_component_count(store) == failed_components
         && q.context.queries.running == 0 && q.context.workers.running == 0,
         "Cleared diagnostics do not replay or erase the late producer failure");
@@ -111,7 +114,7 @@ fn generic_inspection_budget_trial(root: u8*, width: u32, workers: usize): bool 
     frontend_modules_configure(environment, "generic_inspection.tower", root);
     generic_inspection_baseline(world, environment, bedrock.data, false);
     generic_inspection_baseline(world, environment, foundation.data, true);
-    var source: u8* = "import tower; fn inspect(T:type):i32{return 1 + 2;}";
+    var source: u8* = "import tower; fn inspect(T:type, callback:function(i32,i32)):i32{return 1 + 2;}";
     var query = language_document_world(world, environment, source, strlen(source), 0, width);
     units_check(query != null, "Inspection setup query");
     var output = language_document_result(query);
@@ -119,7 +122,7 @@ fn generic_inspection_budget_trial(root: u8*, width: u32, workers: usize): bool 
     if strstr(output, "\"complete\":true") == null { puts(output); }
     units_check(strstr(output, "\"complete\":true") != null && strstr(output, "function template") != null,
         "Inspection fixture is a valid complete generic document before denial");
-    generic_inspection_late(query, &budget, source);
+    generic_inspection_late(query, &budget);
     completion_dispose(query);
     var before: WorkBudgetSnapshot = default;
     units_check(work_budget_snapshot(&budget, &before) && before.used_bytes < before.bytes,
