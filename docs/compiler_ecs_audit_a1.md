@@ -1849,3 +1849,22 @@ Source evidence includes known_bindings before/after canonical equivalence,
 module alias capture, invalid import-cycle diagnostics and aggregate/callback
 identity. Journal records n1 wall/CPU/RSS and exact retained barriers. No packed
 storage, universal alias/race freedom or integrated release completion claim.
+
+## 2026-11-23 checked lowering/flow failure gate
+
+Reviewed 294194a0 plus this bounded batch; previous full file audit remains.
+
+| File | Ownership/storage/scheduling conclusion | Evidence and limits |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_lowering_work.tower` | Full registrar/frontier/cleanup closure reviewed. Checked graph and structural admission, lazy world-budgeted scratch, checked view/leases, published A2 joined transition. Source-owned resource errors cancel before retry; all query observations and completion capacity precede ready publication. Shared canonical payloads remain entity-owned; no packed-storage claim. | Real registered graph/kind/component/lease/anchor/scratch/finish denials at1/4, no successful prefix, preserved foreign lease, zero retained reservations. Shared L2 kernel/traversal allocations remain unchecked. |
+| `scaffolding/compiler/semantic_flow.tower` | Whole file reviewed. World kind instance index is sufficient under pin; no duplicate query-plan allocation. Checked metadata/view/pool/work-vector paths preserve source order. Flow dependency collection reports a private typed failure; its immediate control consumers only return flow bits. |36 trials at1/4: pool/scratch/view/pin denials, graph pressure, ordered diagnostics, repeated waits, cancellation and exactly-once execution. Remaining assertions are registration/ordinal invariants. |
+| `scaffolding/compiler/semantic_completion_work.tower` | Entire new helper reviewed. Existing graph-owned buffers only, with counts from actual consumer edges; no second queue or scheduler. Joined tickets validated before any successful completion. | Flow and lowering completion pressure proves no successful prefix or downstream dispatch; graph budget releases to zero. Conservative failure-scratch bound is edge count plus root. |
+| `scaffolding/compiler/semantic_phase_work.tower` | Registration caller stops on typed failure before root joins; no change to inferred/required prerequisite edges. | Existing20 stage frontier trials and query-smoke. |
+| `scaffolding/compiler/semantic_body_work.tower` | Immediate flow-request consumer and following joined peers reviewed. Preserve buffer transfers while skipping cancelled observations/finish and dependent metadata. | Focused query/control consumers; broader body admission/worker allocation assertions remain other-owned work. |
+| `scaffolding/compiler/semantic_capture_work.tower` | Only immediate lowering lease call changed to typed denial. L2 constructor/metadata/proof admission unchanged. | Existing capture/lazy staging coverage; shared traversal scratch remains L2 work. |
+| `scaffolding/tests/semantic_flow_checks.tower` | Full fixture extension reviewed: canonical production provider, synchronized world budget, actual pins/graph pressure; no test-only successful recovery. |36 trials, source offsets17/29/41, zero retention and terminal retry checks. |
+| `scaffolding/tests/semantic_lifecycle_frontier_checks.tower` | Existing A2 hold fixture retained; new denial cases use actual registered lowering pump and private per-function effect probes. |30 trials including real overlap and18 denial trials; source offsets3/17/29, partial cleanup, no successful prefix. |
+
+Measurements, retained failures, build identity and exact deferred checks are in
+the corresponding journal entry. This closes coordinator admission paths, not
+every shared semantic allocator or the compiler-wide release gate.
