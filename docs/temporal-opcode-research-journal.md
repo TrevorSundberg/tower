@@ -96315,3 +96315,11 @@ sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
 
 A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
+
+B2 child-index integration: c12c2189 preserved by complete-history merge1dcb396f
+with427d6aca. Storage/test/observer hashes unchanged. Incoming semantic lowering
+registration guard refreshed only semantics and profile/service links; merged16/w1,
+4096/w4 exact canonical/reference checks and small reconstruction/zero owners pass.
+Frozen storage-only timings are not relabeled as combined gains. Codec/browser
+changes excluded once; Entity ABI requires coherent consumer rebuild. No injected
+fault/manual profile execution or final reactor/generation release claim.
