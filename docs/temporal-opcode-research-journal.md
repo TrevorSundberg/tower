@@ -79090,3 +79090,103 @@ Playwright1.65.1; package-lock unchanged, own cache only. Logs remain in
 not Tower assets, hosted behavior or compiler generation. A rejected orchestration
 JS call executed no shell; the subsequent actual drain confirmed init/sleep only
 before releasing the D2 lock. No new production code or duplicate compiler matrix.
+### D1 independent ParserNodes policy review after native registration
+
+While D2 holds its short slot, D1 reads exact227bf39a draft and actual public
+native/WASI undefined reports. Current ParserNodes9928d135 imports
+entity_attach_result, provided by Entitiese62f8520; lr_work_node_result preserves
+its exact cause and cleans up the node before failure. The narrowly scoped
+ParserNodes allowlist addition is justified by that measured boundary. Eight
+Tower policy tests preserve prefix/suffix/wrong-unit rejection and cover Linux,
+Windows and WASI parsing; no Windows execution is claimed. No production or
+fixture edit by D1. D2 reports its bounded after checks drained0; complete bundle
+and current receipt remain pending before adoption. Source review finds no blocker
+and is sent once to D2. It changes only audit prose, so runtime profiling is
+inapplicable; prior registration performance/raw failures remain separately scoped.
+
+### D1 current2f7 native boundary and acceleration directive
+
+Verified D2 complete04c7d65e bundle/fea081fc receipt and merged8a542 as2f7f4fc2a.
+Only the reviewed ParserNodes policy/test differs from d07; CMake and compiler
+production are unchanged. Public native76026 passes14 dependency actions in
+88.37wall/85.94CPU/756000KiB. Current binaries, full source hashes, commands and
+compiler/resources are retained in build/d1_ecs/continuation_positive.
+
+Current native41980 passes87 fixture processes (23 semantic selectors x3 plus
+six lease/mutation/affinity/stage/component fixtures x3), three query-smoke runs,
+LR and resource-smoke. Actual query calibration selects512 in all three runs,
+fastest3027017/2859364/2294993ns; required2/4/failure/cancellation overlaps pass.
+Stage finalizers remain57792. LR3.75wall/5.30CPU/131580KiB, resource.04/.03/50716.
+These92 completed processes are evidence; no later selector is counted.
+
+Type-smoke reaches its original300s boundary:124,300.02wall/329.17CPU/235400KiB,
+empty stdout/stderr, zero major faults/swaps. Earlier453d also timed out124 at
+180.01s; later journal evidence records full42/type-smoke passing on432da in
+211.11s. This does not isolate a new2252 regression or diagnose a deadlock.
+Static caller review shows type-smoke first repeats42 lifecycle cases at both
+widths/budgets, then body roundtrip and errors. Existing lifecycle range prints
+case progress; type-errors avoids repeating the lifecycle group. Prefer these
+existing focused selectors for any necessary diagnosis; do not add another
+harness or rerun the complete silent matrix merely to get a passing timeout.
+
+ROOT's user-directed acceleration instruction arrives while type-smoke is active.
+Stop only the controller to prevent new dispatch while its existing bounded child
+drains; after natural child124, resume controller to record normal set-e/EXIT124.
+No forced kill, deadline extension, source or oracle change. Host trap restores
+CPU0,2, both containers are init-only, source/todo hashes match, and D1 releases
+its own lock13:43:59. Units/editor/core/functions/parser/storage/profile remainder
+and the entirely unstarted new ASan/TSan campaigns are DEFERRED, not passed.
+The olded7 instrument receipt retains its old source identity. Current low-level
+interpreter_storage_tests is reached by canonical parser --host-only, not the
+compiler-storage runner; do not confuse those coverage claims.
+
+Measured iteration sinks: ed7 address build533.20s plus units300.31s timeout and
+440.23s diagnostic followup; repeated public leaves6.01+34.99s then39.68s CMake
+compilation for the two registrations. Immediate cadence change: dependency-aware
+smallest target once and directly affected regression, immutable before artifacts
+once per substantial batch, minimal meaningful serial/parallel comparisons, broad
+instrumentation/platform matrices only at the stable integrated milestone. Preserve
+raw logs in place and stop producing complete archives after each small helper.
+No new broad D2 duplicate suite is requested. Cosmetic profile name-length6 work
+is explicitly deferred by ROOT, overriding the earlier cleanup proposal.
+
+Read-only ROOT_stage_lease.patch523a5cf1 review finds no blocker: precise lease
+admission preserves bool callers, checks Invalid/Busy/Memory before mutation,
+derives overflow from sizeof, and keeps duplicate acquisition allocation-free.
+Normal/fault fixture extensions preserve stale store receipts, failed-growth
+state and cleanup; sweep bounds derive from actual successful calls. Review is
+recorded in D1/stage_lease_review.md/status; the draft is not adopted or validated
+by the current run. Raw stage/vector allocation and coordinator exclusivity remain
+explicit limitations. No runtime profiling applies to this prose/source review.
+Next useful D1 work is lightweight final browser/portable preparation and checking
+missing dependency acceptance coverage, with no competing production edit. Full
+ECS/threading and integrated leased publication acceptance remain open.
+
+### D1 portable ticket coverage, focused batch
+
+Coverage review finds shared native/Wasm work_pool imports work_order, which
+checks stale dispatch, while explicit revision/profile rejection is in separate
+native work_observe. Add eight Tower lines to work_order: copies of a real running
+ticket with changed revision or profile cannot publish success or failure, release
+the running claim, or prevent the existing valid yield/readmission/completion.
+No new production API, graph, allocation, module or manifest. D2 independently
+reviews exact0b61eedc against the complete caller/producer chain with no blocker.
+
+Use existing dependency-aware tower-work-tests once per side; no separate leaf.
+Before is no-work and normal pool succeeds. After53432 is two actions5.82wall/
+5.64CPU/202640KiB; same-path normal output matches and the actual two-lane overlap/
+injected-failure/drain CTest passes in.02s, no skip. Single warm-process samples
+before .01wall/.01CPU/16488KiB and after<.01/<.01/11816 are too small/variable for
+a speed or RSS improvement claim. Public9653/Linux x64/LLVM19.1.1, CPU0,2/jobs1;
+serial graph assertions precede real worker work, with no separate graph-phase
+profile claim. Raw binaries/commands/source hashes remain in
+build/d1_ecs/portable_ticket_checks. Init-only drain precedes own lock release.
+Wasm128-lifecycle execution and supported instrumentation are deferred to stable
+integration, not passed by this native result. No new large evidence archive.
+
+Existing final browser checks and artifact guards are mapped in external
+D1/final_browser_scope.md. TOWER_REQUIRE_THREADS=1 already makes absent threaded
+work artifacts fail rather than skip. Current local browser files have incomplete/
+old identities and are not executed as current evidence. D2 supplies its own
+browser setup; no duplicated install or new JS test logic. Final source-matched
+portable/threaded/LLVM assets, project manifest and leased publication remain open.

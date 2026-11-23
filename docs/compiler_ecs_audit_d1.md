@@ -181,7 +181,7 @@ concurrency. Remaining harnesses are not covered by these rows.
 | scaffolding/tests/work_resume.tower | Shared WorkGraph stack owner disposed per trial; retained tickets reject old dispatch/revision after suspend/yield/reset, diamonds deduplicate producer, discovered read claims exclude writer and allow reader. Failed/cancelled producers and exact cycle paths checked; unused query not demanded. Sequential protocol test, not transport drain evidence. Preserve. |
 | scaffolding/tests/work_graph.tower | 1,024-subject chain/diamond and fan-in numeric reference, profile mismatch, reverse completions, failures, cycle prefix and undemanded work. Subject arrays live until graph disposed on success. Early failure exits leave graph allocations until runner teardown; candidate cleanup improvement, not normal-path leak or real overlap evidence. |
 | scaffolding/tests/work_access.tower | Explicit domain/component/range claims distinguish shared reads/disjoint writes/structural exclusion; revision mismatch, cancellation, zero/overflow ranges rejected. Coordinator-only graph mutations. Preserve. |
-| scaffolding/tests/work_order.tower | 513 producers across admission windows complete in reverse; ordering only after all claims returned, then stable request order and stale ticket rejection. Deferred graph/vector cleanup. Exercises ordering policy without claiming concurrent execution. Preserve. |
+| scaffolding/tests/work_order.tower | 513 producers across admission windows complete in reverse; ordering only after all claims returned, then stable request order and stale dispatch rejection. D1 patch0b61eedc on4e661 adds copied revision/profile completion rejection while retaining the valid running ticket and its subsequent yield/readmission/completion. Shared native/Wasm work_pool actually imports this fixture; no new graph, allocation or owner. Deferred graph/vector cleanup. Focused native comparison and real pool overlap/drain pass; D2 independently reviews the exact patch. Integrated Wasm execution remains pending. The graph assertions themselves are serial. |
 | scaffolding/tests/work_named.tower | Real named worker pool and signal barrier; per-job thread IDs distinct from coordinator and peers. Jobs/results read after receive, allocations/signals released after joins; utility_check aborts on assertion. Uses production transport, no single-owner allocator counters. Preserve; no latency/speed measurement. |
 | scaffolding/tests/work_pool.tower | Real thread barrier, repeated disjoint result slots and simultaneous allocation/fill/free (8 MiB first round), thread identity assertions and capacity-limited lanes. Explicit 77 on single-lane host. Normal success drains before freeing signals; early return failures can leave admitted stack-backed jobs undrained. Candidate harness ownership fix; do not call existing pass race proof. |
 | scaffolding/tests/work_instrumented.tower | Serial portable host explicitly required; owner-thread/order and repeated allocation-failure sweeps check exact live counts, allocation sequence and successful prefix. Local job remains alive through receive; deferred close. Valuable OOM evidence only, not threaded sanitization. Preserve. |
@@ -2992,3 +2992,37 @@ D1 releases its lock only after both containers are init-only, allowing D2's
 short actual ParserNodes policy gate before the new instrumentation freeze.
 Standalone negative-control, old restricted-host overlap, current broad native,
 clean bootstrap/browser/generation and leased hosted publication remain open.
+
+### Exact ParserNodes attachment policy review
+
+D2 draft227bf39a7d1dc6b97cabbc245ddc5917f38ee92107fdbc8e399bc47f1e57a9b7
+extends assigned bootstrap_symbols_checks.tower at2252+8cb. D1's rebuilt native
+ParserNodes9928d135 has U entity_attach_result and Entitiese62f8520 has its T
+provider. D2's fresh public WASI report has the same import. Reviewed the actual
+lr_work_node_result caller: it retains the producer's exact error and releases
+the created node on failure before returning null. This is a real cross-unit
+producer dependency, unlike the prior Entities Wasm table ABI allowance.
+
+Eight fixture cases accompany one exact ParserNodes permission: Linux/Windows/
+WASI policy positives and truncation, suffix and three wrong-unit negatives.
+Existing full-token normalization/matching is unchanged; no general entity_ or
+result suffix permission. Windows is policy coverage, not runtime evidence.
+No new ownership, storage or scheduling layer is added. D1 source review finds
+no blocker; D2 owns the matched observed-report and supported instrumentation
+receipt. Adoption is pending the complete history; no independent runtime pass
+is inferred from reading the draft. Documentation-only review has no runtime
+performance delta and does not require repeating unaffected policy matrices.
+
+Current2f7 native boundary:92 positive processes pass before type-smoke times out
+124 at300.02s with329.17CPU/235400KiB, no output/diagnostic/swaps. Prior180s timeout
+and later211.11s full42 success have different frozen identities; none diagnoses
+this run's cause. The current low-level interpreter_storage.tower fixture belongs
+to parser-main --host-only, not tower-storage-tests. That current D1 run is still
+pending; owner L1's source-specific evidence is retained separately.
+
+ROOT's acceleration directive now defers all queued broad/current sanitizer
+campaigns to stable integration, leaves the cosmetic profile-bound proposal
+unapplied, and avoids repeated archives/duplicate leaf compilations. The92
+completed results remain valid; deferred or timed-out gates do not become passes.
+Current fixtures/production source are unchanged. Both jobs drained and own host
+lock released13:43:59. The standalone negative probe remains unchanged/unexecuted.
