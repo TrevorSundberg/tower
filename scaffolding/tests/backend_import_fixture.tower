@@ -14,7 +14,49 @@ extern fn LLVMAddIncoming(phi: void*, values: void**, blocks: void**, count: u32
 // The same world-owned Foundation input and LLVM C boundary used by the backend
 // fixtures. Fault injection starts only after this healthy module exists.
 export fn backend_import_fixture_open(root: void*): Backend* {
-    var b = backend_open("x86_64-unknown-linux-gnu");
+    return backend_import_fixture_target(root, "x86_64-unknown-linux-gnu", false);
+}
+
+export fn backend_import_fixture_bytes(root: void*, target: u8*): Backend* {
+    return backend_import_fixture_target(root, target, true);
+}
+
+// A counted initializer is read into a completely initialized buffer. Both
+// canaries are installed before the copy and observed afterwards; no trailing
+// terminator store or omitted byte can hide behind uninitialized destination
+// memory. The admission-only fixture retains its original module and output.
+fn backend_import_fixture_guarded(b: Backend*, source: void*, count: usize): void {
+    var prefix: u8 = 91;
+    var suffix: u8 = 93;
+    var first = sizeof(decltype(prefix));
+    var total = first + count + sizeof(decltype(suffix));
+    var type = LLVMArrayType2(b.i8, convert(u64, total));
+    var storage = LLVMBuildAlloca(b.builder, type, "guarded_bytes");
+    LLVMBuildMemSet(b.builder, storage, LLVMConstInt(b.i8, 90, 0), backend_size_value(b, total), 1);
+    var indices: void*[2]; indices[0] = backend_size_value(b, 0);
+    indices[1] = backend_size_value(b, 0);
+    var before = LLVMBuildGEP2(b.builder, type, storage, &indices[0], convert(u32, sizeof(decltype(indices)) / sizeof(void*)), "");
+    LLVMBuildStore(b.builder, LLVMConstInt(b.i8, convert(u64, prefix), 0), before);
+    indices[1] = backend_size_value(b, first + count);
+    var after = LLVMBuildGEP2(b.builder, type, storage, &indices[0], convert(u32, sizeof(decltype(indices)) / sizeof(void*)), "");
+    LLVMBuildStore(b.builder, LLVMConstInt(b.i8, convert(u64, suffix), 0), after);
+    indices[1] = backend_size_value(b, first);
+    var destination = LLVMBuildGEP2(b.builder, type, storage, &indices[0], convert(u32, sizeof(decltype(indices)) / sizeof(void*)), "");
+    LLVMBuildMemMove(b.builder, destination, 1, source, 1, backend_size_value(b, count));
+    for (var index: usize = 0; index < total; index++) {
+        indices[1] = backend_size_value(b, index);
+        var address = LLVMBuildGEP2(b.builder, type, storage, &indices[0], convert(u32, sizeof(decltype(indices)) / sizeof(void*)), "");
+        var byte = LLVMBuildLoad2(b.builder, b.i8, address, "");
+        var args: void*[3];
+        args[0] = LLVMConstInt(b.i32, convert(u64, SI32), 0);
+        args[1] = LLVMBuildZExt(b.builder, byte, b.i64, "");
+        args[2] = LLVMConstInt(b.i32, convert(u64, b.pointer_bytes), 0);
+        backend_call_values(b, b.print_fn, &args[0], convert(u32, sizeof(decltype(args)) / sizeof(void*)));
+    }
+}
+
+fn backend_import_fixture_target(root: void*, target: u8*, execute_bytes: bool): Backend* {
+    var b = backend_open(target);
     if b == null { return null; }
     b.source_root = root;
     var program = sem_attach(root, KProgram);
@@ -58,6 +100,15 @@ export fn backend_import_fixture_open(root: void*): Backend* {
     print_args[1] = LLVMBuildZExt(b.builder, result, b.i64, "");
     print_args[2] = LLVMConstInt(b.i32, convert(u64, b.pointer_bytes), 0);
     backend_call_values(b, b.print_fn, &print_args[0], convert(u32, sizeof(decltype(print_args)) / sizeof(void*)));
+    if execute_bytes {
+        backend_import_fixture_guarded(b, global, sizeof(decltype(bytes)));
+        var runs: u8[8] = default;
+        runs[2] = 128; runs[3] = 128; runs[4] = 255; runs[5] = 255;
+        var repeated = LLVMConstStringInContext(b.context, &runs[0], convert(u32, sizeof(decltype(runs))), 1);
+        var run_global = LLVMAddGlobal(b.module, LLVMTypeOf(repeated), "counted_runs");
+        LLVMSetInitializer(run_global, repeated);
+        backend_import_fixture_guarded(b, run_global, sizeof(decltype(runs)));
+    }
     LLVMBuildRetVoid(b.builder);
     if !backend_optimize(b, false) { backend_close(b); return null; }
     return b;

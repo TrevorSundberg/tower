@@ -94662,6 +94662,52 @@ build/d1_ecs/joined_correctness_review_ea606d32/{paths,blobs}.txt. Publish norma
 history reconciliation only; ROOT retains integrated runtime/release acceptance.
 L1 lifecycle receipt56cfc85f reconciliation: normal merge1b7ba13c1d362d42ce5097475e48452a27d12dfd preserves all incoming history through ea606d32. Incoming A1 alias-publication repairb78d606b, semantic_execution_work, admission/alias tests and exact-output CMake gates are explicitly excluded from frozen3211cb1e acceptance. No matrix restart, later-binary relabel or production edits. Requested42/42 lifecycle and dependency checkpoint remains complete at its exact recorded inputs; joined later compiler acceptance remains separate.
 
+## 2026-11-23 L1 — executed counted LLVM initializer reconstruction
+
+Implemented test coverage on published e932b54673930a8651261f79ace9da7583c318d8;
+production importer/formatter/interpreter code is unchanged. The existing LLVM
+fixture retains its original admission module and callback/phi result42. An
+opt-in execution variant adds reads of the exact ConstantDataArray65,0,128,255,0,67
+(dontNullTerminate=1), plus0,0,128,128,255,255,0,0. Each counted copy targets a fully
+initialized buffer with91/93 guards installed first; every payload byte and both
+guards are printed. The independent literal oracle includes all19 lines. Guard
+coverage concerns those destination ranges; it is not a general overflow proof.
+
+The new existing-storage selector formats through shared Foundation, destroys the
+LLVM/import world, snapshots text into a fresh frontend, frees formatting grants,
+then parses/checks/executes at explicit32/64-bit profiles. No importer logic is
+replicated. Wrong-byte129 and wrong-guard94 controls first assert correct output,
+then return1 only after interpreter/frontend teardown and buffer-baseline checks.
+They are registered WILL_FAIL; assertion crashes still fail CTest. Original
+backend-import failure/retained-output/first-error checks were not weakened.
+
+VALIDATED: the one dependency-aware tower-storage-tests build passed, then all4
+selected CTests passed: backend-import, backend-import-bytes, and both wrong-oracle
+controls. Six fresh parse/execution trials cover both widths across the3 byte
+selectors. Original admission observed407/406 healthy allocation boundaries,
+330300 peak/270389 retained budget bytes; all813 denied reconstruction boundaries,
+24 diagnostic boundaries, Capacity/Busy, earlier-error, terminal retry and final
+zero-grant checks passed. Fresh import budget bytes/lanes/live grants reach0 before
+recheck; frontend close enforces joined work/world/budget disposal, and final
+instrumented buffer count returns to baseline. No native test failure or importer
+bug was exposed. No parallel, optimized LLVM execution, browser or sanitizer claim.
+
+Environment: WSL Orchestral-Revng Ubuntu24.04 Linux x64, LLVM19.1.1, CMake3.28.3,
+Release existing /root/.cache/tower/l1_ecs_native, public bootstrap768a0cdf,
+CPU0-3,24GiB address ceiling, existing single-owner storage host. Build40.53s wall,
+48.72s CPU,1075312KiB peak RSS; four checks1.95s wall,1.61s CPU,176420KiB peak RSS.
+These are validation costs; unchanged production needs no throughput comparison.
+Exact runner SHA256 ae19632ade6df1c9c2b98482e93244ea57b15d57c09bf00a292b9b5b7b48bbcb;
+Tower/CMake input-manifest SHA25661baedbddfc0baefb0bbc4b81d9926dec9dfff1d85588ec2f241d23ce60b155e.
+Full source/provider/bootstrap/resource provenance, commands, timing and CTest
+logs are external in L1/logs/counted_bytes_build, counted_bytes_checks and
+counted_bytes_receipt.json. A receipt-only lookup of nonexistent manifest.json
+exited1, corrected to actual development.json/SHA256SUMS; native results unchanged.
+A slow WSL git status child of diff --check was stopped/drained; native Windows
+Git diff --check passed. No rebuild/repeated suite followed documentation edits.
+ROOT retains final integrated/platform publication; prior lifecycle3211cb1e and
+other owner receipts retain their separate frozen identities. Jobs drained;
+committing scoped test/registration/docs, then required main reconciliation.
 ## 2026-11-23 A2: complete struct-values reconstruction/package on joined25dddd04 Wasm
 
 Ran the exact existing llvm-execution.test.mjs selector once, Node21.7.3 Windows11 CPU0-11, normal allocation, both verified ROOT reactors35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb/c1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa. Compiled source25dddd0420258bc5174a3039293c447fd60ef367 is separate from frozen host/resources e932b54673930a8651261f79ace9da7583c318d8/tree5d6f45c168796dc7aa89a475d0aa7df405a50feb; reactors exclude125efb11. All1234 mounted host/resource hashes and both reactor hashes checked unchanged after execution. No compiler/test implementation, cap, output or fixture edits; no build, native substitution or instrumentation.
@@ -94823,3 +94869,13 @@ fixture additions are outside these executed controls and preserved. They change
 the all-files resource inventory, so frozen3e355d9e measurements are not relabeled
 as that later inventory. No transport dependency changed or rerun needed. Full
 history, raw failures, receipts and todo preserved; normal main push, no deployment.
+L1 counted-byte coverage publication reconciliation: implementation95167e53 and
+complete incoming history through4354581c merged asd1f9298a855f64e689f9f893b0d1217596464106.
+Required ff-only pull refused concurrent divergence; normal merge preserved all
+histories. Incoming D2 C/LLVM driver fixture registrations and independent owner
+receipts do not change this storage selector or its compiler/backend/library/host
+producers; exact scoped blob comparison is empty. Journal and README retain both
+owners' entries. Reuse the four passing CTests at the recorded frozen inputs;
+new unrelated driver cases are not claimed tested here. Diff checks pass, no
+owned build/test remains, todo unchanged. No broad rerun or deployment; normal
+main push follows.
