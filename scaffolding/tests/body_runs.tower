@@ -622,6 +622,7 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredSignature);
         for(var mode: u32 = 0; mode < convert(u32, BodyArmFailure.Count); mode++) {
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, convert(BodyArmFailure, mode));
         }
