@@ -291,6 +291,12 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
 // Explicit stages and required integer arguments share execution and result
 // materialization. Callers own readiness; a type argument has no runtime frame.
 export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
+    var result = sem_evaluation_expression_impl(c, n, expression, owner, requested);
+    return c.program.resource.error == WorkBudgetError.None ? result : null;
+}
+
+fn sem_evaluation_expression_impl(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
     if !sem_ok(c) { return n; }
     var input = sem_get(expression);
     if input == null { sem_type_resource(c, n, WorkBudgetError.Invalid); return n; }
@@ -307,6 +313,7 @@ export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: v
         if !sem_ok(c) { return default; }
         underlying.record = null;
         literal = sem_surface_constant(c, n, underlying, 0);
+        if literal == null { return default; }
         value.kind = KConvert;
         value.constant = false;
         value.value = literal;
@@ -348,8 +355,10 @@ export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: v
 }
 
 fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): void* {
+    if !sem_ok(c) { return null; }
     if result.function == null {
         result.function = sem_control_node(c, result.subject, KFunction);
+        if result.function == null { return default; }
         sem_set_type(&sem_get(result.function).type, &sem_get(result.subject).type);
         if result.aggregate {
             sem_get(result.function).type = result.aggregate_type;
@@ -363,13 +372,16 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
     // Capture validity follows executed interpreter reads, after ordinary
     // lowering has preserved lazy branches. This clone computes no values.
     var function = sem_evaluation_function(c, result);
+    if function == null { return; }
     var previous = c.current;
     c.current = function;
+    defer { c.current = previous; }
     var clones = sem_table(c);
     if !sem_ok(c) { return; }
     var nodes = sem_list(c);
     if !sem_ok(c) { return; }
-    result.expression = sem_defer_clone(c, function, result.expression, clones, nodes);
+    var expression = sem_defer_clone(c, function, result.expression, clones, nodes);
+    if expression == null { return; }
     foreach(var node in nodes) {
         var value = sem_get(node);
         if value.binding != null {
@@ -377,19 +389,23 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
             if local != null { value.binding = local.value; }
         }
     }
-    c.current = previous;
+    result.expression = expression;
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if !sem_ok(c) { return; }
     if result.expression == null {
         sem_require(result.function != null && sem_get(result.function).body != null);
         return;
     }
     if result.aggregate { sem_evaluation_aggregate_prepare(c, result); return; }
     var function = sem_evaluation_function(c, result);
+    if function == null { return; }
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
+    if definition.body == null { return; }
     var returned = sem_control_node(c, definition.body, KReturn);
+    if returned == null { return; }
     sem_get(returned).value = result.expression;
     if !sem_push_checked(c, &sem_get(definition.body).items, returned) { return; }
     var previous = c.current;

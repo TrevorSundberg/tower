@@ -38,6 +38,7 @@ fn sem_location_base(c: SemanticContext*, n: void*, depth: u32): void* {
 }
 
 fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     loop {
         if !((sem_is(n, "CoreCallArgument") || sem_is(n, "CoreOperand")) && sem_child_count(n) == 1) {
             break;
@@ -45,12 +46,12 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         n = sem_child(n, 0);
     }
     if sem_is(n, "CorePointerArgument") {
-        sem_node(c, n, KOperand);
+        if sem_node_result(c, n, KOperand) == null { return default; }
         sem_fail(c, n, "Expected a value argument, got a type spelling");
         return n;
     }
     if depth > 128 {
-        sem_node(c, n, KOperand);
+        if sem_node_result(c, n, KOperand) == null { return default; }
         sem_fail(c, n, "Foundation field path limit is 128");
         return n;
     }
@@ -60,12 +61,13 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     var module = sem_namespace(c, n);
     if module != null {
         if sem_editor_symbol(c, n, 1) {
-            sem_node(c, n, KOperand);
+            if sem_node_result(c, n, KOperand) == null { return default; }
             return n;
         }
         var name = sem_identifier(c, sem_member(n, "field"));
         if !sem_ok(c) { return default; }
-        var value = sem_node(c, n, KOperand);
+        var value = sem_node_result(c, n, KOperand);
+        if value == null { return default; }
         value.binding = sem_owned(c.globals, module, name);
         if value.binding != null {
             sem_declaration_type(c, value.binding);
@@ -89,7 +91,8 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
             sem_fail(c, n, "Malformed CoreLocation tree: missing capture 'name'");
             return n;
         }
-        var value: FoundationNode* = sem_node(c, n, KOperand);
+        var value: FoundationNode* = sem_node_result(c, n, KOperand);
+        if value == null { return default; }
         var step24 = sem_lookup(c, name);
         value.binding = step24;
         if value.binding != null {
@@ -100,7 +103,8 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     }
     var index: void* = sem_member(n, "index");
     if index != null {
-        var value: FoundationNode* = sem_node(c, n, KIndex);
+        var value: FoundationNode* = sem_node_result(c, n, KIndex);
+        if value == null { return default; }
         var step30 = sem_member(n, "base");
         var step31 = depth + 1;
         var step32: void* = null;
@@ -163,7 +167,8 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     if !sem_shape(c, n, "base") || !sem_shape(c, n, "field") {
         return n;
     }
-    var value: FoundationNode* = sem_node(c, n, KField);
+    var value: FoundationNode* = sem_node_result(c, n, KField);
+    if value == null { return default; }
     var step59 = sem_member(n, "base");
     var step60 = depth + 1;
     var step61: void* = null;
@@ -219,7 +224,8 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     return n;
 }
 
-fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+export fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     if sem_editor_contains(c, n) {
         c.editor.value_required = true;
         c.editor.has_expected = expected_type != null;
@@ -234,6 +240,7 @@ fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
     c.value_depth++;
     var result: void* = sem_operand_impl(c, n, expected_type);
     c.value_depth--;
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     return result;
 }
 
@@ -294,7 +301,8 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     var argument = generic_lookup(c.generics, n, n);
     if argument != null && sem_get(argument).constant {
-        var value = sem_node(c, n, KOperand);
+        var value = sem_node_result(c, n, KOperand);
+        if value == null { return default; }
         value.type = sem_get(argument).type;
         value.bits = sem_get(argument).bits;
         value.constant = true;
@@ -335,7 +343,8 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             if address {
                 kind = KAddress;
             }
-            var value: FoundationNode* = sem_node(c, n, kind);
+            var value: FoundationNode* = sem_node_result(c, n, kind);
+            if value == null { return default; }
             if address {
                 var step33 = sem_member(n, "name");
                 var step34 = sem_location(c, step33, 0);
@@ -380,7 +389,8 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     var value: FoundationNode* = sem_get(n);
     if value == null {
-        value = sem_node(c, n, KOperand);
+        value = sem_node_result(c, n, KOperand);
+        if value == null { return default; }
     }
     if sem_literal(c, n) {
         var text = sem_tokens(c, n);
@@ -547,7 +557,8 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         sem_fail(c, n, "jump is only valid as a function-body statement");
         return n;
     }
-    var value: FoundationNode* = sem_node(c, n, kind);
+    var value: FoundationNode* = sem_node_result(c, n, kind);
+    if value == null { return default; }
     var step2 = sem_type_new(c, SVoid, 0, null);
     if !sem_ok(c) { return default; }
     sem_set_type(&value.type, step2);
@@ -601,6 +612,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                     if kind == KReallocate {
                         if index == 1 {
                             expected_type = sem_type(c, args.data[0]);
+                            if !sem_ok(c) || expected_type == null { return null; }
                             expected_type.pointers++;
                         }
                     }
@@ -902,11 +914,13 @@ fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*):
     if c.declaration_jobs.length != registrations { sem_declaration_discover(c); }
     if !sem_ok(c) { return null; }
     if c.prepared_calls == null {
-        c.prepared_calls = sem_create(c.program.root);
-        sem_require(entity_register(c.prepared_calls, sizeof(SemanticPreparedCall), alignof(SemanticPreparedCall), 0));
+        var error: WorkBudgetError;
+        c.prepared_calls = sem_kind_result(c.program.root, sizeof(SemanticPreparedCall), alignof(SemanticPreparedCall), &error);
+        if c.prepared_calls == null { sem_type_resource(c, use, error); return null; }
     }
-    prepared = bits(SemanticPreparedCall*, entity_component_data(entity_component_add(use, c.prepared_calls)));
-    sem_require(prepared != null);
+    var error: WorkBudgetError;
+    prepared = bits(SemanticPreparedCall*, entity_component_data(entity_component_add_result(use, c.prepared_calls, &error)));
+    if prepared == null { sem_type_resource(c, use, error); return null; }
     prepared.instance = instance;
     prepared.values = values;
     return prepared;
@@ -917,7 +931,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         return sem_indirect_call(c, n, sem_member(n, "callee"), sem_collect(c, sem_member(n, "args"), "CoreCallArgument"));
     }
     if sem_editor_symbol(c, sem_member(n, "name"), 4) {
-        sem_node(c, n, KCall);
+        if sem_node_result(c, n, KCall) == null { return default; }
         return n;
     }
     if !sem_shape(c, n, "name") {
@@ -943,7 +957,8 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
             sem_fail(c, n, "Nominal type value requires its type construction query");
             return n;
         }
-        var value = sem_node(c, n, KTypeReference);
+        var value = sem_node_result(c, n, KTypeReference);
+        if value == null { return default; }
         value.type = sem_type_value(c, SType, 0, null);
         value.element = *type;
         return n;
@@ -967,7 +982,8 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         if !sem_ok(c) || instance == null {
             return n;
         }
-        var value: FoundationNode* = sem_node(c, n, KCall);
+        var value: FoundationNode* = sem_node_result(c, n, KCall);
+        if value == null { return default; }
         var callee: FoundationNode* = sem_get(instance);
         value.binding = instance;
         sem_query_input(c, instance, convert(u32, SemanticQuery.Declaration));
@@ -977,7 +993,8 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         }
         return n;
     }
-    var value: FoundationNode* = sem_node(c, n, KCall);
+    var value: FoundationNode* = sem_node_result(c, n, KCall);
+    if value == null { return default; }
     var step49 = sem_resolve(c, c.functions, step3, name);
     value.binding = step49;
     if value.binding == null {
@@ -1024,7 +1041,8 @@ fn sem_indirect_call(c: SemanticContext*, n: void*, callee: void*, args: vector(
         return n;
     }
     var signature = sem_get(type.record);
-    var call = sem_node(c, n, KCall);
+    var call = sem_node_result(c, n, KCall);
+    if call == null { return default; }
     call.value = target;
     sem_set_type(&call.type, &signature.element);
     if args.length != signature.parameters.length {
@@ -1038,6 +1056,12 @@ fn sem_indirect_call(c: SemanticContext*, n: void*, callee: void*, args: vector(
 }
 
 fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
+    var result = sem_expression_impl(c, n, expected_type);
+    return c.program.resource.error == WorkBudgetError.None ? result : null;
+}
+
+fn sem_expression_impl(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     if sem_is(n, "CoreValue") && sem_child_count(n) == 1 {
         n = sem_child(n, 0);
     }
@@ -1058,7 +1082,8 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             if !sem_shape(c, n, "left") || !sem_shape(c, n, "op") || !sem_shape(c, n, "right") {
                 return null;
             }
-            var value: FoundationNode* = sem_node(c, n, KBinary);
+            var value: FoundationNode* = sem_node_result(c, n, KBinary);
+            if value == null { return default; }
             var op: u8* = sem_tokens(c, sem_member(n, "op"));
             if !sem_ok(c) { return default; }
             var found: bool = false;

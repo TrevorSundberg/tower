@@ -40,7 +40,8 @@ fn sem_type_binding(c: SemanticContext*, n: void*): bool {
 fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
     var name = sem_identifier(c, sem_member(n, "name"));
     if !sem_ok(c) { return; }
-    var value = sem_node(c, n, KType);
+    var value = sem_node_result(c, n, KType);
+    if value == null { return; }
     value.global = true;
     value.type.scalar = InvalidTypeScalar;
     value.type.pointer_bytes = c.program.pointer_bytes;
@@ -501,8 +502,10 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         if !sem_ok(c) { return default; }
         for(var i: usize = 1; i < arguments.length && sem_ok(c); i++) {
             var type = sem_type(c, arguments.data[i]);
+            if !sem_ok(c) || type == null { return null; }
             if type.pointers == 0 && type.scalar == SVoid { sem_fail(c, arguments.data[i], "A function parameter cannot have void type"); }
             var parameter = sem_control_node(c, n, KParameter);
+            if parameter == null { return default; }
             sem_set_type(&sem_get(parameter).type, type);
             if !sem_push_checked(c, parameters, parameter) { return default; }
         }
@@ -591,6 +594,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         return t;
     }
     var t: FoundationType* = sem_type(c, result);
+    if !sem_ok(c) || t == null { return null; }
     var step65 = bits(void*, t);
     entry.value = step65;
     entry.number = 0;
@@ -598,18 +602,19 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
 }
 
 fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     if sem_editor_symbol(c, n, 2) {
         return sem_type_new(c, SI32, 0, null);
     }
     c.type_depth++;
     var result = sem_array_type_prepared(c, n);
-    if result == null { result = sem_constructor_prepared(c, n); }
-    if result == null { result = sem_type_impl(c, n); }
+    if result == null && sem_ok(c) { result = sem_constructor_prepared(c, n); }
+    if result == null && sem_ok(c) { result = sem_type_impl(c, n); }
     c.type_depth--;
     if sem_ok(c) {
         sem_type_use(c, n, result);
     }
-    return result;
+    return c.program.resource.error == WorkBudgetError.None ? result : null;
 }
 
 fn sem_array_count(node: void*): void* {
@@ -830,7 +835,8 @@ fn sem_type_header(c: SemanticContext*, n: void*, name: u8*): void {
     if !sem_shape(c, n, "name") || !sem_shape(c, n, "fields") {
         return;
     }
-    var t: FoundationNode* = sem_node(c, n, KType);
+    var t: FoundationNode* = sem_node_result(c, n, KType);
+    if t == null { return; }
     if name[0] == 0 {
         var step9 = sem_member(n, "name");
         name = sem_identifier(c, step9);
@@ -879,7 +885,8 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
         if !sem_shape(c, field, "name") || !sem_shape(c, field, "type") {
             return;
         }
-        var f: FoundationNode* = sem_node(c, field, KFieldDeclaration);
+        var f: FoundationNode* = sem_node_result(c, field, KFieldDeclaration);
+        if f == null { return; }
         var name: u8* = sem_identifier(c, sem_member(field, "name"));
         if !sem_ok(c) { return; }
         if !sem_set_name(c, f, name) { return; }
@@ -901,6 +908,8 @@ fn sem_round(size: usize, alignment: usize): usize {
     return(size + alignment -1) / alignment *alignment;
 }
 
+var SemanticLocalStorageLimit: usize = 4194304;
+
 fn sem_add_local(c: SemanticContext*, n: void*): void {
     var local: FoundationNode* = sem_get(n);
     var function: FoundationNode* = sem_get(c.current);
@@ -909,16 +918,17 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
     }
     if !sem_ok(c) { return; }
     var alignment: usize = semantic_alignment(&local.type);
-    local.index = function.locals.length;
-    var step5 = sem_round(function.frame_size, alignment);
-    local.byte_offset = step5;
-    var step6 = semantic_size(&local.type);
-    var step7 = local.byte_offset + step6;
-    function.frame_size = step7;
-    if function.frame_size > 4194304 {
+    var index = function.locals.length;
+    var offset = sem_round(function.frame_size, alignment);
+    var size = offset + semantic_size(&local.type);
+    if size > SemanticLocalStorageLimit {
         sem_fail(c, n, "Foundation local storage exceeds 4 MiB");
+        return;
     }
     if !sem_push_checked(c, &function.locals, n) { return; }
+    local.index = index;
+    local.byte_offset = offset;
+    function.frame_size = size;
 }
 
 fn sem_value_binding(c: SemanticContext*, n: void*): void* {
@@ -945,7 +955,8 @@ fn sem_named_type_value(c: SemanticContext*, node: void*): bool {
     // A bound type parameter already supplies an immutable canonical type.
     // It has no declaration job to attach, particularly on a body worker.
     if sem_get(declaration).global && !sem_declaration_type(c, declaration) { return true; }
-    var value = sem_node(c, node, KTypeReference);
+    var value = sem_node_result(c, node, KTypeReference);
+    if value == null { return true; }
     value.type = sem_type_value(c, SType, 0, null);
     value.element = sem_get(declaration).type;
     return true;
@@ -982,11 +993,13 @@ fn sem_function_type(c: SemanticContext*, owner: void*, result: FoundationType*,
         if same { return &signature.type; }
     }
     var entity = sem_control_node(c, owner, KType);
+    if entity == null { return default; }
     var signature = sem_get(entity);
     sem_set_type(&signature.type, sem_type_new(c, SFunction, 0, entity));
     sem_set_type(&signature.element, result);
     foreach(var source in parameters) {
         var parameter = sem_control_node(c, entity, KParameter);
+        if parameter == null { return default; }
         sem_set_type(&sem_get(parameter).type, &sem_get(source).type);
         if !sem_push_checked(c, &signature.parameters, parameter) { return default; }
     }
@@ -1004,7 +1017,8 @@ fn sem_function_reference(c: SemanticContext*, source: void*, name: void*): bool
     if function == null { return false; }
     sem_query_input(c, function, convert(u32, SemanticQuery.Declaration));
     var definition = sem_get(function);
-    var value = sem_node(c, source, KFunctionReference);
+    var value = sem_node_result(c, source, KFunctionReference);
+    if value == null { return true; }
     value.binding = function;
     sem_set_type(&value.type, sem_function_type(c, source, &definition.type, &definition.parameters));
     sem_type_use(c, source, &value.type);

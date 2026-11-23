@@ -448,7 +448,8 @@ fn generic_expression_seed(a: GenericAnalysis*, source: void*, copy: void*, dept
         if info.resolved == null {
             return false;
         }
-        var value = sem_attach(copy, KOperand);
+        var value = sem_node_result(a.context, copy, KOperand);
+        if value == null { return false; }
         var resolved = sem_get(info.resolved);
         sem_set_type(&value.type, &resolved.type);
         return true;

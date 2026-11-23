@@ -117,8 +117,10 @@ fn sem_iteration_resolve(c: SemanticContext*, module: void*, name: u8*, use: voi
 
 fn sem_iteration_address(c: SemanticContext*, parent: void*, local: void*): void* {
     var result = sem_control_node(c, parent, KAddress);
+    if result == null { return default; }
     var value = sem_get(result);
     value.value = sem_control_read(c, result, local);
+    if value.value == null { return null; }
     sem_set_type(&value.type, &sem_get(local).type);
     value.type.pointers++;
     return result;
@@ -126,6 +128,7 @@ fn sem_iteration_address(c: SemanticContext*, parent: void*, local: void*): void
 
 fn sem_iteration_call(c: SemanticContext*, parent: void*, function: void*, source: void*, state: void*): void* {
     var result = sem_control_node(c, parent, KCall);
+    if result == null { return default; }
     var value = sem_get(result);
     var signature = sem_get(function);
     value.binding = function;
@@ -231,10 +234,12 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     }
     if !sem_iteration_storage(c, n, prepared) { return false; }
     var state_type = &prepared.state_type;
-    var value = sem_node(c, n, KBlock);
+    var value = sem_node_result(c, n, KBlock);
+    if value == null { return default; }
     var source = sem_control_local(c, n, initial);
     if !sem_ok(c) { return false; }
     var state = sem_control_node(c, n, KDeclare);
+    if state == null { return default; }
     if !sem_set_name(c, sem_get(state), sem_control_name(c)) { return default; }
     sem_set_type(&sem_get(state).type, state_type);
     sem_add_local(c, state);
@@ -242,6 +247,7 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     if !sem_push_checked(c, &value.items, state) { return default; }
     if !sem_push_checked(c, &value.items, sem_iteration_call(c, n, begin, source, state)) { return default; }
     var cleanup = sem_control_node(c, n, KBlock);
+    if cleanup == null { return default; }
     if !sem_push_checked(c, &sem_get(cleanup).items, sem_iteration_call(c, cleanup, end, source, state)) { return default; }
     if !sem_ok(c) {
         return false;
@@ -257,13 +263,16 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     c.has_defer = true;
 
     var loop_node = sem_control_node(c, n, KLoop);
+    if loop_node == null { return default; }
     var loop_body = sem_control_node(c, loop_node, KBlock);
+    if loop_body == null { return default; }
     sem_get(loop_node).body = loop_body;
     if !sem_push_checked(c, &value.items, loop_node) { return default; }
     var test = sem_iteration_call(c, loop_body, next, source, state);
     var condition = sem_control_read(c, loop_body, sem_control_local(c, loop_body, test));
     if !sem_ok(c) { return false; }
     var iteration = sem_control_node(c, loop_body, KBlock);
+    if iteration == null { return default; }
     var otherwise = sem_control_branch(c, loop_body, condition, iteration);
     if !sem_ok(c) { return false; }
     if !sem_push_checked(c, &sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak)) { return default; }
@@ -273,6 +282,7 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     if !sem_ok(c) { return false; }
     if borrow[0] == 0 {
         initializer = sem_control_node(c, iteration, KLoad);
+        if initializer == null { return default; }
         sem_get(initializer).value = address;
         sem_set_type(&sem_get(initializer).type, &sem_get(address).type);
         sem_get(initializer).type.pointers--;
@@ -292,8 +302,9 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     }
     if !sem_set_name(c, sem_get(item), name) { return default; }
     var scope = c.scope;
-    c.scope = sem_scope(c, scope);
+    var nested = sem_scope(c, scope);
     if !sem_ok(c) { return default; }
+    c.scope = nested;
     sem_put(c, c.scope.names, name, item);
     cursor.scope = scope;
     cursor.deferred = saved;
