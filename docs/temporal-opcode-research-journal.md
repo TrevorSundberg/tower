@@ -92544,3 +92544,10 @@ actual module-input boundary without a repeat; added registry files are filtered
 out of that host's supplied baseline. New compiler sources are not baked into
 47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
 group, implementation change or blanket merged compiler validation.
+D2 trace publication reconciliation: scoped5a3ead88 merged full publishedfcaad5a6
+after required ff-only pull detected divergence. Both histories retained. Final
+diagnostic/strict/coordinator/boundary and browser hashes match; Node syntax/diff
+checks pass. Incoming compiler/type/caller fixtures are outside the no-Wasm path
+and are not validated here. Failed smoke remains tied to164adb34, final023d1dee
+stream path remains unexecuted; no passing result adopted across that correction.
+Normal main publication only, ROOT retains native-trace/release acceptance.
