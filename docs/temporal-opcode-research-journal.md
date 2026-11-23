@@ -95523,3 +95523,50 @@ all owned jobs drained, source checks reused by identity; retry normal main push
 L1 independent review d7635e9c reconciled through complete-history merge 20cba101e427d285d019022373d58d13616b047a with published6b74889b. Library/host/compiler gate and Entity producer blobs are unchanged. Incoming L2 unsigned-overflow reconstruction, package pruning and declaration-oracle work are preserved outside this review. Read changes to the two inventoried legacy-gate fixtures backend_source_native/module_body_type_checks: optimized artifact saving and error/output oracles change; synchronization callbacks/ownership/teardown do not. Frozen66-file review manifest retains its original identity; these later fixture blobs are explicitly separate. No build/test rerun for this documentation review; diff check passes. Normal main push follows.
 
 B2 fault receipt publication: complete-history merge8bcd4a36 preserves implementation2f4361f6 plus incomingd21fb20d. Entity/budget/host/selectedfixture closure unchanged; dependency target saysno work, full defaultcomponent/stage fault modesPASS again with identical b3c778e9/18ecb7f4 binaries. Incoming LLVM/packaging/modulebody changes excluded once. Independent review's corrected16-byte descriptor alignment derivation retained in priorreceipt; measuredtables unchanged. ROOT finalrelease remainsseparate; ownedjobs drained.
+## 2026-11-23 L1 — complete Linux x64 development generations a18d584e
+
+Produced a complete Gen3 candidate from frozen published
+`a18d584e29b79267bc03d099e70e214e48017b36` (root60482815,
+compiler1830db72, libraryc6fed2e3, bootstrapb3d2a442), including a06ec4b1,
+B1 gate/B2 inline and125efb11. Read the existing48db generation receipt and
+bootstrap distribution/resources contracts; adapted its OS scripts to this
+independent WSL Ubuntu24/LLVM19 cache. Owned jobs drained and previous
+build/native preserved. Gen1 used public768 with TOWER_BOOTSTRAP_COMPILER unset;
+Gen2/3 used complete verified preceding packages as explicit successor tests,
+with Gen2's entire build copied/hashed before cleaning the same successor path.
+Whole scopes CPU0-7/12GiB/no swap, outer4/compiler1; no overlapping builds.
+
+All three generations'38actual binaries (30objects,1archive,3executables,
+4configureprobes) match by exact bytes. Gen2/3 all54payloads+SHA256SUMS match.
+Only new member relative to48db is library/work_gate.tower. Gen1 runtime IR
+ModuleID comments retain its different build directory; all diffs/provenance
+remain original. Identical executable SHA47353de5b4c43917549c0ab6386a4a5aef1127bace76b8d6a0eaf01d4d899ac7,
+2,293,960bytes/mode0755.1249provenance source hashes and1328broader snapshot
+hashes remained fixed; all source bytes survive snapshot extraction.
+
+All development package checks, space-path relocation/transfer, expected missing
+Clang control,9strictnative symbol closures and unchanged16/1000function controls
+passed. Saved reference object bytes match cdc5a6ec/ae9e824d, exact outputs15/999.
+52dependency actions perbuild; no duplicate leaf or broad matrix. Build costs
+Gen1 80.95wall/205.95CPU/1075868KiB, Gen2 50.98/114.84/963184,
+Gen3 46.96/115.63/963588. Small0.48/.47/177532, large0.71/.70/219752.
+Scope peaks2,785,333,248/2,392,662,016bytes, all zero limit/OOM events.
+These are costs, not throughput improvements. No production edits.
+
+Preserved one failed additional provenance assumption: Linux Git's generated
+source patch was not mode-only. Direct published-blob comparison proved all59
+changed files differ only by Windows CRLF checkout conventions. The original
+patch7dffffd7, actual source hashes and package bytes were retained; no source,
+artifact or provenance normalization, policy patch or rerun was used to pass.
+No native build, package, symbol, relocation or execution failure occurred.
+
+Delivery:
+C:/Sandbox/build/codex_ecs_20261122/L1/current_generation_a18d584e/generation3.tar.gz
+SHA2561d091f61d5545407e824eca558f7233dc870e9336f933a9a1536e20d3dc7a04a.
+One complete archive, sidecar manifests/commands/checks with checksums; original
+logs/builds/source snapshot remain /root/.cache/tower/l1_generation_a18d584e.
+Details: [current generation receipt](compiler_generation_a18d584e.md).
+System LLVM/Clang remain required; standalone release not passed. Later producer
+changes, ROOT pin/default adoption and hosted/platform integration are excluded.
+No bootstrap pin or deployment changed; todo preserved. Committing receipt before
+normal main reconciliation without relabeling the frozen runtime.
