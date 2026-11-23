@@ -1,4 +1,6 @@
 import tower;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import frontend_revision_types;
 import grammar_types;
 import parser_markers;
@@ -12,6 +14,7 @@ import syntax_version_types;
 import .library.vector;
 import .library.work_budget_types;
 
+extern fn parser_table_finish_buffer_result(table: ParserHostTable*, error: WorkBuffer*, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable*;
 extern fn compiler_node_world(node: void*): void*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): void*;
@@ -34,6 +37,7 @@ extern fn syntax_replacement_tree(owner: void*, tree: void*): void;
 extern fn syntax_replacement_error(owner: void*, error: u8*): void;
 extern fn syntax_replacement_resource_fail(owner: void*, error: WorkBudgetError): void;
 extern fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession*;
+extern fn syntax_session_allocate_result(world: void*, environment: void*, error: WorkBudgetError*): SyntaxSession*;
 extern fn syntax_destroy(session: void*): void;
 extern fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*, length: usize, name: u8*): bool;
 extern fn syntax_session_progress(value: SyntaxSession*): void;
@@ -41,6 +45,7 @@ extern fn syntax_session_pin_revision(destination: FrontendRevision**, source: F
 extern fn syntax_session_pin_version(destination: SyntaxVersion**, source: SyntaxVersion*): void;
 extern fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: void*, repairs: bool): u8*;
 extern fn syntax_session_diagnostic_result(value: SyntaxSession*, recognizer: void*, repairs: bool, error: WorkBudgetError*): u8*;
+extern fn syntax_session_diagnostic_buffer_result(value: SyntaxSession*, recognizer: void*, repairs: bool, output: WorkBuffer*): WorkBudgetError;
 extern fn parser_recognizer_get_error(recognizer: void*): u8*;
 extern fn syntax_emission_wrapper(value: void*, name: u8*): u8*;
 extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
@@ -105,8 +110,8 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     }
     // A template parses captured source, not an imported module. No module
     // environment or process-global default world is needed for this session.
-    var session = syntax_session_allocate(world, null);
-    if session is null { return template_build_memory(owner, "Unable to allocate replacement session"); }
+    var session = syntax_session_allocate_result(world, null, &resource_error);
+    if session is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement session"); }
     defer syntax_destroy(bits(void*, session));
     var sequence = template_build_node(syntax_replacement_sequence(owner), version);
     var text = &template_build_node(sequence.replacement, version).text;
@@ -145,17 +150,17 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     if !syntax_template_holes_revision_result(&holes, emission, &resource_error) {
         return template_build_resource(owner, resource_error, "Unable to build replacement hole productions");
     }
-    var diagnostic: u8* = null;
-    defer compiler_buffer_free(bits(void*, diagnostic));
+    var diagnostic: WorkBuffer = default;
+    defer work_buffer_dispose(&diagnostic);
     var table = parser_table_open_result(grammar.rules, &grammar.kinds, bits(void*, grammar), ParserPresentation.Syntax, convert(u32, ParserReadMode.WholeInput), &resource_error);
     if table is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement parser"); }
     if table is not null { table.trace = entity_member_index(grammar.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
-    grammar.table = bits(void*, parser_table_finish_result(table, &diagnostic, true, &resource_error));
+    grammar.table = bits(void*, parser_table_finish_buffer_result(table, &diagnostic, true, &resource_error));
     if grammar.table is null {
         if resource_error != WorkBudgetError.None {
-            return template_build_resource(owner, resource_error, diagnostic ?? "Unable to allocate replacement parser");
+            return template_build_resource(owner, resource_error, diagnostic.data ?? "Unable to allocate replacement parser");
         }
-        syntax_replacement_error(owner, diagnostic ?? "Cannot build replacement parser");
+        syntax_replacement_error(owner, diagnostic.data ?? "Cannot build replacement parser");
         return TemplateAttemptGrammarConflict;
     }
     if !syntax_version_lexicon_result(grammar, &resource_error) {
@@ -183,12 +188,13 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     if root is null {
         replacement.error_offset = replacement.start + session.error_offset;
         // Typed holes cannot safely use ordinary token insertion repairs.
-        var error = syntax_session_diagnostic_result(session, recognizer, false, &resource_error);
-        defer compiler_buffer_free(bits(void*, error));
+        var error: WorkBuffer = default;
+        defer work_buffer_dispose(&error);
+        resource_error = syntax_session_diagnostic_buffer_result(session, recognizer, false, &error);
         if resource_error != WorkBudgetError.None {
             return template_build_resource(owner, resource_error, parser_recognizer_get_error(recognizer));
         }
-        return template_build_error(owner, error);
+        return template_build_error(owner, error.data);
     }
     var body = entity_child_at(root, 0);
     if body is null { return template_build_error(owner, "Replacement must produce one syntax tree"); }

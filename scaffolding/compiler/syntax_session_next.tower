@@ -1,4 +1,7 @@
 import tower;
+import .library.work_vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_budget_types;
 import component_kinds;
 import format_types;
@@ -45,6 +48,7 @@ import .library.vector;
 extern fn entity_component_get(entity: void*, kind: void*): void*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
 extern fn entity_component_data(component: void*): void*;
 extern fn entity_child_at(parent: void*, index: usize): void*;
@@ -65,12 +69,13 @@ fn syntax_session_match(entity: void*): ParserMatchData* {
 fn syntax_session_text(text: u8*, wanted: u8*): bool {
     return syntax_bytes_compare(text, syntax_text_length(text), wanted, syntax_text_length(wanted)) == 0;
 }
-fn syntax_session_fail(value: SyntaxSession*, message: u8*): void* {
+fn syntax_session_fail_static(value: SyntaxSession*, message: u8*): void* {
+    value.error_fallback = message;
     syntax_session_error(value, message);
     return null;
 }
 fn syntax_session_error_bytes(value: SyntaxSession*, text: u8*, length: usize): void {
-    if !bytes_assign_text(&value.error, text, length) { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
+    syntax_session_error_assign(value, text, length);
 }
 fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, through: usize): bool {
     for (var i: usize = 0; i < value.highlights.items.length; ++i) {
@@ -94,11 +99,11 @@ fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): 
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, candidate, value.pins.bedrock, &diagnostic);
-    value.resource_error = diagnostic.resource_error;
+    syntax_session_resource_fail(value, diagnostic.resource_error);
     defer syntax_version_release(version);
     value.error_offset = diagnostic.offset;
     if version is null {
-        syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+        syntax_session_version_error(value, &diagnostic);
         return false;
     }
     syntax_session_pin_version(&value.pins.version, version);
@@ -145,11 +150,16 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
     if syntax_revision_rule(value.pins.grammar, entry.name.data, entry.name.length) is not null {
         syntax_session_error(value, "Name already defines a parse rule: ");
         if value.resource_error != WorkBudgetError.None { return false; }
-        if !bytes_append(&value.error, entry.name.data, entry.name.length) || !vector_push(&value.error, 0) {
-            syntax_session_resource_fail(value, WorkBudgetError.Memory);
+        var needed = value.error.length + entry.name.length + 1;
+        var error = needed <= value.error.length ? WorkBudgetError.Invalid
+            : work_vector_reserve_result(&value.error, compiler_world_work_budget(value.inputs.world), needed);
+        if error != WorkBudgetError.None {
+            syntax_session_resource_fail(value, error);
             return false;
         }
-        value.error.length--;
+        copy(&value.error.data[value.error.length], entry.name.data, entry.name.length);
+        value.error.length = needed - 1;
+        value.error.data[value.error.length] = 0;
         return false;
     }
     frontend_cache_pattern(&value.cache.index, construct, compiler_world_type(value.inputs.world, CompilerSyntax));
@@ -183,6 +193,7 @@ fn syntax_session_expand(value: SyntaxSession*, root: void**): bool {
     value.expansion_stats.copied_nodes = result.copied_nodes;
     value.error_offset = result.error_offset;
     if !ready {
+        if result.resource_error != WorkBudgetError.None { syntax_session_resource_fail(value, result.resource_error); }
         if result.error.data is null { syntax_session_error(value, "Unable to allocate replacement expansion storage"); }
         else { syntax_session_error_bytes(value, result.error.data, result.error.length); }
     }
@@ -208,15 +219,15 @@ fn syntax_session_finish(value: SyntaxSession*): void {
         defer syntax_version_diagnostic_dispose(&diagnostic);
         diagnostic.offset = value.error_offset;
         syntax_version_bedrock(value.pins.grammar, compiler_world_type(value.inputs.world, CompilerSyntax), &diagnostic);
-        value.resource_error = diagnostic.resource_error;
-        syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+        syntax_session_resource_fail(value, diagnostic.resource_error);
+        syntax_session_version_error(value, &diagnostic);
         value.error_offset = diagnostic.offset;
         syntax_version_diagnostic_dispose(&diagnostic);
         if value.error.length == 0 && value.resource_error == WorkBudgetError.None {
             var version = syntax_version_build(value.inputs.world, null, value.pins.grammar, &diagnostic);
-            value.resource_error = diagnostic.resource_error;
+            syntax_session_resource_fail(value, diagnostic.resource_error);
             defer syntax_version_release(version);
-            syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+            syntax_session_version_error(value, &diagnostic);
             value.error_offset = diagnostic.offset;
             if version is not null && !syntax_emission_keyword_starts(bits(SyntaxEmission*, version.emission)) {
                 syntax_session_error(value, "Bedrock declarations must begin with literal keywords");
@@ -235,7 +246,7 @@ export fn syntax_next(opaque: void*): void* {
     value.declaration = syntax_session_declaration(value, value.cursor);
     if value.bootstrapping && !value.declaration {
         value.error_offset = value.cursor;
-        return syntax_session_fail(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
+        return syntax_session_fail_static(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
     }
     var start = value.cursor;
     var root: void* = null;
@@ -245,14 +256,14 @@ export fn syntax_next(opaque: void*): void* {
         if stream is null {
             value.resource_error = WorkBudgetError.Memory;
             value.error_offset = start;
-            return syntax_session_fail(value, "Unable to allocate parser input stream");
+            return syntax_session_fail_static(value, "Unable to allocate parser input stream");
         }
         defer parser_stream_destroy(stream);
         *bits(SyntaxSession**, parser_stream_get_userdata(stream)) = value;
         var recognizer = parser_recognizer_create_prefix_result(bits(ParserHostTable*, value.pins.version.table), stream, &value.resource_error);
         if recognizer is null {
             value.error_offset = start;
-            return syntax_session_fail(value, "Unable to allocate parser control within its memory budget");
+            return syntax_session_fail_static(value, "Unable to allocate parser control within its memory budget");
         }
         defer parser_recognizer_destroy(recognizer);
         value.recognizer = bits(void*, recognizer);
@@ -267,7 +278,7 @@ export fn syntax_next(opaque: void*): void* {
         value.resource_error = parser_recognizer_resource_error(recognizer);
         if value.resource_error != WorkBudgetError.None {
             value.error_offset = start;
-            return syntax_session_fail(value, "Unable to allocate parser tree within its memory budget");
+            return syntax_session_fail_static(value, "Unable to allocate parser tree within its memory budget");
         }
         if root is null {
             if value.completing {
@@ -277,11 +288,21 @@ export fn syntax_next(opaque: void*): void* {
             if !value.bootstrapping && !value.declaration && value.inputs.module is not null
                 && frontend_module_seed_only(bits(FrontendModule*, value.inputs.module)) {
                 value.error_offset = start;
-                return syntax_session_fail(value, "This syntax needs a language import. Use 'import tower;' for normal code, 'import foundation;' for basic operations, or 'import bedrock;' to define a grammar.");
+                return syntax_session_fail_static(value, "This syntax needs a language import. Use 'import tower;' for normal code, 'import foundation;' for basic operations, or 'import bedrock;' to define a grammar.");
             }
-            var message = syntax_session_diagnostic(value, recognizer, true);
-            defer compiler_buffer_free(bits(void*, message));
-            return syntax_session_fail(value, message ?? parser_recognizer_get_error(bits(void*, recognizer)));
+            var message: WorkBuffer = default;
+            var error = syntax_session_diagnostic_buffer_result(value, recognizer, true, &message);
+            if error != WorkBudgetError.None {
+                syntax_session_resource_fail(value, error);
+                // Keep the original syntax text without another allocation.
+                work_vector_move(&value.error, &recognizer.error);
+            } else {
+                work_vector_dispose(&value.error);
+                value.error = {data: message.data, length: syntax_text_length(message.data), capacity: message.capacity,
+                    reservation: message.reservation};
+                message = default;
+            }
+            return null;
         }
         var span = syntax_session_match(root);
         value.cursor = span.start + span.length;
@@ -301,12 +322,12 @@ export fn syntax_next(opaque: void*): void* {
     // the actual parsed construct before recording it or mutating the grammar.
     value.declaration = importing || rule || lexical;
     if value.bootstrapping && !value.declaration {
-        return syntax_session_fail(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
+        return syntax_session_fail_static(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
     }
     if importing {
         syntax_session_inputs_module(&value.inputs, value.inputs.source.text.data, null);
         var module = bits(FrontendModule*, value.inputs.module);
-        if !frontend_module_import(module, construct, value.inputs.source) { return syntax_session_fail(value, frontend_module_error(module)); }
+        if !frontend_module_import(module, construct, value.inputs.source) { syntax_session_error(value, frontend_module_error(module)); return null; }
         var grammar = frontend_module_grammar(module);
         var candidate = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
         defer frontend_revision_release(candidate);

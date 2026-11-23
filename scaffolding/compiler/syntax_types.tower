@@ -1,5 +1,6 @@
 import .library.vector;
 import tower;
+import .library.work_vector_types;
 
 // Shared component layouts for grammar construction, formatting and inspection.
 // Native adapters borrow these exact payloads; there is only one grammar model.
@@ -53,7 +54,7 @@ struct SyntaxNode {
 // Expansion payloads are immutable after construction; references retain their
 // component-owning entities. Native views borrow these exact fields.
 struct SyntaxExpansion {
-    rule: vector(u8);
+    rule: work_vector(u8);
     start: usize;
     end: usize;
     definition_start: usize;
@@ -66,5 +67,5 @@ struct SyntaxOrigin {
     template_end: usize;
     generated: bool;
     expansion: SyntaxExpansion*;
-    splices: vector(SyntaxExpansion*);
+    splices: work_vector(SyntaxExpansion*);
 }

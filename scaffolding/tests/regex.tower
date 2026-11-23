@@ -313,6 +313,7 @@ fn regex_test_pattern_resources(): void {
     utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern result warm constructor");
     syntax_pattern_release(pattern);
     format_dispose(&error);
+    error = default;
     utility_check(frontend_world_clear(world), "Pattern result clear warm reader");
     var nodes = entity_store_count(compiler_world_store(world));
     var retained = tower_test_buffer_count();
@@ -325,6 +326,7 @@ fn regex_test_pattern_resources(): void {
     utility_check(pattern == null && resource == WorkBudgetError.Capacity,
         "Cold pattern constructor preserves Capacity through grammar and table construction");
     format_dispose(&error);
+    error = default;
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern constructor blocker");
     var failed: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
@@ -335,11 +337,13 @@ fn regex_test_pattern_resources(): void {
     pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
     utility_check(pattern == null && resource == WorkBudgetError.Busy, "Pattern grammar lease denial preserves Busy");
     format_dispose(&error);
+    error = default;
     entity_view_close(view);
     pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
     utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern constructor retries after ledger and lease release");
     syntax_pattern_release(pattern);
     format_dispose(&error);
+    error = default;
     utility_check(work_budget_snapshot(&budget, &before), "Pattern reader retained ledger");
     retained = tower_test_buffer_count();
     nodes = entity_store_count(compiler_world_store(world));
@@ -349,6 +353,7 @@ fn regex_test_pattern_resources(): void {
     utility_check(pattern == null && resource == WorkBudgetError.Capacity,
         "Cached pattern reader preserves control or forest Capacity");
     format_dispose(&error);
+    error = default;
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern reader blocker");
     var calls = tower_test_buffer_allocations();
     pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
@@ -356,6 +361,7 @@ fn regex_test_pattern_resources(): void {
     utility_check(pattern != null && resource == WorkBudgetError.None && allocations != 0, "Measure complete pattern read allocations");
     syntax_pattern_release(pattern);
     format_dispose(&error);
+    error = default;
     for(var failure: usize = 0; failure < allocations; failure++) {
         tower_test_buffer_fail_after(failure);
         pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
@@ -369,6 +375,7 @@ fn regex_test_pattern_resources(): void {
         }
         syntax_pattern_release(pattern);
         format_dispose(&error);
+    error = default;
         utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
             && failed.live == before.live && failed.used_lanes == before.used_lanes
             && entity_store_count(compiler_world_store(world)) == nodes && tower_test_buffer_count() == retained,
@@ -379,6 +386,7 @@ fn regex_test_pattern_resources(): void {
     utility_check(pattern == null && resource == WorkBudgetError.None && error.text.length != 0,
         "Invalid pattern syntax remains distinct from resource failure");
     format_dispose(&error);
+    error = default;
     utility_check(frontend_world_pattern_result(world, null, 1, &error, &resource) == null
         && resource == WorkBudgetError.Invalid, "Invalid counted pattern pointer is explicit");
     utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Pattern result world cleanup");

@@ -1,4 +1,9 @@
 import tower;
+import format_storage;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_vector;
 import format_api;
 import format_parser_table_types;
 import lr_api;
@@ -17,8 +22,8 @@ fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, 
         return;
     }
     var size = request.frames.length + 1;
-    var ok = size != 0;
-    ok &&= vector_reserve(&request.frames, size);
+    var error = size == 0 ? WorkBudgetError.Invalid : work_vector_reserve_result(&request.frames, request.result.budget, size);
+    var ok = error == WorkBudgetError.None;
     if ok {
         var frame = &request.frames.data[request.frames.length];
         frame.kind = kind;
@@ -28,7 +33,7 @@ fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, 
         frame.text = text;
         request.frames.length = size;
     } else {
-        request.result.failed = true;
+        format_storage_fail(&request.result, error);
     }
 }
 
@@ -388,19 +393,31 @@ export fn parser_format_destroy(request: ParserFormat*): void {
         return;
     }
     format_dispose(&request.result);
-    vector_dispose(&request.frames);
-    free(request);
+    work_vector_dispose(&request.frames);
+    var storage = request.storage;
+    work_buffer_dispose(&storage);
 }
 
 // No callback is invoked here. The caller pins the table and answers requests
 // until Done; destroy also supports cancellation while a request is pending.
 export fn parser_format_create(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize, names: bool, descriptions: bool): ParserFormat* {
-    var request = alloc(ParserFormat, 1);
+    var error = WorkBudgetError.None;
+    return parser_format_create_result(table, kind, first, second, names, descriptions, null, &error);
+}
+
+export fn parser_format_create_result(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize,
+    names: bool, descriptions: bool, budget: WorkBudget*, error: WorkBudgetError*): ParserFormat* {
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(ParserFormat), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var request = bits(ParserFormat*, storage.data);
     var absent = request == null;
     if absent {
         return null;
     }
     *request = default;
+    request.storage = storage;
+    format_storage_begin(&request.result, budget);
     request.table = table;
     request.names = names;
     request.descriptions = descriptions;

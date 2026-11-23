@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import .library.vector;
 import .compiler.syntax_session_types;
 import .compiler.syntax_emission_types;
@@ -82,7 +83,7 @@ fn frontend_session_state_tests(): void {
     frontend_world_check(syntax_session_inputs_reset(&value.inputs, "abc", 3, SyntaxSeedBaseline, null));
     value.pins.baseline = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(value.pins.baseline is not null);
-    frontend_world_check(vector_push(u8, &value.error, 65));
+    frontend_world_check(work_vector_push(u8, &value.error, null, 65));
     frontend_world_check(syntax_highlights_push(&value.highlights, 0, 1, 0, "comment", 3, true));
     var suffix = bits(u8*, tower_memory_allocate(2));
     frontend_world_check(suffix is not null);

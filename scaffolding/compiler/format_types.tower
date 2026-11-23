@@ -1,5 +1,7 @@
 import .library.vector;
 import tower;
+import .library.work_buffer_types;
+import .library.work_budget_types;
 
 // Shared formatter result ABI. Editor previews use the same formatting engine.
 struct FormatSpan {
@@ -18,6 +20,13 @@ struct FormatResult {
     spans: vector(FormatSpan);
     depth: usize;
     failed: bool;
+    // Legacy default results retain vector ownership. Checked requests expose
+    // the same borrowed views while these receipts own their physical storage.
+    checked: bool;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
+    text_storage: WorkBuffer;
+    span_storage: WorkBuffer;
 }
 
 // A disposable view of original syntax with bound arguments. The source tree

@@ -13,6 +13,7 @@ import .compiler.component_kinds;
 import .library.work_budget;
 import .library.work_budget_types;
 
+extern fn frontend_module_resource_error(module: void*): WorkBudgetError;
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
@@ -544,16 +545,24 @@ fn parser_session_budget_trial(prepare: bool): void {
     var occupied: WorkReservation = default;
     parser_control_occupy(&budget, 0, &occupied);
     if !prepare { session = frontend_module_session(module); }
-    utility_check(session != null, "Session keeps its diagnostic owner after grammar denial");
-    utility_check(syntax_next(session) == null && syntax_session_resource_error(session) == WorkBudgetError.Capacity
-        && syntax_get_error(session)[0] != 0,
-        "Syntax session preserves typed grammar or control denial without an absent recognizer access");
-    if prepare {
-        utility_check(strcmp(syntax_get_error(session), "Unable to allocate parser control within its memory budget") == 0,
-            "Control denial retains its concrete diagnostic");
+    if !prepare {
+        utility_check(session == null && frontend_module_resource_error(module) == WorkBudgetError.Capacity,
+            "Session descriptor admission denies with exact Capacity and no partial owner");
+    } else {
+        utility_check(syntax_next(session) == null && syntax_session_resource_error(session) == WorkBudgetError.Capacity
+            && strcmp(syntax_get_error(session), "Unable to allocate parser control within its memory budget") == 0,
+            "Control denial keeps its exact static diagnostic without allocating text");
     }
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release syntax control blocker");
-    syntax_reset(session, source, module);
+    if !prepare {
+        // Module failures are sticky. Retry uses a fresh graph after disposing
+        // the failed admission owner, as for other module resource failures.
+        frontend_module_destroy(module);
+        module = frontend_module_root_world(world, source, environment);
+        utility_check(module != null, "Retry module after denied session admission");
+        session = frontend_module_session(module);
+        utility_check(session != null, "Session admission retries after capacity returns");
+    } else { syntax_reset(session, source, module); }
     var node = syntax_next(session);
     if node == null { puts(syntax_get_error(session)); }
     utility_check(node != null && syntax_get_error(session)[0] == 0

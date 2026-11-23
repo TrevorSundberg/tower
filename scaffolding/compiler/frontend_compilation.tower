@@ -125,6 +125,10 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             break;
         }
         var session = frontend_module_session(module);
+        if session == null {
+            sem_resource_record(program, frontend_module_resource_error(module), 0);
+            break;
+        }
         loop {
             var root = syntax_next(session);
             if root == null {

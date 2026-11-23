@@ -24,6 +24,8 @@ struct SyntaxVersion {
 struct SyntaxVersionDiagnostic {
     resource_error: WorkBudgetError;
     text: vector(u8);
+    // Optional detached session diagnostic; text is then a borrowed view.
+    text_storage: WorkBuffer;
     fallback: u8*;
     offset: usize;
 }

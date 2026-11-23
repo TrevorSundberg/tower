@@ -1,4 +1,5 @@
 import tower;
+import format_storage;
 import format_foundation;
 import format_types;
 import format;
@@ -230,6 +231,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
             }
             if i != 0 {
                 var output: FormatResult = default;
+                format_storage_child(&output, f.result);
                 var probe: FormatEngine;
                 probe.source_names = false;
                 probe.result = &output;
@@ -237,7 +239,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
                 probe.foundation_kind = f.foundation_kind;
                 probe.match_kind = f.match_kind;
                 format_alternative(&probe, n.items.data[i]);
-                f.result.failed = format_or(f.result.failed, output.failed);
+                format_storage_fail(f.result, format_storage_error(&output));
                 var column = format_column(f);
                 column = column + 3;
                 column = column + output.text.length;

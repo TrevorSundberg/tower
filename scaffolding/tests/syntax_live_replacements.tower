@@ -8,6 +8,8 @@ import .library.bytes_interface;
 import storage_api;
 import utility_checks;
 
+extern fn strcmp(left: u8*, right: u8*): i32;
+
 fn live_seed_tests(): void {
     var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
     {
@@ -68,7 +70,7 @@ fn live_replacement_tests(): void {
         utility_check(live_span(source.data, origin.template_start, origin.template_end - origin.template_start, "1"), "Exact replacement template source");
         live_source(literal, source.data, "alias"); utility_check(origin.expansion.previous is not null, "Replacement chain retains previous expansion");
         syntax_destroy(bits(void*, session)); session = null;
-        utility_check(live_text(&syntax_get_origin(literal).expansion.rule, "Expression"), "Retained expansion rule after session destruction"); live_dump_contains(result, "1");
+        utility_check(strcmp(syntax_get_origin(literal).expansion.rule.data, "Expression") == 0, "Retained expansion rule after session destruction"); live_dump_contains(result, "1");
     }
     {
         var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
