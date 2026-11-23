@@ -90513,6 +90513,92 @@ published type-return repair is not retroactively tested by the old reactor.
 Exact mismatch lists are in merged_host_check.log/merged_resources_check.log.
 Reuse the unchanged selected evidence; no redundant rerun or expanded audit.
 
+### 2026-11-23 A1: actual paired LLVM-Wasm package gates
+
+Accepted source-bound runs of `LLVM matches interpreter: narrow integers`,
+`resumable control bodies`, and `division zero`. Each ran once in a FRESH Node
+process with an anchored exact-name selector and concurrency1. Each TAP report
+is1pass/0fail/0skip; no full-file run or hidden selected-case substitution.
+Both ordinary cases return0 through Graph, Fast, both LLVM Foundation profiles,
+prepared package execution, independent package loading/execution, canonical
+roundtrip and executable LLVM Wasm. The trap agrees on `Division by zero`, empty
+output and source byte offset31 through Graph/Fast, both prepared/loaded profiles
+and executable LLVM. Existing assertions remain intact; no earlier reconstruction
+failure occurred in these selections, so there is no new L2 producer handoff.
+L2's four framework reconstruction cases and D2's struct case remain separate.
+
+Inputs: mainc8e1d10b7d08067deb040f3b04783f35b6555f4f, scaffolding tree
+c74c92ace782fa2994167848fc5d6113e4f0d043, host tree
+1d2209bbe79671caf9191154e5b4bd21dce5c14c. ROOT's exact eac16533 reactors copied
+into A1's own cache: portable SHA256
+`df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99`, LLVM
+`87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472`.
+These binaries PRECEDE A2's declaration-page policy and L1's later type fixes;
+current host/resource input adoption does not rebuild or validate those compiler
+providers. They do not expose or run A1's new package-profile export. The previous
+six-package/native/real-Memory receipts are reused unchanged, not rerun here.
+
+One scoped test-transport correction: the unselected300-function Tower generator
+was eagerly executed while constructing the test array. Its producer is now
+called only inside its selected test; its source and expected299/0 assertions are
+unchanged. Optional existing phase tracing now also records process CPU, RSS,
+cumulative process RSS high-water, portable linear-memory capacity, live nodes,
+legacy allocation counter, packet bytes and actual execution results. Optional
+`TOWER_TEST_ARTIFACTS` saves exact original/Foundation inputs and each emitted
+profile/result through OS file transport. All compilation/generation policy and
+fixtures remain Tower; no new evaluator, allocator, compiler or semantic test
+model was added. No production fix beyond the already-published package/map
+repair was required. These are selected validation costs, not a before/after
+compiler speedup or worker-scaling claim.
+
+Environment: KinmenA Windows11/Docker Linux x64, Node22.23.5, CPU12-23/24GiB,
+serial compiler reactors, one Node test child at a time, warm filesystem and fresh
+Wasm instances, n1 each. V8/JIT CPU overlap is not compiler-lane scaling. Exact
+commands/logs/artifacts live under A1/cache/a1_llvm_cases_c8e1d10b. The command
+shape is `TOWER_TEST_WASM=.../tower.wasm TOWER_TEST_LLVM_WASM=.../tower-llvm.wasm
+TOWER_TEST_PHASES=1 TOWER_TEST_ARTIFACTS=.../CASE /usr/bin/time -v -o .../time.txt
+timeout -k 5s 600s node --test --test-concurrency=1 --test-name-pattern='^LLVM
+matches interpreter: CASE$' playground/tests/llvm-execution.test.mjs`; trap bound
+is180s. No timeout was reached. Both binaries, both fixture files and host/test
+hashes matched the frozen manifest after all three runs. Modified test SHA256
+b6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779.
+
+| Selected case | Wall s | CPU s | Peak RSS KiB | Final portable capacity B | Live nodes before/after case |
+| --- | ---: | ---: | ---: | ---: | --- |
+| narrow integers | 71.96 | 120.60 | 2999380 | 1507196928 | 5383 /16160 |
+| resumable control bodies | 82.49 | 144.50 | 3721632 | 1903755264 | 5383 /16160 |
+| division zero | 4.38 | 2.53 | 255400 | 51511296 | 5383 /10656 |
+
+The process RSS includes BOTH reactors, JIT and host storage; it is not one
+reactor's Wasm capacity. Available counters cover the portable instance, not
+LLVM's private entity store or an authoritative handle census. Packet bytes are0
+at every recorded boundary after host copying/release; all owned guest/reference
+handles run their existing finally cleanup. Lazy grammar/library ownership remains
+at the final node counts; these are not zero-world or general leak-free claims.
+Legacy allocation instrumentation is disabled (counter0 is not zero allocations).
+
+Normalized phase boundaries (wall/CPU seconds; RSS high-water is cumulative since
+process start, not a separately isolated phase peak). All other phase readings,
+including optimized profiles and trap results, are in the preserved JSON logs:
+
+| Case / phase | Wall s | CPU s | End process HWM KiB |
+| --- | ---: | ---: | ---: |
+| narrow / LLVM Foundation reconstruction | 25.199 | 49.897 | 1591052 |
+| narrow / direct package prepare | 24.861 | 49.656 | 2799052 |
+| narrow / independent package load | 15.038 | 15.056 | 2932172 |
+| control / LLVM Foundation reconstruction | 30.795 | 62.736 | 1959992 |
+| control / direct package prepare | 28.645 | 59.044 | 3464496 |
+| control / independent package load | 16.189 | 16.206 | 3647536 |
+
+Narrow Foundation input57818B SHA d5edc63ab25afe9238179d9506e44ebb6331000be00aa84df2c524d80a49ba1b;
+actual LLVM-Wasm normalized output1183486B SHA0563b9b17d6206f96b8b75e6bf8f6070ecb70c2d007eb8f84636b34b56fea1aa
+(the older native-produced1182803B packet is NOT relabeled as this run).
+Control input178353B SHA7c8d40ebda176adee662b17b32425986480c17b9fcc329d13dd35445f11c0e1d;
+normalized1415582B SHAc7a609fa713210f7ed2a35e441c427183c4d373157e03ad5521e65f8b2fc3cad.
+Optimized emitted lengths132187/42848B respectively; exact sources and responses
+are saved. No compiler rebuild, full IDE, unrelated Node selector, sanitizer,
+generation or hosted deployment run; final integrated release remains ROOT's.
+All owned processes drained, todo unchanged.
 ### D2 synthetic deployment packaging gate (2026-11-23)
 
 Frozen published source c8e1d10b; scope is the existing
@@ -90604,3 +90690,50 @@ profile30b58b4c, semantics67ccb612; input/object hashes and n1 adoption costs in
 receipt. Earlier complete type-smoke and pairedn3 remain b90+b84 evidence, not
 relabeled as full later-source acceptance. D1/ROOT browser adoption and blocked
 instrumentation gate remain open. Owned jobs drained;3stashes/todo untouched.
+### ROOT independent frozen shared-browser host control (2026-11-23)
+
+B2's f167c444 retirement failure remains OPEN. ROOT copied the exact blocked
+archive7382481192a567d0ecfdb8e019ec0ab10d9020934d12488849aa4fe9ea5e6aff
+and independently verified all1288 manifest files after extraction. Compiler
+8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4 and work
+6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c match B2.
+No source, transport, timeout, target filtering or assertion change was made.
+
+Two fresh Windows Chromium159.0.8154.6/Playwright1.65.1 trials with Node21.7.3
+passed the original strict script from the frozen extracted source directory.
+Each observed actual pool4/compiler1/compiler4 closure counts5/2/5 and zero
+remaining CDP worker targets, preserving full serial/parallel canonical and
+Graph/Fast output comparisons. Trial wall milliseconds were350/1389/3580 and
+311/1397/3147; final Wasm capacities were33947648/90701824/97779712 and
+33947648/90701824/97845248bytes. These capacities are not live ownership or RSS.
+Second whole Node process:5.9344243s wall,1.375s CPU; peak RSS unavailable
+(the collector returned null, not zero), no aggregate browser-tree CPU/RSS.
+First whole-process timing/peak were not captured. No speedup claim.
+
+The actual resource JSON hash on Windows is
+97b3a30fdda7482932070c0c0a6b56a077a4d3c1e84efea4ccb48d91686b5bd8,
+different from B2's Linux serialized resource identity67561156...; every archived
+file byte was verified, but input ordering/serialization equivalence has not
+been independently established. Do not attribute the outcome solely to OS or
+silently combine the input identities. Two passes do not erase B2's intermittent
+Linux failures or establish universal retirement. ROOT owns the remaining runtime/
+gate investigation; B2 owns a minimal browser lifecycle control diagnosis.
+
+Evidence: C:/Sandbox/build/codex_ecs_20261122/ROOT_shared_browser_f167c444,
+root_windows_baseline*.json/stdout/stderr and root_manifest_verification.txt.
+All ROOT processes drained. This journal-only change has no runtime performance
+delta; these are existing-artifact diagnostic costs. Later A1/A2/L1/compiler
+changes remain excluded, current native/browser generations and final release
+remain pending. The service-rejected compiler instrumentation gate is untouched.
+Protected todo.txt hash remains8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
+A1 reconciliation: implementation/receipt8de9ce72 preserves complete published
+48db0f27 through the normal full-history merge after ff-only pull refused
+divergence. Incoming changes are documentation and separate build-packaging/
+semantic-port Node selectors. The supplied reactors, selected test, its two
+host adapters, both fixtures and entire scaffolding/host trees remain identical
+to the measured freeze; frozen SHA checks pass. Reused the three passing cases
+without a repeat. Both large cases also return to the same held-reference live
+node counts after independent loads (24446 narrow,41227 control) before final
+reference destruction; the recorded final counts are shared-world owners, not
+an unsupported zero-handle/LLVM-store census. No compiler build or deployed
+runtime adoption is implied. All jobs drained before normal main publication.
