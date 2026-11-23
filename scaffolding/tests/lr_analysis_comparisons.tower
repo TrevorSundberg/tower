@@ -1,5 +1,7 @@
 import tower;
 import lr_graph_checks;
+import lr_analysis_api;
+import lr_analysis_oracle;
 import lr_analysis_oracle_types;
 import .library.vector;
 import .compiler.lr_types;
@@ -14,8 +16,57 @@ fn lr_fixture_rule(rules: vector(LRProduction)*, owner: usize, begin: usize, cou
 fn lr_fixture_symbol(symbols: vector(LRSymbol)*, owner: usize, first: u32, last: u32): void {
     var symbol: LRSymbol; symbol.nonterminal = owner; symbol.first = first; symbol.last = last; oracle_append(symbols, &symbol);
 }
+// Exercise odd/even heap boundaries and differently ordered private closures.
+// The independent oracle uses sorted insertion, not the production heap repair.
+fn lr_closure_order_cases(): void {
+    var rules: LRProduction[3] = default;
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    for(var i: usize = 0; i < rule_count; i++) { rules[i].count = 1; }
+    var terminal: LRSymbol = {nonterminal: oracle_none(), first: 42, last: 42};
+    var analysis = lr_analysis_create(&rules[0], rule_count, &terminal, 1, 1);
+    utility_check(analysis != null && lr_analysis_compute(analysis), "Closure order analysis");
+    defer lr_analysis_destroy(analysis);
+    var sizes: usize[11];
+    sizes[0] = 0; sizes[1] = 1; sizes[2] = 2; sizes[3] = 3; sizes[4] = 4;
+    sizes[5] = 15; sizes[6] = 16; sizes[7] = 17;
+    sizes[8] = 63; sizes[9] = 64; sizes[10] = 65;
+    var random: TestRandom; test_random_init(&random, 2817449);
+    for(var size: usize = 0; size < sizeof(decltype(sizes)) / sizeof(usize); size++) {
+        var count = sizes[size];
+        for(var order: usize = 0; order < 3; order++) {
+            var actual = lr_items_create();
+            var reference = oracle_items_create();
+            utility_check(actual != null, "Closure order storage");
+            defer lr_items_destroy(actual); defer oracle_items_destroy(reference);
+            for(var i: usize = 0; i < count; i++) {
+                var first = convert(u32, i / rule_count / 2);
+                var item: LRItem = {rule: i % rule_count, position: (i / rule_count) % 2,
+                    first: first, last: first + 1};
+                utility_check(lr_items_insert(actual, &item), "Closure order seed");
+                oracle_item_insert(&reference.values, &item);
+            }
+            var values = lr_items_data(actual);
+            if order == 1 {
+                for(var i: usize = 0; i < count / 2; i++) {
+                    var saved = values[i]; values[i] = values[count - i - 1]; values[count - i - 1] = saved;
+                }
+            }
+            if order == 2 {
+                for(var i = count; i > 1; i--) {
+                    var other = convert(usize, test_random(&random)) % i;
+                    var saved = values[i - 1]; values[i - 1] = values[other]; values[other] = saved;
+                }
+            }
+            // Every dot faces a terminal or completion, so closure adds nothing.
+            utility_check(lr_items_close(analysis, actual, true), "Closure restores exact item order");
+            lr_check_items(actual, reference);
+        }
+    }
+}
 fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
+    lr_closure_order_cases();
+    utility_check(tower_test_buffer_count() == baseline, "Closure order fixture cleanup");
     {
         var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
         var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);

@@ -2945,3 +2945,30 @@ avoid2016 nonmatching candidates. Warm full scans256rounds cost8.868–10.105ms
 direct versus2.072–3.326ms planned across the two populations; these small serial
 numbers do not predict compiler throughput or hardware misses. Production choice
 requires compiler workload/lifetime evidence, not a blanket dense-storage mandate.
+
+### LR construction optimization: source-specific adoption receipt (2026-11-23)
+
+ROOT delegated LR construction helpers for this bounded batch. Base published
+main36ad33782b53e1a3c5be50860ab3eb0a7cddae67; existing component-locality evidence
+is preserved. Full-file reviews below cover the final contents, not only the
+edited lines. D1 can adopt these exact hashes; no roster ownership is reassigned.
+
+| Reviewed path and SHA256 | Ownership, algorithm and evidence disposition |
+| --- | --- |
+| `scaffolding/compiler/lr_analysis.tower` — `80ee516d379d27b4bd16c7e38dcf8062a0f83fb1c5748ebfb2b9c388c321db2a` | Full844-line review: borrowed immutable productions/symbols, owned FIRST/nullable vectors, closure-local membership/expansion indexes, sorted item publication, raw derived propagation graph and typed failures. Only private final closure sort changes: median-of-three partitioning, insertion sort for small spans, original heapsort fallback after2×floor(log2(count)) partitions. Smaller-side recursion/tail iteration bounds stack by input size; no allocations, new authoritative representation, persistent cache, API/layout or worker scheduling changes. Pointer/count borrows stay within one closure owner, including failure-path deferred sorting. Comparator and exact rule/dot/range identities remain unchanged. Raw vectors/graphs remain outside comprehensive world-budget accounting; no new cap claim. |
+| `scaffolding/tests/lr_analysis_comparisons.tower` — `2af0a0246fab3fb54fa2995a563490218d6260e775731461264047b9b907d5a2` | Full127-line review. Adds33 ordering cases over actual array bounds, including empty/odd/even spans and ordered/reversed/seeded shuffle inputs. Mutates only the fixture-owned derived item array; dots face terminals/completion, so closure adds nothing. Independent insertion oracle checks every rule/position/first/last and exact count; no heap/partition implementation copied into the oracle. Existing150 deterministic grammars continue to cover nullable/ranges, reopened closure, states, runtime actions and error/probe paths. All fixture owners dispose and serial allocation count returns to baseline. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2` | Full131-line review. Existing ordinary cold/installed request and grammar observer retained. Explicit one-lane ledger bound before first entity; snapshots, allocations and retained buffers reported at the same checked canonical point. Counter transport explicitly requires serial execution; never used for real overlap. World/module/resource-vector/ledger cleanup asserted. No whole-world cap claim: legacy world/store construction and raw allocations are not covered by binding. Both frozen executables use this identical fixture hash. |
+| `scaffolding/tests/frontend_main.tower` — `7f7c606f2e7839e4ff66c0f0dabea3be6df555c44be9b37d0fdd91cc1af0919e` | Full112-line entry review. Adds only lr-order selector/import; existing selectors/default flow and caller resource conventions preserved. Reuses native target because parser-only executable is absent from this cache; no generic harness or manifest change. |
+
+Checked final source: all33 ordering cases and existing150-grammar independent
+oracle, structural reuse/identity/capture/lifetime, grammar activation/live syntax,
+parser/error paths, diagnostics and normal native serial/threaded LR equivalence.
+Measured cold median2.05→1.93s wall (three alternating pairs), LR phase median
+1.761→1.586s; all185 lookups/155 builds/123 actual tables/36 reuses and canonical
+976bytes/hash13832670361687071853 unchanged. No allocation/retention reduction;
+see journal for all pairs, substantial outliers and rejected bottom-up experiment.
+The final sort's software-sampled CPU share15.42% replaces old heap27.63%; these
+are not hardware cache metrics. Native3-unit workers1/2 control observes real
+outer peaks1/2, but only modest latency reduction and higher CPU/RSS; no all-host
+scaling claim. Full sanitizer/bootstrap/browser/generation/deployment remain ROOT
+release gates, not passed here. B1 provenance/formatter and B2 ordering untouched.

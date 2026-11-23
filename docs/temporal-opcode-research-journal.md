@@ -83967,3 +83967,138 @@ linked binary/runtime hashes remain identical; the four focused run receipts
 therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
+
+### D2 bounded LR closure-sort iteration improvement (2026-11-23)
+
+Frozen published base36ad33782b53e1a3c5be50860ab3eb0a7cddae67; prior locality
+receipt preserved. ROOT granted LR algorithm helpers only. Audited callers:
+`lr_items_close` sorts its private values on return (also partial failure);
+serial state construction and worker-private kernel closures share it. Grammar
+activation/revision lookup and immutable structural reuse are unchanged. No
+control-name/generic publication ordering, provenance/formatter storage, A2 entity
+storage or D1 roster edits.
+
+Existing grammar observer/frontend_iteration_profile located actual LR tables,
+not cache lookup, as the large cold phase. A host perf cpu-clock:user997Hz sample
+of the unchanged producer identified heap repair as dominant. Retained exact old
+executable resampling: lr_items_sift27.63%, lr_item_index_insert13.40%,
+lr_range_insert_result9.77%, lr_items_close6.92%. Software CPU samples only,
+zero lost samples; dwarf recording overhead excludes those runs from latency
+comparisons. No cache-miss/false-sharing counters or universal race claim.
+
+Rejected experiment: bottom-up heap repair kept exact outputs but did not improve
+stable paired cold samples (old1.92/1.92s, candidate1.93/1.96s); installed samples
+were also noisy. Its code/binary and all paired_* logs remain local evidence,
+not the published algorithm. One final scoped refinement uses sequential
+median-of-three partitions, insertion sort at spans<=16, and the original heap
+fallback at an input-derived2×floor(log2(n)) depth. Recurse into the smaller side
+and iterate the larger; bounded stack, no new allocation/cache/global state,
+same lexicographic comparator/public sorted identity and worst-case bound.
+Final sampled lr_items_sort_range15.42%, item-index insert13.96%, range insertion
+11.42%, closure6.58%. Shares are relative samples, not direct absolute cost ratios.
+
+Source/binary SHA256:
+- old lr_analysis `4f98046aa1c3abb09f184b021566aa61a48124873868e0d89182fb7966271f09`;
+- final lr_analysis `80ee516d379d27b4bd16c7e38dcf8062a0f83fb1c5748ebfb2b9c388c321db2a`;
+- identical measurement fixture `66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2`;
+- old executable `e527bcc34b6ae6c10feeddcc8c11edd3aa6b2445f01d93172440f99b9a6fcba5`;
+- final executable `7bcb025749784d2329b9d4b15c7739a2200193c62760da97e3a68312a66b6765`;
+- public compiler `9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`.
+Full changed-file hashes/review are in compiler_ecs_audit_d2.md. Frozen resource
+closure is Bedrock/Foundation syntax/Foundation/Tower/types, respectively:
+`3a64e4027c45ffe7742a7ff58abab617b5399de5101664b030c0e075d038d259`,
+`6e0433ca18790c68668ec7fb731d5bbe6e2b49375479bb1a372045ae3fee26aa`,
+`e0caac02144c79f1e255160fd6eae8d0219218ea15967e5cd7730dc6ea2c96a5`,
+`a3ad08a9170619bd9f3b6834f5c7583981c99d5d468198d2e0adf4465e069b13`,
+`7683478fa002ecec079f1ddf2d7232bacdda249307ba6951b60a831f68e9acc9`.
+
+Deck Linux x64, kernel6.16.12-valve24.5,14.8GiB RAM, allowed CPUs0,2,
+powersave governor, normal desktop/background services; no frequency pinning or
+isolation claim. Docker tower-d2-ecs/image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+LLVM/Clang19.1.1, existing native-coherent-f13c8f6 Release cache, public default
+Tower optimization, x86_64-pc-linux-gnu, jobs1. One heavy lock/process at a time.
+Baseline dependency refresh of tower-frontend-tests:161.70wall/157.17CPU seconds,
+794752KiB. Measurement-only fixture rebuilds are distinct from production;
+final algorithm rebuild through existing frontend-tests/lr-work-tests/units-profile
+dependency graph:34.36wall/33.33CPU/739664KiB. No duplicate public-leaf build,
+private bootstrap, broad suite or platform matrix. Smallest changed production
+provider compiled before its linked consumers.
+
+Ordinary source is exactly `import tower; fn answer():i32{return 42;}`. Every run
+executes42 and produces976canonical bytes/hash13832670361687071853. Cold starts a
+fresh world; installed first installs Bedrock/Foundation. Filesystem warm, no
+OS/hardware cache flush. Extended fixture uses existing serial instrumentation,
+explicit256MiB world ledger and no real workers. It reports memory at canonical
+output and asserts zero final buffers/grants. Legacy world/store/raw allocations
+remain outside comprehensive byte accounting. All before/after executables use
+this same fixture; original unbound historical timing is not relabeled.
+
+Initial sequential before samples varied2.71→1.91s cold, so they are preserved
+but not used for attribution. Final measurements warm each executable once,
+then alternate old/new, new/old, old/new for three pairs per mode. All pairs below
+are retained, including regressions/outliers. Wall/CPU seconds and process peak
+RSS KiB from `/usr/bin/time -v`; CPU=user+system.
+
+| Case/pair | Before wall / CPU / RSS | Final wall / CPU / RSS | Source LR seconds before→final |
+| --- | --- | --- | --- |
+| cold1 | 2.05 /2.02 /166852 | 1.92 /1.88 /166948 | 1.757→1.579 |
+| cold2 | 2.27 /2.23 /166892 | 1.93 /1.90 /167004 | 1.893→1.586 |
+| cold3 | 2.05 /2.02 /166828 | 2.34 /2.28 /166884 | 1.761→2.026 |
+| installed1 | 2.39 /2.33 /169172 | 3.67 /3.54 /169148 | 1.760→2.882 |
+| installed2 | 2.91 /2.82 /169000 | 1.97 /1.94 /169244 | 2.148→1.447 |
+| installed3 | 2.16 /2.13 /169028 | 1.94 /1.91 /169108 | 1.660→1.483 |
+
+Cold median2.05→1.93wall,2.02→1.90CPU, LR1.761→1.586s. Installed median2.39→1.97wall,
+2.33→1.94CPU, source LR1.760→1.483s. This modest n3 evidence does not establish a
+latency bound; large outliers and governor variability preclude a broad speedup
+claim. Whole process includes startup, resource reads, frontend, canonical format,
+interpreter oracle and cleanup; no backend codegen/native link is measured.
+Counts stay185 lookups/155 version builds/123 actual LR tables/36 reuses; installed
+startup138/83/60/24. Identical ledger live1,892,896B, peak58,002,696B,
+metadata5,242,880B. Allocation calls cold2,672,142 / installed3,254,115; retained
+buffers54,209 /73,847. No memory saving is claimed; all counts match old/new.
+
+One separate normal-allocator current-source3-unit control, existing
+`frontend-units-profile RESOURCE_ROOT 3 WORKERS 0`, workers1/2, n1 each:
+compile wall5.424/4.945s, CPU5.367/8.278s, peakRSS196376/326620KiB; whole process
+5.49/5.01wall,5.42/8.34CPU. Observed distinct overlapping threads/outer peaks1/2,
+not inferred from requested lanes. Canonical hash1173729914654460811 and
+48240entities/55014components match. Charged retained15,160,755/15,152,003B,
+peak76,704,043/111,167,605B; metadata5,242,880/10,485,760B. Ready outer vacancy
+6510/1832137ns, tail1.801/2.963s. This post-change scheduling control shows limited
+Deck latency benefit with more CPU/RSS; it is not a before/after scaling claim
+or the same input as the answer-only case. Earlier matched Clang/Tower receipt
+remains historical; this task neither repeats it nor closes that compile-time gap.
+
+Final focused checks all pass: lr-order33 new cases plus existing150 deterministic
+independent grammar/propagation comparisons (.74s); structure-reuse(.13s);
+grammar-equivalence(.58s); parser including error paths(.15s); diagnostics(.06s);
+normal serial/threaded LR/shared budgets/lifetimes(5.28s). Exact canonical/order
+and source-world ownership preserved. Full native/sanitizer/bootstrap/browser/
+generation/deployment evidence remains pending ROOT's integrated milestone.
+No skipped/unsupported matrix is counted as passed.
+
+Preserved failures: unsupported perf global option (129; corrected normal CLI),
+measurement helper missing direct work_budget import, then null default ledger
+assertion (fixed by explicit pre-entity binding); absent parser-only target in
+native cache (no build actions, reused existing frontend selector); fixture array
+literal and raw-array foreach unsupported by public predecessor (replaced with
+explicit elements and sizeof-derived loop); live-syntax check from wrong cwd
+(could not import bedrock; corrected resource cwd passed). Production partition
+implementation compiled first try. Every failed child drained before edits.
+Initial sampled executable was later replaced by the fixture build, so a
+subsequent mismatched-symbol replay is explicitly invalid; only the preserved
+original report and later exact-binary frozen_before/frozen_partition reports
+are cited. Initial Ninja input census contained relative generated paths;
+corrected42 static inputs plus427 actual object-depfile imports are hashed.
+Logs, original source, rejected source/binary, exact executable pairs, profiles,
+resource/import hashes and error receipts: build/d2_ecs/lr_iteration.
+
+Remaining cost is still repeated distinct LR construction and millions of
+allocation calls: final sort15.42%, closure hash insertion13.96% and exact range
+insertion11.42% are the next measured hot paths. Any further hash/range or
+construction reuse change needs producer/consumer evidence preserving exact
+range identities, nullable closure and activation order; no additional cache or
+policy is proposed as complete. B1 provenance/diagnostic and B2 output-ordering
+work remains separate. Jobs drained, lock released, about130GiB disk/9.7GiB RAM
+available; normal main reconciliation/push follows.
