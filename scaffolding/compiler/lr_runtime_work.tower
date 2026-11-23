@@ -22,6 +22,7 @@ struct LRRuntimeResult {
     row: LRRow*;
     state: LRRuntimeState;
     conflict: LRConflict;
+    resource_error: WorkBudgetError;
     success: bool;
 }
 
@@ -43,18 +44,18 @@ export fn compiler_lr_runtime_kernel(payload: void*): void {
     task.success = false;
     for(var i = task.begin; i < task.begin + task.count; i++) {
         var result = &task.results[i];
-        var row = lr_row_create(task.budget);
+        var row = lr_row_create(task.budget, &result.resource_error);
         if row == null { return; }
         result.row = row;
         result.conflict.state = lr_none();
         var input = task.source.states.data[i];
         foreach(var &action in &input.actions) {
-            if !lr_action_insert(&row.actions, task.budget, action) { return; }
+            if !lr_action_insert(&row.actions, task.budget, action, &result.resource_error) { return; }
         }
         lr_row_normalize(row, &result.conflict, i, task.source);
         if result.conflict.state == lr_none() {
             row.hash = lr_row_hash(row);
-            if !lr_runtime_gotos(&result.state, input, task.source.analysis, task.budget) { return; }
+            if !lr_runtime_gotos(&result.state, input, task.source.analysis, task.budget, &result.resource_error) { return; }
         }
         result.success = true;
     }
@@ -65,17 +66,33 @@ export fn compiler_lr_runtime_kernel(payload: void*): void {
 // checks and goto construction use private workers. Build direct lookup indexes
 // only for retained unique rows, just as the serial constructor does.
 export fn lr_runtime_create_parallel(source: LRStates*, anchor: void*): LRRuntime* {
+    var error = WorkBudgetError.None;
+    return lr_runtime_create_parallel_result(source, anchor, &error);
+}
+
+export fn lr_runtime_create_parallel_result(source: LRStates*, anchor: void*, error: WorkBudgetError*): LRRuntime* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if source == null || source.analysis == null { return null; }
     var capacity = compiler_worker_capacity(anchor);
     var count = source.states.length / LRRuntimeGrain;
     if count > capacity { count = capacity; }
     var budget = compiler_world_work_budget(compiler_node_world(anchor));
-    if count < 2 || anchor == null { return lr_runtime_create_owned(source, budget); }
-    return lr_runtime_create_work(source, anchor, count);
+    if count < 2 || anchor == null { return lr_runtime_create_owned_result(source, budget, error); }
+    return lr_runtime_create_work_result(source, anchor, count, error);
 }
 
 // Explicit executor width also exercises this ownership path with the serial
 // instrumented transport. Production admission keeps its measured-size policy.
 export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize): LRRuntime* {
+    var error = WorkBudgetError.None;
+    return lr_runtime_create_work_result(source, anchor, count, &error);
+}
+
+export fn lr_runtime_create_work_result(source: LRStates*, anchor: void*, count: usize, error: WorkBudgetError*): LRRuntime* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if source == null || source.analysis == null { return null; }
     var jobs: LRRuntimeTask*[WorkPoolMaximumCapacity];
     if count == 0 || count > sizeof(decltype(jobs)) / sizeof(LRRuntimeTask*)
         || count > source.states.length || anchor == null { return null; }
@@ -83,25 +100,28 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
     work_init(&graph, 1, 0);
     defer work_dispose(&graph);
     var admission: ParserAdmission = default;
-    if !parser_admission_open(&admission, anchor, count) { return null; }
+    *error = parser_admission_open_result(&admission, anchor, count);
+    if *error != WorkBudgetError.None { return null; }
     defer parser_admission_close(&admission, &graph);
     var budget = compiler_world_work_budget(compiler_node_world(anchor));
-    var value = lr_runtime_open(budget);
+    var value = lr_runtime_open(budget, error);
     if value == null { return null; }
     defer lr_runtime_destroy(value);
-    if !work_vector_reserve(&value.rules, budget, source.analysis.rule_count)
-        || !work_vector_reserve(&value.states, budget, source.states.length)
-        || !work_vector_reserve(&value.rows, budget, source.states.length) { return null; }
+    *error = work_vector_reserve_result(&value.rules, budget, source.analysis.rule_count);
+    if *error == WorkBudgetError.None { *error = work_vector_reserve_result(&value.states, budget, source.states.length); }
+    if *error == WorkBudgetError.None { *error = work_vector_reserve_result(&value.rows, budget, source.states.length); }
+    if *error != WorkBudgetError.None { return null; }
     copy(value.rules.data, source.analysis.rules, source.analysis.rule_count * sizeof(LRProduction));
     value.rules.length = source.analysis.rule_count;
     fill(value.states.data, 0, source.states.length * sizeof(LRRuntimeState));
     value.states.length = source.states.length;
     // The result count is frozen before dispatch; this owner never grows.
-    if source.states.length > ~convert(usize, 0) / sizeof(LRRuntimeResult) { return null; }
+    if source.states.length > ~convert(usize, 0) / sizeof(LRRuntimeResult) { *error = WorkBudgetError.Invalid; return null; }
     var result_bytes = source.states.length * sizeof(LRRuntimeResult);
     var result_storage: WorkBuffer = default;
     defer work_buffer_dispose(&result_storage);
-    if work_buffer_resize(&result_storage, budget, result_bytes, 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&result_storage, budget, result_bytes, 0);
+    if *error != WorkBudgetError.None { return null; }
     var results = bits(LRRuntimeResult*, result_storage.data);
     fill(results, 0, result_bytes);
     defer {
@@ -112,25 +132,28 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
     }
     var buckets: work_vector(usize) = default;
     defer work_vector_dispose(&buckets);
-    if source.states.length > (~convert(usize, 0) - 1) / 2 { return null; }
+    if source.states.length > (~convert(usize, 0) - 1) / 2 { *error = WorkBudgetError.Invalid; return null; }
     var bucket_count = source.states.length * 2 + 1;
-    if !work_vector_reserve(&buckets, budget, bucket_count) { return null; }
+    *error = work_vector_reserve_result(&buckets, budget, bucket_count);
+    if *error != WorkBudgetError.None { return null; }
     buckets.length = bucket_count;
     fill(buckets.data, 255, buckets.length * sizeof(usize));
-    var owner = entity_create_related(anchor);
+    var owner = entity_create_related_result(anchor, error);
     if owner == null { return null; }
     defer entity_release(owner);
-    var kind = lr_work_node(owner);
-    if kind == null || !entity_register(kind, sizeof(LRRuntimeTask), alignof(LRRuntimeTask), 0) { return null; }
+    var kind = lr_work_node_result(owner, error);
+    if kind == null { return null; }
+    if !entity_register(kind, sizeof(LRRuntimeTask), alignof(LRRuntimeTask), 0) { *error = WorkBudgetError.Invalid; return null; }
     var workers: ParserWorkers = default;
-    if !parser_workers_open(&workers, anchor, count) { return null; }
+    *error = parser_workers_open_result(&workers, anchor, count);
+    if *error != WorkBudgetError.None { return null; }
     defer parser_workers_close(&workers);
     if count > workers.pool.count { count = workers.pool.count; }
     var position: usize = 0;
     for(var i: usize = 0; i < count; i++) {
-        var node = lr_work_node(owner);
+        var node = lr_work_node_result(owner, error);
         if node == null { return null; }
-        var job = bits(LRRuntimeTask*, entity_component_data(entity_component_add(node, kind)));
+        var job = bits(LRRuntimeTask*, entity_component_data(entity_component_add_result(node, kind, error)));
         if job == null { return null; }
         *job = default;
         job.kernel.kind = CompilerKernelKind.LRRuntime;
@@ -149,22 +172,29 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
         ok &&= work_seal(&graph, id);
         ok &&= work_demand(&graph, id);
         ok &&= work_take(&graph, &job.ticket);
-        if !ok { return null; }
+        if !ok {
+            *error = graph.resource_error != WorkBudgetError.None ? graph.resource_error : WorkBudgetError.Invalid;
+            return null;
+        }
     }
-    var view = entity_view_open(owner);
+    var view = entity_view_open_result(owner, error);
     if view == null { return null; }
-    var ok = compiler_kernel_dispatch_admitted(workers.pool, &jobs[0], count, admission.extra);
+    *error = compiler_kernel_dispatch_admitted_result(workers.pool, &jobs[0], count, admission.extra);
     entity_view_close(view);
-    if !ok { return null; }
+    if *error != WorkBudgetError.None { return null; }
+    var ok = true;
     for(var i: usize = 0; i < count; i++) {
         if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) { ok = false; }
     }
-    if !ok { return null; }
+    if !ok { *error = graph.resource_error != WorkBudgetError.None ? graph.resource_error : WorkBudgetError.Invalid; return null; }
     // Consume each result in serial order. A later allocation failure cannot
     // replace an earlier grammar conflict; no partially built table escapes.
     for(var i: usize = 0; i < source.states.length; i++) {
         var result = &results[i];
-        if !result.success { return null; }
+        if !result.success {
+            *error = result.resource_error != WorkBudgetError.None ? result.resource_error : WorkBudgetError.Invalid;
+            return null;
+        }
         if result.conflict.state != lr_none() {
             copy(&value.conflict, &result.conflict, sizeof(LRConflict));
             var published = value;
@@ -184,7 +214,9 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
             existing = other.next;
         }
         if existing == lr_none() {
-            if !lr_row_index(row) || !work_vector_push(&value.rows, budget, row) { return null; }
+            if !lr_row_index(row, error) { return null; }
+            *error = work_vector_push_result(&value.rows, budget, row);
+            if *error != WorkBudgetError.None { return null; }
             row.next = buckets.data[bucket];
             buckets.data[bucket] = value.rows.length - 1;
         }

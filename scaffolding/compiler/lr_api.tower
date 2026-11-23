@@ -68,6 +68,9 @@ extern fn lr_kernel(analysis: void*, item: LRItem*): bool;
 
 extern fn lr_runtime_create(states: void*): void*;
 extern fn lr_runtime_create_parallel(states: void*, anchor: void*): void*;
+extern fn lr_runtime_create_parallel_result(states: void*, anchor: void*, error: WorkBudgetError*): void*;
+extern fn lr_runtime_create_owned_result(states: void*, budget: WorkBudget*, error: WorkBudgetError*): void*;
+extern fn lr_runtime_create_work_result(states: void*, anchor: void*, count: usize, error: WorkBudgetError*): void*;
 
 extern fn lr_runtime_destroy(runtime: void*): void;
 
