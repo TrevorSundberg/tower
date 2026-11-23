@@ -62317,3 +62317,244 @@ Unity Burst aliasing https://docs.unity3d.com/Packages/com.unity.burst@1.8/manua
 Transfer only explicit storage policy, staged mutation/read-write declarations
 and proven alias information; no implementation-language or unmeasured speed
 claims. Current Tower pins protect lifetime; they do not establish disjoint writes.
+The current parser aggregate and entities provider pass in18.176s and5.126s;
+four smaller API/implementation units pass. The negative borrowed-view fixture
+fails with the exact intended diagnostic: `Expected vector(usize)*, got
+work_view(usize)*`. Immutable ROOT0c8 semantic sources pass in22.515s
+(15.233user/1.309sys), while the combined API candidate still fails the component
+limit. This narrows attribution; it does not establish a final compiler pass.
+
+Separate native Graph/Pool/Linux objects and unchanged production allocation
+pass four normal fixtures. An orchestration predicate incorrectly expected a
+literal0 from work_pool, which instead prints its normal descriptive success
+line; the script exited1 and its log is preserved. All four executables had
+returned0. Only instrumentation was then resumed:18ASan/TSan runs pass for
+constructor, eight-worker checked CompilerWork plans, and typed-dispatch failure
+with all participating provider/client/runtime code instrumented. Production
+allocator concurrency is real. These are v1 interface receipts.
+
+A fresh A1 quiet acknowledgment bounded the paired metadata profile to
+02:44:13.203904170-02:44:16.515773924 UTC. There were192 checked process
+executions: small64/large4096 units per plan, eight plans total,1/2/4/8 workers,
+plain/accounted mode, three frozen binaries, one warmup plus three alternating
+pairs. The ordinary Tower median parser checks every numeric receipt. Public
+bootstrap9653, clang19-O1, Linux x64 CPU12-23/24GiB, production allocator;
+processes are fresh with warm host caches. Before=e10db9da, nominal owner=8edec403,
+separate-provider API=cb18ed36. Constructor/graph/ordinal checks are unchanged.
+
+| Large accounted, eight plans | Before wallms / CPUms / RSSKiB | Nominal owner | Separate API |
+| --- | --- | --- | --- |
+| 1 worker | 9.861629 /9.867 /4148 | 9.895934 /9.902 /4132 | 9.850428 /9.855 /4116 |
+| 2 workers | 6.880958 /13.440 /6752 | 6.663043 /12.829 /6796 | 6.660080 /12.996 /6732 |
+| 4 workers | 5.947379 /19.114 /10588 | 6.039306 /19.296 /10804 | 5.744550 /18.489 /11508 |
+| 8 workers | 10.092643 /37.007 /17148 | 9.881663 /40.744 /17140 | 9.907541 /38.437 /16572 |
+
+Actual large overlap is1/2/4/8. API four-worker speedup is1.71x relative to its
+serial run; eight workers are unprofitable. Plain serial before/nominal/API is
+9.779554/9.625294/10.002033ms, so the API costs about2.3% versus the old owner,
+3.9% versus nominal views in this sample. Accounted serial changes little;
+small accounted serial131.487/126.698/143.190us regresses8.9% versus before.
+Three short pairs and mixed signs do not establish neutral overhead or an
+end-to-end compiler result. Small API accounted2/4/8-worker times are
+260.600/310.499/366.560us: serial wins. Individual scheduling idle/critical-path
+and complete underlying malloc counts were not measured.
+
+Checked grant counts remain281small and617large, and every run ends at zero
+live grants/bytes. Serial large charged peak grows1641872->1642016B, exactly
+144B. Concurrent peak varies with overlapping lifetimes, so different peaks do
+not establish a retention improvement. The public sizeof codegen experiment
+measures WorkGraph784->928B on x64,624->664B on wasm32. The earlier informal
+32-bit +72B estimate was WRONG: actual padding yields +40B. Pool is144/96B;
+new graph physical-owner block648/504B. This is real descriptor overhead, not
+packed payload storage. Logs and the Tower layout experiment are retained.
+
+D2's approved serial-provider import exposed an actual final-link defect:
+work_instrumented passed, but work_buffer_faults failed with four unresolved
+work_kernel_execute references from exported default constructors. That fixture
+correctly has no jobs. The v2 correction moves only the four default-selecting
+wrappers into work_pool_api; the sole provider exports the existing explicit
+callback constructor plus eleven other operations. No dummy kernel, new object
+or transport was introduced. Existing standalone pool clients now import API
+and defining types while their explicit work_dispatch provider remains. The
+WASI serial reader's matching provider import is awaiting owner coordination.
+
+Both real serial fixtures link and pass after that correction. Six smallest
+native units, three normal separate-provider fixtures and12ASan/TSan runs on the
+affected pool/profile/result paths pass v2. The unchanged graph constructor's
+six v1 instrumented runs remain applicable. V2 binary identities are
+99b6f15e81a8e9f46bf9399fd560362ce653209519eccdd97b01aa2f445ee88f
+(metadata profile) and999a8194f9da4e62d0f94601604f35da69e3374788d50ea48e3284a0153294b0
+(dispatch result). Its actual log name is work_api_v2_v2.log. Prior paired
+profile receipts are not relabeled as v2 measurements.
+
+A1 has now identified a stronger source-pressure cause: ordinary SemanticContext
+copies expand field by field at each use, unlike default reset's memset. Its
+proposed single typed snapshot helper retains ordinary struct assignment and
+existing private borrowed destinations while expanding the copy once. A2 agrees
+with this narrower experiment, without noalias, raw padding assumptions or
+ownership transfer. If helper plus nominal graph storage closes both public
+aggregates, unnecessary API/provider experiments should be removed with logs
+preserved. Numeric extraction experiments also remain provisional. Full native,
+WASI/browser, release instrumentation and publication remain open.
+
+### Selected smaller boundary after public compilation, 2026-11-23
+
+The API/type splits above are now retired experiments, not current source.
+A1's reviewed typed sem_context_snapshot helper performs one ordinary assignment
+and serves the16 existing borrowed context-copy sites. Together with nominal
+graph views and nongeneric physical owners, this restores the unchanged public
+bootstrap's actual parser and semantic aggregates:17.868s and20.337s, respectively.
+The entities unit passes4.736s, and exactly one snapshot helper export is present.
+No numeric implementation split, raw copy, cap increase or noalias was retained.
+
+Removed the four new Graph/Pool API/type modules, their27/12 exports, all
+mechanical production/fixture API imports, and the now-unnecessary D2 serial
+manifest change. WorkPool is exactly the committed typed-dispatch implementation.
+The provider-only unused compiler_work import move remains. Current core source
+coverage is37/37 (35 library plus two kernel); expanded coverage is113/113.
+Historical rows for removed experimental files remain as review evidence.
+
+The selected graph also routes task/edge/access/frame/index length overflow
+through one checked arithmetic helper, preserving the first WorkBudgetError and
+using Invalid consistently with shared buffer representability rejection.
+Hash-index doubling now latches the same typed error. A bounded fixture tests
+0/max-1/max and preservation of an earlier Capacity error without any invented
+payload address or huge allocation. Several call-site overflows are physically
+unreachable under allocation limits; no dynamic coverage of those branches is
+claimed. Final selected-source runtime, profiles and whole-compiler gates are
+still in progress; the successful public units prove buildability only.
+
+Selected nominal candidate final focused checks pass: five normal fixtures and
+18ASan/TSan executions including real shared allocation and eight-worker graph
+construction. Graph source SHA79f79489d9f70c22a10b42b6eeddc051e2670130ac0924dcda3aff11d518a8a1;
+profile binary b93fecb390692ce8494d9472ac0497c14387b894e0d8342d858ad15d148d0616.
+The checked overflow helper adds no allocations; cycle-frame wrap is rejected
+before element access. The earlier first-error receipt remains fixed.
+
+Final matched profile window03:01:39.436012720-03:01:42.757418888 UTC had a fresh
+A1 quiet ACK and release. Same192 checked executions and settings as above;
+three versions are e10before/8ednominal-before-overflow/b93selected. There are
+three alternating pairs after warmup, all with equivalent frozen workloads.
+
+| Large accounted, eight plans | Before wallms / CPUms / RSSKiB | Selected |
+| --- | --- | --- |
+| 1 worker | 10.329655 /10.336 /4112 | 10.142331 /10.149 /4140 |
+| 2 workers | 6.487101 /12.452 /6404 | 6.736534 /12.892 /6708 |
+| 4 workers | 6.149452 /18.223 /11100 | 6.500561 /19.537 /10704 |
+| 8 workers | 8.673760 /37.031 /18632 | 9.575694 /37.656 /16808 |
+
+Large plain serial10.440929->10.270106ms, four-worker6.245897->5.640202ms.
+Small serial plain140.530->122.416us, accounted129.610->127.395us. Serial
+charged peak remains the measured +144B, grant counts remain281/617, all live
+ownership drains to zero. Large measured overlap is1/2/4/8. Accounted four-worker
+speedup is1.56x; eight workers remain unprofitable. Parallel accounted medians
+regress3.8/5.7/10.4% for2/4/8 workers in this window. Inspection of the four-worker
+pairs finds before5.340-6.514ms and after5.790-6.793ms, with overlapping ranges;
+this does not erase the measured regression or establish a stable effect size.
+The nominal-before-overflow serial medians10.1005ms plain/10.1022ms accounted
+are close to selected10.2701/10.1423; no neutral-cost claim is made. No extra
+allocation/grant explains the variation. Budget gate contention, process
+allocation effects and scheduling need broader representative profiling; these
+short metadata micros do not establish whole-compiler throughput or idle time.
+
+This is a measured buildability/storage checkpoint, not lane completion. A1's
+snapshot helper runtime performance and full native semantic correctness require
+the coherent compiler rebuild next. Packed component payloads, remaining
+physical heap accounting, useful nested scheduling, complete supported UB/race
+instrumentation, canonical browser/generation and publication still remain open.
+
+A2 frozen b992e28a native rebuild failed at13/53 in host/syntax_baseline:
+its two allocator externs used u8*, while the authoritative host.memory and
+newly shared WorkBuffer declarations use void*. Both externs are used; no
+unused-declaration deletion was valid. All failed jobs drained; the original
+35.063wall/35.961user/3.827sys log is nominal_snapshot_native_native.log.
+No runtime suite had started. ROOT/B2 explicitly authorized the exact four-line
+correction at03:06:33 UTC: matching opaque pointer declarations and explicit
+byte/opaque casts at the existing allocation/free calls. Allocation size,
+NUL termination, ownership, control flow and machine ABI remain unchanged.
+The smallest actual public-bootstrap host unit now compiles; source and object
+hashes/timing are in syntax_allocator_declarations.log. The before source
+cannot compile in the same merged closure, so there is no meaningful before
+runtime timing or speedup claim. Coherent native runtime validation resumes next,
+with new source hashes and affected objects rebuilt, not old-ABI reuse.
+
+A2 selected native checkpoint, 2026-11-23 03:19 UTC. The resumed compiler built
+all 53 targets and linked towerc in 91.394 wall /120.348 user /10.029 system
+seconds. The following LR link failed because A2's earlier fixture import of
+.host.memory in tests/work_named.tower introduced a second allocator provider;
+llvm-nm confirmed compiler_buffer_allocation_size in both lr-work-main.o and
+tower-compiler-host.o. Original logs nominal_snapshot_resume_native.log and
+allocator_provider_symbols_before.log are retained. Removed only that import:
+this aggregate fixture already links the existing compiler memory provider.
+No assertion, oracle, registration or production allocation behavior changed.
+The smallest fixture compiles in1.593s, and the three affected targets rebuild
+and link in7.317s. Profiling the import deletion at runtime is inapplicable:
+the before runner cannot link; this changes provider membership, not behavior.
+
+Frozen input483e15db plus that single deletion passes query-smoke0.239s,
+type-smoke221.248s, control-smoke34.057s, units19.520s, backend-overlap8.346s,
+work-pool0.026s, parser0.060s and aggregate-stages19.933s, all within unchanged
+bounds. Type-smoke's long silent CPU-active interval was not a hang; no timeout
+extension or retry was needed. These are validation wall times, not paired
+performance samples. Container tower-a2-nominal-fixture-resume-v2 exited zero;
+all jobs drained. All scaffolding Tower input hashes match after the run.
+Logs: A2/cache/logs/nominal_snapshot_fixture_*.log. Public bootstrap9653f818,
+Linux x64/Docker CPU12-23/24GiB, build jobs2/compiler jobs1, no bootstrap override.
+Compiler SHA4107a1c0b7c6ad15761e2dd458ba7298931db24614a3e38da037813c8005742b;
+LR runner SHA f20c1816c7d60d88da6825be5ee7b572117784ce02afc849e069a3b898f01df9.
+This establishes the selected nominal-storage/context-snapshot native closure,
+not current coordinator97b10 or full lane acceptance. Remaining packed payloads,
+physical page/node accounting, scheduling, browser/generation and final release
+instrumentation/publication remain open. ROOT's requested per-call entity create
+result API is the next scoped shared-owner task; preserve this checkpoint first.
+
+### Coordinator: selected constructor/storage integration, 2026-11-23
+
+Joined complete A2 9bfc8e91, bundle311152d5 with sole60741 prerequisite, into
+the typed parser/editor root97b10 source. No code conflicts. This selects the
+nongeneric WorkBuffer graph owners, nominal borrowed views, budgeted constructors,
+typed dispatcher results and the ordinary sixteen-site context snapshot helper.
+The graph/pool API and numeric-module experiments are absent from selected source.
+The exact host allocator declaration/cast correction and removal of the mistakenly
+added work_named allocator provider are included. Full constructor/kernel diffs
+were reviewed again at the join. This does not account every entity/page payload;
+the store budget field alone is not evidence that later allocations use it.
+
+A2's exact selected source passed all eight native gates, including the type
+suite221.248s under its unchanged240s bound, and retained its focused positive
+address/thread and paired profiling receipts. Those are not validation of the
+newer combined parser/editor source now in root. The new public compiler build,
+actual symbol policy and matching runtime gates remain pending. Diff checking
+identified two appended documentation lines with stray CR endings; corrected only
+those exact endings and repeated the check successfully, preserving history.
+
+L1/L2 TypeObjectIndex caller work and the calibrated clone fixture remain separate
+from this root join. Root reviewed the complete additive API2088 and authorized
+L2's exact two-line registration in the existing single-owner storage runner;
+the new physical-failure fixture has not run yet. A1's later872df0e admission fix
+was reviewed but is also not in this selected source. Its pre-cancelled capture
+pump still needs explicit failed-state handling rather than a waiting result.
+
+Approved one shared semantic first-resource receipt design, owned by A1, after
+tracing diagnostic clears in optional generic/completion queries. The proposed
+per-program error/offset is independent of diagnostic text; only private worker
+programs may record it directly, with owned component receipts transferred after
+joins in source order. B2 owns output-boundary checks and L2 owns type/generic
+callers and late-inspection regression. This is coordinated design, not completed
+implementation. A2 owns per-call entity create/related result APIs for B1's early
+grammar failure typing. No shared mutable budget last-error is authorized.
+All eight original CLI processes were verified live; no restart or new context.
+Final integrated instrumentation, scaling, bootstrap/browser and publication
+remain open, with existing runtime/build identity preserved.
+
+Coordinator provider follow-up: D1 found the same import-composition defect in
+work_instrumented as the previously corrected work_named fixture. Confirmed that
+TowerWorkPolicyTests.cmake explicitly compiles tests/work_instrumented and
+host/memory into separate objects for the existing serial target. Removed only
+the newly added fixture import of host.memory, retaining the authoritative CMake
+provider and its reuse by work_budget_allocation. No test body, oracle, allocator
+implementation or target changes. This is source-level evidence; the actual old
+duplicate-symbol failure and corrected target/runtime checks are delegated to
+D2 on the matching frozen integration source. They are not passed yet. Runtime
+algorithm/performance is unchanged by this import correction; preserve compile,
+link and normal execution costs without comparing a failed link to a speedup.
