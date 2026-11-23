@@ -133,3 +133,25 @@ later source in its next joined artifacts and check the existing transport
 assertion there. Browser/generation/release gates and the separately service-blocked
 instrumentation requirement remain open; none was run here. All old stashes and
 todo are preserved. No deployment is part of this source repair.
+
+## Merged-source adoption
+
+Implementation `19eab83a` merged published `5c80cd69` as
+`00d6b59da20cdbe60821b18c770cdee6c4c60412`, tree
+`e29bda490d59ac6a3ed96e92910434987e950223`. Adjacent CLI selector conflict was
+resolved by retaining both malformed-call and numeric-wrapper registrations.
+Incoming generic/constructor/body changes invalidate the linked producer closure;
+one affected incremental build refreshed five actions before verification.
+Registered query smoke, including all new checks, passes again:
+4.149023 wall /5.653684 CPU s,406708 KiB, exit0. One healthy sample per worker
+count retains the exact original source/import/canonical hashes, answer42 and
+zero teardown: workers1 0.492700/0.436162 s,176756 KiB; workers4
+0.581672/0.574619 s,178272 KiB. These adoption samples do not replace the original
+paired performance boundary or validate unrelated new owner tests.
+
+Merged SHA256: test entry
+`48ffaadfe3e86e4be5c877ea4f112a85e964d0b70c558fd89e568b914d188fbc`, profile
+`635c0a192110fa30fe8e85fc52d52114692e062991e60a2836feebec443a4bf5`, semantics
+`299dfbd2c7e8efcb900fabbebf8b22bf08dce2693511d14b410725c58eabeef5`.
+Exact merged input manifests, link commands, logs and exit status are under the
+same receipt directory with `merged_*` names. Original failures/evidence remain.
