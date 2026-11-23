@@ -60,11 +60,15 @@ fn driver_execution_same(actual: DriverExecutionResult*, reference: DriverExecut
     if diagnostics { driver_check(driver_execution_equal(&actual.error, &reference.error), "differential diagnostic bytes"); }
 }
 
-fn driver_execution_native(context: DriverDifferentials*): void {
+fn driver_execution_native(context: DriverDifferentials*, wanted: u8*): void {
     var source = "execution_case.tower"; var executable = "./execution_program";
     var reference = driver_execution_command(context, source, null, "--interpret", null, null, true, null);
     defer driver_execution_close(&reference);
     driver_check(reference.code == DriverExecutionSuccess, "native reference execution");
+    if wanted != null {
+        driver_check(reference.output.length == strlen(wanted)
+            && memcmp(reference.output.data, wanted, reference.output.length) == 0, "native independent expected output");
+    }
     for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
         driver_platform_remove(executable);
         var compiled = driver_execution_command(context, source, null, null, null, executable, option != 0, null);
@@ -104,6 +108,20 @@ fn driver_execution_package(context: DriverDifferentials*, source: u8*, target: 
         driver_platform_remove(package);
         var encoded = driver_execution_command(context, source, target, "--emit", "bytecode", package, optimize, depfile);
         defer driver_execution_close(&encoded);
+        if encoded.code != DriverExecutionSuccess {
+            driver_error("Package emission target: ", target == null ? "host default" : target);
+            driver_error("Package emission optimization: ", optimize ? "on" : "off");
+            var status: ByteBuffer = default;
+            defer bytes_dispose(&status);
+            if driver_text(&status, "Package emission subprocess status: ")
+                && driver_text(&status, encoded.code < 0 ? "-" : "")
+                && host_json_unsigned(&status, convert(u64, encoded.code < 0 ? -encoded.code : encoded.code))
+                && host_text_terminate(&status) {
+                driver_error(status.data, encoded.code < 0 ? " (signal or transport failure)" : "");
+            } else {
+                driver_error("Package emission failed", " (status formatting failed)");
+            }
+        }
         driver_check(encoded.code == DriverExecutionSuccess, "package emission");
         var bytes: ByteBuffer = default; var repeated: ByteBuffer = default;
         defer bytes_dispose(&bytes); defer bytes_dispose(&repeated);
@@ -133,11 +151,23 @@ fn driver_execution_case(context: DriverDifferentials*, name: u8*, source: u8*, 
     if (context.native && !native) || (context.filter != null && !driver_same(context.filter, name)) { return; }
     driver_message(DriverDifferentialStdout, "Differential case: ", name, true);
     driver_check(driver_write_file("execution_case.tower", source, strlen(source)), "write differential source");
-    if context.native { driver_execution_native(context); }
+    if context.native { driver_execution_native(context, null); }
     else {
         driver_execution_package(context, "execution_case.tower", "wasm32-unknown-unknown", fails32, null);
         driver_execution_package(context, "execution_case.tower", "wasm64-unknown-unknown", fails64, null);
     }
+}
+
+fn driver_execution_file(context: DriverDifferentials*, name: u8*, wanted: u8*): void {
+    if !context.native || (context.filter != null && !driver_same(context.filter, name)) { return; }
+    var path: ByteBuffer = default; var source: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&source);
+    driver_check(driver_text(&path, context.grammar) && driver_text(&path, "/tests/")
+        && driver_text(&path, name) && driver_text(&path, ".tower") && host_text_terminate(&path)
+        && driver_read_file(path.data, &source), "read native differential fixture");
+    driver_message(DriverDifferentialStdout, "Differential case: ", name, true);
+    driver_check(driver_write_file("execution_case.tower", source.data, source.length), "snapshot native differential fixture");
+    driver_execution_native(context, wanted);
 }
 
 fn driver_execution_idioms(context: DriverDifferentials*): void {
@@ -180,6 +210,7 @@ fn driver_execution_modules(context: DriverDifferentials*): void {
 fn driver_test_differentials(compiler: u8*, grammar: u8*, filter: u8*, native: bool): i32 {
     var context: DriverDifferentials = { compiler: compiler, grammar: grammar, filter: filter, native: native, checks: 0 };
     driver_execution_cases(&context);
+    driver_execution_file(&context, "backend_execution_roots", "45\n2\n");
     if !native {
         driver_check(fixture_json_checks(), "fixture string decoder bounds and escapes");
         driver_execution_idioms(&context); driver_execution_modules(&context);

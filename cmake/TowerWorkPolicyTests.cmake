@@ -20,6 +20,19 @@ target_link_libraries(tower-work-instrumented-tests PRIVATE tower-compiler-work-
 add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
+if(policy_triple MATCHES "^x86_64-.*linux")
+  # This fixture imports host.memory itself; do not link a second copy. Its
+  # failure allocator and transport are deliberately single-owner/serial.
+  tower_runtime_object(work-buffer-faults
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_buffer_faults.tower" "${policy_triple}")
+  add_executable(tower-work-buffer-faults-tests
+    "${work-buffer-faults_OBJECT}" "${policy_runtime}" "${policy_trap}")
+  set_target_properties(tower-work-buffer-faults-tests PROPERTIES LINKER_LANGUAGE C)
+  target_link_libraries(tower-work-buffer-faults-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
+  add_test(NAME tower-work-buffer-faults-tests COMMAND tower-work-buffer-faults-tests)
+  set_tests_properties(tower-work-buffer-faults-tests PROPERTIES TIMEOUT 30)
+endif()
+
 # Backend/frontend registration runs after the native compiler target exists.
 # Reuse its production allocator, without the frontend instrumentation override.
 function(tower_lr_work_policy_test)
@@ -52,5 +65,45 @@ function(tower_lr_work_policy_test)
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
+
+  # Explicit Linux x64 clock/rusage measurement, using this same compiler closure.
+  # No default build, CTest registration or timing pass threshold.
+  if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(semantic-layout-profile
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_layout_profile.tower" "${triple}")
+    get_property(profile_runtime GLOBAL PROPERTY TOWER_GUEST_work-tests_OBJECT)
+    add_executable(tower-semantic-layout-profile EXCLUDE_FROM_ALL
+      ${sources} "${semantic-layout-profile_OBJECT}" "${profile_runtime}")
+    set_target_properties(tower-semantic-layout-profile PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-semantic-layout-profile PRIVATE ${libraries})
+    target_link_options(tower-semantic-layout-profile PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    add_custom_target(tower-measure-semantic-layout
+      COMMAND "$<TARGET_FILE:tower-semantic-layout-profile>"
+      DEPENDS tower-semantic-layout-profile USES_TERMINAL VERBATIM)
+
+    # These entries own main and use the production compiler closure directly.
+    # No instrumented allocator, serial override or test-only named callback.
+    foreach(unit IN ITEMS frontend_units module_cache)
+      string(REPLACE "_" "-" name "${unit}")
+      set(profile_target "tower-${name}-profile")
+      tower_runtime_object(${profile_target}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_profile.tower" "${triple}")
+      add_executable(${profile_target} EXCLUDE_FROM_ALL
+        ${sources} "${${profile_target}_OBJECT}")
+      set_target_properties(${profile_target} PROPERTIES LINKER_LANGUAGE CXX)
+      target_link_libraries(${profile_target} PRIVATE ${libraries})
+      target_link_options(${profile_target} PRIVATE
+        -Wl,--export-dynamic-symbol=work_thread_entry
+        -Wl,--export-dynamic-symbol=backend_register_targets
+        -Wl,--export-dynamic-symbol=backend_thread_entry)
+    endforeach()
+    add_custom_target(tower-measure-frontend-units
+      COMMAND "$<TARGET_FILE:tower-frontend-units-profile>"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" 3 2 0
+      DEPENDS tower-frontend-units-profile USES_TERMINAL VERBATIM)
+    add_custom_target(tower-measure-module-cache
+      COMMAND "$<TARGET_FILE:tower-module-cache-profile>"
+      DEPENDS tower-module-cache-profile USES_TERMINAL VERBATIM)
+  endif()
 endfunction()
 cmake_language(DEFER CALL tower_lr_work_policy_test)

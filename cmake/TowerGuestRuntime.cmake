@@ -70,7 +70,7 @@ function(tower_guest_runtime name triple profile entry)
     DEPFILE "${base}.d"
     DEPENDS "${input}" "${bind}" tower-runtime-bind "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
   if(TOWER_SANITIZER AND NOT ARGN)
-    tower_sanitizer_object(guest-${name} "${base}.ll" "${triple}"
+    tower_sanitizer_object(guest-${name} "${base}.ll" "${triple}" "${input}"
       -ffreestanding -fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all)
   else()
     add_custom_command(OUTPUT "${base}.o"
