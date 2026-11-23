@@ -48,7 +48,7 @@ struct IMState {
     strings: vector(IMEntry);
     sequenced: vector(IMEntry);
     frames: work_vector(IMFrame);
-    node_cache: vector(IMEntry);
+    node_cache: work_vector(IMEntry);
     function_values: vector(void*);
     type_values: TypeObjectIndex;
     // Borrowed from the root world before dispatch; outlives retained storage.

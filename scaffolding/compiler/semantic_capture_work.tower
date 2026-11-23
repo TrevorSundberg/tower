@@ -51,18 +51,28 @@ fn sem_captures_begin(c: SemanticContext*): void {
 }
 
 export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
-    sem_captures_begin(c);
+    if !sem_ok(c) || !work_ok(&c.queries) { return 0; }
     var query = convert(u32, SemanticQuery.CaptureInput);
     var existing = work_find(&c.queries, subject, query, 0);
     if existing != 0 { return existing; }
     // Membership on the program (never a declaration) closes new admission.
     // Only the successful producer-drain boundary may attach that component.
-    sem_require(entity_component_get(c.program.root, c.capture_inputs) == null);
+    if c.capture_inputs != null {
+        sem_require(entity_component_get(c.program.root, c.capture_inputs) == null);
+    }
+    // Reserve the coordinator-owned query before attaching capture metadata.
+    // Failed admission cannot publish a partial producer or replay on retry.
+    var id = work_request(&c.queries, subject, query, 0);
+    if id == 0 || !work_seal(&c.queries, id) {
+        var error = sem_query_cancel_failure(c);
+        var message: vector(u8) = default;
+        var operation = sem_get(subject);
+        sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
+        return 0;
+    }
+    sem_captures_begin(c);
     var result = sem_capture_storage(c, subject);
     result.subject = subject;
-    var id = work_request(&c.queries, subject, query, 0);
-    sem_require(id != 0);
-    sem_require(work_seal(&c.queries, id));
     return id;
 }
 

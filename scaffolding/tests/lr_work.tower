@@ -66,7 +66,8 @@ fn lr_worker_lifetime(): bool {
     var thread = slots[0].thread;
     var first_pool = lease.pool;
     var rejected: ParserWorkers;
-    if parser_workers_open(&rejected, root, capacity) {
+    var denied = parser_workers_open_result(&rejected, root, capacity);
+    if denied != WorkBudgetError.Busy {
         parser_workers_close(&rejected);
         return false;
     }
@@ -379,8 +380,9 @@ symbols: LRSymbol*, length: usize, names: usize): bool {
         ok &&= lr_work_equal(serial, threaded);
         if ok {
             var a = lr_runtime_create(serial);
-            var b = lr_runtime_create_parallel(threaded, anchor);
-            ok = a != null && b != null;
+            var error = WorkBudgetError.None;
+            var b = lr_runtime_create_parallel_result(threaded, anchor, &error);
+            ok = a != null && b != null && error == WorkBudgetError.None;
             if ok {
                 var x: LRConflict;
                 var y: LRConflict;
