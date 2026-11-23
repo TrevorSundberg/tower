@@ -93082,3 +93082,60 @@ without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
 compiler build or relabeled current-source validation. All jobs remain drained.
+
+### B1 uniform native scaling after scoped grammar reuse, frozen3ad7d5f0 (2026-11-23)
+
+Completed the bounded measurement request without production changes. Required
+pull3ad7d5f0 was docs-only since75c15ee7 validated runtime; main clean before
+freeze, owned jobs drained,114GiB host free, CPU0-11/six physical cores/24GiB.
+Public768 ordinary dependency-aware profile target had no work. Exact profiler
+f092a2aa9ef57e926f201c863f41405f5b0b4ba279d17827410130d0d413e3b5;
+source profile hash3fa3430d matches B2's actual56c892c1 uniform fixture. No
+private bootstrap, sibling cache, generation, new hooks or source manipulation.
+
+Read docs/compiler_within_unit_e0e3530b.md and latest
+compiler_core_acceptance_56c892c1.md. Exact1x16,1x4096,12x256 uniform bodies,
+dependencies, width8, backendoff; NOT the asymmetric fourworld workload. Frozen
+current resources, n2 opposite-order workers1/4/8/12, production allocator.
+All24 timed and6 separate grammar/semantic observer runs PASS known42/42,
+full prior source/canonical cmp for every unit, no failed diagnostic, bounded
+shared peak, zero lanes afterjoin and checked zero-grant owner destruction.
+Full source manifest unchanged at end; no compiler/test failure. Shell inspection
+wildcard/missing-path and oversized report transport errors preserved in transcript;
+no runtime sample rerun or omitted.
+
+Timed frontend wall medians small1/4/8/12 .4118/.4713/.4760/.4773s;
+large2.2666/1.9890/1.9823/1.9679s; twelveuniform5.8353/4.3181/4.5545/4.7984s.
+Best within1.152x has noisy serial2.3734/2.1597s; multi4 is1.351x, twelve1.216x
+with7.17x CPU. Small parallel regresses. Wholeprocess timing, all raw observations,
+CPU/RSS/retention and phase tables remain in receipt. B2 prior exact inputs/flags
+and canonical bytes match, but currentcompiler14changedfiles and CPU partition
+prevent isolated54f3baab attribution. Multi4 prior5.5206->4.3181s, large8
+1.9856->1.9823s essentiallyunchanged, large serial3.6% higher. Prior matched
+small/large CLI/C controls and generation/source boundaries remain unchanged.
+
+Observer confirms12distinct semantic threads single and12outer threads multi;
+no oversubscription. Single semanticdispatch occupancy84.83%, uncovered15.03ms;
+multi12 outervacancy1.415lane-ms, all timed refill maxima<=.149ms. No demonstrated
+ready-work starvation/barrier defect, so no scheduler edit. Small grammar
+302.8/364.0ms at1/12 dominates; large serial semanticrun838.5ms, parallel
+parse660.3ms and lifecycle431.8ms remain. Multi grammarCPU3.58->22.22s of
+5.41->38.58processCPU, despite183->117tables/world and127reuse events. Multi12
+still builds852itemgraphs (1.275aggregateCPU seconds), zero parallelLRwaves.
+Finite concrete next producer remains admission-aware lr_states_lalr_parallel_result
+selection before worker-only preparation, with held admission/lifetime/error
+contract; no unsafe availability peek or claim of projected savings. Existing
+counters do not locate the allocator/lock behind high CPU/system amplification.
+
+Retained small20.18MB/single566.92MB/multi633.08-633.11MB, peak charged
+107.48/656.52/1578.57MB within existing1.25/1.25/4GiB limits. Ledger separate;
+RSS atmulti12 ~1857MiB. Serial retention+88404bytes singleworld, +1060716bytes
+across12 versusprior; successfulclose requireszero livegrants. No allocationcall
+count from productionallocator. No broad stress/sanitizer/browser/backendmatrix,
+new optimization or deployed-runtime claim. ROOT retains finalacceptance.
+
+Receipt docs/compiler_uniform_reuse_3ad7d5f0.md; full raw executable/source,
+commands/manifests/generatedcanonical/JSON/time logs in
+build/ecs_b1/cache/uniform_3ad7d5f0. Concisehandoff
+C:/Sandbox/build/codex_ecs_20261122/B1/uniform_3ad7d5f0. Profitable12core gate
+remainsopen. Boundedmeasurement complete; normalpublication thenSTOP.
