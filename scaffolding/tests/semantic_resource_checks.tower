@@ -54,7 +54,9 @@ fn resource_probe_execute(payload: void*): void {
             && sem_equal(invocation.context.error.data, "Cannot grow strict evaluation stack");
     } else {
         probe.observed = state.steps == 0 && state.frames.length == 0 && state.memory.data == null
-            && sem_equal(invocation.context.error.data, "Cannot allocate interpreter memory");
+            && state.node_cache.data == null && state.node_cache.length == 0
+            && state.node_cache.capacity == 0 && !state.node_cache.reservation.active
+            && sem_equal(invocation.context.error.data, "Cannot allocate interpreter node cache");
     }
 }
 
@@ -63,6 +65,8 @@ fn resource_entry_ready(result: SemanticEvaluation*): bool {
     var state = &invocation.state;
     return result.started && !state.failed && state.storage_error == WorkBudgetError.None
         && state.steps == 0 && state.memory.data != null && state.frames.length == 1
+        && state.node_cache.data != null && state.node_cache.length != 0
+        && state.node_cache.reservation.active && state.node_cache.reservation.owner == state.budget
         && state.frames.data[0].function == result.function
         && state.frames.data[0].tasks.length != 0 && invocation.context.root == result.function
         && invocation.context.error.length == 0 && invocation.context.output.length == 0;
@@ -197,7 +201,7 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
         "Resource denial joins every admitted preparation/evaluation peer", &failures);
     resource_check(first_probe.observed && second_probe.observed,
         growth ? "Missing exact executed nested-memory growth denial in one or both workers"
-            : "Missing exact invocation startup-memory denial in one or both workers", &failures);
+            : "Missing exact invocation startup-node-cache denial in one or both workers", &failures);
     if isolated {
         resource_check(program.error.length == 0 && program.resource.error == WorkBudgetError.None,
             "Isolated resource receipts wait for owning diagnostic selection", &failures);
