@@ -70251,3 +70251,174 @@ its explicit unbudgeted pool open should use sem_workers_open on this union.
 L2 was directed to preserve all Busy/copy/cleanup oracles while checking actual
 pool budget ownership. Current union instrumentation and provider-policy checks
 remain pending. No publication or root runtime pass; todo.txt remains untouched.
+
+### 2026-11-23 D2: current typed-publication imports and measured generator correction
+
+Source under this frozen check is main0ce8c203980d73930a96fe8c55edf44a7abc96c7,
+including complete ROOT302 and D2ec622 histories. The source archive is
+238be2a9727073ebec9d65d6c8999cd6745c3dce54adbb4ad088cb552903b331.
+This is before A2's newer page-header and L1's node-cache ABI changes. Those
+complete incoming bundles are reviewed separately; no running import closure was
+changed. Same thread01a2046a-45eb-7452-8fb0-6d924bb320a6/CLI2918222, Deck
+14.8GiB, Docker tower_build4be584fb, LLVM/Clang19.1.1/GCC13.3, CPUs0,2,
+public bootstrap9653f818, native-coherent-f13c8f6, compiler/build jobs1 and no
+bootstrap override. Shared heavy slot acquired09:41:56 and released09:56:33UTC
+after actual children drained. Disk134GiB and RAM9.8GiB available at release;
+existing swap5.8GiB is not a child swap count. Retained child timings show0swaps.
+
+Smallest public leaves world, regex and semantic_context pass. Respectively,
+wall/CPU/RSS are5.71/5.58/211580,3.84/3.81/204288 and26.73/26.42/689280
+(seconds, seconds, KiB). Canonical native8targets pass114.49/111.04/748980.
+Current compiler21f3c78ef67c14bd3c07f39ca736cadea64c62fba569e3586f79a79b6d18fa33
+and complete resources are preserved in build/d2_ecs/native_package_0ce8c203.
+These single build samples are validation timings, not a generation/scaling pass.
+
+The old exact checker66496c86 passes six actual native reports and rejects only
+Semantics, naming entity_stage_open_result, entity_stage_publish_result and
+entity_view_open_result. Existing entities definitions and current callers were
+verified before adding exactly these three Semantics permissions. No allowance
+was added merely because another unit exports a new name. The existing Tower
+fixture gains positives, prefix/suffix rejection and wrong-unit negatives. Its
+smallest public compile/link/run pass. New checker6c6e44b5 builds canonically in
+5.56wall/5.41CPU/196296KiB. All seven identical native reports now pass; fresh
+WASI Semantics and ParserNodes compile/policy checks pass33.32/32.82/786452 and
+24.25/24.07/762224. Old native scan fails1 below.01wall/CPU at1352KiB; new scan
+passes0 below.01 at1616KiB. This tiny synchronous comparison supports correctness,
+not a speed/retention claim. Membership adds no allocation owner or parallel path.
+
+Current symbol fixture has11 LLVM definitions,109 actual ASan report-call sites
+and11 TSan read/write calls. Existing Tower instrument_llvm plus matching guest
+runtime and compiler-rt produce passing address/LSan and thread executions with
+identical normal stdout and empty stderr: .01wall/below.01CPU/16104KiB and
+.03/.02/28820. This is real instrumentation of this synchronous fixture, not
+threaded-compiler race coverage, external LLVM instrumentation or source UBSan.
+Raw commands, times, output, failures and source manifests are retained under
+build/d2_ecs/policy_0ce8c203; no broader unchanged matrix was rerun for the policy.
+
+D1 explicitly granted the narrow driver_measure_cases.tower memory-generator
+extent change and refined that grant09:53:39UTC. Existing callers are the shared
+--measure-c mode and its long/short generated Foundation inputs. Preserve4096u32
+elements, recurrence, iteration/sample constants and independent outputs
+2492321792/3197601747. Baseline smallest generator8.84wall/8.67CPU/274864KiB,
+existing driver3targets12.09/11.79/286980, actual complete memory reference group
+11.40/10.76/122328 all pass. Only the final wrapper hash check used the wrong
+working directory and failed1; its original logs/status remain. A root-directory
+hash recheck passed without repeating the workload.
+
+The first emitted-runtime-count draft compiled as a generator but the produced
+Foundation failed at2:124 on nested sizeof in a builtin argument. This is the
+existing simple-operand Foundation contract (docs/foundation.md), not evidence
+for new syntax. Saved attempt1 and its nonzero logs remain. A simple-intermediate
+runtime-count draft then passes all output oracles but materially regresses:
+
+| Existing series, seven runtime samples | Original median ms | Rejected draft median ms |
+| --- | --- | --- |
+| LLVM O2 |47.624339|87.973204|
+| Raw C / Clang |102.987021|572.581441|
+| Raw C / GCC |108.373338|593.103335|
+| Optimized C / Clang |52.304464|166.753426|
+| Optimized C / GCC |109.824093|119.858732|
+
+Whole group18.50wall/16.47CPU/140160KiB also rises. These are chronological
+before/after groups, not controlled alternating builds. Emitted raw C confirms
+the draft loads its mutable divisor every iteration while the original has4096;
+loss of constant optimization is a plausible contributor, not a measured sole
+cause or justification for inventing noalias. The draft is rejected. Raw and
+optimized C use the same generated Foundation semantics and C89/O2 tool settings;
+this compares backends on one recurrence, not unrelated cross-language programs.
+Short graph/fast interpreter measurements include compilation and are not isolated
+execution speed. Separate larger compiler/body/import measurements remain in the
+previous D2 entries.
+
+Attempt2's completed workload was followed by wrapper failure127 because Docker
+has no rg. Retain the script/status; available grep resumed only pending output,
+policy and WASI checks. A host redirect to a root-owned artifact also failed and
+was corrected through its Docker owner. Neither failure was hidden or relabeled.
+
+Final proposed implementation keeps one generator-owned element_count and derives
+bytes from sizeof(u32), emitting all three numeric operands with measure_number.
+This uses ordinary supported Tower, preserves Foundation's original literal
+workload and adds no new scheduler/constant folder/runtime global. Final draft
+patchf412edfd is prepared; exact source/object comparisons, bounded measurement,
+canonical roundtrip and instrumented generator execution are pending D1's current
+slot. No performance or acceptance claim is made until those checks actually run.
+
+D2 read-only next-union review completed while D1 owns the heavy slot: verified
+ROOT76d297c2838bc9631dc2653799268706707fc1ca complete bundle4e5e70e9, sole60741,
+including A2 page reuse and L1 cache64c15. Reviewed every changed production and
+fixture path; detailed dispositions are in compiler_ecs_audit_d2.md. Page and
+IMState layouts require coherent next builds; no merge into current count inputs.
+The B1 LR result path preserves typed errors privately and consumes joined rows
+in source order; old generic publication boolean fallback is already superseded
+by ROOT302 at0ce. B1's unchanged required Capacity oracle is fixed in its checked
+source, not retroactively in old receipts. ParserWorkers still opens unbudgeted
+pools and LR work graph retains work_init; error classification alone is not whole
+parser accounting. WasmLinkWorld remains a separate outstanding owner contract.
+No new runtime claims or benchmark reruns follow from this documentation review.
+
+Measurement configuration clarification: the jobs1 setting above applies to the
+explicit leaf/native-build commands. Existing --measure-c compiler children do
+not pass --jobs and use public-bootstrap default admission; Docker affinity is
+CPUs0,2. The generated recurrence executes serially. This run does not observe
+compiler worker overlap. The final canonical roundtrip separately requests1/2.
+OS file caches are warm from earlier compilation; no cold-cache purge occurred.
+A whole-group /usr/bin/time peak is a process/child high-water observation, not
+live heap/retained allocation accounting. The raw report's exact argv is retained.
+An attempted in-place prose correction with apply_patch could not read the
+preexisting non-UTF8 incoming L2 journal bytes; no mutation occurred. The already
+reviewed ROOT9d73 repair in the next complete history resolves those exact bytes;
+this clarification is appended as UTF8 without rewriting unrelated history.
+
+D2 final count implementation accepted by its actual scoped checks10:10:18UTC.
+No compiler/source change was made during either run. Initialsession37309 passes
+smallest generator7.79wall/7.67CPU/276632KiB, existing driver2targets8.79/8.52/
+286228 and complete reference group11.02/10.58/120284. Long271-byte and short
+269-byte Foundation, raw/optimized C and native executable are byte-identical to
+the saved baseline. Source hashes are998ebf86cc3b9a2a18f2804ce6f0b973eb365454a2a0444bf97779851f4710a6
+and4046a37d2f5b07c8c9f9bf7a80278cb8cdd9168bee9953e34d23c76c7285a1f8.
+The final runner ise4c3eca799603318410a9e9799a3f5f26db5761dee40da3326985739f065ba0b.
+A subsequent grep pattern incorrectly excluded JSON backslash escapes and failed1;
+retain originalrun.sh/group.status1. Actual jobs drained before correcting only
+the OS extraction pattern. Resume68807 skips completed builds/workload and passes
+all remaining checks, with separate resume_group.status0.
+
+Fresh native object bytes also match. Canonical Foundation output executes with
+expected3197601747 at wasm32/x86_64 and requested jobs1/2. The existing complete
+driver, standalone entry and bytes implementation were emitted as LLVM and
+instrumented with the existing Tower tool, then linked with the matching
+instrumented guest. Their definition counts270/55/6 and actual ASan report sites
+4729/1347/68, TSan read/write calls553/146/6 establish coverage of the generator
+and buffer/capture code. Address/LSan memory mode passes13.87wall/13.37CPU/
+120156KiB; thread mode18.15/17.49/120252. Both emit the exact baseline source and
+match both independent outputs. All swaps0; no sanitizer reports. Compiler child
+processes remain the ordinary public binary: this is synchronous runner coverage,
+not child compiler/threaded publication sanitation or source UBSan. LSan checks
+this executed lifecycle, not a complete retained-allocation census.
+
+Seven retained execution samples still exhibit large differences despite identical
+native/C products. Final medians(ms): LLVM141.016809, raw Clang103.068062, raw
+GCC169.461535, optimized Clang51.632084, optimized GCC37.164127. Original medians
+appear above. For example final LLVM samples49.339462 through147.173754ms have
+identical executable hash aed17b75 on every run. The code identity rules out this
+generator edit changing those runtime instructions; no speedup/regression cause
+is assigned to it. Full group11.40->11.02wall,10.76->10.58CPU and122328->120284KiB
+is one chronological sample per version, insufficient for a throughput claim.
+Private ByteBuffer remains disposed after each file; there is no new retained
+owner/shared mutation/scheduling path. Allocation/capacity changes in its small
+append sequence were not separately counted. The correction satisfies derived
+extent maintenance while preserving the original workload exactly.
+
+Old checker against the same fresh WASI Semantics report fails1 on exactly the
+three result imports; new checker passes. Frozen source hashes pass after all
+checks. Saved owner receipt and actual Docker init/sleep-only process listing
+precede shared-lock release10:10:18UTC to D1. Full evidence remains in
+measure_count_0ce8 and policy_0ce8c203; prior failures and rejected drafts remain.
+The newer complete ABI union, clean final bootstrap/browser/generation and
+coordinator-leased atomic publication are still open acceptance work.
+
+D2 independently reviewed D1's exact2d03795d pool/reuse registration against the
+existing normal fixture factory and production source/library composition. One
+existing exported pool main, actual worker entry, two normal entity fixtures,
+no wrapper/provider duplication or churn default test. Source review found no
+issue and was sent once; D1's separate native results and future instrumentation
+are not D2 executions. No D2 shared manifest edit was made.
