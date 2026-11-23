@@ -93340,9 +93340,39 @@ symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
 compiler build or relabeled current-source validation. All jobs remain drained.
 L1 reconciliation: implementation `c2af6e0f5a80dc200caf48d7d26ec01b27dd4880`; required ff-only pull correctly refused divergence. Normal merge preserved complete origin/e6be70d5 history as `a2e3c7a0109d4bbcda9791f36fab2eb3fec57170`, including A1 backend fallback, A2 executable budget and B1 parser reuse; no conflicts or scope edits. Changed parser/semantics dependencies rebuilt once:37.74wall/48.88CPU/1073516KiB. Merged loop Graph32/64 workers1/4, exact canonical equality against prior frozen results, canonical Fast, exact negative/terminal-owner selector, query-smoke (including incoming executable checks) and alias controls PASS. Final native SHA256 `5d1503d9a37e758122ad2bb23bdc376063b1e2618f592babd69e4e7f2e108fb4`, semantics `2c7fef15b93766264dba01b30746f23922d5b08161fc03951b7ae49420599063`, runner `abcda6c29da26ea63a565df6cf0dcc182e47f5f914ba24c6a0b655c18198e0d9`. Frozen merged manifests match; earlier cost evidence is not relabeled as a performance comparison of incoming code. Exact receipt `C:Sandboxuildcodex_ecs_20261122L1loop_query_receipt.json`; all logs/failures preserved, two independent legacy limits remain pending. Owned jobs drained; normal main publication follows, ROOT retains deployment.
+
+### 2026-11-23 D1: independent scoped grammar reuse source review
+
+Reviewed all nine Tower changes in54f3baab against parent7e46f025 at fixed merged
+05edbfb3, plus immediate ParserStructureCache/table/version/session/world/pool
+consumers and actual fixture/policy registration. Exact changed blobs also match
+B1's validated75c15ee7 merge. Findings and identities are appended to
+[the D1 audit](compiler_ecs_audit_d1.md#2026-11-23-d1-published-scoped-grammar-structure-reuse-review).
+No concrete new defect found: world/budget/seed/profile identity, private grammar
+metadata, independent table/cache pins, synchronous worker drain and cleanup
+support the scoped lifetime. Checked entity attach preserves the first Capacity
+cause; the original64MiB negative units gate is byte-unchanged. New Semantics
+policy admits one exact Tower cross-object symbol with wrong-unit/name negatives.
+B1's published measurements/failures remain attributed to their frozen inputs;
+external raw logs are not independently authenticated. No runtime/build/profile
+repeat or production edits: documentation-only profiling is inapplicable.
+Source review does not establish race freedom, new failure-injection coverage,
+joined bootstrap/browser/generation/instrumentation or hosted release acceptance.
+Commands: required pull, git show/diff/grep on fixed commits, nine blob comparisons,
+registration/caller reads and diff --check. Evidence directory
+build/d1_ecs/grammar_review_05edbfb3; clone initially3ad7d5f0, same D1 thread,
+Codex PID3164353. Disk127GiB free/RAM9.8GiB available at start; no owned jobs,
+heavy lock or compiler inputs modified; todo preserved. ROOT owns final adoption.
 compiler build or relabeled current-source validation. All jobs remain drained.Final publication delta: complete-history mergebc231982 adopts e6be70d5's
 ROOT/D2 documentation-only receipts. All `merged_source.sha256` Tower/CMake inputs
 still match exactly; reuse the scoped merged checks without another runtime run.
 Implementation d16c8f6e and byte-boundary correction1a9c3296 remain intact; normal
 main push follows. No historical failure or later artifact is relabeled passed.
 L1 final changed-input adoption: L2's published reconstruction/formatter update340989cf arrived during the final pull and was preserved by normal merge `df24d9fdb267b2ba4530554e05b67baa22c37c26`. Its FormatEngine layout change required the native consumer closure: dependency-aware towerc build44.51wall/93.39CPU/1074660KiB, all12 actions passed. Only affected canonical checks reran: module-loop formatting32/64, workers1/4, worker-identical text, independent Graph/Fast exact0 and idempotence all pass. The shorter canonical representation is intentionally different from the earlier formatter. No L1 control/query source changed; earlier control/terminal-owner measurements remain tied to their recorded source/binary. Final native SHA256 `16d8981ad9e249fe216ea161d0a0796999814a22d9c5599c47b6a5bd75be7ba2`, semantics `8efbabe2749c1864a370ff9c13c70e42724be8093efbb900f19294958f58416d`; frozen final source/artifact manifests in `logs/loop_query_formatter`. Existing two unrelated producer limits remain explicit. Jobs drained, main history preserved, no portable/deployment claim.
+D1 grammar review publication reconciliation: source-review commit9d1ece24
+merged complete published340989cf after the required ff-only pull refused
+ordinary divergence. Incoming L2 reconstruction changes/history are preserved
+and excluded from this fixed05edbfb3 review. The nine reviewed Tower blobs,
+unchanged64MiB test and D1 audit text still match exactly; merged diff --check
+passes. No build/runtime repeat or newer-source adoption claim. Normal source
+push follows; ROOT retains final artifact/release ownership.
