@@ -86824,3 +86824,20 @@ runtime profiling is inapplicable. Final current-source normal/shared/LLVM/cross
 two edited generations, supported instrumentation, useful scaling and hosted
 release still require affected-source adoption and fixing actual failures.
 Publication reconciliation: f04c3e91 (this evidence only) merged b0f507c6 as782cdd46, preserving all journal histories. Concurrent2013ad28 publishes the new public capacity compiler/resources; ROOT's b0f507c6 records its clean adoption. Thus that bootstrap prerequisite is now published, superseding the pending-publication wording above, but A1 body86843700 and L1 backend-import adoption remain separate. `git diff 6767cd30 HEAD -- scaffolding CMakeLists.txt cmake` is empty: compiler/test sources are identical. The bootstrap binary/resources changed, so this acceptance remains explicitly the6767 build/run, not a test of newly generated binaries under the adopted bootstrap. ROOT's clean-pin receipt is preserved as its own evidence. This turn contributes only journal evidence relative to published main; merged-document diff/receipt boundaries checked, no new runtime inputs or rerun claimed. No owned jobs remain; normal push follows.
+D1 publication reconciliation: commit4c2bd3b met publishedcbaa8c0; required
+ff-only pull refused divergence, normal merge9322f9f preserved complete histories
+and journal bytes. Incoming changes are bootstrap/provenance and owner evidence;
+all project compiler/test/build/browser inputs versus4c2bd3b are unchanged.
+Policy source/test/binary hashes and all eight project depfile inputs still match,
+todo unchanged. Existing policy evidence remains predecessor-built; no relabeling
+to new public768a0cdf. The tiny native policy test is not rerun without changed
+inputs. L2 f04c3e91's selected integration checks explicitly use our exact6767
+source and are adopted at their stated selection/observed overlap; K1 denial
+remains untested. ROOT2013ad28/b0f507c6 closes public capacity pin/clean adoption;
+B2's newly published whole-generation receipt is scoped252b424a, before L2 module
+admission. ROOT196a2d0 records passed portable/LLVM/cross builds but FAILED browser
+generation1 candidate completion; generation2 unrun, monitor's0 invalid. Ledger
+updates those exact receipts and A1 completion ownership without moving source
+review freeze or starting another audit. Final body/import implementation,
+affected instruments/performance, browser generations and hosted release remain
+ROOT's finite acceptance gates. No D1 heavy job or deployment; normal push follows.

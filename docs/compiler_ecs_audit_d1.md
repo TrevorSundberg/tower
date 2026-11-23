@@ -3827,3 +3827,26 @@ shared generation slice; (7) ROOT final complete generations, actual object symb
 policies and atomic hosted acceptance. These are exact changed-input/acceptance
 owners, not claims that existing concurrency/staging functionality is absent.
 The CURRENT twelve-row ledger in the handoff is authoritative for this freeze.
+
+Publication reconciliation (same frozen review): required ff-only pull found
+cbaa8c0 and refused divergence; normal merge9322f9f preserved both histories.
+`git diff 4c2bd3b HEAD -- scaffolding CMakeLists.txt cmake playground/src
+playground/tests` is empty. Both policy sources, all project depfile inputs and
+the tested binary retain their identities; the public bootstrap changed, so the
+local policy executable remains explicitly predecessor-built. No rebuild needed
+to validate unchanged policy logic. New pinned resources stay provenance-only
+in this review, not additional project source census paths.
+
+Incoming evidence closes the previously pending L2 selected dependency slice on
+**exact6767**: f04c3e91 records units/dependency, type-errors, control,17 lifecycle
+cases and execution known; actual dependency threads/outer peak1/1 versus4/4,
+known42/43/44/45, canonical/error equality and joined-lane bounds pass. K1's
+injected post-scan failure is not selected by those healthy/other-denial cases.
+ROOT's2013ad28/b0f507c6 publishes pin768a0cdf and passes clean canonical adoption;
+B2's complete generations are frozen252b424a, before L2 module admission. These
+supersede pending pin/dependency wording operationally without widening their
+source/test scopes.196a2d0 preserves an actual generation1 browser completion
+failure; generation2 did not run and wrapper0 is invalid evidence. A1 owns the
+qualified-completion reproducers. The CURRENT ledger records these receipts,
+while later A1/L1 source adoption, final instruments/performance/browser/hosted
+acceptance remain explicit. No subsequent source audit or heavy run was started.
