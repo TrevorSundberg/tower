@@ -1,0 +1,213 @@
+import tower;
+import compiler_dependency_units;
+import frontend_units;
+import utility_checks;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .library.compiler_work_types;
+import .compiler.format_api;
+import .compiler.format_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.interpreter_context_types;
+
+extern fn printf(format: u8*, seed: u32, workers: usize, mode: u8*, revision: u64): i32;
+extern fn frontend_units_observer(batch: void*, context: void*,
+    callback: function(void, void*, CompilerQuery, usize, bool)): bool;
+
+var SeedUnitCount: usize = 3;
+var SeedBodyCount: usize = 2;
+struct SeedInput { source: FormatResult; shared: FormatResult; answers: u64[SeedBodyCount]; }
+struct SeedObservation { units: DependencyUnitObserver; entered: void*; release: void*; }
+struct SeedReceipt { canonical: vector(u8); diagnostic: vector(u8); offset: usize; }
+
+fn seed_event(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    var observation = bits(SeedObservation*, payload);
+    dependency_unit_event(bits(void*, &observation.units), phase, ordinal, entering);
+    // Only the cancellation control blocks here. Successful overlap/timing
+    // uses the unchanged observer with null gates, never an artificial delay.
+    if entering && observation.release != null {
+        work_signal_post(observation.entered);
+        work_signal_wait(observation.release);
+    }
+}
+
+fn seed_input(input: SeedInput*, seed: u32, ordinal: usize, failure: bool): void {
+    var out: FormatEngine = {result: &input.source, ..default};
+    var imported: FormatEngine = {result: &input.shared, ..default};
+    var bias = convert(u64, seed % 7 + 1);
+    var later = convert(u64, seed % 5);
+    format_text(&imported, "import tower;var Selected=comptime(pick(");
+    format_text(&imported, failure && ordinal == 2 ? "true" : "false");
+    format_text(&imported, "));fn pick(take:bool):i32{if take{return Selected;}return seed_value();}fn seed_value():i32{return ");
+    format_unsigned(&imported, bias);
+    format_text(&imported, ";}fn box(T:type):type{struct Item{value:T;}return Item;}fn forwarded(T:type):type{return box(T);}fn identity(value:i32):i32{return value;}");
+    format_text(&out, "import tower;import dependency_seed_shared as dep;");
+    for(var body: usize = 0; body < sizeof(decltype(input.answers)) / sizeof(u64); body++) {
+        var captured = convert(u64, seed % 11) + convert(u64, ordinal + body + 1);
+        // Independent arithmetic oracle: three scalar inputs, ordered marks
+        // 1 then2 form trace12 and return1+2. No query/interpreter builds it.
+        input.answers[body] = (captured + later + bias) * 100 + 12 + 3;
+        format_text(&out, body == 0 ? "fn first():i32{" : "fn second():i32{");
+        if failure && ordinal == SeedUnitCount { format_text(&out, "return missing_later_unit;}"); continue; }
+        format_text(&out, "var captured:i32="); format_unsigned(&out, captured);
+        format_text(&out, ";{var captured:i32=91;captured++;}var item:dep.forwarded(decltype(captured));var alias:dep.box(decltype(captured))* = &item;item.value=comptime(dep.identity(captured))+comptime(later())+comptime(dep.pick(false));var trace:i32=0;var effects=mark(&trace,1)+mark(&trace,2);return alias.value*100+trace+effects;}");
+    }
+    format_text(&out, "fn later():i32{return "); format_unsigned(&out, later);
+    format_text(&out, ";}fn mark(trace:i32*,tag:i32):i32{*trace=*trace*10+tag;return tag;}");
+    units_check(!input.source.failed && !input.shared.failed && vector_push(&input.source.text, 0)
+        && vector_push(&input.shared.text, 0), "Seeded source snapshots");
+}
+
+fn seed_answer(program: SemanticProgram*, name: u8*, wanted: u64, ordinal: usize): bool {
+    var target: void* = null;
+    foreach(var function in &program.functions) {
+        var node = sem_get(function);
+        if node.name.length == strlen(name) && strcmp(node.name.data, name) == 0 { target = function; }
+    }
+    var invocation: IMInvocation = default;
+    defer interpreter_invocation_dispose(&invocation);
+    if target == null || !interpreter_invocation_init(&invocation, target,
+        convert(usize, program.pointer_bytes), null, 0, true, 10000) { return false; }
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+    if invocation.state.failed { puts(invocation.context.error.data); }
+    var ok = invocation.state.done && !invocation.state.failed && invocation.context.result == wanted;
+    if !ok {
+        var report: FormatResult = default; defer format_dispose(&report);
+        var out: FormatEngine = {result: &report, ..default};
+        format_text(&out, "request unit="); format_unsigned(&out, convert(u64, ordinal));
+        format_text(&out, " "); format_text(&out, name); format_text(&out, " actual="); format_unsigned(&out, invocation.context.result);
+        format_text(&out, " wanted="); format_unsigned(&out, wanted);
+        units_check(!report.failed && vector_push(&report.text, 0), "Seeded mismatch diagnostic"); puts(report.text.data);
+    }
+    return ok;
+}
+
+fn seed_trial(root: u8*, bedrock: u8*, foundation: u8*, seed: u32, workers: usize,
+    mode: u8*, wrong: bool, receipt: SeedReceipt*): bool {
+    var revision = convert(u64, seed) + 1;
+    printf("Seed=%u workers=%zu mode=%s revision=%llu\n", seed, workers, mode, revision); fflush(null);
+    var failure = strcmp(mode, "cycle") == 0;
+    var cancelled = strcmp(mode, "cancel") == 0;
+    var inputs: SeedInput[SeedUnitCount] = default;
+    var count = sizeof(decltype(inputs)) / sizeof(SeedInput);
+    defer {
+        for(var i: usize = 0; i < count; i++) { format_dispose(&inputs[i].source); format_dispose(&inputs[i].shared); }
+    }
+    var spans: DependencyUnitSpan[count] = default;
+    var observation: SeedObservation = {units: {spans: &spans[0], count: count}, ..default};
+    if cancelled {
+        observation.entered = work_signal_open(); observation.release = work_signal_open();
+        units_check(workers == 2 && observation.entered != null && observation.release != null, "Seeded native cancellation gates");
+    }
+    defer {
+        if observation.entered != null { work_signal_close(observation.entered); work_signal_close(observation.release); }
+    }
+    var batch = frontend_units_create_bounded(count, workers, DependencyUnitByteLimit, 8,
+        revision, DependencyUnitProfile, bedrock, foundation, root);
+    units_check(batch != null && frontend_units_observer(batch, bits(void*, &observation), seed_event), "Seeded bounded units/observer");
+    for(var i: usize = 0; i < count; i++) {
+        seed_input(&inputs[i], seed, i + 1, failure);
+        units_check(frontend_units_source(batch, i + 1, "dependency_seed_unit.tower", inputs[i].source.text.data,
+            inputs[i].source.text.length - 1), "Seeded root snapshot");
+        var environment = frontend_units_environment(batch, i + 1);
+        units_check(environment != null && frontend_modules_source(environment, "dependency_seed_shared.tower",
+            inputs[i].shared.text.data, inputs[i].shared.text.length - 1), "Seeded imported snapshot");
+    }
+    var ok = true;
+    if cancelled {
+        var completed = frontend_units_step(batch, false);
+        for(var i: usize = 0; i < workers; i++) { work_signal_wait(observation.entered); }
+        for(var i: usize = 0; i < workers; i++) { work_signal_post(observation.release); }
+        frontend_units_cancel(batch);
+        ok = !completed && frontend_units_cancelled(batch) && frontend_units_step(batch, false)
+            && spans[count - 1].start == 0;
+    } else {
+        while !frontend_units_step(batch, true) {}
+        ok = !frontend_units_cancelled(batch);
+        if failure {
+            var error = frontend_units_error(batch);
+            ok &&= frontend_units_failed(batch) == 2 && strstr(error, "cycle") != null && strstr(error, "missing_later_unit") == null;
+            dependency_unit_append(&receipt.diagnostic, error); receipt.offset = frontend_units_error_offset(batch);
+        } else {
+            ok &&= frontend_units_failed(batch) == 0;
+            for(var i: usize = 0; ok && i < count; i++) {
+                var program = frontend_units_program(batch, i + 1);
+                ok = program != null;
+                for(var body: usize = 0; ok && body < sizeof(decltype(inputs[i].answers)) / sizeof(u64); body++) {
+                    ok = seed_answer(program, body == 0 ? "first" : "second",
+                        inputs[i].answers[body] + (wrong && i == 0 && body == 0 ? 1 : 0), i + 1);
+                }
+                if ok {
+                    var formatted: FormatResult = default;
+                    format_entity(&formatted, program.root, null, null, null);
+                    ok = !formatted.failed;
+                    foreach(var byte in &formatted.text) { units_check(vector_push(&receipt.canonical, byte), "Seeded canonical bytes"); }
+                    units_check(vector_push(&receipt.canonical, 0), "Seeded canonical unit boundary");
+                    format_dispose(&formatted);
+                }
+            }
+            var overlap = false;
+            for(var i: usize = 0; i < count; i++) {
+                for(var j: usize = 0; j < i; j++) {
+                    if spans[i].thread != spans[j].thread && spans[i].start < spans[j].end && spans[j].start < spans[i].end { overlap = true; }
+                }
+            }
+            ok &&= workers == 1 || overlap;
+        }
+    }
+    if failure || cancelled {
+        for(var i: usize = 1; i <= count; i++) { ok &&= frontend_units_program(batch, i) == null; }
+    }
+    var budget: WorkBudgetSnapshot = default;
+    ok &&= work_budget_snapshot(frontend_units_work_budget(batch), &budget) && budget.used_lanes == 0
+        && budget.peak_lanes <= workers && budget.peak_bytes <= DependencyUnitByteLimit;
+    if !ok {
+        puts(frontend_units_error(batch));
+        for(var i: usize = 0; i < count; i++) { puts(inputs[i].source.text.data); puts(inputs[i].shared.text.data); }
+    }
+    // The service joins before releasing sources/worlds and requires budget
+    // disposal to succeed. Never read the freed budget to claim a zero census.
+    frontend_units_close(batch);
+    puts(ok ? "Seeded batch passed; lanes drained and checked world/budget close completed." : "Seeded batch FAILED; lanes checked and world/budget close completed.");
+    fflush(null);
+    return ok;
+}
+
+fn seed_receipt_dispose(receipt: SeedReceipt*): void {
+    vector_dispose(&receipt.canonical); vector_dispose(&receipt.diagnostic);
+}
+
+fn compiler_dependency_seeded_tests(root: u8*, selection: u8*): i32 {
+    units_check(work_thread_available() && work_thread_capacity() >= 2, "Seeded dependency test requires two native lanes");
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    var seeds: u32[3]; seeds[0] = 2; seeds[1] = 17; seeds[2] = 101;
+    var wrong = strcmp(selection, "dependency-stress-wrong-result") == 0;
+    var serial_only = strcmp(selection, "dependency-stress-serial") == 0 || wrong;
+    var parallel_only = strcmp(selection, "dependency-stress-parallel") == 0;
+    for(var i: usize = 0; i < sizeof(decltype(seeds)) / sizeof(u32); i++) {
+        var ignored: SeedReceipt = default; defer seed_receipt_dispose(&ignored);
+        if !serial_only && !parallel_only
+            && !seed_trial(root, bedrock.data, foundation.data, seeds[i], 2, "cancel", false, &ignored) { return 1; }
+        for(var failure: usize = 0; failure < 2; failure++) {
+            var serial: SeedReceipt = default; var parallel: SeedReceipt = default;
+            defer seed_receipt_dispose(&serial); defer seed_receipt_dispose(&parallel);
+            var mode = failure == 0 ? "success" : "cycle";
+            if !parallel_only && !seed_trial(root, bedrock.data, foundation.data, seeds[i] + 1, 1, mode, wrong, &serial) { return 1; }
+            if !serial_only && !seed_trial(root, bedrock.data, foundation.data, seeds[i] + 1, 2, mode, false, &parallel) { return 1; }
+            if !serial_only && !parallel_only {
+                if serial.offset != parallel.offset || serial.canonical.length != parallel.canonical.length
+                    || serial.diagnostic.length != parallel.diagnostic.length
+                    || !utility_equal(serial.canonical.data, parallel.canonical.data, serial.canonical.length)
+                    || !utility_equal(serial.diagnostic.data, parallel.diagnostic.data, serial.diagnostic.length) {
+                    puts("Seeded serial/two-worker canonical/error receipt differs after checked cleanup"); return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
