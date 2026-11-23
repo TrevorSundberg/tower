@@ -40,6 +40,14 @@ fn work_order_tests(): void {
     var stale: WorkTicket;
     utility_check(work_take(&graph, &stale) && stale.task == consumers.data[pairs - 1],
         "Ordinary dispatch retains completion-order FIFO");
+    var stale_revision = stale;
+    stale_revision.revision++;
+    utility_check(!work_finish(&graph, &stale_revision, true) && graph.running == 1,
+        "Another revision cannot publish or release the current dispatch");
+    var stale_profile = stale;
+    stale_profile.profile++;
+    utility_check(!work_finish(&graph, &stale_profile, false) && graph.running == 1,
+        "Another semantic profile cannot fail or release the current dispatch");
     utility_check(work_yield(&graph, &stale), "Yield leaves a consumed ready entry and stale receipt");
     utility_check(work_order_ready(&graph), "Order complete ready frontier at phase join");
     for(var i: usize = 0; i < pairs; i++) {
