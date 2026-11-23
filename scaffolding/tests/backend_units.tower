@@ -29,6 +29,11 @@ extern fn compiler_work_graph(work: void*): void*;
 extern fn compiler_work_anchor(work: void*): void*;
 extern fn backend_bytes(backend: void*): u8*;
 extern fn backend_size(backend: void*): usize;
+extern fn backend_raw(backend: void*): u8*;
+extern fn backend_optimized(backend: void*): u8*;
+extern fn backend_retain_ir(backend: void*, retain: bool): bool;
+extern fn backend_units_retain_ir(batch: void*, retain: bool): bool;
+extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
 extern fn frontend_units_observer(frontend: void*, context: void*,
     event: function(void, void*, CompilerQuery, usize, bool)): bool;
 extern fn frontend_units_peak(frontend: void*): usize;
@@ -256,6 +261,76 @@ var BackendFixtureUnits: usize = 4;
 var BackendFixtureRevision: u64 = 75;
 var BackendFixtureProfile: u64 = 19;
 
+export fn backend_units_ir_tests(root: u8*): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    var references: vector(u8) = default;
+    defer { vector_dispose(&bedrock); vector_dispose(&foundation); vector_dispose(&references); }
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    units_read(root, "/tests/backend_execution_roots.tower", &references);
+    var sources: u8*[3];
+    sources[0] = "import tower; export fn answer():i32{return 42;}";
+    sources[1] = references.data;
+    sources[2] = "import tower; struct Pair{left:i32;right:i32;} fn use(value:i32):i32{var pair:Pair;pair.left=value;pair.right=2;return pair.left+pair.right;} export fn answer():i32{return use(40);}";
+    var count = sizeof(decltype(sources)) / sizeof(u8*);
+    var frontend = frontend_units_create(count, 1, 8, BackendFixtureRevision, BackendFixtureProfile, bedrock.data, foundation.data, root);
+    units_check(frontend != null, "IR policy frontend");
+    defer frontend_units_close(frontend);
+    for(var i: usize = 0; i < count; i++) {
+        units_check(frontend_units_source(frontend, i + 1, "backend_retention.tower", sources[i], strlen(sources[i])), "IR policy input");
+    }
+    while !frontend_units_step(frontend, true) {}
+    units_check(frontend_units_failed(frontend) == 0 && !frontend_units_cancelled(frontend), "IR policy checked Foundation");
+    var policies: bool[2]; policies[0] = true; policies[1] = false;
+    var variants = sizeof(decltype(policies)) / sizeof(bool);
+    for(var optimize: usize = 0; optimize < variants; optimize++) {
+        var reference_bytes: vector(u8) = default;
+        defer vector_dispose(&reference_bytes);
+        for(var policy: usize = 0; policy < variants; policy++) {
+            var retain = policies[policy];
+            var batch = backend_units_create(frontend, count, retain ? 1 : count,
+                "x86_64-pc-linux-gnu", true, policies[optimize]);
+            units_check(batch != null && backend_units_library(batch, 2, false), "IR policy backend/global entry");
+            defer backend_units_close(batch);
+            // Default is deliberately tested too: existing consumers still own
+            // both text snapshots without opting in to the new policy.
+            if !retain { units_check(backend_units_retain_ir(batch, false), "IR policy before dispatch"); }
+            while !backend_units_step(batch, true) {}
+            units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 0, "IR policy backend success");
+            units_check(!backend_units_retain_ir(batch, true), "IR policy frozen after dispatch");
+            var compared: usize = 0;
+            for(var ordinal: usize = 1; ordinal <= count; ordinal++) {
+                var result = backend_units_result(batch, ordinal);
+                units_check(result != null && !backend_retain_ir(result, !retain), "IR policy frozen after lowering");
+                var raw = backend_raw(result); var optimized = backend_optimized(result);
+                units_check(retain ? (raw != null && raw[0] != 0 && optimized != null && optimized[0] != 0)
+                    : (raw == null && optimized == null), "IR views match explicit/default retention policy");
+                var bytes = backend_bytes(result);
+                for(var i: usize = 0; i < backend_size(result); i++) {
+                    if retain { units_check(vector_push(&reference_bytes, bytes[i]), "IR policy reference object"); }
+                    else { units_check(compared < reference_bytes.length && reference_bytes.data[compared] == bytes[i], "IR policy exact object bytes"); }
+                    compared++;
+                }
+            }
+            units_check(compared == reference_bytes.length, "IR policy exact combined object size");
+        }
+    }
+    var invalid = backend_units_create(frontend, count, count, "not-a-real-target", true, false);
+    units_check(invalid != null && backend_units_retain_ir(invalid, false), "IR policy error setup");
+    while !backend_units_step(invalid, true) {}
+    units_check(backend_units_failed(invalid) == 1 && backend_units_error(invalid)[0] != 0
+        && backend_units_result(invalid, 1) == null, "IR policy preserves ordered errors and hidden output");
+    backend_units_close(invalid);
+    var cancelled = backend_units_create(frontend, count, count, "x86_64-pc-linux-gnu", true, false);
+    units_check(cancelled != null && backend_units_retain_ir(cancelled, false)
+        && backend_units_library(cancelled, 2, false), "IR policy cancellation setup");
+    backend_units_step(cancelled, false);
+    backend_units_cancel(cancelled);
+    units_check(backend_units_step(cancelled, false), "IR policy cancellation drains");
+    if backend_units_cancelled(cancelled) { units_check(backend_units_result(cancelled, 1) == null, "IR policy cancellation hides output"); }
+    backend_units_close(cancelled);
+    puts("Backend IR retention: exact serial/parallel objects, references/types/globals, optimization, errors and cancellation passed.");
+}
+
 fn backend_units_inputs(width: u32, budget: usize, root: u8*, bedrock: u8*, foundation: u8*): void* {
     var frontend = frontend_units_create(BackendFixtureUnits, budget, width,
         BackendFixtureRevision, BackendFixtureProfile, bedrock, foundation, root);
@@ -367,6 +442,7 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     var batch = backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true);
     units_check(batch != null, "backend batch create");
     defer { if batch != null { backend_units_close(batch); } }
+    if streaming { units_check(backend_units_retain_ir(batch, false), "streaming object-only IR policy"); }
     units_check(backend_units_result(batch, 1) == null, "backend unpublished output");
     units_check(backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true) == null,
         "backend rejects competing graph owner");

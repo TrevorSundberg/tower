@@ -3,6 +3,7 @@ import context;
 import target;
 import lowering;
 import pipeline;
+import observation_types;
 import .compiler.semantic_program_types;
 import .library.compiler_work_types;
 import .library.work_graph;
@@ -59,6 +60,8 @@ struct BackendUnit {
 }
 
 struct BackendUnits {
+    observation: BackendObservation;
+    discard_ir: bool;
     frontend: void*;
     work: void*;
     graph: WorkGraph*;
@@ -132,8 +135,16 @@ fn backend_unit_execute(payload: void*): void {
     var batch = job.batch;
     frontend_units_observe(batch.frontend, CompilerQuery.Backend, job.ordinal, true);
     defer frontend_units_observe(batch.frontend, CompilerQuery.Backend, job.ordinal, false);
+    var observation = batch.observation;
+    observation.ordinal = job.ordinal;
+    backend_observation_event(&observation, BackendPhase.Setup, true);
     job.backend = backend_open(batch.target.data);
+    backend_observation_event(&observation, BackendPhase.Setup, false);
     if job.backend == null { return; }
+    job.backend.observation = observation;
+    if !backend_retain_ir(job.backend, !batch.discard_ir) {
+        job.resource_error = "Cannot configure fresh backend IR retention"; return;
+    }
     var program = job.program;
     job.success = backend_lower(job.backend, program.root, program.functions.data,
         program.functions.length, program.pointer_bytes, job.library);
@@ -319,6 +330,22 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
         batch.attached = true;
     }
     return batch;
+}
+
+// Freeze callbacks and borrowed context before dispatch; keep them alive until
+// the final join. Independent unit callbacks may run concurrently.
+export fn backend_units_observer(batch: BackendUnits*, context: void*,
+    event: function(void, void*, usize, BackendPhase, bool)): bool {
+    if batch == null || batch.started || batch.finished { return false; }
+    batch.observation.context = context;
+    batch.observation.event = event;
+    return true;
+}
+
+export fn backend_units_retain_ir(batch: BackendUnits*, retain: bool): bool {
+    if batch == null || batch.started || batch.finished { return false; }
+    batch.discard_ir = !retain;
+    return true;
 }
 
 // Override before dispatch only: a program entry and independent library units

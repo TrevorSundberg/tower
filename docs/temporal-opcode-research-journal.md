@@ -82871,3 +82871,100 @@ Owned jobs drained. Earlier timing receipts keep their measured compiler identit
 no repeated profiling or broad gates. The remaining scratch/synthesis and legacy
 caller admissions above remain pending; stage leases stay A2-owned. Normal main
 push follows this receipt; final lane status records the verified remote commit.
+### 2026-11-23 B2: measured object-only backend text retention
+
+Bounded follow-up to 9dd90fc1/5ee5a9de's single4096 backend critical path.
+Initial main pull fast-forwarded to b959ad59; owned jobs were idle. Production
+compiler, LLVM19, Release native CMake cache; Linux6.18.33.2 WSL2 Docker
+`/work` and `/cache/native`, CPU12-23 = six physical cores/12 SMT, quota12,
+24GiB. No B1 CPUs, extra pool, parallel LLVM-context mutation or new source IR.
+
+First added optional phase callbacks to existing backend services and the Tower
+frontend_units_profile. The initial combined phases located the cost; separating
+verification from rendering then measured single4096/8 at: setup2.659ms,
+preparation/reachability50.644ms, declarations3.724ms, body IR114.648ms,
+verification31.776ms, raw text163.676ms, optimization-disabled verification33.493ms,
+optimized text162.042ms, emission2291.242ms. Backend total2853.910ms of4845.576ms.
+Thus two unconditional LLVMPrintModuleToString traversals cost325.718ms despite
+object-only callers never consuming the snapshots. Existing reachability/index
+preparation and body construction are much smaller; no new index/threading layer
+is justified by this measurement. Emission remains LLVMTargetMachineEmitToMemoryBuffer.
+
+Implemented backend_retain_ir (backend/context.tower) and
+backend_units_retain_ir plus backend_units_observer (backend/units.tower).
+Defaults retain both text views for existing consumers. Configure before lowering
+or dispatch; object-only opt-out leaves getters null, retains BOTH verifier calls,
+passes, target/flags, object bytes, diagnostics and ownership cleanup. Native
+single/multi-unit object/executable callers opt out unless explicit LLVM output
+or IR sidecars are requested. Interpreter normalization keeps its old policy.
+Callbacks borrow frozen context through final joins and have disjoint per-unit
+profile slots; no scheduler/wake/cancellation/publication changes. Phase enum and
+callback contract live in backend/observation_types.tower. This is a measured
+serial optimization, not within-unit parallel execution.
+
+Frozen before/after executable SHA256 respectively:
+56937c4ede924f2b5e9c1a82e65b0c4a14285477d19fe4dc9bd400765068ce71
+77409f422ad4638dbb81582278ab0efa64f6b1c1ec26d4181744c8e0b6b04682.
+Before is retained at /cache/b2_backend_before_profile (phase observer included,
+full text capture). Original scaling executable also remains intact. One warmup
+and ONE retained sample each, same absolute executable path, fresh worlds and
+warm filesystem, `/cache/native/tower-frontend-units-profile /work/scaffolding`
+with args below, optimize=false, target x86_64-pc-linux-gnu, library=true.
+Numbers are the existing profile's compilation interval (checks/close excluded),
+CPU seconds and process peak KiB; outer wrapper totals are retained separately.
+
+| Args | Wall before/after s | CPU before/after s | RSS before/after KiB | Backend sum before/after s |
+| --- | --- | --- | --- | --- |
+| 1 1 4096 backend | 5.227074 / 4.909680 | 5.184068 / 4.864471 | 704416 / 658076 | 2.873336 / 2.512934 |
+| 1 8 4096 backend | 4.845576 / 4.466689 | 5.757200 / 5.394001 | 720752 / 681360 | 2.853910 / 2.479174 |
+| 3 8 32 backend spread | 1.283427 / 1.237433 | 4.476493 / 4.325836 | 481128 / 486468 | .044933 / .043469 |
+
+Single8 rendering falls325.718ms ->1.773us observer cost, wall7.82% lower and
+backend13.13% lower; single1 wall6.07% lower. Emission2.291->2.243s is variation,
+not an emission optimization. Single8 emission still consumes90.5% of backend,
+50.2% of compilation time, on ONE kernel/thread. Parallel frontend lanes do not
+parallelize this call. Multi-unit control variation (~1.1% higher RSS) does not
+establish throughput improvement. One sample is not a statistical scaling claim.
+
+All frozen warmups/samples preserve single canonical9448338333252003545,
+object13213760278028976691,843432bytes,618206entities/759748components;
+multi canonical9876463981636749913,object2694953137626190553,12072bytes,
+55338entities/63804components. Interpreter answer42/body_0(36)==42 checks pass.
+Single1 charged retained/peak280582535/342466831bytes; single8
+280579711/342453159; ledger5242880: unchanged before/after. LLVM text allocation
+is outside that buffer ledger, explaining RSS reduction without changing charged
+retention. Multi retained18623955 unchanged; admitted peak202041882->203097011
+(overlap-dependent), ledger20971520. Observed outer/kernel peak1 for single and3
+for multi, shared lane peak1/8 as requested, ceilings respected. Multi after
+ready-outer vacancy upper bound82342lane-ns, no sustained ready queue or measured
+new refill gap. Budget grants and CPU load are not proof of nested leaf overlap.
+
+Focused validation: backend-ir PASS (3.371wall/3.259CPU/221132KiB), default serial
+versus omitted-text parallel exact objects at optimize=true/false, one/small
+functions, direct/function-value/recursive calls, record types and globals;
+policy immutability, first-ordinal invalid-target errors and cancellation drain.
+backend-overlap-calibrated PASS (7.900wall/10.133CPU/523264KiB), default serial
+reference versus object-only streaming, distinct live threads and exact objects.
+Frontend-only3/4/0 passes with empty phase array. Native towerc existing
+backend_execution_roots fixture PASS for object, object+both IR sidecars, llvm,
+llvm-optimized; cmp proves identical objects and matching explicit/sidecar IR.
+Flags: --jobs 1 --target x86_64-pc-linux-gnu --bedrock /work/scaffolding/bedrock.tower
+--foundation /work/scaffolding/foundation.tower --no-optimize. No new language
+syntax/bootstrap adoption. The dependency-aware native build generated required
+CLI runtime resources; that is not supported-platform validation.
+
+Evidence: build/b2_backend_{before,after}_{single1,single8,multi8}_{warmup,sample}.log,
+phase_build/phase_split_build/after_build/after_build2/stream_build logs,
+ir_test/stream_test/frontend_control/cli_* logs. Initial focused test build failed
+on reserved local name expected, renamed reference_bytes; failed log retained,
+owned jobs drained before edit. Final affected targets passed. Host lacks
+/usr/bin/time; existing /cache/process_profile supplied wall/CPU/RSS wrappers.
+
+Remaining actionable limit: private per-body LLVM modules/contexts and target
+machines, explicit cross-function/type/global declarations and deterministic
+coordinator reconstruction/linking are prerequisites to parallel object emission.
+Current one-context unit cannot safely dispatch its body emission concurrently.
+Measure that partition/reconstruction cost before adopting it. No shared-context
+concurrency, noalias, alias guarantees or new authoritative IR is proposed here.
+Full sanitizer/browser/platform/bootstrap/release checks and deployment remain
+pending ROOT's integrated milestone, not passed by these focused native checks.

@@ -12,6 +12,7 @@ import .compiler.foundation_types;
 import .compiler.component_kinds;
 import .compiler.format_types;
 import .compiler.interpreter_context_types;
+import .backend.observation_types;
 
 // Linux x64 observation ABI. Each invocation owns fresh worlds; filesystem
 // caches may be warm. Timed work ends before reference execution/formatting.
@@ -42,6 +43,8 @@ extern fn entity_store_component_count(store: void*): usize;
 extern fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32,
     revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
+extern fn backend_units_observer(batch: void*, context: void*, event: function(void, void*, usize, BackendPhase, bool)): bool;
+extern fn backend_units_retain_ir(batch: void*, retain: bool): bool;
 extern fn backend_units_close(batch: void*): void;
 extern fn backend_units_step(batch: void*, wait: bool): bool;
 extern fn backend_units_failed(batch: void*): usize;
@@ -69,6 +72,15 @@ fn units_profile_event(context: void*, phase: CompilerQuery, ordinal: usize, ent
     var index = phase == CompilerQuery.Unit ? UnitsProfileFrontendPhase : UnitsProfileBackendPhase;
     units_check(index < events.phases, "profile configured phase");
     var span = &events.spans[index * events.count + ordinal - 1];
+    if entering { span.start = units_profile_clock(); span.thread = pthread_self(); }
+    else { span.end = units_profile_clock(); }
+}
+
+fn units_profile_backend_event(context: void*, phase_ordinal: usize, phase: BackendPhase, entering: bool): void {
+    var events = bits(UnitsProfileEvents*, context);
+    var index = convert(usize, phase);
+    units_check(index < events.phases && phase_ordinal != 0 && phase_ordinal <= events.count, "profile backend phase bounds");
+    var span = &events.spans[index * events.count + phase_ordinal - 1];
     if entering { span.start = units_profile_clock(); span.thread = pthread_self(); }
     else { span.end = units_profile_clock(); }
 }
@@ -154,6 +166,15 @@ export fn main(argc: i32, argv: u8**): i32 {
     fill(spans, 0, span_count * sizeof(UnitsProfileSpan));
     defer free(spans);
     var events = init(UnitsProfileEvents) { spans: spans, count: count, phases: phases };
+    var backend_phase_count = backend_mode ? convert(usize, BackendPhase.Count) : 0;
+    var backend_spans: UnitsProfileSpan* = null;
+    if backend_phase_count != 0 {
+        backend_spans = alloc(UnitsProfileSpan, count * backend_phase_count);
+        units_check(backend_spans != null, "profile backend spans");
+        fill(backend_spans, 0, count * backend_phase_count * sizeof(UnitsProfileSpan));
+    }
+    defer free(backend_spans);
+    var backend_events = init(UnitsProfileEvents) { spans: backend_spans, count: count, phases: backend_phase_count };
     var before: UnitsProfileUsage;
     var after: UnitsProfileUsage;
     units_check(getrusage(0, &before) == 0, "profile before usage");
@@ -176,6 +197,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     if backend_mode {
         backend = backend_units_create(batch, count, budget, "x86_64-pc-linux-gnu", true, false);
         units_check(backend != null, "profile bounded streaming backend");
+        units_check(backend_units_retain_ir(backend, false), "profile object-only IR policy");
+        units_check(backend_units_observer(backend, bits(void*, &backend_events), units_profile_backend_event), "profile backend observer");
     }
     defer { if backend != null { backend_units_close(backend); } }
     while !frontend_units_step(batch, true) {}
@@ -348,7 +371,20 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_profile_text(&out, ",\"entities\":"); units_profile_number(&out, convert(u64, entities));
     units_profile_text(&out, ",\"components\":"); units_profile_number(&out, convert(u64, components));
     units_profile_text(&out, ",\"canonical_hash\":"); units_profile_number(&out, hash);
-    units_profile_text(&out, ",\"spans\":[");
+    units_profile_text(&out, ",\"backend_phase_ns\":[");
+    for(var phase: usize = 0; phase < backend_phase_count; phase++) {
+        var total: u64 = 0;
+        for(var ordinal: usize = 0; ordinal < count; ordinal++) {
+            var span = &backend_spans[phase * count + ordinal];
+            var outer = &spans[UnitsProfileBackendPhase * count + ordinal];
+            units_check(span.start >= outer.start && span.end >= span.start && span.end <= outer.end
+                && span.thread == outer.thread, "profile backend phase interval");
+            total += span.end - span.start;
+        }
+        if phase != 0 { units_profile_text(&out, ","); }
+        units_profile_number(&out, total);
+    }
+    units_profile_text(&out, "],\"spans\":[");
     for(var i: usize = 0; i < span_count; i++) {
         if i != 0 { units_profile_text(&out, ","); }
         units_profile_text(&out, "{\"phase\":"); units_profile_number(&out, convert(u64, i / count));
