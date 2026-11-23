@@ -1565,7 +1565,8 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     sem_declaration_add_result(c, node);
 }
 
-fn sem_declaration_add_result(c: SemanticContext*, node: void*): bool {
+export fn sem_declaration_add_result(c: SemanticContext*, node: void*): bool {
+    if !sem_ok(c) { return false; }
     var result = sem_declaration_state_result(c, node);
     if result == null { return false; }
     if result.query != 0 { return true; }
@@ -1575,7 +1576,6 @@ fn sem_declaration_add_result(c: SemanticContext*, node: void*): bool {
         if sem_state(c, c.fields_done, node) == null { return false; }
     }
     if c.declaration_subjects != null && !sem_push_checked(c, c.declaration_subjects, node) {
-        sem_type_resource(c, node, WorkBudgetError.Memory);
         return false;
     }
     if !vector_push(&c.declaration_jobs, bits(void*, result)) {

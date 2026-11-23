@@ -811,8 +811,8 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         }
         var owner = request.owner;
         var sequence = request.sequence + 1;
-        vector_dispose(&request.error);
-        *request = { owner: owner, subject: node, sequence: sequence, kind: n.op, ..default };
+        work_vector_dispose(&request.error);
+        *request = { owner: owner, subject: node, sequence: sequence, kind: n.op, budget: m.state.budget, ..default };
         if n.left != null { request.first = ix_read(m, n.left, offset); }
         if n.right != null { request.second = ix_read(m, n.right, offset); }
         if !ix_ok(m) { return 0; }
@@ -827,10 +827,17 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         }
     }
     if request.failed {
+        if m.state.storage_error == WorkBudgetError.None { m.state.storage_error = request.storage_error; }
         if request.error.length == 0 {
             ix_fail(m, "Type construction failed", offset);
         } else {
-            ix_context_fail_counted(m, request.error.data, request.error.length, offset);
+            // Transfer the producer's counted diagnostic and grant; no second allocation.
+            if !m.state.failed {
+                m.state.failed = true;
+                m.state.done = true;
+                m.state.error_offset = offset;
+                work_vector_move(&m.context.error, &request.error);
+            }
         }
         return 0;
     }
@@ -1763,6 +1770,7 @@ export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*
     invocation.state.stack = 16;
     invocation.state.heap = 4194304;
     invocation.context.root = function;
+    invocation.state.budget = compiler_world_work_budget(compiler_node_world(function));
     invocation.context.pointer_bytes = pointer_bytes;
     invocation.context.strict = strict;
     invocation.context.fuel = fuel;
@@ -1815,10 +1823,10 @@ export fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize):
 
 export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     interpreter_storage_dispose(&invocation.state);
-    vector_dispose(u8, &invocation.context.error);
-    vector_dispose(u8, &invocation.context.output);
+    work_vector_dispose(&invocation.context.error);
+    work_vector_dispose(&invocation.context.output);
     work_vector_dispose(&invocation.context.initialized);
-    vector_dispose(&invocation.context.type_construction.error);
+    work_vector_dispose(&invocation.context.type_construction.error);
     work_vector_dispose(&invocation.context.input_storage);
     *invocation = default;
 }

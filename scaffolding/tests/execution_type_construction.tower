@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import execution_support;
 import .compiler.execution_session;
 import .compiler.interpreter_context_types;
@@ -89,7 +90,10 @@ fn execution_type_storage_tests(width: u32): void {
                 && session.machine.type_values.values.length == 0, "graph reaches effect before first type value");
         }
         var occupied: WorkReservation = default;
-        if denied { construction_storage_fill(&budget, &occupied); }
+        if denied {
+            execution_check(work_vector_reserve(&session.error, &budget, strlen("Cannot allocate interpreter execution cache") + 1), "Pre-admit type failure presentation");
+            construction_storage_fill(&budget, &occupied);
+        }
         if fast {
             execution_check(execution_session_fast(&session) == !denied,
                 "fast cache propagates type-storage admission result");
@@ -148,6 +152,7 @@ fn execution_type_storage_tests(width: u32): void {
         && invocation.context.output.length == 2, "constructor operands precede descriptor admission");
     request.result = { scalar: SI32, pointer_bytes: width, ..default };
     request.ready = true;
+    execution_check(work_vector_reserve(&invocation.context.error, &budget, strlen("Cannot allocate interpreter type storage") + 1), "Pre-admit constructor failure presentation");
     var occupied: WorkReservation = default;
     construction_storage_fill(&budget, &occupied);
     interpreter_invocation_step(&invocation, 1000);
@@ -272,7 +277,7 @@ fn execution_type_construction_tests(modules: void*): void {
         var message = "Constructor producer rejected the requested type";
         var message_length = strlen(message);
         execution_check(invocation.context.waiting_type && request.subject == construct
-            && !invocation.state.failed && vector_reserve(&request.error, message_length),
+            && !invocation.state.failed && work_vector_reserve(&request.error, invocation.state.budget, message_length),
             "counted constructor failure reaches its real waiting producer");
         execution_check(invocation.state.frame_count != 0, "waiting constructor retains its frame");
         var frame = &invocation.state.frames.data[invocation.state.frame_count - 1];
@@ -293,16 +298,16 @@ fn execution_type_construction_tests(modules: void*): void {
         execution_check(invocation.state.failed && !invocation.context.returned
             && invocation.state.error_offset == continuation.offset,
             "counted constructor failure preserves the continuation source offset");
-        execution_check(request.error.data == storage && request.error.capacity == extent
-            && request.error.length == extent && request.failed && !request.ready,
-            "counted constructor failure preserves producer storage");
+        execution_check(request.error.data == null && request.error.capacity == 0
+            && request.error.length == 0 && request.failed && !request.ready,
+            "counted constructor failure transfers producer storage");
         execution_check(invocation.context.error.length == extent
-            && memcmp(invocation.context.error.data, request.error.data, extent) == 0,
+            && invocation.context.error.data == storage,
             "counted constructor failure preserves the exact diagnostic");
-        execution_check(memcmp(request.error.data, message, message_length) == 0,
+        execution_check(memcmp(invocation.context.error.data, message, message_length) == 0,
             "counted constructor diagnostic retains its prefix");
         for(var i = message_length; i < extent; i++) {
-            execution_check(request.error.data[i] == suffix, "counted constructor diagnostic retains its suffix");
+            execution_check(invocation.context.error.data[i] == suffix, "counted constructor diagnostic retains its suffix");
         }
         var steps = invocation.state.steps;
         var sequence = request.sequence;

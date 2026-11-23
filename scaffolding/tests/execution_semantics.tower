@@ -114,6 +114,12 @@ fn execution_semantic_tests(modules: void*): void {
                 driver_text(&detail, " (entry base ");
                 host_json_unsigned(&detail, convert(u64, execution_semantic_entry_base(modules)));
                 driver_text(&detail, ")");
+                driver_text(&detail, " program offset ");
+                host_json_unsigned(&detail, convert(u64, session.program.error_offset));
+                driver_text(&detail, " resource ");
+                host_json_unsigned(&detail, convert(u64, session.program.resource.error));
+                driver_text(&detail, " at ");
+                host_json_unsigned(&detail, convert(u64, session.program.resource.offset));
                 host_text_terminate(&detail); puts(detail.data); bytes_dispose(&detail);
             }
             execution_check(exact, "exact semantic diagnostic/offset");

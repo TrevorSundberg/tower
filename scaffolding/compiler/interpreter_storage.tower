@@ -68,15 +68,7 @@ fn im_storage_result(m: IMState*, result: WorkBudgetError): bool {
     return false;
 }
 
-// Remaining diagnostic allocation failure retains the fatal host policy.
-// Guest allocation itself has a separate, recoverable null-result contract.
-extern fn abort(): void;
 
-fn im_storage_require(ok: bool): void {
-    if !ok {
-        abort();
-    }
-}
 
 // Sorted u64 maps: deterministic lower-bound lookup, with contiguous storage.
 // Values and keys are execution facts; the foundation nodes remain authoritative.

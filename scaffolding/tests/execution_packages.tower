@@ -1,4 +1,7 @@
 import tower;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_text;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -20,14 +23,14 @@ fn execution_package_resource_tests(modules: void*, width: u32): void {
     var root = session.program.root;
     var store = compiler_world_store(compiler_host_world());
     var count = entity_store_count(store);
-    var output: ByteBuffer = default;
-    var error: ByteBuffer = default;
-    defer bytes_dispose(&output);
-    defer bytes_dispose(&error);
+    var output: work_vector(u8) = default;
+    var error: work_vector(u8) = default;
+    defer work_vector_dispose(&output);
+    defer work_vector_dispose(&error);
     sem_resource_record(&session.program, WorkBudgetError.Memory, 0);
-    execution_check(execution_append_text(&output, "stale package"), "resource package output seed");
-    execution_check(!execution_package_encode(&session.program, modules, 0, &output, &error)
-        && output.length == 0 && execution_text(&error, sem_resource_message(WorkBudgetError.Memory)),
+    execution_check(work_text_write(&output, session.machine.budget, "stale package", strlen("stale package"), false) == WorkBudgetError.None, "resource package output seed");
+    execution_check(execution_package_encode(&session.program, modules, 0, &output, &error) != WorkBudgetError.None
+        && execution_text(&output, "stale package") && execution_text(&error, sem_resource_message(WorkBudgetError.Memory)),
         "empty semantic diagnostic cannot authorize package encoding");
     var diagnostic = "Retained package resource diagnostic";
     var length = strlen(diagnostic);
@@ -37,8 +40,8 @@ fn execution_package_resource_tests(modules: void*, width: u32): void {
     copy(session.program.error.data, diagnostic, length);
     copy(session.program.error.data + length, trailing, extra);
     session.program.error.length = length;
-    execution_check(!execution_package_encode(&session.program, modules, 0, &output, &error)
-        && output.length == 0 && execution_text(&error, diagnostic)
+    execution_check(execution_package_encode(&session.program, modules, 0, &output, &error) != WorkBudgetError.None
+        && execution_text(&output, "stale package") && execution_text(&error, diagnostic)
         && session.program.root == root && entity_store_count(store) == count,
         "resource package gate retains source diagnostic without reconstructing entities");
     execution_close_checked(&session);
@@ -53,19 +56,19 @@ fn execution_package_tests(modules: void*): void {
         fill(&original, 0, sizeof(ExecutionSession));
         fill(&decoded, 0, sizeof(ExecutionSession));
         execution_compile(&original, "import tower; var p = alloc(i32, 2); p[0] = 42; print(p[0]); print(sizeof(usize)); free(p);", width, modules);
-        var bytes: ByteBuffer;
-        var repeated: ByteBuffer;
-        var error: ByteBuffer;
-        fill(&bytes, 0, sizeof(ByteBuffer));
-        fill(&repeated, 0, sizeof(ByteBuffer));
-        fill(&error, 0, sizeof(ByteBuffer));
-        var encoded = execution_package_encode(&original.program, modules, 0, &bytes, &error);
+        var bytes: work_vector(u8);
+        var repeated: work_vector(u8);
+        var error: work_vector(u8);
+        fill(&bytes, 0, sizeof(work_vector(u8)));
+        fill(&repeated, 0, sizeof(work_vector(u8)));
+        fill(&error, 0, sizeof(work_vector(u8)));
+        var encoded = execution_package_encode(&original.program, modules, 0, &bytes, &error) == WorkBudgetError.None;
         if !encoded { execution_error("Package: ", error.data ?? "no diagnostic"); }
         execution_check(encoded, "package encodes");
         execution_check(bytes.length >= 56, "complete envelope");
         execution_check(execution_package_load(&decoded, bytes.data, bytes.length, modules), "package reconstructs checked graph");
         execution_check(decoded.program.pointer_bytes == width, "target width retained");
-        execution_check(execution_package_encode(&decoded.program, modules, 0, &repeated, &error), "reconstructed package re-encodes");
+        execution_check(execution_package_encode(&decoded.program, modules, 0, &repeated, &error) == WorkBudgetError.None, "reconstructed package re-encodes");
         execution_check(execution_equal(&bytes, &repeated), "byte-identical canonical re-encoding");
         execution_run(&original, 7, 10000);
         execution_run(&decoded, 7, 10000);
@@ -77,25 +80,26 @@ fn execution_package_tests(modules: void*): void {
         execution_check(!execution_package_load(&decoded, bytes.data, 55, modules), "truncated header rejected");
         execution_compile(&original, "import tower; print(42);", width, modules);
         execution_check(execution_session_fast(&original), "cache verification fixture starts");
-        var size: usize = 0;
+        var mismatch: work_vector(u8) = default;
+        var embedded: work_vector(u8) = default;
         // The public envelope encoder supplies a valid checksum. Only checking
         // its reconstructed Foundation against the derived cache can reject this.
         var mismatch_source = "import tower; print(43);";
-        var mismatch = bytecode_encode(original.fast, mismatch_source, strlen(mismatch_source), convert(usize, width), 0, &size);
-        execution_check(mismatch != null && bytecode_validate(mismatch, size) == 0, "mismatched cache has valid envelope/checksum");
-        execution_check(!execution_package_load(&decoded, mismatch, size, modules)
+        var mismatch_result = bytecode_encode(original.fast, mismatch_source, strlen(mismatch_source), convert(usize, width), 0, &mismatch);
+        execution_check(mismatch_result == WorkBudgetError.None && bytecode_validate(mismatch.data, mismatch.length) == 0, "mismatched cache has valid envelope/checksum");
+        execution_check(!execution_package_load(&decoded, mismatch.data, mismatch.length, modules)
             && execution_text(&decoded.error, bytecode_error(9)), "Foundation/cache mismatch rejected");
         execution_session_step(&decoded, 1000);
         execution_check(decoded.machine.steps == 0 && decoded.output.length == 0, "unverified cache cannot execute");
-        bytecode_free(mismatch);
+        work_vector_dispose(&mismatch);
         var nul: u8[3]; nul[0] = 120; nul[1] = 0; nul[2] = 121;
-        var embedded = bytecode_encode(original.fast, &nul[0], 3, convert(usize, width), 0, &size);
-        execution_check(embedded != null && bytecode_validate(embedded, size) == 0, "embedded NUL has valid envelope/checksum");
-        execution_check(!execution_package_load(&decoded, embedded, size, modules)
+        var embedded_result = bytecode_encode(original.fast, &nul[0], sizeof(decltype(nul)), convert(usize, width), 0, &embedded);
+        execution_check(embedded_result == WorkBudgetError.None && bytecode_validate(embedded.data, embedded.length) == 0, "embedded NUL has valid envelope/checksum");
+        execution_check(!execution_package_load(&decoded, embedded.data, embedded.length, modules)
             && execution_text(&decoded.error, "NUL in .towerbc Foundation source"), "bounded source NUL rejected before parsing");
-        bytecode_free(embedded);
+        work_vector_dispose(&embedded);
         execution_session_close(&original); execution_session_close(&decoded);
-        bytes_dispose(&bytes); bytes_dispose(&repeated); bytes_dispose(&error);
+        work_vector_dispose(&bytes); work_vector_dispose(&repeated); work_vector_dispose(&error);
 
     }
 }

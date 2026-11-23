@@ -422,6 +422,14 @@ retry. Sweep bounds and retained test arrays derive from each successful run's
 allocation count. This uses the single-owner fault allocator; real concurrency
 is checked separately by `tower-lr-work-tests RESOURCE_ROOT lr` and unit profiles.
 
+`tower-storage-tests RESOURCE_ROOT diagnostic-faults` selects the diagnostic
+construction oracle with the same single-owner allocator. At both target widths
+it denies every observed allocation boundary for plain and generic-trace
+diagnostics, checks physical budget denial, preserves the explicit source offset
+when generated spans differ, and verifies private current/scope restoration.
+Retained semantic and resource failures reject later declaration admission without
+another allocation or diagnostic. This selector needs no grammar bootstrap run.
+
 Formatter fixtures now run in Tower. Configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
@@ -1530,6 +1538,19 @@ stride/back-reference overhead; archetype columns contain component pointers,
 not packed payloads. No hardware counters, parallel mutation, finite whole-world
 cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
 receipt and audit for measured source identity and limits.
+
+The execution `core` selector includes `execution_output_storage.tower`: counted
+first-error/output admission, no replay after capacity returns, graph/Fast parity,
+producer teardown with a retained package snapshot, transactional replacement and
+complete world/grant retirement at both target widths. `type-construction` covers
+counted constructor-diagnostic transfer without a second allocation; `query-smoke`
+observes typed capacity failures even when diagnostic storage is unavailable.
+
+For the changed Wasm/host boundary, enable `TOWER_IDE_PACKAGE_TESTS=ON`, build only
+`tower-browser`, and run `TOWER_TEST_WASM=/absolute/path/tower.wasm node --test
+playground/tests/bytecode.test.mjs`. The file closes its host transport and uses the
+selected artifact without requiring an unrelated default browser build. This is
+package coverage, not the browser concurrency or integrated release matrix.
 
 ### Focused LR closure ordering and frontend iteration cost
 

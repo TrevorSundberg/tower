@@ -16,6 +16,7 @@ import entity_page_faults;
 import entity_table_faults;
 import entity_stage_faults;
 import lr_runtime_faults;
+import semantic_diagnostic_storage;
 import utility_checks;
 import semantic_scratch_identity;
 
@@ -26,6 +27,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     utility_check(!work_thread_available() && work_thread_capacity() == 1,
         "Storage fault injection requires the single-owner work host");
     if argc == 3 {
+        if strcmp(argv[2], "diagnostic-faults") == 0 {
+            semantic_diagnostic_storage_tests();
+            return 0;
+        }
         if strcmp(argv[2], "scratch") == 0 { semantic_scratch_focused_tests(); return 0; }
         utility_check(strcmp(argv[2], "runtime-faults") == 0, "Unknown storage test selector");
         lr_runtime_fault_tests();
@@ -50,6 +55,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     *request.slot = null;
     compiler_storage_tests();
     generic_clone_storage_tests();
+    semantic_diagnostic_storage_tests();
     type_object_storage_tests();
     entity_registry_tests(argv[1]);
     entity_page_fault_tests();
