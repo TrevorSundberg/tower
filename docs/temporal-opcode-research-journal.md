@@ -79918,3 +79918,43 @@ allocation/error probe, sanitizer or profile was run. ROOT retains integrated
 validation/deployment; this inventory receipt claims neither compiler completion
 nor current runtime acceptance. Exact union/one-owner and receipt-exception checks pass;
 the scoped commit/push receipt is recorded in the existing A2 status.
+
+### B1 bounded parser request/pattern completion after integration (2026-11-23)
+
+The direct bounded task closes the request descriptor and seven-file pattern
+result batch: production5f3404bb/11041911, earlier native/measurement evidence
+e18a4557. Existing APIs and canonical grammar behavior are preserved; exact
+Capacity/Busy/Invalid/Memory causes reach the syntax-session consumer, with
+partial-owner cleanup and retry regressions. No cache-sharing or allocator-wide
+work was added. Existing before/after measurements and their limitations above
+remain the batch performance evidence.
+
+No interrupted owned build remained (container only init/sleep). The required
+`git pull --rebase=merges --autostash --ff-only` fetched6714a030 but rejected the
+divergent histories. A normal merge preserved both complete histories without
+conflicts as c07203d8726b34ae0f7b596ecbcb77c74e754234, including ROOTb0421447.
+Incoming shared entity/semantic changes justified one dependency-aware native
+rebuild of frontend-tests, lr-work-tests and frontend-units-profile; no separate
+public leaf build or broad matrix. Linux x64, public bootstrap9653, LLVM19.1.1,
+existing B1 cache/container, CPU0-11/24GiB, six object jobs/compiler1. Ten build
+actions passed:22.70s wall/43.52s CPU/750700KiB peak RSS. Focused parser passed
+.04s/53984KiB, regex .04s/51564KiB, query-smoke .23s/88080KiB; all exit0.
+
+Two warm merged-behavior runs (three units,4096 bodies, immutable6fd resources,
+workers1/4) also passed. Wall/CPU/RSS were4631.031ms/4399.480ms/679384KiB and
+2429.351ms/5605.990ms/935728KiB. Both canonical hashes exactly match the saved
+batch result4242261087906147675; entities646269/components792327 and each lane's
+retained/ledger/reserved bytes match as well. Actual outer peaks1/3, reserved
+lane ceilings1/4. These n1 post-merge checks are not another controlled
+before/after experiment or a speedup claim. Earlier paired measurements remain
+unchanged. Logs, executable/resource hashes and exact source are retained under
+`build/ecs_b1/logs/pattern_result_merged_*`; owned session33322 drained0 and the
+container returned to init only. `git diff --check` passed; todo.txt hash remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+
+This completes the assigned producer-to-consumer batch and focused integration
+validation. ROOT retains the final integrated sanitizers, bootstrap/browser/
+generation and hosted deployment gates, all pending for this merged source.
+Older grammar instrumentation receipts are not relabeled. The separate historical
+full-frontend timeout remains outside this bounded task. This evidence-only
+entry changes no runtime behavior; final commit/push result is in B1 status.
