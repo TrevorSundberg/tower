@@ -25,7 +25,7 @@ export fn backend_import_fixture_open(root: void*): Backend* {
     // Exercise counted byte-run reconstruction, including interior NUL runs,
     // through the same real import stage and serial admission-failure trials.
     var bytes: u8[6] = default;
-    bytes[0] = 65; bytes[2] = 66; bytes[5] = 67;
+    bytes[0] = 65; bytes[2] = 128; bytes[3] = 255; bytes[5] = 67;
     var initializer = LLVMConstStringInContext(b.context, &bytes[0], convert(u32, sizeof(decltype(bytes))), 1);
     var global = LLVMAddGlobal(b.module, LLVMTypeOf(initializer), "counted_bytes");
     LLVMSetInitializer(global, initializer);

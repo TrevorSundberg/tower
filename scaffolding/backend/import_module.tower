@@ -14,6 +14,8 @@ import .library.vector;
 import .library.work_vector;
 import .library.work_budget_types;
 
+var BackendSourceAsciiLimit: u8 = 128;
+
 fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: void*): void {
     if backend_failed(c.backend) { return; }
     var kind = LLVMGetTypeKind(type);
@@ -26,21 +28,26 @@ fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: v
         var start: usize = 0;
         while start < length {
             if backend_failed(c.backend) { return; }
-            var zero = bytes[start] == 0;
+            var textual = bytes[start] != 0 && bytes[start] < BackendSourceAsciiLimit;
             var end = start + 1;
-            while end < length && (bytes[end] == 0) == zero { end++; }
+            while end < length {
+                if textual {
+                    if bytes[end] == 0 || bytes[end] >= BackendSourceAsciiLimit { break; }
+                } else { if bytes[end] != bytes[start] { break; } }
+                end++;
+            }
             var value: void* = null;
-            if zero { value = bi_const(c, SU8, 0); }
+            if !textual { value = bi_const(c, SU8, convert(u64, bytes[start])); }
             else {
                 value = bi_node(c, KString, BackendImportPointer);
                 var text = bi_get(c, value);
                 if text == null { return; }
                 backend_require(c.backend, backend_text_append(&text.name, &bytes[start], end - start));
             }
-            // Foundation source rejects embedded NULs. Zero runs use fill;
-            // nonzero runs use counted strings, excluding their implicit NUL.
+            // Source text rejects NULs and malformed UTF-8. Arbitrary bytes
+            // use fill; ASCII runs use strings, excluding their implicit NUL.
             var at = start == 0 ? address : bi_offset(c, address, bi_const(c, SUSize, convert(u64, start)));
-            var entity = bi_node(c, zero ? KFill : KCopy, SVoid);
+            var entity = bi_node(c, textual ? KCopy : KFill, SVoid);
             var operation = bi_get(c, entity);
             if operation == null { return; }
             operation.left = at; operation.right = value;

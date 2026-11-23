@@ -93173,3 +93173,43 @@ preserved; six restored candidate paths still match pre-experiment023955e1,
 new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
 fixture work retained/excluded from frozenf167 evidence. No browser rerun or
 rejected-fix adoption; normal source publication only. All B2 jobs drained.
+
+Publication reconciliation for the reconstruction amplification batch:
+implementation `d16c8f6e` merged complete published05edbfb3 as
+`820b66b9930e1c269af14f4427c2a1660cd239f3`; both journal histories are preserved.
+Read affected incoming producer/caller hunks: ROOT's reserved response cause/offset
+fallback and extracted native clock; grammar attachment cause and world-scoped
+LR-cache lifetime; module condition/shape admission, executable batch budget;
+L1's known numeric wrapper/parameter/body-demand handling. Their histories and
+registrations remain intact. No private ABI copies or owner implementation edits.
+
+D1 review540f501c correctly found a new byte-encoding gap in the draft. LLVM's
+ConstantDataArray can contain arbitrary bytes, not just valid UTF-8. Final importer
+uses counted ASCII string runs only; NUL/high-byte runs use existing fill with the
+exact u8 value/count. Actual LLVM fixture bytes[65,0,128,255,0,67] exercise import,
+format, real denial/cleanup and an assertion forbidding NUL/malformed high bytes
+in that ASCII fixture's public source. The existing registered constants control
+also reconstructs/executes UTF-8 bytes195/169 plus terminator, escaped ASCII and
+nominal returns at32/64 widths to exact0. No new lexer escape or fallback encoding.
+
+Refreshed affected native providers once after this merge (14 actions,
+77.79wall/108.93CPU s,1074432KiB); source manifest `merged_source.sha256` is checked
+unchanged. Source runner SHA1e925fc44b6a1b90ff560587693c80f8138ffd80c53fd19a5adafc13d687b279,
+CLI SHAa255188f7c904ef4b748ba40b34c1098a3ad14be99276651d242cdb90f21047e.
+Focused source-worlds/recheck/import-admission plus incoming backend-response
+checks4/4 pass1.40s. Exact original full input succeeds at workers1/4 with the same
+4643839B/633b21e6 output; both match premerge output byte-for-byte. Merged costs
+are17.95wall/17.83CPU/3312596KiB serial and18.36/22.77/3339152KiB four-worker.
+Four workers do not win this n1 merged sample. These are adoption costs; incoming
+providers and host variation are not attributed to L2's frozen comparison.
+Full denial retains the prior accepted result and exact Capacity, fresh retry
+passes, final bytes/grants/lanes0. Merged full execution was rerun once:exit1,
+unchanged discard trap,11.99wall/11.94CPU/3200772KiB. It remains a real open gate.
+
+Clarification: native RSS and Wasm linear-address capacity are different measures;
+3.16GiB native RSS neither proves nor disproves fit within a2GiB Wasm reactor.
+No current reactor, generation or deployment was built/claimed. The whole runtime
+path remains unsuccessful until the retained execution blocker is resolved; the
+specific original native LLVM-to-Foundation compile/recheck request now passes.
+All jobs drained, todo hashb927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9
+unchanged. Final ROOT release and other fixtures remain separate owner gates.
