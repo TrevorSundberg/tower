@@ -1025,6 +1025,22 @@ declaration/type cycles for serial/four-worker budgets. Reuse a completed
 lifecycle receipt for the same compiler inputs when iterating these checks.
 This selector does not replace lifecycle coverage; `type-smoke` still runs both.
 
+For a complete type/staging checkpoint without duplicate suites, run
+`tower-lr-work-tests RESOURCE_ROOT lifecycle 0 41` followed by `type-errors`.
+Together these select the existing `type-smoke` cases; do not additionally run
+`type-smoke` or its `capture-policy` subset on the same frozen inputs.
+`tower-execution-tests RESOURCE_ROOT type-staging` then selects the existing
+constructor protocol, type binding/computed argument/type object/constructor,
+known binding and staged aggregate suites. Their shared aggregate capture fixture
+runs once. Individual `types`, `known`, `aggregate-stages` and `type-construction`
+selectors retain their standalone coverage and need not run again.
+These fixtures compare known outputs and canonical Foundation reconstruction at
+32/64-bit target widths, using the graph and cached interpreters and requested
+worker counts 1/2/4/8. Negative-case widths follow their existing helpers.
+Use the existing lifecycle/staging-frontier tests for barrier-backed worker
+overlap and scheduling contracts; a requested worker count by itself is not
+overlap or throughput evidence. Retain the exact source and binary identities.
+
 The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
 existing executable-function index fixture, including exact canonical preservation,
 declaration identity and allocation-failure cleanup. The default frontend suite
@@ -1105,6 +1121,13 @@ and the full backend suite retain their30-second bound. Name the selected varian
 in instrumentation receipts; a successful calibrated run does not erase an older
 ordinary timeout or establish a performance improvement.
 
+`tower-lr-work-tests RESOURCE_ROOT backend-ir` compares exact object bytes from
+default text-retaining serial batches and object-only parallel batches, with and
+without optimization. It covers one/small function sets, calls, function values,
+recursion, record types, globals, frozen-policy rejection, ordered target errors
+and cancellation drain. The streaming overlap selectors also omit text in their
+parallel batch and retain the default text policy in the serial reference.
+
 `tower-lr-work-tests RESOURCE_ROOT unit-admission` holds the first of three
 uneven units live while a real nested grammar job releases a lane from the same
 two-worker budget. The next ready unit must enter on another thread before that
@@ -1127,6 +1150,15 @@ Foundation and object hashes. Compare each workload's hashes across worker count
 Its explicit byte ceiling is `(UNITS + 1) * DriverUnitRetainedByteLimit`; the
 production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
 are supported, with workers bounded by the current host transport capacity.
+
+Backend profiling uses the native CLI's object-only text policy. Its
+`backend_phase_ns` array sums per-unit phase intervals in `BackendPhase` order:
+setup, preparation/reachability, declarations, body IR, verification, raw text,
+optimization/verification, optimized text, emission. Disabled text phases remain
+present with only observer overhead. Intervals are checked against the owning
+backend kernel and thread; sums across concurrent units are not wall time. The
+frontend-only profile reports an empty phase array. These observations preserve
+the existing known-result and canonical/object hash checks.
 
 For a12-logical-CPU allocation, representative commands use `16 1 32 backend
 spread`, then workers4/12, and repeat with1024 bodies. `1 WORKERS 4096 backend`
