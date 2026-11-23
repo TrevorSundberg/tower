@@ -128,6 +128,7 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
+    context.current = result.subject;
     context.editor = null;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
@@ -138,20 +139,19 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     context.control_prefix = "staged function ";
     context.count = 0;
     context.node_limit -= result.context.count;
-    context.allocations = default;
-    context.lists = default;
+    sem_scratch_private(&context, result.context);
     context.token_text = default;
     context.scan = default;
     program.error = default;
     var clones = sem_table(&context);
     var nodes = sem_list(&context);
     result.function = sem_defer_clone(&context, result.root, result.subject, clones, nodes);
-    foreach(var node in nodes) {
+    if sem_ok(&context) { foreach(var node in nodes) {
         var value = sem_get(node);
         if value.binding == null || sem_get(value.binding).kind == KFunction { continue; }
         var local = sem_find(clones, null, value.binding);
         if local != null { value.binding = local.value; }
-    }
+    } }
     context.current = result.function;
     context.preserve_clone_storage = false;
     if sem_ok(&context) && (result.prepared || sem_aggregate_needed(result.function)) {
@@ -179,12 +179,8 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     result.error = program.error;
     result.error_offset = program.error_offset;
     result.resource = program.resource;
-    stack_dispose(&context.scan);
-    vector_dispose(&context.token_text);
-    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
-    vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
-    vector_dispose(&context.allocations);
+    sem_scan_dispose(&context);
+    sem_scratch_dispose(&context.scratch);
 }
 
 fn sem_executable_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): SemanticPumpResult {

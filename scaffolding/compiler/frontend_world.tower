@@ -1,4 +1,5 @@
 import tower;
+import format_storage;
 import grammar_types;
 import .library.work_pool;
 import component_kinds;
@@ -78,6 +79,8 @@ export fn frontend_world_pattern_result(world: void*, source: u8*, length: usize
     if resource_error == null { return null; }
     *resource_error = WorkBudgetError.Invalid;
     if world == null || error == null || (source == null && length != 0) { return null; }
+    format_storage_begin(error, compiler_world_work_budget(world));
+    if error.failed { *resource_error = format_storage_error(error); return null; }
     var cache = compiler_world_grammar(world);
     if cache.patterns == null {
         var kinds: FrontendKinds = default;
@@ -88,7 +91,7 @@ export fn frontend_world_pattern_result(world: void*, source: u8*, length: usize
             var formatter: FormatEngine = default;
             formatter.result = error;
             format_text(&formatter, "Unable to construct token pattern grammar");
-            if error.failed && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; }
+            if error.failed && *resource_error == WorkBudgetError.None { *resource_error = format_storage_error(error); }
             return null;
         }
     }

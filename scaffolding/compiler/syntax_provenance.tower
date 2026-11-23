@@ -8,6 +8,8 @@ import .library.entity_types;
 import .library.entity_stage;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
 
@@ -49,7 +51,7 @@ export fn syntax_trace_release(trace: SyntaxExpansion*): void {
 export fn syntax_trace_dispose(trace: SyntaxExpansion*): void {
     var previous = trace.previous;
     trace.previous = null;
-    vector_dispose(&trace.rule);
+    work_vector_dispose(&trace.rule);
     syntax_trace_release(previous);
 }
 
@@ -59,7 +61,7 @@ export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
     foreach(var & splice in &origin.splices) {
         syntax_trace_release(*splice);
     }
-    vector_dispose(&origin.splices);
+    work_vector_dispose(&origin.splices);
 }
 
 export fn syntax_origin_get(world: CompilerWorld*, node: Entity*): SyntaxOrigin* {
@@ -67,17 +69,26 @@ export fn syntax_origin_get(world: CompilerWorld*, node: Entity*): SyntaxOrigin*
 }
 
 export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: u8*, definition_start: usize, definition_end: usize): SyntaxExpansion* {
+    var error = WorkBudgetError.None;
+    return syntax_trace_create_result(world, invocation, rule, definition_start, definition_end, &error);
+}
+
+export fn syntax_trace_create_result(world: CompilerWorld*, invocation: Entity*, rule: u8*, definition_start: usize,
+    definition_end: usize, error: WorkBudgetError*): SyntaxExpansion* {
+    *error = WorkBudgetError.Invalid;
+    if world == null || invocation == null || invocation.store != world.store || rule == null { return null; }
     var span = bits(ParserMatchData*, compiler_world_get(world, invocation, CompilerParserMatch));
     var missing = span == null;
     if missing {
         return null;
     }
-    var owner = entity_create(world.store);
+    if span.length > ~convert(usize, 0) - span.start { return null; }
+    var owner = entity_create_result(world.store, error);
     missing = owner == null;
     if missing {
         return null;
     }
-    var trace = bits(SyntaxExpansion*, compiler_world_component(world, owner, CompilerSyntaxExpansion));
+    var trace = bits(SyntaxExpansion*, compiler_world_component_result(world, owner, CompilerSyntaxExpansion, error));
     missing = trace == null;
     if missing {
         entity_release(owner);
@@ -85,10 +96,14 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
     }
     var length: usize = 0;
     for(; rule[length] != 0; length++) {}
-    if !bytes_assign_text(&trace.rule, rule, length) {
+    if length == ~convert(usize, 0) { *error = WorkBudgetError.Invalid; entity_release(owner); return null; }
+    *error = work_vector_reserve_result(&trace.rule, world.work_budget, length + 1);
+    if *error != WorkBudgetError.None {
         entity_release(owner);
         return null;
     }
+    copy(trace.rule.data, rule, length + 1);
+    trace.rule.length = length;
     trace.start = span.start;
     trace.end = span.start + span.length;
     trace.definition_start = definition_start;
@@ -118,16 +133,13 @@ export fn syntax_origin_copy_result(world: CompilerWorld*, source: Entity*, dest
     if missing {
         return WorkBudgetError.None;
     }
-    var pending: vector(SyntaxExpansion*);
-    vector_init(&pending);
-    if !vector_reserve(&pending, prior.splices.length) {
-        return WorkBudgetError.Memory;
-    }
-    var error = WorkBudgetError.None;
+    var pending: work_vector(SyntaxExpansion*) = default;
+    var error = work_vector_reserve_result(&pending, world.work_budget, prior.splices.length);
+    if error != WorkBudgetError.None { return error; }
     var target = bits(SyntaxOrigin*, compiler_world_component_result(world, destination, CompilerSyntaxOrigin, &error));
     missing = target == null;
     if missing {
-        vector_dispose(&pending);
+        work_vector_dispose(&pending);
         return error;
     }
     for(var index: usize = 0; index < prior.splices.length; index++) {
@@ -142,7 +154,7 @@ export fn syntax_origin_copy_result(world: CompilerWorld*, source: Entity*, dest
     target.template_end = prior.template_end;
     target.generated = prior.generated;
     target.expansion = prior.expansion;
-    copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
+    work_vector_move(&target.splices, &pending);
     return WorkBudgetError.None;
 }
 
@@ -169,13 +181,14 @@ export fn syntax_origin_copy_staged_result(world: CompilerWorld*, source: Entity
     if prior == null { return WorkBudgetError.None; }
     if prior.splices.length >= ~convert(usize, 0) / sizeof(Entity*)
         || prior.splices.length > ~convert(usize, 0) / sizeof(SyntaxExpansion*) { return WorkBudgetError.Invalid; }
-    var pending: vector(SyntaxExpansion*) = default;
-    defer vector_dispose(&pending);
-    var references: vector(Entity*) = default;
-    defer vector_dispose(&references);
-    if !vector_reserve(&pending, prior.splices.length)
-        || !vector_reserve(&references, prior.splices.length + 1) { return WorkBudgetError.Memory; }
-    var error = WorkBudgetError.None;
+    var pending: work_vector(SyntaxExpansion*) = default;
+    defer work_vector_dispose(&pending);
+    var references: work_vector(Entity*) = default;
+    defer work_vector_dispose(&references);
+    var error = work_vector_reserve_result(&pending, world.work_budget, prior.splices.length);
+    if error != WorkBudgetError.None { return error; }
+    error = work_vector_reserve_result(&references, world.work_budget, prior.splices.length + 1);
+    if error != WorkBudgetError.None { return error; }
     var target = bits(SyntaxOrigin*, compiler_world_component_result(world, destination, CompilerSyntaxOrigin, &error));
     if target == null { return error; }
     references.data[0] = prior.expansion == null ? null : provenance_owner(prior.expansion);
@@ -192,39 +205,48 @@ export fn syntax_origin_copy_staged_result(world: CompilerWorld*, source: Entity
     target.template_end = prior.template_end;
     target.generated = prior.generated;
     target.expansion = prior.expansion;
-    copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
-    pending = default;
+    work_vector_move(&target.splices, &pending);
     return WorkBudgetError.None;
 }
 
 export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
+    return syntax_origin_mark_result(world, trace, node, source, generated) == WorkBudgetError.None;
+}
+
+export fn syntax_origin_mark_result(world: CompilerWorld*, trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): WorkBudgetError {
+    if world == null || node == null || source == null || node.store != world.store || source.store != world.store {
+        return WorkBudgetError.Invalid;
+    }
+    if node.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var missing = trace == null;
     if missing {
-        return false;
+        return WorkBudgetError.Invalid;
     }
     var owner = provenance_owner(trace);
     if owner.store != world.store {
-        return false;
+        return WorkBudgetError.Invalid;
     }
     var existing = syntax_origin_get(world, node);
     var splice = !generated;
     splice &&= existing != null;
     if splice {
-        var ok = vector_push(&existing.splices, trace);
-        if ok {
+        var error = work_vector_push_result(&existing.splices, world.work_budget, trace);
+        if error == WorkBudgetError.None {
             syntax_trace_retain(trace);
         }
-        return ok;
+        return error;
     }
     var span = bits(ParserMatchData*, compiler_world_get(world, source, CompilerParserMatch));
     missing = span == null;
     if missing {
-        return false;
+        return WorkBudgetError.Invalid;
     }
-    var origin = bits(SyntaxOrigin*, compiler_world_component(world, node, CompilerSyntaxOrigin));
+    if span.length > ~convert(usize, 0) - span.start { return WorkBudgetError.Invalid; }
+    var error = WorkBudgetError.None;
+    var origin = bits(SyntaxOrigin*, compiler_world_component_result(world, node, CompilerSyntaxOrigin, &error));
     missing = origin == null;
     if missing {
-        return false;
+        return error;
     }
     syntax_trace_retain(trace);
     syntax_trace_release(origin.expansion);
@@ -232,5 +254,5 @@ export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, nod
     origin.generated = generated;
     origin.template_start = span.start;
     origin.template_end = span.start + span.length;
-    return true;
+    return WorkBudgetError.None;
 }

@@ -1,4 +1,6 @@
 import tower;
+import format_storage;
+import format_api;
 import grammar_attributes;
 import .library.vector;
 import .library.work_budget_types;
@@ -338,7 +340,16 @@ export fn syntax_emission_token_text(value: SyntaxEmission*, id: u32): u8* {
 }
 
 export fn syntax_emission_token_text_result(value: SyntaxEmission*, id: u32, error: WorkBudgetError*): u8* {
-    *error = WorkBudgetError.None;
+    var output: FormatResult = default;
+    syntax_emission_token_into(value, id, &output);
+    *error = format_storage_error(&output);
+    if output.text.length == 0 { format_dispose(&output); return null; }
+    var text = format_parser_host_text(&output);
+    if text == null && *error == WorkBudgetError.None { *error = WorkBudgetError.Memory; }
+    return text;
+}
+
+export fn syntax_emission_token_into(value: SyntaxEmission*, id: u32, output: FormatResult*): void {
     var prefix: u8* = "";
     var suffix: u8* = "";
     var text: u8* = null;
@@ -372,11 +383,12 @@ export fn syntax_emission_token_text_result(value: SyntaxEmission*, id: u32, err
         }
     }
     if text is null {
-        return null;
+        return;
     }
-    var result = format_parser_label_text(text, syntax_text_length(text), prefix, suffix);
-    if result == null { *error = WorkBudgetError.Memory; }
-    return result;
+    var f: FormatEngine = {result: output, ..default};
+    format_text(&f, prefix);
+    format_text(&f, text);
+    format_text(&f, suffix);
 }
 
 fn emission_suffix_priority(text: u8*, priorities: u8**, count: usize): bool {

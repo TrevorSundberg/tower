@@ -1,6 +1,6 @@
 # Compiler ECS file ownership roster
 
-Current frozen inventory: [5b05d6bb reconciliation](#frozen-adoption-reconciliation-at-5b05d6bb-2026-11-23), 1,144 tracked Tower paths. Earlier counts below are historical; inventory is not current-source approval.
+Current frozen inventory/adoption: [ec01291 finite review closure](#finite-review-closure-at-published-ec01291-2026-11-23), 1,146 tracked Tower paths; all51 delegated source-review actions have substantive receipts. Earlier counts below are historical; review closure is not runtime acceptance.
 
 Completeness index at `6282238779034442e0578d76b921ca117df819f1`:
 1,011 tracked `.tower` files, from `git ls-files '*.tower'`.
@@ -1859,3 +1859,38 @@ its union with the frozen26 actions is51 paths. These later signature-admission
 and frontend-phase changes retain their upstream receipts and require separate
 source adoption; neither this final merge nor its normal push extends the5b05
 substantive review. The1146-path inventory equality remains valid.
+
+### Finite review closure at published ec01291 (2026-11-23)
+
+ROOT delegated all51 actions to D1 for independent substantive adoption at
+ec01291eaf8706c29f3bec62ec85a2e7561530d4. The
+[D1 receipt](compiler_ecs_audit_d1.md#delegated-finite-source-adoption-at-ec01291-2026-11-23)
+closes each exact path with its frozen blob, producer/caller/lifetime/dependency
+findings, registration and limits. This supersedes the pending-adoption
+dispositions in the two preceding historical boundaries, without moving their
+runtime evidence. The union is26 +33 -8 =51:36 production/provider paths and15 D1
+fixtures. Zero substantive review actions remain in that bounded union; no
+after-freeze delta is silently adopted.
+
+Inventory remains exactly1,146 Tower paths, including551 D1. The earlier complete
+unchanged-file reviews, three B1 parser-module wrapper adoptions and thirteen
+matching cross-owner receipts remain reusable at their recorded identities.
+Owner counts are A1 45, A2 43, B1 102, B2 277, L1 26, L2 17, D1 551, D2 85;
+there are no additional additions/retirements in this freeze. Pinned resources
+and historical experiments remain provenance-only.
+
+The three original merged-source exceptions were read as composed source.
+Current last-nonmerge comparison additionally resolves the structural-cache
+allowlist/case and lr_work harness compositions; no last-commit label substitutes
+for review. Exact path/blob comparisons are retained in D1's ignored
+build/d1_ecs/review_ec01291/.
+
+One demonstrated defect remains: entity_create_result's raw Entity allocation
+bypasses a fully consumed store budget; the existing entity_accounting cap target
+fails nonzero with cleanup. Whole-world accounting is not accepted. Three focused
+regression selectors (structure-reuse, unit-admission, backend-ir) remain outside
+their default CTest routes. Those are explicit implementation/coverage limits,
+not missing owner adoption. Other already documented release/ownership limits
+remain; this checkpoint does not assert universal OOM recovery or race freedom.
+No code, performance, build, sanitizer or hosted-release evidence was generated
+by this documentation review. ROOT owns final integrated validation/deployment.

@@ -18,7 +18,7 @@ fn sem_attributes_declarations(c: SemanticContext*): void {
     foreach(var &statement in &sem_get(c.program.root).items) {
         if !sem_is(*statement, "CoreAttributed") { continue; }
         if c.attribute_sources == null { c.attribute_sources = sem_list(c); }
-        sem_push(c.attribute_sources, *statement);
+        if !sem_push_checked(c, c.attribute_sources, *statement) { return; }
         *statement = sem_child(sem_member(*statement, "declaration"), 0);
     }
 }
@@ -38,6 +38,7 @@ fn sem_attributes_check(c: SemanticContext*): void {
             break;
         }
         var attributes = sem_collect(c, sem_member(wrapper, "attributes"), "Attribute");
+        if !sem_ok(c) { return; }
         foreach(var attribute in attributes) {
             sem_comptime(c, attribute, null);
             if !sem_ok(c) { break; }
@@ -53,7 +54,7 @@ fn sem_attributes_check(c: SemanticContext*): void {
                 }
             }
             if !sem_ok(c) { break; }
-            sem_push(&target.attributes, attribute);
+            if !sem_push_checked(c, &target.attributes, attribute) { return; }
         }
         if !sem_ok(c) { break; }
     }
@@ -78,7 +79,9 @@ fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: Foundat
     if !sem_ok(c) { return node; }
     var record = sem_get(type.record);
     var supplied = sem_table(c);
+    if !sem_ok(c) { return default; }
     var fields = sem_collect(c, sem_member(node, "fields"), "CoreMetadataField");
+    if !sem_ok(c) { return default; }
     var count = type.scalar == SArray ? record.length : record.items.length;
     if fields.length != count { sem_fail(c, node, "Metadata must supply every field exactly once"); return node; }
     for(var index: usize = 0; index < fields.length && sem_ok(c); index++) {
@@ -88,6 +91,7 @@ fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: Foundat
         var name_node = sem_member(entry, array ? "index" : "name");
         if name_node == null { sem_fail(c, entry, "Metadata field kind does not match its aggregate type"); break; }
         var name = sem_identifier(c, name_node);
+        if !sem_ok(c) { return default; }
         if !sem_put(c, supplied, name, entry) { sem_fail(c, entry, "Duplicate metadata field"); break; }
         var element = &record.element;
         if array {
@@ -102,11 +106,11 @@ fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: Foundat
             }
             if assignment.binding == null { sem_fail(c, entry, "Unknown metadata field"); break; }
             element = &sem_get(assignment.binding).type;
-            sem_set_name(assignment, name);
+            if !sem_set_name(c, assignment, name) { return default; }
         }
         assignment.type = *element;
         assignment.value = sem_operand(c, sem_member(entry, "value"), element);
-        sem_push(&value.items, entry);
+        if !sem_push_checked(c, &value.items, entry) { return default; }
     }
     c.surface_expressions = true;
     return node;

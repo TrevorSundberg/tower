@@ -1,0 +1,39 @@
+import tower;
+import .library.vector;
+import .library.stack;
+
+struct Context { lists: vector(void*); scan: stack(void*); }
+fn dispose(context: Context*): void {
+    stack_dispose(&context.scan);
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+}
+
+// Executed straight-return wrappers remain invertible constraints, including
+// nested constructed types and pointer suffixes. They keep their ordinary
+// query execution; inference must not reclassify them as static constructors.
+fn indirect(T: type): type { return stack(T*); }
+fn nested(T: type): type { return vector(indirect(T)*); }
+fn count(T: type, value: indirect(T)*): usize { return value.length; }
+fn count_nested(T: type, value: nested(T)*): usize { return value.length; }
+fn identity(T: type, value: T): T { return value; }
+fn check(value: bool): void { if !value { trap("Generic alias/cast inference regression", 0); } }
+var sequence: i32 = 0;
+fn address(value: void*): void* { sequence = sequence * 10 + 1; return value; }
+
+var context: Context = default;
+var erased: vector(void*) = default;
+check(vector_push(&context.lists, bits(void*, &erased)));
+dispose(&context);
+var value: i32 = 42;
+var values: indirect(i32) = default;
+check(vector_push(&values, &value));
+check(count(bits(vector(i32*)*, address(bits(void*, &values)))) == 1);
+check(sequence == 1 && *values.data[0] == 42);
+var outer: nested(i32) = default;
+check(vector_push(&outer, &values));
+check(count_nested(&outer) == 1);
+check(identity(i32) == i32);
+vector_dispose(&outer);
+stack_dispose(&values);
+print(42);

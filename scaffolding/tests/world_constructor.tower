@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import .compiler.component_kinds;
 import .compiler.parser_types;
 import .compiler.syntax_types;
@@ -147,7 +148,7 @@ fn world_metadata_trial(staged: bool, allowed: usize, pressure: bool): usize {
     var prior = bits(SyntaxOrigin*, compiler_world_component_result(world, source, CompilerSyntaxOrigin, &error));
     var trace = bits(SyntaxExpansion*, compiler_world_component_result(world, trace_owner, CompilerSyntaxExpansion, &error));
     utility_check(source != null && trace_owner != null && span != null && prior != null && trace != null
-        && node_match_set_label(span, "metadata_copy") && vector_push(&prior.splices, trace),
+        && node_match_set_label(span, "metadata_copy") && work_vector_push(&prior.splices, compiler_world_work_budget(world), trace),
         "Metadata fixture prepares real parser and provenance components");
     span.id = 7; span.start = 11; span.length = 13; span.rule = 17;
     prior.template_start = 19; prior.template_end = 23; prior.generated = true;

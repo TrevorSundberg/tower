@@ -201,6 +201,7 @@ fn sem_owned(table: SemanticTable*, module: void*, name: u8*): void* {
 fn sem_define(c: SemanticContext*, table: SemanticTable*, node: void*, name: u8*): bool {
     var owner = sem_owner(c, node);
     var entry = sem_entry(c, table, name, owner);
+    if !sem_ok(c) { return default; }
     if entry.value != null {
         return false;
     }
@@ -286,14 +287,14 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
         for(var i: usize = 0; i < count; i++) {
             if sem_import_alias(owner, i)[0] == 0 {
                 var target = sem_import_target(c, sem_child(owner, i));
-                if target != null { sem_push(pending, target); }
+                if target != null { sem_push_checked(c, pending, target); }
             }
         }
         while pending.length != 0 {
             pending.length--;
             var scope = pending.data[pending.length];
             if sem_has(seen, scope) { continue; }
-            sem_push(seen, scope);
+            if !sem_push_checked(c, seen, scope) { return default; }
             var candidate = sem_owned(table, scope, name);
             if candidate != null {
                 if found != null && found != candidate {
@@ -306,7 +307,7 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
             for(var i: usize = 0; i < sem_child_count(scope); i++) {
                 if sem_import_alias(scope, i)[0] == 0 {
                     var target = sem_import_target(c, sem_child(scope, i));
-                    if target != null { sem_push(pending, target); }
+                    if target != null { sem_push_checked(c, pending, target); }
                 }
             }
         }
@@ -440,6 +441,7 @@ fn sem_namespace_from(c: SemanticContext*, node: void*, owner: void*): void* {
         return null;
     }
     var name = sem_identifier(c, base);
+    if !sem_ok(c) { return default; }
     var shadowed = sem_local(c, name) != null;
     if c.generics != null {
         var parameter = generic_lookup(c.generics, base, base);
@@ -472,6 +474,7 @@ fn sem_editor_symbol(c: SemanticContext*, node: void*, kind: u32): bool {
 fn sem_completion_visible(c: SemanticContext*, editor: SemanticEditor*, table: SemanticTable*, node: void*): bool {
     if c.program.resource.error != WorkBudgetError.None { return false; }
     var name = sem_identifier(c, sem_member(node, "name"));
+    if !sem_ok(c) { return default; }
     var value = sem_get(node);
     if name[0] == 0 {
         if value != null {
@@ -515,6 +518,7 @@ fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
         var owner = sem_owner(c, node);
         if owner != null {
             spelling = sem_cat(c, name, sem_cat(c, "@", sem_module_path(c, owner)));
+            if !sem_ok(c) { return default; }
         }
     }
     var candidate = spelling;
@@ -532,9 +536,11 @@ fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
         }
         suffix++;
         candidate = sem_cat(c, spelling, sem_cat(c, "_", sem_decimal(c, suffix)));
+        if !sem_ok(c) { return default; }
     }
     sem_put(c, c.output_names, candidate, node);
     saved = sem_state(c, c.output_names, node);
+    if !sem_ok(c) { return default; }
     saved.value = bits(void*, candidate);
     return candidate;
 }
@@ -581,6 +587,7 @@ fn sem_link_functions(c: SemanticContext*): void {
         return;
     }
     var symbols = sem_table(c);
+    if !sem_ok(c) { return; }
     var i: usize = 1;
     for(; i < c.program.functions.length; i++) {
         var node = c.program.functions.data[i];
@@ -592,6 +599,7 @@ fn sem_link_functions(c: SemanticContext*): void {
         if foreign {
             var name = sem_name(function);
             var entry = sem_entry(c, symbols, name, null);
+            if !sem_ok(c) { return; }
             var previous = entry.value;
             var duplicate = previous != null;
             if duplicate {
@@ -668,7 +676,8 @@ fn sem_link_functions(c: SemanticContext*): void {
     // Inference/decltype can check a call before all foreign signatures have
     // resolved. Retarget those existing shared call components after merging.
     var pending = sem_list(c);
-    sem_push(pending, c.program.root);
+    if !sem_ok(c) { return; }
+    if !sem_push_checked(c, pending, c.program.root) { return; }
     while pending.length != 0 {
         pending.length--;
         var node = pending.data[pending.length];
@@ -681,6 +690,6 @@ fn sem_link_functions(c: SemanticContext*): void {
             }
         }
         var child: usize = 0;
-        while child < sem_child_count(node) { sem_push(pending, sem_child(node, child)); child++; }
+        while child < sem_child_count(node) { sem_push_checked(c, pending, sem_child(node, child)); child++; }
     }
 }

@@ -85,9 +85,11 @@ fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): 
     if constructor == null || constructor.phase != SemanticConstructorPhase.Call { return 0; }
     var node = result.subject;
     var arguments = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+    if !sem_ok(c) { return default; }
     var definition = constructor.definition;
     if definition == null {
         var name = sem_identifier(c, sem_member(node, "name"));
+        if !sem_ok(c) { return default; }
         var arity: usize = sem_equal(name, "integer_type") ? IntegerTypeConstructorArity
             : sem_equal(name, "float_type") ? FloatTypeConstructorArity : 0;
         if arguments.length != arity { return 0; }
@@ -99,6 +101,7 @@ fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): 
     }
     if arguments.length != generic_parameter_count(c.generics, definition) { return 0; }
     var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < arguments.length; i++) {
         if generic_type_parameter(c.generics, definition, i) { continue; }
         var expected_type = sem_type(c, sem_member(parameters.data[i], "type"));
@@ -123,7 +126,9 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
         var subject = sem_evaluation_node(c, result.subject);
         if subject == null { return 0; }
         var clones = sem_table(c);
+        if !sem_ok(c) { return default; }
         var nodes = sem_list(c);
+        if !sem_ok(c) { return default; }
         var expression = sem_defer_clone(c, subject, result.value, clones, nodes);
         var previous = c.integer_arguments;
         c.integer_arguments = true;

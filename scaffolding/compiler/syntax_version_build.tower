@@ -1,4 +1,5 @@
 import tower;
+import .library.work_buffer;
 import lr_analysis;
 import component_kinds;
 import frontend_cache;
@@ -27,16 +28,25 @@ extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
 extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable*;
 extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32, error: WorkBudgetError*): ParserHostTable*;
 extern fn parser_table_finish_result(table: ParserHostTable*, error: u8**, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable*;
+extern fn parser_table_finish_buffer_result(table: ParserHostTable*, error: WorkBuffer*, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable*;
 extern fn compiler_buffer_free(memory: void*): void;
 
 export fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void {
-    vector_dispose(&value.text);
+    if value.text_storage.data != null {
+        work_buffer_dispose(&value.text_storage);
+        value.text = default;
+    } else { vector_dispose(&value.text); }
 }
 
 export fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8* {
-    if value.text.length != 0 && vector_reserve(&value.text, value.text.length + 1) {
-        value.text.data[value.text.length] = 0;
-        return value.text.data;
+    if value.text_storage.data != null { return value.text.data; }
+    if value.text.length != 0 {
+        if vector_reserve(&value.text, value.text.length + 1) {
+            value.text.data[value.text.length] = 0;
+            return value.text.data;
+        }
+        if value.resource_error == WorkBudgetError.None { value.resource_error = WorkBudgetError.Memory; }
+        if value.fallback == null || value.fallback[0] == 0 { return "Unable to allocate grammar diagnostic"; }
     }
     return value.fallback ?? "";
 }
@@ -127,6 +137,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
 
 fn syntax_version_build_reusing(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*, reuse: ParserStructureCache*): SyntaxVersion* {
     diagnostic.resource_error = WorkBudgetError.None;
+    if diagnostic.text_storage.data != null { syntax_version_diagnostic_dispose(diagnostic); }
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
     var kind = compiler_world_type_result(world, CompilerSyntax, &diagnostic.resource_error);
@@ -149,16 +160,20 @@ fn syntax_version_build_reusing(world: void*, source: FrontendRevision*, bedrock
     pending = null;
     if !syntax_version_seed_result(value, ready, null, null, &diagnostic.resource_error) { return null; }
     diagnostic.fallback = "Unable to build grammar";
-    var error: u8* = null;
-    defer compiler_buffer_free(bits(void*, error));
+    var error: WorkBuffer = default;
+    defer work_buffer_dispose(&error);
     var table = parser_table_open_result(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax,
         convert(u32, ParserReadMode.Constructs), &diagnostic.resource_error);
     if table is null { return null; }
     table.reuse = reuse;
     if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != lr_none(); }
-    value.table = bits(void*, parser_table_finish_result(table, &error, true, &diagnostic.resource_error));
+    value.table = bits(void*, parser_table_finish_buffer_result(table, &error, true, &diagnostic.resource_error));
     if value.table is null {
-        if error is not null { node_text_set(&diagnostic.text, error); }
+        if error.data != null {
+            syntax_version_diagnostic_dispose(diagnostic);
+            diagnostic.text = {data: error.data, length: syntax_text_length(error.data), capacity: error.capacity};
+            work_buffer_move(&diagnostic.text_storage, &error);
+        }
         return null;
     }
     diagnostic.fallback = "Unable to allocate lexical indexes";
@@ -170,6 +185,7 @@ fn syntax_version_build_reusing(world: void*, source: FrontendRevision*, bedrock
 
 export fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool {
     diagnostic.resource_error = WorkBudgetError.None;
+    if diagnostic.text_storage.data != null { syntax_version_diagnostic_dispose(diagnostic); }
     diagnostic.text.length = 0;
     var pending: SyntaxPendingRevision*;
     var ready = syntax_version_validate(module, kind, diagnostic, &pending);

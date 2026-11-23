@@ -1,4 +1,5 @@
 import tower;
+import format_storage;
 import inspection_policy;
 import format;
 import format_types;
@@ -24,7 +25,7 @@ fn format_dependent_is(f: FormatEngine*, entity: void*, label: u8*): bool {
     return format_name_is(&span.label, label);
 }
 
-fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, depth: usize): void {
+fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: FormatResult*, depth: usize): void {
     var next = depth + 1;
     if entity == null {
         return;
@@ -38,9 +39,8 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
         var terminal: usize = 0;
         terminal--;
         if span.rule == terminal {
-            if !bytes_append(text, span.label.data, span.label.length) {
-                f.result.failed = true;
-            }
+            format_storage_append(text, span.label.data, span.label.length);
+            format_storage_fail(f.result, format_storage_error(text));
             return;
         }
     }
@@ -50,12 +50,12 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
 }
 
 fn format_dependent_name(f: FormatEngine*, entity: void*): void {
-    var name: vector(u8);
-    vector_init(&name);
+    var name: FormatResult = default;
+    format_storage_child(&name, f.result);
     format_dependent_tokens(f, entity, &name, 0);
-    name.length = syntax_identifier_decode_in_place(name.data, name.length);
-    format_identifier(f, &name);
-    vector_dispose(&name);
+    name.text.length = syntax_identifier_decode_in_place(name.text.data, name.text.length);
+    format_identifier(f, &name.text);
+    format_dispose(&name);
 }
 
 fn format_dependent_list(f: FormatEngine*, entity: void*, label: u8*, separator: u8*, count: usize*, depth: usize): void {

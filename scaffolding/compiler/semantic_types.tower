@@ -39,15 +39,16 @@ fn sem_type_binding(c: SemanticContext*, n: void*): bool {
 
 fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
     var name = sem_identifier(c, sem_member(n, "name"));
+    if !sem_ok(c) { return; }
     var value = sem_node(c, n, KType);
     value.global = true;
     value.type.scalar = InvalidTypeScalar;
     value.type.pointer_bytes = c.program.pointer_bytes;
-    sem_set_name(value, sem_output_name(c, n, name));
+    if !sem_set_name(c, value, sem_output_name(c, n, name)) { return; }
     if sem_equal(name, "type") || !sem_define(c, c.types, n, name) {
         sem_fail(c, n, sem_cat(c, "Duplicate type binding '", sem_cat(c, name, "'")));
     }
-    sem_push(&c.program.types, n);
+    if !sem_push_checked(c, &c.program.types, n) { return; }
 }
 
 fn sem_type_representation_name(name: u8*): bool {
@@ -65,6 +66,7 @@ fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType*
     var metatype = sem_equal(name, "type_type");
     if !integer && !floating && !boolean && !empty && !address && !metatype { return null; }
     var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+    if !sem_ok(c) { return default; }
     var arity: usize = integer ? IntegerTypeConstructorArity : floating ? FloatTypeConstructorArity : 0;
     if arguments.length != arity {
         sem_fail(c, n, "Wrong argument count for primitive type constructor");
@@ -132,7 +134,7 @@ fn sem_type_entity(c: SemanticContext*, t: FoundationType*, subject: void*): voi
     var value = sem_get(n);
     sem_set_type(&value.type, t);
     var step11 = sem_type_name(c, t);
-    sem_set_name(value, step11);
+    if !sem_set_name(c, value, step11) { return default; }
     if !vector_push(&c.type_arguments, n) {
         sem_type_resource(c, subject, WorkBudgetError.Memory);
         sem_require(entity_attach_result(n, null, null) == WorkBudgetError.None);
@@ -222,11 +224,13 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
     var value: void* = prepared ?? generic_lookup(c.generics, n, n);
     if value == null {
         var text: u8* = sem_tokens(c, n);
+        if !sem_ok(c) { return default; }
         if text[0] == 0 || text[0] != 45 &&(text[0] < 48 || text[0] > 57) {
             sem_fail(c, n, "Expected a compile-time integer argument (an integer literal or a bound template value)");
             return null;
         }
         var size: FoundationType* = sem_type_new(c, SUSize, 0, null);
+        if !sem_ok(c) { return default; }
         if expected_type != null {
             size = expected_type;
         }
@@ -243,9 +247,12 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
     if expected_type != null && !semantic_type_equal(&constant.type, expected_type) {
         var step41 = sem_type_name(c, expected_type);
         var step42 = sem_cat(c, "Expected ", step41);
+        if !sem_ok(c) { return default; }
         var step43 = sem_type_name(c, &constant.type);
         var step44 = sem_cat(c, " compile-time argument, got ", step43);
+        if !sem_ok(c) { return default; }
         var step45 = sem_cat(c, step42, step44);
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step45);
         return null;
     }
@@ -278,19 +285,24 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
 
 fn sem_instance_name(c: SemanticContext*, definition: void*, arguments: vector(void*)*): u8* {
     var name: u8* = sem_cat(c, sem_identifier(c, sem_member(definition, "name")), "(");
+    if !sem_ok(c) { return default; }
     var i: usize = 0;
     for(; i < arguments.length; i++) {
         if i != 0 {
             name = sem_cat(c, name, ", ");
+            if !sem_ok(c) { return default; }
         }
         var arg: FoundationNode* = sem_get(arguments.data[i]);
         if arg.constant {
             name = sem_cat(c, name, sem_number(c, arg.bits, &arg.type));
+            if !sem_ok(c) { return default; }
         } else {
             name = sem_cat(c, name, sem_type_name(c, &arg.type));
+            if !sem_ok(c) { return default; }
         }
     }
     name = sem_cat(c, name, ")");
+    if !sem_ok(c) { return default; }
     var unique: u8* = name;
     var suffix: u64 = 1;
     loop {
@@ -300,6 +312,7 @@ fn sem_instance_name(c: SemanticContext*, definition: void*, arguments: vector(v
         }
         suffix++;
         unique = sem_cat(c, sem_cat(c, name, "_"), sem_decimal(c, suffix));
+        if !sem_ok(c) { return default; }
     }
     return unique;
 }
@@ -316,19 +329,25 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     }
     var step7 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step7);
+    if !sem_ok(c) { return; }
     if !sem_is(n, "CoreFunction") {
         sem_fail(c, n, "Templates cannot be extern or export declarations; export a concrete wrapper");
         return;
     }
     var names: SemanticTable* = sem_table(c);
+    if !sem_ok(c) { return; }
     var step12 = sem_member(n, "params");
     var parameters: vector(void*)* = sem_collect(c, step12, "CoreParameter");
+    if !sem_ok(c) { return; }
     foreach(var p in parameters) {
         var step16 = sem_member(p, "name");
         var value: u8* = sem_identifier(c, step16);
+        if !sem_ok(c) { return; }
         if !sem_put(c, names, value, p) {
             var step20 = sem_cat(c, "Duplicate template parameter '", value);
+            if !sem_ok(c) { return; }
             var step21 = sem_cat(c, step20, "'");
+            if !sem_ok(c) { return; }
             sem_fail(c, p, step21);
             return;
         }
@@ -344,16 +363,20 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     }
     if !sem_define(c, registry, n, name) {
         var step25 = sem_cat(c, "Duplicate template '", name);
+        if !sem_ok(c) { return; }
         var step26 = sem_cat(c, step25, "'");
+        if !sem_ok(c) { return; }
         sem_fail(c, n, step26);
         return;
     }
     if semantic_builtin_kind(name) != 0 {
         var step29 = sem_cat(c, "Template name '", name);
+        if !sem_ok(c) { return; }
         var step30 = sem_cat(c, step29, "' already names a foundation builtin");
+        if !sem_ok(c) { return; }
         sem_fail(c, n, step30);
     }
-    sem_push(&c.template_nodes, n);
+    if !sem_push_checked(c, &c.template_nodes, n) { return; }
 }
 
 // Only a registered declaration's type annotation may publish a nominal
@@ -378,7 +401,9 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
     var name = sem_identifier(c, sem_member(n, "name"));
     if definition == null {
         var step6 = sem_cat(c, "Unknown type constructor '", name);
+        if !sem_ok(c) { return default; }
         var step7 = sem_cat(c, step6, "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step7);
         return null;
     }
@@ -388,26 +413,32 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
     }
     var step9 = sem_member(n, "args");
     var args: vector(void*)* = sem_collect(c, step9, wanted);
+    if !sem_ok(c) { return default; }
     if args.length == 0 && !sem_is(n, "CoreCall") {
         var step15 = sem_member(n, "args");
         args = sem_collect(c, step15, "CoreType");
+        if !sem_ok(c) { return default; }
     }
     var step17 = generic_parameter_count(c.generics, definition);
     if args.length != step17 {
         var step19 = sem_cat(c, "Wrong argument count for type constructor '", name);
+        if !sem_ok(c) { return default; }
         var step20 = sem_cat(c, step19, "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step20);
         return null;
     }
     var arguments: vector(void*)* = sem_list(c);
+    if !sem_ok(c) { return default; }
     var step22 = sem_member(definition, "params");
     var parameters: vector(void*)* = sem_collect(c, step22, "CoreParameter");
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < args.length; i++) {
         if generic_type_parameter(c.generics, definition, i) {
             var step27 = sem_type(c, args.data[i]);
             var argument = sem_type_entity(c, step27, args.data[i]);
             if argument == null { return null; }
-            sem_push(arguments, argument);
+            if !sem_push_checked(c, arguments, argument) { return default; }
         } else {
             var step29 = sem_member(parameters.data[i], "type");
             var expected_type: FoundationType* = sem_type(c, step29);
@@ -418,7 +449,7 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
             }
             var argument = sem_constant_argument(c, args.data[i], expected_type);
             if argument == null { return null; }
-            sem_push(arguments, argument);
+            if !sem_push_checked(c, arguments, argument) { return default; }
         }
         if !sem_ok(c) {
             return null;
@@ -435,17 +466,20 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     defer { c.defer_type_fields = previous_defer; }
     var step1 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step1);
+    if !sem_ok(c) { return default; }
     var primitive = sem_type_primitive(c, n, name);
     if primitive != null { return primitive; }
     if sem_equal(name, "pointer_type") || sem_equal(name, "array_type") {
         var pointer = sem_equal(name, "pointer_type");
         var args = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+        if !sem_ok(c) { return default; }
         var arity: usize = pointer ? 1 : ArrayTypeConstructorArity;
         if args.length != arity {
             sem_fail(c, n, "Wrong argument count for type constructor");
             return sem_type_new(c, SI32, 0, null);
         }
         var type = sem_type_copy(c, sem_type(c, args.data[0]));
+        if !sem_ok(c) { return default; }
         if pointer {
             type.pointers++;
             if type.pointers > FoundationPointerDepthLimit { sem_fail(c, n, "Foundation pointer nesting limit is 16"); }
@@ -457,22 +491,25 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
     if definition == null && sem_equal(name, "function") && sem_type_identity_call(c, n) {
         var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+        if !sem_ok(c) { return default; }
         if arguments.length == 0 {
             sem_fail(c, n, "function requires a return type followed by its parameter types");
             return sem_type_new(c, SI32, 0, null);
         }
         var result = sem_type(c, arguments.data[0]);
         var parameters = sem_list(c);
+        if !sem_ok(c) { return default; }
         for(var i: usize = 1; i < arguments.length && sem_ok(c); i++) {
             var type = sem_type(c, arguments.data[i]);
             if type.pointers == 0 && type.scalar == SVoid { sem_fail(c, arguments.data[i], "A function parameter cannot have void type"); }
             var parameter = sem_control_node(c, n, KParameter);
             sem_set_type(&sem_get(parameter).type, type);
-            sem_push(parameters, parameter);
+            if !sem_push_checked(c, parameters, parameter) { return default; }
         }
         return sem_function_type(c, n, result, parameters);
     }
     var invalid = sem_type_new(c, SI32, 0, null);
+    if !sem_ok(c) { return default; }
     var arguments = sem_constructor_arguments(c, n, definition);
     if !sem_ok(c) { return invalid; }
     var resource_error = WorkBudgetError.None;
@@ -485,6 +522,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         return invalid;
     }
     var step42 = sem_state(c, c.source_bases, instance);
+    if !sem_ok(c) { return default; }
     var step43 = sem_source_base(c, definition);
     step42.number = step43;
     if c.declaration_state != null {
@@ -502,6 +540,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         }
     }
     var entry: SemanticEntry* = sem_state(c, c.type_results, instance);
+    if !sem_ok(c) { return default; }
     if entry.value != null {
         var result = bits(FoundationType*, entry.value);
         // Nominal publication precedes field checking. A cached identity must
@@ -514,7 +553,9 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     }
     if entry.number != 0 {
         var step48 = sem_cat(c, "Recursive type constructor '", name);
+        if !sem_ok(c) { return default; }
         var step49 = sem_cat(c, step48, "' has no concrete struct to resolve");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step49);
         return invalid;
     }
@@ -524,6 +565,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         return invalid;
     }
     var step56 = sem_state(c, c.source_bases, result);
+    if !sem_ok(c) { return default; }
     var step57 = sem_source_base(c, definition);
     step56.number = step57;
     if sem_is(result, "CoreStruct") {
@@ -536,7 +578,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         var t: FoundationType* = &step62.type;
         var step63 = bits(void*, t);
         entry.value = step63;
-        sem_push(&c.generated, result);
+        if !sem_push_checked(c, &c.generated, result) { return default; }
         if c.defer_type_fields {
             sem_require(c.declaration_subjects != null);
             sem_declaration_add(c, result);
@@ -615,11 +657,11 @@ fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize
     var entity = sem_type_node(c, subject, KType);
     if entity == null { return null; }
     var array = sem_get(entity);
-    sem_set_name(array, sem_cat(c, sem_cat(c, sem_type_name(c, element), "["),
+    sem_set_name(c, array, sem_cat(c, sem_cat(c, sem_type_name(c, element), "["),
         sem_cat(c, sem_decimal(c, convert(u64, length)), "]")));
     array.element = *element;
     array.length = length;
-    array.type = *sem_type_new(c, SArray, 0, entity);
+    array.type = sem_type_value(c, SArray, 0, entity);
     if !vector_push(&c.program.types, entity) {
         sem_type_resource(c, subject, WorkBudgetError.Memory);
         sem_require(entity_attach_result(entity, null, null) == WorkBudgetError.None);
@@ -654,6 +696,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             return sem_type_new(c, SI32, 0, null);
         }
         var type = sem_type_copy(c, &sem_get(expression).type);
+        if !sem_ok(c) { return default; }
         sem_type_use(c, query, type);
         return type;
     }
@@ -664,6 +707,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             var op = sem_surface_operator(c, n, left);
             if sem_equal(op, "*") {
                 var tail = sem_tokens(c, sem_member(n, "right"));
+                if !sem_ok(c) { return default; }
                 var count: u32 = 1;
                 for(var index: usize = 0; !(tail[index] == 0); index++) {
                     if tail[index] == 42 {
@@ -675,6 +719,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
                     }
                 }
                 var type = sem_type_copy(c, sem_type(c, left));
+                if !sem_ok(c) { return default; }
                 type.pointers = type.pointers + count;
                 if type.pointers > 16 {
                     sem_fail(c, n, "Foundation pointer nesting limit is 16");
@@ -684,6 +729,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         }
     }
     var invalid: FoundationType* = sem_type_new(c, SI32, 0, null);
+    if !sem_ok(c) { return default; }
     if c.type_depth > 128 {
         sem_fail(c, n, "Type construction nesting exceeds 128; check recursive type arguments");
         return invalid;
@@ -702,6 +748,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     var qualified_name = sem_name_node(n);
     if sem_member(qualified_name, "field") != null {
         var spelling = sem_identifier(c, qualified_name);
+        if !sem_ok(c) { return default; }
         var declaration = sem_resolve(c, c.types, qualified_name, spelling);
         var present = declaration != null;
         if present {
@@ -716,6 +763,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     if base != null {
         var step24 = sem_type(c, base);
         var t: FoundationType* = sem_type_copy(c, step24);
+        if !sem_ok(c) { return default; }
         var count = sem_array_count(n);
         if count != null {
             var length = sem_array_length(c, n, t);
@@ -732,6 +780,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         return t;
     }
     var text: u8* = sem_identifier(c, n);
+    if !sem_ok(c) { return default; }
     if generic_origin(c.generics, n) != null {
         var parent: void* = sem_parent(n);
         loop {
@@ -742,6 +791,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             if step73 {
                 var step76 = sem_member(parent, "name");
                 step73 = sem_equal(text, sem_identifier(c, step76));
+                if !sem_ok(c) { return default; }
             }
             if step73 {
                 var step79 = sem_get(parent);
@@ -765,7 +815,9 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     var found: void* = sem_resolve(c, c.types, n, text);
     if found == null {
         var step89 = sem_cat(c, "Unknown type '", text);
+        if !sem_ok(c) { return default; }
         var step90 = sem_cat(c, step89, "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step90);
         return invalid;
     }
@@ -782,8 +834,9 @@ fn sem_type_header(c: SemanticContext*, n: void*, name: u8*): void {
     if name[0] == 0 {
         var step9 = sem_member(n, "name");
         name = sem_identifier(c, step9);
+        if !sem_ok(c) { return; }
     }
-    sem_set_name(t, sem_output_name(c, n, name));
+    if !sem_set_name(c, t, sem_output_name(c, n, name)) { return; }
     var step12 = name[0] == 0 || sem_equal(name, "type");
     if !step12 {
         var step16 = sem_owned(c.types, sem_owner(c, n), name);
@@ -795,44 +848,52 @@ fn sem_type_header(c: SemanticContext*, n: void*, name: u8*): void {
     step12 ||= sem_owned(c.type_functions, sem_owner(c, n), name) != null;
     if step12 {
         var step21 = sem_cat(c, "Missing or duplicate type '", name);
+        if !sem_ok(c) { return; }
         var step22 = sem_cat(c, step21, "'");
+        if !sem_ok(c) { return; }
         sem_fail(c, n, step22);
         return;
     }
     // Names use the shared hash index; layouts use the iterative work graph.
     // The compilation node/storage budgets apply instead of a 256-type cap.
     var step24 = sem_type_new(c, SStruct, 0, n);
+    if !sem_ok(c) { return; }
     sem_set_type(&t.type, step24);
     sem_define(c, c.types, n, name);
-    sem_push(&c.program.types, n);
+    if !sem_push_checked(c, &c.program.types, n) { return; }
 }
 
 fn sem_type_fields(c: SemanticContext*, n: void*): void {
     var state: SemanticEntry* = sem_state(c, c.fields_done, n);
+    if !sem_ok(c) { return; }
     if state.number != 0 {
         return;
     }
     state.number = 1;
     var t: FoundationNode* = sem_get(n);
     var names: SemanticTable* = sem_table(c);
+    if !sem_ok(c) { return; }
     var fields: vector(void*)* = sem_collect(c, sem_member(n, "fields"), "CoreField");
+    if !sem_ok(c) { return; }
     foreach(var field in fields) {
         if !sem_shape(c, field, "name") || !sem_shape(c, field, "type") {
             return;
         }
         var f: FoundationNode* = sem_node(c, field, KFieldDeclaration);
         var name: u8* = sem_identifier(c, sem_member(field, "name"));
-        sem_set_name(f, name);
+        if !sem_ok(c) { return; }
+        if !sem_set_name(c, f, name) { return; }
         var step19 = sem_type(c, sem_member(field, "type"));
         sem_set_type(&f.type, step19);
         if name[0] == 0 || !sem_put(c, names, name, field) {
             var step25 = sem_cat(c, "Missing or duplicate field '", name);
+            if !sem_ok(c) { return; }
             sem_fail(c, field, sem_cat(c, step25, "'"));
         }
         if f.type.pointers == 0 && f.type.scalar == SVoid {
             sem_fail(c, field, "A field cannot have void type");
         }
-        sem_push(&t.items, field);
+        if !sem_push_checked(c, &t.items, field) { return; }
     }
 }
 
@@ -857,12 +918,13 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
     if function.frame_size > 4194304 {
         sem_fail(c, n, "Foundation local storage exceeds 4 MiB");
     }
-    sem_push(&function.locals, n);
+    if !sem_push_checked(c, &function.locals, n) { return; }
 }
 
 fn sem_value_binding(c: SemanticContext*, n: void*): void* {
     n = sem_surface_unwrap(n);
     var name = sem_identifier(c, n);
+    if !sem_ok(c) { return default; }
     var module = sem_namespace(c, n);
     if module != null { return sem_owned(c.globals, module, sem_identifier(c, sem_member(n, "field"))); }
     if sem_member(n, "base") != null { return null; }
@@ -884,7 +946,7 @@ fn sem_named_type_value(c: SemanticContext*, node: void*): bool {
     // It has no declaration job to attach, particularly on a body worker.
     if sem_get(declaration).global && !sem_declaration_type(c, declaration) { return true; }
     var value = sem_node(c, node, KTypeReference);
-    value.type = *sem_type_new(c, SType, 0, null);
+    value.type = sem_type_value(c, SType, 0, null);
     value.element = sem_get(declaration).type;
     return true;
 }
@@ -926,10 +988,10 @@ fn sem_function_type(c: SemanticContext*, owner: void*, result: FoundationType*,
     foreach(var source in parameters) {
         var parameter = sem_control_node(c, entity, KParameter);
         sem_set_type(&sem_get(parameter).type, &sem_get(source).type);
-        sem_push(&signature.parameters, parameter);
+        if !sem_push_checked(c, &signature.parameters, parameter) { return default; }
     }
-    sem_set_name(signature, sem_type_name(c, &signature.type));
-    sem_push(&c.type_arguments, entity);
+    if !sem_set_name(c, signature, sem_type_name(c, &signature.type)) { return default; }
+    if !sem_push_checked(c, &c.type_arguments, entity) { return default; }
     return &signature.type;
 }
 
@@ -954,6 +1016,7 @@ fn sem_lookup(c: SemanticContext*, n: void*): void* {
         return null;
     }
     var name: u8* = sem_identifier(c, n);
+    if !sem_ok(c) { return default; }
     var scope: SemanticScope* = c.scope;
     loop {
         if scope == null {
@@ -976,6 +1039,7 @@ fn sem_lookup(c: SemanticContext*, n: void*): void* {
         return null;
     }
     var step10 = sem_cat(c, "Unknown local '", name);
+    if !sem_ok(c) { return default; }
     sem_fail(c, n, sem_cat(c, step10, "'"));
     return null;
 }
@@ -1006,15 +1070,22 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         for(; i < c.inferring.length; i++) {
             var step15 = sem_name(sem_get(c.inferring.data[i]));
             var step16 = sem_cat(c, step15, " -> ");
+            if !sem_ok(c) { return default; }
             chain = sem_cat(c, chain, step16);
+            if !sem_ok(c) { return default; }
         }
         var step18 = sem_name(value);
         var step19 = sem_cat(c, "Cannot infer the type of '", step18);
+        if !sem_ok(c) { return default; }
         var step20 = sem_cat(c, step19, "': initializer dependency cycle ");
+        if !sem_ok(c) { return default; }
         var step21 = sem_name(value);
         var step22 = sem_cat(c, chain, step21);
+        if !sem_ok(c) { return default; }
         var step23 = sem_cat(c, step22, "; add an explicit type annotation");
+        if !sem_ok(c) { return default; }
         var step24 = sem_cat(c, step20, step23);
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step24);
         return false;
     }
@@ -1025,7 +1096,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     }
     if annotation != null {
         state.number = 1;
-        sem_push(&c.inferring, n);
+        if !sem_push_checked(c, &c.inferring, n) { return default; }
         var step27 = sem_type(c, annotation);
         sem_set_type(&value.type, step27);
         c.inferring.length--;
@@ -1034,7 +1105,9 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         if initial == null {
             var step30 = sem_name(value);
             var step31 = sem_cat(c, "Variable '", step30);
+            if !sem_ok(c) { return default; }
             var step32 = sem_cat(c, step31, "' requires a type annotation or an initializer");
+            if !sem_ok(c) { return default; }
             sem_fail(c, n, step32);
             return false;
         }
@@ -1043,7 +1116,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
             return false;
         }
         state.number = 1;
-        sem_push(&c.inferring, n);
+        if !sem_push_checked(c, &c.inferring, n) { return default; }
         var step34 = sem_initial_value(c, initial, null);
         value.value = step34;
         c.inferring.length--;

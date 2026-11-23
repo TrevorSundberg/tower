@@ -43,6 +43,7 @@ fn sem_source_place(c: SemanticContext*, node: void*): void* {
         if name != null { node = name; continue; }
         if sem_child_count(node) == 0 {
             var text = sem_identifier(c, node);
+            if !sem_ok(c) { return default; }
             var scope = c.scope;
             while scope != null {
                 var entry = sem_find(scope.names, text, null);
@@ -59,7 +60,7 @@ fn sem_source_place(c: SemanticContext*, node: void*): void* {
 
 fn sem_source_write(c: SemanticContext*, job: SemanticKnownWork*, place: void*): void {
     var declaration = sem_source_place(c, place);
-    if declaration != null { sem_push(&job.mutations, declaration); return; }
+    if declaration != null { sem_push_checked(c, &job.mutations, declaration); return; }
     // Composite places can select a binding or expose it through an address.
     // Conservatively retain every possible written/escaped declaration.
     for(var i: usize = 0; i < sem_child_count(place); i++) {
@@ -68,6 +69,7 @@ fn sem_source_write(c: SemanticContext*, job: SemanticKnownWork*, place: void*):
 }
 
 fn sem_source_bind(c: SemanticContext*, node: void*): void {
+    if !sem_ok(c) { return; }
     var name = sem_member(node, "name");
     if name == null { return; }
     // Ordinary checking retains responsibility for duplicate-name diagnostics.
@@ -76,7 +78,7 @@ fn sem_source_bind(c: SemanticContext*, node: void*): void {
 }
 
 fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, depth: usize): void {
-    if node == null { return; }
+    if node == null || !sem_ok(c) { return; }
     if depth > SourceBindingDepthLimit { job.binding_incomplete = true; return; }
     if sem_is(node, "Statement") {
         node = sem_unwrap(node);
@@ -100,6 +102,7 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
     if sem_is(node, "CoreBlock") || sem_is(node, "TowerFor") || sem_is(node, "TowerForeach") {
         var previous = c.scope;
         c.scope = sem_scope(c, previous);
+        if !sem_ok(c) { return; }
         if sem_is(node, "TowerForeach") {
             sem_source_scan(c, job, sem_member(node, "source"), depth + 1);
             sem_source_bind(c, node);
@@ -121,8 +124,9 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
     }
     if sem_is(node, "CoreDeclare") {
         if job.owner != null { sem_source_bind(c, node); }
+        if !sem_ok(c) { return; }
         var candidate: SemanticKnownCandidate = { subject: node, ordinal: job.source_ordinal++ };
-        sem_require(vector_push(&job.candidates, candidate));
+        if !vector_push(&job.candidates, candidate) { sem_scratch_error(c, node, WorkBudgetError.Memory); return; }
     }
     if sem_is(node, "CoreAssign") { sem_source_write(c, job, sem_member(node, "target")); }
     if sem_is(node, "CoreAddress") { sem_source_write(c, job, sem_member(node, "name")); }
@@ -155,15 +159,27 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
     sem_context_snapshot(&context, job.context);
     var program = *context.program;
     context.program = &program;
+    context.current = job.subject;
     program.error = default;
-    context.allocations = default;
-    context.lists = default;
+    sem_scratch_private(&context, job.context);
     context.token_text = default;
     context.scan = default;
     context.query_reads = &job.query_reads;
+    defer {
+        job.binding_incomplete ||= !sem_ok(&context);
+        if job.resource_error == WorkBudgetError.None && program.resource.error != WorkBudgetError.None {
+            job.resource_error = program.resource.error;
+            job.resource_offset = program.resource.offset;
+        }
+        vector_dispose(&program.error);
+        sem_scan_dispose(&context);
+        sem_scratch_dispose(&context.scratch);
+    }
     context.scope = sem_scope(&context, null);
+    if !sem_ok(&context) { return; }
     if job.owner != null {
         var parameters = sem_collect(&context, sem_member(job.owner, "params"), "CoreParameter");
+        if parameters == null { return; }
         foreach(var parameter in parameters) { sem_source_bind(&context, parameter); }
         sem_source_scan(&context, job, sem_member(job.owner, "body"), 0);
     } else {
@@ -172,15 +188,6 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
         sem_require(pipeline != null && pipeline.roots_ready);
         foreach(var node in &pipeline.source_roots) { sem_source_scan(&context, job, node, 0); }
     }
-    job.binding_incomplete ||= !sem_ok(&context);
-    if job.resource_error == WorkBudgetError.None { job.resource_error = program.resource.error; }
-    vector_dispose(&program.error);
-    stack_dispose(&context.scan);
-    vector_dispose(&context.token_text);
-    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
-    vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
-    vector_dispose(&context.allocations);
 }
 
 fn sem_source_bindings_prepare(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, extension: bool): void {
@@ -252,7 +259,7 @@ fn sem_source_binding_roots(c: SemanticContext*): void {
     if !vector_reserve(&pipeline.source_roots, sem_get(c.program.root).items.length) {
         sem_known_admission_error(c, c.program.root, WorkBudgetError.Memory); return;
     }
-    foreach(var node in &sem_get(c.program.root).items) { sem_push(&pipeline.source_roots, node); }
+    foreach(var node in &sem_get(c.program.root).items) { sem_push_checked(c, &pipeline.source_roots, node); }
     pipeline.roots_ready = true;
 }
 

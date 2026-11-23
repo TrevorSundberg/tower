@@ -1111,6 +1111,31 @@ It checks syntax-session first-failure propagation and aliased stream replacemen
 revision/location fixture without the complete frontend suite. These are focused
 native checks; integrated sanitizer and hosted release acceptance are separate.
 
+The native work/backend configuration (`TOWER_NATIVE`, `TOWER_BACKEND_TESTS` and
+`TOWER_WORK_TESTS` enabled) also registers these existing focused selectors:
+
+| CTest name | Existing binary and selector | Timeout |
+| --- | --- | --- |
+| `tower-frontend-structure-reuse` | `tower-frontend-tests RESOURCE_ROOT structure-reuse` | 60 s |
+| `tower-native-unit-admission` | `tower-lr-work-tests RESOURCE_ROOT unit-admission` | 180 s |
+| `tower-native-backend-ir` | `tower-lr-work-tests RESOURCE_ROOT backend-ir` | 180 s |
+
+All three carry `native;focused` labels and use the configured source tree's
+`scaffolding` resource root. The 60-second bound follows focused producer checks;
+180 seconds matches existing native unit/backend integration checks. Existing
+default and `all` selectors are unchanged. CTest does not build these binaries:
+refresh the existing `tower-frontend-tests` and `tower-lr-work-tests` targets as
+part of the frozen integrated build before running:
+
+```sh
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure -j 1 \
+  -R '^tower-(frontend-structure-reuse|native-unit-admission|native-backend-ir)$'
+```
+
+Registration/configuration discovery is validated separately from execution.
+Current-source runtime results for these registrations remain pending ROOT's
+integrated milestone; older explicit-selector receipts keep their source identity.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
@@ -1401,7 +1426,7 @@ publication remain prerequisites. Lowering/evaluation windows still join before
 cross-phase mutation, and diagnostics retain the full lowering priority.
 Integrated sanitizers/platform checks remain separate release gates.
 
-### Entity accounting census and pending finite-cap gate
+### Entity accounting census and finite-cap gate
 
 On the supported Linux x64 native configuration with `TOWER_WORK_TESTS=ON`:
 
@@ -1417,23 +1442,36 @@ allocator, one owner and no dispatch/fault counters. Each named profile record
 prints the twelve fields listed in its header, one value per line. Canonical
 component sums, detach/reuse, cancellable staged borrows, finalizers and complete
 world/ledger disposal are checked. `tower-measure-entity-accounting` runs that
-same profile. The small workload's store/pages have no replacement-buffer growth,
-so its compiler-buffer peak is captured by these phases. The separately labeled
-world-retained peak is sampled: transient raw replacement allocations, malloc
-metadata, libc output buffers and RSS are not included. Ledger metadata is
-reported separately and is outside the declared work-byte allowance.
+same profile. Physical ownership includes full and partial descriptor/payload
+pages, individually owned buffers and their headers, and stage work vectors.
+The node/child/index/table/query/stage columns describe payload categories already
+included in those physical allocations; do not add them twice. Every sampled
+physical total must equal the ledger's live bytes. Sampled retained peaks exclude
+transient replacement overlap; the ledger peak includes it. Allocator metadata,
+libc output buffers and RSS are outside this census. Ledger metadata is reported
+separately and is outside the declared work-byte allowance.
 
-The explicit cap target is **currently failing**, not a CTest expected-failure
-pass or a skip. It calibrates the actual charged empty-store footprint, gives a
-fresh store exactly that finite allowance, verifies a charged buffer is denied,
-then requires raw entity creation to return `Capacity` without changing identity
-or publishing a node. It always disposes the attempted owner before returning.
-Current baseline admits a 184-byte node after using all 2,232 ledger bytes and
-returns1. This is an independent descriptor-admission regression for A2's future
-producer closure; a passing profile is not finite-cap acceptance, and fixing
-this one denial does not establish child/index/query/stage accounting. The census
-must remain tied to the actual allocation layout as those owners migrate.
-See the journal's D2 entity accounting receipt for source hashes and byte totals.
+The strict cap target must exit zero; it is not an expected-failure pass or a
+skip. It calibrates the actual empty-store footprint, gives a fresh store exactly
+that allowance, then requires entity creation to return `Capacity` without
+changing identity or publishing a node. Additional finite-cap cases cover child,
+component/instance index, archetype, view/query, and stage admission/growth;
+replacement rollback, charged-slot reuse, cancellation, pinned retirement and
+final zero grants. These use explicit budget reservations with the normal
+allocator, not allocation-failure instrumentation. The separate concurrent
+component-budget fixture checks synchronized grants and private stage pools with
+real workers. The census must follow actual ownership representation. See the
+journal's historical D2 baseline and subsequent A2 accounting receipt.
+
+The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
+imports the actual frontend unit producer through
+`generation_layout_frontier.tower`, checks all its bodies and interprets the
+known root result `42`. Run it with
+`ctest --test-dir build/native --output-on-failure -R '^tower-generation-layout-frontier-'`.
+It guards the transition from early executed type/generic helpers to ordinary
+module body admission: a local construction cursor is not proof that every
+unrelated nominal layout has been published. This focused regression does not
+establish whole-compiler generation identity.
 
 The registered semantic flow/lifecycle frontier fixtures also exercise checked
 kind/component pin denial, world-budgeted scratch and worker-pool denial,
@@ -1463,8 +1501,12 @@ every second owner and a third on every sixteenth. These are dense/sparse
 **membership populations**, all backed by the same stable component pages.
 Each process measures initial population, one-survivor-per-primary-page removal,
 and refill; primary sums are 33,550,336 / 508,096 / 33,550,336. Refill must acquire
-zero new byte grants and preserve surviving payload addresses. Complete world
+zero new payload pages and preserve surviving payload addresses; reconstructed
+archetype indexes may acquire their own charged buffers. Complete world
 and ledger disposal is checked. Views close before every structural edit.
+The measurement allowance is 2MiB: its 2,048-owner mixed population now charges
+descriptor/index storage too, exceeding the former 1MiB payload-only allowance.
+The separate accounting cap target continues to require actual denial.
 
 Each labeled record emits its fields in order, one per line. First traversal is
 after creation and planning; it is not an OS/hardware cold-cache experiment.
@@ -1478,7 +1520,10 @@ The new mode has no packed snapshot. It enumerates unique live `component.page`
 pointers because full pages are absent from the free-slot pool list. Occupancy,
 payload bytes, physical page allocation requests, strided slot bytes, raw owner
 storage, query plan storage and live allocation-owner count are reported. Those
-counts are retained owners, not malloc call counts. Ledger metadata and census
+counts are retained owners, not malloc call counts. Descriptor pages (including
+full pages) and independent index buffers now contribute their actual physical
+bytes and headers. Raw owner/plan payload columns overlap that physical total;
+the total must equal charged live bytes. Ledger metadata and census
 scratch are separate; stack arrays, allocator-private overhead and transient raw
 resize peaks are outside this census. Page payloads have stable addresses and
 stride/back-reference overhead; archetype columns contain component pointers,
@@ -1487,3 +1532,63 @@ cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
 receipt and audit for measured source identity and limits.
 
 A1 body/declaration admission checks are imported by semantic_lifecycle_frontier_checks.tower (tower-semantic-lifecycle-frontier-tests and query-smoke). The46 new real-pump trials cover workers1/4, kind/component pins, graph/world capacity, partial takes and foreign leases, joined completion/body-count denial, cancellation, deterministic owner offsets, no successful check prefix, stable terminal retries and zero retained budget owners. Existing flow/lifecycle/staging coverage totals132 trials; build with tower-semantic-staging-smoke. Broader release instrumentation remains ROOT's integration work.
+
+### Focused LR closure ordering and frontend iteration cost
+
+The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
+exact closure ordering against the independent insertion-based oracle: empty,
+singleton, odd/even boundary sizes; ordered, reversed and seeded shuffled items;
+then the existing 150 grammar/propagation comparisons, including reopened
+closures, state/action identities and parser error/probe behavior.
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-frontend-tests tower-lr-work-tests
+cd scaffolding
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-order
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" grammar-equivalence
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" structure-reuse
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" parser
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" diagnostics
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD" lr
+/usr/bin/time -v "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" iteration-cold
+/usr/bin/time -v "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" iteration-installed
+```
+
+Use an absolute build path. Live grammar fixtures require the resource directory
+as their working directory. Iteration cases compile the same `answer()` returning
+42, execute it and report canonical text identity. Cold means a fresh world from
+the immutable seed, not flushed OS/hardware caches; installed additionally sets
+up the Bedrock/Foundation baseline before the measured source phases. Observer
+Lookup/Build/Table times are nested, not additive. Whole-process time also includes
+startup, resource reads, canonical formatting, checked interpretation and cleanup;
+no backend/link output is timed here.
+
+The iteration fixture requires its existing serial instrumentation transport,
+binds a 256MiB ledger before the first entity, reports charged live/peak bytes,
+separate ledger metadata, allocation calls and retained buffers, then requires
+zero final buffers/grants. Entity-owned descriptors and indexes are charged;
+independently owned analysis allocations are not covered automatically. This is
+not a whole-process cap. Installed allocation counts include ledger
+startup. These counters must not be used during real overlap; the separate native
+`lr` selector uses normal worker transport. Preserve exact old/new executables and
+resource hashes for alternating timing pairs; requested lanes or passing oracle
+checks do not measure speedup. See the D2 LR iteration journal receipt for the
+measured optimization, rejected experiment and remaining cold frontend cost.
+
+The B1 checked provenance/presentation selector uses the production native target:
+
+```sh
+cmake --build build/native --target tower-frontend-tests --parallel 6
+(cd scaffolding && ../build/native/tower-frontend-tests . presentation-budget)
+```
+
+It covers splice denial/copy retry, cancelled staged reference ownership, first
+formatter failure, late real-session diagnostic allocation failure with unchanged
+source/insertion positions, deterministic diagnostic retry, source formatting,
+regex resource errors, and detached text after world teardown. The measured last
+required diagnostic allocation drives the late-failure case; no allocation index
+is guessed. Printed production peaks exclude deliberately exhaustive reservations.
+Every owned receipt is gone before ledger teardown. Run `parser` for immediate
+request/admission callers and `grammar-equivalence` for canonical live grammar and
+replacement coverage. These focused checks do not replace integrated sanitizers,
+bootstrap, browser or release verification.

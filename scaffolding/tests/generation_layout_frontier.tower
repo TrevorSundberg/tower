@@ -1,0 +1,8 @@
+import tower;
+
+// Compile the actual producer whose early generic/type helpers advanced the
+// layout frontier past WorkBatch without scheduling its layout. No copy of the
+// producer or reduced substitute can silently diverge from the compiler build.
+import .compiler.frontend_units;
+
+print(42);

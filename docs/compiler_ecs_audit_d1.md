@@ -1,6 +1,6 @@
 # D1 compiler ECS acceptance audit
 
-Current source adoption: [published5b05d6bb](#current-fixture-adoption-at-published-5b05d6bb-2026-11-23),550 direct paths. Earlier census and execution receipts retain their historical identities.
+Current source adoption: [published ec01291](#delegated-finite-source-adoption-at-ec01291-2026-11-23),551 direct paths and all51 delegated freshness actions closed by substantive review. The demonstrated budget defect and coverage limits remain explicit; earlier execution receipts retain their identities.
 
 This is a growing review receipt, not completion or release evidence. Initial
 review source: `6282238779034442e0578d76b921ca117df819f1` (2026-11-22).
@@ -3291,3 +3291,175 @@ The final pre-push d21ba95 merge additionally changes frontend_main and
 semantic_executable_admission_checks, bringing that later D1 delta to15 paths;
 no additional file is added. Frozen550 review versus current551 inventory remains
 explicit, with the exact final source delta recorded in the roster.
+
+## Delegated finite source adoption at ec01291 (2026-11-23)
+
+Reviewed published main ec01291eaf8706c29f3bec62ec85a2e7561530d4, frozen once.
+ROOT delegated independent substantive adoption of all 51 paths in the preceding
+roster union: 26 freshness actions plus 33 later deltas, with eight overlaps.
+The table closes those source-review actions, rather than assigning them again.
+Implementation ownership stays with the original lanes. Each blob prefix below
+is resolved by that exact commit/path; these are source findings, not new runtime
+passes. Unchanged complete reviews remain reusable.
+
+The frozen tree has 1,146 tracked Tower paths and 551 D1 paths. The prior 550-path
+D1 review plus one added fixture and fourteen changed fixtures below closes its
+later delta. The exact Git path set still equals the previous reconciled owner
+set. No after-freeze source is adopted here. Historical journal experiments and
+45 pinned resource entries retain their provenance-only status.
+
+### Production and provider receipts (36 paths)
+
+All rows are independently adopted at the frozen identity. Explicit limits and
+the confirmed accounting defect below remain open; adoption does not mean that
+every allocation or threaded execution has been validated.
+
+| Path | Frozen blob | Substantive finding and disposition |
+| --- | --- | --- |
+| scaffolding/backend/context.tower | aa91d992 | Retention policy is mutable only before source/output creation; default retains both IR texts. Null-guarded disposal handles object-only output. Observer context is borrowed through dispatch/join, not owned by LLVM. Adopted with external LLVM heap accounting still outside output grants. |
+| scaffolding/backend/lowering.tower | d1823233 | Preparation/declaration/IR/verification/raw-text intervals balance through deferred exit. Verification remains unconditional; only LLVMPrintModuleToString is conditional. One private backend owns all phase writes. Adopted; phase durations are observation, not a speedup assertion. |
+| scaffolding/backend/observation_types.tower | 35cd597b | Entire new enum/callback layout reviewed. Explicit ordinal and phase select private observer slots; callbacks may not mutate compiler/LLVM state. Borrowed context must outlive joins. Adopted; callback synchronization is a caller contract. |
+| scaffolding/backend/pipeline.tower | 42638077 | Optimization and emission still execute their existing passes/verifier/object generation. Optional optimized text is independent of verification; deferred phase exits cover failures. Adopted with unchanged target/output ownership. |
+| scaffolding/backend/units.tower | 9e5c27ca | Observer/retention configuration rejects started or finished batches; attached next() marks started before admission. Each job copies observation plus ordinal. Shared graph tickets and lane grants precede dispatch; cancel drains before grants/views close. Object-size retention is separately reserved and does not claim to bound LLVM heap. Adopted. |
+| scaffolding/compiler/compiler_kernel.tower | ab78f7a7 | Joined transition checks every stage hold before closing its input view, publishes all stages before caller readiness, and cancels borrowed result buffers before discard. Earlier published structure is not rolled back after a later publish failure. Existing dispatch Busy admits no work and does not join another owner. Adopted; not a second scheduler. |
+| scaffolding/compiler/frontend_compilation.tower | 106ea785 | Composed early program-resource guard prevents use of a failed semantic root. Typed module startup/finish failures retain causes; a module rejected by vector insertion is destroyed. Existing modules remain owned until final cleanup; successful imports publish dependency-first with lexical duplicate filtering. Adopted; legacy append/attachment assertions are not newly covered fault paths. |
+| scaffolding/compiler/frontend_modules.tower | 932fd975 | Startup privately prepares graph, optional environment/anchor and first module before changing active graphs, source diagnostics or cache bookkeeping. Typed create/component errors survive cleanup; untracked failure does not decrement active_graphs. Completion reserves order/used storage before publication; imported-session failures remain graph-owned. Adopted. |
+| scaffolding/compiler/frontend_units.tower | b72a7d1b | Typed bounded constructor propagates physical causes and closes partial worlds/modules/snapshots. Snapshot replacement reserves exact copies before commit. Shared budget wake enters the existing pool event loop, allowing nested lane returns to refill outer work. Cancel joins and settles before releasing views; wake detaches before pool destruction. Adopted; lane capacity is not observed overlap. |
+| scaffolding/compiler/host_entities.tower | 2ce0fdaf | Removed compiler_work import is a provider-closure correction, not changed entity behavior. Node-based syntax lookup uses the node world; named/ordered child forwarding preserves entity ownership. Legacy host-store create/count wrappers remain explicit boundaries. Adopted against entities-unit linkage. |
+| scaffolding/compiler/semantic_body_work.tower | 705784cc | Preparation failure guards stop layout/type continuation consumption. Joined wave uses shared checked stage transition; cancelled private evaluation invocations are disposed while staged payloads live. Normal publication transfers scratch owners once; failed private lists/buffers survive until pipeline cleanup. Adopted with existing lexical continuation/effect order preserved. |
+| scaffolding/compiler/semantic_capture_work.tower | 304bf09b | Capture/value kinds and components retain typed admission causes; failed second kind retires the first private kind. Owner/frame proof and source initializer query remain explicit. Successful capture ticket precedes IMValueInput publication; optional known_producer is preserved. Finalization closes admission only after producer drain. Adopted; captures are not identified by offsets alone. |
+| scaffolding/compiler/semantic_constructor_work.tower | 50feab39 | Checked declaration/constructor registration preserves parent lexical/current/construction ownership and rejects incomplete state. Type-returning helpers use existing executable/capture producers and ordinary evaluation, with null/failure guards before storing or consuming the result. Adopted; no global type registry or replacement evaluator. |
+| scaffolding/compiler/semantic_context.tower | f818ad2d | sem_create_result returns a containment borrow, releases private allocation on failed attach, and kind registration retires an invalid kind. sem_attach_result uses the node's world and allows existing leased payload access. sem_stage_wave retains dispatch/graph or earliest producer cause, cancels graph on ownership failure. Adopted; pins alone do not authorize mutation. |
+| scaffolding/compiler/semantic_declarations.tower | 921eaa5b | Result-backed state/registration admits query metadata before consumers demand it; frame access distinguishes initializer reads from body writes. Worker tickets/leases are frozen before dispatch. Both discovery/check waves join, transfer holds and publish before structural continuation; private evaluations/scratch clean up on failure. Layout/constructor/inference null results stop publication. Adopted. |
+| scaffolding/compiler/semantic_evaluation.tower | 104ef2f9 | Composed typed kind/state/node admission keeps cleanup ownership before projections/query failure and validates exact subject/readiness identity. Both required and inferred calls use executable inputs; optional capture/type/effect policy stays distinct. Executed waits suspend retained invocations; late owner/signature gates precede dispatch, full lowering retains error priority. Cancellation disposes consumers before producer projection arrays. Adopted. |
+| scaffolding/compiler/semantic_evaluation_work.tower | 22a8f6e5 | Composed registration validates evaluation identity, reserves checked component/access/phase edges, and advances its frontier only after success (including skipped non-inferred clones). Leased preparation/clone stages hold and publish through the shared joined boundary; worker errors stay on the owning evaluation. Adopted; existing stage/view/diagnostic reservation assertions remain narrower than total OOM recovery. |
+| scaffolding/compiler/semantic_execution_work.tower | 029a37b4 | Typed executable kinds/root/input, lease/view/dispatch/hold/publication preserve canonical source causes and drain private snapshots. ROOT's signature add_result records worker Capacity at the source function, skips subsequent lowering, finishes the exact ticket failed and leaves input.ready false. Dispose owns retained diagnostics/aliases. Adopted against signature and healthy fixture receipts; no ready input on denial. |
+| scaffolding/compiler/semantic_known_bindings.tower | 1abbc611 | Checked kinds/components and stage admission preserve capture versus optional producer roles. Joined whole-program write/order proof and per-subject KnownClone precede shared KnownSnapshot; failures cancel partial registration rather than replay. Producer binding publishes only after admitted evaluation/input metadata exists. Adopted; immutable binding is not automatically a known value. |
+| scaffolding/compiler/semantic_known_work.tower | eb9e4782 | Coordinator reuses exact component index, validates ordinal uniqueness/count, and avoids a redundant archetype plan. Workers retain private arena/output and a pinned frozen context. Joined source-order producer cause takes precedence over later terminal graph failure; failed frontiers cannot replay. Adopted; stable indexed pointers are not packed payload storage. |
+| scaffolding/compiler/semantic_layout.tower | 08adbf19 | Same-world typed payload and offset storage precede query exposure; each aggregate dependency uses that producer, not bare query creation. Graph edges/access/sealing and zero-result propagation stop partial layouts reaching callers. Existing 8,192-field dispatch threshold is retained from its original measurement, not remeasured. Adopted. |
+| scaffolding/compiler/semantic_lowering_work.tower | fe555448 | Mixed signature/expression frontier refreshes body after prelude publication; own aggregate range matches own-return metadata reads, checked call types remain frozen. Capture ranges and function/parameter leases precede dispatch. Shared joined stage handling precedes observations/aliases/finish; retained signature errors precede expression errors in source order. Adopted; compatibility owner alone diagnoses quiescent waits. |
+| scaffolding/compiler/semantic_phase_work.tower | a7ed504d | Entire helper reviewed: root-owned joins reference the existing function set/WorkGraph. Both staging policies wait on signatures and their own lowering; KnownProof/Clone still protect inferred snapshots. Callback records publish exactly once by ticket after signature join. Full-lowering gate controls completion/error selection, not unrelated execution. Adopted; frozen ordinary function-set boundary remains. |
+| scaffolding/compiler/semantic_query_api.tower | fedd3975 | Added create/attach result, evaluation-expression and constructor declarations match their actual providers' pointer/result types and exports. No new storage, scheduler or default world. Adopted with provider-specific ownership contracts above. |
+| scaffolding/compiler/semantic_source_bindings.tower | 2faff679 | Uncommitted default components are hidden by query==0. Prepare reserves all candidate payloads and checks specialization mutations before terminal proof completion; publish exposes immutable facts only after successful finish. Pipeline kinds/roots retain checked ownership and joined jobs dispose once. Adopted; ordered syntax roots remain borrowed from the program. |
+| scaffolding/compiler/semantic_statements.tower | 8aa81597 | Single added sem_ok guard stops sem_run after failed source-binding root preparation, before attributes/aliases and subsequent statement execution. Existing ordered grammar/effect handling is unchanged. Adopted against source-binding producer failure contract. |
+| scaffolding/compiler/semantic_support.tower | fed7a3ea | sem_node_result preserves typed world-component failure at syntax offset; fresh nodes alone increment the component limit. Legacy sem_node remains an asserting compatibility wrapper. Adopted; recovering callers must use the checked result and sem_ok, not infer universal failure recovery. |
+| scaffolding/compiler/semantic_type_values.tower | 631afd55 | Integer-argument staging checks executable/capture admission, checked output-node creation and evaluation identity before registration. Retained lexical result resumes through its existing query; non-integer input remains a semantic diagnostic. Adopted; production helper readiness is present. |
+| scaffolding/compiler/units/entities.tower | ca4123b3 | Entire eight-import unit reviewed. Moving library.compiler_work here gives the existing entities provider its work APIs without duplicating the host_entities closure. Existing entities, stage and arena ownership remain authoritative. Adopted; provider import is not a new allocation/accounting guarantee. |
+| scaffolding/host/driver_api.tower | 41434084 | backend_retain_ir extern exactly matches backend/context's bool result and opaque backend borrow; no owned state or policy default changes here. Adopted against actual single-unit caller. |
+| scaffolding/host/driver_compile.tower | b680fd78 | Root creation/semantic initialization failures release partial imported program/root before normalization. Object path opts out only when neither sidecar nor LLVM emission needs text; IR writer returns before null text access when both sidecars are absent. Ordinary lowering/optimization/emission/error cleanup remains. Adopted. |
+| scaffolding/host/driver_units.tower | 2beb6a93 | Configures object-only backend before dispatch; driver_prepare rejects multi-unit interpreter/library/IR-sidecar modes, so omitted text is not a permitted requested output. Backend closes before frontend worlds and owned source buffers. Adopted with shared outer/nested budget and existing executable/link contract. |
+| scaffolding/library/work_budget.tower | 748f6703 | Failed minimum-lane admission arms wake under the same gate used by release, closing the lost-notification window. Release validates owner/revision/generation then sends one nonblocking notification. Binding/detaching additionally requires owner-proven quiescent borrowers. Adopted; byte-only denial does not arm lane wake and raw allocations remain outside ledger. |
+| scaffolding/library/work_budget_types.tower | 65d5f648 | Wake context/function/armed state belongs to the shared budget and is gated with admission; per-call results remain the concurrent error interface. Snapshot retained bytes explicitly expose ledger metadata. Adopted; used_lanes==0 alone does not prove context lifetime. |
+| scaffolding/library/work_pool.tower | 9761377d | Existing completion signal also carries admission wake; receive_event consumes an event and may return no job. It preferentially reaps finished slots; leftover tokens become refill opportunities. Legacy receive hides wake-only events, and close drains workers before signals/storage. Adopted; sender detachment must precede close. |
+| scaffolding/tools/bootstrap_symbols.tower | 4eb021fb | Full current allowlist and verify/comparison callers reviewed. Exact whitespace-token membership, target-scoped table symbols and underscore normalization retained. Semantic typed stage lease/hold/publication and ParserNodes structural cache exports compose without wildcard permission; wrong-unit/truncated/suffixed imports remain rejected. Report returns borrowed input spans deterministically and exits nonzero on rejection. Adopted; policy tests do not prove target execution or public bootstrap closure. |
+
+### Later D1 fixture receipts (15 paths)
+
+| Path | Frozen blob | Substantive finding, registration and limits |
+| --- | --- | --- |
+| scaffolding/tests/backend_units.tower | 3e9d4c0e | Added IR-policy case compiles three real sources (answer42, execution roots, aggregate call), compares retained versus discarded concatenated object bytes at requested workers1/3 under both optimization policies, checks null/nonempty text and frozen configuration, ordered invalid-target error and cancellation cleanup. Reached by lr_work all/backend-ir; not registered backend CTest. Actual overlap remains a separate fixture oracle. Adopted. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | c35131b0 | New semantic lease-result admission uses the shared helper: Linux/Windows/Wasm/macOS spellings accepted, truncation/suffix/wrong-unit rejected. Composed structural-cache cases retain ParserNodes-only checks. Actual producer definitions/consumers match permissions; fixture imports ordinary policy. Adopted; spelling coverage is not cross-platform execution. |
+| scaffolding/tests/entity_accounting.tower | 25f74c90 | Entire new fixture reviewed. World/requested-byte census includes named children, indexes, tables, plans and cancellable private stage; 32-node/4-stage sums, 52 finalizers and zero cleanup are independent oracles. Small workload keeps pages on the non-full list; not a general full-page census. profile target passes in D2's receipt; separate cap target deliberately returns1 for the confirmed uncharged descriptor defect below. Adopted with defect open. |
+| scaffolding/tests/entity_locality.tower | d88ba0fa | New bounded homogeneous/mixed modes derive counts from arrays, compare analytic sums for direct lookup and planned pointer columns, retain one survivor/page then refill without new grants or address changes. Census deduplicates live component.page pointers including full pages. Counterbalanced first/warm scans and raw descriptors are explicit; no hardware-cold or packed-SoA claim. Opt-in measurement target, old no-argument workload preserved. Adopted. |
+| scaffolding/tests/entity_stage_concurrent.tower | ed20b2e7 | Four added transition cases call actual generic stage boundary: publish, exhausted hold, dispatch cause and partial publication failure. Result-cancel callback precedes any finalizer; unheld cancellation still sees live input pin; exact refcounts/publication/finalization checked. Default CTest runs these then existing real four-worker trials. No race-freedom inference. Adopted. |
+| scaffolding/tests/entity_stage_result.tower | f857e37e | Opt-in queued mode checks eight rounds of 65,536 duplicate references, hold-before-last-view-close, idempotent re-hold, final release and empty world. Cancellable payload nulls unheld borrows; finalizer releases held entries. Default typed-result CTest remains; queued cost case needs explicit argument. Adopted; size constants define this workload, not inferred input lengths. |
+| scaffolding/tests/execution_main.tower | cc3856de | type-staging selector composes existing type-construction, aggregate-capture, type-binding, comptime-aggregate and final known-binding suites with shared capture coverage once. Individual selector behavior remains. Uses ordinary request/module lifetime; no alternative reference implementation. Adopted; selector does not itself add a CTest registration or new runtime receipt. |
+| scaffolding/tests/frontend_main.tower | ad7b6f93 | Added puts labels preserve exact default suite order and existing buffer-count/error returns. CMake default frontend entry reaches them; focused early selectors retain their own paths. Labels identify phase entry, do not prove a timeout resolved or force pipe flushing. Adopted; no compiler behavior changed. |
+| scaffolding/tests/frontend_units_profile.tower | 31343d0d | Enum-derived phase slots are allocated before dispatch; each ordinal owns its cells. Observer and object-only policy freeze before shared unit pump; after join every interval is checked inside its outer span on the same thread. Existing canonical/reference checks remain outside timed work. Adopted; summed phase time is not elapsed critical-path time, and buffers are freed after backend join. |
+| scaffolding/tests/lr_work_main.tower | 48d3039a | Merged dependency-units, backend-ir and lifecycle-frontier registrations coexist. CMake renames/links lifecycle fixture main into the single production provider; all/query-smoke calls it. units still includes D1 dependency fixture; backend-ir is explicit/all only. Unknown selectors fail. Adopted; no registration dropped by the merge. |
+| scaffolding/tests/parser_state.tower | 21e622fb | Injected lookahead diagnostic now compares ParserDiagnosticBuffer data/length through format_equal instead of a ByteBuffer-specific helper. Stream error/read position/borrowed-node and return-lookahead assertions remain. Reached by parser_tests/default frontend. Adopted as a type-correct oracle fix, not a parser algorithm change. |
+| scaffolding/tests/semantic_executable_admission_checks.tower | d3efc696 | New signature/healthy selectors use an explicit synchronized world ledger, actual aggregate signature producer and half-budget pressure derived from budget size. Denial must preserve Capacity/offset17, failed query, false readiness and no replay; healthy path requires metadata. Joins and zero ledger/world cleanup checked. All13 selectors registered by CMake; ROOT196d runtime receipt retained. Adopted. |
+| scaffolding/tests/semantic_lifecycle_frontier_checks.tower | 09aadbc9 | New HoldFailure mode queues actual provenance through leased production lowering stages; saturated history references force Exhausted. Checks both kernels ran, no successful transform/callback ABI publication, no running work/views, then restores test pressure before cleanup. Existing ready/wait rendezvous retained. Standalone CTest and all/query-smoke registered. Adopted. |
+| scaffolding/tests/semantic_resource_checks.tower | b8dabad9 | Growth denial now supplies actual checked IMFunctionInput for both required and inferred policies. This keeps the fault at executed nested frame growth after inferred calls adopted executable readiness; exact resource/offset/order/cleanup assertions remain. Reached by query/resource smoke. Adopted; setup correction is not threaded allocator sanitization. |
+| scaffolding/tests/semantic_staging_frontier_checks.tower | 016e1883 | All extended cases reviewed: required/inferred known values42/43, actual nested call/capture owners, optional fallback, repeated waits retaining frame/memory/steps, untaken error/call with zero demand, own-owner wait, error priority/cancel and terminal idempotence. Two invocation-owned signals prove simultaneous evaluation kernels in the workers=4 trial; backlog derives from production window. Twenty trials registered as standalone staging-frontier CTest. Adopted; not a second evaluator or universal race proof. |
+
+### Composed blobs, evidence and exact remaining limits
+
+The original three merge exceptions are explicitly resolved by source composition:
+
+- frontend_compilation: b21bdb2 blob f850fb0e plus the L2 early resource guard
+  yields frozen106ea785; startup failure/cleanup and root guard were reviewed
+  together, including frontend_units and driver callers.
+- semantic_evaluation: 7cea85c blob6bfd2443 is not the reviewed current file.
+  Checked L2 state/subject admission, A1 late required/inferred gates and A2
+  consumer-first cancellation compose in104ef2f9; it exactly matches0a958f27.
+- semantic_evaluation_work: 7cea85c blobe8a58607 plus checked registration/
+  frontier advancement, phase prerequisites and checked joined ownership yields
+  22a8f6e5, also exactly0a958f27. The shared lifecycle pump joins before each
+  next phase and diagnoses cycles only at owning-pipeline quiescence.
+
+Exact current-vs-last-nonmerge comparison also found three later composed files
+inside the assigned set: bootstrap_symbols, bootstrap_symbols_checks and
+lr_work_main (plus the already-known frontend_compilation). Their extra
+structural-cache permissions/cases and dependency/lifecycle registrations were
+read above, not adopted by last-commit label. The remaining47 current blobs match
+their last non-merge implementation blobs. Matching bytes are identity checks;
+substantive review is the table, not that count.
+
+Owner receipts remain scoped: B2 startup b21bdb2, refill dbce8d7 and output
+202d50ca; A1 known/capture5230b5d, layout0ecf31c and inferred d9112a01; L2 checked
+admission2cf4154/d56c290; A2 joined stages0a958f27; ROOT signature196d93c7;
+D2 accounting6b04a149/layoutf7a201e; portable consumer a862f0c and execution
+selector925229c. Existing journal measurements and supported instrumentation are
+not relabeled as runs of ec01291. The new review adopts the composed source only.
+The prior portable stale-ticket eight-line change and focused native evidence,
+D1 dependency batch and ROOT's5b05 revalidation remain unchanged.
+
+There are **zero missing substantive adoption actions in this 51-path set**.
+The concrete unresolved defect retained at this checkpoint is:
+
+- **Whole-store finite budget bypass**, existing A2 producer
+  scaffolding/library/entities.tower:68–94. With a store consuming its exact
+  calibrated budget, entity_create_result allocates an uncharged Entity through
+  alloc, returns None and advances next_id/entity_count. The existing
+  entity_accounting cap fixture demands Capacity/no publication and fails
+  nonzero after cleanup. D2's6b04a149 receipt observes limit/ledger2232 bytes and
+  an additional184-byte live descriptor on Linux x64; the current producer is
+  unchanged. Other raw node/index/table/view/stage storage and ledger metadata
+  likewise prevent a whole-world bound; profile explicitly reports omissions.
+  No new repro or broad run is needed to establish this already demonstrated
+  defect, and this documentation review does not repair it.
+
+At the ec01291 freeze, three regression-registration gaps remained (closed by
+the [registration receipt below](#three-focused-ctest-registrations-2026-11-23)): parser_structure_reuse needed
+frontend structure-reuse; backend_units_admission needed lr_work unit-admission;
+backend_units_ir needed lr_work backend-ir. Existing focused receipts are valid
+at their sources, but default frontend/units/backend CTest commands do not cover
+these selectors. Queued-stage and locality/accounting measurement modes are
+deliberately opt-in, not mislabeled default regressions. Legacy asserting
+allocation paths and the broader release/instrumentation gates remain at their
+existing documented limits; no new unexecuted hypothesis is promoted to a defect.
+
+Checks performed here: changed hunks plus owning producer/caller/disposal
+context, exact51 path/blob table equality, frozen1146 inventory equality,
+three original and four current last-nonmerge composition comparisons, actual
+CMake/selector lookup, whitespace and unchanged todo identity. Read-only lookup
+mistakes (nonexistent scaffolding/cmake/lowercase L2 paths and a non-globbing
+ls-tree pathspec) were corrected against actual paths; no zero census or missing
+file was treated as evidence. Metadata stays under ignored
+build/d1_ecs/review_ec01291/. Documentation-only: runtime profiling, builds,
+sanitizers, bootstrap/browser/generation and deployment are inapplicable to this
+delta or remain ROOT's separate pending integration gates; none ran here.
+
+## Three focused CTest registrations (2026-11-23)
+
+On published98d69cf plus this transport-only delta, the three gaps above are closed:
+cmake/TowerFrontendFocused.cmake registers tower-frontend-structure-reuse;
+cmake/TowerWorkPolicyTests.cmake registers tower-native-unit-admission and
+tower-native-backend-ir. They reuse the exact existing selectors, resource root
+and executable targets, with native/focused labels. Timeout60 follows focused
+producer checks; timeout180 follows native unit/backend checks. No fixture,
+default/all selector, compiler implementation or test runner changed.
+
+D1 Docker configuration succeeded in native-coherent-127ca98 (Release,
+native/work/backend enabled, public bootstrap, compiler jobs1). CTest JSON
+discovery shows exactly these three absolute commands, resources, labels and
+timeouts; Ninja target queries resolve the existing entry objects and production
+providers. Before/after discovery retains every previous test. Both executable
+hashes remain unchanged. Logs: build/d1_ecs/registration_three/.
+Cached LR65802649 matches its older frontier receipt, but current entry/provider
+hashes differ; no matching current frontend receipt is established. Neither binary
+ran and neither was rebuilt. Current-source runtime acceptance remains pending
+ROOT's frozen milestone. Performance/sanitizer/browser measurements are
+inapplicable to registration-only configuration. The frozen51 source review,
+prior execution receipts, known accounting defect and todo remain unchanged.

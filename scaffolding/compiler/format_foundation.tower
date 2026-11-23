@@ -1,4 +1,5 @@
 import tower;
+import format_storage;
 import type_primitives;
 import format_grammar;
 import format_types;
@@ -234,22 +235,24 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
                 terminal = parsed.rule == invalid;
             }
             if terminal {
-                var original: vector(u8);
-                vector_init(&original);
-                if bytes_assign_text(&original, parsed.label.data, parsed.label.length) {
-                    original.length = syntax_identifier_decode_in_place(original.data, original.length);
-                    var same = original.length < fallback.length;
-                    for(var i: usize = 0; i < original.length; i++) {
-                        same &&= original.data[i] == fallback.data[i];
+                var original: FormatResult = default;
+                format_storage_child(&original, f.result);
+                format_storage_append(&original, parsed.label.data, parsed.label.length);
+                format_storage_fail(f.result, format_storage_error(&original));
+                if !original.failed {
+                    original.text.length = syntax_identifier_decode_in_place(original.text.data, original.text.length);
+                    var same = original.text.length < fallback.length;
+                    for(var i: usize = 0; i < original.text.length; i++) {
+                        same &&= original.text.data[i] == fallback.data[i];
                     }
-                    same &&= fallback.data[original.length] == 64;
+                    same &&= fallback.data[original.text.length] == 64;
                     if same {
-                        format_identifier(f, &original);
-                        vector_dispose(&original);
+                        format_identifier(f, &original.text);
+                        format_dispose(&original);
                         return;
                     }
                 }
-                vector_dispose(&original);
+                format_dispose(&original);
                 break;
             }
             if entity_child_count(node) == 1 {
