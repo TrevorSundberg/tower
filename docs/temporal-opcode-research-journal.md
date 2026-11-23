@@ -60770,6 +60770,51 @@ and backend1 thread IDs and exact output comparisons passed. Backend1 entered
 These are n1 nonquiet functional/cost observations, not a measured speedup or
 instrumented acceptance. The original L1 TSan failure remains FAIL134; final
 instrumentation must name the explicit calibrated variant and preserve failures.
+### L2: matched public-clone union profiles, 2026-11-23
+
+After L1's old-source TSan observer actually drained and released the host,
+L2 acquired the primary lock and ran public_clone_profile.sh, session87413.
+All32 CLI children pass checked ordinary-loop reference outputs: small one-generic
+and large eight-specialization workloads, each240 statements, workers1/4,
+one warmup pair plus three retained alternating before/after pairs. All eight
+Foundation outputs are byte-identical across before/after and workers for each
+size. Source and complete before-package SHA manifests pass after the final run;
+all jobs drain0 and the host is released to L1. A prior lock acquisition failed
+before any profile process started; it is not part of this accepted interval.
+
+Before is the preserved37db021e compiler with64af resources; after is7ba14c94
+built from the complete6b8355 production union. Both use the SAME immutable64af
+Bedrock/Foundation/import resources and exact Tower inputs, native x86_64,
+--interpret --jobs1/4 --timings, production allocator/transport, Linux WSL
+Orchestral-Revng, LLVM19.1.1,8physical/16logical host,15.3GiB WSL memory.
+No concurrent sibling build or intentional filesystem-cache eviction. Warmup is
+excluded below; three process samples per cell are not a broad scaling study.
+
+| Workload/workers | Median wall s before -> after | Median CPU s before -> after | Median peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| small/1 |1.47 ->1.48|1.47 ->1.49|172508 ->181344|
+| small/4 |1.27 ->1.30|1.58 ->1.62|191024 ->200420|
+| large/1 |1.52 ->1.56|1.53 ->1.57|180636 ->190140|
+| large/4 |1.27 ->1.28|1.61 ->1.63|203776 ->213452|
+
+Retain the large/1 after sample2 wall2.34s/CPU1.58s outlier; its internal Tower
+total is1.566663625s and RSS190140KiB. That difference is outside the measured
+internal phases; its cause was not established, and it is not silently dropped.
+Current medians show modest latency/CPU increases and a consistent8836-9676KiB
+peak-RSS increase (~5%). No speedup, neutrality or whole-heap budget claim.
+Several owners' changes intervene, so this end-to-end difference cannot be
+attributed to the clone-result API alone. Exact clone micro allocation counts
+remain783/2434 and frame retention peaks416/36928 from the focused checks;
+those are not whole-compiler allocation counts. Four workers reduce wall time
+with higher CPU/RSS, while actual concurrency remains established by the separate
+native barrier/interval tests, not requested lane count alone.
+
+The public inspection regression remains FAILED independently of these ordinary
+compiler profile passes. B2 owns its early resource-error propagation. Latest
+root86e7 grammar/arena bundle is verified/fetched but deliberately not merged
+until this frozen campaign finishes; these receipts are not relabeled as that
+new source's validation. Current final sanitizer/public bootstrap/browser and
+atomic published-main ancestry/hosted verification remain open.
 D1 next merges complete root6b8355b after measured jobs drain, verifying bundle
 aa7eaf7c and sole60741 prerequisite. It includes matched public-clone producer,
 node/attach failure classification and B2 module/document consumers, plus D2 exact
@@ -62791,3 +62836,69 @@ duplicate-symbol failure and corrected target/runtime checks are delegated to
 D2 on the matching frozen integration source. They are not passed yet. Runtime
 algorithm/performance is unchanged by this import correction; preserve compile,
 link and normal execution costs without comparing a failed link to a speedup.
+
+### L2 clone interval diagnostics and bounded workload calibration (2026-11-23)
+
+Reviewed the exact D2 failure package bb62661075ab995989d3fb09f918d5d61f5f1e46f9a1b8d88cc75fa7f0cce20a,
+source406d1709 and fixture ea0a4909. The original two-worker Publish trial exited
+134/SIGABRT at the overlap assertion (1.19wall/.07CPU/53276KiB), before the new
+semantic publication checks. No per-worker timestamps were stored in that run;
+later debugger and ordinary passes cannot establish its precise scheduling delay
+or erase the failure. Admission synchronization alone does not establish kernel
+overlap. Kept the same production-kernel-only timed region and distinct-thread
+oracle; reports now include every worker's start/stop/duration, copied nodes and
+frame ledger peak. Report and assert overlap after joined output/world/grant
+retirement, so this particular failed oracle does not strand those inputs.
+
+On complete root0c8 plus owned3cb/c92 history (merged bb1a0af), the diagnostic-only
+2048-node workload passed once. Concurrent successful kernels took approximately
+.30-1.17ms; serial took .751ms. Such short work supports undersized workload as a
+vulnerability to scheduling delays, not a retrospective proof of D2's exact cause.
+Public9653 smallest and coherent35-step LR rebuild passed; build95.95wall/
+154.33CPU/791676KiB, query .09wall/.10CPU/60296KiB. Before runner babefb9b78263cbe4a27a3bf34763aa0fec78a35808ff7bf9dfd71a874c26c7b
+and all source receipts remain preserved in L2/clone_interval_before_*.
+
+Implementation changes only this Tower fixture. Before concurrent dispatch,
+calibrate using the faster of two fully verified serial Publish trials, growing
+width256,512,1024,1536 at depth8 until a2ms kernel duration or the finite cap.
+Every calibration trial verifies the real cloned shape/provenance and tears down
+its world and reservations. No sleep, dummy work, timed barrier, padded interval,
+retry after failed overlap or reduced oracle. The cap permits four12288-node
+requests plus headers within the existing65536-node expansion allowance. The
+duration is a workload-selection heuristic, never a pass criterion; even at the
+cap the actual distinct-thread interval overlap remains mandatory. Array bounds
+now use the already-defined CloneTrialJobs instead of a duplicate numeric4.
+
+Public9653 smallest passed4.61wall/3.99CPU/240316KiB and the two-step affected LR
+rebuild passed9.01/6.87/288528. Three query-smoke runs selected width1024 (8192
+nodes/request), with faster serial samples2.523/2.555/2.603ms. Required concurrent
+Publish/Cancel kernels took2.8-5.2ms and overlapped on distinct native threads.
+Failed-peer results, cancellation, stale tickets, exact metadata and all world/
+lane/byte cleanup checks passed. Frame peaks remain416/832/1664bytes for1/2/4
+workers and1248 for the failed-peer case; these exclude uncapped entity payloads.
+All other current query checks, including22 Publish and24 resource cases, passed.
+After runner f2b1d64e2bf2163cf55392022e3e7e740b40a23df22e399bf56a33df9698cabe;
+source Tower/CMakeLists/cmake manifests match before/after and the subsequent
+merge-aware pull preserved bb1a0af and the fixture. Logs clone_interval_after_*.
+
+Fixture validation cost is .17/.18/.18wall, .20/.21/.21CPU and74172/73828/73500KiB
+versus the single unchanged-workload diagnostic baseline above. The larger
+selected workload and additional validated serial trials explain additional work;
+these unequal suites are not an equivalent compiler performance comparison or
+speedup claim. No production compiler code changed in this checkpoint. Host is
+the same8physical/16logical x64 WSL Linux6.18.33.2, LLVM19.1.1, public9653,
+Release native -j2 build, per-compiler jobs1, warm dependency cache, no sibling
+build/profile during the owned slot. Zero swaps in these runs. Current source
+instrumentation and independent Deck validation of this remediation remain open;
+three local passes do not prove all scheduler executions overlap.
+
+After the final receipts, the process session had expired and a direct process
+inventory confirmed no owned job. An initial inspection used an incorrect lock
+owner path and malformed WSL quoting, causing missing-path/command errors; no
+compiler validation was run by that inspection. Corrected direct ps and the
+parent local_build_owner.txt established drain and ownership. Released the exact
+nonrecursive L2 lock to L1's next TSan slot. Exported one-file patch2cb32a9cb07b950fdd9ca65976bbc5233fadce31a320fcc0d20da065d59c09b2
+for independent owner review. The separate TypeObjectIndex draft remains preserved
+in stash043c6b9 until this checkpoint commits. Inspection resource propagation,
+typed type-storage callers, final public bootstrap/browser/generation and leased
+atomic main/Pages publication remain unfinished; no source push or release claim.
