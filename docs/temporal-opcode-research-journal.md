@@ -72115,3 +72115,77 @@ The former Capacity blocker is fixed in this source; final joined verification,
 remaining ownership/dependency work and publication still remain open. todo.txt
 is untouched. Original bundle lookup used the parent directory and failed; its
 actual B1 subdirectory transfer and complete hash verification succeeded.
+
+### L2 generic pump scratch ownership on complete ROOT76d (2026-11-23)
+
+Merged the complete ROOT76d297c history into41601b93 after30558 drained and
+60fc53e committed. Verified full bundle4e5e70e9, clean postmerge pull and
+connectivity fsck. This includes L1's admitted node cache and B1's LR result
+classification. Earlier30558 evidence does not validate these changed layouts.
+The repeated bundle-fetch pack-index warnings remain recorded; connectivity
+verification returned0. No publication lease is held by L2.
+
+Full review of semantic_generic_body_work found two ordinary pointer vectors
+outside the selected world ledger. Before porting, audited its sole caller in
+semantic_body_work and sem_body_needed: clone publication changes descendants,
+not the program function window or demand components. The first vector merely
+remembers that same stable window for ordered error selection, so it can be
+removed. The executor still needs its taken-ticket batch; that is the only
+vector migrated to shared work_vector with the root world's explicit budget.
+Per-call Capacity/Memory/Invalid results remain exact. The existing defer drains
+stages/worker grants before cancelling graph leases and disposing batch storage.
+No canonical AST/IR, scheduler, component layout or worker-local input changed.
+
+The registered generic_pump_publication fixture now also exhausts the ledger
+AFTER actual semantic-pool and ready-query admission. It requires pre-dispatch
+Capacity, a taken matching ticket, no copied nodes or kernel storage error,
+unchanged entities/pending instance, sticky failure after allowance is returned,
+and zero owners at teardown. An empty-ready control requires no allocation or
+error. Both target widths are registered. The legacy binder deliberately limits
+this fixture to selected scratch/pool ownership, not physical entity metadata.
+
+BEFORE84484 used41601 plus ONLY that regression. Public fixture compile passed
+4.77s wall/3.90s CPU/218200KiB. The coherent13-step native build passed60.05s
+wall/93.10s CPU/747972KiB. Query-smoke then reached the exact new scratch-denial
+assertion and aborted with SIG6/process134, source manifest0: .29s wall/.04s CPU/
+50660KiB. Prior Busy/success and empty-ready width4 controls passed before it;
+width8 and later cases were unrun. The Windows wrapper returned1; the signaled
+inner status is authoritative, not time's trailing zero exit field.
+
+Compiler dbaad6534778da889d105144e94176ea8b75f6926a65480856e44339c195cfde;
+LR5561e270d4d9f27dde821f3a87e28fa1f5b67d75d0f8bc178ef0d1e3c34c12d6.
+Immutable complete before package /root/.cache/tower/l2_generic_scratch_before_84484
+was copied and hash-verified after all children drained, before production edits.
+Scripts generic_scratch_before.sh/generic_scratch_before_snapshot.sh, source and
+package manifests and complete failure logs are retained in the L2 lane.
+The owned implementation is now applied but UNVALIDATED. Matched after gates,
+same-installation profiles and supported current instrumentation remain pending.
+
+Separate structural creation remains open: A1 sem_create/sem_attach and owned
+constructor/type/generic component creation still contain fatal allocation
+boundaries. A2 entity_attach has unbudgeted child/name storage and only a boolean
+result. A2's new raw-node page proposal is not yet adopted; precise create/stage
+receipts and all-live-page ownership transfer must be preserved by coordinated
+callers. This local scratch migration does not claim complete structural charging.
+The first scratch AFTER31621 stopped at actual semantic-object compilation:
+semantic_generic_body_work146 reported Unknown type constructor work_vector.
+Tower requires the direct work_vector_types declaration import in addition to
+the method module. Cost18.44s wall/11.86s CPU/521000KiB; process1/source0. No
+relink or runtime ran. Added the missing import only after owned jobs drained;
+original logs remain unchanged and corrected retry writes separate receipts.
+Corrected AFTER99552 passes the actual semantic object using the published pin:
+29.70s wall/23.40s CPU/747744KiB. Two coherent relinks pass .86s/.18s/71488KiB;
+query-smoke passes .20s/.22s/74240KiB with source manifest0. The unchanged new
+empty/ready scratch cases now pass at widths4/8, together with Busy/success
+publication, type execution receipts and existing real clone overlap/cancel
+controls. Selected retained bytes/live grants return to their pre-pressure values
+and final world disposal leaves zero; this is not complete process accounting.
+The changed-binary guard passes: compiler379f7097673aae689f1d9c9de74e04d52359a44997080ae2e4b619094ae029ff,
+LR1b8dd61e91dcda81058bda94fa93d9fca5cb15e715c1a61820f3d3df1aa1acdd.
+
+After all children drained, copied and hash-verified the complete after package
+/root/.cache/tower/l2_generic_scratch_after with byte-identical runtime resources
+to before84484. Separate generic_scratch_after_retry logs preserve the initial
+missing-import failure. The owned primary lease is released. Same-real-path32
+constructor/generic comparisons and current supported instrumentation are queued;
+no performance, whole-union or publication acceptance follows from this gate.
