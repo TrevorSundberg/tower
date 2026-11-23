@@ -220,8 +220,12 @@ reusable; later compiler changes need their own receipts at final integration.
 This closes source adoption, not runtime acceptance. The demonstrated raw Entity
 allocation bypass of a fully consumed store ledger remains an A2 accounting
 defect: the existing entity_accounting cap target fails nonzero after cleanup.
-The structure-reuse, unit-admission and backend-ir regressions require explicit
-selectors outside default frontend/units/backend CTest routes. Existing assertions,
+The three registration gaps are now closed by CTest names
+`tower-frontend-structure-reuse`, `tower-native-unit-admission` and
+`tower-native-backend-ir`, using existing binaries/selectors and resources.
+Configuration/discovery and dependency wiring are checked; execution on the final
+merged compiler remains pending ROOT's integrated milestone. Earlier explicit
+selector passes retain their source identities. Existing assertions,
 raw-storage omissions and integrated instrument/bootstrap/browser/generation/
 deployment limits remain explicit. This docs-only review ran no builds or
 runtime profiles; ROOT retains final integrated validation and publication.

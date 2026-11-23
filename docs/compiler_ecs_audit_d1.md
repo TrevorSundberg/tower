@@ -3420,9 +3420,10 @@ The concrete unresolved defect retained at this checkpoint is:
   No new repro or broad run is needed to establish this already demonstrated
   defect, and this documentation review does not repair it.
 
-Three explicit regression-registration gaps remain: parser_structure_reuse needs
-frontend structure-reuse; backend_units_admission needs lr_work unit-admission;
-backend_units_ir needs lr_work backend-ir. Existing focused receipts are valid
+At the ec01291 freeze, three regression-registration gaps remained (closed by
+the [registration receipt below](#three-focused-ctest-registrations-2026-11-23)): parser_structure_reuse needed
+frontend structure-reuse; backend_units_admission needed lr_work unit-admission;
+backend_units_ir needed lr_work backend-ir. Existing focused receipts are valid
 at their sources, but default frontend/units/backend CTest commands do not cover
 these selectors. Queued-stage and locality/accounting measurement modes are
 deliberately opt-in, not mislabeled default regressions. Legacy asserting
@@ -3439,3 +3440,26 @@ file was treated as evidence. Metadata stays under ignored
 build/d1_ecs/review_ec01291/. Documentation-only: runtime profiling, builds,
 sanitizers, bootstrap/browser/generation and deployment are inapplicable to this
 delta or remain ROOT's separate pending integration gates; none ran here.
+
+## Three focused CTest registrations (2026-11-23)
+
+On published98d69cf plus this transport-only delta, the three gaps above are closed:
+cmake/TowerFrontendFocused.cmake registers tower-frontend-structure-reuse;
+cmake/TowerWorkPolicyTests.cmake registers tower-native-unit-admission and
+tower-native-backend-ir. They reuse the exact existing selectors, resource root
+and executable targets, with native/focused labels. Timeout60 follows focused
+producer checks; timeout180 follows native unit/backend checks. No fixture,
+default/all selector, compiler implementation or test runner changed.
+
+D1 Docker configuration succeeded in native-coherent-127ca98 (Release,
+native/work/backend enabled, public bootstrap, compiler jobs1). CTest JSON
+discovery shows exactly these three absolute commands, resources, labels and
+timeouts; Ninja target queries resolve the existing entry objects and production
+providers. Before/after discovery retains every previous test. Both executable
+hashes remain unchanged. Logs: build/d1_ecs/registration_three/.
+Cached LR65802649 matches its older frontier receipt, but current entry/provider
+hashes differ; no matching current frontend receipt is established. Neither binary
+ran and neither was rebuilt. Current-source runtime acceptance remains pending
+ROOT's frozen milestone. Performance/sanitizer/browser measurements are
+inapplicable to registration-only configuration. The frozen51 source review,
+prior execution receipts, known accounting defect and todo remain unchanged.

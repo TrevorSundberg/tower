@@ -84575,3 +84575,30 @@ LR-worker b0fc28dcb9059a6d4bd9c3de68a1b75b816e9a1ea4dc071602caa3735c738611;
 428 actual imported files captured in merged_compiled_imports.sha256. Final
 frontend_main hash/full review appended to D2 audit. All owned children drained,
 heavy lock released. No additional release acceptance claimed; normal push follows.
+## 2026-11-23 D1 closes three CTest registration gaps
+
+Source98d69cf plus two CMake transport edits: existing frontend structure-reuse
+and lr_work unit-admission/backend-ir now have explicit CTest names. Shared
+native/focused labels; timeout60 matches focused producer checks, timeout180
+matches existing native unit/backend integration tests. Existing fixture logic,
+all/default selectors and production providers are unchanged. Focused README,
+D1 audit and handoff distinguish registration closure from pending execution.
+
+Actual validation: docker exec tower-d1-ecs cmake -S /home/deck/tower-agent-1
+-B /home/deck/.cache/tower-d1-ecs-20261122/native-coherent-127ca98 passed configuration/
+generation. Existing Release/native/work/backend/public-bootstrap/jobs1 settings
+retained. Optional LibEdit/ZLIB/zstd/CURL discovery notices are preserved in the
+log, not compiler failures. CTest --show-only=json-v1 with the exact three-name
+regex confirms commands/resources/labels/timeouts; ninja -t query for the two
+binaries and their entry objects confirms existing production dependencies.
+Before/after generated test-name sets lose no test; both executable hashes remain
+unchanged. No compile/link command or runtime test ran.
+
+The cached LR65802649 is the earlier frontier binary, while its manifest's
+frontend_main/lr_work_main/semantic_lowering_work hashes differ from current
+source. Current frontend identity is also unestablished. Execution is pending
+ROOT's integrated frozen build, not passed by discovery. Logs/cache snapshots:
+build/d1_ecs/registration_three/. Same thread, actual Codex PID3070892; own
+container idle before configure, D2 heavy lock/cache untouched,130GiB free disk.
+No performance, instrumentation, bootstrap/browser or deployment campaign applies
+to this registration delta. Prior51-path adoption/history and todo preserved.
