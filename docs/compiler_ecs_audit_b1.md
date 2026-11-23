@@ -2169,3 +2169,33 @@ two fixture compile failures (missing direct rule declarations, then strlen)
 were preserved and corrected by explicit opaque declarations. Current native
 retry21801 has passed the new parser fixture and continues remaining checks;
 profile, supported instrumentation and public portable validation remain pending.
+
+B1 ea1b grammar producer validation now passed: native21801 parser/new exact
+constructor/UTF8 regressions, regex300/500 corpus, LR/query/grammar-resource/
+fullunits/editor/storage; current ASanLSan74293 and TSan23306 parser/regex/query
+plus real3unit4lane overlap (two thread runs); independent parser reference/tree/
+allocation/150-grammar oracle; public-pin/SDK34 WASI and actualIDE23197
+26.7086166s. Reactor SHA256eff2508fc80abe91cb581eca8fb48fed87eb00e1e20329becaa06ad56a9abff5.
+All execution jobs actually drained0; receipt62295 is being packaged before source
+adoption. The two fixture declaration compile failures remain preserved failures.
+
+Fixed-path20 job97445 passed with identical canonical/entity/component/retained
+bytes at3units, bodies0/4096, workers1/4, two alternating pairs. Mean wall changes
++0.12/+1.02/-0.78/+1.57%; CPU +0.28/+1.01/-0.91/-0.30%. Actual peaks1/3;
+RSS changes under0.8% in these unit samples. Editor RSS930794 ->924674KiB has
+broad overlapping ranges. No precise speedup/neutrality or memory improvement
+claim, and no adverse retained signal warrants a redundant follow-up. Full raw
+wall/CPU/RSS/reservation/hash evidence and failed scheduling attempts are in the
+journal. The first profile grant crossed an already-started thread job and was
+returned unused; the renewed grant preceded the actual profile. No timed build
+overlap occurred. ROOT now assigns B1 primary KinmenB compute ownership, retaining
+CPU0-11/24GiB and requiring ROOT to request a slot before further KinmenB work.
+
+ROOT's2252 maps/query complete history remains queued until this receipt drains;
+its IMFrame/IMState layout requires coherent providers and is not validated by
+these ea1b results. ROOT owns the new regex producer's downstream pattern consumer.
+Next read-only finding: parser_state's request descriptor has an existing typed
+constructor and runtime.budget but raw allocation; diagnostic vector ownership
+also crosses parser_stream_return. No partial buffer conversion is adopted.
+Fullfrontend300s timeout, remaining raw storage and final joined clean bootstrap/
+generation/browser publication/hosted verification remain explicit open gates.

@@ -77186,3 +77186,104 @@ No native runtime failure occurred. These suite times are coherence evidence;
 new fixtures change parser test work and are not equivalent-input benchmarks.
 Current complete producer source is ready to commit; paired performance,
 supported instrumentation and independent parser/publicWASI/IDE remain pending.
+B1 ea1b current ASan/LSan74293 actually drained0. Coherent c944/grammar build
+90.95s/194.22CPU/796820KiB; parser/new construction and counted-UTF8 cases.28s/
+149184KiB, regex300/500 cases.22s/132844KiB, query.72s/307232KiB,
+actual3unit4lane9.603s internal/30.742CPU/1100688KiB, peak3,
+canonical1173729914654460811 and retained15152976. No reports. This is scoped
+current grammar/parser/regex/query coverage; previous68fa LR sanitizer receipts
+retain that source identity. Fresh fixed-path20 quiet request is ready after
+actual ROOT KinmenB thread-package drain, not started on an inferred grant.
+
+Incoming complete2252b889 was hash-verified/fetched and reviewed read-only:
+ROOT's shared sem_query_check preserves graph failure/provenance, executable
+admission reserves query/access before publishing payloads, partial undispatched
+stages are discarded before cancellation and joined results become ready only
+after successful finish. L1's six IMEntry maps use work_vector with first-cause
+storage errors; heap admission reserves live-allocation/free-interval tracking
+before guest mutation, keeping valid frees allocation-free. IMFrame/IMState
+layout changes require coherent depfile rebuilds after adoption. None of these
+incoming changes is in the frozenea1b binaries or current measurements.
+
+Next owned read-only audit: parser_state already has complete constructor result
+boundaries and a runtime.budget, but ParserRequest's descriptor and error vectors
+still use raw storage. A descriptor WorkBuffer can use that existing budget
+without a new public API; lookahead error ownership crosses parser_stream_return
+as vector(u8), so diagnostic vector conversion must coordinate both sides rather
+than copying incompatible owners. Streams also retain explicit unbound input
+boundaries. No next-step code is adopted during current validation. The historical
+fullfrontend300s/124 timeout still lacks a measured phase diagnosis; source size
+or the broad semantic lifecycle matrix alone does not establish its cause.
+Currentea1b TSan23306 actually drained0: coherent build60.51s/134.94CPU/
+795820KiB; parser.348s, regex.287s, query1.277s, two actual3unit4lane
+25.186/25.128s internal,80.941/80.875CPU,1417552/1435076KiB. Both see peak3,
+canonical1173729914654460811 and retained15152976; no reports. The ephemeral
+container was removed, normal container has only idle init. Supported current
+grammar address/leak/thread coverage is complete; independent parser/public
+WASI/IDE and matched performance remain pending, not inferred from this pass.
+
+Scheduling history: the first quiet20 request stayed queued through ROOT's
+thread-package work; ROOT's actual drain before13:04 was reported at13:13:13.
+B1 had announced and started untimed TSan at13:13:07, so the grant crossed that
+message. It was explicitly returned unused, with no profile child ever launched.
+No build/test was interrupted and no contaminated timing was accepted. After
+actual23306 drain B1 requested a fresh grant for the same immutable20-process
+comparison. This is coordination evidence, not a failed or completed profile.
+B1 grammar fixed-path20 job97445 actually drained0 under renewed13:16:58 grant.
+All process and output checks pass. ROOT now explicitly assigns B1 primary KinmenB
+compute/profile ownership for this milestone and subsequent owned work: ROOT
+requests a B1 slot before any further KinmenB work. Existing CPU0-11/24GiB and
+one-heavy-job limits remain; this is not a publication lease. Own profiles/builds
+never overlap, and the single profile grant was released after verified drain.
+
+Frozen81c26 before hashes above; ea1b after units
+a0c46ae2fcb7563bc620940a1c1a8c1cef9977fe332069756cbd22cba5be57ed,
+editordc8df0d2e37b44d2fb19aa3cbb1e0b5f165a0caed119e2eee0ae5926f8713a07,
+patchc96415c5ff304dbd3943502f30428f384b5a7dc347b167d892232a8dfca83727.
+Same executable installation paths/cwd, immutable81c26 resources140c7e48,
+Linux x64/public pin/LLVM19.1.1, warm caches,3units, bodies0/4096, workers1/4,
+two alternating pairs and editor. Copies/cmp/hash ran outside measured children.
+
+| Case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| Small,1 |3417.353 ->3421.525|3212.152 ->3221.289|197568 ->197470|
+| Large,1 |4648.210 ->4695.703|4448.980 ->4494.008|679594 ->679170|
+| Small,4 |1359.960 ->1349.380|4039.628 ->4002.670|457404 ->460904|
+| Large,4 |2418.823 ->2456.795|5662.378 ->5645.344|939470 ->937536|
+
+Wall changes +0.12/+1.02/-0.78/+1.57%, CPU +0.28/+1.01/-0.91/-0.30%.
+These mixed n2 observations establish neither neutrality nor a precise speedup.
+Actual outer peaks1/3 and lane ceilings1/4; canonical1173729914654460811/
+4242261087906147675, entities48240/646269 and components55014/792327 all match.
+Retained bytes are identical in each pair: small15161394/15153034 and large
+289310083/289301723 serial/parallel. Ledger storage5242880/20971520 is unchanged;
+small-parallel reserved peaks vary with phase overlap, not retained ownership.
+Editor before wall10.91/10.83s, CPU16.80/16.73s, RSS963524/898064KiB;
+after10.94/10.94s,16.85/16.85s,981016/868332KiB. Mean RSS930794 ->924674KiB
+has broad overlapping ranges and supports no memory improvement claim. No new
+adverse retained-memory signal justifies another editor-only rerun. Current
+independent parser/publicWASI61311 runs next on unchangedea1b; actual IDE follows.
+B1 ea1b independent/public portable validation completed:61311 parser build
+34.84s/80.49CPU/796580KiB, lr-analysis reference/tree/allocation/150-grammar oracle
+.22s/6028KiB PASS; checked-in Linux9653 pin/SDK34 WASI40.72s/72.41CPU/870656KiB
+PASS without private bootstrap override. Reactoreff2508fc80abe91cb581eca8fb48fed87eb00e1e20329becaa06ad56a9abff5.
+Actual IDE23197 passed26.7086166s with complete UTF8 log/timer/exit0. Both jobs
+actually drained. Source, public pin and todoe97d were rechecked unchanged.
+Receipt62295 now packages the exact source, baseline/after artifacts and resources,
+all20 profile records, current native/address/thread configurations/manifests/
+binaries and failure logs plusWASI. No next compiler history is adopted during it.
+
+This closes the narrow grammar-construction producer implementation after receipt
+packaging, not ROOT's downstream consumer or full ECS/threading acceptance.
+Incoming2252 source and changed interpreter layouts remain their own identities
+until a coherent merged rebuild. No standalone UBSan/system LLVM/libc/browser
+instrumentation claim; no universal race proof or final clean release claim.
+Evidence-only documentation introduces no runtime input/performance delta.
+No publication lease/push; fullfrontend300s failure, raw request/lexer/analysis
+storage, final clean/bootstrap/generation/hosted gates remain open.
+Receipt62295 actually drained0. B1_grammar_constructor_receipts_ea1b2141.tgz
+SHA256ca942aa754cf4789720d781031a11371504186752957873af3a335f8ce00aa0d
+contains currentea1b evidence and frozen81c26 inputs. All owned jobs have exited;
+no profile hold or watcher remains. B1 primary KinmenB compute ownership continues
+under ROOT's13:16:58 coordination grant. Evidence commit follows; source has not
+yet adopted2252 or begun the next request-storage change.
