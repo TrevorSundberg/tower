@@ -2982,3 +2982,27 @@ supersedes its112-line hash above. The other three reviewed Tower files retain
 exact hashes. Upstream A1 semantic completion changes are outside this owner
 review; affected merged consumers are rebuilt/rechecked separately, and paired
 performance remains tied to the stated36ad inputs rather than relabeled.
+
+## Single-unit observation coverage — D2 2026-11-23
+
+Scoped review at published `c20dc56ac5344834a95e8de1f505abe9aea515ac`; no
+production/fixture changes. Runtime receipt deliberately remains exact1906afcd,
+with unchanged relevant LR/semantic admission sources and language resources;
+43 other imported-source changes prohibit claiming complete current validation.
+Full-file rereview of existing profiles, for D1 adoption:
+
+| Path and SHA256 | Ownership, scheduling and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/frontend_units_profile.tower` — `8159ea1782b203b43f54d862a33c0bc13cbe5d007ecfbc0e1b55cadc5261ceca` (407 lines) | World-exclusive inputs through production frontend_units/shared budget; normal allocator, borrowed result lifetime through reference execution/formatting, batch close after drain. Event slots are disjoint by unit/phase. `kernel_peak` covers outer Unit/Backend queries only, not nested kernels; summed durations/outer vacancy cannot establish eligible idle. One1000-body unit workers1/2 checked42 outputs, canonical17450187450754183643 and equal162093/198371 counts. Ledger snapshot excludes uncharged storage; metadata reported separately. No fixture defect requiring a change found. |
+| `scaffolding/tests/compiler_work_profile.tower` — `385bbea430f12f8127053e36a7c02e90ec7c3aeb9883e1e5873ce2ed3ce49984` (139 lines) | Eight independent CompilerWork plan rounds, worker-private graph/store/checksum, optional synchronized budget; closes owners and asserts zero grants. Overlap describes metadata plans, not semantic body readiness or ordinary compiler throughput. Reused source review only; no extra run. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2` (131 lines) | Explicit single-world/single-lane ledger before creation, synchronous world-owned grammar observer and complete cleanup. Allocation counters require serial transport. Lookup/Build/Table intervals nest; reused exact small-request receipts cannot supply missing large-unit phase timings. No real-overlap instrumentation claim. |
+
+See the journal's bounded single-unit receipt for every warmup/sample, thread
+identity, retained/peak memory, current/frozen source distinction and software
+sampling limitation. Dominant identified cost remains LR construction, not outer
+queue refill. Source-reviewed ordered grammar activation/state interning and
+semantic stage publication retain their dependency/access/lifetime contracts.
+The single proposed B1 follow-up is immutable per-analysis suffix FIRST/nullable
+reuse with bounded storage and exact incoming lookahead handling; its gain is
+unmeasured. No new D1 registration, production ownership transfer, broad audit
+count, race-freedom claim or final all-core acceptance is implied.
