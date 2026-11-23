@@ -3047,3 +3047,257 @@ retaining synthetic-only data and all required-input/hash/lifetime assertions.
 [Exact size/caller/measurement evidence](compiler_distribution_size_25dddd04.md)
 records failing old-tool regression and passing final gate; ROOT hosted adoption
 remains outside this review. No new Tower inventory path.
+
+## Completion-ledger delta at a06ec4b1 (2026-11-23)
+
+This finite review adopts compiler/library/backend source
+`a06ec4b1f9f44419882477bc1a55b6ed39e2200b` (scaffolding tree
+`af42e5c92e32ed384455e847627836a590a341fd`) and separately the packager at
+`6b74889b0ca29f1261af0dd55f5c9b27f6ce6ccc`. The prior full Tower inventories and
+[D1's finite1e60c511 review](compiler_ecs_audit_d1.md#2026-11-23-d1-finite-pending-source-review-at-1e60c511)
+are the unchanged base. `git diff --name-only 1e60c511 a06ec4b1 -- '*.tower'`
+derives43 authored paths; no path was inferred from an owner's summary. The map
+below names every one, with final source identified by `a06ec4b1:<path>`.
+Local `build/d2_ecs/ledger_a06ec4b1/{changed_tower.paths,frozen_tower.blobs}` retains
+the exact inventory/blobs. This is source/receipt review, not new runtime evidence.
+
+Review keys (implementation and owner tests alone are not independent review):
+
+- **R1:** D1 review5b4b0303 at `ea606d329b989378df15fdc58bf5165456bb0cb7`.
+  These three final files are byte-unchanged. Joined stages publish before alias
+  validation; all aliases validate before any executable-ready publication.
+  Typed failures retain ownership until teardown. Registered scalar-condition
+  negatives retain bool location/terminal/no-program checks alongside inference.
+- **R2:** D1 review6d1534a6 at `0ffba950ae4b7e583531f5eb88aa608c6c2bb380`.
+  These four final files are unchanged. The module-body query helper runs only
+  in its coordinator context, saves/restores lexical state and drives existing
+  demand/resume pumps; worker bodies do not recursively force module completion.
+  Captures, quiescent cycle diagnosis and source-ordered effects remain explicit.
+- **R3:** new independent D2 review here of L1's95167e53 counted-byte addition,
+  preserved through ad0a0c34. Full new fixture/provider and storage selector/CMake
+  registration read; substantive result below. Owner execution is separately cited.
+- **R4:** new independent D2 review here of D1's58a1fe9f oracle additions,
+  final owner execution fd8f8dac/e70b8b68. Full two files and registration/callers
+  read; their underlying A2 producer review is R2, not superseded.
+- **G:** B1 gate05780abb through6019450c/7eaec245; [owner receipt](compiler_budget_gate_70e77b60.md).
+  L1's independent review **d7635e9c/d21fb20d** arrived during publication;
+  [66-path source/caller review](entity_budget_gate_review_6019450c.md) at6019450c
+  covers the14 changed gate paths. All match a06. It traces nonrecursive callbacks,
+  lock ordering, foreign ABI and drain-before-close; this is not a new runtime test.
+- **S:** B2 inline storagef9565c46 through4a8694da/68a0b8bf;
+  [owner receipt](entity_inline_component_70e77b60.md). Same **L1 d7635e9c** review
+  covers the7 a06 paths, which match6019450c. It verifies stable inline ownership,
+  fallible promotion/rollback and page/heap census, and corrects the receipt's
+  derived alignment to16 (measured tables unchanged). Later repaired full-fault
+  fixtures have their own boundary below; old failures remain recorded.
+- **U:** L2 overflowa5ffb99d/3bc5f626 at a06. D1 **833657a1/8ff77438** now independently
+  reviews all8 final files in the [published overflow review](compiler_ecs_audit_d1.md#published-unsigned-multiply-overflow-review--2026-11-23).
+  This resolves9e481050's earlier missing-publication prerequisite, not its
+  historical result. It finds an admitted i1 bool-OGt recheck defect in
+  `bi_multiply_overflow` (expected integer-operands diagnostic), source-confirmed
+  and unexecuted. u32/u64 owner execution does not cover this edge; L2 owns repair.
+- **C:** D2 C fixture separation31bd0359, published70e77b60. Final fixture and
+  selected driver callers/registration reread here; **self-review**, not independent
+  adoption. D1 U now reviews the final C registration, including preservation of
+  the direct subset. No matching peer review was identified for the new direct
+  fixture and `driver_differentials`; ROOT peer adoption of those two remains open.
+
+Every path below is relative to `scaffolding/`. The notes describe the changed
+ownership/storage/scheduling contract or fixture role, not another filename-only
+inventory. Pending review keys remain pending even where owner checks pass.
+
+| Authored path at a06 | Review | Changed contract / disposition |
+| --- | --- | --- |
+| `backend/import_bindings.tower` | U | Detect unsigned multiply-overflow intrinsic; classify actual LLVM integer width, not pointer/carrier width. |
+| `backend/import_instructions.tower` | U | Safe-divisor reconstruction, low-product/overflow extraction and predeclared scalar assignments; unsupported consumers diagnose. |
+| `backend/import_module.tower` | U | Exclude intrinsic aggregate from scalar local preallocation; preserve extraction locals and prior counted initialization. |
+| `compiler/frontend_units.tower` | G | Parallel budget gate opens before use, closes after pool/world/receipts; serial path creates none. |
+| `compiler/semantic_declarations.tower` | R2 | Shared module-expression declaration query pump preserves owner captures and existing dependency states. |
+| `compiler/semantic_execution_work.tower` | R1 | Joined executable alias validation precedes ready-state publication; failed staged ownership remains releasable. |
+| `compiler/semantic_statements.tower` | R2 | Coordinator-only local annotation/initializer queries save/restore lexical body state; no worker forcing. |
+| `host/work_linux.tower` | G | Opaque nonrecursive pthread mutex transport, fixed documented glibc LP64 storage/initialization ABI. |
+| `host/work_macos.tower` | G | Unfair-lock transport; independent review and actual macOS runtime coverage absent. |
+| `host/work_portable.tower` | G | Unsupported gate open/failure boundary stays explicit; not a fake portable mutex. |
+| `host/work_wasi.tower` | G | One-permit semaphore-backed gate retains checked wait failure; no browser runtime adoption inferred. |
+| `host/work_windows.tower` | G | SRW lock pointer-word storage; later A1 Windows x64 runtime receipt607f9ce9 uses this unchanged provider. |
+| `library/entities.tower` | S | First pointer in descriptor; checked private promotion to heap; reclaim must distinguish inline ownership. |
+| `library/entity_stage.tower` | S | Staged construction/discard uses same inline ownership; cancellation retains already-grown capacity. |
+| `library/entity_types.tower` | S | Stable Entity descriptor gains one pointer; ABI consumers require coherent rebuild. |
+| `library/work_gate.tower` | G | Explicit unlocked-owner open/enter/leave/close contract; no reentry or close with active users. |
+| `tests/alias_type_query_checks.tower` | R1 | Exact scalar-bool diagnostic/location, failed terminal state/no partial program at32/64 workers1/4. |
+| `tests/backend_import_bytes.tower` | R3 | Execute counted bytes/guards after original-world destruction and fresh Foundation parse; wrong-oracle controls clean up. |
+| `tests/backend_import_fixture.tower` | R3 | Optional target-width raw-byte helper uses counted arrays/memmove/guards; original import-admission fixture retained. |
+| `tests/backend_source.tower` | U | Existing source service gains focused overflow selection; response/recheck ownership contract remains shared. |
+| `tests/backend_source_native.tower` | U | Native probe accepts the overflow selector; native process RSS is not Wasm linear-memory evidence. |
+| `tests/backend_unsigned_overflow.tower` | U | Ordinary product32/64 boundary fixture preserves outputs; constant-folded top-level results alone were insufficient. |
+| `tests/backend_unsigned_overflow_calls.tower` | U | Fresh imported caller retains12 actual calls into unchanged reconstructed module; no second optimizer/reference model. |
+| `tests/backend_void_returns_direct.tower` | C | Direct void*/void** null/alias/effect subset has no function-value/indirect-call requirement. |
+| `tests/driver_c_cases.tower` | C + U | D1 U reviews the final list: supported direct subset retained, overflow registration is not imported-path execution. |
+| `tests/driver_differentials.tower` | C | Complete callback fixture remains native LLVM execution with interpreted reference and exact0 output. |
+| `tests/entity_accounting.tower` | S | Census must count inline bytes within descriptor, not a second component-index allocation. |
+| `tests/entity_component_faults.tower` | S | Adds focused inline promotion denial/retry; original full fault failure is retained, not replaced. |
+| `tests/entity_component_layout.tower` | S | Descriptor inline address and subsequent heap promotion/layout checks. |
+| `tests/entity_locality.tower` | S | Distinguishes inline/heap index accounting from stable payload-page occupancy and pointer traversal. |
+| `tests/execution_main.tower` | R2 | Existing module-body selector wired to the shared execution fixture, no second scheduler. |
+| `tests/module_body_type_checks.tower` | R4 | Independent marker-derived file/line/column and terminal/no-program errors; explicit session/budget cleanup. |
+| `tests/module_body_type_minimal.tower` | R2 | Ordinary minimal module-body forwarding trigger retains the same declaration query. |
+| `tests/module_body_type_queries.tower` | R4 | Self-address initializer executes once, checks its own storage and separate effect count. |
+| `tests/semantic_executable_admission_checks.tower` | R1 | Failed alias publication/admission checks share production work ownership, not alternate execution. |
+| `tests/storage_main.tower` | R3 | Counted-byte selectors execute under existing serial instrumentation guard; old selectors retained. |
+| `tests/work_arena_profile.tower` | G | Profile gate setup/teardown changed; arena ownership and measurements retain existing mechanism. |
+| `tests/work_arena_shared.tower` | G | Disjoint worker arena sharing uses new budget gate; completion/barriers remain counting signals. |
+| `tests/work_budget_shared.tower` | G | Shared admission/release/revision/notification controls adopt nonrecursive gate. |
+| `tests/work_buffer_profile.tower` | G | Budget synchronization boundary changes without redefining measured live/peak receipts. |
+| `tests/work_buffer_shared.tower` | G | Joined buffer ownership/failure/cancel controls use gate, not unsynchronized fault counters. |
+| `tests/work_schedule_budget.tower` | G | Lane notification/admission controls preserve shared scheduler and counting completion signals. |
+| `tests/work_vector_profile.tower` | G | Vector profile adopts same explicit gate lifetime; no independent container/scheduler introduced. |
+
+Outside that43-path compiler freeze, `tools/package_playground_assets.tower` at
+6b74889b is **P: accepted D2 implementation/owner checks, independent peer review
+not identified**. Its [full-file self-review above](#distribution-packaging-follow-up-2026-11-23)
+and [size/load receipt](compiler_distribution_size_25dddd04.md) remain exact:
+SHA256 `0578e9bc479e7aaf67d5dd1172364403d6d39a5fff14cfa629100f332e2b9e34`.
+Gzip completes before raw LLVM dist removal, errors propagate and checksums publish
+last. No compiler/provider/foreign ABI change; no fresh hosted acceptance.
+
+### New independent fixture findings
+
+**R3 counted bytes:** the original LLVM provider stays available without byte
+execution; the opt-in branch constructs two counted arrays, explicit before/after
+guards, a length-derived initialized destination and exact memmove. No trailing
+NUL convention replaces counted bytes. The new fixture imports at32/64, formats
+ASCII Foundation, closes LLVM/releases the old nodes/world, then parses the saved
+text into a fresh frontend. Source bytes are snapshotted before their buffers and
+original budget are freed. The ordinary Graph invocation must print the independent
+19-value oracle, including65/0/128/255/0/67 and boundary guards. It releases the
+invocation/frontend and checks buffer baseline before returning the deliberately
+wrong-byte/wrong-guard result. These controls alter the oracle only after the real
+oracle passed; they do not mutate producer code or accept arbitrary diagnostics.
+
+`cmake/TowerStorageTests.cmake` retains the original120s import selector and adds
+three60s byte selectors. Only the two intentional exit1 oracle controls have
+`WILL_FAIL`; assertion failures use abort, which is not inverted into a successful
+CTest exit. `storage_main` first requires no real thread transport and capacity1,
+so global allocation-denial instrumentation stays serial. L1's95167e53 receipt
+records the focused four CTests and fresh width/oracle runs; this independent
+review did not rerun them. No byte/guard ownership or registration defect found.
+This closes the narrower counted-byte coverage follow-up recorded by D1 at1e60,
+not every initializer shape or sanitization/real-overlap coverage.
+
+**R4 module-body oracles:** expected error location is derived independently from
+an ASCII source marker, then compared with the configured module filename,
+line/column and stable offset. Unknown-constructor and recursive-layout messages
+remain exact; no program or executable starts after failure. Each32/64 Graph/Fast
+and workers1/4 session has its own world/budget; source borrows outlive the session,
+world teardown precedes final zero-budget checks, and the gate closes last.
+Canonical comparisons and four canonical reparses remain. The self-address
+initializer compares its stored pointer with `&self` and separately counts effects;
+it is not merely reexecuting the producer's output as its reference. No removed
+control or forced producer completion found. The44-session native result belongs
+to D1's fd8f8dac/e70b8b68 receipt; it is neither44 concurrent jobs nor D2 runtime.
+
+**C self-review, explicitly not independent:** the direct fixture derives122 effects
+from two ordinary pointer calls, two deeper-pointer calls and notify, checks nulls,
+alias mutation and deferred free, then requires0. The full callback fixture is
+unchanged and still tests function returns/indirect apply via native LLVM. The
+selected driver snapshots its source, first checks ordinary interpreter output
+against `0\n`, then compares both raw/optimized native execution. The C list retains
+all other selections and adds only the supported direct subset in place of the
+callback fixture; the later U registration is separate. D2's70e77b60 receipt retains
+the original intentional C function-value diagnostic,16 direct C comparisons and
+both full LLVM comparisons. No C-emitter capability was extended. D1's new U
+review covers the final registration; the direct fixture and differential driver
+still need peer adoption. This author's reread cannot supply that role.
+
+### Remaining source and execution boundaries
+
+G/S/U now have the exact independent reviews above, including U's open i1 defect.
+C's direct fixture/differential driver and P lack matching peer receipts. All43
+frozen authored paths are accounted for; owner tests do not fill those three gaps.
+The unchanged current capture helper/controls and browser error transport were
+compared with their reviewed receipt freezes; no implementation adoption by name
+alone. The CMake byte selectors were independently read here; prior exact-output
+CTest/alias-negative changes retain D1's ea606d32 review.
+
+Publication merge `d9e7e5c7` preserves complete e637ba38 and this audit. It introduces
+seven explicitly **post-a06 fixture** paths; these are not silently covered by the
+43-path source freeze or L1's earlier review:
+
+- B2 `tests/entity_component_faults.tower`, `tests/entity_stage_result_faults.tower`,
+  `tests/entity_fault_accounting.tower`: owner2f4361f6/a18d584e now passes both full
+  modes using reachable physical-allocation conservation, not an arbitrary byte
+  tolerance. [Receipt](entity_fault_accounting_6019450c.md) preserves both baseline
+  failures and exact causes. Independent final fixture review not identified.
+- A1 `tests/work_budget_shared.tower`, `tests/work_gate_windows.tower`,
+  `tests/work_pool_windows.tower`, `tests/work_thread_windows.tower`, plus
+  `cmake/TowerWorkTests.cmake`: owner607f9ce9/4d5baa5a actual Windows gate1/4,
+  full pool/negative and plain Linux checks pass with unchanged providers.
+  [Receipt](windows_budget_gate_cabc2062.md); independent final fixture/registration
+  review not identified. No Tower producer is newly adopted through these tests.
+
+Second publication merge `51ab5a02` preserves complete6649bbe1. One additional
+post-a06 Tower path, A2 `tests/backend_source_native.tower`, replaces a max-ID
+observer allocation with actual distinct-ID work_vector storage and adds physical
+index categories; `playground/src/llvm-host.mjs` only exposes the existing memory's
+byteLength. [Owner2bad3e52/5744969c](entity_pages_wasm_storage_a06ec4b1.md) records
+failed sentinel admission and corrected small/large, plain/census, worker1/4
+checks. This is the eighth later Tower path; its final observer and read-only
+transport accessor still lack a matching independent review. D1 U above covers
+the older a06 native probe, not this incoming change. No production Tower provider
+differs between a06 and the reconciled source.
+
+ROOT b520e436 records source-checked a06 portable/LLVM-cross/shared build exits0.
+New [L2 full views/registry55a6a91f](compiler_entities_t8_a06ec4b1.md) and
+[B2 shared e71956ab](shared_wasm_a06_a18d584e.md) receipts complete actual execution:
+two full T8 cases, Node3 and strict browser3+9 selections, including actual closes
+and zero worker targets. They use their own frozen resources; older25 failures
+are preserved. A2's exact965691B entity_pages unoptimized request now succeeds
+under the original2GiB ceiling and matches native bytes; the complete semantic-port
+execution/package/optimized/remaining-target gate is still unstarted by that probe.
+B1 05daa172/bcd854aa supplies the actual joined
+1/4/8/12 study (matching frontend/library/host source at a06), rather than multiplying
+isolated gains. Four-worker multi-unit frontend speedup2.11x contrasts with best
+single-unit1.063x; parsing/ordered work remains dominant. Actual successor Wasm
+success, not a native result or higher cap, supplies the new scoped acceptance.
+The full entity_pages remainder, the i1 implementation defect,
+finite peer gaps, supported instrumentation, generations/public pin/current UI and
+atomic release remain open in the [ledger](compiler_ecs_threading_handoff.md).
+No broad source cleanup, build, new runtime assertion or performance claim by D2.
+
+## Independent fault/Windows fixture review — 6e8001fd (2026-11-23)
+
+Freeze `6e8001fd9aaf2fa8be550fb70d4f9e052ec93fc8`; all eight blobs below match B2 `2f4361f6` / A1 `607f9ce9` unchanged.
+**No defect found; these seven Tower paths and the focused CMake delta now have independent source review.** Owner execution remains attributed, not rerun.
+Read complete fixtures/registration, their implementation-parent diffs and necessary allocation/stage/pool/ledger/Windows dispatch callees; L1's accepted generic review remains the base.
+Paths are under `scaffolding/` unless prefixed `cmake/`; Git blobs identify the actual reviewed source, not approval by hash alone.
+
+| Path | Git blob | Disposition |
+| --- | --- | --- |
+| `tests/entity_fault_accounting.tower` | `da37a9e7b7ea0d3b6d45c00d8b413de45f9f4fba` | Allocation-free census of this fixture's disjoint roots/private stage; validates every counted receipt against owner and exact allocator request. |
+| `tests/entity_component_faults.tower` | `a3c6c42c3a4534db8e1094dd9b25aab9dc7de6da` | Exact retained type-index delta, unchanged identity/payload/table/inline index, retry and complete dynamic failure sweep; original inline mode retained. |
+| `tests/entity_stage_result_faults.tower` | `9c7973e8f67b051a80d5ddfdce085791fdfed7f3` | Failed prepare preserves membership/references/values and zero finalizers; successful publish consumes stage; exactly-once finalizers and final zero owners. |
+| `tests/work_budget_shared.tower` | `c45267c7845c50530b439632ba119b0b9a02910a` | Platform-neutral gate import; real four-thread receipts/snapshots, exact byte/lane denial, generation/revision stale rejection, one-shot wake. |
+| `tests/work_gate_windows.tower` | `7ac2b2b447f773f77392ea1ddd7075863ea60e9c` | Modes1/4, eight cycles; barrier proves four distinct native threads before release; protected8192 increments or cancelled zero, three accumulated counting permits. |
+| `tests/work_pool_windows.tower` | `351674315ec6e30c09a71d30726996779ced5180` | Calls unchanged full pool main, including16 rounds, partial/full failure drain and graph-order checks; forwards every nonzero result to ExitProcess. |
+| `tests/work_thread_windows.tower` | `49d4f04dbba1da95c35f367822533887b517c290` | Actual GetCurrentThreadId DWORD/u32 widened to fixture usize; imports production Windows transport, no simulated POSIX thread. |
+| `cmake/TowerWorkTests.cmake` | `282fdcd13fbe6be40051e89e130a856bae6ddba5` | Linux x64 shared-budget target explicitly links the already-built host_work_linux object after hardwired import removal; Threads/dispatch export/30s test remain. |
+
+Census: store allocation and each store/stage owned page are counted once; paged descriptors/payloads/names do not add separate receipts, while oversized allocations do.
+Inline component indexes stay in descriptor bytes; heap child/instance/component/table-row indexes retain their own headers. Type-instance/lease pointers are not traversed as owning entities.
+Private nodes are not published children yet; leased nodes are counted through their published tree. Pool transfer removes the old owner link, and post-publish census passes null instead of dereferencing the freed stage.
+Stage vectors and retained ledger metadata are distinct: allocator live count equals baseline + census receipts + the one raw ledger buffer; teardown requires zero bytes/grants/lanes and the original allocator baseline.
+A failed preparation may retain reachable, charged capacity without membership. The component trial admits only its independently measured new type-instance index; stage failures retain all prior semantic/reference assertions.
+Source callees reserve old+new physical storage before copy/free. This post-call census checks retained ownership, not transient peak or arbitrary-world completeness; no whole-process cap claim.
+Baseline-success allocation counts still drive every injected boundary and after-last success; no test was removed. Finalizers are forbidden on failed preparation and counted once per new payload at teardown.
+
+Windows binding follows GetProcAddress(exported work_windows_entry) → CreateThread → u32 callback returning0 after work_thread_entry; joins precede handle/free, and SRWLOCK remains pointer-sized opaque storage.
+Cancellation is written only while all jobs wait on release; semaphore handoff publishes it, receive observes completed payloads, then pool close stops/joins native threads before jobs/gates/signals leave scope.
+Deferred release precedes pool close; budget parent cleanup/disposal precedes gate close. Wake callback only posts, never reenters. Invalid environment traps before allocating owners; published runtime calls ExitProcess(1).
+Linux gets one platform object, not a second embedded provider; Windows entries instead import host.work_windows. CMake's other longstanding selectors are not newly claimed reviewed/changed here.
+
+Owner evidence: [B2 full faults](entity_fault_accounting_6019450c.md), binaries `b3c778e9`/`18ecb7f4`, retains original exit134 failures and passes6/6/2/2 component boundaries, one lease and five publication boundaries plus retries.
+Owner default wall/CPU ms / peak KiB: component .877308/0-reported/1384; stage1.370116/1.147/1600. Zero CPU is clock resolution, not absent execution.
+[A1 Windows](windows_budget_gate_cabc2062.md), gate `9e62ce7e`/pool `c4e9d21f`: modes1/4/full-pool exit0; invalid3 exit1. Wall/CPU s / peak working-set B: .0159975/.015625/3821568; .0416744/.078125/4259840; .0236705/.015625/37318656; .0152662/0/3780608.
+Plain Linux shared-budget exit0: .00wall/.01CPU s/1652KiB. The accidental instrumented-cache build was **BUILD ONLY**, never executed; no instrumentation acceptance or retry here.
+Full artifact hashes/raw logs remain in those receipts: B2 `entity_faults_6019450c`, A1 `cache/a1_windows_gate`; local source map `build/d2_ecs/peer_fault_windows_6e8001fd/{paths,blobs}.txt`.
+No code/runtime/build/profile change; documentation-only profiling inapplicable. D1 heavy slot untouched; twelve-row ledger unchanged. Remaining peer gaps: D2 direct-C fixture/differential driver/packager and A2 later native census/LLVM capacity accessor; no other gate is closed by this review.
