@@ -84325,7 +84325,7 @@ therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
 
-### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
+### 2026-11-23 ï¿½ L1 counted interpreter text and package ownership (implementation, validation in progress)
 
 Bounded follow-up starts at published36ad337 after the required fast-forward pull,
 with no surviving L1 jobs. PID8356 performed the first successful caller/layout
@@ -84368,7 +84368,7 @@ caught an accidental internal/declaration offset substitution; corrected to the
 established declaration mapping. Its focused rerun and shared-Wasm validation are
 pending at this entry. No failed attempt is represented as a pass.
 
-### L1 interpreter/output/package storage gate — focused completion receipt
+### L1 interpreter/output/package storage gate ï¿½ focused completion receipt
 
 The final layout keeps Fast's existing hot offsets and appends only its frozen
 provider target. Native `core` passes on that layout, including156 graph/Fast
@@ -86733,6 +86733,107 @@ L1 backend admission completion evidence (frozen 6767 base plus this batch): nat
 Clarification of the first abort: the initial zero-allocation denial fails in `type_object_program`, before the asserting root/node creation. GDB on the preserved sweep failure identified that exact call chain. The repair uses the already-existing `type_object_program_result` with the world budget in the importer and both immediate preservation callers; the later full boundary sweep covers staged node/component/name/list/comment/association/publication failure. Additional preserved failures: unavailable test `tower_print` link corrected by reusing the existing Tower measurement formatter, and a fixture's NUL assumption corrected to counted comment comparison. All actual failures are retained, not counted as progress or passes.
 
 Matched healthy `backend_semantics.tower --emit foundation --no-optimize`, public native x64 compiler, warm filesystem, one sample each: jobs1 wall1.45?1.41s, CPU1.43?1.40s, peak191752?191768KiB; jobs4 wall1.14?1.20s, CPU1.39?1.47s, peak208588?208460KiB. The four-worker wall sample is +5.3%; small single samples do not establish a regression or speedup, and reconstruction remains synchronous per Backend. Canonical before/after SHA256 `1511ccbd0570ae04dbf1c416704e0d2be1280bcaa4ab8d4e44e0816793c9262e`; checked execution SHA256 `a6556331251dc72f5cbc8fb54ea680e197a670b1d7b3eabc8fda17cc56df159d`. Native compiler SHA256 `5d534e82c810695b335e2823e4f027fd5d9cb21d4f1f03afa137c894ac8a8818`, WASI backend object `14e23e85ed6319048f785a4c405223cf36034e11f54bfb435ad6224972e91894`. Full source manifest/artifacts/commands/times/exit files and failure history: external lane `backend_admission_receipt.json`, `logs/backend_admission_*`. Canonical payload vectors retain their existing checked vector/destructor model; LLVM-private allocations and explicit legacy null-budget worlds remain outside this ledger. No full browser/sanitizer/generation/release matrix or hosted publication claim; ROOT owns those integrated gates. Reconciliation/push follow this receipt.
+### B1 cold frontend: reuse LR(0) items for lookahead propagation (2026-11-23)
+
+Bounded implementation on main, based on6767cd30 after the required ff-only
+rebase pull. Owned tower_ecs_b1 was idle before inputs changed. KinmenB native
+Linux x64/LLVM19, CPU0-11,24GiB; one dependency-aware /cache/native build tree,
+up to6 independent objects/compiler jobs1, unchanged public bootstrap9653f818.
+No agent, goal, public pin, backend policy, admission or semantic validation edit.
+ROOT owns integrated publication. This replaces no previous failed/timeout gate.
+
+Attribution used temporary Tower-owned sparse phases through the existing world
+GrammarObserver, plus serial kernel-cache-miss clocks. No sampling/debugger or
+allocator probes. Same generated16/1000-function sources and frozen production
+parser_table.tower inputs were used. Small/large totals:183 actual tables,
+lookahead657.6/673.0ms, LR states47.8/47.9ms, FIRST6.3/6.5ms; source parse823.3/
+857.6ms inclusive of grammar construction, semantic checking5.0/69.3ms. The
+production unit had211 tables,1105.1ms lookahead versus68.8ms states and56.6ms
+checking. A further serial small split measured581.7ms graph preparation versus
+47.1ms solve and13.2ms action assembly; kernel closure reconstruction alone
+468.98ms in its detailed run. These diagnostic samples attribute work, not the
+final speedup. All temporary phase/clock code and detailed failure-output edits
+were archived as exact patches and restored before final timing/publication.
+
+Implementation: lr_lalr.tower derives lookahead dependencies directly from the
+already immutable LR(0) items, borrowing D2's completed suffix-FIRST index.
+Each kernel starts a private reachability queue; nullable suffixes propagate
+lookahead and nonempty FIRST contributes spontaneous seeds. Empty nonnullable
+FIRST does not activate otherwise unreachable dot-zero items. Each active item
+is visited once per state; source order, nullable reductions, recursive start
+kernels, propagation sentinel and the existing fixed-point/action algorithm are
+preserved. No second grammar, cross-version identity or persistent cache exists.
+The maximum-state-sized queue/flags use one checked WorkBuffer charged to the
+explicit world budget, retire before dispatch, and unwind the unpublished graph
+on the first exact error. Existing standalone APIs and cached closure wrappers
+remain available. Legacy propagation vectors retain their existing allocation
+contract; this is not a claim that all LR storage or RSS is budgeted.
+
+The first independent oracle rejected unrestricted item propagation: a nested
+terminal-range case acquired an extra reduction. Per-kernel range labels affect
+contained-label goto paths. The final fast path therefore proves completed FIRST
+and disjoint terminal labels in every state; overlapping labels use the original
+closure algorithm. No oracle expectation changed. lr_work.tower selects the same
+safe path, builds its graph on the coordinator, then uses existing WorkGraph/
+WorkPool solver/action jobs, private results, admission and ordered joins. Old
+range closure workers remain intact. No eager worker-core optimization returned.
+
+Focused validation PASS: lr-order (150 independent randomized grammar/propagation
+oracles plus exact state/transition/action/runtime/control comparisons), new empty
+FIRST/reachable/nullable cases with aliased symbol spans, allocation sweep,
+explicit world Capacity rollback/retry and final zero grants; structure-reuse
+(identity/revision/metadata/cancellation/owner lifetime); grammar-equivalence;
+parser malformed/error/provenance; regex300 generated+500 arbitrary byte patterns
+and failures; native lr real-overlap/shared-budget/serial-worker/cancellation/
+lifetime checks (1.75wall/2.28CPU/118244KiB). The new denial fixture's1MiB peak
+includes its intentional full-budget reservation; it is not physical retention.
+No strict symbol policy was loosened and no public imported API was added.
+
+Frozen equivalent timing: before compilerf2261dd21b269b029081c7c7dd3379bcff955bebad0a3595956f0f52559de6e6;
+after11481c16a8fc4a1eb5d3e89b9b8623728e4e313cf320f52e9248291a3f72e5af.
+Fresh processes/warm filesystem, n3 counterbalanced before/after order for each
+fixture/worker count, same source/flags/output path, --emit object --target
+x86_64-pc-linux-gnu --jobs1|4 and explicit frozen Bedrock/Foundation resources.
+Each object was compared, linked with the same frozen runtime and executed.
+All24 executions returned exact15/999; independent Clang-O2-fwrapv C fixtures
+also returned15/999. All before/after/worker objects were byte-identical per input.
+Medians (wall seconds / user+system seconds / peak RSS KiB):
+
+| Input | Workers | Before | After |
+| --- | --- | --- | --- |
+|16 functions|1|1.08 /1.00 /199252|0.62 /0.54 /185596|
+|1000 functions|1|1.32 /1.24 /238860|0.80 /0.72 /238424|
+|16 functions|4|0.96 /1.08 /215528|0.76 /0.82 /188472|
+|1000 functions|4|1.11 /1.25 /263304|0.89 /0.96 /239872|
+
+Serial wall improvement43%/39%; four-worker21%/20%. The production parser_table
+unit (one pair, not a statistical claim) was2.32/1.88/230968 ->1.54/1.11/229096
+serial and2.03/1.99/254224 ->1.67/1.52/233888 at4; all four objects identical.
+These matched KinmenB results are not relabeled as ROOT's KinmenA medians.
+
+Ordinary cold observer canonical remains13832670361687071853/976bytes/answer42;
+185 lookups/155 version builds/123 tables/36 reuses unchanged. Table phase707.1
+->332.5ms, build777.3->401.8ms. Retained charged bytes1893528, peak58035248,
+ledger metadata5242880 and36677 retained buffers unchanged; teardown zero.
+Allocation calls2257150->2323104 (+2.9%): the item graph trades more small edge
+allocations for less closure reconstruction, rather than bypassing accounting.
+The remaining fixed grammar/table cost is still substantial (~333ms here), and
+four-worker execution now trails serial on these fixtures. No second tuning
+campaign or claim of Clang-level latency follows from this batch.
+
+Artifacts: build/ecs_b1/cache/serial_frontend_6767 (container /cache path), frozen
+before/after executables, full inputs, generator, manifest, measure.sh,28 object
+checks,24 output receipts, raw CSV/time/check logs, phase_measurement.patch and
+oracle_failure_output.patch. Small/large object SHA256cdc5a6ec0f2b12f1f7a622f45a27859e374558867df97470c8120cd81ddfb407 /
+ae9e824d75213b15baa1811f9ec4db04a2f044cce25746d291b888c7952f4e08;
+production unit56689c8f2210c813af7644763e9f263fd6d8e37c9506b46fc4cb6d872406156d.
+Preserved failures: generator executable duplicate-main and explicit link-object
+setup errors; missing runtime fixture copy before timing; missing initializer
+field in first candidate build; incompatible diagnostic-only dprintf declaration;
+unrestricted range candidate mismatch. All drained before fixes; none called pass.
+Final checks used public-bootstrap dependency builds only. Sanitizers, full
+scaling/generations/browser/hosted verification remain ROOT milestone work.
+Coherent commit, current-main reconciliation and normal push follow.
 ## 2026-11-23 D1 final source delta and fixed acceptance ledger at6767cd30
 
 Bounded task, thread01a2046a-4644-7ab1-a0ae-abd80210f013, CodexPID3094539,
@@ -87151,6 +87252,23 @@ matches and compiler3285cd9d is unchanged. Existing merged runtime evidence is
 reused, not rerun or relabeled for changed code. Normal main publication follows;
 ROOT retains gh-pages and final integrated runtime verification.
 
+B1 integration receipt: implementation46167039 merged complete published
+3e6b5814 history as9c55f7f1 after required ff-only pull reported divergence.
+No conflicts. Incoming A1 body admission and ROOT public bootstrap768a0cdf were
+preserved; B1 did not edit the pin. The public-bootstrap dependency build
+completed63 affected actions in the same native cache. Merged lr-order,
+structure-reuse, grammar-equivalence, parser and native lr all pass. Current
+compiler9062931990478758e0991de071ca23eae7293fefab491d77b0f5dca29e7177f8
+preserves both frozen object identities at workers1/4 and all four exact15/999
+linked executions. Single merged sanity samples (not replacement paired gains):
+small1 .60wall/.52CPU/185888KiB; small4 .69/.74/188772; large1 .74/.66/238660;
+large4 .83/.90/239940. Canonical/retention/peak/zero-teardown contracts unchanged;
+allocation calls2323145 include incoming provider changes. Original n3 evidence
+retains6767cd30 identity. All jobs drained and todo.txt hash unchanged. One
+post-merge shell quoting setup failed before execution; merged_check.sh then
+completed with status0. The journal's appended trailing CR was corrected; scoped
+diff whitespace check passes. Normal push/remote verification follows, with no
+new runtime change or broad matrix. ROOT final integrated gates remain pending.
 ## D2 normal/shared browser acceptance â€” frozen 2013ad28, 2026-11-23
 
 **Acceptance failed; builds and selected pool/transport checks passed.** Frozen

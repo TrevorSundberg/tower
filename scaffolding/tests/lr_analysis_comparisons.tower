@@ -85,6 +85,30 @@ fn lr_closure_order_cases(): void {
 }
 fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
+    // B has empty, nonnullable FIRST in the first variant. A's dot-zero item
+    // exists in LR(0), but must not introduce C's spontaneous lookahead until
+    // a kernel closure actually reaches it. The second variant opens that
+    // path; the third makes B nullable. Keep aliases as shared symbol spans.
+    for(var mode: usize = 0; mode < 3; mode++) {
+        var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, symbols.length, 2);
+        lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, 2, 0, 0);
+        lr_fixture_rule(&rules, 1, symbols.length, 2);
+        lr_fixture_symbol(&symbols, 3, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 41, 41);
+        lr_fixture_rule(&rules, 2, symbols.length, 1); lr_fixture_symbol(&symbols, 2, 0, 0);
+        if mode != 0 {
+            lr_fixture_rule(&rules, 2, symbols.length, mode == 1 ? 1 : 0);
+            if mode == 1 { lr_fixture_symbol(&symbols, oracle_none(), 43, 43); }
+        }
+        lr_fixture_rule(&rules, 3, symbols.length, 1); lr_fixture_symbol(&symbols, oracle_none(), 37, 37);
+        lr_fixture_rule(&rules, 3, symbols.length, 0);
+        lr_fixture_rule(&rules, 1, rules.data[1].begin, rules.data[1].count);
+        var names: usize = 0;
+        foreach(var &rule in &rules) { if rule.owner >= names { names = rule.owner + 1; } }
+        lr_check_graph(&rules, &symbols, names, current_contract);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Item lookahead reachability and aliased spans cleanup");
     for(var nullable: usize = 0; nullable < 2; nullable++) {
         var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
         var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);

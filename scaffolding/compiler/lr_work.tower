@@ -547,6 +547,42 @@ export fn lr_states_lalr_parallel_result(value: LRStates*, constructs: bool, anc
     var error = WorkBudgetError.None;
     var count = lr_lalr_cache_count(value, &error);
     if error != WorkBudgetError.None { return error; }
+    if !lr_lalr_item_graph_safe(value) { return lr_states_lalr_closure_parallel_result(value, constructs, anchor); }
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    var capacity = compiler_worker_capacity(anchor);
+    if capacity <= 1 || anchor == null || !value.analysis.suffix_ready {
+        return lr_states_lalr_owned_result(value, constructs, budget);
+    }
+    if count < 2 * LRClosureGrain && value.states.length < 2 * LRLookaheadStateGrain {
+        return lr_states_lalr_owned_result(value, constructs, budget);
+    }
+    var lanes = value.states.length / LRLookaheadStateGrain;
+    var closures = count / LRClosureGrain;
+    if lanes < closures { lanes = closures; }
+    if capacity > lanes { capacity = lanes; }
+    var owner = entity_create_related_result(anchor, &error);
+    if owner == null { return error; }
+    defer entity_release(owner);
+    var graph: WorkGraph;
+    if !work_init_budget(&graph, 1, 0, budget) { return lr_work_error(&graph); }
+    defer work_dispose(&graph);
+    var workers: ParserWorkers = default;
+    error = parser_workers_open_result(&workers, anchor, capacity);
+    if error != WorkBudgetError.None { return error; }
+    defer parser_workers_close(&workers);
+    // Coordinator builds the derived graph before any worker borrows it. The
+    // existing solver/action phases retain their private outputs and ordered joins.
+    var lookahead = lr_states_propagation_items_result(value, constructs, budget, &error);
+    if lookahead == null { return error; }
+    defer lr_propagation_destroy(lookahead);
+    error = lr_propagation_solve_parallel_result(lookahead, owner, &graph, workers.pool);
+    return error != WorkBudgetError.None ? error : lr_lalr_actions_parallel_result(value, lookahead, owner, &graph, workers.pool);
+}
+
+fn lr_states_lalr_closure_parallel_result(value: LRStates*, constructs: bool, anchor: void*): WorkBudgetError {
+    var error = WorkBudgetError.None;
+    var count = lr_lalr_cache_count(value, &error);
+    if error != WorkBudgetError.None { return error; }
     var capacity = compiler_worker_capacity(anchor);
     if capacity <= 1 || anchor == null {
         return lr_states_lalr_result(value, constructs);
