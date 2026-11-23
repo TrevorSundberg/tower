@@ -1086,6 +1086,15 @@ native address/thread instrumentation profiles for this selector; parser-only
 builds do not support those profiles. The fault sweep is serial, so use the
 separate frontend-unit checks for real worker overlap.
 
+The `parser` selector also runs `parser_diagnostic_budget.tower`: measured required
+allocation failures, zero-byte and partial-footprint denial, exact result causes,
+cleanup/retry, original syntax text and deterministic options, detached contexts
+after request/table/world destruction, and allocator-aware stream error transfer.
+It checks syntax-session first-failure propagation and aliased stream replacement.
+`tower-frontend-tests RESOURCE_ROOT diagnostics` runs the existing diagnostic
+revision/location fixture without the complete frontend suite. These are focused
+native checks; integrated sanitizer and hosted release acceptance are separate.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial

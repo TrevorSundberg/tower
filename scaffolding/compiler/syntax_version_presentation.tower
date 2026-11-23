@@ -10,6 +10,7 @@ import syntax_reader;
 import syntax_revision;
 import syntax_version_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn syntax_description_text(entity: void*, name: u8*, name_only: bool, syntax: void*, kind: void*): u8*;
 extern fn syntax_origin_text(entity: void*, prefix: u8*, syntax: void*, kind: void*): u8*;
@@ -54,4 +55,9 @@ export fn syntax_parser_resolve(context: void*, name: u8*): u32 {
 export fn syntax_parser_token_name(context: void*, id: u32): u8* {
     var value = bits(SyntaxVersion*, context);
     return syntax_emission_token_text(bits(SyntaxEmission*, value.emission), id);
+}
+
+export fn syntax_parser_token_name_result(context: void*, id: u32, error: WorkBudgetError*): u8* {
+    var value = bits(SyntaxVersion*, context);
+    return syntax_emission_token_text_result(bits(SyntaxEmission*, value.emission), id, error);
 }
