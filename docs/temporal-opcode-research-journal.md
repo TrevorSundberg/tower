@@ -88062,3 +88062,5 @@ A tiny merged-resource Bedrock/scanner check follows; ROOT owns final reactors.
 Merged-resource check PASS17/17,0skip,6.31wall/7.15CPU/183236KiB, exit0. All owned
 Node jobs drained. Reused the unchanged49-case and relative-path receipts;
 remaining broad failures are preserved, not waived. Normal main push follows.
+
+B2 normal push recovery: preserved incoming69391085 in merge381fc109 after one fetch-first rejection. Changes are browser transport/tests/docs only, outside the affected native closure; reused unchanged e292754d native checks and frozen d5b65afe timings. No rebuild, relabeling or hosted claim. Both journal histories retained; normal push retry follows.
