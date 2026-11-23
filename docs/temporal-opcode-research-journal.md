@@ -81774,3 +81774,16 @@ output/cancellation cleanup. Final compiler SHA256:
 Logs remain /cache/root_budget_join_a093; all owned processes drained. This
 documentation receipt changes no runtime path. Final milestone gates remain
 pending; source publication is not a browser/runtime deployment receipt.
+
+First normal push was rejected fetch-first. Complete baf2a5a merged as
+fae0dfa219ff70576b422f13c17d27a003b46890; only lr_work_main's usage/selector
+condition conflicted. Both dependency-units and B2 unit-admission are retained.
+The new WorkBudget wake fields and WorkPool wake flag change shared layouts;
+frontend unit receive now admits wake events, and executable preparation now uses
+checked stages/views/dispatch and holds queued inputs before closing the view.
+The new fixture remains byte-identical and derives all storage from actual types,
+but prior binaries cannot validate this new ABI. Current merged validation is
+pending a coherent dependency rebuild. D2 owns heavy.lock for its active bounded
+reference profile; D1's acquisition failed without starting a competing process.
+One handoff request is recorded. Earlier passing receipts retain their sources;
+no stale binary was run or relabeled as current acceptance.
