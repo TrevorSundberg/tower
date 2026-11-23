@@ -2258,3 +2258,121 @@ no emitted recipe changes. ROOT's later owner-order fixture32case expansion is
 not yet adopted here, so this exact28case checkpoint stays distinct. Pages,
 constructor/schedule/borrowed-view registration work and integrated release gates
 remain open; no global race-freedom or unsupported UBSan claim.
+
+### Typed receipt at the actual phase boundary (after 9842b1f5)
+
+`scaffolding/tests/semantic_resource_checks.tower` now also requires
+SemanticProgram.resource None after successful gated entry preparation and while
+an isolated declaration still owns failure selection. After the actual startup/
+nested-growth denial publishes, Capacity must carry the same independently
+checked first-source offset as the diagnostic. This checks the merged producer
+ABI at the real phase boundary; it does not duplicate the separate setter or
+message-clearing fixture. All24cases/probes/cleanup remain unchanged. Existing
+9842 runner supplies the before reference; three before and three after native
+runs pass on identical program inputs, public leaf/native dependent rebuild pass.
+Supported focused instrumentation is pending at this entry. No production code,
+new allocation, guessed storage bound or unrelated fixture rewrite.
+
+Typed actual-phase assertions now pass3native/3address/3thread focused runs,
+all24cases; logs phase_receipt_9842. Six prior-reviewed page/constructor/schedule
+fixtures now have durable existingfactory registrations, with independent manual
+before and targetafter outputs3each,6CTest and3address/3thread each. Normal
+concurrent and serial-fault allocator profiles remain distinct; no provider/body
+rewrite. `work_view_invalid_dispose.tower` stays invalid and now has current
+compiler evidence: jobs1/2 both exit1, identical9:27 nominal-type diagnostic
+`Expected vector(usize)*, got work_view(usize)*`, no artifact. Pending scope is
+new ROOT556 stage/view tests and affected changed grammar/owner paths, not an
+unresolved claim that this old borrowed-view rejection has never been run.
+
+### Integrated stage/grammar checkpoint at reviewed44c1dc10 (ROOT556ecd52)
+
+Complete owner history merged cleanly after bounded jobs drained and00652b2c was
+committed. Exact current census1,106tracked /518D1direct (506tests/editor/
+playground+12examples), external current_556 rosters. Two new bodies and12changed
+Tower paths below are reviewed against556ecd52; old unchanged rows retain their
+prior source identity. Workingtree compiler union is UNBUILT locally at this
+entry. D2's real race repair evidence and other owner checks retain their exact
+scope. D1's typed24phase assertions and six registrations survive the merge.
+
+| Path | Current substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/entity_stage_result.tower | Real lifecycle finalizer rejects view/stage creation while store reclaims; private output errors distinguish null/staged Invalid, Busy, finite-counter Exhausted and successful acquisition. Pinned publication fails without acquiring queued refs; explicit hold precedes last-view close, successful commit preserves payload/ordered named child. Duplicate existing/in-stage names and ID exhaustion preserve state, retry succeeds, finalizer releases one retained target. Existing lifecycle/raw pointers remain legal with explicit owners. Needs minimal existing normal registration, no separate entities/memory object because imports already define them. Owner native/wasm32/address/thread evidence is not D1 execution. |
+| scaffolding/tests/entity_stage_result_faults.tower | Serial allocator denies stage/view allocation and every bounded publication prefix for mixed new and leased existing nodes. Failed publication preserves tables/IDs/stable payloads/grants and leaves held refs untouched; retry commits both and finalizers retire targets. Existing payload survives transitions; final physical-buffer/ledger baseline returns. Uses puts intentionally with serial fault runtime. Needs existing fault registration, no duplicate provider or threaded fault-injection claim. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | D2 adds exact per-unit admissions and negative near-name/wrong-unit cases for snapshot, typed parser-table/arena and resource-channel symbols. Narrow identity checks reject broad prefix allowances and test-only allocators. Owner exact native/WASI reports remain separate; current newly merged policy needs actual object reconciliation. |
+| scaffolding/tests/frontend_main.tower | Adds grammar-resource selector through existing serial frontend runner, calling syntax-version/construction/template suites. Explicit imports reuse real fixture bodies; no competing harness or production transport change. |
+| scaffolding/tests/frontend_syntax_version.tower | Real allocation-prefix sweeps require typed resource failure iff valid construction fails, preserving optional uncached success. Create-result checks Memory/Busy and independent error; ordinary pending/unproductive grammar diagnostics remain None. Invokes new world-type test through actual entry. Rules/counts and spelling lengths derive actual arrays/text. Global allocator injection remains serial. |
+| scaffolding/tests/frontend_template_build.tower | Measures successful replacement allocation count then denies each prefix with fresh owner; exact typed Memory versus ordinary invalid capture, stable owner buffer baseline, world-local tree and recovery remain checked. Arrays/text derive counts; diagnostic-only dprintf reports allocation/status without changing selection. Failed owned builders destroy before checking final retained storage. |
+| scaffolding/tests/frontend_world.tower | Typed world-component acquisition covers invalid world/kind, allocation rollback, existing pinned lookup, Busy for missing pinned kind, retry and complete physical cleanup. Real call is frontend_syntax_version_tests; this is not an unused helper. Existing host-world compatibility boundary remains explicit. |
+| scaffolding/tests/lr_analysis_failures.tower | Full default initialization covers the newly added resource field in LRProbeBudget before allocation/clone sweep. No weakened failure oracle or undefined extra field. |
+| scaffolding/tests/lr_control_checks.tower | Probe allowance/token loops derive array lengths and compare typed error alongside remaining budget, completion, stack and predecessor against existing oracle. Full initialized budget copied before both probes; no new parser oracle. |
+| scaffolding/tests/parser_state.tower | Actual byte-array size replaces repeated bounds. UTF-8 allocation denial keeps typed Memory across EOF reads. Nested input/recognizer/outer stream preserve first Capacity even when later Memory/report allocation is denied; diagnostic-copy denial itself becomes Memory. Explicit destroy ordering restores allocator baseline. |
+| scaffolding/tests/parser_table_budget.tower | Typed probe/completion results preserve prior stack on denial and distinguish absent offer from resource failure. Real syntax session with imported grammar latches query/snapshot Capacity until reset, then valid offer recovers and unknown offer remains None. Exact remaining-byte pressure, owner cleanup before ledger and physical baseline preserved. |
+| scaffolding/tests/semantic_failure_order_checks.tower | Four real KnownClone-owner cases add to prior28, now32. Completed known-proof plus normal node-limit failure exercise direct clone selection without starting interpreters; retained text/offset selected after joined stages, ordinary component-limit diagnostic has no invented allocation receipt, repeated owner calls create no nodes. New selector distinguishes owning query frontier. Existing28 oracles retained; current D1 runtime still pending. |
+| scaffolding/tests/syntax_template.tower | Successful allocation count now bounds full prefix sweep instead of guessed512. Typed hole-construction result distinguishes Memory from success; actual capture/helper/name/ID arrays derive bounds. Every successful grammar still checks expected shape/bindings and all partial owners clean up. This remains raw grammar fixture data, not language migration. |
+| scaffolding/tests/wasm_link_reader_native.tower | D1-authorized D2 one memory-provider import now in complete history. Actual missing-link before and corrected native passes retained. Separate B2 three-line production cancellation fix drains before graph cancellation/parent error; D2 independently reproduced beforeTSan66 and after normal3/address3/thread10. Source import itself was never called the race fix. |
+
+Current stage/view API preserves stable storage and reserve-before-publication,
+but stage descriptors/nodes/names/count indexes remain unbudgeted per A2 audit;
+there is no whole-world-cap claim. A2 also corrected its historical speculative
+linear free-slot scan: the current shared budget free list is already O(1).
+Measured extra grants/retention and8worker regression remain real, wait-time cause
+unmeasured. Do not introduce a fictitious scan optimization. CurrentROOT556 still
+excludes pending world/output constructors, declaration readers, resource pumps,
+nested pool and node-cache work; final bootstrap/browser/generation/publication
+remains open. Documentation-only review adds no runtime measurement requirement.
+
+### Declaration reader result delta — reviewed 3992b634 (2026-11-23)
+
+The complete B1 owner history was verified against sole public prerequisite60741;
+this review reads all7 production and3 fixture deltas. No new D1 paths:518/518
+remain substantively reviewed. These are source conclusions, not new D1 runtime
+acceptance. Existing owner native/parser-reference/ASan/LSan/TSan/WASI evidence is
+scoped to3992's frozen inputs; fullfrontend300s timeout remains open.
+
+| Assigned path | Substantive delta and disposition |
+| --- | --- |
+| scaffolding/tests/syntax_reader.tower | Typed result variants remain compared against the independent ordinary Tower reader oracle, exact malformed bytes and provenance. A measured successful allocation count replaces guessed512 prefix bound; each denied prefix must report Memory and restore nodes/buffers. Missing syntax component under a real pinned view reports Busy, view closes before successful retry, all owners retire. Identifier arrays/alias offsets derive actual storage/text; named trial/node limits retain fixture policy. Ordinary malformed results remain None unless diagnostic storage itself fails. Existing parser runner owns execution; no parallel fault allocator claim. |
+| scaffolding/tests/frontend_syntax_version.tower | Existing construction entry invokes declaration-result tests on its real revision/world. Successful measured prefix count bounds denial; partial revisions preserve source references and buffer baseline. Undefined extension remains ordinary None with exact diagnostic presence, then denied diagnostic allocation becomes Memory without bytes. No independent revision registry, fixture builder or world ownership added. |
+| scaffolding/tests/parser_table_budget.tower | Existing session test deliberately supplies a foreign-owner module with diagnostic allocation denied. Requires typed Memory, static diagnostic, no next node and failed canonical formatting with no published text. Foreign module/environment/world retire in order, original valid session resets before existing completion pressure. Failure is not silently treated as malformed input or successful output. |
+
+Production source review confirms exact read/declaration/component results,
+first-cause retention with concrete diagnostic when possible, and static fallback
+on denied diagnostic storage. Comment/index failures flow through the existing
+session; formatter checks resource failure before publication. Remaining raw
+pattern/LR buffers, pool slots and reset/legacy construction paths are explicitly
+owner gaps; no whole-world memory-cap or universal race-freedom assertion. The
+owner's bounded n6 editor RSS investigation retains its original n2 increase and
+does not establish a regression or improvement. Documentation-only review has no
+runtime change to profile.
+
+### Durable stage/view fixture registration — frozen83800126
+
+No new Tower paths or fixture body changes;518/518 direct paths remain reviewed.
+`entity_stage_result.tower` now enters the existing normal fixture factory and
+`entity_stage_result_faults.tower` the existing serial fault factory. Their full
+entities/stage/memory imports supply one provider each, without the separate
+entity-create provider. The existing `entity_stage_concurrent.tower` supplies
+actual worker cancellation/publication coverage; serial failure-prefix execution
+is not called threaded coverage. README records exact targets and distinctions.
+
+Independent public9653 leaves and manual3each passed before registration. After
+registration, native3each, two named CTest cases, address3each and thread3each pass
+with exact baseline stdout and one main/allocator/provider definition. Actual
+fixture/provider instrumented IR+objects and access hooks are saved. Separate
+unchanged worker-stage fixture passes native3/address3/thread3, each retaining its
+barrier/ownership/lifetime assertions and57792 finalizations. This supports the
+checked executions, not universal race freedom or source UBSan/externalLLVM.
+
+The current stage fault fixture's guessed StageFaultLimit96 remains an owner
+follow-up: derive its sweep from a measured successful publication allocation
+count, preserving rollback/retry assertions. Routed A2 via status; registration
+does not silently change that specific owner fixture. Earlier constructor/schedule
+array-bound proposals likewise await owner disposition.
+
+Current838 merged native compiler/LR/frontend public build and receipt32,
+resource24, query-smoke, parser and grammar-resource pass locally, distinct from
+older28-case receipts. D2 exact7fb parser symbol policy was independently read:
+four observed ParserNodes-only names, explicit positive/near-name/wrong-unit
+cases, no speculative export allowance. Its production directories byte-match838;
+full history is queued after this source freeze. New A1/L2/L1 inputs are not covered
+by these results. Final clean bootstrap/browser/generation/release remains open.

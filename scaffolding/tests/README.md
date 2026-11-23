@@ -1091,3 +1091,39 @@ source receipts, no publication/replay and complete cleanup. Allocation and
 workers use the production providers. Supported `TOWER_SANITIZER=address|thread`
 builds use the same registration and symbol bindings; serial allocation-failure
 fixtures remain separate. No universal race-freedom claim follows from a pass.
+
+The existing normal/fault factories also register the constructor, scheduling
+storage and physical component-page fixtures on Linux x64:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-work-constructor-budget-tests tower-work-constructor-faults-tests \
+  tower-work-schedule-budget-tests tower-entity-component-budget-tests \
+  tower-entity-component-layout-tests tower-entity-component-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(work-constructor-(budget|faults)|work-schedule-budget|entity-component-(budget|layout|faults))-tests$'
+```
+
+The budget/schedule cases use actual worker barriers, private stages/graphs and
+production allocation. Layout verifies the target's actual type sizes, aligned
+payloads, physical charges and last-live cleanup. Fault cases use the existing
+single-owner allocator and serial transport; their rollback coverage is separate
+from real concurrency. The deliberate compile-negative
+`work_view_invalid_dispose.tower` is not an executable target.
+
+The same factories register typed stage/view admission and publication rollback:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-entity-stage-result-tests tower-entity-stage-result-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-entity-stage-result(-faults)?-tests$'
+```
+
+The normal fixture checks exact admission causes, queued reference ownership,
+stable payloads, publication retry and finalizer cleanup. The fault fixture
+denies serial allocation prefixes and checks rollback before a successful retry.
+Both import their entities and memory providers; no second provider is linked.
+Real worker publication/cancellation coverage remains in
+`tower-entity-stage-concurrent-tests`. Supported address/thread instrumentation
+uses the same targets; the fault allocator remains single-owner.
