@@ -2952,3 +2952,43 @@ D2 independently identified the parser-table audit selector error above: parser
 (or default) reaches parser_failure_tests; allocations returns earlier. Corrected
 the statement, preserving earlier receipts and not adding an unnecessary matrix.
 Documentation review itself has no runtime performance delta.
+
+### Durable capture/executable registration on the complete2252 union
+
+Complete D28cb and ROOT2252 histories merge cleanly as2ff9c7ff7. Current roster
+is540/540 assigned of1129, with only the executable fixture newly added. D2's
+reviewed exact Wasm Entities policy is adopted; it changes no compiler layout.
+D1 changes only cmake/TowerWorkPolicyTests.cmake and the test README: five ordinary
+capture-continuation cases and eight executable cases. Executable shares the
+existing aggregate provider composition, excluding only the implementation it
+already imports and retaining frontend/query providers. D2 independently reviews
+exact wholefile832d3ea4 against both fixtures and finds no blocker.
+
+Both public9653 leaves compile first, then20 native actions rebuild the current
+IM layout consumers. The first OS wrapper fails1 before runtime because it
+incorrectly expects public sem_executables_pump; actual nm identifies exactly one
+private tower.fn.sem_executables_pump. Preserve the original failure, drain, and
+correct the OS observation only. Continuation62959 passes39 direct processes;
+registered29295 passes39 matching processes plus all13 CTests. Both leaf objects
+are byte-identical, all provider hashes unchanged, outputs/errors identical and
+source freezes verified. No compiler or fixture assertion is changed.
+
+All selector samples retain GNU wall/CPU/RSS, hashes and allocation/grant cleanup
+oracles. At the same installed executable paths, n3 fresh-process warm-filesystem
+medians for capture healthy are .02/.02/50288 before and .03/.03/50504 after
+(seconds wall/CPU, KiB RSS); executable healthy .03/.02/50688 -> .03/.03/50744;
+partial take .02/.02/50716 -> .02/.01/50756. These tiny quantized runs do not show
+a causal speedup or neutrality. They validate generic registration without added
+storage. Each selector checks widths4/8 and budgets1/4; these are graph-pressure
+cases, not real overlap measurements. Current real overlap/instrumentation is the
+next separate frozen milestone. Host SteamDeck Linux x64, Docker/LLVM19.1.1,
+Release/public pin, builds and these graph checks CPU0,2/jobs1. Logs retain all
+39 samples per side, not only these representative rows.
+
+The current compiler is2219891064b1d0bd8a95790e477b4baf0bebc13dcaf49eb7ed56b27b4ae96d1a
+with50 complete resources. Two fixture providers are registered through existing
+Tower object/build tools; no new test language, scheduler, native seed or adapter.
+D1 releases its lock only after both containers are init-only, allowing D2's
+short actual ParserNodes policy gate before the new instrumentation freeze.
+Standalone negative-control, old restricted-host overlap, current broad native,
+clean bootstrap/browser/generation and leased hosted publication remain open.

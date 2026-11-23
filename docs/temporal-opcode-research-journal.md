@@ -78386,3 +78386,57 @@ B1_pool_graph_receipts_68fa00d9.tgz SHA256
 contains the exact current artifacts and all24 profile records. No owned job,
 quiet watcher or hold remains. Evidence commit follows without runtime changes;
 complete ROOTc944 adoption and new grammar work have not begun.
+### D1 native capture/executable registration evidence on2ff9c7ff7
+
+Complete reviewed D28cb and ROOT2252 merge without conflicts. Native production
+matches2252; only D2's exact Entities table tool policy is additional. The assigned
+roster grows to540/1129. No production handoff or fixture rewrite by D1. Add the
+five capture-continuation and eight executable-admission CTests through existing
+TowerWorkPolicyTests; executable reuses aggregate provider exclusion while capture
+links the ordinary provider. D2 reads exact draft832d3ea4 and both fixtures,
+confirming selector/provider composition before acceptance.
+
+Frozen public9653 native leaves: capture6.01wall/5.87CPU/212692KiB;
+executable34.99/34.06/757900. Current20-action native rebuild167.83/163.74/753544
+passes, including IM layout consumers, compiler, parser/semantics/query/entities,
+interpreter/evaluation, frontend and LR fixtures. Compiler2219891064b1d0bd8a95790e477b4baf0bebc13dcaf49eb7ed56b27b4ae96d1a
+and all50 resources are saved. No stale no-work ABI claim.
+
+Original baseline76998 fails1 after successful manual capture link, before any
+fixture execution: shell observation requires public T sem_executables_pump,
+where actual nm has one private t tower.fn.sem_executables_pump. Keep original
+script/status/logs, verify init-only drain, and correct only the observer in a
+separate continuation script. No rebuild, source change or fixture relaxation.
+Continuation62959 completes39 checked runs0. A first report-export command also
+fails1 because the external coordination directory is not container-mounted;
+correct host redirects actually produce parser U entity_attach_result and Entities
+T entity_attach_result, hashes and depfile for D2. Premature status wording is
+explicitly corrected in both inbox/status; no workload failure is inferred.
+
+After source freeze ends, the scoped18-line CMake change and README are applied.
+Registration29295 completes0: four build actions39.68wall/38.72CPU/757928KiB,
+39 same-path runtime samples and13 CTests/.44s. Both compiled fixture objects are
+byte-identical to direct public leaves, all actual provider hashes unchanged,
+each expected provider unique, outputs/errors equal, before/after sources checked.
+Every selector executes widths4/8 and budgets1/4,156 Tower trials per39-process
+side. World/query budget cleanup is checked by the fixtures; no added allocator
+owner or production speed/scaling claim is implied by registration.
+
+Measurement environment: same SteamDeck14.8GiB, Docker image4be584fb42a6,
+LLVM/Clang19.1.1, Linux x64 Release, public pin9653, jobs1/CPU0,2, no sibling heavy
+job, warm filesystem/fresh processes, same actual executable path per fixture,
+three samples per selector per side. Representative medians (wall/CPU seconds,
+RSS KiB): capture healthy .02/.02/50288 -> .03/.03/50504; executable healthy
+.03/.02/50688 -> .03/.03/50744; partial take .02/.02/50716 -> .02/.01/50756.
+All raw samples remain; hundredth-second precision and process startup prevent
+causal performance conclusions. Current multi-unit serial/parallel comparisons
+and positive sanitizer/concurrency checks follow the next coherent source freeze.
+
+Logs/artifacts: build/d1_ecs/capture_continuation_before and
+build/d1_ecs/continuation_registration_after, including actual objects/providers,
+compiler/resources, failures, commands, CTest and full source manifests. Both
+containers are verified init-only/CPU0,2 before lock release; D2 gets its short
+actual ParserNodes WASI/policy slot next. This is a native harness checkpoint,
+not final integrated acceptance. Negative probe is unchanged and unexecuted;
+current broad native/address/thread, oldff3 restricted-host Cancel4, final clean
+bootstrap/browser/generation and leased atomic hosted publication remain open.
