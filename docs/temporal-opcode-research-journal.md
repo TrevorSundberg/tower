@@ -94628,3 +94628,11 @@ shared budget/buffer/arena/entity/pool/native-gate source bytes unchanged;
 frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
+
+### B2 inline first-component storage — frozen70e77b60, accepted candidate
+
+Implemented one descriptor-owned component pointer; pending inline-to-heap promotion preserves failed-growth payload/index/charges. Reclaim and stage discard never free inline storage. Audited both zero-init constructors, stable pages, all reserve/free/copy consumers, leases/removal/publication; updated two physical census readers. No WorkBudget/gate/scheduler edits (B1 owns those).
+
+Receipt: [entity_inline_component_70e77b60.md](entity_inline_component_70e77b60.md). CPU12-23/quota12/24GiB, public768/LLVM19 Release, own native cache, one dependency build. Frozen16/4096 inputs, n2 alternating before/after, production allocator, observeroff: process wall small1 .402272→.367961s; large1 2.414117→2.302414; large4 2.375276→2.207618. Large retained grants566923301→521369980bytes; live receipts948686→432300; ledger80→40MiB; RSS812630→734012KiB serial. Descriptor184→192bytes/capacity17→16 explicitly charged; small created-query census is15bytes worse while ledger shrinks. Separate observer retains4105 lowering jobs and actualpeak4, loweringCPU368.800→224.610ms. Full source/import/Foundation bytes, known42/42 and teardown pass.
+
+Focused first/second/fifth, old+new cap, every inline-promotion allocation failure/retry, remove/re-add, published lifetime, exclusive lease cancel, accounting/census, concurrent production publish/cancel/failure/drain checks PASS. Two older default fault matrices already abort on untouched baseline (component_fault_trial/stage_fault_publish); retained FAILED and not weakened. New inline fault mode is separate. No sanitizer/platform/generation claims. Evidence/binaries under B2/entity_inline_70e77b60 and /cache/entity_inline_70e77b60; before f89f1e3b, after53186f76. B1 gate candidate excluded; ROOT owns final integrated runtime/publication. Prior rejected changes and b8 browser assets unchanged.
