@@ -285,7 +285,7 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     if template == null { return null; }
     *error = WorkBudgetError.None;
     var needed = template.type_count;
-    if template.kind == GenericKind.TypeConstructor {
+    if template.kind == GenericKind.TypeConstructor || defer_type_body && count == template.count {
         needed = template.count;
     }
     if count != needed {
@@ -385,7 +385,10 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
                     return null;
                 }
                 var compile_time = template.type_parameters[i];
-                if template.kind == GenericKind.TypeConstructor {
+                // The count is part of canonical instance identity. Ordinary
+                // functions bind only type parameters; known constructor calls
+                // bind the complete parameter list, including integer values.
+                if instance.count == template.count {
                     compile_time = true;
                 }
                 if compile_time {

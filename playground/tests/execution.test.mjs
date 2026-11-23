@@ -6,7 +6,7 @@ const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/t
   await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8'));
 const grammar = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
 const example = await readFile(new URL('../../scaffolding/examples/execution.tower', import.meta.url), 'utf8');
-function run(source, budget = 10000, prefix = '') {
+function run(source, budget = 10000, prefix = 'import foundation;') {
   const handle = tower.compile(prefix + '\n' + source);
   try { return { ...tower.execute(handle, budget), source: tower.foundation(handle).source }; }
   finally { tower.destroyExecution(handle); }
@@ -135,7 +135,7 @@ test('editing the executable example reuses every compiled grammar revision', ()
   } finally { tower.destroy(handle); }
 });
 
-test('edited semantic rules fail with diagnostics instead of invalid node access', () => {
+test('edited semantic rules fail with diagnostics instead of invalid node access', async t => {
   for (const source of [
     "parse CoreIf = 'broken'; broken",
     "parse CoreAssign = 'broken'; broken",
@@ -145,9 +145,12 @@ test('edited semantic rules fail with diagnostics instead of invalid node access
     "parse CoreCall = 'broken'; var a: i32 = broken;",
     "parse CoreFunction = 'broken'; broken",
   ]) {
-    const result = run(source);
-    assert.equal(result.status, 'error', source);
-    assert.equal(result.steps, 0, source);
-    assert.match(result.error, /Missing foundation tree|missing capture/, source);
+    await t.test(source, () => {
+      let result;
+      assert.doesNotThrow(() => { result = run(source); }, source);
+      assert.equal(result.status, 'error', source);
+      assert.equal(result.steps, 0, source);
+      assert.match(result.error, /Missing foundation tree|missing capture/, source);
+    });
   }
 });
