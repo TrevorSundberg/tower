@@ -61153,3 +61153,288 @@ D2 review, not yet an accepted native/WASI provider. Constructor/page/payload
 accounting, checked dispatch and interpreter frame/task ownership remain active
 owner work. Final clean bootstrap/browser builds, scaling, sanitizers and atomic
 main/Pages publication are still required.
+
+B1 clone-v2 union at70239e41fd036cc64bb7de03807dcc72a0b4494e,
+tree43bf2580e186ed0eaa076b05b7895af2cb057e99: merged verified root6b8355
+history after the grammar freeze. Only README conflict was additive; retained
+both the runtime profile description and newer test entry documentation. Exact
+owned grammar/provider/getter paths match28719447; clone/module/query paths
+match6b8355. Smallest public generics unit passes; native44-step refresh passes
+42.39wall/144.09user/20.56system seconds,843864KiB peak. Query-smoke, real LR,
+frontend units, editor and focused parser pass. The initial storage invocation
+omitted its required resource-root argument and aborts134 at that guard; this is
+an invocation error, preserved in clone_join_v2_storage.log, not a runtime pass.
+Corrected storage invocation and the newly registered full module/cache target
+are next. Existing28719447 sanitizer/WASI evidence is scoped to that earlier
+source, not relabeled as clone-v2 validation.
+
+Next owned design: account LR control, probe and completion objects and their
+stacks/evidence/path buffers through LRRuntime.budget. The public signatures
+already require the runtime to outlive these borrowed readers; parser request
+and syntax-session retirement explicitly destroy completion/control before
+retiring table pins. Preserve the separate LRProbeBudget operation quota and
+its incomplete result on allocation denial. Existing frontend_read_characters
+and parser_request_create check null control creation. Other request/stream/
+forest buffers and FIRST/state/propagation scratch remain separate open owners.
+The planned implementation uses shared WorkBuffer/WorkVector, not another
+allocator. No production source has changed for this next slice yet.
+
+The control regression first fails to compile because the test imported the API
+but not its nominal protocol-constant module; adding the direct lr_control_types
+import fixes that source error. Against unchanged production it then aborts134
+at the expected exhausted-budget control-constructor assertion. Logs preserve
+both outcomes. The initial production candidate uses WorkBuffer objects and
+WorkVector stacks/evidence/probes/paths; its smallest public unit passes3.36s/
+284632KiB, but the full original parser reaches the65536 expansion cap. The
+root/A2-approved compiler_work import-only provider move is adopted exactly
+(host_entities to existing units/entities), with B2 notified; entities compiles,
+but it alone does not clear the cap. No cap increase, private bootstrap or new
+unit is used.
+
+The bounded completion worklist then uses a private typed WorkBuffer view with
+the existing shared element-growth function. This preserves geometric capacity,
+whole-replacement overlap grants and source order, with capacity derived from
+buffer bytes/element size. It moves the cap failure later to dispatch but does
+not resolve it. The next candidate applies the same concrete buffer view to
+probe frames; mutable real parser frames and byte evidence still use WorkVector.
+These are typed views of the shared allocator, not a second growth algorithm.
+The full aggregate result remains pending at this entry. Named variables now
+hold the existing step/query/suffix/path policy limits; input length is derived
+from the fixture string, and no array extent is duplicated in the new tests.
+
+B1 current control storage implementation: LRParser owns its physical object,
+frame WorkVector and sequence byte evidence. LRProbe and LRCompletion own their
+objects; concrete probe-frame and bounded completion-path views use WorkBuffer's
+shared checked element-growth helper, with capacity derived from buffer bytes
+and element type. There is no independent allocator or growth policy. Runtime
+and its physical ledger outlive all readers. Probe operation quotas remain
+separate; allocation denial marks incomplete. Named policy variables preserve
+existing128/8192/65536/512 limits, and EOF uses the shared token sentinel.
+
+The initial all-WorkVector candidate and provider-only retry hit the public
+65536 expansion cap. A concrete completion-path buffer moves the failure later
+to dispatch; the concrete probe-frame view clears it. The original aggregate
+and dependent executables now pass5steps,18.66wall/14.61user/2.39system seconds.
+No compiler cap change, private bootstrap, second provider or new unit. Existing
+compiler_work export definitions remain in the established entities provider.
+
+New parser_table_budget checks reproduce old unaccounted control creation under
+an exhausted world ledger, then pass after this implementation. They cover full
+and one-byte-below-retention denial, initial-frame cleanup, probe clone denial,
+probe growth/incomplete/retry without real-parser mutation, completion creation
+and query denial/retry, ordinary LR frame growth and finite-sequence evidence
+growth with unchanged uncommitted state, exact final ledger/allocator retirement.
+Input lengths come from actual strings; no duplicated array bound. These are
+serial deterministic allocation-denial checks, not threaded sanitization.
+Current production LR, frontend units, query-smoke, editor, serial allocation
+failures and full module/cache tests pass. All children drain. Existing reference
+control/sequence and completion suffix checks remain active in the parser suite.
+The prior corrected clone-union storage test also passes0.26s/97076KiB and module
+suite0.06s/54420KiB; the original missing-argument abort remains preserved.
+
+Frozen frontend profile before85649b4320ca311f40d98fba2ef760b796fac8c13c1cea17b0750d1f8fbbb2b9
+comes from70239e41. Current after executable and identical resources are frozen
+under /cache/parser_memory_profile/control. Matched profiling and current
+supported sanitizer/WASI evidence are pending at this entry. The broader FIRST,
+items/states/propagation, requests/streams/forest and world/store/page ownership
+work remains open; this control slice is not full memory or release acceptance.
+
+Control caller audit found syntax_next dereferencing an unchecked recognizer.
+Added stream/recognizer guards, then a typed resource outcome requested by B2:
+LR control constructors preserve per-call WorkBudgetError, commit growth latches
+its exact error, request failures expose it, and SyntaxSession retains it through
+syntax_session_resource_error until reset. Grammar/table construction now uses
+result constructors, preserves exact WorkBuffer/WorkVector/arena denial, and
+carries it through ParserHostTable, parser_table_finish_result and
+SyntaxVersionDiagnostic into the session. Missing names/conflicts remain
+ordinary grammar diagnostics. Legacy FIRST/state/runtime boolean construction
+failures retain a coarse Memory classification when no precise buffer result is
+available; their finer per-phase allocation/dispatch outcomes remain open.
+No reader consults the shared ledger's mutable last-error field or classifies
+diagnostic strings. Version validation/lexical/replacement resource outcomes
+outside this table path are not claimed fully typed by this slice.
+
+The first session retry fixture used raw `base` without a language import; after
+fixing setup it correctly reports the established language-import diagnostic.
+Use the existing positive `import shared; hello` fixture, without weakening the
+allocation denial, cleanup or retry assertions. Both grammar setup denied before
+session construction and later LR control denial are exercised. An incomplete
+`import ;` after reset must remain an ordinary syntax error with no resource tag.
+
+A separate real test-helper bug explains the earlier nondeterministic baseline
+failure. world_session_prepare passed length-delimited FormatResult.text to the
+NUL-terminated baseline API. FormatResult never supplies that terminator; the
+production host explicitly does. Native trace read garbage beyond the formatted
+seed; ASan confirms a one-byte heap-buffer-overflow at the end of its3520-byte
+allocation, syntax_text_length -> syntax_baseline_install -> world_session_install
+-> world_session_prepare -> parser_session_budget_test. Allocation originates in
+bytes_append/format_write/format_entity. Logcontrol_memory_typed_address_parser
+retains the full report and exit134. This is an ordinary valid-input regression,
+not an intentional invalid-memory sensitivity probe. B2 explicitly approved the
+narrow helper fix: direct vector import and checked push of the NUL terminator.
+The provisional typed-ABI-corruption hypothesis is rejected by this evidence.
+Temporary Tower tracing is removed after draining. Failed trace builds (imports
+after declarations, unavailable tower_print transport) remain preserved too.
+
+Smallest typed parser_state passes15.25s/669696KiB and syntax_version_build
+15.23s/669860KiB. The prior typed-control aggregate passes10steps22.88s but its
+runtime failed in that unterminated helper; no pass is claimed. The complete
+current table/version/session closure and corrected fixture await aggregate and
+runtime checks. Earlier ASan/control results and frozen after profile executable
+are superseded for validation by these new inputs; no quiet timing has run.
+
+B1 control resource checkpoint, 2026-11-23 02:51 UTC (implementation and evidence):
+The complete typed grammar/table/version/session/recognizer closure now passes
+the public predecessor's original aggregate and dependent native build:16 steps,
+26.53 s wall,64.66 s user,9.41 s system,842056 KiB peak RSS. Compiler input edits
+were freshly materialized; the build log records regeneration of the affected
+parser, template, syntax-host, live/format, frontend and semantics objects.
+The focused parser test passes with both denied grammar construction and denied
+LR control creation, exact typed Capacity, cleanup, successful same-session
+retry with the existing valid imported grammar, and ordinary syntax rejection
+without a resource tag. Source/helper NUL fix is included in these results.
+
+The following current native checks also pass, each with exit0: query-smoke
+0.09 s/61444 KiB; LR1.81 s/115924 KiB; production frontend units18.94 s/805904 KiB;
+editor6.15 s/970368 KiB; serial allocation failures1.17 s/170576 KiB; full module
+cache/session checks0.06 s/54312 KiB. Their logs are
+build/ecs_b1/logs/control_memory_full_typed_{parser,query-smoke,lr,units,editor,
+allocations,modules}.log. These are functional checks, not quiet performance
+measurements. The sequential orchestration reached its final executable-copy
+step only after all checks exited0. Frozen current after-profile executable
+SHA256 b1e34f4b859726181aa9b855aea97c8c52e1bcf77d24ed80ecd16ef311ca6def
+supersedes the earlier partial-control after executable.
+
+Whole source closure handed to B2/root as B1/control_memory_typed_slice.patch,
+SHA25665074438f9f574f3b7f9de764d95d2716329b5e238d65757acd2ad1661809464,
+18 code/test paths relative to70239e41; reverse applicability passes. The new
+SyntaxSession, SyntaxVersionDiagnostic and ParserHostTable layouts require all
+consumers to rebuild together. Copying only the getter is not valid adoption.
+B2 owns the completion/inspection consumer and independent denial reproduction.
+Current ASan revalidation of the actual helper overread, TSan, 32-bit WASI and
+paired performance remain pending. Earlier instrumented passes predate these
+changes and are not current acceptance. Full lane/release completion remains open.
+
+B1 control ownership paired measurement, 2026-11-23 02:54 UTC:
+Timing ran entirely inside the fresh sibling quiet lease: grant02:51:57.8988944Z,
+automatic launch02:51:58.0146563Z, all16 processes drained with exit0 and release
+02:52:48.7506702Z. No competing B1 build ran; B2 explicitly stayed source-only.
+Two alternating before/after pairs used identical archived70239e41 resources,
+three units, requested workers1/4 and small0/large4096 generated bodies. Every
+fresh process checks its Tower execution oracle and exact canonical output;
+paired hashes, entity/component counts and expected real outer overlap match.
+Before executable85649b43, afterb1e34f4b (full SHA receipts above). Public pinned
+Linux x64 bootstrap, Release/native Clang19.1.1, Ryzen AI MAX+395, container
+CPU0-11/24GiB, warm filesystem/fresh worlds. Raw JSON and GNU time receipts:
+build/ecs_b1/cache/parser_memory_profile/control/results. No LLVM backend work.
+
+Mean measured frontend intervals over the two samples (milliseconds):
+
+| bodies | workers | before wall / CPU | after wall / CPU |
+| --- | --- | --- | --- |
+| 0 | 1 | 3573.02 / 3370.21 | 3458.46 / 3258.92 |
+| 4096 | 1 | 4727.52 / 4526.59 | 4546.42 / 4345.42 |
+| 0 | 4 | 1382.51 / 4154.87 | 1365.02 / 4076.31 |
+| 4096 | 4 | 2204.95 / 5522.06 | 2202.14 / 5426.13 |
+
+After requested4 observes three concurrent outer units, not just admission.
+After serial/parallel wall ratios are2.53x small and2.06x large; CPU is higher
+with parallel scheduling. Outer interval coverage is99.1%/73.7% of three-lane
+wall capacity; the large remainder includes coordinator/other work, so this is
+not a direct measured worker-idle or contention attribution. No isolated shared
+ledger-contention conclusion is justified. Two samples indicate no regression
+for this closure; serial reduction3.2%/3.8% and parallel1.3%/0.1% are observations,
+not a general speedup claim or independently attributed optimization.
+
+Peak process RSS before->after ranges (KiB): small serial197476-198156 ->
+197592-197804; large serial675616-676368 ->675840-676484; small parallel
+461120-462856 ->456200-461304; large parallel938128-938832 ->930172-938532.
+Final retained ownership grows72 bytes per batch (new typed diagnostic fields);
+tracked serial peaks grow592 bytes, small62893338->62893930 and large
+63240388->63240980. Parallel peak variation overlaps: small175923450 before,
+175925082-176057058 after; large176197124-176850244 before,
+176272132-176769004 after. Ledger metadata remains5242880 serial and20971520
+parallel. New ephemeral parser/probe receipts do not imply these high-water
+batch values isolate their total allocation traffic. Final buffers retire via
+the unchanged profile/fixture cleanup oracles. Whole parser/store accounting is
+still incomplete; this measurement does not establish all memory is charged.
+
+B1 current ASan/LSan validation, 2026-11-23 02:57 UTC:
+All owned children drained with exit0. Public-bootstrap dependent rebuild27steps
+passes81.81 s wall/134.54 user/19.04 system,848536 KiB RSS. Actual generated Tower
+LLVM IR is instrumented; ASAN_OPTIONS=detect_leaks=1:abort_on_error=1. Current
+parser0.23 s/137056 KiB, serial allocation failures8.55 s/771236 KiB,
+query-smoke0.59 s/225632 KiB, native editor44.30 s/1169096 KiB, and actual3-outer
+unit run9.88 s whole-process/1119888 KiB all pass without ASan/LSan findings.
+The same focused parser suite exercises the valid-input world_session_prepare
+path that previously produced the3520-byte-end overread; the checked terminator
+fix is now validated. The original failure log remains preserved, not relabeled.
+
+Outer Tower interval9.522801167 s wall/30.595822 s CPU, actual outer_peak3,
+canonical1173729914654460811,48240 entities/55014 components, retained5672113,
+peak charged175925041 and ledger20971520 bytes. This uses current live resources,
+not the archived paired-profile resource set, and is instrumentation evidence,
+not a performance comparison. Serial fault allocation checks do not establish
+threaded allocator sanitization. System LLVM/native dependencies are not covered
+by Tower IR instrumentation. Arithmetic UBSan and browser sanitizers are not
+implemented in this build. Current TSan dependent build/stress is running; WASI
+ABI/IDE validation remains pending. No source edits during either frozen run.
+
+B1 TSan transport correction, 2026-11-23 02:58 UTC:
+Current public predecessor TSan dependency build passes74steps,63.50 s wall,
+162.99 user/24.90 system,844604 KiB RSS. First ephemeral runtime launch exits127
+because immutable base image lacks /usr/bin/time (persistent build container
+has it). Preserved control_memory_full_typed_thread_parser.log; no test executed.
+An inline PowerShell/bash TIMEFORMAT retry exits0 but produces no expected logs:
+nested native-argument quoting truncated its command, so it is INVALID execution
+evidence and no test pass. Replaced only OS transport with an ignored shell
+script using Bash builtin time, fail-fast commands and a final receipt. Current
+parser/query/two outer stress processes run sequentially in that script, same
+image/CPU/memory, no network and the established seccomp=unconfined TSan startup
+capability. Production source/executables unchanged; no build repeated.
+
+B1 current TSan and independent caller evidence, 2026-11-23 03:00 UTC:
+Corrected script ran all intended children and emitted its final success receipt;
+Docker exit0. Parser0.296 s wall/0.190 user/0.083 system, query-smoke1.081 s/
+0.973 user/0.143 system. Two real three-unit/four-lane stress invocations report
+Tower wall intervals24.649611475/25.209104369 s, CPU78.773743/80.329524 s,
+peak RSS1430576/1426960 KiB, actual outer_peak3, identical canonical hash
+1173729914654460811 and48240/55014 entity/component counts. Both retain5672113
+bytes, peak charged175925041/175368257, ledger20971520. Bash whole-process
+wall24.977/25.566 s. No TSan report. Logs usecontrol_memory_full_typed_thread_run_;
+the earlier missing-time launch and ineffective inline invocation remain failures
+of execution evidence, not overwritten passes. Instrumentation covers generated
+Tower IR with production workers; this does not prove universal race freedom or
+instrument system LLVM/browser/unsupported arithmetic-UB behavior.
+
+Independent B2 receipt02:58:52 confirms unchanged L2 fixture8178 passes after the
+whole650744 producer closure plus613ed consumer: target widths4/8 and requested
+workers1/4 require null inspection on budget denial, preserved-cache recovery,
+and exact zero grant/lane/live/world cleanup. Its prior134 failure is retained.
+B2 also reports full17-target public ABI rebuild and native parser/cache/editor
+passes; this is B2's separate source/binary identity, not a claim that B1 locally
+ran its new completion consumer. Root received that exact evidence at02:57:48.
+Current local WASI build/IDE checks are running. The complete history export will
+follow this frozen checkpoint before broader grammar/probe error work begins.
+
+B1 current WASI checkpoint, 2026-11-23 03:01 UTC:
+Public documented build-wasm.sh with IDE_TESTS=ON and four compiler jobs passes
+28steps,55.03 s wall/112.53 user/16.43 system,920800 KiB RSS. Compiler remains
+checked-in bootstrap9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02;
+no private override or raised expansion cap. Current reactor1602131 bytes,
+SHA256528202ce9ef60f61b7d1f586ecd36484524b316d466197370fffdfa519d50c33.
+Node test-ide.mjs executes the actual Tower assertions and exits0 with final
+Tower IDE fixtures passed receipt. The existing raw ABI observer also exits0:
+both32/64 target descriptions return empty success for comptime_capture and the
+expected inference-T146, nonscalar-operator95 and Item-to-Other103 rejections.
+These observations agree with existing fixture oracles; raw transport success
+alone is not their semantic oracle. Logs control_memory_full_typed_wasi_*.
+
+All owned current jobs are drained. This checkpoint covers native/parser/editor,
+independent B2 inspection reproduction, paired performance, generated Tower IR
+ASan/LSan+TSan and frontend-only serial WASI. It does not cover final merged
+root0c8 publication inputs, LLVM browser backends, threaded-browser transport,
+portable release/bootstrap generations or hosted deployment. No publication
+lease is held. Next: export committed full history, merge coherent root source
+without discarding newer owned paths, then complete early grammar and probe
+resource typing with producer diagnostics; broader memory ownership remains open.

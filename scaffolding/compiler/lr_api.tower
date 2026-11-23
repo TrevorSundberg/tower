@@ -1,8 +1,10 @@
 import tower;
 import lr_types;
+import .library.work_budget_types;
 
 // Opaque owning handles and borrowed records for separate Tower compiler units.
 extern fn lr_grammar_create(root: void*, rule: void*, reference: void*, string: void*, range: void*): void*;
+extern fn lr_grammar_create_result(root: void*, rule: void*, reference: void*, string: void*, range: void*, error: WorkBudgetError*): void*;
 
 extern fn lr_grammar_destroy(grammar: void*): void;
 
