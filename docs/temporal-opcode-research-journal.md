@@ -93330,3 +93330,80 @@ ROOT/D2 documentation-only receipts. All `merged_source.sha256` Tower/CMake inpu
 still match exactly; reuse the scoped merged checks without another runtime run.
 Implementation d16c8f6e and byte-boundary correction1a9c3296 remain intact; normal
 main push follows. No historical failure or later artifact is relabeled passed.
+### 2026-11-23 L2: preserve void-base pointer results; exact full entity_pages executes
+
+Freeze340989cf8019fe601da87850b917e5ba1934f4d4, same L2 clone/main/cache,
+CLI PID28376, CPU4-7/Orchestral-Revng/Linux x64/LLVM19, public bootstrap unchanged.
+No owned job survived startup; required pull was current. ROOT identified the
+actual lost-return producer in the previous frozen output: bare
+compiler_node_allocate and compiler_buffer_allocate calls left their destination
+locals unassigned. `bi_call` copies a preserved source signature, then tested only
+scalar==3. That classifies void* and void** as no-result despite LLVM declaring
+a real pointer result. This explains the earlier successful1152B guest allocations
+followed by null buffer/Memory and the downstream stage-discard trap. It was not
+a demonstrated resource-limit or ECS ownership failure.
+
+Small repair: require `scalar == SVoid && pointers == 0`, the same complete type
+contract used by semantic expression/return handling and backend lowering.
+Audited the nearby backend classifications: backend_type handles pointers and
+SFunction before SVoid; implicit returns already require zero pointer depth;
+LLVM valued-instruction discovery tests LLVM's actual void kind. Indirect function
+signatures reconstruct pointer results separately; nominal results retain the
+existing checked bi_result/bi_cast_type handoff. No allocator-name exception,
+zero-initialization workaround, evaluation-order change, extra IR or cap change.
+
+New ordinary Tower fixture backend_void_returns is registered in existing native
+C/differential cases. It covers two exported void* call boundaries plus a local
+wrapper, nonzero/null returns, an indirect callback and a callback-valued return,
+void**/null deeper return, pointer identity/store/read/defer-free and one true-void
+side effect. The final exact effect count123 detects missing/replayed calls.
+The existing backend-source-worlds provider also requires assignments from both
+public pointer-returning calls. Before repair, original fixture32/64 execution
+prints0 but reconstructed1/4-worker output prints2 (lost nonzero pointer), with
+canonical bare opaque/forwarded calls. After repair all four reconstructed
+executions print0, empty stderr; canonical output matches across workers per width.
+The initial fixture used reserved `expected` as an identifier; its parser failure
+and input are preserved, then the supported name `wanted` was used for all frozen
+baseline/after trials. No unsupported syntax was silently substituted at runtime.
+
+Exact input: B1 canonical1101861B,
+SHA7db91392a90c5d3a85e23899dc4b05c6836635bbc0160de6d79f4c453ed06fbd.
+Unoptimized/profile2 LLVM import, shared Foundation recheck AND full execution
+now succeed at workers1 and4, target wasm32. Output4644169B,
+SHA865fe19c52000267058c3921d09342b9be8015ed64f9e5fdb56036118b77cf79,
+byte-identical across workers; both executions produce exact0 newline and no
+stderr. This includes entity_pages' final zero store/component ownership and
+expected finalizer-count checks. Source-service final budget bytes/grants/lanes0,
+world/ledger disposal succeed; peak charged3003547507B serial/3003546731B parallel,
+ledger335544320B before disposal. No partial output, cap increase or optimized
+substitution. Prior failure artifacts remain intact and are superseded only for
+this exact current native request, not retroactively relabeled as passed.
+
+One dependency-aware native build (5 actions) refreshed backend/source providers
+and existing links:11.74wall/17.51CPU s,486072KiB peak. Source-worlds/recheck and
+storage-backend-import3/3 pass1.51s, retaining real Memory/Capacity/pinned Busy,
+prior output/error preservation, no-allocation terminal retry and zero owners.
+The frozen9926B healthy mixed-width control remains byte-identical before/after
+at workers1/4; prior known-output0 evidence is reused by exact output identity.
+Fresh process/warm files n1 wall / CPU(user+system) / peak KiB:
+- Pointer fixture32bit serial:.71/.66/189672 ->.68/.62/189588;
+  workers4:.76/.77/193780 ->.74/.72/193732 (old output2, corrected output0).
+- Healthy control serial:.31/.27/122156 ->.31/.26/122156;
+  workers4:.31/.29/124540 ->.31/.31/124668.
+- Full request serial:16.33/16.38/3318624; workers4:15.83/19.81/3340232.
+- Full execution serial:26.06/25.84/3199040; workers4:23.52/26.45/3170260.
+The unchanged baseline executable hashes match the prior full receipt
+(a255188f CLI/1e925fc4 service), so reuse its17.95/18.36s compilation costs and
+11.99s failing execution without rerunning the known large failure. Successful
+execution does more work than that early trap; no throughput improvement claimed.
+Worker count/CPU usage is not a new distinct-thread overlap or race-freedom proof.
+
+Frozen evidence directory `L2/void_return_340989cf`: source manifests, input SHA
+dcbe40e2c48df1e7b093cb1a9655c0d2960d28543383f59765e39063df54f588, before/after
+binaries, raw times/logs/outputs and OS scripts. New CLI SHA
+0f6099703a991265e9b0c849bd669514dc82c621a62577f50c7c7de827b95a2c;
+source service SHAa29442cf039c32f244000b740feee868ba7e0de3a3060ebaa2cbc55bc5e4ba92.
+Native RSS about3.2GiB is not Wasm linear-memory usage. Current reactor memory fit,
+other three B1 inputs, D2's full struct, broad generation/platform/sanitizer and
+hosted deployment remain pending ROOT/owner gates; none was launched or waived.
+No new agent/session/goal, independent framework, owner-method edits or todo edit.

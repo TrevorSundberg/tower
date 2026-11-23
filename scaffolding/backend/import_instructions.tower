@@ -473,7 +473,10 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         value = bi_cast_type(c, value, &parameter.type);
         backend_require(c.backend, vector_push(&n.items, value));
     }
-    if n.type.scalar == 3 {
+    // A preserved source signature may have a void base with pointer depth.
+    // Only actual void lacks a value; void* and void** need the normal result
+    // temporary and checked conversion back to the LLVM destination type.
+    if n.type.scalar == SVoid && n.type.pointers == 0 {
         bi_append(c, c.block, entity);
         return null;
     }
