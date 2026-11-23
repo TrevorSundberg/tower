@@ -66480,6 +66480,14 @@ open and no publication lease has been granted.
 This commit only records already-completed checks and findings; runtime inputs
 are exactly source38ca7a33, so no new runtime performance measurement is applicable
 to the documentation delta itself.
+A2 source-review correction,08:03Z: the page profile's speculative free-slot-scan
+wording above is withdrawn. Current work_budget_reserve_locked pops free_slot
+and work_budget_release_locked pushes entry.next in O(1); there is no linear
+free-slot search. This is already present in the before/after profile source.
+Additional page grants, shared-gate calls, ledger retention and measured8worker
+regression are real; their wait-time attribution remains unmeasured. No bogus
+scan optimization was implemented. This correction changes documentation only,
+so runtime profiling is inapplicable. The preceding exact measurements remain.
 ### D1 registers the reviewed entity result fixtures after complete owner join
 
 Merged full ROOT72a218b8 provider history into7f84 as a7c569cc after all owned jobs
@@ -67143,6 +67151,7 @@ Additional page grants, shared-gate calls, ledger retention and measured8worker
 regression are real; their wait-time attribution remains unmeasured. No bogus
 scan optimization was implemented. This correction changes documentation only,
 so runtime profiling is inapplicable. The preceding exact measurements remain.
+### A2 stable component page grants and private errors, 2026-11-23 (draft checkpoint)
 
 ### A2 typed stage/view failure draft on9776cd0f, 2026-11-23
 
@@ -70154,3 +70163,243 @@ its explicit unbudgeted pool open should use sem_workers_open on this union.
 L2 was directed to preserve all Busy/copy/cleanup oracles while checking actual
 pool budget ownership. Current union instrumentation and provider-policy checks
 remain pending. No publication or root runtime pass; todo.txt remains untouched.
+### A2 ROOT75 union and bounded stable-page churn baseline (2026-11-23 09:03Z)
+
+Frozen a1f2f83 (ROOT75 plus typed stage/view03671) finished all Tower hash
+verification and exited0 at08:51:34.461Z. Public entities/parser_work/semantics_checks
+compiled in4.905/18.076/21.192s. Canonical native build35.825wall/35.447user/3.507sys;
+seven runner tasks16.607/19.869/1.568. Query/control/type/units/editor/calibrated
+backend overlap passed in.204/33.140/226.644/19.074/10.903/8.089s; frontend parser
+.041s and storage CTest1/1(.300s wrapper) passed. Type used this recipe's300s
+watchdog but finished below the earlier240s limit; no timeout pass was substituted.
+Backend checked exact serial objects and distinct actual worker overlap. Compiler
+SHA1cf4528f0e113d6af2ff4b6ca81e4a0af3b1605fa71c95069b90490f7fb80f61.
+These are coherent correctness receipts, not paired performance measurements.
+Logs ecs_root75_stage_union and selector logs remain in A2/cache/logs.
+
+After drain, required merge-preserving ff-only pull passed unchanged; verified
+ROOT_stage_dispatch_race_join.bundle b47a3c0a merged556ecd52 as02dbbde7. New B1
+syntax state/reader changes, A1 clone-owner fix, D1 registration/phase tests and
+D2/B2 WASM drain repair are not relabeled as covered by the preceding union run.
+The shared page/stage implementation did not change in this merge.
+
+Root's already-open stage/finalizer question was classified against actual
+borrowed-parent and stable-lease contracts. The dying entity cannot supply stable
+containment for a new lease or own a newly published child after its child teardown.
+No invalid-lifetime probe was run. New entity_stage_reentrant instead acquires
+stages and independent live parents/types before releasing a separate victim.
+Its actual finalizer publishes one stage, acquires a lease on a separately live
+owner and publishes its component, and discards a third stage. All values,
+references and final store counts pass. Thus store.reclaiming alone is not a
+reason to reject every already-open stage operation. No production guard change
+is proposed here. New fixture normal SHA5c7cd98052092a583ad7f037277def680fe9b9ee36984d14a5a033b06742156a;
+supported instrumentation still pending.
+
+New entity_page_churn adds the missing bounded refill experiment to the prior
+remove-only locality evidence. It preserves one original live component per page,
+refills the same owners four times and checks survivor addresses, identities,
+payloads, exact target references/finalizers and final ledger zero. Count1024/65536
+are explicit workloads; loops derive from input/page discovery. The fixture uses
+a named256MiB cap and production allocator. Native public pin, clang19-O1,
+Linuxx64 CPU12-23/24GiB, fresh processes with warm caches; shell only orchestrates.
+Normal baselinef146556430137aa439b073bd1a673c204b92c5eecd621c81f72324c1edd98244
+passes. Each large round allocates1008 new physical page grants despite1024
+surviving original pages with holes: charged5973176 ->11850824B, including2232B
+store; ledger metadata81920B. Small case16original/16new pages per round,
+95528 ->188824B. Nodes/indexes and fixture row arrays are still raw/unbudgeted;
+charged bytes do not equal the whole process heap. Initial timing is diagnostic
+under concurrent host work, not isolated speedup evidence.
+
+Proposed next implementation: stable free-slot reuse using a page head and dead
+component type_index links, detach only when live capacity is full, relink freed
+pages to the current owner pool, and transfer partial stage-page links after
+joined publication before stage destruction. No escaped payload relocation,
+packed archetype claim or inferred noalias. Source/audit/stress and paired
+before/after profiles remain required. Baseline also compiled/ran unchanged
+constructor and scheduling budget fixtures before D1-requested derived-bound
+cleanup. All four jobs drained; logs entity_churn_baseline preserve hashes.
+### A2 stable free-slot reuse implementation and focused closure (2026-11-23 09:24Z)
+
+Implemented the reviewed proposal in entities/entity_types/entity_stage only.
+EntityComponentPage adds a one-based free head. After all published index removal
+and lifecycle callbacks, a dead descriptor's type_index stores the next free slot.
+Allocation consumes that chain before increasing the high-water used count; a
+page detaches only when live reaches capacity. A first free on a detached page
+links it to its owner's current private pool or published store pool. Joined stage
+publication transfers partial page links after clearing all staged owner pointers,
+before freeing the stage. Discard retains private detach/last-live cleanup. No
+surviving component or payload moves. Removed borrowed pointers expire as before;
+reuse does not supply safe stale-pointer handles or inferred noalias.
+
+New entity_page_reuse checks original published payloads, an existing leased owner,
+two private stages with full and partial pages, publication while another stage
+remains private, immediate published-tail reuse without a new grant, exact freed
+slot/address reuse, second-stage discard, reference/finalizer totals and final
+ledger/store zero. Existing entity_pages and component_budget assertions now
+require surviving partial pages to point to store.storage; full pages remain
+unlinked. Their lifetime/value/query assertions remain. Churn's unchanged workload
+and checks are the measured before/after oracle, not a newly packed payload claim.
+
+The first ROOT556 aggregate storage failure was a stale exact string in
+compiler_storage:272. B1 had already changed parser_stream to an allocation-free
+Memory receipt and fixed message, and migrated its direct parser_state test.
+Root09:08 explicitly authorized A2's one-file aggregate test correction: exact
+Memory, exact current message, repeated EOF/error stability, original cleanup.
+No parser production change. Patch e8af64ae139ad52709812ec3fb7b3d553b97b344440273408195137833cd2198
+is available as A2_storage_utf8_oracle.patch. The old failed binary/log remains.
+
+For independent repair validation, the entire archived02db tracked source matched
+its build-start hashes before copying only the corrected test. An initial direct
+storage_main compile linked without its CMake host composition and failed
+undefined driver_platform_write; entity_page_reuse_wrong_storage_entry.log is
+preserved. Retried using the exact existing CMake-generated Tower entry and
+resource argument, unchanged old providers; corrected aggregate43d0b56f passed
+.267wall/.152user/.039sys. No unchanged compiler matrix was rerun for that oracle.
+Two earlier preservation orchestration attempts failed before work (PowerShell
+quote stripping, then absent rg in Docker); the script/grep fallback verified the
+archive. These attempts are not compiler progress or passing checks.
+
+D1's owned-bound follow-up is implemented: constructor task-index charge comes
+from a successful probe's actual buffer capacity; scheduler initial capacities
+come from an initialized one-task graph, reset growth from actual task capacity,
+and shared worker/slot loops from the job array. Stage/component failure sweeps
+now first measure actual successful allocation calls, fail every prefix, require
+each failed prefix, then check success at the measured count. No guessed96/64
+upper bound remains; retry, rollback, payload/address/ID/reference and zero-count
+assertions are preserved. They use the serial fault allocator only.
+
+entity_page_reuse_first passed the three smallest changed library units and nine
+focused fixtures; new reuse binary5f277b38, unchanged churn workload after6a1c6e90.
+Current closure (entity_page_reuse_closure.sh/log) exited0 at09:18:44.007Z, all frozen
+Tower hashes verified. Updated fault sweeps and ordinary stage-concurrent/layout/
+typed-stage tests passed. Fresh production guest allocator/transport47 functions
+were instrumented, alongside139 reuse/138 reentrant/172 page-budget/226 stage-
+concurrent fixture definitions. Three runs each under ASan+leak detection and TSan
+for all four fixtures passed:24 executions, including actual2/4-worker allocation,
+publication/cancellation/denial and finite-worker draining. Serial fault injection
+was separate. Runtime object hashes9974b5fc(address),57de4a93(thread). These are
+supported positive-workload checks, not universal race freedom, source UBSan,
+Windows instrumentation or coverage of external native libraries.
+
+Public entities/parser_work/semantics_checks units passed4.838/18.205/20.751s.
+Canonical no-override native7tasks39.716wall/40.311user/3.875sys; five runner tasks
+8.257/9.986/.911. Query/resource24/receipt32/units/editor/backend-calibrated passed
+.235/.037/.039/19.013/10.866/8.159s; parser.046s, grammar-resource1.308s, storage
+CTest1/1(.296s wrapper). Compilerafter9ca2d68192cd95b7a97b346f359acdff60f3324cb0412d928a3af13587b9b9f3;
+before5406df908158e8fd8f38b8ffc94b962967b36b1287f935edb1b3402b74b982b1.
+
+Actual Node21.7.3 host-wasi execution of reuse, reentrant and layout modules all
+returned0. WASI SDK34 target override warning retained. Layout native usize/
+WorkBuffer/page/prefix8/72/160/120 and wasm32 4/56/104/80: the one usize field
+adds8 actual header bytes on both targets, including wasm padding. Requested u64
+page bytes4303/2691 respectively; oversized requests37023/36963 unchanged. Module
+hashes5a2b6567(layout),bd43ebed(reuse),15bac4e9(reentrant). Portable serial execution
+does not establish browser-thread coverage.
+
+### A2 matched reuse measurements, first receipt (2026-11-23 09:25Z)
+
+A1 fresh09:20:36 take-first offer granted the isolated window. Actual timing ran
+09:21:15.249--09:21:54.400Z, CPU12-23/24GiB, max8 metadata workers, Linuxx64/public
+pin/clang19-O1. Saved before/after executables and identical frozen02db resources;
+warm host caches, fresh processes, alternating order, pair0 warmup. All200 checked
+executions (20 churn,20 actual-stage stress,128 metadata,32 compiler) plus exact
+serial/4-worker canonical comparison and reparse passed. The final analysis step
+then rejected96-field churn records because profile_medians_all handles a smaller
+record. Measurement logs are intact; existing128-field entity_locality_medians
+successfully summarized them without rerunning workloads. No failed analysis was
+called a fully successful script. A1 received immediate release and reciprocal
+quiet grant; process-level summary and scheduling regression investigation follow.
+
+Nine-pair churn medians: large65536 original1024pages, every refill1008->0 new
+page grants. Charged refill peak11850824->5981368B(-49.5%), including2232B store;
+original retained subtotal5973176->5981368B reflects8192B additional page headers.
+Four refill times4.311750/3.873630/3.693449/3.871254 ->
+1.784003/1.667938/1.712995/1.583514ms. Fixture process peakRSS31836->25920KiB;
+ledger metadata81920B remains because both histories fall in the same capacity
+class. Small1024:16->0 grants per refill,188824->95656B peak,2560->1280B ledger
+metadata; first refill54.707->23.365us, later25.149/25.029/25.019 ->
+23.836/24.017/23.906us. All final ledger bytes/entries are disposed. Raw entity,
+index and fixture-array allocations are excluded from the charged subtotal.
+The unchanged stage stress reports57792 finalizers, nine-pair median internalCPU
+103.601->103.626ms andRSS1628KiB both; forced overlap is not a speedup benchmark.
+
+CompilerWork metadata observer now derives its eight-plan checks/round partition
+from the actual job array, identically in both provider builds; comment corrected
+to include charged component pages and exclude raw nodes/indexes. Before5b1baa31,
+after480872c3. Initial three-pair large accounted1/2/4/8 worker wall times
+8.669870/6.708326/5.635430/9.234720 ->8.485884/6.660612/5.987524/9.001845ms.
+Actual overlap matches1/2/4/8. Four remains useful; eight is unprofitable. The
+4-worker accounted +6.25% and8-worker plain +6.35% preliminary increases require
+bounded repeated measurement before concluding neutrality or causality. Shared
+ledger generations remain1129; no nonexistent free-slot scan was reintroduced.
+No whole-compiler speedup or final integration acceptance is claimed here.
+Process-level medians from the same saved samples (wall/CPU seconds, peakRSSKiB):
+churn .083768702/.048561/31836 ->.071482167/.036391/25920;
+actual-stage stress .107022903/.103921/1636 ->.107083501/.104025/1628.
+Three compiler pairs: small1 1.200793805/1.118576/178908 ->
+1.166269685/1.086086/174472; small4 1.072165221/1.222872/195236 ->
+1.065391676/1.217472/195528; canonicalFoundation large1
+.604212695/.537238/207840 ->.611288087/.550169/206820; large4
+.778769585/.750258/209888 ->.771526374/.744653/209156. Small Tower and larger
+Foundation workloads use different grammars; their absolute times are not a
+size-scaling comparison. Four workers lose to serial on the Foundation workload
+both before and after; no universal multicore gain is claimed.
+
+The new cache-only Tower receipt decoder profile_process_values validates the
+single eight-field ecs_process record, numeric overflow and zero child status,
+then feeds existing Tower medians. Its first compilation rejected the reserved
+local name match; renamed matches, preserved entity_reuse_process_reserved_word.
+All60 existing process logs decoded successfully; no workload was rerun. Source
+SHA643cc6475d5fa728580437fb7beffd88a4ddd6e6213f4304a4765d3de9f262dc,
+binary95da77b3d4de900afcd48ccf0b2ff81a9f2d11f8c331ab63c1a485f16bce1648.
+It is measurement support, not a second compiler or host-language implementation.
+Nine-pair follow-up ran in the fresh A1 grant09:33:44, actual09:34:17.202--
+09:34:19.456Z; all120 unchanged metadata executions passed and the hold was
+released immediately. Large accounted1/4/8 wallms8.765640/5.569070/9.301354 ->
+8.694092/5.847214/9.544583; CPUms8.763/17.386/38.795 ->8.698/17.843/39.636;
+RSS4148/11924/17824 ->4096/11364/17216KiB. Plain1/4/8 wallms
+9.861489/5.768111/9.278020 ->9.908791/5.414513/10.092319; CPUms
+9.867/17.577/38.542 ->9.912/17.458/38.566. Thus the4-worker accounted +5.0%
+wall increase repeats (CPU+2.6%); the8-worker plain wall increase repeats+8.8%
+but CPU is essentially unchanged. Do not attribute those waits to a measured
+specific lock: per-lock idle/critical-path instrumentation was not collected.
+Eight workers remain unprofitable in both versions; actual overlap alone is not
+speedup. Four accounted workers still provide about1.49x over the new serial
+metadata path, compared with1.57x before. Current allocation/retention fix is
+retained as a measured tradeoff: substantial churn memory/refill gains, near-flat
+serial and checked compiler costs, modest synthetic parallel-metadata regression.
+This microbenchmark regression remains explicit for later shared scheduling
+work, not hidden by favorable churn results or described as universal neutrality.
+No redundant full matrix rerun was needed to investigate it.
+### 2026-11-23T09:41:28.0201733Z ROOT: stable component-page reuse integration
+
+Reviewed complete A2 e28c3eb2, verified bundle SHA256
+fb759496c90f141e039a818edaeb3f825423ad7d382faf73a3056d53dde4c0c3.
+Three production paths reuse dead slots only after finalization/index removal,
+retain live payload addresses, detach full pages, and transfer partial-page pool
+links only after staged owners publish and clear their private storage pointers.
+The free link uses a dead descriptor's type_index, not a live component field.
+No new noalias assertion or packed archetype-payload claim is introduced.
+
+Read the positive reuse, live-owner reentrant-finalizer and churn fixtures;
+they cover surviving addresses, leased existing owners, independent private-stage
+discard, exact retained references, page grants and complete release. Fault sweeps
+now derive their bounds from measured allocation counts. The authorized storage
+oracle checks the actual parser Memory receipt and current fixed diagnostic,
+repeated EOF and original cleanup. Existing indexed/counted fixture changes retain
+failure intent. Root diff check and prior-journal line preservation pass.
+
+Owner reports all24 supported sanitizer invocations, native/public-unit gates,
+three actual WASI fixtures and320 checked profile processes plus canonical output
+passing. Churn charged peak is11,850,824 to5,981,368 bytes (-49.5%); refills need
+zero new page grants instead of1008. Nine-pair metadata tradeoffs remain explicit:
+four accounted workers +5.0% wall/+2.6% CPU; eight plain +8.8% wall with flat CPU.
+Serial metadata is close and compiler medians span -2.9% to+1.2%; this is not a
+universal speedup or proof eight workers are profitable. Complete receipt SHA256
+ec7e5407977a0a5027405a23d6a5465fced5aa23b5ddc5ea65f85f2a0374e35c.
+
+The page-header layout changes, so downstream acceptance requires a coherent
+rebuild, never mixed providers. D1 receives the full owner bundle for independent
+review/durable fixture registration after its current frozen jobs drain. Root
+has not run or published this combined union; all remaining release gates stay
+open. Newer root302 pool/publication history is preserved; todo.txt is untouched.
