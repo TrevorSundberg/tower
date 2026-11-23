@@ -88448,3 +88448,15 @@ This ROOT checkpoint changes documentation only; runtime before/after profiling
 is inapplicable. Publication reuses the verified existing Pages assets and cannot
 claim these newer compiler sources deployed. The preexisting todo.txt bytes
 remain unchanged.
+
+A2 publication reconciliation: review99dac2e0; required fast-forward-only pull
+returned1 on ordinary divergence. Merge5ba04218 preserves published43fc7510 and
+all local/incoming history. Hash-only appendix maps nine later Tower paths,
+two CMake paths and seven browser boundary/test blobs as pending affected
+adoption. Incoming f7e764ab generation, B2 worker-grain, L1 source-consumer and
+D1/D2 browser receipts remain distinct later evidence, not revalidated here.
+Review freeze stays3a7f4b39. Static checks passed all84 path/blob mappings,
+exactly12 current ledger rows, byte-identical historical ledger suffix and
+whitespace. One metadata-read helper used a .NET API unavailable in Windows
+PowerShell; corrected to supported ProcessStartInfo.Arguments without executing
+runtime code. No source/test/WIP/todo edit or sanitizer retry. Named stash retained.

@@ -20,6 +20,12 @@ its earlier complete48d791a8 functional milestone is not relabeled as a full
 current-source rerun. Subsequent source changes need affected adoption. The
 preserved sanitizer stash37894097 and service-blocked gate are excluded.
 
+Publication reconciliation merged later published43fc7510 through5ba04218.
+The audit's hash-only appendix lists nine later Tower paths, two CMake paths and
+seven browser boundary/test paths as **pending affected adoption**. Incoming
+f7e764ab generation/worker-grain and browser receipts keep their own boundaries;
+they are not judged by the earlier rows below. The reviewed freeze stays3a7f4b39.
+
 | Original scope | Implementation at this freeze | Exact evidence source | Remaining acceptance action / owner |
 | --- | --- | --- | --- |
 | Authoritative ECS / storage | World-owned identities/components and ordered/named relations remain authoritative. Stable payload pages, dense pointer columns and copied snapshots are distinct; pinning does not imply noalias. Physical entity/stage accounting unchanged from prior reviewed closure. | A2 `42c1e142` and [locality d5b65afe](compiler_ecs_locality_d5b65afe.md):31 checked ordinary processes, reuse/stable addresses/zero teardown; library tree unchanged. | Measured model accepted for bounded1k/2k/65k owners. Real compiler phase/kind occupancy and scan census remains required before changing page/packed policy; sparse183.219x retention is explicit. Raw client vectors, ledger metadata and foreign allocation exclusions remain. A2/ROOT. |

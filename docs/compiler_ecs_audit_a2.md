@@ -2022,3 +2022,44 @@ Future publication reconciliation checks hashes and records new inputs separatel
 it cannot silently advance this evidence boundary. The same twelve-row handoff
 ledger is updated in place. No overall compiler, universal locality/scaling,
 race-freedom or release acceptance is claimed.
+### Publication reconciliation: later inputs remain outside the freeze
+
+Review commit `99dac2e0` was made before the required pull fetched published
+`43fc7510c924217dde197a6c76543f80326aa0a2`. Fast-forward-only pull returned1 for
+normal divergence; merge `5ba0421883ea576646faeb9029af3dfbf4e001bb` preserved both
+complete histories without conflicts. Incoming root tree
+`990ef8a266d1c211c0bb7ddef8f2d95a112cf058`, compiler tree
+`d453506269efd9c7548cec74b522352ed4345662` are **not** the reviewed trees above.
+
+Hash-only reconciliation identifies nine later Tower paths and two CMake paths.
+These rows are inventory of pending adoption, **not substantive source review**.
+Prefixes resolve at the full 3a7f4b39 and43fc7510 identities in this receipt.
+
+| Later path | Reviewed-freeze blob -> incoming blob | Required adoption owner |
+| --- | --- | --- |
+| `scaffolding/compiler/grammar_types.tower` | e78ec083 ->796f579c | D1/ROOT grammar publication and failed cleanup |
+| `scaffolding/compiler/lr_work.tower` | 39d4adf5 ->93cea0e5 | B2/ROOT worker grain, admission and serial/parallel contract |
+| `scaffolding/compiler/parser_workers.tower` | 3a4dec67 ->f4de0366 | B2/ROOT worker admission and overflow bounds |
+| `scaffolding/compiler/units/backend_wasi_checks.tower` | 4457c33c ->d201d4ee | L1/ROOT consumer/provider closure |
+| `scaffolding/tests/backend_source.tower` | 419c2e40 ->2c53ff77 | L1/ROOT source-ownership assertions and registration |
+| `scaffolding/tests/backend_source_browser.tower` | absent ->84931289 | L1/ROOT browser consumer registration/execution distinction |
+| `scaffolding/tests/backend_source_native.tower` | absent ->2e3ca35e | L1/ROOT native consumer registration/execution distinction |
+| `scaffolding/tests/frontend_units_profile.tower` | bd9b5845 ->c6481527 | B2/ROOT actual frozen performance inputs/outputs |
+| `scaffolding/tests/lr_work.tower` | e5dbad5c ->85331908 | B2/ROOT worker-grain assertions |
+| `cmake/TowerBackend.cmake` | 2d82a087 ->f6444b9b | L1/ROOT build integration |
+| `cmake/TowerBackendSourceTests.cmake` | absent ->a5e6d880 | L1/ROOT test registration and runtime evidence |
+
+Seven later browser boundary/test blobs also remain outside this static review:
+`playground/scripts/test-shared-compiler.mjs` ce390826,
+`playground/src/tower-host.mjs` 21532430,
+`playground/tests/bedrock.test.mjs` 0dec4887,
+`playground/tests/data-driven-scanners.test.mjs` 96f1620a,
+`playground/tests/module-resolution.test.mjs` f46930f5,
+`playground/tests/module-scopes.test.mjs` fcf8f327, and
+`playground/tests/shared_compiler_worker.mjs` 0dc9f529. Preserve their incoming
+D1/D2 journals/receipts; original failed receipts are not erased. Likewise the
+new `compiler_generation_f7e764ab.md` and `compiler_worker_grain_d5b65afe.md`
+receipts arrived after the freeze: ROOT must adopt their exact inputs and limits,
+not infer acceptance from their filenames or this merge. The twelve-row ledger
+continues to describe 3a7f4b39. No runtime test, historical source review or
+sanitizer claim was silently advanced to43fc7510.
