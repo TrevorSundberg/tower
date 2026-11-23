@@ -59,7 +59,7 @@ fn lr_action_less(a: LRAction*, b: LRAction*): bool {
     return less;
 }
 
-fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: LRAction*): bool {
+fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: LRAction*, error: WorkBudgetError*): bool {
     var low: usize = 0;
     var high = values.length;
     loop {
@@ -81,9 +81,8 @@ fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: 
         }
     }
     var count = values.length + 1;
-    if count == 0 || !work_vector_reserve(values, budget, count) {
-        return false;
-    }
+    *error = count == 0 ? WorkBudgetError.Invalid : work_vector_reserve_result(values, budget, count);
+    if *error != WorkBudgetError.None { return false; }
     var moved = values.length -low;
     var bytes = moved *sizeof(LRAction);
     var next = low + 1;
@@ -93,9 +92,10 @@ fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: 
     return true;
 }
 
-fn lr_row_create(budget: WorkBudget*): LRRow* {
+fn lr_row_create(budget: WorkBudget*, error: WorkBudgetError*): LRRow* {
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, budget, sizeof(LRRow), 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&storage, budget, sizeof(LRRow), 0);
+    if *error != WorkBudgetError.None { return null; }
     var row = bits(LRRow*, storage.data);
     *row = {storage: storage, budget: budget, ..default};
     return row;
@@ -334,7 +334,7 @@ fn lr_row_hash(row: LRRow*): usize {
 
 // Singleton tokens have a direct hash index; arbitrary character ranges use
 // binary search. The grammar size determines table size, not source length.
-fn lr_row_index(row: LRRow*): bool {
+fn lr_row_index(row: LRRow*, error: WorkBudgetError*): bool {
     var singles: usize = 0;
     var index: usize = 0;
     row.reduction = lr_none();
@@ -349,19 +349,18 @@ fn lr_row_index(row: LRRow*): bool {
         }
     }
     var maximum = ~convert(usize, 0);
-    if singles > maximum / 2 { return false; }
+    if singles > maximum / 2 { *error = WorkBudgetError.Invalid; return false; }
     var needed = singles *2;
     var size: usize = 1;
     loop {
         if size > needed {
             break;
         }
-        if size > maximum / 2 { return false; }
+        if size > maximum / 2 { *error = WorkBudgetError.Invalid; return false; }
         size = size * 2;
     }
-    if !work_vector_reserve(&row.direct, row.budget, size) {
-        return false;
-    }
+    *error = work_vector_reserve_result(&row.direct, row.budget, size);
+    if *error != WorkBudgetError.None { return false; }
     row.direct.length = size;
     var bytes = size *sizeof(usize);
     fill(row.direct.data, 255, bytes);
@@ -393,7 +392,7 @@ fn lr_row_index(row: LRRow*): bool {
     }
 }
 
-fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*, budget: WorkBudget*): bool {
+fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*, budget: WorkBudget*, error: WorkBudgetError*): bool {
     var index: usize = 0;
     loop {
         if index == input.edges.length {
@@ -407,9 +406,8 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
             entry.state = edge.state;
             var position = state.gotos.length;
             var needed = position + 1;
-            if needed == 0 || !work_vector_reserve(&state.gotos, budget, needed) {
-                return false;
-            }
+            *error = needed == 0 ? WorkBudgetError.Invalid : work_vector_reserve_result(&state.gotos, budget, needed);
+            if *error != WorkBudgetError.None { return false; }
             state.gotos.data[position] = entry;
             state.gotos.length = needed;
             loop {
@@ -429,30 +427,24 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
     }
 }
 
-fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(usize)*): bool {
+fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(usize)*, error: WorkBudgetError*): bool {
     var rule_count = source.analysis.rule_count;
-    var ok = work_vector_reserve(&value.rules, value.budget, rule_count);
-    if !ok {
-        return false;
-    }
+    *error = work_vector_reserve_result(&value.rules, value.budget, rule_count);
+    if *error != WorkBudgetError.None { return false; }
     var rule_bytes = rule_count *sizeof(LRProduction);
     copy(value.rules.data, source.analysis.rules, rule_bytes);
     value.rules.length = rule_count;
     var count = source.states.length;
-    ok = work_vector_reserve(&value.states, value.budget, count);
-    if !ok {
-        return false;
-    }
+    *error = work_vector_reserve_result(&value.states, value.budget, count);
+    if *error != WorkBudgetError.None { return false; }
     var bytes = count *sizeof(LRRuntimeState);
     fill(value.states.data, 0, bytes);
     value.states.length = count;
-    if count > (~convert(usize, 0) - 1) / 2 { return false; }
+    if count > (~convert(usize, 0) - 1) / 2 { *error = WorkBudgetError.Invalid; return false; }
     var bucket_count = count *2;
     bucket_count++;
-    ok = work_vector_reserve(buckets, value.budget, bucket_count);
-    if !ok {
-        return false;
-    }
+    *error = work_vector_reserve_result(buckets, value.budget, bucket_count);
+    if *error != WorkBudgetError.None { return false; }
     buckets.length = bucket_count;
     bytes = bucket_count * sizeof(usize);
     fill(buckets.data, 255, bytes);
@@ -462,7 +454,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
         if done {
             return true;
         }
-        var row = lr_row_create(value.budget);
+        var row = lr_row_create(value.budget, error);
         if row == null {
             return false;
         }
@@ -473,7 +465,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
             if done {
                 break;
             }
-            ok = lr_action_insert(&row.actions, value.budget, &input.actions.data[position]);
+            var ok = lr_action_insert(&row.actions, value.budget, &input.actions.data[position], error);
             if !ok {
                 lr_row_destroy(row);
                 return false;
@@ -489,6 +481,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
         row.hash = lr_row_hash(row);
         if bucket_count == 0 {
             lr_row_destroy(row);
+            *error = WorkBudgetError.Invalid;
             return false;
         }
         var bucket = row.hash % bucket_count;
@@ -509,8 +502,11 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
             existing = other.next;
         }
         if !shared {
-            ok = lr_row_index(row);
-            ok &&= work_vector_push(&value.rows, value.budget, row);
+            var ok = lr_row_index(row, error);
+            if ok {
+                *error = work_vector_push_result(&value.rows, value.budget, row);
+                ok = *error == WorkBudgetError.None;
+            }
             if !ok {
                 lr_row_destroy(row);
                 return false;
@@ -520,7 +516,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
         }
         var state = &value.states.data[index];
         state.row = row;
-        ok = lr_runtime_gotos(state, input, source.analysis, value.budget);
+        var ok = lr_runtime_gotos(state, input, source.analysis, value.budget, error);
         if !ok {
             return false;
         }
@@ -528,9 +524,10 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
     }
 }
 
-fn lr_runtime_open(budget: WorkBudget*): LRRuntime* {
+fn lr_runtime_open(budget: WorkBudget*, error: WorkBudgetError*): LRRuntime* {
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, budget, sizeof(LRRuntime), 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&storage, budget, sizeof(LRRuntime), 0);
+    if *error != WorkBudgetError.None { return null; }
     var value = bits(LRRuntime*, storage.data);
     *value = {storage: storage, budget: budget, ..default};
     value.conflict.state = lr_none();
@@ -544,10 +541,18 @@ export fn lr_runtime_create(source: LRStates*): LRRuntime* {
 }
 
 export fn lr_runtime_create_owned(source: LRStates*, budget: WorkBudget*): LRRuntime* {
-    var value = lr_runtime_open(budget);
+    var error = WorkBudgetError.None;
+    return lr_runtime_create_owned_result(source, budget, &error);
+}
+
+export fn lr_runtime_create_owned_result(source: LRStates*, budget: WorkBudget*, error: WorkBudgetError*): LRRuntime* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if source == null || source.analysis == null { return null; }
+    var value = lr_runtime_open(budget, error);
     if value == null { return null; }
     var buckets: work_vector(usize) = default;
-    var ok = lr_runtime_build(value, source, &buckets);
+    var ok = lr_runtime_build(value, source, &buckets, error);
     work_vector_dispose(&buckets);
     if ok {
         return value;

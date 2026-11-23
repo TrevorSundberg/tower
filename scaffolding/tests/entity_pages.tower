@@ -93,9 +93,9 @@ fn stages():void {
     check(!entity_stage_publish(first) && !entity_stage_publish(second));
     entity_view_close(view);
     check(entity_stage_publish(second));
-    check(entity_query_count(type)==80 && b[79].page.pool==null);
+    check(entity_query_count(type)==80 && b[79].page.pool==&store.storage);
     check(entity_stage_publish(first));
-    check(entity_query_count(type)==161 && a[79].page.pool==null && existing.storage==null);
+    check(entity_query_count(type)==161 && a[79].page.pool==&store.storage && existing.storage==null);
     for(var i:usize=0;i<80;i++) {
         check(entity_query_at(type,i)==b[i]);
         check(entity_query_at(type,i+80)==a[i]);

@@ -7,9 +7,9 @@ import .library.work_budget_types;
 import .host.memory;
 
 extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
-var StageFaultLimit: usize = 96;
 var StageFaultBudgetBytes: usize = 1048576;
 var StageFaultLifecycle: usize = 1;
 struct StageFaultPayload { target: Entity*; value: usize; }
@@ -58,7 +58,7 @@ fn stage_fault_payload(stage: EntityStage*, node: Entity*, type: Entity*, target
     return component;
 }
 
-fn stage_fault_publish(failure: usize): bool {
+fn stage_fault_publish(failure: usize, allocations: usize*): bool {
     var baseline = tower_test_buffer_count();
     var budget: WorkBudget = default;
     stage_fault_check(work_budget_init(&budget, 1, StageFaultBudgetBytes, 1));
@@ -91,9 +91,11 @@ fn stage_fault_publish(failure: usize): bool {
     var entities = store.entity_count;
     var components = store.component_count;
     var identity = store.next_id;
+    var before = tower_test_buffer_allocations();
     tower_test_buffer_fail_after(failure);
     var result = entity_stage_publish_result(stage);
     tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - before;
     var succeeded = result == WorkBudgetError.None;
     if !succeeded {
         stage_fault_check(result == WorkBudgetError.Memory && root.child_count == 1 && stage.held == 0
@@ -118,11 +120,13 @@ fn stage_fault_publish(failure: usize): bool {
 
 export fn main(argc: i32, argv: u8**): i32 {
     stage_fault_open();
-    var succeeded = false;
-    for(var failure: usize = 0; failure < StageFaultLimit; failure++) {
-        if stage_fault_publish(failure) { succeeded = true; break; }
+    var allocations: usize = 0;
+    stage_fault_check(stage_fault_publish(~convert(usize, 0), &allocations) && allocations != 0);
+    var observed: usize = 0;
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        stage_fault_check(!stage_fault_publish(failure, &observed));
     }
-    stage_fault_check(succeeded);
+    stage_fault_check(stage_fault_publish(allocations, &observed) && observed == allocations);
     puts("0");
     return 0;
 }
