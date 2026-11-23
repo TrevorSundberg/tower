@@ -74243,3 +74243,51 @@ function-table Memory denial or direct-return publication. These are coverage
 observations, not newly reproduced failures or D1 production ownership. Existing
 query-smoke reaches those interpreter cases only after clone overlap; resource-
 smoke alone cannot validate them. Preserve that distinction in next-run evidence.
+
+### D1 complete incoming return/proof/forest fixture review, 2026-11-23
+
+Same thread01a2046a/CLI2918210; guarded pull remained up to date. No D1 process or
+heavy lock was restarted; D2 owns its affinity comparison/instrumentation freeze.
+Committed the prior565 adoption record as e02be369b. Full d3a87129 bundle verifies
+SHAfb495a986ca776ebf8cb40ff52b712899467467cc7c4ab710b15f6228c0ccb1d with sole60741
+prerequisite. Reviewed bff's five assigned deltas and d3's four (one overlapping
+parser fixture): eight substantive path reviews, five new files, exact census
+533/1122 in current_typed_forest rosters. Audit records world owners, derived
+storage, ordered relationships, admission/publication/return behavior and gaps.
+
+The newer direct-return test closes the specific earlier coverage observation:
+L1 reproduced initial/growth failed-return publication134, then all14 cases and
+five native gates passed. Same-path64 comparisons retain real4unit overlap and
+small variable wall/CPU costs; bodies4 increased1.40->1.48s with overlapping
+sample ranges. No universal neutrality/speedup inferred. A1 source-proof24 and
+aggregate16 cases have native/address/thread evidence and ordinary control/
+capture references. Aggregate fixture imports the full semantic implementation,
+so its future generic target must replace, not duplicate, that provider.
+
+ROOT component-result first after build was stale (Ninja no work); its receipts
+explicitly distinguish the corrected changed-object rebuild and new export.
+The later bff native/address/thread combined query/real3unit4lane results are
+owner evidence only. B1 forest descriptor/vectors now borrow the request ledger,
+with exact growth errors and leaf lifetime; bool entity attachment still drops
+its detailed cause. That known owner gap remains open. Forest n2 matched means
+show small variable costs, actual outer_peak3 and unchanged retained ownership;
+editor RSS remains variable. A2's actual before lease failure, raw allocation
+fault sweeps and scoped real-worker sanitizer receipts were reviewed. Its tail
+shortcut removes a measured quadratic containment search, not a general compiler
+performance claim. Raw node bytes, hold exhaustion and adjacent mutation leases
+remain separate work; new fixture existence is not execution evidence.
+
+D1 will register these focused tests using existing providers after a coherent
+manual baseline. D2's actual SOURCE-without-bindings failure also exposes the
+previously unused generic native object branch: no --emit object means ordinary
+source defaults to executable output. Proposed correction is SOURCE-only object
+emission in that branch, leaving library/bound-IR/sanitizer paths unchanged.
+Reproduce with the real affinity fault fixture before editing; no throwaway
+non-Tower implementation or extra runtime provider is warranted. Profile remains
+manual with explicit expected capacity, and fixed-four tests keep their original
+oracles under an explicitly >=4-allowed-CPU profile after all jobs drain.
+
+This entry changes documentation only; runtime profiling is inapplicable.
+Original D1 Cancel4 failure134, exact213c native/address/thread milestone,
+current source acceptance and final leased publication stay separate. No todo,
+production, build recipe or sibling file changed; no publication request/lease.
