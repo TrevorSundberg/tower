@@ -192,3 +192,10 @@ Raw evidence under `C:/Sandbox/build/codex_ecs_20261122/A2/`:
 ROOT's immutable reactors, manifests and SOURCE.txt remain in
 `root_release_a06ec4b1`; their source is reachable from published main. Later
 source changes require explicit adoption, not movement of this frozen boundary.
+
+Publication reconciliation merged complete upstream history through `e637ba38`
+as `43a8f16d`. Incoming changes are Windows gate fixtures/registration and
+documentation; no compiler/backend/library/host production producer changed
+from the tested a18 freeze. All72 source-provider dependency hashes still match,
+including this observer. Those new Windows tests were not run or adopted here.
+The measured reactor/resource boundaries above remain unchanged.
