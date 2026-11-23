@@ -1431,3 +1431,13 @@ after one survivor/page for only32768useful bytes. Allocation policy is unchange
 the short window's unchanged traversal variance precludes a speedup attribution.
 The retention bottleneck remains a demonstrated reason to pursue explicit
 storage policy, not to label pointer tables as packed payloads.
+
+Updated receipt for the entity result rows: merged559b9ecc actual public entities,
+parser and semantic units, canonical native compiler and query/units/editor/
+calibrated-backend/parser plus four policy checks pass (zero skips). Same typed
+client/provider also executes successfully at wasm32 via the existing portable
+TowerWASI host, SHA0f9501ccbf15e8ef18dfd45f58a738eb07ff120cb8504ee312656d5f5e1c8b08.
+The first WASI entry rewrite targeted a no-main provider and failed; corrected
+OS composition targets the client only. Journal preserves exact logs/identities.
+Newer A1/L1/D1 changes, complete browser/compiler-generation instrumentation and
+publication remain outside this receipt. No further implementation changed.

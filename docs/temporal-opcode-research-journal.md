@@ -62558,3 +62558,38 @@ duplicate-symbol failure and corrected target/runtime checks are delegated to
 D2 on the matching frozen integration source. They are not passed yet. Runtime
 algorithm/performance is unchanged by this import correction; preserve compile,
 link and normal execution costs without comparing a failed link to a speedup.
+
+Merged entity result validation at559b9ecc (8219b797 plus ROOT9b318) passed.
+Public predecessor actual entities/parser_work/semantics_checks units compile in
+4.854/18.226/20.202s. Existing canonical no-override native build links53/53
+compiler targets89.537wall/117.618user/9.720sys; sixteen affected runner/policy
+targets link17.721wall/23.891user/2.020sys. Query-smoke.242s, independent units
+18.895s, editor including four actual inspection-budget cases10.870s, calibrated
+backend overlap8.129s, parser.040s, and four allocation-policy CTests pass with
+zero skips. ROOT's work_instrumented import correction now has actual linker and
+runtime evidence. The earlier type/control smoke remains its exact earlier
+checkpoint evidence; no redundant225-second type matrix was rerun for this
+unchanged type logic. All frozen Tower source hashes matched after execution.
+Compiler7e835d62511c5b643022267f3aec6cc2ff0e2e2e71665010f0bacc119b9fd25a;
+LRf0fc8c1f2fe4ad0944788dc0372d3638d1cb3d55756aea30764c3a241c2b51aa.
+These checks predate L1 frame/task, A1 new resource contract and D1 successor
+resource-oracle integration, and do not validate those newer inputs.
+
+Focused wasm32 API execution also passes the same typed client through the
+existing portable TowerWASI host on Node21.7.3. Public9653f818 emits provider and
+client LLVM, SDK34 -O1 links8MiB stack/256MiB max memory with existing guest
+runtimec23b245a7e770b6679b8de9fcd56f43f0ec3a646941d90ea4cfcfec1ae75a932.
+Exact wasm0f9501ccbf15e8ef18dfd45f58a738eb07ff120cb8504ee312656d5f5e1c8b08
+prints0 and exits0. This checks32-bit identity exhaustion and API ownership,
+not whole compiler/browser concurrency. The first OS recipe incorrectly applied
+main entry rewriting to the provider library with no main; runtime_bind rejected
+it. Kept entity_create_wasi_build.log; v2 rewrites only the actual client entry.
+SDK's expected wasm32-unknown-unknown ->wasm32-unknown-wasip1 target warning is
+visible in the successful build log. No dummy entry or source workaround.
+
+Commands/receipts: A2/cache/entity_create_native.sh and logs/entity_create_native*;
+entity_create_wasi_build_v2.sh and logs/entity_create_wasi_build_v2.log;
+node scaffolding/tests/host-wasi.mjs A2/cache/entity_create_result.wasi.wasm,
+logs/entity_create_wasi_run.log. All owned processes are reaped. This documents
+validation of existing code; runtime profiling of this evidence-only append is
+inapplicable. Full A2 scope and integrated release remain active and incomplete.
