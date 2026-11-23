@@ -23,7 +23,7 @@ struct IMFrame {
     base: usize;
     call_offset: usize;
     call: void*;
-    tasks: vector(IMTask);
+    tasks: work_vector(IMTask);
     values: vector(IMEntry);
     addresses: vector(IMEntry);
 }
@@ -46,7 +46,7 @@ struct IMState {
     free_blocks: vector(IMEntry);
     strings: vector(IMEntry);
     sequenced: vector(IMEntry);
-    frames: vector(IMFrame);
+    frames: work_vector(IMFrame);
     node_cache: vector(IMEntry);
     function_values: vector(void*);
     type_values: vector(FoundationType);

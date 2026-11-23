@@ -36,6 +36,11 @@ var InputQueryCapacityFactor: usize = 4;
 var InputQueryFrameAllowance: usize = 128;
 var InputQueryBudgetBytes: usize = 1048576;
 
+struct InputQueryStartup {
+    allowed: usize;
+    message: u8*;
+}
+
 fn call_query_require(ok: bool): void { if !ok { abort(); } }
 fn call_query_push(items: vector(void*)*, item: void*): void { call_query_require(vector_push(items, item)); }
 fn call_query_check(ok: bool, message: u8*, failures: u32*): void {
@@ -52,8 +57,11 @@ fn input_query_number(value: usize): void {
 }
 
 fn input_query_owned_bytes(invocation: IMInvocation*): usize {
-    return invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
-        + invocation.context.input_storage.reservation.bytes;
+    var frames = &invocation.state.frames;
+    var bytes = invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
+        + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes;
+    for(var i: usize = 0; i < frames.capacity; i++) { bytes += frames.data[i].tasks.reservation.bytes; }
+    return bytes;
 }
 
 fn call_query_node(root: void*, width: u32, kind: u32): void* {
@@ -243,7 +251,7 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     projections[0] = { subject: first, type: sem_get(first).type, ..default };
     projections[1] = { subject: second, type: sem_get(second).type, byte_offset: input_bytes - sizeof(i32), ..default };
     var bindings: void*[2];
-    for(var i: usize = 0; i < 2; i++) {
+    for(var i: usize = 0; i < sizeof(decltype(bindings)) / sizeof(void*); i++) {
         bindings[i] = call_query_node(root, width, KDeclare);
         sem_get(bindings[i]).type = aggregate;
         sem_get(bindings[i]).global = true;
@@ -251,7 +259,8 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
         sem_get(producer).type = aggregate;
         sem_get(producer).constant = true;
         var input = bits(IMValueInput*, entity_component_data(entity_component_add(bindings[i], inputs)));
-        *input = { producer: producer, projections: &projections[0], projection_count: 2, aggregate: true, ..default };
+        *input = { producer: producer, projections: &projections[0],
+            projection_count: sizeof(decltype(projections)) / sizeof(IMValueProjection), aggregate: true, ..default };
     }
     var entry = call_query_node(root, width, KFunction);
     var body = call_query_node(root, width, KBlock);
@@ -290,7 +299,13 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     var b: IMInvocation = default;
     call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     call_query_require(interpreter_invocation_init(&b, entry, convert(usize, width), null, 0, true, CallQueryFuel));
-    var startup_memory_bytes = a.state.memory.reservation.bytes;
+    var startup: InputQueryStartup[4] = default;
+    startup[0].message = "Cannot allocate interpreter memory";
+    startup[1] = {allowed: a.state.memory.reservation.bytes, message: "Cannot allocate interpreter frame storage"};
+    startup[2] = {allowed: startup[1].allowed + a.state.frames.reservation.bytes,
+        message: "Cannot allocate strict evaluation initialization state"};
+    startup[3] = {allowed: startup[2].allowed + a.context.initialized.reservation.bytes,
+        message: "Cannot allocate interpreter task storage"};
     a.context.value_inputs = inputs;
     b.context.value_inputs = inputs;
     a.context.type_arguments = true;
@@ -454,22 +469,22 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     if budgeted {
         var charged: WorkBudgetSnapshot = default;
         call_query_require(work_budget_snapshot(&budget, &charged));
-        // Deny the first buffer, then permit exactly that buffer and deny the
-        // initialization map. Both failures must retire partially owned state.
-        for(var attempt: usize = 0; attempt < 2; attempt++) {
-            var allowed = attempt == 0 ? 0 : startup_memory_bytes;
+        // Deny each startup owner after permitting the exact measured preceding
+        // buffers. Preserve both original memory/initialization denial cases.
+        for(var attempt: usize = 0; attempt < sizeof(decltype(startup)) / sizeof(InputQueryStartup); attempt++) {
+            var allowed = startup[attempt].allowed;
             var occupied: WorkReservation = default;
             call_query_require(work_budget_reserve_result(&budget, 0, 0,
                 charged.bytes - charged.used_bytes - allowed, &occupied) == WorkBudgetError.None);
             call_query_check(!interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
                 && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
                 && (a.state.memory.data != null) == (attempt != 0)
-                && a.context.initialized.data == null && a.context.input_storage.data == null
+                && (a.state.frames.data != null) == (attempt >= 2)
+                && (a.context.initialized.data != null) == (attempt >= 3) && a.context.input_storage.data == null
+                && a.context.output.length == 0 && !a.context.returned
                 && input_query_owned_bytes(&a) == allowed,
-                "Denied startup retains its typed error and only the permitted private buffer", &failures);
-            var message = attempt == 0 ? "Cannot allocate interpreter memory"
-                : "Cannot allocate strict evaluation initialization state";
-            call_query_check(a.context.error.data != null && strcmp(a.context.error.data, message) == 0,
+                "Denied startup retains its typed error and exactly the permitted private owners", &failures);
+            call_query_check(a.context.error.data != null && strcmp(a.context.error.data, startup[attempt].message) == 0,
                 "Startup denial identifies the actual failed buffer", &failures);
             interpreter_invocation_dispose(&a);
             call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
