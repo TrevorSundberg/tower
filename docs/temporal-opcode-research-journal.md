@@ -89341,4 +89341,15 @@ are byte-identical to frozen415a54e9. Later semantic/defer/pool/observer/fixture
 changes retain independent owner evidence, not validation by these frozen
 binaries. Our diff against incoming main is receipt/journal only; no rejected
 index or new API is present. Reused unchanged frozen checks; no unnecessary
-merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.
+merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.Publication reconciliation: repair5ce2e0b9 committed first; required ff-only pull
+reported divergence, then complete publice7558fa8 history merged as
+b52c9d5882221b887d39f82b076edcf29a1b3315 without conflict. Later A1/L2/A2/D1
+producer/fixture receipts and both journal histories are retained. Own three code
+hashes are unchanged. The broad resource inventory changed (including work_pool
+source and new owner fixtures); compiled f7e reactors and selected language/type
+inputs did not. Revalidated only the five-case affected selection on merged
+resources:5pass/0fail/0skip,10.04wall/12.23CPU/415912KiB. Reused earlier unaffected
+and remaining-trap receipts; this does not test newer native compiler providers.
+Missing-LLVM control, source syntax and diff checks are clean at their stated
+scope. Docker is idle; own heavy lease released. Normal main publication follows,
+with no Pages asset changes and the three resource failures still explicitly open.
