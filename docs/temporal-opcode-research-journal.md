@@ -77632,3 +77632,37 @@ no source blocker; runtime/after/instrumentation/package gates remain D2's pendi
 work. Actual artifact iswasm32, not evidence of wasm64 execution. This read-only
 review changes no executable path, so its own runtime profiling is inapplicable.
 No D1 source edit/build or premature adoption is needed during the sibling freeze.
+
+### D1 complete2252 review and next registration boundary
+
+Same original CLI2918210/thread01a2046a, main690e2eee clean/pulled, todo unchanged.
+D2 actually released the sole heavy slot13:11:39 after package/policy jobs drained;
+D1 containers are init-only,131GiB free and9.7GiB available RAM. No build starts
+from a queued message alone. Full ROOT2252 bundle3ae22ed0 is verified/fetched;
+nine assigned fixture deltas and related producers/owner evidence are now read.
+The new executable fixture and previously unregistered capture fixture require
+ordinary generic targets, with executable replacing the semantic implementation
+exactly once. No fixture or production rewrite is needed.
+
+The full-file audit records exact graph denial/cancellation/readiness boundaries,
+LR typed failures and retained pool accounting, six budgeted interpreter maps,
+raw guest allocation preservation and the actual nested-call resource oracle.
+All changed IM layout consumers must rebuild from current depfiles. Incoming
+owner evidence is scoped to its own frozen source, including stale-layout139,
+missing extern1, exact old-phase134 and successful corrected checks; no failure
+is silently relabeled. Standalone negative-control execution remains prohibited
+by ROOT's milestone instruction and current coverage remains open.
+
+D2 also found an audit wording error: parser_table_budget is reached by frontend
+parser/default, not allocations. Corrected only that documentation; D2's c801
+receipt actually ran both. New D2 complete8cb policy receipt is available and
+will be joined as complete history before the new source freeze. Its reviewed
+exact Wasm Entities table permission is unrelated to the new ParserNodes import
+policy that D2 still owns. No speculative allowlist change by D1.
+
+Next: merge the reviewed complete histories, compile both smallest fixtures with
+public9653, rebuild all affected native ABI consumers, measure direct ordinary
+links at fixed executable paths, then register and compare. Current address/thread
+checks and final clean bootstrap/browser/generation/leased publication remain
+pending. This audit-only commit changes no runtime input; profiling applies to
+the forthcoming actual harness change, not these prose corrections.
