@@ -1,0 +1,134 @@
+import tower;
+import .compiler.parser_types;
+import .compiler.format_api;
+import .library.vector;
+import .library.work_budget_types;
+import utility_checks;
+
+// Match the existing runner's opaque compiler/entity foreign boundary.
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_member_index(node: void*, name: u8*): usize;
+extern fn parser_match_create(node: void*): ParserMatchData*;
+extern fn node_match_set_label(value: ParserMatchData*, text: u8*): bool;
+extern fn generic_begin(root: void*): void*;
+extern fn generic_register(context: void*, definition: void*): u32;
+extern fn generic_parameter_count(context: void*, definition: void*): usize;
+extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
+extern fn generic_instantiate_deferred(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
+extern fn generic_body_pending(context: void*, node: void*): bool;
+extern fn generic_origin(context: void*, node: void*): void*;
+extern fn generic_definition(context: void*, node: void*): void*;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct GenericCloneFixture {
+    world: void*;
+    store: void*;
+    root: void*;
+    context: void*;
+    definition: void*;
+    body: void*;
+    width: usize;
+    depth: usize;
+}
+
+fn generic_clone_number(value: usize): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var formatter: FormatEngine = { result: &text, ..default };
+    format_unsigned(&formatter, convert(u64, value));
+    utility_check(!text.failed && vector_push(&text.text, 0), "Clone measurement text");
+    puts(text.text.data);
+}
+
+fn generic_clone_child(store: void*, parent: void*, label: u8*, role: u8*, start: usize): void* {
+    var child = entity_create(store);
+    utility_check(child != null, "Clone fixture child allocation");
+    var span = parser_match_create(child);
+    span.start = start;
+    span.length = 1;
+    utility_check(node_match_set_label(span, label) && entity_attach(child, parent, role), "Clone fixture named child");
+    entity_release(child);
+    return child;
+}
+
+// Actual registry/header APIs; only the fixture's syntax is synthetic.
+fn generic_clone_fixture_open(fixture: GenericCloneFixture*, width: usize, depth: usize,
+    workers: usize, budget: WorkBudget*): void {
+    *fixture = default;
+    fixture.width = width;
+    fixture.depth = depth;
+    fixture.world = compiler_world_create_workers(workers);
+    utility_check(fixture.world != null, "Clone fixture world");
+    if budget != null {
+        utility_check(compiler_world_bind_budget(fixture.world, budget), "Clone world freezes its physical budget");
+    }
+    fixture.store = compiler_world_store(fixture.world);
+    fixture.root = entity_create(fixture.store);
+    utility_check(fixture.root != null, "Clone fixture root");
+    fixture.context = generic_begin(fixture.root);
+    fixture.definition = generic_clone_child(fixture.store, fixture.root, "CoreFunction", null, 0);
+    var parameters = generic_clone_child(fixture.store, fixture.definition, "Parameters", "params", 0);
+    var parameter = generic_clone_child(fixture.store, parameters, "CoreParameter", null, 0);
+    var annotation = generic_clone_child(fixture.store, parameter, "type", "type", 0);
+    parser_match_create(annotation).rule = ~convert(usize, 0);
+    fixture.body = generic_clone_child(fixture.store, fixture.definition, "CoreBlock", "body", 0);
+    for(var branch: usize = 0; branch < width; branch++) {
+        var cursor = fixture.body;
+        for(var level: usize = 0; level < depth; level++) {
+            cursor = generic_clone_child(fixture.store, cursor, "CloneLeaf", level == 0 ? null : "next", branch * depth + level + 1);
+        }
+    }
+    generic_register(fixture.context, fixture.definition);
+    utility_check(generic_parameter_count(fixture.context, fixture.definition) == 1
+        && generic_type_parameter(fixture.context, fixture.definition, 0), "Clone fixture ordinary generic parameter");
+}
+
+fn generic_clone_fixture_body(instance: void*): void* {
+    return entity_child_at(instance, entity_member_index(instance, "body"));
+}
+
+fn generic_clone_fixture_instance(fixture: GenericCloneFixture*): void* {
+    var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
+    var instance = generic_instantiate_deferred(fixture.context, fixture.definition, fixture.definition, &argument, 1);
+    utility_check(instance != null && generic_body_pending(fixture.context, instance), "Clone fixture deferred instance");
+    var destination = generic_clone_fixture_body(instance);
+    utility_check(destination != null && entity_child_count(destination) == 0, "Deferred header leaves body empty");
+    return instance;
+}
+
+fn generic_clone_fixture_check(fixture: GenericCloneFixture*, instance: void*): void {
+    var destination = generic_clone_fixture_body(instance);
+    utility_check(!generic_body_pending(fixture.context, instance) && entity_child_count(destination) == fixture.width,
+        "Clone publication marks instance ready");
+    for(var branch: usize = 0; branch < fixture.width; branch++) {
+        var cursor = entity_child_at(destination, branch);
+        var source = entity_child_at(fixture.body, branch);
+        for(var level: usize = 0; level < fixture.depth; level++) {
+            utility_check(cursor != null, "Cloned branch retains full depth");
+            var span = parser_match_create(cursor);
+            utility_check(span.start == branch * fixture.depth + level + 1 && strcmp(span.label.data, "CloneLeaf") == 0,
+                "Cloned branch preserves ordered metadata");
+            utility_check(generic_origin(fixture.context, cursor) == fixture.definition
+                && generic_definition(fixture.context, cursor) == source,
+                "Cloned branch preserves exact declaration and use provenance");
+            if level + 1 < fixture.depth {
+                cursor = entity_child_at(cursor, entity_member_index(cursor, "next"));
+                source = entity_child_at(source, entity_member_index(source, "next"));
+            }
+        }
+    }
+}
+
+fn generic_clone_fixture_close(fixture: GenericCloneFixture*): void {
+    entity_release(fixture.root);
+    utility_check(compiler_world_dispose(fixture.world), "Clone fixture world teardown");
+    *fixture = default;
+}
