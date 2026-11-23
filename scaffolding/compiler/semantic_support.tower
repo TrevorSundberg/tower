@@ -631,7 +631,7 @@ fn sem_offset(c: SemanticContext*, n: void*): usize {
 }
 
 fn sem_ok(c: SemanticContext*): bool {
-    return c.program.error.length == 0;
+    return c.program.resource.error == WorkBudgetError.None && c.program.error.length == 0;
 }
 
 // A producer receipt already contains its complete provenance. Restore that
@@ -639,7 +639,7 @@ fn sem_ok(c: SemanticContext*): bool {
 // or replacing a previously selected message/offset.
 fn sem_restore_error(c: SemanticContext*, error: vector(u8)*, offset: usize): bool {
     if error.length == 0 { return false; }
-    if sem_ok(c) {
+    if c.program.error.length == 0 {
         sem_require(vector_reserve(&c.program.error, error.length + 1));
         copy(c.program.error.data, error.data, error.length + 1);
         c.program.error.length = error.length;

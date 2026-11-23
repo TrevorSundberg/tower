@@ -738,3 +738,24 @@ separately check real transport, exact retained ownership, zero final ledger
 and unchanged entity/component counts across failed retries. Supported current
 instrumentation and final merged bootstrap/browser/generation remain open.
 The quiet window was released immediately after process exit0 and drain.
+### Shared semantic resource receipt interface (2026-11-23)
+
+ROOT authorized one fixed `SemanticResourceFailure { error, offset }` on
+SemanticProgram, with allocation-free first-error `sem_resource_record` in the
+existing context provider and a thin query API declaration. `sem_ok` now checks
+both the receipt and ordinary diagnostic. Only fresh program initialization may
+reset it. Workers may record only on their private SemanticProgram; work that
+borrows the coordinator program must retain its result and publish after joins
+in source order. No numeric offset sort substitutes declaration/module order.
+
+At parent ab4f440, the four-path interface compiles with public bootstrap9653:
+semantic_program_types succeeds; context16.64wall/11.94user/.92sys/676736KiB;
+query API2.79/2.07/.18/203960KiB. Logs are semantic_resource_contract_*1 in the
+owned A1 cache. Exported exact patch4ff9a47670e9ffe9cf5b35f94c70ebddc48586e12c38457a2bd0be3647b5e9af
+also passes ROOT's apply check on its selected storage/parser/editor union.
+This is an interface checkpoint, not producer/consumer or runtime acceptance.
+All affected objects must be rebuilt for the added field. A1 owns ordinary
+semantic worker result transfer, L2 type/generic adoption, B2 output/inspection
+consumers. Allocation-free presentation pairing, cancellation tests, successful
+before/after profiles and current instrumentation remain to be implemented and
+validated before claiming the resource receipt closes recovery failures.

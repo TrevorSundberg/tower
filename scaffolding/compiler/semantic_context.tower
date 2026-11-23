@@ -12,6 +12,15 @@ import semantic_support;
 import .library.vector;
 
 import semantic_context_types;
+import semantic_program_types;
+
+// The coordinator records joined results in source order. A worker may call
+// this only on its private program, then transfer the receipt with its result.
+// This does not allocate, format text, or mutate a shared budget/error slot.
+export fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void {
+    if error == WorkBudgetError.None || program.resource.error != WorkBudgetError.None { return; }
+    program.resource = { error: error, offset: offset };
+}
 
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
