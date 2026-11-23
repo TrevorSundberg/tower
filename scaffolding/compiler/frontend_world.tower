@@ -3,6 +3,8 @@ import grammar_types;
 import .library.work_pool;
 import component_kinds;
 import format_types;
+import format;
+import .library.work_budget_types;
 import frontend_bedrock;
 import frontend_modules;
 import frontend_pattern;
@@ -26,39 +28,29 @@ extern fn compiler_host_world(): void*;
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 
 extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
 
 extern fn compiler_world_pinned(world: void*): bool;
 extern fn syntax_host_clear(world: void*): bool;
 
 fn frontend_world_kinds(world: void*, kinds: FrontendKinds*): bool {
-    kinds.rule = compiler_world_type(world, CompilerParserRule);
-    kinds.reference = compiler_world_type(world, CompilerParserReference);
-    kinds.string = compiler_world_type(world, CompilerParserString);
-    kinds.range = compiler_world_type(world, CompilerParserRange);
-    kinds.`match` = compiler_world_type(world, CompilerParserMatch);
-    kinds.syntax = compiler_world_type(world, CompilerSyntax);
-    var missing = kinds.rule == null;
-    if missing {
-        return false;
-    }
-    missing = kinds.reference == null;
-    if missing {
-        return false;
-    }
-    missing = kinds.string == null;
-    if missing {
-        return false;
-    }
-    missing = kinds.range == null;
-    if missing {
-        return false;
-    }
-    missing = kinds.`match` == null;
-    if missing {
-        return false;
-    }
-    var ready = kinds.syntax != null;
-    return ready;
+    var error = WorkBudgetError.None;
+    return frontend_world_kinds_result(world, kinds, &error);
+}
+
+fn frontend_world_kinds_result(world: void*, kinds: FrontendKinds*, error: WorkBudgetError*): bool {
+    kinds.rule = compiler_world_type_result(world, CompilerParserRule, error);
+    if kinds.rule == null { return false; }
+    kinds.reference = compiler_world_type_result(world, CompilerParserReference, error);
+    if kinds.reference == null { return false; }
+    kinds.string = compiler_world_type_result(world, CompilerParserString, error);
+    if kinds.string == null { return false; }
+    kinds.range = compiler_world_type_result(world, CompilerParserRange, error);
+    if kinds.range == null { return false; }
+    kinds.`match` = compiler_world_type_result(world, CompilerParserMatch, error);
+    if kinds.`match` == null { return false; }
+    kinds.syntax = compiler_world_type_result(world, CompilerSyntax, error);
+    return kinds.syntax != null;
 }
 
 // Borrowed immutable baseline. Retain it to outlive cache reset. A failed
@@ -77,14 +69,30 @@ export fn frontend_world_bedrock(world: void*): void* {
 
 // Result owns its ordinary parse entities independently of the cached reader.
 export fn frontend_world_pattern(world: void*, source: u8*, length: usize, error: FormatResult*): SyntaxPattern* {
+    var resource_error = WorkBudgetError.None;
+    return frontend_world_pattern_result(world, source, length, error, &resource_error);
+}
+
+export fn frontend_world_pattern_result(world: void*, source: u8*, length: usize, error: FormatResult*,
+    resource_error: WorkBudgetError*): SyntaxPattern* {
+    if resource_error == null { return null; }
+    *resource_error = WorkBudgetError.Invalid;
+    if world == null || error == null || (source == null && length != 0) { return null; }
     var cache = compiler_world_grammar(world);
     if cache.patterns == null {
-        var kinds: FrontendKinds;
-        if frontend_world_kinds(world, &kinds) {
-            cache.patterns = bits(void*, frontend_pattern_create(&kinds));
+        var kinds: FrontendKinds = default;
+        if frontend_world_kinds_result(world, &kinds, resource_error) {
+            cache.patterns = bits(void*, frontend_pattern_create_result(&kinds, resource_error));
+        }
+        if cache.patterns == null {
+            var formatter: FormatEngine = default;
+            formatter.result = error;
+            format_text(&formatter, "Unable to construct token pattern grammar");
+            if error.failed && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; }
+            return null;
         }
     }
-    return frontend_pattern_read(bits(FrontendPatternCompiler*, cache.patterns), source, length, error);
+    return frontend_pattern_read_result(bits(FrontendPatternCompiler*, cache.patterns), source, length, error, resource_error);
 }
 
 // Coordinator operation after requests join. A pin rejects reset without

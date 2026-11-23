@@ -8,6 +8,7 @@ import parser_nodes;
 import regex_lowering;
 import syntax_nodes;
 import syntax_types;
+import .library.work_budget_types;
 
 // Token patterns use the same character grammar/table reader as Bedrock.
 // Errors use the shared text formatter and Unicode character positions.
@@ -25,12 +26,21 @@ export fn frontend_pattern_destroy(compiler: FrontendPatternCompiler*): void {
 }
 
 export fn frontend_pattern_create(kinds: FrontendKinds*): FrontendPatternCompiler* {
+    var error = WorkBudgetError.None;
+    return frontend_pattern_create_result(kinds, &error);
+}
+
+export fn frontend_pattern_create_result(kinds: FrontendKinds*, error: WorkBudgetError*): FrontendPatternCompiler* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if kinds == null { return null; }
     var compiler = alloc(FrontendPatternCompiler, 1);
     if compiler == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
-    copy(&compiler.kinds, kinds, sizeof(FrontendKinds));
-    if frontend_pattern_table(&compiler.table, &compiler.kinds) {
+    *compiler = {kinds: *kinds, ..default};
+    if frontend_pattern_table_result(&compiler.table, &compiler.kinds, error) {
         return compiler;
     }
     frontend_pattern_destroy(compiler);
@@ -61,10 +71,24 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
 
 export fn frontend_pattern_read(compiler: FrontendPatternCompiler*, source: u8*, length: usize,
 error: FormatResult*): SyntaxPattern* {
+    var resource_error = WorkBudgetError.None;
+    return frontend_pattern_read_result(compiler, source, length, error, &resource_error);
+}
+
+export fn frontend_pattern_read_result(compiler: FrontendPatternCompiler*, source: u8*, length: usize,
+    error: FormatResult*, resource_error: WorkBudgetError*): SyntaxPattern* {
+    if resource_error == null { return null; }
+    *resource_error = WorkBudgetError.Invalid;
+    if error == null || (source == null && length != 0) { return null; }
+    *resource_error = WorkBudgetError.None;
+    // Diagnostic allocation cannot overwrite an earlier producer's exact cause.
+    defer { if error.failed && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; } }
     var formatter: FormatEngine = default;
     formatter.result = error;
-    if length > 4096 {
-        format_text(&formatter, "Token pattern exceeds 4096 bytes");
+    if length > FrontendPatternMaximumBytes {
+        format_text(&formatter, "Token pattern exceeds ");
+        format_unsigned(&formatter, convert(u64, FrontendPatternMaximumBytes));
+        format_text(&formatter, " bytes");
         return null;
     }
     if !(tower_utf8_validate(source, length, 0) != 0) {
@@ -73,16 +97,17 @@ error: FormatResult*): SyntaxPattern* {
     }
     var missing = compiler == null;
     if missing {
+        *resource_error = WorkBudgetError.Invalid;
         format_text(&formatter, "Unable to allocate token pattern grammar");
         return null;
     }
     var input: FrontendCharacters = default;
     input.source = source;
     input.length = length;
-    var root = frontend_read_characters(&compiler.table, &compiler.kinds, &input);
+    var root = frontend_read_characters_result(&compiler.table, &compiler.kinds, &input, resource_error);
     missing = root == null;
     if missing {
-        if input.error == 1 {
+        if *resource_error != WorkBudgetError.None {
             format_text(&formatter, "Unable to allocate token pattern");
             return null;
         }
@@ -108,11 +133,12 @@ error: FormatResult*): SyntaxPattern* {
     entity_release(root);
     missing = pattern == null;
     if missing {
+        *resource_error = WorkBudgetError.Memory;
         format_text(&formatter, "Unable to allocate token pattern");
         return null;
     }
     var offset: usize = 0;
-    var message = regex_compile_tree(pattern.grammar, source, compiler.kinds.`match`, pattern.table, &offset);
+    var message = regex_compile_tree_result(pattern.grammar, source, length, compiler.kinds.`match`, pattern.table, &offset, resource_error);
     if message != null {
         format_text(&formatter, message);
         format_text(&formatter, " at pattern character ");

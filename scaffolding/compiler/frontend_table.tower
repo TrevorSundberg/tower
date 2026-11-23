@@ -19,6 +19,12 @@ import syntax_nodes;
 import syntax_reader;
 import syntax_types;
 import lr_types;
+import parser_markers;
+import .library.work_budget_types;
+
+var FrontendPatternMaximumBytes: usize = 4096;
+enum FrontendTableStatus: u32 { Complete, ResourceFailure, Conflict, Unresolved }
+enum FrontendCharacterStatus: u32 { Complete, ResourceFailure, Unexpected, InvalidUtf8 }
 
 // Table ownership shared by character and token readers. These are derived LR
 // indexes over ordinary grammar entities, not a second grammar representation.
@@ -36,14 +42,24 @@ export fn frontend_table_dispose(table: FrontendTable*): void {
 // Grammar names must be resolved before this step. Both ordinary grammars and
 // character grammars use the same analysis, conflict check and specialization.
 export fn frontend_table_finish(table: FrontendTable*, constructs: bool, specialize: bool): u32 {
+    var error = WorkBudgetError.None;
+    return frontend_table_finish_result(table, constructs, specialize, &error);
+}
+
+export fn frontend_table_finish_result(table: FrontendTable*, constructs: bool, specialize: bool,
+    error: WorkBudgetError*): u32 {
+    if error == null { return convert(u32, FrontendTableStatus.ResourceFailure); }
+    *error = WorkBudgetError.Invalid;
+    if table == null || table.grammar == null { return convert(u32, FrontendTableStatus.ResourceFailure); }
+    *error = WorkBudgetError.None;
     var grammar = table.grammar;
     if lr_grammar_pending(grammar) != lr_none() {
-        return 3;
+        return convert(u32, FrontendTableStatus.Unresolved);
     }
-    var analysis = lr_analysis_create(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
-    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar));
+    var analysis = lr_analysis_create_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), error);
     if analysis == null {
-        return 1;
+        return convert(u32, FrontendTableStatus.ResourceFailure);
     }
     for(var index: usize = 0; index != lr_grammar_name_count(grammar); index++) {
         lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
@@ -53,29 +69,31 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
     for(var i: usize = 0; i < lr_grammar_rule_count(grammar) && anchor == null; ++i) {
         anchor = lr_grammar_rule_node(grammar, i);
     }
-    var ok = lr_analysis_compute_parallel(analysis, anchor);
+    *error = lr_analysis_compute_parallel_result(analysis, anchor);
+    var ok = *error == WorkBudgetError.None;
     if ok {
-        states = lr_states_create_parallel(analysis, anchor);
+        states = lr_states_create_parallel_result(analysis, anchor, error);
         ok = states != null;
     }
     if ok {
-        ok = lr_states_lalr_parallel(states, constructs, anchor);
+        *error = lr_states_lalr_parallel_result(states, constructs, anchor);
+        ok = *error == WorkBudgetError.None;
     }
     if ok {
-        table.runtime = lr_runtime_create_parallel(states, anchor);
+        table.runtime = lr_runtime_create_parallel_result(states, anchor, error);
         ok = table.runtime != null;
     }
-    var status: u32 = 1;
+    var status = convert(u32, FrontendTableStatus.ResourceFailure);
     if ok {
         var conflict: LRConflict;
         if lr_runtime_conflict(table.runtime, &conflict) {
-            status = 2;
+            status = convert(u32, FrontendTableStatus.Conflict);
         } else {
             if specialize {
                 lr_runtime_specialize(table.runtime, states);
             }
             lr_grammar_finish(grammar);
-            status = 0;
+            status = convert(u32, FrontendTableStatus.Complete);
         }
     }
     lr_states_destroy(states);
@@ -84,19 +102,28 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
 }
 
 export fn frontend_table_init(table: FrontendTable*, root: void*, kinds: FrontendKinds*): bool {
+    var error = WorkBudgetError.None;
+    return frontend_table_init_result(table, root, kinds, &error);
+}
+
+export fn frontend_table_init_result(table: FrontendTable*, root: void*, kinds: FrontendKinds*, error: WorkBudgetError*): bool {
+    if error == null { return false; }
+    *error = WorkBudgetError.Invalid;
+    if table == null { return false; }
     *table = default;
-    if root == null {
+    if root == null || kinds == null {
         return false;
     }
     if entity_child_count(root) == 0 {
         return false;
     }
-    table.grammar = lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
+    table.grammar = lr_grammar_create_result(root, kinds.rule, kinds.reference, kinds.string, kinds.range, error);
     var ok = table.grammar != null;
     return ok;
 }
 
 extern fn parse_forest_create(): void*;
+extern fn parse_forest_create_result(budget: WorkBudget*, error: WorkBudgetError*): void*;
 
 extern fn parse_forest_destroy(forest: void*): void;
 
@@ -113,17 +140,28 @@ struct FrontendCharacters {
 // The reader owns only its forest and LR stack. Input and table are borrowed;
 // acceptance transfers one ordinary parse-tree reference to the caller.
 export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*, input: FrontendCharacters*): void* {
-    var parser = lr_parser_create(table.runtime, false, true);
-    var forest = parse_forest_create();
-    var ok = parser != null;
-    var present = forest != null;
-    if !present {
-        ok = false;
-    }
+    var error = WorkBudgetError.None;
+    return frontend_read_characters_result(table, kinds, input, &error);
+}
+
+export fn frontend_read_characters_result(table: FrontendTable*, kinds: FrontendKinds*, input: FrontendCharacters*,
+    error: WorkBudgetError*): void* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if input == null { return null; }
+    input.error = convert(u32, FrontendCharacterStatus.ResourceFailure);
+    if table == null || table.runtime == null || table.grammar == null || kinds == null
+        || (input.source == null && input.length != 0) || input.cursor > input.length { return null; }
+    var parser = lr_parser_create_result(table.runtime, false, true, error);
+    if parser == null { return null; }
+    defer lr_parser_destroy(parser);
+    var forest = parse_forest_create_result(table.runtime.budget, error);
+    if forest == null { return null; }
+    defer parse_forest_destroy(forest);
+    var ok = true;
     var root: void* = null;
-    input.error = 1;
     var ready: bool = false;
-    var id: u32 = 4294967294;
+    var id = ParserStreamEnd;
     var start: usize = 0;
     var length: usize = 0;
     loop {
@@ -132,15 +170,15 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
         }
         var step: LRStep;
         var action = lr_parser_step(parser, ready, id, false, start, length, &step);
-        if action == 0 {
+        if action == convert(u32, ParserAction.NeedInput) {
             start = input.cursor;
             length = 0;
-            id = 4294967294;
+            id = ParserStreamEnd;
             if start < input.length {
                 var count = input.length -start;
                 length = tower_utf8_decode(&input.source[start], count, &id);
                 if length == 0 {
-                    input.error = 3;
+                    input.error = convert(u32, FrontendCharacterStatus.InvalidUtf8);
                     break;
                 }
                 input.cursor = start + length;
@@ -148,13 +186,14 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
             ready = true;
             continue;
         }
-        if action == 3 {
+        if action == convert(u32, ParserAction.Accept) {
             root = lr_tree_accept(parser, forest);
-            input.error = 0;
+            if root != null { input.error = convert(u32, FrontendCharacterStatus.Complete); }
+            else { *error = WorkBudgetError.Invalid; }
             break;
         }
-        var shift = action == 1;
-        var sequence = action == 6;
+        var shift = action == convert(u32, ParserAction.Shift);
+        var sequence = action == convert(u32, ParserAction.SequenceShift);
         if sequence {
             shift = true;
         }
@@ -165,36 +204,44 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
             ready = false;
             continue;
         }
-        var reduce = action == 2;
-        sequence = action == 7;
+        var reduce = action == convert(u32, ParserAction.Reduce);
+        sequence = action == convert(u32, ParserAction.SequenceReduce);
         if sequence {
             reduce = true;
         }
         if reduce {
             ok = lr_tree_reduce_kind(parser, forest, table.grammar, kinds.`match`, &step, &root);
             if root != null {
-                input.error = 0;
+                input.error = convert(u32, FrontendCharacterStatus.Complete);
                 break;
             }
             continue;
         }
-        input.error = 2;
+        if parser.storage_error != WorkBudgetError.None { *error = parser.storage_error; }
+        else { input.error = convert(u32, FrontendCharacterStatus.Unexpected); }
         break;
     }
     input.offset = start;
-    if present {
-        parse_forest_destroy(forest);
-    }
-    lr_parser_destroy(parser);
+    if !ok { *error = parser.storage_error == WorkBudgetError.None ? WorkBudgetError.Invalid : parser.storage_error; }
     return root;
 }
 
 export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): bool {
-    var root = regex_grammar_create(kinds);
-    var ok = frontend_table_init(table, root, kinds);
+    var error = WorkBudgetError.None;
+    return frontend_pattern_table_result(table, kinds, &error);
+}
+
+export fn frontend_pattern_table_result(table: FrontendTable*, kinds: FrontendKinds*, error: WorkBudgetError*): bool {
+    if error == null { return false; }
+    *error = WorkBudgetError.Invalid;
+    if table == null { return false; }
+    *table = default;
+    var root = regex_grammar_create_result(kinds, error);
+    if root == null { return false; }
+    var ok = frontend_table_init_result(table, root, kinds, error);
     if ok {
-        var status = frontend_table_finish(table, false, true);
-        ok = status == 0;
+        var status = frontend_table_finish_result(table, false, true, error);
+        ok = status == convert(u32, FrontendTableStatus.Complete);
     }
     if root != null {
         entity_release(root);
@@ -203,17 +250,27 @@ export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): 
 }
 
 export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*, text: u8*): SyntaxPattern* {
+    var error = WorkBudgetError.None;
+    return frontend_pattern_compile_result(table, kinds, text, &error);
+}
+
+export fn frontend_pattern_compile_result(table: FrontendTable*, kinds: FrontendKinds*, text: u8*,
+    resource_error: WorkBudgetError*): SyntaxPattern* {
+    if resource_error == null { return null; }
+    *resource_error = WorkBudgetError.Invalid;
+    if text == null { return null; }
+    *resource_error = WorkBudgetError.None;
     var input: FrontendCharacters = default;
     input.source = text;
     input.length = syntax_text_length(text);
-    if input.length > 4096 {
+    if input.length > FrontendPatternMaximumBytes {
         return null;
     }
     var status = tower_utf8_validate(text, input.length, 0);
     if !(status != 0) {
         return null;
     }
-    var root = frontend_read_characters(table, kinds, &input);
+    var root = frontend_read_characters_result(table, kinds, &input, resource_error);
     var absent = root == null;
     if absent {
         return null;
@@ -222,10 +279,11 @@ export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*,
     entity_release(root);
     absent = pattern == null;
     if absent {
+        *resource_error = WorkBudgetError.Memory;
         return null;
     }
     var offset: usize = 0;
-    var error = regex_compile_tree(pattern.grammar, text, kinds.`match`, pattern.table, &offset);
+    var error = regex_compile_tree_result(pattern.grammar, text, input.length, kinds.`match`, pattern.table, &offset, resource_error);
     if error != null {
         syntax_pattern_release(pattern);
         return null;

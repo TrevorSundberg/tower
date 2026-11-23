@@ -77646,3 +77646,38 @@ compiler4, separate caches, checked-in Linux9653 bootstrap/LLVM19.1.1. ROOT requ
 a slot before KinmenB work. No publication lease, private bootstrap, new session,
 agent or full-goal completion. Raw LR/lexer/stream storage and final clean joined
 bootstrap/generation/browser publication/hosted gates remain open.
+B1 substantial pattern-result batch after request5f3404bb (2026-11-23): ROOT's
+acceleration directive transfers frontend_table/pattern consumers and defers
+per-helper sanitizer/WASI/archive campaigns to the stable integrated milestone.
+Top measured sinks reported: repeated grammar address/thread builds90.95+60.51s,
+portable75.56s+IDE26.71s; invasive30s debugger trace with9995table/25790allocation
+breaks and8.60system seconds. Immediate change: complete caller chains, one
+-j6/compiler1 dependency-aware native build, focused parser/regex/query only.
+The VM remains60.6GiB; B1 keepsCPU0-11/24GiB. The already-running request20 profile
+47973 drained0 before this batch; no new broad campaign was launched. Resume pull
+failed GitHub DNS, preserving5f and the draft; retry only at commit boundary.
+
+Implemented frontend_table init/finish/read/pattern result variants retaining the
+legacy wrappers/status values. Existing typed FIRST/state/LALR/runtime producers
+now preserve exact errors through this older character-reader boundary. Its forest
+charges runtime.budget; LR label copies expose their actual Invalid/Memory result
+instead of making consumers guess. Character syntax/UTF8 errors remain ordinary
+input errors. frontend_pattern create/read and frontend_world_pattern result APIs
+preserve the first cause through kind registration, grammar/table construction,
+character reading and counted regex lowering. The counted source reaches lowering
+unchanged, including embedded NUL bytes; the named4096byte semantic limit formats
+its actual constant. Diagnostic allocation cannot overwrite Capacity/Busy/Invalid.
+syntax_session_next consumes that result into its existing sticky resource field.
+No public struct/layout, syntax feature or separate IR was added. Legacy Bedrock
+construction still exposes its existing pointer wrapper; this is not a claim that
+all independent Bedrock entity constructors have typed results.
+
+regex.tower now tests cold constructorCapacity, pinned-ownerBusy, warm reader
+Capacity, actual measured allocation-failure positions, exact owner restoration,
+retry, ordinary malformed syntax and invalid counted pointers. Existing300generated,
+500arbitrary-byte patterns and independent lowering oracle remain. Native85600
+actually drained0: dependency-aware43step build and parser/regex/query checks
+passed. Compiler1/j6 changed command identities and correctly regenerated affected
+providers once. No fixture declaration failure or retry in this batch. Minimal
+matched serial/parallel profiles follow; current broad supported instrumentation,
+clean portable/generation/hosted release remain pending for ROOT's integrated gate.

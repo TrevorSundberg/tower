@@ -2221,3 +2221,26 @@ later sampled stack is grammar construction during frontend_compile_sources.
 High-frequency debugger samples are not performance measurements. Initial wrong
 breakpoint offsets induced a rejectedSIGABRT probe; all logs/drains are preserved.
 No cache/private pin establishes release closure; publication remains unleased.
+### Complete pattern result consumer batch
+
+Reviewed5f3404bb plus the owned batch. ROOT transferred frontend_table.tower and
+frontend_pattern.tower. Their result variants now use complete typed grammar/LR
+producers and a world-budgeted character forest. frontend_world.tower preserves
+kind/constructor/read causes; syntax_session_next.tower consumes them before
+ordinary text diagnostics. lr_tree.tower and parser_nodes.tower retain actual label
+copy failures. The shared entity graph remains authoritative; wrappers preserve
+legacy callers, and all new result outputs are per-call, not shared budget.error.
+No shared layout or syntax adoption. regex.tower exercises real Capacity/Busy,
+measured Memory failures, exact cleanup/retry and syntax/error separation; native
+85600 parser/regex/query passed. Broader sanitizers/portable release are explicitly
+deferred under ROOT's integrated-batch directive, not relabeled as current passes.
+
+Read-only critical-path finding: syntax_session_declare calls syntax_version_cached
+for each activated grammar boundary. A miss calls syntax_version_build and the
+complete parser/LR construction; cache matching structurally compares ordered
+rules/tokens. Imports pass through syntax_session_open and that same declaration
+path, as confirmed in the fullfrontend sampled stack. The order is semantic, so
+neither batching activation past a declaration nor sharing mutable session caches
+is justified. Next evidence should distinguish cache misses from LR phase cost
+using existing counters/sparse timing, not thousands of GDB breakpoints. No claim
+that this alone explains the unresolved300second fullfrontend timeout.

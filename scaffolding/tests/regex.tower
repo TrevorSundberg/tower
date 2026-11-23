@@ -4,6 +4,7 @@ import mt19937;
 import utility_checks;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_budget;
 import .compiler.syntax_types;
 import .compiler.parser_types;
 import .compiler.format_types;
@@ -16,6 +17,8 @@ extern fn compiler_world_store(world: void*): void*;
 extern fn entity_store_count(store: void*): usize;
 extern fn frontend_world_clear(world: void*): bool;
 extern fn frontend_world_pattern(world: void*, source: u8*, length: usize, error: FormatResult*): SyntaxPattern*;
+extern fn frontend_world_pattern_result(world: void*, source: u8*, length: usize, error: FormatResult*, resource_error: WorkBudgetError*): SyntaxPattern*;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
 extern fn format_dispose(result: FormatResult*): void;
 extern fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): void;
@@ -297,7 +300,94 @@ fn regex_test_limits(world: void*): void {
     regex_test_reject(world, &source);
 }
 
+fn regex_test_pattern_resources(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Pattern result physical ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Pattern result world");
+    var source: u8* = "a+";
+    var error: FormatResult = default;
+    var resource = WorkBudgetError.None;
+    var pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern result warm constructor");
+    syntax_pattern_release(pattern);
+    format_dispose(&error);
+    utility_check(frontend_world_clear(world), "Pattern result clear warm reader");
+    var nodes = entity_store_count(compiler_world_store(world));
+    var retained = tower_test_buffer_count();
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Pattern result retained ledger");
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+        == WorkBudgetError.None, "Occupy pattern constructor bytes");
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern == null && resource == WorkBudgetError.Capacity,
+        "Cold pattern constructor preserves Capacity through grammar and table construction");
+    format_dispose(&error);
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern constructor blocker");
+    var failed: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
+        && failed.live == before.live && entity_store_count(compiler_world_store(world)) == nodes
+        && tower_test_buffer_count() == retained, "Denied pattern constructor releases partial owners");
+    var view = entity_view_open(compiler_world_type(world, CompilerParserRule));
+    utility_check(view != null, "Pin pattern grammar owner");
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern == null && resource == WorkBudgetError.Busy, "Pattern grammar lease denial preserves Busy");
+    format_dispose(&error);
+    entity_view_close(view);
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern constructor retries after ledger and lease release");
+    syntax_pattern_release(pattern);
+    format_dispose(&error);
+    utility_check(work_budget_snapshot(&budget, &before), "Pattern reader retained ledger");
+    retained = tower_test_buffer_count();
+    nodes = entity_store_count(compiler_world_store(world));
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+        == WorkBudgetError.None, "Occupy pattern reader bytes");
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern == null && resource == WorkBudgetError.Capacity,
+        "Cached pattern reader preserves control or forest Capacity");
+    format_dispose(&error);
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern reader blocker");
+    var calls = tower_test_buffer_allocations();
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    var allocations = tower_test_buffer_allocations() - calls;
+    utility_check(pattern != null && resource == WorkBudgetError.None && allocations != 0, "Measure complete pattern read allocations");
+    syntax_pattern_release(pattern);
+    format_dispose(&error);
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        tower_test_buffer_fail_after(failure);
+        pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check((pattern == null) == (resource == WorkBudgetError.Memory),
+            "Pattern reader allocation failures retain Memory, not ordinary syntax failure");
+        if pattern != null {
+            utility_check(resource == WorkBudgetError.None
+                && lex_table_match(pattern.table, "aaa!", strlen("aaa!"), 0) == strlen("aaa"),
+                "Optional successful pattern work keeps its accepted language");
+        }
+        syntax_pattern_release(pattern);
+        format_dispose(&error);
+        utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
+            && failed.live == before.live && failed.used_lanes == before.used_lanes
+            && entity_store_count(compiler_world_store(world)) == nodes && tower_test_buffer_count() == retained,
+            "Pattern read failure releases every partial owner");
+    }
+    source = "(";
+    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
+    utility_check(pattern == null && resource == WorkBudgetError.None && error.text.length != 0,
+        "Invalid pattern syntax remains distinct from resource failure");
+    format_dispose(&error);
+    utility_check(frontend_world_pattern_result(world, null, 1, &error, &resource) == null
+        && resource == WorkBudgetError.Invalid, "Invalid counted pattern pointer is explicit");
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Pattern result world cleanup");
+    utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == 0 && failed.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Pattern result ledger releases every owner");
+}
+
 export fn regex_tests(): void {
+    regex_test_pattern_resources();
     test_random_check();
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
