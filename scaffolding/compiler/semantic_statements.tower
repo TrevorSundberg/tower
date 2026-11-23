@@ -515,6 +515,22 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
         sem_fail(c, n, "A deferred cleanup cannot jump out of its scope");
         return FlowNext;
     }
+    // Module expression preparation belongs to the lexical statement consumer,
+    // including deferred prototypes and nested blocks. The outer module list
+    // alone misses those calls and synchronously checks unprepared signatures.
+    // Worker/query continuations retain their existing suspension path.
+    if sem_ok(c) && c.current == c.program.root && c.declaration_subjects == null
+        && c.entity_stage == null && c.query_reads == null && depth <= ControlBlockNestingLimit
+        && (sem_is(n, "CoreCallStatement") || sem_is(n, "TowerExpressionStatement"))
+        && sem_control_call(c, n, "label") == null && sem_control_call(c, n, "jump") == null {
+        var discarded = sem_is(n, "TowerExpressionStatement");
+        var source = sem_member(n, discarded ? "value" : "call");
+        var mode = discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
+        var prepared = sem_module_expression(c, source, mode);
+        if !sem_ok(c) { return FlowNext; }
+        var flow = discarded ? sem_expression_statement(c, n, prepared) : sem_call_statement(c, n, prepared);
+        return sem_statement_complete(c, n, flow);
+    }
     return sem_statement_complete(c, n, sem_statement_impl(c, n, depth));
 }
 
@@ -902,17 +918,7 @@ fn sem_run(c: SemanticContext*): void {
                 if i >= initializers_until { initializers_until = sem_module_initializer_range(c, statements, i); }
                 sem_module_initializer_finish(c, n);
             }
-            if sem_ok(c) && (sem_is(n, "CoreCallStatement") || sem_is(n, "TowerExpressionStatement"))
-                && sem_control_call(c, n, "label") == null && sem_control_call(c, n, "jump") == null {
-                var discarded = sem_is(n, "TowerExpressionStatement");
-                var source = sem_member(n, discarded ? "value" : "call");
-                var mode = discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
-                var prepared = sem_module_expression(c, source, mode);
-                if sem_ok(c) {
-                    var flow = discarded ? sem_expression_statement(c, n, prepared) : sem_call_statement(c, n, prepared);
-                    sem_statement_complete(c, n, flow);
-                }
-            } else { sem_statement(c, n, 0); }
+            sem_statement(c, n, 0);
             if sem_is(n, "CoreCallStatement") {
                 var step63 = sem_member(n, "call");
                 statements.data[i] = step63;

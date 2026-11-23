@@ -90,7 +90,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
         const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0) | (emit === 'foundation' ? 4 : 0) | (optimize ? 0 : 8), modules.environment)));
         if (result.status === 'error') return moduleDiagnostic(result, modules.sourceMap());
         if (emit === 'foundation') return {...result, foundation:string(e.tw_llvm_foundation()), before:string(e.tw_llvm_before()), after:string(e.tw_llvm_after())};
-        return { ...result, before: string(e.tw_llvm_before()), after: string(e.tw_llvm_after()), disassembly: e.tw_llvm_disassembly ? string(e.tw_llvm_disassembly()) : '',
+        return { ...result, sourceMap:modules.sourceMap(), before: string(e.tw_llvm_before()), after: string(e.tw_llvm_after()), disassembly: e.tw_llvm_disassembly ? string(e.tw_llvm_disassembly()) : '',
           [result.format === 'object' ? 'object' : result.format === 'wasm' ? 'wasm' : 'binary']: new Uint8Array(e.memory.buffer, e.tw_llvm_bytes(), e.tw_llvm_size()).slice() };
       } finally { e.free(pointer); }
     },
@@ -148,8 +148,10 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
   try { instance.exports.tower_main(); }
   catch (error) { if (!failure) failure = { error: error.message, errorOffset: 0 }; }
   append(decodeBytes(decoder, ),0);
-  const result = { status: failure ? 'error' : 'done', error: failure?.error ?? '', errorOffset: failure?.errorOffset ?? 0,
-    output: pending, outputTruncated };
+  // Native traps carry assembled-module offsets, like frontend errors. Localize
+  // using this artifact's snapshot before the caller applies Foundation spans.
+  const result = moduleDiagnostic({ status: failure ? 'error' : 'done', error: failure?.error ?? '', errorOffset: failure?.errorOffset ?? 0,
+    output: pending, outputTruncated }, compiled.sourceMap);
   update(result);
   return { ...result, output };
 }

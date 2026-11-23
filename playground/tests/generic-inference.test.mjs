@@ -65,13 +65,13 @@ test('nested specializations and straight-return aliases preserve nominal type i
  await compare(`import tower;
  fn box(U:type):type{struct Result{value:U;}return Result;}
  fn alias(V:type):type{return box(V);}
- fn pointer(V:type):type{return V*;}
+ fn pointer(V:type):type{return pointer_type(V);}
  fn load(T:type,p:alias(T)*):T{return p.value;}
  fn indirect(T:type,p:pointer(T)):T{return *p;}
  fn nested(T:type,p:box(box(T)*)*):T{return p.value.value;}
  var value:i64=42;var inner:box(i64);inner.value=value;
  var outer:box(box(i64)*);outer.value=&inner;
- print(load(&inner));print(indirect(&value));print(nested(&outer));`, '42\n42\n42\n');
+ print(load(&inner));print(indirect(i64,&value));print(nested(&outer));`, '42\n42\n42\n');
 });
 test('unresolved or conflicting deductions diagnose and explicit calls remain supported',()=>{
  for(const [body,error] of [
