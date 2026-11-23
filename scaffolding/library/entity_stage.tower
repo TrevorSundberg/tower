@@ -2,6 +2,7 @@ import tower;
 import entities;
 import entity_types;
 import vector;
+import work_budget_types;
 
 // A worker owns these actual canonical entities, not a shadow graph or commands
 // containing another node model. Existing parent links and dense type indexes
@@ -31,18 +32,25 @@ struct EntityStageCount {
     instances: usize;
 }
 
-fn entity_stage_init(stage: EntityStage*, anchor: Entity*): bool {
-    *stage = default;
-    if anchor == null || anchor.stage != null { return false; }
-    stage.anchor = anchor;
-    entity_retain(anchor);
-    return true;
+export fn entity_stage_open(anchor: Entity*): EntityStage* {
+    var error: WorkBudgetError;
+    return entity_stage_open_result(anchor, &error);
 }
 
-export fn entity_stage_open(anchor: Entity*): EntityStage* {
+// Coordinator-only lifetime acquisition. The required result belongs to this
+// call, never to a shared store error slot or another worker's stage.
+export fn entity_stage_open_result(anchor: Entity*, error: WorkBudgetError*): EntityStage* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if anchor == null || anchor.stage != null { return null; }
+    if anchor.store.reclaiming != 0 { *error = WorkBudgetError.Busy; return null; }
+    if anchor.references == ~convert(usize, 0) { *error = WorkBudgetError.Exhausted; return null; }
     var stage = alloc(EntityStage, 1);
-    if stage == null { return null; }
-    if !entity_stage_init(stage, anchor) { free(stage); return null; }
+    if stage == null { *error = WorkBudgetError.Memory; return null; }
+    *stage = default;
+    stage.anchor = anchor;
+    entity_retain(anchor);
+    *error = WorkBudgetError.None;
     return stage;
 }
 
@@ -101,36 +109,42 @@ fn entity_stage_count(counts: vector(EntityStageCount)*, node: Entity*): EntityS
 // Failure in preparation leaves all semantic identities/links/index lengths
 // unchanged. Capacity may grow, so publication requires an unpinned store even
 // when preparation fails. No fallible allocation remains after preparation.
-fn entity_stage_prepare(stage: EntityStage*): bool {
+fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
     var store = stage.anchor.store;
-    if store.views != 0 || !entity_stage_names(stage) { return false; }
+    if store.views != 0 { return WorkBudgetError.Busy; }
+    var result = entity_stage_names_result(stage);
+    if result != WorkBudgetError.None { return result; }
     var count = stage.nodes.length;
-    if count > ~convert(usize, 0) - store.next_id { return false; }
+    var maximum = ~convert(usize, 0);
+    if count > maximum - store.next_id { return WorkBudgetError.Exhausted; }
+    if count > maximum - store.entity_count { return WorkBudgetError.Invalid; }
     var components: usize = 0;
     for(var i: usize = 0; i < count; ++i) {
         var node = stage.nodes.data[i].node;
-        if node.component_count > ~convert(usize, 0) - components { return false; }
+        if node.component_count > maximum - components { return WorkBudgetError.Invalid; }
         components += node.component_count;
     }
     for(var i: usize = 0; i < stage.leases.length; ++i) {
         var lease = &stage.leases.data[i];
+        if lease.components > lease.node.component_count { return WorkBudgetError.Invalid; }
         var added = lease.node.component_count - lease.components;
-        if added > ~convert(usize, 0) - components { return false; }
+        if added > maximum - components { return WorkBudgetError.Invalid; }
         components += added;
     }
-    if count == 0 && components == 0 { return true; }
-    if components > ~convert(usize, 0) - store.component_count { return false; }
-    if components > ~convert(usize, 0) - count { return false; }
+    if count == 0 && components == 0 { return WorkBudgetError.None; }
+    if components > maximum - store.component_count { return WorkBudgetError.Invalid; }
+    if components > maximum - count { return WorkBudgetError.Invalid; }
     var entries = components + count;
-    if entries > ~convert(usize, 0) / 2 { return false; }
+    if entries > maximum / 2 { return WorkBudgetError.Invalid; }
     var capacity: usize = 8;
     while capacity < entries * 2 {
-        if capacity > ~convert(usize, 0) / 2 { return false; }
+        if capacity > maximum / 2 { return WorkBudgetError.Invalid; }
         capacity *= 2;
     }
+    if capacity > maximum / sizeof(EntityStageCount) { return WorkBudgetError.Invalid; }
     var counts: vector(EntityStageCount);
     vector_init(EntityStageCount, &counts);
-    if !vector_reserve(EntityStageCount, &counts, capacity) { return false; }
+    if !vector_reserve(EntityStageCount, &counts, capacity) { return WorkBudgetError.Memory; }
     counts.length = capacity;
     fill(counts.data, 0, capacity * sizeof(EntityStageCount));
     for(var i: usize = 0; i < count; ++i) {
@@ -146,46 +160,49 @@ fn entity_stage_prepare(stage: EntityStage*): bool {
             entity_stage_count(&counts, lease.node.components[j].type).instances++;
         }
     }
-    var success = true;
-    for(var i: usize = 0; i < capacity && success; ++i) {
+    for(var i: usize = 0; i < capacity && result == WorkBudgetError.None; ++i) {
         var entry = &counts.data[i];
         var node = entry.entity;
         if node == null { continue; }
-        if entry.children > ~convert(usize, 0) - node.child_count
-            || entry.instances > ~convert(usize, 0) - node.instance_count { success = false; break; }
+        if entry.children > maximum - node.child_count
+            || entry.instances > maximum - node.instance_count { result = WorkBudgetError.Invalid; break; }
         var children = node.child_count + entry.children;
+        var instances = node.instance_count + entry.instances;
+        if children > maximum / sizeof(EntityChild) || instances > maximum / sizeof(EntityComponent*) {
+            result = WorkBudgetError.Invalid;
+            break;
+        }
         if children > node.child_capacity {
             var memory = realloc(EntityChild, node.children, children);
-            if memory == null { success = false; break; }
+            if memory == null { result = WorkBudgetError.Memory; break; }
             node.children = memory;
             node.child_capacity = children;
         }
-        var instances = node.instance_count + entry.instances;
         if instances > node.instance_capacity {
             var memory = realloc(EntityComponent*, node.instances, instances);
-            if memory == null { success = false; break; }
+            if memory == null { result = WorkBudgetError.Memory; break; }
             node.instances = memory;
             node.instance_capacity = instances;
         }
     }
     vector_dispose(EntityStageCount, &counts);
-    if !success { return false; }
-    for(var i: usize = 0; success && i < stage.nodes.length; i++) {
-        success = entity_table_prepare(stage.nodes.data[i].node, null, null);
+    if result != WorkBudgetError.None { return result; }
+    for(var i: usize = 0; result == WorkBudgetError.None && i < stage.nodes.length; i++) {
+        result = entity_table_prepare_result(stage.nodes.data[i].node, null, null);
     }
-    for(var i: usize = 0; success && i < stage.leases.length; i++) {
+    for(var i: usize = 0; result == WorkBudgetError.None && i < stage.leases.length; i++) {
         var lease = &stage.leases.data[i];
         // Staged component lists only append. Payload-only leases retain their
         // published membership and need no destination row reservation.
         if lease.node.component_count != lease.components {
-            success = entity_table_prepare(lease.node, null, null);
+            result = entity_table_prepare_result(lease.node, null, null);
         }
     }
-    if !success {
+    if result != WorkBudgetError.None {
         foreach(var &entry in &stage.nodes) { entity_table_unprepare(entry.node); }
         foreach(var &lease in &stage.leases) { entity_table_unprepare(lease.node); }
     }
-    return success;
+    return result;
 }
 
 fn entity_stage_components(node: Entity*, first: usize): void {
@@ -201,7 +218,13 @@ fn entity_stage_components(node: Entity*, first: usize): void {
 }
 
 export fn entity_stage_publish(stage: EntityStage*): bool {
-    if stage.anchor == null || !entity_stage_prepare(stage) { return false; }
+    return entity_stage_publish_result(stage) == WorkBudgetError.None;
+}
+
+export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
+    if stage == null || stage.anchor == null { return WorkBudgetError.Invalid; }
+    var result = entity_stage_prepare_result(stage);
+    if result != WorkBudgetError.None { return result; }
     entity_stage_hold(stage);
     var store = stage.anchor.store;
     for(var i: usize = 0; i < stage.nodes.length; ++i) {
@@ -231,11 +254,11 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
     vector_dispose(EntityStageNode, &stage.nodes);
     vector_dispose(Entity*, &stage.references);
     vector_dispose(EntityStageLease, &stage.leases);
-    entity_component_pool_detach(&stage.storage);
+    entity_component_pool_transfer(&stage.storage, &store.storage);
     entity_release(stage.anchor);
     stage.anchor = null;
     free(stage);
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Call only after the owning worker joins. Finalizers run on the coordinator;
@@ -298,38 +321,40 @@ export fn entity_stage_create_named(stage: EntityStage*, parent: Entity*, name: 
 
 struct EntityStageNameIndex { parent: Entity*; name: u8*; }
 
-fn entity_stage_names(stage: EntityStage*): bool {
+fn entity_stage_names_result(stage: EntityStage*): WorkBudgetError {
     var count: usize = 0;
     foreach(var &entry in &stage.nodes) { if entry.name != null { count++; } }
-    if count == 0 { return true; }
+    if count == 0 { return WorkBudgetError.None; }
     var maximum = ~convert(usize, 0);
-    if count > maximum / 2 { return false; }
+    if count > maximum / 2 { return WorkBudgetError.Invalid; }
     var capacity: usize = 4;
     while capacity < count * 2 {
-        if capacity > maximum / 2 { return false; }
+        if capacity > maximum / 2 { return WorkBudgetError.Invalid; }
         capacity *= 2;
     }
-    if capacity > maximum / sizeof(EntityStageNameIndex) { return false; }
+    if capacity > maximum / sizeof(EntityStageNameIndex) { return WorkBudgetError.Invalid; }
     var names = alloc(EntityStageNameIndex, capacity);
-    if names == null { return false; }
+    if names == null { return WorkBudgetError.Memory; }
     defer free(names);
     fill(names, 0, capacity * sizeof(EntityStageNameIndex));
     var mask = capacity - 1;
     foreach(var &entry in &stage.nodes) {
         if entry.name == null { continue; }
         var parent = entry.node.parent;
-        if entity_member_index(parent, entry.name) < parent.child_count { return false; }
+        if entity_member_index(parent, entry.name) < parent.child_count { return WorkBudgetError.Invalid; }
         var hash = bits(usize, parent) / sizeof(Entity*);
         for(var i: usize = 0; entry.name[i] != 0; i++) { hash = (hash * 33) ^ convert(usize, entry.name[i]); }
         var index = hash & mask;
         while names[index].parent != null {
-            if names[index].parent == parent && entity_name_equal(names[index].name, entry.name) { return false; }
+            if names[index].parent == parent && entity_name_equal(names[index].name, entry.name) {
+                return WorkBudgetError.Invalid;
+            }
             index = (index + 1) & mask;
         }
         names[index].parent = parent;
         names[index].name = entry.name;
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Queue exactly the references owned by completed private payloads. Their

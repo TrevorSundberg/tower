@@ -13,9 +13,12 @@ import syntax_reader;
 import syntax_types;
 import syntax_validation;
 import .library.vector;
+import .library.work_budget_types;
 
 // Lower shared grammar declarations into ordinary parser entities. These name
 // and provenance indexes are disposable; the input entities remain authoritative.
+extern fn entity_create_related_result(node: void*, error: WorkBudgetError*): void*;
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 extern fn entity_create_related(node: void*): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
@@ -60,7 +63,10 @@ struct SyntaxEmission {
     helper: usize;
     literal_count: u32;
     failed: bool;
+    resource_error: WorkBudgetError;
 }
+
+var SyntaxEmissionInitialBuckets: usize = 17;
 
 fn emission_node(value: SyntaxEmission*, entity: void*): SyntaxNode* {
     var component = entity_component_get(entity, value.input.syntax_kind);
@@ -111,8 +117,13 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
     }
     var size = value.buckets.length;
     if value.names.length >= size {
+        if size > (~convert(usize, 0) - SyntaxEmissionInitialBuckets) / 2 {
+            value.resource_error = WorkBudgetError.Invalid;
+            value.failed = true;
+            return lr_none();
+        }
         size = size * 2;
-        size = size + 17;
+        size = size + SyntaxEmissionInitialBuckets;
         var ok = emission_rehash(value, size);
         if !ok {
             value.failed = true;
@@ -120,6 +131,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
         }
     }
     if size == 0 {
+        value.resource_error = WorkBudgetError.Invalid;
         value.failed = true;
         return lr_none();
     }
@@ -350,16 +362,19 @@ fn emission_child(value: SyntaxEmission*, parent: void*, kind: void*, payload: u
     if value.failed {
         return null;
     }
-    var node = entity_create_related(parent);
+    var error = WorkBudgetError.None;
+    var node = entity_create_related_result(parent, &error);
     var missing = node == null;
     if missing {
+        value.resource_error = error;
         value.failed = true;
         return null;
     }
-    var data = entity_component_data(entity_component_add(node, kind));
+    var data = entity_component_data(entity_component_add_result(node, kind, &error));
     missing = data == null;
     if missing {
         entity_release(node);
+        value.resource_error = error == WorkBudgetError.None ? WorkBudgetError.Invalid : error;
         value.failed = true;
         return null;
     }
@@ -1129,11 +1144,22 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
 
 // The parent and temporary input views are only borrowed during construction.
 export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmission*): SyntaxEmission* {
+    var error = WorkBudgetError.None;
+    return syntax_emit_inherit_result(input, parent, &error);
+}
+
+export fn syntax_emit_inherit_result(input: SyntaxEmissionInput*, parent: SyntaxEmission*, error: WorkBudgetError*): SyntaxEmission* {
+    *error = WorkBudgetError.Invalid;
+    if input is null || input.root is null { return null; }
+    *error = WorkBudgetError.Memory;
     var value = alloc(SyntaxEmission, 1);
     if value == null {
         return null;
     }
     *value = default;
+    // Semantic validation precedes emission. The construction failure latch
+    // records storage failures; explicit invalid extents override this result.
+    value.resource_error = WorkBudgetError.Memory;
     value.input = input;
     emission_build(value, parent);
     var ordinary = input.category == null;
@@ -1148,11 +1174,14 @@ export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmissio
         value.failed = !indexed;
     }
     if value.failed {
+        *error = value.resource_error;
         syntax_emission_destroy(value);
         return null;
     }
     value.input = null;
     emission_discard_scratch(value);
+    value.resource_error = WorkBudgetError.None;
+    *error = WorkBudgetError.None;
     return value;
 }
 

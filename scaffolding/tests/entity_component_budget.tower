@@ -257,7 +257,7 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         if disposition == PageDisposition.Publish {
             var address = job.first.data;
             page_check(entity_stage_publish(job.stage) && job.first.data == address
-                && job.first.page.pool == null && job.last.page.pool == null);
+                && job.first.page.pool == null && job.last.page.pool == &store.storage);
         } else { entity_stage_discard(job.stage); }
         job.stage = null;
     }

@@ -45,6 +45,7 @@ import .library.vector;
 extern fn entity_component_get(entity: void*, kind: void*): void*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
 extern fn entity_component_data(component: void*): void*;
 extern fn entity_child_at(parent: void*, index: usize): void*;
 extern fn tower_node_attach(child: void*, parent: void*): void;
@@ -69,9 +70,9 @@ fn syntax_session_fail(value: SyntaxSession*, message: u8*): void* {
     return null;
 }
 fn syntax_session_error_bytes(value: SyntaxSession*, text: u8*, length: usize): void {
-    if !bytes_assign_text(&value.error, text, length) { abort(); }
+    if !bytes_assign_text(&value.error, text, length) { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
 }
-fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, through: usize): void {
+fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, through: usize): bool {
     for (var i: usize = 0; i < value.highlights.items.length; ++i) {
         var row = &value.highlights.items.data[i];
         if !syntax_session_text(row.kind, "comment") || row.start < value.comment_cursor || row.end > through { continue; }
@@ -79,9 +80,13 @@ fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, thro
             var body = syntax_session_node(declaration.replacement);
             if row.start >= body.start && row.end <= body.end { continue; }
         }
-        if !syntax_comments_push(&declaration.comments, &value.source[row.start], row.end - row.start) { abort(); }
+        if !syntax_comments_push(&declaration.comments, &value.source[row.start], row.end - row.start) {
+            syntax_session_resource_fail(value, WorkBudgetError.Memory);
+            return false;
+        }
     }
     value.comment_cursor = through;
+    return true;
 }
 
 fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): bool {
@@ -106,7 +111,9 @@ fn syntax_session_declare(value: SyntaxSession*, construct: void*): bool {
     var error: vector(u8);
     vector_init(&error);
     defer vector_dispose(&error);
-    var candidate = syntax_revision_declare(value.pins.grammar, construct, compiler_world_type(value.inputs.world, CompilerSyntax), &error);
+    var kind = compiler_world_type_result(value.inputs.world, CompilerSyntax, &value.resource_error);
+    if kind is null { return false; }
+    var candidate = syntax_revision_declare_result(value.pins.grammar, construct, kind, &error, &value.resource_error);
     defer frontend_revision_release(candidate);
     if candidate is null {
         if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar revision"); }
@@ -120,8 +127,12 @@ fn syntax_session_read_declaration(value: SyntaxSession*, construct: void*, rule
     var error: vector(u8);
     vector_init(&error);
     defer vector_dispose(&error);
-    var ready = rule ? syntax_read_rule(construct, value.inputs.source, compiler_world_type(value.inputs.world, CompilerParserMatch), compiler_world_type(value.inputs.world, CompilerSyntax), &error)
-        : syntax_read_token(construct, value.inputs.source, compiler_world_type(value.inputs.world, CompilerParserMatch), compiler_world_type(value.inputs.world, CompilerSyntax), skipped, &error);
+    var match_kind = compiler_world_type_result(value.inputs.world, CompilerParserMatch, &value.resource_error);
+    if match_kind is null { return false; }
+    var syntax_kind = compiler_world_type_result(value.inputs.world, CompilerSyntax, &value.resource_error);
+    if syntax_kind is null { return false; }
+    var ready = rule ? syntax_read_rule_result(construct, value.inputs.source, match_kind, syntax_kind, &error, &value.resource_error)
+        : syntax_read_token_result(construct, value.inputs.source, match_kind, syntax_kind, skipped, &error, &value.resource_error);
     if !ready {
         if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar declaration"); }
         else { syntax_session_error_bytes(value, error.data, error.length); }
@@ -133,9 +144,12 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
     var entry = syntax_session_node(construct);
     if syntax_revision_rule(value.pins.grammar, entry.name.data, entry.name.length) is not null {
         syntax_session_error(value, "Name already defines a parse rule: ");
-        if !bytes_append(&value.error, entry.name.data, entry.name.length) { abort(); }
-        if !vector_reserve(&value.error, value.error.length + 1) { abort(); }
-        value.error.data[value.error.length] = 0;
+        if value.resource_error != WorkBudgetError.None { return false; }
+        if !bytes_append(&value.error, entry.name.data, entry.name.length) || !vector_push(&value.error, 0) {
+            syntax_session_resource_fail(value, WorkBudgetError.Memory);
+            return false;
+        }
+        value.error.length--;
         return false;
     }
     frontend_cache_pattern(&value.cache.index, construct, compiler_world_type(value.inputs.world, CompilerSyntax));
@@ -146,9 +160,9 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
     syntax_node_pattern(entry, pattern);
     syntax_pattern_release(pattern);
     if entry.compiled is not null { return true; }
-    if error.failed { syntax_session_error(value, "Unable to allocate token pattern diagnostic"); }
+    if error.failed { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
     else {
-        if !bytes_assign_text(&value.error, error.text.data, error.text.length) { abort(); }
+        syntax_session_error_bytes(value, error.text.data, error.text.length);
     }
     return false;
 }
@@ -176,14 +190,19 @@ fn syntax_session_expand(value: SyntaxSession*, root: void**): bool {
 
 fn syntax_session_finish(value: SyntaxSession*): void {
     if value.completing {
-        syntax_session_completion(value, parser_table_completion(bits(ParserHostTable*, value.pins.version.table)));
+        syntax_session_completion(value, parser_table_completion_result(bits(ParserHostTable*, value.pins.version.table), &value.resource_error));
+        if value.resource_error != WorkBudgetError.None {
+            syntax_session_pin_version(&value.pins.completion_version, null);
+            syntax_session_error(value, "Unable to allocate parser completion within its memory budget");
+            return;
+        }
         syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
     }
     if value.finalized { return; }
-    syntax_session_comments(value, syntax_session_node(value.inputs.document), value.cursor);
+    if !syntax_session_comments(value, syntax_session_node(value.inputs.document), value.cursor) { return; }
     var pending = bits(SyntaxPendingRevision*, value.pins.version.pending);
     if syntax_pending_count(pending) != 0 { syntax_session_error(value, syntax_pending_message(pending, &value.error_offset)); }
-    if value.building_bedrock && value.error.length == 0 {
+    if value.building_bedrock && value.error.length == 0 && value.resource_error == WorkBudgetError.None {
         var diagnostic: SyntaxVersionDiagnostic = default;
         defer syntax_version_diagnostic_dispose(&diagnostic);
         diagnostic.offset = value.error_offset;
@@ -192,7 +211,7 @@ fn syntax_session_finish(value: SyntaxSession*): void {
         syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
         value.error_offset = diagnostic.offset;
         syntax_version_diagnostic_dispose(&diagnostic);
-        if value.error.length == 0 {
+        if value.error.length == 0 && value.resource_error == WorkBudgetError.None {
             var version = syntax_version_build(value.inputs.world, null, value.pins.grammar, &diagnostic);
             value.resource_error = diagnostic.resource_error;
             defer syntax_version_release(version);
@@ -208,7 +227,7 @@ fn syntax_session_finish(value: SyntaxSession*): void {
 
 export fn syntax_next(opaque: void*): void* {
     var value = bits(SyntaxSession*, opaque);
-    if value.error.length != 0 { return null; }
+    if value.error.length != 0 || value.resource_error != WorkBudgetError.None { return null; }
     fill(&value.expansion_stats, 0, sizeof(SyntaxSessionExpansionStats));
     syntax_session_skip(value, &value.cursor, &value.highlights);
     if value.cursor == value.source_length { syntax_session_finish(value); return null; }
@@ -302,9 +321,12 @@ export fn syntax_next(opaque: void*): void* {
         var declaration = syntax_session_node(construct);
         declaration.start = start;
         declaration.end = value.cursor;
-        syntax_session_comments(value, declaration, value.cursor);
+        if !syntax_session_comments(value, declaration, value.cursor) { return null; }
         tower_node_attach(root, value.inputs.document);
-        if !vector_push(&syntax_session_node(value.inputs.document).items, construct) { abort(); }
+        if !vector_push(&syntax_session_node(value.inputs.document).items, construct) {
+            syntax_session_resource_fail(value, WorkBudgetError.Memory);
+            return null;
+        }
         var capture = false;
         var name = syntax_session_match(tower_node_get_child_member(construct, "name"));
         var template_start = lr_none();

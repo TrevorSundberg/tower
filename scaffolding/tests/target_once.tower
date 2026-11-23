@@ -2,6 +2,7 @@ import tower;
 import utility_checks;
 import .backend.target_api;
 import .library.work_pool;
+import .host.memory;
 
 var InitializerLanes: usize = 4;
 var InitializerRepeats: usize = 64;

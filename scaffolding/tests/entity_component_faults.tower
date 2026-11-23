@@ -7,10 +7,10 @@ import .library.work_budget_types;
 import .host.memory;
 
 extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
 
-var ComponentFaultLimit: usize = 64;
 var ComponentFaultBudgetBytes: usize = 1048576;
 
 fn component_fault_check(ok: bool): void {
@@ -21,7 +21,7 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
     trap("Component fault fixture has no lifecycle payloads", 0);
 }
 
-fn component_fault_trial(failure: usize, staged: bool, large: bool): bool {
+fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations: usize*): bool {
     var baseline = tower_test_buffer_count();
     var budget: WorkBudget = default;
     component_fault_check(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1));
@@ -49,9 +49,11 @@ fn component_fault_trial(failure: usize, staged: bool, large: bool): bool {
     var table = node.table;
     var before = budget.used_bytes;
     var live = budget.live;
+    var initial = tower_test_buffer_allocations();
     tower_test_buffer_fail_after(failure);
     var component = entity_component_add_result(node, next_type, &error);
     tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - initial;
     var succeeded = component != null;
     if !succeeded {
         component_fault_check(error == WorkBudgetError.Memory && node.component_count == 1
@@ -88,11 +90,15 @@ export fn main(argc: i32, argv: u8**): i32 {
     var count = sizeof(decltype(choices)) / sizeof(bool);
     for(var staged: usize = 0; staged < count; staged++) {
         for(var large: usize = 0; large < count; large++) {
-            var succeeded = false;
-            for(var failure: usize = 0; failure < ComponentFaultLimit; failure++) {
-                if component_fault_trial(failure, choices[staged], choices[large]) { succeeded = true; break; }
+            var allocations: usize = 0;
+            component_fault_check(component_fault_trial(~convert(usize, 0), choices[staged], choices[large], &allocations)
+                && allocations != 0);
+            var observed: usize = 0;
+            for(var failure: usize = 0; failure < allocations; failure++) {
+                component_fault_check(!component_fault_trial(failure, choices[staged], choices[large], &observed));
             }
-            component_fault_check(succeeded);
+            component_fault_check(component_fault_trial(allocations, choices[staged], choices[large], &observed)
+                && observed == allocations);
         }
     }
     puts("0");

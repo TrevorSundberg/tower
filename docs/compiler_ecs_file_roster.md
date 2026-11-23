@@ -1371,3 +1371,43 @@ scaffolding/tests/semantic_publish_checks.tower (173lines) is A1's specific test
 and D1's complete direct audit. Existing resource fixture's growth delta and
 entry-only registration conflict were reviewed in full. Counts1,084/499direct.
 Advertised later0e36d5c9 constructor/dispatch additions were not adopted or counted.
+
+### Root9b318 + L145dd + L29b integrated on D1f0ed105
+
+Current tracked census is1,093 Tower files /507 D1 direct paths. Sorted snapshots
+are retained in external D1/roster/current_f0ed_all.txt and current_f0ed_d1.txt.
+All eight new direct bodies have substantive preintegration review above and in
+compiler_ecs_audit_d1.md; those reviews do not assert current runtime acceptance.
+
+| New tracked path | Roster owner | Specific implementation reservation |
+| --- | --- | --- |
+| scaffolding/library/work_view_types.tower | A2 | A2 nominal borrowed-view/storage contract |
+| scaffolding/tests/compiler_work_profile.tower | D1 | A2 implementation; D2 measurement/tooling review |
+| scaffolding/tests/generic_inspection_budget.tower | D1 | L2 original regression; B2/B1 paired producer recovery |
+| scaffolding/tests/work_constructor_budget.tower | D1 | A2 |
+| scaffolding/tests/work_constructor_faults.tower | D1 | A2 |
+| scaffolding/tests/work_dispatch_result.tower | D1 | A2 |
+| scaffolding/tests/work_schedule_budget.tower | D1 | A2 |
+| scaffolding/tests/work_vector_profile.tower | D1 | A2 implementation; D2 measurement/tooling review |
+| scaffolding/tests/work_view_invalid_dispose.tower | D1 | A2 deliberate compile-negative ownership fixture |
+
+D1 owns only the approved semantic_resource_checks phase adaptation and its
+lr_work_main resource-smoke registration. L2 owns the separately authorized
+storage_main type-object hook, B1 the frontend grammar-resource selector.
+No new runner/manifest/provider is introduced by D1.
+
+### ROOT72a integrated at D1a7c569cc
+
+Current tracked census1,095 Tower paths /509 D1 direct paths. External snapshots
+D1/roster/current_a7c_all.txt and current_a7c_d1.txt match exact tracked paths.
+Both new files have substantive rows at reviewed72a218b8 in the D1 audit:
+
+| New tracked path | Roster owner | Specific implementation reservation |
+| --- | --- | --- |
+| scaffolding/tests/entity_create_result.tower | D1 | A2 fixture/producer; D1 normal registration assigned by root |
+| scaffolding/tests/entity_create_faults.tower | D1 | A2 fixture/producer; D1 serial fault registration assigned by root |
+
+Existing entity_views finalizer and target_once memory-provider delta retain
+prior fixture intent. New A1 semantic receipt/dispatch fixtures remain outside
+this tracked census until complete producer handoff; no declaration-only partial
+ABI or count-only acceptance is claimed.

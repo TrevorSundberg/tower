@@ -4,6 +4,9 @@ import frontend_units;
 import editor_units;
 import .compiler.syntax_session_types;
 import .compiler.syntax_version_types;
+import .compiler.completion_types;
+import .compiler.semantic_program_types;
+import .library.work_budget_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 
@@ -50,6 +53,9 @@ extern fn syntax_destroy(session: void*): void;
 extern fn entity_release(node: void*): usize;
 
 extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn completion_resource_error(query: CompletionQuery*): WorkBudgetError;
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
 
 extern fn host_json_unsigned(text: vector(u8)*, value: u64): bool;
 
@@ -75,6 +81,28 @@ fn editor_world_entry(output: u8*, source: u8*, spelling: u8*, detail_text: u8*)
     }
     if !matches { puts(spelling); puts(detail_text); puts(output); }
     units_check(matches, "Inspection describes the selected token");
+}
+
+// Exercise the public output boundary after a producer's fixed receipt survives
+// diagnostic recovery. Physical late-producer denial has its separate fixture.
+fn editor_world_resource_failure(query: void*): void {
+    var typed = bits(CompletionQuery*, query);
+    units_check(completion_resource_error(typed) == WorkBudgetError.None, "Valid inspection has no resource receipt");
+    var resource_offset: usize = 17;
+    sem_resource_record(&typed.program, WorkBudgetError.Capacity, resource_offset);
+    sem_resource_record(&typed.program, WorkBudgetError.Memory, resource_offset + 1);
+    typed.program.error.length = 0;
+    var buffers = tower_test_buffer_count();
+    tower_test_buffer_fail_after(0);
+    completion_symbols(query);
+    var output = completion_end(query);
+    var hidden = language_document_result(query) is null;
+    var classified = completion_resource_error(typed) == WorkBudgetError.Capacity;
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    units_check(hidden && classified && strstr(output, "\"error\"") != null
+        && typed.program.resource.offset == resource_offset,
+        "Resource receipt survives cleared diagnostics and suppresses successful output");
+    units_check(tower_test_buffer_count() == buffers, "Resource output boundary retains no new buffers");
 }
 
 fn editor_world_inspection(world: void*, environment: void*, width: u32): void {
@@ -135,6 +163,11 @@ fn editor_world_inspection(world: void*, environment: void*, width: u32): void {
     }
     var attribute_name_count: usize = 3;
     units_check(styled == attribute_name_count, "Attribute names and name arguments are highlighted");
+    editor_world_resource_failure(query);
+    var retry = language_document_world(world, environment, source, strlen(source), 0, width);
+    units_check(retry is not null && completion_resource_error(bits(CompletionQuery*, retry)) == WorkBudgetError.None
+        && language_document_result(retry) is not null, "Fresh inspection has independent resource state");
+    completion_dispose(retry);
 }
 
 fn editor_world_install(world: void*, environment: void*, source: u8*, foundation: bool): void {

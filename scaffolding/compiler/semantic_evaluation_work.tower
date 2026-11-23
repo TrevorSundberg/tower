@@ -79,8 +79,12 @@ export fn sem_evaluation_prepare_all(c: SemanticContext*): void {
     sem_evaluation_work_all(c, false);
 }
 
-fn sem_evaluation_clone_all(c: SemanticContext*): void {
+export fn sem_evaluation_clone_all(c: SemanticContext*): void {
     sem_evaluation_work_all(c, true);
+    // KnownSnapshot owns this clone-only frontier before inferred evaluations
+    // are demanded. Retain deferred errors in evaluation pumping, but restore
+    // them here before the snapshot caller attempts its dependent ticket.
+    if sem_ok(c) { sem_evaluation_select_failure(c, convert(u32, SemanticQuery.KnownClone)); }
 }
 
 // Register each subject once. Preparation is demanded by evaluation, including
@@ -135,7 +139,7 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
     if kind == null { return; }
     sem_control_names(c);
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return; }
     var batch: vector(SemanticEvaluationWork*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));

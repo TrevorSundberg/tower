@@ -293,7 +293,7 @@ Execution-session changes belong to L1; shared context/manifests require coordin
 | backend/macho_world.tower | World owns Mach-O objects/archive/dylib state; ordered lists are derived indexes with explicit teardown. | Full file reviewed. Parsed target bytes are private or immutable borrows. |
 | backend/macho_jobs.tower | Per-job scratch/error and output intervals use shared graph/pool; scope cleanup drains before world/view release. | Full file reviewed. Native Darwin execution is not established by Linux object tests. |
 | backend/wasm_link_world.tower | Owns object/archive/symbol metadata on one link world with ordered derived views and finalizers. | Full file reviewed. Wasm encoded bytes are output artifacts, not Foundation interchange. |
-| backend/wasm_link_jobs.tower | Preplanned jobs borrow frozen input; graph accesses delimit private results/output and joins precede publication/disposal. | Full file reviewed. Browser host capacity remains explicit; serial portable transport cannot establish overlap. |
+| backend/wasm_link_jobs.tower | Preplanned jobs borrow the complete frozen owner; graph accesses delimit private results/output. D2's real TSan reader run disproved the earlier cancellation-publication claim: cancellation wrote the owner's error before deferred drain. | B2 now drains before graph cancellation and shared error publication. Exact pre-optimization recipe reproduces before66; fixed native64, ASan/LSan and two-CPU TSan32 pass at the recorded72a closure with unchanged overlap/bytes/cancellation/source-order fixtures. New owner-history union still needs validation. Browser host capacity remains explicit. |
 | host/driver_link_objects.tower | Per-invocation owned object recipe names and buffers; link input lifetime extends through synchronous backend service. | Full file reviewed. Link phase follows frontend/backend joins; no extra simultaneously active compilation budget. |
 | host/driver_link_input.tower | Reads or maps explicit input objects, tracks borrow ownership, releases only after link returns. | Full file reviewed. External mapping immutability is a caller/filesystem contract. |
 | host/driver_link_flags.tower | Private ordered argument assembly preserves foreign linker option semantics and checked buffer ownership. | Full file reviewed. No shell interpolation or global symbol registry. |
@@ -611,3 +611,87 @@ Follow-up: current public ASan/LSan and TSan backend API plus registered calibra
 overlap checks pass on the exact ordering-fix checkpoint, with real distinct-thread
 overlap and exact objects. The journal records source/binary identities, WSL host
 difference and unsupported coverage. No failed historical receipt was replaced.
+
+### Fixed semantic failure receipts and constructor budgets (in progress)
+
+Reviewed against ROOT72a218b8 plus the exact A1 V2 interface and the owned draft.
+The native receipt checkpoint passed editor, query, units, cache and backend API
+checks; the following constructor changes have a fresh public aggregate build and
+focused serial allocation checks. Current combined sanitizers, IDE reactor runtime,
+owner producer joins and publication are still pending.
+
+| Paths | Finding and disposition |
+| --- | --- |
+| compiler/completion.tower; compiler/language_query.tower | Clearing ordinary diagnostics could expose partial successful inspection after resource failure. Consume the shared first-cause receipt after semantic queries and candidate callbacks, stop further work, retain cleanup, and reject output. The fixed-receipt test and independent8178 actual inspection denial pass. |
+| compiler/frontend_compilation.tower; compiler/frontend_units.tower | Preserve typed parser/module failures before diagnostic allocation; failed jobs use static text and retained offsets. Bind the outer pool, work graph/store constructor and each private world to the same synchronized batch ledger before allocation. |
+| compiler/world.tower | The old post-construction binder left descriptor storage uncharged and store.budget null. Add explicit budget construction with private initialization, exact typed failure and rollback; release the retained allocation only after ownership preflight. Legacy binder remains explicitly limited to selected subsequent buffers. No retroactive physical-page claim. |
+| backend/units.tower | Standalone pool slot storage now uses its existing batch ledger; streaming still shares the frontend pool and budget. Drain/borrow ownership order is unchanged. |
+| backend/session.tower; backend/source_session.tower | Resource failures bypass diagnostic formatting and expose static error JSON through the existing response getter. Borrowed fallback text is never freed; reset clears it. Canonical reconstruction also rejects the receipt. Browser source-service runtime coverage remains pending. |
+| host/driver_compile.tower | Resource receipts and machine failure independently reject execution/artifact success when error text is empty; report the shared static message and actual offset. |
+| host/ide_types.tower; host/ide_state.tower; host/ide_execution.tower; host/ide_artifacts.tower | Borrowed static error presentation, resource-aware handle publication, preserved machine failure and artifact/package gates. Bytecode load now retains the resource cause before cache matching. Public wasm leaves pass; new existing-runner cases are not yet executed in a matching reactor. |
+| tests/editor_world.tower; tests/ide.tower | Synthetic fixed-receipt output/retention/recovery checks, explicitly separate from producer denial and threaded allocator instrumentation. The editor case passed; IDE runtime remains pending. |
+| tests/world_constructor.tower; tests/frontend_units_allocation.tower | New constructor checks use production opaque APIs and the existing serial allocations selector. Measured constructor footprint bounds capacity trials; observed successful allocation count bounds every injected failure. Same-ledger ownership, store header grant, additional world bytes, first typed failure, occupied-output rejection and zero final ownership pass. |
+| tests/frontend_units_memory.tower; tests/backend_units.tower | Retain independently exact input/target bytes and allocation headers while accounting for new constructor/pool owners. Frontend constructor overhead is measured separately; one-byte-short failure, replacement retention and cleanup assertions remain. |
+
+The first constructor aggregate failed because importing compiler.world in its
+linked fixture also exposed typed entity implementation declarations against the
+runner's opaque ABI declarations. The fixture now imports only type declarations
+and calls the production exports, without copying CompilerWorld or adding a test
+provider. This failure and its successful retry remain in the journal/logs.
+A1 owns the shared receipt implementation, B1 owns parser producers and the separate
+world type-result helper region, L1 owns execution_session, and A2 owns generic
+storage/page accounting. Raw node/payload and foreign allocation gaps remain open.
+
+Joined follow-up at09517274 (complete ROOT75 plus B1908): all owned consumers now
+use the committed A1 provider history. A2 physical component pages are charged by
+the new prebound worlds; raw entity/index and foreign allocations remain separate.
+The original successful-compilation fixture allowance no longer covered the actual
+same-input peak. A checked fresh reference now supplies that allowance while exact
+input/header, short-cap and retry oracles stay independent. Both original retry
+gates pass. The original finite import-denial input and a new peak-minus-one case
+remain separate required negative tests.
+
+| Paths | Joined finding and evidence |
+| --- | --- |
+| compiler/frontend_modules.tower | module_load lost imported parser receipts while allocating error text. Capture the existing session/nested graph cause first, retain static fallback and source offset, preserve session/depth cleanup, and skip publication work on resource failure. Actual finite import denial now reaches unit output as Capacity. |
+| tests/frontend_units_memory.tower | Same-source measured reference executes42. Actual import denial passes its Capacity/no-output oracle after the consumer fix. The later peak-minus-one semantic failure reports Memory instead of Capacity; required assertion remains failing and exact complete source/repro is with A1/D1. No full units acceptance after adding this case. |
+| tests/backend_units.tower | Old postclose equality omitted newly charged coordinator component pages. Actual joined/released receipts prove16327 bytes retire, leaving1536 bytes of graph growth. Count physical allocations once through the stable borrowed anchor at joined boundaries; require exact page/target/object release, unchanged original components and exact remaining graph growth. Full backend suite passes, including serial/parallel objects, real frontend/LLVM overlap and cancellation. |
+
+Current native query, production/serial editor, cache and backend API checks pass.
+The constructor and import success-path profiles preserve canonical outputs and
+record serial/parallel wall/CPU/RSS plus physical retention; see the journal for
+sample limits and small observed timing changes. Full joined sanitizers and the
+new IDE reactor cases remain pending. New ROOT556/B13992 and future producer fixes
+are separate owner checkpoints; earlier receipts do not validate that later union.
+
+### ROOT35127448 follow-up review
+
+This complete source union retains all B2 changes and newer owner implementations.
+Native query/editor and calibrated backend overlap pass; matching ASan/LSan checks
+also pass for constructor allocation, both editor transports, backend API and actual
+frontend/backend overlap. Current thread instrumentation is still pending. These
+checks do not waive the measured-peak-minus-one Capacity regression: A1's concrete
+trace places its Memory misclassification in parser replacement preparation before
+semantic_compile, correcting the earlier inferred semantic-producer attribution.
+
+| Paths | Current finding and next owned action |
+| --- | --- |
+| backend/text.tower; backend/foreign_symbol.tower | Unchecked text reserve can return an incomplete plain or wrapped symbol as success. Reproduce with the existing serial foreign tool fixture before changing the output boundary. |
+| backend/foreign_reader.tower | Error text allocation is not a durable failure receipt. Allocation ownership-vector insertion can leak, and node/clone callers need complete null propagation. These source findings need actual per-allocation denial evidence. |
+| backend/foreign_itanium.tower; backend/foreign_microsoft.tower; backend/foreign_declarators.tower; backend/foreign_operators.tower | Derived substitution keys, operator names and decoration append through the same unchecked helper. Preserve target-specific bytes and first failure; no successful fallback may silently change ABI spelling. |
+| tests/foreign_tool_checks.tower; docs/foreign_tool_checks.md | Existing actual tool entry/runtime binder and serial fault allocator can host the new regression. A proposed extra generic frontend selector was withdrawn after this caller audit. |
+| backend/wasm_link_world.tower; backend/elf_link_world.tower; backend/pe_link_world.tower; backend/macho_world.tower | All four standalone stores use legacy unbounded construction. A borrowed shared ledger must be supplied before allocation; preserve an explicit legacy null boundary rather than invent a host memory cap. |
+| backend/wasm_link_jobs.tower; backend/elf_link_jobs.tower; backend/pe_link_jobs.tower; backend/macho_jobs.tower | Pools and graph storage remain unbudgeted. Worker counts/output guest caps do not bound host memory or coordinate outer/nested lane admission. Existing shared pool/graph/budget APIs should carry the contract; private scratch/raw vectors remain separately measurable gaps. |
+| backend/linker_tower_wasm.tower; backend/link_types.tower | Backend adapter currently constructs a standalone link without session ledger ownership. The caller contract and lifetime must precede CLI adoption; D2 owns its tool entry. No new parallel framework or global budget is proposed. |
+
+The linker rows are findings/proposed follow-up, not implementation or full memory
+coverage. Cancellation drain evidence validates that exact repair only. Production
+inputs stay frozen through current instrumentation; todo and owner boundaries are
+preserved. Full acceptance and publication remain open.
+
+The matching ROOT351 TSan query/editor/backend API and calibrated overlap checks
+now also pass, with all children drained. Exact binary identities, WSL host limits,
+observed times and unsupported coverage are in the journal and exported receipts.
+The new standalone foreign fault fixture is unvalidated and the regexdce successor
+is only fetched. These scoped passes do not close the required parser Capacity
+failure, new IDE reactor, remaining accounting contracts or integrated release.

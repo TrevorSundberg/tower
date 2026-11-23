@@ -9,6 +9,8 @@ import grammar_types;
 import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 
 extern fn node_payload_init(kind: u32, data: void*): void;
 
@@ -19,8 +21,9 @@ extern fn foundation_node_init(data: FoundationNode*): void;
 // Coordinator-owned identity and lifetime. Worlds do not share stores or type
 // entities. The legacy host uses one default world until its sessions migrate.
 struct CompilerWorld {
+    allocation: WorkBuffer;
     store: EntityStore*;
-    types: Entity*[9]; // CompilerComponentCount slots.
+    types: Entity*[CompilerComponentCount];
     registered: usize;
     worker_limit: usize;
     work_budget: WorkBudget*; // Borrowed immutable binding; owner outlives this world.
@@ -30,24 +33,38 @@ struct CompilerWorld {
 // Set once, before any nodes, pools or requests exist. This is an execution
 // resource policy, never part of type identity or Tower program semantics.
 export fn compiler_world_create_workers(limit: usize): CompilerWorld* {
-    if limit == 0 || limit > 256 { return null; }
-    var world = alloc(CompilerWorld, 1);
-    if world == null {
-        return null;
+    var world: CompilerWorld* = null;
+    compiler_world_create_result(limit, null, &world);
+    return world;
+}
+
+// Freeze the ledger before even the world/store descriptors exist. Failure
+// retires both private owners and leaves the caller's empty output unchanged.
+export fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: CompilerWorld**): WorkBudgetError {
+    if output == null || *output != null || limit == 0 || limit > WorkPoolMaximumCapacity {
+        return WorkBudgetError.Invalid;
     }
-    *world = default;
-    world.worker_limit = limit;
-    world.store = entity_store_create();
-    if world.store == null {
-        free(world);
-        return null;
+    if budget != null && (!budget.initialized || limit > budget.lanes
+        || (budget.lanes > 1 && (budget.gate == null || budget.enter == null || budget.leave == null))) {
+        return WorkBudgetError.Invalid;
+    }
+    var allocation: WorkBuffer = default;
+    var result = work_buffer_resize(&allocation, budget, sizeof(CompilerWorld), 0);
+    if result != WorkBudgetError.None { return result; }
+    var world = bits(CompilerWorld*, allocation.data);
+    *world = { allocation: allocation, worker_limit: limit, work_budget: budget, ..default };
+    result = entity_store_create_result(budget, &world.store);
+    if result != WorkBudgetError.None {
+        work_buffer_dispose(&allocation);
+        return result;
     }
     if !entity_store_set_context(world.store, bits(void*, world)) {
         entity_store_dispose(world.store);
-        free(world);
-        return null;
+        work_buffer_dispose(&allocation);
+        return WorkBudgetError.Invalid;
     }
-    return world;
+    *output = world;
+    return WorkBudgetError.None;
 }
 
 export fn compiler_world_create(): CompilerWorld* {
@@ -58,8 +75,9 @@ export fn compiler_world_worker_limit(world: CompilerWorld*): usize {
     return world.worker_limit;
 }
 
-// Bind only a fresh world. Nested kernels reserve extra lanes from this ledger;
-// their caller already owns one lane. A null binding keeps standalone policy.
+// Legacy boundary for selected-buffer fixtures: descriptors were already
+// allocated standalone. Production bounded owners use create_result instead.
+// Nested kernels reserve extra lanes; their caller already owns one lane.
 export fn compiler_world_bind_budget(world: CompilerWorld*, budget: WorkBudget*): bool {
     if world == null || budget == null || !budget.initialized
         || world.work_budget != null || world.registered != 0
@@ -132,7 +150,14 @@ export fn compiler_world_type_existing(world: CompilerWorld*, kind: u32): Entity
 }
 
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
-    if kind >= CompilerComponentCount {
+    var error = WorkBudgetError.None;
+    return compiler_world_type_result(world, kind, &error);
+}
+
+export fn compiler_world_type_result(world: CompilerWorld*, kind: u32, error: WorkBudgetError*): Entity* {
+    *error = WorkBudgetError.None;
+    if world is null || kind >= CompilerComponentCount {
+        *error = WorkBudgetError.Invalid;
         return null;
     }
     var type = world.types[kind];
@@ -180,13 +205,14 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
         alignment = alignof(SyntaxExpansion);
         lifecycle = compiler_expansion_lifecycle();
     }
-    type = entity_create(world.store);
+    type = entity_create_result(world.store, error);
     if type == null {
         return null;
     }
     var registered = entity_register(type, size, alignment, lifecycle);
     if !registered {
         entity_release(type);
+        *error = WorkBudgetError.Invalid;
         return null;
     }
     world.types[kind] = type;
@@ -273,7 +299,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
     if entity_store_count(world.store) != world.registered {
         return false;
     }
-    if entity_store_component_count(world.store) != 0 {
+    if entity_store_component_count(world.store) != 0 || world.store.storage.first != null {
         return false;
     }
     var index: u32 = 0;
@@ -295,7 +321,8 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
             entity_release(type);
         }
     }
-    var disposed = entity_store_dispose(world.store);
-    free(world);
-    return disposed;
+    if !entity_store_dispose(world.store) { trap("Compiler world store still borrowed", 0); }
+    var allocation = world.allocation;
+    work_buffer_dispose(&allocation);
+    return true;
 }

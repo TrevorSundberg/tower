@@ -7,6 +7,7 @@ import lr_analysis_api;
 import lr_control_types;
 import .compiler.parser_table_types;
 import .compiler.grammar_types;
+import .compiler.format_types;
 import .library.work_budget;
 import .library.work_budget_types;
 
@@ -15,9 +16,14 @@ extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn lr_completion_create(parser: void*): void*;
+extern fn lr_completion_create_result(parser: void*, error: WorkBudgetError*): void*;
+extern fn lr_completion_resource_error(completion: void*): WorkBudgetError;
 extern fn lr_completion_destroy(completion: void*): void;
 extern fn lr_completion_accepts(completion: void*, id: u32): bool;
 extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
+extern fn syntax_completion_enable(session: void*): void;
+extern fn syntax_completion_accepts(session: void*, text: u8*, literal: bool): bool;
+extern fn syntax_format_into(session: void*, result: FormatResult*, error: u8**): bool;
 extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation,
     mode: u32, error: WorkBudgetError*): ParserHostTable*;
 
@@ -68,16 +74,17 @@ fn parser_control_budget_trial(specialize: bool): void {
     utility_check(parser != null && work_budget_snapshot(&budget, &opened)
         && opened.used_bytes == before.used_bytes + retained, "LR control retry has no leaked partial owner");
 
-    var quota: LRProbeBudget = {remaining: ~convert(usize, 0), complete: true};
+    var quota: LRProbeBudget = {remaining: ~convert(usize, 0), complete: true, ..default};
     var probe = lr_probe_create(parser, &quota);
     var probed: WorkBudgetSnapshot = default;
     utility_check(probe != null && work_budget_snapshot(&budget, &probed)
         && probed.used_bytes > opened.used_bytes, "Probe snapshot owns charged object and frames");
     parser_control_occupy(&budget, 0, &occupied);
-    utility_check(lr_probe_clone(probe) == null && !quota.complete,
+    utility_check(lr_probe_clone(probe) == null && !quota.complete && quota.resource_error == WorkBudgetError.Capacity,
         "Denied probe clone reports incomplete without modifying its source");
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release probe clone blocker");
     quota.complete = true;
+    quota.resource_error = WorkBudgetError.None;
     var clone = lr_probe_clone(probe);
     utility_check(clone != null && lr_probe_count(clone) == lr_probe_count(probe), "Probe clone retries after denial");
     lr_probe_destroy(clone);
@@ -88,13 +95,14 @@ fn parser_control_budget_trial(specialize: bool): void {
         var state: usize = 0;
         var status = lr_probe_step(probe, convert(u32, input[index]), &state);
         if status == 0 {
-            utility_check(!quota.complete && lr_probe_count(probe) == count,
+            utility_check(!quota.complete && quota.resource_error == WorkBudgetError.Capacity && lr_probe_count(probe) == count,
                 "Denied probe frame growth preserves the prior stack and reports incomplete");
             denied = true;
         }
         utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release probe growth blocker");
         if status == 0 {
             quota.complete = true;
+            quota.resource_error = WorkBudgetError.None;
             status = lr_probe_step(probe, convert(u32, input[index]), &state);
         }
         utility_check(status == LRShift && lr_parser_frame_count(parser) == 1 && lr_parser_consumed(parser) == 0,
@@ -104,14 +112,20 @@ fn parser_control_budget_trial(specialize: bool): void {
     lr_probe_destroy(probe);
 
     parser_control_occupy(&budget, 0, &occupied);
-    utility_check(lr_completion_create(parser) == null, "Completion owner denies before publication");
+    var completion_error = WorkBudgetError.None;
+    utility_check(lr_completion_create_result(parser, &completion_error) == null && completion_error == WorkBudgetError.Capacity,
+        "Completion owner denies with its typed result before publication");
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion blocker");
     var completion = lr_completion_create(parser);
     utility_check(completion != null, "Completion owner retries after denial");
     parser_control_occupy(&budget, 0, &occupied);
-    utility_check(!lr_completion_accepts(completion, convert(u32, input[0])), "Completion cannot fabricate a denied probe result");
+    utility_check(!lr_completion_accepts(completion, convert(u32, input[0]))
+        && lr_completion_resource_error(completion) == WorkBudgetError.Capacity,
+        "Completion preserves a denied probe result separately from an absent offer");
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion query blocker");
-    utility_check(lr_completion_accepts(completion, convert(u32, input[0])), "Completion query retries with available memory");
+    utility_check(lr_completion_accepts(completion, convert(u32, input[0]))
+        && lr_completion_resource_error(completion) == WorkBudgetError.None,
+        "Completion query retries with available memory");
     lr_completion_destroy(completion);
 
     denied = false;
@@ -141,6 +155,92 @@ fn parser_control_budget_trial(specialize: bool): void {
     entity_release(root);
     utility_check(compiler_world_dispose(world) && work_budget_dispose(&budget), "Control budget outlives runtime and world");
     utility_check(tower_test_buffer_count() == buffers, "Control denial and retry retain no physical buffers");
+}
+
+fn parser_completion_ready(session: void*): void {
+    loop {
+        var root = syntax_next(session);
+        if root is null { break; }
+        entity_release(root);
+    }
+    utility_check(syntax_get_error(session)[0] == 0
+        && syntax_session_resource_error(session) == WorkBudgetError.None
+        && syntax_completion_accepts(session, "hello", true),
+        "Completion has a known valid offer after parsing its imported grammar");
+}
+
+fn parser_session_diagnostic_failure(session: void*): void {
+    var world = compiler_world_create_workers(1);
+    var environment = frontend_modules_create();
+    utility_check(world is not null && environment is not null, "Diagnostic failure foreign owner");
+    var module = frontend_module_root_world(world, "", environment);
+    utility_check(module is not null, "Diagnostic failure foreign module");
+    tower_test_buffer_fail_after(0);
+    syntax_reset(session, "", module);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(syntax_session_resource_error(session) == WorkBudgetError.Memory
+        && syntax_get_error(session)[0] != 0 && syntax_next(session) is null,
+        "Denied diagnostic copy retains a fixed resource failure without aborting");
+    var formatted: FormatResult = default;
+    var error: u8* = null;
+    utility_check(!syntax_format_into(session, &formatted, &error) && error is not null
+        && error[0] != 0 && formatted.text.length == 0,
+        "Failed session cannot publish canonical source without error text storage");
+    format_dispose(&formatted);
+    frontend_module_destroy(module);
+    frontend_modules_destroy(environment);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Diagnostic fixture owners retire");
+}
+
+fn parser_session_completion_budget_test(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Completion session ledger");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null && compiler_world_bind_budget(world, &budget), "Completion session world");
+    var environment = frontend_modules_create();
+    utility_check(environment != null, "Completion session environment");
+    world_session_prepare(world, environment);
+    var source: u8* = "import shared; ";
+    var module = frontend_module_root_world(world, source, environment);
+    utility_check(module != null, "Completion session module");
+    var session = frontend_module_session(module);
+    utility_check(session != null, "Completion session owner");
+    syntax_completion_enable(session);
+    parser_completion_ready(session);
+    parser_session_diagnostic_failure(session);
+    syntax_reset(session, source, module);
+    parser_completion_ready(session);
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(!syntax_completion_accepts(session, "hello", true)
+        && syntax_session_resource_error(session) == WorkBudgetError.Capacity,
+        "Mid-completion byte denial reaches the typed session channel");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion query denial");
+    utility_check(!syntax_completion_accepts(session, "hello", true)
+        && syntax_session_resource_error(session) == WorkBudgetError.Capacity,
+        "Completion keeps its first resource failure until session reset");
+    syntax_reset(session, source, module);
+    parser_completion_ready(session);
+    utility_check(!syntax_completion_accepts(session, "not_a_declared_literal", true)
+        && syntax_session_resource_error(session) == WorkBudgetError.None,
+        "A missing completion offer is not a resource failure");
+    syntax_reset(session, source, module);
+    var root = syntax_next(session);
+    utility_check(root != null, "Prepare imported grammar before completion snapshot denial");
+    entity_release(root);
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(syntax_next(session) == null
+        && syntax_session_resource_error(session) == WorkBudgetError.Capacity,
+        "End-of-input completion snapshot denial preserves its typed result");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion snapshot denial");
+    syntax_reset(session, source, module);
+    parser_completion_ready(session);
+    frontend_module_destroy(module);
+    frontend_modules_destroy(environment);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world) && work_budget_dispose(&budget),
+        "Completion sessions retire before their ledger");
+    utility_check(tower_test_buffer_count() == buffers, "Completion query and snapshot denial retain no owners");
 }
 
 fn parser_session_budget_trial(prepare: bool): void {
@@ -295,4 +395,5 @@ fn parser_table_budget_tests(): void {
     parser_control_budget_trial(true);
     parser_session_budget_trial(false);
     parser_session_budget_trial(true);
+    parser_session_completion_budget_test();
 }

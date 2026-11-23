@@ -359,7 +359,17 @@ extern fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count
 // The same immutable world budget governs every semantic phase, including
 // interpreter evaluation and resumed declaration/body work.
 export fn sem_workers_open(c: SemanticContext*): bool {
-    return c.workers.count != 0 || work_pool_open(&c.workers, compiler_worker_capacity(c.program.root));
+    if !sem_ok(c) { return false; }
+    if c.workers.count != 0 { return true; }
+    var world = compiler_node_world(c.program.root);
+    if work_pool_open_budget(&c.workers, compiler_worker_capacity(c.program.root),
+        compiler_world_work_budget(world)) { return true; }
+    var error = c.workers.resource_error;
+    if error == WorkBudgetError.None { error = WorkBudgetError.Invalid; }
+    var message: vector(u8) = default;
+    var operation = sem_get(c.current ?? c.program.root);
+    sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
+    return false;
 }
 
 // The coordinator already owns its outer lane. A retained pool is capacity,

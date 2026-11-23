@@ -106,11 +106,11 @@ fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): boo
 // declaration/body publication appends this index in canonical source order.
 // An earlier demanded continuation may still discover a failure in a later
 // pump, so retain later failures until that earlier producer has terminated.
-fn sem_evaluation_select_failure(c: SemanticContext*): bool {
+fn sem_evaluation_select_failure(c: SemanticContext*, query: u32): bool {
     if c.declaration_isolated { return false; }
     foreach(var job in &c.evaluation_jobs) {
         var result = bits(SemanticEvaluation*, job);
-        var id = work_find(&c.queries, result.subject, EvaluationQuery, 0);
+        var id = work_find(&c.queries, result.subject, query, 0);
         if id == 0 { continue; }
         var task = work_task(&c.queries, id);
         if !task.demanded || task.state == WorkState.Succeeded { continue; }
@@ -149,6 +149,27 @@ fn sem_evaluation_failed(c: SemanticContext*, result: SemanticEvaluation*): bool
     }
     sem_evaluation_fail(c, result, message, sem_get(result.subject).start);
     return false;
+}
+
+// A joined dependency request may already have failed or cancelled its graph.
+// Retire only a still-owned ticket, then drain the private invocation regardless
+// of graph state. Remaining joined peers use this same path without publication.
+fn sem_evaluation_stop(c: SemanticContext*, result: SemanticEvaluation*): void {
+    result.ready.failed = true;
+    result.ready.ready = true;
+    if c.queries.resource_error != WorkBudgetError.None {
+        var message: vector(u8) = default;
+        sem_restore_resource(c, c.queries.resource_error, &message, sem_get(result.subject).start);
+    }
+    if work_ticket_valid(&c.queries, &result.ticket) {
+        if !work_finish(&c.queries, &result.ticket, false) {
+            var error = sem_query_cancel_failure(c);
+            var message: vector(u8) = default;
+            sem_restore_resource(c, error, &message, sem_get(result.subject).start);
+        }
+    }
+    if !work_ok(&c.queries) && !c.queries.cancelled { work_cancel(&c.queries); }
+    interpreter_invocation_dispose(&result.invocation);
 }
 
 export fn sem_evaluation_begin(c: SemanticContext*): void {
@@ -374,7 +395,9 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
     if c.evaluation_jobs.length == 0 { return SemanticPumpResult.Complete; }
     // Early local captures may be registered while a declaration owns a query
     // ticket. Their clone wave becomes runnable after that producer suspends.
-    sem_evaluation_clone_all(c);
+    // Cloning is part of this evaluation owner's frontier. A later clone error
+    // must wait for an earlier demanded evaluation, even if its clone is done.
+    sem_evaluation_work_all(c, true);
     sem_evaluation_work_register(c, false);
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     var index: usize = 0;
@@ -386,7 +409,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         index++;
     }
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticEvaluation*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
@@ -394,7 +417,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         // A suspended interpreter can demand another stage. Prepare only that
         // ready frontier before opening the next immutable execution view.
         sem_evaluation_prepare_all(c);
-        if !sem_ok(c) || sem_evaluation_select_failure(c) { return SemanticPumpResult.Failed; }
+        if !sem_ok(c) || sem_evaluation_select_failure(c, EvaluationQuery) { return SemanticPumpResult.Failed; }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var count: usize = 0;
@@ -423,6 +446,11 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         while index < count {
             var result = batch.data[index];
             var invocation = &result.invocation;
+            if !sem_ok(c) || !work_ok(&c.queries) {
+                sem_evaluation_stop(c, result);
+                index++;
+                continue;
+            }
             if invocation.state.failed || invocation.state.storage_error != WorkBudgetError.None {
                 result.ready.failed = true;
                 result.ready.ready = true;
@@ -462,17 +490,15 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                         var dependency = sem_type_execution_request(c, result.subject,
                             &invocation.context.type_construction, &result.ticket);
                         if dependency == 0 {
-                            result.ready.failed = true;
-                            result.ready.ready = true;
-                            sem_require(work_finish(&c.queries, &result.ticket, false));
-                            interpreter_invocation_dispose(invocation);
+                            sem_evaluation_stop(c, result);
                         } else { sem_require(work_suspend(&c.queries, &result.ticket, dependency)); }
                     } else {
                         if waiting != null {
                             var dependency = invocation.context.waiting_function ? sem_executable_request(c, waiting)
                                 : invocation.context.waiting_binding ? sem_capture_request(c, waiting)
                                 : work_request(&c.queries, waiting, EvaluationQuery, 0);
-                            sem_require(work_suspend(&c.queries, &result.ticket, dependency));
+                            if dependency == 0 { sem_evaluation_stop(c, result); }
+                            else { sem_require(work_suspend(&c.queries, &result.ticket, dependency)); }
                         } else { sem_require(work_yield(&c.queries, &result.ticket)); }
                     }
                 }
@@ -480,7 +506,8 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
             index++;
         }
     }
-    return sem_ok(c) && !sem_evaluation_select_failure(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+    return sem_ok(c) && work_ok(&c.queries) && !sem_evaluation_select_failure(c, EvaluationQuery)
+        ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
 }
 
 // Call only after the owning pipeline can no longer satisfy a waiting producer.

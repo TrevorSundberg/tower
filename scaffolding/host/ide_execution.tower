@@ -11,6 +11,9 @@ import .library.vector;
 import .compiler.interpreter_types;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
+import .library.work_budget_types;
+
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 // Each execution owns its root, typed program indexes, cache and guest storage.
 // Destruction takes the handle first; a stale handle cannot reach freed state.
@@ -48,6 +51,12 @@ fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, fou
         frontend_compile_sources(&session.program, sources, count, environment);
         syntax_destroy(lease);
     }
+    if session.program.resource.error != WorkBudgetError.None {
+        session.machine.error_offset = session.program.resource.offset;
+        session.machine.failed = true;
+        session.machine.done = true;
+        return session;
+    }
     ide_require(bytes_assign_text(&session.error, session.program.error.data, session.program.error.length));
     session.machine.error_offset = session.program.error_offset;
     session.machine.failed = session.error.length != 0;
@@ -69,6 +78,11 @@ fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool):
 }
 
 fn ide_execution_publish(session: IdeExecution*): u32 {
+    if session.program.resource.error != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(session.program.resource.error));
+        ide_execution_close(session);
+        return 0;
+    }
     var state = ide_state();
     var handle = host_handles_insert(&state.handles, 1, bits(void*, session));
     if handle == 0 {
@@ -90,6 +104,7 @@ fn ide_execution_capacity(): bool {
 }
 
 fn ide_execution_fast(session: IdeExecution*): bool {
+    if session.machine.failed || session.program.resource.error != WorkBudgetError.None { return false; }
     if session.machine.steps != 0 {
         return false;
     }
@@ -272,7 +287,11 @@ var IdeExecutionStepLimit: u32 = 100000;
 
 fn ide_execution_step(session: IdeExecution*, budget: u32): void {
     if budget > IdeExecutionStepLimit { budget = IdeExecutionStepLimit; }
-    session.machine.failed = session.error.length != 0;
+    session.machine.failed ||= session.error.length != 0 || session.program.resource.error != WorkBudgetError.None;
+    if session.program.resource.error != WorkBudgetError.None {
+        session.machine.done = true;
+        return;
+    }
     var fast = session.fast != null;
     if fast {
         fast_interpreter_step(&session.machine, session.fast, convert(usize, budget));
@@ -287,7 +306,15 @@ export fn tw_exec_step(handle: u32, budget: u32): u8* {
     if session == null {
         return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
     }
+    if session.program.resource.error != WorkBudgetError.None {
+        session.machine.failed = true;
+        session.machine.done = true;
+        return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
+    }
     ide_execution_step(session, budget);
+    if session.machine.failed && session.error.length == 0 {
+        return "{\"status\":\"error\",\"error\":\"Execution failed without a diagnostic\"}";
+    }
     var state = ide_state();
     var out = &state.execution;
     ide_require(host_execution_json(out, session.error.data, session.error.length, session.machine.error_offset, session.machine.done, session.output.data, session.output.length, session.machine.steps, session.machine.output_truncated));
@@ -422,6 +449,6 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
     ide_text(&request, "}");
     var result = tw_foreign_call(session.handle, ide_result(&request));
     bytes_dispose(&request);
-    machine.failed = session.error.length != 0;
+    machine.failed ||= session.error.length != 0 || session.program.resource.error != WorkBudgetError.None;
     return result;
 }

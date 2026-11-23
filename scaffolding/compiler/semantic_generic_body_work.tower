@@ -1,7 +1,7 @@
 import tower;
 import semantic_context_types;
 import compiler_kernel;
-import generic_body_types;
+import semantic_generic_body_types;
 import semantic_context;
 import semantic_program_types;
 import semantic_declarations;
@@ -21,13 +21,13 @@ extern fn compiler_generic_body_kernel(payload: void*): void;
 extern fn compiler_node_world(node: void*): void*;
 extern fn entity_stage_hold(stage: void*): void;
 extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_stage_publish_result(stage: void*): WorkBudgetError;
 
-struct SemanticGenericBodyWork {
-    query: usize;
-    kernel: CompilerKernel;
-    ticket: WorkTicket;
-    request: GenericBodyCopy;
-    error: u8*;
+fn sem_generic_body_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    var message: vector(u8) = default;
+    sem_restore_resource(c, error, &message, sem_offset(c, subject));
 }
 
 // Clone work belongs to the instance, independently of function-only lexical
@@ -60,32 +60,46 @@ fn sem_generic_body_dispose(c: SemanticContext*): void {
     }
 }
 
-fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
+export fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
+    if !sem_ok(c) { return null; }
     var result = sem_generic_body_work(c, subject);
     if result.query != 0 { return result; }
     var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
-    sem_require(id != 0);
-    result.query = id;
-    if predecessor != 0 { sem_require(work_depend(&c.queries, id, predecessor)); }
+    if id == 0 || (predecessor != 0 && !work_depend(&c.queries, id, predecessor)) {
+        sem_generic_body_resource(c, subject, sem_query_error(c));
+        return null;
+    }
     // Immutable inputs and one private output per instance. Query identity
     // keeps function and type-instance write ranges in the same namespace.
     var domain = convert(u64, SemanticWorkDomain.Compiler);
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.GenericBody), id, 1, WorkAccessMode.Write));
-    sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+    if !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)
+        || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read)
+        || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.GenericBody), id, 1, WorkAccessMode.Write)
+        || !work_seal(&c.queries, id) || !work_demand(&c.queries, id) {
+        sem_generic_body_resource(c, subject, sem_query_error(c));
+        return null;
+    }
+    result.query = id;
     return result;
 }
 
 fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): void {
+    if !sem_ok(c) { return; }
     var cloned = work_find(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
-    if cloned != 0 { sem_require(work_depend(&c.queries, id, cloned)); }
+    if cloned != 0 && !work_depend(&c.queries, id, cloned) {
+        sem_generic_body_resource(c, subject, sem_query_error(c));
+    }
 }
 
 fn sem_generic_body_failure(c: SemanticContext*, subject: void*): bool {
     if c.generic_copies == null { return false; }
     var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_component_get(subject, c.generic_copies)));
-    if result == null || result.error == null { return false; }
+    if result == null { return false; }
+    if result.request.storage_error != WorkBudgetError.None {
+        sem_generic_body_resource(c, subject, result.request.storage_error);
+        return true;
+    }
+    if result.error == null { return false; }
     sem_fail(c, subject, result.error);
     return true;
 }
@@ -104,7 +118,11 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize): void {
         if !sem_body_needed(c, subject) || !generic_body_pending(c.generics, subject) { continue; }
         var signature = sem_declaration_query(c, subject);
         var result = sem_generic_body_request(c, subject, signature);
-        sem_require(vector_push(&batch, result));
+        if !sem_ok(c) { return; }
+        if !vector_push(&batch, result) {
+            sem_generic_body_resource(c, subject, WorkBudgetError.Memory);
+            return;
+        }
     }
     while sem_generic_copies_execute(c) {}
     foreach(var result in &batch) {
@@ -115,16 +133,33 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize): void {
 
 // One graph-driven executor serves function and type-instance consumers. Clone
 // errors stay on their receipts so the consumer selects its source diagnostic.
-fn sem_generic_copies_execute(c: SemanticContext*): bool {
+export fn sem_generic_copies_execute(c: SemanticContext*): bool {
     if !sem_ok(c) { return false; }
+    // A busy entry owns none of the other caller's jobs, stages or graph leases.
+    if c.workers.running != 0 {
+        sem_generic_body_resource(c, c.program.root, WorkBudgetError.Busy);
+        return false;
+    }
     var batch: vector(SemanticGenericBodyWork*) = default;
-    defer vector_dispose(&batch);
+    defer {
+        // Wave defers have already discarded unpublished stages and returned
+        // worker grants. Only now may graph cancellation release their leases.
+        if !sem_ok(c) { work_cancel(&c.queries); }
+        vector_dispose(&batch);
+    }
     var ticket: WorkTicket;
     while batch.length < SemanticPreparationWindow
         && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.GenericBody)) {
         var result = sem_generic_body_work(c, work_task(&c.queries, ticket.task).subject);
         result.ticket = ticket;
-        sem_require(vector_push(&batch, result));
+        if !vector_push(&batch, result) {
+            sem_generic_body_resource(c, result.request.node, WorkBudgetError.Memory);
+            return false;
+        }
+    }
+    if !work_ok(&c.queries) {
+        sem_generic_body_resource(c, c.program.root, sem_query_error(c));
+        return false;
     }
     for(var first: usize = 0; first < batch.length;) {
         // Retained stages share the existing clone budget. This lets idle slots
@@ -142,37 +177,72 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
             if cost > request.limit { break; }
         }
         var reservation: WorkReservation;
-        var extra = sem_workers_admit(c, stop - first, &reservation);
+        var extra: usize = 0;
+        var admission = sem_workers_admit_result(c, stop - first, &reservation, &extra);
+        if admission != WorkBudgetError.None {
+            sem_generic_body_resource(c, batch.data[first].request.node, admission);
+            return false;
+        }
         // The borrowed grant survives every stage hold, publication and ticket
         // completion in this wave. Clone node limits remain independent.
-        defer sem_workers_release(c, &reservation);
+        var wave_first = first;
+        var wave_stop = stop;
+        defer {
+            for(var i = wave_first; i < wave_stop; i++) {
+                var request = &batch.data[i].request;
+                if request.stage != null {
+                    entity_stage_discard(request.stage);
+                    request.stage = null;
+                }
+            }
+            sem_workers_release(c, &reservation);
+        }
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
-            result.request.stage = entity_stage_open(c.program.root);
-            sem_require(result.request.stage != null);
+            var error: WorkBudgetError;
+            result.request.stage = entity_stage_open_result(c.program.root, &error);
+            if result.request.stage == null {
+                sem_generic_body_resource(c, result.request.node, error);
+                return false;
+            }
         }
-        var view = entity_view_open(c.program.root);
-        sem_require(view != null);
-        sem_require(compiler_kernel_dispatch_admitted(&c.workers, &batch.data[first], stop - first, extra));
+        var view_error: WorkBudgetError;
+        var view = entity_view_open_result(c.program.root, &view_error);
+        if view == null {
+            sem_generic_body_resource(c, batch.data[first].request.node, view_error);
+            return false;
+        }
+        var dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, &batch.data[first], stop - first, extra);
         // Histories can have zero references pending reclamation under this pin.
         // Acquire their queued payload ownership before releasing the last view.
         for(var i = first; i < stop; i++) { entity_stage_hold(batch.data[i].request.stage); }
         entity_view_close(view);
+        if dispatched != WorkBudgetError.None {
+            sem_generic_body_resource(c, batch.data[first].request.node, dispatched);
+            return false;
+        }
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
             var request = &result.request;
             var accepted = request.success && request.copied <= generic_body_limit(c.generics);
             if accepted {
-                sem_require(entity_stage_publish(request.stage));
+                var published = entity_stage_publish_result(request.stage);
+                if published != WorkBudgetError.None {
+                    sem_generic_body_resource(c, request.node, published);
+                    return false;
+                }
+                request.stage = null;
                 generic_body_complete(c.generics, request.node, request.copied);
             } else {
                 entity_stage_discard(request.stage);
-                result.error = request.storage_error != WorkBudgetError.None
-                    ? "Cannot allocate template clone storage within its memory budget"
-                    : "Template expansion exceeds 65536 nodes or could not allocate its work stack";
+                result.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
             }
             request.stage = null;
-            sem_require(work_finish(&c.queries, &result.ticket, accepted));
+            if !work_finish(&c.queries, &result.ticket, accepted) {
+                sem_generic_body_resource(c, request.node, request.storage_error != WorkBudgetError.None
+                    ? request.storage_error : sem_query_error(c));
+                return false;
+            }
         }
         first = stop;
     }

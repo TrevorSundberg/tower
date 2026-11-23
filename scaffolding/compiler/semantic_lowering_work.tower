@@ -172,7 +172,7 @@ export fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResu
     var kind = sem_lower_register(c, signature);
     if kind == null { return SemanticPumpResult.Complete; }
     var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticLowering*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));

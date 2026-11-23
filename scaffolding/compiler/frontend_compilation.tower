@@ -5,6 +5,7 @@ import semantic_lifecycle;
 import semantic_modules;
 import semantic_support;
 import .library.vector;
+import .library.work_budget_types;
 
 // Source/module orchestration over the same semantic program and parse entities.
 // Composed with the semantic declarations; no copied Foundation operation model.
@@ -17,6 +18,8 @@ extern fn syntax_get_error(session: void*): u8*;
 extern fn syntax_get_revision(session: void*): usize;
 
 extern fn syntax_get_error_offset(session: void*): usize;
+extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
+extern fn frontend_module_resource_error(module: void*): WorkBudgetError;
 
 extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
 
@@ -121,6 +124,14 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             }
             entity_release(root);
         }
+        var resource_error = syntax_session_resource_error(session);
+        if resource_error == WorkBudgetError.None { resource_error = frontend_module_resource_error(module); }
+        if resource_error != WorkBudgetError.None {
+            var offset = syntax_get_error_offset(session);
+            sem_resource_record(program, resource_error, offset);
+            frontend_module_diagnostic(module, offset);
+            break;
+        }
         var error = syntax_get_error(session);
         var failed = error[0] != 0;
         if failed {
@@ -193,11 +204,11 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
         index++;
     }
-    sem_require(vector_push(&source, 0));
-    if program.error.length == 0 {
+    if program.resource.error == WorkBudgetError.None && program.error.length == 0 {
+        sem_require(vector_push(&source, 0));
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
     }
-    if program.error.length == 0 {
+    if program.resource.error == WorkBudgetError.None && program.error.length == 0 {
         for(var i: usize = 0; i < published.length; ++i) {
             var current = published.data[i];
             // Grammar-only files retain trivia on their grammar/source nodes.

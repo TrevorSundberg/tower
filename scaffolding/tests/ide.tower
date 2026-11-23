@@ -15,6 +15,11 @@ import ide_candidate_checks;
 import ide_completion_checks;
 import ide_hover_checks;
 import .compiler.frontend_revision_types;
+import .compiler.semantic_program_types;
+import .library.work_budget_types;
+
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 // Functional tests call the production tw_* exports. The host only installs
 // ordinary source modules and invokes ide_tests; no native/JS test policy.
@@ -380,6 +385,60 @@ fn ide_test_requests(): u32 {
     return 0;
 }
 
+enum IdeResourceCheck: u32 { Passed = 0, Create = 70, Execution, Artifact, Package, Receipt, Publication, Recovery }
+
+// Fixed-receipt consumer coverage. Actual producer denial is exercised by the
+// compiler resource fixtures; this checks transport output and handle lifetime.
+fn ide_test_resource_width(width: u32): IdeResourceCheck {
+    var source = "import foundation;\nprint(42);";
+    var handle = ide_test_compile(source, width);
+    if handle == 0 { return IdeResourceCheck.Create; }
+    defer tw_exec_destroy(handle);
+    ide_package_reset();
+    var session = ide_execution(handle);
+    var offset = ide_length("import foundation;\n");
+    sem_resource_record(&session.program, WorkBudgetError.Capacity, offset);
+    sem_resource_record(&session.program, WorkBudgetError.Memory, offset + 1);
+    session.program.error.length = 0;
+    session.error.length = 0;
+    var steps = session.machine.steps;
+    var output = session.output.length;
+    var allocations = tw_live_allocations();
+    if !ide_test_contains(tw_exec_step(handle, 1), "\"status\":\"error\"")
+        || !session.machine.failed || !session.machine.done
+        || session.machine.steps != steps || session.output.length != output
+        || tw_exec_fast(handle) != 0 { return IdeResourceCheck.Execution; }
+    if tw_exec_c(handle, 0) != null || tw_exec_roku(handle, 0) != null
+        || !ide_test_contains(tw_exec_foundation(handle), "\"status\":\"error\"") {
+        return IdeResourceCheck.Artifact;
+    }
+    if tw_exec_prepare_package(handle, 0) != 0 || tw_exec_bytecode_size() != 0
+        || tw_exec_bytecode_data() != null { return IdeResourceCheck.Package; }
+    if session.program.resource.error != WorkBudgetError.Capacity || session.program.resource.offset != offset
+        || !ide_test_same(tw_last_error(), sem_resource_message(WorkBudgetError.Capacity))
+        || tw_live_allocations() != allocations { return IdeResourceCheck.Receipt; }
+
+    var state = ide_state();
+    var handles = host_handles_count(&state.handles, 1);
+    var nodes = tw_live_nodes();
+    var private_session = ide_execution_text(source, ide_length(source), width, false);
+    sem_resource_record(&private_session.program, WorkBudgetError.Memory, offset);
+    private_session.program.error.length = 0;
+    private_session.error.length = 0;
+    if ide_execution_publish(private_session) != 0
+        || host_handles_count(&state.handles, 1) != handles || tw_live_nodes() != nodes
+        || !ide_test_same(tw_last_error(), sem_resource_message(WorkBudgetError.Memory)) {
+        return IdeResourceCheck.Publication;
+    }
+    var retry = ide_test_compile(source, width);
+    defer tw_exec_destroy(retry);
+    if retry == 0 || tw_last_error()[0] != 0
+        || !ide_test_contains(tw_exec_step(retry, IdeExecutionStepLimit), "\"status\":\"done\"") {
+        return IdeResourceCheck.Recovery;
+    }
+    return IdeResourceCheck.Passed;
+}
+
 export fn ide_tests(): u32 {
     ide_completion_checks();
     ide_hover_checks();
@@ -393,6 +452,13 @@ export fn ide_tests(): u32 {
     failed = result != 0;
     if failed {
         return result;
+    }
+    var widths: u32[2];
+    widths[0] = 4;
+    widths[1] = 8;
+    for(var i: usize = 0; i < sizeof(decltype(widths)) / sizeof(u32); i++) {
+        var resource = ide_test_resource_width(widths[i]);
+        if resource != IdeResourceCheck.Passed { return convert(u32, resource); }
     }
     return ide_test_requests();
 }

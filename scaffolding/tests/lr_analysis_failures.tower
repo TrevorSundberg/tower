@@ -69,7 +69,7 @@ fn lr_control_allocation_trial(specialize: bool): bool {
         }
     }
     if ok {
-        var budget: LRProbeBudget; budget.remaining = 8192; budget.complete = true;
+        var budget: LRProbeBudget = default; budget.remaining = 8192; budget.complete = true;
         var original = lr_probe_create(parser, &budget);
         var clone: void* = null; if original is not null { clone = lr_probe_clone(original); }
         ok = clone is not null;

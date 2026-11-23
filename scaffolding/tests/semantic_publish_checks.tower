@@ -16,6 +16,7 @@ extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn puts(text: u8*): i32;
+extern fn sem_workers_open(c: SemanticContext*): bool;
 
 enum PublishPressure: u32 { None, Startup, Arena, Growth, Mixed, Cancelled }
 
@@ -50,11 +51,6 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     sem_require(work_budget_init(&budget, workers, 1048576, 71)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
     var occupied: WorkReservation = default;
-    if pressure != PublishPressure.None && !cancelled {
-        var available: usize = pressure == PublishPressure.Startup ? 1
-            : pressure == PublishPressure.Arena ? 512 : 8192;
-        sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - available, &occupied) == WorkBudgetError.None);
-    }
     var world = compiler_world_create_workers(workers);
     sem_require(world != null && compiler_world_bind_budget(world, &budget));
     var root = entity_create(compiler_world_store(world));
@@ -84,6 +80,18 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
         cases[index].count = pressure == PublishPressure.Growth
             || (pressure == PublishPressure.Mixed && index == 1) ? 512 : 8;
         publish_items(block, cases[index].count, width);
+    }
+    // Deny private publication scratch after its real transport owns its slots.
+    // Cancelled entry must still avoid creating any pool or query work.
+    if !cancelled { sem_require(sem_workers_open(&context)); }
+    var retained: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &retained));
+    if pressure != PublishPressure.None && !cancelled {
+        var available: usize = pressure == PublishPressure.Startup ? 1
+            : pressure == PublishPressure.Arena ? 512 : 8192;
+        sem_require(retained.bytes - retained.used_bytes >= available
+            && work_budget_reserve_result(&budget, 0, 0,
+                retained.bytes - retained.used_bytes - available, &occupied) == WorkBudgetError.None);
     }
     if cancelled { work_cancel(&context.queries); }
     sem_known_publish(&context);
@@ -131,8 +139,8 @@ fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
     }
     var snapshot: WorkBudgetSnapshot = default;
     sem_require(work_budget_snapshot(&budget, &snapshot));
-    publish_check(snapshot.used_bytes == occupied.bytes && snapshot.used_lanes == 0
-        && snapshot.live == (occupied.active ? 1 : 0),
+    publish_check(snapshot.used_bytes == retained.used_bytes + occupied.bytes && snapshot.used_lanes == 0
+        && snapshot.live == retained.live + (occupied.active ? 1 : 0),
         "Joined publication retires every private scratch receipt", &failures);
     work_pool_close(&context.workers);
     sem_context_dispose(&context);

@@ -828,6 +828,22 @@ retain charges after joins/cancellation until disposal. The shared fixture uses
 four real worker threads. The separate faults fixture uses only the existing
 single-owner allocation injector and serial transport; it is not race coverage.
 
+The declaration-only entity creation fixtures use the same registration rules:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
+  tower-entity-create-result-tests tower-entity-create-faults-tests
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
+  -R '^tower-entity-create-(result|faults)-tests$'
+```
+
+Both link the shared entities implementation and exactly one existing memory
+provider. The result fixture uses the production allocator and checks private
+receipts, pinned views, finite identities, ordered relations and cleanup. The
+fault fixture uses the existing single-owner allocator/serial transport and checks
+denied allocation, unchanged ownership and successful retry. These fixtures are
+serial API checks; neither establishes worker overlap.
+
 Five measurement targets are excluded from the default build and CTest. Request
 one explicitly, with exclusive host budget and frozen inputs:
 
@@ -968,6 +984,19 @@ query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
 
+`tower-lr-work-tests RESOURCE_ROOT resource-smoke` selects only those24 resource
+cases, using the same query-checks object and production transport. Growth cases
+first gate Evaluate until both owning entry frames prepare successfully, then
+reserve the measured remaining capacity. Per-job callbacks delegate to the
+production kernel and observe the exact growth failure before disposal. Startup
+cases separately require the initial-memory failure after constructor setup.
+This mode isolates phase/cleanup checks and before/after measurements from the
+adaptive clone workload; all/query retain their existing resource coverage.
+Each width/worker group reports wall nanoseconds through the runner's existing
+checked monotonic clock, excluding report formatting. Pair these small-group
+measurements with process CPU/peak-RSS receipts; configured width is not overlap
+or throughput evidence.
+
 The same query entry runs `semantic_publish_checks.tower` once before its
 width/worker loop:18 pressure cases plus4 pre-cancelled cases. These check joined
 resource failures, source-ordered diagnostics, atomic canonical storage changes,
@@ -1020,6 +1049,20 @@ all six exported operations, physical retention, alignment, denial and ownership
 transfer. The existing native work-test object rules apply supported sanitizer
 instrumentation to both client and provider; no compiler entity unit is linked.
 
+`tower-frontend-tests RESOURCE_ROOT grammar-resource` selects the existing syntax
+version construction, cache and captured-replacement allocation-failure sweeps.
+It checks typed resource denial, ordinary grammar diagnostics, optional uncached
+success, pinned type admission and exact cleanup.
+It uses the serial fault allocator; it does not test production worker overlap.
+
+`tower-frontend-tests RESOURCE_ROOT regex` runs the existing independent regex
+oracle, including 300 generated patterns, 500 arbitrary byte patterns, counted
+NUL input, invalid source spans and output-table state, semantic rejection, and
+an allocation-failure sweep bounded by the successful allocation count. Use the
+native address/thread instrumentation profiles for this selector; parser-only
+builds do not support those profiles. The fault sweep is serial, so use the
+separate frontend-unit checks for real worker overlap.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
@@ -1029,3 +1072,81 @@ It prints the calibration and monotonic event timeline. Ordinary `backend-overla
 and the full backend suite retain their30-second bound. Name the selected variant
 in instrumentation receipts; a successful calibrated run does not erase an older
 ordinary timeout or establish a performance improvement.
+
+The existing LR query entry also calls `semantic_receipt_checks.tower` and
+`semantic_failure_order_checks.tower` once each. `receipt-smoke` selects just
+these unchanged fixtures: allocation-free typed receipt restoration, diagnostic
+clearing and cancelled capture entry, plus32 cases of canonical failure selection
+across reversed readiness, earlier pending work and differing numeric offsets.
+The existing `tower-query-continuations` CTest registration includes both.
+
+Linux x64 dispatch fixtures use ordinary-source initialization for their mutable
+coordinator-only controls. Existing Tower `runtime_bind` connects each wrapper
+and a separate real transport; no linker `--wrap` support is required. Build/run:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-work-dispatch-result-tests tower-semantic-dispatch-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(work-dispatch-result-tests|semantic-dispatch-(default|admission|source))$'
+build/native/tower-lr-work-tests scaffolding receipt-smoke
+```
+
+The work fixture checks invalid/busy/admitted calls, actual peer draining, named
+transport restrictions and exact-once results after a denied dispatch. Semantic
+modes check pre-dispatch and graph-admission denial, terminal cancellation, typed
+source receipts, no publication/replay and complete cleanup. Allocation and
+workers use the production providers. Supported `TOWER_SANITIZER=address|thread`
+builds use the same registration and symbol bindings; serial allocation-failure
+fixtures remain separate. No universal race-freedom claim follows from a pass.
+
+The existing normal/fault factories also register the constructor, scheduling
+storage and physical component-page fixtures on Linux x64:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-work-constructor-budget-tests tower-work-constructor-faults-tests \
+  tower-work-schedule-budget-tests tower-entity-component-budget-tests \
+  tower-entity-component-layout-tests tower-entity-component-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(work-constructor-(budget|faults)|work-schedule-budget|entity-component-(budget|layout|faults))-tests$'
+```
+
+The budget/schedule cases use actual worker barriers, private stages/graphs and
+production allocation. Layout verifies the target's actual type sizes, aligned
+payloads, physical charges and last-live cleanup. Fault cases use the existing
+single-owner allocator and serial transport; their rollback coverage is separate
+from real concurrency. The deliberate compile-negative
+`work_view_invalid_dispose.tower` is not an executable target.
+
+The same factories register typed stage/view admission and publication rollback:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-entity-stage-result-tests tower-entity-stage-result-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-entity-stage-result(-faults)?-tests$'
+```
+
+The normal fixture checks exact admission causes, queued reference ownership,
+stable payloads, publication retry and finalizer cleanup. The fault fixture
+denies serial allocation prefixes and checks rollback before a successful retry.
+Both import their entities and memory providers; no second provider is linked.
+Real worker publication/cancellation coverage remains in
+`tower-entity-stage-concurrent-tests`. Supported address/thread instrumentation
+uses the same targets; the fault allocator remains single-owner.
+
+Dependency-producer failure checks use the same production compiler providers:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-query-failure-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-query-failure-(constructor|body|declaration)$'
+```
+
+Each selector covers 32/64-bit targets and workers1/4. Constructor and body cases
+prove actual interpreter suspension before denied producer admission, then require
+joined peer cleanup without publication or replay. The declaration case rejects
+false idle progress after failed admission. Capacity derives from the live graph
+and shared budget; final ownership must return to zero. The unchanged fixture
+runs with production allocation and supported address/thread instrumentation.

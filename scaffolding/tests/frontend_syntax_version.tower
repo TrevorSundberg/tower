@@ -1,5 +1,6 @@
 import tower;
 import .library.vector;
+import .library.work_budget_types;
 import .compiler.syntax_version_types;
 import .compiler.syntax_session_types;
 import .compiler.frontend_revision_types;
@@ -17,13 +18,19 @@ import frontend_pending;
 import frontend_replacement_owner;
 import frontend_table_owner;
 import frontend_baselines;
+import utility_checks;
 
+extern fn strlen(text: u8*): usize;
+extern fn bytes_assign_text(value: vector(u8)*, text: u8*, length: usize): bool;
+extern fn puts(text: u8*): i32;
 extern fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion*;
+extern fn syntax_version_create_result(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*, error: WorkBudgetError*): SyntaxVersion*;
 extern fn syntax_version_retain(value: SyntaxVersion*): SyntaxVersion*;
 extern fn syntax_version_release(value: SyntaxVersion*): void;
 extern fn syntax_emission_lexicon(value: void*): void*;
 extern fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion*;
 extern fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_revision_declare_result(base: FrontendRevision*, node: void*, kind: void*, error: vector(u8)*, resource_error: WorkBudgetError*): FrontendRevision*;
 extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
 extern fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8*;
 extern fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void;
@@ -129,6 +136,11 @@ fn frontend_version_cache_tests(world: void*, revision: FrontendRevision*, bedro
         tower_test_buffer_fail_after(i);
         version = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
         tower_test_buffer_fail_after(frontend_world_unlimited());
+        if version is null && diagnostic.resource_error == WorkBudgetError.None {
+            puts(syntax_version_diagnostic_text(&diagnostic));
+        }
+        utility_check((version is null) == (diagnostic.resource_error != WorkBudgetError.None),
+            "Valid cached grammar reports resource denial and preserves optional uncached success");
         if cache.index.entries.length != 0 {
             frontend_world_check(version is not null && cache.index.entries.length == 1);
             frontend_world_check(cache.versions.data[cache.index.entries.data[0].slot] == version);
@@ -141,6 +153,7 @@ fn frontend_version_cache_tests(world: void*, revision: FrontendRevision*, bedro
 }
 
 fn frontend_syntax_version_tests(): void {
+    frontend_world_type_resource_tests();
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
     var kinds: FrontendKinds;
@@ -161,9 +174,10 @@ fn frontend_syntax_version_tests(): void {
     syntax_version_release(warm);
     var buffers = tower_test_buffer_count();
     var allocations = tower_test_buffer_allocations();
-    var version = syntax_version_create(world, revision, revision);
+    var error = WorkBudgetError.Memory;
+    var version = syntax_version_create_result(world, revision, revision, &error);
     allocations = tower_test_buffer_allocations() - allocations;
-    frontend_world_check(version is not null && version.references == 1);
+    frontend_world_check(version is not null && version.references == 1 && error == WorkBudgetError.None);
     frontend_world_check(version.rules is not null && version.table is null);
     frontend_world_check(version.grammar == revision && version.bedrock == revision);
     frontend_world_check(version.replacement_error_offset == frontend_world_unlimited());
@@ -172,14 +186,15 @@ fn frontend_syntax_version_tests(): void {
     frontend_world_check(revision.references == 1 && tower_test_buffer_count() == buffers);
     for (var i: usize = 0; i < allocations; ++i) {
         tower_test_buffer_fail_after(i);
-        version = syntax_version_create(world, revision, revision);
+        version = syntax_version_create_result(world, revision, revision, &error);
         tower_test_buffer_fail_after(frontend_world_unlimited());
-        frontend_world_check(version is null && revision.references == 1);
+        frontend_world_check(version is null && revision.references == 1 && error == WorkBudgetError.Memory);
         frontend_world_check(tower_test_buffer_count() == buffers);
     }
     var view = entity_view_open(source);
     frontend_world_check(view is not null);
-    frontend_world_check(syntax_version_create(world, revision, revision) is null);
+    frontend_world_check(syntax_version_create_result(world, revision, revision, &error) is null
+        && error == WorkBudgetError.Busy);
     frontend_world_check(revision.references == 1);
     entity_view_close(view);
     version = syntax_version_create(world, revision, revision);
@@ -226,6 +241,44 @@ fn frontend_syntax_version_tests(): void {
     syntax_version_release(null);
 }
 
+fn frontend_declaration_resource_tests(world: void*, source: void*, revision: FrontendRevision*, kind: void*, alternative: void*): void {
+    var declaration = frontend_format_child(compiler_world_store(world), source, null);
+    var node = preview_syntax(world, declaration);
+    node.kind = convert(u32, SyntaxKind.Rule);
+    node.append = true;
+    utility_check(bytes_assign_text(&node.name, "Statement", strlen("Statement"))
+        && vector_push(&node.items, alternative), "Declaration resource fixture");
+    var error: vector(u8) = default;
+    defer vector_dispose(&error);
+    var resource_error = WorkBudgetError.Memory;
+    var calls = tower_test_buffer_allocations();
+    var result = syntax_revision_declare_result(revision, declaration, kind, &error, &resource_error);
+    var allocations = tower_test_buffer_allocations() - calls;
+    utility_check(result is not null && resource_error == WorkBudgetError.None && allocations != 0,
+        "Declaration measured allocation baseline");
+    frontend_revision_release(result);
+    var buffers = tower_test_buffer_count();
+    var references = entity_references(alternative);
+    for(var failure: usize = 0; failure < allocations; ++failure) {
+        tower_test_buffer_fail_after(failure);
+        result = syntax_revision_declare_result(revision, declaration, kind, &error, &resource_error);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        utility_check(result is null && resource_error == WorkBudgetError.Memory
+            && tower_test_buffer_count() == buffers && entity_references(alternative) == references,
+            "Declaration denial preserves its source and releases partial revisions");
+    }
+    utility_check(bytes_assign_text(&node.name, "Missing", strlen("Missing")), "Missing declaration name");
+    result = syntax_revision_declare_result(revision, declaration, kind, &error, &resource_error);
+    utility_check(result is null && resource_error == WorkBudgetError.None && error.length != 0,
+        "Undefined extension is an ordinary grammar error");
+    vector_dispose(&error);
+    tower_test_buffer_fail_after(0);
+    result = syntax_revision_declare_result(revision, declaration, kind, &error, &resource_error);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(result is null && resource_error == WorkBudgetError.Memory && error.length == 0,
+        "Declaration diagnostic denial is retained without diagnostic bytes");
+}
+
 fn frontend_syntax_construction_tests(): void {
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
@@ -236,7 +289,7 @@ fn frontend_syntax_construction_tests(): void {
     var alternatives: void*[2];
     var rules: SyntaxRuleView[2];
     var terms: SyntaxNode*[2];
-    for (var i: usize = 0; i < 2; ++i) {
+    for (var i: usize = 0; i < sizeof(decltype(rules)) / sizeof(SyntaxRuleView); ++i) {
         alternatives[i] = frontend_format_child(store, source, null);
         var sequence = preview_syntax(world, alternatives[i]);
         sequence.kind = convert(u32, SyntaxKind.Alternative);
@@ -244,14 +297,15 @@ fn frontend_syntax_construction_tests(): void {
         terms[i] = preview_syntax(world, child);
         terms[i].kind = convert(u32, SyntaxKind.Term);
         terms[i].literal = i == 0;
-        frontend_world_check(bytes_append(&terms[i].text, i == 0 ? "x" : "Missing", i == 0 ? 1 : 7));
+        var text: u8* = i == 0 ? "x" : "Missing";
+        frontend_world_check(bytes_append(&terms[i].text, text, strlen(text)));
         frontend_world_check(vector_push(void*, &sequence.items, child));
         rules[i].name = i == 0 ? "Statement" : "Future";
-        rules[i].name_length = i == 0 ? 9 : 6;
+        rules[i].name_length = strlen(rules[i].name);
         rules[i].alternatives = &alternatives[i];
         rules[i].count = 1;
     }
-    var revision = syntax_revision_create(&rules[0], 2, null, 0);
+    var revision = syntax_revision_create(&rules[0], sizeof(decltype(rules)) / sizeof(SyntaxRuleView), null, 0);
     var bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(revision is not null && bedrock is not null);
     var diagnostic: SyntaxVersionDiagnostic;
@@ -278,6 +332,11 @@ fn frontend_syntax_construction_tests(): void {
         tower_test_buffer_fail_after(i);
         version = syntax_version_build(world, revision, bedrock, &diagnostic);
         tower_test_buffer_fail_after(frontend_world_unlimited());
+        if version is null && diagnostic.resource_error == WorkBudgetError.None {
+            puts(syntax_version_diagnostic_text(&diagnostic));
+        }
+        utility_check((version is null) == (diagnostic.resource_error != WorkBudgetError.None),
+            "Valid grammar construction distinguishes resource denial from syntax failure");
         // Optional analysis/storage may degrade gracefully, but every outcome
         // must own a complete releasable result and leave source pins intact.
         if version is not null { frontend_world_check(version.table is not null && version.lexicon is not null); }
@@ -288,8 +347,11 @@ fn frontend_syntax_construction_tests(): void {
         frontend_world_check(tower_test_buffer_count() == buffers);
     }
     frontend_version_cache_tests(world, revision, bedrock);
+    frontend_declaration_resource_tests(world, source, revision, kinds.syntax, alternatives[0]);
     // Module completion reports unresolved rules, unlike the execution filter.
     frontend_world_check(!syntax_version_bedrock(revision, kinds.syntax, &diagnostic));
+    utility_check(diagnostic.resource_error == WorkBudgetError.None,
+        "Pending grammar diagnostics are not resource failures");
     frontend_world_check(diagnostic.text.length != 0);
     syntax_version_diagnostic_dispose(&diagnostic);
     // Validation errors retain their complete text, including a terminating NUL
@@ -299,6 +361,8 @@ fn frontend_syntax_construction_tests(): void {
     frontend_world_check(bytes_append(&terms[0].text, "Statement", 9));
     version = syntax_version_build(world, revision, bedrock, &diagnostic);
     frontend_world_check(version is null);
+    utility_check(diagnostic.resource_error == WorkBudgetError.None,
+        "Unproductive grammar diagnostics are not resource failures");
     frontend_format_text(syntax_version_diagnostic_text(&diagnostic), "Unproductive grammar rule: Statement");
     syntax_version_diagnostic_dispose(&diagnostic);
     frontend_revision_release(revision);

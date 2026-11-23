@@ -159,28 +159,33 @@ fn entity_reclaim(entity: Entity*): void {
 // need not be the root; every type index in this same store becomes stable.
 // Close exactly once, after all borrowed queries/workers finish.
 export fn entity_view_open(anchor: Entity*): EntityView* {
-    var missing = anchor == null;
-    if missing {
-        return null;
-    }
-    if anchor.stage != null { return null; }
+    var error: WorkBudgetError;
+    return entity_view_open_result(anchor, &error);
+}
+
+export fn entity_view_open_result(anchor: Entity*, error: WorkBudgetError*): EntityView* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if anchor == null || anchor.stage != null { return null; }
     var store = anchor.store;
-    var reclaiming = store.reclaiming != 0;
-    if reclaiming {
+    if store.reclaiming != 0 {
+        *error = WorkBudgetError.Busy;
         return null;
     }
     var next = store.views + 1;
     if next == 0 {
+        *error = WorkBudgetError.Exhausted;
         return null;
     }
     var view = alloc(EntityView, 1);
-    missing = view == null;
-    if missing {
+    if view == null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     view.store = store;
     view.queries = null;
     store.views = next;
+    *error = WorkBudgetError.None;
     return view;
 }
 
@@ -322,10 +327,28 @@ fn entity_component_page_detach(page: EntityComponentPage*): void {
     page.next = null;
 }
 
-// After publication every page remains owned by its live components. No pointer
-// to a destroyed stage's allocation pool may survive that boundary.
+fn entity_component_page_attach(page: EntityComponentPage*, pool: EntityComponentPool*): void {
+    page.pool = pool;
+    page.previous = null;
+    page.next = pool.first;
+    if pool.first != null { pool.first.previous = page; }
+    pool.first = page;
+}
+
+// Every page remains owned by its live components. Pool links only index free
+// slots and must never point into a destroyed private stage.
 fn entity_component_pool_detach(pool: EntityComponentPool*): void {
     while pool.first != null { entity_component_page_detach(pool.first); }
+}
+
+// All staged owners have published before the coordinator transfers this index.
+// Full pages are detached already; their first later free uses the owner's pool.
+fn entity_component_pool_transfer(source: EntityComponentPool*, target: EntityComponentPool*): void {
+    while source.first != null {
+        var page = source.first;
+        entity_component_page_detach(page);
+        entity_component_page_attach(page, target);
+    }
 }
 
 fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetError*): EntityComponent* {
@@ -361,24 +384,25 @@ fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetErr
             page = bits(EntityComponentPage*, allocation.data);
             *page = default;
             page.allocation = allocation; // Transfer this physical grant to the page.
-            page.pool = pool;
             page.type_id = type.id;
             page.capacity = capacity;
             page.stride = stride;
             page.components = bits(EntityComponent*, allocation.data + sizeof(EntityComponentPage));
             var start = bits(usize, page.components + capacity) + pointer_size;
             page.data = bits(u8*, (start + mask) & ~mask);
-            page.next = pool.first;
-            if pool.first != null { pool.first.previous = page; }
-            pool.first = page;
+            entity_component_page_attach(page, pool);
         }
-        component = &page.components[page.used];
-        data = page.data + page.used * page.stride;
+        var index = page.used;
+        if page.free_slot != 0 {
+            index = page.free_slot - 1;
+            page.free_slot = page.components[index].type_index;
+        } else { page.used++; }
+        component = &page.components[index];
+        data = page.data + index * page.stride;
         component.allocation = bits(u8*, page);
         component.page = page;
-        page.used++;
         page.live++;
-        if page.used == page.capacity { entity_component_page_detach(page); }
+        if page.live == page.capacity { entity_component_page_detach(page); }
     } else {
         // Large or highly aligned payloads preserve the individually allocated
         // path; never reserve multiple large objects just to fill a page.
@@ -419,6 +443,17 @@ fn entity_component_free(component: EntityComponent*): void {
         entity_component_page_detach(page);
         var allocation = page.allocation;
         work_buffer_dispose(&allocation);
+        return;
+    }
+    // Index removal and finalization finish before this call. Only a dead
+    // descriptor's type_index becomes a free link; surviving addresses stay put.
+    var index = (bits(usize, component) - bits(usize, page.components)) / sizeof(EntityComponent);
+    component.type_index = page.free_slot;
+    page.free_slot = index + 1;
+    if page.pool == null {
+        var pool = component.owner.storage;
+        if pool == null { pool = &component.owner.store.storage; }
+        entity_component_page_attach(page, pool);
     }
 }
 

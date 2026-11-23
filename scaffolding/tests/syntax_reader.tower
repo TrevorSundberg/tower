@@ -6,6 +6,7 @@ import .host.driver_api;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
+import .library.work_budget_types;
 import storage_api;
 import utility_checks;
 import mt19937;
@@ -13,10 +14,18 @@ import reader_oracle;
 
 extern fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*): bool;
 extern fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*): bool;
+extern fn syntax_read_rule_result(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*, resource_error: WorkBudgetError*): bool;
+extern fn syntax_read_token_result(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*, resource_error: WorkBudgetError*): bool;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
 extern fn syntax_identifier_decode(source: u8*, length: usize, out: ByteBuffer*): bool;
 extern fn syntax_identifier_decode_in_place(source: u8*, length: usize): usize;
 extern fn syntax_literal_check(source: u8*, length: usize): u32;
 extern fn syntax_equal(left: void*, right: void*, locations: bool): bool;
+
+var ReaderCloneNodeLimit: usize = 10000;
+var ReaderIdentifierTrials: usize = 1000;
+var ReaderIdentifierDelimiters: usize = 2;
 
 fn reader_test_buffer_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
     return left.length == right.length && utility_equal(left.data, right.data, left.length);
@@ -25,13 +34,17 @@ fn reader_test_message(error: ByteBuffer*, message: u8*): bool {
     return error.length == strlen(message) && utility_equal(error.data, message, error.length);
 }
 fn reader_test_clone(source: void*): void* {
-    var count: usize = 0; var result = compiler_clone_tree(source, 10000, &count);
+    var count: usize = 0; var result = compiler_clone_tree(source, ReaderCloneNodeLimit, &count);
     utility_check(result is not null, "Reader fixture tree clone"); return result;
 }
 fn reader_test_read(node: void*, source: SyntaxSource*, kind: SyntaxKind, error: ByteBuffer*, reference: bool): bool {
     if reference { return reader_oracle_read(node, source, parser_match_get_type(), kind, error); }
     if kind == SyntaxKind.Rule { return syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error); }
     return syntax_read_token(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error);
+}
+fn reader_test_read_result(node: void*, source: SyntaxSource*, kind: SyntaxKind, error: ByteBuffer*, resource_error: WorkBudgetError*): bool {
+    if kind == SyntaxKind.Rule { return syntax_read_rule_result(node, source, parser_match_get_type(), syntax_component_type(), error, resource_error); }
+    return syntax_read_token_result(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error, resource_error);
 }
 fn reader_test_oracle_provenance(left: void*, right: void*): void {
     var pending: vector(void*); vector_init(void*, &pending); defer vector_dispose(void*, &pending);
@@ -50,7 +63,9 @@ fn reader_test_compare(input: void*, source: SyntaxSource*, kind: SyntaxKind, su
     var b = reader_test_clone(input); defer tower_node_release_ref(b);
     var x: ByteBuffer; fill(&x, 0, sizeof(ByteBuffer)); defer bytes_dispose(&x);
     var y: ByteBuffer; fill(&y, 0, sizeof(ByteBuffer)); defer bytes_dispose(&y);
-    var actual = reader_test_read(a, source, kind, &x, false); var reference = reader_test_read(b, source, kind, &y, true);
+    var resource_error = WorkBudgetError.Memory;
+    var actual = reader_test_read_result(a, source, kind, &x, &resource_error); var reference = reader_test_read(b, source, kind, &y, true);
+    utility_check(resource_error == WorkBudgetError.None, "Ordinary reader results are not resource failures");
     utility_check(actual == success && reference == success, "Reader/reference expected result");
     utility_check(reader_test_buffer_equal(&x, &y), "Reader/reference exact error bytes");
     if message is not null { utility_check(reader_test_message(&x, message), "Reader exact malformed-tree diagnostic"); }
@@ -123,31 +138,58 @@ fn reader_test_fixture(text: u8*, kind: SyntaxKind, failures: bool, foundation: 
     }
     if failures {
         reader_test_warm(declaration, source, kind);
-        var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count(); var success = false;
-        for (var failure: usize = 0; failure < 512 && !success; ++failure) {
+        var construction: usize = 0;
+        {
+            var copied = reader_test_clone(declaration); defer tower_node_release_ref(copied);
+            var error: ByteBuffer = default; defer bytes_dispose(&error);
+            var resource_error = WorkBudgetError.Memory;
+            var calls = tower_test_buffer_allocations();
+            var ready = reader_test_read_result(copied, source, kind, &error, &resource_error);
+            construction = tower_test_buffer_allocations() - calls;
+            utility_check(ready && resource_error == WorkBudgetError.None && construction != 0, "Reader measured allocation baseline");
+        }
+        var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count();
+        for (var failure: usize = 0; failure < construction; ++failure) {
             {
                 var copied = reader_test_clone(declaration); defer tower_node_release_ref(copied);
                 var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
-                tower_test_buffer_fail_after(failure); success = reader_test_read(copied, source, kind, &error, false); tower_test_buffer_fail_after(~convert(usize, 0));
-                utility_check(success || error.length == 0 || reader_test_message(&error, "Unable to allocate grammar declaration"), "Reader allocation failure diagnostic");
+                var resource_error = WorkBudgetError.None;
+                tower_test_buffer_fail_after(failure); var success = reader_test_read_result(copied, source, kind, &error, &resource_error); tower_test_buffer_fail_after(~convert(usize, 0));
+                utility_check(!success && resource_error == WorkBudgetError.Memory, "Reader retains real allocation failure separately from malformed input");
+                utility_check(error.length == 0 || reader_test_message(&error, "Unable to allocate grammar declaration"), "Reader allocation failure diagnostic");
             }
             utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Reader failure releases temporary components/buffers");
         }
-        utility_check(success, "Reader allocation sweep reaches success");
+        {
+            var copied = reader_test_clone(declaration); defer tower_node_release_ref(copied);
+            tower_node_remove_component(copied, syntax_component_type());
+            var view = entity_view_open(copied);
+            utility_check(view is not null, "Reader pinned component fixture");
+            var error: ByteBuffer = default; defer bytes_dispose(&error);
+            var resource_error = WorkBudgetError.None;
+            var ready = reader_test_read_result(copied, source, kind, &error, &resource_error);
+            entity_view_close(view);
+            utility_check(!ready && resource_error == WorkBudgetError.Busy, "Reader preserves exact component admission cause");
+            bytes_dispose(&error);
+            utility_check(reader_test_read_result(copied, source, kind, &error, &resource_error)
+                && resource_error == WorkBudgetError.None, "Reader retries after component admission is released");
+        }
+        utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Reader pinned retry releases all owners");
     }
 }
 fn reader_test_identifiers(): void {
     var random: TestRandom; test_random_init(&random, 1380270404);
-    for (var trial: usize = 0; trial < 1000; ++trial) {
+    for (var trial: usize = 0; trial < ReaderIdentifierTrials; ++trial) {
         var text: u8[42]; var count: usize = 0;
         if trial % 2 != 0 { text[count++] = 96; }
-        for (var index: usize = 0; index < trial % 40; ++index) { text[count++] = convert(u8, test_random(&random) & 255); }
+        var capacity = sizeof(decltype(text)) / sizeof(u8);
+        for (var index: usize = 0; index < trial % (capacity - ReaderIdentifierDelimiters); ++index) { text[count++] = convert(u8, test_random(&random) & 255); }
         if trial % 2 != 0 { text[count++] = 96; }
         var a: ByteBuffer; fill(&a, 0, sizeof(ByteBuffer)); defer bytes_dispose(&a);
         var b: ByteBuffer; fill(&b, 0, sizeof(ByteBuffer)); defer bytes_dispose(&b);
         utility_check(syntax_identifier_decode(&text[0], count, &a) && reader_oracle_identifier(&text[0], count, &b), "Identifier decode success");
         utility_check(reader_test_buffer_equal(&a, &b), "1000 identifier bytes match independent Tower reference");
-        var in_place: u8[42]; copy(&in_place[0], &text[0], count);
+        var in_place: u8[sizeof(decltype(text)) / sizeof(u8)]; copy(&in_place[0], &text[0], count);
         var size = syntax_identifier_decode_in_place(&in_place[0], count);
         utility_check(size == b.length && utility_equal(&in_place[0], b.data, size), "In-place identifier matches independent reference");
         utility_check(syntax_literal_check(&text[0], count) == reader_oracle_literal(&text[0], count), "Literal validation matches independent reference");
@@ -155,9 +197,10 @@ fn reader_test_identifiers(): void {
     var value: ByteBuffer; fill(&value, 0, sizeof(ByteBuffer)); defer bytes_dispose(&value);
     var source: u8* = "prefix`a\\nb\\t\\`c`";
     utility_check(bytes_assign_text(&value, source, strlen(source)), "Identifier alias fixture");
-    utility_check(syntax_identifier_decode(value.data + 6, value.length - 6, &value) && reader_test_message(&value, "a\nb\t`c"), "Identifier overlap decode and escapes");
-    var address = value.data; var long_text: u8[1000]; fill(&long_text[0], 120, 1000);
-    tower_test_buffer_fail_after(0); var ok = syntax_identifier_decode(&long_text[0], 1000, &value); tower_test_buffer_fail_after(~convert(usize, 0));
+    var prefix = strlen("prefix");
+    utility_check(syntax_identifier_decode(value.data + prefix, value.length - prefix, &value) && reader_test_message(&value, "a\nb\t`c"), "Identifier overlap decode and escapes");
+    var address = value.data; var long_text: u8[1000]; fill(&long_text[0], 120, sizeof(decltype(long_text)));
+    tower_test_buffer_fail_after(0); var ok = syntax_identifier_decode(&long_text[0], sizeof(decltype(long_text)), &value); tower_test_buffer_fail_after(~convert(usize, 0));
     utility_check(!ok && value.data == address && reader_test_message(&value, "a\nb\t`c"), "Identifier failure preserves prior pointer and bytes");
     utility_check(!syntax_identifier_decode(null, ~convert(usize, 0), &value), "Identifier overflow rejected");
 }
@@ -175,8 +218,9 @@ export fn syntax_reader_tests(): void {
         var node = tower_node_create(); defer tower_node_release_ref(node);
         var source = syntax_source_create("bad.tower", "", 0); defer syntax_source_release(source);
         var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
-        tower_test_buffer_fail_after(0); var ok = syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), &error); tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check(!ok && error.length == 0 && error.data is null, "Reader missing capture and error-message allocation failure");
+        var resource_error = WorkBudgetError.None;
+        tower_test_buffer_fail_after(0); var ok = syntax_read_rule_result(node, source, parser_match_get_type(), syntax_component_type(), &error, &resource_error); tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(!ok && error.length == 0 && error.data is null && resource_error == WorkBudgetError.Memory, "Reader missing capture and error-message allocation failure");
         reader_test_compare(node, source, SyntaxKind.Rule, false, "Malformed bedrock tree: missing capture 'name'");
     }
     puts("Syntax reader: 1000 byte fixtures, exact independent Tower reference trees/errors, malformed spans and allocation failures passed.");

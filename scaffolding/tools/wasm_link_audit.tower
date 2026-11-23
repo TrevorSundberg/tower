@@ -69,7 +69,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         wasm_audit_label(argv[argument]); wasm_audit_label("objects/functions/symbols/data/comdats/constructors/relocations:");
         print(world.objects.length - first); print(functions); print(symbols); print(segments); print(comdats); print(constructors); print(relocations);
         wasm_audit_label("relocation kind/count:");
-        for (var kind: usize = 0; kind < 27; kind++) { if kinds[kind] != 0 { print(kind); print(kinds[kind]); } }
+        for (var kind: usize = 0; kind < sizeof(decltype(kinds)) / sizeof(decltype(kinds[0])); kind++) { if kinds[kind] != 0 { print(kind); print(kinds[kind]); } }
     }
     if resolve {
         if !wasm_link_prepare(&link) || !wasm_link_symbols(&link) || !wasm_link_variants(&link) {

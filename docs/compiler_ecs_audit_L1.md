@@ -11,7 +11,7 @@ cannot establish a code-only cost. Controlled samples show no material cache
 regression; limited sample count and visible Fastlarge cost preclude a broad
 neutrality/speedup claim. A constant-mask experiment passed native checks but
 showed no benefit and was reverted. Production source remains the validated
-actual-length lookup. ROOT9d73 (including A2) production is queued, not validated here; the
+actual-length lookup. ROOT9d73 (including A2) is merged for coherent validation; the
 live native cache contains rejected experimental objects until the next coherent
 build. Remaining graph maps/function indexes/Fast storage and integrated release
 acceptance stay open. Historical checkpoints below retain their original scope.
