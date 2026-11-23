@@ -14,6 +14,7 @@ import .library.work_graph;
 import .compiler.parser_workers;
 import .compiler.compiler_kernel;
 import .library.work_pool;
+import .library.work_budget;
 
 extern fn compiler_world_create(): void*;
 
@@ -34,6 +35,24 @@ extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
 
 extern fn frontend_world_clear(world: void*): bool;
+
+// Deny new physical storage while leaving the already retained pool intact.
+// Snapshot comparisons cover graph cleanup without guessing allocation sizes.
+fn lr_memory_hold(root: void*, grant: WorkReservation*, before: WorkBudgetSnapshot*): bool {
+    var budget = compiler_world_work_budget(compiler_node_world(root));
+    return work_budget_snapshot(budget, before)
+        && work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes, grant) == WorkBudgetError.None;
+}
+
+fn lr_memory_release(root: void*, grant: WorkReservation*, before: WorkBudgetSnapshot*): bool {
+    var budget = compiler_world_work_budget(compiler_node_world(root));
+    var after: WorkBudgetSnapshot = default;
+    var clean = work_budget_snapshot(budget, &after) && after.used_bytes == before.used_bytes + grant.bytes
+        && after.used_lanes == before.used_lanes && after.live == before.live + 1;
+    if work_budget_release_result(budget, grant) != WorkBudgetError.None { trap("LR phase fixture lost storage grant", 0); }
+    return clean && work_budget_snapshot(budget, &after) && after.used_bytes == before.used_bytes
+        && after.used_lanes == before.used_lanes && after.live == before.live;
+}
 
 // Repeated grammar builds retain threads, never payloads or an active lease.
 // Check rejection/isolation and drain an actual closure before freeing its input.
@@ -122,7 +141,7 @@ fn lr_worker_lifetime(): bool {
     // Close is the cancellation/join boundary; the stack task and analysis can
     // now be reclaimed even when no explicit receive occurred.
     entity_view_close(view);
-    var ok = submitted && task.success && closure != null;
+    var ok = submitted && task.resource_error == WorkBudgetError.None && closure != null;
     lr_kernel_closure_destroy(closure);
     if !ok || !parser_workers_open(&lease, root, capacity) {
         return false;
@@ -373,10 +392,29 @@ symbols: LRSymbol*, length: usize, names: usize): bool {
         threaded = lr_states_create_parallel(other, anchor);
         ok = serial != null && threaded != null;
     }
+    if ok && compiler_worker_capacity(anchor) > 1
+        && compiler_world_work_budget(compiler_node_world(anchor)) == null
+        && (length + count >= 2 * LRClosureGrain || threaded.states.length >= 2 * LRLookaheadStateGrain) {
+        var lease: ParserWorkers = default;
+        ok = parser_workers_open(&lease, anchor, compiler_worker_capacity(anchor));
+        if ok { ok = lr_states_lalr_parallel_result(threaded, false, anchor) == WorkBudgetError.Busy; }
+        parser_workers_close(&lease);
+    }
+    if ok && compiler_worker_capacity(anchor) > 1
+        && compiler_world_work_budget(compiler_node_world(anchor)) != null
+        && (length + count >= 2 * LRClosureGrain || threaded.states.length >= 2 * LRLookaheadStateGrain) {
+        var grant: WorkReservation = default;
+        var before: WorkBudgetSnapshot = default;
+        ok = lr_memory_hold(anchor, &grant, &before);
+        if ok {
+            var error = lr_states_lalr_parallel_result(threaded, false, anchor);
+            ok = lr_memory_release(anchor, &grant, &before) && error == WorkBudgetError.Capacity;
+        }
+    }
     for(var mode: usize = 0; mode < 2 && ok; mode++) {
         ok = lr_links_work_trial(serial, mode != 0, anchor);
-        ok &&= lr_states_lalr(serial, mode != 0);
-        ok &&= lr_states_lalr_parallel(threaded, mode != 0, anchor);
+        ok &&= lr_states_lalr_result(serial, mode != 0) == WorkBudgetError.None;
+        ok &&= lr_states_lalr_parallel_result(threaded, mode != 0, anchor) == WorkBudgetError.None;
         ok &&= lr_work_equal(serial, threaded);
         if ok {
             var a = lr_runtime_create(serial);
@@ -409,17 +447,24 @@ symbols: LRSymbol*, length: usize, names: usize): bool {
     return ok;
 }
 
+var LRFirstFixtureLanes: usize = 128;
+var LRFirstFixtureRules: usize = 7;
+var LRFirstFixtureSymbols: usize = 6;
+var LRFirstFixtureNames: usize = 4;
+
 export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
-    var rules: LRProduction[896];
-    var symbols: LRSymbol[768];
-    fill(&rules, 0, sizeof(LRProduction[896]));
-    fill(&symbols, 0, sizeof(LRSymbol[768]));
-    // 128 lanes: A -> B C, B -> A | empty, C -> D,
+    var rules: LRProduction[LRFirstFixtureLanes * LRFirstFixtureRules] = default;
+    var symbols: LRSymbol[LRFirstFixtureLanes * LRFirstFixtureSymbols] = default;
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    var symbol_count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    var lanes = rule_count / LRFirstFixtureRules;
+    var names = lanes * LRFirstFixtureNames;
+    // Independent lanes: A -> B C, B -> A | empty, C -> D,
     // D -> overlapping terminal ranges | empty. The final lane has no seed.
-    for(var lane: usize = 0; lane < 128; lane++) {
-        var start = lane *4;
-        var rule = lane *7;
-        var symbol = lane *6;
+    for(var lane: usize = 0; lane < lanes; lane++) {
+        var start = lane * LRFirstFixtureNames;
+        var rule = lane * LRFirstFixtureRules;
+        var symbol = lane * LRFirstFixtureSymbols;
         rules[rule].owner = start;
         rules[rule].begin = symbol;
         rules[rule].count = 2;
@@ -449,7 +494,7 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
         symbols[symbol + 5].last = symbols[symbol + 5].first + 2;
         rules[rule + 6].owner = start + 3;
         rules[rule + 6].begin = symbol + 3;
-        if lane == 127 {
+        if lane + 1 == lanes {
             rules[rule + 2].count = 1;
             rules[rule + 6].count = 1;
             symbols[symbol + 4].nonterminal = start + 2;
@@ -457,16 +502,16 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
         }
     }
     if mode == 1 {
-        symbols[4].nonterminal = 512;
+        symbols[4].nonterminal = names;
     }
     if mode == 2 {
         // A bad reference after a terminal is not reached by FIRST analysis.
         rules[4].count = 2;
         rules[5].count = 0;
-        symbols[5].nonterminal = 512;
+        symbols[5].nonterminal = names;
     }
-    var a = lr_analysis_create(&rules[0], 896, &symbols[0], 768, 512);
-    var b = lr_analysis_create(&rules[0], 896, &symbols[0], 768, 512);
+    var a = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, names);
+    var b = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, names);
     defer {
         lr_analysis_destroy(a);
         lr_analysis_destroy(b);
@@ -474,31 +519,52 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     if a == null || b == null {
         return false;
     }
-    for(var i: usize = 0; i < 512; i++) {
-        lr_analysis_order(a, i, 511 -i);
-        lr_analysis_order(b, i, 511 -i);
+    for(var i: usize = 0; i < a.nonterminal_count; i++) {
+        lr_analysis_order(a, i, a.nonterminal_count - 1 - i);
+        lr_analysis_order(b, i, b.nonterminal_count - 1 - i);
     }
-    var serial = lr_analysis_compute(a);
-    var threaded = lr_analysis_compute_parallel(b, anchor);
+    // A retained pool lease is a structural Busy result, not Memory. After the
+    // rejected call drains its temporary owner, the same analysis can retry.
+    if mode == 0 && compiler_worker_capacity(anchor) > 1
+        && compiler_world_work_budget(compiler_node_world(anchor)) == null {
+        var lease: ParserWorkers = default;
+        if !parser_workers_open(&lease, anchor, compiler_worker_capacity(anchor)) { return false; }
+        var error = lr_analysis_compute_parallel_result(b, anchor);
+        parser_workers_close(&lease);
+        if error != WorkBudgetError.Busy { return false; }
+    }
+    if mode == 0 && compiler_worker_capacity(anchor) > 1 {
+        var budget = compiler_world_work_budget(compiler_node_world(anchor));
+        var before: WorkBudgetSnapshot = default;
+        if budget != null && work_budget_snapshot(budget, &before) && before.used_lanes < before.lanes {
+            var grant: WorkReservation = default;
+            if !lr_memory_hold(anchor, &grant, &before) { return false; }
+            var error = lr_analysis_compute_parallel_result(b, anchor);
+            if !lr_memory_release(anchor, &grant, &before) || error != WorkBudgetError.Capacity { return false; }
+        }
+    }
+    var serial = lr_analysis_compute_result(a);
+    var threaded = lr_analysis_compute_parallel_result(b, anchor);
     if serial != threaded || a.failed != b.failed {
         return false;
     }
     if mode == 1 {
-        return !serial && a.failed;
+        return serial == WorkBudgetError.Invalid && a.failed;
     }
-    if !serial {
+    if serial != WorkBudgetError.None {
         return false;
     }
-    for(var i: usize = 0; i < 512; i++) {
+    for(var i: usize = 0; i < a.nonterminal_count; i++) {
         var x = &a.nonterminals[i];
         var y = &b.nonterminals[i];
         if x.nullable != y.nullable || x.order != y.order || x.first.length != y.first.length {
             return false;
         }
-        if y.nullable !=(i < 508) {
+        var seeded = i < a.nonterminal_count - LRFirstFixtureNames;
+        if y.nullable != seeded {
             return false;
         }
-        if mode == 0 && y.first.length !=(i < 508 ? 2: 0) {
+        if mode == 0 && y.first.length !=(seeded ? 2: 0) {
             return false;
         }
         for(var j: usize = 0; j < x.first.length; j++) {
@@ -643,16 +709,37 @@ export fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool 
     if analysis == null || !lr_analysis_compute(analysis) { return false; }
     var serial = lr_states_create(analysis);
     defer lr_states_destroy(serial);
+    var error = WorkBudgetError.None;
+    if admits && compiler_worker_capacity(root) > 1
+        && compiler_world_work_budget(compiler_node_world(root)) == null {
+        var lease: ParserWorkers = default;
+        if !parser_workers_open(&lease, root, compiler_worker_capacity(root)) { return false; }
+        var rejected = lr_states_create_parallel_result(analysis, root, &error);
+        parser_workers_close(&lease);
+        var busy = rejected == null && error == WorkBudgetError.Busy;
+        lr_states_destroy(rejected);
+        if !busy { return false; }
+    }
+    if admits && compiler_worker_capacity(root) > 1
+        && compiler_world_work_budget(compiler_node_world(root)) != null {
+        var grant: WorkReservation = default;
+        var prior: WorkBudgetSnapshot = default;
+        if !lr_memory_hold(root, &grant, &prior) { return false; }
+        var rejected = lr_states_create_parallel_result(analysis, root, &error);
+        var denied = rejected == null && error == WorkBudgetError.Capacity;
+        lr_states_destroy(rejected);
+        if !lr_memory_release(root, &grant, &prior) || !denied { return false; }
+    }
     var before = entity_create_related(root);
     if before == null { return false; }
     defer entity_release(before);
-    var result = lr_states_create_parallel(analysis, root);
+    var result = lr_states_create_parallel_result(analysis, root, &error);
     defer lr_states_destroy(result);
     var after = entity_create_related(root);
     if after == null { return false; }
     defer entity_release(after);
     var admitted = entity_id(after) > entity_id(before) + 1;
-    return result != null && serial != null && lr_states_count(result) == size * 3 + 2
+    return result != null && error == WorkBudgetError.None && serial != null && lr_states_count(result) == length + 1
         && lr_work_equal(serial, result) && admitted == (admits && compiler_worker_capacity(root) > 1);
 }
 

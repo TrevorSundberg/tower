@@ -39,15 +39,6 @@ struct SemanticCapture {
 extern fn entity_query_count(kind: void*): usize;
 extern fn entity_query_at(kind: void*, index: usize): void*;
 
-fn sem_capture_query_check(c: SemanticContext*, subject: void*, ok: bool): bool {
-    if ok { return true; }
-    var error = sem_query_cancel_failure(c);
-    var message: vector(u8) = default;
-    var operation = sem_get(subject);
-    sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
-    return false;
-}
-
 fn sem_captures_begin(c: SemanticContext*): void {
     if c.capture_inputs == null {
         c.capture_inputs = sem_create(c.program.root);
@@ -72,7 +63,7 @@ export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
     // Reserve the coordinator-owned query before attaching capture metadata.
     // Failed admission cannot publish a partial producer or replay on retry.
     var id = work_request(&c.queries, subject, query, 0);
-    if !sem_capture_query_check(c, subject, id != 0 && work_seal(&c.queries, id)) { return 0; }
+    if !sem_query_check(c, subject, id != 0 && work_seal(&c.queries, id)) { return 0; }
     sem_captures_begin(c);
     var result = sem_capture_storage(c, subject);
     result.subject = subject;
@@ -180,7 +171,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
     var query = convert(u32, SemanticQuery.CaptureInput);
     var ticket: WorkTicket;
     if !work_take_query(&c.queries, &ticket, query) {
-        if !sem_capture_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+        if !sem_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
         return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
     }
     var subject = work_task(&c.queries, ticket.task).subject;
@@ -192,12 +183,12 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         var proof = sem_source_binding_request(c, subject);
         if !sem_ok(c) { return SemanticPumpResult.Failed; }
         if work_task(&c.queries, proof).state != WorkState.Succeeded {
-            if !sem_capture_query_check(c, subject, work_suspend(&c.queries, &ticket, proof)) { return SemanticPumpResult.Failed; }
+            if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket, proof)) { return SemanticPumpResult.Failed; }
             return SemanticPumpResult.Progress;
         }
         result.proof = sem_source_binding(c, subject);
-        if !sem_capture_query_check(c, subject, work_observe(&c.queries, &ticket, proof)) { return SemanticPumpResult.Failed; }
-        if result.proof != null && !sem_capture_query_check(c, subject,
+        if !sem_query_check(c, subject, work_observe(&c.queries, &ticket, proof)) { return SemanticPumpResult.Failed; }
+        if result.proof != null && !sem_query_check(c, subject,
             work_observe(&c.queries, &ticket, result.proof.query)) { return SemanticPumpResult.Failed; }
     }
     if result.proof == null || !result.proof.immutable || sem_member(subject, "value") == null {
@@ -213,16 +204,16 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
                 && result.lowering.dispatch == lowering.dispatch
                 && entity_component_get(c.program.root, c.capture_inputs) == null);
             if lowering.state != WorkState.Succeeded {
-                if !sem_capture_query_check(c, subject, work_suspend(&c.queries, &ticket, result.lowering.task)) { return SemanticPumpResult.Failed; }
+                if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket, result.lowering.task)) { return SemanticPumpResult.Failed; }
                 return SemanticPumpResult.Progress;
             }
-            if !sem_capture_query_check(c, subject, work_observe(&c.queries, &ticket, result.lowering.task)) { return SemanticPumpResult.Failed; }
+            if !sem_query_check(c, subject, work_observe(&c.queries, &ticket, result.lowering.task)) { return SemanticPumpResult.Failed; }
             sem_capture_clone_range(c, result);
             if sem_ok(c) {
                 result.evaluation.capture_order = result.proof.owner == null;
                 result.evaluation.capture_ordinal = result.proof.ordinal;
                 sem_evaluation_work_register(c, false);
-                if !sem_capture_query_check(c, subject, work_suspend(&c.queries, &ticket,
+                if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket,
                     work_find(&c.queries, result.evaluation.subject, EvaluationQuery, 0))) { return SemanticPumpResult.Failed; }
                 return SemanticPumpResult.Progress;
             }
@@ -237,7 +228,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
             // checked-prefix evidence, without depending on the whole body.
             if checked == 0 { checked = sem_declaration_query(c, sem_member(subject, "value")); }
             sem_require(checked != 0);
-            if !sem_capture_query_check(c, subject, work_observe(&c.queries, &ticket, checked)) { return SemanticPumpResult.Failed; }
+            if !sem_query_check(c, subject, work_observe(&c.queries, &ticket, checked)) { return SemanticPumpResult.Failed; }
         }
         if value == null {
             if result.expression == null {
@@ -249,7 +240,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
                 result.expression = sem_expression_add(c, sem_member(subject, "value"), &binding.type,
                     &lexical, SemanticExpressionMode.Initializer);
                 sem_declaration_discover(c);
-                if !sem_capture_query_check(c, subject, work_suspend(&c.queries, &ticket, result.expression.query)) { return SemanticPumpResult.Failed; }
+                if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket, result.expression.query)) { return SemanticPumpResult.Failed; }
                 return SemanticPumpResult.Progress;
             }
             value = result.expression.value;
@@ -271,7 +262,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
             result.evaluation.capture_order = result.proof.owner == null;
             result.evaluation.capture_ordinal = result.proof.ordinal;
             sem_evaluation_work_register(c, false);
-            if !sem_capture_query_check(c, subject, work_suspend(&c.queries, &ticket,
+            if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket,
                 work_find(&c.queries, output, EvaluationQuery, 0))) { return SemanticPumpResult.Failed; }
             return SemanticPumpResult.Progress;
         }
@@ -300,7 +291,7 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
             c.program.error = default;
         }
     }
-    if !sem_capture_query_check(c, subject,
+    if !sem_query_check(c, subject,
         work_finish(&c.queries, &ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0)) {
         result.resource = c.program.resource;
         return SemanticPumpResult.Failed;
