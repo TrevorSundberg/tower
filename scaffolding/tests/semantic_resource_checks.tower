@@ -18,11 +18,13 @@ extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
 extern fn puts(text: u8*): i32;
 
 var ResourceBudgetBytes: usize = 16384;
 var ResourceGrowthFrameBytes: usize = 8192;
 var ResourceEntryGateQuery: u32 = 1000;
+var ResourceFinishValuePhase: usize = 4;
 
 struct ResourceProbe {
     invocation: IMInvocation*;
@@ -52,6 +54,10 @@ fn resource_probe_execute(payload: void*): void {
         probe.observed = state.steps != 0 && state.frames.length == 1
             && state.frames.data[0].function == probe.entry && state.memory.data != null
             && sem_equal(invocation.context.error.data, "Cannot grow strict evaluation stack");
+        if !probe.observed {
+            puts("Nested-growth denial before the expected stack request:");
+            puts(invocation.context.error.data);
+        }
     } else {
         probe.observed = state.steps == 0 && state.frames.length == 0 && state.memory.data == null
             && state.node_cache.data == null && state.node_cache.length == 0
@@ -70,6 +76,29 @@ fn resource_entry_ready(result: SemanticEvaluation*): bool {
         && state.frames.data[0].function == result.function
         && state.frames.data[0].tasks.length != 0 && invocation.context.root == result.function
         && invocation.context.error.length == 0 && invocation.context.output.length == 0;
+}
+
+// Execute the ordinary entry continuation until the nested call is next. This
+// admits its sequencing cache through real execution before pressure, without
+// predicting a map capacity or consuming the callee's stack request.
+fn resource_nested_call_ready(result: SemanticEvaluation*): bool {
+    var invocation = &result.invocation;
+    var state = &invocation.state;
+    while !state.failed && !state.done && state.frame_count == 1 {
+        var frame = &state.frames.data[0];
+        if frame.function != result.function || frame.tasks.length == 0 { return false; }
+        var task = frame.tasks.data[frame.tasks.length - 1];
+        if task.phase == ResourceFinishValuePhase && sem_get(task.node).kind == KCall {
+            var call = sem_get(task.node);
+            return call.binding != null && sem_get(call.binding).frame_size == ResourceGrowthFrameBytes
+                && state.storage_error == WorkBudgetError.None && !invocation.context.returned
+                && invocation.context.error.length == 0 && invocation.context.output.length == 0;
+        }
+        var steps = state.steps;
+        interpreter_invocation_step(invocation, 1);
+        if state.steps == steps || invocation.context.waiting != null { return false; }
+    }
+    return false;
 }
 
 fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bool, gate: usize): SemanticEvaluation* {
@@ -185,6 +214,8 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
             "Nested-growth setup did not prepare both owning entry frames before pressure", &failures);
         first_probe.entry = first.function;
         second_probe.entry = second.function;
+        resource_check(resource_nested_call_ready(first) && resource_nested_call_ready(second),
+            "Nested-growth pressure starts at both real queued calls after entry sequencing", &failures);
         var ticket: WorkTicket = default;
         sem_require(work_take_task(&context.queries, &ticket, prerequisite)
             && work_finish(&context.queries, &ticket, true));

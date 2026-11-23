@@ -25,8 +25,8 @@ struct IMFrame {
     call_offset: usize;
     call: void*;
     tasks: work_vector(IMTask);
-    values: vector(IMEntry);
-    addresses: vector(IMEntry);
+    values: work_vector(IMEntry);
+    addresses: work_vector(IMEntry);
 }
 
 // Shared by Tower execution sessions and engines; Tower owns all arrays.
@@ -43,10 +43,10 @@ struct IMState {
     task_count: usize;
     cached: bool;
     memory: work_vector(u8);
-    allocations: vector(IMEntry);
-    free_blocks: vector(IMEntry);
-    strings: vector(IMEntry);
-    sequenced: vector(IMEntry);
+    allocations: work_vector(IMEntry);
+    free_blocks: work_vector(IMEntry);
+    strings: work_vector(IMEntry);
+    sequenced: work_vector(IMEntry);
     frames: work_vector(IMFrame);
     node_cache: work_vector(IMEntry);
     function_values: work_vector(void*);

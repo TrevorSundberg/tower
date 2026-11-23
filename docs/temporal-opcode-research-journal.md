@@ -75230,3 +75230,117 @@ receipt. A2 holds, adjacent containment leases, B1 editor memory follow-up and
 ROOT typed metadata/provenance and linker consumers remain explicit work.
 The next metadata work will retain wrappers and propagate per-call producers;
 no signature-only consumer migration or global last-error state is proposed.
+L1 next scope, proposal and test-only work: six remaining graph maps still use
+ordinary vectors. The existing interpreter_storage test now has one generic
+capacity oracle over all six real setters, preserving old/new ABI compatibility
+through void callback adapters. It checks initial denial, real charged bytes,
+replacement denial, in-place updates without spare budget, sorted payloads,
+sticky low-level errors and final zero ownership. The full before source is
+external interpreter_graph_maps_before.tower SHA7290fd26e6c6d5320a5abe5b9522f895b972d8bf0269188ec64509aa74b7905c.
+No production map changes are adopted yet; the before executable is unrun while
+L2 owns the frozen union instrumentation slot.
+
+An external three-file Tower draft uses work_vector for all six maps and guards
+the real evaluator setter callers. Proposed heap admission reserves tracking for
+allocations.length+1 and free capacity for allocations.length+free_blocks.length+1
+before changing guest ranges. Every valid free preserves/decreases that combined
+interval count, so its metadata must require no new allocation under pressure.
+Failure of the second reservation may retain the first map's larger private
+capacity; guest block contents, heap cursor and logical map entries must remain
+unchanged. Native free/realloc semantics and partial-admission regression remain
+to be verified. Strict staging currently rejects alloc/realloc/free/string by
+its explicit capability policy; no new compile-time heap capability is proposed.
+The only named heap bound comes from the existing268435456-byte guest contract.
+
+Memoized sequencing failure must stop the statement before execution. Child
+failure must not create a cache entry or publish a value; exact source offsets
+remain with the existing invocation. The draft removes the unused private
+im_needs wrapper after a full caller census and carries the enclosing offset
+through the shared query traversal. No new scheduler, map framework or IR.
+Existing exact budget fixtures will need to pre-admit newly charged unrelated
+memoization from measured successful extents, preserving their original target
+failure rather than accepting a broader error. Tests and actual measurements,
+not this source proposal, determine adoption.
+
+Map BEFORE51956 fails only the public leaf: the new test lacked its direct
+compiler_buffer_allocation_size extern declaration. No runtime evidence was
+produced. After adding that declaration, BEFORE49800 ACTUALDRAIN1, inner120
+(the existing Tower fixture returns632): public leaf/LLVM codegen/link pass;
+all six initial budget-denial assertions fail on unchanged9e8 production.
+Each diagnostic appears twice on its output line; no diagnosis of that output
+formatting is claimed here. Source before/after hashes agree. Corrected complete
+fixture SHA2e63d767eca1f3bdaa517f1adc816b1a20c304e639c7e8288457449006935059.
+Leaf3.36wall/3.27CPU; runtime below0.01s. Failure snapshots/logs are distinct in
+l1_graph_maps_before[_retry]_20261123 and graph_maps_before[_retry]_*.
+The short subordinate grant is returned only after actual drain; L2 may run its
+thread milestone. Requested complete frozen2e3d source union before map adoption
+so the next native baseline and changed-code profiles isolate map work alone.
+
+L1 adopted graph-map candidate only after coherent d3 baseline72416 and isolated
+before75132 actually drained. ROOTbff and then ROOTd3 were complete verified
+fast-forwards at unstarted coherence boundaries; all six owned draft-base files
+were byte-equivalent to9e8. Pending notes/test were preserved in stash56d778d3
+and an external patch, then reapplied with union journal merge and exact2e63
+fixture hash verified. Both fetch/merge phases emitted transient missing pack
+index diagnostics; subsequent tree/commit reads and connectivity fsck pass,
+three packs/zero garbage/no alternates. No Git objects were deleted or repaired.
+
+Baseline d3a87129547c7004df4ddb920046d60712526ad8, public-pin34-step build:
+123.48wall/183.92CPU/749904KiB. Query0.34/0.26/74148, core8.68/10.35/311608,
+functions13.09/15.27/310552, all pass. New graph/Fast small/large workloads pass
+independent exact sums609500/5010950000. Single control times (not paired
+performance evidence) graph1.51/1.92s, Fast2.05/2.58s. Source manifests match;
+complete before package l1_graph_maps_before_native_milestone and resources
+l1_resources_graph_maps_union are immutable. The original guarded9e8 native
+package was also copied and verified against its five original binary hashes.
+
+The exact corrected2e63 fixture on isolated d3 repeats all six initial denial
+failures, BEFORE75132 inner120/fixture632 (wrapper1), source manifests equal.
+The new candidate now adopts three production and three existing test files.
+It changes both IMState and IMFrame layout, so every consumer must rebuild
+coherently. Tests additionally check exact reservation identity, original sorted
+payloads, real queued sequencing/address/value/string failure sites, prior
+effects and no replay. Existing input snapshot accounting now includes every
+charged map/frame owner. Function-index tests pre-admit unrelated sequencing
+using a successful run's actual extent, keeping their original exact failure.
+Heap tests cover null-result preservation, a retained first reservation when the
+second denies, all original bytes, free/coalescing without new admission and
+reuse/zero realloc under pressure at both target widths. Actual low-level and
+native execution of this adopted candidate is still pending; source review and
+before failures are not after validation. L2 has the next bounded native/editor
+slot, so own work remains Windows-only until its actual drain.
+
+### 2026-11-23T11:49:27.3064078Z - map AFTER runtime failure diagnosed; timestamp correction awaiting rebuild
+
+Session PID26880 continues same active goal/model/tier. First successful work after continuation: pull/rebase up-to-date, diff/status and actual WSL process census (no surviving owned jobs). Main d3a87129547c7004df4ddb920046d60712526ad8 plus owned8-file candidate. retry2 session68093 drained1: public Fast leaf and7-step build passed, query-smoke139 before new map cases; later gates unrun. GDB preserved logs/graph_maps_after_retry2_gdb.log: compiler_buffer_free, immediately after semantic receipts. Evidence: copied interpreter_types source mtime02:56:11-0800, old semantic-failure_order-checks IR03:27:01; evaluation object03:40:02. The fixture depfile DOES list interpreter_types. Copy-Item preserved draft timestamps older than baseline: prior incremental build did not rebuild every ABI consumer. Refreshed all seven changed Tower files' timestamps WITHOUT content changes; next build must regenerate affected closure. This is a diagnosed stale-layout build input problem, not yet a passing corrected runtime. Failed logs and binaries remain identified. No publication lease; full ownership/release acceptance open.
+L1 2026-11-23T11:54:11.4668125Z: Map candidate now charges six graph maps via work_vector and grows IMState/Frame layout. Full16step coherent native rebuilt after corrected source mtimes (prior staleobject139 preserved). query-smoke now reaches fixture and FAIL134 only3 exact nested-growth observation assertions width4 before suiteabort; startup/entryprep/type/sourceoffset/drain receipts otherwise pass, so no cap increased/assertion broadened. semantic_resource_checks.tower: after entry preparation at resource_entry_ready, fixture occupies ALL remaining budget before executed statements. New sequencing cache allocation occurs before intended strict-stack growth, likely explaining changedphase; exact diagnostic measurement pending. Request owner coordination: preserve16KiB budget/8KiB frame and exact stack-growth oracle, pre-admit unrelated sequencing capacity from actual checked graph/probe (not guessed bytes), or advance legitimate invocation to exact existing nested-call boundary beforepressure. I can implement focused adjustment locally after documenting actualmessage, but no D1fileedit yet. Own map call/heap fixture independent tests next. Root old2e3/d3 receipts notrelabeled. Source8files unpublished on d3, no lease.
+L1 2026-11-23T11:54:55.8566314Z: independent corediagnostic completed1; existing156 graph/Fast behavior trials PASS, new partial-admission heapfixture fails because its empty-vector probe reserves9entries whereas actual8capacity replacement grows16. Fixed test probe to establish actualpriorcapacity then grow; no productionbehavior change. Nativequery134 retains separate pre-stack mapdenial issue. Next narrow refreshed executionleaf/core and D1phase diagnostic only; allowned processes drained beforeedits.
+
+Diagnostic55290 publicexecution/D1fixture leaves and7-stepnative pass; core0 includes all156 existing graph/Fast plus newheap checks bothwidths, exact query134 message identifies sequencing-cache denial inbothpeers for3 growthcases. Startup and resource/sourceorder/drain assertions do not fail. Existing16KiB/8KiB limits and exactstackmessage remain unchanged; next adjustment will pause actual invocation at the queued nestedcall beforepressure, not fabricate a map or enlarge budget. L2 slot released after actualdrain. 2026-11-23T11:56:29.8314723Z
+
+Source-only follow-up prepared: resource_nested_call_ready uses normal interpreter_invocation_step(1) under the coordinator after joined preparation, stops only at actual FinishValue KCall with8KiB callee and owningentryframe, and rejects failure/wait/no-progress/output/return. Then unchanged workerprobe observes intended stack-growth Capacity. No budget constants, assertion alternatives or fake cacheentries added; completequery runtime pending. Extra exactmessage diagnostics retained onlyonfailure. 2026-11-23T11:58:50.0067289Z
+
+Review completion: lowlevelmap oracle now explicitly compares all7 WorkReservation fields, adding revision/lanes to owner/slot/generation/bytes/active. Previous26403 pass covered5 identityfields; do not relabel it as7. Short standalone_complete3 prepared on revisedfixture, before correctedphase gate. Productionunchanged; onlyownfixtures sourceupdated afterdrain. 2026-11-23T12:00:38.1110833Z
+
+L1 2026-11-23T12:04:01.1844061Z: fullphase39460 ACTUALDRAIN0; publicfixtureleaf/coherent6step/nativequery/functions/units/typeconstruction allPASS andsourcebefore/after/final0. Earliercore55290PASS and complete7-fieldlowlevel34341threePASS remain scoped; no currentinstrument/profileyet. D1 fixture adaptation exactpatch ../L1_graph_maps_phase_fixture.patch SHA137d08b411d30e10f166aae45e66454986ec3bc26671bb77a28d148f4c1a8839: onlydiagnostics+normalentry stepping untilactualqueuedFinishValue KCall, beforecapacityoccupation; budget16KiB/frame8KiB/exactCannot grow strict evaluation stack unchanged. Newmapcharge was proven earlierphase, not productionfailure. Bothwidths/1and4 nativequeryPASS, no replay/finalreceipts retained. No D1bodyassertionweakened. Ownfullmapbundle followsperformance/instrumentmilestone. Hostreleased toL2quiet16 thenownquiet64.
+
+### L1 graph-map fixed-path comparison on d3 - native evidence, instrumentation pending
+
+All64 processes in profile_graph_maps.sh completed0 (session84036 actualdrain): one warmup and3 balanced retained pairs for graph/Fast1000/100000 iteration programs and units4/bodies256 at budgets1/4. Exact CLI sums609500/5010950000, serial/parallel canonical hashes, before/after source/binary/resource manifests all match. Full logs/graph_maps_profiles retains every sample, including outliers. graph_maps_metrics.json preserves canonical64-bit hashes as STRINGS. Original .canonical receipts retain exact decimal text. Public-pin native release, Linux x64/Clang19, WSLkernel6.18.33.2, Ryzen95900HX8cores/16threads, hostcapacity16; CLI jobs1/no-optimize/explicit x86_64-unknown-linux-gnu; profiles use one actual installation/executable/resource path and immutable d3 resource tree. Compiler before exactd3 archive, aftereef7017f; 48 retained samples below are medians, not statistical equivalence claims.
+
+| Case | Wall s before -> after | CPU s before -> after | Peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| bodies_j1 | 1.59 -> 1.58 | 1.61 -> 1.60 | 186228 -> 186152 |
+| bodies_j4 | 1.36 -> 1.37 | 1.76 -> 1.77 | 209136 -> 209144 |
+| fast_large | 2.50 -> 2.50 | 2.50 -> 2.51 | 230032 -> 230092 |
+| fast_small | 2.18 -> 2.12 | 2.13 -> 2.11 | 230140 -> 230128 |
+| graph_large | 1.95 -> 1.98 | 1.96 -> 1.98 | 183900 -> 183920 |
+| graph_small | 1.53 -> 1.51 | 1.50 -> 1.51 | 183884 -> 183912 |
+| units_j1 | 5.92 -> 6.05 | 6.01 -> 6.08 | 211556 -> 211544 |
+| units_j4 | 2.12 -> 2.11 | 7.95 -> 8.04 | 568848 -> 560648 |
+
+Largegraph execute430.703103->449.804704ms (+4.44%), small9.030339->10.072621ms (+11.54%, ~1ms). Fastlarge362.000122->357.653623ms, small5.796123->6.321810ms. This is not a broad speedup or neutrality claim: serialunits wall+2.20%/CPU+1.16% and largegraphwall+1.54% remain explicit costs of this candidate. Graphlarge before sample3 execute544.542630ms is retained; afterrange437.542087..453.929857, before429.933040..544.542630. Units1beforesample1 wall6.49/CPU6.01 is also retained, cause not assigned. RSS has no excessivegrowth; units4 median decrease is within its observed~8MiB sample spread and is not attributed to the maps.
+
+Fourunitcontrol after reports actualouterpeak4, medianphase2040.595866ms vs summedworker8069.144399ms (realoverlap). Serialphase5993.859406ms; fourworkerCPU8.04s vs6.08s serial, so overlap retains scheduling/parallelcost. The one-unit256body case reports outerpeak1 even atbudget4; its wall improvement versusbudget1 does not prove innerthread overlap by itself. Canonicals are units17697577322696030917 andbodies12683198132697182263 throughout. Entities/components identicalbefore/after.
+
+Retainedbytes consistently fall800perworld: units1 20204981->20201781, units4 20192829->20189629; bodies1 22293931->22293131, bodies4 22290851->22290051. Ledgermetadata unchanged5,242,880(singleworld) or20,971,520(fourparallelworlds). This reduction is under investigation: larger IMState changes embedded SemanticEvaluation payload/pagecapacity, so do not infer smaller live objects. Prepared ordinaryTower actualentitypage probe prints sizeof and real page rows/stride/physicalbytes on frozenbefore/after snapshots; UNRUN whileL2 owns affectededitorinstrument slot. This is a bounded accounting diagnosis, not a new performance claim or a reason to repeat passing timings.

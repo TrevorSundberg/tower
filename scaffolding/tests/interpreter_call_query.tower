@@ -7,6 +7,7 @@ import .compiler.format_api;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_vector;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
@@ -64,8 +65,14 @@ fn input_query_owned_bytes(invocation: IMInvocation*): usize {
     var frames = &invocation.state.frames;
     var bytes = invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
         + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes
-        + invocation.state.type_values.values.reservation.bytes + invocation.state.node_cache.reservation.bytes;
-    for(var i: usize = 0; i < frames.capacity; i++) { bytes += frames.data[i].tasks.reservation.bytes; }
+        + invocation.state.type_values.values.reservation.bytes + invocation.state.node_cache.reservation.bytes
+        + invocation.state.function_values.reservation.bytes + invocation.state.allocations.reservation.bytes
+        + invocation.state.free_blocks.reservation.bytes + invocation.state.strings.reservation.bytes
+        + invocation.state.sequenced.reservation.bytes;
+    for(var i: usize = 0; i < frames.capacity; i++) {
+        bytes += frames.data[i].tasks.reservation.bytes + frames.data[i].values.reservation.bytes
+            + frames.data[i].addresses.reservation.bytes;
+    }
     return bytes;
 }
 
@@ -223,6 +230,7 @@ export fn call_query_tests(width: u32): u32 {
     entity_release(root);
     call_query_check(compiler_world_dispose(world), "Suspended call inputs release their world", &failures);
     failures += function_query_tests(width);
+    failures += map_query_tests(width);
     failures += input_query_tests(width, InputQuerySmallBytes, false);
     failures += input_query_tests(width, InputQueryLargeBytes, false);
     failures += input_query_tests(width, InputQuerySmallBytes, true);
@@ -530,6 +538,11 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
 // the shared allowance only after ordinary entry storage and prior effects exist.
 var FunctionQueryOffset: usize = 73;
 var FunctionQueryBudgetBytes: usize = 8388608;
+struct FunctionQueryCase {
+    denied: bool;
+    growing: bool;
+    returning: bool;
+}
 extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
 extern fn strlen(text: u8*): usize;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
@@ -601,15 +614,30 @@ fn function_query_tests(width: u32): u32 {
     call_query_push(&sem_get(body).items, function_query_print(root, width, 8));
     call_query_push(&sem_get(body).items, second_value);
     call_query_push(&sem_get(body).items, function_query_print(root, width, 9));
+    // Charge unrelated memoization before pressure targets function storage.
+    // Derive its extent from this complete graph, without fabricating entries.
+    function_query_require(interpreter_invocation_init(&probe, entry, convert(usize, width), null, 0, false, CallQueryFuel),
+        "Function-reference memoization extent probe entry");
+    interpreter_invocation_step(&probe, convert(usize, CallQueryFuel));
+    function_query_require(probe.state.done && !probe.state.failed && probe.context.output.data != null
+        && strcmp(probe.context.output.data, "7\n8\n9\n") == 0,
+        "Function-reference memoization extent probe execution");
+    var sequencing_extent = probe.state.sequenced.capacity;
+    interpreter_invocation_dispose(&probe);
     var baseline: WorkBudgetSnapshot = default;
     call_query_require(work_budget_snapshot(&budget, &baseline));
-    for(var mode: usize = 0; mode < 3; mode++) {
-        var denied = mode != 0;
-        var growing = mode == 2;
+    var runtime_cases: FunctionQueryCase[3] = default;
+    runtime_cases[1] = { denied: true, ..default };
+    runtime_cases[2] = { denied: true, growing: true, ..default };
+    for(var mode: usize = 0; mode < sizeof(decltype(runtime_cases)) / sizeof(FunctionQueryCase); mode++) {
+        var denied = runtime_cases[mode].denied;
+        var growing = runtime_cases[mode].growing;
         var invocation: IMInvocation = default;
         function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, false, CallQueryFuel),
             "Function-reference runtime entry before pressure");
         invocation.context.type_arguments = true;
+        function_query_require(work_vector_reserve_result(&invocation.state.sequenced, &budget, sequencing_extent)
+            == WorkBudgetError.None, "Function-reference runtime pre-admits measured memoization");
         var preceding_output = growing ? "7\n8\n" : "7\n";
         var output_bytes = strlen(preceding_output);
         for(var step: u64 = 0; step < CallQueryFuel && invocation.context.output.length < output_bytes; step++) {
@@ -677,9 +705,13 @@ fn function_query_tests(width: u32): u32 {
     }
     // Staged evaluation has no output capability. Exercise the same admission
     // sites without adding an unsupported effect to the fixture's contract.
-    for(var mode: usize = 0; mode < 4; mode++) {
-        var growing = mode % 2;
-        var returning = mode >= 2;
+    var staged_cases: FunctionQueryCase[4] = default;
+    staged_cases[1] = { growing: true, ..default };
+    staged_cases[2] = { returning: true, ..default };
+    staged_cases[3] = { growing: true, returning: true, ..default };
+    for(var mode: usize = 0; mode < sizeof(decltype(staged_cases)) / sizeof(FunctionQueryCase); mode++) {
+        var growing = convert(usize, staged_cases[mode].growing);
+        var returning = staged_cases[mode].returning;
         sem_get(body).items.length = 0;
         if returning {
             sem_get(entry).type = sem_get(first_value).type;
@@ -692,6 +724,8 @@ fn function_query_tests(width: u32): u32 {
         var invocation: IMInvocation = default;
         function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel),
             "Function-reference staged entry before pressure");
+        function_query_require(work_vector_reserve_result(&invocation.state.sequenced, &budget, sequencing_extent)
+            == WorkBudgetError.None, "Function-reference staged pre-admits measured memoization");
         if growing != 0 { interpreter_invocation_step(&invocation, 1); }
         function_query_require(!invocation.state.done && !invocation.state.failed
             && invocation.state.function_values.length == growing,
@@ -739,5 +773,143 @@ fn function_query_tests(width: u32): u32 {
     call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0
         && released.live == 0 && work_budget_dispose(&budget),
         "Function-reference world outlives and retires all private owners", &failures);
+    return failures;
+}
+
+struct MapQueryCase {
+    subject: void*;
+    phase: usize;
+    frames: usize;
+    message: u8*;
+    preceding: u8*;
+}
+
+var MapQueryBudgetBytes: usize = 33554432;
+var MapQueryOffset: usize = 91;
+var MapQueryStatementPhase: usize = 0;
+var MapQueryFinishAddressPhase: usize = 5;
+
+fn map_query_at(invocation: IMInvocation*, selected: MapQueryCase*): bool {
+    if invocation.state.frame_count != selected.frames { return false; }
+    var tasks = &invocation.state.frames.data[invocation.state.frames.length - 1].tasks;
+    if tasks.length == 0 { return false; }
+    var pending = &tasks.data[tasks.length - 1];
+    return pending.node == selected.subject && pending.phase == selected.phase;
+}
+
+// Reach real continuations, then deny precisely their cache admission. All
+// unrelated pre-admitted extents come from a successful run of the same graph.
+fn map_query_tests(width: u32): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    function_query_require(work_budget_init(&budget, 1, MapQueryBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Map query world");
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var entry = call_query_node(root, width, KFunction);
+    sem_get(entry).frame_size = sizeof(i32);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    var before = function_query_print(root, width, 7);
+    sem_get(before).start = MapQueryOffset;
+    call_query_push(&sem_get(body).items, before);
+    var callee = call_query_node(root, width, KFunction);
+    var callee_body = call_query_node(root, width, KBlock);
+    sem_get(callee).body = callee_body;
+    call_query_push(&sem_get(callee_body).items, function_query_print(root, width, 8));
+    var result = call_query_node(root, width, KOperand);
+    sem_get(result).constant = true;
+    sem_get(result).bits = 37;
+    var returned = call_query_node(root, width, KReturn);
+    sem_get(returned).value = result;
+    sem_get(returned).start = MapQueryOffset;
+    call_query_push(&sem_get(callee_body).items, returned);
+    var call = call_query_node(root, width, KCall);
+    sem_get(call).binding = callee;
+    sem_get(call).start = MapQueryOffset;
+    var local = call_query_node(root, width, KDeclare);
+    sem_get(local).value = call;
+    sem_get(local).start = MapQueryOffset;
+    call_query_push(&sem_get(body).items, local);
+    var text = call_query_node(root, width, KString);
+    sem_get(text).type = { scalar: SU8, pointers: 1, pointer_bytes: width, ..default };
+    function_query_require(vector_push(&sem_get(text).name, convert(u8, 109)), "Map query string storage");
+    var printed = call_query_node(root, width, KPrint);
+    sem_get(printed).value = text;
+    sem_get(printed).start = MapQueryOffset;
+    call_query_push(&sem_get(body).items, printed);
+    call_query_push(&sem_get(body).items, function_query_print(root, width, 9));
+    var probe: IMInvocation = default;
+    function_query_require(interpreter_invocation_init(&probe, entry, convert(usize, width), null, 0, false, CallQueryFuel),
+        "Map query successful probe entry");
+    interpreter_invocation_step(&probe, convert(usize, CallQueryFuel));
+    function_query_require(probe.state.done && !probe.state.failed && probe.state.strings.length == 1,
+        "Map query successful probe execution");
+    var sequencing_extent = probe.state.sequenced.capacity;
+    var allocation_extent = probe.state.allocations.capacity;
+    var free_extent = probe.state.free_blocks.capacity;
+    var memory_extent = probe.state.memory.capacity;
+    interpreter_invocation_dispose(&probe);
+    var cases: MapQueryCase[4] = default;
+    cases[0] = { subject: before, phase: MapQueryStatementPhase, frames: 1,
+        message: "Cannot allocate interpreter sequencing storage", preceding: "" };
+    cases[1] = { subject: local, phase: MapQueryFinishAddressPhase, frames: 1,
+        message: "Cannot allocate interpreter address storage", preceding: "7\n" };
+    cases[2] = { subject: returned, phase: MapQueryStatementPhase, frames: 2,
+        message: "Cannot allocate interpreter value storage", preceding: "7\n8\n" };
+    cases[3] = { subject: printed, phase: MapQueryStatementPhase, frames: 1,
+        message: "Cannot allocate interpreter string storage", preceding: "7\n8\n" };
+    var baseline: WorkBudgetSnapshot = default;
+    function_query_require(work_budget_snapshot(&budget, &baseline), "Map query baseline");
+    for(var i: usize = 0; i < sizeof(decltype(cases)) / sizeof(MapQueryCase); i++) {
+        var selected = &cases[i];
+        var invocation: IMInvocation = default;
+        function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, false, CallQueryFuel),
+            "Map query entry before pressure");
+        if selected.subject != before {
+            function_query_require(work_vector_reserve_result(&invocation.state.sequenced, &budget, sequencing_extent)
+                == WorkBudgetError.None, "Map query measured sequencing admission");
+        }
+        if selected.subject == printed {
+            function_query_require(work_vector_reserve_result(&invocation.state.memory, &budget, memory_extent)
+                == WorkBudgetError.None
+                && work_vector_reserve_result(&invocation.state.allocations, &budget, allocation_extent) == WorkBudgetError.None
+                && work_vector_reserve_result(&invocation.state.free_blocks, &budget, free_extent) == WorkBudgetError.None,
+                "Map query measured guest-storage admission");
+        }
+        for(var step: u64 = 0; step < CallQueryFuel && !invocation.state.done && !invocation.state.failed
+            && !map_query_at(&invocation, selected); step++) { interpreter_invocation_step(&invocation, 1); }
+        function_query_require(!invocation.state.done && !invocation.state.failed && map_query_at(&invocation, selected),
+            "Map query reaches its real queued continuation before pressure");
+        var remaining: WorkBudgetSnapshot = default;
+        var occupied: WorkReservation = default;
+        function_query_require(work_budget_snapshot(&budget, &remaining)
+            && work_budget_reserve_result(&budget, 0, 0, remaining.bytes - remaining.used_bytes, &occupied)
+                == WorkBudgetError.None, "Map query exact remaining pressure");
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        call_query_check(invocation.state.done && invocation.state.failed
+            && invocation.state.storage_error == WorkBudgetError.Capacity && invocation.state.error_offset == MapQueryOffset
+            && invocation.context.error.data != null && strcmp(invocation.context.error.data, selected.message) == 0
+            && !invocation.context.returned && invocation.context.output.length == strlen(selected.preceding)
+            && (invocation.context.output.length == 0 || strcmp(invocation.context.output.data, selected.preceding) == 0),
+            selected.message, &failures);
+        function_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+            "Map query pressure releases");
+        var steps = invocation.state.steps;
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        call_query_check(invocation.state.done && invocation.state.failed && invocation.state.steps == steps
+            && invocation.context.output.length == strlen(selected.preceding) && !invocation.context.returned,
+            "Map query failure cannot replay effects after allowance returns", &failures);
+        interpreter_invocation_dispose(&invocation);
+        var released: WorkBudgetSnapshot = default;
+        call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
+            && released.live == baseline.live, "Map query disposal retires every retained owner", &failures);
+    }
+    entity_release(root);
+    function_query_require(compiler_world_dispose(world), "Map query world disposal");
+    var released: WorkBudgetSnapshot = default;
+    call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Map query budget outlives its world and invocations", &failures);
     return failures;
 }

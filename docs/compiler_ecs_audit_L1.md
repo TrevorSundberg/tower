@@ -1,4 +1,35 @@
 # L1 execution ownership audit
+The graph-map candidate on complete ROOTd3 now charges allocation/free-range,
+string/sequencing and frame value/address maps to the invocation's world budget.
+Its sorted entries remain derived execution indexes over original Foundation
+entities. First/growth admission preserves the original owner, payload and exact
+failure. Heap allocation prepays future free metadata before committing a guest
+range; valid free/coalescing performs no new admission. Runtime continuations
+stop on map failure before publishing a return or replaying effects. Fast's
+handoff releases the matching graph owners.
+
+Native evidence on this candidate: the public low-level leaf and three runs
+check all seven retained reservation fields, physical charges and final cleanup.
+Core, query, functions, units and type-construction gates pass at their recorded
+frozen inputs. The existing 16 KiB/8 KiB resource fixture now executes ordinary
+entry continuations up to the queued nested call before applying pressure; its
+exact worker-side stack-growth oracle is unchanged. Earlier failures include a
+stale-layout object caused by copied source timestamps, a wrong fresh-vector
+replacement-size probe, and the measured earlier sequencing denial. Their logs
+remain in the journal. All64 fixed-path comparison runs preserve outputs and
+canonical hashes. Large graph execution costs4.44% (end to end1.54%); serial
+unit wall time costs2.20%, while four-unit wall time is nearly unchanged and
+actual outer overlap remains4. Peak memory is stable. The consistent800-byte
+retention decrease per world awaits a component-page accounting check; no live-
+object memory improvement is claimed. Current instrumentation is still pending;
+this paragraph is not an acceptance or publication receipt.
+
+The preceding function-return milestone also added a guard against publishing
+a root return after its operand failed. Its native and fixed-path performance
+receipts are preserved separately; L2's coherent 2e3 address/thread runs include
+that correction, and do not validate these newer map changes.
+
+Historical checkpoints follow.
 
 Current function-reference follow-up on ROOT76d297c passes its two public leaves,
 coherent native rebuild, five suites and64 paired same-installation-path samples.
