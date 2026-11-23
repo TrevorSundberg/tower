@@ -35,6 +35,8 @@ struct EntityComponentPage {
     type_id: usize;
     used: usize;
     live: usize;
+    // One-based dead slot chain; live components retain their type index.
+    free_slot: usize;
     capacity: usize;
     stride: usize;
     components: EntityComponent*;

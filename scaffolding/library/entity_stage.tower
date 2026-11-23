@@ -254,7 +254,7 @@ export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
     vector_dispose(EntityStageNode, &stage.nodes);
     vector_dispose(Entity*, &stage.references);
     vector_dispose(EntityStageLease, &stage.leases);
-    entity_component_pool_detach(&stage.storage);
+    entity_component_pool_transfer(&stage.storage, &store.storage);
     entity_release(stage.anchor);
     stage.anchor = null;
     free(stage);

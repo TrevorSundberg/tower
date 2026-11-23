@@ -4,10 +4,12 @@ import .compiler.parser_types;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .library.vector;
+import .library.work_budget_types;
 import storage_api;
 import utility_checks;
 
 var StorageParserEof: u32 = 4294967294;
+extern fn parser_stream_resource_error(stream: void*): WorkBudgetError;
 
 // Releases inside these fixtures are deliberately immediate: subsequent checks
 // observe exact ownership transitions and allocation counts before returning.
@@ -269,7 +271,13 @@ fn storage_stream_tests(): void {
     tower_test_buffer_fail_after(1); stream = parser_stream_utf8_null_terminated_create("a");
     utility_check(stream is not null, "UTF-8 stream source allocation fixture");
     parser_stream_read(stream, &id, &start, &length);
-    utility_check(id == StorageParserEof && strcmp(parser_stream_get_error(stream), "Unable to allocate UTF-8 stream source") == 0, "UTF-8 stream allocation diagnostic");
+    utility_check(id == StorageParserEof && parser_stream_resource_error(stream) == WorkBudgetError.Memory
+        && strcmp(parser_stream_get_error(stream), "Unable to acquire parser input resources") == 0,
+        "UTF-8 stream allocation diagnostic");
+    parser_stream_read(stream, &id, &start, &length);
+    utility_check(id == StorageParserEof && parser_stream_resource_error(stream) == WorkBudgetError.Memory
+        && strcmp(parser_stream_get_error(stream), "Unable to acquire parser input resources") == 0,
+        "UTF-8 stream allocation failure remains terminal");
     parser_stream_destroy(stream);
     utility_check(tower_test_buffer_count() == baseline, "UTF-8 stream cleanup");
 }
