@@ -88038,3 +88038,15 @@ Publication reconciliation: committed full milestone/fix48d791a8, then required 
 Affected adoption only: integrated_language_merge0 built frontend/native/alias targets8 actions,58.19wall/81.83CPU/1057956KiB, source frozen. lr-order exited0 (.27wall/.26CPU) and passed closure/state/runtime/control plus150 randomized grammar/propagation comparisons. Its existing fixture intentionally writes suffix index charged_bytes=408 and item graph ledger_live=408 peak=1048576 to stderr before teardown; the initial orchestration's empty-stderr predicate therefore exited1. Preserved that wrapper1/source0 and the actual successful test/time/counter receipt. Verified both lines at their producer, then continued ONLY unrun selections under merge0_remaining, without repeating LR or rebuilding. Remaining process/source0, stderr empty: query-smoke .41wall/.40CPU/104424KiB; dependency-units7.17/14.01/750924; alias1 13.23/8.86/185628; alias4 14.79/13.25/189992. All exact canonical/error/known-output/actual-overlap and alias byte/lane retirement checks passed. Sessions15584/39826 drained. Later alias and LR source adoption is focused evidence; complete browser/hover/generation/release gates remain with their owners.
 
 No remaining blocker in the frozen functional milestone or affected merged checks. No additional full matrices/profiling/instrumentation runs, no deployment, no new goal/context/agent. This follow-up only records evidence; compiler inputs unchanged since merged validation and no new runtime performance measurement is needed. Existing complete histories, failed logs, accepted prior receipts and immutable baselines preserved; todo hash remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Normal main push follows.
+D1 publication reconciliation: scoped implementationfc3f52da; required ff-only
+pull found3a7f4b39, so normal mergefc3e0101 preserves complete history. All saved
+Node/fixture/artifact hashes still match. Nine later Tower blobs and one added
+completion fixture change the supplied resource inventory; unchanged language,
+type and functions-example inputs retain their hashes. In particular upstream
+A1 repair5fdb4827 now has its own native owner receipt; the two old-reactor
+failures above are pending browser artifact adoption, not an assertion that
+current source lacks that fix. No compiler rebuild or repeated full Node gate.
+A tiny merged-resource Bedrock/scanner check follows; ROOT owns final reactors.
+Merged-resource check PASS17/17,0skip,6.31wall/7.15CPU/183236KiB, exit0. All owned
+Node jobs drained. Reused the unchanged49-case and relative-path receipts;
+remaining broad failures are preserved, not waived. Normal main push follows.

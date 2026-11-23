@@ -3925,3 +3925,10 @@ A1 completion and D2 worker-retirement work remain separate; no expectations wer
 changed to accept their failures. Final generation/sanitizer/hosted gates remain
 ROOT-owned. This bounded batch closes input/publication defects, not the full
 Node suite or compiler completion ledger.
+
+Publication reconciliation preserves upstream3a7f4b39 via mergefc3e0101. A1's
+qualified-completion source repair5fdb4827 and native receipt are now present;
+ROOT's adoption into a new browser reactor remains pending. The above failures
+retain their exact old0b9 reactor identity. Node/fixture/artifact and imported
+language/type/example hashes are unchanged; later compiler providers are source
+data here, not new executable compiler validation.
