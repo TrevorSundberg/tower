@@ -80905,6 +80905,104 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+
+
+### L2: bounded layout admission continuation (2026-11-23)
+
+Prior admission039a7fc6 is now published through preserving mergeafca69b1; the authorized normal push race was recovered without flattening history. Actual remaining callers select layout kind/payload/query admission as this batch. Layout discovery previously published a graph request before asserting dynamic kind/component creation; body and declaration consumers then unconditionally dereferenced its query. Implement checked admission before query publication, preserve first producer failure, and guard the complete consumer chain. Constructor-state admission is a separate pending chain; A1 lifecycle, A2 stage protocol and ROOT execution ownership remain untouched. Evidence below will distinguish implementation from checks.
+
+Implemented the selected layout chain with sem_create_result and
+entity_component_add_result. A kind is published only after registration; each
+payload and its owned offset storage precede its graph request. Discovery checks
+request/dependency/access/seal/demand results and preserves the first producer
+receipt without cancelling another phase's active tickets. Failed admissions
+cannot execute or publish sizes. All six production sem_layout_discover callers
+were audited: synchronous/layout-all and body iterator/input/declaration callers
+now guard zero; the executed-type constructor already had the required guard.
+No new recursive query completion or worker structural mutation was introduced.
+The existing synchronous compatibility path is unchanged after successful admission.
+
+Extended existing storage/query fixtures, not a separate test framework. A serial
+allocation sweep derives its bound from actual production calls across a dependent
+array/record layout frontier, checks first producer offsets, no sizes/replay, and
+zero final tracked buffers. Healthy queries suspend, retain canonical identity,
+and publish each dependent size once. Executed array constructors at widths4/8
+now cover layout-specific Exhausted/Busy/physical Capacity after canonical identity
+already exists, with no layout query/result publication, no retry after first
+failure, cancelled/drained constructor tickets and zero final ledger owners.
+
+One dependency-aware native build sequence used the existing l2_ecs_native cache,
+max2 build jobs, CPUs4..7 and a4GiB per-process virtual-memory cap. Layout0 failed
+on a missing explicit existing compiler_node_world declaration; layout1 compiled
+semantics/query fixtures but the new storage fixture needed a direct vector import.
+Both failures drained before corrections; original logs and source0 manifests
+are retained. Layout2/94812 completed the remaining four actions and passed full
+storage and query-smoke with empty stderr and source manifest0. Final incremental
+build:10.18wall/7.57CPU seconds/316096KiB; storage:.30/.25/99548;
+query-smoke:.20/.23/75128. Earlier successful semantics compilation is retained
+from layout1, whose whole build was not a pass. No duplicate public-leaf build.
+
+Small checked comparison5720 uses immutable prior admission compilerb0362b6c
+and current9c5db90f at one actual executable path, the same frozen baseline
+resources and unchanged generic_stage_constructor inputbbc45255. Commands use
+--interpret --jobs1/4, native x64/LLVM19 Release, WSL2 Linux6.18.33.2, affinity4..7,
+fresh processes and warm file copies. Inventory showed no competing build at
+start. Each side/count runs once; all four outputs equal the independent0 oracle,
+with empty stderr and final input/resource/source hashes0. Before also predates
+integrated interpreter/flow/parser work, so this is not isolated lane attribution.
+
+| Constructor jobs | Before wall/CPU seconds/peak KiB | After wall/CPU seconds/peak KiB |
+| --- | --- | --- |
+| 1 | 1.64 / 1.54 / 180296 | 1.47 / 1.45 / 179744 |
+| 4 | 1.24 / 1.53 / 198940 | 1.23 / 1.52 / 199468 |
+
+The four-worker peak rose528KiB; this tiny sample supports no neutrality, speedup
+or scaling claim. Raw receipts/recipes are L2/semantic_admission_layout* and
+L2/layout_pair*. No existing baseline or failed receipt was overwritten.
+
+Remaining exact gaps: semantic_constructor_work.sem_constructor_state still uses
+asserting dynamic kind/component admission; its sem_constructor_add/instance
+callers need their own complete nullable chain. Semantic evaluation-work kind/
+payload admission and shared sem_state table allocation remain asserting staging
+paths. Layout execution still retains its existing worker dispatch/finish and
+cycle-analysis contracts; this batch closes admission and its consumers, not
+universal scheduler/allocation failure handling. A1 lifecycle orchestration,
+A2 stage holds and ROOT semantic_execution_work were untouched. Supported
+sanitizers/full scaling/bootstrap/browser/generation/hosted release remain pending
+ROOT's integrated milestone. This task publishes main only; no runtime deployment
+is claimed. todo.txt hash remainsb927852f. All owned validation jobs have drained.
+### D2 bounded publication-readiness audit (2026-11-23)
+
+Reviewed published636f7f93 through f33770ba, then pulled complete L2 history to
+afca69b171c790ce9386ae85c3f3d493d21cec59 before writing the final checklist in
+docs/compiler_ecs_audit_d2.md. No owned build survived; actual Codex PID3036590,
+Deck container init/sleep only, no heavy lock acquired. All56 public bootstrap
+checksum entries verify (compiler9653f818, manifestcf7d84b1). Read actual native
+depfiles, current CMake/unit/export rules and published project metadata. The
+636 provider receipt now needs ParserNodes, Semantics, Evaluation, Interpreter,
+query-checks and driver consumer refresh; unchanged Entities and exact policy/
+24-case receipts remain reusable only within their original input/profile scope.
+No duplicate test or broad build was run.
+
+Fetched served manifesteb70f538, exactly matching Pages6f142bef; its104 assets
+and project533files/22units still identify build98ade8cc, not this source union.
+The old recipe lacks the four generic-result and entity_attach_result exports.
+Recorded exact pin/source/object/project/receipt identities, current export and
+release gaps, reusable vendor/input boundaries, corrected root-cwd mandatory
+thread test invocation, and minimal existing clean/bootstrap/browser/generation/
+hosted/address/thread commands. Current thread package built-only, historical
+timeouts, broken negative control and unsupported UBSan remain explicit.
+Documentation-only work requires no runtime performance/memory comparison.
+Source receipts were reviewed, not relabeled or rerun. /home129GiB free and
+9.7GiB RAM available at inspection; no cleanup or other owner's changes.
+ROOT retains final runtime/assets/deployment. This bounded audit commits/pushes
+main only; its exact publication result is recorded in D2's existing status.
+Final pull fetched53d63157 and refused divergence; normal merge d8db5f3f retained
+both complete histories without conflicts. Updated the same audit for B2's
+frontend-units/module consumer changes and its three reported new module-result
+imports absent from the exact policy. D1's queued-provenance cancellation contract
+is an explicit unimplemented prerequisite, not merely an unrun test. Depfile and
+source review refreshed; unchanged bootstrap/policy receipts reused, no builds.
 ### B2 checked module startup transaction (2026-11-23)
 
 Direct bounded task on main6714a030 (includes complete ROOTb042 history), PID25884.
@@ -81060,3 +81158,145 @@ saved baseline /cache/b2_admission_before_profile. Broader supported sanitizers,
 scaling, portable/bootstrap/browser/generation and hosted deployment remain
 pending ROOT's integrated milestone, not passed here. No todo edit, other-lane
 implementation, session/goal/agent creation or publication lease polling.
+### A2 queued-stage ownership prerequisite, 2026-11-23 (blocked, not implemented)
+
+Reviewed integrated `afca69b171c790ce9386ae85c3f3d493d21cec59` after the requested
+`git pull --rebase=merges --autostash --ff-only`. No owned build was running;
+the worktree was clean. This bounded task did not resume the former goal or
+inventory campaign. The explicit task leaves final deployment with ROOT.
+
+Source inspection confirms `entity_stage_hold` increments every unheld queue
+entry without checking exhaustion. The queue stores target entities and a held
+prefix, not the payload locations whose finalizers release them. Publish and
+discard both invoke that unchecked hold. Duplicate targets require cumulative
+accounting; checking each against its initial count is insufficient. Existing
+queue-slice alias rebasing already handles queue growth and must be preserved.
+
+The only production queue writer found by `rg` is
+`compiler/syntax_provenance.tower:syntax_origin_copy_staged_result`. It builds a
+temporary entity array, queues it, installs borrowed expansion/splice pointers in
+`SyntaxOrigin`, then disposes the temporary array. Its ordinary finalizer releases
+all those pointers. The lifecycle dispatcher supplies no cancellation operation.
+Consequently a failed checked hold cannot safely proceed into today's discard:
+unheld payload pointers would still be released. Skipping finalizers would leak
+their owned buffers. Suppressing selected entity releases is also insufficient:
+`syntax_trace_release` may detach and traverse a uniquely owned history before
+calling `entity_release`. A pin protects lifetime, not ownership of that history.
+
+**Prerequisite:** include this immediate provenance producer in the ownership
+batch, or have ROOT supply its cancellation contract. The current grant permits
+library stage/helpers/fixtures and the immediate generic-body hold caller; it
+does not permit changing `syntax_provenance.tower`. No production edits were
+made across that boundary, and no unsafe preflight-only patch was installed.
+
+Proposed protocol (design only): each queued payload registers stable private
+cancellation metadata before installing borrowed references. A checked hold
+acquires all pending references, counting repeated targets, or returns the exact
+error with that pending ownership untransferred. Already-held ownership remains
+distinct. After joins, discard cancels only unheld borrowed fields before ordinary
+finalization; held fields release normally. Source owners/views remain live
+through either outcome. Queue admission and metadata allocation must be atomic,
+and retries must not retain twice. Existing compatibility wrappers and empty
+queue paths must remain available. The precise API is not implemented or agreed.
+
+Caller handoff: production search found publish callers in `semantic_body_work`,
+`semantic_declarations`, `semantic_evaluation_work`, `semantic_lowering_work`,
+`semantic_execution_work` and `semantic_generic_body_work`; declarations also
+exist in `semantic_context`. The generic-body pump joins, holds every stage, then
+closes its view; its deferred discard must safely handle hold failure before
+that view closes. The execution pump currently closes its view before publishing;
+ROOT owns its checked-hold adoption. The remaining publish callers need their
+actual queued-reference behavior checked when the protocol is integrated; this
+call-site inventory is not a completed substantive review of those pipelines.
+Twenty test/profile files reference hold/publish/discard/queue APIs, including
+the existing stage ownership, result, concurrent, reentrant, page reuse and
+generic clone fixtures. No fixtures or generic harness files changed.
+
+Evidence is read-only source inspection, caller searches and Git state checks.
+One initial `rg` command used an unsupported Windows filename glob and reported
+an OS path error; the subsequent directory search with `-g '*.tower'` completed.
+No allocation/sanitizer/error/node-control probes or runtime builds ran. Runtime
+profiling is inapplicable to this documentation-only change; the requested
+implementation, focused lifecycle/query checks and before/after sample remain
+pending. ROOT's integrated instrumentation/bootstrap/browser/release checks are
+also pending, not passed. Stop this bounded attempt on the explicit producer
+ownership prerequisite; do not claim queued-stage or compiler completion.
+
+Publication reconciliation: the required ff-only pull stopped on concurrent
+`fd1ba4de`. `git rebase --rebase-merges origin/main` preserved the published
+history and replayed only this journal entry without conflict. Incoming changes
+touch frontend admission and documentation, not the reviewed stage/provenance
+contract. `git diff --check` and the scoped documentation diff remain the
+applicable validation; no runtime evidence is relabeled for the merged source.
+
+Post-commit integration: layout0ecf31c2 merged published53d63157 as41b8031d,
+preserving both journal histories with no owned-code changes. Incoming frontend
+module/unit admission changed provider inputs, so merged57986 rebuilt six real
+dependency actions:30.94wall/47.93CPU seconds/747532KiB. Full storage
+(.29/.23/99532), query-smoke(.19/.22/74776) and constructor --jobs1/4 exact0
+oracles all passed, with empty stderr and source manifest0. The first merged OS
+wrapper failed before starting a build because its quoted path included its
+argument; that original wrapper/output is preserved, then corrected merged1 ran.
+No production change or skipped check was hidden. Earlier baseline comparison
+retains its measured source identity. This receipt is documentation only; no new
+runtime measurement applies. All owned jobs drained; normal main push follows,
+with ROOT deployment and the explicitly listed remaining chains still pending.
+
+### D2 exact current module-startup symbol policy (2026-11-23)
+
+Bounded implementation on main3912f25b6368ebdb15ce332af8370eb57bf37f00, after
+pulling complete published history and checking the owned container was idle.
+Refreshed only Semantics, ParserNodes and frontend-units through one existing
+dependency-aware CMake invocation. Public9653/Linux x64/LLVM19.1.1, Deck image
+4be584fb, CPU0,2, build/compiler jobs1. Three object actions passed in80.43wall/
+77.91CPU seconds,760104KiB peak RSS. Source manifests verify before/after.
+
+Actual native nm U/T boundaries determine the additions, not the earlier audit's
+tentative grouping. Semantics imports frontend_module_root_world_size_result from
+ParserNodes. Current integrated L2 consumers additionally import
+compiler_world_component_result, entity_attach_result, entity_component_add_result,
+entity_create_related_result and entity_create_result from Entities. The configured
+parser_modules_work entry includes B2's module fixture, which imports
+compiler_world_create_result from Entities and frontend_units_create_bounded_result
+plus its paired frontend_units_close from the separate frontend-units provider.
+All nine were rejected by the retained old checker; add exactly those six
+Semantics and three ParserNodes permissions. No producer, layout or scheduler edit.
+
+Provider SHA256 identities:
+
+- Semantics:214d9217688e5eb3aa705888e28dcc1ae1ddd059ea6b5ac3d7c14ee81dc656fa.
+- ParserNodes:79fbe19031f05fde50b91a7af1ac3a66b8b750fe02863f6c6cb047c3ce1bb491.
+- frontend-units:ab30e9322092a25725f0e8c332a4ea9ac848a79195ec8ecb0dc9420206440a5c.
+- Entities:030ae5b4ec3c21805e92b57a3d9be0baa9cde30fdbf1f5fe400e514d2fd4b57c;
+  unchanged object/import closure reused from the prior current native receipt.
+
+frontend_modules_create_result/bind_world_result are U only in frontend-units,
+T in ParserNodes; module_new_result is a local t symbol there. None justifies
+a Semantics permission. The existing seven-unit comparison has no standalone
+frontend-units policy profile; this batch does not invent one or claim that
+report passed such a profile. New negative cases explicitly retain these rejects.
+Nine scoped fixture groups cover four target-policy spellings, exact truncation,
+suffix and wrong consumer/provider rejection; two normalized underscore cases
+also pass. Two historical negative expectations were updated only for their
+newly observed imports. No generic result-suffix permission or new normalization.
+
+Smallest public fixture compile/link/run passes (compile3.25s/180496KiB), canonical
+selected checker build passes (4.37s/197628KiB), then both full native reports
+pass with empty stdout/stderr. Checker3706ce5e4a5aa61b6ccc168d17dec969b1cf31b5334063c65bcdf1e773870a4e;
+fixturec2ea21785a5da5e38cac232e592b0ffbc3d71e4a996537fc7daf88a92cacc70f.
+Same frozen reports/target/flags, warm filesystem, fresh processes, n1 per unit
+and side: before/after wall and CPU all below0.01s resolution; peak RSS1352->1616
+KiB (Semantics),1348->1616 (ParserNodes). This establishes no speed or regression
+bound. Matcher additions allocate nothing and borrow input; whole-process live
+allocation/retention was not separately measured. This serial lookup has no
+worker scheduling/scaling change. Raw commands, hashes, expected old exit1s,
+after exit0s and profiles remain in build/d2_ecs/module_policy_3912. A diagnostic
+summary initially hit absent container rg (127); nm files were already complete
+and host rg inspected them without another build. No failure was counted passed.
+
+No WASI objects, Windows runtime, broad native/backend, sanitizers or browser
+matrix were executed. Portable cases validate policy strings only. ROOT retains
+final current-source instrumentation/bootstrap/browser/generation/deployment;
+the separate queued-provenance ownership prerequisite remains open. All owned
+jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
+and exact remote verification follow, recorded in D2's existing status.
