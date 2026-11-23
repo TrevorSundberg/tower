@@ -82488,3 +82488,63 @@ and canonical reparse prints0. Final compiler SHA256
 Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
+
+### L1 bounded current-source shared-Wasm/browser integration — 2026-11-23
+
+Source b9f2c44369214cfad3b050dfeeb41b734ff15dce includes published Fast storage
+13c8652b and current lifecycle providers. No surviving L1 job; clean required
+pull. Read existing threads CMake/toolchain, provider imports, browser/Node
+registrations and work/query fixtures. No missing semantic fixture or portable
+ABI defect was found: native/browser interpreter units and the bytecode consumer
+use the one Fast layout; worker/budget/entity/query providers compile together.
+Only browser/OS test transport and documentation change. No semantic admission,
+A2 stage protocol, diagnostic/output storage or production runtime edit.
+
+Reused the L1 cache namespace with isolated shared profile l1_shared_wasm (no
+previous L1 shared profile existed). Verified checked-in public bootstrap
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+WASI SDK34 wasip1-threads, Release, compiler jobs1/build jobs2. Existing threads
+recipe, only tower-browser/tower-work-tests:30 actions,86.89wall/129.77CPU seconds,
+818552KiB peak build RSS. Source before/after manifests match:
+ec2a16a85c5b083a8b103514a2d504cdceaae7838c7a4b9a769c0e0efaedd1db.
+Compiler wasm b613b87ad9b528e137de91527532251f2ee77ac600a7fa817541d236ebc362d4;
+work wasm270be3b4507b5b2830bebe9884f13b16921f886c7caec3d5da0fa1b8946d3a9b.
+
+New test-shared-compiler transport invokes existing Tower work_pool/work_order,
+evaluation_query_tests, semantic_stage_tests, lr_work_tests and semantic_world_tests.
+It transports decltype_lazy_body, decltype_generic_headers and comptime_flow;
+all graph/Fast outputs are0 and complete canonical text agrees at workers1/4.
+No duplicate interpreter, JS semantic oracle or full asset/package build added.
+Real Windows Chromium159.0.8154.6 headless,16 reported logical processors,
+HTTP COOP/COEP isolation true and SharedArrayBuffer true. Pool4 runs its actual
+four-distinct-thread barrier twice, including allocation/growth, partial/full
+drain and stale revision/profile/dispatch rejection;24 thread spawns. Compiler
+serial spawns0, compiler4 spawns809; queue counts alone are not overlap evidence.
+Query cancellation verifies zero outstanding borrows and world disposal.
+
+Initial browser runs failed a strict target-teardown assertion after the serial
+trial; nested workers were terminated, but the test coordinator target remained
+in CDP. Preserved browser.json/browser_retry1.json and nonzero statuses. The
+one-shot transport now explicitly self.closes after its finally cleanup. Final
+browser_retry2 passes: opened/terminated children4/4,1/1,4/4; zero remaining
+browser worker targets, observed closes1.10/.83/34.77ms. This fixes test lifetime;
+no production transport defect or general browser cancellation guarantee claimed.
+
+Exposed browser timings (one fresh trial each, warm filesystem, no warmup):
+pool286.87ms total,9.63/7.43ms fixture calls; compiler1 total2702.55ms,
+compiler4 total4272.27ms including parallel-only LR/world checks. Comparable
+query39.21/52.59ms, lazy-body first graph2087.74/1919.00ms, warm Fast13.97/23.19ms.
+Wasm monotonic capacities pool8MiB->33947648bytes (no second-run growth),
+compiler1 max86900736bytes, compiler4 max100728832bytes; final six language calls
+have no growth after their first graph call. Browser CPU/process RSS unavailable;
+capacity is neither live allocation accounting nor total RSS. No production
+change, hence no before/after runtime comparison; these n1 mixed/cold checks do
+not establish speedup. Other lanes were active on this host.
+
+Receipts/scripts/artifacts: build/codex_ecs_20261122/L1/logs/shared_wasm_current,
+final report browser_retry2.json (resource transport SHA256
+6888c139e892a5a6edc2e7e8df0bcb66923d6b36de926fe07f41a7c445d1fdff).
+Supported profile is wasm32 shared frontend and runtime target width4; no silent
+serial fallback. Native sanitizer work belongs ROOT; hosted service-worker
+isolation, other browsers, LLVM/backends, generation/bootstrap-release and full
+release/deployment remain pending. No deployment or portable release claimed.
