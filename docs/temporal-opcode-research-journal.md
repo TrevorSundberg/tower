@@ -86782,3 +86782,96 @@ All logs/objects/host/inputs/compiler hashes: /cache/root_reference_f72179d2,
 copied to ROOT_reference_f72179d2 in coordination storage. Original shell
 readback quoting failed without changing results; raw receipt copy then passed.
 No new source implementation was measured or runtime release claimed here.
+
+### A1 body/declaration admission: public capacity pin integration (2026-11-23)
+
+Frozen source ddcacc9da189a53388ba24ee173970a772bcac17 (tree
+0b335402f33825a011fee24b2e8e148074bc34bb) preserves complete local86843700
+and published2013ad28 histories, including L2 module/inspection6767cd30,
+L1 diagnostics, B1 indexed scratch, B2 layout/codegen policy and D2 suffix-FIRST.
+The required ff-only pull could not reconcile divergence; an ordinary merge
+preserved both parents. Conflicts combined the equivalent L2 nullable body
+begin guards with A1 graph admission/cancellation and kept both README additions.
+No body/declaration implementation or prior failed-preflight receipt was dropped.
+
+The documented playground/scripts/build-bootstrap.sh path verified the complete
+public package without an environment override. Executable SHA256
+768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857.
+This is ROOT's published generation3 from252b424a, not private b5 adoption.
+The exact previously blocked semantics_checks.tower provider (file SHA256
+7bbb82922f0fe293859145636dcfbc77bda2d8e94926857527fdbe7735e289f1) now builds.
+Command: cmake --build /cache/native --target tower-compiler-semantics.o
+--parallel1 --verbose, using --jobs1 --library --target x86_64-pc-linux-gnu
+and explicit /work/scaffolding/{bedrock,foundation}.tower. The dependency target
+includes changed runtime prerequisites:43.25s wall,26.87s user+3.01s system,
+peakRSS1057124KiB, exit0; Ninja's provider action itself spans26.562s wall.
+The CPU/RSS receipt covers the dependency target, not separately sampled leaf CPU.
+Object SHA2565c14cac29bcf4edaff0a14431d71f559dc916ba04b4e0b56f00b09f0913a7a68.
+
+Then tower-semantic-staging-smoke --parallel4 reused that object and built the
+selected compiler/test consumers in46.08s wall/143.34s CPU, exit0. Compiler
+3285cd9d62fbd2bf3d1bf212895f393b5dfe24dd4d90a682c4253c7d97b1e700.
+Host KinmenA Windows11/Docker Linux x64 LLVM19; owned tower-a1-environment,
+CPU0-11/24GiB, each bootstrap command --jobs1. All tracked scaffolding/build/
+bootstrap inputs were hashed before and checked after each build/check batch.
+Logs and scripts: A1/cache/a1_body_public_*; no second provider compilation.
+
+Merged checks now pass: all132 registered flow/lifecycle/staging trials (including
+46 real body/declaration admission cases), query-smoke, control-smoke and24
+resource-smoke cases at32/64-bit and workers1/4. Existing signal rendezvous proves
+live independent kernel overlap; queue width is not the evidence. Tests retain
+Capacity/Busy and invalid dispatch/cancellation causes, canonical source owners,
+no successful discovery/check prefix, terminal retries without dispatch/metadata
+growth, and zero retained graph/world reservations. Required versus optional
+inference, executed/untaken dependencies and lexical captures remain covered.
+Known-binding Foundation output at workers1/4 equals the preserved baseline
+215fb1fdd887278348d4c814c130bcd8d799b0905d2be9db4383b52ad662670d and reparses/
+executes to0; comptime_capture_values executes to0; known_cycle_bad_a exits1
+with byte-identical expected ordered diagnostics at both worker counts.
+
+To check actual Memory transfer, the existing tower-storage-tests target reused
+providers (four remaining actions,9.07s wall/8.17s CPU,416436KiB peakRSS).
+Only diagnostic-faults and scratch selectors ran, both exit0. They exercise real
+allocator denial, first source/cause retention, admission after prior Memory
+failure without further allocation, lexical restoration, transactional scratch
+identity and zero retained owners. This serial instrumented allocator is not
+thread sanitization or exhaustive malloc-fault injection into every body pump.
+Production-allocator overlap above is separate. Scratch fixture:1024 identities,
+28452 probes, maximum17,268956 live/273084 peak bytes before full disposal.
+
+Small matched healthy comparison: preserved compiler382dfc545c1d1b82bd28a1127fc44c10a1418cd5d895de04155febce75aa5040
+versus merged3285cd9d, identical frozen comptime_flow.tower (2d3ed9f30af7eb4fb093df7c0e06e82e99339f06d112e0d2dd3c897d100b7adb),
+explicit same Bedrock/Foundation resources, --interpret --jobs1/4, native host
+pointer width, warm files/fresh process, n=1 per row. Every output checked as0.
+
+| Compiler/workers | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Preserved baseline /1 |1.15|1.08|177848|
+| Preserved baseline /4 |1.00|1.17|195088|
+| Merged /1 |1.06|.99|193284|
+| Merged /4 |.93|1.07|212068|
+
+This small sample shows no wall-time regression and about9% higher peak RSS;
+current worker4 reduces wall time about12% versus current serial. Multiple owner
+changes and the new public bootstrap intervene, so this is not an isolated A1
+speedup claim. CLI live allocations, scheduling idle/critical-path and allocator
+retention are not exposed; fixture budget teardown provides the narrower ownership
+evidence. Earlier132-case and public/b5 failures remain historical, not erased.
+
+An additional body-smoke invocation ended at its180s deadline without diagnostic
+or pass output (outer exec exit1, empty log retained). A single600s timed retry
+on identical inputs is pending below; no failed or unrun case is counted passed.
+No broad type/browser/generation/sanitizer or hosted-release matrix was run.
+ROOT/A2 own final merged instrumentation and release. Ordered known-snapshot,
+publication and module-initialization prerequisites are unchanged. Structural
+assertions still check continuation identity, completed storage/layout, drained
+workers and cleared stages; actual admission denials now follow checked returns.
+
+Body-smoke recovery receipt: the one longer retry completed exit0 in217.37s
+wall,223.51s user+10.21s system, peakRSS324892KiB; its normal success line
+confirms serial/worker canonical output, execution and ordered diagnostics/cycles.
+This explains why the original180s allowance was insufficient; its failed log
+remains preserved. All frozen input hashes still match. Session88842 and every
+owned build/test PID drained before reconciliation. This closes the selected
+merged body/declaration gate, not ROOT's broader integrated release acceptance.

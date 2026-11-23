@@ -1915,3 +1915,25 @@ actual frozen work-vector lengths, preserving typed payload/storage/reservations
 source order and publication/disposal. The reduced candidate also fails; no
 runtime or bootstrap acceptance is claimed. Journal/status retain exact timing,
 peak RSS, hashes and prerequisite. No additional file-audit scope was introduced.
+
+2026-11-23 public pin integration at ddcacc9d supersedes the preceding capacity
+blocker: exact semantics_checks provider builds using the complete public768a0cdf
+bootstrap; all132 focused trials plus query/control/resource, canonical/capture
+and ordered-error checks pass on the merged source. Both historical failures and
+complete source histories remain. L2's nullable node/begin guards and bounded
+scratch implementation are preserved. Checked Memory transfer is independently
+covered by serial diagnostic-faults/scratch selectors; Capacity/Busy/partial
+windows/retry/drain use the actual registered production body/declaration pumps.
+
+Re-reviewed the above scoped files and immediate consumers on this merged input.
+No unguarded graph/component admission assertion remains in the two owned pumps.
+Remaining assertions concern continuation identity, prepared syntax, published
+storage/layout and drain/stage invariants. Ordinary vector growth paths retain
+explicit Memory returns; shared semantic scratch and node allocation remain L2
+providers, stage publication/holds remain A2, executable admission remains ROOT.
+The extra body-smoke timed retry is recorded separately in the journal; broad
+instrumentation, generations and hosted release remain pending integration.
+
+The body-smoke retry subsequently passed on identical inputs:217.37s wall,
+233.72s CPU,324892KiB peak RSS, exit0. Its earlier180s timeout is retained.
+All selected merged evidence is now complete; integration-only limits above remain.
