@@ -2008,3 +2008,94 @@ All D2 jobs drained before releasing its lock at03:52:35UTC for D1's phase fixtu
 Current symbol-policy/native-WASI provider checks, supported instrumentation,
 remaining merged compiler work and final public/bootstrap/browser/generation plus
 leased atomic publication remain open. Earlier receipts keep their source identity.
+
+### Same-session continuation and current policy boundary (2026-11-23)
+
+Resumed the existing D2 thread after its usage limit. Guarded pull preserves the
+two prepared policy/test edits and todo. Verified ROOT72a218's complete bundle
+5673dc37 against sole60741, then merged as d4e721f4. Its production scaffolding
+and CMake files are identical to the preceding D2 checkpoint; journal history is
+preserved. This merge is not new runtime evidence. The existing goal is active.
+
+| Reviewed path / source | Ownership, evidence and disposition |
+| --- | --- |
+| `tools/bootstrap_symbols.tower`, d4e721f4 plus pending policy | Actual ROOT9b318 native reports reject eight newly required exact imports. The semantics unit owns `sem_context_snapshot`; parser integration owns the two typed table-result constructors; entities owns `work_arena_allocate_result`; host owns buffer size/alignment; parser nodes owns module/session resource getters. Existing provider definitions and actual nm reports justify only these per-unit additions. The policy remains allocation-free, borrowing explicit bounded spans; no scheduler, world or ownership change. Pending regression/runtime validation is not yet acceptance. |
+| `tests/bootstrap_symbols_checks.tower`, same pending change | Existing fixture adds accepted exact imports and rejected prefixes, suffixes and wrong-unit uses. Report and rejected-symbol lengths derive from `strlen`; no hardcoded span length or array bound is introduced. Check-only allocator hooks remain rejected. No generic harness modification. |
+| `tools/tool_streams_posix.tower`, d4e721f4 | Caller audit confirms the verifier owns its bounded report, while this shared reader keeps a temporary buffer until successful close. Its stack chunk declaration and byte count both repeat4096. Updated instructions require deriving the read bound from the actual array type; documented `sizeof(decltype(chunk))` supplies bytes, unlike pointer size. Preserve the existing partial-read/error/over-limit and destination-preservation behavior. Before/after existing filesystem regression and public-predecessor compile are prepared, not yet run. |
+
+The A1 V2 interface patch b255ff12 was read completely and apply-checked without
+adoption. Its fixed first-error receipt and allocation-free restore require one
+coherent SemanticProgram ABI rebuild. The restore derives copy length from the
+owning message vector and permits its exact destination alias; interior aliases
+are not vector owners. Pure query classification must follow an actual failed
+operation, never ordinary waiting. No future helper is added to symbol policy
+without emitted-import evidence. Producers and output consumers remain their
+assigned owners' work.
+
+All former D2 jobs are drained. The surviving D1 lock is left intact pending its
+same-session reconciliation; absence of former controller PIDs does not transfer
+ownership. Public/compiler receipts remain exact9b318, and the current policy,
+provider/WASI and instrumentation checks remain pending. Documentation-only
+review adds no runtime behavior or performance measurement claim.
+
+### Actual policy, derived bounds and linker race evidence (2026-11-23)
+
+After D1's explicit release, D2 acquired the shared slot at07:51:30UTC. Frozen
+before sources are the complete d4e721f4 scaffolding archive97e597a7, with public
+bootstrap9653f818, Linux x64 Docker/LLVM19, cpus0,2 and compiler/build jobs1. The
+existing filesystem fixture and small/large real-object audit pass before edits.
+
+| Changed path / reviewed implementation | Validation and limits |
+| --- | --- |
+| `tools/bootstrap_symbols.tower`; `tests/bootstrap_symbols_checks.tower`, 84e6d3e plus exact eight allowances | Existing negative/unit/prefix cases pass. Canonical public tools build produces verifiera2d1c6fd. All seven frozen9b and seven current72a native reports pass; fresh WASI parser_modules_work, semantics, interpreter, interpreter_browser and evaluation reports pass. Former verifierc03 still rejects exactly the observed interpreter/parser/semantic imports. No future API or check-only hook allowance. |
+| `tools/tool_streams_posix.tower`, derived `sizeof(decltype(chunk))` | Existing public-predecessor filesystem fixture passes bounded rejection/preservation and normal reads. Its object is byte-identical to the frozen baseline. Actual array bytes determine fread's bound; no pointer-size inference, new allocation or ownership transfer. |
+| `tools/wasm_link_audit.tower`, array/element-derived traversal count | Histogram traversal derives its bound from the actual array and element types. Existing extent remains the data definition. Public build, small/large real-object reads and exact stdout comparison pass; the complete tool object is byte-identical to before. No new protocol/backend definition or alias guarantee. |
+| `tests/wasm_link_reader_native.tower`, D1-authorized sole `host.memory` import | Actual original standalone link fails on four compiler-buffer imports. Explicit existing memory-provider composition passes normal3/ASan3 real-barrier checks but reveals the production cancellation race below. The final one-import entry separately compiles/links with guest runtime only, has exactly one allocator definition and passes native3. Matched final instrumentation remains pending the B2 repair; no shared reader assertion or other D1 fixture changed. |
+
+Before/after compile wall/CPU/peak RSS KiB, single samples: filesystem
+4.87/4.79/188372 to3.94/3.89/187944; audit11.03/10.80/335904 to8.84/8.74/335568.
+Identical emitted objects establish unchanged runtime code for those bounds;
+variable compile times establish no speedup. Runtime reads/audits and per-report
+symbol scans are below0.01s resolution, around1.3–1.6MiB process RSS. The symbol
+policy adds constant exact membership entries, without new heap owners. No live
+allocation/retention measurement is inferred from RSS. The synchronous checker
+has no profitable parallel work or scaling claim.
+
+Canonical current native rebuild9steps passes70.98wall/69.68CPU/432400KiB; entity
+leaf9.05/8.87/278512. Fresh WASI entries respectively30.37/29.78/751832,
+33.49/32.91/763356,9.80/9.66/346196,8.83/8.73/347648 and12.46/12.14/310324.
+Query-smoke passes0.27wall/.26CPU/62872KiB. Complete native compilerde6c1330
+and resources are copied/verified in native_package_72a218. This is affected
+incremental evidence, not clean-cache generation/browser/release acceptance.
+All measured children report zero swaps; host preexisting swap remains explicit.
+
+Supported LLVM19 address/thread instrumentation of exact owned tool/fixture IR
+passes with the matching instrumented guest runtime and actual hooks:11 symbol,
+40 filesystem,400 audit and662 linker definitions. Address leak detection is on;
+small/large audits and serial/two-requested-worker link products match normal
+bytes. Those small inputs do not establish worker overlap. Source-level UBSan
+and foreign/system-library instrumentation are not supplied by this mechanism.
+
+The existing real-barrier linker fixture is therefore checked separately. Its
+original native entry compiles18.71s, object5.87s, but link fails1 on missing
+compiler_buffer_free/allocation_size/allocate/alignment. With the separately
+compiled existing host/memory provider, normal3 and ASan/LSan3 pass, each printing
+real relocation-kernel overlap; error-order and cancellation assertions execute.
+The FIRST TSan run fails66, before the two remaining repetitions. The report
+identifies a4-byte worker read in wasm_link_job_execute against a main-thread
+write in wasm_link_fail called by wasm_link_jobs_run. Worker shallow-copy of
+`*job.owner` reads the shared error field while the cancellation branch writes it
+before its deferred drain. Proposed B2-owned correction: drain admitted workers
+before changing the parent's cancellation error, retaining unconditional cleanup
+and pinned inputs. No backend production edit, suppression or retry-until-pass
+was performed. This is a real unresolved race, not a sanitizer setup failure.
+
+D1 then authorized the sole native-entry allocator import. After drain, final
+public IR22.03wall/21.52CPU/517480KiB, object9.53/9.23/155232, link.06s and
+native3 pass, with exactly one compiler_buffer_free definition. This fixes
+provider composition, not the race. Its final sanitizer rerun awaits B2's repair.
+Full source/IR/objects/binaries/statuses and original failures are exported in
+D2/linker_cancellation_race_receipt.tar81297fc5; minimal provider patchf2d71650.
+D2 releases its drained slot08:12:41UTC and records the concrete B2 request in
+status. Current coherent race acceptance and final integration/publication remain
+open; earlier successful receipts are neither erased nor broadened.
