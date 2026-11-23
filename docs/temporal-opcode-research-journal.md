@@ -94392,3 +94392,126 @@ they and later lifecycle/T9 execution receipts are preserved outsideea606d32, no
 silently source-reviewed or runtime-adopted here. No repeated checks beyond git
 identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
 push follows; this closes the requested independent review only.
+
+### 2026-11-23 L2: T8 joined-Wasm first failure and optimized overflow reconstruction
+
+Freeze fd1725d8499a7e05e2e8ef5172b81ce141f4c3d8, tree133e84cf88b5ffa834ad36addffedddb96d0d704;
+clean main, CLI PID21924, no surviving owned job, C:111GiB free. First successful
+work verified ROOT25dddd04 portable35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb
+and LLVMc1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa
+under ROOT_browser_inputs_25dddd04. Reactors remain immutable; no rebuild.
+Host manifest0ad650d2ea6d696a2c60a349d18e506a3362c0736074e58f88c5ee462234c578
+and resource manifeste2c9634f30e3b253e1a98e43e969360389b8f6b41af68a4a3d5439df33824cf7
+are separate from compiled25dddd04, which excludes125efb11 module-body queries.
+Current native baseline includes that published fix. Entity views/registry,
+host.memory, generic_registry, library and language resource blobs are unchanged
+from78650118; new canonical spelling comes from the newer compiled formatter
+(d16c8f6e), not replacement fixture inputs. Previous T9 requests were not rerun.
+
+Ran ONLY the unchanged exact selector
+`^Tower world views pin query ranges and defer ownership reclamation$` in a fresh
+Node22.23.5 process (binary247e9693d316da9857e44990e5e11709f596f18112251b8026ec6eed80bdf38a),
+with `--test --experimental-test-isolation=none --test-concurrency=1 --test-timeout=600000`;
+TOWER_TEST_WASM/LLVM_WASM point to those exact reactors, TOWER_TEST_PHASES=1,
+fresh TOWER_TEST_ARTIFACTS=.../compiler_entities_25dddd04_fd1725d8/entity_views_artifacts.
+CPU4-7, one heavy process. No isolation means PID29508 is the actual test process,
+not the parent of an unmeasured Node test child. Entire selected test FAILED:
+211.824s wall,345.297s CPU, observed process peak2715697152B; selected1/pass0/fail1,
+no timeout/cancellation. Other filtered tests are excluded, not skipped passes.
+
+Completed Graph32 original0, Fast32 canonical0 and canonical equality; then
+unoptimized32 LLVM Foundation import/recheck and returned-text Fast execution0.
+Exact current input608636B SHA6be9ff674498560beec28bef938390bdcee07644f96574e939c2e1649332b882
+replaces neither old706287B/9d513649 nor its historical failure. llvm-1 returned
+2848349B SHA63485ebc8aee741e892b8a2f60ef6bbf7eb2801290745760b4de87ead0a7ddfe;
+109.192s wall/181.922s CPU, RSS1530241024B at return. llvm-2, SAME input optimized32,
+failed in1.539s/3.375s CPU: `LLVM return path requires a supported scalar type`,
+errorOffset608512/errorFile input.tower; RSS2703814656B, process peak2652048KiB.
+This is a current unsupported-value diagnostic, not the old untyped resource error.
+Stopped sequence immediately. All64-bit and executable-profile paths, and the
+ENTIRE generic-registry selector, remain UNSTARTED. No reduced/substitute Node run.
+The2GiB reactor maximum is a linear-memory ceiling, not measured live capacity;
+this unchanged harness does not expose LLVM memory capacity. Node RSS includes
+both reactors, native/JIT/JS storage and is not guest allocation or fit evidence.
+
+Native same-request reproduction identifies the actual producer: LLVM's ordinary
+unsigned `maximum / size` allocation guard in compiler_memory_reallocate becomes
+`llvm.umul.with.overflow.i32` followed by scalar extractvalue1. import_module
+predeclared the aggregate pair via bi_scalar; import_instructions also assumed
+all valued instructions scalar. Saved actual interpreter-optimized IR now shows
+that pair at lines3795-3796. Earlier `--emit llvm-optimized` IR is retained as a
+lead only, since its pipeline differs from backend_optimize_interpreter.
+Native before producerfd1725d8 fails identically (resource_error None, offset617249,
+output0B), final bytes/grants/lanes0, charged peak220238018B. That transformed
+backend offset is not asserted to identify the source guard. Input join193683
+entities/230896components/220032118 chargedB is far below the24GiB world budget;
+this failure is not explained by allocation exhaustion or retained whole graphs.
+
+Repair stays in import_bindings/instructions/module: recognize the unsigned
+multiply-overflow intrinsic, reserve its existing scalar extract locals, emit
+wrapped product and overflow through existing Foundation nodes at the call site,
+and assign extract users there. Choose a nonzero divisor BEFORE division, making
+both zero-operand orders safe. Validate extraction depth/index and supported
+scalar width; unsupported aggregate consumers still fail. No allocator-name
+special case, new IR, cap change, optimized-output substitution, skipped recheck,
+or replay of operand effects. Checked stages/world ownership and prior-output
+rollback remain unchanged. New C API declarations are the necessary LLVM boundary.
+
+New backend_unsigned_overflow.tower (1332B) checks zero operands, exact max,
+wrapped max*2, power-of-two overflow, and neighboring non-overflow products for
+u32/u64. Original source executes0 at32/64 targets; frozen old importer fails
+both with the same scalar error. Repaired optimized reconstruction/recheck AND
+returned execution pass32/64 x workers1/4, all output2926B SHA
+b4e571ae3aa898c4b8be1b2779212b7e0812815033bb0e203c0db90642089251,
+stdout0 newline/empty stderr. Actual generated LLVM has i32/i64 overflow pairs
+and flag extracts; wrapped product source operations are checked separately.
+The existing source-worlds fixture now requires the real optimized intrinsic;
+C differential registration is added, but the broad C driver was not run.
+First two attempts at the inline Foundation fixture used unsupported condition
+syntax; exact errors/logs remain. Corrected to ordinary Foundation operand/local
+conditions. Both failing CTest runs remain; final source-worlds/source-recheck/
+storage-backend-import3/3 PASS1.43s, including existing real denial, retained
+output, terminal/fresh retry and ownership controls. No broad or sanitizer rerun.
+
+Exact608636B failed input now imports/rechecks to952885B SHA
+200738b550ac07f14f953d2c26cce0d85c0cb7ab7bbfa9b8cb44454502ecca6c at workers1/4,
+byte-identical; actual returned execution0 newline/empty stderr at both settings.
+Post-recheck568984entities/678496components; final bytes/grants/lanes0 for all
+samples, successful world/ledger disposal; large charged peaks469125253/469124477B.
+Existing9926B healthy control retains exact1459B SHA2f951943c2a11fc69f1c52999e87784ae0d28c51a1cfe3793adfdaf56a5e48c7
+before/after and workers1/4, execution0, zero owners. The runner's explicit
+`optimized` argument preserves existing default unoptimized/deny/census modes
+and saves actual optimized LLVM to OUTPUT.ll for reproducible attribution.
+
+WSL Orchestral-Revng, existing l2_ecs_native/public bootstrap, CPU4-7, unchanged
+24GiB world budget, synchronized production allocator, one heavy process,180s
+per native phase. One backend dependency refresh, then two small source-test
+provider refreshes for the corrected fixture; no double public-leaf build.
+Before servicee628009d/CLI1d883450; after service18878a45/CLI7a451322, full hashes
+and unchanged source manifests retained. n=1 matched wall/CPU/peakKiB:
+
+| Phase | Before | After |
+| --- | --- | --- |
+| Exact request optimized, worker1 | FAIL1.08/1.02/310784 | PASS3.03/2.92/607628 |
+| Exact request optimized, worker4 | not repeated after baseline failure | PASS2.81/3.14/618736 |
+| Returned exact execution, workers1/4 | no prior accepted result | 2.14/2.06/602864;1.97/2.30/605044 |
+| Healthy optimized, worker1 | .21/.16/124908 | .22/.17/124960 |
+| Healthy optimized, worker4 | .22/.17/124936 | .21/.18/125084 |
+| Overflow fixture32/64, worker1 | FAIL.61/.54/192400;.57/.51/192452 | PASS.73/.64/192328;.61/.56/192220 |
+
+Failure versus success is not a speedup comparison; these are validation costs.
+Worker count/CPU use is not actual overlap or race-freedom proof. Final controls
+script completed all runtime/canonical checks but its hash-check tail initially
+used the cache working directory; preserved the missing-path error, corrected
+cwd and verified the frozen manifest only, without repeating checks. No test
+failure was hidden or turned into a pass.
+
+Artifacts, phase JSON, inputs/outputs, IR, frozen executables, manifests, commands,
+raw failed/successful logs and time receipts are retained in
+C:/Sandbox/build/codex_ecs_20261122/L2/compiler_entities_25dddd04_fd1725d8.
+Native repair is complete for this exact failure. New reactor adoption and the
+full unchanged T8 first selector (including64/executable profiles), then the
+unstarted generic registry, remain pending ROOT's reactor/release gates. Actual
+Wasm fit, other framework/fullstruct/generation/hosted/instrumentation acceptance
+is not claimed. No other-owner method, todo, goal/context/agent or service retry;
+all owned jobs drained. Normal commit/reconcile/push follows.

@@ -117,7 +117,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
                 break;
             }
             var type = LLVMTypeOf(instruction);
-            var valued = LLVMGetTypeKind(type) != 0;
+            var valued = LLVMGetTypeKind(type) != 0 && !bi_multiply_overflow_call(instruction);
             if valued {
                 var local = bi_decl(c, bi_scalar(c, type));
                 bi_associate(c, &c.values, instruction, local);
