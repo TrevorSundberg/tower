@@ -46,6 +46,11 @@ struct WorkPool {
     claim: void*;
     storage: WorkBuffer;
     resource_error: WorkBudgetError;
+    // Optional borrowed batch observer, frozen before dispatch and read only
+    // until join. A null job denotes the batch boundary; other callbacks own
+    // distinct job ordinals. Observers must not mutate pool or job payloads.
+    observation: void*;
+    observe: function(void, void*, void*, usize, usize, bool);
 }
 
 // A finite batch is only a transport view of already-ready, pre-leased jobs.
@@ -58,6 +63,9 @@ struct WorkBatch {
     offset: usize;
     claim: void*;
     execute: function(void, void*);
+    observation: void*;
+    observe: function(void, void*, void*, usize, usize, bool);
+    lanes: usize;
 }
 
 var WorkPoolMaximumCapacity: usize = 256;
@@ -209,6 +217,13 @@ fn work_pool_submit(pool: WorkPool*, job: void*): bool {
     return true;
 }
 
+fn work_batch_run(batch: WorkBatch*, index: usize): void {
+    var job = bits(void*, bits(u8*, batch.jobs[index]) + batch.offset);
+    if batch.observe != null { batch.observe(batch.observation, job, index, batch.lanes, true); }
+    batch.execute(job);
+    if batch.observe != null { batch.observe(batch.observation, job, index, batch.lanes, false); }
+}
+
 fn work_batch_execute(payload: void*): void {
     var batch = bits(WorkBatch*, payload);
     loop {
@@ -217,8 +232,7 @@ fn work_batch_execute(payload: void*): void {
         if next < batch.count { batch.next++; }
         work_signal_post(batch.claim);
         if next == batch.count { return; }
-        var job = bits(void*, bits(u8*, batch.jobs[next]) + batch.offset);
-        batch.execute(job);
+        work_batch_run(batch, next);
     }
 }
 
@@ -245,10 +259,15 @@ fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: u
     if !pool.threaded { extra = 0; }
     if extra != 0 && pool.custom_entry { return WorkBudgetError.Invalid; }
     pool.resource_error = WorkBudgetError.None;
+    var batch = init(WorkBatch) {
+        jobs: jobs, count: count, next: 0, offset: offset,
+        claim: pool.claim, execute: pool.execute,
+        observation: pool.observation, observe: pool.observe, lanes: extra + 1
+    };
+    if batch.observe != null { batch.observe(batch.observation, null, count, batch.lanes, true); }
+    defer { if batch.observe != null { batch.observe(batch.observation, null, count, batch.lanes, false); } }
     if extra == 0 {
-        for(var i: usize = 0; i < count; i++) {
-            pool.execute(bits(void*, bits(u8*, jobs[i]) + offset));
-        }
+        for(var i: usize = 0; i < count; i++) { work_batch_run(&batch, i); }
         return WorkBudgetError.None;
     }
     if pool.claim == null {
@@ -259,10 +278,7 @@ fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: u
         }
         work_signal_post(pool.claim);
     }
-    var batch = init(WorkBatch) {
-        jobs: jobs, count: count, next: 0, offset: offset,
-        claim: pool.claim, execute: pool.execute
-    };
+    batch.claim = pool.claim;
     // This defer runs while batch is alive, including a partial submission
     // failure. No caller may reclaim the borrowed descriptor before the join.
     defer { while pool.running != 0 { work_pool_receive(pool, true); } }
