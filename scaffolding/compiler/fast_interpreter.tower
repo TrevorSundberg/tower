@@ -857,8 +857,8 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     im_frame_pop(m);
     var graph_frame = &m.frames.data[0];
     work_vector_dispose(&graph_frame.tasks);
-    vector_dispose(&graph_frame.values);
-    vector_dispose(&graph_frame.addresses);
+    work_vector_dispose(&graph_frame.values);
+    work_vector_dispose(&graph_frame.addresses);
     work_vector_dispose(&m.frames);
     work_vector_dispose(&m.node_cache);
     return f;
