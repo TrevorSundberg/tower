@@ -73113,3 +73113,81 @@ The latest public manifest remains only the old baseline. Final whole-query
 concurrency, current compiler instrumentation, clean release bootstrap/browser/
 generation, named publication lease and atomic source/Pages verification remain
 open. No partial lane milestone is labeled overall completion.
+
+### D1 full-history and independent receipt reconciliation —213c243ea
+
+After native62962 drained0 and own d916 commit/no-op pull, merged complete D2
+b5a740e05 with all histories retained and no conflict. Exact compiler/library/
+host/backend/CMake/bootstrap bytes match d916; only the reviewed verifier,
+generator, fixture and documentation changes enter this merge. TodoSHAe97d67a6
+is unchanged. Full source archive/hash manifest for instrumentation identifies
+213c243ea, separate from the ff3a native baseline plus registration patch95f78.
+
+D1 extracts named evidence from verified receiptfa129439 into its own
+build/d1_ecs/d2_policy_review: original invalid default-selector1, old fresh-WASI
+ParserNodes policy1, corrected policy/group0 and current units/runtime-fault0.
+Independent cmp confirms D2's archived compiler equals D1's da9f8a4c byte for
+byte. The following raw recursive resource comparison FAILS1: both packages have
+50 files, nine runtime LLVM texts differ. The first diff is only a ModuleID
+comment recording /home/deck/.cache/tower-d1-ecs-20261122/native-coherent-127ca98
+versus /tmp/tower-home/.cache/tower/native-coherent-f13c8f6. Recursive diff ignoring
+ONLY lines beginning '; ModuleID = ' then returns0. Original bytes/hashes and
+resources.diff remain retained; whole-package byte identity is not claimed.
+The initial fail-fast shell stopped before appending its planned journal text,
+so no false all-resources-match claim was written. This is artifact/provenance
+validation, not an executed source-package roundtrip or performance conclusion.
+D2 receives the exact difference for its next packaging review. Assigned source
+audit stays526/526; earlier prospective3020/b5 rows now apply to current213c.
+
+Current address/thread group20633/host2973267/container18726 uses the supported
+LLVM19 pipeline and frozen213c manifest. Its native runtime group already passed;
+instrumented runtime results are not yet claimed. ROOT565's later complete ABI
+union arrived during this freeze and is queued for review/adoption after drain,
+not relabeled as covered here. Query-smoke Cancel4 remains a separate failed gate.
+Runtime profiling of this reconciliation text alone is inapplicable. No publication
+request or lease has been issued.
+
+### D1 capture/pool/page instrumentation — frozen213c243ea, actual10:54UTC
+
+Session20633 exits0. Both D1 containers contain only idle init; frozen source
+hashes match after actual drain. Address50-action build395.72wall/388.05CPU/
+741988KiB and thread50-action build272.98/267.05/742124 pass. Each profile passes
+42 runtime processes: capture four selectors x3; producer three selectors x3;
+pool/reuse/reentrant/stage-concurrent/component-budget x3; resource/receipt x3.
+All have empty stderr and checked outputs. Seventeen actual memory-access-hook
+objects and generated instrumented IR pairs per profile are preserved, together
+with the three matching transport/allocation pairs, link commands, binary symbols
+and source hashes. Empty portable transport and allocator wrappers are not given
+invented memory-access requirements. Unique capture providers remain verified.
+
+Real stage-worker runs retain57792 finalizations and exact per-trial ownership
+assertions. Address n3 wall0.50/0.45/0.45, CPU0.56/0.52/0.54, RSS64684/64564/64612KiB;
+thread wall0.47/0.43/0.42, CPU0.48/0.44/0.43, RSS25964/25888/25860. These are
+instrumented stress costs, not throughput improvements; CPU/RSS output fields
+are measurements, while only the finalizer count is compared as deterministic.
+Component workers retain their real gates, private pages, cancellation/denial and
+final-zero owners. Capture and semantic-pool admission cases alone execute no
+worker jobs. Source UBSan and external LLVM instrumentation are unsupported here;
+these successful runs do not prove race freedom for all executions.
+
+This closes the previously pending scoped instrumentation for D1's e47 pool/reuse/
+reentrant and d916 capture registrations on213c. It does NOT accept ROOT565's
+new ABI union, the original failed query-smoke Cancel4 overlap case, or the final
+clean public-bootstrap/browser/generation/release gates. No repeated known-failed
+query was substituted. D1 saved its own lock receipt and released only its empty
+heavy lock after drain; D2 receives the next slot. Disk133GiB/RAM9.9GiB available;
+host swap occupancy5.9GiB prevents a host-wide no-swap claim. Original failure and
+all actual runtime/build logs remain with this milestone.
+
+The affinity caller audit found fixed-four assumptions in work_budget_shared,
+work_arena_shared, work_buffer_shared, work_dispatch_result, work_schedule_budget,
+entity_stage_concurrent and entity_component_budget. D2's authorized host fix is
+still pending. Preserve those deliberate scenarios and run them under an explicitly
+recorded profile with at least four allowed CPUs; keep two-lane compilation
+profiles separate. Do not call unsupported four-lane admission a pass, relabel
+actual two workers as four, or infer that affinity alone fixes L2's overlap issue.
+Semantic pool/capture budget1/4 cases already derive actual clamped slot bytes.
+D1 authorizes D2's narrow host.memory imports in work_signal_observe and
+sanitizer_race_probe only if changed-transport supported-link evidence requires
+them; D1 retains generic new-fixture registration pending its concrete composition.
+No competing fixture or host edit has been made.

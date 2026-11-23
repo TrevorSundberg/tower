@@ -2641,3 +2641,26 @@ admission plus truncated/suffixed spelling and wrong-Utf8-unit rejection. Read
 its corresponding one-name tool permission and verified complete bundle/receipt.
 Current526 assigned paths are unchanged. This observed per-provider linkage
 permission does not permit new unobserved LR APIs or prove payload safety.
+
+### Complete D2 adoption — reviewed213c243ea
+
+Complete b5a740e05 history merged after d916 native jobs drained. The earlier
+prospective3020/b5 symbol/generator rows now describe the current source, with
+526 assigned paths unchanged. D1 independently reads the retained default-selector
+failure1, old fresh-WASI policy failure1, corrected group/policy0 and current
+units/runtime-fault0 receipts. The archived D2 compiler is byte-identical to D1's
+da9f8a4c. Both packages contain50 resources, but nine LLVM runtime texts differ
+in ModuleID build-cache-path comments; all other text matches when only those
+comment lines are excluded. The raw resource comparison fails1 and is retained.
+Do not claim whole-package byte identity or new package/browser acceptance from
+this check. Current address/thread runtime evidence and clone overlap remain open.
+Documentation-only reconciliation adds no runtime profiling need.
+
+Current213c supported instrumentation disposition: all42 planned runtime processes
+pass under each of address/LSan and thread instrumentation, with actual access
+hooks and unchanged source manifests. This closes the scoped e47 pool/reuse/
+reentrant and d916 capture registration gap at this source. Real stage/component
+worker stress is separate from admission-only cases. Original query-smoke134,
+newer565 source acceptance, unsupported source UBSan/external LLVM coverage and
+final integrated release remain explicit. The fixed-four caller audit above is a
+future affinity-profile requirement; no worker-count oracle was weakened.
