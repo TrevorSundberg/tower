@@ -14,6 +14,7 @@ import .library.vector;
 import .library.work_budget_types;
 
 extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
+extern fn node_match_set_label_result(value: ParserMatchData*, label: u8*): WorkBudgetError;
 
 export fn sem_match(node: Entity*): ParserMatchData* {
     return bits(ParserMatchData*, compiler_node_get(node, CompilerParserMatch));
@@ -154,14 +155,15 @@ fn compiler_node_copy_metadata_owned_result(source: Entity*, destination: Entity
     // Standalone entity cloning has no compiler metadata to copy.
     if world == null || source == destination { return WorkBudgetError.None; }
     if owner != null && (owner.anchor == null || owner.anchor.store != source.store) { return WorkBudgetError.Invalid; }
-    if source.id == 0 || source.stage != null && source.stage != bits(void*, owner)
+    if !syntax_origin_source_readable(source, owner)
         || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var span = sem_match(source);
     if span != null {
         var error = WorkBudgetError.None;
         var target = bits(ParserMatchData*, compiler_world_component_result(world, destination, CompilerParserMatch, &error));
         if target == null { return error; }
-        if !node_match_set_label(target, parser_match_get_label(span)) { return WorkBudgetError.Memory; }
+        error = node_match_set_label_result(target, parser_match_get_label(span));
+        if error != WorkBudgetError.None { return error; }
         target.id = span.id;
         target.start = span.start;
         target.length = span.length;
@@ -187,7 +189,8 @@ export fn compiler_node_copy_metadata_staged_result(source: Entity*, destination
         var error = WorkBudgetError.None;
         var target = bits(ParserMatchData*, compiler_world_component_result(world, destination, CompilerParserMatch, &error));
         if target == null { return error; }
-        if !node_match_set_label(target, parser_match_get_label(span)) { return WorkBudgetError.Memory; }
+        error = node_match_set_label_result(target, parser_match_get_label(span));
+        if error != WorkBudgetError.None { return error; }
         target.id = span.id;
         target.start = span.start;
         target.length = span.length;
