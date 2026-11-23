@@ -81932,3 +81932,107 @@ dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
 oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
 or broad matrix; the committed receipts and earlier remaining-gap list retain
 their precise scopes. Normal push includes both complete histories and journals.
+
+### D2 bounded current-main C-like compilation receipt (2026-11-23)
+
+Measured frozen published mainbaf2a5a02477550ab0bcf0fa909a884e33e8e37a. Waited
+for D1's actual drain/release, then acquired the shared lock; one jobs1 production
+`cmake --build .../native-coherent-f13c8f6 --parallel 1 --target towerc` refresh,
+22 actions,217.37wall/211.34CPU seconds/764884KiB. Existing Release cache uses
+public bootstrap9653f818, LLVM19.1.1, WORK/MODULE/BACKEND_TESTS=ON, no sanitizer
+or private compiler override. No separate public leaf, new harness or broad suite.
+Deck Linux6.16.12-valve24.5, Docker4be584fb, CPU0,2, amd-pstate-epp/powersave;
+130GiB free and9.8GiB RAM available after runs. No measured child swapped.
+
+Current native compiler SHA256
+f4ce80b2e9ec0602f4039bac97e3082a92de8feb23ce52c62a8a98c0634a23d1;
+source manifest a6192c155ffd51eb9dc0733e4950e7070c0fbecf043192d76d73b6852944f97b;
+installed-resource manifest432acbdcaff4327cf76576ecdab1d041e9f7e111f9aa2b6fd87bdbe9ff7403a4.
+Independent Clang19.1.1(1ubuntu1~24.04.2) executable SHA256
+f6d5286a52de10b1e3e8841457c9903a1ea28f222ac0f58cd616697d0dcd9db3.
+These identify a successor built from published source, not a newly deployed pin.
+
+Reused the existing generator's frozen inputs, not Tower-emitted C. Generator
+compiler_reference_inputs.tower remains SHA86eb23867a65a06381622898a094f1696ab26f0f477014eb006b12aaaf628381;
+all prior input-manifest hashes verify, with independently counted16/1000 functions.
+Small Tower/C are558/806 bytes; large37699/45819. Exact input SHA256:
+
+| Input | SHA256 |
+| --- | --- |
+| small.tower | 5966271c7144afe728376214c0289d60c0e682be71a0c7f29da386f962ba9fd2 |
+| small.c | 7c64cbcf8a292931d83140a882a78e1f971de63ef263237c6d3b87ce338ac003 |
+| large.tower | 583024d07c2c70a84e6c8cf5167d972fb44e8e2d0c6c74645bd4fb75da120639 |
+| large.c | 56fa3e0cd18504b5681522e9990ded78018c6a0b7ae8bb7870e4f8fc921f1fe6 |
+
+Tower: --jobs1 --target x86_64-unknown-linux-gnu --emit object --timings, explicit
+Bedrock/Foundation from its frozen installed resources, normal O2 pipeline.
+Clang: same target, -std=c11 -m64 -O2 -fwrapv -c. Both compile constant-return
+functions and ordered calls to native objects, separately link, and execute.
+Tower's editable grammar/type prelude and print runtime differ from C's builtin
+grammar/32-bit-int assertion/headerless printf declaration; optimization pipelines
+are not identical. Both optimizers remove the function bodies: large objects
+define only tower_main versus main plus its constant string,904 versus1240 bytes.
+This measures frontend/body processing, not runtime throughput or all C programs.
+
+One warmup per size/compiler, then three small and one large fresh-process samples;
+Tower precedes Clang in each pair. Filesystem is warm, not deliberately OS-cold.
+Warmup compile wall small/large: Tower5.98/2.90s, Clang.06/.22s. Keep the first
+Tower outlier; its cause was not isolated. Clang warmups alone emit -ftime-trace;
+retained throughput samples do not. Existing GNU time records wall/user/system/RSS.
+
+| Object compilation | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Small Tower jobs1, median of3 | 2.26 (2.26/2.14/2.98) | 2.22 | 183576 |
+| Small Clang, median of3 | .04 (.04/.04/.04) | .03 | 97536 |
+| Large Tower jobs1, n1 | 2.44 | 2.41 | 212312 |
+| Large Clang, n1 | .16 | .15 | 108196 |
+| Large Tower jobs4 control, n1, same CPU0,2 | 3.28 | 3.65 | 224544 |
+
+All13 native programs print exact15/999. Repeated objects match their own warmups;
+Tower jobs4 also matches jobs1. Requested workers do not measure overlap. This
+control is slower and uses more CPU/RSS; it supports no useful scaling claim.
+The small Tower range and single large/control samples preclude a regression bound.
+Peak process RSS is not live world retention; no allocation/idle counters were
+exposed by this CLI. This command supports --timings, not a --measure switch.
+
+Separate link medians small/large, wall/CPU/RSS: Tower .02/.01/50752 and
+.02/.01/50736; Clang .07/.05/73968 and .05/.04/73948 (seconds/KiB). The paired
+compile+link wall sums are2.28/.11s small medians and2.46/.21s large, not a separately
+measured one-process end-to-end CLI. Tower runtime IR874fbb7b was compiled once
+at.38wall/.37CPU/94672KiB, outside each sample. Existing --version startup probes
+cost Tower.03/.02/50296 and Clang.05/.04/73716; these are diagnostic floors, not
+subtractable startup corrections. Execution checks and warmups are excluded.
+
+Largest measured hot path is driver_compile_program -> execution_session ->
+frontend_compile_sources: syntax_next/import preparation followed by semantic_compile.
+The median-wall small sample reports bootstrap288.474ms, parse+check1914.774,
+LLVM lowering1.948, optimization2.839, emission1.865, internal total2218.788.
+Large serial reports170.890/2084.842/16.122/114.172/2.019/2406.769ms respectively.
+Combined parse/check is about86% of internal total in both; bootstrap plus that
+span is about99%/94%. The large span lies within the small1912–2554ms range.
+The remaining single-thread gap is therefore dominated by frontend work with a
+large fixed cost, not explained by the measured link or process-startup floors.
+Clang's diagnostic warmup traces separately show Frontend15.859/28.019ms and
+Backend6.936/161.024ms; those boundaries include different work and are not retained
+sample medians. Existing Tower counters do not separate parser from semantic work.
+
+Proposed next fix for B1/B2, with A1 if semantic admission dominates: eliminate
+repeated preparation of unchanged imported language/type preludes through the
+existing world/revision-owned grammar/module caches. First split the measured
+span at its syntax loop and semantic_compile boundary and count cache rebuilds;
+duplicate reconstruction is a hypothesis to verify, not established by these
+timers. Preserve source-order grammar/effects, revision identity and canonical
+Foundation. No conflicting producer change or unmeasured cache-speedup claim here.
+The independent reference confirms a substantial remaining frontend latency/RSS
+gap on these specific matched bodies; it is not a general language ranking.
+
+Logs, exact commands, compiler/resources, traces, profiles, outputs and all source
+checks remain in build/d2_ecs/reference_current (group.status0); prior comparable
+reference receipts remain untouched. No generator/harness defect or code edit was
+needed. Jobs drained and D2 released its lock before integration. Later pull to
+84e919eb preserves complete stage/provenance/generic/constructor/evaluation changes;
+these invalidate reuse as a profile of that newer compiler. Keep the exact baf2
+identity and repeat affected metrics at ROOT's final frozen release, rather than
+relabel or rebuild this bounded one-build receipt. No new sanitizer/browser/
+generation/deployment claim. This journal-only change needs no runtime rerun;
+normal main commit/push and remote identity are recorded in D2 status.
