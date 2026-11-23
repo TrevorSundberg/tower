@@ -93122,3 +93122,13 @@ TAP/time/status/resources/host/artifact receipts preserved in that own log root.
 No GUI/browser-retirement, hosted, sanitizer, generation or native OS execution
 claim. All owned jobs drained; successful atomic lock acquisition preceded owner
 write, lock released,127GiB disk/about10GiB RAM available, todo unchanged.
+
+D2 b8 adoption publication reconciliation: scoped37d90240 merged complete
+published05edbfb3 as e0dece97 after prescribed ff-only pull detected divergence.
+Both journal histories preserved. All host/test/focused-language/reactor/results
+hashes match. Nine mounted-resource deltas are the incoming six parser/compiler
+providers, bootstrap_symbols tool/check and parser_structure_reuse fixture;
+none is imported/executed by these selectors or compiled into the frozen b8 pair.
+Their failed old-manifest comparisons remain recorded, explicitly excluded once
+from this receipt. No new parser performance/ABI acceptance inferred. Syntax/diff
+checks pass; no repeated tests or release/deployment claim. Normal main push.
