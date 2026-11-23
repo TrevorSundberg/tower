@@ -95523,3 +95523,64 @@ all owned jobs drained, source checks reused by identity; retry normal main push
 L1 independent review d7635e9c reconciled through complete-history merge 20cba101e427d285d019022373d58d13616b047a with published6b74889b. Library/host/compiler gate and Entity producer blobs are unchanged. Incoming L2 unsigned-overflow reconstruction, package pruning and declaration-oracle work are preserved outside this review. Read changes to the two inventoried legacy-gate fixtures backend_source_native/module_body_type_checks: optimized artifact saving and error/output oracles change; synchronization callbacks/ownership/teardown do not. Frozen66-file review manifest retains its original identity; these later fixture blobs are explicitly separate. No build/test rerun for this documentation review; diff check passes. Normal main push follows.
 
 B2 fault receipt publication: complete-history merge8bcd4a36 preserves implementation2f4361f6 plus incomingd21fb20d. Entity/budget/host/selectedfixture closure unchanged; dependency target saysno work, full defaultcomponent/stage fault modesPASS again with identical b3c778e9/18ecb7f4 binaries. Incoming LLVM/packaging/modulebody changes excluded once. Independent review's corrected16-byte descriptor alignment derivation retained in priorreceipt; measuredtables unchanged. ROOT finalrelease remainsseparate; ownedjobs drained.
+
+## 2026-11-23 ROOT: joined a06 ECS/compiler artifacts and bounded recovery
+
+Built published source a06ec4b1f9f44419882477bc1a55b6ed39e2200b once,
+including 125efb11 module-local declaration queries, 05780abb budget gates,
+f9565c46 inline component indexes and a5ffb99d unsigned-overflow reconstruction.
+Existing public bootstrap768, no private override; default WSL
+Orchestral-Revng/Linux x64, WASI SDK34 and pinned LLVM1e57. CPU8-15,
+buildjobs4/compilerjobs1, warm cache, inputs frozen through all three phases.
+root_release_joined.sh checks the tracked source manifest after every phase.
+All three phases exit0 and all build-time source hashes match.
+
+| Phase | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable | 44.97 | 50.99 | 1106660 |
+| LLVM/cross | 75.32 | 113.39 | 1105772 |
+| Shared | 44.35 | 53.20 | 1105844 |
+
+These are build costs, not compiler throughput or a before/after speed claim.
+Original logs remain /root/.cache/tower/root_release_a06ec4b1 and the copied
+ROOT_release_a06ec4b1 receipt. The initial explicitly named Ubuntu WSL probe
+failed before any build because that distro is absent; the existing default
+distro/prior25 receipt were then verified. No failed build was silently passed.
+
+Immutable C:/Sandbox/build/codex_ecs_20261122/ROOT_browser_inputs_a06ec4b1
+contains32 files/168232639 bytes, files.json, SOURCE.txt and READY.json.
+Full hashes:
+- portable f065757480f1b94ad4f181aadeb8e0a63bc06b781a546aed11ac12796a64a25d
+- LLVM 8acbaf08545d0ce972f2de7db2a89fcfc7ef434f95f775feca06dde759107697
+- cross affd95b9744dcb6a336270eb99b6ff027f032e340510ddd06d87b32e444ffea9
+- project 488dfb4ed4fce02430840306bb787f48d0b30b27dce1552e9c972ca340e50d63
+- shared 2288da4b1b3e14935e665e454ddfe505983713a9dad93049ff98ea170e36c793
+- work c0747310ee756c4e76cc37b49594513d1e516752a0e082c4aff9b2d0d5f8108a
+
+No new runtime is deployed or bootstrap repinned. L2 owns actual new-pair T8,
+A2 the exact retained entity_pages Memory request, B2 current shared Node/browser
+adoption, A1 actual Windows gate execution, L1 complete native generations,
+B1 combined1/4/8/12 scaling, and Deck the finite source/ledger review.
+Owner receipts now publish the isolated gate speed gain, inline storage memory
+gain, both repaired full fault modes and removal of the raw LLVM dist duplicate;
+they retain their own exact source boundaries and are not relabeled combined
+measurements. Final edited browser generations, UI/public bootstrap/atomic runtime
+release and applicable supported instrumentation remain open.
+
+A2 stopped issuing commands/messages after compaction22:54:43 (last completed
+command22:52:48); only token-count updates followed. ROOT verified no A2 native/
+Node child work, preserved both dirty measurement files and raw logs, and stopped
+only exact Codex PID41188/parent45340 at23:05:16. The existing runner recorded
+coordinator-caused exit-1 and closed its exact window. Same UUID resumed in a
+replacement window at23:05:38/PID17888 and issued a new progress message.
+No new context/agent or service-policy retry occurred. Recovery record:
+A2/root_compaction_recovery.json. Eight existing UUIDs remain the only lanes.
+
+After builds drained, ROOT fast-forwarded a18d584e. A later full old-manifest check
+then intentionally differs in the two repaired fault fixtures and asset packager;
+its exit1/three mismatches are retained and are not a build-time drift failure.
+Those later inputs are outside a06 artifacts. Current fault fixture production
+providers remain unchanged. Todo remains protected and byte-identical.
+This journal-only publication reuses the verified existing Pages runtime identity;
+it does not represent the new artifacts as hosted. No runtime code is changed by
+this ROOT record, so new runtime profiling for the documentation is inapplicable.
