@@ -83834,3 +83834,117 @@ compiler/WASI acceptance is not inferred from old artifacts. No broad rerun or
 repackaging chase. Native-generation mismatch remains the one checkpoint blocker;
 all complete candidate/overlay/failed and passing receipts remain external for
 ROOT. Normal main push follows, then this bounded task exits.
+
+### 2026-11-23 B2: generation investigation and layout-frontier prerequisite
+
+Task starts clean3078c630, jobs idle; required ff-only pull ->130bde3c.
+ROOT original handoff ZIP SHA256e3de81ce7e3ae303560f573edbf1007d2f14f62d8a066398f1b0a978c4b51123
+is retained/extracted under external B2/successor_compare_evidence. It records
+L1 sourcec7ad4f423ad6, public predecessor9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+successorbe521b36b92d5e8060d6886a539a4b37c042cec37318615c1ac8e7455f6781cd.
+Its original optimized-IR/object mismatch remains FAILED; llvm-diff0 is not an
+identity waiver. No original product, pin, syntax or comparison rule changed.
+
+Audit: semantic_statements.sem_function_declare appends ordered function entries;
+semantic_values registers discovered generic instances through that same API.
+semantic_lowering_work assigns the function-list ordinal to each lowering receipt;
+semantic_control uses that ordinal plus a function-private name table. Backend
+lowering traverses the supplied function vector for LLVM declarations and bodies.
+Thus changes in coordinator discovery/publication order change control names and
+object definition/call offsets without requiring concurrent LLVM mutation.
+The current declaration/body/known-value pipeline differs substantially from the
+public pin's source98ade8cc; generic type and function positions in canonical
+Foundation also differ. No address/hash sorting, normalization or new IR added.
+
+Actual entities producer, frozen130bde3c, x86_64-pc-linux-gnu, --library,
+--bedrock /work/scaffolding/bedrock.tower --foundation /work/scaffolding/foundation.tower,
+--optimized-ir OUTPUT.ll -o OUTPUT.o. Default optimization retained. Current
+complete native generation1, built by the public pin through existing CMake,
+SHA256466e75f355fea4471a60e50537c0c7068e1379d6ef6d52de93fb6f1f8c6289c2.
+Two serial runs and workers4 are exactly equal (IR/object/canonical); public
+predecessor differs. Current IR1df1a524309083ba2008e51841526d45e64701b86dca83020a36348bd4923259,
+objectabb98ae7c3ea19f624cf06f0221153c5411552190860ef3f9ff57a01872b09fd,
+Foundationaede7e3953aca6f63a6385bf9dd93a010a563eee7c6c7bd6c3451c9a8b2be307.
+Public IRa3ca0c3f87834c78f0a4dedfc716366067bae19be2499e6fd74ce726b368900e,
+objectb9c03276bfa6e575c5e244182ee21cfc84f10fe763312b7af8b8a3181c965565,
+Foundationd0db0ee8f64c3dcfb10a9e484798c63bdd84acf1ea157b89ff5fd01eaf1fa1e5.
+This is evidence of stable generation evolution for this producer, not a whole
+compiler fixed point or proof that every worker schedule is deterministic.
+
+Attempted WHOLE generation2 in /cache/b2_identity_gen2, existing dependency-aware
+CMake towerc target, generation1 as explicit compiler, Release/LLVM19,
+compilerjobs1/buildjobs6. Same native module/work/backend fixture options as the
+existing generation1 build; every owned compiler/runtime unit uses generation1.
+No public-leaf duplicate build, browser matrix, copied ABI or partial compiler.
+Initial build FAILED134 on frontend_units, evaluation_query_checks and semantics;
+25.747wall/75.305CPU seconds/712236KiB. Owned jobs drained. Isolated frontend_units
+also SIGABRT. GDB located sem_layout's existing c.entity_stage==null assertion:
+worker work_batch_execute requested WorkBatch with no Layout query. Its completed
+Declaration/Discovery tasks were791/792; WorkBatch was program.types[38], but
+layout_checked and types.length were both99. Ordinary body_roots was true.
+
+Root cause: early executed helpers can run local declaration publication before
+the module layout boundary. Those continuations advance layout_checked to the
+current registry end, accounting for their constructed types, not every unrelated
+module type. The later global scan therefore skipped an existing nominal type.
+Implementation reconciles this derived cursor ONCE in sem_bodies when an early
+body pipeline exists, immediately before the existing safe module-layout scan.
+Actual layout queries still execute/publish through the existing graph; all worker
+assertions, dependency and diagnostic rules remain. No worker-side construction,
+spin, global state, eager mid-declaration global scan or weakened generic syntax.
+
+Regression generation_layout_frontier.tower imports the real frontend_units
+producer and interprets42. Saved generation1 before fix exits134; fixed compiler
+passes at workers1/4 through two native CTest registrations. A small extent-only
+candidate did not reproduce; preserved under build/b2_identity_nonreproducing_extent.tower,
+not counted as a regression. Public-pin incremental rebuild3actions passed
+22.558wall/17.270CPU/786056KiB. Fixed complete generation1
+2f079df88439c0d74ae4ea4eb7738a7ddfebc32267720978b9a0e2a984ec3579.
+Query-smoke passed serial/threaded32/64-bit staging/canonical/dependency checks.
+Existing verify_compiler development behavior checks passed before and after:
+known execution, diagnostics, repeat objects and library linking. Restricted
+standalone release/relocation was not newly certified here.
+
+Same-path entities warmup plus retained before/after samples, wall/CPU seconds/RSS KiB:
+workers1:5.023901/4.129319/308788 ->5.064884/4.176205/308464;
+workers4:4.469301/4.460052/337020 ->4.491003/4.484227/337696.
+Before serial's first run is its warmup; after warmup5.042347s. One retained sample,
+no speedup/significant-regression claim. All exact IR/object hashes above remain
+unchanged by this fix and across workers. Entities canonical Foundation recompiles
+and re-formats byte-for-byte with the fixed compiler. Normal allocator, Docker
+CPU12-23 (six physical cores/12 SMT),12CPU quota/24GiB; no sibling CPU reassignment.
+No allocation-counter instrumentation; cursor reset owns no additional storage,
+and missing layouts use existing budgeted query/payload storage.
+
+Meaningful generation recovery: rebuilt the whole target with fixed generation1;
+frontend_units and evaluation_query_checks now compile, but generation2 still
+FAILS (49/53 reached,31.919wall/126.020CPU/711416KiB). Precise remaining blocker:
+scaffolding/compiler/semantic_source_bindings.tower:178:5,
+`foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }`
+reports `Cannot infer type argument 'T'; pass explicit type arguments`.
+Isolated PRODUCTION compiler/units/semantics.tower (same imports as semantics_checks)
+also fails1 with exactly this diagnostic,14.035wall/9.389CPU/584952KiB. This is
+not a test-profile-only failure. Do not rewrite inferred syntax or substitute
+private ABI products to manufacture generation2 success. Generation2 has no
+complete executable, generation3 has NOT run, whole object/executable identity
+remains BLOCKED. No acceptance-contract relaxation is justified by these results.
+The next owner must repair this inferred nested-generic consumer/admission path,
+then rebuild complete generations2/3 and compare all objects/executable/resources.
+
+Source closure (130bde3c plus this fix/regression/CMake registration) manifest
+/cache/b2_identity/frozen_sources.sha256 =6f43d36a42007b82b5dde9ae22925750811910d07496d1b59bac89d13389caa5;
+CMakeLists.txt=b5b17b6a2e5b5913be2678033521ef6260031811323a19e6c81b3cdfd4204a87.
+Complete fixed generation1 adjacent-resource manifest=d03e8d465461c6558b9e33c739703d423d734dc5d224dc535a8a547a3dd02d2e.
+Partial generation2 object manifest=5b452fc2f5b38d11575db7bdda81b07acf1c70bc223fd47869bfb0699082608d;
+its entities object matches above; frontend-units591ba574a6288f4a86b81411b0eb1218002d4746ef0dd50f6825e06198828399.
+Partial products are evidence only, never a published successor.
+
+Logs/commands: build/b2_identity_*.log/.diff/.gdb/.asm; /cache/b2_identity holds
+all original/current object, IR, canonical pairs and manifests; failed generation2
+cache retained. Initial PowerShell CMake -D path split was corrected by quoting;
+initial --check-format misuse was rejected (that option is for source formatting),
+then ordinary Foundation round-trip completed. GDB was installed in the owned
+container after absence was confirmed; debugger exit0 is not compilation success.
+No retry loop or duplicate generation launch. Public pin remains unchanged;
+ROOT owns pin/Pages and integrated instrumentation. Commit/push the bounded fix
+and evidence, then stop at the precisely reproduced remaining generation blocker.

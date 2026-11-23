@@ -1426,3 +1426,12 @@ producer closure; a passing profile is not finite-cap acceptance, and fixing
 this one denial does not establish child/index/query/stage accounting. The census
 must remain tied to the actual allocation layout as those owners migrate.
 See the journal's D2 entity accounting receipt for source hashes and byte totals.
+The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
+imports the actual frontend unit producer through
+`generation_layout_frontier.tower`, checks all its bodies and interprets the
+known root result `42`. Run it with
+`ctest --test-dir build/native --output-on-failure -R '^tower-generation-layout-frontier-'`.
+It guards the transition from early executed type/generic helpers to ordinary
+module body admission: a local construction cursor is not proof that every
+unrelated nominal layout has been published. This focused regression does not
+establish whole-compiler generation identity.
