@@ -93775,6 +93775,39 @@ methods are unchanged. New control/loop query behavior, fixtures and concurrent
 owner reviews are preserved, excluded from the d55d1c0d source-only conclusion.
 Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
 
+
+### A1 joined executable alias-publication repair (2026-11-23)
+
+Base902f7c4dcbd924090e7f706260f67e4b812da7cb, same thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7/PID14596. Implemented the344139e9
+review finding in semantic_execution_work only: validate tickets before alias
+side effects, skip aliases of failed worker results, preserve coordinator failure
+without clearing it, and defer every ready input until all joined aliases pass.
+Existing stage holds/leases and terminal cleanup remain the owners; no replay,
+new scheduler, independent type evaluator or shared evaluation-producer edit.
+
+The real admission fixture's new alias selector reproduces first/later Invalid
+at offsets17/29, then tests valid cloned alias identity and fresh-context recovery
+in the same explicit world. Existing signature-Capacity assertions now include a
+secondary bad alias; its original worker cause wins. The existing stage-pressure
+fixture also covers ninth-entry batch growth denial, with grants/counts and
+terminal retry/fresh-context cleanup. Before: alias24 and signature8 failed
+assertions, both exits1. After: all17 registered selectors/68 width-worker
+configurations, query-smoke and lifecycle0 pass. Exact commands, code/binary
+hashes, original fixture compile failures and receipt are appended to
+ docs/compiler_executable_budget_review_a1.md; logs A1/cache/logs/alias_publication_902f7c4d.
+
+Matched healthy n1 each variant/workers1/4, CPU12-23/24GiB, public bootstrap
+768a0cdf/no override. Process wall/CPU/RSS before->after:1worker .46/.40/177312KiB
+->.45/.39/178160;4workers .52/.51/180352 ->.54/.50/180304. Same input/reference42/
+canonical hash13963953848021265584/11412bytes and identical retained metrics;
+ledger peaks107430664/107378560B, zero final live bytes/grants. No speedup claim.
+Candidate5-action build34.68wall/41.80CPU/1093896KiB; admission .62/.32/51808,
+query3.56/4.49/412360, lifecycle1.95/1.81/223300; all exit0 and jobs drained.
+Memory allocator denial and new mid-pump stale injection remain unrun; no broad
+instrumentation/browser/generation adoption. All source/publication history and
+todo preserved; ROOT owns final integrated release. No service-rejected operation
+was run or rerouted.
 ### B1 held LR preparation admission trial rejected, frozen902f7c4d (2026-11-23)
 
 Bounded implementation attempted and restored; no production optimization ships.
@@ -93962,3 +93995,15 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
+
+A1 alias repair reconciliation: b78d606b merged complete1e60c511 as
+c98d64f2f6e567e6ec0f780bf7bf8a7952cce7f0 with no conflicts. Changed shared
+semantic/backend inputs justified one7-action rebuild50.89wall/54.09CPU/
+1090448KiB. All17admission/query-smoke/lifecycle0 pass again; merged worker1/4
+healthy samples .46/.39s/178068KiB and .52/.51/180912 match the prior exact
+reference/canonical/retention metrics and zero teardown. Separate merged source
+and binary identities are appended to the same receipt; original matched
+comparison remains attached to902f7c4d. All processes exit0/drained, no broad
+matrix or private bootstrap adoption, todo/history preserved; normal push follows.
+
+A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
