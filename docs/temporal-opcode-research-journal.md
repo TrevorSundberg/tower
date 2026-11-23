@@ -73306,3 +73306,19 @@ root union. No TSan/whole-release/publication claim follows from serial checks.
 Complete source remains main with no todo changes. Remaining owned work includes
 typed metadata copies/module constructors and shared standalone linker budgets;
 L2 now owns the exact existing-provider late inspection extraction and fixture.
+
+### 2026-11-23T10:36:54.1518160Z ROOT: current foreign diagnostic instrumentation
+
+The actual2c756879 standalone closure now passes ASan/LSan with halt_on_error and
+leak detection: all515 ABI plus18 malformed diagnostic allocation positions and
+existing tool output/restoration cases. Public pin emitted original LLVM IR;
+existing Tower runtime binder selected the fixture entry; existing Tower LLVM
+instrumentation covered132 client definitions, linked with the matching smallest
+instrumented memory/runtime/trap providers. No new native shim or invalid-memory
+probe. Wall197.793667ms/CPU48.185ms/13556KiB includes diagnostic I/O and is not a
+before/after performance claim. Current executable ae4c0ccdc99d46bd75549c4d5795c920d4bb0d2a75e096b8974c258f03f381a6;
+original IR e8ec0df4713ac01ce860bcdbf49b7c2809e398563982224b3c23505c90ae8a4f;
+unchanged instrumented memory object2d94b59fcf129b9de503c81208acc7e3a7107d3ca9b4e8a15fbf0c8632e4d200.
+All children drained before granting B1 its next quiet profile. Full combined
+compiler instrumentation/publication remains open. Updated foreign checks docs
+only describe this scoped coverage; documentation adds no runtime cost.
