@@ -86504,3 +86504,45 @@ The public pin and hosted runtime remain unchanged. A2's complete capacity
 successor still needs generation/pin adoption before A1's preserved body batch;
 L2 module/inspection admission and final current-source performance,
 instrumentation, complete generations, browser and hosted release remain pending.
+
+### 2026-11-23 B2: complete current generation prerequisite, frozen252b424a
+
+PASS on exact published252b424ab770a0b334f31fa68eede1f1584a5acc, tree
+14675a432d410badc6c548370b8632d506b6861e. Only the journal differs from ROOTf72179d2.
+Clean documented public9653 bootstrap/no private override produced generation1;
+its complete package passed development verification before selecting it for gen2.
+Gen2 likewise passed before gen3. Both successor generations used the identical
+build path; gen2 full outputs were preserved before CMake clean. Every generation
+ran all52 native target actions, including runtime/helper objects and resources.
+All34 produced compiler/runtime/helper objects/archive/executables and all53
+manifest payload files plus SHA256SUMS match exactly between gen2/3. No ModuleID,
+object, resource or symbol normalization. Manifests retain distinct predecessor
+lineage and identical1166 source hashes, with no source patch. No compiler edits
+or limit changes were needed; no later L2/A1 work entered this frozen run.
+
+Gen1 executable e885c76780e2e00c5e8ca80786ac87ca1f93f294276867a33923a2a0d342f65c;
+gen2/gen3 executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138.
+Gen3 manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+shared payload checksums bd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+Complete package/archive delivered to B2/current_fixed_point_252b424a under the
+existing C:\Sandbox\build\codex_ecs_20261122 handoff. generation3.tar.gz SHA256
+94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e preserves executable
+mode0755 (2236032 bytes). Original gen1/gen2/gen3 packages, full build paths,
+commands, binary manifests, verification reports and failures are retained.
+
+All nine current native exact unit symbol policies PASS. Existing package checks
+PASS; restricted negative control confirms missing Clang, NOT standalone release
+acceptance. Actual semantics provider default160MiB policy passes workers1/4 with
+identical object b74bac0c8dda6a40af34fba5223c63b56aff41c1134b6f18ad42fb2041923673.
+Generic/cast control relative+absolute package invocation workers1/4 and canonical
+round-trip print42; backend optimized/unoptimized controls print45 then2.
+Build wall/CPU/peakKiB gen1:39.086/144.790/825820; gen2:36.943/134.019/1011532;
+gen3:36.032/132.908/1011920 (12-23 cpuset/quota12/24GiB, outer6/compilerjobs1).
+These are cost observations, not a speedup claim. First profiler attempt used
+bare env and failed before configure; corrected to absolute /usr/bin/env and
+retained that failed log. No completed generation diagnostic/identity failure.
+
+Full exact receipt: docs/compiler_generation_252b424a.md. Historical public-vs-
+successor object mismatch stays FAILED; this complete current fixed point is
+separate evidence. ROOT retains pin/Pages, later-source acceptance and integrated
+instrumentation. No broad browser/type/frontend/sanitizer campaign was run.
