@@ -49341,3 +49341,24 @@ resource destruction. Owner14 public units/6 native/24 ASan+TSan runs and actual
 WASI32 buffer/arena0 outputs (UTF16LE receipt decoded) are scoped owner evidence,
 not new D2 compiler acceptance. Current D2 arena compile/runtime/profile and
 fallible compiler callsite propagation remain open. No new syntax/private pin.
+
+D2 source-only followup during D1's heavy slot: fully read matched L1
+reportinga8ecf458/storage-errorbad3e4f1 and A1 semantic-resource76e1a971,
+plus efde967a regression. Adopted the complete production pair, no partial-ABI
+runtime. IMState latches the first physical failure; SemanticEvaluation retains
+it beyond invocation disposal. Required and inferred failures use fixed
+nonnull diagnostics and fail their matching tickets; ordinary unsupported
+optional staging retains its prior fallback only when resource_error is None.
+The owning finish path no longer suppresses resource failure for inferred or
+isolated declarations. Diagnostic128-byte receipts/destination reserve before
+dispatch; shared layouts and every dependent runner must rebuild.
+
+The owner regression covers two peers, source offset11 before29, required/
+inferred/isolated modes at widths32/64 and worker1/4, drained workers, failed
+readiness/tickets, no published value, no replay and final world/ledger cleanup.
+Root reports baseline failure and public-unit success; owner corrected runtime
+is pending. D1 owns conversion of its main entry into the existing LR/query
+fixture after that result. No competing unregistered runner was added. This
+change remains prepared source pending independent public units, joint runtime,
+actual memory/race coverage and complete union publication; prior00caeef
+measurements and741de29 bundle do not validate the new ABI.

@@ -4,6 +4,7 @@ import interpreter_abi;
 import interpreter_context_types;
 import .library.vector;
 import .library.work_vector;
+import .library.work_budget_types;
 
 fn ix_strict(m: IMExecution*): bool {
     return m.context != null && m.context.strict;
@@ -14,7 +15,10 @@ fn ix_initialize_frame(m: IMExecution*, base: usize, size: usize): bool {
         return true;
     }
     var end = base + size;
-    if end < base || !work_vector_reserve(&m.context.initialized, m.state.budget, end) {
+    var result = end < base ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(&m.context.initialized, m.state.budget, end);
+    if result != WorkBudgetError.None {
+        if m.state.storage_error == WorkBudgetError.None { m.state.storage_error = result; }
         ix_fail(m, "Cannot allocate strict evaluation initialization state", 0);
         return false;
     }
