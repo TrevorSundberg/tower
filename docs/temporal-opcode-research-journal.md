@@ -92817,6 +92817,53 @@ Documentation-only result; no runtime patch/policy adoption, new rebuild or
 passing-test repeat. Original error remains precise evidence for its frozen
 candidate, not a claim that the rejected patch was tested on later main.
 
+### D2 actual optional-trace success and exclusive-output acceptance (2026-11-23)
+
+Frozen published7e46f0250a790023130b05292759716eb31ce133, same D2 thread/PID3157620.
+Existing browser diagnostic/worker boundary/docs and installed Playwright page
+tracing implementation reviewed; no source download, runtime or strict-worker
+edit. Original023d1dee corrected admission now actually ran: all5workers closed,
+zero targets, but5s trace completion timeout/exit1 preserved. Page CDP session
+candidate returned a valid trace once, then another verification missed completion
+after Tracing.end acknowledged. Endpoint change alone was not treated as proved.
+Final driver starts after page navigation settles and before any worker creation;
+new nonempty-event/clock-marker assertions, explicit end/stream events, clock
+correlation and raw buffer statistics remain browser-transport logic only.
+
+Final329fc2e7768a56149577a00d803bfa7087d62e9feff164b1908dd2099cd89b5f
+actually passes:5Playwright closes/5CDP destructions/0live targets, original30s,
+933411bytes/3908events/40category-name pairs, complete JSON/error[]/dataLoss=false.
+Trace SHA69740f5307dbd663fb7af984056492c1f0ba852f45f8e14c89c5b0cac0736a05.
+Matched native clock marker717720627910us/LINUX_CLOCK_MONOTONIC and external
+1795469432693.5413–1795469432694.9778ms bracket:~1.437ms alignment uncertainty;
+all5initialization intervals checked inside external capture. Actual buffer writes
+282624/4194304 plus53248/262144bytes; zero overwrite/discard/full/loss counters,
+no periodic usage sample. This is not a whole-browser memory cap. Category query
+still[] despite real events; requested-category admission must not depend on it.
+Five native initialization events and32postMessage events are available; none of
+PrepareForShutdown/PerformShutdown/WorkerThreadTerminated/ChildThreadTerminated
+was captured. No native-join or inspector-retention remedy inferred. B2/ROOT owns
+production ownership/release; this accepts only the trace transport slice.
+
+Explicit nonempty-path negative returns EEXIST/exit1, no trace start,5closes/0targets,
+cleanup complete; trace hash unchanged. Earlier empty-path negative retained too.
+All fixed bounds remain (4MiB requested buffer/16MiB file/5s trace I/O/30s retirement).
+Existing159.0.8154.6/1255 browser SHA24eb0a14/Playwright1.65.1/Node22.23.5,
+tower-d2-ecs CPU0,2/8GiB; no compiler build/Wasm execution. Work argument only
+read/hash a1f9a66e. Command shape: `PLAYWRIGHT_BROWSERS_PATH=/tmp/tower-home/.cache/ms-playwright TOWER_WORKER_TRACE=.../NEW.trace.json /usr/bin/time -v -o NAME.time timeout --foreground --signal=KILL 120s node playground/scripts/diagnose-worker-retirement.mjs no-wasm build/d2_ecs/browser_retirement/frozen_2013/tower_work_tests.wasm .../NAME.json`.
+Warm installed files/fresh process,n1 each. Wall/CPU/peakKiB: original completion
+failure6.43/1.50/125676; intermediate page capture2.33/2.23/137368; later failed
+pre-navigation capture6.67/1.74/125188; empty-path negative1.53/1.57/125144;
+final capture1.45/1.46/128852; nonempty negative1.79/1.79/125412. All0swaps.
+No runtime speedup or aggregate-tree RSS claim; failed waits/startup capture differ.
+
+Full checked paths/clock/buffer/event inventory and all failed/success/negative
+receipts: build/d2_ecs/worker_trace_7e46f025; detailed extension in
+browser_worker_boundary_48db0f27.md. Actual JSON parsing/assertions, nonempty-file
+hash preservation, full changed-file review, Node syntax/diff checks pass. Strict
+scriptbc41120d/coordinator415a3888/boundary58b90415 unchanged. No broad matrix,
+production-worker acceptance, source download, sanitizer/generation/deployment.
+All owned jobs/browser drained, lock released,127GiB disk/9.8GiB RAM, todo preserved.
 L1 alias merged acceptance: implementationb78af3aa preserved through
 merge2848983552272c754d122f0df3ff2de17a53bbef with complete5caffe04 history.
 Resolved the test-selector conflict by retaining both alias-type-queries and A2
@@ -92847,3 +92894,10 @@ independent execution evidence is reused for those identical bytes. Response run
 397004e45fcb5240c6be5f503f81a31c219c0721d3292761963717125c616868. Earlier paired
 performance keeps its c93ddaab boundary; no merged speed claim. All jobs drained;
 normal source push follows, ROOT release/instrumentation remains separate.
+
+D2 trace verification publication: scopedb344e4e4 merged complete publicb8d65c37
+after prescribed ff-only pull detected divergence, preserving both journals.
+Driver/strict/coordinator/boundary/work/browser and every saved JSON hash match.
+Incoming semantic producers/manifests/Tower fixtures are outside this no-Wasm
+execution and remain separately owned/unadopted. Syntax/diff checks pass; no
+repeated browser run or source-identity relabel. Normal main publication only.
