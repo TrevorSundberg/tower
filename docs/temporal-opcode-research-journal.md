@@ -93136,7 +93136,7 @@ runnerfab9827ef127bbe57648918525b95c9aac8fd81229979ee11045cb0b33762837.
 External L1 alias_fields_receipt.json and logs/alias_fields_merged retain exact
 inputs, results and original failures. All owned jobs drained, todo unchanged;
 ROOT portable/LLVM/shared artifact adoption remains pending after publication.
-### 2026-11-23 L1 � shared module loop-header query preparation
+### 2026-11-23 L1 � shared module loop-header query preparation
 
 Bounded successor to b8d65c37d9dd4ef691d700d0d0a52c81e01b593a. Initial required pull was current; owned jobs drained, C112GiB/WSL923GiB free. Read the ordinary loop, computed-type/capture and prior alias-query contracts. ROOT's separate artifacts/cache were untouched. CPU0-3, Orchestral-Revng Ubuntu24.04, LLVM19 Release, existing public-bootstrap cache `/root/.cache/tower/l1_ecs_native`, 24GiB process address-space ceiling (15GiB physical guest memory).
 
@@ -93720,7 +93720,7 @@ formatter and module-loop query sources/tests are excluded from the e6be70d5
 review freeze; their owners retain validation responsibility. Documentation and
 source-identity checks passed; no build or runtime rerun was needed or claimed.
 
-### 2026-11-23 L1 � module lexical identity in staged capture proofs
+### 2026-11-23 L1 � module lexical identity in staged capture proofs
 
 Bounded follow-up to published fa7917c5. Required pull advanced to344139e9e712ee90980d6d9faa3614e6127397da with documentation only; owned jobs were drained, C111GiB free. CPU0-3, Orchestral-Revng Ubuntu24.04/LLVM19 Release, existing public-bootstrap native cache,24GiB process address ceiling. The saved native16d8981ad9e249fe216ea161d0a0796999814a22d9c5599c47b6a5bd75be7ba2 accepted the exact external loop with `--emit foundation`, producing update `+0`. No potentially infinite runtime interpretation was performed. The committed `semantic_invalid/module_header_capture_update.tower` is byte-identical to that original, SHA2568a70dfa5386c69c8bed09562091be92767669962cd723623d9ac2861218cc00c. All checks have finite OS timeout guards and preserve their exit/logs.
 
@@ -94159,7 +94159,7 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
-### 2026-11-23 L1 � complete native lifecycle checkpoint on3211cb1e
+### 2026-11-23 L1 � complete native lifecycle checkpoint on3211cb1e
 
 Frozen published main3211cb1eab6a9582ab0b4ceb2c39ca4283a2532b, existing public-bootstrap native cache/CPU0-3. Derived42 cases from the actual SemanticLifecycleCase enum (0RootCall..41LocalAggregateCapture). One runner relink only; then existing lifecycle0-41 and dependency-units selectors each ran once. All42 lifecycle cases completed at32/64 workers1/4:168 source trials plus52 positive Foundation reparses, original outputs/canonical/error/ownership assertions PASS. Dependency-units original64-bit profile passes all four healthy/cycle trials with known42/43/44/45, ordinary type helpers, forward queries, untaken cyclic reads, canonical equality and ordered error/offset/no-partial-publication checks. Observed healthy overlap/threads1/1 and4/4; joined used lanes zero, all220 lifecycle and4 dependency batches pass world/budget disposal guards. No actual failure or unstarted case; no production edit or owner routing needed.
 
@@ -96168,6 +96168,7 @@ Automatic review rejected verifier-output preparation/launch: "blocked by policy
 Verifier UNSTARTED; no retry/reconstruction/alternate host; hosted release pending.
 Publication-only turn: inputs/output hashes rechecked, owned jobs drained, no
 runtime changes or performance rerun. Later source identities are not relabeled.
+
 ### 2026-11-23 L2: reuse frozen lifecycle producer registration
 
 Freeze68345ada29308dfe8334693f6178c6105dde3936/tree167281ed96f2a8406d5504992db4d20aa18fa210. Read joined cabc2062 and rejected7facb35f lowering receipts first. Measured repeated work is sem_lower_register's full signature walk on every bounded wave, despite sem_phase_begin already registering both sets before creating LifecycleLowered for the frozen function set. Five-line .tower guard reuses that existing graph admission receipt; standalone pumps retain dynamic registration. No new state/index/allocator/scheduler, lease/publication/effect/capture changes or other-owner edits.
@@ -96175,6 +96176,7 @@ Freeze68345ada29308dfe8334693f6178c6105dde3936/tree167281ed96f2a8406d5504992db4d
 [Full bounded receipt](compiler_lowering_registration_68345ada.md), raw L2/lowering_prepare_68345ada. Existing public768/cache CPU4-7, normal synchronized allocator, one process, unchanged1.25GiB unit ledger. Before76728e7b/candidateccaeaccf binaries frozen; exact previous16/4096 dependency source and full Foundation hashes preserved. One semantic-provider build+two links32.15s. Sixteen counterbalanced n2 timings plus8 separate coarse observations all pass complete byte comparisons, answer42/body_0(36)=42 and checked zero-owner teardown. Large serial/four frontend wall2.925/2.432→2.594/2.339s; CPU2.791/3.070→2.508/2.971; RSS717.18/723.03→717.13/723.27MiB. Lowering371.93/412.84→329.29/326.45ms. Small serial wall0.6634→0.6791 (+2.36%, paired+26.6/+4.7ms), four0.7168→0.6981; small phase +0.04ms, RSS unchanged. Kept for measured large phase improvement without material small-phase/storage regression; total small neutrality/statistical significance are not established. Do not attribute all end-to-end variation to five lines or claim universal scaling. Four actual semantic threads/peak4 unchanged, not queue-width evidence; no8-worker expansion.
 
 Query/type/control-smoke pass3.31/167.29/37.44s, CPU3.76/153.87/32.98, peak348060/338192/248520KiB. Existing selectors already include body continuation/lifecycle/lowering/required-optional staging/canonical/errors/admission/cancel cleanup; no extra body-smoke or broad release matrix. Returned-program retained bytes/grants match exactly, lanes0 at join, checked world/budget disposal after drain succeeds. Initial read-only missing-path and WSL quoting lookups corrected; no compiler/test failure hidden. Source/resource manifests and all samples preserved. L1 importer/D1i1/A1codec/B1page-policy scopes untouched. Current browser/generations/sanitizers/ROOT publication remain separate pending gates; todo unchanged.
+
 ### 2026-11-23 B2: independent direct-C fixture split peer review
 
 [Two-path review](c_fixture_split_peer_review_b2.md) accepts final direct fixture
@@ -96210,3 +96212,5 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
+
+L2 registration publication boundary: b3caffd3 plus complete-history mergeab68f799 adopts b4bd9980 browser abort fixtures/peer receipts. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output and resource hashes reverified, checked evidence reused. Incoming browser-only adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
