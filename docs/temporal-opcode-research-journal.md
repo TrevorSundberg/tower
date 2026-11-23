@@ -87252,3 +87252,14 @@ from these targets' actual depfiles; their backend/generation acceptance belongs
 to ROOT's separate closure. This receipt validates neither later A1 sources nor
 unbuilt L1 providers. Documentation alone is committed; no production/test change
 or new runtime profile is claimed by publication reconciliation.
+
+D2 publication reconciliation: full frozen revision is
+2013ad28ce57d5ce6bb18683aa89062603526aee. Receiptcc08ad4e merged complete
+published3e6b5814 as e23791cd, preserving D1's policy/audit and journal entries.
+Those incoming symbol-policy files are outside the browser runtime depfiles;
+no new browser build/run is claimed. A1's previously identified semantics
+adoption remains pending. Original frozen failures, source identities and
+rejected transport patch are unchanged. A patch-helper read rejected preexisting
+non-UTF8 journal bytes; this append preserves those bytes without normalization.
+Final diff/todo/bootstrap checks pass; normal main push only, with the verified
+published hash recorded in D2 status. ROOT owns deployment.
