@@ -96339,3 +96339,4 @@ registration guard refreshed only semantics and profile/service links; merged16/
 Frozen storage-only timings are not relabeled as combined gains. Codec/browser
 changes excluded once; Entity ABI requires coherent consumer rebuild. No injected
 fault/manual profile execution or final reactor/generation release claim.
+Final B2 child-storage join b20678d3 preserves B1 Foundation stage-page/observer history ae99ce12. Affected provider refresh and joined16/w1,4096/w4/small reconstruction pass exact outputs/zero teardown; original storage timing identity unchanged. Joined profiler db002ee805fcc7d6a95720fa8d1711296e86ad2034f32525fa9579ef3876e777; raw joined logs retained. No broader acceptance claim.

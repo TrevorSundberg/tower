@@ -66,9 +66,10 @@ Evidence: `C:/Sandbox/build/codex_ecs_20261122/B2/entity_children_5fc00c85` and 
 canonical artifacts, `samples.json`, `paired_samples.json`, exact command wrappers.
 ROOT owns integrated later-source/release checks; the blocked verifier was untouched.
 
-Integration: implementation `c12c2189`, merge `1dcb396f` preserves complete427d6aca.
-Incoming lowering-registration guard required only semantics/profile/service refresh;
-merged16/w1,4096/w4 and small reconstruction retain exact outputs and zero teardown.
+Integration: implementation `c12c2189`, complete-history joins `1dcb396f`/`b20678d3`
+preserve427d6aca/ae99ce12, including lowering-registration and B1 Foundation page
+policy/observer work. Affected provider/profile/service refreshes pass16/w1,4096/w4
+and small reconstruction with exact outputs and zero teardown; raw merged/joined logs retained.
 Those checks are separate from the frozen storage timings; codec/browser changes
 are excluded. Entity layout changed: all consumers require a coherent rebuild.
 The two manual partial-memory profiles and serial fault-census guard were updated
