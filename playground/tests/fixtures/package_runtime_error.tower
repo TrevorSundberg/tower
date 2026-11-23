@@ -1,0 +1,4 @@
+import foundation;
+var zero: i32 = 0;
+var answer: i32 = 42 / zero;
+print(answer);
