@@ -91999,3 +91999,60 @@ SHA3fa3430df1c23811837197288e5a5bc58660267175c81c5b70514238cea4d779
 unchanged; diff checks pass. Incoming nominal-wrapper/backend reconstruction/
 Node/test work is excluded once from frozen56c892c1 evidence. No rebuilt or
 relabeled artifacts, repeated matrix, or deployment claim; owned jobs idle.
+
+### B2 T5 Node shared acceptance on ROOT47433acf (2026-11-23)
+
+Independent Node gate executed once; browser retirement remains separately ROOT
+owned and was not rerun. Required pull froze host/resource main1210dc21; reactor
+source47433acff17e8ca6b3fffb6ce9875a37b38aec08. Supplied shared compilerSHA
+50f2ba6054b38057613a8d3e6a47c6f517ee17240a9a29ed67e9e76a634625a8/workSHA
+6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c verified
+before/after eager-path installation. Prior eager files backed up; old f167
+compiler8e7e3d63 and work6411 remain unchanged in B2 cache/archive. No build.
+
+Only compiler-threads.test.mjs ran, absolute shared TOWER_TEST_WASM and
+TOWER_TEST_WORK_WASM, TOWER_REQUIRE_THREADS=1. Optional host-only progress labels
+identify current fixture/target/engine/worker count; original assertions, source
+order and30/10/120s per-test deadlines unchanged. NODE_DEBUG=worker captures
+actual lifecycle end events. Existing process_profile plus finite180s timeout,
+no widening/retry. Linux6.18.33.2 WSL2, Node22.23.5/V8 12.4.254.21-node.57,
+CPU12-23/quota12/24GiB, one owned idle cache;924GiB cache free before test.
+
+Result2PASS/1FAIL,0skips/0cancelled, exit1 naturally in11.640358s wall,
+13.370040s waited-childCPU,239612KiB peakRSS. Pool test completes all128 real
+four-thread barrier/reuse lifecycle iterations in5.286781s. Injected trap
+propagates shared failure to blocked coordinator, PASS0.155336s. Compiler test
+fails6.078131s into capacity1 at inference_alias_invalid(default32-bit target,
+Graph diagnostic), not at worker startup or a missing export. Completed four
+Tower stress producers, LR/world widths4/8, ordinary+generic workers Graph/Fast
+widths4/8 with exact output/canonical, body-window/implicit iteration and preceding
+ordered-invalid/cycle cases. Alias actual: Type constructors currently support
+a struct and return; general compile-time execution is not implemented. Required
+Cannot infer type argument 'T' unchanged. InputSHA7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9.
+
+Exact source is existing alias(T:type) body with local var then returnT, used
+by generic read(T:type,value:alias(T)); first/second read(actual). Actual message
+producer generic_type_result_read non-struct/non-return statement branch;
+expected inference producer sem_infer_finish. ROOT/L1 constructor admission plus
+L2 inference/error-publication ownership: no competing producer edit or weakened
+regexp/source rewrite. Existing known-wrapper fix is in47433 already. No stale
+fixture setup independently established, no failed matrix rerun. Later capacity1
+index/field/dependency/clone/cycle/module/lifetime modes and all capacities2/4/8
+UNSTARTED, not accepted. Thus T5 compiler determinism remains BLOCKED.
+
+Node records9 workers created/9 terminate calls/9 actual end events; poolIDs1-4,
+trapIDs5-8, compilerID9. Capacity1 finally-close executes; ID9end precedes TAP
+summary and process exit. No remaining owned process, no timeout/kill. terminate
+promises are not awaited by production close and were not separately observed;
+end events/natural exit establish this run's drain only. Wasm capacity/live guest
+allocation not measured separately; RSS is not guest allocation or leak proof.
+
+Exact imports confirm env.memory/wasi.thread-spawn/hostheap transport on both
+modules; no portable substitute. Resource manifestSHA2f8e48230607f9c562db6e195cb8023426415ea419e86e8c1bfa132b7d8ddca1;
+hostmanifestSHA3cfa1dcfb67487cbacb966d6e2c62ab793b1d834ee54e7262cdab4b972b0c4a9;
+TAP+phase+workerlogSHA22750614289b583d4a52e6d5f2ed57a482a01168871e4c101c421af1581d293e.
+Full receipt docs/node_threads_47433acf.md; raw commands/imports/manifests/backup/
+logs/errorfixture: C:/Sandbox/build/codex_ecs_20261122/B2/node_threads_47433acf.
+Observer overhead included, no compiler-speed claim or runtime policy change.
+Later numeric/malformedgrammar/parsememory and browser/fullNode/generation/
+sanitizer acceptance excluded. ROOT retains final runtime/Pages publication.
