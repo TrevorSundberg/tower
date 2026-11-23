@@ -82614,3 +82614,12 @@ Jobs drained, affinity restored and own lock released. No extra Fast, type,
 backend, instrument or platform matrix is inferred from these scoped checks.
 Final normal push is the third retry after the initial attempt; status records
 success or the exact blocker without further integration loops.
+
+Publication blocked after the initial push and all three authorized retries:
+last `git push origin main` again returned1, `! [rejected] main -> main (fetch first)`.
+Remote main advanced during each focused merged validation. All source/tests and
+complete integrated histories remain committed locally; no force push, extra
+retry, deployment or current-remote runtime claim. The bounded task stops here.
+The last checked source is84b7719 plus documentation, with all three focused
+gates passing as recorded above. Final local commit and clean status are recorded
+in D1/status.md for recovery; no build, heavy lock or waiting loop remains owned.
