@@ -25,19 +25,19 @@ for (const [key,target] of Object.entries(targets)) test('browser cross compiler
   const repeat = compiler.compile(source, options);
   assert.equal(repeat.status, 'compiled', repeat.error);
   assert.deepEqual(repeat.binary ?? repeat.wasm, output, 'same-input repeat emission/linking must be reproducible');
-  const object = compiler.compile('export fn answer(): i32 { return 42; }', {target:target.triple,library:true});
+  const object = compiler.compile('import foundation; export fn answer(): i32 { return 42; }', {target:target.triple,library:true});
   assert.equal(object.status, 'compiled', object.error); assert.equal(object.format,'object');
   assert.doesNotMatch(object.before, /define .*@tower_main/);
-  const program = compiler.compile('extern fn answer(): i32; var x: i32 = answer(); print(x);', {...options,inputs:{...inputs,'answer.o':object.object}});
+  const program = compiler.compile('import foundation; extern fn answer(): i32; var x: i32 = answer(); print(x);', {...options,inputs:{...inputs,'answer.o':object.object}});
   assert.equal(program.status,'compiled',program.error);
   if (key === 'wasm') assert.equal((await executeWasm(program)).output,'42\n');
   await writeFile(new URL(`../../build/cross/library-${key}.${target.extension}`,import.meta.url),program.binary ?? program.wasm);
 });
 
 test('native linker errors are recoverable and unknown targets are diagnosed', {skip:!compiler}, () => {
-  const bad = compiler.compile('print(42);', {target:targets.linux.triple,emit:'executable'});
+  const bad = compiler.compile('import foundation; print(42);', {target:targets.linux.triple,emit:'executable'});
   assert.equal(bad.status,'error'); assert.match(bad.error,/Link failed/);
-  assert.equal(compiler.compile('print(42);').status,'compiled');
-  const unknown = compiler.compile('print(42);', {target:'unknown-unknown-unknown',emit:'object'});
+  assert.equal(compiler.compile('import foundation; print(42);').status,'compiled');
+  const unknown = compiler.compile('import foundation; print(42);', {target:'unknown-unknown-unknown',emit:'object'});
   assert.equal(unknown.status,'error'); assert.match(unknown.error,/target/i);
 });
