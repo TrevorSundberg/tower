@@ -31,8 +31,7 @@ struct SemanticIterationResolution {
     function: void*;
     types: vector(FoundationType);
     order: vector(FoundationType);
-    allocations: vector(void*);
-    lists: vector(void*);
+    scratch: SemanticScratch;
     query_reads: vector(usize);
     error: vector(u8);
     error_offset: usize;
@@ -46,6 +45,7 @@ fn sem_iteration_resolution_check(c: SemanticContext*, result: SemanticIteration
     var source = owner.initialization.value;
     if result.role == IterationRole.Begin && !sem_iteration_plan(c, use, source, plan) { return; }
     var name = sem_cat(c, plan.prefix, sem_iteration_suffix(result.role));
+    if !sem_ok(c) { return; }
     result.definition = sem_owned(c.templates, plan.module, name);
     result.function = sem_owned(c.functions, plan.module, name);
     if result.definition != null {
@@ -60,16 +60,21 @@ fn sem_iteration_resolution_check(c: SemanticContext*, result: SemanticIteration
         }
         var actual: vector(FoundationType*) = default;
         defer vector_dispose(&actual);
-        sem_require(vector_push(&actual, &sem_get(source).type));
-        sem_require(vector_push(&actual, null));
+        if !vector_push(&actual, &sem_get(source).type) || !vector_push(&actual, null) {
+            sem_scratch_error(c, use, WorkBudgetError.Memory); return;
+        }
         var order = sem_list(c);
+        if !sem_ok(c) { return; }
         var types = sem_infer_typed(c, result.definition, use, &actual, order);
         if !sem_ok(c) { return; }
+        if !vector_reserve(&result.types, types.length) || !vector_reserve(&result.order, order.length) {
+            sem_scratch_error(c, use, WorkBudgetError.Memory); return;
+        }
         foreach(var type in types) {
-            sem_require(vector_push(&result.types, *bits(FoundationType*, type)));
+            result.types.data[result.types.length++] = *bits(FoundationType*, type);
         }
         foreach(var type in order) {
-            sem_require(vector_push(&result.order, *bits(FoundationType*, type)));
+            result.order.data[result.order.length++] = *bits(FoundationType*, type);
         }
     } else {
         if result.function == null {
@@ -85,8 +90,7 @@ fn semantic_iteration_kernel(result: SemanticIterationResolution*): void {
     context.program = &program;
     context.editor = null;
     context.query_reads = &result.query_reads;
-    context.allocations = default;
-    context.lists = default;
+    sem_scratch_private(&context, result.context);
     context.token_text = default;
     context.scan = default;
     program.error = default;
@@ -97,18 +101,13 @@ fn semantic_iteration_kernel(result: SemanticIterationResolution*): void {
     result.error = program.error;
     result.error_offset = program.error_offset;
     result.resource = program.resource;
-    result.allocations = context.allocations;
-    result.lists = context.lists;
-    stack_dispose(&context.scan);
-    vector_dispose(&context.token_text);
+    result.scratch = context.scratch;
+    sem_scan_dispose(&context);
 }
 
 fn sem_iteration_resolution_publish(c: SemanticContext*, result: SemanticIterationResolution*): void {
     var owner = result.owner;
-    foreach(var allocation in &result.allocations) { sem_push(&c.allocations, allocation); }
-    foreach(var list in &result.lists) { sem_push(&c.lists, list); }
-    vector_dispose(&result.allocations);
-    vector_dispose(&result.lists);
+    sem_scratch_append(c, &result.scratch);
     if result.resource.error != WorkBudgetError.None || result.error.length != 0 || !sem_ok(c) {
         if !sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset) {
             sem_restore_error(c, &result.error, result.error_offset);
@@ -128,12 +127,13 @@ fn sem_iteration_resolution_publish(c: SemanticContext*, result: SemanticIterati
                 if sem_type_entity(c, type, owner.expression_header) == null { break; }
             }
             var arguments = sem_list(c);
-            foreach(var &type in &result.types) {
+            // Failure is settled below before retiring this resolution.
+            if sem_ok(c) { foreach(var &type in &result.types) {
                 var entity = sem_type_entity(c, type, owner.expression_header);
                 if entity == null { break; }
-                sem_push(arguments, entity);
+                sem_push_checked(c, arguments, entity);
             }
-            if sem_ok(c) { result.function = sem_prepare_signature(c, result.definition, owner.expression_header, arguments); }
+            } if sem_ok(c) { result.function = sem_prepare_signature(c, result.definition, owner.expression_header, arguments); }
         }
         if sem_ok(c) { *sem_iteration_slot(&owner.iteration_plan, result.role) = result.function; }
         c.query_reads = reads;

@@ -42,6 +42,7 @@ fn sem_infer_parameter(inference: SemanticCallInference*, annotation: void*): us
         return sem_maximum();
     }
     var spelling = sem_identifier(c, name);
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < inference.parameters.length; i++) {
         if generic_type_parameter(c.generics, inference.definition, i) &&
         sem_equal(spelling, sem_identifier(c, sem_member(inference.parameters.data[i], "name"))) {
@@ -56,6 +57,7 @@ fn sem_infer_bind(inference: SemanticCallInference*, index: usize, actual: Found
     var old = inference.bindings.data[index];
     if old != null && !semantic_type_equal(bits(FoundationType*, old), actual) {
         var name = sem_identifier(c, sem_member(inference.parameters.data[index], "name"));
+        if !sem_ok(c) { return; }
         sem_fail(c, inference.use, sem_cat(c, "Conflicting inferred types for '", sem_cat(c, name, "'")));
         return;
     }
@@ -66,8 +68,9 @@ fn sem_infer_bind(inference: SemanticCallInference*, index: usize, actual: Found
         inference.bindings.data[index] = bits(void*, &sem_get(type).type);
     } else {
         var type = bits(void*, sem_type_copy(c, actual));
+        if !sem_ok(c) { return; }
         inference.bindings.data[index] = type;
-        sem_push(inference.order, type);
+        if !sem_push_checked(c, inference.order, type) { return; }
     }
 }
 
@@ -91,6 +94,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         var left = sem_member(annotation, "left");
         if left != null && sem_equal(sem_surface_operator(c, annotation, left), "*") {
             var tail = sem_tokens(c, sem_member(annotation, "right"));
+            if !sem_ok(c) { return; }
             var count: u32 = 1;
             for(var i: usize = 0; tail[i] != 0; i++) {
                 if tail[i] != 42 {
@@ -100,6 +104,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
             }
             if actual.pointers >= count {
                 var pointee = sem_type_copy(c, actual);
+                if !sem_ok(c) { return; }
                 pointee.pointers -= count;
                 sem_infer_match(inference, left, pointee, substitutions, depth + 1);
             }
@@ -119,6 +124,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         } else {
             if actual.pointers != 0 {
                 var pointee = sem_type_copy(c, actual);
+                if !sem_ok(c) { return; }
                 pointee.pointers--;
                 sem_infer_match(inference, base, pointee, substitutions, depth + 1);
             }
@@ -143,6 +149,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         if definition == null && sem_equal(sem_identifier(c, name), "function") {
             if actual.scalar != SFunction || actual.pointers != 0 { return; }
             var arguments = sem_collect(c, arguments_node, sem_is(annotation, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+            if !sem_ok(c) { return; }
             var signature = sem_get(actual.record);
             if arguments.length != signature.parameters.length + 1 { return; }
             sem_infer_match(inference, arguments.data[0], &signature.element, substitutions, depth + 1);
@@ -159,7 +166,9 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
             label = "CoreCallArgument";
         }
         var arguments = sem_collect(c, arguments_node, label);
+        if !sem_ok(c) { return; }
         var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+        if !sem_ok(c) { return; }
         if arguments.length != parameters.length {
             return;
         }
@@ -176,6 +185,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
             var bindings: GenericBinding* = null;
             for(var i: usize = 0; i < parameters.length; i++) {
                 var binding = bits(GenericBinding*, sem_allocate(c, sizeof(GenericBinding)));
+                if !sem_ok(c) { return; }
                 binding.parameter = parameters.data[i];
                 binding.argument = arguments.data[i];
                 binding.bindings = substitutions;
@@ -210,6 +220,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         name = annotation;
     }
     var spelling = sem_identifier(c, name);
+    if !sem_ok(c) { return; }
     var binding = substitutions;
     while binding != null {
         if sem_equal(spelling, sem_identifier(c, sem_member(binding.parameter, "name"))) {
@@ -229,6 +240,7 @@ fn sem_infer_contextual(c: SemanticContext*, argument: void*): bool {
         return false;
     }
     var text = sem_tokens(c, sem_surface_unwrap(argument));
+    if !sem_ok(c) { return default; }
     // bool/string have intrinsic types; integer literals and null use peers.
     return !sem_equal(text, "true") && !sem_equal(text, "false") && text[0] != 34 && text[0] != 39;
 }
@@ -237,9 +249,11 @@ fn sem_infer_contextual(c: SemanticContext*, argument: void*): bool {
 // callers intern immediately; workers publish constraints for coordinator interning.
 fn sem_infer_begin(c: SemanticContext*, definition: void*, use: void*, intern: bool, order: vector(void*)*): SemanticCallInference {
     var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+    if !sem_ok(c) { return default; }
     var bindings = sem_list(c);
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < parameters.length; i++) {
-        sem_push(bindings, null);
+        if !sem_push_checked(c, bindings, null) { return default; }
     }
     return init(SemanticCallInference) {
         context: c, definition: definition, use: use, parameters: parameters,
@@ -250,14 +264,16 @@ fn sem_infer_begin(c: SemanticContext*, definition: void*, use: void*, intern: b
 fn sem_infer_finish(inference: SemanticCallInference*): vector(void*)* {
     var c = inference.context;
     var result = sem_list(c);
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < inference.parameters.length && sem_ok(c); i++) {
         if generic_type_parameter(c.generics, inference.definition, i) {
             if inference.bindings.data[i] == null {
                 var name = sem_identifier(c, sem_member(inference.parameters.data[i], "name"));
+                if !sem_ok(c) { return default; }
                 sem_fail(c, inference.use, sem_cat(c, "Cannot infer type argument '", sem_cat(c, name, "'; pass explicit type arguments")));
                 break;
             }
-            sem_push(result, inference.bindings.data[i]);
+            sem_push_checked(c, result, inference.bindings.data[i]);
         }
     }
     return result;
@@ -268,6 +284,7 @@ fn sem_infer_finish(inference: SemanticCallInference*): vector(void*)* {
 // Null entries provide no constraint, just like an omitted iterator-state value.
 fn sem_infer_typed(c: SemanticContext*, definition: void*, use: void*, actual: vector(FoundationType*)*, order: vector(void*)*): vector(void*)* {
     var inference = sem_infer_begin(c, definition, use, false, order);
+    if !sem_ok(c) { return null; }
     var index: usize = 0;
     for(var i: usize = 0; i < inference.parameters.length && sem_ok(c); i++) {
         if generic_type_parameter(c.generics, definition, i) { continue; }
@@ -281,6 +298,7 @@ fn sem_infer_typed(c: SemanticContext*, definition: void*, use: void*, actual: v
 
 fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*, intern: bool, order: vector(void*)*): vector(void*)* {
     var inference = sem_infer_begin(c, definition, use, intern, order);
+    if !sem_ok(c) { return null; }
     var parameters = inference.parameters;
     var bindings = inference.bindings;
     // Analyze typed arguments first, without evaluating runtime code. The call's
@@ -331,11 +349,12 @@ fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: v
 fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*): vector(void*)* {
     var types = sem_infer_types(c, definition, use, values, true, null);
     var result = sem_list(c);
+    if !sem_ok(c) { return default; }
     if sem_ok(c) {
         foreach(var type in types) {
             var entity = sem_type_entity(c, bits(FoundationType*, type), use);
             if entity == null { break; }
-            sem_push(result, entity);
+            if !sem_push_checked(c, result, entity) { return default; }
         }
     }
     return result;

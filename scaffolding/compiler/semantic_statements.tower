@@ -39,15 +39,16 @@ fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
     if name[0] == 0 {
         var step15 = sem_member(n, "name");
         name = sem_identifier(c, step15);
+        if !sem_ok(c) { return; }
     }
     var published = external;
     if sem_is(n, "CoreExport") {
         published = true;
     }
     if published {
-        sem_set_name(function_node, name);
+        if !sem_set_name(c, function_node, name) { return; }
     } else {
-        sem_set_name(function_node, sem_output_name(c, n, name));
+        if !sem_set_name(c, function_node, sem_output_name(c, n, name)) { return; }
     }
     var step26 = name[0] == 0;
     if !step26 {
@@ -67,13 +68,15 @@ fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
     }
     if step26 {
         var step36 = sem_cat(c, "Missing or duplicate function '", name);
+        if !sem_ok(c) { return; }
         var step37 = sem_cat(c, step36, "'");
+        if !sem_ok(c) { return; }
         sem_fail(c, n, step37);
         return;
     }
     function_node.index = c.program.functions.length;
     sem_define(c, c.functions, n, name);
-    sem_push(&c.program.functions, n);
+    if !sem_push_checked(c, &c.program.functions, n) { return; }
     function_node.external = external;
     function_node.exported = sem_is(n, "CoreExport");
 }
@@ -86,8 +89,10 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         return state.scope;
     }
     state.scope = sem_scope(c, null);
+    if !sem_ok(c) { return default; }
     var function_node = sem_get(n);
     var params = sem_collect(c, sem_member(n, "params"), "CoreParameter");
+    if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < params.length && sem_ok(c); ++i) {
         if definition != null && generic_type_parameter(c.generics, definition, i) {
             continue;
@@ -98,13 +103,14 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         }
         var param = sem_node(c, p, KParameter);
         var name = sem_identifier(c, sem_member(p, "name"));
-        sem_set_name(param, name);
+        if !sem_ok(c) { return default; }
+        if !sem_set_name(c, param, name) { return default; }
         if name[0] == 0 || !sem_put(c, state.scope.names, name, p) {
             sem_fail(c, p, "Invalid or duplicate function parameter");
             break;
         }
         sem_declaration_state(c, p).scope = state.scope;
-        sem_push(&function_node.parameters, p);
+        if !sem_push_checked(c, &function_node.parameters, p) { return default; }
     }
     if function_node.parameters.length > FoundationParameterLimit {
         sem_fail(c, n, "Foundation parameter limit is 64");
@@ -201,9 +207,11 @@ fn sem_foreign_signatures(c: SemanticContext*): void {
 
 fn sem_scope(c: SemanticContext*, parent: SemanticScope*): SemanticScope* {
     var step2 = sem_allocate(c, sizeof(SemanticScope));
+    if !sem_ok(c) { return default; }
     var scope: SemanticScope* = bits(SemanticScope*, step2);
     scope.parent = parent;
     var step4 = sem_table(c);
+    if !sem_ok(c) { return default; }
     scope.names = step4;
     return scope;
 }
@@ -231,7 +239,7 @@ fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(v
     for(; i < scope.names.capacity; i++) {
         var entry: SemanticEntry* = scope.names.entries[i];
         if entry != null && entry.value != null {
-            sem_push(locals, entry.value);
+            if !sem_push_checked(c, locals, entry.value) { return; }
         }
     }
     i = 1;
@@ -262,6 +270,7 @@ fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
         var call = sem_surface_unwrap(sem_member(statement, "value"));
         if sem_is(call, "CoreCall") {
             var spelling = sem_identifier(c, sem_member(call, "name"));
+            if !sem_ok(c) { return default; }
             if sem_equal(spelling, name) {
                 return call;
             }
@@ -271,6 +280,7 @@ fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
         var call = sem_member(statement, "call");
         var identifier = sem_member(call, "name");
         var spelling = sem_identifier(c, identifier);
+        if !sem_ok(c) { return default; }
         if sem_equal(spelling, name) {
             return call;
         }
@@ -280,15 +290,19 @@ fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
 
 fn sem_label_name(c: SemanticContext*, call: void*): u8* {
     var arguments = sem_collect(c, sem_member(call, "args"), "CoreCallArgument");
+    if !sem_ok(c) { return default; }
     var one = arguments.length == 1;
     if one {
         var argument = arguments.data[0];
         var names = sem_collect(c, argument, "CoreLocation");
+        if !sem_ok(c) { return default; }
         one = names.length == 1;
         if one {
             var whole = sem_tokens(c, argument);
+            if !sem_ok(c) { return default; }
             var identifier = sem_member(names.data[0], "name");
             var name = sem_tokens(c, identifier);
+            if !sem_ok(c) { return default; }
             if sem_equal(whole, name) {
                 return sem_identifier(c, identifier);
             }
@@ -300,6 +314,7 @@ fn sem_label_name(c: SemanticContext*, call: void*): u8* {
 
 fn sem_labels(c: SemanticContext*, body: void*): void {
     c.labels = sem_table(c);
+    if !sem_ok(c) { return; }
     var index: usize = 0;
     var i: usize = 0;
     loop {
@@ -313,7 +328,7 @@ fn sem_labels(c: SemanticContext*, body: void*): void {
             if call != null {
                 var label = sem_node(c, call, KLabel);
                 var name = sem_label_name(c, call);
-                sem_set_name(label, name);
+                if !sem_set_name(c, label, name) { return; }
                 label.body = body;
                 label.index = index;
                 if !sem_put(c, c.labels, name, call) {
@@ -349,6 +364,7 @@ fn sem_block_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticBl
     }
     sem_node(c, n, KBlock);
     c.scope = sem_scope(c, c.scope);
+    if !sem_ok(c) { return default; }
     return true;
 }
 
@@ -364,7 +380,7 @@ fn sem_block_accept(c: SemanticContext*, cursor: SemanticBlockCursor*, at: void*
     if control != null {
         at = control;
     }
-    sem_push(&sem_get(cursor.subject).items, at);
+    sem_push_checked(c, &sem_get(cursor.subject).items, at);
     if(cursor.flow &FlowNext) != 0 {
         cursor.flow =(cursor.flow & ~FlowNext) | next;
     }
@@ -428,6 +444,7 @@ fn sem_if_begin_value(c: SemanticContext*, n: void*, condition: void*): bool {
     }
     var value = sem_node(c, n, KIf);
     value.value = condition ?? sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
+    if !sem_ok(c) { return default; }
     value.body = sem_member(n, "body");
     value.otherwise = sem_member(n, "otherwise");
     return true;
@@ -452,7 +469,8 @@ fn sem_declaration_bind(c: SemanticContext*, n: void*): bool {
     if !sem_shape(c, n, "name") { return false; }
     var value = sem_node(c, n, KDeclare);
     var name = sem_identifier(c, sem_member(n, "name"));
-    if !value.global { sem_set_name(value, name); }
+    if !sem_ok(c) { return default; }
+    if !value.global { sem_set_name(c, value, name); }
     if name[0] == 0 || !value.global && sem_lookup_table(c.scope.names, name) != null {
         sem_fail(c, n, sem_cat(c, "Missing or duplicate local '", sem_cat(c, name, "'")));
         return false;
@@ -515,6 +533,7 @@ fn sem_call_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
 fn sem_return_source(c: SemanticContext*, n: void*): void* {
     var returned = sem_member(n, "value");
     var present = sem_length(sem_tokens(c, returned)) != 0;
+    if !sem_ok(c) { return default; }
     var function = sem_get(c.current);
     if function.type.pointers == 0 && function.type.scalar == SVoid {
         if present { sem_fail(c, n, "A void function cannot return a value"); }
@@ -525,6 +544,7 @@ fn sem_return_source(c: SemanticContext*, n: void*): void* {
         return null;
     }
     var operands = sem_collect(c, returned, "CoreOperand");
+    if !sem_ok(c) { return default; }
     if operands.length != 1 {
         sem_fail(c, n, "A return value must contain one Foundation operand");
         return null;
@@ -549,6 +569,7 @@ fn sem_assignment_target(c: SemanticContext*, n: void*): void* {
     value.target = sem_location(c, sem_member(target, "name"), 0);
     if !sem_ok(c) { return null; }
     var expected_type = sem_type_copy(c, &sem_get(value.target).type);
+    if !sem_ok(c) { return default; }
     if sem_equal(sem_tokens(c, sem_child(target, 0)), "*") {
         var destination = sem_node(c, target, KLoad);
         destination.value = value.target;
@@ -586,7 +607,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     if jump_call != null {
         var value = sem_node(c, jump_call, KJump);
         var name = sem_label_name(c, jump_call);
-        sem_set_name(value, name);
+        if !sem_set_name(c, value, name) { return default; }
         var labels = c.labels != null;
         if labels {
             value.binding = sem_lookup_table(c.labels, name);
@@ -684,6 +705,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                                             return result;
                                         } else {
                                             var step112 = sem_cat(c, "No execution semantics for '", kind);
+                                            if !sem_ok(c) { return default; }
                                             sem_fail(c, n, sem_cat(c, step112, "'; replace it with a foundation operation"));
                                         }
                                     }
@@ -712,6 +734,7 @@ fn sem_function_begin(c: SemanticContext*, n: void*, cursor: SemanticBlockCursor
         return false;
     }
     c.scope = sem_scope(c, null);
+    if !sem_ok(c) { return default; }
     c.loops = 0;
     c.flow_dependencies.length = 0;
     foreach(var parameter in &function_node.parameters) {
@@ -750,7 +773,9 @@ fn sem_run(c: SemanticContext*): void {
         var name: void* = sem_member(n, "name");
         if name != null {
             var step6 = sem_identifier(c, name);
+            if !sem_ok(c) { return; }
             var entry = sem_entry(c, c.source_names, step6, null);
+            if !sem_ok(c) { return; }
             if entry.value != null {
                 if sem_owner(c, entry.value) != sem_owner(c, n) {
                     entry.number = 1;
@@ -804,10 +829,13 @@ fn sem_run(c: SemanticContext*): void {
             value.global = true;
             var step42 = sem_member(n, "name");
             var name: u8* = sem_identifier(c, step42);
-            sem_set_name(value, sem_output_name(c, n, name));
+            if !sem_ok(c) { return; }
+            if !sem_set_name(c, value, sem_output_name(c, n, name)) { return; }
             if !sem_define(c, c.globals, n, name) {
                 var step46 = sem_cat(c, "Duplicate module variable '", name);
+                if !sem_ok(c) { return; }
                 var step47 = sem_cat(c, step46, "'");
+                if !sem_ok(c) { return; }
                 sem_fail(c, n, step47);
                 break;
             }

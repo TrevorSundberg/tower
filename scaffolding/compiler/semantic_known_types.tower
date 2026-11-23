@@ -56,4 +56,5 @@ struct SemanticKnownWork {
     // for source-ordered failure selection after all readers have joined.
     scratch: WorkArena;
     resource_error: WorkBudgetError;
+    resource_offset: usize;
 }

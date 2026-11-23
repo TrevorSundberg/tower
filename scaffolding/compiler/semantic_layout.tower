@@ -120,6 +120,7 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
     var subject = task.subject;
     var cycle: vector(usize);
     vector_init(&cycle);
+    defer vector_dispose(&cycle);
     var found = work_cycle(graph, root, &cycle);
     sem_require(work_ok(graph));
     var chain: u8* = "";
@@ -128,9 +129,9 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
         task = work_task(graph, cycle.data[index]);
         if index != 0 { chain = sem_cat(c, chain, " -> "); }
         chain = sem_cat(c, chain, sem_name(sem_get(task.subject)));
+        if !sem_ok(c) { return; }
         index++;
     }
-    vector_dispose(&cycle);
     sem_fail(c, subject, sem_cat(c, "Recursive by-value layout: ", sem_cat(c, chain, "; use a pointer")));
 }
 

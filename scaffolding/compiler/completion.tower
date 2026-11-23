@@ -390,6 +390,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     i = 0;
     for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);
+        if entry == null { completion_semantic_failed(q); c.editor = null; return; }
         entry.number = q.bases.data[i];
     }
     sem_run(c);
