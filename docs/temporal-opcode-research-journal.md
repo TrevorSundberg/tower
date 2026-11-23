@@ -60339,3 +60339,26 @@ constructor/dispatch draft. D1 was told the22 publication cases are split
 between18-case semantic_publish_tests and4-case semantic_publish_cancellation_tests;
 one call to only the former would omit cancellation. No generic harness edit,
 new provider or publication request was made.
+
+Primary-source refresh for the storage/dispatch audit (2026-11-23): Flecs
+[systems and staging](https://www.flecs.dev/flecs/Systems.html) distinguishes
+deferred structural commands from direct component writes, and derives required
+merge points from declared access. Applied here as a design principle: pins
+retain lifetime, while semantic leases and query accesses protect actual writes;
+joins alone do not publish structural ownership. Current whole-wave barriers
+remain justified until mixed phase access/publication is explicitly supported.
+
+Flecs [component traits](https://www.flecs.dev/flecs/ComponentTraits.html) separates
+sparse stable-address storage from table fragmentation policy. Applied to Tower:
+stable SemanticEntry/work payloads and dense pointer/query indexes satisfy
+different requirements; neither a dense handle array nor the new WorkGraph
+borrowed view proves packed Foundation payloads or reduced fragmentation.
+
+Unity's [Burst aliasing documentation](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+shows why overlap assumptions can change loop results. The semantic context copy
+intentionally aliases frozen graph/component storage; distinct view types do not
+imply disjoint memory. No noalias annotation or vectorization guarantee follows
+from these patches or passing stress tests. These are interpreted design
+principles, not adoption of another implementation language or borrowed
+performance claims. This documentation review changes no runtime and needs no
+new performance sample.
