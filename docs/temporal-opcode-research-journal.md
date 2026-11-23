@@ -90892,3 +90892,13 @@ hashes still match. They are not baked into the frozen eac reactor. Corrected th
 source citation to sem_type_call; no diagnostic/assertion changes or repeated
 passing executions. Retain45 new passes,1 adopted pass,3 failures and explicit
 unstarted modes; normal source push follows, no deployment claim.
+
+B1 generation publication reconciliation: complete-history merge 77d01e1f1b642d01252c87655857b52cd3f8d3ff
+preserves published45db5aa9 after required ff-only pull refused divergence.
+Incoming semantic_type_values integer-argument/numeric changes and their tests/
+browser receipts are intentionally outside the48db0f27 candidate. No regenerated
+manifest, package or reclassified generation check. Our exact policy/fixture,
+library/language and public predecessor inputs are unchanged; the focused
+fixture and all9 frozen nm closures pass again on merged policy. Source snapshot,
+allbuilds, archives and hashes retain their original measured boundary. No
+unnecessary second generation/matrix; ROOT must choose later-source adoption.

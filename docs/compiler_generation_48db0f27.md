@@ -148,3 +148,11 @@ reports, verification and control evidence. No private binary enters tracked
 sources. ROOT owns public-pin adoption and atomic final composition/deployment;
 later-source, browser, sanitizer, standalone and unresolved semantic gates retain
 their separate owners and acceptance boundaries.
+
+Publication reconciliation preserves complete incoming `45db5aa9` history.
+Its `semantic_type_values.tower` integer-argument/numeric fix and accompanying
+fixtures/browser changes are outside the frozen 48db0f27 candidate, as requested.
+The policy/fixture, language/library and public predecessor inputs are unchanged;
+the focused fixture and all nine frozen nm closures pass on the merged policy.
+No generation or provenance was relabeled to the later source. ROOT owns adopting
+and validating that later composition separately.
