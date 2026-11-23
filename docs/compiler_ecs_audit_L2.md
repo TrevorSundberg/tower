@@ -910,3 +910,23 @@ copy and zero-ledger controls remain. Later L1 cache ABI, current sanitizers and
 publication are outside this receipt. Fixed-path21641 supplies the stronger d65
 CLI comparison: wall medians differ by at most0.02s and RSS by under100KiB; it
 does not establish a broad speedup or validate later merged runtime changes.
+
+Current scratch follow-up review at41601 plus owned draft: the executor finishes
+all batch growth before exposing its pointer span to compiler_kernel_dispatch.
+Only component addresses reach kernels; the derived batch is private and remains
+live through joins, stage retirement, graph cancellation and disposal. The source
+window revisitation checks only still-pending demanded bodies, so successful
+copies are skipped and failed requests retain source order. An empty source
+request set skips that second traversal. generic_body_complete only updates its
+instance/body receipt and copied-node count; it does not mutate the function
+array or demand components. Shared declarations/layouts remain unchanged.
+The first scratch semantic compile failed for the missing direct declaration
+import, and its receipt is retained. With work_vector_types imported explicitly,
+99552 passes public semantic compile, coherent relinks and query-smoke, including
+both target widths' new exact scratch denial/empty-ready controls and existing
+publication, clone overlap/cancel and type receipts. No retained selected grant
+survives failure/teardown. Before84484 failed at the unchanged new contract.
+The complete before/after packages and source hashes are immutable; matched cost
+and current instrumentation remain pending. Structural node/metadata accounting
+still requires shared result APIs and coordinated callers, separately from this
+accepted local scratch behavior.

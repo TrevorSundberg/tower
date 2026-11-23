@@ -72603,6 +72603,100 @@ complete ROOT76 runtime Capacity history arrived during the native freeze, so
 preserve/commit this native evidence before merging it, then instrument the next
 coherent union instead of rebuilding an already-obsolete instrumented closure.
 This is not final code acceptance, clean bootstrap/browser/generation or release.
+### Root302 pool integration and CLI installation-path control
+
+After all L2 frozen jobs drained, complete ROOT351 then ROOT302 histories merged
+at6d253 and edde50b8080f9e7c5e57285ae3a3e403d546ebc8 respectively. Both merges
+preserve991/d65 and all owner histories. Renewed Git connectivity-only checks
+pass after repeated transient fetch pack-index warnings; no cleanup/discard was
+used. The changed world/pool contracts are not validated by prior52036 binaries.
+
+ROOT explicitly assigned the owned publication fixture's production pool entry
+follow-up. It now calls A1's actual sem_workers_open, checks that retained slot
+storage belongs to the fixture world budget, derives byte extent from actual
+count*sizeof(WorkSlot), verifies charged physical bytes and no lane grant, and
+lets sem_context_dispose perform its real pool close. All copied-work, Busy,
+publication, stale-failure and zero-final-ledger assertions remain. Public compile
+and current union runtime evidence are pending. No production implementation is
+copied into the fixture.
+
+L1's independent control observes materially different costs for the SAME binary
+at different installation paths. Explicit Foundation selects the primary module
+base; executable-derived fallback paths are still constructed/allocated. This is a real
+attribution limit for L2's differently located CLI comparisons, including26993:
+the raw observed numbers remain valid for those installations, but isolated code
+cost is unproved. Do not erase the slower samples or claim the explicit grammar
+paths alone removed this confound. Prepare a control with both immutable variants
+copied outside timing to ONE fixed executable and resource path, no child alive
+while replacing it, and checked input/output hashes. Preserve the existing52036
+binary/resource package before rebuilding the now-changed live cache. No such
+control has yet run; L1 currently owns quiet measurements.
+
+### Fixed-installation control21641 for typed publication
+
+The complete52036 after package was verified against recorded binary hashes and
+saved before any newer cache build at /root/.cache/tower/l2_generic_stage_after_52036.
+Its builtin resources are byte-identical to beforeeec. Both immutable compilers
+then execute at ONE actual path, /root/.cache/tower/l2_generic_stage_profile_fixed/towerc,
+with that same directory's resource root and identical workload paths. Every copy
+and byte/hash check occurs outside timing, after the previous child has exited.
+This addresses executable-derived fallback/path allocation without asserting that
+explicit Foundation previously selected different primary imports.
+
+Dedicated09:48:29-09:49:15UTC, same host/glibc/default allocator, ordinary graph
+interpretation and jobs1/4; one warmup discarded and three alternating pairs per
+case. All32 processes/independent output oracles pass. Before package, after
+package, staging resource and input hashes all pass. No source in the newly
+merged current checkout participates in this frozen d65 comparison.
+
+| Workload / jobs | Median wall before -> after, s | Median CPU before -> after, s | Median RSS before -> after, KiB |
+| --- | --- | --- | --- |
+| Constructor /1 |1.51 ->1.52|1.50 ->1.52|179848 ->179932|
+| Constructor /4 |1.27 ->1.29|1.57 ->1.58|198744 ->198700|
+| Generic /1 |1.56 ->1.55|1.55 ->1.52|184832 ->184896|
+| Generic /4 |1.30 ->1.31|1.62 ->1.63|206328 ->206328|
+
+This stronger control does not reproduce26993's generic one-worker median
+increase. Wall differences are within0.02s and median RSS differences under100KiB
+in these samples. It does not prove all earlier variation came from installation
+path, establish a broad speedup, or validate the later ROOT world/pool/reuse
+union. Retain both runs and their scopes. No further identical rerun is planned.
+The earlier f035 editor RSS observation remains a separate workload/ABI comparison;
+this narrow CLI control does not erase it.
+
+Fixed-control raw receipt L2_typed_publication_fixed_receipt.tgz contains121 files,
+15922 bytes, SHA2569a0e52f5921c4bd6f880fce352d82e449d09092f717f69a6c648d209710593e8.
+The previous raw170-file receipt and complete991 source history remain retained.
+
+### Production semantic-pool fixture30558 on ROOT9d73
+
+Complete ROOT9d73/A2 reuse history merged atbecff6fba41b4fcdb806881dcb2422a23350a50a.
+Owned three-path draft379e3eaf restored once with no conflicts. After the incoming
+journal repair, one remaining raw0x97 belonged to MY earlier L2 convergence
+heading; it was changed to an ASCII separator, with original bytes/context saved.
+My question-mark arrow substitutions in the measurement tables were also restored
+to ASCII -> without changing values. Use explicit UTF8 appends. Current journal
+passes strict UTF8 and git diff --check. This is documentation encoding repair,
+not runtime evidence, and preserves unrelated history.
+
+Actual30558 process0/source0: the changed fixture public leaf passes4.83s wall,
+3.96s CPU,216864KiB RSS; coherent15-step native compiler/LR-j2 passes77.11s wall,
+118.35s CPU,747664KiB; query-smoke passes0.20s wall,0.23s CPU,74604KiB. Compiler
+SHA2568318e3872a07107745134ad1549e27996fcc560b23ebc50276b38ea8d99e1bd3;
+LR SHA256c0e9d8854bb5a71aac347cbb499c5e91585602b21f2bc741eb2b085ff8b9aec2.
+The fixture now proves the actual sem_workers_open slot allocation belongs to
+its world budget, derives extent from real count/type, and reaches real context
+teardown without manually closing the pool. All original completed-copy, Busy,
+no-publication, sticky-failure and zero-final-owner checks pass at widths4/8.
+Existing query/overlap/cancellation oracles also pass. These validation costs do
+not isolate the performance of this test-only change from the merged ABI work.
+The d65 production change retains its separate fixed-path comparison21641.
+
+All jobs drained and the host reservation was released before further edits.
+L1's newly delivered full64c15 cache union is not in these binaries; its changed
+IMState requires a coherent affected rebuild. Current instrumentation, late
+inspection and final clean/public/bootstrap/browser/publication remain open.
+The separate B1/A1 finite-capacity producer failure is not closed by query-smoke.
 ### L1 coherent source union after cache attribution closure (2026-11-23)
 
 Merged complete ROOT9d73da0b history (verified sole60741 prerequisite, bundle
@@ -72765,58 +72859,73 @@ The former Capacity blocker is fixed in this source; final joined verification,
 remaining ownership/dependency work and publication still remain open. todo.txt
 is untouched. Original bundle lookup used the parent directory and failed; its
 actual B1 subdirectory transfer and complete hash verification succeeded.
-### Root302 pool integration and CLI installation-path control
 
-After all L2 frozen jobs drained, complete ROOT351 then ROOT302 histories merged
-at6d253 and edde50b8080f9e7c5e57285ae3a3e403d546ebc8 respectively. Both merges
-preserve991/d65 and all owner histories. Renewed Git connectivity-only checks
-pass after repeated transient fetch pack-index warnings; no cleanup/discard was
-used. The changed world/pool contracts are not validated by prior52036 binaries.
+### L2 generic pump scratch ownership on complete ROOT76d (2026-11-23)
 
-ROOT explicitly assigned the owned publication fixture's production pool entry
-follow-up. It now calls A1's actual sem_workers_open, checks that retained slot
-storage belongs to the fixture world budget, derives byte extent from actual
-count*sizeof(WorkSlot), verifies charged physical bytes and no lane grant, and
-lets sem_context_dispose perform its real pool close. All copied-work, Busy,
-publication, stale-failure and zero-final-ledger assertions remain. Public compile
-and current union runtime evidence are pending. No production implementation is
-copied into the fixture.
+Merged the complete ROOT76d297c history into41601b93 after30558 drained and
+60fc53e committed. Verified full bundle4e5e70e9, clean postmerge pull and
+connectivity fsck. This includes L1's admitted node cache and B1's LR result
+classification. Earlier30558 evidence does not validate these changed layouts.
+The repeated bundle-fetch pack-index warnings remain recorded; connectivity
+verification returned0. No publication lease is held by L2.
 
-L1's independent control observes materially different costs for the SAME binary
-at different installation paths. Explicit Foundation selects the primary module
-base; executable-derived fallback paths are still constructed/allocated. This is a real
-attribution limit for L2's differently located CLI comparisons, including26993:
-the raw observed numbers remain valid for those installations, but isolated code
-cost is unproved. Do not erase the slower samples or claim the explicit grammar
-paths alone removed this confound. Prepare a control with both immutable variants
-copied outside timing to ONE fixed executable and resource path, no child alive
-while replacing it, and checked input/output hashes. Preserve the existing52036
-binary/resource package before rebuilding the now-changed live cache. No such
-control has yet run; L1 currently owns quiet measurements.
+Full review of semantic_generic_body_work found two ordinary pointer vectors
+outside the selected world ledger. Before porting, audited its sole caller in
+semantic_body_work and sem_body_needed: clone publication changes descendants,
+not the program function window or demand components. The first vector merely
+remembers that same stable window for ordered error selection, so it can be
+removed. The executor still needs its taken-ticket batch; that is the only
+vector migrated to shared work_vector with the root world's explicit budget.
+Per-call Capacity/Memory/Invalid results remain exact. The existing defer drains
+stages/worker grants before cancelling graph leases and disposing batch storage.
+No canonical AST/IR, scheduler, component layout or worker-local input changed.
 
-### Fixed-installation control21641 for typed publication
+The registered generic_pump_publication fixture now also exhausts the ledger
+AFTER actual semantic-pool and ready-query admission. It requires pre-dispatch
+Capacity, a taken matching ticket, no copied nodes or kernel storage error,
+unchanged entities/pending instance, sticky failure after allowance is returned,
+and zero owners at teardown. An empty-ready control requires no allocation or
+error. Both target widths are registered. The legacy binder deliberately limits
+this fixture to selected scratch/pool ownership, not physical entity metadata.
 
-The complete52036 after package was verified against recorded binary hashes and
-saved before any newer cache build at /root/.cache/tower/l2_generic_stage_after_52036.
-Its builtin resources are byte-identical to beforeeec. Both immutable compilers
-then execute at ONE actual path, /root/.cache/tower/l2_generic_stage_profile_fixed/towerc,
-with that same directory's resource root and identical workload paths. Every copy
-and byte/hash check occurs outside timing, after the previous child has exited.
-This addresses executable-derived fallback/path allocation without asserting that
-explicit Foundation previously selected different primary imports.
+BEFORE84484 used41601 plus ONLY that regression. Public fixture compile passed
+4.77s wall/3.90s CPU/218200KiB. The coherent13-step native build passed60.05s
+wall/93.10s CPU/747972KiB. Query-smoke then reached the exact new scratch-denial
+assertion and aborted with SIG6/process134, source manifest0: .29s wall/.04s CPU/
+50660KiB. Prior Busy/success and empty-ready width4 controls passed before it;
+width8 and later cases were unrun. The Windows wrapper returned1; the signaled
+inner status is authoritative, not time's trailing zero exit field.
 
-Dedicated09:48:29-09:49:15UTC, same host/glibc/default allocator, ordinary graph
-interpretation and jobs1/4; one warmup discarded and three alternating pairs per
-case. All32 processes/independent output oracles pass. Before package, after
-package, staging resource and input hashes all pass. No source in the newly
-merged current checkout participates in this frozen d65 comparison.
+Compiler dbaad6534778da889d105144e94176ea8b75f6926a65480856e44339c195cfde;
+LR5561e270d4d9f27dde821f3a87e28fa1f5b67d75d0f8bc178ef0d1e3c34c12d6.
+Immutable complete before package /root/.cache/tower/l2_generic_scratch_before_84484
+was copied and hash-verified after all children drained, before production edits.
+Scripts generic_scratch_before.sh/generic_scratch_before_snapshot.sh, source and
+package manifests and complete failure logs are retained in the L2 lane.
+The owned implementation is now applied but UNVALIDATED. Matched after gates,
+same-installation profiles and supported current instrumentation remain pending.
 
-| Workload / jobs | Median wall before -> after, s | Median CPU before -> after, s | Median RSS before -> after, KiB |
-| --- | --- | --- | --- |
-| Constructor /1 |1.51 ->1.52|1.50 ->1.52|179848 ->179932|
-| Constructor /4 |1.27 ->1.29|1.57 ->1.58|198744 ->198700|
-| Generic /1 |1.56 ->1.55|1.55 ->1.52|184832 ->184896|
-| Generic /4 |1.30 ->1.31|1.62 ->1.63|206328 ->206328|
+Separate structural creation remains open: A1 sem_create/sem_attach and owned
+constructor/type/generic component creation still contain fatal allocation
+boundaries. A2 entity_attach has unbudgeted child/name storage and only a boolean
+result. A2's new raw-node page proposal is not yet adopted; precise create/stage
+receipts and all-live-page ownership transfer must be preserved by coordinated
+callers. This local scratch migration does not claim complete structural charging.
+The first scratch AFTER31621 stopped at actual semantic-object compilation:
+semantic_generic_body_work146 reported Unknown type constructor work_vector.
+Tower requires the direct work_vector_types declaration import in addition to
+the method module. Cost18.44s wall/11.86s CPU/521000KiB; process1/source0. No
+relink or runtime ran. Added the missing import only after owned jobs drained;
+original logs remain unchanged and corrected retry writes separate receipts.
+Corrected AFTER99552 passes the actual semantic object using the published pin:
+29.70s wall/23.40s CPU/747744KiB. Two coherent relinks pass .86s/.18s/71488KiB;
+query-smoke passes .20s/.22s/74240KiB with source manifest0. The unchanged new
+empty/ready scratch cases now pass at widths4/8, together with Busy/success
+publication, type execution receipts and existing real clone overlap/cancel
+controls. Selected retained bytes/live grants return to their pre-pressure values
+and final world disposal leaves zero; this is not complete process accounting.
+The changed-binary guard passes: compiler379f7097673aae689f1d9c9de74e04d52359a44997080ae2e4b619094ae029ff,
+LR1b8dd61e91dcda81058bda94fa93d9fca5cb15e715c1a61820f3d3df1aa1acdd.
 
 This stronger control does not reproduce26993's generic one-worker median
 increase. Wall differences are within0.02s and median RSS differences under100KiB
@@ -73476,3 +73585,13 @@ measured-overlap failure remains open. Root checks the exact policy delta and
 preserves the complete evidence/history without claiming combined runtime or
 publication acceptance. No compiler runtime code changes; no runtime performance
 cost is attributed to this policy/documentation integration. todo.txt untouched.
+After all children drained, copied and hash-verified the complete after package
+/root/.cache/tower/l2_generic_scratch_after with byte-identical runtime resources
+to before84484. Separate generic_scratch_after_retry logs preserve the initial
+missing-import failure. The owned primary lease is released. Same-real-path32
+constructor/generic comparisons and current supported instrumentation are queued;
+no performance, whole-union or publication acceptance follows from this gate.
+
+### 2026-11-23T10:45:29.2622630Z ROOT: Integrate budgeted generic pump scratch
+
+Reviewed complete L2 9cedd12c, bundlea2f041b0. The stable function window replaces a redundant request-pointer vector; executor batches use the shared world-budgeted work_vector and preserve exact admission errors before dispatch. Empty and ready bounded cases retain no extra owners, cancel taken work and prevent replay after failure. Actual before134, corrected public leaf/coherent native/query pass and32 fixed-path output/hash checks are retained. Serial generic wall/CPU medians rise2.6%/3.3%; small positive costs remain explicit, RSS stays stable. No causal attribution or neutral-cost claim. Current ownership-union instrumentation remains pending with L1's later direct-return correction. Root source/diff review passes; no final publication acceptance, todo unchanged.
