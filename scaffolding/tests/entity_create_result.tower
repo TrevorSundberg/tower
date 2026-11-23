@@ -1,0 +1,66 @@
+import tower;
+import .library.entity_api;
+import .library.entity_types;
+import .library.work_budget_types;
+
+fn create_check(ok: bool): void {
+    if !ok { trap("Entity creation result regression", 0); }
+}
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected entity creation finalizer", 0);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var error = WorkBudgetError.Memory;
+    create_check(entity_create_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    create_check(entity_create_related_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    var store = entity_store_create();
+    create_check(store != null);
+    store.resource_error = WorkBudgetError.Capacity;
+    create_check(entity_create_result(store, null) == null && store.entity_count == 0 && store.next_id == 0);
+    var root = entity_create_result(store, &error);
+    create_check(root != null && error == WorkBudgetError.None && root.store == store
+        && root.id == 0 && root.references == 1 && root.parent == null && store.entity_count == 1);
+    var view = entity_view_open(root);
+    create_check(view != null);
+    var prior = store.next_id;
+    create_check(entity_create_result(store, &error) == null && error == WorkBudgetError.Busy);
+    var other_error = WorkBudgetError.None;
+    create_check(entity_create_related_result(root, &other_error) == null
+        && other_error == WorkBudgetError.Busy && error == WorkBudgetError.Busy);
+    create_check(entity_create(store) == null && entity_create_related(root) == null);
+    create_check(store.next_id == prior && store.entity_count == 1 && store.component_count == 0
+        && root.references == 1 && root.child_count == 0 && store.views == 1
+        && store.resource_error == WorkBudgetError.Capacity);
+    entity_view_close(view);
+    var related = entity_create_related_result(root, &error);
+    create_check(related != null && error == WorkBudgetError.None && related.store == store
+        && related.id == prior && related.references == 1 && related.parent == null
+        && root.child_count == 0 && store.entity_count == 2 && other_error == WorkBudgetError.Busy);
+    create_check(entity_attach(related, root, "child") && entity_child_at(root, 0) == related
+        && entity_member_index(root, "child") == 0);
+    entity_release(related);
+    entity_release(root);
+    create_check(store.entity_count == 0 && entity_store_dispose(store));
+
+    // Exercise the finite identity boundary without allocating a huge world.
+    store = entity_store_create();
+    create_check(store != null);
+    var maximum = ~convert(usize, 0);
+    store.next_id = maximum - 1;
+    root = entity_create_result(store, &error);
+    create_check(root != null && root.id == maximum - 1 && store.next_id == maximum
+        && error == WorkBudgetError.None);
+    view = entity_view_open(root);
+    create_check(view != null && entity_create_result(store, &error) == null
+        && error == WorkBudgetError.Busy);
+    entity_view_close(view);
+    create_check(entity_create_result(store, &error) == null && error == WorkBudgetError.Exhausted);
+    create_check(entity_create_related_result(root, &error) == null && error == WorkBudgetError.Exhausted);
+    create_check(store.entity_count == 1 && store.next_id == maximum && root.references == 1);
+    entity_release(root);
+    create_check(store.entity_count == 0 && entity_store_dispose(store));
+    print(0);
+    return 0;
+}

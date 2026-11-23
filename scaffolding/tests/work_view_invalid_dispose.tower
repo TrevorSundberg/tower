@@ -1,0 +1,11 @@
+import tower;
+import .library.work_view_types;
+import .library.vector;
+
+// Compile-negative ownership boundary: a borrowed graph view is not an
+// ordinary vector owner, even though its three fields have a familiar shape.
+export fn main(): i32 {
+    var view: work_view(usize) = default;
+    vector_dispose(usize, &view);
+    return 0;
+}

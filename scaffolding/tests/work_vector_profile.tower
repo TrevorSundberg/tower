@@ -1,0 +1,131 @@
+import tower;
+import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct VectorProfileJob {
+    budget: WorkBudget*;
+    ordinary: vector(u64);
+    accounted: work_vector(u64);
+    first: usize;
+    count: usize;
+    growths: usize;
+    started: i64;
+    finished: i64;
+}
+
+fn vector_profile_check(ok: bool): void {
+    if !ok { trap("Physical vector growth profile mismatch", 0); }
+}
+
+fn vector_profile_time(): i64 {
+    var stamp: i64[2];
+    vector_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(VectorProfileJob*, payload);
+    job.started = vector_profile_time();
+    for(var i: usize = 0; i < job.count; i++) {
+        var value = convert(u64, job.first + i + 1);
+        if job.budget == null {
+            var previous = job.ordinary.capacity;
+            vector_profile_check(vector_push(&job.ordinary, value));
+            if job.ordinary.capacity != previous { job.growths++; }
+        } else {
+            var previous = job.accounted.capacity;
+            vector_profile_check(work_vector_push(&job.accounted, job.budget, value));
+            if job.accounted.capacity != previous { job.growths++; }
+        }
+    }
+    job.finished = vector_profile_time();
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    vector_profile_check(argc == 4 && sizeof(usize) == 8);
+    var accounted = strcmp(argv[1], "budget") == 0;
+    vector_profile_check(accounted || strcmp(argv[1], "baseline") == 0);
+    var workers: usize = 0;
+    if strcmp(argv[2], "1") == 0 { workers = 1; }
+    if strcmp(argv[2], "2") == 0 { workers = 2; }
+    if strcmp(argv[2], "4") == 0 { workers = 4; }
+    if strcmp(argv[2], "8") == 0 { workers = 8; }
+    var count: usize = 0;
+    if strcmp(argv[3], "small") == 0 { count = 4096; }
+    if strcmp(argv[3], "large") == 0 { count = 262144; }
+    vector_profile_check(workers != 0 && count != 0);
+    var gate = work_signal_open();
+    vector_profile_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    vector_profile_check(work_budget_init(&budget, workers, 8388608, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var jobs: VectorProfileJob[8] = default;
+    var pool: WorkPool = default;
+    vector_profile_check(work_pool_open(&pool, workers) && pool.count == workers);
+    var before: i64[18]; var after: i64[18];
+    vector_profile_check(getrusage(0, &before[0]) == 0);
+    var start = vector_profile_time();
+    for(var i: usize = 0; i < workers; i++) {
+        if accounted { jobs[i].budget = &budget; }
+        jobs[i].first = count / workers * i;
+        jobs[i].count = count / workers;
+        vector_profile_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    var elapsed = vector_profile_time() - start;
+    vector_profile_check(getrusage(0, &after[0]) == 0);
+    work_pool_close(&pool);
+    var sum: u64 = 0;
+    var growths: usize = 0;
+    var retained: usize = 0;
+    var overlap: usize = 0;
+    for(var i: usize = 0; i < workers; i++) {
+        var data = accounted ? jobs[i].accounted.data : jobs[i].ordinary.data;
+        var length = accounted ? jobs[i].accounted.length : jobs[i].ordinary.length;
+        var capacity = accounted ? jobs[i].accounted.capacity : jobs[i].ordinary.capacity;
+        vector_profile_check(length == jobs[i].count && capacity == length);
+        for(var at: usize = 0; at < length; at++) {
+            vector_profile_check(data[at] == convert(u64, jobs[i].first + at + 1));
+            sum += data[at];
+        }
+        growths += jobs[i].growths;
+        retained += capacity * sizeof(u64) + (accounted ? sizeof(usize) * 4 : 0);
+        var active: usize = 0;
+        for(var j: usize = 0; j < workers; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { active++; }
+        }
+        if active > overlap { overlap = active; }
+    }
+    vector_profile_check(sum == convert(u64, count) * convert(u64, count + 1) / 2);
+    var snapshot: WorkBudgetSnapshot;
+    vector_profile_check(work_budget_snapshot(&budget, &snapshot)
+        && snapshot.used_bytes == (accounted ? retained : 0));
+    // Workers, accounted mode, elements, wall ns, CPU us, peak RSS KiB, actual
+    // overlap, growth requests, retained requested bytes, charge peak, ledger
+    // metadata. Ordinary realloc requests can reuse storage; no malloc count is
+    // inferred from them. Every logical element is independently checked.
+    print(workers); print(accounted ? 1 : 0); print(count); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(overlap); print(growths); print(retained);
+    print(snapshot.peak_bytes); print(snapshot.retained);
+    for(var i: usize = 0; i < workers; i++) {
+        work_vector_dispose(&jobs[i].accounted);
+        vector_dispose(&jobs[i].ordinary);
+    }
+    vector_profile_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    return 0;
+}

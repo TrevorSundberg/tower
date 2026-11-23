@@ -1257,3 +1257,18 @@ current WASI and final public-bootstrap/generation/publication checks are pendin
 No publication lease is held. Remaining implementation includes raw payload/world
 budget coverage, finer component-add errors, early declaration/read/pattern paths,
 and measured scheduling/storage gaps listed in the file audit.
+B1 coordinator join 2026-11-23T07:53:13.2661828Z : merged complete verified root72a onto66f985.
+Only manual conflicts were entity imports and adjacent test README additions:
+kept root's WorkBuffer imports and both test descriptions. entities/entity_api
+now exactly match root72a, so the original A2 per-call API and constructor history
+is preserved. B1 world-type helper, grammar/completion/stream layouts and tests
+remain identical to66f985. The journal auto-merge retains every nonblank line from
+both parents (UTF-8 exact ordinal comparison: zero missing from either parent).
+Root adds the selected scheduler/store constructors, context snapshot helper,
+B2 inspection/backend ordering and D2 standalone allocator providers. It does not
+contain A1's new semantic receipt ABI, L1 frames or B2's new world constructor;
+those remain owner drafts. No private prototype or unpublished syntax adopted.
+Merged source is not yet validated: rebuild native affected closure, run focused
+parser/resource/query/editor/cache/units, then documented public WASI+IDE checks.
+Earlier66f985 profiles/sanitizers stay scoped to that immutable source, with the
+new union requiring its own applicable checks before final publication.

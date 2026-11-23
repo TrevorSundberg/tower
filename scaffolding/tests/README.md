@@ -1025,3 +1025,13 @@ version construction, cache and captured-replacement allocation-failure sweeps.
 It checks typed resource denial, ordinary grammar diagnostics, optional uncached
 success, pinned type admission and exact cleanup.
 It uses the serial fault allocator; it does not test production worker overlap.
+
+`tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
+four-unit serial baseline, source programs, exact object comparison and distinct
+worker overlap assertions as `backend-overlap`. It measures the existing serial
+frontend batch once and freezes `max(30 seconds, measured batch duration)` for
+frontend unit2 awaiting backend unit1; the backend acknowledgement stays30seconds.
+It prints the calibration and monotonic event timeline. Ordinary `backend-overlap`
+and the full backend suite retain their30-second bound. Name the selected variant
+in instrumentation receipts; a successful calibrated run does not erase an older
+ordinary timeout or establish a performance improvement.

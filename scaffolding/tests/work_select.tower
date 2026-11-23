@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .library.work_graph;
 
 // Linux x64 measurement boundary: timespec is two signed words; rusage is

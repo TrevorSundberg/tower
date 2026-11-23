@@ -430,8 +430,8 @@ fn module_fail(module: FrontendModule*, message: u8*, detail: u8*): void {
 }
 
 fn module_clone_fail(graph: ModuleGraph*, error: WorkBudgetError, message: u8*): void {
+    if graph.resource_error == WorkBudgetError.None { graph.resource_error = error; }
     if graph.error.length == 0 && graph.clone_error == null {
-        graph.resource_error = error;
         graph.clone_error = message;
     }
 }
@@ -589,6 +589,10 @@ export fn frontend_module_location(module: FrontendModule*, offset: usize, line:
 export fn frontend_module_error(module: FrontendModule*): u8* {
     if module.graph.clone_error != null { return module.graph.clone_error; }
     return module_text(&module.graph.error);
+}
+
+export fn frontend_module_resource_error(module: FrontendModule*): WorkBudgetError {
+    return module == null ? WorkBudgetError.None : module.graph.resource_error;
 }
 
 fn module_grammar_clear(grammar: ModuleGrammar*): void {

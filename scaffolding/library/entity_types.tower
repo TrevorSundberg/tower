@@ -1,8 +1,15 @@
 import tower;
+import work_buffer_types;
+import work_budget_types;
 
 // Shared compiler entities. Raw pointers are valid only while their owner lives.
 // Components keep stable addresses; type indexes support component-wise queries.
 struct EntityStore {
+    // Constructor-owned storage and immutable borrowed ledger. The ledger must
+    // outlive all store allocations; this field does not itself account buffers.
+    allocation: WorkBuffer;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
     next_id: usize;
     entity_count: usize;
     component_count: usize;

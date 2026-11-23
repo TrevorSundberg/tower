@@ -554,3 +554,60 @@ the parallel fixture; serial allocator cases and final current instrumentation
 retain their separate receipts. No claim that clone-frame grants account for
 entity payloads or constructor storage. L2 node/attach allocation follow-up and
 A2 constructor/world/frontend/backend wiring remain open.
+### Typed editor resource propagation follow-up
+
+Reviewed completion.tower, completion_types.tower, frontend_modules.tower and
+language_query.tower for the independent partial-inspection failure. The module
+resource cause now survives its owning session; completion retains a typed error
+and stops recovery/publication before constructing partial semantic views. Ordinary
+incomplete syntax remains inspectable, verified at both pointer widths. The public
+module getter is covered by actual cache-denial checks. This does not close new
+parser-session allocation classification or all query scratch accounting.
+Current seven-target public build, editor recovery, module-cache and query smoke
+pass; independent L2 document-denial fixture and final instrumentation pending.
+
+The independent document-denial fixture still fails before cached module cloning:
+syntax_version_build reports grammar construction failure without a typed cause.
+B1 owns that producer/status propagation; this remains an open inspection gap.
+
+Revisited tests/frontend_session_world.tower after B1's valid-input ASan report.
+world_session_prepare passed length-delimited formatter output to a NUL-terminated
+input contract. Added a checked terminator and direct vector import; actual session
+imports, invalidation, cycles, owner rejection and zero-buffer cleanup pass. B1's
+new allocator layout exposed the existing defect; it was not an established ABI
+corruption. Nearby production syntax_host_seed and live_format/attribute test
+adapters explicitly terminate their formatter buffers; length-aware comparison
+callers need no terminator. No broad formatting or unrelated fixture edit followed.
+
+Follow-up: complete B1 history175d2a3 plus B2 session-first typed getter closes
+that exact independent document-denial reproduction. All four width4/8 x
+worker1/4 trials now reject exhausted-budget inspection with null, recover through
+the preserved cache, and release all world/budget ownership. The matched native
+editor and current ASan/LSan runs pass. The source tree after additive owner-history
+merge is byte-identical to the frozen validated scaffolding/CMake tree
+e853a0e7d1995abe6c3df8e123882648f3d97b5c. Earlier failure receipts remain historical
+evidence. Early grammar allocation, probe/candidate error propagation and broader
+query scratch accounting remain open; this is not whole-lane acceptance.
+
+Host allocator declaration follow-up: host/syntax_baseline.tower now agrees with
+host.memory's void* allocation/free signatures and explicitly converts at its
+byte-buffer boundary. The actual host-baseline fixture passes before/after and
+returns all tracked buffers; native and ASan adapter objects are byte-identical.
+Matched native editor/inspection checks also pass. This corrects public aggregate
+declaration compatibility without adopting the pending world/WorkPool constructor
+change or changing runtime scheduling. Exact identities and observations are in
+the journal's host allocator agreement entry.
+
+Backend lowering follow-up: foreign_symbol may return null, and its convention
+helper dereferences the descriptor. Moved the convention read after the existing
+null-safe foreign_name_error branch and cleanup. Smallest/public native build,
+existing backend/foreign API and full serial/parallel backend-unit tests pass.
+This closes the statically identified read-before-error-check path without
+claiming raw foreign allocator denial coverage. Foreign text append failures,
+linker handling and allocation-independent diagnostic retention still need work.
+Current supported address checks are pending on this exact input freeze.
+
+Follow-up: current public ASan/LSan and TSan backend API plus registered calibrated
+overlap checks pass on the exact ordering-fix checkpoint, with real distinct-thread
+overlap and exact objects. The journal records source/binary identities, WSL host
+difference and unsupported coverage. No failed historical receipt was replaced.

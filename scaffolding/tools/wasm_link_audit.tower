@@ -12,6 +12,7 @@ import .library.entity_types;
 import .library.bytes;
 import .library.bytes_types;
 import .host.driver_files;
+import .host.memory;
 
 extern fn puts(text: u8*): i32;
 extern fn fflush(file: void*): i32;
