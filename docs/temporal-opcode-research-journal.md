@@ -93919,3 +93919,13 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
+
+A1 alias repair reconciliation: b78d606b merged complete1e60c511 as
+c98d64f2f6e567e6ec0f780bf7bf8a7952cce7f0 with no conflicts. Changed shared
+semantic/backend inputs justified one7-action rebuild50.89wall/54.09CPU/
+1090448KiB. All17admission/query-smoke/lifecycle0 pass again; merged worker1/4
+healthy samples .46/.39s/178068KiB and .52/.51/180912 match the prior exact
+reference/canonical/retention metrics and zero teardown. Separate merged source
+and binary identities are appended to the same receipt; original matched
+comparison remains attached to902f7c4d. All processes exit0/drained, no broad
+matrix or private bootstrap adoption, todo/history preserved; normal push follows.

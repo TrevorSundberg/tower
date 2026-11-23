@@ -196,3 +196,19 @@ no new mid-pump stale-ticket injection, broad sanitizer, Node/browser, bootstrap
 closure or generation matrix ran. Query completion failures retain their existing
 per-result contract; this change makes alias acceptance precede ready publication,
 not whole-wave structural rollback. ROOT retains final integrated release.
+
+Merged verification: implementation `b78d606b` merged full published `1e60c511`
+as `c98d64f2f6e567e6ec0f780bf7bf8a7952cce7f0`, preserving all histories without
+conflicts. Incoming semantic type/capture and backend producers changed the
+selected import closure, so the same three targets rebuilt once (7 actions,
+50.89 wall/54.09 CPU s,1,090,448 KiB). All17 admission selectors pass
+(.64/.33 s,51,816 KiB), query-smoke (3.57/4.40 s,413,416 KiB), and lifecycle0
+(1.99/1.85 s,221,396 KiB). Merged healthy workers1/4 samples pass at
+.46/.39 s/178,068 KiB and .52/.51 s/180,912 KiB, with identical checked
+input/output/retention metrics and zero teardown. These separate merged n1 samples
+do not relabel the earlier matched comparison. Logs are in the same receipt's
+`merged/` directory. Admission SHA256
+`3c017c74b4aee1bdcb0f7f88edb2c44fa11ada83ebb1785f5fb15cabeb56da07`,
+query `3c11b174037c9d9dc43721abf9dc482afecbb090ad1bf1e239ad21d09c57a806`,
+profile `d2f0bd3720e1e2b6c3c44f4509d817c1c088eaad7e6fe61ddd5828592f18d21c`.
+All owned jobs drained; browser, generations and integrated release remain ROOT's.
