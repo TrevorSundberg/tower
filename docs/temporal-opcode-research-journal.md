@@ -87710,3 +87710,16 @@ is inapplicable. All normal/shared/LLVM/cross outputs remain their prior frozen
 b0 artifacts until affected providers are rebuilt. Documentation publication
 reuses the current verified Pages runtime and cannot claim the new compiler
 has deployed. The original todo.txt bytes remain unchanged.
+B1 range-union integration receipt: implementation253af949 merged complete
+published7ebb80d5 history as2920e6e7563bd4aace7d8c42a517baca0a3924c0 after the
+required ff-only pull reported divergence. No conflicts. Incoming L2 KnownScan,
+B2 profile/controls and D1 review/browser receipts preserved; no scheduling edit.
+The one native dependency target rebuilt5 affected actions; merged lr-order,
+structure-reuse, grammar-equivalence, parser and native LR all passed. Merged
+compilerbd4e492d9b760e0effba278a14df5f591e8c10c2c54e96cd66c2edf933bef9e6
+produces the same frozen small/large object bytes at workers1/4 and all four
+linked runs return exact15/999. These are integration checks, not an additional
+performance sample or relabeling of the n3 ce4f7240 comparison. Source checks
+passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Owned container is idle. Normal main push/remote verification follows; ROOT's
+broader integrated publication gates remain pending.
