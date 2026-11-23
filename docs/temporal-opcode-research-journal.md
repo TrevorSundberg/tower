@@ -89399,6 +89399,79 @@ aggregate or compiler build. New owner observer/package/lifecycle receipts are
 separate acceptance, not silently covered here. Diff check passes; todo and all
 previous logs preserved. Normal source push follows, ROOT retains deployment.
 
+### D1 eight-file browser fixture/transport follow-up (2026-11-23)
+
+Frozen sourceb3ac7aca41deca72f0944782c9f4a80526fc0256, scaffolding
+f7bc350e1f7e911facc1d8d420a69267dcbafc00, host24bd709ce4b6f7c4243b00bf333264ec0f18a7c6.
+Same thread/PID3125485. ROOT9d portable13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738
+and LLVMbd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac
+bytes reverified; absolute overrides reuse own immutable copies. Oldf7/D2 paths,
+ROOT interpreter/resource fixtures and L1/L2/A1 implementations untouched.
+
+Read Foundation raw-memory, struct-value, module, type-value/computed-argument
+contracts and existing Tower/reference callers. Repaired explicit Foundation/
+Tower imports only where ordinary code needed them; seed grammar gets its own
+numeric token. Project-root inputs now include actual foundation_syntax/types
+resources; entry selection derives from its path. Canonical assertions use exact
+physical type expressions. Struct/generic negative inputs retain real nominal,
+foreign ABI, type/effect constraints instead of rejecting now-supported values.
+No successful expected output, raw-pointer policy, instantiation offset, zero
+pre-error effect assertion or provenance check was relaxed. Source-specific
+path receipts and complete remaining gates are in compiler_ecs_audit_d1.md.
+
+Confirmed browser transport defect: tower-host.configure published candidate
+Foundation text into module inputs before Tower validation. After rejection,
+explicit imports consumed the failed candidate. Validation now precedes module
+publication. Existing corrected tests independently require last-good recovery,
+Word/call spellings, pinned import sessions and invalid declaration rejection.
+Same two-case before/after0/2fail ->2/2pass;1.82->2.76wall,2.25->3.05CPU seconds,
+168900->156484KiB peak. n1 fresh processes, warm filesystem; successful version
+executes additional assertions, so this is validation cost, not speedup. Canonical
+Foundation remains authoritative; no new JS parser/interpreter or compiler edit.
+
+Baselines and failures preserved under build/d1_ecs/browser_eight_b3ac7aca:
+Node22.23.5, Docker tower-d1-ecs/Linux x64 Deck, cpuset0,2/concurrency1. The first
+8-file selection guard180s ended after60 reported cases (35pass/24fail/1existing
+skip). Last completed semantic case was language_enums; only never-started
+structs/templates/wasm then ran:10pass/25fail,16.13wall/20.63CPU/384824KiB.
+Module-scopes initially used default LLVM6ec53230 for its one LLVM case despite
+the environment override; fixed its direct read. Final matched9d pair passes all
+19 module-scope cases, including qualified completion and repeated lifetimes.
+
+Affected six-file run62pass/9fail/1skip at42.91wall/52.99CPU/506024KiB. Focused
+failures exposed actual contracts: primitive name lookup, imported-cache warmup,
+ordinary call-depth/effect diagnostics, and two valid composed type programs.
+Four reduced controls passed, disproving initial hypotheses that ordinary numeric
+forwarding, value shadowing, integer-only construction or identity alone failed.
+Preserved the exact failing compositions as tests/type_numeric_composition.tower
+(expected42/7/8/12/9; runtime-storage capture diagnostic) and
+tests/type_identity_composition.tower (expected42/7/8; initializer cyclei32).
+They use explicit Tower imports and existing compare transport. Final both fail
+first graph32 checking; later targets/LLVM and numeric negatives after failure
+remain unrun. ROOT routes L2/type/generic follow-up; specific producer edge not
+proved, no workaround or overlap with assigned stack/pointer/compiler fixes.
+
+Semantic-port phase-only follow-up on unchanged entity_pages hit60s, after32-bit
+Graph/Fast/canonical checks and entry into unoptimized LLVM/Foundation roundtrip.
+Observed child at59s:80CPU seconds/1652696KiB RSS; first-run sampling saw1749880KiB.
+GNU time parent reports omit the child killed before Node could reap it: neither
+48276KiB in entity_phase.time nor494368KiB baseline is a complete process-tree
+peak. Preserve this instrumentation limit, not a low-memory claim. Guards drained
+active processes; dead orphan metadata awaits container reaping. No extension or
+rerun of the expensive phase. Four complete semantic-port cases pass,15 remain
+incomplete (entity_pages plus14 never started). Added transport-only phase logs;
+no test skip, result suppression, changed profile or semantic expectation.
+
+One final affected7-file aggregate:87pass/3fail/1existing skip, exit1,
+72.39wall/84.45CPU seconds/495812KiB,0swaps. Remaining failures are the two Tower
+compositions and missing build/linking/wasm-fixture.a; absent native-compiled.wasm
+retains its original optional skip. No new archive/compiler build or heavy slot.
+All raw arithmetic/storage outputs, alias/target layouts, foreign byte views,
+IR exclusions, ordering, canonical and warmed node/allocation checks remain strict;
+no Stronghold initialization/lifetime requirement was imposed on raw Foundation.
+Final Node/resource/new-fixture/reactor manifests match. Overall8-file gate remains
+unfinished; previous23/25 and20/22 stay separately scoped. ROOT owns final current
+source, reconstruction, native/shared/sanitizer/generation and hosted release.
 ### 2026-11-23 L1: pointer alias fixture uses supported type-valued expressions
 
 Frozen published input `b3ac7aca41deca72f0944782c9f4a80526fc0256`, native compiler
@@ -89695,3 +89768,28 @@ matches SHA256 eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c
 and Git blob c0c17f4ac2b3ef7747e044c91022c72842dd35ed; old source013ae550 and
 build98ade8cc remain reachable from main. No new runtime deployed. This appended
 receipt changes documentation only, so further runtime profiles are inapplicable.
+D1 eight-file publication reconciliation (2026-11-23): implementation `9b0ba0bb`
+merged complete published `f167c444` as `4dcd13fc`; the required ff-only pull
+reported divergence, then a normal merge preserved both histories without
+conflicts. The seven-file 87pass/3fail/1skip receipt above retains its original
+source boundary. Hash comparison found exactly one changed recorded Node input,
+`playground/src/llvm-host.mjs`: D2 now snapshots the module source map on emitted
+artifacts and localizes execution failures through that snapshot. Inspected both
+changed call sites; adopted D2's separate failure-phase receipt without rerunning
+its LLVM suite. Focused merged checks for colliding-name canonical/LLVM roundtrip,
+raw byte aliasing, external host byte views and destination-before-call capture
+passed4/4, exit0:17.61wall/16.60CPU s,434088KiB peak RSS,0swaps (same9d pair,
+Node22.23.5, concurrency1, n1). Logs: `browser_eight_b3ac7aca/merged.*`.
+
+Recorded resource hashes differ only for semantic_statements, generic_pointer_alias,
+interpreter_invocation, lr_work_main, semantic_resource_checks and stress_sources;
+new upstream files also retain their owner receipts. These later compiler/test
+changes are not compiled into the immutable9d reactors. Actual language/library
+and example inputs consumed by the seven-file selection, its fixtures and the
+new composition reproducers retain their checked hashes. ROOT's invocation/resource
+and L2's statement-discovery repairs are adopted as source plus their own receipts,
+not a retroactive pass of D1's older23/25 or20/22 runs. No current compiler-generation,
+sanitizer or hosted release claim. All active owned test jobs drained; todo hash
+`e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327`
+unchanged. ROOT retains the two composition failures, missing linking prerequisites
+and semantic-port's15 incomplete case receipts for final acceptance.
