@@ -90679,6 +90679,52 @@ project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
 
+### B2 bounded browser worker-boundary diagnosis — 2026-11-23
+
+Adopted48db0f27; owned jobs idle, CPU12-23/quota12/24GiB, exact existing Chromium159
+headless-shell24eb0a14 and Node22.23.5/Playwright1.65.1, launch{headless:true}.
+No compiler rebuild, runtime adapter or strict test edit. Added only standalone
+OS/browser diagnostic and no-Wasm nested-worker control. Reused work6411c389.
+Git confirms fa65b305 strict/coordinator/worker adapters byte-identical. Historical
+D2 worka1f9/shared9158 on source984dc4d7 and two-core Steam Deck are documented,
+not claimed rehashed/rerun: binaries unavailable in this local D2 handoff.
+
+Four fresh valid controls PASS five actual closes and zero live CDP targets:
+no-Wasm; observed Tower pool; unchanged D2 coordinator/minimal payload; unchanged
+coordinator with exact frozenf167 resourcesJSON67561156 and7993053byte payload.
+Each Tower pool executes unchanged two-call real overlap/cancel/work-order fixture,
+24spawns. External timeline records creation/destruction/close, probe replies and
+terminate call/return(undefined, no native join promise). Wrapped reply checkpoint
+reached before parent terminate. Exact-payload coordinator closes~2.75ms aftercall.
+No failing lifecycle difference reproduced; prior intermittent retirement FAIL
+remains. Added observations can perturb timing; no throughput/engine-fix claim.
+
+First unsupported ownership handoff: external child close plus retire-probe reply
+is not evidence that Chromium's native child registry drained. WorkerThread and
+ThreadedMessagingProxyBase primary source separate shutdown preparation/final
+shutdown and child-removal callbacks. Internal stall is not established. Correct
+prior overstatement: retained target+unresponsive inspector+OS thread names do not
+prove executable JS context liveness or a Tower race. OS snapshots in all four
+controls have zero DedicatedWorker threads; no idle-reuse experiment claimed.
+ROOT recommendation: retain strict zero-target assertions; correlate native
+PrepareForShutdown/PerformShutdown/WorkerThreadTerminated/ChildThreadTerminated
+with failing external timeline before choosing a browser ownership/join remedy.
+Do not retune rejected cooperative retirement/headless selection or add delays.
+
+One initial asynchronous diagnostic wrapper consumed/could miss startup probe
+before handler install; interrupted after143.444s, no child/pool result. Failure,
+source and143.444/.990/124716KiB receipt preserved. Explicit wrapper-ready handshake
+fixes diagnostic only; direct mode uses unchanged coordinator. Valid wall/CPU/RSS:
+noWasm2.093/1.029/125188; wrapped1.757/.842/128676; direct1.738/.836/125100;
+exactpayload2.676/1.478/199696. Waited-child accounting, not aggregate browser tree.
+Wasm capacity8MiB->33947648B, not live allocation retention. Four valid n1 trials
+plus one aborted setup; no broad matrix/rebuild. Optional upstream source fetch
+returned HTTP429 and was not retried; available primary source was sufficient
+for the limited contract finding, not an asserted native race.
+
+Receipt docs/browser_worker_boundary_48db0f27.md; raw/source/hash/failed setup
+artifacts B2/worker_boundary_48db0f27. Originald47/73824811 blocked handoff intact.
+ROOT owns production/gate repair and final release. All owned jobs drained.
 ### D1 fixed Node execution-coverage reconciliation (2026-11-23)
 
 Frozen published48db0f27b439e9d0c7bb15e6f0c4beb932650e89; PID3138849, same
