@@ -65,13 +65,12 @@ export fn main(argc: i32, argv: u8**): i32 {
     if strcmp(argv[3], "small") == 0 { count = 4096; }
     if strcmp(argv[3], "large") == 0 { count = 262144; }
     vector_profile_check(workers != 0 && count != 0);
-    var gate = work_signal_open();
+    var gate = work_gate_open();
     vector_profile_check(gate != null);
-    defer work_signal_close(gate);
-    work_signal_post(gate);
+    defer work_gate_close(gate);
     var budget: WorkBudget = default;
     vector_profile_check(work_budget_init(&budget, workers, 8388608, 1)
-        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+        && work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
     var jobs: VectorProfileJob[8] = default;
     var pool: WorkPool = default;
     vector_profile_check(work_pool_open(&pool, workers) && pool.count == workers);

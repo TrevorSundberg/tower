@@ -94628,3 +94628,57 @@ shared budget/buffer/arena/entity/pool/native-gate source bytes unchanged;
 frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
+
+### B1 exclusive budget gate implementation and matched native improvement (70e77b60)
+
+Freeze published70e77b60844ecd19554fed58d824fc115ea90479,
+tree1d65fc61682e94df844088549802ef8e2ed7b5d4 after required pull/drain;112GiBfree,
+CPU0-11/24GiB,Clang19.1.1 Release/public768. B2 Entity first-list candidate excluded
+from both sides. Actual glibc headers + official glibc/Windows/Apple contracts
+audited before implementation; native ABI storage is explicit, no guessed layout.
+
+New library/work_gate.tower boundary owns stable nonrecursive mutual exclusion.
+Linux normal pthread mutex with named48byte maximum for supported40/48byte LP64
+ABIs; Windows pointer-sized SRW exclusive; macOSu32 os_unfair_lock. WASI delegates
+to existing timed semaphore wait with failure checks intact; portable open remains
+unavailable. frontend_units_open binds only parallel budget gates; close after
+pool/world/receipt drain. Serial gatefree, counting signals, ledger fields and
+reserve/release algorithms, exact old+new admission, errors, wake callbacks and
+Entity storage unchanged. Thin host lock allocation remains foreign transport
+storage (Linux+16bytes perparallelbatch), released atclose, not compilerpayload.
+
+One dependency baseline build34.18wall/26.64CPU/1074304KiB; candidate21actions
+14.95/19.20/257004, sharedproviders reused. Currentbefore profilerf89f1e3b268d0ba437760e3da398085d20f0a58bb5745d0442e215b0bbf8adf5;
+candidate3e7005a1eb12dcc294f93cdf67182d00b49b1ba310ad391c2770b195a8d5ab44.
+Full input/command/source/binary manifests retained underbudget_gate_70e77b60.
+
+16productionallocator paired controls,n2,reversedroundorder,exact existing
+1x16/uniform12x256 dependencies/width8/backend0, freshprocess/warmfilesystem:
+median smallserialwall.4134->.4073; multiserial5.7833->5.7235;
+multi4 wall4.3231->3.2776(-24.2%),CPU13.8563->10.7426;
+multi12 wall4.8076->3.8714(-19.5%),CPU39.3488->31.8293.
+Multi4/12 wholeprocesssystem5.230->3.135/23.940->17.740seconds;
+voluntary230195->130559/1087734->791869.5. Allfull source/canonical bytes equal,
+known42/42 andzerojoinedlanes/checkedzerograntteardown pass. Retainedbytes EXACT
+same bywidth; no materialRSS/serialregression. Preserve small wholeprocesssystem
+.05->.09 variation, no serial speedupclaim. Fourworkersstillbest1.746x candidate
+serial;12workers1.478x. Residual31.83CPU/17.74system remains, not whollyattributed.
+
+Focusedsharedbudget4threads*2048rounds plusnewCapacity/generation/revision/wake
+controls pass. ExistingbudgetallocationMemory, sharedbuffer/arena andschedule
+cancel/drain pass. LR1.73wall/2.25CPU/115144KiB andFULLunits12.47/20.14/833468
+pass originalfinitecapacity/retry/errororder/independentworld/nested/cycle/cancel.
+Threechangedstorageprofilefixtures compile/check4workerwiring separately.
+One nonexistent vector CMake target rejected beforecompile; retainedlog, actual
+unregisteredleaf compiledonce/publicpredecessor. Editing-hunk errors retained;
+no compilerwarning/error or security/sanitizerretry. Actualnativehost nm hasfour
+pthread imports; frontend_units alone consumesfourgateexports. All9strictnative
+componentclosures/currentnegativefixtures pass withpolicy unchanged. Windows/
+macOS/WASI/portablehostobjects compile, notruntimeexecuted; WASIfailureimports
+retained. Broaderplatform/browser/generation/sanitizergates pendingROOT.
+
+KEEP candidate, one measured scoped improvement. Receipt
+ docs/compiler_budget_gate_70e77b60.md; rawbuild/ecs_b1/cache/budget_gate_70e77b60;
+handoffC:/Sandbox/build/codex_ecs_20261122/B1/budget_gate_70e77b60. Ownership and
+capacity are unchanged; B2 storage work remains independent. Todo/publicpin and
+priorrejectedreceipts preserved; commit/completehistoryreconcile/push follows.

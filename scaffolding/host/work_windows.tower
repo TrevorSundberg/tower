@@ -12,6 +12,20 @@ extern fn WaitForSingleObject(handle: void*, milliseconds: u32): u32;
 extern fn CloseHandle(handle: void*): i32;
 extern fn work_thread_entry(argument: void*): void*;
 
+// Windows SRWLOCK is one pointer-sized opaque word on x64/arm64. Use only
+// exclusive mode; an unlocked lock needs no OS destruction after all joins.
+extern fn InitializeSRWLock(gate: void*): void;
+extern fn AcquireSRWLockExclusive(gate: void*): void;
+extern fn ReleaseSRWLockExclusive(gate: void*): void;
+export fn work_gate_open(): void* {
+    var gate = bits(void*, alloc(usize, 1));
+    if gate != null { InitializeSRWLock(gate); }
+    return gate;
+}
+export fn work_gate_close(gate: void*): void { free(gate); }
+export fn work_gate_enter(gate: void*): void { AcquireSRWLockExclusive(gate); }
+export fn work_gate_leave(gate: void*): void { ReleaseSRWLockExclusive(gate); }
+
 export fn work_windows_entry(argument: void*): u32 { work_thread_entry(argument); return 0; }
 export fn work_thread_available(): bool { return true; }
 extern fn GetActiveProcessorCount(group: u32): u32;

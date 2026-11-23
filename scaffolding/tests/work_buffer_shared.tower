@@ -50,18 +50,17 @@ export fn work_kernel_execute(payload: void*): void {
 }
 
 fn shared_buffers(cancelled: bool, denied: bool): void {
-    var gate = work_signal_open();
+    var gate = work_gate_open();
     var entered = work_signal_open();
     var release = work_signal_open();
     shared_buffer_check(gate != null && entered != null && release != null);
-    defer work_signal_close(gate);
+    defer work_gate_close(gate);
     defer work_signal_close(entered);
     defer work_signal_close(release);
-    work_signal_post(gate);
     var bytes = 4 * (4096 + 4 * sizeof(usize));
     var budget: WorkBudget = default;
     shared_buffer_check(work_budget_init(&budget, 4, denied ? bytes : 65536, 1));
-    shared_buffer_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    shared_buffer_check(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
     var jobs: BufferJob[4] = default;
     var lanes: WorkReservation[4] = default;
     var pool: WorkPool = default;
