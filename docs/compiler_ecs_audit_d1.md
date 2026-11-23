@@ -5637,3 +5637,34 @@ Final adoption at `325db64171cb1f864858b0dd0e5bac66e91792b5` includes L2's
 same15 batches/negative1215vs1216. Binary SHA256
 `93cf2e288735aa1284a45fee473caaf2ada142c1f482769880adb7069b8ab00e`;
 `merged_*` logs retain this boundary; initial serial/two timings are not relabeled.
+
+### D1 bounded lazy-DEFLATE source review — e330a2c9 (2026-11-23)
+
+Independent source review, no new runtime run or production change. Freeze `e330a2c9f27f53a077dcf500519fd2df9c287355`, tree `b3e5bcb69bf188a085d27991c44c7db8de84d186`.
+A1 implementation `1c919df5` / publication `26f99a40`; all four reviewed blobs below are unchanged at this freeze. Prior unchanged codec contracts remain adopted.
+
+| Path under `scaffolding/` | Exact blob / substantive disposition |
+| --- | --- |
+| `library/deflate.tower` | `b176c1d9b3adb6cfda84cab6f535db388de64d52`: bounded short-match lookahead, index lifetime, fixed/stored emission and atomic buffer replacement reviewed below; no concrete defect found. |
+| `tests/deflate_checks.tower` | `0ab873249bacfd17d1472f2b077f518d0308e019`: 56 size/pattern, 49 length and 56 distance members; deterministic/aliased output and expansion bound; independently specified lazy tokens; owned input/name/compressed buffers retained through ZIP completion then freed. |
+| `tests/gzip_checks.tower` | `f7f13751fb1d2b911e908229185a81ec92014cd8`: six base plus32 seeded inputs and optional payload (39 only with payload); actual GNU decoder/exact original bytes, known CRC, all truncations, reserved block/checksum failures and recovery; failed capture preserves previous decoded bytes. |
+| `tests/deflate_profile.tower` | `577aa21d73ccfc646d0e9575288d2da6bfeb69c8`: immutable bounded input, size-selected repetition count, final output/capacity and disposed null/zero checks; separate correctness decoder required, not implemented by this profiler. |
+
+`deflate_find/fixed`: search p before inserting p; insert each eligible three-byte start exactly once. Read-only search p+1 sees p; emitting a literal carries only the match pair into the next iteration, whose start is still uninserted. A consumed match indexes starts1..advance-1; final two short-tail starts are deliberately excluded.
+At p, the distance32768 candidate's ring slot is still intact. Inserting p can overwrite only that now-expired candidate for lookahead p+1. Eligible links otherwise retain their slots; candidate<p, bounded distance and strictly descending next reject future/stale/cyclic traversal. Strictly longer replacement over newest-first links retains nearest ties within the64-candidate search.
+Input-remaining bounds precede three-byte hashes, bound match length258 and advances, and prevent end-index overflow. Comparing overlapping immutable input is valid for decoder forward copies; prepared matches need no retained chain pointer. One-byte lookahead applies only to lengths3..32 with a remaining successor; long matches keep the prior path.
+Fixed EOS/padding and whole-input stored fallback are unchanged: Larger discards private fixed bytes before stored emission; 65535/65536 split correctly, empty input is valid. Length3..258, distance1..32768, overlapping copy and stored LEN/NLEN agree with [RFC1951 sections3.2–4](https://www.rfc-editor.org/rfc/rfc1951).
+
+`deflate_compress`, `gzip_compress`, `bytes_*`, `zip32_write`, process/capture/streams and package callers were read. Nonempty-null and stored-size overflow reject before reading; failed allocation/build closes private buffers/arrays before publication. Source may borrow valid caller output because disposal occurs only after all reads/CRC/trailer work. Raw helpers still require valid descriptors/spans and internal policy counts.
+Both match arrays remain call-owned with deferred free; prepared state adds no allocation/shared mutable index. ZIP retains original and compressed entry owners through CRC/output construction. Failed child capture closes/reaps and leaves caller output intact; gzip header/CRC/ISIZE semantics follow [RFC1952 section2.3.1](https://www.rfc-editor.org/rfc/rfc1952).
+Package tools compress into staging and fail before manifest publication; this is not whole-filesystem rollback (a failed staging-file write can truncate that file). Playground/compiler-project/Roku callers use the shared codec for packaging, not a measured frontend compilation hot path.
+
+Independent lazy oracle trace: alphabet24 + `!Y` + `abc?Y` + alphabet24 (55 bytes) must emit literal prefix26, match(3,26), `?Y`, match(24,31), EOS. At position30 greedy sees length4/distance5; lookahead31 finds length24/distance31 and must defer. The test specifies tokens independently of search, but shares symbol/bit encoders; external reference decode supplies the separate byte-format oracle.
+Seeded mixed generation reads only already-written bytes; manual length/distance boundaries exercise overlap. These are standalone providers documented in `scaffolding/tests/README.md`, not newly registered/executed CTests. ZIP generation alone is not reference decoding; gzip negatives exercise GNU decode plus existing atomic capture, not a Tower inflater.
+
+[A1 receipt](deflate_lazy_a1.md) reports old-code lazy assertion abort134, then161 independently extracted/byte-compared ZIP members,39 GNU gzip round trips and29/29 truncation rejections plus corruption/recovery. These are owner-run results, not D1 executions or independently authenticated raw logs.
+Same frozen35420122-byte a06 input SHA256 `8acbaf08545d0ce972f2de7db2a89fcfc7ef434f95f775feca06dde759107697`: owner gzip13671333→12786963B; warm n2 wall2.71/2.72→3.30/3.35s, CPU1.58/1.57→2.18/2.20s, peak RSS62488/62008→60456/60456KiB (KinmenA Docker, serial codec, public768/Clang19).
+Source-derived retained gzip capacity is2*(final_length-8) for this large append sequence:27342650→25573910B, distinct from payload/RSS. Scratch remains(4096+32768)*sizeof(usize)=294912B on x64; no peak-live/allocation-count measurement was added. Owner accepts added package CPU/time for884370 fewer transfer bytes; no compiler-throughput/scaling claim.
+
+No additional concrete defect found. This source-only documentation delta needs no runtime/performance campaign; no allocation-denial sweep, independent rerun, sanitizer or race proof is claimed. Final package/current-artifact/hosted adoption remains ROOT's gate; later incoming source edits are excluded from this freeze.
+Source/blob and caller manifest: `build/d1_ecs/codec_review_e330a2c9/`; owner raw logs (not accessible here): `C:/Sandbox/build/codex_ecs_20261122/A1/cache/deflate_1e428ede/`.

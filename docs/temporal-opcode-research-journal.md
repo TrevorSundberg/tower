@@ -96279,3 +96279,10 @@ Receipt docs/platform_binding_a06_26f99a40.md; raw cache/logs/platform_binding_a
 No production change, so before/after profiling inapplicable; no T9/rebuild/backend/
 sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
+
+### D1 independent lazy-DEFLATE review — e330a2c9 (2026-11-23)
+
+Reviewed A1 1c919df5/26f99a40 at e330a2c9f27f53a077dcf500519fd2df9c287355; four codec/test/profile blobs unchanged. Exact per-file receipts and immediate byte/gzip/ZIP/capture/package callers are in docs/compiler_ecs_audit_d1.md, bounded lazy-DEFLATE section; primary format contracts RFC1951/RFC1952.
+No concrete defect found: eligible starts indexed once, next-match preparation retains nearest bounded search and valid ring/overlap/tail behavior; private cleanup precedes output replacement. Independently traced the55-byte lazy token oracle; shared bit emitters require the separate reference decoder. Staging-file failure is not filesystem rollback.
+A1's161 ZIP/39 gzip/29 truncation controls and before-code abort134 remain owner evidence, not rerun/authenticated here. Owner exact a06 input reduces gzip13671333→12786963B for ~0.61s wall/~0.62s CPU packaging cost; retained capacity is not RSS or live-memory census. See owner docs/deflate_lazy_a1.md for n2 hashes/environment and Windows raw log path.
+Documentation/source review only: no new code, build, runtime profile or sanitizer; runtime profiling inapplicable. D2 heavy lock untouched; no D1 child job. Local manifest build/d1_ecs/codec_review_e330a2c9/. Current final package/hosted adoption stays ROOT-owned; later incoming inputs excluded from this fixed review.
