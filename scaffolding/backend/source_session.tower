@@ -9,6 +9,7 @@ import .compiler.execution_profiles;
 import .library.vector;
 import .library.entity_types;
 import .library.entity_api;
+import .library.work_budget_types;
 
 // Explicit request ownership above the graph backend. A caller pins its module
 // environment for compilation; returned text/artifacts belong to this session.
@@ -61,6 +62,7 @@ fn backend_source_program(program: SemanticProgram*, world: void*, text: u8*, le
 }
 
 fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* {
+    if program.resource.error != WorkBudgetError.None { return backend_session_resource_failure(source.backend); }
     // Frontend errors are length-delimited; never assume their storage has a NUL.
     var message: vector(u8);
     vector_init(&message);
@@ -98,7 +100,7 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
                 backend_source_program_close(&imported);
                 return backend_session_failure(backend, "Unable to allocate compiler root", 0);
             }
-            if checked.error.length != 0 {
+            if checked.resource.error != WorkBudgetError.None || checked.error.length != 0 {
                 result = backend_source_error(source, &checked);
             }
             else {
@@ -149,7 +151,7 @@ export fn backend_source_compile_world(source: BackendSource*, world: void*, tex
     free(terminated);
     if !created { return backend_session_failure(backend, "Unable to allocate compiler root", 0); }
     var result: u8* = null;
-    if program.error.length != 0 {
+    if program.resource.error != WorkBudgetError.None || program.error.length != 0 {
         result = backend_source_error(source, &program);
     }
     else {

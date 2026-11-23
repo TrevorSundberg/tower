@@ -50,6 +50,7 @@ fn sem_type_value_prepared(c: SemanticContext*, node: void*): void* {
 }
 
 fn sem_type_value_request(c: SemanticContext*, node: void*, parent: SemanticDeclaration*, expected_type: FoundationType*): usize {
+    if !sem_ok(c) { return 0; }
     if sem_type_value_simple(c, node) { return 0; }
     node = sem_type_value_node(node);
     var result = sem_declaration_state(c, node);
@@ -63,6 +64,11 @@ fn sem_type_value_request(c: SemanticContext*, node: void*, parent: SemanticDecl
         result.lexical = parent.lexical;
         sem_declaration_add(c, node);
         sem_declaration_discover(c);
+    }
+    if !sem_ok(c) { return 0; }
+    if result.query == 0 {
+        sem_resource_record(c.program, sem_query_error(c), sem_offset(c, node));
+        return 0;
     }
     if sem_declaration_input(parent, result.query)
         || work_task(&c.queries, result.query).state != WorkState.Succeeded { return result.query; }
@@ -85,7 +91,7 @@ fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): 
         if arguments.length != arity { return 0; }
         foreach(var argument in arguments) {
             var waiting = sem_type_value_request(c, argument, result, null);
-            if waiting != 0 { return waiting; }
+            if !sem_ok(c) || waiting != 0 { return waiting; }
         }
         return 0;
     }
@@ -96,12 +102,13 @@ fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): 
         var expected_type = sem_type(c, sem_member(parameters.data[i], "type"));
         if !sem_ok(c) { return 0; }
         var waiting = sem_type_value_request(c, arguments.data[i], result, expected_type);
-        if waiting != 0 { return waiting; }
+        if !sem_ok(c) || waiting != 0 { return waiting; }
     }
     return 0;
 }
 
 fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usize {
+    if !sem_ok(c) { return 0; }
     if result.integer_evaluation == null {
         sem_executables_begin(c);
         sem_captures_begin(c);
@@ -120,9 +127,14 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
         if !sem_ok(c) { return 0; }
         result.integer_evaluation = sem_evaluation_get(c, subject);
         sem_evaluation_work_register(c, false);
+        if !sem_ok(c) { return 0; }
     }
     var evaluation = result.integer_evaluation;
     var query = work_find(&c.queries, evaluation.subject, EvaluationQuery, 0);
+    if query == 0 {
+        sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
+        return 0;
+    }
     if work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
     return 0;
 }
