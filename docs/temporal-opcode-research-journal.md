@@ -84791,6 +84791,100 @@ Metadata retained in build/d1_ecs/review_c20dc56/. Documentation-only profiling 
 inapplicable; no runtime evidence generated or relabeled. ROOT owns final atomic
 hosted publication. Normal documentation commit/push follows; later merges do
 not expand this review boundary.
+### B1 cold LR state interning before closure (2026-11-23)
+
+Base published c20dc56ac5344834a95e8de1f505abe9aea515ac; accepted provenance/
+formatter accounting and diagnostics preserved. No surviving owned job before
+required pull (already current); no new agents, branches, cache or bootstrap.
+Relevant sources: D2 closure-sort receipt above, docs/parser.md, lr_analysis,
+lr_states, lr_state_work and the independent state/action oracle. Existing sparse
+observer measured initial cold table work775.617ms within123 actual builds,
+155 activations/185 lookups/36 structural hits; lookup0.545ms is immaterial.
+D2's prior sampled closure sort/hash work motivated inspecting construction,
+not another profiling sweep. Found lr_state_transition_result performed complete
+LR(0) closure before discovering an existing state, repeating expansion/index
+allocation/sort for every incoming edge.
+
+Implementation: lr_states hashes/compares only sorted positive-dot core items,
+with initial-state identity distinguished by absent origin. Every closure-added
+item has dot zero; for one immutable analysis the shifted core determines its
+entire closure. This also handles nullable productions and recursion back to
+rule0, whose derived dot-zero start item must not enter this lookup key. Public
+lr_kernel remains unchanged for LALR propagation and symbol priority. Serial
+shifts intern before closure; only new states expand, and failure destroys the
+private candidate before publication. lr_state_work marks joined worker outputs
+already closed, preserving private mutation, ordered joins, failures and cleanup.
+No new owner, allocation, exported API, persistent cache, grammar authority or
+accounting bypass. Existing per-table analysis lifetime fixes grammar/order;
+world/Bedrock/profile/revision/version metadata paths remain untouched.
+
+Regression: lr_analysis_comparisons adds12-way repeated recursive cores with
+nullable reductions, both ordinary and recursive-start variants. Independent
+unchanged eager-closure oracle checks exact item/transition/action/conflict/probe
+behavior alongside150 deterministic grammars and33 sorting cases. lr-order now
+also invokes the existing invalid-input/retry and FIRST/closure/state/LALR
+allocation sweep. Extracted that focused entry without weakening the original
+full failure suite. Its initial import exposed incompatible bytes_assign_text
+foreign declarations from unrelated storage_api; drained failed build, replaced
+that broad import with its two actual allocator-test declarations. Failed log
+build_checks.log retained; corrected dependency build succeeds. No service
+operation rejected or replayed.
+
+One existing native dependency cache, public compiler SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+LLVM19.1.1/x86_64-pc-linux-gnu, AMD Ryzen AI MAX+395 Docker/Linux, CPU0-11,
+24GiB cap, compiler jobs1/object jobs<=6. Initial affected4-action build21.48wall/
+25.75CPU seconds/745652KiB. Focused test-entry import failure then2-action fix
+13.48wall/9.47CPU/528412KiB. No public-leaf duplicate or private override.
+Checks PASS: lr-order including invalid/retry/fault cleanup, parser,
+grammar-equivalence, structure-reuse (revision/import/profile/cancellation and
+owner lifetime), presentation-budget (prior diagnostics/accounting plus focused
+regex), native lr serial/threaded graph/order/lifetime/budget controls. Native
+parser-nodes undefined-symbol report is byte-identical to the accepted merged
+report: no policy/ABI change. Presentation peak32575B, real diagnostic peak
+597595B and final zero grants remain intact. No sanitizer/platform matrix run.
+
+Frozen fresh-process timing, warm filesystem, identical observer/resources,
+/usr/bin/time -v whole-process wall/user+system/peak RSS. Three counterbalanced
+pairs in order before1,after1,after2,before2,before3,after3; all exits0:
+
+| Cold sample | Before wall/CPU seconds/RSS KiB | After wall/CPU seconds/RSS KiB |
+| --- | --- | --- |
+| 1 | 0.98 / 0.93 / 167268 | 0.94 / 0.89 / 166692 |
+| 2 | 0.98 / 0.94 / 167492 | 0.93 / 0.88 / 166728 |
+| 3 | 0.99 / 0.94 / 167628 | 0.94 / 0.90 / 166444 |
+
+Median wall0.98->0.94s (-4.1%), CPU0.94->0.89s (-5.3%), table phase788.849->
+744.691ms (-5.6%). Allocation calls2672110->2381191 (-290919/-10.9%). All
+185 lookups/155 activations/123 builds/36 hits and canonical976-byte hash
+13832670361687071853 match. Live1893528B, peak58004592B, ledger metadata5242880B,
+retained54208 buffers unchanged; owner teardown asserts zero grants/buffers.
+Installed control (after then before, n1)1.10->1.06wall/1.04->1.00CPU seconds,
+170028->169100KiB; allocation3254056->2957375; retained73846 buffers unchanged.
+This is a real cold-process gain, not reuse across invocations; small samples
+establish a local modest improvement, not a universal performance bound.
+
+Normal3-unit frozen resources /cache/parser_memory_profile/request_6fd430af/
+resources/scaffolding, bodies0/backend0/spread0, native production allocator:
+workers1 before->after request2.940201->2.737355s wall/2.856225->2.656182CPU,
+RSS196328->196900KiB (whole-process2.99/2.89->2.79/2.70s wall/CPU);
+workers4 after-before order, request1.155575->1.093753s/3.536800->3.369954CPU,
+RSS462236->454948KiB (whole-process1.24/3.60->1.17/3.43s). All four canonical
+hashes1173729914654460811, entities48240/components55014, actual outer peaks1/3.
+Serial retained15162546/peak76707098B unchanged; parallel retained15154186B
+unchanged, peak198404768->198574778B (overlap dependent), ledger5242880/20971520B.
+This n1 control is not a scaling survey. Payload receipts exclude legacy raw LR
+scratch, allocator metadata and total process RSS; no whole-world cap claim.
+
+Before frontend binary80522ef15fd0ccff96cdc659190367dad115e9bf2417d7ad6400238aeb58acb2;
+after6d49f51884c1bf3869ac6377b0d53e7399dc9eb1a29fec47f0313dbd6f7d85b8.
+Before units0f31dae15123585e79e1b457170164da7044a7803d682855f6a9db2c0b542582;
+afterf56c792446eeb1c308081469416f691f5ece5d45988f9dbf4693c36b047f706d.
+Logs/binaries retained in build/ecs_b1/lr_kernel_intern and /cache/lr_kernel_intern.
+Remaining dominant cost is still distinct LR construction (~745ms table phase
+of~940ms cold process); parallel worker closures remain eager. No follow-on LR
+rewrite in this batch. Historical fullfrontend300s timeout remains failed;
+ROOT final sanitizers/scaling/bootstrap/browser/hosted gates remain pending.
 ## D2 bounded single-unit core-use receipt — 2026-11-23
 
 **Finding:** another outer scheduler is not indicated. In the preserved native
@@ -85072,6 +85166,23 @@ receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+B1 merged receipt: implementation81381afb, complete publishede116e966 merged
+without conflicts ase2f1da83. Preserved A2 physical entity/stage and L2 semantic
+scratch producer contracts.29 affected native actions in the same cache finished
+43.45wall/150.09CPU seconds/816440KiB, then all focused selectors above, native
+lr, cold observer,3-unit workers1/4 and exact ParserNodes symbol policy passed.
+No LR production/test inputs changed in integration. Original paired comparison
+remains tied to81381afb/c20dc56a, not relabeled as a merged performance result.
+Merged cold retains185/155/123/36 counts and canonicalhash13832670361687071853;
+737.223ms LR, allocation2257338 and retained36677 buffers include other providers.
+Merged provenance peak47467B and diagnostic peak1411510B include newly charged
+physical owners; final live grants0. Normal workers1/4 canonicalhash
+1173729914654460811/entities48240/components55014 and peaks1/3 still match.
+Their n1 request controls2.900353/1.443253s wall,2.818568/4.183528CPU seconds,
+226656/513636KiB RSS, retained49905443/49897083B, peak140012347/318573851B,
+ledger metadata20971520/41943040B are integrated ownership costs, not B1-only
+speedup evidence. All jobs drained, todo hash unchanged, source/log evidence
+preserved; normal main push follows. ROOT release gates remain pending.
 D2 publication reconciliation: documentation commit4ca91ea6 merged complete
 publishede116e966 as59c53dc1 after the required ff-only pull refused divergence.
 Both journal histories are intact. Incoming A1/A2 work changes raw entity storage

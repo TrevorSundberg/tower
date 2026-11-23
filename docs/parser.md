@@ -643,6 +643,20 @@ saved construction time. `Table` counts only actual LR builds. Run the focused
 `structure-reuse` selector for metadata separation, scope invalidation, request
 cancellation/retry, Capacity cleanup and ownership-order checks.
 
+Within each frozen LR analysis, serial state construction interns the sorted
+shifted core before computing closure. Dot-zero nullable reductions and recursive
+start items are derived closure data; they still participate in LALR propagation
+through the existing kernel predicate. The initial state's absent origin keeps
+it distinct. A matching core borrows the already owned, complete state; a miss
+must finish closure before publishing a state or transition. No additional
+allocation, persistent key, cross-analysis cache or lifetime owner is introduced.
+Parallel closure workers retain their private outputs and ordered coordinator
+join; their already completed closures are not expanded again. Grammar-version
+identity, activation, emission/provenance bindings and budget contracts above are
+unchanged. The `lr-order` fixture compares exact states, transitions and actions
+against the independent eager-closure oracle, including nullable recursive cores
+and references back to the start production, plus checked allocation failures.
+
 ### Checked provenance and presentation ownership
 
 `SyntaxExpansion.rule` and `SyntaxOrigin.splices` own checked work vectors charged

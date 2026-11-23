@@ -2,10 +2,12 @@ import tower;
 import .library.vector;
 import .compiler.lr_types;
 import utility_checks;
-import storage_api;
 import lr_analysis_oracle_types;
 import lr_control_types;
 import lr_analysis_api;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 fn lr_failure_rule(rule: LRProduction*, owner: usize, begin: usize, count: usize): void {
     fill(rule, 0, sizeof(LRProduction)); rule.owner = owner; rule.begin = begin; rule.count = count;
@@ -210,7 +212,7 @@ fn lr_kernel_resize_trial(): void {
     utility_check(final_action.rule == 0 && final_action.first == 4294967294 && final_action.last == 4294967294,
         "LR kernel resize final EOF reduction");
 }
-fn lr_analysis_failure_tests(): void {
+fn lr_analysis_storage_failures(): void {
     lr_analysis_invalid_inputs();
     var baseline = tower_test_buffer_count(); var success = false;
     for (var attempt: usize = 0; attempt < 1024 && !success; ++attempt) {
@@ -218,6 +220,10 @@ fn lr_analysis_failure_tests(): void {
         utility_check(tower_test_buffer_count() == baseline, "LR analysis allocation failure releases every buffer");
     }
     utility_check(success, "LR analysis allocation sweep reaches success");
+}
+fn lr_analysis_failure_tests(): void {
+    lr_analysis_storage_failures();
+    var baseline = tower_test_buffer_count(); var success = false;
     for (var mode: u32 = 0; mode < 2; ++mode) {
         success = false;
         for (var attempt: usize = 0; attempt < 4096 && !success; ++attempt) {

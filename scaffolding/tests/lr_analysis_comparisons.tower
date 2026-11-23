@@ -67,6 +67,25 @@ fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
     lr_closure_order_cases();
     utility_check(tower_test_buffer_count() == baseline, "Closure order fixture cleanup");
+    // Every terminal reaches a distinct shifted core, then revisits all of
+    // those cores through recursive alternatives. Nullable reductions belong
+    // to each closed state but not its pre-closure identity. The unchanged
+    // oracle expands every transition and checks exact state/edge/action order.
+    for(var recursive_start: usize = 0; recursive_start < 2; recursive_start++) {
+        var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+        var branches: usize = 12;
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        for(var branch: usize = 0; branch < branches; branch++) {
+            lr_fixture_rule(&rules, 1, symbols.length, 2);
+            var terminal = convert(u32, branch) + 32;
+            lr_fixture_symbol(&symbols, oracle_none(), terminal, terminal);
+            lr_fixture_symbol(&symbols, recursive_start != 0 ? 0 : 1, 0, 0);
+        }
+        lr_fixture_rule(&rules, 1, symbols.length, 0);
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Repeated nullable core cleanup");
     {
         var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
         var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
