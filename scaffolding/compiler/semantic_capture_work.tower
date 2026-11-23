@@ -7,6 +7,7 @@ import .library.work_budget_types;
 import semantic_evaluation_types;
 import semantic_context;
 import semantic_known_bindings;
+import semantic_known_work;
 import semantic_types;
 import semantic_expression_lowering;
 import semantic_source_bindings;
@@ -40,14 +41,21 @@ extern fn entity_query_count(kind: void*): usize;
 extern fn entity_query_at(kind: void*, index: usize): void*;
 
 fn sem_captures_begin(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
+    var error: WorkBudgetError;
+    var kind = c.capture_inputs;
     if c.capture_inputs == null {
-        c.capture_inputs = sem_create(c.program.root);
-        sem_require(entity_register(c.capture_inputs, sizeof(SemanticCapture), alignof(SemanticCapture), 0));
+        kind = sem_kind_result(c.program.root, sizeof(SemanticCapture), alignof(SemanticCapture), &error);
+        if kind == null { sem_known_admission_error(c, c.program.root, error); return; }
     }
     if c.value_inputs == null {
-        c.value_inputs = sem_create(c.program.root);
-        sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+        c.value_inputs = sem_kind_result(c.program.root, sizeof(IMValueInput), alignof(IMValueInput), &error);
+        if c.value_inputs == null {
+            if c.capture_inputs == null { sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None); }
+            sem_known_admission_error(c, c.program.root, error); return;
+        }
     }
+    c.capture_inputs = kind;
 }
 
 export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
@@ -58,7 +66,9 @@ export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
     // Membership on the program (never a declaration) closes new admission.
     // Only the successful producer-drain boundary may attach that component.
     if c.capture_inputs != null {
-        sem_require(entity_component_get(c.program.root, c.capture_inputs) == null);
+        if entity_component_get(c.program.root, c.capture_inputs) != null {
+            sem_known_admission_error(c, subject, WorkBudgetError.Invalid); return 0;
+        }
     }
     // Reserve the coordinator-owned query before attaching capture metadata.
     // Failed admission cannot publish a partial producer or replay on retry.
@@ -66,15 +76,18 @@ export fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
     if !sem_query_check(c, subject, id != 0 && work_seal(&c.queries, id)) { return 0; }
     sem_captures_begin(c);
     var result = sem_capture_storage(c, subject);
+    if result == null { return 0; }
     result.subject = subject;
     return id;
 }
 
 fn sem_capture_storage(c: SemanticContext*, subject: void*): SemanticCapture* {
+    if !sem_ok(c) { return null; }
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
     if result == null {
-        result = bits(SemanticCapture*, entity_component_data(entity_component_add(subject, c.capture_inputs)));
-        sem_require(result != null);
+        var error: WorkBudgetError;
+        result = bits(SemanticCapture*, entity_component_data(entity_component_add_result(subject, c.capture_inputs, &error)));
+        if result == null { sem_known_admission_error(c, subject, error); return null; }
         *result = default;
     }
     return result;
@@ -95,6 +108,7 @@ fn sem_capture_evaluation(c: SemanticContext*, evaluation: SemanticEvaluation*):
 // Only source initializers need a range; generated locals belong to that range.
 fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void {
     sem_captures_begin(c);
+    if !sem_ok(c) { return; }
     var pending: vector(void*) = default;
     defer vector_dispose(&pending);
     sem_push(&pending, block);
@@ -104,6 +118,7 @@ fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, st
         if value == null { continue; }
         if value.kind == KDeclare && value.value != null && sem_member(node, "value") != null {
             var result = sem_capture_storage(c, node);
+            if result == null { return; }
             sem_require(result.block == null);
             result.lowering = *ticket;
             // A function lease is not recursive. Reserve this declaration's
@@ -184,6 +199,9 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
     }
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
     var binding = sem_get(subject);
+    if result == null || result.subject != subject || binding == null {
+        sem_known_admission_error(c, subject, WorkBudgetError.Invalid); return SemanticPumpResult.Failed;
+    }
     if result.proof == null {
         // Suspend before dispatching proof workers. A retained proof pipeline
         // publishes declaration facts once, after all of its scans have joined.
@@ -240,14 +258,21 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         }
         if value == null {
             if result.expression == null {
-                var declaration = sem_declaration_state(c, subject);
+                var declaration = sem_declaration_state_result(c, subject);
+                if declaration == null { return SemanticPumpResult.Failed; }
                 var lexical = declaration.lexical;
                 lexical.current = result.proof.owner ?? c.program.root;
                 if lexical.scope == null { lexical.scope = c.scope; }
-                if binding.global { sem_declaration_state(c, sem_member(subject, "value")).module_initializer = true; }
-                result.expression = sem_expression_add(c, sem_member(subject, "value"), &binding.type,
+                if binding.global {
+                    var initializer = sem_declaration_state_result(c, sem_member(subject, "value"));
+                    if initializer == null { return SemanticPumpResult.Failed; }
+                    initializer.module_initializer = true;
+                }
+                result.expression = sem_expression_add_result(c, sem_member(subject, "value"), &binding.type,
                     &lexical, SemanticExpressionMode.Initializer);
+                if result.expression == null { return SemanticPumpResult.Failed; }
                 sem_declaration_discover(c);
+                if !sem_ok(c) { return SemanticPumpResult.Failed; }
                 if !sem_query_check(c, subject, work_suspend(&c.queries, &ticket, result.expression.query)) { return SemanticPumpResult.Failed; }
                 return SemanticPumpResult.Progress;
             }
@@ -278,22 +303,15 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
             return SemanticPumpResult.Progress;
         }
     }
+    var input: IMValueInput* = null;
     if sem_ok(c) {
-        var input = bits(IMValueInput*, entity_component_data(entity_component_get(subject, c.value_inputs)));
+        input = bits(IMValueInput*, entity_component_data(entity_component_get(subject, c.value_inputs)));
         if input == null {
-            input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
-            sem_require(input != null);
+            var error: WorkBudgetError;
+            input = bits(IMValueInput*, entity_component_data(entity_component_add_result(subject, c.value_inputs, &error)));
+            if input == null { sem_known_admission_error(c, subject, error); return SemanticPumpResult.Failed; }
             *input = default;
         }
-        input.producer = result.evaluation.literal;
-        input.owner = result.proof.owner;
-        input.ordinal = result.proof.ordinal;
-        // Publication follows the exact evaluation dependency's success. Its
-        // canonical projections are now frozen and retained until all consumer
-        // invocations have joined and been disposed by the owning context.
-        input.aggregate = result.evaluation.aggregate;
-        input.projections = input.aggregate ? result.evaluation.leaves.data : null;
-        input.projection_count = input.aggregate ? result.evaluation.leaves.length : 0;
     } else {
         result.resource = c.program.resource;
         result.error_offset = c.program.error_offset;
@@ -306,6 +324,16 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         work_finish(&c.queries, &ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0)) {
         result.resource = c.program.resource;
         return SemanticPumpResult.Failed;
+    }
+    if input != null {
+        // Publish only after completing this exact capture ticket. Retain an
+        // optional known producer already present on the same declaration.
+        input.producer = result.evaluation.literal;
+        input.owner = result.proof.owner;
+        input.ordinal = result.proof.ordinal;
+        input.aggregate = result.evaluation.aggregate;
+        input.projections = input.aggregate ? result.evaluation.leaves.data : null;
+        input.projection_count = input.aggregate ? result.evaluation.leaves.length : 0;
     }
     return SemanticPumpResult.Progress;
 }
@@ -321,6 +349,7 @@ fn sem_capture_failure(c: SemanticContext*, subject: void*): bool {
 // checks consume completed receipts and never create captures or generic bodies.
 // Assert the terminal boundary before any initializer range can be compacted.
 fn sem_captures_finalize(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
     sem_require(c.workers.running == 0 && c.queries.running == 0);
     foreach(var &task in &c.queries.tasks) {
         if !task.demanded { continue; }
@@ -333,7 +362,8 @@ fn sem_captures_finalize(c: SemanticContext*): void {
         }
     }
     sem_captures_begin(c);
-    sem_capture_storage(c, c.program.root).subject = c.program.root;
+    var result = sem_capture_storage(c, c.program.root);
+    if result != null { result.subject = c.program.root; }
 }
 
 fn sem_captures_dispose(c: SemanticContext*): void {

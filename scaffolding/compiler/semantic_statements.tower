@@ -739,6 +739,7 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
 
 fn sem_run(c: SemanticContext*): void {
     sem_source_binding_roots(c);
+    if !sem_ok(c) { return; }
     sem_attributes_declarations(c);
     sem_validate_aliases(c);
     var step1 = sem_get(c.program.root);

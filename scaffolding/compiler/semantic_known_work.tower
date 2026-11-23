@@ -12,6 +12,7 @@ import semantic_expressions;
 import semantic_known_bindings;
 import semantic_source_bindings;
 import semantic_support;
+import semantic_types;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
@@ -19,11 +20,9 @@ import .library.work_pool;
 import .library.work_arena_api;
 
 
-extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
-extern fn entity_table_query_count(query: void*): usize;
-extern fn entity_table_query_ranges(query: void*): usize;
-extern fn entity_table_query_range_count(query: void*, index: usize): usize;
-extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
 extern fn semantic_known_publish_kernel(result: SemanticKnownWork*): void;
 
 var SemanticKnownArenaChunkBytes: usize = 4096;
@@ -43,11 +42,19 @@ fn sem_known_work_error(c: SemanticContext*, subject: void*, error: WorkBudgetEr
         if error == WorkBudgetError.Busy { message = "Semantic worker admission failed"; }
     }
     var length = sem_length(message);
-    sem_require(length < c.program.error.capacity);
-    copy(c.program.error.data, message, length + 1);
-    c.program.error.length = length;
-    c.program.error_offset = sem_get(subject).start;
-    sem_resource_record(c.program, error, c.program.error_offset);
+    if length < c.program.error.capacity {
+        copy(c.program.error.data, message, length + 1);
+        c.program.error.length = length;
+    }
+    sem_type_resource(c, subject, error);
+    c.program.error_offset = c.program.resource.offset;
+}
+
+// Admission runs on the joined coordinator. Invalidate partial registrations
+// before any consumer can retry them or publish their output.
+fn sem_known_admission_error(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    sem_known_work_error(c, subject, error, false);
+    sem_query_cancel_failure(c);
 }
 
 fn sem_known_query_check(c: SemanticContext*, subject: void*, ok: bool): bool {
@@ -177,15 +184,19 @@ fn sem_known_storage_publish(result: SemanticKnownWork*): void {
 }
 
 fn sem_known_kind(c: SemanticContext*): void* {
-    var kind = sem_create(c.program.root);
-    sem_require(entity_register(kind, sizeof(SemanticKnownWork), alignof(SemanticKnownWork), 0));
+    if !sem_ok(c) { return null; }
+    var error: WorkBudgetError;
+    var kind = sem_kind_result(c.program.root, sizeof(SemanticKnownWork), alignof(SemanticKnownWork), &error);
+    if kind == null { sem_known_admission_error(c, c.program.root, error); }
     return kind;
 }
 
 fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, owner: void*, ordinal: usize,
     action: SemanticKnownAction): SemanticKnownWork* {
-    var result = bits(SemanticKnownWork*, entity_component_data(entity_component_add(subject, kind)));
-    sem_require(result != null);
+    if !sem_ok(c) { return null; }
+    var error: WorkBudgetError;
+    var result = bits(SemanticKnownWork*, entity_component_data(entity_component_add_result(subject, kind, &error)));
+    if result == null { sem_known_admission_error(c, subject, error); return null; }
     *result = default;
     result.context = c;
     result.subject = subject;
@@ -196,31 +207,34 @@ fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, 
     result.kernel.kind = CompilerKernelKind.KnownBinding;
     result.kernel.payload = bits(void*, result);
     if action == SemanticKnownAction.Publish {
-        sem_require(work_arena_init(&result.scratch, compiler_world_work_budget(compiler_node_world(c.program.root)),
-            SemanticKnownArenaChunkBytes));
+        if !work_arena_init(&result.scratch, compiler_world_work_budget(compiler_node_world(c.program.root)),
+            SemanticKnownArenaChunkBytes) {
+            sem_known_admission_error(c, subject, WorkBudgetError.Invalid); return null;
+        }
     }
     return result;
 }
 
 fn sem_known_jobs_begin(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
     var jobs: vector(SemanticKnownWork*) = default;
-    sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
-    sem_require(vector_reserve(&jobs, count));
+    if !sem_ok(c) { return jobs; }
+    if kind == null || entity_query_count(kind) != count {
+        sem_known_admission_error(c, c.program.root, WorkBudgetError.Invalid); return jobs;
+    }
+    if !vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes) || !vector_reserve(&jobs, count) {
+        sem_known_admission_error(c, c.program.root, WorkBudgetError.Memory); return jobs;
+    }
     jobs.length = count;
     fill(jobs.data, 0, count * sizeof(SemanticKnownWork*));
-    var view = entity_view_open(c.program.root);
-    sem_require(view != null);
-    var query = entity_view_tables(view, &kind, 1);
-    sem_require(query != null && entity_table_query_count(query) == count);
-    for(var index: usize = 0; index < entity_table_query_ranges(query); index++) {
-        var column = entity_table_query_column(query, index, 0);
-        for(var row: usize = 0; row < entity_table_query_range_count(query, index); row++) {
-            var result = bits(SemanticKnownWork*, entity_component_data(column[row]));
-            sem_require(result.ordinal < count && jobs.data[result.ordinal] == null);
-            jobs.data[result.ordinal] = result;
+    // The coordinator already owns the kind's exact component index. Avoid a
+    // redundant table plan just to copy those same stable payload pointers.
+    for(var index: usize = 0; index < count; index++) {
+        var result = bits(SemanticKnownWork*, entity_component_data(entity_query_at(kind, index)));
+        if result == null || result.ordinal >= count || jobs.data[result.ordinal] != null {
+            sem_known_admission_error(c, c.program.root, WorkBudgetError.Invalid); return jobs;
         }
+        jobs.data[result.ordinal] = result;
     }
-    entity_view_close(view);
     if count != 0 && c.workers.count == 0 && !sem_workers_open(c) {
         sem_query_cancel_failure(c);
         sem_known_work_error(c, jobs.data[0].subject, c.workers.resource_error, false);
@@ -259,19 +273,32 @@ fn sem_known_jobs_begin(c: SemanticContext*, kind: void*, count: usize, query_ki
 fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, query_kind: SemanticQuery,
     first: usize*): SemanticPumpResult {
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    while *first < jobs.length {
+        var result = jobs.data[*first];
+        var id = work_find(&c.queries, result.subject, convert(u32, query_kind), 0);
+        if !sem_known_query_check(c, result.subject, id != 0) { return SemanticPumpResult.Failed; }
+        if work_task(&c.queries, id).state != WorkState.Succeeded { break; }
+        (*first)++;
+    }
+    if *first == jobs.length { return SemanticPumpResult.Complete; }
     var batch: vector(SemanticKnownWork*) = default;
     defer vector_dispose(&batch);
+    if !vector_reserve(&batch, jobs.length < SemanticPreparationWindow ? jobs.length : SemanticPreparationWindow) {
+        sem_known_admission_error(c, c.program.root, WorkBudgetError.Memory); return SemanticPumpResult.Failed;
+    }
     for(var index = *first; index < jobs.length && batch.length < SemanticPreparationWindow; index++) {
         var result = jobs.data[index];
         var id = work_find(&c.queries, result.subject, convert(u32, query_kind), 0);
+        if !sem_known_query_check(c, result.subject, id != 0) { return SemanticPumpResult.Failed; }
         var state = work_task(&c.queries, id).state;
         if state == WorkState.Succeeded {
             if index == *first { (*first)++; }
             continue;
         }
         if state == WorkState.Failed {
-            if batch.length == 0 { return SemanticPumpResult.Failed; }
-            break;
+            sem_known_admission_error(c, result.subject,
+                result.resource_error == WorkBudgetError.None ? sem_query_error(c) : result.resource_error);
+            return SemanticPumpResult.Failed;
         }
         if work_take_task(&c.queries, &result.ticket, id) { sem_require(vector_push(&batch, result)); }
         if !sem_known_query_check(c, jobs.data[*first].subject, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
@@ -284,8 +311,13 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     var context: SemanticContext;
     sem_context_snapshot(&context, c);
     foreach(var result in &batch) { result.context = &context; }
-    var view = entity_view_open(c.program.root);
-    sem_require(view != null);
+    var view_error: WorkBudgetError;
+    var view = entity_view_open_result(c.program.root, &view_error);
+    if view == null {
+        foreach(var result in &batch) { result.context = null; }
+        sem_known_admission_error(c, batch.data[0].subject, view_error);
+        return SemanticPumpResult.Failed;
+    }
     var receipt: WorkReservation;
     var extra: usize = 0;
     var dispatch_error = sem_workers_admit_result(c, batch.length, &receipt, &extra);
@@ -299,15 +331,22 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     entity_view_close(view);
     foreach(var result in &batch) { result.context = null; }
     var failed: SemanticKnownWork* = null;
+    if dispatch_error == WorkBudgetError.None {
+        foreach(var result in &batch) {
+            if failed == null && result.resource_error != WorkBudgetError.None { failed = result; }
+        }
+    }
     foreach(var result in &batch) {
         var success = dispatch_error == WorkBudgetError.None && result.resource_error == WorkBudgetError.None;
         if (dispatch_error == WorkBudgetError.None && !sem_query_observe_checked(c, &result.ticket, &result.query_reads))
             || !work_finish(&c.queries, &result.ticket, success) {
             var graph_error = sem_query_cancel_failure(c);
-            if dispatch_error == WorkBudgetError.None { dispatch_error = graph_error; }
-            // The entire wave is rejected. Select its first source ordinal,
-            // independent of which terminal graph allocation exhausted storage.
-            failed = batch.data[0];
+            // A terminal graph failure must not replace an earlier joined
+            // producer's typed cause. Otherwise reject the wave's first ordinal.
+            if failed == null {
+                if dispatch_error == WorkBudgetError.None { dispatch_error = graph_error; }
+                failed = batch.data[0];
+            }
             break;
         }
         if failed == null && !success { failed = result; }
@@ -315,6 +354,8 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     if failed != null {
         var error = dispatch_error == WorkBudgetError.None ? failed.resource_error : dispatch_error;
         sem_known_work_error(c, failed.subject, error, dispatch_error == WorkBudgetError.None);
+        // Every dispatched ticket is already settled above. Retain those exact
+        // terminal receipts; sem_ok prevents any later frontier from replaying.
         return SemanticPumpResult.Failed;
     }
     return SemanticPumpResult.Progress;
@@ -327,12 +368,15 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
     while state == SemanticPumpResult.Progress { state = sem_known_jobs_pump(c, &jobs, query_kind, &first); }
     // Ordered late phases call this only after their prerequisites have drained.
     // Early proof consumers retain jobs and use the pump directly instead.
-    sem_require(state == SemanticPumpResult.Complete || (state == SemanticPumpResult.Failed && !sem_ok(c)));
+    if state != SemanticPumpResult.Complete && sem_ok(c) {
+        sem_known_admission_error(c, c.program.root, WorkBudgetError.Invalid);
+    }
     return jobs;
 }
 
 fn sem_known_jobs_dispose(jobs: vector(SemanticKnownWork*)*): void {
     foreach(var job in jobs) {
+        if job == null { continue; }
         work_arena_dispose(&job.scratch);
         vector_dispose(&job.candidates);
         vector_dispose(&job.mutations);

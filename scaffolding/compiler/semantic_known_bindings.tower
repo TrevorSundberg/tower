@@ -149,10 +149,11 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
 
 fn sem_known_infer(c: SemanticContext*): void {
     if !sem_ok(c) || c.editor != null || !sem_known_needed(c) { return; }
+    defer { if !sem_ok(c) { sem_query_cancel_failure(c); } }
     // Absence of writes is a whole-program fact. One joined proof query records
     // that prerequisite without a functions-times-bindings dependency cross product.
     var proof = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
-    sem_require(proof != 0);
+    if !sem_known_query_check(c, c.program.root, proof != 0) { return; }
     var nodes = sem_list(c);
     var root = sem_get(c.program.root);
     for(var index: usize = 0; index < root.items.length; index++) {
@@ -197,6 +198,7 @@ fn sem_known_infer(c: SemanticContext*): void {
         var value = sem_get(subject);
         if value == null || value.kind == KFunction || value.kind == KType || value.kind == KLabel { continue; }
         var job = sem_known_job(c, kind, subject, subject, null, count++, SemanticKnownAction.Order);
+        if job == null { sem_known_jobs_dispose(&scans); return; }
         job.source_ordinal = index;
     }
     var orders = sem_known_jobs(c, kind, count, SemanticQuery.KnownOrder);
@@ -209,16 +211,18 @@ fn sem_known_infer(c: SemanticContext*): void {
         foreach(var declaration in &job.mutations) { sem_known_binding(c, declaration).ordered = false; }
     }
     sem_known_jobs_dispose(&orders);
-    sem_require(work_seal(&c.queries, proof) && work_demand(&c.queries, proof));
+    if !sem_known_query_check(c, c.program.root, work_seal(&c.queries, proof) && work_demand(&c.queries, proof)) {
+        sem_known_jobs_dispose(&scans); return;
+    }
     var proof_ticket: WorkTicket = default;
-    sem_require(work_take_task(&c.queries, &proof_ticket, proof));
-    sem_require(work_finish(&c.queries, &proof_ticket, sem_ok(c)));
+    if !sem_known_query_check(c, c.program.root, work_take_task(&c.queries, &proof_ticket, proof)
+        && work_finish(&c.queries, &proof_ticket, true)) { sem_known_jobs_dispose(&scans); return; }
     // Reuse the per-function candidate components after mutation/order facts
     // publish. Each worker owns its eligibility scratch and candidate output.
     foreach(var job in &scans) { job.action = SemanticKnownAction.Inputs; }
     var inputs = sem_known_jobs(c, scan_kind, scans.length, SemanticQuery.KnownInputs);
+    if !sem_ok(c) { sem_known_jobs_dispose(&scans); vector_dispose(&inputs); return; }
     vector_dispose(&scans);
-    if !sem_ok(c) { sem_known_jobs_dispose(&inputs); return; }
     foreach(var job in &inputs) {
         var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.KnownInputs), 0);
         foreach(var &candidate in &job.candidates) { sem_known_binding(c, candidate.subject).input_query = query; }
@@ -239,27 +243,28 @@ fn sem_known_infer(c: SemanticContext*): void {
     // phase-order rule while inferred expressions still borrow runtime nodes.
     // One shared edge per function avoids a functions-times-captures graph.
     var snapshot = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownSnapshot), 0);
-    sem_require(work_depend(&c.queries, snapshot, proof));
+    if !sem_known_query_check(c, c.program.root, snapshot != 0 && work_depend(&c.queries, snapshot, proof)) { return; }
     foreach(var job in &c.evaluation_jobs) {
         var evaluation = bits(SemanticEvaluation*, job);
         if !evaluation.inferred { continue; }
         var clone = work_find(&c.queries, evaluation.subject, convert(u32, SemanticQuery.KnownClone), 0);
-        sem_require(clone != 0 && work_depend(&c.queries, snapshot, clone));
+        if !sem_known_query_check(c, evaluation.subject, clone != 0 && work_depend(&c.queries, snapshot, clone)) { return; }
     }
-    sem_require(work_seal(&c.queries, snapshot));
+    if !sem_known_query_check(c, c.program.root, work_seal(&c.queries, snapshot)) { return; }
     sem_evaluation_clone_all(c);
     if sem_ok(c) {
         // Clone registration seals its producers before this join is demanded.
-        sem_require(work_demand(&c.queries, snapshot));
+        if !sem_known_query_check(c, c.program.root, work_demand(&c.queries, snapshot)) { return; }
         var ticket: WorkTicket = default;
-        sem_require(work_take_task(&c.queries, &ticket, snapshot));
-        sem_require(work_finish(&c.queries, &ticket, true));
+        sem_known_query_check(c, c.program.root, work_take_task(&c.queries, &ticket, snapshot)
+            && work_finish(&c.queries, &ticket, true));
     }
 }
 
 export fn sem_known_publish(c: SemanticContext*): void {
     if !sem_ok(c) || !work_ok(&c.queries) || c.known_bindings == null { return; }
     sem_captures_finalize(c);
+    if !sem_ok(c) { return; }
     var kind = sem_known_kind(c);
     var count: usize = 0;
     for(var index: usize = 0; index < c.program.functions.length; index++) {
