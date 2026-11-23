@@ -589,6 +589,12 @@ fn function_query_tests(width: u32): u32 {
     var second = call_query_node(root, width, KFunction);
     sem_get(second).index = next_index;
     var second_value = function_query_reference(root, width, second, signature);
+    var first_return = call_query_node(root, width, KReturn);
+    sem_get(first_return).value = sem_get(first_value).value;
+    sem_get(first_return).start = FunctionQueryOffset;
+    var second_return = call_query_node(root, width, KReturn);
+    sem_get(second_return).value = sem_get(second_value).value;
+    sem_get(second_return).start = FunctionQueryOffset;
     sem_get(body).items.length = 0;
     call_query_push(&sem_get(body).items, function_query_print(root, width, 7));
     call_query_push(&sem_get(body).items, first_value);
@@ -671,10 +677,18 @@ fn function_query_tests(width: u32): u32 {
     }
     // Staged evaluation has no output capability. Exercise the same admission
     // sites without adding an unsupported effect to the fixture's contract.
-    sem_get(body).items.length = 0;
-    call_query_push(&sem_get(body).items, first_value);
-    call_query_push(&sem_get(body).items, second_value);
-    for(var growing: usize = 0; growing < 2; growing++) {
+    for(var mode: usize = 0; mode < 4; mode++) {
+        var growing = mode % 2;
+        var returning = mode >= 2;
+        sem_get(body).items.length = 0;
+        if returning {
+            sem_get(entry).type = sem_get(first_value).type;
+            if growing != 0 { call_query_push(&sem_get(body).items, first_value); }
+            call_query_push(&sem_get(body).items, growing != 0 ? second_return : first_return);
+        } else {
+            call_query_push(&sem_get(body).items, first_value);
+            call_query_push(&sem_get(body).items, second_value);
+        }
         var invocation: IMInvocation = default;
         function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel),
             "Function-reference staged entry before pressure");
@@ -706,7 +720,8 @@ fn function_query_tests(width: u32): u32 {
             && invocation.state.function_values.reservation.generation == reservation.generation
             && invocation.state.function_values.reservation.bytes == reservation.bytes
             && !invocation.context.returned,
-            "Staged function-index denial preserves exact failure and original storage", &failures);
+            returning ? "Failed function-reference return cannot publish a result"
+                : "Staged function-index denial preserves exact failure and original storage", &failures);
         call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
         var steps = invocation.state.steps;
         interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));

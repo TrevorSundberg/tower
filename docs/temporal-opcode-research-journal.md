@@ -73907,3 +73907,126 @@ open; no A2 publication lease exists. No todo or another owner's production edit
 ### 2026-11-23T10:45:31.0103565Z ROOT: Integrate checked borrowed scheduling reservations
 
 Reviewed complete A2 ddefda0e, bundlec91fea22. Shared validate_result checks exact owner/revision/slot/generation/lanes/bytes under the existing gate without changing receipts, diagnostics or counters; release reuses the internal entry validation within its locked transaction. No pointer escapes the transaction. Native, malformed/stale/no-allocation cases, real four-worker churn,18 supported sanitizer invocations and actual WASI pass on owner's source. Selected ledger microcosts remain+0.49%/+1.61%; final fixed-path32 compiler outputs/canonical/reparse pass. Borrowers still require an executing parent lane and caller-owned immutable receipt/ledger lifetime through joins and publication: validation neither pins nor admits work. The eight-stage node observer checks stable identities and real intervals; it does not implement charged node pages. Typed staged create/attach/references producers and reference-counter ownership remain open. Root review passes, with combined runtime/release acceptance still pending and todo untouched.
+Remaining map design review during the frozen function-index milestone (proposal
+only): docs/foundation.md565-570 requires alloc/realloc failure to return null,
+retain the old realloc allocation, and free(null) to do nothing. Therefore a
+budgeted heap-map migration must preserve this recoverable guest contract;
+function-reference/cache metadata failures have a different terminal contract.
+Current ix_allocate consumes free ranges before inserting allocation tracking,
+and ix_deallocate removes ownership before inserting the coalesced free range.
+Simply changing their setters to fallible storage would create partial updates.
+
+One scoped candidate is to admit allocation tracking and enough free-map slots
+for all current allocation/free intervals before changing guest ranges. Prepaid
+free bookkeeping would let later valid free/coalescing avoid a new allocation
+under exhausted allowance. Realloc must admit this tracking before moving bytes
+or retiring its old block. No dual-reservation transaction or new allocator
+framework is implemented or claimed; required metadata retention and measured
+cost must be evaluated. Cached strings and value/address/sequencing maps need
+separate exact-offset failure and no-replay handling at their actual callers.
+The existing execution_allocations fixture already checks valid ordering,
+coalescing, zero-size behavior and old-prefix preservation; extend that existing
+Tower path and derive its loop bounds from the actual blocks array when touched.
+
+Current02a8 address/leak95474 completes all six gates with empty stderr and
+identical native/instrumented source manifests.45-step build170.75wall/291.93CPU,
+737788KiB peak; core55.85/77.62/903404; functions114.24/138.15/931828;
+queries0.93/0.92/0.90wall; four units20.21/78.45/1230420. Four-unit actual outer4,
+canonical17697577322696030917, retained20192835, ledger20971520 and charged
+peak268748120. Changed interpreter instrumented IR
+703d8c900d289b6cd4a8dca9a737ece74c9b543816d2fc13b68970797b33d42f;
+LR binaryedcf8f6bae9d73570af6ddce96a158a58617885ae409dacddc62360cc73854c9,
+executionffab0e762e4da927bcb551395df17747e48c6da4066d506185ab3ae79155b48d.
+These results do not establish race freedom or cover unsupported native Tower
+UB instrumentation/foreign library internals. No intentional invalid-memory or
+race probe was added. L2 quiet32 receives the host immediately after actual drain.
+
+Additional caller audit found a source-level direct-return concern: KReturn
+calls ix_returned after ix_read even when the value fails; ix_returned currently
+sets root context.returned without first checking ix_ok. Existing consumers
+check failure separately, but a failed return must not advertise a completed
+value or pop its retained frame. The current ten tests use expression statements,
+so their passes do not cover this path. A test-only successor adds direct-return
+first/growth cases with valid function return signatures before each invocation;
+it was applied only after95474 drained. Runtime reproduction is pending. Current
+thread instrumentation is deliberately deferred until this scope is settled;
+no old address result is relabeled as validation of a proposed return guard.
+
+Direct-return BEFORE55775 ACTUALDRAIN1, inner query134: the public fixture leaf
+and two-step native relink pass; both first/growth return cases fail their exact
+result-publication assertion at target width4. Width8 is unrun after fail-fast.
+Source manifests match before/after, and existing measured clone overlap passes.
+The minimal correction adds ix_ok at the shared ix_returned entry, matching
+existing store/enter/schedule guards. Failed evaluation now retains its frame
+until ordinary invocation disposal instead of publishing a root value. Valid
+return handling is unchanged. Coherent native validation and fresh profiles are
+pending; the02a8 address receipts above remain tied to their original sources.
+
+A process-census transport command failed before the test because nested shell
+quotes were stripped across PowerShell/WSL; its bare pipeline alternatives ran
+ninja/clang without arguments (errors, no build inputs or output artifacts).
+A direct argv ps census then confirmed no surviving child jobs; the owned
+fixture55775 completed and was actually drained before this edit. Future census
+uses direct argv and no nested shell expression. No failed check was counted as
+progress or as evidence for the compiler change.
+
+### L1 direct-return failure guard: reproduced, corrected and measured
+
+The previous pending reproduction is now concrete: BEFORE55775 query exits134
+(wrapper1), with both first/growth direct-return assertions failing at width4.
+Smallest fixture and native relink pass. After the ix_returned entry guard,
+AFTER89770 ACTUALDRAIN0: public interpreter/fixture leaves, coherent7-step build
+(9.64wall,14.35CPU,363296KiB) and query/core/functions/units/type-construction all
+pass, with identical initial/final source manifests. Fourteen runtime/staged
+cases across widths4/8 now cover expression and direct-return callers. Native
+compiler3eacff0fd55e9c0290d0ddae3b85ff8eb6954b09684feb09841ee1fa1d9ff922;
+LReae2e8a269fb91edd6d93227371094fd40e8b6e0011aa4b7a10c1edd5d578922.
+Native gate wall/CPU/RSSKiB: query0.33/0.25/74340; core9.61/10.91/311364;
+functions12.77/15.29/333324; units29.40/44.83/858412; types1.25/1.58/189332.
+
+Isolated same-real-path64 comparison30448 ACTUALDRAIN0 uses immutable02a8
+against only this guard plus fixture, unchanged76 resources, same balanced
+warmup+3 measured samples, target/flags/allocator and callback/unit/body inputs
+as the preceding function-index comparison. All64 statuses/output oracles,
+32 canonical receipts and source/binary/resource hashes pass. Complete external
+logs are L1/logs/function_return_profiles; measured metrics omit numeric hashes
+and retain the exact canonical strings in original .canonical files.
+
+Three-sample medians before->after (wall seconds, CPU seconds, peak RSSKiB):
+- graph small:1.52->1.55,1.51->1.53,176024->176076;
+  execution3.550097->3.783520ms, compile1373.548622->1391.824127ms.
+- graph large:1.71->1.76,1.72->1.73,176056->175988;
+  execution217.627318->218.625533ms, compile1349.959178->1355.872461ms.
+- Fast small:1.80->1.80,1.81->1.82,180660->180768;
+  execution1.829084->1.845762ms, preparation3.488451->3.449007ms.
+- Fast large:1.96->1.97,1.99->1.99,180652->180664;
+  execution183.088224->194.743638ms, preparation3.460829->3.540971ms.
+- units1:6.04->6.06,6.09->6.13,211620->211632.
+- units4:2.13->2.14,8.04->8.03,560656->560468.
+- bodies1:1.59->1.61,1.62->1.60,186300->186284.
+- bodies4:1.40->1.48,1.78->1.79,209564->209308.
+
+These are small/variable costs, not a neutrality or speedup claim. Graphlarge
+execution changes0.46%; observed graph wall medians increase2.9%. After samples
+include graphlarge2.29wall with1.71CPU/1696.541ms internal total, and graphsmall
+1.93wall with1.51CPU/1482.472ms internal total: substantial measured time falls
+outside the compiler's reported phase interval. Both have zero major faults,
+no file inputs, and4/7 involuntary switches. This does not identify their cause.
+Fastlarge after execution183.026/194.744/204.650ms overlaps before182.576-
+188.620ms only at its low end; the changed graph return handler is not the Fast
+return kernel, so these timings alone cannot causally attribute the variation.
+Bodies4 wall ranges1.38-1.60 before/1.40-1.83 after; internal phase medians
+1353.950->1359.221ms. No favorable-only rerun or sample deletion was performed.
+
+Retained bytes are identical before/after: units1/4=20204987/20192835,
+bodies1/4=22293937/22290857; ledger5242880 except units4=20971520. Every units4
+sample observes outer_peak4; after phase2.063815144s contains8.208382248s summed
+outer work. Canonicals remain units17697577322696030917 and bodies
+12683198132697182263. Body reserved4 still does not prove four-way body overlap.
+No excessive RSS/retention growth is observed in this measured guard comparison.
+
+L2 will join the complete candidate before its already planned address/thread
+ownership milestone, covering this IMState ABI and return fix together with its
+scratch changes. Current02a8 address6 remains earlier-source evidence, not a
+pass for this guard. Further map, Fast, diagnostic/opaque owners and final
+public-bootstrap/browser/generation/publication acceptance remain open.
