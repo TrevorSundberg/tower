@@ -84850,6 +84850,152 @@ Remaining dominant cost is still distinct LR construction (~745ms table phase
 of~940ms cold process); parallel worker closures remain eager. No follow-on LR
 rewrite in this batch. Historical fullfrontend300s timeout remains failed;
 ROOT final sanitizers/scaling/bootstrap/browser/hosted gates remain pending.
+## D2 bounded single-unit core-use receipt — 2026-11-23
+
+**Finding:** another outer scheduler is not indicated. In the preserved native
+compiler, LR construction remains the largest identified CPU cost even for one
+1,000-body unit. Two admitted cores give only a small latency improvement in this
+pair. Incremental grammar activation and ordered state publication constrain the
+available frontier; measured leaf costs support reducing closure work first.
+This does not quantify idle time or establish a semantic dependency bottleneck.
+
+Source review is frozen at published `c20dc56ac5344834a95e8de1f505abe9aea515ac`.
+Runtime deliberately reuses the existing complete `1906afcd841d8e6e31a9d2c17187b6f493b98a63`
+build, including accepted LR sort implementation `d9e1b348`/publication `68f906a1`:
+`tower-frontend-units-profile` SHA256
+`5d1ddd4320130eea805aa9ddf7509acbf0248c44728c696cd11fe596eda83158`.
+Its 407-line fixture SHA256 is
+`8159ea1782b203b43f54d862a33c0bc13cbe5d007ecfbc0e1b55cadc5261ceca`.
+All reviewed LR, semantic body/context/statements/lifecycle/phase/query pumps,
+frontend_units, compiler_kernel, parser_workers and shared pool/budget sources
+are unchanged between these revisions. The old 428-import manifest detects
+43 other changed inputs, principally presentation/provenance and call inference;
+therefore these are NOT measurements of the complete c20 compiler. The five
+actual language resources (Bedrock, Foundation syntax/Foundation, Tower, types)
+match the earlier manifest before/after. No rebuild or source modification was
+necessary. All earlier noisy samples and rejected LR experiments remain intact.
+
+Environment: Steam Deck Linux6.16.12-valve24.5, existing Release/O2 native fixture,
+LLVM19, Docker image `4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`,
+cpuset0,2 (two admitted physical cores). Both governors are powersave; observed
+frequencies at boundaries were about1.08/2.07-2.42GHz, not fixed frequencies or
+measurements throughout each run. Steam, KWin and two CLI processes remained
+active. D2 held the shared heavy lock; no competing compiler/build ran in its
+container. This is not an isolated-host or all-machine scaling result. RAM9.7GiB
+available,129GiB disk free; no cleanup, no swap-pressure claim.
+
+Existing generator: one virtual `profile_unit.tower`, `import tower`, forward
+`answer() { return comptime(later()); }`, later returns42, then1,000 independent
+`body_N(x:i32)` functions with `var y:decltype(x)=x`, four-iteration `for`, return y.
+Same input, pointer width8, backend disabled, normal allocator at workers1/2.
+One warmup each followed by one retained sample each, fresh processes/worlds with
+warm filesystem caches, no cache flush. Each of the four runs independently
+executes answer()==42 and body_0(36)==42 and formats the complete canonical graph;
+canonical hash17450187450754183643,162093 entities/198371 components agree.
+The fixture checks only body_0 by execution; the remaining bodies participate in
+full canonical hashing. No claim that all1,000 were independently executed.
+
+| Run | Workers | Frontend wall s | CPU s | Peak RSS KiB | Charged retained / peak bytes |
+| --- | --- | --- | --- | --- | --- |
+| Warmup | 1 | 3.707299 | 3.606026 | 274876 | 72062379 /133346110 |
+| Warmup | 2 | 3.518806 | 3.949104 | 286256 | 72059443 /133299726 |
+| Sample | 1 | 3.914373 | 3.806887 | 275624 | 72062379 /133346110 |
+| Sample | 2 | 3.794708 | 4.240424 | 286448 | 72059443 /133299726 |
+
+Retained pair:1.032x frontend latency,11.4% more CPU; insufficient samples and
+uncontrolled clocks/load for a robust speedup estimate. Additional ledger storage
+is5242880bytes at both widths, explicit charged-byte ceiling536870912. Counts
+are ledger subtotals, not physical heap/RSS caps; no unsafe allocation counters
+were enabled. Full-process `/usr/bin/time -v`:4.04wall/3.92CPU/275624KiB versus
+4.02/4.44/286576. Process timing additionally includes formatting, reference
+execution and teardown. The inner interval includes unit configuration, grammar
+startup, parsing and checking; it excludes those reference operations. No LLVM,
+link or generated-program process startup is inside this experiment.
+
+Two separate software-sampled runs used `perf record --no-buildid-cache -e
+cpu-clock:u -F 997 --call-graph dwarf -p HOST_PID`, attaching to a stopped same-UID
+container process before exec of the saved exact executable. Both checked outputs
+match;3163/4510 samples, zero reported lost samples. Their timings (3.298280wall/
+3.233029CPU and4.088261/4.597820) remain separate from uninstrumented samples.
+Unwinding stops at Tower leaves: inclusive report equals self report, so there is
+NO usable call-tree, phase-wall or blocked-thread attribution. No cache-miss,
+IPC or false-sharing counters were collected.
+
+| Self user-CPU sample share | Workers1 | Workers2 |
+| --- | --- | --- |
+| lr_items_sort_range | 13.85% | 18.54% |
+| lr_item_index_insert | 11.67% | 13.15% |
+| lr_range_insert_result | 8.22% | 6.30% |
+| lr_items_close | 5.75% | 6.65% |
+
+Adding the other listed LR leaves gives at least51.59%/60.53% of sampled user CPU,
+not wall time. Workers2 samples distribute53.30% to coordinator TID3078055,
+44.46% to LR worker3078162 and2.24% to semantic worker3078190 (including
+semantic_declaration_kernel). This establishes actual nested worker execution;
+these aggregates do not establish individual overlap intervals or eligible-idle
+capacity. The existing `kernel_peak=1` and `outer_peak=1` observe only the one
+outer query; `reserved_peak_lanes=2` is an admission receipt, not another overlap
+measurement. `ready_outer_vacancy_ns=0` is vacuous for one ready unit.
+
+Source-supported attribution and boundary contracts:
+
+- `frontend_compilation::frontend_compile_sources` drains syntax/module parsing
+  before `semantic_compile`; incremental grammar declarations affect following
+  tokens. `parser_table::parser_table_build` orders FIRST, LR states,
+  LALR and runtime construction. `lr_state_work::lr_states_create_parallel_result`
+  joins outgoing closures per state, then interns states/transitions in serial
+  order. FIRST/frontier/closure/runtime grains intentionally keep narrow work
+  inline; worker count does not make consecutive grammar revisions independent.
+- Existing same-binary-closure grammar observer receipt in
+  `lr_iteration/merged_iteration-installed.log` attributes1.553s to123 LR tables
+  inside1.726s/155 builds for the SMALL installed request (startup separately
+  .169s LR/.237s builds). Its cold counterpart is3.878s inside4.193s, a retained
+  noisy sample. Nested timers are not additive and cannot be substituted for
+  this large unit's missing phase wall times. It supports the sampled LR finding.
+- `semantic_body_work::sem_bodies_pump` admits source windows of256, retains
+  lexical/declaration continuations, joins body discovery/body waves, then
+  prepares/publishes declarations. `sem_workers_admit_result` reserves extras
+  from the shared budget; `work_pool_batch_result` dynamically claims ready jobs
+  with the caller participating. No worker waits for a nested lane grant.
+  `sem_query_pipeline_pump` joins each producer frontier; `semantic_phase_work`
+  requires lifecycle signatures and owner lowering for evaluation. Nominal type
+  identity, effects and earliest-source diagnostics justify publication order.
+  This workload's tiny dependent answer chain does not measure long semantic
+  critical paths; no evidence here licenses deleting these joins.
+- `compiler_kernel_stages_result` holds queued references before closing input
+  views, publishes joined stages before cross-body mutation and drains failures.
+  These access/lifetime boundaries are not optional scheduling overhead. Current
+  profile lacks nested enter/exit and ready-wait events, so their wall-time cost
+  remains unmeasured. `compiler_work_profile` is eight private metadata plans,
+  not a frontend/body-admission timing proxy; it was reviewed, not rerun.
+- The serial LLVM boundary is separate: B2's existing frozen exported4096-body
+  receipt reports2.906s backend of4.917s total at12 lanes, one backend query per
+  unit. That historical target/host/source is not this Deck frontend sample.
+
+**One next optimization for B1:** remove repeated suffix-FIRST construction in
+`lr_analysis::lr_items_close`/`lr_suffix_result`. Every reached lookahead item
+rescans its production suffix and merges sorted ranges before duplicate expansion
+is detected; `lr_range_insert_result` alone is8.22%/6.30% here, although that share
+includes other callers and is not an attainable-speedup prediction. A per-analysis
+immutable suffix FIRST/nullable index, built only after FIRST converges, can reuse
+that work while merging each incoming lookahead only for nullable suffixes.
+Prerequisites: derive bounded entries from actual rule/symbol positions; reserve
+world-budgeted storage; freeze before workers; keep varying incoming ranges and
+worker scratch private; retain through all joins and release with the analysis.
+Preserve exact range/item ordering, nullable cycles, failure propagation and
+canonical state identities. Measure the suffix caller separately before retaining
+it: this may trade time for memory. B1 owns implementation; no production edits
+or thresholds changed here. Incremental activation remains ordered regardless.
+
+Reproduce in existing `tower-d2-ecs` (resource path absolute):
+`/usr/bin/time -v SAVED_PROFILE /home/deck/tower-agent-2/scaffolding 1 WORKERS 1000`,
+WORKERS1 then2, warmup then sample. All commands/JSON/time/perf/source/hash logs
+are in `build/d2_ecs/within_unit_cores`; `evidence.sha256` SHA256
+`616da8c1a425aa8b4cb47ea0fd2364af5d584e5cd69b23b3d3338eab93eee1a6`.
+Source/binary/resource checks and all six known-output runs pass. Owned jobs
+reaped, heavy lock released, todo unchanged. Documentation-only delta needs no
+runtime before/after or new sanitizer/build matrix; full current-source phase,
+sanitizer/bootstrap/browser/generation/deployment acceptance remains ROOT's work.
 ### 2026-11-23 A2: physical entity ownership and strict budget admission
 
 Bounded implementation on `294194a0`; D2's `3bee18e2` acceptance fixture and
@@ -85002,3 +85148,12 @@ Their n1 request controls2.900353/1.443253s wall,2.818568/4.183528CPU seconds,
 ledger metadata20971520/41943040B are integrated ownership costs, not B1-only
 speedup evidence. All jobs drained, todo hash unchanged, source/log evidence
 preserved; normal main push follows. ROOT release gates remain pending.
+D2 publication reconciliation: documentation commit4ca91ea6 merged complete
+publishede116e966 as59c53dc1 after the required ff-only pull refused divergence.
+Both journal histories are intact. Incoming A1/A2 work changes raw entity storage
+and semantic body/context/lifecycle/statements (among other semantic consumers).
+Consequently the retained memory and semantic source audit above remain explicitly
+1906-runtime/c20-review evidence, not measurements of this newer union. Reviewed
+LR helpers, the chosen suffix candidate, profile source and five language resources
+remain unchanged. Saved executable/evidence hashes, documentation diff checks and
+todo preservation pass; no broad rebuild or relabeled performance acceptance.
