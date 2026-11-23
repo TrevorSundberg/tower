@@ -1883,3 +1883,128 @@ not adopted main or a successful compiler build. A selected snapshot helper woul
 add an exact `sem_context_snapshot` import to separate Publish providers, subject
 to actual object checks. New arithmetic-error consistency findings in graph growth
 were routed to A2; no huge allocation or fabricated invalid payload test was run.
+
+The selected owner patch is now `8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c`,
+reviewed/apply-checked against `c4aa1713`. It **removes** the graph/pool API
+experiment and all its extra exports/import swaps. The proposed standalone
+provider fixes above are therefore historical and must not be applied to this
+candidate. Original internal methods and provider membership remain. The selected
+graph adds checked length increments and typed index-doubling rejection, preserving
+the first resource error. The corrected snapshot-only patch `5acefe43` preserves
+all 16 replacements while avoiding unrelated dispatch context. Owner parser/
+semantic and focused instrumentation results are reported separately; D2 has not
+compiled/adopted this candidate or relabeled earlier receipts.
+
+Two incoming measurement files were read completely, including their selected
+import composition. Both remain proposed source until the owner history is joined:
+
+| Path, reviewed base and proposal | Substantive disposition |
+| --- | --- |
+| `scaffolding/tests/compiler_work_profile.tower`, c4aa +8e4e2d | Eight fixed independent plans use private `CompilerWork` owners and a synchronized shared budget; exact ordinal checksum, entities/components and final zero grants are checked. Measures descriptor/graph creation and scheduling, not compiler body throughput. Pool setup is excluded; dispatch/join included. Charged buffers explicitly exclude ECS pages/payloads. Selected imports restore full graph and native dispatch in the same object, removing the intermediate API recipe gap. |
+| `scaffolding/tests/work_vector_profile.tower`, c4aa +8e4e2d | Fixed 4096/262144 elements are partitioned across private ordinary/accounted vectors; every value, sum, retained capacity and charged bytes are checked. Growth requests are not called physical allocation counts. Existing same-object native pool/dispatch and synchronized ledger remain; all vectors/grants retire after joining. Linux x64 clock/rusage layout is an explicit host boundary. Interval overlap alone establishes neither useful scaling nor per-core utilization. |
+
+Also reviewed L2's complete clone-calibration fixture delta at `9bdbc814`, fetched
+without merging its other source dependencies. The finite serial calibration uses
+the faster of two fresh trials, caps width at1536, and freezes the chosen workload
+before concurrent trials. Production intervals still exclude the admission
+barrier; exact nodes/output, distinct threads, overlap and cleanup remain required.
+Diagnostics precede the explicit failure assertion after worker/stage/world/budget
+retirement. Function-scope graph/signal defers require normal return; a fatal
+assertion does not establish that those remaining handles were retired. D1 owns current
+independent native/instrumented validation; original D2 exit134 remains historical
+failure evidence, not erased by calibration or the owner's three passing runs.
+
+At `0c3876e8`, D2 joins the complete ROOT97 typed parser/inspection checkpoint.
+Compiler, host, library, backend and CMake trees exactly match B2 `e4d3967b`;
+the joined test runner and symbol policy still need validation on these inputs.
+Earlier 406d measurements and provider receipts retain their original identities.
+No owned build was running during the merge, and `todo.txt` is unchanged.
+
+The selected A2 patch `8e4e2d` adds allocator imports after changing graph/pool
+storage. Caller audit against `0c3876e8` found these additional link contracts:
+
+| Path and existing target | Provider/ownership conclusion and disposition |
+| --- | --- |
+| `tests/work_named.tower`, LR/backend aggregate | Added `host.memory` duplicates the compiler allocator already in the aggregate. A2 observed the link failure and is removing this import. Keep one allocator implementation and the existing private worker slots. |
+| `tests/work_instrumented.tower`, `TowerWorkPolicyTests.cmake` | Registration explicitly links separately compiled fixture **and** `host/memory` objects. The proposed import therefore adds a second provider. Routed to A2 to remove it, retaining serial fault allocation and exact cleanup assertions. This source finding is not a newly executed link failure or race check. |
+| `tests/target_once.tower`, `TowerWorkTests.cmake` | Its changed pool needs `compiler_buffer_*`, but the target links only the fixture, target-once boundary/state, work transport/dispatch and guest runtime. The guest runtime contains no compiler-buffer provider. Routed one explicit `host.memory` import in this existing standalone fixture; no new object or scheduler is needed. Actual selected link remains unrun. |
+| `tests/work_pool.tower`, `tests/work_order.tower` | Their proposed allocator imports share a single Tower compilation closure, so they do not create the separate-object duplication above. Existing native and shared-Wasm compositions still require actual checks. |
+| `tests/entity_store.tower`, `TowerParserServiceTests.cmake` | Proposed direct provider coexists with a static compiler-memory archive, whose unused members need not be extracted. Do not call this a duplicate failure from filename membership alone; verify the actual selected link and allocator profile. |
+
+This review changes documentation only; new runtime performance/memory or sanitizer
+measurements are inapplicable. Corrected complete owner source, actual symbols,
+native/WASI links and final coherent release validation remain required.
+
+The coordinator's 03:24 UTC semantic-receipt proposal was checked against current
+`5e0b3f36` tooling callers. Tools/benchmarks have no direct `SemanticProgram`
+consumer; synchronous child status and checked products remain their boundary.
+The following existing callers must consume the shared typed receipt before the
+new ABI can be accepted. They belong to L1/B2, and were routed without edits:
+
+| Caller | Concrete text-only gate and required disposition |
+| --- | --- |
+| `compiler/execution_session.tower`, `execution_package.tower` | Compile success and package admission use diagnostic length. CLI compilation trusts the session boolean. Typed resource failure must remain failure even when copying diagnostic text fails; stop execution/encoding and retain the owning offset. Existing aborting diagnostic-allocation paths are a separate unresolved boundary. |
+| `host/ide_execution.tower`, `ide_artifacts.tower` | Execution failure, formatting, canonical package preparation and type presentation use text length. Check the typed receipt before starting the interpreter, formatting, encoding or exposing types. A failed resource query is not ordinary incomplete syntax. |
+| `backend/source_session.tower` | Both original and canonically reconstructed programs enter backend lowering/reporting when ordinary diagnostic text is empty. They need the same typed admission check and allocation-independent failure presentation. |
+| `compiler/frontend_units.tower`, `frontend_compilation.tower` | Worker success and source compilation/comment-publication gates use text length. Preserve worker-private program receipts and coordinator drain/source order; do not publish a failed private result or reset its receipt while clearing diagnostic text. |
+
+This is proposal-readiness source evidence, not an executed failure or an adopted
+second diagnostic system. `driver_compile_package`'s separate text-length branch
+only chooses presentation after failure; it is not another success gate. Final
+consumer changes must share the one owner-defined receipt and matching ABI.
+
+### Selected storage join and standalone tool providers (2026-11-23)
+
+D2 `bf0a5a41` joins complete ROOT `9b318706`; production scaffolding/CMake is
+identical to that checkpoint before the two tool imports below. The selected
+measurement files previously reviewed as proposals are now integrated unchanged.
+No experimental graph/pool API modules or literal split were adopted.
+
+| Reviewed path / source | Ownership, evidence and disposition |
+| --- | --- |
+| `tools/link_wasi.tower`, bf0a + explicit `host.memory` import | The existing standalone CMake recipe links this object and guest runtime only. Budgeted store/graph/pool construction now calls compiler-buffer exports; the former closure compiles but actually fails its native link on `compiler_buffer_free`. Import the existing provider in this same object. Mapped input owners still outlive joined linker work and world teardown; no new allocator, scheduler, global budget or alias promise. Fixed link and real serial/two-worker output checks pass; two requested lanes alone do not prove useful overlap. |
+| `tools/wasm_link_audit.tower`, bf0a + explicit `host.memory` import | The documented standalone object/runtime recipe has the same actual missing-provider failure. One import supplies the shared allocator while preserving its request-owned linker world and input ownership. Small/large real-object reads and symbol resolution pass. The generic build-tools CLI does not register this audit name: its exit2 is retained separately, and the documented direct build supplies the actual evidence. |
+| `tests/work_instrumented.tower`, ROOT9b318 | Independently reproduced the old `beb8be1c` fixture's duplicate allocator link using immutable source and matching existing target objects. Fixed target contains exactly one `compiler_buffer_free` definition and passes the existing serial fault sweep. This verifies provider composition and single-owner cleanup, not race instrumentation. |
+| `tests/target_once.tower`, ROOT9b318 | Missing standalone allocator provider remains source-audited. Root assigns the actual target reproduction and one-import fix to D1; no competing D2 edit or passing runtime claim. |
+
+Warm-cache Linux x64 Docker validation uses public bootstrap `9653f818`, LLVM19,
+cpus0,2, build/compiler jobs1. Public parser/semantics units take27.44/31.02s and
+722300/730996KiB peak RSS. Canonical native22-step rebuild passes198.49s,
+194.39s CPU,733572KiB; configured18-target-step group69.13s,67.56s CPU,377104KiB.
+Compiler `e90caced298dfb78d5df98c258f6bcdad5d4f762c7bbe98bfcfb42787b1ba6a6`
+and complete resources are frozen in `build/d2_ecs/native_package_9b318`.
+These are single validation observations, not clean-cache release or speed claims.
+
+Normal worker policy, buffer/arena/budget faults, real worker pool, query, editor,
+calibrated backend overlap, frontend allocation/parser, storage and module checks
+pass. Query covers32/64-bit serial/threaded staging; backend checks distinct-thread
+production intervals and exact objects. The historical clone134 remains separate:
+this join does not include its later calibrated fixture. D2's unavailable extra
+allocator-target request failed1; omitted storage argv failed134; corrected
+configured targets and documented storage/module invocations pass. The original
+logs remain; unrun checks at those stops were not counted as passes.
+
+Before/after tool compile wall/CPU/peak RSS KiB (one sample each): link_wasi
+17.63/17.23/463432 to16.21/15.91/468660; audit12.77/12.51/333224 to10.14/9.98/335380.
+Both former links fail1; both corrected links pass. An unlinkable predecessor
+provides no runtime speedup baseline, and these variable single compile samples
+establish no improvement. Peak compile memory rises about5.1/2.1MiB. Small/large
+post-fix audit and small link runs are below GNU time's0.01s resolution.
+All measured children report zero swaps; charged-byte/retention telemetry is not
+available from these tool CLIs, and RSS is not their live-allocation count.
+
+The existing Tower library fixture produces a real relocatable Wasm object.
+Tower links at requested workers1/2 produce identical bytes. LLVM19 independently
+links that same input; all three modules return42 for the Tower export's input31.
+Node only loads/invokes the export and writes its result; no linker/compiler/test
+implementation was ported to JavaScript. A real larger evaluation object also
+passes the audit. Malformed input is rejected with exit1 and no output; aliasing
+the output to an input rejects without changing its hash. Both tool objects and
+the fixed policy executable contain one allocator provider. No ASan/TSan run of
+these new tool objects is claimed yet. Raw sources, commands, statuses, hashes,
+profiles and failures are under `build/d2_ecs/storage_join_9b318`.
+
+All D2 jobs drained before releasing its lock at03:52:35UTC for D1's phase fixture.
+Current symbol-policy/native-WASI provider checks, supported instrumentation,
+remaining merged compiler work and final public/bootstrap/browser/generation plus
+leased atomic publication remain open. Earlier receipts keep their source identity.
