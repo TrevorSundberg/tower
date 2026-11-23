@@ -80988,3 +80988,74 @@ again during the required merged validation. Per this bounded task's stop rule,
 no further integration/push loop was attempted. The focused-tested batch remains
 committed locally; its final commit and exact push blocker are in B2/status.md.
 No force push, deployment, goal continuation or new assignment was attempted.
+
+### A2 queued-stage ownership prerequisite, 2026-11-23 (blocked, not implemented)
+
+Reviewed integrated `afca69b171c790ce9386ae85c3f3d493d21cec59` after the requested
+`git pull --rebase=merges --autostash --ff-only`. No owned build was running;
+the worktree was clean. This bounded task did not resume the former goal or
+inventory campaign. The explicit task leaves final deployment with ROOT.
+
+Source inspection confirms `entity_stage_hold` increments every unheld queue
+entry without checking exhaustion. The queue stores target entities and a held
+prefix, not the payload locations whose finalizers release them. Publish and
+discard both invoke that unchecked hold. Duplicate targets require cumulative
+accounting; checking each against its initial count is insufficient. Existing
+queue-slice alias rebasing already handles queue growth and must be preserved.
+
+The only production queue writer found by `rg` is
+`compiler/syntax_provenance.tower:syntax_origin_copy_staged_result`. It builds a
+temporary entity array, queues it, installs borrowed expansion/splice pointers in
+`SyntaxOrigin`, then disposes the temporary array. Its ordinary finalizer releases
+all those pointers. The lifecycle dispatcher supplies no cancellation operation.
+Consequently a failed checked hold cannot safely proceed into today's discard:
+unheld payload pointers would still be released. Skipping finalizers would leak
+their owned buffers. Suppressing selected entity releases is also insufficient:
+`syntax_trace_release` may detach and traverse a uniquely owned history before
+calling `entity_release`. A pin protects lifetime, not ownership of that history.
+
+**Prerequisite:** include this immediate provenance producer in the ownership
+batch, or have ROOT supply its cancellation contract. The current grant permits
+library stage/helpers/fixtures and the immediate generic-body hold caller; it
+does not permit changing `syntax_provenance.tower`. No production edits were
+made across that boundary, and no unsafe preflight-only patch was installed.
+
+Proposed protocol (design only): each queued payload registers stable private
+cancellation metadata before installing borrowed references. A checked hold
+acquires all pending references, counting repeated targets, or returns the exact
+error with that pending ownership untransferred. Already-held ownership remains
+distinct. After joins, discard cancels only unheld borrowed fields before ordinary
+finalization; held fields release normally. Source owners/views remain live
+through either outcome. Queue admission and metadata allocation must be atomic,
+and retries must not retain twice. Existing compatibility wrappers and empty
+queue paths must remain available. The precise API is not implemented or agreed.
+
+Caller handoff: production search found publish callers in `semantic_body_work`,
+`semantic_declarations`, `semantic_evaluation_work`, `semantic_lowering_work`,
+`semantic_execution_work` and `semantic_generic_body_work`; declarations also
+exist in `semantic_context`. The generic-body pump joins, holds every stage, then
+closes its view; its deferred discard must safely handle hold failure before
+that view closes. The execution pump currently closes its view before publishing;
+ROOT owns its checked-hold adoption. The remaining publish callers need their
+actual queued-reference behavior checked when the protocol is integrated; this
+call-site inventory is not a completed substantive review of those pipelines.
+Twenty test/profile files reference hold/publish/discard/queue APIs, including
+the existing stage ownership, result, concurrent, reentrant, page reuse and
+generic clone fixtures. No fixtures or generic harness files changed.
+
+Evidence is read-only source inspection, caller searches and Git state checks.
+One initial `rg` command used an unsupported Windows filename glob and reported
+an OS path error; the subsequent directory search with `-g '*.tower'` completed.
+No allocation/sanitizer/error/node-control probes or runtime builds ran. Runtime
+profiling is inapplicable to this documentation-only change; the requested
+implementation, focused lifecycle/query checks and before/after sample remain
+pending. ROOT's integrated instrumentation/bootstrap/browser/release checks are
+also pending, not passed. Stop this bounded attempt on the explicit producer
+ownership prerequisite; do not claim queued-stage or compiler completion.
+
+Publication reconciliation: the required ff-only pull stopped on concurrent
+`fd1ba4de`. `git rebase --rebase-merges origin/main` preserved the published
+history and replayed only this journal entry without conflict. Incoming changes
+touch frontend admission and documentation, not the reviewed stage/provenance
+contract. `git diff --check` and the scoped documentation diff remain the
+applicable validation; no runtime evidence is relabeled for the merged source.
