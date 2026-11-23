@@ -91553,3 +91553,5 @@ The cross main/language closure remains unchanged. Preserve that mismatch log;
 reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
+
+A2 six-file reconciliation: scoped commit73caf3fd merged complete published fdf4ffa7 as4ac85095e2031817307d2041daa3b2e6aa4dc7f7/tree2669072c685014177efc376d6b1138474964fad8. Required ff-only pull detected divergence; normal merge preserved histories, no conflicts. All final transport hashes match;1138/1144 mounted Tower blobs match. Six changed blobs are backend/session, backend/source_session, backend_source_native fixture, bootstrap_symbols_checks fixture, comment_functions stress entry and bootstrap_symbols tool, outside these tests' imported closures. Unchanged fixture/library/host inputs and frozen eac executable pair retain the recorded results; new backend implementation is not validated by old LLVM. Exact residual remains open, no new runtime/sanitizer claim. No active jobs; exact-path receipt update and normal main push follow.

@@ -125,3 +125,19 @@ these eac results cannot validate them. The service-rejected instrumentation gat
 remains open and was not retried. No full Node51, browser, sanitizer, generation,
 LLVM matrix or runtime deployment was attempted. All jobs drained; prior three
 stashes, logs and todo remain untouched. ROOT retains publication ownership.
+
+## Publication reconciliation
+
+Implementation/receipt commit `73caf3fd` merged published `fdf4ffa7` as
+`4ac85095e2031817307d2041daa3b2e6aa4dc7f7` (tree
+`2669072c685014177efc376d6b1138474964fad8`). All recorded final transport hashes
+match. Of 1144 recorded Tower resource hashes, exactly six changed:
+`backend/session`, `backend/source_session`, `tests/backend_source_native`,
+`tests/bootstrap_symbols_checks`, `tests/stress/comment_functions`, and
+`tools/bootstrap_symbols` (all `.tower`). These are outside these six files'
+imported program/fixture closure; the generated wide cases still use unchanged
+`stress_sources`, utility checks, bytes/platform and host-text dependencies.
+Compiled backend changes are excluded by the explicit eac LLVM artifact identity.
+Unchanged evidence is adopted by hash without relabeling it a run of the new
+compiler. The residual statement/declaration producer identities also remain
+unchanged by this merge. No passing matrix was repeated for unrelated inputs.
