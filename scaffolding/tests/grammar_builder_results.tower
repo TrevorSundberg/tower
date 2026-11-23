@@ -1,0 +1,166 @@
+import tower;
+import frontend_world;
+import utility_checks;
+import .compiler.grammar_types;
+import .compiler.parser_types;
+import .library.work_budget;
+import .library.vector;
+
+extern fn grammar_builder_init_result(builder: GrammarBuilder*, kinds: FrontendKinds*): WorkBudgetError;
+extern fn grammar_builder_finish_result(builder: GrammarBuilder*, error: WorkBudgetError*): void*;
+extern fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void*;
+extern fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void;
+extern fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void;
+extern fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void;
+extern fn regex_grammar_create_result(kinds: FrontendKinds*, error: WorkBudgetError*): void*;
+extern fn node_string_append_result(value: ParserStringData*, source: u8*, count: usize): WorkBudgetError;
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn strlen(text: u8*): usize;
+
+fn grammar_builder_result_fixture(kinds: FrontendKinds*, error: WorkBudgetError*): void* {
+    var builder: GrammarBuilder = default;
+    grammar_builder_init_result(&builder, kinds);
+    var rule = grammar_builder_rule(&builder, "Root", false);
+    grammar_builder_reference(&builder, rule, "Root", "value");
+    grammar_builder_literal(&builder, rule, "é");
+    grammar_builder_range(&builder, rule, 97, 122);
+    return grammar_builder_finish_result(&builder, error);
+}
+
+fn grammar_builder_string_results(): void {
+    var value: ParserStringData = default;
+    defer vector_dispose(&value.ids);
+    var source: u8[2];
+    source[0] = 97;
+    source[1] = 192;
+    var count = sizeof(decltype(source)) / sizeof(u8);
+    utility_check(node_string_append_result(&value, &source[0], count) == WorkBudgetError.Invalid
+        && value.ids.length == 0, "Malformed UTF8 rejects the whole append, not a successful prefix");
+    utility_check(node_string_append_result(&value, null, count) == WorkBudgetError.Invalid
+        && node_string_append_result(&value, null, 0) == WorkBudgetError.None,
+        "Counted string input validates null versus empty");
+    utility_check(node_string_append_result(&value, "é", strlen("é")) == WorkBudgetError.None
+        && value.ids.length != 0 && value.ids.data[0] == 233, "String append retries after invalid UTF8");
+    var length = value.ids.length;
+    utility_check(node_string_append_result(&value, "", ~convert(usize, 0)) == WorkBudgetError.Invalid
+        && value.ids.length == length, "String count overflow precedes allocation and input access");
+}
+
+fn grammar_builder_failure_results(): void {
+    var buffers = tower_test_buffer_count();
+    grammar_builder_string_results();
+    var error = WorkBudgetError.None;
+    var builder: GrammarBuilder = default;
+    utility_check(grammar_builder_init_result(null, null) == WorkBudgetError.Invalid
+        && grammar_builder_init_result(&builder, null) == WorkBudgetError.Invalid,
+        "Grammar constructor rejects absent builder and kinds");
+    utility_check(grammar_builder_rule(&builder, "Ignored", false) == null
+        && grammar_builder_finish_result(&builder, &error) == null && error == WorkBudgetError.Invalid,
+        "Failed initialization remains sticky without dereferencing absent kinds");
+    utility_check(regex_grammar_create_result(null, &error) == null && error == WorkBudgetError.Invalid,
+        "Regex constructor preserves its initialization cause");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Grammar result fixture world");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Grammar result fixture kinds");
+    var store = compiler_world_store(world);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var root = grammar_builder_result_fixture(&kinds, &error);
+    utility_check(root != null && error == WorkBudgetError.None, "Grammar construction baseline");
+    entity_release(root);
+    var allocations = tower_test_buffer_allocations();
+    root = grammar_builder_result_fixture(&kinds, &error);
+    var count = tower_test_buffer_allocations() - allocations;
+    utility_check(root != null && error == WorkBudgetError.None && count != 0, "Measured grammar allocation path");
+    entity_release(root);
+    for(var denied: usize = 0; denied <= count; denied++) {
+        allocations = tower_test_buffer_allocations();
+        tower_test_buffer_fail_after(denied);
+        root = grammar_builder_result_fixture(&kinds, &error);
+        var calls = tower_test_buffer_allocations() - allocations;
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        if calls > denied {
+            utility_check(root == null && error == WorkBudgetError.Memory, "Every actual grammar allocation denial retains Memory");
+        } else {
+            utility_check(root != null && error == WorkBudgetError.None, "Undenied grammar construction completes");
+        }
+        if root != null { entity_release(root); }
+        utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Failed grammar construction disposes every partial node/component");
+    }
+    utility_check(grammar_builder_init_result(&builder, &kinds) == WorkBudgetError.None, "Pinned grammar fixture");
+    var view = entity_view_open(builder.root);
+    utility_check(view != null, "Pin grammar input");
+    grammar_builder_rule(&builder, "Busy", false);
+    entity_view_close(view);
+    utility_check(grammar_builder_finish_result(&builder, &error) == null && error == WorkBudgetError.Busy,
+        "Pinned structural mutation retains Busy instead of Memory");
+    utility_check(grammar_builder_init_result(&builder, &kinds) == WorkBudgetError.None, "Invalid text fixture");
+    grammar_builder_rule(&builder, null, false);
+    grammar_builder_literal(&builder, null, "ignored");
+    utility_check(grammar_builder_finish_result(&builder, &error) == null && error == WorkBudgetError.Invalid,
+        "Invalid text is sticky and discards the partial tree");
+    var unregistered = entity_create(store);
+    utility_check(unregistered != null, "Unregistered grammar component kind");
+    var invalid = kinds;
+    invalid.rule = unregistered;
+    utility_check(grammar_builder_init_result(&builder, &invalid) == WorkBudgetError.None, "Unregistered-kind anchor is valid");
+    grammar_builder_rule(&builder, "Invalid", false);
+    utility_check(grammar_builder_finish_result(&builder, &error) == null && error == WorkBudgetError.Invalid,
+        "Component registration rejection retains Invalid");
+    entity_release(unregistered);
+    root = regex_grammar_create_result(&kinds, &error);
+    utility_check(root != null && error == WorkBudgetError.None, "Complete regex grammar retries with valid kinds");
+    entity_release(root);
+    utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+        "Grammar results preserve caller-owned kinds");
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Grammar result world retires all allocations");
+}
+
+fn grammar_builder_capacity_results(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Grammar physical ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Physically budgeted grammar world");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Budgeted grammar kinds");
+    var before: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_snapshot(&budget, &before)
+        && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied) == WorkBudgetError.None,
+        "Deny new grammar entity/component storage using actual remaining capacity");
+    var error = WorkBudgetError.None;
+    utility_check(regex_grammar_create_result(&kinds, &error) == null && error == WorkBudgetError.Capacity,
+        "Regex construction preserves physical entity/component Capacity");
+    var failed: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes + occupied.bytes
+        && failed.live == before.live + 1 && failed.used_lanes == before.used_lanes,
+        "Denied grammar construction leaves no new physical owner or lane");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release grammar pressure");
+    var root = regex_grammar_create_result(&kinds, &error);
+    utility_check(root != null && error == WorkBudgetError.None, "Regex construction retries after capacity returns");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && work_budget_snapshot(&budget, &failed)
+        && failed.used_bytes == 0 && failed.live == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == buffers, "Grammar ledger outlives and releases every physical owner");
+}
+
+fn grammar_builder_result_tests(): void {
+    grammar_builder_failure_results();
+    grammar_builder_capacity_results();
+}

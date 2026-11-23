@@ -2138,3 +2138,34 @@ sanitizer logs and source/binary identities are retained. This closes the narrow
 68fa implementation, not the full acceptance goal, remaining raw storage or final
 joined clean/public/hosted release. Evidence-only documentation adds no runtime
 performance delta. No publication lease or push; todo remains unchanged.
+
+B1 grammar-construction follow-through on complete81c26d44 (implementation,
+final validation pending): ROOT12:40:39 explicitly approved the shared
+GrammarBuilder.resource_error field and checked producer boundaries. All prior
+68fa jobs/receipts drained before the clean c944 merge; both parent journals retain
+every nonblank line. Coherent baseline62833 passed and froze units/editor/resources
+under parser_memory_profile/grammar_builder_81c26d44 before any new code.
+
+- grammar_types.tower adds the first-cause field beside the existing bool.
+- grammar_builder.tower uses complete typed create/component/attach producers,
+  returns checked init/finish outcomes, releases its local child hold with defer,
+  discards failed documents and retains old wrappers. Failed initialization skips
+  later calls before reading absent kinds. No shared global builder or callback.
+- parser_nodes.tower adds counted text results and checked UTF8 append. Null/count
+  overflow is Invalid, actual reserve failure Memory, malformed decoding Invalid
+  with logical-length rollback. The old bool append no longer accepts a malformed
+  prefix as success. Raw vector capacity is still outside the world ledger.
+- regex_grammar.tower exposes the checked complete producer; the mask derives
+  bytes/iteration bounds from its array and names the true ASCII/scalar limits.
+  Its ordered root/rule/reference/string/range entities remain authoritative.
+- New tests/grammar_builder_results.tower calls production exports, measures the
+  actual allocation path for its fault sweep and checks exact Busy/Invalid/Capacity,
+  cleanup/retry and counted UTF8 rejection. Owned parser_failures imports it;
+  no generic harness or independent grammar implementation was introduced.
+
+ROOT retains frontend_table's downstream pattern consumer. The new producers are
+not yet a complete source/evidence handoff. Production smallest unit passed;
+two fixture compile failures (missing direct rule declarations, then strlen)
+were preserved and corrected by explicit opaque declarations. Current native
+retry21801 has passed the new parser fixture and continues remaining checks;
+profile, supported instrumentation and public portable validation remain pending.

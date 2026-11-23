@@ -25,4 +25,5 @@ struct GrammarBuilder {
     kinds: FrontendKinds*;
     root: void*;
     failed: bool;
+    resource_error: WorkBudgetError;
 }

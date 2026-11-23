@@ -77129,3 +77129,60 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+### B1 checked grammar construction after complete c944 adoption
+
+ROOT12:40:39 approved the shared GrammarBuilder field and producer ownership;
+ROOT retains downstream pattern/module consumers. After every68fa job and receipt
+drained, complete c944 merged clean as81c26d441a82125919287096be9552fad84b44e6,
+treea9475d375dd31e10fb5542633c2ce12b8a07a063. UTF8 parent journal comparison found
+zero missing nonblank lines from78cb andc944. No half-feature/layout adoption.
+
+Coherent native baseline62833 drained0: entities14.10s/325804KiB, dependent
+build22.84s/794964KiB, fullunits21.59s/802996KiB, LR1.82s/115480KiB,
+parser.04s/54156KiB, query.23s/87800KiB, grammar-resource1.28s/52888KiB,
+editor10.64s/923384KiB, storage.24s/99268KiB, runtimefaults.02s/50764KiB,
+resourcephases.03s/51944KiB. These establish coherence, not a quiet timing claim.
+Frozen /cache/parser_memory_profile/grammar_builder_81c26d44 before units
+1dea675e0650fae865fc2a3fb20076192a73dd7b87003fb6960075f22645e54f,
+editor10abab916b1dd5aa1dc03da1b0244bf70881e2dc13ab021b3b3862296d715547,
+resources.tar140c7e486a660c61e91030a300c9859081a9cce48c3cb186b5d2c0375585ce69.
+
+Current implementation adds GrammarBuilder's sticky first WorkBudgetError, checked
+init/finish and regex constructor, while preserving old entry points. All actual
+node/component/attach causes propagate; successful finalization transfers the
+root, failed finalization releases the partial document. Counted text storage
+rejects overflow before reserve. Checked string append validates the byte span,
+distinguishes malformed UTF8 from Memory and rolls logical length back on decode
+failure; the prior bool silently accepted the valid prefix. Capacity can still
+be retained after failure. Names remain NUL-terminated inputs and pass their actual
+count to storage. Raw text vectors are not claimed physically charged. Regex's
+ASCII mask derives fill bytes/bounds from the actual array; named ASCII/scalar
+limits define language data. No new grammar or unpublished syntax was used.
+
+The new owned grammar_builder_results fixture calls real production exports and
+measures actual allocation count for its failure sweep. It checks exact allocation
+Memory, pinned Busy, null/unregistered Invalid, physical component/entity Capacity,
+first-cause stickiness, complete cleanup and retry, plus malformed/count-overflow
+UTF8. parser_failures registers this owned fixture without generic harness changes.
+
+Production smallest ParserNodes passed. Job18388 then failed the fixture compile
+at grammar_builder_results:27 (missing grammar_builder_rule declaration); its
+24.23s/797488KiB failure log remains grammar_builder_native_missing_declaration.log.
+The next7.69s smallest fixture compile found missing strlen; its log remains
+ grammar_builder_fixture_missing_strlen.log. Both failures actually drained before
+prototype fixes; no runtime check was claimed. Direct opaque declarations were
+completed together; production was unchanged. Current retry21801 passes the new
+parser runtime and continues native LR/query/fullunits/editor/storage. Current
+source is frozen, final profile/instrumentation/publicWASI still pending. ROOT's
+consumer remains untouched until the complete producer history is handed off.
+B1 grammar native retry21801 ACTUALLY drained0. Production leaf18.30s/771996KiB;
+corrected fixture9.38s/461792KiB and dependent build7.56s/340504KiB passed.
+Parser/new exact construction/UTF8 fixtures.04s/54224KiB; independent regex300
+patterns/500 arbitrary-byte patterns and failure cases.04s/51608KiB; LR1.77s/
+123324KiB, query.23s/87960KiB, grammar-resource1.27s/53216KiB,
+fullunits21.28s/804000KiB, editor10.53s/870192KiB and storage.25s/98996KiB.
+No native runtime failure occurred. These suite times are coherence evidence;
+new fixtures change parser test work and are not equivalent-input benchmarks.
+Current complete producer source is ready to commit; paired performance,
+supported instrumentation and independent parser/publicWASI/IDE remain pending.

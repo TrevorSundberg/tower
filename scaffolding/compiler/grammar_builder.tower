@@ -7,25 +7,58 @@ import parser_types;
 import regex_lowering;
 import syntax_emission;
 import syntax_reader;
+import .library.work_budget_types;
+import .library.vector;
+
+extern fn entity_attach_result(child: void*, parent: void*, name: u8*): WorkBudgetError;
+
+fn grammar_builder_fail(builder: GrammarBuilder*, error: WorkBudgetError): void {
+    if !builder.failed && error != WorkBudgetError.None {
+        builder.failed = true;
+        builder.resource_error = error;
+    }
+}
 
 // Fallible construction on the caller's registered kinds. The root owns every
 // attached node; a failure is sticky and finish discards the partial document.
 export fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void {
+    grammar_builder_init_result(builder, kinds);
+}
+
+export fn grammar_builder_init_result(builder: GrammarBuilder*, kinds: FrontendKinds*): WorkBudgetError {
+    if builder == null { return WorkBudgetError.Invalid; }
     *builder = default;
     builder.kinds = kinds;
-    builder.root = entity_create_related(kinds.rule);
-    builder.failed = builder.root == null;
+    if kinds == null {
+        grammar_builder_fail(builder, WorkBudgetError.Invalid);
+    } else {
+        var error = WorkBudgetError.None;
+        builder.root = entity_create_related_result(kinds.rule, &error);
+        grammar_builder_fail(builder, error);
+    }
+    return builder.resource_error;
 }
 
 export fn grammar_builder_finish(builder: GrammarBuilder*): void* {
+    var error = WorkBudgetError.None;
+    return grammar_builder_finish_result(builder, &error);
+}
+
+// Consume the root exactly once; failure disposes the complete partial tree.
+export fn grammar_builder_finish_result(builder: GrammarBuilder*, error: WorkBudgetError*): void* {
+    *error = WorkBudgetError.Invalid;
+    if builder == null { return null; }
+    *error = builder.resource_error;
     var root = builder.root;
     builder.root = null;
     if builder.failed {
+        if *error == WorkBudgetError.None { *error = WorkBudgetError.Invalid; }
         if root != null {
             entity_release(root);
         }
         return null;
     }
+    if root == null { *error = WorkBudgetError.Invalid; }
     return root;
 }
 
@@ -33,61 +66,75 @@ fn grammar_builder_child(builder: GrammarBuilder*, parent: void*, type: void*, k
     if builder.failed {
         return null;
     }
-    var node = entity_create_related(parent);
-    var missing = node == null;
-    if missing {
-        builder.failed = true;
+    var error = WorkBudgetError.None;
+    var node = entity_create_related_result(parent, &error);
+    if node == null {
+        grammar_builder_fail(builder, error);
         return null;
     }
-    var data = entity_component_data(entity_component_add(node, type));
-    missing = data == null;
-    if missing {
-        entity_release(node);
-        builder.failed = true;
+    defer entity_release(node);
+    var data = entity_component_data(entity_component_add_result(node, type, &error));
+    if data == null {
+        grammar_builder_fail(builder, error == WorkBudgetError.None ? WorkBudgetError.Invalid : error);
         return null;
     }
     node_payload_init(kind, data);
-    var attached = entity_attach(node, parent, null);
-    entity_release(node);
-    if !attached {
-        builder.failed = true;
+    error = entity_attach_result(node, parent, null);
+    if error != WorkBudgetError.None {
+        grammar_builder_fail(builder, error);
         return null;
     }
     return node;
 }
 
+fn grammar_builder_text(builder: GrammarBuilder*, text: vector(u8)*, source: u8*): void {
+    if builder.failed { return; }
+    if source == null {
+        grammar_builder_fail(builder, WorkBudgetError.Invalid);
+        return;
+    }
+    grammar_builder_fail(builder, node_text_set_result(text, source, syntax_text_length(source)));
+}
+
 export fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void* {
+    if builder.failed { return null; }
     var node = grammar_builder_child(builder, builder.root, builder.kinds.rule, CompilerParserRule);
     if builder.failed {
         return null;
     }
     var data = bits(ParserRuleData*, entity_component_data(entity_component_get(node, builder.kinds.rule)));
     data.generated = generated;
-    builder.failed = node_rule_set_name(data, name) == false;
+    grammar_builder_text(builder, &data.name, name);
     return node;
 }
 
 export fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void {
+    if builder.failed { return; }
     var node = grammar_builder_child(builder, parent, builder.kinds.reference, CompilerParserReference);
     if builder.failed {
         return;
     }
     var data = bits(ParserReferenceData*, entity_component_data(entity_component_get(node, builder.kinds.reference)));
-    var ok = node_reference_set_name(data, name);
-    ok &&= node_reference_set_capture(data, capture);
-    builder.failed = !ok;
+    grammar_builder_text(builder, &data.name, name);
+    grammar_builder_text(builder, &data.capture, capture);
 }
 
 export fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {
+    if builder.failed { return; }
     var node = grammar_builder_child(builder, parent, builder.kinds.string, CompilerParserString);
     if builder.failed {
         return;
     }
     var data = bits(ParserStringData*, entity_component_data(entity_component_get(node, builder.kinds.string)));
-    builder.failed = node_string_append(data, text, syntax_text_length(text)) == false;
+    if text == null {
+        grammar_builder_fail(builder, WorkBudgetError.Invalid);
+        return;
+    }
+    grammar_builder_fail(builder, node_string_append_result(data, text, syntax_text_length(text)));
 }
 
 export fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void {
+    if builder.failed { return; }
     var node = grammar_builder_child(builder, parent, builder.kinds.range, CompilerParserRange);
     if builder.failed {
         return;

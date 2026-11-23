@@ -2,6 +2,7 @@ import tower;
 
 import parser_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
 
@@ -69,16 +70,23 @@ fn node_text_get(text: vector(u8)*): u8* {
     return text.data;
 }
 
+// Counted bytes exclude the terminator. Invalid bounds never become Memory.
+fn node_text_set_result(text: vector(u8)*, source: u8*, count: usize): WorkBudgetError {
+    if text == null || (source == null && count != 0) || count == ~convert(usize, 0) {
+        return WorkBudgetError.Invalid;
+    }
+    if !vector_reserve(text, count + 1) { return WorkBudgetError.Memory; }
+    if count != 0 { copy(text.data, source, count); }
+    text.data[count] = 0;
+    text.length = count;
+    return WorkBudgetError.None;
+}
+
 fn node_text_set(text: vector(u8)*, source: u8*): bool {
+    if source == null { return false; }
     var count: usize = 0;
     for(; !(source[count] == 0); count++) {}
-    var bytes = count + 1;
-    var ok = vector_reserve(text, bytes);
-    if ok {
-        copy(text.data, source, bytes);
-        text.length = count;
-    }
-    return ok;
+    return node_text_set_result(text, source, count) == WorkBudgetError.None;
 }
 
 export fn node_rule_name(value: ParserRuleData*): u8* {
@@ -147,27 +155,34 @@ export fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool
 }
 
 export fn node_string_append(value: ParserStringData*, source: u8*, count: usize): bool {
+    return node_string_append_result(value, source, count) == WorkBudgetError.None;
+}
+
+export fn node_string_append_result(value: ParserStringData*, source: u8*, count: usize): WorkBudgetError {
+    if value == null || (source == null && count != 0) { return WorkBudgetError.Invalid; }
     var end = value.ids.length + count;
-    if end < value.ids.length {
-        return false;
+    if end < value.ids.length || end > ~convert(usize, 0) / sizeof(u32) {
+        return WorkBudgetError.Invalid;
     }
     if !vector_reserve(&value.ids, end) {
-        return false;
+        return WorkBudgetError.Memory;
     }
+    var original = value.ids.length;
     var offset: usize = 0;
-    loop {
+    while offset < count {
         var id: u32;
         var start = source + offset;
         var remaining = count -offset;
         var bytes = tower_utf8_decode(start, remaining, &id);
         if bytes == 0 {
-            break;
+            value.ids.length = original;
+            return WorkBudgetError.Invalid;
         }
         value.ids.data[value.ids.length] = id;
         value.ids.length++;
         offset = offset + bytes;
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn node_range_start(value: ParserRangeData*): u32 {
