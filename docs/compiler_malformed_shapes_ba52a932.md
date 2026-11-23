@@ -186,3 +186,7 @@ The final80-entry fixture and368-entry profile manifests are
 `final.sh` records the exact final checks and all zero exit statuses. Earlier
 paired measurements remain unchanged and source-bound. No L1 loop fixture or
 method was edited by A2, and no full control matrix was repeated.
+The third push encountered docs-only902f7c4d. Its complete audit/performance
+history is retained; all448 final executed input hashes still match182f5652.
+No further runtime rebuild is needed. The next normal push is the third retry
+of the initial push; no forced ref or runtime asset replacement is used.

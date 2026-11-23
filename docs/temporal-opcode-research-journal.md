@@ -93609,3 +93609,5 @@ changes only sem_if_begin_value; both reviewed return/fallthrough predicates and
 methods are unchanged. New control/loop query behavior, fixtures and concurrent
 owner reviews are preserved, excluded from the d55d1c0d source-only conclusion.
 Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
+
+A2 publication's third retry preserves docs-only902f7c4d after the third normal push raced again. All448 final executed input entries match182f5652; evidence is reused without another build. Complete histories remain intact, all jobs are drained, and ROOT retains runtime publication. This is the final bounded normal push retry.
