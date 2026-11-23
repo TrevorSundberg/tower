@@ -71804,3 +71804,130 @@ The former Capacity blocker is fixed in this source; final joined verification,
 remaining ownership/dependency work and publication still remain open. todo.txt
 is untouched. Original bundle lookup used the parent directory and failed; its
 actual B1 subdirectory transfer and complete hash verification succeeded.
+
+### L1 checked interpreter function references - implementation, not acceptance (2026-11-23)
+
+Read docs/function-values.md and all function_values readers/writers. The graph
+engine's table is a derived declaration-ordinal index; module entities outlive
+it and no host handle enters guest storage. Its only writer im_function_reference
+still used ordinary vector_reserve plus abort. The caller returned the ordinal
+without a typed storage failure. Fast cache creation starts before graph steps,
+so this index is empty at the graph-to-cache handoff; normal session disposal
+owns its retirement. No alternate semantic representation is needed.
+
+After all earlier jobs drained, adopted full ROOT76d297c (bundle4e5e70e9, sole
+published60741 prerequisite), including B1's real LR runtime Capacity result
+fix. Reviewed its serial/parallel constructor results, worker row-error ordering,
+parser admission/worker wrappers and parser-table propagation. The native
+baseline45926 builds all five affected binaries in29steps:114.04wall/170.43CPU,
+747688KiB peak. Query/core/functions all pass; functions13.76wall/16.31CPU,
+320248KiB. Source manifests agree and the complete native package/resources are
+retained in l1_before_function_index_76d297c and
+l1_resources_function_index_76d297c. Compiler dbaad6534778da889d105144e94176ea8b75f6926a65480856e44339c195cfde.
+This replaces rejected b476 live objects with a coherent union; no final release
+or current-union instrumentation claim follows from that native baseline.
+
+Preserved failed setup experiments: the first baseline preflight exited1 before
+any build because WSL Git's default line-ending interpretation differs from the
+Windows checkout. A per-command core.autocrlf=true guard checks the same clean
+content without rewriting files. The first new Tower fixture leaf rejects the
+reserved identifier expected; corrected only that local name. Next1841 leaf and
+LR relink pass but query aborts134 without the intended assertion: the fixture
+incorrectly asks a strict invocation to print before admission. Source contract
+forbids that effect. Exact failed fixture33fab9a0 is saved and matches its frozen
+source manifest. This is a fixture failure, not demonstrated budget enforcement.
+
+Corrected64435 fixture separates runtime output-order cases from staged
+no-output cases. It obtains the growth boundary from the actual initial table,
+constructs the second function ordinal before any measured invocation, and
+fills only the actual remaining world budget. Its public leaf and LR relink
+pass; unchanged production then fails all four initial/growth Capacity and four
+terminal-replay assertions at32-bit target width. The harness exits134 after
+that width;64-bit cases are not reached. Exact logs, source manifests and inner
+status remain recorded under function_index_before_retry2; Windows wrapper1
+is not confused with the inner process result.
+
+Implemented four owned production paths: function_values is work_vector(void*),
+checked growth preserves old storage and first typed error, initialization uses
+the actual required extent, and duplicate/overflowing indexes reject as Invalid.
+The ordinary evaluator reports the failed reference at its actual expression
+offset; storage disposal releases the matching physical grant. Existing
+representation, signature and callee-before-argument rules are unchanged.
+The same fixture now additionally checks active budget ownership, exact physical
+bytes and unchanged reservation identity on denial. Patch8399afdc00746a60308183d230a1d2ea13b6566ad62fd72e65d67466f74d611c
+contains only these four production files and the existing query fixture.
+
+Current83822 smallest leaves/coherent ABI rebuild/native gates are in progress.
+Before/after profiling will run small/large callback loops and1/4-worker unit/body
+compilations at one real staged executable/resource path, with copies outside
+timings, exact outputs/canonical comparison and frozen hashes. That prepared
+64-child script has not run. Current instrumentation, performance, merged owner
+handoffs and publication acceptance remain pending. No new host implementation,
+syntax adoption, deliberate invalid-memory/race probe or todo edit was added.
+
+Native after83822 completes0: both actual public-bootstrap leaves pass;
+coherent16step rebuild58.30wall/84.61CPU/736388KiB; query0.35wall/0.26CPU/74716KiB,
+core8.90/10.45/311660, functions12.87/15.29/330936, fullunits28.86/44.79/871288,
+type-construction1.32/1.63/189912. All five suites pass, including all ten new
+runtime/staged cases at32/64-bit widths. Exact before/after/final source manifests
+match. Native compiler23fc9785e8caed918fb1a762aa791116dfbf042a9b47bf2f755bfb144eb3bfd0;
+LRfd9c0b719d1497c7d51f63ef28ce937518fe6f9958105e8870ea789037113e62;
+executiona298bbe07b62c00c1b33b08f20395b83fb68ea1325b0907b573b3940fd1a340a;
+profile56bdc9fb32547e667f94c54d67f54f2d57594aedcb32b297241004d6ddd3efd4.
+These suite timings are validation receipts, not controlled production-cost
+claims. The fullunits gate independently passes the integrated B1 Capacity fix
+on this source; older source-specific failures remain unchanged in the record.
+The corrected BEFORE fixture has been retained byte-for-byte (SHA256
+ d1615936d7f4cde35cb42549319451ab871d4da3330f64e2b5c9e3bd53d0363e),
+verified against its original frozen manifest. L2 now owns its bounded AFTER
+slot; own quiet64 and six address/six thread gates remain prepared, unrun.
+
+Quiet paired80476 completes64/64 processes with exact scalar output0 and all
+frontend canonical comparisons; full source, immutable binary, packaged resource
+and explicit input manifests agree. All variants execute at one real path;
+installation copies/hash comparisons are outside the synchronous measured child.
+Linux x64/LLVM19 Release/public bootstrap, default allocator policy, CLI --jobs1
+--no-optimize,1000/100000 callback selections; frontend four units or one unit
+with256 bodies at1/4 workers. One warmup and three balanced measured samples per
+configuration. The WSL rg availability preflight failed before any timed child;
+available grep performs the same canonical-field extraction, no new dependency.
+
+| Configuration | Wall s before/after | CPU s before/after | Peak RSS KiB before/after |
+| --- | --- | --- | --- |
+| Graph small | 1.49 / 1.52 | 1.48 / 1.51 | 176076 / 176148 |
+| Graph large | 1.71 / 1.74 | 1.70 / 1.76 | 175996 / 176000 |
+| Fast small | 1.81 / 1.79 | 1.81 / 1.77 | 180756 / 180648 |
+| Fast large | 1.94 / 1.96 | 1.94 / 1.96 | 180616 / 180664 |
+| Four units,1 worker | 5.99 / 5.91 | 5.94 / 6.04 | 211572 / 211768 |
+| Four units,4 workers | 2.10 / 2.18 | 7.99 / 7.98 | 561324 / 561088 |
+|256 bodies,1 worker | 1.66 / 1.63 | 1.59 / 1.59 | 186340 / 186300 |
+|256 bodies,4 workers | 1.40 / 1.41 | 1.75 / 1.78 | 209128 / 209236 |
+
+Graph execution medians4.036->3.545ms small and215.654->216.654ms large; compile
+medians1343.393->1376.665ms and1352.662->1386.434ms account for most of the observed
+CLI wall difference. Fast execute1.901->1.858ms small /184.854->185.410ms large;
+prepare3.329->3.796ms /3.524->3.634ms. Do not hide the roughly2% graph CLI cost,
+1% large Fast cost, or variable3.8% four-unit wall median; these limited samples
+do not establish broad performance neutrality. Graph-large execution samples
+215.654/222.405/207.460 before versus216.654/217.626/211.696 after overlap. Unit4
+wall samples2.21/2.10/1.98 versus2.19/2.18/2.14 also overlap, with essentially equal
+CPU medians. No further identical matrix or speculative arithmetic optimization
+is justified by these results. Phase and process metrics remain separate.
+
+Retained budget bytes rise1344 per body world (22292593->22293937 serial,
+22289513->22290857 with4 reserved lanes) and5376 for four units
+(20199611->20204987 serial,20187459->20192835 parallel). Reported physical owners
+include enlarged invocation descriptors and any retained table grants; this is
+not an RSS delta or proof that the entire difference is a live function table.
+Serial unit charged peak82846179->82850211; parallel peak varies by overlap,
+median268771689->268748120. RSS is stable to the displayed small differences.
+
+Every four-unit/4-worker sample observes actual outer_peak4 and canonical
+17697577322696030917; the after median phase2.108s contains8.328s of summed outer
+intervals. Serial/parallel wall medians imply about2.85x before and2.71x after
+on this workload, with extra aggregate CPU6.04->7.98s in the after variant.
+Body canonical12683198132697182263 remains exact; its outer_peak is1 and reserved
+lanes4, which alone does not prove four concurrent body workers. Ledger storage
+is5242880 bytes except four-unit/4-worker20971520. Full raw samples and extracted
+metrics are in logs/function_index_profiles; current address/thread and final
+merged public-bootstrap/browser/publication acceptance are still pending.

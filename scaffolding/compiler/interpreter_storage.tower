@@ -52,7 +52,7 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     }
     work_vector_dispose(&m.frames);
     work_vector_dispose(&m.node_cache);
-    vector_dispose(&m.function_values);
+    work_vector_dispose(&m.function_values);
     type_object_index_dispose(&m.type_values);
     vector_dispose(&m.allocations);
     vector_dispose(&m.free_blocks);

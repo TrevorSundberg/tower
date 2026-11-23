@@ -222,6 +222,7 @@ export fn call_query_tests(width: u32): u32 {
     interpreter_invocation_dispose(&invocation);
     entity_release(root);
     call_query_check(compiler_world_dispose(world), "Suspended call inputs release their world", &failures);
+    failures += function_query_tests(width);
     failures += input_query_tests(width, InputQuerySmallBytes, false);
     failures += input_query_tests(width, InputQueryLargeBytes, false);
     failures += input_query_tests(width, InputQuerySmallBytes, true);
@@ -521,5 +522,207 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
         call_query_check(released.used_bytes == 0 && released.live == 0 && work_budget_dispose(&budget),
             "The world budget outlives cancelled and retained interpreter buffers", &failures);
     }
+    return failures;
+}
+
+
+// Function references keep declaration identities outside guest memory. Exhaust
+// the shared allowance only after ordinary entry storage and prior effects exist.
+var FunctionQueryOffset: usize = 73;
+var FunctionQueryBudgetBytes: usize = 8388608;
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn strlen(text: u8*): usize;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+
+fn function_query_require(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn function_query_reference(root: void*, width: u32, binding: void*, signature: void*): void* {
+    var reference = call_query_node(root, width, KFunctionReference);
+    sem_get(reference).binding = binding;
+    sem_get(reference).type = { scalar: SFunction, record: signature, pointer_bytes: width, ..default };
+    var converted = call_query_node(root, width, KConvert);
+    sem_get(converted).value = reference;
+    sem_get(converted).type = sem_get(reference).type;
+    sem_get(converted).start = FunctionQueryOffset;
+    return converted;
+}
+
+fn function_query_print(root: void*, width: u32, number: u64): void* {
+    var value = call_query_node(root, width, KOperand);
+    sem_get(value).constant = true;
+    sem_get(value).bits = number;
+    var statement = call_query_node(root, width, KPrint);
+    sem_get(statement).value = value;
+    return statement;
+}
+
+fn function_query_tests(width: u32): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    function_query_require(work_budget_init(&budget, 1, FunctionQueryBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Function-reference budgeted world creation");
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var entry = call_query_node(root, width, KFunction);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    var signature = call_query_node(root, width, KType);
+    sem_get(signature).element = { scalar: SI32, pointer_bytes: width, ..default };
+    var first = call_query_node(root, width, KFunction);
+    var first_value = function_query_reference(root, width, first, signature);
+    call_query_push(&sem_get(body).items, first_value);
+    // Obtain the actual retained extent, then construct the next ordinal before
+    // any tested invocation starts. Never mutate a running input graph.
+    var probe: IMInvocation = default;
+    function_query_require(interpreter_invocation_init(&probe, entry, convert(usize, width), null, 0, true, CallQueryFuel),
+        "Function-reference extent probe entry");
+    probe.context.type_arguments = true;
+    interpreter_invocation_step(&probe, convert(usize, CallQueryFuel));
+    function_query_require(probe.state.done && !probe.state.failed && probe.state.function_values.length == 1,
+        "Function-reference extent probe execution");
+    var next_index = probe.state.function_values.capacity;
+    interpreter_invocation_dispose(&probe);
+    var second = call_query_node(root, width, KFunction);
+    sem_get(second).index = next_index;
+    var second_value = function_query_reference(root, width, second, signature);
+    sem_get(body).items.length = 0;
+    call_query_push(&sem_get(body).items, function_query_print(root, width, 7));
+    call_query_push(&sem_get(body).items, first_value);
+    call_query_push(&sem_get(body).items, function_query_print(root, width, 8));
+    call_query_push(&sem_get(body).items, second_value);
+    call_query_push(&sem_get(body).items, function_query_print(root, width, 9));
+    var baseline: WorkBudgetSnapshot = default;
+    call_query_require(work_budget_snapshot(&budget, &baseline));
+    for(var mode: usize = 0; mode < 3; mode++) {
+        var denied = mode != 0;
+        var growing = mode == 2;
+        var invocation: IMInvocation = default;
+        function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, false, CallQueryFuel),
+            "Function-reference runtime entry before pressure");
+        invocation.context.type_arguments = true;
+        var preceding_output = growing ? "7\n8\n" : "7\n";
+        var output_bytes = strlen(preceding_output);
+        for(var step: u64 = 0; step < CallQueryFuel && invocation.context.output.length < output_bytes; step++) {
+            interpreter_invocation_step(&invocation, 1);
+        }
+        function_query_require(!invocation.state.done && !invocation.state.failed
+            && invocation.context.output.length == output_bytes && strcmp(invocation.context.output.data, preceding_output) == 0
+            && invocation.state.function_values.length == (growing ? 1 : 0),
+            "Function-reference preceding runtime effects and table extent");
+        var original = invocation.state.function_values.data;
+        var length = invocation.state.function_values.length;
+        var capacity = invocation.state.function_values.capacity;
+        var reservation = invocation.state.function_values.reservation;
+        var occupied: WorkReservation = default;
+        if denied {
+            var remaining: WorkBudgetSnapshot = default;
+            call_query_require(work_budget_snapshot(&budget, &remaining)
+                && work_budget_reserve_result(&budget, 0, 0, remaining.bytes - remaining.used_bytes, &occupied)
+                    == WorkBudgetError.None);
+        }
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        if denied {
+            call_query_check(invocation.state.done && invocation.state.failed
+                && invocation.state.storage_error == WorkBudgetError.Capacity
+                && invocation.state.error_offset == FunctionQueryOffset
+                && invocation.context.error.data != null
+                && strcmp(invocation.context.error.data, "Cannot allocate interpreter function storage") == 0
+                && strcmp(invocation.context.output.data, preceding_output) == 0
+                && invocation.state.function_values.data == original
+                && invocation.state.function_values.length == length
+                && invocation.state.function_values.capacity == capacity
+                && invocation.state.function_values.reservation.active == reservation.active
+                && invocation.state.function_values.reservation.owner == reservation.owner
+                && invocation.state.function_values.reservation.slot == reservation.slot
+                && invocation.state.function_values.reservation.generation == reservation.generation
+                && invocation.state.function_values.reservation.bytes == reservation.bytes,
+                "Function-index denial preserves exact failure, preceding effects and original storage", &failures);
+            call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+            var steps = invocation.state.steps;
+            interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+            call_query_check(invocation.state.done && invocation.state.failed
+                && invocation.state.steps == steps && strcmp(invocation.context.output.data, preceding_output) == 0,
+                "Released function-index allowance cannot replay a failed invocation", &failures);
+        } else {
+            call_query_check(invocation.state.done && !invocation.state.failed
+                && strcmp(invocation.context.output.data, "7\n8\n9\n") == 0
+                && invocation.state.function_values.length == next_index + 1
+                && invocation.state.function_values.data[0] == first
+                && invocation.state.function_values.data[next_index] == second
+                && invocation.state.function_values.reservation.active
+                && invocation.state.function_values.reservation.owner == &budget
+                && invocation.state.function_values.reservation.bytes
+                    == compiler_buffer_allocation_size(invocation.state.function_values.capacity * sizeof(void*)),
+                "Function references preserve their declaration ordinals across table growth", &failures);
+            for(var index: usize = 1; index < next_index; index++) {
+                call_query_check(invocation.state.function_values.data[index] == null,
+                    "Unused function ordinals remain empty", &failures);
+            }
+        }
+        interpreter_invocation_dispose(&invocation);
+        var released: WorkBudgetSnapshot = default;
+        call_query_require(work_budget_snapshot(&budget, &released));
+        call_query_check(released.used_bytes == baseline.used_bytes && released.live == baseline.live,
+            "Function-index disposal returns every private grant to its world", &failures);
+    }
+    // Staged evaluation has no output capability. Exercise the same admission
+    // sites without adding an unsupported effect to the fixture's contract.
+    sem_get(body).items.length = 0;
+    call_query_push(&sem_get(body).items, first_value);
+    call_query_push(&sem_get(body).items, second_value);
+    for(var growing: usize = 0; growing < 2; growing++) {
+        var invocation: IMInvocation = default;
+        function_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel),
+            "Function-reference staged entry before pressure");
+        if growing != 0 { interpreter_invocation_step(&invocation, 1); }
+        function_query_require(!invocation.state.done && !invocation.state.failed
+            && invocation.state.function_values.length == growing,
+            "Function-reference staged entry reaches the selected table extent");
+        var original = invocation.state.function_values.data;
+        var capacity = invocation.state.function_values.capacity;
+        var reservation = invocation.state.function_values.reservation;
+        var occupied: WorkReservation = default;
+        var remaining: WorkBudgetSnapshot = default;
+        function_query_require(work_budget_snapshot(&budget, &remaining)
+            && work_budget_reserve_result(&budget, 0, 0, remaining.bytes - remaining.used_bytes, &occupied)
+                == WorkBudgetError.None, "Function-reference staged pressure uses the actual remainder");
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        call_query_check(invocation.state.done && invocation.state.failed
+            && invocation.state.storage_error == WorkBudgetError.Capacity
+            && invocation.state.error_offset == FunctionQueryOffset
+            && invocation.context.error.data != null
+            && strcmp(invocation.context.error.data, "Cannot allocate interpreter function storage") == 0
+            && invocation.context.output.length == 0
+            && invocation.state.function_values.data == original
+            && invocation.state.function_values.length == growing
+            && invocation.state.function_values.capacity == capacity
+            && invocation.state.function_values.reservation.active == reservation.active
+            && invocation.state.function_values.reservation.owner == reservation.owner
+            && invocation.state.function_values.reservation.slot == reservation.slot
+            && invocation.state.function_values.reservation.generation == reservation.generation
+            && invocation.state.function_values.reservation.bytes == reservation.bytes
+            && !invocation.context.returned,
+            "Staged function-index denial preserves exact failure and original storage", &failures);
+        call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+        var steps = invocation.state.steps;
+        interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+        call_query_check(invocation.state.done && invocation.state.failed && invocation.state.steps == steps,
+            "Staged function-index denial stays terminal after pressure is released", &failures);
+        interpreter_invocation_dispose(&invocation);
+        var released: WorkBudgetSnapshot = default;
+        call_query_require(work_budget_snapshot(&budget, &released));
+        call_query_check(released.used_bytes == baseline.used_bytes && released.live == baseline.live,
+            "Staged function-index disposal retires every private owner", &failures);
+    }
+    entity_release(root);
+    call_query_require(compiler_world_dispose(world));
+    var released: WorkBudgetSnapshot = default;
+    call_query_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0
+        && released.live == 0 && work_budget_dispose(&budget),
+        "Function-reference world outlives and retires all private owners", &failures);
     return failures;
 }
