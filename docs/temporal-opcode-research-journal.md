@@ -80325,3 +80325,12 @@ Commands/logs: a1_flow_merged_build.log, a1_flow_merged_checks.sh,
 a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
 still match ROOT's three committed entity-stage files exactly. Final publication
 for this bounded task is normal main push only; gh-pages remains ROOT-owned.
+
+D2 publication resume: the prior normal push ofb3731841 lost a remote-main race.
+The direct user request permits up to three fresh-advance retries. Merged complete
+publisheda2ffdedb as c566caed, preserving both journal histories. The new late-flow
+source is only in the Semantics provider's actual depfile; rebuilt that one object
+and its full undefined-symbol policy check passes. Entities still hashes030ae5b4;
+policy/checker and24-case fixture inputs are identical, so their passing receipts
+are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
+new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
