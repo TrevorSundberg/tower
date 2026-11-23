@@ -81347,3 +81347,76 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+### ROOT executable-stage admission and pinned-input ownership (2026-11-23)
+
+Implementation is based on published f33770baf0 with the complete existing
+compiler histories. The executable pump previously asserted successful stage
+open/lease, view creation, worker admission/dispatch and stage publication.
+It also closed its input view before acquiring queued payload references.
+The new pinned-input fixture reproduces the old lease path's process abort134;
+the healthy control passes. This is an ordinary compiler lifecycle regression,
+not evidence that every allocation or concurrency failure is covered.
+
+The pump now preserves exact producer errors, uses a common lexical cleanup for
+undispatched/private stages and contexts, cancels unsettled tickets after cleanup,
+and holds its worker reservation through publication/cleanup. Joined stages acquire
+queued ownership before the last input view closes, including partial dispatch
+failure. Failed publication never exposes an executable-ready input. Source
+position comes from the canonical Foundation operation, matching the existing
+query failure path. The first candidate used parser-match offsets and the new
+fixture correctly failed all four position assertions; that failure and candidate
+patch are preserved, and the corrected operation offset passes.
+
+Focused native evidence: nine executable selectors at widths4/8 and workers1/4
+(36 trials), including the new pinned Busy case, pass; query-smoke passes its
+32/64-bit lazy staging, continuation, ownership and real clone-overlap checks.
+Existing query/edge/access/take/partial/observe/finish controls remain unchanged.
+CMake registers the new selector through the existing fixture/provider target.
+No new scheduler, allocator, AST/IR, language syntax or public layout is added.
+
+Environment: KinmenA, canonical Docker Linux x64/LLVM19 Release, ROOT's separate
+tower-c-validation container, CPUs24-31 and24GiB, six independent build actions
+and one bootstrap compiler lane. The fresh root_ecs_native cache uses the checked-in
+public bootstrap and complete resources with no private bootstrap override.
+Other host agents remained active; this is not an isolated-host speed claim.
+Initial environment setup lacked GNU time (exit127); installing time preserved
+that log. Initial focused target selection omitted TOWER_BACKEND_TESTS (unknown
+target/exit1); enabling the documented fixture option reused the completed native
+build. Neither setup failure is counted as a passing check. The corrected final
+six-action build took24.47wall/38.52CPU seconds, peak761424KiB.
+
+Same actual paths, equivalent inputs and checked outputs, one before/after sample
+for three-unit workloads: bodies0 workers1 wall3.2626->3.4129s, CPU3.1495->3.3012s,
+RSS197628->197880KiB; bodies0 workers4 wall1.2677->1.3140, CPU3.8607->4.0443,
+RSS462900->462160; bodies4096 workers1 wall4.4800->4.5703, CPU4.3626->4.4542,
+RSS679212->678804; bodies4096 workers4 wall2.4825->2.3394, CPU5.6544->5.4986,
+RSS940536->941512. Canonical hashes, entity/component counts, retained bytes and
+ledger storage match exactly; actual outer peaks are1/3. Concurrent small-unit
+peak charged bytes vary201707929->201766085 (+58156, about0.03%), while retained
+storage matches. An initial observer incorrectly required identical concurrent
+peak occupancy; its mismatch remains explicit, not hidden as an exact match.
+
+The affected ordinary comptime helper program outputs0 at both worker counts.
+Its initial serial sample was1.06->1.15s, motivating only a bounded same-path
+alternating follow-up: one warmup plus three pairs, executable copies outside
+timing and identical resource paths. Medians wall/CPU/RSS: workers1
+1.10/1.08/176716 ->1.08/1.07/176484; workers4 .96/1.18/197008 ->
+.95/1.17/195608. All outputs match. These small samples do not establish a speedup;
+they provide no persistent slowdown/retention signal warranting a broad rerun.
+
+Logs, scripts, manifests and original failures are retained under
+build/codex_ecs_20261122/ROOT_executable_before and ROOT_executable_after,
+and /cache/root_executable_baseline_f337, /cache/root_executable_before,
+and /cache/root_executable_after on the ROOT container. Candidate compiler SHA256
+5f527118e1f8833b6c7a57e7f5e9fb6590a2d9c5f975de390dd7c799237c2db1.
+The original source manifest remains frozen through baseline completion.
+No private cache compiler is adopted as a public bootstrap.
+
+Remaining: A2 owns the checked queued-hold/cancellation provenance protocol and
+its immediate producer/consumer changes; this patch uses the existing hold API
+and must adopt its checked successor when published. Executable kind/component
+startup admission and wider lifecycle acceptance are separate remaining work.
+Supported integrated memory/thread instrumentation, final public bootstrap,
+browser/generation/hosted deployment and complete core-scaling acceptance remain
+pending under the user's batched milestone workflow. Current focused tests are
+not proof of universal race freedom or final compiler completion.
