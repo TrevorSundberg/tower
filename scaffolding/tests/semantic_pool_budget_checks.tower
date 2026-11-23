@@ -1,0 +1,118 @@
+import tower;
+import generic_clone_fixture;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+
+extern fn sem_workers_open(c: SemanticContext*): bool;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+
+enum PoolBudgetEntry: u32 { Direct, Declarations, Layout }
+var PoolBudgetBytes: usize = 1048576;
+var PoolBudgetRevision: u64 = 95;
+
+fn pool_budget_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn pool_budget_enter(c: SemanticContext*, entry: PoolBudgetEntry): bool {
+    if entry == PoolBudgetEntry.Direct { return sem_workers_open(c); }
+    if entry == PoolBudgetEntry.Declarations {
+        return sem_declarations_pump(c) != SemanticPumpResult.Failed;
+    }
+    sem_layout_execute(c);
+    return c.program.resource.error == WorkBudgetError.None && c.program.error.length == 0;
+}
+
+fn pool_budget_trial(width: u32, workers: usize, entry: PoolBudgetEntry, denied: bool): u32 {
+    var failures: u32 = 0;
+    var signal = work_signal_open();
+    sem_require(signal != null);
+    defer work_signal_close(signal);
+    work_signal_post(signal);
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, PoolBudgetBytes, PoolBudgetRevision)
+        && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post));
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 0, 0, workers, &budget);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    var before: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &before));
+    var pressure: WorkReservation = default;
+    if denied {
+        sem_require(before.used_bytes < before.bytes
+            && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &pressure)
+                == WorkBudgetError.None);
+    }
+    var entered = pool_budget_enter(&context, entry);
+    var after: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &after));
+    if denied {
+        pool_budget_check(!entered
+            && program.resource.error == WorkBudgetError.Capacity
+            && context.workers.resource_error == WorkBudgetError.Capacity,
+            "A nested semantic pool preserves actual Capacity at each owning entry", &failures);
+        pool_budget_check(context.workers.count == 0 && context.workers.running == 0
+            && context.workers.storage.data == null && after.used_bytes == before.bytes,
+            "Denied pool construction publishes no slots or unaccounted storage", &failures);
+        sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None);
+        var nodes = entity_store_count(fixture.store);
+        var components = entity_store_component_count(fixture.store);
+        for(var repeat: usize = 0; repeat < 3; repeat++) {
+            pool_budget_check(!pool_budget_enter(&context, entry)
+                && program.resource.error == WorkBudgetError.Capacity && context.workers.count == 0
+                && entity_store_count(fixture.store) == nodes
+                && entity_store_component_count(fixture.store) == components,
+                "A failed semantic pool stays terminal after budget pressure is released", &failures);
+        }
+    } else {
+        var storage = &context.workers.storage;
+        pool_budget_check(entered && program.resource.error == WorkBudgetError.None
+            && program.error.length == 0 && storage.reservation.active
+            && storage.reservation.owner == &budget
+            && storage.capacity == context.workers.count * sizeof(WorkSlot)
+            && storage.reservation.bytes == compiler_buffer_allocation_size(storage.capacity)
+            && after.used_bytes == before.used_bytes + storage.reservation.bytes
+            && after.used_lanes == before.used_lanes,
+            "Nested pool slots charge their physical bytes without reserving execution lanes", &failures);
+        var slots = context.workers.slots;
+        pool_budget_check(pool_budget_enter(&context, entry) && context.workers.slots == slots,
+            "A healthy semantic pool reuses its retained slots", &failures);
+        var repeated: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &repeated));
+        pool_budget_check(repeated.used_bytes == after.used_bytes && repeated.live == after.live,
+            "Repeated pool admission does not duplicate the physical reservation", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    sem_require(work_budget_snapshot(&budget, &after));
+    pool_budget_check(after.used_bytes == 0 && after.used_lanes == 0 && after.live == 0
+        && work_budget_dispose(&budget), "Pool, graph and world release all retained byte grants", &failures);
+    return failures;
+}
+
+export fn main(): i32 {
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += pool_budget_trial(width, workers, PoolBudgetEntry.Direct, false);
+            failures += pool_budget_trial(width, workers, PoolBudgetEntry.Direct, true);
+            failures += pool_budget_trial(width, workers, PoolBudgetEntry.Declarations, true);
+            failures += pool_budget_trial(width, workers, PoolBudgetEntry.Layout, true);
+        }
+    }
+    if failures == 0 { puts("Semantic pools retain exact physical budget ownership and terminal failures."); }
+    return failures == 0 ? 0 : 1;
+}
