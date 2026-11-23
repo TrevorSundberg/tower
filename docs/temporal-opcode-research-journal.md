@@ -83608,3 +83608,13 @@ hosted-release acceptance remain ROOT-owned pending integrated gates; source
 caller adoption has no remaining unchecked hold in the scoped search. All owned
 build/test/profile jobs drained before the publication attempt. This is a
 normal main push only, with no gh-pages update or deployment claim.
+
+Final push reconciliation received `3bee18e2` (A1's inferred-stage executable
+prerequisites and D2's accounting fixture). The clean rebase preserves both,
+with code commit `d2c622d3` and prior receipt `8b1266c3`. Source review confirms
+no change to the stage library/helper or its regression fixtures. Only the
+affected `tower-lr-work-tests` target rebuilt; query-smoke (including updated
+inferred-frontier cases), resource-smoke and lifecycle14-16 pass on this merged
+input, exit0 in `stage_callers_race_merge.log`. Earlier stage and body receipts
+remain scoped as recorded, not rerun as an unrelated broad matrix. All owned
+jobs are drained. Final profiles remain evidence for their original inputs.
