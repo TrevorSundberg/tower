@@ -2079,3 +2079,43 @@ hooks/IR hashes, empty stderr and final source verification. All9 candidate
 queries pass, preserving original134 separately. Actual selected shape differs
 by instrumentation; no cross-mode throughput comparison. Clone validation scope
 is now evidenced atbf97; incoming source rows and final release remain pending.
+
+### Integrated sourcef0ed105 and D1 resource phase implementation
+
+After allbf97 validation jobs drained, D1 merged complete root97/9b318,
+L145dd and L29b histories. The frontend_modules merge kept the newer root/B2 typed
+error latch and public-accessor checks exactly. Source is not yet runtime-tested
+on D1. Corrected A2 source removes both work_named and work_instrumented duplicate
+imports; the latter was this audit's caller finding. D2 owns actual provider/link
+validation. All prior failed/successful receipts remain source-specific.
+
+Census is now1,093 tracked Tower paths /507 D1 direct paths (495tests/editor/
+playground plus12examples), all direct bodies substantively reviewed. The earlier
+compiler_work_profile row described an incoming owner revision: this137-line path
+is NEW to D1's tracked main, not a replacement of a previously tracked D1 file.
+Root9b318 supplies the selected nominal-view/budgeted pool APIs; obsolete split
+graph/pool/literal experiments remain excluded. The profile's hardcoded header
+size finding remains with A2 pending its explicit correction.
+
+D1 semantic_resource_checks now253lines: two private typed probes borrow actual
+invocations, delegate production Evaluate, and retain only their own phase flag.
+A named prerequisite attaches to Evaluation before sealing; ordinary preparation
+must reach both owning entry frames with no failure/steps/output. Gate completion
+precedes a measured all-remaining-capacity reservation. Both exact phase failures
+must be observed before semantic disposal; source-ordered diagnostics, Capacity,
+no value/replay and final world/pool/ledger retirement remain. Startup separately
+denies invocation memory after pool/world/query setup. This replaces the weak
+peak-only assertion, not the24-case matrix. Invalid preconditions produce explicit
+failure messages. No independent scheduler/IR/evaluator, guessed allowance or
+mutable shared diagnostic field. Configured workers1/4 alone do not prove both
+resource kernels overlap; independent clone evidence demonstrates transport
+overlap on the earlier exact closure only.
+
+The existing LR runner gains resource-smoke and one extern for the same exported
+resource fixture; all/query still invoke it through evaluation_query_tests exactly
+once. Explicit mode covers the same24cases and isolates before/after cost from
+adaptive clone shape selection. No new target or production public API. Source
+patchv3SHA98356f8a0db694c3567625c811151e7968e8b988043f917f9f685421ac0e80fc
+is implemented but UNCOMPILED/UNRUN while D2 owns the host slot. Atomic D1 lock
+attempt returned1 before execution and preserved D2's live lock. Measurement,
+current instrumentation and final release gates remain open.

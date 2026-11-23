@@ -62902,3 +62902,47 @@ for independent owner review. The separate TypeObjectIndex draft remains preserv
 in stash043c6b9 until this checkpoint commits. Inspection resource propagation,
 typed type-storage callers, final public bootstrap/browser/generation and leased
 atomic main/Pages publication remain unfinished; no source push or release claim.
+### D1 implements approved phase-specific resource fixture after clone jobs drain
+
+Joined complete root97 inspection history and L145dd frame/task ownership on
+main23cb916. Conflicts in frontend_modules and its fixture preserve root/B2's newer
+first-resource-error latching and public accessor assertions exactly; no invented
+production resolution. Both histories/journal remain. These inputs are UNBUILT.
+
+Per root/A1 approval03:06, tests/semantic_resource_checks now installs two typed
+fixture-owned probe records and a budgeted ordinary WorkPool callback before any
+pump. A fixture-private WorkGraph prerequisite is attached before Evaluation seals,
+blocking only Evaluate. Normal clone/preparation must yield Waiting with both
+successful entry frames, matching owner/function, queued tasks, zero steps/errors/
+output. Complete the gate without pressure, then reserve the snapshot's actual
+remaining bytes. Production work_kernel_execute still performs every kernel;
+the callback unwraps only Evaluate and captures its exact nested-memory diagnostic,
+positive steps and live owning frame before semantic coordinator disposal. Both
+probe flags must be observed after join. Startup separately proves the exact
+initial-memory denial after constructor setup. All24 cases, first-source11,
+Capacity retention, no value/replay and zero final ownership remain. The former
+peak-above-occupancy assertion is removed because it cannot prove this phase.
+
+Exact source patchbac42152de035b8b8d1d0407872f67c9e7a2a3dfdc0c9d7f56bb0223cbf70e37
+exported for owner review. It targets selected A2's budgeted pool API; that corrected
+complete owner closure has not arrived, so compilation/runtime/measurement are
+NOT claimed. No guessed entry allowance, new production API, evaluator or scheduler.
+
+Root03:29 complete corrected9b318 bundle1ffb81 arrived; D1 joined it and fullL29b
+history after the clone freeze, preserving the owned draft through Git autostash.
+Currentmainf0ed105 contains root9b318+L145dd+L29b and all prior D1 histories.
+New production APIs are now present; the draft no longer waits for interface
+availability. D2 owns the next shared heavy slot; D1 atomic acquisition found its
+03:31:58 lock and returned1 before creating scripts or running a compiler. No
+source/cache/lock was changed by that rejected acquisition.
+
+Added a resource-smoke selector to the existing LR runner and exported the same
+fixture from its existing query-checks object. Only explicit selection runs the
+isolated24cases; all/query keep their existing calls. This permits equivalent
+before/after phase-test measurements without adaptive clone workload selection
+confounding the result, and avoids a new runner/target. The before variant will
+contain original trial bodies with only this same export/selector composition.
+Its old peak-only success must not count as new phase evidence. Sourcepatchv3
+98356f8a0db694c3567625c811151e7968e8b988043f917f9f685421ac0e80fc,
+still UNCOMPILED/UNRUN pending slot. Inventory1,093/507direct with exact new paths,
+substantive review and implementation reservations recorded. No todo edit.

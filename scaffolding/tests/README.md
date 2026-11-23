@@ -968,6 +968,15 @@ query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
 
+`tower-lr-work-tests RESOURCE_ROOT resource-smoke` selects only those24 resource
+cases, using the same query-checks object and production transport. Growth cases
+first gate Evaluate until both owning entry frames prepare successfully, then
+reserve the measured remaining capacity. Per-job callbacks delegate to the
+production kernel and observe the exact growth failure before disposal. Startup
+cases separately require the initial-memory failure after constructor setup.
+This mode isolates phase/cleanup checks and before/after measurements from the
+adaptive clone workload; all/query retain their existing resource coverage.
+
 The same query entry runs `semantic_publish_checks.tower` once before its
 width/worker loop:18 pressure cases plus4 pre-cancelled cases. These check joined
 resource failures, source-ordered diagnostics, atomic canonical storage changes,
