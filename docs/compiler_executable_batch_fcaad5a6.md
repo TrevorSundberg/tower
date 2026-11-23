@@ -141,3 +141,11 @@ SHA256 `0e61607668917fd8c88c4927190594c6867e3ecde0be47161fb0a17a6ec13219` and
 `d0fcc246751a2856859306bf2ab18e41002aedb5390905a5701a29d2eb63fc19` respectively.
 All processes exited 0 and drained. Old stashes and unrelated sources remain
 preserved; runtime deployment remains ROOT's separate gate.
+Final normal-push reconciliation: the first push raced upstream `260562f4`.
+History-preserving merge `284019bc76404cdd74269a824c5bdb893685b54b` retains A1's
+backend-session fallback and D2's browser diagnostic work. None of those paths
+occurs in the 509 executed Tower input entries: all 509 hashes, the public
+bootstrap and the three directly changed code/registration files still match.
+Those focused runtime receipts are reused without rerunning unchanged code.
+The separate backend-session/browser changes retain their owners' evidence;
+this task does not claim to validate those methods or deploy a reactor.
