@@ -67681,6 +67681,102 @@ queued quiet32 profiles get the next host slot. Full ROOT351 production adoption
 cache performance follow-up, remaining map/function/Fast ownership and integrated
 public-bootstrap/browser/generation/publication acceptance remain open.
 
+### L2 current scratch/return ownership union: supported instruments (2026-11-23)
+
+The next unstarted boundary joined complete ROOT565cd436 (bundle8d838127) and
+L1's direct-return correction9e8e2665 (bundlebeeb5dc7), preserving full histories.
+Final frozen source is2e3d82c1a0825d1e46b8233a07818c183b3007e0, including L2's
+9ced scratch migration and c1dc fixed-path evidence. Reviewed the changed
+IMState function table, common failed-return guard, capture admission and
+borrowed-grant validation. Both merges, subsequent pull, diff check and clean
+status passed. Fetch's known pack-index warnings were followed by successful
+connectivity fsck; no work or history was discarded. No owner draft was adopted.
+
+ADDRESS69404 and THREAD66144 each completed one coherent97-step rebuild and
+ELEVEN runtime gates, all status0. Source manifests are byte-identical between
+modes and pass at completion. Gates: execution core and functions; four-unit
+frontend work; three predetermined query-smoke stress runs; type construction;
+and exact constructor/generic CLI outputs at requested jobs1/4. Every runtime
+stderr is empty. Query coverage includes both widths' typed resource receipts,
+scratch admission, Busy publication, real cloned results and cancellation.
+The previously exposed direct-return failure is covered by the joined fixture.
+These are current-source results, not relabeled02a8 or6aa instrumentation.
+
+Environment: Linux6.18.33.2 WSL2 x86_64, LLVM/Clang19, Release, compiler jobs1,
+build jobs2, runtime budget4, separate owned address/thread caches. The private
+bootstrap override was unset; the canonical resolver selected the checked-in
+bootstrap/linux-x64/towerc, SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:exitcode=66 and
+TSAN_OPTIONS=halt_on_error=1:exitcode=66. Checked actual instrument symbols and
+hashes in seven emitted units: LR runner, semantics, entities, interpreter,
+evaluation, execution runner and frontend profile. The instrumenter executable
+and object manifest are hashed too; an instrumented launcher alone is not the
+evidence. External CLI input hashes match86934 before runtime and after drain;
+the thread recipe also checks them in its final trap.
+
+Validation costs below are wall seconds / summed CPU seconds / peak RSS KiB;
+instrumented runs are not production performance comparisons:
+
+| Gate | Address | Thread |
+| --- | --- | --- |
+| coherent build | 211.00 / 362.50 / 749628 | 159.14 / 263.62 / 749544 |
+| execution core | 73.48 / 78.34 / 907120 | 149.67 / 176.35 / 711588 |
+| functions | 113.49 / 135.70 / 963888 | 292.15 / 352.55 / 750276 |
+| four frontend units | 20.26 / 77.44 / 1246780 | 47.46 / 183.57 / 1908392 |
+| type construction | 10.84 / 14.15 / 763488 | 30.42 / 38.26 / 560740 |
+| serial constructor | 13.77 / 13.17 / 755348 | 34.47 / 34.42 / 551916 |
+| four-lane constructor | 10.80 / 14.06 / 793932 | 28.29 / 36.72 / 567112 |
+| serial generic | 13.42 / 13.64 / 754216 | 35.19 / 35.20 / 600276 |
+| four-lane generic | 11.58 / 14.30 / 795960 | 29.08 / 37.91 / 617152 |
+
+Three query runs take .86-.88s address and1.90-1.97s thread, with peak RSS
+310704-312048KiB and145572-146752KiB respectively. Both frontend observations
+report actual outer_peak4, identical canonical hash17697577322696030917,
+retained20192809 bytes at observation, selected peak268748094 bytes and ledger
+storage20971520 bytes. Those observations occur before final teardown and are
+not leaked-byte counts. The largest instrumented RSS is about1.82GiB, within
+the15.7GiB WSL allocation; no runtime resource failure or sanitizer diagnostic
+occurred. Native fixed-path9ced costs, including the serial generic regression,
+remain separately recorded rather than being replaced by these slower checks.
+
+All six query invocations retain the strict distinct-thread clone overlap
+oracle. They select width256/depth8 under instrumentation. For example the
+last thread Cancel4 run records four2048-node kernels of5.732-5.741ms with
+overlap1 and selected frame peak1664 bytes. This validates these observed
+executions; it neither resolves D1's preserved restricted-cpuset ff3 failure
+nor proves race freedom for every execution. Linux affinity correction and
+calibration diagnosis remain separate assigned work. No artificial delay,
+skipped gate, repeated-until-pass check or sanitizer suppression was used.
+
+Address compiler008ed47fc52fbbfe0630b9aeec76d0de28e1abfc38bff6a9689dcfc5262904d4,
+LRdacaa1cc344065e351af39ce7d09df6bde74f9e78503262b14d917c9a44b6be8;
+thread compilerf41eed8496c9a2dac109f3a96e1d2b199eab7bffcd9608cd6aa5c41549d3e098,
+LR02d9f1bb970c50beda5a693104c18e4e6acae9460b5282c08fe4d9157114bfc4.
+After every child drained, verified and copied four executables, seven actual
+IR units, instrumenter, object manifest, cache configuration and resources per
+mode into /root/.cache/tower/l2_scratch_instruments_2e3d82c. Its complete manifest
+is generic_scratch_instrument_snapshot.sha256. The112-file portable raw receipt
+L2_scratch_union_2e3d_instrument_receipt.tgz has SHA256
+1c8e80ca3a8e4754763d4c98047831218539054c96336d6d891125de23f6aaae.
+Earlier52-file address-only receipt2c792793 remains preserved too.
+
+The first process-inventory shell pipeline failed PowerShell/WSL quote parsing;
+direct ps transport corrected that before the first launch. No compiler/test
+failure was hidden. L1 used a separate bounded test-only slot between modes;
+its map fixture failure and corrected prerequisite are not L2 passes and no
+map production change entered this frozen union. Primary host lock was released
+only after both runs and the verified snapshot drained.
+
+This closes the supported native scratch/return instrument milestone for2e3d.
+Source-language UBSan coverage and browser sanitization are not implemented by
+these address/thread modes and remain unsupported coverage, not passes. Clean
+canonical publication bootstrap, browser/generation matrices, future ownership
+unions and atomic publication/hosted verification remain open under ROOT's
+lease. The assigned existing-provider late-inspection extraction can now proceed
+with a separate baseline and unchanged editor workload comparison. Typed raw
+node/metadata producers are still prerequisites for their generic consumers.
+
 After current4bef native/address/thread jobs drain and evidence7dc1b7d is committed,
 apply the two-path fixed-extent candidate9eac93fa. The shared constructor input now
 derives the lookup mask; the existing storage fixture checks the actual constructed
