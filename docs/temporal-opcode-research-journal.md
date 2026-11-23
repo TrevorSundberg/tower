@@ -84567,7 +84567,8 @@ Merged cold n1 was4.36wall/4.23CPU/166924KiB, installed2.13/2.10/169240. The slo
 cold observation is preserved, not replaced with the earlier median. CPUs0/2
 subsequently reported different powersave frequencies; no exact cause is proved,
 and these mixed-source integration samples establish no performance bound.
-Allocation calls drop by25 under upstream changes, not attributed to the sort.
+Allocation calls drop by25 cold and48 installed under upstream changes, not
+attributed to the sort.
 Paired old/new performance remains frozen at36ad+the explicitly recorded fixture.
 Merged frontend SHA256cf9479ee69148da4355cae82ed1527845ed2048f85b66a283a6cc3830d85f188,
 LR-worker b0fc28dcb9059a6d4bd9c3de68a1b75b816e9a1ea4dc071602caa3735c738611;
