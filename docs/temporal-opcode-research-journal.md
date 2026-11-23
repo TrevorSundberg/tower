@@ -93672,3 +93672,49 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+### B2 b8 browser adoption, frozen host78d675c4 (2026-11-23)
+
+Required pull fast-forwarded7890ebd7 to78d675c441cabba99f05276656717e53d01ead6f;
+owned container idle, CPU12-23/quota12/24GiB, cache924GiB/host113GiB free.
+Verified all32 ROOT_browser_inputs_b8d65c37 entries by size/SHA before installing;
+compiler source remainsb8d65c37d9dd4ef691d700d0d0a52c81e01b593a/public768.
+Frozen current host/fixtures/resources separately; no compiler source adoption,
+reactor build, ownership redesign or D2diagnostic edits. Exact production and
+control bytes match7890ebd7; unchanged6411workfixture permits seven-control
+receipt reuse without a fault campaign.
+
+Three fresh Linux Chromium159 strict normal runs PASS with unchanged assertions
+and30sretirement:5/2/5actualcloses,zeroCDPtargets,fullcanonical/GraphFast/output/
+query/budget checks. SharedcompilerSHAd2e7a2ae4bcfba916b684321b56aca96c2b2385c976523ece7b3f09899785e7c;
+resourceJSONa2e1902e21edc9d3046d4949485060297e2b038e90f3c059bec06f89323aac18.
+Wall6.534888/6.289145/6.254412s; waitedchildCPU2.028553/1.933816/1.905027s;
+peakRSS206128/215664/206816KiB. Compiler4close27.335/27.343/27.134ms.
+These different initializations/extra parallelfixture work are not scaling data.
+
+Preserved prior dist and replaced only ignored inputs with the checked32artifact
+set, retaining originals. Existing Windows build.mjs/nativeesbuild and existing
+WSL Tower package_playground_assets override package the actual app; no toolbuild.
+Missing local libc++license copied from C:/Sandbox/tower's cached LLVM source,
+SHA539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b.
+PackagerSHAec920939bc0a0a97485cf6213a78de487cffaa04873b0707f792a604d4d6493b.
+CPUaffinity12-23 before Node gate; GOMAXPROCS4; WSLtaskset12-23/24GiBvirtualbound.
+Build16.850564s wall,NodeCPU.265625s; NodepeakworkingSet unavailable/null,
+not claimed measured. Towerpackager14.040751s/5.867843sCPU/111744KiBRSS.
+All101manifest assets verified; capabilities LLVM/cross/threads true;
+manifestSHAfd79fc4b26fd5e73781b17304a14dc64035af37218b45b46c5532dcab00427de.
+Only existing compiler-threads browser spec now running desktop/mobile with one
+worker,original deadlines and finite540saggregate; no hosteddeployment.
+B2 static adoption completed: existing compiler-threads.spec.mjs desktop/mobile
+4PASS/0skips/0failures/0flaky, unchanged assertions/deadlines,oneworker. Actual
+service-worker isolation/sharedloading/multipleworkers/42decltype-comptime/reload
+and blocked-isolation portablefallback pass in both projects. Process28.482123s
+wall/14.817796s waitedchildCPU/401212KiBRSS; testduration24.909623s. All owned jobs
+drained. Frozen host/resource manifests match working inputs;101distasset hashes
+checked. No production/test logic changed, no newfailure or speculative fix.
+Receipt docs/browser_adoption_b8_78d675c4.md; full tested dist, source, manifests,
+prioroutputs and logs retained in B2/browser_adoption_b8_78d675c4 and owncache.
+Package manifestfd79fc4b26fd5e73781b17304a14dc64035af37218b45b46c5532dcab00427de;
+staticreportfb58274ec73e1a158ca95558b7a9b55fa24f15916d21756ba2b0a83fb7563eee.
+This closes scoped b8 UIadoption; ROOT owns later-source generation/runtime and
+hostedrelease. Earlier f167 failures retained; no broadmatrix,compilerrebuild or
+Pagesdeployment. Normal evidence publication follows.
