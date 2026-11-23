@@ -96215,3 +96215,7 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
+D1 final integration boundary: implementatione96d2282 preserves publishedb4bd9980
+history. Tested native compiler/library/host/backend, fixture/registration and
+resource hashes remain unchanged; incoming browser abort transport and unrelated
+fixtures are excluded from this execution receipt. No invalidated test rerun.
