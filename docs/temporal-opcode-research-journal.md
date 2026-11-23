@@ -87504,3 +87504,13 @@ Affected merged validation: known_scan_merge0 native dependency build9 actions P
 L1 final publication reconciliation: complete B1 LR lookahead history ea941807 merged as published runtime source ce4f7240392b283a2af9d8cf378a359b32aa7dda. Backend repair/ABI hunks unchanged. Changed-input validation rebuilt only parser-node object and relinked compiler/work runner through existing targets; backend-ir and jobs4 canonical/reference execution PASS, identical canonical1511ccbd and stdouta6556331. Reused unchanged backend541-denial, portable-consumer and8 package evidence from37b9. Exact new artifact hashes and logs retained in backend_admission_receipt.json / logs/backend_admission_lr_merge. No further runtime edits or broad reruns; all owned jobs drained, main pushed normally, todo preserved.
 
 B2 first normal push met a remote advance; recovery mergeb8958ab8 preservesda9ca482 and the known-scan ownership cleanup. Only two affected native actions rebuilt; dependency-units success/cycle workers1/4 PASS with exact canonical/diagnostic agreement. Reused unchanged frozen timing evidence; no scaling claim for the recovery source. All owned jobs drained, normal push retry follows.
+
+D1 diagnostic publication reconciliation: implementationd79740b preserved complete
+upstreamda9ca482 via merge3c96ace0. The first normal push raced newer main and was
+rejected fetch-first; required fetch/pull and a normal merge preserve6813f65b.
+All recorded reactor, diagnostic/source-location fixture, Node loader/transport
+and language input hashes still match; no rerun of unchanged cases or compiler
+build is warranted. Incoming known-scan cleanup retains its own owner receipt,
+not validation by this frozen browser reactor. git diff --check passes and todo
+is unchanged. This is source publication only; completion/retirement/generation
+and hosted gates remain separately owned. Normal push retry follows.
