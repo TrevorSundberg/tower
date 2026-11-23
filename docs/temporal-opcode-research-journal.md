@@ -93077,3 +93077,8 @@ actual Codex PID14996. Disk340487884800B before/340461453312B after, todo unchan
 Logs C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_b8d65c37. This is scoped
 Node T5 closure, not B2 browser retirement, newer compiler acceptance or ROOT
 release/sanitizer/generation evidence. Normal complete-history publication follows.
+A1 T5 publication reconciliation:46638558 merged complete05edbfb3 as06263a68,
+without conflicts/history loss. New grammar ownership/cause, parser fixture and
+symbol-policy sources are excluded from the frozen b8d executable/08d mounted
+receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
+compiler build or relabeled current-source validation. All jobs remain drained.

@@ -113,3 +113,10 @@ compiler build, browser diagnostic, broad Node/native/generation/sanitizer matri
 or hosted deployment. Documentation adds no runtime profiling obligation beyond
 the measured acceptance run. This closes **T5 on the stated artifact/input pair**;
 ROOT retains newer-provider adoption and final integrated release. Todo unchanged.
+
+Publication: receipt `46638558` merged complete incoming `05edbfb3` as `06263a68`
+without conflicts or lost journal history. Its newer grammar ownership/cause,
+parser fixture and symbol-policy sources are outside both the b8d65c37 executable
+and the recorded08d209fa resource manifest. Test/host bytes are unchanged. This
+does not relabel the once-only run as validation of those newer providers; no
+additional T5 invocation or build was made.
