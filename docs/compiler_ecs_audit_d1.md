@@ -2886,3 +2886,11 @@ transport. Actual43 linked objects/instrumented IR and20 required access-hook
 checks are retained. This supports the ed7 scope only: prospective c944 fixtures
 and current thread/whole-release acceptance are still pending. No race probe was
 changed or re-executed after ROOT's directive.
+
+After actual12:53:23 job drain and host-slot release, full D294bc and ROOTc944
+histories are adopted as f41b7ef546c526cc2aecae3b22b8fd8a1be970ff. The reviewed
+roster is now539/539 of1128. Two README conflicts moved existing paragraphs;
+resolution preserves all content and equals ROOT's complete README. Production
+and build inputs match c944 exactly. The ed7 receipt remains separately scoped.
+The capture registration is still only an independently reviewed external draft:
+its direct public-leaf/manual-link baseline must run before the CMake edit.

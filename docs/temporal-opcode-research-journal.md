@@ -77594,3 +77594,22 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+D1 commits/pulls1beec9a8c, exporting complete history bundle
+D1/D1_child_positive.bundle (sole60741 prerequisite), SHA256
+da8ccc28208eec59b0ed664d28e2059ce7034ac82cfd876c920183d8f2d6ef9a.
+The500MiB child_positive_receipt.tar SHA256
+7160ccfd020a1c0dfe033a8ee6c3ec632805505fa670ba00939ed6b055a90919
+contains actual ed7 native/address evidence, both timeout/collector failures,
+profiling and exact objects/resources, plus the earlier matched proof control and
+already-closed race-provider failure/reference logs. It is not a complete thread
+or release receipt. No negative probe is executed again.
+
+After drain, merge full D294bc as4bd75554f and full ROOTc944 asf41b7ef54. README
+conflicts are relocations of existing metadata/child paragraphs; preserve all
+text and the new queue-alias explanation, yielding ROOT's exact README. Journal
+entries remain present and both complete histories are retained. Production,
+CMake and bootstrap inputs now match c944 exactly; current roster539/1128.
+D2 has the heavy slot at c801 with the same production inputs. D1 prepares the
+ordinary public-leaf/manual-link baseline for capture continuation while waiting;
+no CMake edit, new compilation or current-runtime acceptance is implied by merge.
