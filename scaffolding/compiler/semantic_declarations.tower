@@ -1802,6 +1802,49 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
 
 extern fn generic_error_clear(context: void*): void;
 
+// Module-local declarations retain the same lexical frame and query frontier as
+// function-body declarations. The coordinator consumes each completed phase at
+// this source-order boundary; neither binding nor initialization is replayed.
+fn sem_module_declaration(c: SemanticContext*, node: void*): void {
+    var saved_subjects = c.declaration_subjects;
+    var saved_isolated = c.declaration_isolated;
+    var subjects: vector(void*) = default;
+    c.declaration_subjects = &subjects;
+    c.declaration_isolated = true;
+    defer {
+        generic_error_clear(c.generics);
+        c.declaration_subjects = saved_subjects;
+        c.declaration_isolated = saved_isolated;
+        vector_dispose(&subjects);
+    }
+    var declaration = sem_declaration_state_result(c, node);
+    if declaration == null { return; }
+    declaration.scope = c.scope;
+    declaration.current = c.current;
+    sem_body_save(c, &declaration.lexical);
+    if !sem_declaration_add_result(c, node) { return; }
+    sem_declaration_discover(c);
+    sem_declarations_execute(c, &subjects);
+    if !sem_ok(c) { return; }
+    sem_declaration_report(c, node);
+    if !sem_ok(c) { return; }
+    sem_body_restore(c, &declaration.lexical);
+    var value = sem_get(node);
+    var source = sem_member(node, "value");
+    if source != null && value.value == null {
+        var initializer = sem_expression_add(c, source, &value.type, &declaration.lexical, SemanticExpressionMode.Initializer);
+        if initializer == null || !sem_work_query(c, node, work_depend(&c.queries, initializer.query, declaration.query)) { return; }
+        sem_declaration_discover(c);
+        sem_declarations_execute(c, &subjects);
+        if !sem_ok(c) { return; }
+        sem_declaration_report(c, source);
+        if !sem_ok(c) { return; }
+        sem_body_restore(c, &initializer.lexical);
+        value.value = initializer.value;
+    }
+    sem_declaration_finish(c, node);
+}
+
 // A module expression has the same producer frontier as a body operand. The
 // coordinator waits only at this source-order boundary and consumes the checked
 // result once; lexical storage and subsequent statements retain their owner.

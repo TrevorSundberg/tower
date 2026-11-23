@@ -1,0 +1,25 @@
+import tower;
+fn box(T:type):type { struct Item { value:T; } return Item; }
+fn forwarded(T:type):type { return box(T); }
+var effects:i32=0;
+fn once():usize { effects++; return 41; }
+var entered:usize=0;
+for(var address:usize=0; address<2; address++) {
+    var original:box(decltype(address));
+    original.value=once()+address;
+    var same:forwarded(decltype(address))* = &original;
+    same.value++;
+    print(original.value);
+    print(sizeof(decltype(original)));
+    {
+        var address:i16=7;
+        var nested:box(decltype(address));
+        nested.value=address;
+        var alias:forwarded(decltype(address))* = &nested;
+        print(alias.value);
+        print(sizeof(decltype(nested)));
+    }
+    entered++;
+}
+print(entered);
+print(effects);
