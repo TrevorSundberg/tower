@@ -95514,3 +95514,5 @@ missing complete implementation history, not an independent approval. Incoming
 changes are documentation only; backend/compiler/library/host/CMake blobs match
 the validated gate adoption exactly. No runtime rerun. Todo SHA remainsb927852f,
 all owned jobs drained, source checks reused by identity; retry normal main push.
+
+L1 independent review d7635e9c reconciled through complete-history merge 20cba101e427d285d019022373d58d13616b047a with published6b74889b. Library/host/compiler gate and Entity producer blobs are unchanged. Incoming L2 unsigned-overflow reconstruction, package pruning and declaration-oracle work are preserved outside this review. Read changes to the two inventoried legacy-gate fixtures backend_source_native/module_body_type_checks: optimized artifact saving and error/output oracles change; synchronization callbacks/ownership/teardown do not. Frozen66-file review manifest retains its original identity; these later fixture blobs are explicitly separate. No build/test rerun for this documentation review; diff check passes. Normal main push follows.
