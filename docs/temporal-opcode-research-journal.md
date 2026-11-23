@@ -68194,7 +68194,8 @@ false-idle coverage remains distinct. B2 measured old64MiB fixture allowance
 below actual67,945,316-byte compilation peak; a same-input reference-derived
 allowance now passes original finite-cap replacement/retry/output assertions.
 This fixture correction is not an arbitrary cap increase or memory-regression
-clearance. L2 editor memory analysis and full-source acceptance remain open.B1 merged29f44135 native checkpoint 2026-11-23T08:54:00.6777976Z: corrected smallestentities object
+clearance. L2 editor memory analysis and full-source acceptance remain open.
+B1 merged29f44135 native checkpoint 2026-11-23T08:54:00.6777976Z: corrected smallestentities object
 5.16s/312044KiB and coherent native build28.32s/777768KiB PASS. Parser0.04s,
 grammar-resource1.32s, query0.25s (now includes fixed receipts/canonical failure
 order), new24phase resource cases across4/8bytes x1/4workers PASS. Units19.10s/
