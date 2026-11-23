@@ -431,3 +431,568 @@ storage, zero dispatched work and zero live scratch receipts across repeated
 entry. semantic_publish_checks owns these cases through its separate
 cancellation export; existing18 pressure tests also pass on final source.
 This is joined-frontier cancellation coverage, not mid-kernel stop latency.
+
+### Shared constructor join and checked known-work draft
+
+Reviewed e54c1df9 plus the current owned draft. Full census54/54 assigned paths
+includes the new focused source below; a full per-file review is not acceptance.
+Current constructor ABI fails the public semantic aggregate, with exact failed
+receipts in the journal. Earlier22 Publish passes cover the preconstructor ABI.
+
+| Assigned path | Complete current review, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_dispatch_checks.tower | All source reviewed: explicit world/budget/context and real four-worker pool; coordinator-only one-shot host semaphore denial; normal and Memory controls, source-order error, private canonical output, repeated entry and final ownership cleanup. Type-derived array count. Public object compiles after correcting command entry mode; linked runtime/instrumentation pending. |
+| scaffolding/compiler/semantic_context.tower | Checked admission returns the owner's typed reserve result; old wrapper remains for unconverted callers. Checked observation can fail after graph mutation; joined-only cancellation captures the fixed graph resource error and invalidates outstanding receipts. No context layout or worker-shared error mutation. Source implemented, runtime pending. |
+| scaffolding/compiler/semantic_known_work.tower | All borrows cleared after guaranteed drain before graph settlement. Transport or terminal graph failure suppresses all output; only a joined coordinator cancels the graph, preserving the first fixed error. Result vectors and arenas still owned by job disposal. New resource checks before dispatch remain infallible initialization boundaries; not a claim that every allocation path is recovered. Source cap blocks current leaf validation. |
+| scaffolding/compiler/semantic_known_bindings.tower | Scan/Order/Inputs stop and dispose private job storage on a checked wave error. Publish retains atomic all-jobs output gate and cancelled-frontier guard. Proof/snapshot construction still has older sem_require graph allocation boundaries; these are explicit remaining work. |
+| scaffolding/tests/semantic_resource_checks.tower | Merge retains D1 runner signature plus both startup and nested executed-growth modes and all Capacity/cleanup/repeated-wait assertions. New shared constructor ABI requires rerun; older24-case receipt is not reused as current. |
+
+A2's graph arrays are borrowed directly only for reads in the assigned semantic
+callers. L2 generic/type/constructor reservation remains in force. D2 owns the
+five entrypoint imports after L1 agreement; no competing provider is added here.
+
+Follow-up full review of semantic_dispatch_checks: six trials now include actual
+terminal scratch-denial setup through the existing WorkGraph API, with all
+relationships sealed before dispatch and only a synchronized ledger hold in the
+coordinator claim wrapper. Graph cancellation is expected after partial terminal
+mutation; the first dispatch failure remains the diagnostic. Public object
+passes; runtime still pending. The failure occurs before worker admission, so
+this fixture is not evidence for partial-submission overlap or threaded allocator
+sanitization. Separate earlier22 Publish tests retain their exact ABI scope.
+
+Remaining scheduling barriers: sem_workers_open can eagerly create configured
+thread capacity before a one-job inline wave; semantic_layout_execute owns its
+typed receive stream and cannot consume body jobs safely. A2 received concrete
+lazy-opening and mixed-frontier contract findings, with no claimed speedup,
+unmeasured cutoff or competing scheduler implementation.
+
+Primary-source refresh for the storage/dispatch audit (2026-11-23): Flecs
+[systems and staging](https://www.flecs.dev/flecs/Systems.html) distinguishes
+deferred structural commands from direct component writes, and derives required
+merge points from declared access. Applied here as a design principle: pins
+retain lifetime, while semantic leases and query accesses protect actual writes;
+joins alone do not publish structural ownership. Current whole-wave barriers
+remain justified until mixed phase access/publication is explicitly supported.
+
+Flecs [component traits](https://www.flecs.dev/flecs/ComponentTraits.html) separates
+sparse stable-address storage from table fragmentation policy. Applied to Tower:
+stable SemanticEntry/work payloads and dense pointer/query indexes satisfy
+different requirements; neither a dense handle array nor the new WorkGraph
+borrowed view proves packed Foundation payloads or reduced fragmentation.
+
+Unity's [Burst aliasing documentation](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+shows why overlap assumptions can change loop results. The semantic context copy
+intentionally aliases frozen graph/component storage; distinct view types do not
+imply disjoint memory. No noalias annotation or vectorization guarantee follows
+from these patches or passing stress tests. These are interpreted design
+principles, not adoption of another implementation language or borrowed
+performance claims. This documentation review changes no runtime and needs no
+new performance sample.
+
+### Joined failure ownership follow-up at 25b4aacf (2026-11-23)
+
+The production provider and focused-test registrations from ROOT0c8b7d66 are
+now merged. This source checkpoint does not validate the newer constructor ABI.
+
+| Re-reviewed path under scaffolding/compiler | Failure ownership and next required change |
+| --- | --- |
+| semantic_execution_work.tower | Every frozen context and staged executable snapshot survives until dispatch joins. Publish stage ownership for disposal, but withhold IMFunctionInput.ready and aliases on transport/graph failure. Existing helper readiness is complete; the missing work is checked failure retirement. |
+| semantic_evaluation_work.tower | Clone/preparation stages may already be referenced by canonical payloads. Join, publish all stage ownership, then suppress aliases and successful preparation receipts on failure. Existing 128-byte interpreter diagnostics cover preparation storage failure, not all transport/graph failures. |
+| semantic_lowering_work.tower | Signature and ordinary lowering share private stages and may change leased canonical payloads. Discarding a stage could leave dangling links. Keep all-stage ownership publication before graph settlement; suppress downstream readiness and retain the first diagnostic after a terminal graph allocation fails. |
+| semantic_body_work.tower | Publication also transfers allocation/list owners, evaluations, capture state and lexical prefixes. Failure cleanup must retire those owners without replaying a continuation or creating new queries after graph cancellation. Existing result disposal is the ownership reference, not a replacement scheduler. |
+| semantic_iteration_work.tower | All TypeIndex reads must retire before signature interning or preparation write claims. A failed batch must clear every borrowed context and dispose result vectors without calling the normal signature/publication path. |
+| semantic_flow.tower | Workers only calculate private flow facts; no staged ownership transfer is needed. Source-ordinal diagnostic order and terminal receipt cleanup can use the same checked transport contract. The current loop still assumes all requested jobs are immediately ready. |
+| semantic_known_work.tower | The checked dispatch draft handles joined transport/observation/finish failure, but graph request/access/seal/demand and take-time growth remain asserted. An empty batch after resource failure must not be reported as ordinary Waiting. Proof/snapshot callers also remain fallible-work gaps. |
+| semantic_query_pipeline.tower | Phase pumps own their frontiers; cycle selection belongs to the caller after all producers quiesce. Isolated layout diagnostics are deliberately deferred, but future infrastructure errors must not be cleared as ordinary producer diagnostics. |
+
+These are source-reviewed obligations, not newly passing runtime cases or a
+claim that every allocation is world-budgeted. No runtime code changed in this
+review, so a new performance sample is inapplicable. A2's public predecessor
+LLVM shows aggregate reset already uses memset; the earlier proposed default
+expansion attribution is withdrawn without a cosmetic source rewrite.
+
+### A1 numeric source-boundary experiment, not acceptance (2026-11-23)
+
+At25b4aacf plus the checked-dispatch draft, public9653 still exceeds its semantic
+component allowance after the constructor merge. A2's separately linked graph/
+pool candidate also fails its aggregate, so ROOT approved an A1-owned literal
+leaf experiment before any broader compiler split. No numeric library changed.
+
+New scaffolding/compiler/semantic_literals.tower is the55th assigned semantic
+path, fully reviewed here: it contains the unchanged borrowed-token classifier
+and the existing float_parse/status diagnostic block. It calls the same ordinary
+float_text implementation, uses the caller's private context, retains no pointer,
+and creates no numeric policy, constant folder, registry or scheduler. Its four
+declarations call the existing semantic owners. sem_literal, sem_token_text and
+sem_fail gain exports; semantic_support/semantic_values call two typed leaf
+functions instead of importing the full numeric implementation. KBits sign
+classification compares the same ASCII byte through an ordinary local "-" string.
+
+The isolated public object passes2.48wall/1.88user/.15sys/233300KiB
+(semantic_literals_leaf1, Linux x64 jobs1, LLVM19, own4CPU8GiB). First aggregate
+attempt failed on the remaining FloatDecimalMinus use. A quoted '-' is a string,
+not a scalar byte; direct indexing of the literal is also unsupported. Both
+failed attempts are retained, not new syntax or bootstrap adoption. The corrected
+local-string form compiles past those errors but still hits the component cap
+at semantic_types217 (semantic_literals_aggregate4); all jobs exited/reaped.
+This result is before A2's new API/borrowed-view package. No linked/runtime,
+performance-equivalence, provider, WASI or generation acceptance is claimed.
+D2 provider routing is conditional on a successful aggregate. Required later
+evidence includes float literals, exact bits/signed zero, malformed diagnostics,
+canonical roundtrips and matched small/large before/after profiling.
+
+The dispatch fixture now has a separate admission selector for two pointer
+widths with the graph's available ledger held before query creation. It expects
+failure before dispatch, a retained Capacity receipt, no value publication and
+no replay. Its public object passes3.09wall/2.33user/.16sys/221092KiB
+(semantic_dispatch_unit4). The original six default trials are unchanged.
+Neither selector has current-ABI linked runtime evidence yet.
+
+Numeric-leaf follow-up: exact A2 review package dbe38d was adopted after drain;
+nine shared-owner conflicts retained the owner's latest API/types/storage and
+terminal-denial fixture. A1's literal extern/import change was preserved. The
+newly merged Publish fixture also needed API-only graph/pool imports to avoid
+duplicate providers; A2 independently included that correction in v2.
+
+Removing float_text alone still fails at semantic_types359,
+13.55wall/7.96user/1.02sys/734636KiB (semantic_literals_api1).
+The remaining full float_bits import in semantic_expression_lowering constructs
+floating one for increment/decrement. Moving that exact expression into the
+same leaf also fails the aggregate at semantic_attributes69
+(semantic_literals_api2). Both failures are preserved; no numeric boundary is
+accepted or routed into production providers. The draft is checkpointed before
+restoring its original callers for the next independent experiment.
+
+A2 v2 package3833050c corrects the serial provider's unconditional default-kernel
+reference with four API-local selection wrappers and12 implementation exports.
+Reviewed conflicts preserve the exact owner version; no deliberate memory/race
+probe is run. A1 has no complete current-ABI runtime receipt.
+
+The more direct candidate is repeated fieldwise SemanticContext copy expansion:
+the actual aggregate lowering recursively emits each field, including every
+new WorkBuffer owner descriptor. ROOT02:51:26 authorized one exported typed
+helper whose body remains ordinary *destination = *source. This preserves
+source evaluation/snapshot timing, padding and shallow borrowed ownership;
+raw byte copying and general copy-policy changes are excluded. Compare this
+helper alone with the same API/constructor inputs before retaining numeric
+module splits. Runtime outputs and matched profiles remain required.
+
+### Typed context snapshot restores public aggregate closure (2026-11-23)
+
+ROOT and A2 approved the ordinary typed helper, excluding raw copies. The exact
+11-file delta is A1_semantic_context_snapshot.patch SHA256
+04589f9cdb863f998e2e6ec81a7f2f20c4414d4e188c779e2c185d858662732d.
+One sem_context_snapshot definition retains *destination = *source;16 A1 worker
+and coordinator sites use fresh locals and call it at their original snapshot
+point. Graph/pool descriptors remain shallow borrows. Every private scratch
+replacement, stage pin/lease, join and disposal remains at its existing site.
+The thin Publish client uses the existing query API declaration; the existing
+semantic unit owns the export. No new provider, layout or semantic copy rule.
+
+On frozen A2 API v2/constructor inputs and the A1 checked-known draft, with ALL
+original numeric callers restored, public9653 before fails at semantic_values523:
+13.67wall/7.92user/1.10sys/739744KiB (semantic_context_before1).
+After only the typed snapshot delta, semantics_checks PASSES
+19.90wall/14.25user/1.06sys/706836KiB (semantic_context_after1).
+A failed compile and a completed compile cannot establish a speedup ratio.
+The thin Publish leaf also passes3.10wall/2.32user/.16sys/193860KiB.
+Linux x64, LLVM19, jobs1,4CPU8GiB, single build receipts; no runtime speed claim.
+All child processes are reaped before further source edits.
+
+The numeric-boundary candidate is retired: original semantic_support/values/
+expression_lowering code is restored, and semantic_literals.tower is removed
+from production sources. Its full55th-path audit remains historical above;
+the actual experiment is retained in Git and the owned cache's
+semantic_literals_experiment.tower. Current assigned-file census returns to54.
+No literal-provider import or numeric library change is needed.
+
+Per-file review of the snapshot delta: semantic_context owns the sole ordinary
+copy; semantic_query_api only declares it. semantic_body_work (three sites),
+semantic_declarations (one), semantic_evaluation_work (two),
+semantic_execution_work (two), semantic_iteration_work (two),
+semantic_known_work (two), semantic_lowering_work (two),
+semantic_source_bindings (one), and semantic_known_publish (one) preserve their
+original source expression, capture timing and private destination. The source
+expressions contain no effects and are evaluated once. No type/generic owner
+site is changed. Current-ABI runtime, supported instrumentation, canonical
+outputs and matched profiles remain open. A2 is asked to test the smaller
+nominal graph variant without the provisional graph/pool API split.
+
+### Minimal selected scheduler closure (2026-11-23)
+
+A2's reviewed selected package8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c
+retains nominal borrowed graph views, nongeneric WorkBuffer owners, checked
+constructor/dispatch receipts and typed length overflow. It removes the
+experimental graph/pool API/type split and restores the original providers.
+A2 independently compiled the actual parser and semantic aggregates with the
+unchanged public bootstrap and this lane's ordinary snapshot helper. A1 adopts
+that exact owner transition, generated between the two review-package trees
+in a temporary Git index; application is clean. Library/kernel/manifest trees
+match the selected package exactly. The only extra import reversal is A1's new
+semantic_dispatch_checks fixture, which was absent from A2's original base.
+All sixteen snapshot sites and A1's pending checked-known draft remain intact.
+No numeric provider or literal module remains. The API experiments and their
+cost/failure receipts remain in history, not in selected production source.
+
+The root-compatible snapshot-only patch5acefe43f2ac7926fbf2e5168990947fb25842baa6fcec5d14064b3fb17c2991
+passes git apply --cached --check against exact ROOT0c8; its one-line context
+avoids the newer checked-dispatch context in the first patch. Neither patch
+is a runtime acceptance claim. Next, rebuild all affected current-ABI objects
+before linking the focused dispatch/admission tests. Earlier cached objects
+and preconstructor runtime results cannot establish this joined source.
+### Joined admission failure and source-proof retry (2026-11-23)
+
+The selected nominal graph/helper closure exposed two provider integration
+errors before runtime. The host syntax adapter declared compiler_buffer_allocate
+and free with u8* despite the defining void* ABI. ROOT03:06:33 authorized the
+two declaration corrections and explicit casts at both uses. The first compile
+correctly rejected the missing free cast; the final public smallest unit passes
+2.37wall/1.69user/.16sys/193240KiB. This declaration-only correction preserves
+the generated allocation behavior; no runtime speed claim is attached to it.
+A separate LR runner link failed because the selected A2 work_named helper
+imported host.memory while its aggregate already linked that provider. The
+exact duplicate is confirmed by llvm-nm. A2 owns the one-import undo; no
+multiple-definition workaround or test success is claimed for that failed link.
+The current native compiler itself linked successfully.
+
+On this coherent ABI, semantic_dispatch_checks' six original trials pass:
+32/64-bit target widths with normal execution, failed batch claim, and a claim
+failure followed by terminal graph scratch denial. Real four-worker transport,
+fixed first source offset11, no canonical compaction on failure, invalidated
+remaining tickets, repeated entry and zero final ledger are checked. The
+admission selector reproduces an earlier boundary abort134/signal6 with the
+available graph ledger held before request. Before: .14wall/.02sys/49088KiB,
+semantic_dispatch_selected_admission_before1. After: both width cases pass,
+.02wall/.01sys/50824KiB, semantic_dispatch_admission_after2. A failed run is
+not a performance baseline for successful compilation.
+
+semantic_known_work now reserves its fixed diagnostic before graph admission.
+Request/dependency/access/seal/demand and pool-construction failure return
+source-ordered jobs for disposal, retaining the typed error and cancelling only
+at the joined coordinator. A failed take cannot become Waiting; already claimed
+but undispatched peers are invalidated. Existing dispatch/terminal publication
+errors use the same fixed diagnostic writer. Source-binding begin returns zero
+after failed job admission, and its capture caller stops before reading that
+absent proof. No shared type, context layout or work-graph algorithm changes.
+
+A new source selector then reproduced a separate retry bug: after the first
+typed denial, a repeated proof request created more entities/components even
+though no query ran. Both widths failed the exact count oracle. The request
+entry now checks semantic/graph failure before touching proof metadata. The
+same frozen fixture object passes after that guard; .02wall/51040KiB. All ten
+focused cases pass; public known_work leaf passes16.52wall/11.95user/.91sys/
+671636KiB and the final provider/compiler refresh22.93/16.25/1.15/732828KiB.
+All failed jobs are reaped and their logs retained in the owned A1 cache.
+The pinned link driver rejects --wrap; only this host-denial fixture links with
+installed clang++19 -no-pie and the same current production objects. There is
+no replacement compiler or private bootstrap claim.
+
+Per-file follow-up at parent9c1927a: semantic_known_work owns the bounded error
+writer and graph-admission retirement; semantic_source_bindings preserves
+pipeline-owned jobs for context cleanup and suppresses failed-entry replay;
+semantic_capture_work stops after failed proof creation; semantic_dispatch_checks
+adds the real-ledger source proof and exact entity/component retry counts. These
+source reviews and ten runtime cases do not close remaining proof/snapshot
+assertions, other phase transport failures, all scratch accounting or global
+cycle/failure coverage. Normal graph/pool callers still need coordinated world
+budget adoption. Matched successful small/large serial/four-worker profiling,
+current instrumentation and the final integrated release gates remain pending.
+### Frozen admission before/after profile and native gates (2026-11-23)
+
+The selected native compiler/LR/execution/frontend targets now link after the
+reviewed work_named provider correction. Query-smoke passes with the current
+22 Publish and24 interpreter-resource cases; these are before L1's new frame
+owners, so they do not substitute D1's calibrated successor. Control-smoke
+passes34.61wall/35.58user/2.08sys/256480KiB. Type-smoke passes224.84wall/
+229.00user/12.62sys/262596KiB, below its existing240s bound without retry.
+The ten focused dispatch/source-admission cases also pass.
+
+A2 granted a fresh quiet window03:21:40 UTC. After all owned tests drained,
+A1 ran32 checked executions (one warmup and three alternating measured pairs)
+on the same frozen small staged expression and larger aggregate/capture program.
+Native Linux x64 compiler, public9653 bootstrap/LLVM19, targetwasm32 interpretation,
+explicit identical packaged Bedrock/Foundation/types, requested workers1/4,
+warm filesystem after the excluded warmup; own affinity0-3,4CPU/8GiB.
+Before compiler7c5e9d3812d5bb110efd8ccdd73ff8e7b100dd50162e1eea0e8fd07658627859
+is9c1927a; after013a08f9435087a353a2c50fe3f54e02f77ece2147b3526bea496b5c8f6727c3
+is the three production-path872df0e admission/retry change. Resources and source
+hashes are retained in semantic_admission_paired1.log. This comparison does not
+attribute earlier snapshot/graph-constructor changes to the admission fix.
+
+| Input/workers | Median wall seconds before -> after | Median CPU seconds before -> after | Median peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| small/1 |1.18 ->1.18|1.08 ->1.09|178568 ->178880|
+| small/4 |1.08 ->1.06|1.22 ->1.21|194596 ->193140|
+| larger/1 |1.22 ->1.17|1.12 ->1.08|178168 ->179112|
+| larger/4 |1.09 ->1.07|1.23 ->1.21|196600 ->196812|
+
+All outputs match their reference, all four before/after serial/parallel
+Foundation products are byte-identical, and the after-four-worker product
+reparses/executes to the same output. The small serial CPU median increases10ms;
+larger serial peak RSS increases944KiB. Retain those costs; three samples do not
+prove neutrality or a stable speedup. Four requested workers give modest9-11%
+end-to-end wall savings in these inputs, not evidence of four-lane semantic
+overlap, all-core scaling or packed payload locality. No scheduler idle/critical
+path or full-heap allocation counter is measured here. The focused tests
+separately check real transport, exact retained ownership, zero final ledger
+and unchanged entity/component counts across failed retries. Supported current
+instrumentation and final merged bootstrap/browser/generation remain open.
+The quiet window was released immediately after process exit0 and drain.
+### Shared semantic resource receipt interface (2026-11-23)
+
+ROOT authorized one fixed `SemanticResourceFailure { error, offset }` on
+SemanticProgram, with allocation-free first-error `sem_resource_record` in the
+existing context provider and a thin query API declaration. `sem_ok` now checks
+both the receipt and ordinary diagnostic. Only fresh program initialization may
+reset it. Workers may record only on their private SemanticProgram; work that
+borrows the coordinator program must retain its result and publish after joins
+in source order. No numeric offset sort substitutes declaration/module order.
+
+At parent ab4f440, the four-path interface compiles with public bootstrap9653:
+semantic_program_types succeeds; context16.64wall/11.94user/.92sys/676736KiB;
+query API2.79/2.07/.18/203960KiB. Logs are semantic_resource_contract_*1 in the
+owned A1 cache. Exported exact patch4ff9a47670e9ffe9cf5b35f94c70ebddc48586e12c38457a2bd0be3647b5e9af
+also passes ROOT's apply check on its selected storage/parser/editor union.
+This is an interface checkpoint, not producer/consumer or runtime acceptance.
+All affected objects must be rebuilt for the added field. A1 owns ordinary
+semantic worker result transfer, L2 type/generic adoption, B2 output/inspection
+consumers. Allocation-free presentation pairing, cancellation tests, successful
+before/after profiles and current instrumentation remain to be implemented and
+validated before claiming the resource receipt closes recovery failures.
+
+### Resource receipt transfers and joined-source review (2026-11-23)
+
+Review parent460a29b5 preserves ROOT9b318 and A1's checked admission history.
+The persistent interface checkpoint9a35996 is followed by producer integration,
+not a claim of complete allocator coverage. ROOT03:34 approved bounded diagnostic
+restoration: select the first resource receipt in caller source order, retain
+its offset, and copy only into sufficient existing capacity including NUL.
+Otherwise retain an empty text vector and the fatal fixed receipt. Ordinary
+restoration cannot attach another producer's text after that selection. Valid
+message owners have separate buffers or are the exact destination vector; the
+self case captures metadata first and skips copying. A shared static enum message
+serves output consumers without allocating. sem_query_error classifies an actual
+failed graph operation; it neither drains nor cancels and must not classify an
+ordinary empty ready queue on a healthy graph as failure.
+
+| Reviewed path | Ownership and failure disposition at this checkpoint |
+| --- | --- |
+| semantic_context.tower | Existing provider owns allocation-free record, static fallback and pure graph classifier. The existing joined-only cancellation helper keeps its cleanup boundary. No shared last-error slot. |
+| semantic_program_types.tower | One fixed resource pair on the program, initialized only with the fresh program. B2/L2 coordinated ABI; no independent semantic graph or value registry. |
+| semantic_support.tower | Sticky success check and bounded paired restoration keep failure selection independent of presentation. Distinct producer vectors retain their ownership; insufficient destination capacity is explicitly supported. |
+| semantic_query_api.tower | Thin declarations for the same implementation. Capture request/pump exports expose existing resumable production entrypoints; no second implementation. |
+| semantic_declaration_types.tower | Fixed receipt added beside producer-owned diagnostic; lexical captures, query identity and scratch ownership remain on the same component. |
+| semantic_declarations.tower | Private worker receipt transfers at join. Failure walk recognizes text-free resource failure; isolated error clearing and earlier ordinary error restoration cannot replace selected resource provenance. |
+| semantic_body_work.tower | Discovery/body workers copy private receipts to retained continuations. Prefix/call/success publication excludes failed receipts. Isolated layout text clearing preserves a selected resource error; lexical/scratch ownership still transfers after all stages publish. |
+| semantic_evaluation.tower | Interpreter storage_error survives invocation disposal and optional inference. Existing source-ordered failure restoration now publishes the fixed program receipt. Isolated producers retain their receipt until the owning dependency consumer selects it. |
+| semantic_evaluation_work.tower | Private preparation receipt transfers into its existing evaluation producer, including when no message survives. All stages publish before observations and fixed receipts; failed preparation cannot mark its ticket successful. |
+| semantic_execution_work.tower | Private snapshot receipt remains on the original function's producer. IMFunctionInput.ready rejects text-free failure; existing dependency failure walk restores that receipt. Completed helper readiness is reused. |
+| semantic_iteration_work.tower | Protocol resolution workers retain their private receipt. Joined publication enters failure cleanup instead of interning/signature continuation on resource failure. |
+| semantic_lowering_work.tower | All-stage publication still precedes result processing. Source-ordered paired restore and typed ticket success keep text-free failure from becoming successful lowering. |
+| semantic_known_work.tower | Coordinator formats its pre-reserved bounded error before recording the selected typed failure. Known scan/Publish/Inputs workers never mutate the borrowed shared program receipt. |
+| semantic_capture_work.tower | Cancelled entry now fails before taking work instead of interpreting Cancelled demanded tickets as Waiting. Retained capture failure includes the resource pair without clearing the selected program text. |
+| semantic_query_pipeline.tower | Existing phase order and quiescence ownership unchanged; isolated layout recovery cannot clear selected resource text. No cycle is diagnosed at an intermediate empty phase queue. |
+
+Smallest public9653 units declaration-types, support, capture and query API and
+both focused test objects pass. support15.99wall/11.37user/.90sys/680124KiB;
+receipt fixture2.97/2.22/.16/213160; dispatch fixture3.06/2.35/.12/215148.
+The first attempt failed unsupported else-if syntax; its log is preserved and
+the two handlers use supported nested if. No runtime result is inferred from
+these object compiles. Native refresh and focused runtime checks are next.
+The root-applicable four-path contract patch b255ff124c9c1bb0e2c39a38fb9690630e4cbb09fb0e1ab529ec6ef5f72a1e31
+passes a temporary-index apply check on ROOT9b318; excludes incidental capture
+exports and the checked-owner helper refactor. L2 retains constructor/type/generic
+ownership, B2 output and inspection consumers, D1 generic harness.
+
+Further review found private source-binding analysis still discards its resource
+receipt and completion visibility clears its text. Those two small corrections
+are queued until the current source build drains. Other phase graph/dispatch
+assertions, normal world-budget adoption, per-phase cancellation and complete
+allocation-failure coverage remain open. No shared-worker race freedom, packed
+locality or whole-compiler scheduling completion is claimed. A frozen matching
+pre-receipt source tree8490874169ce199f7f69a3ffecb3624a0caab545 was archived in
+the owned cache (ROOT9b318 plus A1 admission, with only the interface removed)
+for before/after profiling, not as a private bootstrap or release prerequisite.
+
+The two queued paths are now updated: semantic_source_bindings transfers a
+private program resource error to its existing SemanticKnownWork receipt before
+scratch disposal, and marks the proof incomplete on semantic failure. Its
+coordinator retains existing job/source-order error publication. In
+semantic_modules, completion visibility stops on a sticky resource receipt and
+clears only ordinary source diagnostics. No module binding/proof policy changed.
+
+Native compiler/LR/execution/frontend rebuild succeeds182.66wall/134.54user/
+10.74sys/737008KiB on the larger joined tree. The affected semantic provider
+refresh after these two corrections succeeds22.00/15.19/1.15/728796KiB. All ten
+strengthened real-transport dispatch/admission/source-retry cases and five new
+receipt/capture-cancellation cases pass; the latter .01wall/.01sys/50748KiB.
+The first OS link-script generation selected a PowerShell character instead of
+the full command and left the receipt executable absent; corrected host linking
+passes, with the original script failure preserved. Query-smoke also passes on
+the final provider, including existing22 Publish and24 interpreter-resource
+cases. These are still before L1's charged frame owners and do not replace D1's
+required successor calibration. Control's first invocation used the packaged
+resource directory instead of the harness source RESOURCE_ROOT and aborted at
+resource open; type did not run. Corrected /work/scaffolding invocations retain
+the unchanged120/240s bounds and have no claimed result yet. Current matching
+profiles, supported sanitizers, B2/L2 producer/consumer integration and release
+acceptance remain open. ROOT03:50 independently reviewed V2 b255ff12 and verified
+its application on9b318; that is source review, not independent runtime proof.
+
+At25c3a63e, corrected control-smoke passes32.57wall/33.41user/2.00sys/
+273172KiB and type-smoke passes221.90/226.34/12.13/283672KiB within the existing
+240s bound. Query/control/type and the15 focused cases are current native
+behavior evidence, not current sanitizer or final release evidence. ROOT's V2
+review found Stale/Exhausted fell through to an Invalid fallback message; the
+shared static helper now names stale reservation and exhausted identifiers
+truthfully. The typed receipt and all success/ownership paths are unchanged.
+Smallest public context5 compiles; affected binary refresh is still running.
+
+Postcommit pull with --rebase=merges preserved25c but replayed335 commits against
+unchanged published60741. The next native refresh scheduled62 actions after
+only two message lines changed, whereas the preceding genuine provider refresh
+needed5 actions/22s. Refreshed tracked/bootstrap mtimes are the apparent trigger,
+not changed compiler behavior; hash/mtime attribution and a fast-forward-only
+pull fast path with rebase fallback remain to be checked after jobs drain. This
+iteration issue was routed to ROOT/D2 without weakening dependency checks or
+changing shared build tools. Matching pre-receipt baseline build and quiet paired
+profiling follow the current immutable build. ROOTc917 entity/backend integration
+is queued after that freeze so its changes cannot confound the comparison.
+
+The current census atc6ed1d2d is55 assigned semantic*.tower paths: the earlier54
+plus scaffolding/tests/semantic_receipt_checks.tower. Full source review of this
+new file: its receipt trials own distinct diagnostic vectors with scoped disposal,
+exercise both pre-reserved and absent destination storage plus exact self-alias,
+and assert unchanged pointer/capacity, first-caller provenance despite a later
+smaller numeric offset, and persistence across ordinary text clearing. Cancellation
+trials use actual world/context/capture queries at32/64-bit widths, show a healthy
+undemanded capture completes without a false failure, then cancel demanded work
+and repeat entry three times. Exact entity/component counts and final world
+cleanup check no replay/retention. Five native trials pass; supported current
+instrumentation remains pending. No scheduler, allocator or evaluator is mocked.
+semantic_dispatch_checks additionally asserts typed transport/admission failures
+survive ordinary diagnostic clearing before repeated entry. Its ELF semaphore
+wrapper remains coordinator-only and delegates all normal production operations.
+
+ROOT identified these two owner's fixtures lack durable runtime registration.
+D1 owns the existing runner/CMake/README integration. A1 authorized receipt entry
+conversion to a callable query test after its freeze. Dispatch needs the existing
+production semantic sources plus ELF --wrap=work_signal_open, so a normal unwrapped
+LR import or serial allocation-fault substitute is invalid. The proposed existing
+CMake source/library composition with three bounded default/admission/source
+registrations preserves all assertions; exact harness choice remains coordinated.
+Formatting-glob discovery is explicitly not a runtime registration receipt.
+
+### A1 resumed receipt profile and deterministic-selection investigation (2026-11-23)
+
+Same session 01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7 resumed with Codex PID32512.
+The required merge-preserving ff-only pull returned Already up to date and kept
+c6ed1d2d and the two pending documentation edits. No old usage-limit response or
+lost job was counted as progress. Both own container and tower-c-validation were
+idle. The authorized own container is now CPU0-11, 12CPU/24GiB, one compiler
+process; A2 has CPU12-23. All current measurements below use this same environment.
+
+The immutable pre-receipt tree8490874169ce199f7f69a3ffecb3624a0caab545 now
+builds successfully with the shipped Linux x64 compiler9653f818 and LLVM19.
+Raw CMake attempts1/2 failed before compilation for missing native/bootstrap
+arguments. Attempts3/4 reached linking but lacked backend_units_close. Matching
+test flags alone did not resolve it: the actual omitted setting was
+CMAKE_PROJECT_scaffolding_INCLUDE pointing to the archived TowerBackend.cmake.
+Corrected build5 passed53 actions,146.19wall/123.36user/21.63sys/778640KiB peakRSS,
+explicit jobs12, CMake parallel1. This is a profiling build, not documented
+clean-bootstrap closure evidence. All failures remain in the lane cache logs.
+
+Receipt comparison uses before binary4e8acdd69f66c80bf54b52a7de1d1b376554b97a5a48ed2fc71e6d1d0a61359e
+and afterc6ed binaryb8bc2055e3394419eed6ccab12b027974fc260765ba574d11b116afba7e57560.
+The existing resource_hook_profile small/large Tower staged inputs, packaged
+Foundation/Bedrock/type resources, targetwasm32-unknown-unknown and --interpret
+are identical; hashes and every command are in semantic_receipt_paired1.log and
+the per-run time logs. One excluded warmup plus three alternating pairs per case
+ran under a fresh A2 quiet ACK. All32 executions matched expected output;
+before/after serial/4worker canonical Foundation matched bytewise and reparsed
+to the expected result. All jobs drained before A2's subsequent quiet profile.
+
+| Input/jobs | Before median wall / CPU seconds / peakRSS KiB | After median wall / CPU seconds / peakRSS KiB |
+| --- | --- | --- |
+| Small/1 | 1.20 / 1.10 / 179080 | 1.19 / 1.10 / 178208 |
+| Small/4 | 1.07 / 1.22 / 194520 | 1.08 / 1.23 / 195664 |
+| Large/1 | 1.22 / 1.13 / 177984 | 1.22 / 1.13 / 178024 |
+| Large/4 | 1.08 / 1.21 / 198636 | 1.08 / 1.22 / 197256 |
+
+CPU is user+system per sample. These short workloads show no material receipt
+regression at this resolution; they do not establish general multicore scaling,
+critical-path/idle costs or a cross-language advantage. Current15 focused cases
+supply exact zero-retention/receipt-lifetime checks, not a complete allocation
+profile. Current sanitizer, integrated provider and final release gates remain
+open. The earlier4CPU/8GiB admission profile is separate, not this comparison.
+
+ROOT's evaluation-order source triage is confirmed in current code: immediate
+restoration in sem_evaluation_fail and preparation publication uses ready batch
+order. Planned fix retains per-producer failures until the canonical
+evaluation_jobs owner-publication frontier permits selection, including an
+earlier demanded producer waiting across pumps. Dispatch order remains ready
+order. A focused before-failure fixture and actual D1 phase receipt are still
+needed; this paragraph is design/source evidence, not an implementation pass.
+L2's historical constructor proposal already exists with the stronger fourth
+WorkTicket* parameter; no new helper/opcode or constructor edit is needed.
+
+### A1 canonical evaluation failure frontier (2026-11-23, implementation checkpoint)
+
+Reviewed base7e4bb885 joins ROOT72a218 provider history after the receipt profile.
+No semantic ABI changed in that merge. Its ten affected native actions passed
+40.56wall/27.25user/2.53sys/429280KiB. New own fixture
+scaffolding/tests/semantic_failure_order_checks.tower compiles with the public
+predecessor. Draft compile failures (missing enum base, reserved local name,
+inferred i32 offset) remain as unit1-3 logs; unit4 is the successful object.
+
+That unchanged fixture object fails against the actual merged production
+provider (exit1, .03wall/.01CPU/50792KiB), reproducing premature diagnostics from
+later ready stages, blocked earlier continuations and isolated unmask selection.
+After the two-file production fix, all28 cases pass (.03wall/.02CPU/51276KiB).
+The fixed public semantic_evaluation leaf passes16.32wall/11.79user/.86sys/
+680972KiB; the coherent five-action native compiler/LR/execution/frontend
+refresh passes21.92/15.06/1.18/738160KiB. Before compiler SHA6b1810dd7d38899385b04b4e2d7e91b62405c28b1e9e5e891e0ac02e323b7fd6,
+after6d74458011cb0cde914086d96e21ba79e3b070b088533f1e776531aab75c7ef5.
+Matched performance, existing query/control/type and current instrumentation
+are pending at this checkpoint, not silently inherited from an older source.
+
+Full updated per-file audit (56 assigned semantic paths, plus the historical
+retired literal row retained in this document):
+- scaffolding/compiler/semantic_evaluation.tower: retain ordinary/resource
+  errors on stable world-owned producer components. A coordinator-only scan of
+  the existing evaluation_jobs owner-publication index selects failed dependency
+  receipts after joins, skipping undemanded/succeeded producers and deferring
+  behind the earliest demanded pending producer. No offset sort or added cursor,
+  scheduler, context layout or authoritative graph. Quiescent finalization uses
+  the same owner order and checks failed dependencies before inferred fallback.
+  Ready dispatch, access reservations, suspension and peer result publication
+  stay unchanged. The additional scan uses the existing hash work_find index;
+  its cost still requires the matched measurements.
+- scaffolding/compiler/semantic_evaluation_work.tower: preparation keeps its
+  error/typed receipt on the evaluation component instead of publishing it in
+  readiness order. Stages still join and publish before receipt handling. Other
+  graph/transport assertion-to-typed-failure migrations remain open.
+- scaffolding/tests/semantic_failure_order_checks.tower: full new file reviewed.
+  Real Foundation division-by-zero and bound-budget startup denial execute via
+  ordinary interpreter/CompilerWork/WorkPool. Separate Body-query gates are
+  owned by this fixture, sealed before evaluation registration and retired by
+  the joined coordinator; they never replace the scheduler/evaluator. Source
+  order83 then11 deliberately differs from numeric order. At widths4/8 and
+  workers1/4, reversed gates, separate frontiers/repeated waits, earlier success,
+  isolated selection, undemanded earlier work and resource receipts cover28
+  trials. Dispatch/entity/component counts reject replay; invocation storage,
+  world cleanup and exact zero byte/lane/live grants cover retained ownership.
+  Diagnostic observers run after joins. Budget capacity/revision are named
+  fixture inputs, available pressure derives from the actual snapshot. Current
+  sanitizer and durable D1 runner registration remain pending.
+
+ROOT's D1 phase artifact was located at the supplied parent path and verified:
+D1_resource_phase_current.tower SHA1f1f2f29334e478f47b041ce148c7a59554ad8a8e0f8ec4c9fdb2589ff38a223,
+probe_v4 patch0851e3e1fea6344958fafa70555e1a31082e6d8a695912c41a7b6a2fcea97eae.
+Source review confirms its workers observe the actual startup/growth failure
+before invocation disposal and its gate completion can reverse readiness.
+ROOT reports independent required/inferred immediate failures selecting29 while
+receipts retain11/29; isolated selects11. That is D1's receipt, not a locally
+rerun successor claim. It remains owner-controlled; no competing harness edit.
+L2 constructor request failure paths need the same owning selection discipline,
+and the complete shared-budget/transport/cancellation acceptance remains open.

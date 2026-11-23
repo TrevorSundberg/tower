@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 import semantic_context_types;
 import .library.vector;
 import foundation_tags;
@@ -469,6 +470,7 @@ fn sem_editor_symbol(c: SemanticContext*, node: void*, kind: u32): bool {
 }
 
 fn sem_completion_visible(c: SemanticContext*, editor: SemanticEditor*, table: SemanticTable*, node: void*): bool {
+    if c.program.resource.error != WorkBudgetError.None { return false; }
     var name = sem_identifier(c, sem_member(node, "name"));
     var value = sem_get(node);
     if name[0] == 0 {
@@ -490,7 +492,7 @@ fn sem_completion_visible(c: SemanticContext*, editor: SemanticEditor*, table: S
         }
     }
     var clean = sem_ok(c);
-    c.program.error.length = 0;
+    if c.program.resource.error == WorkBudgetError.None { c.program.error.length = 0; }
     if clean {
         var same = found == node;
         return same;
