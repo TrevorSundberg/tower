@@ -1,0 +1,198 @@
+import tower;
+import frontend_units;
+import backend_units;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.format_api;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+import .library.compiler_work_types;
+
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_units_create_bounded(count: usize, workers: usize, retained_bytes: usize, width: u32,
+    revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+
+// Native observation only: each callback writes its own ordinal's slot. The
+// coordinator reads slots after joining; no observer delays or compiler writes.
+struct DependencyUnitSpan { start: u64; end: u64; thread: usize; }
+struct DependencyUnitObserver { spans: DependencyUnitSpan*; count: usize; }
+var DependencyUnitWorkers: usize = 4;
+var DependencyUnitByteLimit: usize = 2147483648;
+var DependencyUnitRevision: u64 = 1;
+var DependencyUnitProfile: u64 = 1;
+
+fn dependency_unit_event(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    var observer = bits(DependencyUnitObserver*, payload);
+    units_check(phase == CompilerQuery.Unit && ordinal != 0 && ordinal <= observer.count,
+        "Dependency unit observer has a valid private slot");
+    var span = &observer.spans[ordinal - 1];
+    if entering { span.start = unit_stream_clock(); span.thread = pthread_self(); }
+    else { span.end = unit_stream_clock(); }
+}
+
+fn dependency_unit_append(out: vector(u8)*, text: u8*): void {
+    var length = strlen(text);
+    for(var i: usize = 0; i < length; i++) {
+        units_check(vector_push(out, text[i]), "Dependency fixture source snapshot");
+    }
+}
+
+fn dependency_unit_answer(program: SemanticProgram*, wanted: u64): void {
+    var answer: void* = null;
+    var name = "answer";
+    foreach(var function in &program.functions) {
+        var node = sem_get(function);
+        if node.name.length == strlen(name) && strcmp(node.name.data, name) == 0 { answer = function; }
+    }
+    var invocation: IMInvocation = default;
+    var fuel: u64 = 10000;
+    var quantum: usize = 7;
+    units_check(answer != null && interpreter_invocation_init(&invocation, answer,
+        convert(usize, program.pointer_bytes), null, 0, true, fuel), "Dependency answer invocation");
+    defer interpreter_invocation_dispose(&invocation);
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, quantum); }
+    if invocation.state.failed { puts(invocation.context.error.data); }
+    units_check(!invocation.state.failed && invocation.context.result == wanted,
+        "Imported helpers, forward values and unevaluated decltype retain the independent answer");
+}
+
+fn dependency_units_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usize,
+    failure: bool, canonical: vector(u8)*, diagnostic: vector(u8)*): usize {
+    var answers: u64[4];
+    answers[0] = 42; answers[1] = 43; answers[2] = 44; answers[3] = 45;
+    var count = sizeof(decltype(answers)) / sizeof(u64);
+    var sources: u8*[count];
+    sources[0] = "import tower; import dependency_shared; fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 0;}";
+    sources[1] = "import tower; import dependency_shared; fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 1;}";
+    sources[2] = failure ? "import tower; import dependency_shared; fn answer():i32{return missing_later_unit;}"
+        : "import tower; import dependency_shared; fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 2;}";
+    sources[3] = "import tower; import dependency_shared; fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 3;}";
+    var shared: vector(u8) = default;
+    var cyclic: vector(u8) = default;
+    defer vector_dispose(&cyclic);
+    defer vector_dispose(&shared);
+    var helpers = "fn pick(take:bool):i32{if take{return Selected;}return imported_later();}fn imported_later():i32{return 42;}fn chosen_type():type{return type_later();}fn type_later():type{return i32;}fn identity(T:type,value:T):T{return value;}fn unused(T:type,value:T):T{return missing_dormant_body;}";
+    dependency_unit_append(&shared, "import tower;var Selected=comptime(pick(false));");
+    dependency_unit_append(&shared, helpers);
+    dependency_unit_append(&cyclic, "import tower;var Selected=comptime(pick(true));");
+    dependency_unit_append(&cyclic, helpers);
+    units_check(vector_push(&shared, 0) && vector_push(&cyclic, 0), "Imported source terminators");
+    var spans: DependencyUnitSpan[count];
+    fill(&spans[0], 0, sizeof(decltype(spans)));
+    var observer: DependencyUnitObserver = {spans: &spans[0], count: count};
+    var batch = frontend_units_create_bounded(count, workers, DependencyUnitByteLimit, 8,
+        DependencyUnitRevision, DependencyUnitProfile, bedrock, foundation, root);
+    units_check(batch != null, "Dependency unit bounded batch");
+    defer frontend_units_close(batch);
+    units_check(frontend_units_observer(batch, bits(void*, &observer), dependency_unit_event), "Dependency observer frozen before dispatch");
+    for(var i: usize = 0; i < count; i++) {
+        units_check(frontend_units_source(batch, i + 1, "dependency_unit.tower", sources[i], strlen(sources[i])),
+            "Dependency root snapshot");
+        // The environment borrow ends before stepping. Each world owns its
+        // imported source snapshot; no shared mutable module or semantic graph.
+        var environment = frontend_units_environment(batch, i + 1);
+        var imported = failure && i == 1 ? cyclic.data : shared.data;
+        units_check(environment != null && frontend_modules_source(environment, "dependency_shared.tower",
+            imported, strlen(imported)), "Dependency imported file snapshot");
+    }
+    var started = unit_stream_clock();
+    while !frontend_units_step(batch, true) {}
+    var elapsed = unit_stream_elapsed(started);
+    units_check(!frontend_units_cancelled(batch), "Dependency batch was not cancelled");
+    var reservation: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &reservation)
+        && reservation.used_lanes == 0 && reservation.peak_lanes <= workers
+        && reservation.peak_bytes <= DependencyUnitByteLimit, "Dependency joins release the shared worker budget");
+    var offset: usize = 0;
+    var peak: usize = 0;
+    var threads: usize = 0;
+    if failure {
+        var error = frontend_units_error(batch);
+        if frontend_units_failed(batch) != 2 || strstr(error, "cycle") == null { puts(error); fflush(null); }
+        units_check(frontend_units_failed(batch) == 2 && strstr(error, "cycle") != null
+            && strstr(error, "missing_later_unit") == null, "Taken imported dependency cycle wins by unit order");
+        offset = frontend_units_error_offset(batch);
+        dependency_unit_append(diagnostic, error);
+        for(var i: usize = 0; i < count; i++) {
+            units_check(frontend_units_program(batch, i + 1) == null, "Failed dependency batch publishes no partial result");
+        }
+    } else {
+        if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+        units_check(frontend_units_failed(batch) == 0, "Untaken imported read creates no false dependency cycle");
+        var separate_workers = false;
+        for(var i: usize = 0; i < count; i++) {
+            units_check(spans[i].start >= started && spans[i].end > spans[i].start && spans[i].thread != 0,
+                "Dependency observer records completed work");
+            var seen = false;
+            for(var j: usize = 0; j < i; j++) { if spans[j].thread == spans[i].thread { seen = true; } }
+            if !seen { threads++; }
+            var active: usize = 0;
+            for(var j: usize = 0; j < count; j++) {
+                if spans[j].start <= spans[i].start && spans[j].end > spans[i].start {
+                    active++;
+                    if spans[j].thread != spans[i].thread { separate_workers = true; }
+                }
+            }
+            if active > peak { peak = active; }
+            var program = frontend_units_program(batch, i + 1);
+            units_check(program != null, "Dependency unit publishes after join");
+            dependency_unit_answer(program, answers[i]);
+            var formatted: FormatResult = default;
+            format_entity(&formatted, program.root, null, null, null);
+            units_check(!formatted.failed, "Dependency canonical Foundation");
+            foreach(var byte in &formatted.text) { units_check(vector_push(canonical, byte), "Dependency canonical snapshot"); }
+            units_check(vector_push(canonical, 0), "Dependency canonical unit boundary");
+            format_dispose(&formatted);
+        }
+        units_check(workers == 1 ? peak == 1 && threads == 1
+            : peak > 1 && separate_workers && threads == workers && reservation.peak_lanes > 1,
+            "Dependency units observe real distinct-thread overlap, not queue width");
+    }
+    var receipt: FormatResult = default;
+    defer format_dispose(&receipt);
+    var out: FormatEngine = {result: &receipt, ..default};
+    format_text(&out, "Dependency units workers="); format_unsigned(&out, convert(u64, workers));
+    format_text(&out, failure ? " cycle" : " success");
+    if !failure {
+        format_text(&out, " outer_peak="); format_unsigned(&out, convert(u64, peak));
+        format_text(&out, " observed_threads="); format_unsigned(&out, convert(u64, threads));
+    }
+    format_text(&out, " wall_ns="); format_unsigned(&out, elapsed);
+    format_text(&out, " peak_budget_bytes="); format_unsigned(&out, convert(u64, reservation.peak_bytes));
+    units_check(!receipt.failed && vector_push(&receipt.text, 0), "Dependency measurement receipt");
+    puts(receipt.text.data); fflush(null);
+    return offset;
+}
+
+export fn compiler_dependency_units_tests(root: u8*): void {
+    units_check(work_thread_available() && work_thread_capacity() >= DependencyUnitWorkers,
+        "Dependency integration requires four available native worker lanes");
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var mode: usize = 0; mode < 2; mode++) {
+        var serial: vector(u8) = default;
+        var parallel: vector(u8) = default;
+        var serial_error: vector(u8) = default;
+        var parallel_error: vector(u8) = default;
+        defer vector_dispose(&parallel_error);
+        defer vector_dispose(&serial_error);
+        defer vector_dispose(&parallel);
+        defer vector_dispose(&serial);
+        var first = dependency_units_trial(root, bedrock.data, foundation.data, 1, mode != 0, &serial, &serial_error);
+        var second = dependency_units_trial(root, bedrock.data, foundation.data, DependencyUnitWorkers, mode != 0, &parallel, &parallel_error);
+        units_check(first == second && serial.length == parallel.length && serial_error.length == parallel_error.length,
+            "Dependency serial/parallel canonical and diagnostic extents");
+        for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "Dependency canonical bytes agree"); }
+        for(var i: usize = 0; i < serial_error.length; i++) { units_check(serial_error.data[i] == parallel_error.data[i], "Dependency diagnostic bytes and order agree"); }
+    }
+    puts("Dependency units: imported helpers, forward decltype/comptime, executed branches, canonical output and error order passed.");
+}

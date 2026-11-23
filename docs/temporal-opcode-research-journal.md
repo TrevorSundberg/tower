@@ -81059,3 +81059,52 @@ history and replayed only this journal entry without conflict. Incoming changes
 touch frontend admission and documentation, not the reviewed stage/provenance
 contract. `git diff --check` and the scoped documentation diff remain the
 applicable validation; no runtime evidence is relabeled for the merged source.
+
+### 2026-11-23 D1: imported dependency-unit integration regression
+
+Bounded test task, thread01a2046a-4644-7ab1-a0ae-abd80210f013/PID3039648.
+Required pull fast-forwarded to53d631572; owned containers were init-only.
+Reviewed unit/body/query and lazy-generic fixtures plus production unit observer,
+module snapshot and staging contracts. Existing tests cover these dimensions
+separately; added compiler_dependency_units with four independent units importing
+ordinary helper definitions, forward local/type helpers, lazy generic decltype,
+known42–45 and an untaken staged self-read. Taking that read in unit2 supplies a
+real cycle control against unit3's later error. Existing lr-work caller supplies
+focused dependency-units and durable units/all coverage. No production edits.
+
+Observers write private per-ordinal spans and are read after joins, requiring
+real distinct-thread overlap with four available worker lanes. Serial/parallel
+canonical bytes, selected diagnostic bytes/offset and shared grant bounds are
+checked. Imported snapshots and source storage survive batch closure. Tests use
+the ordinary interpreter/formatter, with no reference implementation or scheduler.
+Only test/acceptance overhead will be measured; no runtime optimization or speedup
+claim. Original native binary/public-pin hashes are retained under
+build/d1_ecs/dependency_units_53d631572. Initial cache lookup found the stage-only
+cache has no LR runner; selected existing native-coherent-127ca98 target instead,
+without building twice. Atomic heavy-lock acquisition found active D2 ownership;
+no competing build was started. Focused validation is pending at this entry.
+
+Focused validation on53d631572 plus D1 tests passes: public Linux x64 bootstrap,
+Docker LLVM19 Release, compiler/build jobs1, build affinity0,2; runtime affinity
+0,2,4,6. One existing dependency target, no separate leaf/CMake double build.
+Three fixture compile errors are retained: reserved expected identifier, missing
+explicit vector/type imports, then missing bounded-service declarations. Each
+job drained before the scoped correction. Initial production refresh127.80wall/
+124.68CPU/758252KiB ended1; short retries11.70s and11.39s ended1; final four-action
+fixture/receipt/link build29.11wall/28.28CPU/318256KiB ended0. No production change.
+
+`dependency-units` passes all four batches in22.64wall/36.80CPU/729004KiB, zero
+swaps. One sample per mode, fresh worlds/warm filesystem: successful serial
+compilation10.140879s, four-worker3.641591s; observed outer peaks1/4 and distinct
+threads1/4. Exact answers42–45 and canonical bytes agree. Physical ledger peaks
+85659509/254575296bytes are distinct from total-process RSS and below the2GiB
+policy. Taken-cycle batches4.923794/3.682011s select unit2 and match diagnostic
+bytes/offset despite unit3's later error; no partial program is published.
+`query-smoke` also passes .37wall/.37CPU/71588KiB with empty stderr. These are
+small acceptance-cost observations, not isolated compiler optimization/scaling
+claims; CPU/RSS are whole-process, not per-mode. Failure-path overlap is not
+measured; remove its initial zero placeholder fields from the receipt before
+final merged validation. No broad type/editor/backend/sanitizer/bootstrap/browser
+matrix ran. All frozen input hashes verify; runner4c259a377ec71d3d; prior binary
+and all errors/logs remain in the named directory. Final upstream reconciliation
+and affected validation follow; source-specific passes do not cover new inputs.
