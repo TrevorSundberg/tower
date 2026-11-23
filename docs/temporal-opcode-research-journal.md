@@ -93772,3 +93772,22 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+Final source adoption: merge460d5e12200c26f342942e44fdc0478f939990b8
+preserves A2's required type-name/binding capture guards (ee91c300) and B2's
+browser worker-group repair through published78d675c4. Browser behavior stays
+outside this native receipt. Refreshed only the semantic provider/three links:
+32.60wall/25.76CPU s,1074312KiB. Focused5/5 pass3.05s; pointer-return32/64 x1/4
+regressions and both exact full request executions pass again, stderr empty,
+canonical bytes/hash unchanged. Final compile1/4 wall/CPU/peakKiB:
+17.91/17.89/3316436 and18.39/22.56/3329364; execute1/4:
+26.13/26.00/3200140 and25.27/28.62/3171092. Final service bytes/grants/lanes0,
+charged peaks unchanged. This is scoped merged adoption, not a broad rerun or
+speedup claim. Final CLI SHAe4ed3006a994f9824af6a1e04320a83bd399050647a788ff9b5d689f61644697;
+service SHAe00aab7245bf3d02338ebf5422fc3684157477e13ba0993e5fd324c2b303a338.
+All final inputs/logs/outputs/manifests retained beside prior evidence. A manifest
+filename typo briefly wrote final binary hashes to merged.sha256; separate final
+manifest and hashes of the still-frozen merged binaries restore both receipts.
+A shell-quoting failure during that hash bookkeeping did not run a compiler/test
+or alter binaries; the native file hashes above were independently recomputed.
+Owned jobs drained, no new runtime deployment; remaining Wasm/other-input limits
+are unchanged. Normal source publication follows with all prior histories intact.
