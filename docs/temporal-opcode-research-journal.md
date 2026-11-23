@@ -88153,3 +88153,12 @@ Publication reconciliation: committed full milestone/fix48d791a8, then required 
 Affected adoption only: integrated_language_merge0 built frontend/native/alias targets8 actions,58.19wall/81.83CPU/1057956KiB, source frozen. lr-order exited0 (.27wall/.26CPU) and passed closure/state/runtime/control plus150 randomized grammar/propagation comparisons. Its existing fixture intentionally writes suffix index charged_bytes=408 and item graph ledger_live=408 peak=1048576 to stderr before teardown; the initial orchestration's empty-stderr predicate therefore exited1. Preserved that wrapper1/source0 and the actual successful test/time/counter receipt. Verified both lines at their producer, then continued ONLY unrun selections under merge0_remaining, without repeating LR or rebuilding. Remaining process/source0, stderr empty: query-smoke .41wall/.40CPU/104424KiB; dependency-units7.17/14.01/750924; alias1 13.23/8.86/185628; alias4 14.79/13.25/189992. All exact canonical/error/known-output/actual-overlap and alias byte/lane retirement checks passed. Sessions15584/39826 drained. Later alias and LR source adoption is focused evidence; complete browser/hover/generation/release gates remain with their owners.
 
 No remaining blocker in the frozen functional milestone or affected merged checks. No additional full matrices/profiling/instrumentation runs, no deployment, no new goal/context/agent. This follow-up only records evidence; compiler inputs unchanged since merged validation and no new runtime performance measurement is needed. Existing complete histories, failed logs, accepted prior receipts and immutable baselines preserved; todo hash remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Normal main push follows.
+Final publication-only reconciliation merged public3a7f4b39 as
+0e84312d45a3bf5a27e0c0a3a38a602ea669f805. Incoming A2 metadata/provenance48d791a8
+is later than the984dc4d7 validation freeze; actual depfiles identify only
+Entities in each browser profile. Transport, alias producer, public pin and
+selected fixture sources are unchanged and the complete histories are preserved.
+The984dc4d7 runtime checks above are not relabeled as tests of that later Entities
+provider. ROOT's next integrated adoption must rebuild Entities+link normal/shared
+and validate its affected metadata/lifetime cases; D2 does not extend this bounded
+retirement repair into another owner's acceptance matrix. No process/lock remains.
