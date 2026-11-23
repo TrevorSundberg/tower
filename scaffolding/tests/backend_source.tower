@@ -90,6 +90,7 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
 export fn backend_source_tests_runtime(environment: void*, runtime: u8*, runtime_size: usize): i32 {
     var type_identity_failure: i32 = 17;
     if !backend_source_type_values(environment, runtime, runtime_size) { return type_identity_failure; }
+    if !backend_source_nominal_result(environment, runtime, runtime_size) { return type_identity_failure; }
     var link_failure: i32 = 16;
     if !backend_source_link_tests(environment, runtime, runtime_size) { return link_failure; }
     var left = backend_source_create(runtime, runtime_size);
@@ -201,13 +202,25 @@ fn backend_source_type_values(environment: void*, runtime: u8*, runtime_size: us
     var source = backend_source_create(runtime, runtime_size);
     if source == null { return false; }
     defer backend_source_close(source);
-    var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var comparison:type_type()=type_value(integer_type(8,0));var equal:bool=selected==comparison;print(equal);";
+    var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var comparison:type_type()=type_value(integer_type(8,0));var equal:bool=selected==comparison;print(equal);fn shadow():u32{var u32:type=integer_type(8,0);var small:u32=7;var wide:integer_type(32,0)=4294967295;return wide;}print(shadow());";
     for(var optimize: usize = 0; optimize < 2; optimize++) {
         var flags = BackendSourceImport | (optimize == 0 ? BackendSourceUnoptimized : 0);
         var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
         if !backend_source_test_has(result, "\"optimizationProfile\":0")
-            || !backend_source_test_has(backend_source_foundation(source), "type_value(integer_type(8, 0))")
+            || !backend_source_test_has(backend_source_foundation(source), "type_value(u8)")
+            || !backend_source_test_has(backend_source_foundation(source), "var u8: type = integer_type(8, 0);")
+            || !backend_source_test_has(backend_source_foundation(source), "var wide: integer_type(32, 0) = 4294967295;")
             || !backend_source_test_has(backend_source_foundation(source), "type_type()") { return false; }
     }
     return true;
+}
+
+fn backend_source_nominal_result(environment: void*, runtime: u8*, runtime_size: usize): bool {
+    var source = backend_source_create(runtime, runtime_size);
+    if source == null { return false; }
+    defer backend_source_close(source);
+    var text = "import foundation;enum Result:u32{Ready=7}export fn answer():Result{return Result.Ready;}var result:u32=convert(u32,answer());print(result);";
+    var result = backend_source_compile(source, text, strlen(text), BackendSourceImport | BackendSourceUnoptimized, environment, null);
+    return backend_source_test_has(result, "\"optimizationProfile\":2")
+        && backend_source_test_has(backend_source_foundation(source), "bits(u32,");
 }

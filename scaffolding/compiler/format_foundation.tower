@@ -265,13 +265,27 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
     format_identifier(f, fallback);
 }
 
+fn format_type_binding(f: FormatEngine*, t: FoundationType*): FoundationNode* {
+    if f.source_names || f.type_scope == null || t.record != null { return null; }
+    var program = format_foundation(f, f.type_scope);
+    for(var i: usize = 0; i < f.type_prefix; i++) {
+        var declaration = format_foundation(f, program.items.data[i]);
+        if declaration.kind == KType && declaration.global && declaration.type.record == null
+            && declaration.type.pointers == 0 && declaration.type.scalar == t.scalar {
+            return declaration;
+        }
+    }
+    return null;
+}
+
 fn format_type(f: FormatEngine*, t: FoundationType*): void {
-    if !f.source_names && t.pointers != 0 {
-        format_text(f, "pointer_type(");
-        var base = *t;
-        base.pointers--;
-        format_type(f, &base);
-        format_text(f, ")");
+    // CoreType's postfix pointer form preserves the exact type without a
+    // constructor call/query for every pointer layer in reconstructed code.
+    // The ordinary formatter below emits its base followed by t.pointers stars.
+    var binding = format_type_binding(f, t);
+    if binding != null {
+        format_identifier(f, &binding.name);
+        format_repeat(f, 42, convert(usize, t.pointers));
         return;
     }
     if t.scalar == SFunction {
@@ -520,6 +534,16 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
 
 fn format_block(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
+    var prefix = f.type_prefix;
+    defer { f.type_prefix = prefix; }
+    // Local type declarations can shadow an outer spelling. Their block keeps
+    // explicit constructors; ordinary value names do not change type bindings.
+    foreach(var item in &n.items) {
+        var declaration = format_foundation(f, item);
+        if declaration.kind == KType || declaration.kind == KDeclare && declaration.type.scalar == SType {
+            f.type_prefix = 0; break;
+        }
+    }
     if n.items.length == 0 {
         format_text(f, "{}");
         return;
@@ -567,7 +591,7 @@ fn format_function_header(f: FormatEngine*, entity: void*, n: FoundationNode*): 
 // A display fragment, not an alternative program serializer. All identifiers,
 // types and function signatures use the canonical formatter's own rules.
 export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, `match`: void*): void {
-    var f: FormatEngine;
+    var f: FormatEngine = default;
     f.source_names = true;
     f.result = result;
     f.syntax_kind = syntax;
@@ -701,6 +725,11 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
         return;
     }
     if format_is_Function(n) {
+        var prefix = f.type_prefix;
+        defer { f.type_prefix = prefix; }
+        foreach(var parameter in &n.parameters) {
+            if format_foundation(f, parameter).type.scalar == SType { f.type_prefix = 0; break; }
+        }
         format_function_header(f, entity, n);
         if n.external {
             format_text(f, ";");
@@ -802,6 +831,10 @@ fn format_node(f: FormatEngine*, entity: void*): void {
     }
     var n = format_foundation(f, entity);
     if format_is_Program(n) {
+        var previous_scope = f.type_scope;
+        var previous_prefix = f.type_prefix;
+        f.type_scope = entity; f.type_prefix = 0;
+        defer { f.type_scope = previous_scope; f.type_prefix = previous_prefix; }
         if !f.source_names { format_text(f, "import foundation_syntax;\n\n"); }
         format_node_comments(f, n);
         var previous = false;
@@ -823,6 +856,9 @@ fn format_node(f: FormatEngine*, entity: void*): void {
                 format_newline(f, true);
             }
             format_node(f, item);
+            // A declaration cannot name itself; later uses may refer to the
+            // exact ordinary type binding that was just emitted.
+            f.type_prefix = i + 1;
             previous = declaration;
             i++;
         }
