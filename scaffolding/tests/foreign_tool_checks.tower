@@ -3,6 +3,7 @@ import .backend.foreign_tool;
 import .backend.foreign_symbol;
 import .backend.foreign_api;
 import .backend.foreign_reader;
+import .backend.text;
 import .library.bytes;
 import .library.bytes_types;
 
@@ -12,6 +13,94 @@ extern fn tower_test_buffer_allocations(): usize;
 extern fn strlen(text: u8*): usize;
 extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
 extern fn puts(text: u8*): i32;
+extern fn printf(format: u8*, source: u8*, allowed: usize): i32;
+extern fn fflush(stream: void*): i32;
+
+fn foreign_symbol_allocation_case(profile: u32, source: u8*, wanted: u8*): bool {
+    var baseline = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var sample = foreign_symbol(profile, source);
+    var count = tower_test_buffer_allocations() - calls;
+    var ok = sample != null && foreign_name_error(sample)[0] == 0
+        && backend_equal(foreign_name_text(sample), wanted);
+    foreign_name_close(sample);
+    if !ok || count == 0 || tower_test_buffer_count() != baseline { return false; }
+    // Every fault position is derived from this exact successful input, including
+    // descriptor ownership, substitution keys and the final wrapped symbol.
+    for(var allowed: usize = 0; allowed < count; allowed++) {
+        printf("Foreign allocation trial: %s / %zu\n", source, allowed);
+        fflush(null);
+        tower_test_buffer_fail_after(allowed);
+        var result = foreign_symbol(profile, source);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        ok = foreign_name_error(result)[0] != 0 && foreign_name_text(result)[0] == 0;
+        foreign_name_close(result);
+        if !ok || tower_test_buffer_count() != baseline {
+            puts("Foreign allocation denial must reject partial symbols and release every owner");
+            return false;
+        }
+    }
+    var retry = foreign_symbol(profile, source);
+    ok = retry != null && foreign_name_error(retry)[0] == 0
+        && backend_equal(foreign_name_text(retry), wanted);
+    foreign_name_close(retry);
+    return ok && tower_test_buffer_count() == baseline;
+}
+
+fn foreign_symbol_allocation_checks(): bool {
+    // Expected ABI bytes are also checked independently in foreign_names.tower.
+    return foreign_symbol_allocation_case(foreign_wasi, "ordinary_name", "ordinary_name")
+        && foreign_symbol_allocation_case(foreign_wasi, "c_name(__wrap; void f())", "__wrap_f")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(void foo(int const* first, int const* second))", "_Z3fooPKiS0_")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(void foo(Buffer<int, 12>))", "_Z3foo6BufferIiLi12EE")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(method int A::operator+(int))", "_ZN1AplEi")
+        && foreign_symbol_allocation_case(foreign_windows_x64,
+            "cpp_name(class foo; static foo* foo::static_method())", "?static_method@foo@@SAPEAV1@XZ")
+        && foreign_symbol_allocation_case(foreign_windows_x86,
+            "cpp_name(void zeta(int (*callback)(int, int)))", "?zeta@@YAXP6AHHH@Z@Z")
+        && foreign_symbol_allocation_case(foreign_windows_x64,
+            "cpp_name(void epsilon(int a[][10][20]))", "?epsilon@@YAXQEAY19BE@H@Z")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(void foo(Buffer<int, value(unsigned int, 12)>))", "_Z3foo6BufferIiLj12EE")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(void foo(void (A::*)() const))", "_Z3fooM1AKFvvE")
+        && foreign_symbol_allocation_case(foreign_windows_x64,
+            "cpp_name(ctor(complete) foo())", "??0foo@@QEAA@XZ")
+        && foreign_symbol_allocation_case(foreign_wasi,
+            "cpp_name(using size_t = unsigned long; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, size_t, unsigned int))",
+            "_ZN4llvm16FileOutputBuffer6createENS_9StringRefEmj");
+}
+
+fn foreign_diagnostic_allocation_case(profile: u32, source: u8*, wanted: u8*, fallback: u8*): bool {
+    var baseline = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var sample = foreign_mangle(profile, source, true, false);
+    var count = tower_test_buffer_allocations() - calls;
+    var ok = sample != null && backend_equal(foreign_name_error(sample), wanted);
+    foreign_name_close(sample);
+    if !ok || count == 0 || tower_test_buffer_count() != baseline { return false; }
+    // Deny every actual allocation, including both diagnostic prefix and suffix.
+    // Recovery of the allocator must not turn a first cause into a token alone.
+    for(var allowed: usize = 0; allowed < count; allowed++) {
+        tower_test_buffer_fail_after(allowed);
+        var result = foreign_mangle(profile, source, true, false);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        var diagnostic = foreign_name_error(result);
+        ok = (backend_prefix(diagnostic, fallback)
+            || backend_prefix(diagnostic, "Unable to allocate"))
+            && foreign_name_text(result)[0] == 0;
+        if !ok {
+            printf("Foreign diagnostic lost first cause: %s / %zu\n", source, allowed);
+            puts(diagnostic);
+        }
+        foreign_name_close(result);
+        if !ok || tower_test_buffer_count() != baseline { return false; }
+    }
+    return true;
+}
 
 fn foreign_tool_failure(input: u8*, fail_after: usize): bool {
     var baseline = tower_test_buffer_count();
@@ -35,6 +124,9 @@ fn foreign_tool_failure(input: u8*, fail_after: usize): bool {
 // The imported tool owns main. The existing runtime binder selects this entry
 // for the deliberately serial allocator profile; no native test shim is needed.
 export fn foreign_tool_check_main(argc: i32, argv: u8**): i32 {
+    if !foreign_symbol_allocation_checks() || !foreign_diagnostic_allocation_case(0, "", "Unknown foreign ABI profile", "Unknown foreign ABI profile")
+        || !foreign_diagnostic_allocation_case(foreign_wasi, "void f(int",
+            "Expected wordtext in foreign declaration: )", "Expected wordtext in foreign declaration: ") { return 5; }
     if !foreign_tool_failure("abc", 0) || !foreign_tool_failure("\"abc\"", 0)
         || !foreign_tool_failure("// comment\n", 0) || !foreign_tool_failure("/* comment */", 0)
         || !foreign_tool_failure("`ordinary`", 0) { return 1; }

@@ -72262,6 +72262,86 @@ compile/reproduction is still pending. Complete B1 regex historydce8b719 bundle
 hashaf8973d8 is verified/fetched but not yet merged; none of these351 receipts
 validate that later union. All performance comparisons remain the earlier quiet
 constructor/import experiments with their exact source identities.
+Next pool review while frozen: compiler_world_bind_budget already rejects any
+existing worker.slots and registered/entities, so valid worlds cannot rebind after
+pool creation. Preserve that frozenowner contract; do NOT add silent rebinding.
+parser_workers can use existing work_pool_open_budget with world ledger and copy
+its exact per-call pool.resource_error under the existing exclusive lease; default
+nonworld pool stays explicitnull. parser_admission currently discards reserve
+outcome and needs a typed result wrapper. Existing tests/lr_work lifetime covers
+busy rejection, independent worlds, real closure drain and retained threadreuse.
+tests/lr_budget final live1/bytes0 currently assumes uncharged retainedpool; after
+real binding it must account exact pool.storage reservation whilelive and still
+requirezero through world teardown/work_budget_dispose. Add actual Capacity
+pooldenial/retry against measured physicalslot allocation, not an arbitrary cap.
+These are reviewed plans only; no pool code changed during regex freeze.
+B1 regex paired receipt 2026-11-23T09:16:42.5856723Z: originalwatcher47404 consumed ROOT-issued
+legacytoken09:12:32.4444978Z, started09:12:32.5447025Z and autoreleased09:14:07.2713054Z.
+All20processes exit0; no late/duplicate job, frozen binaries/resources identical.
+The reused shell's final stdout still says declaration; exactscript/root/logs and
+binaryhashes identify the regex comparison, not a different run.
+Mean wall/CPUms before->after, n2 each: small/1 3451.32/3243.41->3485.45/3283.53;
+large/1 4552.24/4352.69->4600.62/4395.48; small/4 1360.76/4032.64->1376.13/4115.82;
+large/4 2245.36/5442.83->2226.78/5426.58. Firstthree wallmeans about1%higher,
+large/4 about0.8%lower; no speedup/zero-cost/general-regression claim fromn2.
+Review: new countedspan guards add actual work; allocationcount/lifetime unchanged,
+no broader algorithm/scheduling change. n2 cannot separate that cost from runnoise.
+RSSKiB ranges smallserial197180-197528->197940-198036, largeserial678308-679000
+->678772-678888; smallparallel457992-464308->459788-459988, largeparallel936664-
+938500->939668-940652. Nativepeak changes are below0.4% bymean, no retainedgrowth.
+Exactretained small5681409serial/5672169parallel and large6028459/6019219 unchanged;
+ledger5242880/20971520 unchanged. Every output canonical1173729914654460811 or
+4242261087906147675 and entity/component counts match. Actualouterpeak1/3,
+reservedlanes1/4. Editor n2 wall11.05,11.23->10.94,11.03s, totalCPU17.06,17.31->
+16.80,16.96s; RSS959512,857724->961488,860332KiB; alloldoraclespass.
+
+Applied root09:13:05 exactfrontend_main regexselector authorization only AFTER
+profiledrained; no newrunner/CMake/provider/default changes. D1notified byroot,
+no repeatedACK. Selectednative refresh then actualregex oracle, currentASanLSan
+regex/parser/grammarresource/query/realouter sequence active51494. These new
+sanitizer results not yetclaimed. Two production/testfiles and thisauthorized
+entry now form nextcoherentcheckpoint; B2 has not adopted incomplete signatures.
+A2 owns the narrow compiler_storage obsoleteUTF8diagnostic aggregate correction
+reported byroot09:08; no competingfixtureedit here. That unpassedstorageaggregate
+is not silently included in our earlierparser-specific pass.
+B1 regex ASan milestone 2026-11-23T09:22:03.2135790Z: actual51494 exited0/drained. Authorized existing
+frontendselector nativebuild9.23s/417644KiB and directregex0.04s/53116KiB PASS.
+ASan33stepbuild96.38s/776176KiB; directregex0.22s/132592KiB, parser0.27s/148476KiB,
+grammarresource11.86s/660200KiB, query0.67s/250312KiB and real3unit/4worker outer
+9.82s/1110000KiB allPASS withdetect_leaks=1/abort_on_error=1, no reports.
+CurrentTSan16592 built and directregex0.314s PASS, remainingresource/query/outer
+stillpending. Source remains29+regex/selector, not the newlyofferedROOT351 world
+ABI. Rootgrant09:13 appliesexactselector, README nowdocumentsitsactualexisting
+entry and serialfault/realoverlap distinction. No newharness/providermatrix.
+To avoid redundant oldsourceWASI rebuild, next afterTSandrain: commit/export this
+completecheckedproducer with scopednativeevidence and explicitportablepending;
+then completeROOT351 history join plus matchingnative/WASIIDE including B2's
+existingIdeResourceCheck. Never relabel oldreactor asnewunion. Knownsemantic
+peakminusone Capacity-vs-Memory RED and A2-ownedstorageaggregate remainexplicit.
+B1 regex nativeinstrumentation checkpoint 2026-11-23T09:23:51.4471860Z: TSan16592 completed0/drained,
+no reports. Directregex0.314s, parser0.346s, resource20.844s, query1.320s and two
+real3unit/4worker runs passed withactualpeak3, exactcanonical1173729914654460811,
+48240entities/55014components. See rawlogs for exactbuild/outertimes; unsupported
+sourceUBSan/systemLLVM/browser instrumentation stillnotclaimed. The independent
+regexoracle is now actuallyexecuted under supportedaddress/thread profiles via
+existingselector; its singleownerfailure sweep is distinct from realparallel
+outerruns. This resolves that regex-specificinstrumentation access gap without
+newrunner/adapter. No arbitrarygraph-validity or universalracefreedom proof.
+Complete source producer: regex_compile_tree_result(root,source,source_length,
+match_type,table,error_offset,resource_error), oldwrapper retained. None on valid
+and ordinarysemanticresults; Memory on actualallocation denial; Invalid on bad
+inputspan/outputstate. ExistingnegativeNFAindex no longer mislabeledallocation;
+firstdiagnostic/cause wins. Existingindependentoracle/limitfixtures remainintact.
+Readycommit/export fullthreeTowerpaths+README+audits with matchingnativeprofile/
+sanitizer receipts; portablevalidation deferredto immediatecompleteROOT351join,
+not falselyclaimed on this old29source. ROOT351bundle84a4 verified, not yetadopted.
+No source change during16592; no publicationlease/push/hostedacceptance.
+Receipt transcription correction 2026-11-23T09:24:20.4789641Z: preceding regexTSan note incorrectly
+transcribed parser/resource walltimes. Raw completedlogs are parser0.385s and
+resource20.999s, not0.346/20.844. Build75.06s/777008KiB; outer26.381/26.368s.
+No newrun or changedoutcome: all actual16592children exited0, noreports. Runtime
+source490d488e; this correction changes documentation only, no runtime/memory
+measurement applies to its text. Raw artifacts remain authoritative and retained.
 
 ### 2026-11-23T09:44:50.8720557Z ROOT: durable query checks and scoped acceptance records
 
@@ -73119,3 +73199,110 @@ remain explicit; no broad speedup or neutral-cost claim. Matching instrumentatio
 is underway. IMState layout changed: do not mix old provider objects or relabel
 old checks as current union validation. Root source/diff checks pass; final
 acceptance/publication remain open, and todo.txt stays untouched.
+### B2 foreign name allocation failures (implementation and scoped evidence)
+
+At d2cff272 (complete ROOT351 plus checked B1 regex history), the expanded existing
+foreign_tool_checks entry reproduces a false success: denying allocation1 for
+ordinary_name returns no error instead of rejecting the result. Exit5,1.685299ms
+wall/1.438ms CPU/1608KiB, retained in b2_foreign_allocation_before.log. This is an
+actual production call with the existing serial allocator. The initial fixture
+compile failed on reserved identifier expected, then on a missing explicit text
+import; corrected smallest fixture passes4.074312224s/3.802838s/258300KiB.
+
+The owned implementation adds a borrowed static first-cause field to ForeignName
+before diagnostic allocation. Foreign output/key/operator/decoration appends now
+check the common helper result, and exported name access hides failed partial
+text. backend_text_append returns a checked result and rejects count overflow
+before copying; unchanged non-foreign callers may still ignore their result and
+are not thereby declared fault-safe. Failed ownership-vector insertion frees the
+new object/string, clone and declaration callers propagate null, and Microsoft
+parameter substitutions restore their outer owner through lexical cleanup.
+No new scheduler, semantic graph, allocator provider or foreign ABI policy is added.
+
+The initial277 failure positions across eight exact ABI cases pass. Expanded
+coverage derives515 positions from successful allocations across twelve cases:
+plain/wrapped C, Itanium const-pointer substitutions, numeric/type-producing
+foreign descriptions, operators, aliases/templates, Microsoft metadata, function
+pointers, multidimensional arrays, member pointers and constructors. Every denial
+requires a nonempty error, empty published name and zero retained owners; each
+case then retries the original exact reference bytes. An invalid-profile call
+also denies its actual final error-presentation allocation while retaining the
+original semantic cause. Existing tool output/wrap/source-restoration checks pass.
+A subsequent temporary local name token was reserved; its failed leaf remains,
+renamed spelling, expanded leaf4.071715359/3.830454/258988 and runtime3.392194ms/
+3.172ms/1652KiB pass. There is no weakened assertion or inferred all-input proof.
+
+The14-step matching native closure passes21.803664480/73.120682/748524, followed by
+independent backend/foreign ABI reference checks.027906728/.026975/70748. Raw-IR
+address instrumentation of the actual standalone fixture and smallest memory unit
+(132 client definitions/12 memory definitions, matching address runtime/trap)
+passes all515 fault positions plus presentation denial with ASan/LSan enabled:
+24.252285ms/20.381ms/13728KiB. Production source is unchanged by the later full
+ROOT9d history merge9e4c4855; that merge changes entity headers and shared semantic
+storage, so it invalidates the broader native/instrumented union identity. The
+standalone foreign closure does not import those entity/semantic implementations.
+Current complete production overlap and final coherent instrumentation remain due.
+
+A single new opaque foreign_name_profile entry links the same objectc66abf88
+against frozen beforebf7071fe and after17c02f92 mangler providers. It checks exact
+ABI bytes on every iteration and reports allocation calls, returned-owner buffer
+peak and zero final retention; the existing process_profile reports wall/CPU/RSS.
+This is a serial mangler measurement, not compiler scaling or whole-heap accounting.
+A one-iteration smoke reports identical96 calls/58 returned-owner buffers/zero
+retention for the complex case. Quiet fixed-path measurements are still pending.
+
+Root's installed-executable-path finding invalidates an isolated-code-cost reading
+of prior different-path constructor/import comparisons. Preserve their raw values
+as observations, not controlled attribution. B2 canceled unstarted foreign watcher
+52201 before any child launch; its exit1 is not a performance result. Crossed B1/B2
+09:48 grants were unused after both watchers had stopped. B1's fresh09:51 request
+now has a new grant; B2's new fixed-path watcher6398 waits its actual release and a
+fresh token. Each measured executable will copy/compare/hash outside timing at one
+fixed pathname after its predecessor has drained, with identical working directory.
+No duplicate profile, timed build overlap or publication claim is intended.
+
+### 2026-11-23 10:31:01 UTC ROOT: foreign failure takeover, measured cost and diagnostic correction
+
+B2's original session stopped with a service rejection; one resume of that same
+session was rejected again. No replacement context or retry loop was launched.
+Root preserved the draft patch (55e7b2a59c7dcb4424ee8e7595a151723dc48eb8eac0f521a6bb9ded6b2c79d2),
+reviewed its eight production paths and continued ordinary compiler validation.
+
+The completed fixed-path sixteen process samples used one opaque entry object,
+one installed executable path, identical working directory and checked exact ABI
+outputs. Four samples per side: small131072 calls wall medians6.899857 to7.309764ms
+(+5.94%), CPU6.675 to7.130ms (+6.82%), RSS1606 to1620KiB. Complex8192 calls:
+wall18.8031005 to21.842530ms (+16.16%), CPU18.455 to21.6005ms (+17.04%),
+RSS1636 to1606KiB. Calls/returned-buffer peak remain262144/2 and786432/58,
+respectively, with zero final retention throughout. The checked failure paths
+have a measurable microbenchmark cost; this is not neutral performance or a
+whole-compiler regression estimate. Complex absolute extra cost is about0.371us
+per call. Retain this correctness tradeoff and inspect end-to-end foreign-heavy
+work before asserting its compiler impact. No allocation/retention increase.
+
+Root found a separate first-cause presentation defect in foreign_expect. The
+existing allocator denies one allocation then recovers. If prefix storage fails,
+the following token append can succeed, hiding the borrowed first cause with
+only a closing parenthesis. An initial last-allocation probe passed because it
+denied the suffix, not the prefix; both initial probe logs are retained. The
+corrected production-API sweep derives all allocation positions from each exact
+malformed input. Missing-parenthesis input void f(int reproduces the token-only
+error at allocation14, wrapper exit1. No memory misuse probe or weakened oracle.
+
+The fix appends context only when the first diagnostic is already present.
+Same public pin, compiler arguments, production API, installed test executable
+path, and serial allocator then pass all515 valid-ABI denial positions plus18
+malformed-diagnostic positions and existing tool output/restoration checks.
+All require empty failed output and zero retained owners. The normal malformed
+reference preserves its full prefix and expected token. Before sweep wall
+182.519669ms/30.004ms CPU/1628KiB; after177.821158ms/29.309ms CPU/1628KiB.
+These are single correctness sweeps including flushed diagnostic I/O, not a
+success-path speedup claim. Smallest public fixture compile/link passed; raw logs
+root_foreign_diagnostic_{before,probe,sweep,after} retain the complete sequence.
+The earlier standalone ASan/LSan pass validates the original draft; this new
+guard/sweep still needs its matching supported instrumentation and final coherent
+root union. No TSan/whole-release/publication claim follows from serial checks.
+
+Complete source remains main with no todo changes. Remaining owned work includes
+typed metadata copies/module constructors and shared standalone linker budgets;
+L2 now owns the exact existing-provider late inspection extraction and fixture.
