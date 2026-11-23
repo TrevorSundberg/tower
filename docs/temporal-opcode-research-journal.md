@@ -87398,3 +87398,73 @@ published hash recorded in D2 status. ROOT owns deployment.
 L1 reconciliation complete: implementation `041912d1` merged complete published `31e16e9e` history as `37b9c8d25729b272c55926d490a305fa078c28b7`, without conflicts or changes to L1's backend hunks. The required ff-only pull reported divergence before this history-preserving merge. Incoming ROOT capacity bootstrap SHA256 `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138` and A1 semantic inputs were genuinely changed, so dependency-aware native targets rebuilt once (135.32s wall,217.62s CPU,1061912KiB peak). Merged541-boundary denial, exact backend/codegen objects, backend-ir, WASI backend-consumer object, both selected Foundation fixtures raw/passes/reference, and package filters `swap`/`i64_i32_high`8/8 all PASS actualexit0. CTest registration `tower-storage-backend-import` passed. Frozen source manifests agree before/after each run; no other clone/cache touched.
 
 Merged compiler SHA256 `d6b0f6c077b6d962ad85f82d018f8d21dea0d185e362c8bf9965802dd4ad9a86`, backend object `a6f03ff78b12d9cd5041a289e982b176684095e34f6f5df9ae59cbb72e595917`, portable backend consumer `1552a79e83239fbe6de2cbb4260540970593a4efd0944a55789b368b4862f66d`. Canonical/execution hashes and ledger counts remain the same as above. Merged healthy jobs1 wall1.28s/CPU1.26s/191828KiB and jobs4 wall1.07s/CPU1.32s/208544KiB are new-input observations, not substitutes for the original matched before/after pair. Full receipt `C:\Sandbox\build\codex_ecs_20261122\L1\backend_admission_receipt.json`; exact logs `backend_admission_merged` and `backend_admission_merged_packages`. All owned jobs drained; todo unchanged. Remaining limits remain explicit: canonical payload-vector accounting, LLVM-private allocation accounting and integrated browser/sanitizer/generation/publication gates are not claimed by this bounded admission batch.
+
+## 2026-11-23 D1 browser diagnostic fixture import boundary
+
+Bounded D1 task, thread01a2046a-4644-7ab1-a0ae-abd80210f013, CodexPID3103444.
+No surviving owned build; clean required pull --rebase=merges --autostash --ff-only
+advanced3e6b581 to frozen ce4f7240392b283a2af9d8cf378a359b32aa7dda. Read AGENTS,
+modules/Foundation grammar contracts, actual Bedrock/Foundation syntax declarations,
+existing Tower frontend_diagnostic_revision/text and parser reuse coverage, D2's
+published browser acceptance receipt and explicit permitted artifact/status.
+No inbox/task discovery, new goal/agent, heavy lock, compiler build or cache change.
+
+Copied only D2's preserved portable_debug_without_names.wasm to own
+build/d1_ecs/diagnostics_imports_ce4f724/portable.wasm; SHA256
+0b9d22e60d545e82e6079addd6c67e8e6c6ebc607036c5b4a8143ff4aca08bae
+matches the frozen2013ad28 portable IDE reactor built by public768a0cdf.
+Original D2 artifacts/logs were not mutated. The relevant language/type resources,
+compiler-fixtures.mjs and tower-host.mjs are unchanged from2013 through this
+freeze. This is frozen-reactor validation, not execution of ce4's later compiler
+providers. Current source-location transport control is separately identified.
+
+Baseline diagnostics.test.mjs exactly reproduces9 failures/1 pass, process1:
+ordinary code requires explicit language import; custom Number grammars fail
+activation before repair. The deep-input negative accidentally passed on undefined
+Number too. Foundation supplies the original basic syntax and Number; seed-only
+literal/Identifier grammars already work and remain unchanged. Add explicit
+Foundation imports only where needed; update absolute offsets by actual prefix
+length and definition line numbers by the real import line. Preserve original
+message/alternative/order/zero-length-gap/provenance assertions. Target the source
+statement newline in the negative substitution, leaving the import line intact.
+Add only reactor byte-offset controls: actual EOF offsets across cache reset and
+deep invalid semicolon's absolute position. No error stripping/normalization,
+wildcard import-error acceptance, skips or ambient-language compiler changes.
+
+Native Tower diagnostic revision/text/reuse fixtures already own related semantic
+checks, but are linked test functions, not callable fixture-data exports in this
+reactor. Their native execution would not check Node JSON offset/reset transport.
+No duplicate implementation or new test framework was added. Existing Node source
+strings are data; new checks are limited to byte-offset transport. No Tower
+language logic or compiler source changed. Separate helpers.he/helper and
+left.an/answer completion failures remain real A1-owned production cases; expected
+labels untouched. A2's syntax_reader_span investigation and D2 worker retirement
+are separate, untouched owners.
+
+Exact commands, from /home/deck/tower-agent-1 inside tower-d1-ecs:
+TOWER_TEST_WASM=/home/deck/tower-agent-1/build/d1_ecs/diagnostics_imports_ce4f724/portable.wasm
+/usr/bin/time -v node --test --test-concurrency=1 playground/tests/diagnostics.test.mjs
+Final selection adds playground/tests/source-location.test.mjs. Node22.23.5,
+Steam Deck Linux x64; portable serial reactor, no compiler/worker scaling claim.
+Fresh Node processes, warm filesystem, no cache flush. No broad browser/frontend/
+generation/sanitizer matrix. D2's active heavy slot/cache remained untouched.
+
+| Selection | Result | Wall / CPU s | Peak RSS KiB |
+| --- | --- | --- | ---: |
+| Original diagnostic data |1 pass /9 fail, exit1 |1.87 /1.88 |125824 |
+| Initial repaired selection + Unicode control |10 pass /1 fail, exit1 |1.88 /2.20 |133172 |
+| Final repaired selection + Unicode control |11 pass /0 fail /0 skips, exit0 |2.02 /2.39 |133468 |
+
+The intermediate failure was the ordinary lone-semicolon input still missing its
+Foundation import; expected diagnostic remained strict, and only that fixture
+boundary was corrected. First repaired deep check also gains the explicit final-
+semicolon offset assertion. No production diagnosis remains in this selection.
+These are validation costs, not performance comparisons: baseline stopped before
+intended semantics, final work includes real repairs/deep input and an extra
+transport control. Fixture-only data/offset changes have no production runtime
+before/after profile applicability. RSS is process maximum, not live compiler
+ownership accounting; all runs had zero swaps. Logs/baseline test copy/current
+input hashes/exit statuses remain build/d1_ecs/diagnostics_imports_ce4f724/.
+Disk129GiB free; todo SHAe97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327
+unchanged. Normal source reconciliation/push follows; ROOT owns final integrated
+browser/generation/sanitizer/hosted acceptance, none passed by this fixture repair.
