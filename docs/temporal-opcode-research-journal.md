@@ -84617,3 +84617,5 @@ adds documentation and CTest registrations only; build/link recipes and all428
 actual imported source hashes, frozen resources and preserved todo hash match.
 Reuse merged focused runtime evidence without recompilation. Both owners' journal
 and README additions retained. Normal main push retried; no deployment claimed.
+
+B2 inference publication receipt: type-smoke completed PASS,213.762wall/230.153CPU/268560KiB; owned jobs drained. Implementation0e9db271 merged complete origin68f906a1 as5b16b584 after required ff-only pull correctly refused divergence. Both journal histories retained. Incoming LR change required exactly parser-nodes plus relink (21.313wall/15.676CPU/732456KiB); merged inference CTest2/2 PASS and workers4 canonical remains byte-identical to the recorded workers1 baseline. Whole-generation source is frozen after this publication receipt; generation/package lineage will name that published commit rather than the earlier intermediate binaries.
