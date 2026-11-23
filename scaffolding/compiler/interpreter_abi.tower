@@ -2,7 +2,8 @@ import tower;
 import foundation_types;
 import foundation_tags;
 import interpreter_storage;
-import .library.vector;
+import .library.work_vector;
+import .library.work_budget_types;
 
 import interpreter_types;
 
@@ -28,11 +29,17 @@ fn im_function_reference(m: IMState*, function: void*): u64 {
     var index = im_node(function).index;
     if m.function_values.length <= index {
         var previous = m.function_values.length;
-        im_storage_require(vector_reserve(&m.function_values, index + 1));
-        m.function_values.length = index + 1;
-        for(var i = previous; i <= index; i++) { m.function_values.data[i] = null; }
+        var needed = index + 1;
+        var result = needed == 0 ? WorkBudgetError.Invalid
+            : work_vector_reserve_result(&m.function_values, m.budget, needed);
+        if !im_storage_result(m, result) { return 0; }
+        for(var i = previous; i < needed; i++) { m.function_values.data[i] = null; }
+        m.function_values.length = needed;
     }
-    im_storage_require(m.function_values.data[index] == null || m.function_values.data[index] == function);
+    if m.function_values.data[index] != null && m.function_values.data[index] != function {
+        im_storage_result(m, WorkBudgetError.Invalid);
+        return 0;
+    }
     m.function_values.data[index] = function;
     return convert(u64, index) + 1;
 }
