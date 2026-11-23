@@ -48963,3 +48963,42 @@ bounded trace323 and address diagnostics3fe are integrated. New IM budget9228
 and type split7f9 remain pending at this checkpoint; no half-ABI runtime claim.
 Current combined ASan/TSan, clean final bootstrap/browser/generation/publication
 remain open; no publication lease is held.
+
+### B2 interpreter physical-buffer checkpoint and fixture count derivation
+
+Integrated the reviewed L1 type-only split7f9fa3c4 and IM buffer ownership9228ea76
+on top of4d1324e. WorkBuffer/work_vector retain one nominal definition; the four
+allocation-free iteration hooks move with the type-producing function. Parser
+shared layouts now import only those definitions. D2 direct imports a4eb4477
+preserve explicit module visibility. IMState memory plus IMContext initialization
+and captured-input metadata now own their physical grants through disposal,
+borrowing the root world's budget before initial allocation; explicit standalone
+execution uses null. Other interpreter vectors and whole-heap accounting remain
+open. All consumers were rebuilt together; no mixed-layout execution was used.
+
+Public predecessor smallest interpreter:3.064771121wall/2.690714CPU/195292KiB;
+query fixture:1.889427248/1.660686/193508. Complete69-step native refresh PASS
+40.417493807/218.612629/840436; subsequent import/fixture12-step refresh PASS
+9.452752850/32.961541/383444. Current query-smoke PASS.063760784/.066353/59312
+includes32/64-bit targets,8-byte/64KiB inputs, exact owner subtotals, denied growth
+preserving allocation/content/receipt, cancellation and final zero ownership.
+Serial snapshot partial-copy allocation fixture PASS1.095908776/1.056240/162912;
+its entry was freshly recompiled for the new IM ABI, with the existing instrumented
+allocator and serial transport. Production multi-unit suite PASS
+17.676886822/27.226261/712712; actual backend overlap PASS
+7.664166263/9.799792/497024, exact objects and distinct-worker barriers unchanged.
+Logs are build/b2_im_budget_{smallest,native_build,import_refresh,focused,units_overlap}.log.
+These are scoped validation observations, not isolated quiet performance samples.
+Matched combined caller cost and current complete sanitizer/type lifecycle checks
+remain pending the next coherent shared error-propagation boundary.
+
+B1 requested derived fixture counts. units_trial now obtains its count from the
+source-array extent; cancellation uses one configured count. Named shared and
+per-source physical-buffer counts replace repeated subtotal/live-count literals.
+The four-word allocation header is still a separately documented ABI oracle.
+Exact denial/replacement, input subtotals, whole-ledger bounds and cancellation
+assertions remain. Smallest fixture PASS2.344195011/2.007528/202904 and the current
+production suite above passed. Two-file incremental handoff
+B2_frontend_derived_counts.patch SHA5ded8e80017fcfb58f140b9b95d3613f2f165bfc3b869a7e3b58ecb86b2a2dee
+follows6e961029. This checkpoint precedes a8ec/bad3 storage-error reporting and
+its semantic coordinator counterpart; no partial-ABI acceptance or publication.

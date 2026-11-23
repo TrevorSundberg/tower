@@ -498,3 +498,14 @@ recipe is corrected to exclude serial/instrumented test overrides; earlier16
 samples remain serial-only. Native paired samples prove3outer/4reserved lanes,
 with measured overhead and memory limits documented. IM ownership adoption and
 final current-ABI instrumentation/publication remain pending.
+
+IM9228/type split7f9 checkpoint: reviewed library/work_buffer_types.tower and
+library/work_vector_types.tower. These contain the single existing owner types
+and allocation-free iteration protocol, no allocator, scheduler or parallel
+semantic graph. Census243 assigned +35 supporting +83 fixtures =361/361 existing
+paths reviewed. IMState/IMContext now account three physical retained buffers
+against the explicit root-world budget; exact ownership/denial/cleanup tests and
+current production units/actual backend overlap pass after the full ABI rebuild.
+Other interpreter vectors and the previously listed constructor/store/module/
+WorkPool/backend scope remain open. Shared storage-error propagation, matched
+combined caller costs and complete current instrumentation are still pending.

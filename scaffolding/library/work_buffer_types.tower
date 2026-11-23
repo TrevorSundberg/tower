@@ -1,0 +1,10 @@
+import tower;
+import work_budget_types;
+
+// One physical buffer and its byte-only grant. Transfer the complete owner;
+// its budget and gate must outlive every retained allocation.
+struct WorkBuffer {
+    data: u8*;
+    capacity: usize;
+    reservation: WorkReservation;
+}

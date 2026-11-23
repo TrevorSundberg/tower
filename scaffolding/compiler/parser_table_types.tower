@@ -1,7 +1,7 @@
 import tower;
-import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_budget_types;
-import .library.work_vector;
+import .library.work_vector_types;
 import frontend_diagnostic_types;
 
 enum ParserReadMode: u32 {
