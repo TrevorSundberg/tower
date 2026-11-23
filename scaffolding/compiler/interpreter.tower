@@ -1041,6 +1041,7 @@ fn ix_enter(m: IMExecution*, node: void*): void {
 }
 
 fn ix_returned(m: IMExecution*, value: u64): void {
+    if !ix_ok(m) { return; }
     var call = im_frame_call(m.state);
     // A staged aggregate producer owns its final frame until its fields have
     // been copied into relocatable Foundation values. Guest callers still pop
