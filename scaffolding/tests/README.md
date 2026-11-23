@@ -1205,3 +1205,11 @@ Page checks retain live addresses and private-stage isolation through publicatio
 reuse and discard. Reentrant checks use separately live owners during finalization.
 These are ownership checks; actual concurrent publication remains covered by the
 worker-stage fixtures. The separate page-churn measurement is not a default test.
+
+The existing `tower-frontend-tests RESOURCE_ROOT allocations` selector also runs
+the metadata-copy checks in `world_constructor.tower`. It derives every serial
+and staged denial position from actual successful allocation counts, checks
+exact `Memory`/`Capacity`/`Busy`/`Invalid` results and budget-pressure retry,
+compares copied parser/provenance data, and checks reference and byte ownership
+after discarding partial destinations. This selector requires serial allocator
+transport; real parallelism is tested separately by query and unit-overlap runs.
