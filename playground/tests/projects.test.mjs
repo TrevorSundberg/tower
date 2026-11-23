@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower} from './compiler-fixtures.mjs';
+import {loadTower, builtins as grammar} from './compiler-fixtures.mjs';
 import {newProject, validateProject, projectDiagnostic} from '../src/projects.mjs';
 import {exportProject, importProject} from '../src/project-archive.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
@@ -63,19 +63,17 @@ test('mounting replaces the WASI drive, directories and open file descriptors', 
   assert.equal(wasi.files.has('main.tower'),true);
 });
 test('compilation accepts source above the previous 128 KiB limit', () => {
-  const result = run([['big.tower','// ' + 'x'.repeat(180000) + '\nprint(42);']]);
+  const result = run([['big.tower','import foundation;\n// ' + 'x'.repeat(180000) + '\nprint(42);']]);
   assert.equal(result.output,'42\n',result.error);
 });
 
 test('an explicit project-root library resolves sibling imports from nested build entries', async () => {
-  const grammar = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name =>
-    [name,(await read('scaffolding/'+name+'.tower')).toString()])));
   const host = await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock);
   const files = [...Object.entries(grammar).map(([name,text]) => ({path:name+'.tower',text})),
     {path:'units/main.tower',text:'import tower; import lib.value; print(value());'},
     {path:'lib/value.tower',text:'import tower; fn value(): i32 { return 42; }'}];
   host.configureModules({entry:'units/main.tower',library:'.',files});
-  const handle = host.compile(files[3].text);
+  const handle = host.compile(files.find(file => file.path === 'units/main.tower').text);
   try {
     const result = host.execute(handle,10000);
     assert.equal(result.status,'done',result.error); assert.equal(result.output,'42\n');
