@@ -38,6 +38,11 @@ The preserved stash37894097 and service-rejected instrumentation remain excluded
 | Normal / shared / browser generations | Qualified alias141ef1e4, hover64450fc1 and fullIDE523f29ad/94ddfa7a passed their scoped gates. D2 retirement passed984. ROOT actually completed both edited browser generations at9d; current eac normal/LLVM/cross build also completed. | ROOT0c4ac94a/cc21bb4e:two edited generations110.248/94.796s, all three reactor outputs equal and edited diagnostic checked. eac source-frozen build artifacts portabledf541c16/LLVM87c8fbc9/crosse860e9c5/project420d6de1, exact manifests in source map. | Historical failures remain recorded but are not the current blanket status. B2 current shared reactor, A1 direct package/full LLVM, D1 remaining Node and D2 struct/LLVM resource slices are IN PROGRESS. ROOT final current-source normal/shared/LLVM/cross packs/runtime/generations remain pending. Builds are not execution. |
 | Final atomic hosted release | **No new runtime deployed.** Pages6f142bef remains old build98ade8cc with reachable source/build. Source publication and newer artifact existence do not advance hosted acceptance. | ROOT recorded20:02:20UTC verification of manifesteb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c. This audit made no fresh network/hosted check. | ROOT only: finish current release gates, preserve newer assets/receipts/CNAME, publish reachable source/build with normal atomic main+gh-pages update, verify workflow and exact served assets/behavior. Pending, not waived by this audit. |
 
+Publication after this freeze merged0d789444: A2's four-slot policy is now
+published, with D1 browser fixtures/reproducers and B1's additional rejected
+closure-scratch receipt. They are explicitly mapped as **excluded later inputs**
+in the source audit's publication reconciliation. The twelve rows retain their
+3ea boundary; no later policy, old reactor or test result is silently adopted.
 H1 is no longer a live inspection-array defect: the source map traces its ordinary
 query preparation and full IDE follow-up. KnownScan K1, metadata ID0 and the
 suspected declaration-call append concern retain their separately established

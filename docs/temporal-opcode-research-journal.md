@@ -89932,3 +89932,13 @@ build/functional/performance evidence rather than repeat a matrix. No conflicts,
 source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
 stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
 and final-source instrumentation/release exclusions. Normal main push follows.
+L2 ledger publication reconciliation:5a4c575e committed the3ea freeze, required
+ff-only pull refused normal divergence, full-history mergec90330ef preserves
+published0d789444 and all journal entries. Later12 Tower blobs explicitly excluded
+with old/new identities:10 A2 four-slot policy/fixtures(f4e42223),2 D1 composition
+reproducers(9b0ba0bb). Separate A2 saved5947392B receipt and D1 scoped87/3/1 evidence
+are retained, not silently adopted into3ea acceptance; remaining composition/
+linking/15semantic-port cases open. B1 additional closure-scratch rejection restored
+sources; ROOT artifact-refresh receipt matches the previously read eac manifests.
+Public bootstrap unchanged. Ledger remains12rows/exact3ea freeze; no additional
+source sweep, compiler/test/profile/browser/instrument operation or hosted claim.

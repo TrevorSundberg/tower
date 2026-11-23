@@ -2261,3 +2261,45 @@ above identify the new recorded build; the old b0 aggregate/support hashes are
 not relabeled as eac physical-member validation. Actual9d edited builds are their
 own executed recipe evidence. Final current support-member/pack/hosted validation
 remains ROOT's gate; no raw directory glob or stale support inventory is adopted.
+### Publication reconciliation after the reviewed freeze
+
+Review commit5a4c575e then required ff-only pull encountered normal divergence.
+Full-history mergec90330ef24bfd21817cbc026d5c8019939bdbb53 preserves published
+**0d789444** and both journals without conflict. Incoming root tree
+`2b5c283ee3e6b74928247d41e186460b73e3ab01`, compiler
+`aea0136350d6a15fd3c753ebb1c8c1b3c14421c1`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a` are **outside** the3ea reviewed freeze.
+This is an explicit exclusion/owner-receipt reconciliation, not a second full
+source review or a silent advancement of the twelve rows.
+
+A2f4e42223/0d789444 now publishes the previously in-progress four-slot policy;
+its [separate receipt](compiler_ecs_declaration_pages_5b9194e4.md) reports5947392B
+saved in the512-body case, preserved outputs/owners and scoped checks. Those ten
+changed implementation/fixture blobs below require their own final-source
+integration; the3ea occupancy measurement is not their acceptance. D1
+9b0ba0bb/2b2bef71 adds two ordinary type-composition reproductions, browser input
+repairs and its scoped87pass/3fail/1skip receipt. Composition/linking and15
+incomplete semantic-port cases remain open; no old reactor is called current.
+B1e1e25e26/bcd0e3ab ships only the additional
+[rejected closure scratch trial](lr_closure_scratch_e7558fa8.md), restored binaries
+and negative performance evidence. ROOT87fb9545 publishes the eac artifact
+refresh already mapped above; no new runtime deployment. Public bootstrap tree
+is unchanged. Later browser transport/test changes keep D1/D2's receipts, not
+new L2 execution.
+
+Exact excluded Tower blobs (`scaffolding/` prefix; absent means newly authored):
+
+| Path | Reviewed3ea blob | Incoming0d blob | Owner |
+| --- | --- | --- | --- |
+| `compiler/semantic_context.tower` | `7e6ac339f219` | `7c32904716a0` | A2 declaration pages |
+| `compiler/semantic_declarations.tower` | `944dad9177a0` | `db2c3e09c5ff` | A2 declaration pages |
+| `library/entities.tower` | `5f9d3a3fa32f` | `94fdb2a69eea` | A2 declaration pages |
+| `library/entity_api.tower` | `fc72af00b269` | `ef8e09411874` | A2 declaration pages |
+| `library/entity_types.tower` | `7076d1d1f3e2` | `c50532b26f8c` | A2 declaration pages |
+| `tests/entity_component_budget.tower` | `14455998e191` | `dc9105ea832a` | A2 declaration pages |
+| `tests/entity_component_layout.tower` | `11abd6ae4a83` | `4744bf972860` | A2 declaration pages |
+| `tests/entity_page_reuse.tower` | `502caf33f09a` | `b38bb24c522b` | A2 declaration pages |
+| `tests/entity_stage_concurrent.tower` | `ed20b2e78ecb` | `fd6f01a72228` | A2 declaration pages |
+| `tests/frontend_storage_profile.tower` | `c9aa6a83ba86` | `408893749941` | A2 declaration pages |
+| `tests/type_identity_composition.tower` | `absent` | `6717ec21e379` | D1 / L1 semantic follow-up |
+| `tests/type_numeric_composition.tower` | `absent` | `e22d3f821ac7` | D1 / L1 semantic follow-up |
