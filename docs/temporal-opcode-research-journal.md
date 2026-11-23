@@ -89985,3 +89985,15 @@ build/functional/performance evidence rather than repeat a matrix. No conflicts,
 source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
 stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
 and final-source instrumentation/release exclusions. Normal main push follows.
+D1 adoption publication reconciliation: implementation7f936c33 merged complete
+published0d789444 as67123620 without conflicts after the required ff-only pull
+reported divergence. All recorded Node host/test files, seven focused Tower
+fixtures and supplied artifact bytes remain unchanged. The eleven full-resource
+manifest differences are the incoming declaration-page compiler/library files,
+five storage test/profile files and tests/README; the exact list is preserved in
+merged_resources_check.log. They are neither compiled into the frozen eac pair
+nor imported by the selected language/collection/link fixtures. New files remain
+explicitly in focused_fixtures.sha256. Reuse the checked evidence without a new
+compiler build or passing-case rerun; incoming page-policy implementation keeps
+its own source-specific owner receipt. Inspected negation producer chain still
+matches eac exactly. No complete current-main reactor or release claim.
