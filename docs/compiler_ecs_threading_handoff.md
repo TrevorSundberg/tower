@@ -48,6 +48,18 @@ Consult those owner receipts for their post-freeze results; the fixed open rows
 above are not a claim that newer repairs are absent. No second inventory or
 runtime adoption was performed to publish this documentation.
 
+Finite review follow-up at published `1e60c511`: the
+[nineteen pending Tower paths, two CMake contracts and five requested composition deltas](compiler_ecs_audit_d1.md#2026-11-23-d1-finite-pending-source-review-at-1e60c511)
+now have independent source dispositions. This completes that bounded review
+work, not the acceptance rows above. One concrete source-only defect remains:
+`driver_c_cases` registers the callback-bearing `backend_void_returns` as
+successful C output although the C emitter explicitly rejects function values
+(ROOT/L2). The raw high-byte initializer also lacks an executed six-byte/guard
+oracle in its storage fixture; source counting and import/format/cleanup checks
+are narrower evidence. Owner native void-result execution0 and required-shape/
+capture receipts remain distinct from this review. Later producer/CTest inputs,
+current guest fit, final artifacts and release are not adopted here.
+
 ## Historical fixed completion ledger - published 3ea43517 (2026-11-23)
 
 Frozen published source **`3ea435174a3529aabbeeea8544aa640653214bb3`**; root tree

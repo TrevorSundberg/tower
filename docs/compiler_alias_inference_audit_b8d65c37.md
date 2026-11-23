@@ -147,3 +147,11 @@ SHA manifest. The expected three nonmatching checks are retained in
 `merged_sources_check.log` (exit 1). This audit remains at b8 and does not adopt,
 reject or runtime-validate the newly merged headers/registrations or unrelated
 backend/formatter changes. No additional tests were run on the advancing sources.
+
+Follow-up implementation (D2, source `7890ebd7` plus the focused gate patch): both
+registration gaps above are now closed. The existing alias selector includes the
+scalar negative at 32/64 bits, workers 1/4; three positive CTest fixtures use an
+exit-preserving exact-zero process boundary. The journal entry “close alias
+scalar rejection and exact-zero CTest gaps” records the passing native cases and
+actual rejection of Tower output `10` and `0` with exit 7. This supersedes only
+those two coverage gaps; the original b8 source review and exclusions remain.

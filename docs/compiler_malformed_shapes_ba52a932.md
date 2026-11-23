@@ -202,3 +202,22 @@ Later remote source7890ebd7 has not been fetched/reviewed/validated here.
 No fix is claimed published or deployed. Remaining action is a coordinated
 normal main integration/push preserving these commits, with checks only for any
 new affected inputs. No owned jobs remain; all stashes and todo are preserved.
+
+## ROOT publication recovery (2026-11-23)
+
+The publication blocker above is resolved. ROOT preserved all A2 commits and
+merged incoming7890ebd7 as78d675c441cabba99f05276656717e53d01ead6f.
+The incoming changes were browser transport/docs; the final merge changes no
+scaffolding, CMake or bootstrap input from A2's committed9276214c state.
+The previously recorded182f5652 native validation remains source-bound and
+unchanged; no browser/runtime acceptance is inferred.
+
+ROOT's SSH push first failed DNS resolution, then could not use Windows
+Credential Manager in that logon session. No credentials were changed. A Git
+bundle preserved the complete missing history (SHA256
+ee025e52dcb00a29ff17b526673f2ec0f84722c3a67e11669789630e99f5cb6b);
+the remote/local hashes matched and git bundle verify checked every prerequisite.
+ROOT fetched its HEAD and fast-forwarded the normal checkout, then successfully
+pushed main78d675c441 and unchanged gh-pages6f142bef atomically. Remote refs
+were verified. This publishes the source repair, not a new runtime deployment.
+A2 resumed its same UUID with the next bounded body-local type-query task.

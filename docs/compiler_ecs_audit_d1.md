@@ -4991,3 +4991,70 @@ measurement. Current generations, public pin, atomic hosted release and
 service-rejected instrumentation remain OPEN; no rejected operation was retried.
 Documentation-only profiling is inapplicable. No build/test/profile rerun,
 implementation change or new audit loop.
+
+### 2026-11-23 D1: finite pending-source review at 1e60c511
+
+Frozen published main **`1e60c51167c6cc0438d10fe2366614ad872fa85b`**, tree
+`72820a3b863adc36e29ef382c532708c5b2b40ae`, compiler
+`21b00de919403346f3f852a387a2b50b07b667d2`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. This closes the independent **review
+work** for the preceding nineteen Tower paths and two CMake contracts, plus the
+five explicitly requested composition deltas. It does not close runtime/release
+acceptance. Final functions, immediate consumers and registrations were read;
+unchanged earlier reviews remain adopted. No production or fixture edits.
+
+Of the original nineteen, sixteen still match7890; `malformed_call_checks`,
+`lr_work_main` and `module_loop_query_checks` changed. Of its two contracts,
+`TowerWorkTests.cmake` changed. Those final versions are reviewed below, including
+A2 ee91c300 and the already-published L1 capture registrations through4bbde387.
+The five additional files adopt L2's void-result repair through74ccfb00 and A2's
+shape guard. Later incoming inputs are outside this fixed review. Exact Git blobs
+are recoverable at the freeze; local `build/d1_ecs/source_review_1e60c511/{paths,blobs}.txt`
+records all24 Tower plus2 CMake paths. Paths in the table are under scaffolding/
+except cmake/.
+
+| Reviewed group / exact paths | Source disposition and acceptance boundary |
+| --- | --- |
+| A1 fallback: `backend/session.tower`; `tests/backend_clock_native.tower`, `backend_response_checks.tower`, `backend_response_native.tower`; `cmake/TowerBackendSourceTests.cmake` | `backend_session_create` reserves the fallback tail with its descriptor. Capacity covers the longest typed prefix, a conservative usize digit bound, closing brace and NUL. Failure uses that tail and a stack digit array; zero/max offsets and the first stored backend cause survive without a second allocation. Reset/close retain the original allocation owner. Tests cover all six non-None causes, four offsets, both allocation-denial boundaries, prior ordinary error, two independent sessions and recovery, then zero tracked buffers. The extracted clock is real Linux `clock_gettime`: monotonic-only WASI adapter, nonnull result, checked status and ns conversion. CMake's native/Linux guard matches its ABI; response uses the existing serial instrumented allocator and one backend provider (30s); real source-world/recheck retain guest-runtime dependency, lexical `.tower` mount and180s. Neither serial fault injection nor this review proves threaded allocation safety. |
+| L2 counted initialization: `backend/import_module.tower`; `tests/backend_import_constants.tower`, `backend_import_fixture.tower`, `backend_import_storage.tower` | `bi_initializer` checks ConstantDataArray before the string API, reads counted bytes and emits maximal nonzero ASCII copies or equal-byte u8 fills. Counts exclude string terminators; explicit zero/high-byte runs and offsets preserve original initialization order. No signed-char conversion or NUL-terminated scan; ordinary aggregates keep layout-derived offsets. Partial nodes remain in the existing private import stage and fail/discard through its owner. Constants fixture preserves large/narrow/nominal results, escapes and UTF-8 byte values195/169/0. Raw fixture is exactly65/0/128/255/0/67. Storage checks admission failures, pinned Busy/Capacity, old output/comments, first cause, no-allocation terminal retry, ASCII canonical text and final world/ledger/buffer cleanup. **Limit:** the six raw bytes are imported/formatted, not independently executed/read with surrounding guard-byte assertions; existing retained-output sentinels test publication ownership, not initializer bounds. No wrong-byte producer defect found by this source review. |
+| L2 native probe: `tests/backend_source_native.tower` | Final clock extraction, getrusage ABI, joined census and deny-recheck paths reviewed. Census counts actual store pages/component records; its temporary histogram is budgeted and disposed. Native RSS, charged payload, descriptor bytes and grammar labels are distinct measurements, not a universal memory census. The synchronous observer borrows its stack context/world only through the joined request; deny-recheck saves prior output, reserves the remaining budget at the second parse, releases it on exit and checks exact Capacity plus retained output before recovery. Observer removal, backend/world shutdown and resource/budget disposal preserve borrow order. Native Linux probe success does not establish wasm32 guest fit. |
+| B2 profiler/B1 measurements: `tests/frontend_units_profile.tower` | `uniform` and `spread` are mutually exclusive; both source admission and saved-source/result validation derive the same per-unit body prefix. Uniform means `count × bodies`, not one shared body count. Each answer and representative ordinary body executes42; canonical/object bytes are saved/hashed after join. Backend closes before frontend; all observers/scratch outlive their joined owners. Worker slots are private by ordinal; coordinator aggregates after joins. Timed wall/CPU/RSS ends before oracle/format/save work. Optional grammar observers add separately reported collection cost; enclosing times include it. Vacancy is explicitly an outer-slot upper bound, not demonstrated idle shared capacity; requested lanes are not overlap. Equal zero-body units require observed overlap/distinct threads. Adopt [B1's source-bound measured receipt](compiler_uniform_reuse_3ad7d5f0.md), not a new timing result or proof that every generated body executes. |
+| A2 required captures: `compiler/semantic_types.tower`; `tests/malformed_call_checks.tower`; shared `tests/lr_work_main.tower` | `sem_type_binding_header` requires name before publishing a type record. `sem_type_name_shape` follows the ordinary name chain, checks bare CoreTypeName only, and runs before prepared constructor/type consumption. Qualified/base alternatives, pointer types and editor holes retain their existing paths. Eight exact table cases distinguish mandatory captures from optional declaration/return/call alternatives; marker-derived source coordinates, UTF-8 moved-call control, earlier live answer42, valid override recovery and zero final grants are checked. Three-unit failed and early-cancelled batches drain, expose no program and preserve first error/offset. `malformed-call shapes` runs32 width/worker configurations; main `all` includes shapes once, while `all`/query-smoke's older call group remains distinct. Named reproductions deliberately run a smaller scope. [A2's executed receipt](compiler_malformed_shapes_ba52a932.md) is attributed evidence, not rerun here. |
+| L1 loop query composition: `compiler/semantic_control.tower`, `semantic_statements.tower`; `tests/lr_work_main.tower`, `module_loop_queries.tower`, `module_loop_query_checks.tower`, `semantic_invalid/module_for_condition_scalar.tower`, `semantic_invalid/module_loop_query_cycle.tower`, `semantic_invalid/module_loop_update_capture.tower`; `cmake/TowerWorkTests.cmake` | `sem_control_expression` uses the shared module-expression query only for coordinator-owned immediate module operands; worker/prepared contexts keep ordinary private checking. `sem_module_expression` saves lexical context, demands/discovers shared producers, restores the result context and disposes its temporary subjects on exit. If/while/for preserve bool checking and value/operand/discard modes. For-header scope survives initializer suspension; condition/update bind before body shadows. Lowering retains original repeated condition/update positions, continue ordering and break omission, rather than executing a runtime condition during preparation. Positive fixture checks forward/computed types, nominal usize, exact reference trace12342342342, shadowing and lazy untaken dependencies. Three requested negatives retain bool, capture and layout-cycle diagnostics. Current checker now reads nine actual fixtures: the five added L1 capture sources and positive `module_header_capture_controls` were also read as direct registration context (update/body writes, escape, block write, shadow; immutable/type-only/untaken controls). Exact mapped offsets, no partial program, drained terminal retry/no new owners are checked32/64 ×1/4. Selector and control-smoke call the provider; workers1/4 CTests register the positives. Their regex `0` remains a substring check at this freeze; D2's separate pending registration repair is not adopted. L1's2a5477be/4bbde387 runtime receipts stay source-bound; this is not a new full capture-producer review. |
+| L2 void-result composition: `backend/import_instructions.tower`; `tests/backend_source.tower`, `backend_void_returns.tower`, `driver_c_cases.tower` | `bi_call` drops a result only for SVoid **and zero pointer depth**. Direct preserved signatures and reconstructed indirect signatures keep pointer/nominal types; real values flow through checked temporary/cast and `bi_function`'s already-declared LLVM destination. True-void calls are still appended once for effects. Source-service test requires assigned opaque/forwarded calls (text assertion only). The ordinary fixture independently checks direct/exported/callback void*, deeper void**, null/non-null identity, read/store/free and exact effect count123, printing0. L2 reports actual original/reconstructed32/64 execution and the full entity_pages request execution0 at workers1/4; these are distinct from source proof and remain native evidence. **One concrete C-registration incompatibility remains below.** |
+
+**Source-proven registration defect, not a newly executed failure — ROOT/L2:**
+`tests/driver_c_cases.tower:driver_c_cases` adds `backend_void_returns` to the
+Native C differential list. `driver_c_file` → `driver_c_case` → `driver_c_variant`
+requires successful raw and optimized `--emit c` before comparison. However the
+fixture's `select_callback` is an exported function-valued return and `apply`
+contains an indirect callback. `compiler/c_emitter.tower:ce_collect` explicitly
+rejects KFunctionReference, indirect KCall, or SFunction result/element with:
+`This source backend does not yet implement function values; use LLVM native/Wasm output`.
+The exported selector cannot be justified away as an unused private function.
+This is an incompatible test registration, not another void* importer defect.
+Smallest source trigger, using the fixture's existing supported constructs:
+
+```tower
+import foundation;
+fn opaque(value: void*): void* { return value; }
+export fn select_callback(): function(void*, void*) { return opaque; }
+```
+
+Owner reproduction command (not executed in this review):
+`tower-driver-tests --c-backend TOWERC RESOURCE_ROOT clang gcc clang++ g++ backend_void_returns`.
+Keep the complete LLVM callback fixture and its successful receipts. Route that
+fixture through a supported LLVM execution contract; if adding C regression
+coverage, use a separate direct-pointer subset or assert the intentional C
+capability rejection. Do not relax the C emitter or report its positive matrix
+passed. No concurrent producer/fixture change was made by D1.
+
+The counted-byte boundary above has a smaller **coverage** follow-up: extend the
+existing LLVM-owned constant fixture with executed reads of65/0/128/255/0/67
+and guard bytes after Foundation reparse; it needs no second initializer model.
+This is a proposed L2/ROOT regression, not a confirmed overflow or new test result.
+Existing D2 regex/alias-negative registration work and A1/A2/B1 producer changes
+remain separately owned. The finite requested review is complete with the
+C-registration defect and these explicit acceptance limits retained. No build,
+test, profiler, sanitizer or hosted operation was run; documentation-only runtime
+profiling is inapplicable. Native3.2GiB RSS is not a wasm32 linear-memory result.
