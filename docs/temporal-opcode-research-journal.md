@@ -72159,3 +72159,74 @@ allocator fault injection substitutes for these real worker runs. Full-control
 TSan timeout, source UBSan/systemLLVM/browser coverage, graph/entity allocation
 closure and integrated release/publication remain explicit gaps. Last disk
 free349245087744bytes. No sibling cache edits, todo changes or publication lease.
+
+### 2026-11-23 A1: checked capture continuation graph transitions (d60fc743 successor)
+
+Source review found remaining unchecked transitions inside the existing
+`sem_capture_pump`: a failed take could look like an ordinary wait, while
+suspend/observe/finish used fatal assertions on fallible graph operations.
+The declaration-owned component already retains proof, expression, evaluation,
+and lowering tickets; this change does not introduce helper readiness, another
+scheduler, or another authoritative graph. All checks run on the joined semantic
+coordinator. The existing allocation-free capture-admission failure path is now
+one private helper, used for each fallible graph transition. Failed take uses the
+program/root offset before a ticket exists; later failures use the binding's
+source offset. Actual graph receipts survive cancellation and repeated calls.
+Failed completion retains its resource receipt on the capture component. Healthy
+empty takes and dependency waits retain their previous meaning.
+
+New `scaffolding/tests/semantic_capture_continuation_checks.tower` supplies20
+cases (five modes, pointer widths4/8, worker policies1/4). It uses the real source
+proof producer, its actual retained graph buffers, exact remaining ledger bytes,
+and dispatch-counter exhaustion. It covers ordinary repeated waiting, failed
+take, suspension-edge growth, dependency observation and failed completion
+propagation to more consumers than retained scratch capacity. Repeated terminal
+pumps preserve nodes/components/tasks/receipts; cancelled consumers never run and
+all graph reservations return to zero. These particular one-producer trials do
+not establish useful worker overlap; existing threaded query and compiler cases
+provide separate evidence. No new worker or memory policy is inferred.
+
+An invalid initial Take probe is explicitly withdrawn: `work_take_ready` grows
+its executing-access vector only when a task has an access range, which capture
+queries lack. Filling the byte ledger therefore did not deny that take. Its
+BEFORE exit1 and first AFTER exit1 were a fixture-precondition failure, not a
+reproduced allocation defect. Preserved probe1/probe2/after1 logs remain errors.
+The corrected Take case exhausts the actual dispatch counter and expects the
+current graph's exact Invalid classification at root83. The other original
+Suspend/Observe/Finish SIGABRT failures were real; GDB located the first two
+inside the production capture pump. No negative case was weakened into a pass.
+
+Corrected fixture4 links the SAME fresh public-bootstrap fixture object to both
+providers. The before provider is unmodified public LLVM retained by the
+completed d60fc743 TSan build, verified absent the new helper and compiled by
+Clang19 with -O1 without sanitizer instrumentation. Its optimization differs
+from the normal native build, so it is a regression oracle, never the timing
+baseline. Before healthy0/take1/suspend-observe-finish134; after all20 cases exit0.
+The actual native before376fa7da6ccf6713b1be5ffe7a4311a14041c07f4415a59786a0ac87800eb75a
+and after769c489ea458eef5d498c85218f03558d4f6c6b22e854936bd22278a5ce38048
+are retained unchanged for matched performance measurement.
+
+Public9653 smallest capture closure passes17.86wall/13.17user/.83sys/688252KiB;
+corrected fixture4 passes3.21wall/2.39user/.20sys/213744KiB. Native4-action refresh
+passes23.90wall/16.85user/1.29sys/748936KiB. After correcting the fixture, only
+previously unrun tests were resumed: admission16/source-proof24, registered12
+caller cases, query-smoke/control-smoke/capture-policy all pass. Control32.78wall/
+35.63CPU/259232KiB and capture-policy52.38wall/56.32CPU/230144KiB preserve the
+existing module/local/alias invalidation, executed-versus-untaken dependencies,
+nested calls/effects and canonical serial/worker checks. Session87588 exit0 and
+container ps confirms all owned children drained. The smallest-unit/native logs
+precede fixture correction; no production input changed between those checks.
+
+Environment: same session01a2046f, PID32512, KinmenA Windows11/Docker Linuxx64,
+Clang19.1.1, public bootstrap9653, own CPU0-11/24GiB/jobs1. No sibling cache or
+todo edits; tower-c-validation was init/sleep-only. Last free disk348744409088B.
+Raw recipes/logs: semantic_capture_continuation_{compare4,after1,remaining1},
+fixture4 and continuation mode receipts under A1/cache/logs. The standalone
+fixture uses actual production providers exactly once; D1 owns durable generic
+registration. Fixed-path matched measurement is pending a fresh A2 quiet grant.
+The next coherence boundary joins complete ROOT565cd436 (changed IMState), then
+refreshes native and supported ASan/LSan/TSan evidence once on that union. Old d60
+sanitizer passes are not relabeled for this capture delta. Entity creation and
+component allocation assertions, global graph-budget adoption, full-control TSan
+timeout, source UBSan/browser coverage, public bootstrap/generation and integrated
+release remain open. No A1 publication lease or lane acceptance claim.

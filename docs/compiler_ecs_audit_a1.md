@@ -1712,3 +1712,21 @@ allocator fault injection substitutes for these real worker runs. Full-control
 TSan timeout, source UBSan/systemLLVM/browser coverage, graph/entity allocation
 closure and integrated release/publication remain explicit gaps. Last disk
 free349245087744bytes. No sibling cache edits, todo changes or publication lease.
+
+## Capture continuation transition review on d60fc743 successor
+
+The full scoped census is62 files, including the new fixture below. This updates
+the prior capture-work row; older baseline findings remain historical evidence.
+
+| Path | Reviewed source and ownership/storage findings | Evidence and disposition |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_capture_work.tower` | Entire current file reviewed at d60fc743 plus this delta. Stable declaration-owned proof/expression/evaluation/lowering records retain continuations; no new storage layout or scheduler. Coordinator checks take/observe/suspend/finish failures through the existing allocation-free cancellation/receipt contract. Before-ticket failures belong to the phase/root; after-ticket failures belong to the binding. Structural invariant assertions remain distinct from recoverable graph operations. | Corrected20-case fixture passes; admission16/source-proof24/registered12/query/control/capture-policy pass. Failed-finish propagation cancels dependent consumers; repeated pumps do not replay metadata or overwrite receipts. Initial Take pressure hypothesis was invalid and is withdrawn. Entity/component creation assertions remain open; no universal allocation-failure coverage. |
+| `scaffolding/tests/semantic_capture_continuation_checks.tower` | Entire new file reviewed. Own world/context and bounded graph ledger; real source-proof producer, actual retained buffer capacities and explicit pointer-width/worker samples. No mock scheduler or duplicate semantic implementation. Exact pressure reservations are released before context/world/ledger disposal. | Five modes x widths4/8 x workers1/4 =20 cases, zero retained graph grants after disposal. Healthy repeat-wait and four distinct graph transition failures pass. Single eligible producer is policy coverage, not useful overlap. Durable generic registration routed to D1; current joined sanitizers pending ROOT565 IMState coherence rebuild. |
+
+The journal's "checked capture continuation graph transitions" entry records
+invalid probes, corrected before/after identities, exact commands/environment,
+measurements and still-open acceptance gates. Source review and focused passing
+cases do not close lifecycle scheduling, typed entity allocation, final clean
+bootstrap/browser/generation, independent review or hosted publication. Fixed-path
+performance control awaits a fresh A2 grant; no obsolete sanitizer rerun is used
+as acceptance of the incoming layout union.
