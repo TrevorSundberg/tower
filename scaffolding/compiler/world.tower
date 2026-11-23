@@ -241,14 +241,18 @@ export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): 
 // Reattachment preserves payload state. A failed attachment leaves the node
 // unchanged; a successfully registered type may remain cached for a retry.
 export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
+    var error = WorkBudgetError.None;
+    return compiler_world_component_result(world, owner, kind, &error);
+}
+
+export fn compiler_world_component_result(world: CompilerWorld*, owner: Entity*, kind: u32, error: WorkBudgetError*): void* {
+    *error = WorkBudgetError.None;
     var missing_owner = owner == null || world == null;
-    if missing_owner {
+    if missing_owner || owner.store != world.store {
+        *error = WorkBudgetError.Invalid;
         return null;
     }
-    if owner.store != world.store {
-        return null;
-    }
-    var type = compiler_world_type(world, kind);
+    var type = compiler_world_type_result(world, kind, error);
     if type == null {
         return null;
     }
@@ -256,7 +260,7 @@ export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: 
     if data != null {
         return data;
     }
-    data = bits(void*, entity_component_data(entity_component_add(owner, type)));
+    data = bits(void*, entity_component_data(entity_component_add_result(owner, type, error)));
     if data == null {
         return null;
     }

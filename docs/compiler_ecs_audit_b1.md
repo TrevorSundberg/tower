@@ -1843,3 +1843,130 @@ already committed in the complete runtime/cache/page owner histories. Full parse
 resource accounting, pool/FIRST/state/LALR/tree/pattern producer gaps, the broader
 frontend timeout, clean generation/release and atomic publication/hosted verification
 remain open. No publication lease has been granted; no refs were pushed.
+
+### B1 tree creation resource receipt, 2026-11-23T10:33:45.0313225Z (implementation; validation in progress)
+
+On complete543b9ef8 history, a new fixture in existing parser_table_budget.tower
+binds the world ledger before entity storage, builds a real table/request, then
+occupies the actual remaining bytes. The first match-component page must report
+Capacity through the recognizer, preserve prior live receipts/entities, and permit
+the unchanged input to succeed in a fresh request after releasing the competing
+grant. Source extents derive from strlen(input). A separate raw control step
+checks that the fixture really reaches an ordinary/specialized shift or an empty
+reduction before denial. No allocation phase is guessed from a nominal byte cap.
+
+The unchanged producer failed the initial required Capacity assertion by SIGABRT
+in.02s/49964KiB. The wrapper returned1; GNUtime printed a misleading trailing
+Exit status0 after explicitly reporting signal6, so this is a failure. Smallest
+fixture compile first exposed a missing explicit component function declaration,
+then a missing component-kind import. Both failed logs remain; the third compile
+passed before running the reproducer. No assertion or cap was weakened.
+
+lr_tree.tower now calls existing entity_create_related_result and
+entity_component_add_result and retains their outcome in existing request-owned
+LRParser.storage_error. Shift and reduction reset that per-call field; the legacy
+match helper remains a wrapper. The existing recognizer reads it before allocating
+diagnostic text. There is no shared layout change, new public export, allocator
+or graph. Cleanup/transfer order remains unchanged, including failures after an
+input reference has transferred to the forest. Raw forest/attachment failures
+still have their old bool contract: this does not enable a complete pattern-result
+consumer or claim all tree storage is typed/budgeted. A2 attachment proposal and
+ROOT-owned module constructor dependencies remain separate open work.
+
+Smallest production leaf14.52s/668952KiB; final fixture/coherent native build9.80s/
+445172KiB. Existing parser selector including all three new denial/retry cases
+PASS.04s/53892KiB; LR1.79s/116348KiB; unchanged full units21.67s/32.08CPU/866060KiB;
+query.18s/72808KiB. All jobs61141/80605 drained0. Current code is uncommitted and
+not yet profiled/sanitized; previous543/5ce acceptance remains its own identity.
+
+Frozen fixed-path comparison uses /cache/parser_memory_profile/tree_results_5ceea5fb:
+before units6f80437a8564c76199ada174e6130cb80121948a06a15178424e5881f5e03896,
+editor68259d57d5919083bfed1e39916b019e672712b03d0ca802a941933ea154c546;
+after units3f321b55ac150568cf36eb14bacbcbd0f916d783c1b3c46a078d444130d792d4,
+editor a3a6ff5798c1f8ea4c50e8843709f4b69587f96618d2f4fbd54670672546533b.
+Identical5ce resources SHA356f140d71e4ebfde8577515af5b115565dc1656969b021df29ab7c5fdbc5501;
+source patch5a5c2677198a873eb584958dbe048e852cf76f984ee32c94cc242788ea82bff1.
+One executable installation path per runner, copy/cmp/hash outside timings after
+all previous children drain. Twenty processes,3units, bodies0/4096, workers1/4,
+two alternating pairs plus editor. Watcher77696 requests a fresh ROOT quiet slot;
+no heavy B1 work while awaiting it, no inferred grant from B2 inactivity. Profile
+results and supported instrumentation remain pending; no publication lease.
+
+B1 tree fixed-path profile completed 2026-11-23T10:41:30.0459292Z. Actual20 children64853 all exited0,
+start10:37:42.5208773/release10:39:19.4675151. ROOT's10:35:45 grant explicitly
+held B2 idle until child drain. Its prose did not match the watcher's literal
+pattern: verified waiting child22760(parent22508/33768) was stopped before any
+profile child existed; wrapper77696 exit1 records cancellation, not a failed
+measurement. The still-active explicit hold was consumed once by the manual
+launcher and released after actual drain. No quiet watcher remains.
+
+Same Linux x64/LLVM19/public pin, CPU0-11/24GiB, warm caches,3units,0/4096 bodies,
+workers1/4, two alternating pairs, identical5ce resources and one fixed executable
+path per runner. Copy/cmp/hash is outside timings and follows prior child drain.
+The existing Tower profile checks execution/canonical output; its measured region
+excludes later reference execution/formatting. Editor values are whole-process.
+
+| Case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| Small,1worker | 3416.141 -> 3396.419 | 3211.943 -> 3195.764 | 197392 -> 197276 |
+| Large,1worker | 4660.021 -> 4651.723 | 4456.501 -> 4450.155 | 679516 -> 679318 |
+| Small,4workers | 1360.043 -> 1363.552 | 4030.486 -> 4053.650 | 462224 -> 463236 |
+| Large,4workers | 2396.303 -> 2380.133 | 5598.498 -> 5534.734 | 936880 -> 936322 |
+
+Observed wall differences about-0.58/-0.18/+0.26/-0.67%, all mean RSS changes
+within0.22%; n2 establishes neither a precise overhead nor a speedup. Actual
+outer peaks1/3, reserved lanes1/4. Retained bytes exactly match within each case:
+small serial15157359/parallel15148231; large serial289306048/parallel289296920.
+These paths differ from the earlier acceptance run, so do not compare their
+retention as isolated code cost. Canonical hashes1173729914654460811 and
+4242261087906147675, entities48240/646269 and components55014/792327 match.
+Ledger storage5242880/20971520 bytes matches. Reserved peak bytes are identical
+for both serial cases and large parallel; small parallel varies with overlap
+(before200826494/201735108; after201724149/201735108), without retained growth.
+Editor before wall10.86/11.00s, CPU16.63/16.95s, RSS1012372/908588KiB; after
+11.05/10.92s,17.01/16.79s,973916/903480KiB. Wide RSS variation remains; no memory
+improvement claim. All editor/units correctness and cleanup oracles pass.
+No new aggregation implementation was needed for this small receipt table;
+the existing CSV helper assumes odd samples and was not repurposed for JSON.
+Focused address/thread validation and public WASI/IDE for this tree source remain
+in progress; earlier543/5ce full-unit sanitizer passes retain their original scope.
+
+B1 tree creation milestone validation completed 2026-11-23T10:48:23.7275056Z. Current source is the
+543b9ef8 base plus the two owned Tower files and related documentation, not a
+later shared-node ABI. Address job46187 and thread job48007 both drained0.
+ASan/LSan: build50.68s/741604KiB; parser (including the three real page denials)
+.26s/148248KiB; query.66s/250868KiB; real3unit4lane overlap9.41s/29.42CPU/
+1116168KiB. TSan: build30.10s/36.18CPU/740276KiB; parser.351s/.326CPU,
+query1.146s/1.181CPU, overlap25.554s/79.267CPU and24.828s/78.543CPU with peak RSS
+1415600/1412312KiB. All observer runs retain15148176 bytes, canonical
+1173729914654460811 and observed peak3 under four reserved lanes. No reports.
+The fault allocator remains serial; real overlap uses the production allocator.
+Earlier5ce full-unit sanitizer matrices are retained as5ce, not relabeled.
+No standalone UBSan/system LLVM/browser instrumentation or universal race claim.
+
+The independently implemented LR/tree oracle passes through the existing parser
+runner's lr-analysis selector: ordinary/specialized assembly, preserved payloads,
+transfer failures, reference actions and cleanup. Affected parser build31.41s/
+83.70CPU/794132KiB; oracle.22s/6048KiB. Canonical public-bootstrap WASI incremental
+build2steps21.46s/17.56CPU/799240KiB; actual IDE suite26.3127899s passes, including
+resource/lifetime cases. Reactor SHA256b5ab39d10a1ab207573f82177689e74f79c5ddb40ed666ff3d4d4a25a57f7917.
+Native full units/LR/query and the new parser regression already passed as above.
+Every launched child is drained. Supported scoped checks and the fixed-path
+performance experiment complete this narrow tree-creation correction; raw forest
+allocation/attachment, earlier grammar phases, parser pool/graph accounting,
+module construction and final clean release/publication remain open. No new
+public export, grammar syntax or shared layout is introduced. No lease/push.
+
+### B1 parse-forest physical ownership, 2026-11-23T11:00:11.7634166Z (implementation; validation pending)
+
+Complete ROOT565 was merged with complete B1 tree614 as b6701500066b3c2cbdf1aeff260a74c165a9d124. The incoming IMState function index layout, generic work scratch and borrowed receipt validation were reviewed before a coherent rebuild. Every nonblank ROOT journal line remains; five older table lines changed '?' separators to arrows upstream without changing measurements. The first quadratic PowerShell journal comparison was cancelled, replaced by an ordinal HashSet scan; no scan result was claimed for the cancelled process. No draft shared-node/world producer was adopted.
+
+One native job49465 rebuilt affected providers and passed: entity leaf15.02s/316432KiB, closure50.78s/792328KiB; full units22.42s/852868KiB, LR1.86s/117404, query.23s/88540, grammar-resource1.33s/52932, parser.04s/54168, editor10.93s/963744, full storage.24s/99020, runtime faults.02s/50496 and resource phases.03s/51696. All children exited0 before source edits. Sibling ROOT's independent B2 component work could overlap under disjoint CPU/memory budgets, so these are correctness/build observations, not isolated performance attribution. Prior614/5ce sanitizer/WASI receipts retain their source identities.
+
+Frozen before binaries and identical resources are in /cache/parser_memory_profile/forest_results_b6701500. Before units3ec9cbe136d22b91a43a9b685160f554aa85e1d2939874ade8418cefe003608a, editor7b653ba355fa07943f424e2539b021498e2167907f8990038d17d592c195675c; resources.tar5312d1e92c48cf43f925ed8dadd1062a15a52372a4a0d394350cc5c2187b8e9b. Fixed-path matched profiles remain pending.
+
+File-level change: compiler/parse_tree.tower now uses a WorkBuffer descriptor and work_vector(ParseChild/ParseVisit) for the temporary ordered forest index and traversal stack. Leaves still own the authoritative shared entities; capture strings still borrow immutable tables. The budget is borrowed explicitly and outlives all forest storage. Growth charges simultaneous old/replacement buffers through the shared helper; capacity/length/byte offsets derive from actual vectors and types. This intentionally adopts the shared initial-element policy (currently8) instead of the former private16 minimum, and must be measured as part of the change. No new allocator or authoritative tree is introduced.
+
+New complete producer APIs in progress: parse_forest_create_result(budget,error*) and parse_forest_resource_error(forest). The legacy constructor stays an explicit null-budget boundary for ROOT-owned frontend_table; parser_state passes runtime.budget and lr_tree propagates failures through its existing control result. No shared layout is exposed. Each public mutating forest operation resets its private result; actual WorkBuffer/vector denials preserve Capacity/Memory/Invalid. Entity attachment remains bool-only: a failed attachment can still have no precise forest result and the recognizer retains its existing fallback. A2 owns that separate producer; this is not complete pattern-resource acceptance. D2 was sent the two exact new parser-nodes imports for policy coordination, with no signature-only adoption.
+
+Existing parser_table_budget now exercises descriptor Capacity/Memory, first-leaf denial, observed capture-index growth denial with unchanged receipts, traversal denial, retries and final entity/ledger/buffer ownership. The probe discovers an actual growth boundary instead of copying vector capacity. Two recognizer trials prewarm match-component storage so denial reaches forest growth; the earlier real component-page tests remain. Production entities leaf passed5.03s. An initial fixture target was unaffected (ninja no work), correctly not evidence for new tests; the actual frontend test compile failed on missing explicit entity_create declaration. Failure log retained; declaration and member getter added, correct smallest target selected, validation continues. No source change during owned builds; no publication lease, no universal resource/race/release claim.

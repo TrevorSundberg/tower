@@ -1,6 +1,11 @@
 import tower;
 import .library.entities;
 import .library.entity_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
 // Built with entities.tower until language imports replace build-time composition.
 // A parser work arena, not an alternative AST: leaves own the shared entities.
@@ -22,12 +27,11 @@ struct ParseForest {
 }
 
 struct ParseForestStore {
-    children: ParseChild*;
-    count: usize;
-    capacity: usize;
-    pending: ParseVisit*;
-    pending_count: usize;
-    pending_capacity: usize;
+    storage: WorkBuffer;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
+    children: work_vector(ParseChild);
+    pending: work_vector(ParseVisit);
     visits: usize;
 }
 
@@ -38,54 +42,44 @@ fn parse_missing(): usize {
 }
 
 export fn parse_forest_create(): ParseForestStore* {
-    var forest = alloc(ParseForestStore, 1);
-    if forest != null {
-        *forest = default;
-    }
+    var error = WorkBudgetError.None;
+    return parse_forest_create_result(null, &error);
+}
+
+// The borrowed ledger outlives this request and all of its retained indexes.
+export fn parse_forest_create_result(budget: WorkBudget*, error: WorkBudgetError*): ParseForestStore* {
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(ParseForestStore), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var forest = bits(ParseForestStore*, storage.data);
+    *forest = {storage: storage, budget: budget, ..default};
     return forest;
 }
 
+export fn parse_forest_resource_error(forest: ParseForestStore*): WorkBudgetError {
+    return forest.resource_error;
+}
+
 export fn parse_forest_destroy(forest: ParseForestStore*): void {
-    for(var i: usize = 0; i != forest.count; i++) {
-        var entity = forest.children[i].entity;
+    if forest == null { return; }
+    foreach(var &child in &forest.children) {
+        var entity = child.entity;
         if entity != null {
             entity_release(entity);
         }
     }
-    free(forest.children);
-    free(forest.pending);
-    free(forest);
-}
-
-fn parse_forest_reserve(forest: ParseForestStore*): bool {
-    if forest.count < forest.capacity {
-        return true;
-    }
-    var capacity = forest.capacity *2;
-    if capacity < forest.capacity {
-        return false;
-    }
-    if capacity < 16 {
-        capacity = 16;
-    }
-    var next = realloc(ParseChild, forest.children, capacity);
-    if next == null {
-        return false;
-    }
-    forest.children = next;
-    forest.capacity = capacity;
-    return true;
+    work_vector_dispose(&forest.children);
+    work_vector_dispose(&forest.pending);
+    var storage = forest.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn parse_forest_leaf(forest: ParseForestStore*, entity: Entity*, result: ParseForest*): bool {
-    var ok = parse_forest_reserve(forest);
+    var index = forest.children.length;
+    var child = init(ParseChild) {entity: entity, first: parse_missing(), next: parse_missing(), ..default};
+    forest.resource_error = work_vector_push_result(&forest.children, forest.budget, child);
+    var ok = forest.resource_error == WorkBudgetError.None;
     if ok {
-        var index = forest.count;
-        forest.count++;
-        forest.children[index].entity = entity;
-        forest.children[index].capture = null;
-        forest.children[index].first = parse_missing();
-        forest.children[index].next = parse_missing();
         result.first = index;
         result.last = index;
     }
@@ -95,6 +89,7 @@ export fn parse_forest_leaf(forest: ParseForestStore*, entity: Entity*, result: 
 // Concatenate generated reductions in O(1); captures are applied lazily.
 // Capture strings borrow the immutable parser table, which outlives this arena.
 export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, first: usize, last: usize, capture: u8*): bool {
+    forest.resource_error = WorkBudgetError.None;
     var empty = first == parse_missing();
     if empty {
         return true;
@@ -102,15 +97,10 @@ export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, fir
     var captured = capture != null;
     captured &&= *capture != 0;
     if captured {
-        if !parse_forest_reserve(forest) {
-            return false;
-        }
-        var index = forest.count;
-        forest.count++;
-        forest.children[index].entity = null;
-        forest.children[index].capture = capture;
-        forest.children[index].first = first;
-        forest.children[index].next = parse_missing();
+        var index = forest.children.length;
+        var child = init(ParseChild) {capture: capture, first: first, next: parse_missing(), ..default};
+        forest.resource_error = work_vector_push_result(&forest.children, forest.budget, child);
+        if forest.resource_error != WorkBudgetError.None { return false; }
         first = index;
         last = index;
     }
@@ -118,7 +108,7 @@ export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, fir
     if empty {
         result.first = first;
     } else {
-        forest.children[result.last].next = first;
+        forest.children.data[result.last].next = first;
     }
     result.last = last;
     return true;
@@ -128,43 +118,28 @@ fn parse_forest_visit(forest: ParseForestStore*, index: usize, capture: u8*): bo
     if index == parse_missing() {
         return true;
     }
-    if forest.pending_count == forest.pending_capacity {
-        var capacity = forest.pending_capacity *2;
-        if capacity < forest.pending_capacity {
-            return false;
-        }
-        if capacity < 16 {
-            capacity = 16;
-        }
-        var next = realloc(ParseVisit, forest.pending, capacity);
-        if next == null {
-            return false;
-        }
-        forest.pending = next;
-        forest.pending_capacity = capacity;
-    }
-    forest.pending[forest.pending_count].index = index;
-    forest.pending[forest.pending_count].capture = capture;
-    forest.pending_count++;
-    return true;
+    var visit = init(ParseVisit) {index: index, capture: capture};
+    forest.resource_error = work_vector_push_result(&forest.pending, forest.budget, visit);
+    return forest.resource_error == WorkBudgetError.None;
 }
 
 // Flatten each fragment once into a real shared node; outer captures win.
 export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first: usize): bool {
-    forest.pending_count = 0;
+    forest.resource_error = WorkBudgetError.None;
+    forest.pending.length = 0;
     var ok = parse_forest_visit(forest, first, null);
     loop {
         var failed = !ok;
         if failed {
             return false;
         }
-        if forest.pending_count == 0 {
+        if forest.pending.length == 0 {
             return true;
         }
-        forest.pending_count--;
-        var index = forest.pending[forest.pending_count].index;
-        var capture = forest.pending[forest.pending_count].capture;
-        var child = &forest.children[index];
+        forest.pending.length--;
+        var index = forest.pending.data[forest.pending.length].index;
+        var capture = forest.pending.data[forest.pending.length].capture;
+        var child = &forest.children.data[index];
         forest.visits++;
         ok = parse_forest_visit(forest, child.next, capture);
         failed = !ok;
@@ -187,8 +162,8 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
 }
 
 export fn parse_forest_take(forest: ParseForestStore*, index: usize): Entity* {
-    var node = forest.children[index].entity;
-    forest.children[index].entity = null;
+    var node = forest.children.data[index].entity;
+    forest.children.data[index].entity = null;
     return node;
 }
 
