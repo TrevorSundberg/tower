@@ -85211,3 +85211,5 @@ conflicts, preserving new ownership/scratch/profile receipts. c20 source identit
 and the fixed ledger remain unchanged in scope; later changes do not inherit
 this review, and its c20 budget defect does not deny a subsequent fix. Final
 checks are documentation/path/history checks only; no compiler input was rebuilt.
+
+B2 publication closure: complete ef40e4dc history (including D2 LR interning) merged and pushed normally as b210b449. Required affected parser-node rebuild/relink2 actions passes20.274wall/15.125CPU/740636KiB; inference CTest workers1/4 passes2/2. D2 does not change the diagnosed scratch lookup; the incomplete latest-main self-hosting check remains pending L2's efficient ownership lookup, with exact earlier b21c13c7 sample identity retained. No repeat of the slow check or the frozen complete generation matrix. All child jobs drained and working tree clean before this documentation receipt. Complete frozen packages/provenance remain unchanged; no public pin or Pages deployment.
