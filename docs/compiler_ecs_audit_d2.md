@@ -2463,3 +2463,41 @@ Pinned single-CPU investigation leaves+3.2%small/+2.2%large serial wall medians;
 no broad speedup claim or timing-based acceptance weakening. D1 independently
 reviews/registers at its next coherence boundary. These source/evidence milestones
 do not close unrun final publication gates or L2's distinct calibration issue.
+
+### Complete affinity checkpoint and current consumer review —cbe00ff22 /3c74dc193
+
+The preceding affinity implementation is committed ascbe00ff22, with complete
+source bundle89c2676a and176MiB measured/instrumented receipt9f6a4494. Its before/
+after compiler identities remain565 plus the owned patch. Reviewed complete
+ROOTd3/dba history is now merged as3c74dc193; it has not inherited those runtime
+passes merely because the merge is clean. Primary assigned inventory remains
+33tools+7benchmarks=40/40; supplemental paths below have concrete dispositions.
+
+| Reviewed path at3c74dc193 unless specified | Ownership/scheduling conclusion and evidence/gap |
+| --- | --- |
+| `tools/bootstrap_symbols.tower`, `tools/verify_bootstrap_symbols.tower`, `tools/bootstrap_comparison.tower` | Exact unit policy is a derived ABI check, not another type/entity registry. Reader owns its bounded ByteBuffer until checking completes; rejected spans borrow that input. D1fa15 actual ParserNodes undefined report requires exactly parse_forest_create_result and parse_forest_resource_error, both defined in its entities object. Existing f502 checker is preserved as before oracle. Own current native/WASI before/after validation is pending; no broad namespace permission proposed. |
+| `compiler/parse_tree.tower`, `compiler/parser_state.tower`, `compiler/lr_tree.tower` | Forest descriptor and traversal vectors now charge a borrowed request budget; canonical leaves remain shared entities, not a second AST. Request destroys forest before budget lifetime ends. Exact resource receipts are read immediately by the owning parser. Remaining bool entity_attach consumer can lose Busy/Invalid/Exhausted after a successful scratch push; routed to B1/ROOT and already explicit in B1 audit. New descriptor/index charging does not cover raw entity containment allocations. Source review only here. |
+| `compiler/host_metadata.tower`, `compiler/syntax_provenance.tower` | New per-call WorkBudgetError copies preserve exact component/queue causes and reject serial pinned/leased mutation. Stage owns destination, strings/history remain raw separately owned allocations; queue succeeds before installing owning history. Caller must discard incomplete destination on failure and hold queued shared references before final input unpin. No transactional replacement, whole-heap cap or hold-exhaustion claim. ROOT's dba validation is owner evidence, not a D2 rerun. |
+| `library/entities.tower`, `library/entity_stage.tower`, `compiler/world.tower` | Checked attach/create/reference/component producers preserve world identity, ordered/named containment and typed Invalid/Busy/Memory/Exhausted causes. Reserve before ownership transfer; worker-local stage queues do not retain shared references until coordinator hold. Raw containment/stage arrays and remaining hold/replace/take gaps are separate from charged component pages. No packed-payload claim from the archetype index. |
+| `cmake/TowerRuntime.cmake`, `cmake/TowerWorkTests.cmake`, `cmake/TowerWorkPolicyTests.cmake`, `cmake/TowerWorkHost.cmake` (external D1 draft144c319d/c09a992d/14f437a5/844222b5) | Independently reviewed generic SOURCE explicit-object correction and six registrations. Five ordered existing runtime_bind mappings preserve real allocator functions before interposing the fault wrappers on separate production transport; mutation's imported portable transport is marked explicitly to avoid duplicate injection. Aggregate fixture removes only duplicate semantics implementation, preserving frontend/query providers. No D2 manifest edit; native/instrumented acceptance and complete-history adoption pending. |
+
+Read-only audit/receipt text has no runtime profiling applicability. Actual
+permission edits, when made, require checked fixed-report before/after timing,
+smallest fixture compile, fresh native/WASI imports and scoped instrumentation.
+No new syntax, scheduler, authoritative IR or private bootstrap is introduced.
+
+### Current policy implementation and runtime disposition —3c74dc193 +0058caa6
+
+| Owned/reviewed path | Evidence and disposition |
+| --- | --- |
+| `scaffolding/tools/bootstrap_symbols.tower` | Four exact permissions only: two forest results in ParserNodes, typed world creation and strlen in Interpreter. Actual current native and fresh WASI failures reproduced before each addition; providers and L1 fixture callers reviewed. Final all7native/3WASI reports pass. Fixed-report n3 paired measurements use identical wrappers after detecting/preserving the original wrapper mismatch; every entry's RSS median1616KiB before/after, wall/CPU below0.01s. No new heap owner, global registry or parallel schedule. |
+| `scaffolding/tests/bootstrap_symbols_checks.tower` | Native/WASI positive plus truncation, suffix and wrong-unit negatives for each new name. Actual text lengths remain derived by existing helpers. Public smallest compile/link/normal and actual address/LSan/thread fixture pass with matching guest. No serial test-to-threaded race-safety inference. |
+| `scaffolding/tests/interpreter_call_query.tower`, `compiler/units/interpreter.tower`, `compiler/units/evaluation.tower` | Supplemental caller audit: both mutually exclusive link entries deliberately include the existing query regression. Its new budgeted function-reference world uses entities-owned create_result and libc strlen for expected output extent. No duplicate interpreter/constant folder or ambient type registry. No D2 edits; both native/WASI closures now pass. |
+
+Current public compiler325cd2a3/resources are captured. Query/resource/fullunits/
+failure/runtime-fault gates pass at explicit full-host allowance for fixed-four
+cases, restored0,2; four small/large jobs1/2 objects and outputs match retained
+reference inputs. Old two-CPU Cancel4 failure remains distinct. Journal contains
+exact commands/environment/profiles/failure and instrumentation scope. Primary
+40/40 audit is unchanged. Current-unit ownership fixes do not close raw-allocation
+coverage or final clean bootstrap/browser/generation/publication gates.
