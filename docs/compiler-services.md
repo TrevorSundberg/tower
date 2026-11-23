@@ -176,9 +176,12 @@ arguments and source effects across progress/waiting/completion/failure.
 `sem_lifecycle_lowering_pump` mixes independent AggregatePrepare/Lowering work
 with function-specific dependencies. `sem_lifecycle_queries_pump` now alternates
 joined lowering and ready executed-stage producers through root-owned
-`semantic_phase_work` joins. Explicit stages wait on signatures and their owner;
-inferred execution waits on all canonical lowering. This is resumable admission,
-not simultaneous lowering/evaluation kernels. Global initialization/effect proofs
+`semantic_phase_work` joins. Required and inferred stages wait on signatures and
+their owner; inferred work retains its KnownProof/KnownClone prerequisites.
+Reached calls request the existing executable snapshots, so unrelated canonical
+lowering no longer gates inference. Optional capture/effect policy is unchanged;
+diagnostic publication still preserves the full lowering priority. Pumps join
+before cross-phase mutation. Global initialization/effect proofs
 and publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
 The lifecycle/capture/type fixtures and actual mixed-kernel rendezvous have
 source-specific journal receipts. They do not prove every staging capability,
@@ -395,6 +398,29 @@ failure leaves the stage intact and returns its exact error. The void hold/disca
 wrappers trap on error instead of wrapping counters or finalizing unowned fields.
 Production provenance uses the cancellable protocol. Its private vectors remain
 ordinary allocations, not a new claim of world-budget accounting.
+
+Joined body, declaration/discovery, evaluation-preparation and lowering waves
+use `sem_stage_wave`. Its shared `compiler_kernel_stages_result` boundary consumes
+the wave's input view: check every hold, close the view, then check every
+structural publication before callers expose readiness. A prior dispatch error
+skips transfer/publication. Hold failure discards partially held peers under the
+view; publication failure discards the remaining held peers. Published structure
+is not rolled back, but the failed wave exposes no ready results. The first
+dispatch/graph cause wins; a worker resource receipt already present when an
+ownership operation fails keeps its original message/offset. Ordinary deferred
+worker diagnostics retain the owning pipeline's source-order policy.
+
+The optional private-result cancellation callback runs for every job on failure,
+before any remaining stage is discarded or job context cleared. Body/declaration
+callbacks dispose unpublished evaluation buffers while their component addresses
+are live; untransferred lexical lists/allocations remain result-owned until
+pipeline teardown. Workers must already be joined, stages must use cancellable
+borrowed payloads, and sources must remain owned through either outcome. A
+transport `Busy` on entry admits no jobs from this wave and does not authorize
+joining another owner's jobs. This helper does not dispatch, allocate, create
+leases, or infer alias guarantees. Generic-body cloning and executable-function
+preparation retain their own checked ownership boundaries; ROOT's execution
+adoption is integrated with this caller migration.
 
 Ordered containment also offers `entity_replace_child_result(parent, index,
 replacement)` and `entity_take_last_child_result(parent, error)`. Replacement

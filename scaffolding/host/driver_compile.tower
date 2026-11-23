@@ -128,6 +128,7 @@ fn driver_compile_format(state: DriverCompilation*, root: void*, out: ByteBuffer
 
 fn driver_compile_ir(state: DriverCompilation*): bool {
     var options = state.request.options;
+    if options.raw[0] == 0 && options.optimized[0] == 0 { return true; }
     var raw = backend_raw(state.backend);
     var optimized = backend_optimized(state.backend);
     return driver_write_ir(options.raw, raw, strlen(raw), options.optimized, optimized, strlen(optimized));
@@ -329,6 +330,11 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
     var options = state.request.options;
     var program = &state.execution.program;
     var parsed = driver_clock();
+    var retain_ir = options.raw[0] != 0 || options.optimized[0] != 0
+        || driver_same(options.emit, "llvm") || driver_same(options.emit, "llvm-optimized");
+    if !backend_retain_ir(state.backend, retain_ir) {
+        driver_error("Cannot configure backend IR retention after lowering", ""); return 1;
+    }
     if !backend_lower(state.backend, program.root, program.functions.data, program.functions.length, state.width, options.library) {
         driver_backend_failed(state);
         return 1;

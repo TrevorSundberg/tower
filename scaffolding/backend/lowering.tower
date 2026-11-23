@@ -6,6 +6,7 @@ import foreign_api;
 import foreign_reader;
 import foreign_symbol;
 import pipeline;
+import observation_types;
 import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
@@ -869,6 +870,9 @@ fn backend_reserved(name: u8*): bool {
 }
 
 export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usize, pointer_bytes: u32, library: bool): bool {
+    var phase = BackendPhase.Preparation;
+    backend_observe(b, phase, true);
+    defer backend_observe(b, phase, false);
     b.source_root = root;
     var failed = b.error.length != 0;
     if failed {
@@ -902,6 +906,9 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         backend_fail(b, "Cannot index executable Foundation functions: allocation or function identity failure");
         return false;
     }
+    backend_observe(b, phase, false);
+    phase = BackendPhase.Declarations;
+    backend_observe(b, phase, true);
     var i: usize = 0;
     loop {
         var done = i == count;
@@ -1007,6 +1014,9 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         backend_require(b, vector_push(&b.functions, function));
         i++;
     }
+    backend_observe(b, phase, false);
+    phase = BackendPhase.IR;
+    backend_observe(b, phase, true);
     i = 0;
     loop {
         var done = i == count;
@@ -1090,8 +1100,14 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
     if failed {
         return false;
     }
+    backend_observe(b, phase, false);
+    phase = BackendPhase.Verification;
+    backend_observe(b, phase, true);
     var valid = backend_verify(b);
-    if valid {
+    backend_observe(b, phase, false);
+    phase = BackendPhase.RawText;
+    backend_observe(b, phase, true);
+    if valid && !b.discard_ir {
         b.raw = LLVMPrintModuleToString(b.module);
     }
     return valid;

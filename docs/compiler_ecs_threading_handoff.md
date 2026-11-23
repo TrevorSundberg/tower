@@ -81,15 +81,26 @@ alone prove neither overlap nor useful speedup.
 
 A1 `7cea85cf` additionally replaces the blanket lowering-before-evaluation drain
 with `sem_lifecycle_queries_pump` and root-owned `semantic_phase_work` joins.
-Explicit stages wait on signature publication and their owner's lowering;
-inferred execution still waits for all canonical lowering. Pumps alternate after
-joins, so this establishes resumable admission while unrelated lowering remains
+At that checkpoint explicit stages waited on signature publication and their
+owner's lowering; inferred execution still waited for all canonical lowering.
+Pumps alternate after joins, so this establishes resumable admission while unrelated lowering remains
 ready, **not simultaneous lowering/evaluation kernels**. Merged `b235f2f4`
 passes 46 focused flow/lifecycle/staging trials, query smoke and checked workers1/4
 execution/canonical reparse. All three fixtures now have supported CMake targets.
 L1 `908515e4` also charges the Fast descriptor, all 15 arrays and lexical scratch
 to their owning budget; final merged core evidence is `127cfa00`, not a new
 whole-union instrumentation pass.
+
+A1 `d9112a01` removes that inferred execution barrier: both policies request
+reached calls through the existing executable snapshots and depend on their own
+owner's lowering and shared signature publication. Inferred work retains its
+known proof/clone receipts. Optional capture/effect capabilities and runtime fallback remain
+unchanged. The extended staging fixture covers actual parallel evaluations while
+unrelated lowering stays Ready, suspended inferred calls, distinct required/known
+capture producers and lazy branches. Its input-specific 56-case/query/control
+and canonical receipts do not replace integrated sanitizer or release gates.
+Full lowering still precedes visible evaluation diagnostics; joined phase windows
+still protect alias, reference and structural publication.
 
 Remaining lifecycle boundaries are checking, foreign-signature validation,
 defer hygiene, known-write/order proof and snapshots, joined transformation and

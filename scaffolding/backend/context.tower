@@ -2,6 +2,7 @@ import tower;
 import bindings;
 import foreign_api;
 import text;
+import observation_types;
 import .compiler.foundation_types;
 import .library.vector;
 
@@ -38,6 +39,8 @@ struct BackendLoop {
 }
 
 struct Backend {
+    observation: BackendObservation;
+    discard_ir: bool;
     context: void*;
     module: void*;
     builder: void*;
@@ -73,6 +76,10 @@ struct Backend {
     raw: u8*;
     optimized: u8*;
     object: void*;
+}
+
+fn backend_observe(b: Backend*, phase: BackendPhase, entering: bool): void {
+    backend_observation_event(&b.observation, phase, entering);
 }
 
 fn backend_fail(b: Backend*, text: u8*): void {
@@ -136,6 +143,15 @@ export fn backend_pointer_bytes(b: Backend*): u32 {
 
 export fn backend_raw(b: Backend*): u8* {
     return b.raw;
+}
+
+// Configure only before lowering. Default preserves both immutable text views.
+// Object-only callers can avoid rendering them without changing verification,
+// optimization, emission or the authoritative Foundation input.
+export fn backend_retain_ir(b: Backend*, retain: bool): bool {
+    if b == null || b.source_root != null || b.raw != null || b.optimized != null || b.object != null { return false; }
+    b.discard_ir = !retain;
+    return true;
 }
 
 export fn backend_optimized(b: Backend*): u8* {

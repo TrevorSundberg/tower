@@ -2888,3 +2888,60 @@ that exact local dist. Verify the deployed workflow/ref and every served asset;
 the old manifest check in this audit is not that final gate. Implemented portable
 interpretation, target object emission and shared-Wasm transport do not establish
 published acceptance of this current integrated source.
+
+### Bounded entity accounting fixture, reviewed c7ad4f42 (2026-11-23)
+
+User explicitly assigns D2 the focused fixture/profile and narrow registration;
+A2 retains production entities/stage ownership. This is supplemental test review,
+not a reassignment of D1's full test inventory or a new allocator framework.
+
+| Path | Full review / ownership and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/entity_accounting.tower` (new) | Actual EntityStore and paged payloads remain authoritative. Stack node arrays are borrowed test indexes; no copied AST/scheduler. One normal allocator owner creates32 nodes, checks canonical query sum528, detaches/removes alternating rows, reuses them, and creates4 staged nodes plus an existing-node lease. A cancellable borrowed payload clears before discard finalization while the input view survives. All52 payload finalizers, view/lease/store cleanup and zero ledger grants are checked. Actual capacities/type sizes drive raw ownership census, including combined table row/column storage and borrowed query columns without double count. No threaded/global allocator counter or failure injection. Profile/repeated byte equality pass; finite-cap descriptor gate deliberately fails1 after cleanup, with exact None versus required Capacity. This fixture tests one necessary cap boundary, not complete world-budget coverage. |
+| `cmake/TowerWorkTests.cmake` (narrow registration) | Reuses tower_work_fixture and its normal guest runtime/object rules. Profile executable stays EXCLUDE_FROM_ALL; explicit measure target reports checked census. Separate tower-check-entity-accounting-cap propagates real nonzero exit, no WILL_FAIL or skip. No generic fixture helper/allocator/ABI change. Smallest dependency-aware target compiles and links through the public predecessor; target's baseline failure was actually run. |
+| `scaffolding/tests/README.md` (caller instructions) | Documents exact targets, field order, physical requested bytes versus sampled retained peak/RSS, separate ledger metadata, and baseline nonacceptance. No passing result is assigned to the desired cap. |
+
+Read-only producer closure for A2, at the recorded hashes in the journal:
+
+| Producer | Omitted owner / required lifetime |
+| --- | --- |
+| `library/entities.tower::entity_create_result` | Raw Entity descriptor; own byte receipt until final entity_release, including pinned deferred reclamation. Baseline184bytes/node; stage_create_result has the corresponding private descriptor path. |
+| `entity_attach_result`, `entity_reserve_components` | Child array/name storage lives with parent until resize/detach/destruction; component pointer array belongs to node, instance index to kind. Replacement admission must cover old+new live storage and preserve prior links/indexes on failure. |
+| `entity_table_prepare_result`, `entity_table_reserve` | Table/type IDs and combined row/column block belong to store's derived archetype table until prune. Reserve replacement before freeing old block; no packed-payload claim. |
+| `entity_view_open_result`, `entity_view_tables` | View and cached query/type/match/column blocks belong to input view; query match columns borrow one common allocation. Retire only after consumers drain. |
+| `library/entity_stage.tower::entity_stage_open_result/create_result/lease_result/references_cancellable_result` | Stage descriptor and node/reference/cancellation/lease vectors need stage-owned receipts, transferred/disposed at joined publication/discard; private nodes must not be charged through unsynchronized global counters. Queue callbacks/context survive failure cleanup before the last input pin closes. |
+
+No production file changed. Physical compiler-buffer peak11862B equals charged
+peak; observed live world storage peaks22086B, omitting10224B from that ledger,
+plus320B separate ledger metadata. This measures requested owner storage, not
+allocator usable size/hidden replacement peaks or process-wide retained memory.
+Native profile and exact repeat pass; finite-cap failure stays an open A2 gate.
+Final instrumentation/platform/bootstrap/browser release remains ROOT-owned.
+
+### Bounded layout extension: full fixture review (2026-11-23)
+
+Reviewed complete `scaffolding/tests/entity_locality.tower`, including preserved
+legacy functions, at base published `3bee18e2371465aa9718ca4ba5cbb2aa18cb850a`
+plus fixture SHA256
+`4d27a7c1b03fe651ccc41d1cb0a701dabccf08742b569bad871e66cb0ddaa18c`.
+This exact source identity is the D1 adoption boundary; production entities and
+types remain A2-owned and unchanged. The journal's D2 bounded layout receipt
+records exact producer/compiler/binary identities and all paired measurements.
+
+| Path | Ownership/storage/scheduling review and disposition |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` | One explicit store/ledger, normal allocator, no workers/global counters. Kinds derived from that store; stack owner/address arrays borrow its entities. Both lookup and planned column traversal read the same primary payloads. Pinned views own immutable query plans and close before structural churn. Plan columns are component pointers, not packed SoA; full pages are counted through unique live component.page references rather than incomplete free-slot links. Scratch WorkBuffer is private, unbudgeted and reported separately; no second authoritative payload/index escapes. Counts/bounds derive from arrays, page/type sizes and actual capacities; fixture density periods and warm-round count define input policy. Full-file reviewed cleanup, CLI failure, deterministic sum arithmetic, page retention, free-slot refill and stable survivor addresses. Four counterbalanced serial runs pass; raw whole-world cap and parallel access acceptance are not asserted. Legacy default snapshot experiment retained without claiming a new run. |
+| `cmake/TowerWorkTests.cmake` (one registration) | Adds existing `tower_work_fixture(entity_locality ON layout mixed direct)`, normal runtime, excluded from default build; shares dependency-aware compilation and optional measurement target. No helper/harness policy changed. |
+| `scaffolding/tests/README.md` | Documents commands, first-pass/warm distinction, mixed membership versus storage trait, count/byte scope and missing counters; no unrun gate promoted to passed. |
+
+Known sum33,550,336 full/refilled and508,096 fragmented matches both paths.
+Homogeneous32pages retain186848B while live payload shrinks65536→1024B;
+mixed50pages retain291950B while live payload shrinks102400→37888B. Refills
+restore occupancy with zero new page grants and unchanged survivor addresses.
+Measured world+plan storage680984B homogeneous,786654–808222B mixed, exceeds
+charged buffers189080/294182B; ledger metadata2560B is separate. Complete cleanup
+passes. Planned scans avoid per-owner type search; fragmented comparisons also
+avoid2016 nonmatching candidates. Warm full scans256rounds cost8.868–10.105ms
+direct versus2.072–3.326ms planned across the two populations; these small serial
+numbers do not predict compiler throughput or hardware misses. Production choice
+requires compiler workload/lifetime evidence, not a blanket dense-storage mandate.
