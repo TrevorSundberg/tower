@@ -22,6 +22,13 @@ export fn backend_import_fixture_open(root: void*): Backend* {
     program.type.pointer_bytes = b.pointer_bytes;
     backend_require(b, backend_text(&program.comments, "// reconstruction admission\n"));
     backend_runtime_declarations(b);
+    // Exercise counted byte-run reconstruction, including interior NUL runs,
+    // through the same real import stage and serial admission-failure trials.
+    var bytes: u8[6] = default;
+    bytes[0] = 65; bytes[2] = 128; bytes[3] = 255; bytes[5] = 67;
+    var initializer = LLVMConstStringInContext(b.context, &bytes[0], convert(u32, sizeof(decltype(bytes))), 1);
+    var global = LLVMAddGlobal(b.module, LLVMTypeOf(initializer), "counted_bytes");
+    LLVMSetInitializer(global, initializer);
     var parameters: void*[1]; parameters[0] = b.i32;
     var signature = LLVMFunctionType(b.i32, &parameters[0], convert(u32, sizeof(decltype(parameters)) / sizeof(void*)), 0);
     var choose = LLVMAddFunction(b.module, "choose", signature);

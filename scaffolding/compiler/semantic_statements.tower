@@ -450,17 +450,12 @@ fn sem_if_begin_value(c: SemanticContext*, n: void*, condition: void*): bool {
     if !sem_shape(c, n, "condition") || !sem_shape(c, n, "body") {
         return false;
     }
-    if condition == null && c.current == c.program.root && c.declaration_subjects == null
-        && c.entity_stage == null && c.query_reads == null {
-        // Module conditions need the same identity/layout producers as other
-        // expressions. Keep contextual bool checking and consume the result once.
-        condition = sem_module_expression(c, sem_member(n, "condition"),
-            sem_type_new(c, SBool, 0, null), SemanticExpressionMode.Operand);
-        if !sem_ok(c) { return false; }
-    }
+    condition ??= sem_control_expression(c, sem_member(n, "condition"),
+        sem_type_new(c, SBool, 0, null), SemanticExpressionMode.Operand);
+    if !sem_ok(c) { return false; }
     var value = sem_node_result(c, n, KIf);
     if value == null { return default; }
-    value.value = condition ?? sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
+    value.value = condition;
     if !sem_ok(c) { return default; }
     value.body = sem_member(n, "body");
     value.otherwise = sem_member(n, "otherwise");

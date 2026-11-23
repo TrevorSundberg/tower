@@ -4,6 +4,10 @@ import utility_checks;
 import generic_clone_fixture;
 import .library.work_budget;
 import .library.work_budget_types;
+import .compiler.format_types;
+
+extern fn format_entity(output: FormatResult*, node: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+extern fn format_dispose(output: FormatResult*): void;
 
 extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn compiler_world_store(world: void*): void*;
@@ -87,6 +91,14 @@ fn backend_import_storage_trial(allowed: usize, wanted: WorkBudgetError, prior: 
             && sem_get(output).comments.length == strlen("// reconstruction admission\n")
             && utility_equal(sem_get(output).comments.data, "// reconstruction admission\n", sem_get(output).comments.length),
             "Complete canonical output retains counted comments");
+        var text: FormatResult = {checked: true, budget: &budget, ..default};
+        defer format_dispose(&text);
+        format_entity(&text, output, null, null, null);
+        utility_check(!text.failed, "Counted binary initializer formats through shared Foundation");
+        for(var index: usize = 0; index < text.text.length; index++) {
+            utility_check(text.text.data[index] != 0 && text.text.data[index] < 128,
+                "Binary initializer never publishes NUL or malformed UTF-8 source bytes");
+        }
         puts("Backend healthy reconstruction allocations / peak bytes / retained bytes:");
         generic_clone_number(calls); generic_clone_number(budget.peak_bytes); generic_clone_number(budget.used_bytes);
         fflush(null);

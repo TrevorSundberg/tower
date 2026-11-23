@@ -122,7 +122,7 @@ export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
     var text = parser_presentation_text(table, ParserFormatKind.Edge, rule, state);
     if text != null {
         var result: FormatResult;
-        var engine: FormatEngine;
+        var engine: FormatEngine = default;
         result = default;
         engine = default;
         engine.result = &result;
