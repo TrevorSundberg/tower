@@ -94637,3 +94637,5 @@ shared budget/buffer/arena/entity/pool/native-gate source bytes unchanged;
 frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
+
+A2 Wasm struct receipt publication reconciliation: first normal push raced. Complete upstream70e77b60 merged, retaining unrelated later C/native void-return registrations (driver_c_cases/driver_differentials/new backend_void_returns_direct). Those new mounted test-resource bytes are outside the measured e932b546 freeze; the reactor, selected Node test/transport, primitive resources and full struct fixture are unchanged. Receipt remains source-bound; no runtime rerun or current-registry acceptance inferred. No compiler implementation changed in this documentation task.

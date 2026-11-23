@@ -108,3 +108,12 @@ TAP SHA256 `317a68340f6202574f5f0a17248b6478c1dd73193914d857c22ffd3b8cd1a455`.
 No target or owned child remains running. All prior stashes/todo are preserved.
 The separately service-rejected instrumentation gate stays open. ROOT owns later
 compiler-source/reactor adoption and final release; no hosted publication claimed.
+
+Publication reconciliation preserved complete upstream70e77b60 history. Its later
+C/native pointer-return fixture registrations (`driver_c_cases.tower`,
+`driver_differentials.tower`, new `backend_void_returns_direct.tower`) are outside
+this frozen mounted-resource set and were not executed by this task. The reactor,
+selected Node test, host transport, full struct fixture and imported language/type
+resources are unchanged. The measured e932b546 resource manifest remains the
+acceptance boundary; this documentation merge does not relabel the test as a run
+against the later virtual-file registry. No repetition was required.
