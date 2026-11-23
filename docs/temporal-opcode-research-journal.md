@@ -89023,3 +89023,57 @@ remain unchanged, as do both reactors. Reuse exact23/25 evidence; no additional
 aggregate or compiler build. New owner observer/package/lifecycle receipts are
 separate acceptance, not silently covered here. Diff check passes; todo and all
 previous logs preserved. Normal source push follows, ROOT retains deployment.
+
+### 2026-11-23 L1: pointer alias fixture uses supported type-valued expressions
+
+Frozen published input `b3ac7aca41deca72f0944782c9f4a80526fc0256`, native compiler
+SHA256 `0e8019924b7d17d04aa8ecbd54b388ab6ffee0a975c59bc5e9b1e77dbfb18377`,
+public bootstrap `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`.
+This is a fixture/contract correction, not a compiler extension. The current
+native binary reproduces D1's `generic_pointer_alias.tower` failure at 3:36 and
+the user's reduced indirect case at 2:32, exit1: "A pointer type spelling cannot
+be used as a value". `sem_surface_expression` deliberately rejects that spelling.
+`return type_value(T*);` and `return pointer_type(T);` both yield42 with explicit
+`indirect(i64, &value)`. Both omitted-type calls reject at5:7: "Cannot infer type
+argument 'T'; pass explicit type arguments". `sem_infer_match` follows structural
+pointer/nominal alias constraints, not inverse evaluation of representation calls.
+No current producer defect is established by the unsupported fixture.
+
+Corrected the existing D1 Tower fixture and its browser inline caller, retaining
+all browser output/canonical/Graph/Fast/LLVM comparisons. Expanded that same Tower
+fixture to assert explicit alias versus inferred `T*`, i32/i64, both supported
+return forms, exactly-once operand order12, pointer layout, distinct nominal
+pointees and null. Added workers1/4 registrations beside existing generic cases.
+The type-values contract now states the expression and inference limits. No L2
+stack/defer method, compiler producer, primitive registry or release asset changed.
+
+CPU0-3, existing public-bootstrap Release LLVM19 cache on Orchestral-Revng WSL
+Ubuntu24.04/Linux6.18.33.2, Ryzen9 5900HX. One dependency-aware `towerc` target
+reconfigured registrations and reported no compilation work. Both registered
+cases pass. Focused source/canonical Graph, raw/optimized LLVM-to-Fast, independent
+Linux64 native, module-qualified alias calls and the exact combined browser Tower
+source pass. Widths32/64 and workers1/4 preserve canonical SHA256
+`ed0d1ec61cc9f4d67c9cd5b7f656af6b0e98a144137940ff9efbf695e253f5e7`.
+Five negative inputs (original spelling, two uninferable call forms, non-type
+constructor operand and wrong pointee) retain exit1, empty output and byte-identical
+messages/locations across widths/workers. Explicit reduced calls return42 newline.
+
+58 measured operations including20 expected rejections:45.34s wall,38.43s CPU,
+maximum186064KiB RSS. Single source-Graph validation costs wall/CPU/RSSKiB:
+32-bit workers1 .64/.58/181912, workers4 .89/.86/185296;
+64-bit workers1 .87/.78/181884, workers4 .85/.81/185052. These are small fixture
+validation costs, not before/after performance or evidence of useful overlap;
+there is no production runtime change. Exact hashes, commands, individual metrics
+and retained logs are in external L1 `pointer_alias_receipt.json` and
+`pointer_alias_{reproduce,contract_probes,fixture,checked,completed}` logs.
+An initial metadata-only Linux Git scan traversed vendor submodules and was
+terminated before checks; scoped patch capture replaced it. A temporary combined
+source extraction included the preceding JS template and failed lexing; its
+source/exit/log remain in `pointer_alias_checked`. Corrected extraction passed,
+reusing unchanged completed operations rather than rerunning them.
+
+Browser reactor execution/adoption remains D1/ROOT; no new browser matrix,
+sanitizer, generation or deployment claim. The previous canonical investigation
+and separate runtime constructor diagnostic4:5 versus4:6 discrepancy are preserved
+unchanged. Remaining language limit: representation-call alias inversion requires
+explicit specialization; structural `T*` deduction is supported.

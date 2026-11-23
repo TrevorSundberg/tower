@@ -1,5 +1,31 @@
 import tower;
 
-fn pointer(T: type): type { return T*; }
+// A pointer spelling is a type argument, not an ordinary return expression.
+fn pointer(T: type): type { return pointer_type(T); }
+fn spelled_pointer(T: type): type { return type_value(T*); }
+fn indirect(T: type, value: pointer(T)): T { return *value; }
+fn inferred(T: type, value: T*): T { return *value; }
+fn check(value: bool): void {
+    if !value { trap("Pointer alias contract", 0); }
+}
+var effects: i32 = 0;
+fn address(value: i64*, order: i32): i64* {
+    effects = effects * 10 + order;
+    return value;
+}
+
+var wide: i64 = 42;
+// Executed representation calls are not invertible inference constraints.
+check(indirect(i64, address(&wide, 1)) == 42);
+check(inferred(address(&wide, 2)) == 42);
+check(effects == 12 && inferred(i64, &wide) == 42);
+var narrow: i32 = 42;
+check(indirect(i32, &narrow) == inferred(&narrow));
+check(type_value(pointer(i64)) == type_value(spelled_pointer(i64)));
+check(type_value(pointer(i64)) == type_value(i64*));
+check(sizeof(pointer(i64)) == sizeof(void*));
+struct First { value: i64; }
+struct Second { value: i64; }
+check(type_value(pointer(First)) != type_value(pointer(Second)));
 var value: pointer(i32) = null;
 print(value == null);
