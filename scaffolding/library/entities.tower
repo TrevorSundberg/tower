@@ -147,7 +147,7 @@ fn entity_reclaim(entity: Entity*): void {
         entity_component_dispose(entity.components[i]);
     }
     entity_buffer_free(entity.children);
-    entity_buffer_free(entity.components);
+    entity_components_free(entity);
     entity_buffer_free(entity.instances);
     store.entity_count--;
     entity_owned_free(entity);
@@ -302,6 +302,10 @@ fn entity_buffer_free(T: type, data: T*): void {
     var header = bits(EntityBufferAllocation*, bits(u8*, data) - sizeof(EntityBufferAllocation));
     var allocation = header.allocation;
     work_buffer_dispose(&allocation);
+}
+
+fn entity_components_free(owner: Entity*): void {
+    if owner.components != &owner.inline_components[0] { entity_buffer_free(owner.components); }
 }
 
 fn entity_buffer_resize_result(T: type, budget: WorkBudget*, data: T*, count: usize,
@@ -554,7 +558,27 @@ export fn entity_component_add_result(owner: Entity*, type: Entity*, error: Work
     if unregistered {
         return null;
     }
-    *error = entity_reserve_components(owner.store.budget, &owner.components, &owner.component_capacity, owner.component_count);
+    if owner.components == null {
+        owner.components = &owner.inline_components[0];
+        owner.component_capacity = sizeof(decltype(owner.inline_components)) / sizeof(EntityComponent*);
+    }
+    // Keep the inline index intact until payload/table preparation succeeds.
+    // The pending array owns a new receipt; inline storage is charged with its
+    // stable descriptor page and must never enter the buffer resize/free path.
+    var pending: EntityComponent** = null;
+    var capacity: usize = 0;
+    defer entity_buffer_free(pending);
+    *error = WorkBudgetError.None;
+    if owner.components == &owner.inline_components[0] {
+        if owner.component_count == owner.component_capacity {
+            *error = entity_reserve_components(owner.store.budget, &pending, &capacity, 0);
+            if *error == WorkBudgetError.None {
+                copy(pending, owner.components, owner.component_count * sizeof(EntityComponent*));
+            }
+        }
+    } else {
+        *error = entity_reserve_components(owner.store.budget, &owner.components, &owner.component_capacity, owner.component_count);
+    }
     if *error == WorkBudgetError.None && !staged {
         *error = entity_reserve_components(owner.store.budget, &type.instances, &type.instance_capacity, type.instance_count);
     }
@@ -565,6 +589,11 @@ export fn entity_component_add_result(owner: Entity*, type: Entity*, error: Work
     if *error != WorkBudgetError.None {
         entity_component_free(component);
         return null;
+    }
+    if pending != null {
+        owner.components = pending;
+        owner.component_capacity = capacity;
+        pending = null;
     }
     component.type_index = type.instance_count;
     if staged { component.type_index = ~convert(usize, 0); }

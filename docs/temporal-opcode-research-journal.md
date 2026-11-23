@@ -94805,6 +94805,13 @@ frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
 
+### B2 inline first-component storage — frozen70e77b60, accepted candidate
+
+Implemented one descriptor-owned component pointer; pending inline-to-heap promotion preserves failed-growth payload/index/charges. Reclaim and stage discard never free inline storage. Audited both zero-init constructors, stable pages, all reserve/free/copy consumers, leases/removal/publication; updated two physical census readers. No WorkBudget/gate/scheduler edits (B1 owns those).
+
+Receipt: [entity_inline_component_70e77b60.md](entity_inline_component_70e77b60.md). CPU12-23/quota12/24GiB, public768/LLVM19 Release, own native cache, one dependency build. Frozen16/4096 inputs, n2 alternating before/after, production allocator, observeroff: process wall small1 .402272→.367961s; large1 2.414117→2.302414; large4 2.375276→2.207618. Large retained grants566923301→521369980bytes; live receipts948686→432300; ledger80→40MiB; RSS812630→734012KiB serial. Descriptor184→192bytes/capacity17→16 explicitly charged; small created-query census is15bytes worse while ledger shrinks. Separate observer retains4105 lowering jobs and actualpeak4, loweringCPU368.800→224.610ms. Full source/import/Foundation bytes, known42/42 and teardown pass.
+
+Focused first/second/fifth, old+new cap, every inline-promotion allocation failure/retry, remove/re-add, published lifetime, exclusive lease cancel, accounting/census, concurrent production publish/cancel/failure/drain checks PASS. Two older default fault matrices already abort on untouched baseline (component_fault_trial/stage_fault_publish); retained FAILED and not weakened. New inline fault mode is separate. No sanitizer/platform/generation claims. Evidence/binaries under B2/entity_inline_70e77b60 and /cache/entity_inline_70e77b60; before f89f1e3b, after53186f76. B1 gate candidate excluded; ROOT owns final integrated runtime/publication. Prior rejected changes and b8 browser assets unchanged.
 ## 2026-11-23 A1: retire browser coordinator errors before replacement callbacks
 
 Implemented the concrete8f9bb924 review finding in the existing generic browser
@@ -95027,6 +95034,35 @@ Node fixtures (compilerThreads takes the non-shared module return or Node worker
 factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
 hosts, compilerThreads and Tower providers still match the measured freeze.
 
+B2 publication reconciliation: storage implementation f9565c46 preserved through280429f6 with origin0fe314ef; no producer overlap with B1. Incoming counted-byte backend fixture changes rebuild only native backend/check binding and relink profile f170b5f2; original measured after53186f76 retained. Merged16w1/4096w4 outputs/canonical/cleanup and inline transition/fault checks PASS. Browser/test histories retained, excluded from frozen performance evidence. No deployment; ROOT retains final integration. See the receipt's reconciliation section.
+## 2026-11-23 L1 — T6/T7 acceptance of immutable25dddd04 reactors
+
+Complete unchanged compiler-workers8/8 then cross-compilation7/7 PASS, actual
+Node exits0, no skips/cancellations/unstarted coverage. All32 bundle sizes/hashes
+verified before install and after; own ignored build defaults had no predecessors.
+ROOT snapshot untouched. Compiledsource25dddd0420258bc5174a3039293c447fd60ef367 is
+separate from mountedhost/tests0fe314efe1b8d740a1be3fa829124e92d2cf1f6c and excludes
+A2's later125efb11. No compiler/reactor/test-source edits or build. Historical
+b797/c95/eac evidence is not reused as this run. Both complete files ran in fresh
+Node22.23.5 Windows processes, concurrency1/TAP, CPU0-3,300s outer guards, phases
+and fresh artifact directories; no generic artifact overrides.
+
+Original worker object/publication/overlap/world/dependency/cancel/first-error/
+vectorization assertions passed. Six cross targets retain repeat-byte/link/object
+checks, Wasm reference execution and recoverable linker/invalid-target diagnostics.
+All1332 mounted input hashes remain identical;88 checked phase/object/IR/cross
+outputs preserved. No production defect or owner overlap arose. T6 costs26.990wall,
+83.063 observedtreeCPU,684600KiB Nodechildpeak; T7 3.489/8.734/346544. Child CPU is
+82.891/8.641s; parent-only metrics are not substituted. Sampled aggregate working
+sets are lower bounds; phase JSON is a separate scope. No throughput claim.
+
+First T6 had8/8 passing assertions but the OS receipt wrapper failed metric
+summation before preserving Node exit; exact logs/artifacts/error retained, T7
+unstarted then. Corrected only receipt summation/early exit persistence and repeated
+T6 once, capturing exit0; T7 ran once. No hidden failed check or compiler retry.
+Detailed source/hash/command/cost/scope receipt: docs/compiler_workers_cross_25dddd04.md;
+external L1/logs/t6_t7_25dddd04. Jobs drained, todo unchanged; committing and normal
+main reconciliation. ROOT retains deployment/full release ownership.
 ## 2026-11-23 A1: joined25 Node T5 adoption
 
 The complete unchanged compiler-threads.test.mjs runs once: PASS3/3, exit0,
@@ -95073,3 +95109,5 @@ but excluded from this gate. README and journal additions both retained. No repe
 of unchanged execution evidence or broad rebuild. Diff checks/todo hash pass,
 all owned processes drained and heavy lock released. Normal main push follows;
 ROOT retains later full-generation/hosted acceptance.
+
+L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.

@@ -79,9 +79,93 @@ fn component_stage_policy(): void {
         && work_budget_dispose(&budget));
 }
 
+fn component_inline_index(): void {
+    var budget: WorkBudget = default;
+    component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    component_layout_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var kinds: Entity*[5]; // First, second and fifth index transitions.
+    var count = sizeof(decltype(kinds)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) {
+        kinds[i] = entity_create(store);
+        component_layout_check(kinds[i] != null && entity_register(kinds[i], sizeof(u64), alignof(u64), 0));
+    }
+    var stage = entity_stage_open(root);
+    var node = entity_stage_create(stage, root);
+    component_layout_check(node != null);
+    var first = entity_component_add(node, kinds[0]);
+    component_layout_check(first != null && node.components == &node.inline_components[0]
+        && node.component_capacity == sizeof(decltype(node.inline_components)) / sizeof(EntityComponent*));
+    *bits(u64*, first.data) = 7654;
+    var address = first.data;
+    var index = node.components;
+    for(var i: usize = 1; i < count; i++) {
+        if node.component_count == node.component_capacity {
+            var capacity = node.component_capacity;
+            var block: WorkReservation = default;
+            var available: usize = 0;
+            if node.components != &node.inline_components[0] {
+                var previous = bits(EntityBufferAllocation*, bits(u8*, node.components) - sizeof(EntityBufferAllocation));
+                var old_bytes = compiler_buffer_allocation_size(previous.allocation.capacity);
+                var new_bytes = compiler_buffer_allocation_size(sizeof(EntityBufferAllocation)
+                    + capacity * 2 * sizeof(EntityComponent*));
+                // Enough for net growth, insufficient for old + new live storage.
+                available = new_bytes - old_bytes;
+            }
+            component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - available, &block));
+            var charged = budget.used_bytes;
+            var receipts = budget.live;
+            var error = WorkBudgetError.None;
+            component_layout_check(entity_component_add_result(node, kinds[i], &error) == null
+                && error == WorkBudgetError.Capacity && node.components == index
+                && node.component_capacity == capacity && node.component_count == i
+                && budget.used_bytes == charged && budget.live == receipts
+                && node.components[0] == first && first.data == address && *bits(u64*, address) == 7654);
+            component_layout_check(work_budget_release(&budget, &block));
+        }
+        component_layout_check(entity_component_add(node, kinds[i]) != null
+            && node.components != &node.inline_components[0] && node.components[0] == first);
+        index = node.components;
+    }
+    component_layout_check(entity_stage_publish_result(stage) == WorkBudgetError.None
+        && node.components == index && first.data == address);
+    component_layout_check(entity_component_remove(node, kinds[0]) && node.component_count == count - 1
+        && entity_component_add(node, kinds[0]) != null && node.components == index);
+
+    // A single-component descriptor survives publication and stage destruction;
+    // removal/re-add reuses its inline slot without freeing descriptor storage.
+    stage = entity_stage_open(root);
+    var single = entity_stage_create(stage, root);
+    var component = entity_component_add(single, kinds[0]);
+    component_layout_check(component != null && entity_stage_publish_result(stage) == WorkBudgetError.None
+        && single.components == &single.inline_components[0] && single.components[0] == component);
+    component_layout_check(entity_component_remove(single, kinds[0]) && single.component_count == 0
+        && entity_component_add(single, kinds[0]) != null && single.components == &single.inline_components[0]);
+    component = single.components[0];
+    *bits(u64*, component.data) = 4321;
+    stage = entity_stage_open(root);
+    var other = entity_stage_open(root);
+    component_layout_check(entity_stage_lease_result(stage, single) == WorkBudgetError.None
+        && entity_stage_lease_result(other, single) == WorkBudgetError.Busy);
+    var view = entity_view_open(root);
+    component_layout_check(view != null && entity_component_add(single, kinds[1]) != null
+        && single.components != &single.inline_components[0] && single.components[0] == component);
+    entity_view_close(view);
+    component_layout_check(entity_stage_discard_result(stage) == WorkBudgetError.None
+        && single.stage == null && single.component_count == 1 && single.components[0] == component
+        && *bits(u64*, component.data) == 4321 && entity_component_get(single, kinds[1]) == null
+        && entity_stage_discard_result(other) == WorkBudgetError.None);
+    entity_release(root);
+    for(var i: usize = 0; i < count; i++) { entity_release(kinds[i]); }
+    component_layout_check(store.entity_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+}
+
 // Run unchanged on native and wasm32. All receipts and offsets use this
 // target's actual types; no x64 header size is embedded in the reference.
 export fn main(argc: i32, argv: u8**): i32 {
+    component_inline_index();
     component_stage_policy();
     var budget: WorkBudget = default;
     component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
