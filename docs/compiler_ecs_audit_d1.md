@@ -1760,3 +1760,167 @@ These are source-only registrations at this point. Smallest unit/link/runtime,
 malformed selector cases, individual lifecycle receipts and measured common-path
 cost remain pending. Added test work must not be called a compiler regression or
 speedup based on differing suite sizes. No new Tower path is introduced.
+
+### All-eight checkpoint 3915aee8 reconciliation
+
+Verified root bundle08a0cecd and merged after own jobs drained. The sole README
+append conflict retains both D1 selector/registration documentation and B1 runtime
+profile documentation. New AGENTS size/count guidance was read before edits;
+counts derived from actual collections are preferred, literal fixture data stays.
+Six new direct paths make1,080 tracked /497 D1 direct; complete bodies reviewed.
+
+| New path / lines at3915aee8 | Substantive review and limits |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` /150 | A2 Linux x64 measurement compares per-owner lookup, pinned component query, archetype pointer columns and derived packed snapshot against exact sums. Snapshot construction separately timed; it is not authoritative storage. Keeps one stable live payload per page to expose retained fragmentation and checks final zero entities/components/pages. malloc_usable_size is a host allocator boundary; this does not establish production packed-payload implementation or multicore speedup. |
+| `scaffolding/tests/layout_frontier_profile.tower` /163 | A2 actual layout pump over32branches plus leaf/sink, unique ordered fields and chained/independent ready frontiers. Exact sizes/alignments/offsets/ticket completion checked; world, pool and shared lane ledger drain. Cold/warm startup separately scoped; reported pool peak is admission, not overlap. Current sizes8/1024/4096 all fall below newer8192-field parallel threshold: this checked-in entry cannot validate that profitable branch. Route owner coverage gap; no threshold or workload rewrite inferred. |
+| `scaffolding/tests/lr_state_benchmark.tower` /251 | B1 explicit Linux x64 timing/rusage over prepared grammars. Serial reference compares every LR item/transition, or every runtime action/goto/conflict, outside timed construction. Runtime mode binds finite synchronized memory budget, checks actual retained/header bytes and retirement, separates ledger/RSS, and preserves world entity/component counts. Requested workers/lanes alone prove no overlap; samples3warm+15 and repetition counts are explicit. |
+| `scaffolding/tests/parser_retention.tower` /114 | B1 attribution companion keeps strict benchmark separately.128resets at four input sizes, explicit own/default-host world mode, statement/declaration release order, owner/page observations after warmups and session baseline restoration. Owned mode must release every tracked allocation. Serial fault counters only; per-page movement is explained, not hidden as a stability pass. |
+| `scaffolding/tests/parser_retention_observer.tower` /94 | Quiescent derived page index validates page/type bounds, checked stride/header/capacity arithmetic, aggregate live payload and requested page bytes; temporary index dies before return. Distinguishes requested bytes from usable/RSS and explicitly lacks per-page independent live-count reconciliation. same_owners permits page-attributed buffer movement while holding entity/component/cache/live counts. |
+| `scaffolding/tests/work_budget_allocation.tower` /78 | A2 serial ledger failure fixture checks empty no-allocation grant, first/growing entry Memory rejection, unchanged caller output/storage/generation/counters, allocation-free slot reuse, stale copied receipt rejection and final baseline.16repeats; explicitly rejects production threaded transport. This is ledger metadata allocation coverage, not whole compiler or new constructor coverage. |
+
+| Updated direct path | Changed conclusions |
+| --- | --- |
+| `scaffolding/tests/lexer_table.tower` | Budget boundaries separately deny object/header/range storage, admit exact full physical bytes, check transitions and zero retirement, plus empty-range owner. Existing oracle/fuzz/failure sweep preserved. |
+| `scaffolding/tests/lr_budget.tower` | Measures actual retained serial runtime lower bound, reserves competing bytes to force threaded construction denial, requires joined ledger restoration and successful retry of same states. Lane-saturation fixture now permits parser bytes explicitly; no bounded-allheap claim. |
+| `scaffolding/tests/syntax_live_attributes.tower` | Complete Bedrock import replaces incomplete hand-copied declaration grammar, including precedence dependencies. Consumed declaration count changes3to1 to match actual import; attribute negative assertions remain. |
+| `scaffolding/tests/syntax_live_replacements.tower` | Seed-only numeric grammar explicitly names available AttributeInteger; malformed replacement list bound derives from array. Actual alternatives/outputs/error cases unchanged. |
+| `scaffolding/tests/syntax_live_support.tower` | Shared seed fixture likewise uses AttributeInteger instead of nonexistent ambient Number. No parser or grammar implementation added. |
+| `scaffolding/tests/syntax_reader.tower` | Only extended replacement-body fixture prepends Foundation import, consumes/releases that declaration, then applies existing reader/fault assertions. Seed-only grammar/token/skip cases remain seed-only. |
+| `scaffolding/tests/syntax_replacements.tower` | Same explicit seed numeric rule correction across existing replacement cases; exact malformed-output/ambiguous-destination diagnostics and successful counts preserved. |
+
+B1 shared nongeneric growth helper and exactly-sized LR runtime results are in
+this root checkpoint, alongside its runtime-table ownership migration; complete
+ABI rebuild is required. A2 constructor patchfe458 and L2 public-clone API remain
+separate pending work. All local execution claims still belong to prior frozen
+sources until the next public build and exact runtime checks finish.
+
+work_budget_allocation now shares the existing serial fault-target registration.
+Its source does not import host.memory, so that target alone links the existing
+host_memory object; buffer/arena fault fixtures keep their imported implementation.
+No extra allocator, transport or test runner body. Build/runtime still pending.
+
+### Frozen0e544ac harness execution evidence
+
+The full497-file direct review is unchanged; no new Tower file was added.
+Public smallest entries, canonical native build and eight affected targets pass
+on frozen0e544ac with the public predecessor and complete saved resource package.
+The new execution-index selector executes the original canonical/identity/fault
+checks; ledger target executes its serial failure/rollback sweep; conditional
+module-cache target links the existing parser_modules composition and CTest
+executes the complete module/session regression. All pass. Query-smoke includes
+both widths/workers and the resource/clone/failed-peer lifetime checks. Actual
+backend worker overlap and exact serial/parallel objects, aggregate Foundation
+round trips, storage, allocations and parser/LR pass. See the journal and raw
+union_0e544ac receipts for source, commands, measurements and exact scope.
+
+Eight malformed lifecycle invocations return1 before touching a deliberately
+missing resource directory. The case sweep is still running; a partial case list
+is not full lifecycle/type-smoke acceptance. Type-smoke's separate post-lifecycle
+body/binding/declaration oracles remain a distinct gate. No broad sanitizer,
+clean generation, browser or publication result is inferred from these passes.
+
+Read-only pending-owner review does not change the tracked inventory:
+A2 arena-linkage819a/2f16 supplies a declaration-only typed API, one linked
+entities-unit provider and a standalone separate-object fixture covering all six
+functions, alignment, capacity denial/output preservation, append ownership,
+snapshot retention and zero final grants. B2 public-clone606c includes full-cache
+read/write denial after successful setup, old-entry identity/count preservation,
+partial-request cleanup and successful unchanged cache reuse; positive editor
+checks do not exercise failed inspection allocation. These drafts are not adopted
+or locally executed until their complete matching producer/layout closure arrives.
+
+Subsequent0e544 completion: all42 lifecycle cases pass, widths32/64 and workers1/4,
+explicit expected outputs/errors and successful canonical reconstructions intact.
+Individual receipts bound wall10.14–17.22s and RSS209628–228464KiB. Inclusive0–1
+range matches concatenated individual output. Eight malformed cases rejectbefore
+resource I/O. The original180s full-type timeout remains a failed historical
+receipt; post-lifecycle type negatives are still pending a focused selector.
+
+Paired unchanged-source cache profiles and32 compiler executions plus8canonical
+comparisons pass. Large warm cache validation improves sharply; small serial
+compiler paths regress2.9%/3.7% and retain more RSS, while two workers remain slower
+than one. These integrated-source measurements and physical-ledger attribution
+are recorded without a general speedup claim. All owned jobs drained before
+D2 took the next slot; complete saved source/binary/resource identity remains0e544.
+
+### Clone-result union6b8355b review
+
+Verified complete root bundleaa7eaf7c, exact6b8355b head and sole published60741
+prerequisite. Integrated only after all0e544 jobs drained; no new Tower path,
+so census remains1,080/497direct. Three changed assigned fixture bodies reviewed:
+
+| Path / source6b8355b | Updated conclusions and evidence boundary |
+| --- | --- |
+| scaffolding/tests/generic_clone_storage.tower | Adds public synchronous clone outcomes: success at wide256/deep600, node quota versus first/growing stack Capacity, first allocation and later node Memory. Uses actual CloneFrame/CloneInitialFrames and compiler_buffer_allocation_size instead of magic word counts. Checks compatible wrapper, ordered/named children, source metadata, copied count, exact unchanged entity/component totals, retired frame grants and final physical buffer baseline. Staged failure indices0–4 cover frame/node/index/metadata allocations with existing hold-before-view-close and stage discard. Current owner serial evidence is separate; D1 merged run pending. Future budgeted entity constructors may change setup/grant boundaries and error classification, requiring exact fixture adaptation rather than weakened assertions. |
+| scaffolding/tests/frontend_modules.tower | Existing full regression entry now includes actual full-cache clone read/write Capacity denial after successful setup, old entry identity/count preservation, repeated failed-request rejection, exact owner/ledger restoration and successful unchanged cache reuse. Graph-owned partial cleanup includes dependencies even without a returned root. Reader setup occurs after occupancy in the read branch; flagged to B2 for forthcoming constructor accounting, not an observed failure on this closure. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Exact new observed physical-buffer/world-budget/callback imports are allowed only for owning compiler units; public clone-result restricted to ParserNodes/Semantics. Wrong-unit, prefix/suffix and forbidden native imports remain negative assertions. D2 owns checker policy and generation evidence. |
+
+The producer/consumer closure includes public clone resource results, node/attach
+Memory classification, matched module transaction and document-inspection null
+cleanup. Inspection-denial fixture remains L2-owned next work; positive editor
+checks alone are not failure coverage. README merge retained one copy of B1's
+runtime-profile paragraph plus every D1 registration and ledger paragraph.
+Earlier0e544 runtime receipts do not validate these new production inputs.
+
+### Approved type-errors selector afterc2d0064
+
+Coordinator/A1 handoff explicitly authorizes only the generic body_runs mode and
+LR entry wiring. Appended TypeErrors preserves prior enum values and all existing
+default/type-smoke/all/control branches. Its wrapper reuses the same body
+continuation, Foundation reparse, serial/four-worker binding and declaration
+negative bodies; only the already separable lifecycle call is bypassed. Success
+text names this narrower suite explicitly. No new fixture or production logic.
+
+The measured0e lifecycle cost is10.14–17.22s per case; repeated unchanged lifecycle
+coverage is the iteration bottleneck this selector avoids. This is evidence reuse,
+not a compiler speedup or permission to skip changed-input checks. New clone
+production in6b means the old0e full42 receipt cannot serve final current release
+acceptance. Smallest public entry compilation, focused new mode and equivalent
+existing-entry measurements await the next D1 heavy slot; current change unrun.
+
+### Grammar ownership union86e7ec98
+
+Verified root bundled8a450a6, sole60741 prerequisite, and merged without conflict
+after all D1 jobs drained. Two new tracked Tower files make1,082 total; one is
+D1-direct, bringing substantive current review to498/498. New library arena API
+remains A2 implementation ownership. This source is locally unbuilt.
+
+| Path / source86e7ec98 | Review and disposition |
+| --- | --- |
+| scaffolding/tests/work_arena_linkage.tower /39lines | Separate client imports declaration-only API and host memory, requiring exactly one provider object for six exported arena functions. Exercises actual256/64alignment, initialized payloads, Capacity denial preserving output, same-budget append transfer, source retirement, two-chunk/payload/retained snapshot and finalzero grants. Uses the current documented physical header contract; no borrowed slice survives arena disposal. A2 standalone normal/ASan/TSan evidence is retained at its source. Generic reproducible target is proposed to manifest owners, not implemented or locally executed yet. |
+| scaffolding/tests/parser_table_budget.tower /113lines | Existing tests now parameterize Sequence and Closure grammar shapes. After actual setup, reserve all remaining bytes to reject the table, then admit only its descriptor to reject grammar. Observe successful retained grammar size and deny one byte below it, require null unpublished grammar/error, exact partial cleanup and retry. Existing build-growth denial, unchanged owner reuse, direct-buffer accounting lower bound and final allocator/world/ledger baseline remain. The descriptor-only baseline failed before B1's fix; B1 normal/instrumented owner evidence does not validate D1's newer clone union. |
+
+Supporting caller review confirms frontend_table uses existing rule/symbol/name
+getters without changing order or first nonnull anchor; lr_tree uses generated
+rule metadata through the same API. Grammar names/captures and buffers now share
+explicit lifetime-bound physical owners, with public APIs and one arena provider.
+These are B1/A2 production conclusions, not extra D1 primary-file audit credit.
+
+Coordinator02:10:50 authorizes the narrow separate-arena registration. Existing
+tower_work_fixture now adds one library/work_arena provider object only for the
+work_arena_linkage client; every other fixture retains the same object/runtime
+composition. The ordinary positive loop registers it with the existing30s bound.
+No compiler entity unit, new runner, duplicate arena implementation or deliberate
+probe. Ordinary sanitizer object rules cover both separate objects and runtime.
+Source checks pass; smallest compilation/link, exact symbol uniqueness, positive
+runtime and supported instrumentation remain pending the next D1 heavy slot.
+
+### Exact A1 publication/cancellation joinab603725
+
+Verified4ef71298 bundle but merged ONLY ab6037256073afd69007e2bd424a6e2317479655,
+whose sole parent is reviewedb7bf916c. The advertised0e36d5c9 tip contains later
+unvalidated constructor/dispatch work and was not adopted. New production helper
+and one direct test bring census1,084/499direct. Every new direct body is read.
+
+| Path / sourceab603725 | Substantive conclusions |
+| --- | --- |
+| scaffolding/tests/semantic_publish_checks.tower /173lines | Owns explicit world, synchronized lane/byte ledger and ordinary shared query/work pool. Three source-ordered blocks preserve literal/order metadata and null compaction marker.18 pressure cases cover32/64,1/4workers, descriptor/arena/growth denial and deterministic serial mixed success/failure. Each joined ticket records its own result; any failure suppresses all canonical replacement, repeated call preserves dispatch, private scratch retires before context/world/budget. Four pre-cancelled cases demand no query creation, no dispatch or revival, unchanged canonical storage and zero ownership. This is pre-dispatch cancellation, not an asynchronous midworker-cancel proof or measured speedup. |
+| scaffolding/tests/semantic_resource_checks.tower | Adds executed nested ordinary callee frame growth after successful charged entry storage. Required helper readiness uses existing IMFunctionInput, not a new producer. Competing occupancy inside a sufficiently large configured budget now distinguishes Capacity from Invalid, persists the typed error after interpreter disposal, checks peak above occupancy for growth and exact final retirement. D1 preserves the parameterized helper and wraps its unchanged three variants in the owner's startup/growth loop,24 outer-matrix cases. No standalone main or weakened diagnostic/oracle. |
+| scaffolding/tests/lr_work_main.tower | Imports the complete publication fixture and calls both noarg exports exactly once beside generic-clone checks, before the existing query width/worker loop. All22 owner cases retained without fourfold repetition or hidden width gate. Default/all/query and current TypeErrors/lifecycle selectors preserved. |
+
+Only resource entry conflicted; trial bodies retain exact owner changes.
+Resolved resource SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
+Generic hook49927ff7 is exported for D2's matched provider build. D1 awaits D2's
+exact five provider imports before any local build; this joined source is not
+runtime evidence. L2/B2 partial inspection resource recovery remains separately
+open, and later constructor/dispatch drafts must not enter via advertised tip.
