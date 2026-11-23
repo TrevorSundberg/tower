@@ -95255,3 +95255,24 @@ binary as built from the later B1 source or claiming that batch-gate path execut
 No additional rebuild/run is needed for this unchanged selected path; B1's own
 receipt retains gate adoption. Diff checks pass, no owned work/lock; normal push
 retry follows. Final full-artifact adoption remains ROOT-owned.
+
+### 2026-11-23 D1: overflow importer review blocked on publication
+
+Same thread01a2046a-4644-7ab1-a0ae-abd80210f013/PID3190105. Initial required
+pull and post-contract phase pull both report currentcabc2062; exact remote main
+verified cabc2062fd67283bc78cf235981741e917671d24. L2 a5ffb99d is not available
+in published history/local objects, so no new helper/fixture adoption is claimed.
+Read existing importer scalar/mask/boolean arithmetic, SSA association/phi edges,
+call/nominal return, verifier, checked world/stage publication, source recheck and
+native source registration; narrow integer/Foundation/staging contracts and prior
+raw-pointer/aggregate receipts reused. LLVM19 intrinsic/extraction contract linked
+in audit. Carrier widths and eager expression construction before bi_select are
+specific boundaries the new implementation must satisfy, not confirmed defects.
+Independent division-bound oracle criteria retained, no fabricated runtime result.
+Local finite baseline manifest build/d1_ecs/umul_review_cabc2062; later private
+sources excluded. Current25 entity_views failure remains L2's owner evidence.
+No implementation edit/new framework/build/runtime/profile/sanitizer/release;
+docs-only performance inapplicable. No owned child build, container only sleep;
+disk127GiB/RAM9.8GiB, todo unchanged, D2 heavy slot untouched. Publish this precise
+prerequisite if final normal reconciliation still lacks a5ffb99d, then stop; the
+requested changed-source review remains open for ROOT/L2 publication.

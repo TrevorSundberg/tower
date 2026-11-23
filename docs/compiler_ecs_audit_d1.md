@@ -5364,3 +5364,51 @@ verified after execution. `merged.*` evidence retains this separate boundary.
 The two unchanged oracle controls were not rerun; no broader test was launched.
 Incoming browser/byte-test receipts keep their own identities. All owned jobs
 drained and lock released; these n1 costs do not establish a performance change.
+
+## Unsigned multiply-overflow review prerequisite — 2026-11-23
+
+**Blocked before changed-source adoption.** Published main at both initial and
+post-contract pulls remains `cabc2062fd67283bc78cf235981741e917671d24` (tree
+`0e1a94bcd0766ba27862561f2f455c3ba374b874`). Requested L2 implementation
+`a5ffb99d` is absent from this published history/local object database; the new
+helper, overflow fixtures and owner receipt cannot yet be inspected. No private
+branch was fetched, draft copied or unseen implementation approved. The retained
+current25 entity_views failure and L2's reported repair remain owner inputs,
+not independently verified execution here.
+
+Existing immediate context was substantively traced, reusing the accepted
+raw-pointer/aggregate reviews: `bi_function` preallocates instruction destinations
+before block emission; `bi_edge` snapshots incoming phi values before committing
+edge copies; `bi_value` reads an SSA binding instead of replaying its producer.
+`bi_scalar` maps i1/bool, i8/u8, i16/u16, i32/u32 and i64/u64; intermediate widths
+use a wider carrier plus `bi_mask`. Thus the new bound must use the **LLVM integer
+width**, independently of host/target pointer size and carrier width. `bi_select`
+materializes both supplied expression operands before its branch: division must
+be constructed with a nonzero divisor or inside the guarded branch, not merely
+passed as the supposedly untaken operand. Existing poison/undef values become0;
+that totalization is not proof of arbitrary LLVM poison equivalence.
+
+[LLVM19's intrinsic contract](https://releases.llvm.org/19.1.0/docs/LangRef.html#llvm-umul-with-overflow-intrinsics)
+returns product plus an overflow bit; extraction indices must identify the
+aggregate field. Independent proposed oracle for nonzero b is
+`a > floor((2^width-1)/b)`, with a zero-operand result0/false. Width1's1*1 must be
+1/false; max*2 at widths8/16/32/64 must wrap to max-1/true. These are review
+criteria, not new executed assertions. Multiple extraction users, dominance,
+exact index rejection and nonextract consumers still require the actual helper.
+
+`backend_session_import` verifies the optimized module before import;
+`backend_import_foundation` retains world/stage/lease ownership and publishes only
+a successful private graph. `backend_source_import` formats/rechecks standalone
+Foundation before replacing prior output. Existing backend source tests/registration
+were read; no new overflow registration or width/control claim can be adopted
+without the unpublished delta. Baseline importer blobs: instructions
+`d36288ffeada7e65cf8d6349fd05f5ff993c2509`, module
+`214fcd69fa0ca361b52b064279c43f2ddce3334c`, values
+`7022ac6b3e7b771e97b3f1057bd4a5ab2da1884f`, Foundation helpers
+`40dd310a37091c61a432a658db2327a401f96bf4`. Local finite context manifest:
+`build/d1_ecs/umul_review_cabc2062/{identity,blobs,published_main}.txt`.
+No new concrete defect is asserted in the unseen change. ROOT/L2 prerequisite:
+publish complete implementation/fixture/receipt history, then independently
+review that exact composed source. No producer/test edit or build/runtime/profile
+was attempted; documentation-only profiling is inapplicable. D2's slot and all
+prior failures remain untouched. This is an incomplete review, not a closed gate.
