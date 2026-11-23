@@ -84,6 +84,12 @@ raw and optimized native execution. Its direct, callback and recursive calls
 share two observable effects; its uncalled type helper remains in the source.
 The fixture keeps its own explicit language import, without a runner prefix.
 
+The native differential case `backend_void_returns` requires `0\n` for its
+complete direct and callback pointer-return fixture. The C differential case
+`backend_void_returns_direct` covers direct `void*`/`void**` returns, nulls,
+identity, memory access and effects. Keep these registrations separate: the
+C emitter intentionally rejects function values and indirect calls.
+
 The shared scalar-idiom JSON remains browser test data. The Tower runner reads
 only its ASCII string/null table format and rejects unsupported values/escapes;
 it does not duplicate that fixture corpus or require a general JSON library.
