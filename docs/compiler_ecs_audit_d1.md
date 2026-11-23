@@ -4283,7 +4283,7 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | compiler-workers | O1 file-init F | Missing project.json, all8 registered cases U; generation success is not these assertions; T6. |
 | compiletime | O1 27P/18F | DL42P/3F portable; decltype_type_fields/parameterized-field chain fail Unknown type constructor 'alias' (ROOT/L1 with L2); inference_alias_invalid rejects with earlier capability error (ROOT/L2).43 LLVM registrations U on E; commands below. Not an unassigned whole-file failure. |
 | completion-queries | O1 4P | Unchanged mock transport producer/data; reuse O1. |
-| cross-compilation | O1 7S | Six target groups and recoverable-linker case lack execution in this inventory; T7. |
+| cross-compilation | O1 7S | T7 now7/7P at84146755 plus explicit fixture imports / supplied eac cross reactor; see the source-bound T7 receipt below. Other-OS binaries emitted, not executed natively. |
 | data-driven-scanners | O1 3F | N3/3P. |
 | default | O1 6F | No later Node closure located; T8. |
 | defer | O1 5P/1F | Foundation ordinary-identifier case unpassed; T8. |
@@ -4339,7 +4339,7 @@ be omitted. These are commands for ROOT's final run, **not executed here**.
 | T4 — CLOSED on LA; ROOT final changed-input adoption | LL's narrow/body package failures are superseded by LA's actual end-to-end passes, including independent load/execute. Preserve separately scoped evidence; no extra repeat for unchanged inputs. If final reactor/caller inputs change, selectors are `--test-name-pattern='^LLVM matches interpreter: narrow integers$'` and `'^LLVM matches interpreter: resumable control bodies$'` in llvm-execution.test.mjs, retaining all original profile/output/offset/canonical assertions. |
 | T5 — ROOT/B2 shared retirement and Node adoption | [f167c444 receipt](compiler_shared_browser_f167c444.md): shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4, work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c, resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b. Strict browser retirement repeatedly fails; once-passing rejected candidates/older D2 passes do not close it. Run `TOWER_REQUIRE_THREADS=1 node playground/scripts/test-shared-compiler.mjs /absolute/shared/tower.wasm /absolute/shared/tower-work-tests.wasm REPORT.json`, then the Node compiler-threads file with real matching work/compiler bytes and no skips. Chromium/Playwright and resource manifest must match the accepted repair. |
 | T6 — ROOT/B2 worker artifact adoption | `node --test --test-concurrency=1 playground/tests/compiler-workers.test.mjs`. All8 cases were unstarted at missing build/compiler-project/project.json. Supply final project manifest/resources and build/browser-wasi-llvm/tower-llvm.wasm; this file imports the raw LLVM loader and worker entry, so generic fixture overrides alone are insufficient. Two edited9d generations prove their own script, not these eight output-order/cancel/generic/iteration/vectorization cases. |
-| T7 — ROOT cross artifacts / fixture triage | `env -u TOWER_TEST_LLVM_WASM node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`. All7 previously skipped. Supply final build/browser-wasi-llvm/tower-cross.wasm and every targetInputs runtime/link input. The shared fixture loader's LLVM override would otherwise replace the cross reactor with the ordinary LLVM reactor. Current inline object/link/recovery source strings still lack language imports: reconcile their explicit-language boundary when reached, not by treating seven skips as passes. |
+| T7 — CLOSED at84146755/eac; ROOT final artifact adoption | Seven fresh exact selections now pass with explicit Foundation imports; full receipt below. For changed final artifacts, use `env -u TOWER_TEST_LLVM_WASM -u TOWER_INTERPRETER_ONLY node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`, supplying build/browser-wasi-llvm/tower-cross.wasm and all targetInputs files. A generic LLVM override would silently select the wrong reactor. Retain native-emission versus actual Wasm-execution distinction. |
 | T8 — ROOT to assign; eleven original files without later Node closure | `node --test --test-concurrency=1 playground/tests/{c-source,compiler-bytes,compiler-entities,compiler-utf8,default,defer,execution,fast-interpreter,for-loops,foreach,formatter-port}.test.mjs`. Do **not** silently delegate this to L1/A2's unrelated fixes. Exact failed groups/counts are above and original logs remain O1. These Node files are unchanged since69391085; imported resources/providers have advanced. Observed old failures include implicit-language strings, older LLVM integer_type reconstruction and generic_registry's Tower-owned compiler_buffer_allocation_size provider. Matched-pair/resource adoption and fixture triage are required before classifying current compiler defects. Keep malformed/seed cases deliberate. Compiletime now has DL's separate disposition, not an unassigned failure. |
 | T9 — ROOT framework scheduling, then relevant producer owner if failing | Eight exact semantic-port cases lack a matching-pair pass: `entity_stage_ownership`, `work_access`, `work_observe`, `compiler_work`, `compiler_batch`, `backend_popcount`, `backend_stack`, `backend_import_constants`. They failed under O's mixed artifacts; were unstarted after the G8 interruption; B1/S3 did not select them. Native fixtures and R's stage export are not these full Graph/Fast/LLVM32/64/canonical checks. Run separately with the command below. |
 
@@ -4411,3 +4411,37 @@ without later Node closure, while compiletime has the explicit partial receipt
 and assigned failures above. Its two current test hashes match DL; no new D1
 execution. ROOT's generation is separately source-bound and does not execute
 the remaining Node groups. This finite receipt adoption ends the reconciliation.
+
+## T7 cross-target execution at 84146755 (2026-11-23)
+
+Frozen host/resource source84146755f49035aae60a983d6db2a682a3051201 plus the five
+explicit `import foundation;` prefixes in cross-compilation.test.mjs, final SHA
+`dbd4fefbe7c3610e8b87d8999617884a2c7ed656f4003f065f7a367ee47f31d4`.
+Supplied cross reactor sourceeac16533 / SHA
+`e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1`.
+Archive3ae60fc20303f8b91b8398e3eda0dd6c2939c60bdb4a6c03e5c207fec1c452a1
+and all eight selected entries (cross plus seven target files) match files.json.
+No default artifact was overwritten; previous portable/LLVM artifacts untouched.
+
+Each of WebAssembly, Windows x64, Linux x64/ARM64, macOS x64/ARM64 and linker
+recovery ran in a fresh process, concurrency1,120s bound. Baseline0/7: six fail
+at the unimported library source after successful main/repeat emission; recovery
+fails before linking. Repaired7/7, zero skips/timeouts/cancellations. All original
+assertions remain: executable magic, deterministic repeated bytes, native
+allocation signature/disassembly, library object/no tower_main, external answer
+linking, real Wasm outputs5/84/42/4/41/42 and42, Link failed then successful compile,
+unknown-target diagnostic. Existing cross_target_program.tower remains unchanged;
+no compiler/semantic implementation was added. Other-OS output is emission, not
+native execution there. No whole-current-compiler/browser release claim.
+
+Logs/manifests `build/d1_ecs/cross_84146755/`; journal has exact command and per-case
+costs. Final summed wall/CPU25.30/37.35s, maximum individual peak379228KiB,0swaps.
+These are validation costs, not equivalent-success production performance data.
+Fixture-only boundary repair has no production optimization/scaling claim. No
+compiler build, repeated aggregate, generation, sanitizer or unrelated gate run.
+All owned jobs drained and shared heavy lock released before publication.
+
+Merged adoption66657986 retains all T7 test/host/artifact hashes. The only changed
+existing mounted resource is A1's tests/stress/comment_functions.tower, outside
+these executed imports. Its mismatch is preserved in merged_resources_check.log;
+the original full-registry identity is not relabeled as a fresh merged test run.
