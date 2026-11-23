@@ -2576,3 +2576,91 @@ component-budget fixtures each pass three native runs, separate from serial slot
 admission/finalizer checks. Exact measurements and limits are in the journal.
 Matching address/thread checks remain pending after the queued complete76 merge;
 no obsolete instrumentation run or whole-release acceptance is claimed.
+
+### Capture admission and real publication-pool ownership — reviewedff3a0bb4
+
+After the85c native jobs drained, merged complete ROOT76 asb53c838a, complete
+A19549559a/de8069cd and L260fc53e histories without conflicts. All owned generic
+registrations remain. The previously prospective four LR rows now apply to the
+current source, still awaiting D1 runtime checks. Census is526/526 assigned paths
+of1115 tracked Tower files; the new capture file was read in full.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_capture_admission_checks.tower | New134-line fixture owns a world/context and deliberately separate finite query-graph ledger. Sixteen cases cover32/64-bit targets and world worker budgets1/4: healthy undemanded identity, cancelled graph, measured real task-capacity denial, and existing fixed Memory receipt. Actual task/hash capacity preparation isolates graph denial before metadata creation. Same/later declaration requests after pressure release must preserve task/entity/component counts and first receipt at owning offset83 or original27, despite peer offset11. Final graph/world teardown reaches zero grants. No workers execute in these admission cases; prior Memory is injected receipt preservation, not physical ENOMEM. Standard exported main needs the existing production composition with four selectors. |
+| scaffolding/tests/generic_pump_publication.tower | Replaces the earlier unbudgeted fixture pool with actual sem_workers_open. Before/after snapshots prove its world budget owns the physical slot/header bytes, extent derives from actual count*sizeof(WorkSlot), and no execution lane is reserved by storage admission. Real context disposal closes it. Every existing completed-copy/Busy/no-publication/sticky-failure/final-zero assertion remains. This closes the specifically identified fixture bypass, not all compiler graph or pool accounting. |
+
+Read A1's production admission change: terminal contexts/graphs return before
+metadata; healthy existing identities are reused; graph request/seal succeeds
+before capture kinds/storage attach. Failures use the existing joined cancellation
+and fixed receipt with the owning subject offset. Later component allocation and
+capture/proof assertions remain open. Owner before healthy0/cancelled134/capacity134/
+failed1 and after16 passes are distinct from current D1 evidence; fixed-real-path
+performance and current instrumentation remain pending. L2's stronger32-process
+fixed-path control supersedes isolated-cost inference from its earlier26993
+different-path comparison, while preserving every original observation. New
+joined native/sanitizer/public release checks are not yet run.
+
+At ff3a, all16 capture admission cases pass three native runs after public-leaf
+compilation and a coherent compiler build. The four-selector CMake registration
+uses the existing production composition and unchanged Tower fixture; native after
+comparison and supported instrumentation remain pending. The wider query gate
+fails its measured Cancel4 overlap assertion after selecting width256. Every clone
+result is correct but no intervals overlap; this is routed to L2/ROOT without
+weakening the oracle. Later broad selectors did not run. Current526/526 source
+audit coverage is not a claim that the current integrated runtime gates pass.
+
+### D2 delegated generator and symbol fixtures — prospective3020df41
+
+Reviewed the complete two assigned-file deltas in D2's3020df41, queued through
+complete d799e6f9 history. No new assigned paths; current526 census is unchanged.
+D1 explicitly delegated the generator extent correction; no competing edit.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/driver_measure_cases.tower | The existing private ByteBuffer/defer owner now derives allocation count, fill bytes and modulus from one generator-owned element_count and sizeof(u32). Existing measure_number emits the same literal Foundation operands; no runtime mutable count, alternative constant folder, interpreter or scheduler. Both Foundation workloads, raw/optimized C, executable and fresh object are independently byte-compared against the archived original by D1. All six pairs match. The rejected runtime-count experiment remains rejected for measured large regression despite correct outputs. Append-allocation counts were not separately measured; RSS is not live heap. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Extends the same borrowed-text verifier fixture with exact Semantics admission of stage-open, stage-publish and view-open result names plus prefix/suffix and wrong-provider negatives. This validates observed component linkage boundaries, not payload aliasing or worker race freedom. D2's actual native/WASI reports and supported fixture instrumentation are source-scoped to its0ce closure; newer joined policy evidence is pending. D1 read the corresponding owned tool change: only these three exact Semantics imports are allowed, without wildcard or speculative LR names. |
+
+Receipt1fcb88fb931757d9c40b993111a0247a08295f4ab8050375b8bbefd1196dce3e
+was hash-verified and six independent cmp results retained at
+build/d1_ecs/d2_count_review/byte_identity.log. This review does not adopt the
+queued source or relabel the owner's earlier measurements to ff3a. Runtime
+profiling of these audit paragraphs is inapplicable.
+
+Capture registration native disposition at ff3a+95f78: manual and registered
+objects AND complete executables are byte-identical. All16 cases pass three
+process samples per selector and all four CTest entries pass. Current resource24,
+full ECS units (including the previously failing LR Capacity oracle), control,
+grammar-resource, parser and storage pass independently. Exact measurements and
+source identities are in the journal. Current ASan/LSan and TSan remain pending;
+original Cancel4 query overlap134 remains an open owner gate.
+
+Prospective D2 b5a740e05 adds four further cases to the already audited
+scaffolding/tests/bootstrap_symbols_checks.tower: exact ParserNodes view-result
+admission plus truncated/suffixed spelling and wrong-Utf8-unit rejection. Read
+its corresponding one-name tool permission and verified complete bundle/receipt.
+Current526 assigned paths are unchanged. This observed per-provider linkage
+permission does not permit new unobserved LR APIs or prove payload safety.
+
+### Complete D2 adoption — reviewed213c243ea
+
+Complete b5a740e05 history merged after d916 native jobs drained. The earlier
+prospective3020/b5 symbol/generator rows now describe the current source, with
+526 assigned paths unchanged. D1 independently reads the retained default-selector
+failure1, old fresh-WASI policy failure1, corrected group/policy0 and current
+units/runtime-fault0 receipts. The archived D2 compiler is byte-identical to D1's
+da9f8a4c. Both packages contain50 resources, but nine LLVM runtime texts differ
+in ModuleID build-cache-path comments; all other text matches when only those
+comment lines are excluded. The raw resource comparison fails1 and is retained.
+Do not claim whole-package byte identity or new package/browser acceptance from
+this check. Current address/thread runtime evidence and clone overlap remain open.
+Documentation-only reconciliation adds no runtime profiling need.
+
+Current213c supported instrumentation disposition: all42 planned runtime processes
+pass under each of address/LSan and thread instrumentation, with actual access
+hooks and unchanged source manifests. This closes the scoped e47 pool/reuse/
+reentrant and d916 capture registration gap at this source. Real stage/component
+worker stress is separate from admission-only cases. Original query-smoke134,
+newer565 source acceptance, unsupported source UBSan/external LLVM coverage and
+final integrated release remain explicit. The fixed-four caller audit above is a
+future affinity-profile requirement; no worker-count oracle was weakened.
