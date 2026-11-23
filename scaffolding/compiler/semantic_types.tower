@@ -38,6 +38,7 @@ fn sem_type_binding(c: SemanticContext*, n: void*): bool {
 }
 
 fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
+    if !sem_shape(c, n, "name") { return; }
     var name = sem_identifier(c, sem_member(n, "name"));
     if !sem_ok(c) { return; }
     var value = sem_node_result(c, n, KType);
@@ -459,7 +460,17 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
     return arguments;
 }
 
+// A bare Foundation type name must retain its identifier capture. Token text
+// alone must not turn an incomplete override into a valid published type.
+// Base-qualified names and non-name alternatives keep their existing handling.
+fn sem_type_name_shape(c: SemanticContext*, n: void*): bool {
+    var name = sem_name_node(n);
+    return !sem_is(name, "CoreTypeName") || sem_member(name, "base") != null
+        || sem_shape(c, name, "name");
+}
+
 fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
+    if !sem_type_name_shape(c, n) { return null; }
     var prepared = sem_constructor_prepared(c, n);
     if prepared != null { return prepared; }
     var previous_defer = c.defer_type_fields;
@@ -606,6 +617,7 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
     if sem_editor_symbol(c, n, 2) {
         return sem_type_new(c, SI32, 0, null);
     }
+    if !sem_type_name_shape(c, n) { return null; }
     c.type_depth++;
     var result = sem_array_type_prepared(c, n);
     if result == null && sem_ok(c) { result = sem_constructor_prepared(c, n); }

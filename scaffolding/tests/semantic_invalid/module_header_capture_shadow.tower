@@ -1,0 +1,4 @@
+import tower;
+fn known(value: i32): i32 { return value; }
+var index: i32 = 7;
+for (var index: i32 = 0; index < 2; index += comptime(known(index))) {}

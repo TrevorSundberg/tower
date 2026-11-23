@@ -1,5 +1,6 @@
 // Host transport only. Tower owns admission, access claims, dependencies, jobs,
 // continuations and publication. wasi-libc owns thread stacks, TLS and allocation.
+import {compilerWorkerFactory} from './compiler-worker-group.mjs';
 const READY = 1, RUNNING = 2, FAILED = 3;
 const FAILURE_BYTES = 8192;
 const HEAP_FREE = 0, HEAP_LOCKED = 1, HEAP_CONTENDED = 2;
@@ -47,7 +48,7 @@ export async function compilerThreads(module, {memory,
   if (!(memory.buffer instanceof SharedArrayBuffer)) throw new Error('Compiler threads require shared memory');
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 256) throw new Error('Invalid compiler worker capacity');
   if (!workerFactory) {
-    if (typeof Worker !== 'undefined') workerFactory = url => new Worker(url, {type:'module'});
+    if (typeof Worker !== 'undefined') workerFactory = await compilerWorkerFactory(capacity);
     else {
       const nodeThreads = 'node:worker_threads';
       const {Worker} = await import(nodeThreads);

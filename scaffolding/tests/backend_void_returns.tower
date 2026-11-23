@@ -1,0 +1,33 @@
+import tower;
+
+var effects: u32 = 0;
+export fn opaque(value: void*): void* { effects++; return value; }
+export fn forwarded(value: void*): void* { return opaque(value); }
+fn direct(value: void*): void* { return forwarded(value); }
+export fn deeper(value: void**): void** { effects += 10; return value; }
+fn apply(callback: function(void*, void*), value: void*): void* { return callback(value); }
+export fn select_callback(): function(void*, void*) { return forwarded; }
+export fn notify(): void { effects += 100; }
+
+fn check(): i32 {
+    var data = alloc(u32, 1);
+    if data == null { return 1; }
+    defer free(data);
+    *data = 42;
+    var wanted = bits(void*, data);
+    var result = direct(wanted);
+    if result != wanted { return 2; }
+    if direct(null) != null { return 3; }
+    if apply(select_callback(), wanted) != wanted { return 4; }
+    var slot = wanted;
+    var address = deeper(&slot);
+    if address != &slot || deeper(null) != null { return 5; }
+    var stored = bits(u32*, *address);
+    if *stored != 42 { return 6; }
+    *stored = 7;
+    notify();
+    if *data != 7 || effects != 123 { return 7; }
+    return 0;
+}
+
+print(check());
