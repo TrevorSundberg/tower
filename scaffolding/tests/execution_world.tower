@@ -7,6 +7,12 @@ import .compiler.semantic_program_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 import execution_support;
+import .library.work_budget_types;
+import .library.work_budget;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_dispose(world: void*): bool;
@@ -26,6 +32,134 @@ fn execution_world_prepare(world: void*, modules: void*, request: DriverRequest*
     execution_check(ready, "install independent world baselines");
 }
 
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+
+var ExecutionInputBudgetBytes: usize = 33554432;
+var ExecutionInputStepBudget: usize = 7;
+var ExecutionInputFuel: usize = 1000000;
+
+fn execution_input_normalization_trial(width: u32, foreign_modules: void*): void {
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    execution_check(work_budget_init(&budget, 1, ExecutionInputBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Input fixture creates its bounded world");
+    var warm: ExecutionSession = default;
+    semantic_initialize(&warm.program, entity_create(compiler_world_store(world)), width);
+    // Keep an actual row alive: an empty component page is released, not cached.
+    var source = "import tower; print(7);";
+    var sources: FrontendSource[2] = default;
+    sources[1] = { data: source, length: strlen(source) };
+    var count = sizeof(decltype(sources)) / sizeof(FrontendSource);
+    var baseline: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &baseline), "Input normalization baseline");
+    var occupied: WorkReservation = default;
+    execution_check(work_budget_reserve_result(&budget, 0, 0, baseline.bytes - baseline.used_bytes, &occupied)
+        == WorkBudgetError.None, "Input normalization pressure uses the actual remainder");
+    var session: ExecutionSession = default;
+    execution_check(!execution_session_compile_sources_world(&session, world, &sources[0], count, width, foreign_modules)
+        && session.program.resource.error == WorkBudgetError.Capacity && session.program.resource.offset == 0
+        && session.machine.failed && session.machine.done && session.machine.steps == 0 && !session.started
+        && session.output.length == 0 && execution_text(&session.error, sem_resource_message(WorkBudgetError.Capacity)),
+        "Empty input descriptor admission preserves exact failure before frontend work");
+    execution_check(sources[0].data == null && sources[0].length == 0 && sources[1].data == source,
+        "Input normalization never changes caller descriptors");
+    execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Input normalization pressure releases");
+    execution_session_step(&session, 1);
+    execution_check(!execution_session_start(&session) && !execution_session_fast(&session)
+        && session.program.resource.error == WorkBudgetError.Capacity && session.machine.steps == 0,
+        "Input admission failure cannot replay after allowance returns");
+    execution_session_close(&session);
+    var released: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
+        && released.live == baseline.live, "Denied input descriptors retire every grant");
+    execution_check(!execution_session_compile_sources_world(&session, world, &sources[0], count, width, foreign_modules)
+        && session.program.resource.error == WorkBudgetError.None && session.error.data != null
+        && strstr(session.error.data, "another compiler world") != null,
+        "Admitted empty input reaches the existing foreign-world rejection");
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
+        && released.live == baseline.live, "Frontend failure releases normalized input descriptors");
+    execution_session_close(&session);
+    execution_session_close(&warm);
+    execution_check(compiler_world_dispose(world), "Input fixture world drains");
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Input budget outlives and retires all owners");
+}
+
+fn execution_borrowed_source_trials(world: void*, modules: void*, width: u32): void {
+    var declaration = "import tower; fn input_answer():i32{return 42;}";
+    var statement = "import tower; print(input_answer());";
+    var engines: bool[2] = default;
+    engines[1] = true;
+    for(var engine: usize = 0; engine < sizeof(decltype(engines)) / sizeof(bool); engine++) {
+        var fast = engines[engine];
+        var first: ByteBuffer = default;
+        var second: ByteBuffer = default;
+        execution_check(bytes_append(&first, declaration, strlen(declaration))
+            && bytes_append(&second, statement, strlen(statement)), "Counted source fixture copies");
+        var sources: FrontendSource[3] = default;
+        sources[1] = { data: first.data, length: first.length };
+        sources[2] = { data: second.data, length: second.length };
+        var count = sizeof(decltype(sources)) / sizeof(FrontendSource);
+        var begin: usize = fast ? 0 : 1;
+        var session: ExecutionSession = default;
+        execution_check(execution_session_compile_sources_world(&session, world, &sources[begin], count - begin, width, modules),
+            "Counted sources and optional empty input compile");
+        execution_check(memcmp(first.data, declaration, first.length) == 0 && memcmp(second.data, statement, second.length) == 0
+            && sources[0].data == null && sources[1].data == first.data && sources[2].data == second.data,
+            "Compilation borrows immutable source bytes and descriptors");
+        fill(first.data, 63, first.length);
+        fill(second.data, 63, second.length);
+        bytes_dispose(&first);
+        bytes_dispose(&second);
+        if fast { execution_check(execution_session_fast(&session), "Copied frontend sources support Fast conversion"); }
+        execution_run(&session, ExecutionInputStepBudget, ExecutionInputFuel);
+        execution_check(!session.machine.failed && execution_text(&session.output, "42\n"),
+            "Frontend-owned sources survive caller replacement and release");
+        execution_close_checked(&session);
+    }
+    var unbound = frontend_modules_create();
+    var rejected: u8[3] = default;
+    rejected[0] = 120;
+    rejected[2] = 121;
+    var inputs: FrontendSource[2] = default;
+    inputs[0] = { data: declaration, length: strlen(declaration) };
+    inputs[1] = { data: &rejected[0], length: sizeof(decltype(rejected)) };
+    var failed: ExecutionSession = default;
+    execution_check(frontend_modules_world(unbound) == null
+        && !execution_session_compile_sources_world(&failed, world, &inputs[0],
+            sizeof(decltype(inputs)) / sizeof(FrontendSource), width, unbound)
+        && execution_text(&failed.error, "NUL in compiler source") && failed.machine.error_offset == 1
+        && frontend_modules_world(unbound) == null && failed.machine.steps == 0,
+        "All source spans are preflighted before any frontend environment binding");
+    execution_session_close(&failed);
+    frontend_modules_destroy(unbound);
+}
+fn execution_root_failure_trial(world: void*, modules: void*, width: u32, wanted: WorkBudgetError): void {
+    var source = "import tower; print(7);";
+    var input: FrontendSource = { data: source, length: strlen(source) };
+    var store = world == null ? null : compiler_world_store(world);
+    var before = store == null ? 0 : entity_store_count(store);
+    var session: ExecutionSession = default;
+    execution_check(!execution_session_compile_sources_world(&session, world, &input, 1, width, modules)
+        && session.program.root == null && session.program.resource.error == wanted
+        && session.program.resource.offset == 0 && session.machine.failed && session.machine.done
+        && !session.started && session.machine.steps == 0 && session.output.length == 0
+        && execution_text(&session.error, sem_resource_message(wanted)),
+        "Root creation preserves its exact producer receipt before frontend work");
+    execution_check(!execution_session_start(&session) && !execution_session_fast(&session),
+        "Denied root cannot start either execution engine");
+    execution_session_step(&session, 1);
+    execution_check(session.machine.steps == 0 && session.output.length == 0
+        && (store == null || entity_store_count(store) == before),
+        "Denied root preserves its world and cannot execute source effects");
+    execution_session_close(&session);
+}
 fn execution_world_tests(request: DriverRequest*): void {
     var first = compiler_world_create();
     var second = compiler_world_create();
@@ -33,6 +167,18 @@ fn execution_world_tests(request: DriverRequest*): void {
     var second_modules = frontend_modules_create();
     execution_world_prepare(first, first_modules, request);
     execution_world_prepare(second, second_modules, request);
+    var anchor = entity_create(compiler_world_store(first));
+    execution_check(anchor != null, "Root admission test owns a stable world anchor");
+    var view = entity_view_open(anchor);
+    execution_check(view != null, "Root admission test pins the existing world");
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        execution_input_normalization_trial(width, second_modules);
+        execution_root_failure_trial(null, first_modules, width, WorkBudgetError.Invalid);
+        execution_root_failure_trial(first, first_modules, width, WorkBudgetError.Busy);
+    }
+    entity_view_close(view);
+    entity_release(anchor);
+    for(var width: u32 = 4; width <= 8; width *= 2) { execution_borrowed_source_trials(first, first_modules, width); }
     var source: u8* = "import tower; fn identity(T:type,value:T):T { return value; } fn answer():i32 { return 42; } var staged=comptime(answer()); var result:decltype(identity(staged))=staged; print(result);";
     var graph: ExecutionSession = default;
     var fast: ExecutionSession = default;

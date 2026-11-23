@@ -9,6 +9,7 @@ import interpreter_context;
 import interpreter_context_types;
 import .library.vector;
 import .library.work_vector;
+import .library.work_vector_types;
 import .library.work_budget_types;
 
 import .library.float_bits;
@@ -19,7 +20,6 @@ extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 var InterpreterFinishValuePhase: usize = 4;
 var InterpreterFinishAddressPhase: usize = 5;
-var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
 var InterpreterStackBytes: usize = 4194304;
 var InterpreterHeapBytes: usize = 268435456;
 var InterpreterCallDepth: usize = 128;
@@ -827,9 +827,11 @@ fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: u
         }
     }
     if request.failed {
-        im_storage_require(vector_reserve(&request.error, request.error.length + 1));
-        request.error.data[request.error.length] = 0;
-        ix_fail(m, request.error.length == 0 ? "Type construction failed" : request.error.data, offset);
+        if request.error.length == 0 {
+            ix_fail(m, "Type construction failed", offset);
+        } else {
+            ix_context_fail_counted(m, request.error.data, request.error.length, offset);
+        }
         return 0;
     }
     if !request.ready {
@@ -1115,18 +1117,18 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
     {
         var small_args: InterpreterInlineArgumentStorage;
         var args = &small_args[0];
-        var heap_args = n.items.length > sizeof(InterpreterInlineArgumentStorage) / sizeof(u64);
+        var heap_args = n.items.length > sizeof(decltype(small_args)) / sizeof(u64);
+        var arguments: work_vector(u64);
         if heap_args {
-            args = alloc(u64, n.items.length);
-            if args == null {
+            arguments = default;
+            if !im_storage_result(m.state, work_vector_reserve_result(&arguments, m.state.budget, n.items.length)) {
                 ix_fail(m, "Cannot allocate interpreter call arguments", offset);
                 return;
             }
+            args = arguments.data;
         }
         defer {
-            if heap_args {
-                free(args);
-            }
+            if heap_args { work_vector_dispose(&arguments); }
         }
         var i: usize = 0;
         loop {

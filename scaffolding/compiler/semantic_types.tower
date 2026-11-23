@@ -19,6 +19,7 @@ import semantic_work_ids;
 import semantic_control;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -243,7 +244,12 @@ fn sem_instance_name(c: SemanticContext*, definition: void*, arguments: vector(v
 }
 
 fn sem_register_template(c: SemanticContext*, n: void*): void {
-    var kind: u32 = generic_register(c.generics, n);
+    var resource_error = WorkBudgetError.None;
+    var kind = generic_register_result(c.generics, n, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(c.program, resource_error, sem_offset(c, n));
+        return;
+    }
     if !sem_generic_ok(c, n) || kind == KProgram {
         return;
     }
@@ -403,7 +409,12 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var invalid = sem_type_new(c, SI32, 0, null);
     var arguments = sem_constructor_arguments(c, n, definition);
     if !sem_ok(c) { return invalid; }
-    var instance: void* = generic_instantiate(c.generics, definition, n, arguments.data, arguments.length);
+    var resource_error = WorkBudgetError.None;
+    var instance = generic_instantiate_result(c.generics, definition, n, arguments.data, arguments.length, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(c.program, resource_error, sem_offset(c, n));
+        return invalid;
+    }
     if !sem_generic_ok(c, n) || instance == null {
         return invalid;
     }

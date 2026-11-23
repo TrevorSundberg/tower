@@ -81,24 +81,32 @@ fn ix_root(m: IMExecution*): void* {
     return im_root(m.state);
 }
 
-fn ix_fail(m: IMExecution*, text: u8*, offset: usize): void {
-    if m.context == null {
-        im_fail(m.state, text, offset);
-        return;
-    }
+// Invocation diagnostics can borrow a counted producer message. Preserve the
+// first failure even when its optional presentation cannot be allocated.
+fn ix_context_fail_counted(m: IMExecution*, text: u8*, length: usize, offset: usize): void {
     if m.state.failed {
         return;
     }
     m.state.failed = true;
     m.state.error_offset = offset;
+    if length != ~convert(usize, 0) && vector_reserve(u8, &m.context.error, length + 1) {
+        copy(m.context.error.data, text, length);
+        m.context.error.data[length] = 0;
+        m.context.error.length = length;
+    }
+}
+
+fn ix_fail(m: IMExecution*, text: u8*, offset: usize): void {
+    if m.context == null {
+        im_fail(m.state, text, offset);
+        return;
+    }
+    if m.state.failed { return; }
     var length: usize = 0;
     while text[length] != 0 {
         length++;
     }
-    if vector_reserve(u8, &m.context.error, length + 1) {
-        copy(m.context.error.data, text, length + 1);
-        m.context.error.length = length;
-    }
+    ix_context_fail_counted(m, text, length, offset);
 }
 
 fn ix_has_foreign(m: IMExecution*): bool {

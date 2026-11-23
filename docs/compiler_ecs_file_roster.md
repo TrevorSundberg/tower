@@ -1,5 +1,7 @@
 # Compiler ECS file ownership roster
 
+Current inventory: [b0421447 reconciliation](#integrated-census-at-b0421447-2026-11-23), 1,131 tracked Tower paths. Earlier counts below are historical.
+
 Completeness index at `6282238779034442e0578d76b921ca117df819f1`:
 1,011 tracked `.tower` files, from `git ls-files '*.tower'`.
 This is not substantive audit evidence. Each owner must provide a reviewed
@@ -1411,3 +1413,243 @@ Existing entity_views finalizer and target_once memory-provider delta retain
 prior fixture intent. New A1 semantic receipt/dispatch fixtures remain outside
 this tracked census until complete producer handoff; no declaration-only partial
 ABI or count-only acceptance is claimed.
+
+## Integrated census at b0421447 (2026-11-23)
+
+This section supersedes earlier **inventory counts**, preserving every historical
+assignment and receipt above. Source identity is
+`b04214474ac14588abffea1c6c27b2a0b2ebb2ed`. The exact tracked census is **1,131
+Tower paths**: baseline1,011 +134 additions -14 removals. Relative to
+`60741c515b3ca40b3b39aed61fb38a82694ae9ea`, Git reports **407 changed paths**
+(134 added,259 modified,14 deleted),28,008 added lines and3,914 deleted lines.
+Thus393 currently tracked paths changed and738 did not.
+
+The authoritative current ownership set is the eight original owner sections
+above, minus the retired paths below, plus the complete134-path additions table
+below. This union was compared with `git ls-files '*.tower'`:1,131 unique paths,
+no missing/extra paths and exactly one owner per path. Earlier incoming tables
+are historical receipts, not additional files to count.55 current paths lacked
+an explicit baseline/table owner entry; some were already assigned in prose.
+The additions table makes all of them explicit without changing existing domain
+ownership. Tests retain D1 audit ownership and their implementation owner's
+reservation. The two type_object_index API/type files remain L2-owned; the two
+editor fixtures remain D1-owned, not B2.
+
+| Owner / existing audit | Current paths | Added since60741 | Existing owner receipt located | Unresolved owner receipt |
+| --- | ---: | ---: | ---: | ---: |
+| [A1](compiler_ecs_audit_a1.md) |43|8|43|0|
+| [A2](compiler_ecs_audit_a2.md) |43|10|43|0|
+| [B1](compiler_ecs_audit_b1.md) |100|0|100|0|
+| [B2](compiler_ecs_audit_b2.md) |276|3|273|3|
+| [L1](compiler_ecs_audit_L1.md) |25|0|25|0|
+| [L2](compiler_ecs_audit_L2.md) |17|5|17|0|
+| [D1](compiler_ecs_audit_d1.md) |542|105|540|2|
+| [D2](compiler_ecs_audit_d2.md) |85|3|85|0|
+| Total |1131|134|1126|5|
+
+**Receipt located is not current-source acceptance.** This reconciliation reads
+existing path-specific findings and their stated revision/hash or report baseline;
+it performs no new substantive compiler source review. Historical findings do
+not automatically cover the259 modified files' later revisions. Their recorded
+limitations, open implementation work and validation gaps remain open. A current
+whole-source review or runtime pass must not be inferred from these counts.
+
+Path normalization follows each report's declared root, including B1's
+`../bedrock.tower` and related language modules. D1's extensionless rows for
+backend_type_construction, type_construction_execution and world_budget, its
+61-line build_tool_budget_checks prose review, and A2's complete work_arena_api
+prose review are real receipts, not missing rows. D2's45 copied-resource rows use
+the declared `bootstrap/linux-x64/share/tower/` prefix and count **provenance-only
+review**, not independent semantic approval. These distinctions avoid granting
+review credit for incidental filename mentions or reporting false gaps.
+
+### Unresolved owner-report receipts
+
+| Exact current path | Existing owner | Existing evidence and required follow-up |
+| --- | --- | --- |
+| `scaffolding/compiler/units/parser_modules_checks.tower` | B2 | B1's `units/parser_modules_checks.tower` row records full composition/source review. No corresponding B2 owner receipt was located. B2 must adopt/reference that review or record its own; do not silently transfer ownership. |
+| `scaffolding/compiler/units/parser_modules_work.tower` | B2 | B1 records full composition review; A2 also reviews the scheduling interface. B2 owner receipt/adoption remains missing. |
+| `scaffolding/compiler/units/parser_modules_work_checks.tower` | B2 | B1 records full composition review and A2 interface evidence exists. B2 owner receipt/adoption remains missing. |
+| `scaffolding/tests/generic_result_storage.tower` | D1 | L2 implementation/source findings exist. D1's separate substantive review is assigned and pending; this inventory task does not perform it. |
+| `scaffolding/tests/grammar_builder_results.tower` | D1 | B1 implementation owns the grammar regression. D1's separate substantive review is assigned and pending; fixture presence is not review evidence. |
+
+These are missing **owner-report** receipts, not a claim that all five files have
+never been read. No remaining path lacks an assigned inventory owner after this
+reconciliation. Current-source review freshness and integrated release acceptance
+remain separate from this finite missing-receipt list.
+
+### Complete additions since60741
+
+Each row below is a current tracked path, exactly once. "Added explicit row"
+identifies the55 paths absent from the prior structured ownership entries;
+"Consolidated" retains an existing entry. Receipt status uses the owner's audit
+linked above, with the two D1 exceptions explicitly pending.
+
+| Added current path | Owner | Inventory action | Owner receipt |
+| --- | --- | --- | --- |
+| `scaffolding/backend/execution_functions.tower` | B2 | Added explicit row | Existing receipt located |
+| `scaffolding/benchmarks/compiler_reference_inputs.tower` | D2 | Consolidated | Existing receipt located |
+| `scaffolding/benchmarks/compiler_wide_functions.tower` | D2 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/completion_types.tower` | B2 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/language_grammar_types.tower` | B2 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_constructor_types.tower` | L2 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_context_types.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_declaration_types.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_evaluation_types.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_generic_body_types.tower` | L2 | Added explicit row | Existing receipt located |
+| `scaffolding/compiler/semantic_known_publish.tower` | A1 | Added explicit row | Existing receipt located |
+| `scaffolding/compiler/semantic_known_types.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_query_api.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_query_pipeline.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_source_binding_types.tower` | A1 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/semantic_type_execution.tower` | L2 | Consolidated | Existing receipt located |
+| `scaffolding/compiler/type_object_index_api.tower` | L2 | Added explicit row | Existing receipt located |
+| `scaffolding/compiler/type_object_index_types.tower` | L2 | Added explicit row | Existing receipt located |
+| `scaffolding/library/work_arena.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_arena_api.tower` | A2 | Added explicit row | Existing receipt located |
+| `scaffolding/library/work_arena_types.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_budget.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_budget_types.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_buffer.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_buffer_types.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_vector.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_vector_types.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/library/work_view_types.tower` | A2 | Consolidated | Existing receipt located |
+| `scaffolding/tests/aggregate_capture_inputs.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/backend_execution_index.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/backend_execution_roots.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/backend_type_construction.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/build_tool_budget_checks.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/compiler_buffer_contract.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/compiler_work_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/comptime_capture_values.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/driver_unit_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/entity_attach_leases.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_child_transfer_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_component_budget.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_component_faults.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_component_layout.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_containment_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_create_faults.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/entity_create_result.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/entity_locality.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/entity_mutation_results.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_node_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_page_churn.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_page_reuse.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_stage_concurrent.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_stage_reentrant.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_stage_result.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/entity_stage_result_faults.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/execution_rejection.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/execution_type_construction.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/foreign_name_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/foreign_tool_checks.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/frontend_units_allocation.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/frontend_units_memory.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/frontend_units_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/generic_clone_fixture.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/generic_clone_parallel.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/generic_clone_storage.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/generic_inspection_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/generic_pump_publication.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/generic_result_storage.tower` | D1 | Added explicit row | Pending D1 review |
+| `scaffolding/tests/grammar_builder_results.tower` | D1 | Added explicit row | Pending D1 review |
+| `scaffolding/tests/layout_frontier_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/lr_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/lr_state_benchmark.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/module_cache_checks.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/module_cache_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/parser_retention.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/parser_retention_observer.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/parser_table_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/parser_trace_failures.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/sanitizer_memory_probe.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/sanitizer_race_probe.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/semantic_aggregate_admission_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_capture_admission_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_capture_continuation_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_capture_module.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_dispatch_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_executable_admission_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_failure_order_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_layout_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/semantic_lifecycle_checks.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/semantic_pool_budget_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_publish_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_query_failure_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_receipt_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_resource_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_source_proof_admission_checks.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/semantic_source_proof_checks.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/source_execution_reachability.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/token_text.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/tool_output_identity.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/type_construction_execution.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/type_execution_receipts.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/type_object_storage.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/type_reachability_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_arena.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_arena_faults.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_arena_linkage.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_arena_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_arena_shared.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_budget_allocation.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_budget_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_budget_shared.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_buffer.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_buffer_faults.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_buffer_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_buffer_shared.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_constructor_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_constructor_faults.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_dispatch_result.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_kernel_admission.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_kernel_overhead.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_kernel_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_linux_affinity.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_linux_affinity_faults.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_linux_capacity_arguments.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_linux_capacity_profile.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tests/work_ready.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_schedule_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_select.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_signal_observe.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_vector_profile.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/work_view_invalid_dispose.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/world_budget.tower` | D1 | Consolidated | Existing receipt located |
+| `scaffolding/tests/world_constructor.tower` | D1 | Added explicit row | Existing receipt located |
+| `scaffolding/tools/instrument_llvm.tower` | D2 | Consolidated | Existing receipt located |
+### Retired source paths
+
+The14 consolidated primitive forwarders below are absent from the current tracked
+source tree. Preserve their historical L2 reviews; do not count them as unresolved
+current files. Corresponding pinned bootstrap copies remain in D2's45-resource
+provenance inventory.
+
+```text
+scaffolding/types/bool.tower
+scaffolding/types/f32.tower
+scaffolding/types/f64.tower
+scaffolding/types/i16.tower
+scaffolding/types/i32.tower
+scaffolding/types/i64.tower
+scaffolding/types/i8.tower
+scaffolding/types/integer.tower
+scaffolding/types/u16.tower
+scaffolding/types/u32.tower
+scaffolding/types/u64.tower
+scaffolding/types/u8.tower
+scaffolding/types/usize.tower
+scaffolding/types/void.tower
+```
+
+Checks used: exact Git tracked/tree set comparison, name-status and numstat
+against60741, original-owner preservation, normalized path-specific receipt
+lookup across all eight reports, and explicit inspection of the exceptions
+above. This documentation-only reconciliation changes no runtime code. Builds,
+allocation/error probes, sanitizers, node-control profiling and performance
+campaigns were not run and are not needed for this inventory result. ROOT retains
+final integrated validation and deployment ownership; no compiler-completion or
+deployment claim is made here.

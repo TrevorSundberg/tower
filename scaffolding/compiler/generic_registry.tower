@@ -2,6 +2,7 @@ import tower;
 import .library.entities;
 import .library.entity_types;
 import .library.vector;
+import .library.work_budget_types;
 import entity_require;
 
 fn compiler_component_get(node: Entity*, type: Entity*): void* {
@@ -13,24 +14,33 @@ fn compiler_component_get(node: Entity*, type: Entity*): void* {
     return bits(void*, data);
 }
 
+fn generic_component_add_result(node: Entity*, type: Entity*, error: WorkBudgetError*): void* {
+    var component = entity_component_add_result(node, type, error);
+    return component == null ? null : bits(void*, entity_component_data(component));
+}
+
 fn generic_component_add(node: Entity*, type: Entity*): void* {
-    var component = entity_component_add(node, type);
-    var present = component != null;
-    compiler_entity_require(present);
-    return bits(void*, entity_component_data(component));
+    var error = WorkBudgetError.None;
+    var result = generic_component_add_result(node, type, &error);
+    compiler_entity_require(error == WorkBudgetError.None && result != null);
+    return result;
 }
 
 // A program's context component retains its registry type. The registry owns
 // its other type entities through ordinary containment; attached components
 // retain their own types as usual. No process-lifetime type cache is required.
-fn generic_registry_type(registry: Entity*, size: usize, alignment: usize): Entity* {
-    var type = entity_create(registry.store);
-    var present = type != null;
-    compiler_entity_require(present);
-    compiler_entity_require(entity_register(type, size, alignment, 0));
-    compiler_entity_require(entity_attach(type, registry, null));
+fn generic_registry_type_result(registry: Entity*, size: usize, alignment: usize, error: WorkBudgetError*): Entity* {
+    var type = entity_create_result(registry.store, error);
+    if type == null { return null; }
+    // This fresh type has no prior layout. Creation already checked views.
+    if !entity_register(type, size, alignment, 0) {
+        entity_release(type);
+        *error = WorkBudgetError.Invalid;
+        return null;
+    }
+    *error = entity_attach_result(type, registry, null);
     entity_release(type);
-    return type;
+    return *error == WorkBudgetError.None ? type : null;
 }
 
 // These are semantic components attached to real definition/instance nodes.
@@ -41,10 +51,11 @@ enum GenericKind: u32 {
 
 var GenericInstanceLimit: usize = 512;
 var GenericNodeLimit: usize = 65536;
+var GenericParameterLimit: usize = 64;
 
 struct GenericTemplate {
-    parameters: Entity*[64];
-    type_parameters: bool[64];
+    parameters: Entity*[GenericParameterLimit];
+    type_parameters: bool[GenericParameterLimit];
     count: usize;
     type_count: usize;
     kind: GenericKind;
@@ -59,7 +70,7 @@ struct GenericInstance {
     node: Entity*;
     body_source: Entity*;
     body_ready: bool;
-    arguments: Entity*[64];
+    arguments: Entity*[GenericParameterLimit];
     count: usize;
     next: GenericInstance*;
 }
@@ -83,18 +94,36 @@ struct GenericContext {
 }
 
 export fn generic_begin(root: Entity*): GenericContext* {
-    var registry = entity_create(root.store);
-    var present = registry != null;
-    compiler_entity_require(present);
-    compiler_entity_require(entity_register(registry, sizeof(GenericContext), alignof(GenericContext), 0));
-    var data = generic_component_add(root, registry);
-    var context = bits(GenericContext*, data);
-    fill(context, 0, sizeof(GenericContext));
-    context.root = root;
-    context.template_type = generic_registry_type(registry, sizeof(GenericTemplate), alignof(GenericTemplate));
-    context.instance_type = generic_registry_type(registry, sizeof(GenericInstance), alignof(GenericInstance));
-    context.origin_type = generic_registry_type(registry, sizeof(GenericOrigin), alignof(GenericOrigin));
-    entity_release(registry);
+    var error = WorkBudgetError.None;
+    var result = generic_begin_result(root, &error);
+    compiler_entity_require(error == WorkBudgetError.None && result != null);
+    return result;
+}
+
+// A coordinator constructs all kinds before publishing the context component.
+// The receipt belongs to this call; no partially initialized registry is visible.
+export fn generic_begin_result(root: Entity*, error: WorkBudgetError*): GenericContext* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if root == null { return null; }
+    if root.stage != null { *error = WorkBudgetError.Busy; return null; }
+    var registry = entity_create_result(root.store, error);
+    if registry == null { return null; }
+    defer entity_release(registry);
+    if !entity_register(registry, sizeof(GenericContext), alignof(GenericContext), 0) {
+        *error = WorkBudgetError.Invalid;
+        return null;
+    }
+    var prepared: GenericContext = {root: root, ..default};
+    prepared.template_type = generic_registry_type_result(registry, sizeof(GenericTemplate), alignof(GenericTemplate), error);
+    if prepared.template_type == null { return null; }
+    prepared.instance_type = generic_registry_type_result(registry, sizeof(GenericInstance), alignof(GenericInstance), error);
+    if prepared.instance_type == null { return null; }
+    prepared.origin_type = generic_registry_type_result(registry, sizeof(GenericOrigin), alignof(GenericOrigin), error);
+    if prepared.origin_type == null { return null; }
+    var context = bits(GenericContext*, generic_component_add_result(root, registry, error));
+    if context == null { return null; }
+    *context = prepared;
     return context;
 }
 

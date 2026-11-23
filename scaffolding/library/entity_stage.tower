@@ -59,18 +59,24 @@ export fn entity_stage_open_result(anchor: Entity*, error: WorkBudgetError*): En
 // existing identity/containment/type indexes remain published and stable. New
 // attachments are visible through this owner's lookup only, not typed queries.
 export fn entity_stage_lease(stage: EntityStage*, node: Entity*): bool {
-    if stage.anchor == null || node == null || node.store != stage.anchor.store
-        || node.store.views != 0 || node.registered { return false; }
-    if node.stage == bits(void*, stage) { return true; }
-    if node.stage != null { return false; }
-    if !vector_reserve(EntityStageLease, &stage.leases, stage.leases.length + 1) { return false; }
+    return entity_stage_lease_result(stage, node) == WorkBudgetError.None;
+}
+
+export fn entity_stage_lease_result(stage: EntityStage*, node: Entity*): WorkBudgetError {
+    if stage == null || stage.anchor == null || node == null
+        || node.store != stage.anchor.store || node.registered { return WorkBudgetError.Invalid; }
+    if node.store.views != 0 || node.store.reclaiming != 0 { return WorkBudgetError.Busy; }
+    if node.stage == bits(void*, stage) { return WorkBudgetError.None; }
+    if node.stage != null { return WorkBudgetError.Busy; }
+    if stage.leases.length >= ~convert(usize, 0) / sizeof(EntityStageLease) { return WorkBudgetError.Invalid; }
+    if !vector_reserve(&stage.leases, stage.leases.length + 1) { return WorkBudgetError.Memory; }
     var lease = &stage.leases.data[stage.leases.length];
     lease.node = node;
     lease.components = node.component_count;
     stage.leases.length++;
     node.stage = bits(void*, stage);
     node.storage = &stage.storage;
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Only the owning worker calls create/component_add on its staged nodes.

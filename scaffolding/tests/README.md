@@ -1154,6 +1154,10 @@ ctest --test-dir build/native --output-on-failure \
 The normal fixture checks exact admission causes, queued reference ownership,
 stable payloads, publication retry and finalizer cleanup. The fault fixture
 denies serial allocation prefixes and checks rollback before a successful retry.
+Lease admission distinguishes invalid/foreign/registered nodes, pinned or
+reclaiming stores, competing stages, count overflow and allocation failure.
+Repeated admission by the same stage is allocation-free; failed growth leaves
+the node and lease vector unchanged, and discard permits another owner to retry.
 Both import their entities and memory providers; no second provider is linked.
 Real worker publication/cancellation coverage remains in
 `tower-entity-stage-concurrent-tests`. Supported address/thread instrumentation

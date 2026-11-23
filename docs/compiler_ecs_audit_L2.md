@@ -1009,3 +1009,47 @@ assigned phase/test change. Typed generic registry/clone consumers, D1 restricte
 host overlap diagnosis, later integrated inputs, D2 exact provider policy, public
 bootstrap/browser/generation and hosted publication remain open. Supported native
 address/thread checks do not supply source-language UBSan/browser coverage.
+
+The journal now corrects prior2e3 instrument worker metadata: legacy core/functions
+use the host-capacity ceiling16, not a guaranteed four-worker limit. Actual use
+was not inferred from that ceiling, the exclusive runs still passed, and explicit
+frontend/query/CLI controls retain their scopes. Current late-editor cases have
+explicit caller limits at most6. This is metadata correction only; no new runtime
+behavior or performance change, so additional measurements are inapplicable.
+
+The next generic result closure is in progress on frozen000a960 (fullROOTc944).
+The complete unchanged native baseline54161 passed query/type/storage with exact
+source/input/package checks; immutable artifacts and timings are in the journal.
+Only original-behavior regression fixtures are adopted; four per-call result
+producers and assigned consumers remain external uncompiled drafts. GenericContext
+layout and legacy APIs are retained. Exact physical node/metadata/component/attach
+causes, full failure cleanup and SemanticProgram.resource first-cause propagation
+are the scope. No draft or baseline pass closes this implementation, its performance
+comparison, later map union, supported instrument milestone or publication.
+The generic result delta now passes native98257 on000a960 plus the recorded delta.
+Before49597 independently reproduced Memory instead of Busy from a pinned-store
+clone; all original failures are retained. The journal records full storage/query/
+type/editor passes, public-bootstrap unit builds, identities and116-file raw receipt.
+
+| Files reviewed in this delta | Ownership/result contract and current evidence |
+| --- | --- |
+| compiler/generic_registry.tower | Root component publishes only after all registry kinds exist. Per-call exact result, compatibility helpers retained, no context ABI change. Actual allocation sweeps, page denial, retry and lifecycle partial-ID cleanup pass. |
+| compiler/generics.tower | Clone frames retain exact create/metadata/component/attach causes; failed serial trees release and staged output stays stage-owned. Register and eager/deferred instance APIs preserve resource receipts independently of ordinary diagnostics. Busy, Exhausted, Invalid, Memory, Capacity, quota and cached identity pass. |
+| compiler/semantic_types.tower; compiler/semantic_values.tower; compiler/semantic_constructor_work.tower | Actual callers record exact error and source offset before optional generic diagnostics or subsequent publication. Existing first-cause owner is unchanged. Native type/query/editor paths pass; targeted injection of every private caller is not claimed. |
+| compiler/semantic_lifecycle.tower | Early generic begin failure records the program receipt and deferred context cleanup. Actual lifecycle ID-boundary tests cover every measured registry creation step, target widths4/8 and retained prior cause with zero final buffers. |
+| compiler/completion.tower; compiler/language_query.tower | Begin failure latches the existing completion receipt; analysis returns without continuing, document construction disposes partial state. Existing editor and late-failure tests pass; no added error field. |
+| compiler/semantic_context.tower; compiler/semantic_query_api.tower | Exact typed declarations added beside retained compatibility declarations. ROOT early helper hunk untouched. |
+| tests/generic_clone_fixture.tower; tests/generic_clone_storage.tower; tests/generic_result_storage.tower | Shared real-world fixture, fully bound physical-page denial, exact clone admission, allocator sweep bounds from observed calls, and real lifecycle consumer. Serial fault injection is explicit; query tests supply actual concurrent kernel coverage separately. |
+
+Parameter bounds derive from their actual arrays; true parameter/depth limits are
+named. Native validation is scoped, not final acceptance: paired costs, supported
+memory/thread instruments, latest shared ABI join, D2 exact export policy, canonical
+public-bootstrap/browser/generation and hosted atomic publication remain open.
+The d6bad03 generic result delta now has matched quiet22333 evidence: all32
+same-path outputs and complete input/resource/package checks pass. Three retained
+pairs per jobs1/4 workload show median wall increases1.95..6.67%, CPU -0.66..+1.88%,
+and RSS changes no greater than96KiB. Compiler phase timings also retain positive
+costs. The generic/1 2.17s outlier and serial CPU/wall discrepancies are preserved,
+with no invented cause or favorable replacement. The journal records full metrics,
+limits and117-file archive989bd324. This closes the paired measurement step only;
+coherent current supported instruments and publication acceptance remain open.
