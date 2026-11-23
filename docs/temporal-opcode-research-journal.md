@@ -88259,3 +88259,76 @@ Node jobs drained. Reused the unchanged49-case and relative-path receipts;
 remaining broad failures are preserved, not waived. Normal main push follows.
 
 B2 normal push recovery: preserved incoming69391085 in merge381fc109 after one fetch-first rejection. Changes are browser transport/tests/docs only, outside the affected native closure; reused unchanged e292754d native checks and frozen d5b65afe timings. No rebuild, relabeling or hosted claim. Both journal histories retained; normal push retry follows.
+
+### D1 four-file Node language fixtures (2026-11-23)
+
+Bounded follow-up; thread01a2046a-4644-7ab1-a0ae-abd80210f013, PID3116180.
+Clean main fast-forwarded to e0e3530b84472be5ba1bc4e331b74bab4dba01bd; no owned
+surviving job or heavy lock. ROOT-supplied f7e764ab0807376025700b2a3176c6f6130e34a8
+portable SHA256b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42
+and LLVMba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543
+both verified, copied unchanged into own Docker-visible log root. Existing eager
+read default artifacts remain unchanged; absolute TOWER_TEST_WASM and
+TOWER_TEST_LLVM_WASM select the matched pair. Public bootstrap768 provenance is
+ROOT's receipt, not a rebuild here. These reactors exclude later alias/metadata/
+hover work; current Tower inputs and Node host hashes are recorded separately.
+
+Node22.23.5, SteamDeck Linux x64, tower-d1-ecs CPU0,2, --test-concurrency=1;
+fresh processes/warm file cache, one sample per phase. Commands use node --test
+with ONLY forward-references/foundation-storage/inference/generic-inference;
+no IDE prefix, broad51-file/native/generation/sanitizer matrix or compiler build.
+Before7pass/15fail; selected failed cases11/15 then focused edges2/4; final
+20pass/2fail, zero skips, all exit1 honestly retained. Validation cost wall/CPU/
+peakKiB: before13.17/16.87/372176; affected14.50/18.71/360452;
+edges6.90/6.72/294344; final19.42/20.18/377616, all0swaps. The final run reaches
+more assertions and uses corrected fixtures, so these costs are not equivalent
+compiler throughput samples or speedup claims. No compiler/runtime ownership or
+worker scheduling implementation changed. The small saved-document transport
+change preserves known wrapper imports before local edits; it adds no parser or
+semantic model. Runtime scaling/performance acceptance remains ROOT-owned.
+
+Read actual seed/modules, canonical format_expected, struct-copy, type-value and
+generic-inference contracts plus the current callers. Seed-only forward rules
+need Statement=, not extending an absent rule; two-step/revision1 checks stay
+exact. Executable sources import Foundation. Canonical data now uses the exact
+integer_type/boolean_type/pointer_type/address_type representations already in
+Tower formatter references. The inference_bindings Tower fixture imports the
+real example and observes two stores; it preserves the expected printed values
+while avoiding a demand that canonical output retain eliminated known bindings.
+Reused semantic_invalid/aggregate_inferred_copy rather than rejecting supported
+same-type struct copies; both interpreter and LLVM assert the exact nominal
+Expected Other, got Item error before effects. Its known import prefix is checked
+and replaced with the harness language boundary before inserting print99. An
+intermediate check correctly rejected the initial attempt to put that import
+after print99; that failure remains in edges.log.
+
+Confirmed separate UI transport bug: upgradeLegacyFoundation returned saved
+lexer edits unchanged when the current Foundation wrapper had no inline parse
+statement. For the exact known foundation_syntax import wrapper, keep its imports
+first, then saved lexical/body overrides. Unknown bundle fallback stays intact.
+Legacy source data no longer synthesizes an empty grammar from a failed indexOf;
+CoreFunction/CoreCallArgument assertions address their actual syntax producer.
+Custom lexer/comment/order/idempotency and unsupported-bundle negatives pass.
+No compiler imports or language behavior changed to supply ambient syntax.
+
+Two exact compiler/compatibility failures remain, registered through existing
+compare in generic-inference with unchanged original combined assertions:
+(1) tests/generic_stack_module.tower: explicit tower/library.stack, initialized
+stack(i32), defer stack_dispose, expected42. Graph32 rejects constructor stack
+at deferred call5:7. Direct disposal passed all compare stages in affected.log;
+adding defer alone reproduces the failure in edges/final. The captured direct
+control is generic_stack_direct_before.tower under the log root. This is not a
+missing import. (2) tests/generic_pointer_alias.tower: type-producing return T*,
+null pointer instance, expectedtrue. Graph32 rejects the pointer spelling as a
+value; retained original straight-return alias expectation, no pointer_type
+workaround. sem_constructor_arguments and semantic_expressions emit the exact
+failures; generics registration and defer context transitions were read, but a
+specific bad dependency/owner edge is not yet proved. ROOT/L2 should own producer
+repair, with A1 defer/call context if needed. These first assertions prevent
+later64/fast/LLVM executions for the failures; no passing claim for those paths.
+
+All data/source hashes, raw failed/final logs, commands and time/status receipts:
+build/d1_ecs/language_fixtures_e0e3530b. New Tower fixtures are substantively listed
+with hashes in the D1 audit; no census expansion or other-owner source edits.
+The two failures keep this group unaccepted as a whole; independently correct
+fixture/transport fixes are ready to publish. No deployment or hosted claim.
