@@ -83374,3 +83374,129 @@ threads at workers4 (outer_peak4); this is overlap evidence, not a new scaling
 claim. Logs A1/cache/a1_inferred_retry1_*. Session28371 reaped0; no active jobs.
 Unchanged production profiling/control/canonical receipts reused. Normal push
 retry follows; no release-gate attribution to these test-only merges.
+
+### D2 bounded stable-page layout and planned traversal receipt (2026-11-23)
+
+Frozen published main `3bee18e2371465aa9718ca4ba5cbb2aa18cb850a`, plus only the
+`entity_locality.tower` extension and opt-in test registration. Existing profile
+callers were audited: no CMake registration existed; the legacy no-argument
+1,024/65,536-row path is preserved, not remeasured or relabeled. Historical
+homogeneous snapshot and page-churn receipts do not cover this current mixed
+population/order comparison. No production storage, allocator or scheduler
+changed. The paired baseline is the existing direct lookup on the same entities;
+this measures existing paths, not a before/after compiler optimization.
+
+Source SHA256 identities:
+- fixture `4d27a7c1b03fe651ccc41d1cb0a701dabccf08742b569bad871e66cb0ddaa18c`;
+- entities `edce2d592862b4896d8a70f687c222f0ccb25ab71a663c2fdcf9242c4c7c7925`;
+- entity_types `d3401c5ced724a30d92e733015944a017a5d771c71f5b213ee8babcaeafe1dd0`;
+- work_buffer `4804ac5120d6b7918c79aae25c6b4c49ed957f9a8dcd0522f9260ad72b4371e0`;
+- work_budget `b1f63537037853171952c4ab3f325b3c0b1c9c197cae3c3b72ecb820bb510eb8`;
+- public compiler `9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`;
+- linked profile `ecaf79a4e6f184d2b4fc0d8b6231d84a30241b69357473c81bb0c4e50e7f71f8`;
+- normal guest runtime object `f74001da316e6d14af4f699033e8239ee70a3f597ce442675c63737f225459ff`.
+
+Deck Linux x64, 14.8GiB RAM, container `tower-d2-ecs` on image
+`4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`, allowed CPUs
+0,2, Clang/LLVM19.1.1, existing Release cache
+`/tmp/tower-home/.cache/tower/native-coherent-f13c8f6`. One shared heavy lock,
+one process, jobs1, normal allocator, no failure counters/workers. Public command
+is `bootstrap/linux-x64/towerc scaffolding/tests/entity_locality.tower --jobs 1
+--library --target x86_64-pc-linux-gnu --bedrock scaffolding/bedrock.tower
+--foundation scaffolding/foundation.tower -o <cache>/tower-entity-locality-tests.o
+--depfile <cache>/tower-entity-locality-tests.o.d` (public default optimization).
+One `cmake --build <cache> --parallel 1 --target tower-entity-locality-tests`
+regenerated configuration, compiled the fixture and linked: 6.39s wall,
+6.18s CPU,209548KiB peak RSS, exit0, no retry. No production target rebuild.
+
+Four fresh processes, one per `{homogeneous,mixed} × {direct,columns}` using
+`/usr/bin/time -v <cache>/tower-entity-locality-tests layout <population> <first>`.
+Each checks both paths, first single traversal and then256 warm rounds, in
+full/fragmented/refilled phases. The order reverses in the second process per
+population; n=2 paired observations, no statistical or timing threshold claim.
+Fresh process/first traversal is not a hardware/OS cold cache: construction and
+planning touch memory; no cache flush or page-cache drop. No hardware cache-miss,
+false-sharing, NUMA or useful-overlap measurement. This bounded working set fits
+within the host's reported4MiB L3; no out-of-cache extrapolation.
+
+Warm traversal totals below are wall milliseconds / CPU milliseconds for all256
+rounds; each cell lists direct-first process, then columns-first process:
+
+| Population/phase | Direct lookup | Planned component-pointer columns |
+| --- | --- | --- |
+| homogeneous/full | 9.080/8.713;8.868/8.503 | 2.074/2.055;2.072/1.848 |
+| homogeneous/fragmented | 7.493/7.294;6.287/6.147 | .0275/.031;.0258/.029 |
+| homogeneous/refilled | 10.313/10.019;8.972/8.644 | 2.105/2.007;1.884/1.806 |
+| mixed/full | 10.105/8.934;9.129/8.593 | 3.181/3.079;3.326/3.060 |
+| mixed/fragmented | 9.343/8.525;8.372/8.134 | .1844/.039;.0250/.027 |
+| mixed/refilled | 9.528/9.176;10.329/9.393 | 3.304/3.099;3.116/3.031 |
+
+Full first-traversal wall/CPU microseconds: homogeneous direct38.879/41 and
+51.658/56, columns8.409/11 and15.950/18; mixed direct51.828/57 and85.507/88,
+columns12.839/16 and32.039/35. Clock/rusage calls have different boundaries and
+microsecond CPU resolution; wall/CPU disagreement at tiny durations is not
+parallelism. The mixed fragmented column wall outlier184.393us versus39us CPU
+is retained, not discarded. Plans cost2.570–4.829us wall and5–8us CPU, separately
+from scans; full homogeneous/mixed have1/3 ranges, fragmented each1 range.
+Create wall/CPU milliseconds: homogeneous1.620/1.610 and1.638/1.626;
+mixed2.066/2.042 and2.133/2.125. Remove: homogeneous.187/.192 and.134/.138;
+mixed.253/.257 and.292/.282. Refill: homogeneous.322/.278 and.287/.291;
+mixed.447/.401 and.481/.429. Whole-process homogeneous wall.03/.03s,
+CPU.03/.02s, peak2128KiB; mixed wall.04/.04s, CPU.03/.03s, peak2384KiB.
+Internal phase peak RSS2000KiB homogeneous and2128→2256KiB mixed; RSS is process
+high-water, not per-operation allocation. All runs zero major faults/swaps.
+
+Each primary payload is32B, all2,048 owners are shared between traversal paths.
+Mixed membership adds1,024 dense and128 sparse secondary payloads, all the same
+page storage class. Known primary sums33,550,336 /508,096 /33,550,336 pass every
+round. Direct lookup always visits2,048 candidates; columns visit2,048/32/2,048.
+Thus fragmented results include avoided nonmatching rows, not only locality.
+
+| Retained census | homogeneous full / fragmented / refilled | mixed full / fragmented / refilled |
+| --- | --- | --- |
+| pages / total slots | 32/2048 in every phase | 50/3200 in every phase |
+| live payload slots | 2048 /32 /2048 | 3200 /1184 /3200 |
+| live payload bytes | 65536 /1024 /65536 | 102400 /37888 /102400 |
+| physical page bytes | 186848 throughout | 291950 throughout |
+| page strided slot bytes | 81920 throughout | 128000 throughout |
+| raw world bytes | 491792 throughout | 513864 /492360 /513864 |
+| view+plan bytes | 112 throughout | 176 /112 /176 |
+| world+plan requested bytes | 680984 throughout | 808222 /786654 /808222 |
+| live allocation owners, excluding ledger/scratch | 4139 throughout | 4167 throughout |
+| charged buffers live=peak bytes | 189080 throughout | 294182 throughout |
+
+Full pages detach from `pool.first`; the census deduplicates actual live
+`component.page` pointers so they are not silently omitted. Page slots are64
+with40B payload stride (32B value plus back-reference) and separate48B component
+descriptors. Archetype columns store component pointers; source-derived traversal
+loads column→component→data, whereas `entity_component_published` additionally
+loads owner/table and binary-searches type IDs per owner. These are source-level
+indirection facts, not measured cache events or packed SoA/vectorization evidence.
+Raw world allocations include entity descriptors, node/kind indexes, table
+headers/type IDs and combined row/column blocks. Counts are live owners, not
+allocator-call history; malloc metadata/usable-size and transient replacement
+peaks are unmeasured. Ledger metadata2560B is separate. Private untimed census
+scratch physical bytes homogeneous16416/288/16416, mixed25632/9504/25632;
+stack arrays/runtime output buffers are outside world accounting. The ledger
+allowance1MiB is not a whole-world cap. Prior failing cap remains open for A2.
+
+Refill checked zero new budget generations (page grants), unchanged page bytes,
+and original surviving payload addresses. All kinds/entities/pages, views,
+reservations and ledger storage disposed; four runs exit0. Invalid CLI exits2
+with usage, not a silent fallback. No unsafe payload mutation or new concurrency
+surface. Existing default large profile and sanitizer/platform matrices were
+not run; ROOT owns final integrated acceptance. Raw receipts, preserved original
+fixture, depfile-derived checked import hashes, binary hashes and all errors/time
+files are in `build/d2_ecs/entity_layout`; no failing build/runtime cases this batch.
+
+Decision: planned traversal is appropriate for repeated selections on frozen
+worlds in this fixture; amortize its explicit planning cost and close the view
+before mutation. Stable pages successfully reuse free slots without moving live
+payloads. The demonstrated cost is retention when survivors pin otherwise empty
+pages (186848B for1024B primary payload), plus substantial raw descriptors/index
+storage outside the ledger. ROOT/A2 should correlate those lifetimes with actual
+compiler phase census before choosing page sizing or storage changes; this
+microbenchmark alone does not justify packing, a compiler migration or broad
+speedup claims. No new production blocker beyond the already measured accounting
+contract is established. D1 adoption review is in the D2 audit. Host remained
+about130GiB free,9.7GiB RAM available; jobs drained and owned heavy lock released.
