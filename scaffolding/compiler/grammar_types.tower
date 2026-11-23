@@ -11,7 +11,7 @@ struct FrontendKinds {
     syntax: void*;
 }
 
-enum GrammarPhase: u32 { Lookup, Build, Table, Count }
+enum GrammarPhase: u32 { Lookup, Build, Table, Reuse, Count }
 struct GrammarObserver {
     context: void*;
     event: function(void, void*, GrammarPhase, bool, usize, usize);

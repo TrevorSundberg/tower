@@ -122,6 +122,10 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
 }
 
 export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    return syntax_version_build_reusing(world, source, bedrock, diagnostic, null);
+}
+
+fn syntax_version_build_reusing(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*, reuse: ParserStructureCache*): SyntaxVersion* {
     diagnostic.resource_error = WorkBudgetError.None;
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
@@ -150,6 +154,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     var table = parser_table_open_result(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax,
         convert(u32, ParserReadMode.Constructs), &diagnostic.resource_error);
     if table is null { return null; }
+    table.reuse = reuse;
     if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != lr_none(); }
     value.table = bits(void*, parser_table_finish_result(table, &error, true, &diagnostic.resource_error));
     if value.table is null {

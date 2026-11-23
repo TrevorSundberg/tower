@@ -81527,6 +81527,54 @@ touch frontend admission and documentation, not the reviewed stage/provenance
 contract. `git diff --check` and the scoped documentation diff remain the
 applicable validation; no runtime evidence is relabeled for the merged source.
 
+### 2026-11-23 D1: imported dependency-unit integration regression
+
+Bounded test task, thread01a2046a-4644-7ab1-a0ae-abd80210f013/PID3039648.
+Required pull fast-forwarded to53d631572; owned containers were init-only.
+Reviewed unit/body/query and lazy-generic fixtures plus production unit observer,
+module snapshot and staging contracts. Existing tests cover these dimensions
+separately; added compiler_dependency_units with four independent units importing
+ordinary helper definitions, forward local/type helpers, lazy generic decltype,
+known42–45 and an untaken staged self-read. Taking that read in unit2 supplies a
+real cycle control against unit3's later error. Existing lr-work caller supplies
+focused dependency-units and durable units/all coverage. No production edits.
+
+Observers write private per-ordinal spans and are read after joins, requiring
+real distinct-thread overlap with four available worker lanes. Serial/parallel
+canonical bytes, selected diagnostic bytes/offset and shared grant bounds are
+checked. Imported snapshots and source storage survive batch closure. Tests use
+the ordinary interpreter/formatter, with no reference implementation or scheduler.
+Only test/acceptance overhead will be measured; no runtime optimization or speedup
+claim. Original native binary/public-pin hashes are retained under
+build/d1_ecs/dependency_units_53d631572. Initial cache lookup found the stage-only
+cache has no LR runner; selected existing native-coherent-127ca98 target instead,
+without building twice. Atomic heavy-lock acquisition found active D2 ownership;
+no competing build was started. Focused validation is pending at this entry.
+
+Focused validation on53d631572 plus D1 tests passes: public Linux x64 bootstrap,
+Docker LLVM19 Release, compiler/build jobs1, build affinity0,2; runtime affinity
+0,2,4,6. One existing dependency target, no separate leaf/CMake double build.
+Three fixture compile errors are retained: reserved expected identifier, missing
+explicit vector/type imports, then missing bounded-service declarations. Each
+job drained before the scoped correction. Initial production refresh127.80wall/
+124.68CPU/758252KiB ended1; short retries11.70s and11.39s ended1; final four-action
+fixture/receipt/link build29.11wall/28.28CPU/318256KiB ended0. No production change.
+
+`dependency-units` passes all four batches in22.64wall/36.80CPU/729004KiB, zero
+swaps. One sample per mode, fresh worlds/warm filesystem: successful serial
+compilation10.140879s, four-worker3.641591s; observed outer peaks1/4 and distinct
+threads1/4. Exact answers42–45 and canonical bytes agree. Physical ledger peaks
+85659509/254575296bytes are distinct from total-process RSS and below the2GiB
+policy. Taken-cycle batches4.923794/3.682011s select unit2 and match diagnostic
+bytes/offset despite unit3's later error; no partial program is published.
+`query-smoke` also passes .37wall/.37CPU/71588KiB with empty stderr. These are
+small acceptance-cost observations, not isolated compiler optimization/scaling
+claims; CPU/RSS are whole-process, not per-mode. Failure-path overlap is not
+measured; remove its initial zero placeholder fields from the receipt before
+final merged validation. No broad type/editor/backend/sanitizer/bootstrap/browser
+matrix ran. All frozen input hashes verify; runner4c259a377ec71d3d; prior binary
+and all errors/logs remain in the named directory. Final upstream reconciliation
+and affected validation follow; source-specific passes do not cover new inputs.
 Post-commit integration: layout0ecf31c2 merged published53d63157 as41b8031d,
 preserving both journal histories with no owned-code changes. Incoming frontend
 module/unit admission changed provider inputs, so merged57986 rebuilt six real
@@ -81748,6 +81796,24 @@ journal entries. No compiler/library/runtime or A1 fixture input changed from th
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
 
+Post-commit required ff-only pull fetched189e392 and exited128 on divergence;
+complete-history merge484c05effcfb6c7368433f28821c8581ca303b7a succeeded cleanly.
+Incoming parser diagnostics and semantic layout/lifecycle/lowering changed the
+compiler closure, so the same dependency target rebuilt9 affected actions:
+101.38wall/98.95CPU/761172KiB, exit0. No unchanged broad matrix was repeated.
+Merged dependency-units passes20.70wall/34.69CPU/772796KiB, zero swaps; success
+compile intervals9.373894/3.707519s for1/4workers, observed threads and peaks1/4.
+Cycle controls3.985441/3.377974s preserve exact diagnostic bytes/offset/unit order.
+Known answers/canonical bytes still match; query-smoke passes .30wall/.33CPU/
+71800KiB. Both stderr files are empty; all Tower/build input hashes verify.
+Final runner SHA0598886da5810ae2768bdc02af0db1a9f2117c7415e9adff34452ec6287c8eb0.
+These merged costs are another frozen acceptance receipt, not an attributed
+speedup from this test-only change. The same logical imported path deliberately
+has a cyclic snapshot only in unit2, also checking private module environments.
+All owned jobs drained, original0,2 container affinity restored and D1 heavy lock
+released. Commit65ff524 owns the regression; final documentation/push hash is in
+D1 status. todo and portable stale-ticket work remain unchanged. ROOT retains
+integrated instrumentation/platform/release verification; none was claimed here.
 ## 2026-11-23 A1 executed-stage/lowering frontier (bounded milestone)
 
 Implemented against main189e392714503255f620d91dae5b325ac443093a with the public
@@ -82199,6 +82265,38 @@ Logs remain /cache/root_budget_join_a093; all owned processes drained. This
 documentation receipt changes no runtime path. Final milestone gates remain
 pending; source publication is not a browser/runtime deployment receipt.
 
+First normal push was rejected fetch-first. Complete baf2a5a merged as
+fae0dfa219ff70576b422f13c17d27a003b46890; only lr_work_main's usage/selector
+condition conflicted. Both dependency-units and B2 unit-admission are retained.
+The new WorkBudget wake fields and WorkPool wake flag change shared layouts;
+frontend unit receive now admits wake events, and executable preparation now uses
+checked stages/views/dispatch and holds queued inputs before closing the view.
+The new fixture remains byte-identical and derives all storage from actual types,
+but prior binaries cannot validate this new ABI. Current merged validation is
+pending a coherent dependency rebuild. D2 owns heavy.lock for its active bounded
+reference profile; D1's acquisition failed without starting a competing process.
+One handoff request is recorded. Earlier passing receipts retain their sources;
+no stale binary was run or relabeled as current acceptance.
+
+Final ABI integration is now checked. D2 drained and released the slot; D1's
+24-action jobs1 target refresh passed226.00wall/220.34CPU/762220KiB. After drain,
+final review replaced the two-case literal loop bound with an actual bool-input
+array and sizeof-derived count; inputs/oracles are unchanged. Its two-action
+fixture/link rebuild passed17.54wall/16.90CPU/321756KiB. No production edit.
+On fae0dfa/d6b92ae plus that count correction, dependency-units passes24.02wall/
+38.11CPU/870988KiB, zero swaps. Success compile intervals13.108018/3.214366s
+again observe1/4 distinct threads and1/4 peak overlap. Known42–45, canonical bytes,
+cycle/error text, offsets and unit ordering all pass. Query-smoke .31wall/.33CPU/
+70432KiB and conflict-affected unit-admission14.12wall/16.96CPU/482568KiB pass;
+its nested release wakes ready outer work in63471ns and cancellation drains.
+All three stderr files are empty and the complete Tower/build manifest verifies.
+Final runner63a6d28e5a7ebe95c3004130a62749a7d471c4d0c182572eb16141ea26fd5779.
+Single-sample serial time/RSS vary across these changed producer identities;
+there is no isolated performance attribution or neutrality claim. RSS remains
+below1GiB, with ample Deck memory available; physical ledger peaks are separately
+reported in the logs. Host affinity restored0,2, own jobs drained and lock released.
+Only this fixture, its existing caller and D1 audit/journal are authored changes;
+normal push retry follows. Full instruments/platform/deployment remain ROOT-owned.
 Integration: commit908515e merged complete publishedbaf2a5a into20e46f49.
 Upstream adds WorkBudget wake fields and compiler producer/front-end changes;
 required merged24-action native build85141 passes109.40s wall/164.95CPU/763148KiB.
@@ -82651,6 +82749,94 @@ Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
 
+### B1 immutable LR structure reuse precursor (2026-11-23)
+
+Implemented on68f89640 after the preserving pull and idle-job check. This closes
+that audit's ownership prerequisite with code, not another proposal. No B2
+frontend_units/work_pool scheduling change. Existing public9653 bootstrap,
+LLVM19.1.1/Linuxx64, CPU0-11/24GiB, compiler1/objectjobs6, warm filesystem/fresh
+processes. Refreshed only the stale units-profile leaf before preserving baseline.
+
+SyntaxVersionCache now binds world/budget/retained Bedrock identity and owns a
+bounded derived structural index (existing FrontendCacheLimit). Every declaration
+still validates/emits/resolves and activates at its boundary. Exact ordered LR
+productions, symbols, names/name order, precedence/associativity and mode plus
+specialization are compared after current import/revision dependencies resolve.
+Only numeric runtime and diagnostic context columns are shared. Current version
+metadata, userdata, captures, pending errors, lexical/emission/replacement and
+provenance bindings stay private. This content projection includes every input
+to LR construction; it does not treat source revisions as interchangeable.
+Changing world, budget or Bedrock identity clears the whole-version/structure
+scope. No global mutable cache, new authoritative grammar or syntax adoption.
+
+ParserStructure/table/cache pins share frozen payloads; LRGrammar now has a
+coordinator reference count for the immutable key snapshot. Existing work buffers
+and work vectors own all new retained storage and grants. Last-reference cleanup
+releases runtime, contexts, key and descriptor. Cache admission is optional;
+failed required construction publishes no partial entry and retains its exact
+error. Formatting forks retain immutable pins with independent indexes. Budget
+owner must outlive all tables/forks. API/lifetime contract is in docs/parser.md.
+
+Focused structure fixture passes: unchanged reuse with zero available budget,
+changed capture/userdata with independent grammar snapshots, cache/source-table
+retirement followed by actual parsing with the new capture, cancellation/retry,
+changed terminal exact Capacity/no partial publication/retry, mode and
+specialization separation, precedence changes, original unresolved diagnostic,
+Bedrock/world invalidation, imported override/cycle/reset isolation, final zero
+physical budget bytes/live receipts. Existing parser/live grammar/cache/churn/
+lexical/attribute/provenance checks pass. Actual nm resolves cache-copy/dispose
+from ParserIntegration and lr_grammar_retain from ParserNodes. Added two exact
+ParserNodes policy entries and rejection fixtures; symbol tests and current full
+ParserNodes import report pass. No new debugger/allocation-failure sweep.
+
+Build failures were fixture visibility errors only: missing compiler_node_get
+prototype, direct frontend_world helper import, then FrontendCacheLimit import.
+Each drained before correction; original logs remain. Production units compiled
+in the first dependency invocation; later runs rebuilt only the fixture/link.
+The stronger surviving-owner parse assertion also passes. No failed step is
+counted as success. Logs/hashes/reports are build/ecs_b1/lr_reuse.
+
+Measured n1 before/after, same frozen ordinary input and resource root:
+
+- Cold request keeps185 lookups/155 version builds; LR builds159->123 with36 exact
+  reuses (22.6% fewer constructions). Version time926.483->918.798ms, actual LR
+  time863.364->856.290ms. Whole process1.03->1.02wall seconds,
+  .99->.98CPU seconds,165684->164676KiB RSS.
+- Preinstalled startup keeps138/83 lookups/versions; tables84->60 with24 reuses,
+  LR50.750->44.117ms. Source still155 versions, tables159->123; LR855.066->850.371ms.
+  Whole process1.13->1.13wall,1.08->1.07CPU,168244->166964KiB RSS.
+  Both modes execute42 and preserve976bytes/hash13832670361687071853.
+- Normal3-unit compile, fixed archive91c12368, zero extra bodies, workers1:
+  wall3226.183->3164.822ms, CPU3144.556->3081.910ms,
+  RSS197488->196660KiB. Workers4:1294.168->1228.464ms,
+  CPU3970.667->3804.358ms, RSS459344->462972KiB. Real outer peaks1/3;
+  canonicalhash1173729914654460811, entities48240/components55014 unchanged.
+  Retained bytes+1752 across3 worlds; peak ledger bytes77,805,058->76,704,074
+  serial and201,739,119->198,399,216 parallel. The small parallel RSS rise is
+  under1%; samples establish no latency or regression bound.
+
+This is a concrete construction/ownership precursor: savings occur within a
+fresh cold compilation, not only a persistent process. No cross-session/world
+reuse is implemented. Most saved tables are small; about.85s actual LR work and
+.92s total version preparation remain on the cold request. Therefore do not
+claim the fixed CLI/frontend cost solved or a large latency win from these n1
+samples. Repeated distinct large revisions remain the bottleneck. The historical
+300s fullfrontend failure stays FAILED; not rerun/relabelled. ROOT final native
+sanitizer/scaling/bootstrap/browser/generation/hosted gates remain pending.
+Second normal push also raced published work. Complete68f8964 merged cleanly as
+62aa28e3160a1fd6363dd565ed1b8773a634a0d9; D1 fixture/caller are unchanged.
+Checked queued-stage ownership, constructor/evaluation admission and grammar
+observer layout changed the closure, so15 affected target actions rebuilt in
+153.70wall/149.55CPU/779528KiB. Same focused gates pass on this frozen input:
+dependency-units20.49wall/34.65CPU/810140KiB; query-smoke .22/.24/65048;
+unit-admission13.59/16.40/476820. All exit0 with empty stderr and zero swaps.
+Successful compilation intervals9.332038/3.156181s retain known42–45, canonical
+parity, observed threads1/4 and peak1/4; cycle controls preserve exact ordered
+error bytes/offset. Nested admission wakes in57001ns and cancellation drains.
+Full source manifest verifies; runner8166fff10179bac831a1abeeac6078fbd9c2cbbb3eb21d8cadf95e70caf89cf1.
+No scope expansion or broad matrix; the repeated focused checks were required
+by actual compiler changes. Jobs drained, affinity restored and own lock released.
+Third normal push follows under the bounded retry rule; its receipt is in status.
 ### D2 frozen completion-gate handoff reconciliation (2026-11-23)
 
 Documentation-only review of published main68f89640de8f188912a6c98e7a00f21f2702c1c7,
@@ -82767,6 +82953,28 @@ Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
 
+Third total push (second retry) was rejected fetch-first. The last authorized
+retry integrates complete b9f2c44 as84b7719662c32705af9ffcaf343012980d7cef18.
+Incoming Fast storage and executed-stage frontier changes affect compiler inputs;
+D1 fixture/caller are unchanged. Seven affected actions pass75.22wall/73.55CPU/
+782420KiB. Focused dependency-units20.90wall/35.28CPU/788128KiB, query-smoke
+.21/.22/71420 and unit-admission12.25/15.16/476376 all pass, empty stderr/zero swaps.
+Success intervals9.329217/3.615311s retain expected answers, canonical/error parity,
+observed1/4 threads and1/4 peak overlap; nested admission wakes in30131ns.
+Complete input hashes verify; runner658026490f5b02a8cc06c711a1a838da586a8eeb22d9d22e294ed058041f6897.
+Jobs drained, affinity restored and own lock released. No extra Fast, type,
+backend, instrument or platform matrix is inferred from these scoped checks.
+Final normal push is the third retry after the initial attempt; status records
+success or the exact blocker without further integration loops.
+
+Publication blocked after the initial push and all three authorized retries:
+last `git push origin main` again returned1, `! [rejected] main -> main (fetch first)`.
+Remote main advanced during each focused merged validation. All source/tests and
+complete integrated histories remain committed locally; no force push, extra
+retry, deployment or current-remote runtime claim. The bounded task stops here.
+The last checked source is84b7719 plus documentation, with all three focused
+gates passing as recorded above. Final local commit and clean status are recorded
+in D1/status.md for recovery; no build, heavy lock or waiting loop remains owned.
 ### L1 bounded current-source shared-Wasm/browser integration — 2026-11-23
 
 Source b9f2c44369214cfad3b050dfeeb41b734ff15dce includes published Fast storage
@@ -83034,3 +83242,16 @@ are preserved in build/d2_ecs/entity_accounting/final_inputs.sha256 and sibling
 logs. The checked unchanged inputs and todo hash remain preserved. Documentation
 changes need no performance rerun. Final source publication identity goes in D2
 status; ROOT retains final assets/instrumentation/deployment ownership.
+B1 merged reuse receipt: production222370ce plus publishedc7ad4f42 preserved
+without conflicts asbe656a17. Incoming semantic/interpreter/profile changes
+required the dependency refresh31.21wall/30.44CPU seconds/778532KiB. Merged
+structure-reuse .04s/55464KiB and parser/live grammar .26s/60008KiB pass;
+ordinary cold1.03s/.98CPU/164864KiB keeps123 LR builds/36 reuses and canonical
+976byte hash13832670361687071853. Merged3-unit workers1/4 checks agree on
+canonicalhash1173729914654460811 and entity/component counts, including real
+outer overlap. These are integration checks, not replacement before/after
+profiles: the original frozen paired evidence remains tied to68f89640+the patch.
+Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
+container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
+This receipt is documentation-only; no additional runtime measurements apply.
+Normal main push follows; historical timeout and ROOT release gates stay pending.

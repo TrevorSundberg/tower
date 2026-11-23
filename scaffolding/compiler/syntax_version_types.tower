@@ -1,6 +1,7 @@
 import tower;
 import frontend_revision_types;
 import grammar_types;
+import parser_table_types;
 import .library.vector;
 import .library.work_budget_types;
 
@@ -30,4 +31,6 @@ struct SyntaxVersionDiagnostic {
 struct SyntaxVersionCache {
     index: FrontendCache;
     versions: vector(SyntaxVersion*);
+    bedrock: FrontendRevision*;
+    structures: ParserStructureCache;
 }
