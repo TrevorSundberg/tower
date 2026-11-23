@@ -1,8 +1,57 @@
 import tower;
 import semantic_context;
 import semantic_context_types;
+import semantic_support;
+import .library.work_budget_types;
+import .library.vector;
 import .library.work_graph;
 
+// Admission can precede Foundation attachment. Preserve the original syntax
+// owner's offset as well as already-lowered canonical owners, without formatting.
+fn sem_work_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): bool {
+    if error == WorkBudgetError.None { return true; }
+    var operation = sem_get(subject);
+    var message: vector(u8) = default;
+    sem_restore_resource(c, error, &message, operation == null ? sem_offset(c, subject) : operation.start);
+    return false;
+}
+
+fn sem_work_query(c: SemanticContext*, subject: void*, ok: bool): bool {
+    if !ok { sem_work_resource(c, subject, sem_query_error(c)); }
+    return sem_query_check(c, subject, ok);
+}
+
+fn sem_work_push(T: type, c: SemanticContext*, subject: void*, values: vector(T)*, value: T): bool {
+    if !sem_ok(c) { return false; }
+    if values.length == ~convert(usize, 0) { return sem_work_resource(c, subject, WorkBudgetError.Invalid); }
+    return vector_push(values, value) || sem_work_resource(c, subject, WorkBudgetError.Memory);
+}
+
+fn sem_work_finish(c: SemanticContext*, subject: void*, ticket: WorkTicket*, success: bool): bool {
+    var needed = c.queries.ready.length;
+    return sem_completion_ticket(c, subject, ticket, &needed)
+        && (success || sem_completion_failure(c, subject))
+        && sem_work_query(c, subject, work_finish(&c.queries, ticket, success));
+}
+
+// Selection remains WorkGraph's ordinary query take. Only on denial inspect
+// the unchanged candidate to attribute the receipt; do not turn it into idle.
+fn sem_work_take_query(c: SemanticContext*, ticket: WorkTicket*, query: u32): bool {
+    if !sem_ok(c) { return false; }
+    var taken = work_take_query(&c.queries, ticket, query);
+    if taken || work_ok(&c.queries) { return taken; }
+    var subject = c.program.root;
+    for(var i = c.queries.head; i < c.queries.ready.length; i++) {
+        var id = c.queries.ready.data[i];
+        if id == 0 { continue; }
+        var task = work_task(&c.queries, id);
+        if task.query == query && task.state == WorkState.Ready && work_access_available(&c.queries, task) {
+            subject = task.subject; break;
+        }
+    }
+    sem_work_query(c, subject, false);
+    return false;
+}
 // A joined wave reserves completion's queue growth before marking any ticket
 // successful. Graph cancellation can then retire the entire unpublished wave;
 // a late ready-index allocation must not leave a successful prefix behind.
@@ -10,22 +59,29 @@ fn sem_completion_reserve(T: type, c: SemanticContext*, jobs: T**, count: usize,
     var needed = c.queries.ready.length;
     for(var i: usize = 0; i < count; i++) {
         var result = jobs[i];
-        if !sem_query_check(c, result.subject, work_ticket_valid(&c.queries, &result.ticket)) { return false; }
-        var edge = work_task(&c.queries, result.ticket.task).consumers;
-        while edge != 0 {
-            needed = work_next_length(&c.queries, needed);
-            if !sem_query_check(c, result.subject, needed != 0) { return false; }
-            edge = c.queries.edges.data[edge - 1].next_consumer;
-        }
-        if !sem_query_check(c, result.subject, work_index_reserve(&c.queries, &c.queries.ready,
-            &c.queries.storage.ready, needed)) { return false; }
+        if !sem_completion_ticket(c, result.subject, &result.ticket, &needed) { return false; }
     }
+    return !failing || count == 0 || sem_completion_failure(c, jobs[0].subject);
+}
+
+// Share the graph operation across typed phase payloads. Only field projection
+// is generic; duplicating this walker per payload adds no scheduling behavior.
+fn sem_completion_ticket(c: SemanticContext*, subject: void*, ticket: WorkTicket*, needed: usize*): bool {
+    if !sem_work_query(c, subject, work_ticket_valid(&c.queries, ticket)) { return false; }
+    var edge = work_task(&c.queries, ticket.task).consumers;
+    while edge != 0 {
+        *needed = work_next_length(&c.queries, *needed);
+        if !sem_work_query(c, subject, *needed != 0) { return false; }
+        edge = c.queries.edges.data[edge - 1].next_consumer;
+    }
+    return sem_work_query(c, subject, work_index_reserve(&c.queries, &c.queries.ready,
+        &c.queries.storage.ready, *needed));
+}
+
+fn sem_completion_failure(c: SemanticContext*, subject: void*): bool {
     // A failed producer can visit each consumer edge once. The root occupies
     // one additional slot. This is existing graph scratch, not another queue.
-    if failing && count != 0 {
-        var scratch = work_next_length(&c.queries, c.queries.edges.length);
-        if !sem_query_check(c, jobs[0].subject, scratch != 0 && work_index_reserve(&c.queries,
-            &c.queries.scratch, &c.queries.storage.scratch, scratch)) { return false; }
-    }
-    return true;
+    var scratch = work_next_length(&c.queries, c.queries.edges.length);
+    return sem_work_query(c, subject, scratch != 0 && work_index_reserve(&c.queries,
+        &c.queries.scratch, &c.queries.storage.scratch, scratch));
 }

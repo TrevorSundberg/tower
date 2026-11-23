@@ -17,6 +17,7 @@ extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn entity_release(node: void*): usize;
 extern fn lr_analysis_compute_parallel_result(analysis: void*, anchor: void*): WorkBudgetError;
+extern fn lr_states_lalr_parallel_result(states: void*, constructs: bool, anchor: void*): WorkBudgetError;
 
 var LRSuffixTestBytes: usize = 1048576;
 
@@ -51,13 +52,28 @@ fn lr_suffix_budget_failure(): void {
         && work_budget_snapshot(&budget, &after) && after.used_bytes > before.used_bytes,
         "Same FIRST analysis retries and charges immutable suffix storage");
     var retained = after.used_bytes;
+    var index_bytes = retained - before.used_bytes;
     utility_check(dprintf(2, "suffix index charged_bytes=%zu\n", retained - before.used_bytes, 0, 0) >= 0,
         "Suffix charged byte report");
     utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
         && work_budget_snapshot(&budget, &after) && after.used_bytes == retained,
         "Repeated FIRST completion reuses the published index");
+    var states = lr_states_create(analysis);
+    utility_check(states != null && work_budget_snapshot(&budget, &before), "Item lookahead budget baseline");
+    utility_check(work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &held), "Item lookahead exhausted allowance");
+    utility_check(lr_states_lalr_parallel_result(states, false, root) == WorkBudgetError.Capacity,
+        "Item reachability storage preserves explicit Capacity");
+    utility_check(work_budget_release(&budget, &held) && work_budget_snapshot(&budget, &after)
+        && after.used_bytes == before.used_bytes && after.live == before.live,
+        "Failed item graph releases all partial ownership");
+    utility_check(lr_states_lalr_parallel_result(states, false, root) == WorkBudgetError.None
+        && work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes && after.live == before.live,
+        "Same item graph retries without retaining scratch grants");
+    utility_check(dprintf(2, "item graph ledger_live=%zu peak=%u\n", after.used_bytes, convert(u32, after.peak_bytes), 0) >= 0,
+        "Item graph budget report");
+    lr_states_destroy(states);
     lr_analysis_destroy(analysis);
-    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes,
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes - index_bytes,
         "Analysis destruction retires the complete suffix owner");
     entity_release(root);
     utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0

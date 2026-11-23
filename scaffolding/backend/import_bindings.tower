@@ -1,5 +1,6 @@
 import tower;
 import .compiler.foundation_types;
+import .library.work_budget_types;
 extern fn LLVMGetCalledFunctionType(call: void*): void*;
 extern fn LLVMCountParamTypes(type: void*): u32;
 extern fn LLVMGetParamTypes(type: void*, destination: void**): void;
@@ -7,9 +8,16 @@ extern fn LLVMIsFunctionVarArg(type: void*): i32;
 
 // LLVM's C API is the inspection boundary. All reconstructed semantics live on
 // the same Foundation components as parsing, formatting and execution.
-extern fn sem_create(parent: void*): void*;
-
 extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
+extern fn entity_stage_create_result(stage: void*, parent: void*, error: WorkBudgetError*): void*;
+extern fn entity_stage_publish_result(stage: void*): WorkBudgetError;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn foundation_node_dispose(node: FoundationNode*): void;
 
 extern fn LLVMGetFirstFunction(module: void*): void*;
 

@@ -7,6 +7,9 @@ import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
 
 // Disposable LLVM->entity associations only. There is no second Tower IR.
 var BackendImportPointer: u32 = FoundationScalarLimit;
@@ -20,15 +23,21 @@ struct BackendImport {
     function: void*;
     block: void*;
     declarations: void*;
-    values: vector(BackendAssociation);
-    literals: vector(BackendAssociation);
-    blocks: vector(BackendAssociation);
+    stage: void*;
+    budget: WorkBudget*;
+    values: work_vector(BackendAssociation);
+    literals: work_vector(BackendAssociation);
+    blocks: work_vector(BackendAssociation);
     serial: u64;
 }
 
 fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
-    var entity = sem_create(c.root);
-    var n = sem_attach(entity, kind);
+    if backend_failed(c.backend) { return null; }
+    var error: WorkBudgetError;
+    var entity = entity_stage_create_result(c.stage, c.root, &error);
+    if entity == null { backend_resource_fail(c.backend, error); return null; }
+    var n = sem_attach_result(entity, kind, &error);
+    if n == null { backend_resource_fail(c.backend, error); return null; }
     n.type.scalar = scalar;
     n.type.pointer_bytes = c.backend.pointer_bytes;
     if scalar == BackendImportPointer {
@@ -38,7 +47,27 @@ fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
     return entity;
 }
 
+fn bi_find(values: work_vector(BackendAssociation)*, entity: void*): void* {
+    // Borrow the existing lookup's slice; it neither allocates nor owns it.
+    var view: vector(BackendAssociation) = {data: values.data, length: values.length, capacity: values.capacity};
+    return backend_find(&view, entity);
+}
+
+fn bi_associate(c: BackendImport*, values: work_vector(BackendAssociation)*, entity: void*, value: void*): void {
+    if backend_failed(c.backend) { return; }
+    var pair: BackendAssociation = {entity: entity, value: value};
+    backend_resource_fail(c.backend, work_vector_push_result(values, c.budget, pair));
+}
+
+fn bi_get(c: BackendImport*, entity: void*): FoundationNode* {
+    if backend_failed(c.backend) { return null; }
+    var node = sem_get(entity);
+    if node == null { backend_resource_fail(c.backend, WorkBudgetError.Invalid); }
+    return node;
+}
+
 fn bi_scalar(c: BackendImport*, type: void*): u32 {
+    if backend_failed(c.backend) { return 0; }
     var kind = LLVMGetTypeKind(type);
     if kind == LLVMFloatTypeKind { return SF32; }
     if kind == LLVMDoubleTypeKind { return SF64; }
@@ -69,15 +98,20 @@ fn bi_scalar(c: BackendImport*, type: void*): u32 {
 }
 
 fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
-    var n = sem_get(entity);
+    if backend_failed(c.backend) { return; }
+    var n = bi_get(c, entity);
+    if n == null { return; }
     loop {
+        if backend_failed(c.backend) { return; }
         n.name.length = 0;
-        backend_text(&n.name, prefix);
-        backend_decimal(&n.name, c.serial);
+        backend_require(c.backend, backend_text(&n.name, prefix) && backend_decimal(&n.name, c.serial));
+        if backend_failed(c.backend) { return; }
         c.serial++;
         var collision = false;
         foreach(var & source_function in &c.backend.source_functions) {
-            var original = sem_get(*source_function);
+            if backend_failed(c.backend) { return; }
+            var original = bi_get(c, *source_function);
+            if original == null { return; }
             if backend_equal(backend_name(original), n.name.data) {
                 collision = true;
             }
@@ -89,13 +123,17 @@ fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
 }
 
 fn bi_append(c: BackendImport*, block: void*, entity: void*): void {
-    var n = sem_get(block);
+    if backend_failed(c.backend) { return; }
+    var n = bi_get(c, block);
+    if n == null { return; }
     backend_require(c.backend, vector_push(&n.items, entity));
 }
 
 fn bi_const(c: BackendImport*, scalar: u32, value: u64): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, 5, scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.constant = true;
     n.bits = value;
     return entity;
@@ -106,26 +144,32 @@ fn bi_const(c: BackendImport*, scalar: u32, value: u64): void* {
 // Initialize each distinct literal once in the function's declaration prefix,
 // so every branch can reuse it without depending on which branch executes first.
 fn bi_literal(c: BackendImport*, key: void*, scalar: u32, bits: u64): void* {
-    var local = backend_find(&c.literals, key);
+    if backend_failed(c.backend) { return null; }
+    var local = bi_find(&c.literals, key);
     if local == null {
         local = bi_decl(c, scalar);
-        var declaration = sem_get(local);
+        var declaration = bi_get(c, local);
+        if declaration == null { return null; }
         declaration.value = bi_const(c, scalar, bits);
-        backend_require(c.backend, backend_associate(&c.literals, key, local));
+        bi_associate(c, &c.literals, key, local);
     }
     return bi_ref(c, local);
 }
 
 fn bi_ref(c: BackendImport*, binding: void*): void* {
-    var b = sem_get(binding);
+    if backend_failed(c.backend) { return null; }
+    var b = bi_get(c, binding);
+    if b == null { return null; }
     var entity = bi_node(c, 5, b.type.scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     copy(&n.type, &b.type, sizeof(FoundationType));
     n.binding = binding;
     return entity;
 }
 
 fn bi_decl(c: BackendImport*, scalar: u32): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, 3, scalar);
     bi_name(c, entity, "v");
     bi_append(c, c.declarations, entity);
@@ -133,8 +177,10 @@ fn bi_decl(c: BackendImport*, scalar: u32): void* {
 }
 
 fn bi_assign(c: BackendImport*, target: void*, value: void*): void {
+    if backend_failed(c.backend) { return; }
     var entity = bi_node(c, 4, 3);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return; }
     n.target = target;
     n.value = value;
     bi_append(c, c.block, entity);
@@ -142,9 +188,12 @@ fn bi_assign(c: BackendImport*, target: void*, value: void*): void {
 
 // Materialize every non-operand expression: foundation remains three-address.
 fn bi_temp(c: BackendImport*, expression: void*): void* {
-    var n = sem_get(expression);
+    if backend_failed(c.backend) { return null; }
+    var n = bi_get(c, expression);
+    if n == null { return null; }
     var local = bi_decl(c, n.type.scalar);
-    var d = sem_get(local);
+    var d = bi_get(c, local);
+    if d == null { return null; }
     copy(&d.type, &n.type, sizeof(FoundationType));
     bi_assign(c, bi_ref(c, local), expression);
     return bi_ref(c, local);
@@ -156,9 +205,13 @@ fn bi_temp(c: BackendImport*, expression: void*): void* {
 // Only the freshly created, final assignment qualifies; branch results, shared
 // literals and existing bindings retain their ordinary copy.
 fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: usize): void {
-    var result = sem_get(value);
-    var declarations = sem_get(c.declarations);
-    var block = sem_get(c.block);
+    if backend_failed(c.backend) { return; }
+    var result = bi_get(c, value);
+    if result == null { return; }
+    var declarations = bi_get(c, c.declarations);
+    if declarations == null { return; }
+    var block = bi_get(c, c.block);
+    if block == null { return; }
     var candidate = result.kind == KOperand;
     if result.constant {
         candidate = false;
@@ -175,13 +228,16 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
         var matches = result.binding == local;
         if matches {
             var last_statement = block.items.length -1;
-            var assignment = sem_get(block.items.data[last_statement]);
+            var assignment = bi_get(c, block.items.data[last_statement]);
+            if assignment == null { return; }
             matches = assignment.kind == KAssign;
             if matches {
-                var target = sem_get(assignment.target);
+                var target = bi_get(c, assignment.target);
+                if target == null { return; }
                 matches = target.kind == KOperand;
                 matches &&= target.binding == local;
-                var original = sem_get(destination);
+                var original = bi_get(c, destination);
+                if original == null { return; }
                 matches &&= semantic_type_equal(&original.type, &result.type);
                 if matches {
                     assignment.target = bi_ref(c, destination);
@@ -195,13 +251,16 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
 }
 
 fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, 9, scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     if reinterpret {
         n.kind = 10;
     }
     n.value = value;
-    var v = sem_get(value);
+    var v = bi_get(c, value);
+    if v == null { return null; }
     var boolean = n.type.scalar == 2;
     if v.type.scalar == 2 {
         boolean = true;
@@ -237,7 +296,9 @@ fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): voi
 }
 
 fn bi_binary(c: BackendImport*, op: u32, left: void*, right: void*, scalar: u32): void* {
-    var input = sem_get(left);
+    if backend_failed(c.backend) { return null; }
+    var input = bi_get(c, left);
+    if input == null { return null; }
     var boolean = input.type.scalar == 2;
     var arithmetic = op < 8;
     if boolean {
@@ -250,7 +311,8 @@ fn bi_binary(c: BackendImport*, op: u32, left: void*, right: void*, scalar: u32)
         }
     }
     var entity = bi_node(c, 6, scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.op = op;
     n.left = left;
     n.right = right;
@@ -258,12 +320,16 @@ fn bi_binary(c: BackendImport*, op: u32, left: void*, right: void*, scalar: u32)
 }
 
 fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
-    if semantic_type_equal(&sem_get(value).type, type) { return value; }
+    if backend_failed(c.backend) { return null; }
+    var input = bi_get(c, value);
+    if input == null { return null; }
+    if type == null { backend_resource_fail(c.backend, WorkBudgetError.Invalid); return null; }
+    if semantic_type_equal(&input.type, type) { return value; }
     var entity = bi_node(c, 10, type.scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     copy(&n.type, type, sizeof(FoundationType));
     n.value = value;
-    var input = sem_get(value);
     var boolean = type.scalar == 2;
     if input.type.scalar == 2 {
         boolean = true;
@@ -279,37 +345,57 @@ fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
 }
 
 fn bi_function_type(c: BackendImport*, result: FoundationType*, parameters: vector(void*)*): FoundationType* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, KType, SFunction);
-    var signature = sem_get(entity);
+    var signature = bi_get(c, entity);
+    if signature == null { return null; }
     signature.type.record = entity;
     signature.element = *result;
     foreach(var source in parameters) {
+        if backend_failed(c.backend) { return null; }
         var parameter = bi_node(c, KParameter, SVoid);
-        sem_get(parameter).type = sem_get(source).type;
+        var parameter_node = bi_get(c, parameter);
+        if parameter_node == null { return null; }
+        var source_node = bi_get(c, source);
+        if source_node == null { return null; }
+        parameter_node.type = source_node.type;
         backend_require(c.backend, vector_push(&signature.parameters, parameter));
     }
     return &signature.type;
 }
 
 fn bi_llvm_function_type(c: BackendImport*, type: void*): FoundationType* {
-    if LLVMIsFunctionVarArg(type) != 0 { backend_fail(c.backend, "Variadic indirect calls are not supported"); }
+    if backend_failed(c.backend) { return null; }
+    if LLVMIsFunctionVarArg(type) != 0 { backend_fail(c.backend, "Variadic indirect calls are not supported"); return null; }
     var count = LLVMCountParamTypes(type);
-    var types = alloc(void*, convert(usize, count));
-    defer free(types);
-    LLVMGetParamTypes(type, types);
-    var parameters: vector(void*) = default;
-    defer vector_dispose(&parameters);
+    var types: work_vector(void*) = default;
+    defer work_vector_dispose(&types);
+    var error = work_vector_reserve_result(&types, c.budget, convert(usize, count));
+    if error != WorkBudgetError.None { backend_resource_fail(c.backend, error); return null; }
+    LLVMGetParamTypes(type, types.data);
+    var entity = bi_node(c, KType, SFunction);
+    var signature = bi_get(c, entity);
+    if signature == null { return null; }
+    signature.type.record = entity;
+    var scalar = bi_scalar(c, LLVMGetReturnType(type));
+    signature.element = {scalar: scalar == BackendImportPointer ? SU8 : scalar,
+        pointers: scalar == BackendImportPointer ? 1 : 0, pointer_bytes: c.backend.pointer_bytes, ..default};
     for(var i: u32 = 0; i < count; i++) {
-        backend_require(c.backend, vector_push(&parameters, bi_node(c, KParameter, bi_scalar(c, types[i]))));
+        if backend_failed(c.backend) { return null; }
+        var parameter = bi_node(c, KParameter, bi_scalar(c, types.data[i]));
+        if parameter == null { return null; }
+        backend_require(c.backend, vector_push(&signature.parameters, parameter));
     }
-    var result = bi_node(c, KType, bi_scalar(c, LLVMGetReturnType(type)));
-    return bi_function_type(c, &sem_get(result).type, &parameters);
+    return backend_failed(c.backend) ? null : &signature.type;
 }
 
 fn bi_address(c: BackendImport*, object: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, KAddress, BackendImportPointer);
-    var n = sem_get(entity);
-    var v = sem_get(object);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
+    var v = bi_get(c, object);
+    if v == null { return null; }
     copy(&n.type, &v.type, sizeof(FoundationType));
     n.type.pointers++;
     n.value = object;
@@ -318,6 +404,7 @@ fn bi_address(c: BackendImport*, object: void*): void* {
 }
 
 fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void* {
+    if backend_failed(c.backend) { return null; }
     var scalar: u32 = 5;
     var unit: u64 = 1;
     var wide = alignment > 4;
@@ -336,7 +423,8 @@ fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void
         backend_fail(c.backend, "LLVM allocation alignment exceeds foundation layout");
     }
     var array = bi_node(c, 19, 9);
-    var a = sem_get(array);
+    var a = bi_get(c, array);
+    if a == null { return null; }
     a.element.scalar = scalar;
     a.element.pointer_bytes = c.backend.pointer_bytes;
     bytes = bytes + unit;
@@ -348,7 +436,8 @@ fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void
     a.length = convert(usize, count);
     a.type.record = array;
     var entity = bi_node(c, 3, 9);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.type.record = array;
     bi_name(c, entity, "storage");
     if global {
@@ -361,35 +450,43 @@ fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void
 }
 
 fn bi_typed_pointer(c: BackendImport*, value: void*, scalar: u32): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, 10, scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.type.pointers++;
     n.value = value;
     return bi_temp(c, entity);
 }
 
 fn bi_load(c: BackendImport*, address: void*, scalar: u32): void* {
+    if backend_failed(c.backend) { return null; }
     var pointer = bi_typed_pointer(c, address, scalar);
     var entity = bi_node(c, 8, scalar);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.value = pointer;
     return bi_temp(c, entity);
 }
 
 fn bi_store(c: BackendImport*, address: void*, value: void*): void {
-    var v = sem_get(value);
+    if backend_failed(c.backend) { return; }
+    var v = bi_get(c, value);
+    if v == null { return; }
     var scalar = v.type.scalar;
     if v.type.pointers != 0 {
         scalar = BackendImportPointer;
     }
     var typed = bi_typed_pointer(c, address, scalar);
     var target = bi_node(c, 8, scalar);
-    var n = sem_get(target);
+    var n = bi_get(c, target);
+    if n == null { return; }
     n.value = typed;
     bi_assign(c, target, value);
 }
 
 fn bi_offset(c: BackendImport*, pointer: void*, bytes: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var integer = bi_cast(c, pointer, 8, true);
     bytes = bi_cast(c, bytes, 8, false);
     integer = bi_binary(c, 0, integer, bytes, 8);
@@ -397,8 +494,10 @@ fn bi_offset(c: BackendImport*, pointer: void*, bytes: void*): void* {
 }
 
 fn bi_if(c: BackendImport*, condition: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var entity = bi_node(c, 13, 3);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     n.value = condition;
     n.body = bi_node(c, 12, 3);
     n.otherwise = bi_node(c, 12, 3);

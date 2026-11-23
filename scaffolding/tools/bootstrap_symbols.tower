@@ -180,7 +180,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("entity_component_add entity_register tower_node_create entity_attach entity_release entity_child_at entity_child_count", symbol, length)
             || bootstrap_symbol_in("entity_parent entity_member_index foundation_node_init syntax_identifier_decode_in_place generic_begin generic_error generic_error_clear", symbol, length)
             || bootstrap_symbol_in("generic_register generic_parameter_count generic_type_parameter generic_instantiate generic_lookup generic_type_result", symbol, length)
-            || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree compiler_clone_tree_result entity_child_name entity_component_at", symbol, length)
+            || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree compiler_clone_tree_result compiler_clone_tree_owned_result entity_child_name entity_component_at", symbol, length)
             || bootstrap_symbol_in("entity_component_count entity_component_type entity_id entity_retain entity_view_close entity_view_open", symbol, length)
             || bootstrap_symbol_in("format_dependent_summary format_dependent_view format_dispose format_grammar_preview format_summary", symbol, length)
             || bootstrap_symbol_in("frontend_module_alias frontend_module_at frontend_module_attach_comments frontend_module_comments frontend_module_count", symbol, length)
@@ -198,11 +198,11 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("compiler_work_failed compiler_work_graph compiler_work_next compiler_work_subject compiler_world_create_workers compiler_world_dispose", symbol, length)
             || bootstrap_symbol_in("compiler_world_store entity_create entity_create_related entity_query_at entity_query_count entity_stage_create", symbol, length)
             || bootstrap_symbol_in("entity_stage_discard entity_stage_hold entity_stage_lease entity_stage_open entity_stage_publish entity_table_query_column", symbol, length)
-            || bootstrap_symbol_in("entity_table_query_count entity_table_query_range_count entity_table_query_ranges entity_view_tables frontend_module_cyclic", symbol, length)
+            || bootstrap_symbol_in("entity_table_query_count entity_table_query_range_count entity_table_query_ranges entity_view_tables frontend_module_cyclic frontend_module_cyclic_result", symbol, length)
             || bootstrap_symbol_in("frontend_module_root_world frontend_modules_bind_world frontend_modules_configure frontend_modules_create frontend_modules_destroy", symbol, length)
             || bootstrap_symbol_in("frontend_world_clear generic_argument generic_argument_count generic_body_complete generic_body_limit generic_body_pending", symbol, length)
             || bootstrap_symbol_in("generic_specialization generic_type_result_read interpreter_invocation_dispose interpreter_invocation_init interpreter_invocation_step", symbol, length)
-            || bootstrap_symbol_in("syntax_baseline_install syntax_session_open syntax_version_diagnostic_dispose syntax_version_diagnostic_text", symbol, length);
+            || bootstrap_symbol_in("syntax_baseline_install syntax_session_open syntax_session_open_result syntax_version_diagnostic_dispose syntax_version_diagnostic_text", symbol, length);
     }
     return false;
 }

@@ -1,3 +1,4 @@
 import tower;
 import tests.foreign_names;
 import tests.backend;
+import tests.backend_import_fixture;
