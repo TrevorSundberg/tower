@@ -1,0 +1,8 @@
+import tower;
+fn buffer(T: type, size: usize): type { struct Result { data: T[size]; } return Result; }
+fn wrapped(T: type, size: usize): type { return buffer(T, size); }
+var a: buffer(i32, 2); var b: buffer(i32, 3); var alias: wrapped(i32, 2)* = &a;
+a.data[1] = 42; b.data[2] = 7; print(alias.data[1]); print(b.data[2]);
+print(sizeof(buffer(i32, 2))); print(sizeof(buffer(i32, 3)));
+fn fixed(size: i32): type { struct R { data: i32[size]; } return R; }
+var c: fixed(3); c.data[2] = 9; print(c.data[2]);
