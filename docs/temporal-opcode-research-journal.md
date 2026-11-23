@@ -96032,3 +96032,5 @@ release, L1/D1 the earlier optimized failure. Todo preserved; normal publication
 Final integration: complete b1d5d314 history merged after routine ff-only refusal;
 all eight reviewed blobs and immediate ownership/host callees still match6e8001fd.
 Source evidence reused unchanged; unrelated new runtime receipts are not this review.
+
+T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.

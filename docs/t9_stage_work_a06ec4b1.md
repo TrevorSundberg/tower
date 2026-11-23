@@ -23,7 +23,7 @@ Exact response: `This operation requires integer operands`, offset1274972, file`
 
 This measures the actual Node process/threads, including both reactors/JIT/host, not a test parent or compiler-only cost.
 Observed OS peak may miss a final subsecond peak;2GiB is the unchanged per-reactor maximum, not measured live capacity.
-The API exposes no LLVM linear-memory peak; this failure is semantic, not a proven memory-limit failure.
+The frozen API exposes no LLVM linear-memory peak; this failure is semantic, not a proven memory-limit failure.
 Canonical request953744B SHA`f6166fc85d90df0983122f761f6472235bbb76a625e8c523d496dc8767c1e7e9` is retained exactly.
 Successful unoptimized Foundation4607266B SHA`dea7120594876060622f1440502784701040ab8d634629a4909da0b0b280dc01` is retained.
 One untraced existing native source probe reproduces the error at1291590, resource=None, published output0B;
@@ -38,3 +38,4 @@ Raw phase/error JSON, original/returned text, IR, private candidate, native logs
 `C:/Sandbox/build/codex_ecs_20261122/L2/semantic_port_a06ec4b1_a9760a9b` (results manifest SHA6815f88b6c698ac458258ab4a30ad4cecabf7779a54a1ca9325dfa6a26e95682).
 Prior7e54b96a native passes/old Wasm failures remain narrower separate receipts; neither assigned current T9 case is closed.
 All owned jobs drained; no optimized-only substitute, cap change, other-owner edit, sanitizer or release operation.
+Integration b7cc2b864add2302eeccab93749c4834bad69266 preserves f88dbe04; later capacity/phase-observer and native-probe additions are excluded from this freeze; producer blobs unchanged, no rerun.
