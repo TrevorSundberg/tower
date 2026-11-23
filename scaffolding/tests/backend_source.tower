@@ -16,10 +16,6 @@ extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*
 
 // Exercise the compiled production service through its ownership boundary.
 // A host installs Foundation before invoking this fixture, as for ordinary work.
-extern fn backend_worker_runtime(): u8*;
-
-extern fn backend_worker_runtime_size(): usize;
-
 extern fn strlen(text: u8*): usize;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
@@ -34,7 +30,8 @@ struct BackendWorldFixture { world: void*; modules: void*; source: BackendSource
 
 fn backend_world_close(fixture: BackendWorldFixture*): bool {
     backend_source_close(fixture.source);
-    frontend_modules_destroy(fixture.modules);
+    // Explicit retirement clears the fixture; the scope guard also visits it.
+    if fixture.modules != null { frontend_modules_destroy(fixture.modules); }
     var closed = fixture.world == null || frontend_world_clear(fixture.world) && compiler_world_dispose(fixture.world);
     *fixture = default;
     return closed;
@@ -42,7 +39,7 @@ fn backend_world_close(fixture: BackendWorldFixture*): bool {
 
 // Assertions live in Tower; the browser transport supplies the same baseline
 // bytes it uses for ordinary compiler instances. No current-world switch occurs.
-export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
+export fn backend_source_world_tests_runtime(bedrock: u8*, foundation: u8*, runtime: u8*, runtime_size: usize): i32 {
     var fixtures: BackendWorldFixture[2] = default;
     defer { for(var index: usize = 0; index < 2; index++) { backend_world_close(&fixtures[index]); } }
     var diagnostic: SyntaxVersionDiagnostic = default;
@@ -51,7 +48,7 @@ export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
         var fixture = &fixtures[index];
         fixture.world = compiler_world_create_workers(index + 1);
         fixture.modules = frontend_modules_create();
-        fixture.source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+        fixture.source = backend_source_create(runtime, runtime_size);
         if fixture.world == null || fixture.modules == null || fixture.source == null { return convert(i32, BackendWorldFailure.Allocation); }
         if !frontend_modules_source(fixture.modules, ".tower/bedrock.tower", bedrock, strlen(bedrock))
             || !frontend_modules_source(fixture.modules, ".tower/foundation.tower", foundation, strlen(foundation)) {
@@ -90,13 +87,13 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
     return text != null && strstr(text, wanted) != null;
 }
 
-export fn backend_source_tests(environment: void*): i32 {
+export fn backend_source_tests_runtime(environment: void*, runtime: u8*, runtime_size: usize): i32 {
     var type_identity_failure: i32 = 17;
-    if !backend_source_type_values(environment) { return type_identity_failure; }
+    if !backend_source_type_values(environment, runtime, runtime_size) { return type_identity_failure; }
     var link_failure: i32 = 16;
-    if !backend_source_link_tests(environment) { return link_failure; }
-    var left = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
-    var right = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+    if !backend_source_link_tests(environment, runtime, runtime_size) { return link_failure; }
+    var left = backend_source_create(runtime, runtime_size);
+    var right = backend_source_create(runtime, runtime_size);
     if left == null || right == null {
         backend_source_close(left);
         backend_source_close(right);
@@ -173,8 +170,8 @@ export fn backend_source_tests(environment: void*): i32 {
     return failure;
 }
 
-fn backend_source_link_tests(environment: void*): bool {
-    var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+fn backend_source_link_tests(environment: void*, runtime: u8*, runtime_size: usize): bool {
+    var source = backend_source_create(runtime, runtime_size);
     if source == null { return false; }
     defer backend_source_close(source);
     var text = "import foundation;extern fn imported(value:i32):i32;export fn public_answer():i32{return imported(42);}print(public_answer());";
@@ -200,8 +197,8 @@ fn backend_source_link_tests(environment: void*): bool {
     return true;
 }
 
-fn backend_source_type_values(environment: void*): bool {
-    var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+fn backend_source_type_values(environment: void*, runtime: u8*, runtime_size: usize): bool {
+    var source = backend_source_create(runtime, runtime_size);
     if source == null { return false; }
     defer backend_source_close(source);
     var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var comparison:type_type()=type_value(integer_type(8,0));var equal:bool=selected==comparison;print(equal);";

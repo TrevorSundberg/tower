@@ -22,6 +22,7 @@ import utility_checks;
 import semantic_scratch_identity;
 import known_scan_storage;
 import backend_import_storage;
+import declaration_call_checks;
 
 extern fn work_thread_available(): bool;
 extern fn work_thread_capacity(): usize;
@@ -30,6 +31,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     utility_check(!work_thread_available() && work_thread_capacity() == 1,
         "Storage fault injection requires the single-owner work host");
     if argc == 3 {
+        if strcmp(argv[2], "declaration-calls") == 0 {
+            var buffers = tower_test_buffer_count();
+            declaration_call_checks(argv[1], 1);
+            utility_check(tower_test_buffer_count() == buffers, "Declaration discovery releases every owned allocation");
+            puts("Declaration calls: zero retained buffers after failed and fresh compiles.");
+            return 0;
+        }
         if strcmp(argv[2], "known-scan") == 0 { known_scan_storage_tests(); return 0; }
         if strcmp(argv[2], "backend-import") == 0 { backend_import_storage_tests(); return 0; }
         if strcmp(argv[2], "diagnostic-faults") == 0 {

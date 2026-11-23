@@ -1,0 +1,14 @@
+import tower;
+import backend_source;
+
+extern fn backend_worker_runtime(): u8*;
+extern fn backend_worker_runtime_size(): usize;
+
+// Preserve the browser test ABI; both transports run the same assertions.
+export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
+    return backend_source_world_tests_runtime(bedrock, foundation, backend_worker_runtime(), backend_worker_runtime_size());
+}
+
+export fn backend_source_tests(environment: void*): i32 {
+    return backend_source_tests_runtime(environment, backend_worker_runtime(), backend_worker_runtime_size());
+}
