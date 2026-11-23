@@ -31,9 +31,11 @@ A2 complete work_access/work_observe each pass1/0fail/18 exclusions:21.6902/34.2
 A2 n3 healthy means1.737869->1.747239s wall,2.790333->2.676s CPU,289513->289372KiB; capacities unchanged. These are attributed costs, not an independent rerun.
 Compiled sourcea06ec4b1f9f44419882477bc1a55b6ed39e2200b; exact portable/LLVM hashes remain those in A2's linked receipt, not newly built current sources.
 Limits: no zero-global-owner/drain oracle from an afterEach 'released' label, no OOM sweep, no direct abort-override runtime control, no new precise abort callsite offset (reported0).
-The full platform file's3pass/1fail canonical-spelling assertion remains open with A2; targeted abort1pass/3 exclusions does not erase it.
+At the reviewed freeze, the full platform file had3pass/1fail on canonical spelling; targeted abort1pass/3 exclusions did not erase it.
 One extra ordinary Tower enum-named-void control rejected correctly in all32/64 Graph/Fast modes with empty output; no nominal-name bypass reproduced.
 Its Node child CPU1.452s/peak143800KiB, OS command0.934s; explicit guest destroy/host close. Initial missing-Foundation transport setup failed before control and is recorded.
 A1 raw root:C:/Sandbox/build/codex_ecs_20261122/A1/abort_review_ae5d34b2/ (Tower input, output/counters, reviewed blob/SHA manifest, setup failure).
 A2 raw root:C:/Sandbox/build/codex_ecs_20261122/A2/cache/logs/abort_t9_a06_1e428ede/ (focused, invoked, healthy CSV and complete T9 artifacts).
 Documentation-only; no runtime build/profile matrix, T9 repeat, instrumentation or deployment. Todo unchanged, owned jobs drained; ROOT owns final release.
+
+Integration:8b58fa60 merged complete e330a2c9 as b2d0928e; all10 reviewed production/fixture blobs unchanged. Later platform.test.mjs/platform_calls repair and dependency fixtures are excluded; A2's [new spelling receipt](platform_binding_a06_26f99a40.md) supersedes that historical open gate separately, without a new A1 run.
