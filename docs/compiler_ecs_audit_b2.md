@@ -532,3 +532,25 @@ query and full42 lifecycle checks pass. Existing-runner registration, matched
 owner cost and complete current instrumentation remain pending. Constructor-time
 store/world/graph/pool ownership and clone failure publication are the next
 concrete shared contracts; neither is implemented here yet.
+
+B2 public-clone consumer review: frontend_modules now owns fixed diagnostics,
+fallible private graph creation/completion and transactionally published cache
+snapshots; language_query disposes a failed inspection before document output.
+Actual parsed-grammar cache read/write denial, full prior-cache identity, exact
+partial node/component cleanup and later cache reuse pass. Full dependent native
+build, query smoke and explicit editor inspection/cancellation pass; matched
+quiet profiles retain identical canonical/count/ledger outcomes with actual
+outer-worker overlap. Detailed timings and limitations are in the journal.
+
+Reviewed newly integrated tests/generic_clone_fixture.tower,
+tests/generic_clone_storage.tower and tests/generic_clone_parallel.tower:
+ordinary registry/deferred-instance construction, preserved named provenance,
+private WorkVector frame ownership and typed cap/allocator/quota distinctions;
+shared production pool/tickets/access ranges, distinct-thread timed overlap,
+hold-before-unpin, publish/discard after joins, stale tickets and final zero
+ownership. These three paths extend the prior368-path review inventory; broader
+new-union inventory reconciliation is pending. Normal query execution covers
+the parallel fixture; serial allocator cases and final current instrumentation
+retain their separate receipts. No claim that clone-frame grants account for
+entity payloads or constructor storage. L2 node/attach allocation follow-up and
+A2 constructor/world/frontend/backend wiring remain open.
