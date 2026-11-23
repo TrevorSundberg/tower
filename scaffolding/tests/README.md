@@ -1127,3 +1127,18 @@ Both import their entities and memory providers; no second provider is linked.
 Real worker publication/cancellation coverage remains in
 `tower-entity-stage-concurrent-tests`. Supported address/thread instrumentation
 uses the same targets; the fault allocator remains single-owner.
+
+Dependency-producer failure checks use the same production compiler providers:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-query-failure-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-query-failure-(constructor|body|declaration)$'
+```
+
+Each selector covers 32/64-bit targets and workers1/4. Constructor and body cases
+prove actual interpreter suspension before denied producer admission, then require
+joined peer cleanup without publication or replay. The declaration case rejects
+false idle progress after failed admission. Capacity derives from the live graph
+and shared budget; final ownership must return to zero. The unchanged fixture
+runs with production allocation and supported address/thread instrumentation.
