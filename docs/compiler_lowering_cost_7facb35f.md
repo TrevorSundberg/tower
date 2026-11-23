@@ -135,3 +135,9 @@ Rejected final candidate:
 `6dfeb2dcb1ab05df999c28362a5ad6d2607f1df8c8820719b061db8dd1fef154`.
 No new syntax, public pin, runtime publication or integrated acceptance is claimed.
 Full later-source/platform/browser/generation/sanitizer acceptance remains ROOT's.
+
+Publication reconciliation preserves incoming5b9194e4 history. Only this receipt and
+the journal differ from incoming main. Later semantic-statements/imported-alias
+and other owner changes are not validated by the frozen7facb35f measurements;
+the restored cache is explicitly that older measured source. No new runtime
+build or deployment is claimed for the documentation-only reconciliation.

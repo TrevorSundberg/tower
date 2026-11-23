@@ -89598,3 +89598,5 @@ their own exact success boundary. Final current-source complete artifacts,
 remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
+
+B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
