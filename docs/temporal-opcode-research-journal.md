@@ -47833,3 +47833,77 @@ or second type graph is introduced here. Final integrated ASan is assigned L2,
 TSan L1; neither old sanitizer evidence nor these normal measurements establish
 acceptance of those future layouts. Public pin, complete merged release checks,
 publication lease and hosted verification remain required.
+
+### L2 generic clone scratch audit and next measured slice (proposal)
+
+At local source9eb01c3, audit every compiler_clone_branch caller before changing
+allocation ownership. Deferred generic body work invokes the branch helper once
+for each top-level child, and each invocation allocates/frees a sixteen-frame
+stack. A single private typed stack can retain capacity across those siblings
+without changing clone order, provenance, node quotas or structural publication.
+The stack is transient job scratch, not the retained cloned entity payload.
+Root00:32 authorizes the measured slice. Proposed GenericBodyCopy additions are
+an immutable borrowed WorkBudget pointer and a private WorkBudgetError result;
+A1 coordination is requested before adopting the shared transport layout.
+
+The header-only generic-instantiation call returns null to semantic consumers
+that already retain a diagnostic. The public synchronous compiler_clone_tree
+also serves optional inferred-expression inspection (null marks it truncated)
+and module_clone. The two module_clone sites instead use module_require on null.
+Therefore blindly imposing the world byte cap on that public helper would turn
+a normal capacity denial into an abort. Route this finding to the module owner;
+keep that allocation boundary explicitly unmigrated until fallible caller
+propagation is coherent. Do not retry outside a denied cap or hide the gap.
+Generic registry estimates, canonical entity/component allocation and ordinary
+semantic scratch are separate ownership paths, not covered by a frame grant.
+
+Before any production edit, preserve complete compilerd1cda8ec and its resources
+(including all nine target/runtime LLVM files) in the lane-owned
+l2_clone_before_9eb01c3 package, with full SHA manifest. Draft a Tower fixture using
+the actual generic registry/deferred-header/kernel APIs, synthetic wide256x1 and
+deep1x600 syntax, exact child order/metadata/definition-use provenance, node-limit
+failure, first-allocation failure and zero retained buffers after world teardown.
+Register only one import/call in the existing serial storage runner, coordinated
+with D1. An independent ordinary loop supplies output for one/eight demanded
+specializations of the existing240-statement generic fixture. These new tests
+are not compiled or passed yet. No performance/overlap claim follows from source
+inspection. Baseline jobs wait for L1's live host lock; no competing build starts.
+
+The first inline WSL package-snapshot transport exited1 before any directory was
+created because shell variable transport did not preserve the intended argv.
+The persisted OS-only clone_baseline_snapshot.sh succeeds, preserves the exact
+compiler SHA and21MiB complete package; the failure is not a compiler check.
+All project-owned test/input logic remains Tower. Existing ASan/full-suite
+receipts remain tied to their earlier sources; the future physical-owner change
+requires coherent dependent rebuild, current focused faults/real-worker stress,
+paired measurements and final supported instrumentation before release.
+
+### L2 clone baseline validation before production changes
+
+The initial smallest fixture compile rejects a missing direct vector import;
+the next rejects implicit Entity-to-void conversion at existing opaque APIs.
+After correction the smallest unit passes, but the composed storage runner
+rejects incompatible compiler_world_store declarations. Align only this fixture
+with the runner's existing opaque foreign interface (including entity_release's
+usize result); pass the store explicitly rather than inspecting a copied layout.
+Preserve all three failed receipts. No production behavior changes in these fixes.
+
+Final public-pin smallest unit passes2.12s wall/1.88s CPU/181276KiB RSS; the existing
+storage target builds6.81s/5.28s/254396KiB. Three complete storage runs pass at
+0.19/0.20/0.21s wall,0.21/0.19/0.20s CPU and93756/94036/93944KiB. Exact ordered
+metadata and definition/use provenance match independently constructed source
+nodes. Wide256x1 reports256 copied nodes and1038 instrumented allocator calls
+during the production kernel; deep1x600 reports600 nodes and2434 calls. These are
+whole-kernel allocation calls, not just stack calls or physical bytes. Insufficient
+node quota reports exactly31/32 copies, first allocation failure reports0, neither
+publishes children, and stage/world disposal restores all component/node/buffer
+counts. Serial fault instrumentation is not a concurrent allocator test.
+
+The frozen before package also runs one/eight demanded240-statement generic
+specializations with workers1/4, all four outputs exactly matching a separate
+ordinary-loop Tower reference. Runtime source/resource hashes verify unchanged.
+Raw logs and scripts are L2/logs/clone_baseline_* and L2/clone_baseline_*.sh;
+this establishes before behavior, not an optimization result or real overlap
+proof. All jobs drain before returning the host lock to L1. The implementation,
+physical receipt denial checks, current worker transport, paired after profiles,
+final instrumentation and public release remain outstanding.

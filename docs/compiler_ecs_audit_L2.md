@@ -564,3 +564,32 @@ measured owned vector. Counts are per-invocation capacities, not whole-heap or
 concurrency proof. Proposed physical budget owners in shared semantic/interpreter
 layouts still require joint API validation, coherent build and final instrumentation.
 No new production type/generic code is introduced by these harness follow-ups.
+
+## Generic frame scratch follow-up at9eb01c3 (proposed)
+
+Reaudit generics.tower, generic_body_types.tower, generic_registry.tower,
+semantic_generic_body_work.tower and the public clone callers. Ordered clone
+frames are private transient scratch; one stack per body job removes the current
+per-child allocation lifecycle. The existing stage, node quota, work ticket and
+provenance contracts stay unchanged. Body/header failure consumers can propagate
+a denied physical grant, but frontend_modules module_clone still treats a null
+synchronous clone as fatal. That boundary needs its owner's fallible diagnostic
+repair before world caps can be imposed. Optional generic expression inspection
+already records null as truncated. No typed descriptor alone proves payload
+packing or whole-compilation memory accounting.
+
+The new tests/generic_clone_storage.tower uses real registry/kernel entry points
+without copying GenericContext layout. Wide/deep syntax, exact definition/use
+identity, insufficient node limits and single-owner allocation failures cover the
+intended change; its initial draft is unbuilt. Production-worker transport and
+before/after measurements remain separate required evidence. Root approved the
+slice and coordination requests cover the two-field shared request addition and
+two-line existing storage-runner hook. The journal records the frozen before
+package and discovered module failure-propagation gap.
+
+The baseline fixture now passes smallest public-pin compilation and three complete
+serial storage runs. Exact shape/provenance and failed-stage teardown pass;
+wide256x1 measures1038 total kernel allocation calls and deep1x600 measures2434.
+Four one/eight-specialization CLI runs at workers1/4 match the independent loop
+reference. Earlier import/opaque-interface fixture errors are preserved in the
+journal. Production clone code remains unchanged; this is the before receipt.
