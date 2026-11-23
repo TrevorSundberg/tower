@@ -5,6 +5,7 @@ import .compiler.format_types;
 import .compiler.component_kinds;
 import .compiler.parser_types;
 import .library.work_budget_types;
+import .library.entity_types;
 import frontend_format;
 import frontend_table_owner;
 import frontend_parser_text;
@@ -41,6 +42,8 @@ extern fn frontend_world_pattern(world: void*, source: u8*, length: usize, error
 extern fn frontend_world_clear(world: void*): bool;
 
 extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_register_stage_result(kind: void*, size: usize, alignment: usize,
+    lifecycle: usize, stage_rows: u8): WorkBudgetError;
 
 extern fn entity_retain(node: void*): usize;
 
@@ -121,6 +124,17 @@ fn frontend_world_type_resource_tests(): void {
     entity_view_close(view);
     frontend_world_check(compiler_world_type_result(world, CompilerParserRule, &error) is not null
         && error == WorkBudgetError.None);
+    var foundation = bits(Entity*, compiler_world_type_result(world, CompilerFoundation, &error));
+    var matches = bits(Entity*, compiler_world_type_result(world, CompilerParserMatch, &error));
+    frontend_world_check(foundation != null && matches != null && error == WorkBudgetError.None
+        && foundation.stage_page_rows > 1 && matches.stage_page_rows == 0);
+    // Registration remains immutable even before any payload exists; wrappers
+    // and repeated world lookups must preserve the private-stage policy.
+    frontend_world_check(entity_register_stage_result(bits(void*, foundation), foundation.data_size,
+        foundation.data_alignment, foundation.lifecycle, foundation.stage_page_rows) == WorkBudgetError.None
+        && entity_register_stage_result(bits(void*, foundation), foundation.data_size,
+            foundation.data_alignment, foundation.lifecycle, 0) == WorkBudgetError.Busy
+        && compiler_world_type(world, CompilerFoundation) == bits(void*, foundation));
     frontend_world_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers);
 }
 
