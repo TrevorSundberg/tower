@@ -82488,3 +82488,69 @@ and canonical reparse prints0. Final compiler SHA256
 Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
+
+### ROOT integrated positive ownership sanitizers on5c5a (2026-11-23)
+
+Frozen source5c5a308c85f4c39b0fcbcec2a341194042d34ac7, whose runtime is
+d56c2903, now has passing supported native Linux x64 LLVM19 address/leak and
+thread instrumentation for the selected ownership milestone. This is a batched
+receipt for the integrated executable/admission, queued-provenance and nested
+budget changes; later B1 observer, L1 Fast-storage and A1 staging-frontier commits
+are NOT covered by these binaries. No current-main or final-release equivalence
+is inferred. The complete frozen scaffolding/cmake/bootstrap source manifest
+verifies unchanged after both supported runs.
+
+Both modes pass tower-work-tests, tower-entity-stage-concurrent-tests,
+tower-lr-work-tests RESOURCE_ROOT query-smoke and unit-admission, plus all11
+executable-admission selectors (44 width/worker trials per mode). These include
+real production worker overlap, stage lifetime/cancellation, lazy query/capture
+behavior, duplicate queued provenance failure cleanup, nested-lane wake/refill
+and pinned executable startup/metadata rejection. No skip return was accepted.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1; TSAN_OPTIONS=halt_on_error=1.
+
+Configuration uses the checked-in public bootstrap selected by build-bootstrap.sh,
+CMake native/work/backend test options and TOWER_SANITIZER=address/thread.
+Separate /cache/root_ecs_address and root_ecs_thread caches preserve the ordinary
+compiler/assets. No private bootstrap override or sanitizer binary publication.
+Both83-action builds use six actions/one compiler lane, CPUs24-31,24GiB:
+address90.79wall/289.71CPU seconds,779224KiB peak; thread68.04/222.56/778008.
+
+The original default-Docker thread run failed before program entry: LLVM TSan's
+personality(ADDR_NO_RANDOMIZE) request was denied (CHECK at
+tsan_platform_linux.cpp:290). Its original work.log, work.time and top-level
+exit.status1 are preserved. This is neither a source race nor a passing run.
+The identical already-built objects then run in a temporary tower_build container
+with --network none, --security-opt seccomp=unconfined, the same CPU/memory limit,
+read-only /work and the same /cache volume. Its separate thread_supported receipt
+exits0 and the --rm container retires. No system-wide setting changed.
+
+Per-suite wall/CPU/peak RSS (seconds/KiB), address then supported thread:
+work .04/.06/94908 and .13/.33/118540;
+stage .28/.39/73768 and .25/.25/27428;
+query .85/.95/393840 and1.68/1.75/159008;
+unit-admission56.67/69.47/986776 and126.33/159.59/1034280.
+These are instrumented test costs, not production-performance comparisons.
+The long thread case was observed actively consuming CPU until completion;
+no timeout was converted into a pass or restarted solely for being slow.
+
+Inspected actual LR link closure and sanitizer-objects.tsv mappings for generated
+Tower semantic/entity/evaluation, memory/runtime and transport objects. Undefined
+sanitizer hooks are present in the semantic object (23address/11thread), concurrent
+stage object (19/11) and compiler-memory archive. Thus these are Tower IR passes,
+not merely host-C/C++ sanitizer link flags. An initial nm display pipeline stopped
+after five lines and returned nonzero; complete captured nm reads were repeated
+successfully before inspecting their hooks. Configured-only manifest entries are
+not claimed built or executed. Foreign LLVM/libc are not rebuilt/instrumented.
+Source-language UBSan and Windows/macOS/browser sanitizer support remain
+unsupported, not passed. Deliberately unsafe sensitivity probes were not rerun;
+these positive tests are not proof of race freedom in every execution.
+
+Exact binary hashes, logs, source manifest, instrumentation manifests and timings
+are retained in build/codex_ecs_20261122/ROOT_ownership_sanitizers_5c5a locally
+and on KinmenA, and /cache/root_ownership_sanitizers_5c5a. LR runner SHA256:
+address2034ada65cc7f0b8739762c99f9f1dfde06d7cf6af9b48d4c3f23f68bd37705d;
+threadd67356813bea8f06cd32245a7f3bed8208282e07cf96f767857a3b796e4fcfbd.
+OS wrappers are root_ownership_sanitizers.sh and root_thread_supported.sh.
+No project runtime code changed in this receipt; new runtime profiling is
+inapplicable. Current-source final integration, full native/browser/generation,
+remaining scaling/implementation gates and atomic hosted publication remain open.
