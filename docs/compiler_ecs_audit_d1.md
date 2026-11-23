@@ -3985,3 +3985,86 @@ Publication merge7a1e2631 adopts complete upstreambfb47510 history. The actual
 language/library/example and Node inputs for this slice still match; unrelated
 new supplied compiler capabilities retain their separate owner receipts. The
 frozen-reactor failures above are not claims about the later compiled result.
+
+## Four-file grammar/transport follow-up at cc21bb4e (2026-11-23)
+
+Frozen mounted source `cc21bb4e0df478933ffb4f9ec797020221919374`, scaffolding tree
+`711cb44392daef192083059ebe33e55c988f4438`, browser host tree
+`24bd709ce4b6f7c4243b00bf333264ec0f18a7c6`. ROOT's immutable portable/LLVM
+reactors are built at `9d9329db3606cbe74c544271ad4b9bb1912a0eec`, SHA256
+`13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738` /
+`bd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac`.
+Read-only originals and earlier f7 receipts remain unchanged. Absolute documented
+overrides select own verified copies; eager default reads still have real files.
+This does not relabel the reactors as cc21-compiled sources.
+
+- `playground/tests/increment.test.mjs`: unchanged, all six cases pass including
+  one-step call budgets, infinite continuation, left-to-right operands, captured
+  assignment destination, static errors before effects, canonical reparse and
+  LLVM execution. The example imports Foundation and defines its increment
+  replacements; `tests/increment_builtin.tower` imports Tower for place-aware
+  expressions. No ambient import repair is needed.
+- `playground/tests/precedence.test.mjs`: explicit Bedrock import supplies the
+  editable `@` grammar absent from the immutable seed. Its own numeric token
+  supplies Number; no Foundation/Tower expression grammar is imported into these
+  custom grammars. All six cases pass, retaining exact independent arithmetic
+  answers, left/right aliases, chained equivalence, ambiguity negatives,
+  nonassociativity, metadata cache reset and canonical equality. Existing JS
+  tree evaluation is unchanged; no new semantic model was introduced.
+- `playground/tests/replacements.test.mjs`: seed-only custom grammar retains
+  Identifier/String and adds only its missing Number declaration. Revisions now
+  explicitly include that successful declaration (base3, two aliases5). The
+  Foundation assignment-vs-expression negative imports Foundation and expects
+  revision1; its Unicode byte offset still derives from the complete actual
+  source. All ten cases pass, including exact source/template/capture spans,
+  shape, copied/generated counts, recursion/output/step limits and zero retained
+  node/allocation deltas. The already-correct imported example is unchanged.
+- New `playground/tests/fixtures/numeric_token.tower`, SHA256
+  `94714b9fc6e9c64a3f0f646dcecd37937903b057d3ee54aa49825c2c7a0152bf`:
+  one ordinary seed-supported `[number] token Number` declaration, transported
+  unchanged by existing Node file reads into both custom grammars. No execution,
+  mutable/shared owner, scheduler or hidden language import. Actual parser tests
+  validate activation and replacement/template revalidation. Existing native
+  `tests/syntax_replacements.tower` instead uses seed AttributeInteger and stays
+  unchanged; its cases do not replace the browser expansion-span/preview checks.
+
+`playground/tests/interpreter-invocation.test.mjs` remains **1/3 passed** on9d.
+Its direct compiled Tower exports do not execute newly mounted fixture text.
+Source checks compared exact9d/current blobs, not merely commit labels:
+
+1. `tests/interpreter_invocation.tower:31` builds `interpreter_invocation_tests`:
+   it pushes the parameter into `definition.parameters` but never populates
+   `definition.locals`. `compiler/interpreter.tower:52` requires binding identity
+   at `function.locals[local.index]`; `semantic_types.tower:913` / the parameter
+   caller in `semantic_statements.tower:166` construct that registry in real
+   checked functions. Thus the hand-built fixture is missing the current frame
+   ownership contract. Its width4 export returns2, expected0. The uninitialized
+   negative also lacks a local registry entry and currently accepts any error;
+   its intended strict-storage cause is not established. ROOT/L1 should register
+   both fixture locals with their actual indices and validate the exact strict
+   error in a rebuilt affected test provider. No capture check should be relaxed.
+2. `tests/semantic_world.tower:155` calls `evaluation_query_tests`, whose resource
+   branch reaches `tests/semantic_resource_checks.tower:183-184` and requires a
+   nonnull `work_signal_open()`. `host/work_portable.tower:11` deliberately returns
+   null. The frozen binary independently confirms this: trap caller
+   `0x14a660` in resource_trial calls `sem_require`; exported work_signal_open
+   disassembles to `i32.const 0`. This is a portable-fixture capability mismatch,
+   not evidence that ordinary isolated worlds fail. ROOT/L1 resource-fixture
+   owner must retain all denial assertions with supported serial budget setup,
+   plus the existing synchronized setup on threaded hosts. No skip/mock signal
+   or compiler host-policy change was introduced here.
+
+Both width8 loops stop before execution after their width4 assertion/trap;
+subsequent combined world subcases are unrun. Stage publication test passes.
+The existing Tower producers are already the exact reproductions; no redundant
+JS model or untested replacement fixture was added. A diagnostic-output transport
+probe preserved the same failures and emitted no extra cause; its temporary log
+callback was removed. Those provider corrections require a rebuilt reactor and
+remain explicit follow-up, not passed source changes in this batch.
+
+Baseline10/25 -> final23/25, zero skips; final12.02s wall/11.05s CPU/317228KiB
+peak RSS. Original and targeted failures retained under
+`build/d1_ecs/browser_four_cc21bb4e`. Fixture-only changes do not alter production
+cost; these are validation costs, not scaling/profile claims. No compiler build,
+heavy lock, sanitizer, generation or deployment. Earlier four-file20/22 remains
+historical and separate (stack/defer L2, pointer-alias L1). ROOT owns release.

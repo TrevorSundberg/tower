@@ -7,7 +7,8 @@ import { replacementLocations } from '../src/replacement-locations.mjs';
 const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined,
   await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8'));
 const example = await readFile(new URL('../../scaffolding/examples/replacements.tower', import.meta.url), 'utf8');
-const base = "parse Expression = Identifier | Number;parse Statement = Expression ';';";
+const base = await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8') +
+  "parse Expression = Identifier | Number;parse Statement = Expression ';';";
 function analyze(source) {
   const handle = tower.create(source);
   try { return { ...runToEnd(tower, handle), snapshot: tower.inspect(handle) }; }
@@ -113,7 +114,7 @@ test('changed bodies, grammar and lexical rules invalidate templates without poi
   } finally { tower.destroy(handle); }
   const lexical = analyze(prefix + 'token Number = /@[0-9]+/ as number;');
   assert.equal(lexical.end.status, 'error');
-  assert.equal(lexical.end.revision, 4);
+  assert.equal(lexical.end.revision, 5); // Number, Expression, Statement, one, alias.
   assert.match(lexical.end.error, /Replacement/);
 });
 
@@ -122,24 +123,24 @@ test('invalid captures, wrong categories and unclosed bodies fail atomically at 
     const source = base + `parse Expression |= 'bad' => replace { ${rhs} };`;
     const { end } = analyze(source);
     assert.equal(end.status, 'error', rhs);
-    assert.equal(end.revision, 2);
+    assert.equal(end.revision, 3); // The numeric token and two accepted grammar rules.
     assert.ok(end.errorOffset >= source.indexOf('replace {') + 'replace {'.length);
   }
   const broken = analyze(base + "parse Expression |= 'bad' => replace { 1;");
   assert.equal(broken.end.status, 'error'); assert.match(broken.end.error, /Unexpected end of input/);
   const missing = analyze(base + "parse Expression |= 'x' '(' $value:Expression ')' => replace { $value $value };");
   assert.equal(missing.end.status, 'error');
-  assert.equal(missing.end.revision, 2);
+  assert.equal(missing.end.revision, 3);
 });
 
 test('invalid replacement diagnostics identify the required syntax and template without losing the error location', () => {
-  const source = "// \u03bb\nparse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };";
+  const source = "import foundation;\n// \u03bb\nparse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };";
   const { end } = analyze(source);
   assert.equal(end.status, 'error');
   assert.match(end.error, /Replacement for Statement must produce a valid Statement\./);
   assert.ok(end.error.includes('"$name - $name;" is not a valid Statement.'));
   assert.equal(end.errorOffset, Buffer.byteLength(source.slice(0, source.indexOf(' - ') + 1)));
-  assert.equal(end.revision, 0);
+  assert.equal(end.revision, 1); // Only the language import committed.
   assert.equal(analyze(source.replace('$name - $name;', '$name = $name - $name;')).end.status, 'done');
 
   const expression = analyze(base + "parse Expression |= 'bad' => replace { 1; };").end;
