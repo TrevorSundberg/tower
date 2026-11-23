@@ -87027,3 +87027,9 @@ runtime profiling is inapplicable. Final current-source normal/shared/LLVM/cross
 two edited generations, supported instrumentation, useful scaling and hosted
 release still require affected-source adoption and fixing actual failures.
 Publication reconciliation: f04c3e91 (this evidence only) merged b0f507c6 as782cdd46, preserving all journal histories. Concurrent2013ad28 publishes the new public capacity compiler/resources; ROOT's b0f507c6 records its clean adoption. Thus that bootstrap prerequisite is now published, superseding the pending-publication wording above, but A1 body86843700 and L1 backend-import adoption remain separate. `git diff 6767cd30 HEAD -- scaffolding CMakeLists.txt cmake` is empty: compiler/test sources are identical. The bootstrap binary/resources changed, so this acceptance remains explicitly the6767 build/run, not a test of newly generated binaries under the adopted bootstrap. ROOT's clean-pin receipt is preserved as its own evidence. This turn contributes only journal evidence relative to published main; merged-document diff/receipt boundaries checked, no new runtime inputs or rerun claimed. No owned jobs remain; normal push follows.
+Final reconciliation: merged public cbaa8c05 as 56b1527da901fe53b1cca9e1627519ea45fd205e, preserving new
+generation/browser/dependency receipts. The delta since2013ad28 contains only
+documentation; the full frozen scaffolding/build/bootstrap SHA256 list still
+matches and compiler3285cd9d is unchanged. Existing merged runtime evidence is
+reused, not rerun or relabeled for changed code. Normal main publication follows;
+ROOT retains gh-pages and final integrated runtime verification.
