@@ -88736,3 +88736,62 @@ identity; these old reactors cannot accept or reject those later fixes. Reuse
 unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
 two minimal cases on its next affected reactor. Worktree/todo/history preserved,
 all owned jobs drained; normal main push follows, no runtime deployment.
+
+
+### ROOT two edited browser generations passed at 9d9329db (2026-11-23)
+
+Frozen source9d9329db3606cbe74c544271ad4b9bb1912a0eec includes A1 hover repair
+64450fc1 and the published alias, metadata and LR-grain changes. ROOT reviewed
+the inspection binding-stage publication, query-owned constructor/layout
+preparation, subsequent annotation leases and failed-receipt gate. Existing
+array interning assertions remain intact; canonical type identity is still
+coordinator-owned. A1's 32/64-bit serial/four-worker, nested annotation,
+denial/retry, retained diagnostic and zero-ownership receipts remain owner-run
+evidence. Full portable completion/hover passed, but its later package code73
+remained failed. It was not skipped or claimed passed by this ROOT build.
+
+Local WSL Orchestral-Revng public768 build, CPU8-15/jobs4/compiler1, completed
+portable11 actions at42.74s wall/77.77s CPU/1094784KiB peak RSS; LLVM/cross at
+74.21s/123.74s/1095152KiB. Source hashes match before/after, logs have no
+warning/error diagnostics, status0, all owned build jobs drained. Receipt:
+root_release_9d9329db in the existing WSL cache. Exact unedited reactor hashes:
+tower13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738,
+LLVMbd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac,
+crossaac59781c854427ff3a51dc2101ebfe955541923d9ce3cece965112842e9f91d;
+compiler-project1236cf83969f40b452e8ef9c1baa62b5d52cb55fbf55c17e8e37a27fee4906e5.
+All thirty prior f7 artifact files were copied and hash-verified before replacement.
+
+With source, recipe, runtime inputs and host scripts still frozen at9d, ROOT ran
+the unchanged test-compiler-project.mjs through both actual edited generations.
+The script changes a semantic diagnostic, compiles with workers2 then4, validates
+each candidate and edited behavior, and requires complete reactor byte equality.
+Generation1 passed in110.248s; generation2 passed in94.796s. Both hashes:
+tower356f7240ad0beadb54f459914547e26ba3bf94c0c3bc3382733a17bd1166e1e1,
+LLVMbe9d9e8c2e8c2d7a0006f40f8c0412c386a60ff6a457601bfc7500df6b544f10,
+crossa644590948f68d0146cba19474003362d3dd3d555d81d8c4610f9caf6d7f486d.
+The candidate parser/module visibility, qualified/typed completion, hover,
+Graph/Fast, Foundation and LLVM/native checks and changed semantic diagnostic
+all passed. Complete raw outputs remain under build/root_ecs_generations_9d9329db.
+The corrected Windows native-process wrapper captured actual exit0,205.541s
+wall/617.719s CPU/2441039872B observed peak working set; stderr is empty.
+This is the process and worker threads, not separately spawned descendants.
+Do not infer a2-vs4 scaling ratio from generations built by different compilers.
+The original failed b0 candidate receipt and uncaptured old native exit remain
+preserved. New success is a new executed source boundary, not a rewritten failure.
+
+ROOT then drained the Node process before pulling c299b862. Later source changes
+are outside this result. The Deck received matching9d portable/LLVM bytes with
+independent remote SHA256 checks for its next bounded fixture batch; active f7
+runs retain their own artifacts. L2's bfb47510 audit disproved the suspected
+nominal-call write through the current producer chain; production is unchanged.
+Ordinary module failure/retry and healthy serial/parallel tests preserve this
+finding. The remaining imported-stack defer and pointer-alias cases have exact
+Tower fixtures and separate native owners; they are not passed here.
+
+This closes the two edited-browser-generation gate at9d. It does not close full
+Node/IDE/shared-current-source acceptance, later-source generations, the
+service-blocked compiler instrumentation or final hosted release. B1's nativef7
+candidate and public768 pin retain their exact scope. ROOT's documentation-only
+publication preserves the verified old Pages runtime; no new runtime deployment
+is claimed, and documentation itself needs no runtime performance comparison.
+All original todo.txt bytes remain unchanged.
