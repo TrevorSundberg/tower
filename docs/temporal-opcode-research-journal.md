@@ -91494,6 +91494,59 @@ no failed result, filtered LLVM assertion or native generation became a pass.
 ROOT's incoming35b93404 native generation/import policy evidence stays separate.
 No tests run or owner sources edited; all D1 edits remain documentation only.
 
+### B2 native useful-core acceptance, frozen 56c892c1 (2026-11-23)
+
+Compiler/runtime source56c892c1e9422f2c667bc7976a5fdc44bd48481a frozen after
+required pull; production allocator/transport, CPU12-23/quota12/24GiB in owned
+tower-b2-work (six physical cores/twelve SMT logical lanes). Prior browser
+boundary receipt05885561 and failed strict retirement gate unchanged; ROOT owns
+that integration. No other lane/cache or todo edits. Initial disk924GiB cache,
+114GiB Windows free; all owned work drained before changing inputs.
+
+Implementation is fixture-only: existing frontend_units_profile gains uniform
+same-body-count units, mutually exclusive with spread, plus post-join used lanes
+and live grants. Defaults unchanged. No runtime scheduler/allocator/policy edit.
+One public768 bootstrap dependency target build,9actions,29.317s wall/61.376s
+CPU/1065876KiB max waited-child RSS. ProfileSHA
+cf43fd17ae9fd326fbb3c3094fb8ea26ea4acff008ff11635f8ce8fe64197654;
+source/build manifests and preserved older executable remain with raw results.
+
+Frozen workloads:1x4096 independent ordinary bodies,12x256 equal bodies,1x16
+serial control; all include existing imported type/decltype/comptime dependency
+helper. Workers1/4/8/12 n1 each large input, observeroff then separate observeron;
+repeat only serial/best in counterbalanced pairs. Confirmed n3 median single1/8
+wall2.1888/1.9856s CPU2.1418/3.2553s (1.102x); multi1/4 wall6.5253/5.5206s
+CPU6.0316/17.0070s (1.182x). Smallserial0.4594s/0.4183s/172.63MiB. Multi12
+wall6.1868s CPU49.4640s RSS1964.06MiB: real overlap, not profitable12-core gain.
+No scaling comparison between different unit counts; observer costs kept separate.
+
+Actual simultaneous distinct semantic workers1/4/8/12 within one unit and
+outerworkers1/4/8/12 across units. Single bodydiscovery150.3->31.7ms, bodywave
+278.3->143.6ms at12; parse619.4->705.8ms and lowering329.4->360.2ms do not
+improve. Semantic dispatch occupancy99.73/93.85/88.30/85.02%; at12 only14.46ms
+with no executing kernel, admission1.28ms. Multi outer-ready vacancy<=1.44lane-ms,
+max refill0.13ms. Aggregate grammarbuildCPU4.018->27.151s at12 dominates
+amplification; no lock/bandwidth cause proven. Concrete B1 followup:
+lr_states_lalr_parallel_result selects itemgraph via nominal capacity before
+extra-lane admission; multi4/12 have zero parallel LR waves but still prepare
+that path. Isolate selection cost under exhausted outer grants; no speculative
+LR tuning/rejected optimization or generic scheduler rewrite shipped.
+
+PASS25 primary samples: existing interpreter answer/body both42, exact complete
+canonical/source comparisons against worker1 across settings/repeats, allbudget
+and owning world/pool teardown checks. PASS legacy versus uniform single-unit
+bytes,12equal source identities, conflicting distribution flags exit2 in both
+orders. Peaklanes<=requested, usedlanes0 afterjoin; singlepeak665MB of1.25GiB,
+multipeak722-1689MB of4GiB, no measured byte saturation. Live preclose result
+bytes567MB/632MB are owned results, not leaks; successful close requires no
+budget grants. No new race/cancel/sanitizer claim for unchanged runtime.
+
+Detailed observations, sample/phase tables, hashes and exact limits:
+docs/compiler_core_acceptance_56c892c1.md. Raw executable/resources/commands/
+JSON/source/canonical/checks: C:/Sandbox/build/codex_ecs_20261122/B2/
+core_acceptance_56c892c1. No object/backend timing, fullnative/generation,
+Node/browser or platform matrix; broader acceptance remains pending ROOT.
+Full profitable12-core acceptance remains OPEN despite genuine overlap.
 ### D1 T7 supplied cross-target execution closure (2026-11-23)
 
 Frozen main84146755f49035aae60a983d6db2a682a3051201; current host/module resources
@@ -91793,6 +91846,49 @@ reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
 
+### ROOT joined compiler build and Windows shared acceptance at47433acf (2026-11-23)
+
+Frozen published47433acff17e8ca6b3fffb6ce9875a37b38aec08 joins A2 unary argument
+queries, L1 known nominal wrappers, L2 transactional reconstruction/error
+handoff, declaration-page policy and prior package fixes. ROOT read the changed
+production methods and owner receipts; this is artifact integration, not a new
+compiler implementation. Pending numeric-only wrappers, malformed grammar shape,
+parse-memory and grammar reuse work are excluded. Protected todo.txt unchanged.
+
+The documented public768 bootstrap paths ran with no private compiler override,
+WASI SDK34/LLVM19 public seed and frozen LLVM source/tablegen/WASI caches.
+Local WSL Orchestral-Revng, CPU8-15, buildjobs4/compilerjobs1. Dependency-aware
+portable6actions49.35wall/57.65CPU seconds/1100088KiB peak; LLVM/cross13actions
+80.44/123.03/1100276; shared30actions64.12/125.87/1101036. All exit0,
+source checksums match before/after each phase, no warning/error build diagnostics.
+RSS is GNU-time process/child high-water, not summed concurrent or live ownership.
+No throughput/regression claim from different build-cache contents.
+
+SHA256:
+- portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad
+- LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6
+- cross4822d31dcb33720cbe49d4a917f3597826bd317a0622d3737619e2ead9aaa8a2
+- project037878ce2273b3df139e877a7c56ff9876b0e66ae9c9e30fee8d7bf20ae4e25e
+- shared50f2ba6054b38057613a8d3e6a47c6f517ee17240a9a29ed67e9e76a634625a8
+- work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c
+
+The original strict test-shared-compiler.mjs passes on Windows Chromium159.0.8154.6,
+Playwright1.65.1/Node21.7.3: pool4/compiler1/compiler4 trials321/1425/3237ms,
+actual close counts5/2/5 and zero worker targets, full serial/parallel canonical
+and Graph/Fast output equality. Final Wasm capacities33947648/90308608/97845248B,
+not process RSS/live owners. Actual input JSON
+46525264891a73cb34302340530ffb182704cf7082bc3e057e99956ec66cc0cc.
+Whole exec-command wall5.99s; aggregate browser CPU/RSS not captured. This is
+current Windows scoped acceptance, not resolution of intermittent Linux retirement,
+the full Node thread file, hosted isolation, final sanitizer or current generations.
+
+Evidence /root/.cache/tower/root_release_47433acf and
+C:/Sandbox/build/codex_ecs_20261122/ROOT_browser_inputs_47433acf: all32 artifacts
+copied with per-file lengths/hashes, source identity and shared_windows.json.
+Old eac/f167 bundles and old ROOT shared binaries remain preserved. New portable/
+LLVM copies were independently rehashed on Deck before D1's focused T1/alias
+adoption launch. All ROOT build/test jobs drained. Runtime publication and new
+public pin remain pending; this receipt reuses verified hosted assets unchanged.
 ### D1 finite43 LLVM-only compiletime acceptance (2026-11-23)
 
 Frozen clean mainc95b04a2d841ff7fb951b51e77319ee4fd1acb25; test source SHA
@@ -91964,3 +92060,86 @@ this exact target-bound caller delta; its old body failure remains historical.
 No43case aggregate, portable matrix, compiler build, generation, sanitizer,
 browser retirement or deployment repeated. Other aliases/newer reactor and
 reconstruction failures retain their owners/evidence; ROOT owns final adoption.
+### D1 exact joined47433acf producer adoption (2026-11-23)
+
+Frozen mounted source18384965d21ee5f710b05db3623f13668d68c993. ROOT supplied
+matching portable/LLVM build47433acff17e8ca6b3fffb6ce9875a37b38aec08 includes A2
+unary and L1 known/named wrapper producers;5cb0b061 is reachable from that build.
+Verified original bytes then copied to fresh D1 adoption_47433acf_18384965 outputs:
+portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad,
+LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Old eac copies/defaults untouched. Test overrides select new bytes despite the
+existing eager default reads. No compiler build or new semantic/test logic.
+
+Actual exact anchored patterns in templates.pattern/portable.pattern/llvm.pattern
+select4T1 registrations,3portable aliases and3LLVM aliases; expected/completed
+names compare exactly. Each fresh process uses Node22.23.5 in tower-d1-ecs, Deck
+AMD Custom APU0932/Linux x64, CPU0,2,8GiB memory+swap, concurrency1, warm filesystem
+and fresh reactors,n1 per group. Shape: `env -u TOWER_INTERPRETER_ONLY
+TOWER_TEST_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_47433acf_18384965/portable.wasm
+TOWER_TEST_LLVM_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_47433acf_18384965/llvm.wasm
+/usr/bin/time -v -o GROUP.time timeout -k 5s 180s node --test
+--experimental-test-isolation=none --test-concurrency=1 --test-name-pattern=PATTERN
+playground/tests/FILE.test.mjs`. No body_continuation or unselected producer runs.
+
+T1 templates4/4PASS: original type_numeric_composition produces42/7/8/12/9 and
+one buffer(i32,2) nominal specialization; generic binding retains42, effect order
+99/1/99/2/2 and identity composition42/7/8; nested -(-2) produces8. Each positive
+retains Graph32/64, idempotent canonical roundtrip and actual LLVM Wasm original/
+canonical execution. Existing templates compare does not add Fast-mode evidence.
+Unsigned-1 rejects with Array length must be between 1 and 1,048,576, empty output
+and0steps. Original Tower fixtures and every assertion remain unchanged. This
+closes the four actual browser T1 adoption gates, not all ordinary type functions.
+
+Three alias/type-body registrations still fail in EACH mode,0/3portable and
+0/3LLVM, all attempted. Exact existing reproducers:
+- decltype_type_fields.tower SHA8b2cf17a518ae80ec6294b703301756310abd744829af2e112a521d5b7185b72:
+  `fn alias(T:type):type { return box(T); }` used by outer.inner. First Graph32
+  source in portable and Graph64 canonical setup in LLVM report Unknown type
+  constructor 'alias'. Their later Fast/canonical/LLVM executions are unstarted.
+- tests/stress/type_fields.tower / stress_sources.tower (hashes in focused manifest):
+  existing256-chain generator completes, then first Graph32 portable or LLVM32
+  compile reports the same alias error. Remaining widths/modes/execution unstarted.
+- semantic_invalid/inference_alias_invalid.tower SHA7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9:
+  alias has an ordinary local before returning T. Graph32 and LLVM32 report Type
+  constructors currently support a struct and return; general compile-time
+  execution is not implemented. Required diagnostic remains Cannot infer type
+  argument 'T'; pass explicit type arguments.64-bit assertions are unstarted.
+These are now confirmed on the joined47433acf pair, not merely older-eac evidence.
+ROOT/L1 retain exact alias/type-body admission; no claimed deeper causal edge or
+resource-memory diagnosis. L1's separate numeric-only ordinary wrapper work and
+D2's body-continuation target-phase investigation remain untouched.
+
+Validation cost wall/CPU seconds/peakKiB: templates6.90/8.87/350964(exit0),
+portable3.80/4.45/212296(exit1), LLVM5.83/7.29/351332(exit1). All0swaps/timeouts/
+cancellations/skips; ten registrations completed, six failures preserved.12other
+template cases and85cases per compiletime process filtered, not counted as passes.
+No repeated aggregate, cap increase, relaxed error or compiler/runtime change.
+Documentation-only performance profiling is inapplicable; these are validation
+costs, not production speedup or useful compiler overlap measurements.
+
+Logs/manifests build/d1_ecs/adoption_47433acf_18384965; Node/host manifest
+5bfa51f298c918ca1cb54dac56f92092282d8db59a9687af45fb32819d78913b, resources
+3d17462f4d5d8bd7b4c385b8a70dcd0bdd870c68ff02f94bbfe38c0ec927d592. Tests
+SHA3193b83fd1301966a4c8677a08764d5b10bde31c390296e3aca1c1756edef136 / b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d.
+All hashes verify after runs. Jobs drained/lock released; D2 corrected its brief
+owner-file overwrite after failed lock acquisition and confirmed it started no
+heavy process; corrected ownership receipt preserved before release. No sibling
+artifact/cache mutations. ROOT retains final joined-source release acceptance.
+B2 core-acceptance publication reconciliation: implementation/receiptf0b8916c
+merged complete incoming18384965 in604096da after required ff-only pull refused
+divergence. Both journal histories/README entries preserved; measured profile
+SHA3fa3430df1c23811837197288e5a5bc58660267175c81c5b70514238cea4d779
+unchanged; diff checks pass. Incoming nominal-wrapper/backend reconstruction/
+Node/test work is excluded once from frozen56c892c1 evidence. No rebuilt or
+relabeled artifacts, repeated matrix, or deployment claim; owned jobs idle.
+
+Joined-pair adoption reconciliation: required ff-only pull refused divergence;
+normal merge2d8a96fe9d4849a1b1e3dfd3cba84b4748f9e653 preserves c39efca5 and
+published1210dc21. All selected Node/host/artifact hashes still match. Exactly one
+existing resource differs: tests/frontend_units_profile.tower, the separate native
+uniform-workload profiler, registered but never imported/executed by these cases.
+Preserve its mismatch log and original registry identity; selected language and
+fixture closure unchanged. Reuse the4passes/6failures without rerunning; incoming
+ROOT build/shared/core receipts retain their own sources and do not erase the
+three unresolved alias/type-body cases. No D2 body-continuation change arrived.

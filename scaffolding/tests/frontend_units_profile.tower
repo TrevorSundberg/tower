@@ -270,6 +270,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_check(work_thread_available(), "profile requires production native worker transport");
     var backend_mode = false;
     var spread = false;
+    var uniform = false;
     var optimize = false;
     var dependencies = false;
     var grammar_profile = false;
@@ -279,8 +280,9 @@ export fn main(argc: i32, argv: u8**): i32 {
         else { if strcmp(argv[i], "grammar") == 0 && !grammar_profile { grammar_profile = true; }
         else { if strcmp(argv[i], "dependencies") == 0 && !dependencies { dependencies = true; }
         else { if strcmp(argv[i], "artifacts") == 0 && artifacts == null && i + 1 < argc { artifacts = argv[++i]; }
-        else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; }
-        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } } }
+        else { if strcmp(argv[i], "spread") == 0 && !spread && !uniform { spread = true; }
+        else { if strcmp(argv[i], "uniform") == 0 && !uniform && !spread { uniform = true; }
+        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } } } }
     }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
@@ -368,8 +370,8 @@ export fn main(argc: i32, argv: u8**): i32 {
             var world = frontend_modules_world(frontend_units_environment(batch, i));
             compiler_world_grammar(world).observer = { context: bits(void*, &grammar_observations[i - 1]), event: units_profile_grammar };
         }
-        var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
-            : (i == count ? bodies : 0);
+        var unit_bodies = uniform ? bodies : (spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
+            : (i == count ? bodies : 0));
         units_check(frontend_units_source(batch, i, "profile_unit.tower", source.data,
             lengths[unit_bodies]), "profile source snapshot");
         if dependencies {
@@ -508,8 +510,8 @@ export fn main(argc: i32, argv: u8**): i32 {
         }
         units_check(answer != null, "profile answer binding");
         units_profile_result(answer, null, 0);
-        var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
-            : (i == count ? bodies : 0);
+        var unit_bodies = uniform ? bodies : (spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
+            : (i == count ? bodies : 0));
         units_profile_save(artifacts, i, ".tower", source.data, lengths[unit_bodies]);
         if unit_bodies != 0 {
             units_check(body != null, "profile ordinary loop body binding");
@@ -538,6 +540,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_profile_text(&out, ",\"optimized\":"); units_profile_number(&out, optimize ? 1 : 0);
     units_profile_text(&out, ",\"dependencies\":"); units_profile_number(&out, dependencies ? 1 : 0);
     units_profile_text(&out, ",\"spread\":"); units_profile_number(&out, spread ? 1 : 0);
+    units_profile_text(&out, ",\"uniform\":"); units_profile_number(&out, uniform ? 1 : 0);
     units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, elapsed);
     units_profile_text(&out, ",\"cpu_us\":"); units_profile_number(&out, units_profile_cpu(&after) - units_profile_cpu(&before));
     units_profile_text(&out, ",\"outer_cpu_ns\":"); units_profile_number(&out, outer_cpu_ns);
@@ -559,6 +562,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_profile_text(&out, ",\"refill_ns\":"); units_profile_number(&out, refill_ns);
     units_profile_text(&out, ",\"refill_max_ns\":"); units_profile_number(&out, refill_max_ns);
     units_profile_text(&out, ",\"reserved_peak_lanes\":"); units_profile_number(&out, convert(u64, reservation.peak_lanes));
+    units_profile_text(&out, ",\"lanes_after_join\":"); units_profile_number(&out, convert(u64, reservation.used_lanes));
+    units_profile_text(&out, ",\"live_grants\":"); units_profile_number(&out, convert(u64, reservation.live));
     units_profile_text(&out, ",\"retained_bytes\":"); units_profile_number(&out, convert(u64, reservation.used_bytes));
     units_profile_text(&out, ",\"byte_limit\":"); units_profile_number(&out, convert(u64, reservation.bytes));
     units_profile_text(&out, ",\"object_bytes\":"); units_profile_number(&out, convert(u64, object_bytes));
