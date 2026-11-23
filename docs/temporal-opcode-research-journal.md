@@ -89170,3 +89170,11 @@ inputs. Current native closure is complete; browser reactor rebuild/adoption,
 independent pointer-type-value limits and final release remain their existing
 owners' gates. No browser/LLVM/generation/sanitizer or deployment claim. All owned
 processes drained; prior call-discovery correction and all earlier logs preserved.
+B1 membership rejection publication reconciliation: required ff-only pull refused
+divergence; normal merge41ee303a9bf4da926ed4fbff64c36e98c10ac0c3 preserves complete
+incoming1a5241cb history without conflict. LR analysis/LALR/work implementations
+are byte-identical to frozen415a54e9. Later semantic/defer/pool/observer/fixture
+changes retain independent owner evidence, not validation by these frozen
+binaries. Our diff against incoming main is receipt/journal only; no rejected
+index or new API is present. Reused unchanged frozen checks; no unnecessary
+merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.

@@ -126,3 +126,10 @@ Object hashes and exact fixture hashes are in `pair_manifest.sha256`.
 The task ends with this measured rejection and restored production behavior.
 No public pin, broad native-generation/browser/sanitizer matrix, hosted release
 or later-source acceptance is claimed; ROOT retains final release ownership.
+
+Publication reconciliation preserves incoming1a5241cb through complete-history
+merge41ee303a9bf4da926ed4fbff64c36e98c10ac0c3. The LR implementation is unchanged;
+incoming semantic/defer, pool, observer and fixture changes retain their owners'
+evidence. B1 contributes only this receipt and journal. The retained compiler,
+functional checks and timings remain exactly at415a54e9; they do not validate
+those later compiler inputs or claim a rebuilt latest-main runtime.
