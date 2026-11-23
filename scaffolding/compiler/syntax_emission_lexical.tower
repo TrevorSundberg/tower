@@ -1,6 +1,7 @@
 import tower;
 import grammar_attributes;
 import .library.vector;
+import .library.work_budget_types;
 import syntax_emission;
 import syntax_emission_types;
 import syntax_types;
@@ -166,6 +167,7 @@ fn emission_index_lexical(value: SyntaxEmission*): bool {
     if value.names.length != 0 {
         // Immutable views need only one bounded allocation, with no growth.
         if value.names.length > ~convert(usize, 0) / sizeof(SyntaxEmissionLiteral) {
+            value.resource_error = WorkBudgetError.Invalid;
             return false;
         }
         value.lexical.literals = alloc(SyntaxEmissionLiteral, value.names.length);
@@ -240,6 +242,14 @@ export fn syntax_emission_keyword_starts(value: SyntaxEmission*): bool {
 }
 
 export fn syntax_emission_lexicon(value: SyntaxEmission*): SyntaxLexicon* {
+    var error = WorkBudgetError.None;
+    return syntax_emission_lexicon_result(value, &error);
+}
+
+export fn syntax_emission_lexicon_result(value: SyntaxEmission*, error: WorkBudgetError*): SyntaxLexicon* {
+    *error = WorkBudgetError.Invalid;
+    if value is null { return null; }
+    *error = WorkBudgetError.Memory;
     var result = lexicon_create();
     if result is null {
         return null;
@@ -249,6 +259,7 @@ export fn syntax_emission_lexicon(value: SyntaxEmission*): SyntaxLexicon* {
     while index < value.lexical.tokens.length {
         var row = &value.lexical.tokens.data[index];
         if row.table is null {
+            *error = WorkBudgetError.Invalid;
             ok = false;
             break;
         }
@@ -278,6 +289,7 @@ export fn syntax_emission_lexicon(value: SyntaxEmission*): SyntaxLexicon* {
         ++index;
     }
     if ok {
+        *error = WorkBudgetError.None;
         return result;
     }
     lexicon_destroy(result);
@@ -419,6 +431,12 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
 }
 
 export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: LRCompletion*, type_name: u8*): u8* {
+    var error = WorkBudgetError.None;
+    return syntax_emission_completion_close_result(value, completion, type_name, &error);
+}
+
+export fn syntax_emission_completion_close_result(value: SyntaxEmission*, completion: LRCompletion*, type_name: u8*, error: WorkBudgetError*): u8* {
+    *error = WorkBudgetError.None;
     var words: vector(u8*);
     vector_init(&words);
     var ids: vector(u32);
@@ -426,6 +444,7 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
     var ok = emission_suffix_candidates(value, &words, &ids);
     ok &&= vector_push(&words, type_name);
     ok &&= vector_push(&ids, convert(u32, SyntaxTokenId.Name));
+    if !ok { *error = WorkBudgetError.Memory; }
     var result: FormatResult = default;
     var format: FormatEngine = default;
     format.result = &result;
@@ -434,6 +453,7 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
         var path: usize[SyntaxSuffixCapacity];
         var size = lr_completion_suffix(completion, ids.data, ids.length, &path[0],
             sizeof(decltype(path)) / sizeof(usize));
+        *error = lr_completion_resource_error(completion);
         ok = size != lr_none();
         if ok {
             var index: usize = 0;
@@ -443,12 +463,15 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
                 ++index;
             }
             ok = !result.failed;
+            if !ok { *error = WorkBudgetError.Memory; }
         }
     }
     vector_dispose(&words);
     vector_dispose(&ids);
     if ok {
-        return format_parser_host_text(&result);
+        var text = format_parser_host_text(&result);
+        if text is null { *error = WorkBudgetError.Memory; }
+        return text;
     }
     format_dispose(&result);
     return null;

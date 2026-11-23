@@ -1020,6 +1020,12 @@ all six exported operations, physical retention, alignment, denial and ownership
 transfer. The existing native work-test object rules apply supported sanitizer
 instrumentation to both client and provider; no compiler entity unit is linked.
 
+`tower-frontend-tests RESOURCE_ROOT grammar-resource` selects the existing syntax
+version construction, cache and captured-replacement allocation-failure sweeps.
+It checks typed resource denial, ordinary grammar diagnostics, optional uncached
+success, pinned type admission and exact cleanup.
+It uses the serial fault allocator; it does not test production worker overlap.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
