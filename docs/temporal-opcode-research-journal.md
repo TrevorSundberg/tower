@@ -85302,3 +85302,15 @@ Source-language UBSan and Windows/macOS/browser sanitizer coverage are unsupport
 ASan physical allocation checks are not per-slot language lifetime checks or a
 proof of universal race freedom. This closes the frozen storage milestone only;
 ROOT retains integrated compiler/query/browser instrumentation and release gates.
+
+Storage milestone publication reconciliation: local41c3160d rebased cleanly as
+`8c12894f` onto published `36fe4488`, retaining complete merge history. The first
+pull had a host DNS failure; a fresh DNS lookup returned20.64.190.225, and a
+per-process Git `http.curloptResolve=github.com:443:20.64.190.225` recovered normal
+HTTPS with certificate checks unchanged. No persistent resolver setting changed.
+Incoming compiler changes intersect neither the captured fixture/provider import
+depfiles nor build commands. Libraries, host providers, bootstrap, CMake and tools
+are unchanged; both corrected fixture SHA256s still exactly match the instrumented
+inputs. Reuse the52 passing storage receipts without rebuilding unrelated compiler
+work. `incoming_paths.txt` records that comparison; current-main compiler/query
+instrumentation remains ROOT's gate. All owned jobs remain drained.
