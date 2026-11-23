@@ -22,6 +22,8 @@ extern fn entity_member_index(parent: Entity*, name: u8*): usize;
 extern fn entity_child_at(entity: Entity*, index: usize): Entity*;
 extern fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool;
 extern fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): WorkBudgetError;
+extern fn entity_replace_child_result(parent: Entity*, index: usize, replacement: Entity*): WorkBudgetError;
+extern fn entity_take_last_child_result(parent: Entity*, error: WorkBudgetError*): Entity*;
 extern fn entity_view_open(anchor: Entity*): EntityView*;
 extern fn entity_view_open_result(anchor: Entity*, error: WorkBudgetError*): EntityView*;
 extern fn entity_view_close(view: EntityView*): void;

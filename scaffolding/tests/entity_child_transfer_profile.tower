@@ -1,0 +1,58 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .host.memory;
+import .host.work_portable;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+fn check(ok: bool): void { if !ok { trap("Child transfer profile mismatch", 0); } }
+fn timestamp(): i64 {
+    var stamp: i64[2];
+    check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Child transfer profile owns no component lifecycles", 0);
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    check(argc == 2 && sizeof(usize) == 8);
+    var rounds: usize = 0;
+    if strcmp(argv[1], "small") == 0 { rounds = 1024; }
+    if strcmp(argv[1], "large") == 0 { rounds = 1048576; }
+    check(rounds != 0);
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var nodes: Entity*[2];
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) { nodes[i] = entity_create(store); check(nodes[i] != null); }
+    check(entity_attach(nodes[0], root, null));
+    var before: i64[18]; var after: i64[18];
+    check(getrusage(0, &before[0]) == 0);
+    var start = timestamp();
+    for(var round: usize = 0; round < rounds; round++) {
+        for(var i: usize = 0; i < count; i++) {
+            var next = nodes[(i + 1) % count];
+            check(entity_replace_child(root, 0, next));
+            var taken = entity_take_last_child(root);
+            check(taken == next && taken.parent == null && taken.references == 2);
+            check(entity_attach(taken, root, null));
+            entity_release(taken);
+        }
+    }
+    var elapsed = timestamp() - start;
+    check(getrusage(0, &after[0]) == 0);
+    check(root.child_count == 1 && root.children[0].entity == nodes[0]
+        && nodes[0].parent == root && nodes[0].references == 2
+        && nodes[1].parent == null && nodes[1].references == 1);
+    var retained = store.allocation.capacity + root.child_capacity * sizeof(EntityChild);
+    for(var i: usize = 0; i < count; i++) { entity_release(nodes[i]); }
+    entity_release(root);
+    check(store.entity_count == 0 && entity_store_dispose(store));
+    print(rounds); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(retained);
+    return 0;
+}

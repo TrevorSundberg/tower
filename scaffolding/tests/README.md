@@ -1210,3 +1210,13 @@ exact `Memory`/`Capacity`/`Busy`/`Invalid` results and budget-pressure retry,
 compares copied parser/provenance data, and checks reference and byte ownership
 after discarding partial destinations. This selector requires serial allocator
 transport; real parallelism is tested separately by query and unit-overlap runs.
+
+`entity_attach_leases.tower` includes replacement/removal of leased children.
+`entity_mutation_results.tower` additionally checks exact invalid, pinned/leased,
+retain-overflow, empty-parent and successful ownership-transfer results. Valid
+replacement/removal must succeed with the next allocation denied and leave the
+allocation count unchanged. `entity_child_transfer_profile.tower` measures the
+same valid replace/take/reattach sequence for small/large iteration counts, checks
+ordered identity/reference counts and final disposal, and is a measurement tool
+rather than a default test. Shared containment publication is serial; this
+microbenchmark does not claim worker scaling or total-heap accounting.

@@ -1673,3 +1673,16 @@ Adjacent replace/take lease regression is now actually reproduced2failures/exit1
 in cache-only Tower fixture. Their checked APIs remain a separately proposed
 next change. Current tests do not establish universal race freedom, exhaustion-
 safe queued holds or closed raw-Foundation ownership policy.
+### ROOT takeover: child replacement/removal leases
+
+After A2's service stop, ROOT reproduces the two adjacent lease failures and adds
+checked replace/take APIs through the existing entity implementation, preserving
+legacy wrappers. Extended existing fixtures cover displaced/removed-child leases,
+exact Invalid/Busy/Exhausted/None, stable failure state, name/order and allocation-
+free reference transfer. Native and supported address/thread checks pass, including
+real concurrent stages; final joined metadata compatibility checks pass separately.
+Same-path compiler32 and isolated transfer24 profiles preserve outputs/retention;
+large transfer phase cost +1.47%, measured descriptor/child storage unchanged2264B.
+Full source/artifact/measurement details and limitations are in the journal.
+Queued hold exhaustion/aliasing, raw node pages, the earlier node9-pair control and
+other whole-compiler/release work are still open. No restarted/replacement A2.
