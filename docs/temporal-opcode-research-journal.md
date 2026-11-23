@@ -89341,7 +89341,9 @@ are byte-identical to frozen415a54e9. Later semantic/defer/pool/observer/fixture
 changes retain independent owner evidence, not validation by these frozen
 binaries. Our diff against incoming main is receipt/journal only; no rejected
 index or new API is present. Reused unchanged frozen checks; no unnecessary
-merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.Publication reconciliation: repair5ce2e0b9 committed first; required ff-only pull
+merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.
+
+D2 publication reconciliation: repair5ce2e0b9 committed first; required ff-only pull
 reported divergence, then complete publice7558fa8 history merged as
 b52c9d5882221b887d39f82b076edcf29a1b3315 without conflict. Later A1/L2/A2/D1
 producer/fixture receipts and both journal histories are retained. Own three code
