@@ -65,12 +65,18 @@ fn measure_interpreters(report: MeasureReport*, inputs: MeasureInputs*, name: u8
 
 fn measure_kernel(path: u8*, memory: bool, iterations: usize): void {
     var text: ByteBuffer = default; defer bytes_dispose(&text);
+    var element_count: usize = 4096;
     measure_text(&text, "import foundation;\n");
-    if memory { measure_text(&text, "var data=alloc(u32,4096); var i:u32=0; var sum:u32=1; fill(data,0,16384); loop { var done=i=="); }
+    if memory {
+        measure_text(&text, "var data=alloc(u32,"); measure_number(&text, element_count);
+        measure_text(&text, "); var i:u32=0; var sum:u32=1; fill(data,0,"); measure_number(&text, element_count * sizeof(u32));
+        measure_text(&text, "); loop { var done=i==");
+    }
     else { measure_text(&text, "var state:u32=7; var i:u32=0; loop { var done=i=="); }
     measure_number(&text, iterations);
     if memory {
-        measure_text(&text, "; if done { break; } var slot=i%4096; var value=data[slot]; sum=sum*1664525; sum=sum+value; sum=sum+i; data[slot]=sum; i=i+1; } print(sum); free(data);");
+        measure_text(&text, "; if done { break; } var slot=i%"); measure_number(&text, element_count);
+        measure_text(&text, "; var value=data[slot]; sum=sum*1664525; sum=sum+value; sum=sum+i; data[slot]=sum; i=i+1; } print(sum); free(data);");
     } else {
         measure_text(&text, "; if done { break; } state=state*1664525; state=state+1013904223; var half=state/65536; state=state^half; i=i+1; } print(state);");
     }
