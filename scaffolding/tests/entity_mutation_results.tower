@@ -149,6 +149,71 @@ fn child_results(): void {
     entity_release(child); entity_release(replacement); entity_release(root); entity_release(foreign);
     check(entity_store_dispose(store) && entity_store_dispose(other) && tower_test_buffer_count() == baseline);
 }
+fn queue_alias_payload(stage: EntityStage*, type: Entity*): MutationReferences* {
+    var owner = entity_stage_create(stage, stage.anchor);
+    check(owner != null);
+    var component = entity_component_add(owner, type);
+    check(component != null);
+    var value = bits(MutationReferences*, entity_component_data(component));
+    *value = default;
+    return value;
+}
+fn queue_alias_trial(grow: bool, failure: usize): usize {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var nodes: Entity*[2];
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) { nodes[i] = entity_create(store); }
+    check(entity_register(type, sizeof(MutationReferences), alignof(MutationReferences), 1));
+    var stage = entity_stage_open(root);
+    loop {
+        var value = queue_alias_payload(stage, type);
+        check(entity_stage_references_result(stage, &nodes[0], count) == WorkBudgetError.None);
+        value.first = nodes[0]; value.second = nodes[1];
+        if !grow || stage.references.length == stage.references.capacity { break; }
+        check(stage.references.capacity - stage.references.length >= count);
+    }
+    var value = queue_alias_payload(stage, type);
+    var length = stage.references.length;
+    var capacity = stage.references.capacity;
+    var data = stage.references.data;
+    if length < capacity {
+        check(entity_stage_references_result(stage, &data[length], 1) == WorkBudgetError.Invalid);
+        check(entity_stage_references_result(stage, &data[length - 1], count) == WorkBudgetError.Invalid);
+        check(stage.references.length == length && stage.references.data == data);
+    }
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var result = entity_stage_references_result(stage, &data[length - count], count);
+    var calls = tower_test_buffer_allocations() - before;
+    tower_test_buffer_fail_after(MutationUnlimited);
+    if !grow || failure == MutationUnlimited {
+        check(result == WorkBudgetError.None && stage.references.length == length + count);
+        value.first = nodes[0]; value.second = nodes[1];
+        check(grow ? calls != 0 : calls == 0);
+    } else {
+        check(result == WorkBudgetError.Memory && stage.references.length == length
+            && stage.references.capacity == capacity && stage.references.data == data);
+    }
+    for(var i: usize = 0; i < stage.references.length; i++) {
+        check(stage.references.data[i] == nodes[i % count]);
+    }
+    check(stage.held == 0 && nodes[0].references == 1 && nodes[1].references == 1);
+    entity_stage_hold(stage);
+    entity_stage_hold(stage);
+    check(nodes[0].references == 1 + stage.references.length / count
+        && nodes[1].references == nodes[0].references);
+    entity_stage_discard(stage);
+    for(var i: usize = 0; i < count; i++) {
+        check(nodes[i].references == 1);
+        entity_release(nodes[i]);
+    }
+    entity_release(type); entity_release(root);
+    check(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+    return calls;
+}
 fn allocation_trial(operation: MutationOperation, failure: usize): usize {
     var baseline = tower_test_buffer_count();
     var store = entity_store_create();
@@ -218,6 +283,9 @@ export fn main(argc: i32, argv: u8**): i32 {
     check(!work_thread_available());
     invalid_and_ordered();
     child_results();
+    check(queue_alias_trial(false, 0) == 0);
+    var alias_calls = queue_alias_trial(true, MutationUnlimited);
+    for(var failure: usize = 0; failure < alias_calls; failure++) { queue_alias_trial(true, failure); }
     var operations: MutationOperation[3];
     operations[0] = MutationOperation.Attach;
     operations[1] = MutationOperation.NamedStage;

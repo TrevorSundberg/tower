@@ -1686,3 +1686,11 @@ large transfer phase cost +1.47%, measured descriptor/child storage unchanged226
 Full source/artifact/measurement details and limitations are in the journal.
 Queued hold exhaustion/aliasing, raw node pages, the earlier node9-pair control and
 other whole-compiler/release work are still open. No restarted/replacement A2.
+
+ROOT subsequently closes the reference-queue alias case: live self-owned slices
+retain their index across reserve, while spare/overlong ranges return Invalid
+before reads. No layout or extra allocation is added. Extended mutation tests
+cover growth denial, ordering, repeated hold and full finalizer cleanup. Current
+native, supported address/leak/thread and compiler32 measurements pass; the
+journal preserves exact scope and costs. Hold exhaustion, raw node accounting
+and the earlier node9-pair control remain open.
