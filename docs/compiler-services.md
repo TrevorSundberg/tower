@@ -325,7 +325,12 @@ backend/decoder and generated link plan, while reusable vector capacity remains.
 The latest backend result, canonical text, response, target, input/output capacity
 and runtime bytes can therefore outlive a request. Explicit `BackendSource`
 owners instead call `backend_source_close`; their supplied runtime bytes remain
-borrowed and must outlive them. Browser compilation-pool close terminates each
+borrowed and must outlive them. Foundation reconstruction retains the previous
+valid text until recheck succeeds. Joined input/imported graphs and formatter
+scratch retire before that recheck; frontend resource category and offset pass
+to the existing backend receipt. A static allocation-failure response keeps the
+category where supported; its source offset remains in the backend receipt.
+Browser compilation-pool close terminates each
 worker VM and awaits the transport's termination result. Dropping a cached
 `loadLLVM` object relies on host garbage collection; its optional `close` call
 does not currently perform a Tower teardown. Whole-VM retention measurements
