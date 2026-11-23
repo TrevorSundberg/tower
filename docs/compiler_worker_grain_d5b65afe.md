@@ -138,3 +138,13 @@ executables and all build/failure/pass logs are retained at
 remain unchanged. Current data supports this grain on these workloads; grammars
 with different range densities may have different crossover points. Full later-
 source/platform/sanitizer/hosted acceptance remains ROOT-owned and pending.
+
+Publication merged complete incoming history through `3a7f4b39` as
+`e292754d32a313bb9b527a8b6751967630a4c375`, including B1's range-union optimization.
+No scheduling-file conflict or interface rewrite occurred. Nine affected native
+actions rebuilt; LR/pool/budget, nested-admission/cancellation, dependency outputs
+and the150-trial oracle pass again. Merged1000-body controls at1/4 have exact
+canonical/source bytes and known42 results; parallel propagation still observes
+44 waves and four simultaneous kernels. Their0.759/0.814s wall is a separate
+single observation on changed source, not the paired grain speedup above. Logs
+and artifacts named `b2_admission_merged_*` are retained with the frozen receipt.
