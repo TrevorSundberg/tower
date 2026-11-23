@@ -64,10 +64,14 @@ Known numeric forwarding into nominal construction is supported. For example,
 `wrapped(i32, 2)` retains the identity of `buffer(i32, 2)`. A chain of single-return
 calls to an existing static constructor binds its source-declared integer
 parameters through the ordinary integer-argument queries before its body is
-cloned. Nested generic forwarding uses the same canonical specialization cache.
-This restores the original numeric constructor contract. Numeric-only ordinary
-wrappers still check their bodies without a bound call extent; forwarding such
-a formal into nominal construction remains unsupported.
+cloned. Nested forwarding uses the same canonical specialization cache, including
+numeric-only wrappers such as `fn integers(size: usize): type { return buffer(i32, size); }`.
+At a known type-use site, `integers(2)` is the same nominal type as `buffer(i32, 2)`.
+The original forwarding declaration retains its ordinary callable identity;
+its body is demanded by actual calls/function references, while known type uses
+own their bound clones. Undemanded forwarding bodies are omitted from canonical
+output. Runtime calls cannot provide a dynamic nominal extent merely because
+one caller happens to pass a literal.
 
 General bodies and ordinary callees still execute normally; non-integer or
 dependent parameter signatures keep that path. This bounded known-call case

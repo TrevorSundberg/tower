@@ -1,0 +1,24 @@
+import tower;
+import nominal_wrapper_checks;
+import frontend_units;
+
+fn numeric_wrapper_errors(root: u8*): void {
+    var paths: u8*[7];
+    paths[0] = "/tests/semantic_invalid/numeric_wrapper_unknown.tower";
+    paths[1] = "/tests/semantic_invalid/numeric_wrapper_written.tower";
+    paths[2] = "/tests/semantic_invalid/numeric_wrapper_mismatch.tower";
+    paths[3] = "/tests/semantic_invalid/numeric_wrapper_order.tower";
+    paths[4] = "/tests/semantic_invalid/numeric_wrapper_effect.tower";
+    paths[5] = "/tests/semantic_invalid/numeric_wrapper_runtime.tower";
+    paths[6] = "/tests/semantic_invalid/numeric_wrapper_cycle.tower";
+    var messages: u8*[7];
+    messages[0] = "binding is mutable, escaped or lacks an initializer";
+    messages[1] = messages[0];
+    messages[2] = "Expected buffer(i32, 2)*, got buffer(i32, 3)*";
+    messages[3] = "before its initialization";
+    messages[4] = "needs a compile-time storage or value capability";
+    messages[5] = messages[0];
+    messages[6] = "dependency cycle";
+    nominal_wrapper_failures(root, &paths[0], &messages[0], sizeof(decltype(paths)) / sizeof(u8*));
+    puts("Numeric-only wrappers: 28 exact failure/offset, runtime-demand and joined ownership checks passed.");
+}
