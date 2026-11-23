@@ -1916,3 +1916,17 @@ require the correct literal output, then deliberately compare against129 or94;
 both return1 after cleanup and are registered with `WILL_FAIL`. Assertion crashes
 remain failures. These are single-owner native interpreter checks of reconstructed
 LLVM data, not native LLVM/Wasm machine execution or general overflow detection.
+
+`tower-storage-tests RESOURCE_ROOT backend-import` also checks unsigned LLVM
+multiply-overflow reconstruction after its existing admission/failure sweep.
+`backend-import-overflow-i1` and `backend-import-overflow-wide` select the focused
+parts. The verifier-only LLVM fixture retains parameterized intrinsic calls at
+i1/i8/i16/i32/i64, including zero, maximum, exact-boundary and wrapping cases.
+Independent truth-table/factor-identity oracles check product and flag, separately
+and together, with repeated extracts in different blocks. Checked Foundation is
+reparsed and executed in Graph/Fast at target32/64 (60 configurations total).
+Verified aggregate stores, vectors and i128 must fail with exact diagnostics and
+no partial publication; an earlier diagnostic keeps its text/offset. Both worlds,
+buffer counts and budget grants drain. The existing CTest registration includes
+all of this once; its 120-second limit is unchanged. These are single-owner
+native importer/interpreter checks, not LLVM machine execution or worker scaling.

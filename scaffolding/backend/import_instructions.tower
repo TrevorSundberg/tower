@@ -41,14 +41,24 @@ fn bi_multiply_overflow(c: BackendImport*, instruction: void*): void {
     var scalar = bi_scalar(c, type);
     var a = bi_value(c, left);
     var b = bi_value(c, LLVMGetOperand(instruction, 1));
-    var product = bi_mask(c, bi_binary(c, OMul, a, b, scalar), type);
-    var nonzero = bi_binary(c, ONe, a, bi_const(c, scalar, 0), SBool);
-    // Select a nonzero divisor before evaluating the division. Zero operands
-    // have a defined product/flag and must never introduce a division trap.
-    var divisor = bi_select(c, nonzero, a, bi_const(c, scalar, 1), scalar);
-    var maximum = bi_const(c, scalar, bi_pow2(LLVMGetIntTypeWidth(type)) - 1);
-    var limit = bi_binary(c, ODiv, maximum, divisor, scalar);
-    var overflow = bi_binary(c, OAnd, nonzero, bi_binary(c, OGt, b, limit, SBool), SBool);
+    var product: void* = null;
+    var overflow: void* = null;
+    if LLVMGetIntTypeWidth(type) == 1 {
+        // Unsigned i1 has only 0 and 1: multiplication is AND and cannot
+        // overflow. Foundation bool has no ordered arithmetic; never construct
+        // its multiply/divide/comparison even for an unused aggregate field.
+        product = bi_binary(c, OAnd, a, b, SBool);
+        overflow = bi_const(c, SBool, 0);
+    } else {
+        product = bi_mask(c, bi_binary(c, OMul, a, b, scalar), type);
+        var nonzero = bi_binary(c, ONe, a, bi_const(c, scalar, 0), SBool);
+        // Select a nonzero divisor before evaluating the division. Zero operands
+        // have a defined product/flag and must never introduce a division trap.
+        var divisor = bi_select(c, nonzero, a, bi_const(c, scalar, 1), scalar);
+        var maximum = bi_const(c, scalar, bi_pow2(LLVMGetIntTypeWidth(type)) - 1);
+        var limit = bi_binary(c, ODiv, maximum, divisor, scalar);
+        overflow = bi_binary(c, OAnd, nonzero, bi_binary(c, OGt, b, limit, SBool), SBool);
+    }
     var use = LLVMGetFirstUse(instruction);
     while use != null {
         if backend_failed(c.backend) { return; }

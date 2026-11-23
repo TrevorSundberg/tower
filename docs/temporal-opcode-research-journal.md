@@ -95700,3 +95700,44 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+
+### 2026-11-23 D1: reproduce and repair admitted i1 multiply-overflow reconstruction
+
+Frozen published e637ba384037a6305fd945dd1e7c6296f5a98635, independently reviewed
+R1 from8ff77438. Actual verifier-only LLVM parameter calls through existing native
+import/storage fixture reproduced `This operation requires integer operands`
+in all12 i1 target32/64 × both/product/flag × Graph/Fast rechecks before helper
+edit; start remained blocked, zero steps/owners and exit1 preserved. LLVM19
+[umul contract](https://releases.llvm.org/19.1.0/docs/LangRef.html#llvm-umul-with-overflow-intrinsics)
+and ordinary Foundation bool checking require i1 product AND/flag false. Added
+that branch before any multiply/divide/order nodes; wider path and staged
+extract publication remain unchanged. No alternative IR, folder or active L2
+fixture/producer clone edits.
+
+New Tower fixture/provider covers all four i1 inputs plus independent width/factor
+oracles for8/16/32/64, runtime parameters, repeated cross-block extracts and
+product-only/flag-only use. All60 Graph/Fast configurations now pass; eight valid
+LLVM aggregate/vector/i128/earlier-error controls preserve exact diagnostics,
+offsets, no partial output and zero buffer/grant ownership. Existing CTest
+`tower-storage-backend-import` actually passes its prior allocation-fault sweep
+and new suite once (7.88s, no skips/timeouts, unchanged120s timeout). README/audit
+record selectors and exact source blobs. Native reconstruction/interpreter
+execution is distinguished from machine-code/Wasm acceptance.
+
+Canonical public768, Deck CPU0,2/8GiB, Docker LLVM19 Release jobs1, one cache and
+one dependency-aware tower-storage-tests target. Helper-only incremental build
+12.51wall/12.23CPU/496932KiB. Wider same frozen inputs, one fresh-process/warm-FS
+sample: before5.72wall/5.67CPU/127000KiB; after5.65/5.60/126692. i1 failure1.64s
+versus successful execution1.56s is validation cost, not speedup. Final registered
+check7.91wall/7.65CPU/127068KiB. Three initial fixture build errors (two missing
+declarations, reserved local spelling) are preserved and corrected, not counted
+as passes. Logs, old/candidate hashes and measurements:
+`build/d1_ecs/umul_fix_e637ba38/`; audit contains full receipt.
+
+The exact L2 optimized entity_views request was unavailable locally/shared paths
+inspected; no substitute workload or extra source-runner build claimed equivalent.
+Serial/four-worker large-request comparison remains an integrated gate if needed;
+no scheduler change or scaling claim. No broad compiler/reactor, sanitizer,
+threaded stress, generation or hosted release attempted; ROOT owns final adoption.
+Owned jobs drained and heavy lock released; todo/history preserved.
