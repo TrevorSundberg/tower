@@ -67888,6 +67888,77 @@ negative borrowed-view evidence, and validate affected final source. Whole curre
 clean public-bootstrap/browser/generation matrices and named-lease deployment
 remain unrun, so D1's overall acceptance goal remains active.
 
+### D1 follows the typed receipt through actual startup/growth denial
+
+After immutable9842 export and D2's priority race group, D1 adds only6lines/
+2replacements in semantic_resource_checks: typed None before pressure/isolated
+publication and typed Capacity at the already-checked diagnostic offset after
+actual failure selection. Complete A1 producer ABI now exists. Existing24case
+workload, exact private probes and zero-ledger assertions remain unchanged.
+No production change or new standalone setter test.
+
+D2's next slot completes and releases actual08:41:50UTC: its beforeTSan66
+reproduces; ownerpatch normal3/address3/thread10 passes unchangedreader oracles.
+D1 has not yet adopted that patch/history and does not relabel its own compiler
+package. Reacquired hostlock atomically for a bounded group after that release.
+
+D1 session42717 native PASS: preserved9842 runner3before on frozen equivalent
+phase inputs, smallest public leaf6.40wall/6.21CPU/215164KiB,2step native
+query-object refresh6.44/6.22/238596,3after. Beforewall.05/.06/.06s,
+CPU.03/.05/.06,RSS50984/50920/50976; afterwall.04/.04/.03,
+CPU.04/.04/.03,RSS51000/50808/50872. Same24checked cases and production inputs;
+short scheduling/timer variation does not imply a speed gain from added assertions.
+Perwidth/worker nanoseconds retained in phase_receipt_9842. Current address/thread
+focused24cases3each pending; no repeat of unaffected full dispatch/clone matrix.
+Session24218 then prepares unchanged existing page/constructor/schedule fixture
+manual before compositions for minimal durable registrations, with no source
+mutation during either phase. Files remain frozen; no second authoritative test
+runner or allocator implementation.
+
+D1 typed phase focused instrumentation completes0, session24218:3ASanLSan and
+3TSan resource-smoke runs all24cases, emptyerr, actualchangedqueryobject hooks.
+Address.12/.13/.13wall,.11/.12/.12CPU,RSS82120/82776/83028KiB;
+thread.08/.08/.09wall,.07/.07/.07CPU,RSS88716/86260/87252. Existing9842 broader
+clone/dispatch evidence remains scoped and was not rerun for these extra checks.
+
+D1 selected registration before/after follows on identical ROOT75 production
+inputs: six unchanged fixtures work_constructor_budget/faults,
+work_schedule_budget, entity_component_budget/layout/faults. All public leaf,
+manual link/reference programs3each pass before existing normal/fault factory
+registration. No standalone implementation/provider copied. Normal factories
+select production guest runtime, fault factories select existing serial allocator
+and transport; fixtures already import host.memory. No duplicate memory/entities
+object added. Actualmain/allocator symbols eachunique afterlink. Budgetschedule
+and componentpages retain actualworkerbarriers; this is ownership stress, not a
+measured scaling claim. Invalid borrowedview file excluded from executable list.
+
+Native session47364 passes12step33.12wall/32.22CPU/222548KiB;18fixed-output runs
+and6/6CTest pass, zero skips. Before/after schedule median wall both<.01s,
+RSS1876KiB both; componentbudget median wall both.01s, RSS2152->1992KiB. No
+speed/memory-retention claim from sub-timer-resolution processes. Actual bodies
+still assert ledger/live-buffer cleanup, stablepayload and finalizer invariants.
+ASan18step53.34wall/52.14CPU/217492KiB; TSan18step34.86/34.11/217400.
+Session94336 passes3runs per target per mode (36instrumented processes), exact
+beforestdout, emptyerr, actualaccesshooks and saved IR/objects/providers. Fault
+cases remain single-owner; component/schedule cases use production concurrency.
+No sourceUBSan/external-library/universalrace claim.
+
+The deliberate compile-negative work_view_invalid_dispose is independently
+validated with currenta6a9 compiler, jobs1 and2, x86_64 library/LLVM output:
+both expectedexit1, byte-identical diagnostic at9:27,
+`Expected vector(usize)*, got work_view(usize)*`, no emittedfile. Original
+fixture preserved. These are successful negative assertions, not successful
+compilations or crashes. Logs page_registration_after/negative.* retain actual
+status/output/timing. All jobs drained08:53:20UTC, bothcontainersinit/sleep only;
+released onlyownemptylock and handed D2 its ROOT556policy slot.
+
+Complete ROOT556 bundleb47a3c0 verified/fetched objects during frozen checks;
+not adopted or claimedcovered yet. Fullincoming two stage/view fixture bodies
+and B1grammar/probe/stream plus A1cloneowner/D2symbol/reader changes reviewed.
+Merge only after this bounded milestone is committed/exported. ROOT556 has
+32owner-order cases versus this checkpoint28. Further A1/L2/B1/B2/L1producer
+changes remain pending, so finalpublic/bootstrap/browser/generation/publication
+acceptance stays open.
 ### 2026-11-23 ROOT: durable regression registration and independent race check
 
 Merged D1 complete9842b1f5aa72eb02edeecf68785850dd2a26e0ac history,
@@ -67953,6 +68024,29 @@ below actual67,945,316-byte compilation peak; a same-input reference-derived
 allowance now passes original finite-cap replacement/retry/output assertions.
 This fixture correction is not an arbitrary cap increase or memory-regression
 clearance. L2 editor memory analysis and full-source acceptance remain open.
+D1 integration review 2026-11-23 09:06 UTC: same CLI2918210/thread01a2046a,
+main44c1dc10 after complete ROOT556 join, no production edits. Substantively read
+all2new/12changed assigned fixtures and their owner contracts; direct census now
+518/518 of1106tracked Tower files. New stage/view tests need existing normal/fault
+registration; both already own entities+host.memory providers. Reviewed fullB1
+3992 declaration result producer/consumer/test slice,7production+3fixture deltas;
+owner source evidence and limitations recorded in audit, no fresh localruntime
+claim. Complete source history will be merged, not copied declarations.
+
+ROOT priority node-cache handoff: verified full L1 candidate77a36f6 bundle81e91069
+and exact7path0344 patch. Delivered external TEST-ONLY D1_phase_node_cache_77a.patch
+SHA3d9608c09c429247add0a5b3be783a51ccb026be70d625f162c728180c13de7e,
+against exactL1 candidate fixture. Supplies already accepted gated24cases/typed
+program receipts plus exact startup-node-cache denial and owned successful-cache
+preparation observations. Original16KiB budget and8KiB nestedframe unchanged;
+no message OR or guessed allowance increase. This is an UNRUN candidate until
+L1 validates matching new IMState layout; repository production remains untouched.
+L1 owns actual matched profiles/instrumentation, oldquery failure retained. D1
+will integrate accepted fullhistory later. No Deck ABI build merely for handoff.
+D2 actual09:02 release/drain observed, both D1 containers init/sleep only. Disk136GiB
+free/RAM9.9GiBavailable/preexisting swap5.8GiB. No cleanup/publication lease; all
+final combined/bootstrap/browser/generation/release gates remain open. These audit
+and handoff records alone change no runtime and need no performance profile.
 Frozen after frontend762d758b74f4f1daa529270d3650be2b3eaedfb4260079a6dfe0cda59ff7ded4,
 editor e636445fde8060e17abad76c9c20e04578440fd32e8f277826b6b10893345860; before
 hashes/resources remain ff917 as recorded. Ready20-process alternating comparison
@@ -68458,58 +68552,55 @@ retains exact stage result consumption, pool accounting, existing-key index
 allocation and measured peak-minus-one Capacity propagation as open issues.
 ### D1 follows the typed receipt through actual startup/growth denial
 
-After immutable9842 export and D2's priority race group, D1 adds only6lines/
-2replacements in semantic_resource_checks: typed None before pressure/isolated
-publication and typed Capacity at the already-checked diagnostic offset after
-actual failure selection. Complete A1 producer ABI now exists. Existing24case
-workload, exact private probes and zero-ledger assertions remain unchanged.
-No production change or new standalone setter test.
+### D1 current declaration/stage union and durable registration (2026-11-23)
 
-D2's next slot completes and releases actual08:41:50UTC: its beforeTSan66
-reproduces; ownerpatch normal3/address3/thread10 passes unchangedreader oracles.
-D1 has not yet adopted that patch/history and does not relabel its own compiler
-package. Reacquired hostlock atomically for a bounded group after that release.
+Audited ROOT556 and complete B1 declaration3992, committed reviewb92e046c and
+merged fullhistory cleanly as838001266414a8555a57e8b22499db84e934024e. Apparent
+journal deletions in the merge move retained historical B1 receipts; source
+history and both owner entries remain. Todo unchanged. Root routed test-only
+cache-aware phase patch3d9608c0 toL1; newcache ABI has not been adopted here.
 
-D1 session42717 native PASS: preserved9842 runner3before on frozen equivalent
-phase inputs, smallest public leaf6.40wall/6.21CPU/215164KiB,2step native
-query-object refresh6.44/6.22/238596,3after. Beforewall.05/.06/.06s,
-CPU.03/.05/.06,RSS50984/50920/50976; afterwall.04/.04/.03,
-CPU.04/.04/.03,RSS51000/50808/50872. Same24checked cases and production inputs;
-short scheduling/timer variation does not imply a speed gain from added assertions.
-Perwidth/worker nanoseconds retained in phase_receipt_9842. Current address/thread
-focused24cases3each pending; no repeat of unaffected full dispatch/clone matrix.
-Session24218 then prepares unchanged existing page/constructor/schedule fixture
-manual before compositions for minimal durable registrations, with no source
-mutation during either phase. Files remain frozen; no second authoritative test
-runner or allocator implementation.
+After D2 actual09:02 drain, acquired atomic lock; hostcontroller2944614,
+container81186/session33374 started09:06:15UTC. The handoff's manually typed09:08
+label was incorrect, explicitly corrected in both lane records; raw timestamps
+are retained. SteamDeck14.8GiB, Docker4be584fb, cpus0,2, LLVM19.1.1, publicbootstrap
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+Release/jobs1/native x86_64-pc-linux-gnu, no override. Existing vendor cache warm;
+each test sample starts a fresh process, no OS cache flush. Source closure frozen.
 
-D1 typed phase focused instrumentation completes0, session24218:3ASanLSan and
-3TSan resource-smoke runs all24cases, emptyerr, actualchangedqueryobject hooks.
-Address.12/.13/.13wall,.11/.12/.12CPU,RSS82120/82776/83028KiB;
-thread.08/.08/.09wall,.07/.07/.07CPU,RSS88716/86260/87252. Existing9842 broader
-clone/dispatch evidence remains scoped and was not rerun for these extra checks.
+Smallest entity_stage_result leaf5.08wall/5.02CPU and fault leaf4.03/3.97 pass;
+manual3each with existing production or serialfault runtimes pass. Canonical
+compiler/LR/frontend23affected steps pass211.25wall/206.39CPU/740972KiB RSS.
+Compiler32864c4b547ba96a5e4f7570115fa760ed8fed14ad30d1acaf7a3d951559227d
+plus all50 adjacent resources copied/hashrecorded. LRbf1e35e5357d9cccbd2e70f4a80bae0cf482944246756c43cc73a6b3e31eddee
+and frontendda753742ffbbb55d39fad838d95ac65443e83d26696d692509027352cb348dbf
+pass receipt32, exact24startup/growth, query-smoke, parser and grammar-resource.
+Query.19wall/.19CPU/60600KiB; parser.05/.04/53288; grammar2.93/2.90/52048.
+These are correctness timings, not paired production performance claims. All
+source hashes and empty stderr verified; owner clone overlap remains actual.
 
-D1 selected registration before/after follows on identical ROOT75 production
-inputs: six unchanged fixtures work_constructor_budget/faults,
-work_schedule_budget, entity_component_budget/layout/faults. All public leaf,
-manual link/reference programs3each pass before existing normal/fault factory
-registration. No standalone implementation/provider copied. Normal factories
-select production guest runtime, fault factories select existing serial allocator
-and transport; fixtures already import host.memory. No duplicate memory/entities
-object added. Actualmain/allocator symbols eachunique afterlink. Budgetschedule
-and componentpages retain actualworkerbarriers; this is ownership stress, not a
-measured scaling claim. Invalid borrowedview file excluded from executable list.
+After complete drain, add only two existing normal/fault factory list members
+and README. No fixture body, allocator, production, provider or syntax change.
+Patch1b6ef69e20e3e71b1d376024f6e42628f9be9d3163431d6510f719db270d5d49
+sent for independent source review. Native6steps15.53wall/15.20CPU/237092KiB;
+new registered fixtures3each exactly match manualbeforestdout and unique
+main/tower_allocate/compiler_buffer_allocate/free definitions. Both CTest cases
+pass. Before/after n3 per fixture allwall/CPU below.01s; normalRSS1472/1600/1600
+before and1600each after, fault1600each before and1596/1600/1600after. No speed or
+allocation-retention improvement claimed at that timer resolution. Existing
+oracles verify exact final buffer/ledger retirement and rollback; registration
+itself adds no runtime storage or scheduling algorithm.
 
-Native session47364 passes12step33.12wall/32.22CPU/222548KiB;18fixed-output runs
-and6/6CTest pass, zero skips. Before/after schedule median wall both<.01s,
-RSS1876KiB both; componentbudget median wall both.01s, RSS2152->1992KiB. No
-speed/memory-retention claim from sub-timer-resolution processes. Actual bodies
-still assert ledger/live-buffer cleanup, stablepayload and finalizer invariants.
-ASan18step53.34wall/52.14CPU/217492KiB; TSan18step34.86/34.11/217400.
-Session94336 passes3runs per target per mode (36instrumented processes), exact
-beforestdout, emptyerr, actualaccesshooks and saved IR/objects/providers. Fault
-cases remain single-owner; component/schedule cases use production concurrency.
-No sourceUBSan/external-library/universalrace claim.
+Session50458 supported address/thread each9steps29.99wall/29.29CPU/231844KiB
+and22.42/21.83/231864. Eachmode3runs ofeachnewfixture pass, exactnormalstdout,
+emptyerrors, actualfixture/provider IR+objects/accesshooks saved. Also run existing
+real worker stage_concurrent3native/3address/3thread with unchangedbarriers,
+publish/discard/partial-admission/cancel and finalizer assertions;57792finalizations
+per run. Firstaddress.66wall/.82CPU/92184KiB; firstthread.46/.48/36000KiB. Runtime
+metrics and allsamples saved, not worker scaling/profitability claims. Fault
+allocator staysserial. ASanLSan enabled, TSan halt_on_error; no sourceUBSan,
+externalLLVM or universalrace-freedom claim. All measuredchildren report0swaps;
+preexisting hostswap5.8GiB is not presented as hostno-swap evidence.
 
 The deliberate compile-negative work_view_invalid_dispose is independently
 validated with currenta6a9 compiler, jobs1 and2, x86_64 library/LLVM output:
@@ -69051,3 +69142,26 @@ profiles retain exact outputs/canonical identities/retention; small wall changes
 Joined supported sanitizers and current IDE reactor remain pending. Root union
 not built while other local lanes own their slots. Diff check passes. Final clean
 bootstrap/browser/generation/scaling/memory/race/publication work stays open.
+Sessions33374/2465/50458 all0, sourcehashes unchanged; both owncontainers only
+init/sleep before releasing ownemptylock09:12 toD2. No closure mutation during
+builds. Logs/artifacts build/d1_ecs/stage_registration_before and_after. Future
+StageFaultLimit96 measured-count improvement routed A2; no competingbodyedit.
+D2 complete7fb bundle52233a49 and receiptff9a5d3f independently hashverified,
+exacttwoTower policy changes/journal reviewed. Initial guessedparentpath lookup
+failed; located actualD2subdirectory and fetchedcorrectly, no source mutation or
+failed build hidden. Production directories exactlymatch838; current runtime
+receipt therefore has matching production source, not identical binary identity.
+A1/L2completecandidates fetched/read-only, newcache/pumps/callers remain unadopted.
+Final currentcombined sanitizer/bootstrap/browser/generation/leasedatomicrelease
+remain open; this boundedregistration milestone does not complete D1 goal.
+
+### 2026-11-23 ROOT: typed stage fixtures in the durable matrix
+
+Reviewed/merged complete D1 2161956c, bundle4cdd1d7c20280f85a679c7de416f34ab4618bc9a3b9719e9933624a238eba5b3.
+Two existing normal/fault factory lists now register the existing typed stage
+fixtures with their actual full-import providers, without duplicate entities.
+Owner normal3/address3/thread3 and real concurrent-stage3 checks pass; serial
+fault injection remains distinct from overlap evidence. No production logic or
+fixture assertions changed. Root source/diff check passes; root351's known
+semantic Capacity failure and final integrated acceptance remain open. Reuse
+owner performance evidence for unchanged test bodies; no throughput claim.
