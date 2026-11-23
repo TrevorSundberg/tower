@@ -732,3 +732,17 @@ profiles pass. All canonical/retention fields match; n3 wall changes range
 excluded. Current instrumentation and later source-union acceptance remain open.
 This is the first producer prerequisite, not completed metadata/provenance or
 standalone linker budget migration.
+
+### Typed metadata/provenance producer checkpoint
+
+ROOT completes exact per-call serial/staged copy results through existing world
+components and staged reference queues. Legacy wrappers remain. The existing
+world_constructor fixture covers all measured physical allocation-denial positions,
+actual Capacity/retry, Invalid/Busy, copied values and zero ownership after discard.
+Smallest units, native allocations/query/fullunits, ASan/LSan and TSan query/real
+three-unit overlap pass on frozen d3 plus this source change. Fixed-path32 profiles
+preserve canonical/entity/component/retained fields; n3 wall costs +0.25 to+0.92%,
+RSS -0.62 to+0.11%. Exact logs and limitations are in the journal. L2 owns actual
+generic clone consumer adoption. Raw labels/splice budgeting, entity hold exhaustion,
+module startup propagation and standalone linker budgets remain open. This closes
+the producer prerequisite, not the full compiler or final publication milestone.
