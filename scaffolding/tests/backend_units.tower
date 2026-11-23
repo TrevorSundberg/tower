@@ -11,6 +11,7 @@ import .library.entity_types;
 import .library.work_budget;
 import .library.work_budget_types;
 import .compiler.format_api;
+import .compiler.component_kinds;
 
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_create_bounded(frontend: void*, count: usize, budget: usize, retained_bytes: usize,
@@ -36,6 +37,135 @@ extern fn frontend_units_input_bytes(frontend: void*): usize;
 extern fn pthread_self(): usize;
 extern fn sched_yield(): i32;
 extern fn fflush(stream: void*): i32;
+extern fn usleep(microseconds: u32): i32;
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_modules_world(environment: void*): void*;
+extern fn frontend_world_bedrock(world: void*): void*;
+
+var UnitAdmissionWorkers: usize = 2;
+var UnitAdmissionBytes: usize = 268435456;
+var UnitAdmissionPauseMicroseconds: u32 = 1000;
+struct UnitAdmission {
+    budget: WorkBudget*; world: void*; nested: WorkPool; grant: WorkReservation;
+    entered: void*; outer_thread: usize; nested_thread: usize; next_thread: usize;
+    released_ns: u64; entered_ns: u64; cancel: bool;
+}
+
+// The real nested grammar kernel waits until the outer coordinator has failed
+// lane admission. This predicate is read under the same gate as its writers;
+// no timing guess is needed to place the release after the Capacity branch.
+fn unit_admission_nested(payload: void*): void {
+    var state = bits(UnitAdmission*, payload);
+    state.nested_thread = pthread_self();
+    var started = unit_stream_clock();
+    loop {
+        state.budget.enter(state.budget.gate);
+        var blocked = state.budget.error == WorkBudgetError.Capacity;
+        state.budget.leave(state.budget.gate);
+        if blocked { break; }
+        units_check(unit_stream_elapsed(started) < UnitStreamTimeoutNanoseconds, "outer admission reaches Capacity");
+        usleep(UnitAdmissionPauseMicroseconds);
+    }
+    units_check(frontend_world_bedrock(state.world) != null, "nested world-owned grammar construction");
+}
+
+fn unit_admission_observe(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    if phase != CompilerQuery.Unit || !entering { return; }
+    var state = bits(UnitAdmission*, payload);
+    if ordinal == 1 {
+        state.outer_thread = pthread_self();
+        units_check(work_pool_submit(&state.nested, payload), "nested ready grammar dispatch");
+        units_check(work_pool_receive(&state.nested, true) == payload, "nested grammar join");
+        state.released_ns = unit_stream_clock();
+        units_check(work_budget_release_result(state.budget, &state.grant) == WorkBudgetError.None, "nested lane release");
+        if state.cancel { return; }
+        var started = unit_stream_clock();
+        while !work_signal_try(state.entered) {
+            units_check(unit_stream_elapsed(started) < UnitStreamTimeoutNanoseconds,
+                "released nested lane must start ready unit before its parent completes");
+            usleep(UnitAdmissionPauseMicroseconds);
+        }
+    } else { if ordinal == 2 {
+        state.next_thread = pthread_self();
+        state.entered_ns = unit_stream_clock();
+        work_signal_post(state.entered);
+    } }
+}
+
+fn unit_admission_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usize, cancel: bool, output: vector(u8)*): void {
+    var sources: u8*[3];
+    sources[0] = "import tower; fn answer():i32{return 42;}";
+    sources[1] = "import tower; fn answer():i32{var sum:i32=0;for(var i:i32=0;i<43;i++){sum+=1;}return sum;}";
+    sources[2] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32{return id(comptime(later()));} fn later():i32{return 44;}";
+    var count = sizeof(decltype(sources)) / sizeof(u8*);
+    var batch = frontend_units_create_bounded(count, workers, UnitAdmissionBytes, 8, 1, 1, bedrock, foundation, root);
+    units_check(batch != null, "admission batch");
+    var state: UnitAdmission = default;
+    // The fixture's nested transport models an existing parser/semantic pool;
+    // only one granted slot runs. No pool is added to the production scheduler.
+    defer frontend_units_close(batch);
+    defer work_pool_close(&state.nested);
+    state.budget = frontend_units_work_budget(batch);
+    state.world = frontend_modules_world(frontend_units_environment(batch, 1));
+    state.cancel = cancel;
+    state.entered = work_signal_open();
+    units_check(state.entered != null, "admission observer signal");
+    defer work_signal_close(state.entered);
+    for(var i: usize = 0; i < count; i++) {
+        units_check(frontend_units_source(batch, i + 1, "admission.tower", sources[i], strlen(sources[i])), "admission source");
+    }
+    if workers > 1 {
+        units_check(work_pool_open_kernel_budget(&state.nested, UnitAdmissionWorkers, unit_admission_nested, state.budget), "nested grammar transport");
+        units_check(work_budget_reserve_result(state.budget, 1, 1, 0, &state.grant) == WorkBudgetError.None, "nested grammar grant");
+        units_check(frontend_units_observer(batch, bits(void*, &state), unit_admission_observe), "admission observer");
+    }
+    if cancel {
+        frontend_units_step(batch, false);
+        frontend_units_cancel(batch);
+        units_check(frontend_units_cancelled(batch), "admission cancellation");
+        for(var i: usize = 0; i < count; i++) { units_check(frontend_units_program(batch, i + 1) == null, "cancelled admission hides output"); }
+    } else {
+        while !frontend_units_step(batch, true) {}
+        units_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0, "admission compilation succeeds");
+        for(var i: usize = 0; i < count; i++) {
+            var program = frontend_units_program(batch, i + 1);
+            units_check(program != null, "admission result");
+            var formatted: FormatResult = default;
+            format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
+                compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
+            units_check(!formatted.failed, "admission canonical Foundation");
+            foreach(var byte in &formatted.text) { units_check(vector_push(output, byte), "admission canonical bytes"); }
+            format_dispose(&formatted);
+        }
+        if workers > 1 {
+            units_check(state.outer_thread != state.nested_thread && state.outer_thread != state.next_thread
+                && state.entered_ns >= state.released_ns, "nested and ready outer work use distinct live threads");
+            var text: FormatResult = default;
+            var out: FormatEngine = { result: &text, ..default };
+            format_text(&out, "Nested release to ready outer start ns=");
+            format_unsigned(&out, state.entered_ns - state.released_ns);
+            units_check(!text.failed && vector_push(&text.text, 0), "admission idle report");
+            puts(text.text.data); format_dispose(&text);
+        }
+    }
+    var snapshot: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(state.budget, &snapshot) && snapshot.used_lanes == 0
+        && snapshot.peak_lanes <= workers && snapshot.peak_bytes <= snapshot.bytes && !state.grant.active,
+        "outer and nested admission stay within one ledger and drain");
+}
+
+export fn backend_units_admission_tests(root: u8*): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    var serial: vector(u8) = default; var parallel: vector(u8) = default;
+    defer { vector_dispose(&bedrock); vector_dispose(&foundation); vector_dispose(&serial); vector_dispose(&parallel); }
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    unit_admission_trial(root, bedrock.data, foundation.data, 1, false, &serial);
+    unit_admission_trial(root, bedrock.data, foundation.data, UnitAdmissionWorkers, false, &parallel);
+    units_check(serial.length == parallel.length, "admission serial/parallel canonical length");
+    for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "admission serial/parallel canonical bytes"); }
+    unit_admission_trial(root, bedrock.data, foundation.data, UnitAdmissionWorkers, true, &parallel);
+    puts("Nested lane release refills outer work, preserves canonical output and drains cancellation.");
+}
 
 struct UnitStreamTime { seconds: i64; nanoseconds: i64; }
 extern fn clock_gettime(clock: i32, value: UnitStreamTime*): i32;

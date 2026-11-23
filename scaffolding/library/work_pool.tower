@@ -40,6 +40,7 @@ struct WorkPool {
     peak: usize;
     completion: void*;
     threaded: bool;
+    wake_enabled: bool;
     custom_entry: bool;
     execute: function(void, void*);
     claim: void*;
@@ -275,18 +276,29 @@ fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: u
     return WorkBudgetError.None;
 }
 
-// Exactly one consumed completion token accounts for one returned result. A
-// worker may finish in any order; callers publish in semantic order if needed.
-fn work_pool_receive(pool: WorkPool*, wait: bool): void* {
+// Enable before dispatch. A borrowed signal wakes the same coordinator as job
+// completion, without another pool or wait channel. Detach every sender after
+// its borrowers drain and before closing the pool.
+fn work_pool_wake_signal(pool: WorkPool*): void* {
+    if !pool.threaded || pool.running != 0 { return null; }
+    pool.wake_enabled = true;
+    return pool.completion;
+}
+
+// True consumes one event; a null result means admission may now progress.
+// Prefer an actual finished job if a wake and a completion arrive together.
+// The later completion token then becomes a harmless extra refill opportunity.
+fn work_pool_receive_event(pool: WorkPool*, wait: bool, output: void**): bool {
+    *output = null;
     if pool.running == 0 {
-        return null;
+        return false;
     }
     if pool.threaded {
         if wait {
             work_signal_wait(pool.completion);
         } else {
             if !work_signal_try(pool.completion) {
-                return null;
+                return false;
             }
         }
     }
@@ -298,11 +310,22 @@ fn work_pool_receive(pool: WorkPool*, wait: bool): void* {
             slot.job = null;
             slot.busy = false;
             pool.running--;
-            return job;
+            *output = job;
+            return true;
         }
         index++;
     }
-    trap("Worker completion has no owning slot", 0);
+    if !pool.wake_enabled { trap("Worker completion has no owning slot", 0); }
+    return true;
+}
+
+// Existing callers still receive only jobs. Each iteration consumes an actual
+// event; blocking callers sleep again after a wake without a finished job.
+fn work_pool_receive(pool: WorkPool*, wait: bool): void* {
+    var job: void* = null;
+    while work_pool_receive_event(pool, wait, &job) {
+        if job != null { return job; }
+    }
     return null;
 }
 

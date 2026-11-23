@@ -82,7 +82,8 @@ fn sem_evaluation_aliases(c: SemanticContext*, aliases: vector(SemanticEvaluatio
 export fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* {
     if c.evaluation_results == null { return null; }
     var component = entity_component_get(subject, c.evaluation_results);
-    return bits(SemanticEvaluation*, entity_component_data(component));
+    var result = bits(SemanticEvaluation*, entity_component_data(component));
+    return result != null && result.subject == subject ? result : null;
 }
 
 // Retain an early stage failure on its producer, so independent body checking
@@ -174,37 +175,97 @@ fn sem_evaluation_stop(c: SemanticContext*, result: SemanticEvaluation*): void {
 }
 
 export fn sem_evaluation_begin(c: SemanticContext*): void {
-    if c.evaluation_results != null { return; }
-    c.evaluation_results = sem_create(c.program.root);
-    sem_require(entity_register(c.evaluation_results, sizeof(SemanticEvaluation), alignof(SemanticEvaluation), 0));
-    c.evaluation_ready = sem_create(c.program.root);
-    sem_require(entity_register(c.evaluation_ready, sizeof(IMDependency), alignof(IMDependency), 0));
+    sem_evaluation_begin_at(c, c.program.root);
+}
+
+fn sem_evaluation_begin_at(c: SemanticContext*, subject: void*): void {
+    if !sem_ok(c) || c.evaluation_results != null { return; }
+    var error: WorkBudgetError;
+    var results = sem_kind_result(c.program.root, sizeof(SemanticEvaluation), alignof(SemanticEvaluation), &error);
+    if results == null { sem_type_resource(c, subject, error); return; }
+    var ready = sem_kind_result(c.program.root, sizeof(IMDependency), alignof(IMDependency), &error);
+    if ready == null {
+        sem_require(entity_attach_result(results, null, null) == WorkBudgetError.None);
+        sem_type_resource(c, subject, error);
+        return;
+    }
+    c.evaluation_results = results;
+    c.evaluation_ready = ready;
+}
+
+// These output nodes are coordinator-owned. Worker stage creation stays with
+// its existing ownership protocol; this helper never substitutes a default world.
+fn sem_evaluation_node(c: SemanticContext*, parent: void*): void* {
+    if !sem_ok(c) { return null; }
+    sem_require(c.entity_stage == null);
+    var error: WorkBudgetError;
+    var node = sem_create_result(parent, &error);
+    if node == null { sem_type_resource(c, parent, error); return null; }
+    if sem_node_result(c, node, KOperand) == null {
+        sem_require(entity_attach_result(node, null, null) == WorkBudgetError.None);
+        return null;
+    }
+    return node;
+}
+
+fn sem_evaluation_state(c: SemanticContext*, subject: void*): SemanticEvaluation* {
+    sem_evaluation_begin_at(c, subject);
+    if !sem_ok(c) { return null; }
+    if !vector_reserve(&c.evaluation_jobs, c.evaluation_jobs.length + 1) {
+        sem_type_resource(c, subject, WorkBudgetError.Memory); return null;
+    }
+    var error: WorkBudgetError;
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add_result(subject, c.evaluation_results, &error)));
+    if result == null { sem_type_resource(c, subject, error); return null; }
+    *result = default;
+    var ready = bits(IMDependency*, entity_component_data(entity_component_add_result(subject, c.evaluation_ready, &error)));
+    if ready == null { sem_type_resource(c, subject, error); return null; }
+    *ready = { subject: subject, ..default };
+    result.subject = subject;
+    result.ready = ready;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    // Own cleanup before aggregate projection or query admission can fail.
+    c.evaluation_jobs.data[c.evaluation_jobs.length++] = bits(void*, result);
+    return result;
 }
 
 export fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if !sem_ok(c) { return; }
+    if result == null || result.subject == null || result.ready == null || result.ready.subject != result.subject {
+        sem_type_resource(c, result == null ? c.program.root : result.subject, WorkBudgetError.Invalid); return;
+    }
     var id = work_request(&c.queries, result.subject, EvaluationQuery, 0);
-    sem_require(id != 0);
+    if id == 0 { sem_type_resource(c, result.subject, sem_query_error(c)); return; }
     var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery, 0);
-    sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
+    if preparation == 0 || !work_depend(&c.queries, id, preparation) {
+        sem_type_resource(c, result.subject, sem_query_error(c)); return;
+    }
     if result.inferred {
         var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
-        if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
+        if body != 0 && !work_depend(&c.queries, preparation, body) {
+            sem_type_resource(c, result.subject, sem_query_error(c)); return;
+        }
         var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
         var clone = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
-        sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
-        sem_require(work_depend(&c.queries, preparation, clone));
+        if proof == 0 || clone == 0 || !work_depend(&c.queries, clone, proof)
+            || !work_depend(&c.queries, preparation, clone) {
+            sem_type_resource(c, result.subject, sem_query_error(c)); return;
+        }
     } else {
         // Required expressions are checked and published before registration.
         // Their lexical owner remains provenance, not a whole-body barrier:
         // a later declaration may need this earlier prefix's staged value.
         // Executed reads request existing capture/function producers instead.
         sem_executables_begin(c);
+        if !sem_ok(c) { return; }
         sem_captures_begin(c);
+        if !sem_ok(c) { return; }
     }
     var domain = convert(u64, SemanticWorkDomain.Compiler);
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), id, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_seal(&c.queries, id));
+    if !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), id, 1, WorkAccessMode.Write)
+        || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read)
+        || !work_seal(&c.queries, id) { sem_type_resource(c, result.subject, sem_query_error(c)); }
 }
 
 fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
@@ -220,9 +281,12 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
 
 // Explicit stages and required integer arguments share execution and result
 // materialization. Callers own readiness; a type argument has no runtime frame.
-fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
+export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
+    if !sem_ok(c) { return n; }
     var input = sem_get(expression);
-    var value = sem_node(c, n, KOperand);
+    if input == null { sem_type_resource(c, n, WorkBudgetError.Invalid); return n; }
+    var value = sem_node_result(c, n, KOperand);
+    if value == null { return n; }
     sem_set_type(&value.type, &input.type);
     value.constant = true;
     // This typed placeholder cannot leave compilation. The query result replaces
@@ -242,37 +306,29 @@ fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, o
         sem_fail(c, n, "Compile-time results require a relocatable value, not a raw pointer or void");
         return n;
     }
-    sem_evaluation_begin(c);
-    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(n, c.evaluation_results)));
-    sem_require(result != null);
-    fill(result, 0, sizeof(SemanticEvaluation));
-    result.subject = n;
+    var result = sem_evaluation_state(c, n);
+    if result == null { return n; }
     result.owner = owner;
     result.literal = literal;
     result.expression = expression;
     result.requested = requested;
     result.type_argument = c.integer_arguments;
-    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(n, c.evaluation_ready)));
-    sem_require(result.ready != null);
-    fill(result.ready, 0, sizeof(IMDependency));
-    result.ready.subject = n;
     result.aggregate = semantic_aggregate(&input.type);
     if result.aggregate {
         result.aggregate_type = input.type;
         sem_evaluation_aggregate(c, result, n, &input.type, EvaluationRootProjection);
+        if !sem_ok(c) { return n; }
     }
     if literal != n {
         // Lowering may materialize the typed integer before its enum conversion.
         // That initializer must suspend too, before it can capture a stale zero.
-        var link = bits(IMDependency*, entity_component_data(entity_component_add(literal, c.evaluation_ready)));
-        sem_require(link != null);
+        var error: WorkBudgetError;
+        var link = bits(IMDependency*, entity_component_data(entity_component_add_result(literal, c.evaluation_ready, &error)));
+        if link == null { sem_type_resource(c, n, error); return n; }
         *link = default;
         link.subject = literal;
         link.source = result.ready;
     }
-    result.kernel.kind = CompilerKernelKind.Evaluate;
-    result.kernel.payload = bits(void*, &result.invocation);
-    sem_require(vector_push(void*, &c.evaluation_jobs, bits(void*, result)));
     // Interpreter state is private to this subject; shared input entities are
     // immutable for a dispatch wave and publication happens after all joins.
     // Body workers attach canonical result components under their entity lease;
@@ -405,7 +461,10 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
     while index < c.evaluation_jobs.length && sem_ok(c) {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
         if demand_roots && result.requested {
-            sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery, 0)));
+            var query = work_find(&c.queries, result.subject, EvaluationQuery, 0);
+            if query == 0 || !work_demand(&c.queries, query) {
+                sem_type_resource(c, result.subject, sem_query_error(c)); return SemanticPumpResult.Failed;
+            }
         }
         index++;
     }

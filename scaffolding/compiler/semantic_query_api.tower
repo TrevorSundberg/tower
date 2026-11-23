@@ -48,6 +48,7 @@ extern fn sem_context_snapshot(destination: SemanticContext*, source: SemanticCo
 extern fn sem_context_dispose(c: SemanticContext*): void;
 extern fn sem_evaluation_begin(c: SemanticContext*): void;
 extern fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void;
+extern fn sem_evaluation_expression(c: SemanticContext*, node: void*, expression: void*, owner: void*, requested: bool): void*;
 extern fn sem_evaluations(c: SemanticContext*): void;
 extern fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_evaluation_prepare_all(c: SemanticContext*): void;
@@ -65,6 +66,7 @@ extern fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u3
 extern fn sem_find(table: SemanticTable*, text: u8*, entity: void*): SemanticEntry*;
 extern fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*, output: SemanticEntry**): WorkBudgetError;
 extern fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration*;
+extern fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration*;
 extern fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_bodies_admitted(c: SemanticContext*): usize;
