@@ -85,7 +85,28 @@ fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType*
     return sem_type_new(c, scalar, 0, null);
 }
 
-fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
+// Publish an index entry only after its entity and Foundation payload exist.
+// A failed payload admission retires the new containment; cached world kinds
+// may remain registered for another independent request.
+fn sem_type_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    var operation = sem_get(subject);
+    sem_resource_record(c.program, error, operation == null ? sem_offset(c, subject) : operation.start);
+}
+
+fn sem_type_node(c: SemanticContext*, subject: void*, kind: u32): void* {
+    if !sem_ok(c) { return null; }
+    var error: WorkBudgetError;
+    var node = sem_create_result(c.program.root, &error);
+    if node != null && sem_attach_result(node, kind, &error) == null {
+        sem_require(entity_attach_result(node, null, null) == WorkBudgetError.None);
+        node = null;
+    }
+    if error != WorkBudgetError.None { sem_type_resource(c, subject, error); }
+    return node;
+}
+
+fn sem_type_entity(c: SemanticContext*, t: FoundationType*, subject: void*): void* {
+    if !sem_ok(c) { return null; }
     var i: usize = 0;
     for(; i < c.program.types.length; i++) {
         var n: void* = c.program.types.data[i];
@@ -106,49 +127,84 @@ fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
             return n;
         }
     }
-    var n: void* = sem_create(c.program.root);
-    var value: FoundationNode* = sem_attach(n, KType);
+    var n = sem_type_node(c, subject, KType);
+    if n == null { return null; }
+    var value = sem_get(n);
     sem_set_type(&value.type, t);
     var step11 = sem_type_name(c, t);
     sem_set_name(value, step11);
-    sem_push(&c.type_arguments, n);
+    if !vector_push(&c.type_arguments, n) {
+        sem_type_resource(c, subject, WorkBudgetError.Memory);
+        sem_require(entity_attach_result(n, null, null) == WorkBudgetError.None);
+        return null;
+    }
     return n;
 }
 
 fn sem_type_uses_begin(c: SemanticContext*): void {
-    c.type_uses = sem_create(c.program.root);
-    sem_require(entity_register(c.type_uses, sizeof(SemanticTypeUse), alignof(SemanticTypeUse), 0));
+    if !sem_ok(c) { return; }
+    var error: WorkBudgetError;
+    var kind = sem_create_result(c.program.root, &error);
+    if kind != null && !entity_register(kind, sizeof(SemanticTypeUse), alignof(SemanticTypeUse), 0) {
+        error = WorkBudgetError.Invalid;
+    }
+    if error != WorkBudgetError.None {
+        sem_resource_record(c.program, error, 0);
+        return;
+    }
+    c.type_uses = kind;
 }
 
 fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
+    if !sem_ok(c) { return; }
     if c.type_uses == null && type.scalar != SFunction {
         return;
     }
     if c.type_observations != null {
         var observation: SemanticTypeObservation = { node: node, type: *type };
-        sem_require(vector_push(c.type_observations, observation));
+        if !vector_push(c.type_observations, observation) {
+            sem_type_resource(c, node, WorkBudgetError.Memory);
+        }
         return;
     }
-    if type.scalar == SFunction && !sem_has(&c.type_arguments, type.record) { sem_push(&c.type_arguments, type.record); }
+    if type.scalar == SFunction && !sem_has(&c.type_arguments, type.record)
+        && !vector_push(&c.type_arguments, type.record) {
+        sem_type_resource(c, node, WorkBudgetError.Memory);
+        return;
+    }
     if c.type_uses == null { return; }
-    var component = entity_component_add(node, c.type_uses);
+    if node == null {
+        sem_resource_record(c.program, WorkBudgetError.Invalid, 0);
+        return;
+    }
+    var fresh = entity_component_get(node, c.type_uses) == null;
+    var error: WorkBudgetError;
+    var component = entity_component_add_result(node, c.type_uses, &error);
+    if component == null {
+        sem_type_resource(c, node, error);
+        return;
+    }
     var use = bits(SemanticTypeUse*, entity_component_data(component));
-    var allocated = use != null;
-    sem_require(allocated);
-    use.target = sem_type_entity(c, type);
+    if fresh { *use = default; }
+    var target = sem_type_entity(c, type, node);
+    if target != null { use.target = target; }
 }
 
 fn sem_type_observations_publish(c: SemanticContext*, observations: vector(SemanticTypeObservation)*): void {
     sem_require(c.entity_stage == null && c.type_observations == null);
+    defer vector_dispose(observations);
     foreach(var &observation in observations) {
+        if !sem_ok(c) { break; }
         // Keep each privately constructed signature reachable for the later
         // signature-lowering barrier, even when its type is structurally equal.
         if observation.type.scalar == SFunction && !sem_has(&c.type_arguments, observation.type.record) {
-            sem_push(&c.type_arguments, observation.type.record);
+            if !vector_push(&c.type_arguments, observation.type.record) {
+                sem_type_resource(c, observation.node, WorkBudgetError.Memory);
+                break;
+            }
         }
         sem_type_use(c, observation.node, &observation.type);
     }
-    vector_dispose(observations);
 }
 
 // Resolve the ordinary checked value without mutating the shared argument
@@ -206,12 +262,17 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
             return existing;
         }
     }
-    var result: void* = sem_create(c.program.root);
-    var out: FoundationNode* = sem_attach(result, KOperand);
+    var result = sem_type_node(c, n, KOperand);
+    if result == null { return null; }
+    var out = sem_get(result);
     out.constant = true;
     sem_set_type(&out.type, &constant.type);
     out.bits = constant.bits;
-    sem_push(&c.constant_arguments, result);
+    if !vector_push(&c.constant_arguments, result) {
+        sem_type_resource(c, n, WorkBudgetError.Memory);
+        sem_require(entity_attach_result(result, null, null) == WorkBudgetError.None);
+        return null;
+    }
     return result;
 }
 
@@ -344,15 +405,20 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
     for(var i: usize = 0; i < args.length; i++) {
         if generic_type_parameter(c.generics, definition, i) {
             var step27 = sem_type(c, args.data[i]);
-            sem_push(arguments, sem_type_entity(c, step27));
+            var argument = sem_type_entity(c, step27, args.data[i]);
+            if argument == null { return null; }
+            sem_push(arguments, argument);
         } else {
             var step29 = sem_member(parameters.data[i], "type");
             var expected_type: FoundationType* = sem_type(c, step29);
+            if !sem_ok(c) { return null; }
             if !semantic_integer(expected_type) {
                 sem_fail(c, parameters.data[i], "Compile-time value parameters currently require an integer type");
                 return null;
             }
-            sem_push(arguments, sem_constant_argument(c, args.data[i], expected_type));
+            var argument = sem_constant_argument(c, args.data[i], expected_type);
+            if argument == null { return null; }
+            sem_push(arguments, argument);
         }
         if !sem_ok(c) {
             return null;
@@ -386,7 +452,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
             return type;
         }
         var length = sem_array_length_value(c, n, type, sem_constant_value(c, args.data[1], null));
-        return sem_ok(c) ? sem_array_intern(c, type, length) : type;
+        return sem_ok(c) ? (sem_array_intern(c, type, length, n) ?? type) : type;
     }
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
     if definition == null && sem_equal(name, "function") && sem_type_identity_call(c, n) {
@@ -536,8 +602,9 @@ fn sem_array_length_value(c: SemanticContext*, node: void*, element: FoundationT
 
 // Canonical identity publication is coordinator-owned. Worker receipts carry
 // the checked element type and extent; no private array identity escapes.
-fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize): FoundationType* {
+fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize, subject: void*): FoundationType* {
     sem_require(c.entity_stage == null && length != 0);
+    if !sem_ok(c) { return null; }
     foreach(var entry in &c.program.types) {
         var array = sem_get(entry);
         if array.type.scalar == SArray && array.type.record == entry
@@ -545,14 +612,19 @@ fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize
             return &array.type;
         }
     }
-    var entity = sem_create(c.program.root);
-    var array = sem_attach(entity, KType);
+    var entity = sem_type_node(c, subject, KType);
+    if entity == null { return null; }
+    var array = sem_get(entity);
     sem_set_name(array, sem_cat(c, sem_cat(c, sem_type_name(c, element), "["),
         sem_cat(c, sem_decimal(c, convert(u64, length)), "]")));
     array.element = *element;
     array.length = length;
     array.type = *sem_type_new(c, SArray, 0, entity);
-    sem_push(&c.program.types, entity);
+    if !vector_push(&c.program.types, entity) {
+        sem_type_resource(c, subject, WorkBudgetError.Memory);
+        sem_require(entity_attach_result(entity, null, null) == WorkBudgetError.None);
+        return null;
+    }
     return &array.type;
 }
 
@@ -647,7 +719,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         var count = sem_array_count(n);
         if count != null {
             var length = sem_array_length(c, n, t);
-            return sem_ok(c) ? sem_array_intern(c, t, length) : t;
+            return sem_ok(c) ? (sem_array_intern(c, t, length, n) ?? t) : t;
         }
         if sem_member(n, "field") != null {
             sem_fail(c, n, "Expected a type name, not field access");

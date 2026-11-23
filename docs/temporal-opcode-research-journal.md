@@ -79976,3 +79976,116 @@ allocation/error probe, sanitizer or profile was run. ROOT retains integrated
 validation/deployment; this inventory receipt claims neither compiler completion
 nor current runtime acceptance. Exact union/one-owner and receipt-exception checks pass;
 the scoped commit/push receipt is recorded in the existing A2 status.
+### L2 semantic structural admission batch and revised validation cadence (2026-11-23)
+
+ROOT's acceleration directive arrived before the queued address/thread campaign
+started. That campaign is deferred to the stable integrated milestone, not passed.
+Measured recent costs were318.36+128.21s for late-editor instrumented runtimes plus
+builds (about11min total), and294.13+293.98s for repeated type-smoke gates. Development
+now uses one dependency-aware target build plus affected regression, with small
+checked serial/parallel comparisons and no per-helper archive/profile32 campaign.
+
+FullROOT2252 merged clean intoa41fdc55 after the generic result native/cost milestone.
+The coherent15-step native baseline69806 passed65.93wall/101.43CPU/751020KiB;
+query .20/.22/74504 and storage .29/.24/99540 passed. One immutable before package
+is /root/.cache/tower/l2_semantic_admission/before. At the shared profile path its
+constructor1/4 results were1.44/1.50/180132 and1.17/1.53/198608; generic1/4 were
+1.58/1.66/184664 and1.23/1.58/206008 (wall/CPU seconds/peak KiB). All four known
+stdout oracles, empty stderr and source/package checks passed. Single warm-filesystem
+samples are a baseline only, with the same previously unexplained CPU/wall variation.
+Exact OS recipe/logs are L2/semantic_admission_before.sh and logs/semantic_admission_before_*.
+
+Implementation now in progress: sem_create_result retires an unattached private
+node on failed containment; sem_attach_result uses the world-owned Foundation
+component producer and preserves already-admitted payload writes under lifetime
+pins. Legacy wrappers and the explicit custom semantic_component_attach API remain.
+The type-construction and generic-body request chains record exact root/component
+failure before work/query/result publication, using existing first-cause receipts.
+Focused tests add actual entity-ID Exhausted, root Busy, physical page Capacity,
+cleanup, attachment fault sweeps and custom-component/pinned-payload compatibility.
+These new changes are UNCOMPILED at this entry. No ABI field, second error owner,
+new scheduler or replay mechanism is introduced. Remaining canonical type interner
+consumers and root initialization are being coordinated with ROOT; neither is
+claimed closed by this draft. Supported integrated sanitizer, bootstrap/browser/
+generation and atomic hosted publication remain mandatory and pending.
+### L2 bounded semantic admission completion (2026-11-23)
+
+The direct bounded request supersedes the former open-ended lane workflow. The
+assigned batch now includes shared sem_create_result/sem_attach_result with legacy
+wrappers and unchanged explicit custom-component behavior; type/generic kind and
+component admission; canonical type/array/constant indexes and observation consumers;
+and semantic_initialize/root admission. Failed private containment and payload
+admissions retire their nodes. Existing payload writes remain legal under a lifetime
+pin when their caller owns mutation. First resource causes survive optional text
+clearing, null results stop before index/query/ready publication, and joined body
+publication still transfers owned scratch/evaluations for disposal on failure.
+
+The complete caller census updated inference, declaration, iteration, body,
+generic inspection, value, document and root consumers. Canonical interning carries
+the actual subject for source receipts. Ordinary type-checker error returns retain
+their prior non-null fallback contract while the fatal resource receipt prevents
+publication. Root descriptor/attachment failures now stop completion recovery,
+document inspection, frontend compilation and backend reimport; semantic entry
+points do no work after a retained root failure. Interpreter/session implementation
+and counted-constructor diagnostics remain L1-owned and were not modified.
+
+Initial68682 passed the helper/query/storage stage. Expanded55521 passed the
+canonical/observation chain and executed-array identity/denial tests. The required
+pull later fetched6714a030 but rejected ff-only divergence. Edits were preserved in
+stashb50c3f4, complete origin history (including ROOTb042144) merged as3ff717b5, and
+the edits reapplied cleanly. No partial ABI copy or history flattening occurred.
+
+Final native99341 built all20 dependency steps successfully:79.21wall/118.27CPU
+seconds/754380KiB. Storage then exposed an outdated prior-failure fixture assumption:
+it expected generic IDs to advance despite an existing resource failure. The new
+entry guard intentionally performs no work. The corrected fixture now requires no
+allocation or ID advance in that case, retaining exact Exhausted-boundary checks
+otherwise. The original SIG6/status134/source0 receipt remains in final0 logs.
+No production fallback was added. Corrected52869/final1 passed the affected two-step
+storage rebuild (9.52/7.06/309968), full storage (.28/.23/99172) and query-smoke
+(.19/.22/74784), with empty runtime stderr and source manifest0. Units are seconds
+wall/CPU and peak KiB. Compilation used at most2 jobs, CPUs4..7 and a4GiB per-process
+virtual-memory cap; focused runtime used that same four-CPU affinity.
+
+Actual fixtures cover helper allocation/failed-attachment cleanup, custom components,
+pinned existing payloads, physical Capacity, Busy and Exhausted admission, root
+initialization allocation sweeps including the function index, retained first cause,
+no replay and zero final tracked owners/grants. Target widths4/8 are exercised.
+Executed arrays verify successful layout-dependent canonical publication and no
+index/result publication on ID exhaustion or a caller pin. Query-smoke also runs
+existing actual clone overlap/cancellation, serial/threaded staging, canonical
+producer failure-order and resumable-query fixtures. Passing these is scoped
+regression evidence, not universal race or allocation-failure coverage.
+
+Small same-path comparison7990 ran one pair per workload/jobs count, eight checked
+processes, with fresh processes and warm input copies. WSL2 Linux6.18.33.2 x64,
+LLVM19 Release, native x64, --interpret --jobs1/4. Process inventory showed no competing
+compiler/build at start. Before is immutablea41fdc55; after is3ff717b5 plus this batch,
+so the after delta also includes integrated grammar/lease changes and cannot isolate
+each lane's cost. Compiler SHA256 beforea21eeb9fd024291aa5a721b6c1a6b0661e207288778228bbfb2ac03fca84c4b5,
+afterb0362b6c2c6b959cf6c88e00f27b15f7b7f6a79c5ea375038b84938254ec3a68.
+
+| Workload/jobs | Before wall/CPU seconds/peak KiB | After wall/CPU seconds/peak KiB |
+| --- | --- | --- |
+| constructor/1 | 1.62 / 1.50 / 179652 | 1.50 / 1.46 / 180052 |
+| constructor/4 | 1.17 / 1.49 / 198556 | 1.22 / 1.52 / 199340 |
+| generic/1 | 1.51 / 1.51 / 184680 | 1.57 / 1.55 / 184344 |
+| generic/4 | 1.27 / 1.57 / 205968 | 1.31 / 1.62 / 206012 |
+
+All eight independent stdout oracles pass (0 and28/36/504/504/73), stderr is empty,
+and final source/input/resource hashes pass. Costs are mixed; the largest positive
+wall change is .06s and peak-RSS increase784KiB. One pair is not a speedup/neutrality
+or scaling claim. The first profile precheck stopped before execution because
+ROOT's entity_stage.tower changed in packaged resources. That failed check remains
+in semantic_admission_pair_resources.log. The executed comparison deliberately uses
+the exact frozen baseline resource tree at one common path for BOTH binaries,
+verified against the baseline and hashed again at completion. Both workloads import
+only tower; no claim is made that the two complete packages are byte-identical.
+Recipes/manifests/logs remain under L2/semantic_admission_*; no new archive campaign.
+
+The scoped source batch and directly affected native checks are complete. Current
+supported sanitizer/full-scaling/bootstrap/browser/generation and hosted deployment
+checks are pending ROOT's integrated release milestone; none is relabeled as passed.
+This task pushes main only and does not claim a runtime deployment. todo.txt remains
+unchanged. Historical draft entries above are preserved as chronology and superseded
+by these implementation/check receipts.

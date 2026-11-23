@@ -9,11 +9,15 @@ import .compiler.foundation_tags;
 import .library.work_graph;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.entity_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
 extern fn puts(text: u8*): i32;
 extern fn exit(status: i32): void;
 
@@ -24,18 +28,26 @@ fn type_receipt_check(ok: bool, message: u8*): void {
 enum TypeReceiptCase: u32 {
     Complete, SemanticFailure, StaleRevision, StaleProfile, StaleDispatch,
     ChangedSequence, ChangedOperand, Cancelled, WrongDependency, WrongTarget,
-    RequestCapacity, CompletionCapacity, CompletionControl
+    RequestCapacity, CompletionCapacity, CompletionControl,
+    NodeExhausted, RootBusy, ComponentCapacity, ArrayHealthy, ArrayNodeExhausted, ArrayBusy, Count
 }
 
 var TypeReceiptBudgetBytes: usize = 1024 * 1024;
 
 fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
+    var array = mode == TypeReceiptCase.ArrayHealthy || mode == TypeReceiptCase.ArrayNodeExhausted
+        || mode == TypeReceiptCase.ArrayBusy;
     var terminal = mode == TypeReceiptCase.CompletionCapacity || mode == TypeReceiptCase.CompletionControl;
-    var bounded = mode == TypeReceiptCase.RequestCapacity || terminal;
+    var structural = mode == TypeReceiptCase.NodeExhausted || mode == TypeReceiptCase.RootBusy
+        || mode == TypeReceiptCase.ComponentCapacity;
+    var bounded = mode == TypeReceiptCase.RequestCapacity || terminal || mode == TypeReceiptCase.ComponentCapacity;
     var budget: WorkBudget = default;
     var occupied: WorkReservation = default;
     if bounded { sem_require(work_budget_init(&budget, 1, TypeReceiptBudgetBytes, 1)); }
-    var world = compiler_world_create_workers(1);
+    var world: void* = null;
+    if mode == TypeReceiptCase.ComponentCapacity {
+        sem_require(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None);
+    } else { world = compiler_world_create_workers(1); }
     type_receipt_check(world != null, "Type request world");
     var root = entity_create(compiler_world_store(world));
     var program: SemanticProgram = default;
@@ -62,11 +74,16 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     var subject = sem_create(owner);
     var operation = sem_attach(subject, KTypeConstruct);
     operation.start = 37;
-    operation.op = convert(u32, TypeConstructionKind.Integer);
+    operation.op = convert(u32, array ? TypeConstructionKind.Array : TypeConstructionKind.Integer);
     operation.type = { scalar: SType, pointer_bytes: width, ..default };
+    if array {
+        operation.right = sem_create(subject);
+        sem_attach(operation.right, KOperand).type = { scalar: SUSize, pointer_bytes: width, ..default };
+    }
     var request = &invocation.type_construction;
     *request = { owner: owner, subject: subject, sequence: 1, kind: operation.op,
-        first: mode == TypeReceiptCase.SemanticFailure ? 24 : 32, second: 1, ..default };
+        first: mode == TypeReceiptCase.SemanticFailure ? 24 : 32, second: array ? 4 : 1,
+        input: { scalar: SI32, pointer_bytes: width, ..default }, ..default };
     var evaluation = work_request(&context.queries, owner, convert(u32, SemanticQuery.Evaluation), 0);
     sem_require(work_access(&context.queries, evaluation, convert(u64, SemanticWorkDomain.Compiler),
         convert(u64, SemanticAccess.Evaluation), evaluation, 1, WorkAccessMode.Write));
@@ -89,7 +106,31 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
         sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
             &occupied) == WorkBudgetError.None);
     }
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var next_id = store.next_id;
+    var view: void* = null;
+    if mode == TypeReceiptCase.NodeExhausted { store.next_id = ~convert(usize, 0); }
+    if mode == TypeReceiptCase.RootBusy {
+        view = entity_view_open(root);
+        sem_require(view != null);
+    }
+    if mode == TypeReceiptCase.ComponentCapacity {
+        sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+            &occupied) == WorkBudgetError.None);
+    }
     var query = sem_type_execution_request(&context, owner, request, &ticket);
+    if mode == TypeReceiptCase.NodeExhausted { store.next_id = next_id; }
+    if view != null { entity_view_close(view); }
+    if structural {
+        var wanted = mode == TypeReceiptCase.NodeExhausted ? WorkBudgetError.Exhausted
+            : mode == TypeReceiptCase.RootBusy ? WorkBudgetError.Busy : WorkBudgetError.Capacity;
+        type_receipt_check(query == 0 && program.resource.error == wanted
+            && program.resource.offset == operation.start && !request.ready && !request.failed
+            && !context.queries.cancelled && context.queries.running == 1,
+            "Physical constructor admission preserves exact cause before query/result publication");
+        type_receipt_check(mode == TypeReceiptCase.ComponentCapacity || context.type_executions == null,
+            "Rejected constructor kind admission cannot publish its identity");
+    }
     if mode == TypeReceiptCase.RequestCapacity {
         type_receipt_check(query == 0 && program.resource.error == WorkBudgetError.Capacity
             && program.resource.offset == operation.start
@@ -100,7 +141,7 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
         type_receipt_check(query == 0 && program.error.length != 0 && context.type_executions == null
             && !request.ready, "Stale/target receipt rejected before publication");
     }
-    if !rejected && mode != TypeReceiptCase.RequestCapacity {
+    if !rejected && !structural && mode != TypeReceiptCase.RequestCapacity {
         type_receipt_check(query != 0 && sem_type_execution_request(&context, owner, request, &ticket) == query,
             "Repeated admission has one request identity");
         if mode == TypeReceiptCase.WrongDependency {
@@ -109,6 +150,37 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
             sem_require(work_suspend(&context.queries, &ticket, unrelated));
             sem_require(work_demand(&context.queries, query));
         } else { sem_require(work_suspend(&context.queries, &ticket, query)); }
+        if array {
+            var types = program.types.length;
+            next_id = store.next_id;
+            request.result = { scalar: SU8, pointer_bytes: width, ..default };
+            if mode == TypeReceiptCase.ArrayNodeExhausted { store.next_id = ~convert(usize, 0); }
+            if mode == TypeReceiptCase.ArrayBusy {
+                view = entity_view_open(root);
+                sem_require(view != null);
+            }
+            var outcome = sem_type_execution_pump(&context);
+            if mode == TypeReceiptCase.ArrayNodeExhausted { store.next_id = next_id; }
+            if mode == TypeReceiptCase.ArrayBusy { entity_view_close(view); }
+            if mode == TypeReceiptCase.ArrayHealthy {
+                while !request.ready && outcome == SemanticPumpResult.Progress {
+                    sem_layout_execute(&context);
+                    outcome = sem_type_execution_pump(&context);
+                }
+                type_receipt_check(outcome == SemanticPumpResult.Progress && request.ready && !request.failed
+                    && request.result.scalar == SArray && program.types.length == types + 1
+                    && sem_get(request.result.record).length == convert(usize, request.second)
+                    && sem_get(request.result.record).element.scalar == request.input.scalar,
+                    "Executed array publishes one canonical identity after its layout dependency");
+            } else {
+                var wanted = mode == TypeReceiptCase.ArrayNodeExhausted ? WorkBudgetError.Exhausted : WorkBudgetError.Busy;
+                type_receipt_check(outcome == SemanticPumpResult.Failed && !request.ready && !request.failed
+                    && request.result.scalar == SU8 && program.types.length == types
+                    && program.resource.error == wanted && program.resource.offset == operation.start
+                    && context.queries.cancelled && context.queries.running == 0,
+                    "Canonical array admission fails before index or result publication and drains its ticket");
+            }
+        }
         if terminal {
             // Real demanded peers fill the retained ready queue. Taking the
             // constructor removes its slot but does not shrink the queue; its
@@ -155,7 +227,7 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
             type_receipt_check(sem_type_execution_pump(&context) == SemanticPumpResult.Failed && !request.ready,
                 "Cancelled graph cannot publish a type descriptor");
         }
-        if !terminal && mode != TypeReceiptCase.Cancelled {
+        if !terminal && !array && mode != TypeReceiptCase.Cancelled {
             if mode == TypeReceiptCase.ChangedSequence { request.sequence++; }
             if mode == TypeReceiptCase.ChangedOperand { request.first++; }
             var outcome = sem_type_execution_pump(&context);
@@ -200,7 +272,7 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
 }
 
 export fn type_execution_receipt_tests(width: u32): void {
-    for(var mode: u32 = 0; mode <= convert(u32, TypeReceiptCase.CompletionControl); mode++) {
+    for(var mode = convert(u32, TypeReceiptCase.Complete); mode < convert(u32, TypeReceiptCase.Count); mode++) {
         type_execution_receipt_trial(width, convert(TypeReceiptCase, mode));
     }
 }

@@ -25,6 +25,7 @@ import .compiler.execution_profiles;
 import .library.work_budget_types;
 
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 
 struct DriverCompilation {
     request: DriverRequest*;
@@ -150,8 +151,19 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
         return false;
     }
     var imported: SemanticProgram = default;
-    semantic_initialize(&imported, entity_create(compiler_world_store(state.request.world)), state.width);
-    var root = imported.root;
+    var error: WorkBudgetError;
+    var root = entity_create_result(compiler_world_store(state.request.world), &error);
+    if root == null {
+        driver_error("", sem_resource_message(error));
+        return false;
+    }
+    semantic_initialize(&imported, root, state.width);
+    if imported.resource.error != WorkBudgetError.None {
+        driver_error("", sem_resource_message(imported.resource.error));
+        semantic_program_dispose(&imported);
+        entity_release(root);
+        return false;
+    }
     state.preserve_foundation = type_object_program(program.root);
     var ok = state.preserve_foundation || backend_import_foundation(state.backend, root);
     if ok {
