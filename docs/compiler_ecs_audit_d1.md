@@ -5058,3 +5058,229 @@ remain separately owned. The finite requested review is complete with the
 C-registration defect and these explicit acceptance limits retained. No build,
 test, profiler, sanitizer or hosted operation was run; documentation-only runtime
 profiling is inapplicable. Native3.2GiB RSS is not a wasm32 linear-memory result.
+
+### 2026-11-23 D1: three correctness fixes at ea606d32
+
+Frozen published main `ea606d329b989378df15fdc58bf5165456bb0cb7`, tree
+`7f41401d3078e46331bcd55a2b58c329750cfaf0`, compiler
+`306ac3a3e67ef73790eb7fdc9878534b8c5df259`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. Independent source review of A1
+b78d606b/ef59b0aa, L1 3bc0a726 and D2's composition through451bea0c; no new
+implementation or execution. These close the three exclusions in the preceding
+finite review, not the whole compiler acceptance ledger. Unchanged context and
+fixtures from that review remain adopted. Actual changed functions, immediate
+consumers and final registrations were inspected; the following blobs match
+those owner publications (the shared Work registration is the final composition).
+
+| Path (under scaffolding/ except cmake/) | Reviewed Git blob |
+| --- | --- |
+| compiler/semantic_execution_work.tower | b3fd8b1cde1144f7e715d3f6be9d570a8d10b87b |
+| tests/semantic_executable_admission_checks.tower | daeef03f1db23097800f52de8a7e04f29feb5f32 |
+| cmake/TowerWorkPolicyTests.cmake | 60b1cfaea06478a381b70d62d0e133b42e344eeb |
+| compiler/semantic_source_bindings.tower | beb2c036eb52e2c6a6db80ef8a4c318f58c0b4f1 |
+| tests/module_header_capture_controls.tower | d33244b05a90955f428e76ad03845360f8403ee4 |
+| tests/module_loop_query_checks.tower | a21dbeda2f67c733e2576fcecc70f164406792a1 |
+| tests/semantic_invalid/module_header_capture_update.tower | f0cba4ed545daef1e318f63367f33c7cbe471f47 |
+| tests/semantic_invalid/module_header_capture_body.tower | 6604b287e3bf0800da04192927f2a3036526a2cc |
+| tests/semantic_invalid/module_header_capture_escape.tower | 87947693e11750a23b17b1482671b6d4b3a22939 |
+| tests/semantic_invalid/module_block_capture_write.tower | 4dee26ea4ec0e67bf55e66b2d064b062a0e2e8d2 |
+| tests/semantic_invalid/module_header_capture_shadow.tower | 38213cf7854395f25f495978b61b5f2201617370 |
+| cmake/TowerTestZeroOutput.cmake | e28d422a8b4d2b6bfc67e6ff6a9bd530ba59bd65 |
+| cmake/TowerWorkTests.cmake | aa5f0deabe4c1fef85bb7fa1937acc73535cc543 |
+| tests/alias_type_query_checks.tower | fe98c5a3d4927632364401ee235d62f7665e43b6 |
+
+**A1 — joined executable readiness.** `sem_executables_pump` reserves the batch,
+stages/leases and lanes before synchronous dispatch. Joins precede stage holds;
+holds precede closing the input view; stage publication precedes coordinator
+alias mutation. The new pass validates each ticket/observed dependency, skips
+aliases from a worker with a retained ordinary/resource error, and stops on
+`sem_evaluation_aliases` Invalid or Memory. Only after all eligible aliases are
+accepted does the completion pass set `IMFunctionInput.ready`. The interpreter
+checks ready before consuming the function; the shared query pipeline returns
+Failed, and declaration failure walking restores retained worker diagnostics.
+Thus a worker's own malformed alias cannot replace its signature Capacity cause,
+and a later rejected alias cannot expose an earlier successful ready prefix.
+A valid alias prefix and published nodes may remain owned until context teardown:
+this is readiness ordering, not whole-wave structural rollback. Deferred cleanup
+cancels unsettled tickets, drains/returns lane ownership and disposes the charged
+batch; no worker borrows the coordinator's stack context after return.
+
+`executable_alias_trial` uses real worker-generated aliases plus a missing-producer
+injection at offset17 or29. It checks no ready input/function pointer in either
+failed wave, cancelled invalid tickets, no live stage/context/jobs, exact prefix
+length, stable terminal retries and a fresh semantic-context recovery in the same
+world with producer/original/clone identity and final zero grants. The signature
+trial preserves its genuine Capacity failure ahead of its injected bad alias.
+`batch-growth` derives extent from WorkBufferInitialElements, measures admitted
+leases, denies replacement storage, and verifies counts/grants before recovery.
+The existing provider is linked once and all17 selectors retain60s deadlines.
+Source SHA256s `bc8a64e0…4591e` / `a4df18ae…9d4b` match the full hashes in
+[A1's repair/merged receipt](compiler_executable_budget_review_a1.md#implemented-alias-publication-follow-up-2026-11-23).
+That receipt reports17 selectors, query-smoke and lifecycle0 at c98d64f2, not a
+D1 rerun. Alias-vector physical Memory denial and mid-pump stale-ticket injection
+remain unexecuted there. Existing per-result `work_finish` failure semantics are
+unchanged; this patch does not promise atomic completion of every graph ticket.
+
+**L1 — module lexical capture identity.** `sem_source_scan` now binds a declaration
+when `job.owner != null || c.scope.parent != null`. The private scan always starts
+with a root scope; block/for/foreach scopes retain their parent and restore it on
+exit. Module-top names still resolve through module-qualified globals. Header
+initializers bind before test/update/body scanning, so mutation/address escape
+records the actual declaration entity, not a same-named global. Body shadows get
+a child scope; function scans bind their own parameters and do not recurse into
+other function bodies. Candidate owner, ordinal and query identities are unchanged.
+Preparation reserves metadata; proof completion precedes publishing immutability,
+and capture consumers suspend/observe that proof before rejecting a mutated,
+escaped or uninitialized declaration. Interpreter `ix_value_input`/`ix_local_binding`
+still check owner/current-frame declaration membership, not coincident offsets.
+The scan conservatively records writes; only executed staged reads demand captures,
+so the lazy untaken tests do not require an eager evaluation of both branches.
+
+Read all five new negatives and the positive controls: header update/body write,
+address escape, block-local write, shadowed header versus immutable outer value,
+known immutable header/block values, type-only mutable queries and untaken staged
+calls. The nine-case checker retains the original four negatives, exact mapped
+file/line/column and cross-width/worker error offsets, no partial program, drained
+terminal retries and unchanged owner counts. Selector/control-smoke and final
+positive CTests still call the existing providers. L1's journal records actual
+32/64 ×1/4 checks at2a5477be, then only affected Fast canonical checks after
+4bbde387's backend adoption (native `4835472a…f5d2e2`, semantics `c131e34c…309f`).
+Those execution identities remain separate; no new runtime or race claim here.
+
+**D2 — exact process and negative contracts.** The CMake wrapper supplies the
+original interpreter/jobs/resources arguments, requires every input variable,
+and captures stdout/stderr without stripping. It accepts only child result0,
+complete stdout matching `^0\r?\n$`, and empty stderr; a nonzero/signal/launch
+failure becomes a failing CMake result with the original status/output retained.
+It does not return the child's numeric exit code unchanged, but cannot turn that
+failure into a pass. Four fixtures ×workers1/4 now use this boundary without a
+PASS_REGULAR_EXPRESSION override: decltype_type_fields, alias_type_query_controls,
+module_loop_queries and module_header_capture_controls. Other successful values
+and tests remain unchanged. The alias provider's extracted helper retains the
+original inference-negative exact message at `read(actual)` and adds the unchanged
+scalar-condition fixture's exact `An integer literal needs an integer type` at
+`1 {` (2:4). Both check public source mapping, no partial program, failed count1,
+stable offset and repeated nonwaiting/waiting terminal calls at32/64 ×1/4; source
+and resource buffers outlive each batch. Existing `all`/type-smoke/type-errors and
+explicit alias selector retain this coverage; no duplicate runner/model.
+
+D2's journal distinguishes initial six positives and intentional output10/exit7
+rejection controls from the final joined eight positives plus both negatives at
+5fc375e8/eb673364 (compiler `96ed3119…94796b`, runner `e65cbdaa…6000`). Adoption
+of those receipts is source-bound; filtered cases, builds and negative-control
+aggregate exit8 are not additional passes. **No additional concrete defect found**
+in these three deltas. Prior C-registration repair stays D2-owned. Later A2
+body-local forwarding and B1/B2 performance work are excluded; no new census or
+acceptance expansion. Local14-path manifest is in
+`build/d1_ecs/joined_correctness_review_ea606d32/`. No build/test/profile/sanitizer
+or release action was run; documentation-only profiling is inapplicable and
+passing owner tests do not establish general race freedom.
+
+### 2026-11-23 D1: module-local declaration queries at 0ffba950
+
+Frozen published main `0ffba950ae4b7e583531f5eb88aa608c6c2bb380`, tree
+`71c6bd706f5f277f3c180b6032bc7e11f5a17cfb`, compiler
+`b90a997e29d4d30547a026b5b5d1481bf6a41579`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. Independent review of A2's
+125efb11 repair integrated through e932b546. All six authored Tower blobs below
+still match125efb11; earlier unchanged producer reviews remain adopted.
+No production/fixture edits or runtime execution in this review.
+
+| Path under scaffolding/ | Exact reviewed Git blob |
+| --- | --- |
+| compiler/semantic_declarations.tower | a17d92575e516952cabdd0487df0728d5c69ce73 |
+| compiler/semantic_statements.tower | 9381f563d1f3175a47d8e14873105f2ece00829d |
+| tests/module_body_type_minimal.tower | aef47ca51051b156c71ca65b794dacb6aba85b67 |
+| tests/module_body_type_queries.tower | 336c1424856b01c3e9ad9a567eba71fc3256ecd3 |
+| tests/module_body_type_checks.tower | 5f54416bafc88a7625b2d3633b6e8c80a9d36675 |
+| tests/execution_main.tower | 6051438d971a4d6ae3e63641b088336fe56f28f2 |
+
+**Boundary and ownership.** `sem_statement_impl` binds CoreDeclare once, then
+selects `sem_module_declaration` only for a nonglobal local with current=root,
+no active declaration frontier, no entity stage and no query-read set. Function
+body/header continuations still suspend through `sem_body_run` and consume their
+prepared statement; worker discovery/checking installs query_reads even when no
+stage is needed, so it cannot enter this new coordinator pump. Module for-header,
+loop-body and nested block locals retain their actual scope/current in the
+world-owned declaration component. `sem_body_save/restore` also preserves loop,
+label, defer, control-name and flow-dependency state. Queries are keyed by node
+identity/kind in the existing graph, not source offsets or spelling; this change
+adds no type/function registry, alias identity or cross-world storage.
+
+The helper saves/restores declaration_subjects/isolation with defer, owns only a
+temporary subject vector, and uses the existing declaration state/admission and
+shared discovery/execution pumps. Registration installs declaration/type-index
+access and root-body write access for local storage; discovery seals/demands its
+producer. The shared pump obtains tickets/leases and lane/byte admission before
+dispatch, joins and publishes stages before structural continuations, and imports
+retained worker scratch through `sem_declaration_error` before restoring lexical
+pointers. It yields/suspends for missing type/call/layout producers; the coordinator
+alternates declaration and shared query pumps while progress exists, then reports
+the owning declaration's retained failure or unresolved/cyclic dependency. The
+new helper does not force completion from a worker or add recursive type checking.
+Its raw subject vector retains the existing coordinator allocation contract;
+this does not extend the world budget to every raw/foreign allocation.
+
+**Storage and effects.** The helper reports type completion before initializer
+admission. `sem_declaration_type` consumes prepared ordinary type results and
+records completion on the declaration; inferred initializers retain their checked
+`value.value`. The declaration continuation waits for constructed layouts, then
+readmits storage allocation with subject/current leases and its Body write claim.
+`storage_ready` prevents duplicate frame slots. Only an explicit initializer still
+missing its checked value receives an Initializer expression query with an edge
+to the completed declaration. After success its lexical state/value are restored;
+`sem_declaration_finish` sees existing storage/value and cannot recheck that
+initializer. Runtime operations stay on the same Foundation nodes at their
+lexical execution positions. Unknown type and by-value cycle errors stop before
+initialization; cleanup restores the outer frontier and clears temporary generic
+errors without replacing the retained producer diagnostic. No additional concrete
+producer defect or interleaving was found in this delta.
+
+**Actual fixture/registration scope.** The seven-line minimal source preserves
+uninitialized raw Foundation storage and takes the earlier local's address after
+`box(decltype(header))` and its ordinary `forwarded` alias resolve identically.
+The initialized fixture checks aliased mutation42/43, target usize layout4/8,
+inner i16 shadow7/layout2, two loop entries and two `once()` effects. A separate
+function/nested-scope source checks the unchanged body path. Unknown-constructor
+and recursive-layout sources retain exact diagnostic text, including the existing
+instantiation trace, reject Graph/Fast start with zero machine steps, and compare
+raw error offsets between engines/workers within each target width.
+
+The suite is **44 compile-session configurations**: five sources ×two widths
+×two worker counts ×two engines =40, plus two width-specific canonical reparses
+at workers4 ×two engines =4. Of these,28 compile/execute positives and16 exact
+negative sessions; they are not44 independent processes or an overlap measure.
+Each trial's two sessions close before module/world/ledger teardown; final bytes,
+lanes and live grants must be zero. Per-source canonical text agrees between
+engines/workers. Reparsed canonical text executes the same oracle; this does not
+assert byte-idempotence against the original text. `body-type-reproduce` selects
+only the minimal32-bit/one-worker Graph/Fast pair; `body-type-queries` returns
+before the unrelated suite, and default `all` calls it once. Existing CMake
+`tower-execution` invokes that default runner; there is no new runner/model.
+
+Two bounded coverage limits remain explicit, without turning them into defects:
+
+- The effect counter is incremented by an assignment's `once()` call, while the
+  new explicit declaration initializer is `&original`. An effectful initializer
+  taking its **own** already-allocated address is not directly exercised. A small
+  proposed Tower control is `var self:decltype(header)=address_once(&self)` with
+  `address_once(usize*)` incrementing an effect counter and returning the address
+  bits; compare that value with `&self` and the exact loop effect count. This was
+  neither added nor executed here.
+- Negative mapped line/column are printed, not compared with an independent
+  expected file/position in this harness. Exact text and stable offsets are
+  asserted; the owner's observed1:69/1:37 locations remain log evidence. No
+  negative is silently relaxed or relabeled as checking an independent location.
+
+The [owner receipt](compiler_module_body_types_78d675c4.md) retains the original
+unknown-forwarded failure and candidate44/query/type/header checks. Its merged
+27fcab01 adoption reran44/query/expanded-header checks with semantics SHA256
+`16f13e9f461f26947b67dca4356c08ea1a4ccf25dbc354feb64b02b00c253cee` and execution
+`9a347ea2e14fce578f1e6ae9405ff137b4965c38c26473cf5794e1f62701f648`; older type-smoke
+and paired measurements keep their earlier identities. Minimal/source SHA256s
+6020b38c…f7df /67a2daf1…dd1 match that receipt. This review read the code and
+published receipt, not inaccessible raw logs, and did not rerun those checks.
+Later B1/B2 performance/browser changes, current generations and hosted release
+are excluded. No build/test/profile/sanitizer or rejected operation was attempted;
+documentation-only profiling is inapplicable, with no general race-freedom claim.
+Local frozen six-path evidence: `build/d1_ecs/module_declaration_review_0ffba950/`.
