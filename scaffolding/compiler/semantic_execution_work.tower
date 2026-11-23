@@ -155,18 +155,23 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     context.current = result.function;
     context.preserve_clone_storage = false;
     if sem_ok(&context) && (result.prepared || sem_aggregate_needed(result.function)) {
-        var signature = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(result.function, context.aggregate_signatures)));
-        sem_require(signature != null);
-        *signature = default;
-        if result.prepared {
-            *signature = *sem_aggregate_signature(&context, result.subject);
-            if signature.result_parameter != null {
-                var parameter = sem_find(clones, null, signature.result_parameter);
-                sem_require(parameter != null && parameter.value != null);
-                signature.result_parameter = parameter.value;
-            }
+        var error: WorkBudgetError;
+        var component = entity_component_add_result(result.function, context.aggregate_signatures, &error);
+        if component == null {
+            sem_resource_record(&program, error, sem_get(result.subject).start);
         } else {
-            sem_aggregate_function(&context, result.function);
+            var signature = bits(SemanticAggregateSignature*, entity_component_data(component));
+            *signature = default;
+            if result.prepared {
+                *signature = *sem_aggregate_signature(&context, result.subject);
+                if signature.result_parameter != null {
+                    var parameter = sem_find(clones, null, signature.result_parameter);
+                    sem_require(parameter != null && parameter.value != null);
+                    signature.result_parameter = parameter.value;
+                }
+            } else {
+                sem_aggregate_function(&context, result.function);
+            }
         }
     }
     if sem_ok(&context) && !result.lowered { sem_lift_block(&context, sem_get(result.function).body); }

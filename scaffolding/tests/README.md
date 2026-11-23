@@ -1361,6 +1361,14 @@ target uses the ordinary semantic provider and covers `healthy`, `take`,
 `suspend`, `observe` and `finish`. These variants do not themselves demonstrate
 overlap; capture's healthy result is a legitimate suspended query.
 
+The executable selectors `startup`, `metadata` and `pinned` reject real pinned
+admission without publishing readiness. `signature` uses the bounded world
+constructor and a valid oversized metadata kind to deny its worker's aggregate
+signature allocation; `signature-healthy` checks the ordinary successful path.
+Both widths and worker budgets1/4 retain the owning offset, join before cleanup,
+and release all world grants. These are normal-allocator capacity checks, not
+thread sanitizer or overlap claims.
+
 ```sh
 cmake --build build/native --parallel 1 --target tower-semantic-capture-continuation-tests \
   tower-semantic-executable-admission-tests

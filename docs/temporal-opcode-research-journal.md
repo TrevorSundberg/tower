@@ -83967,3 +83967,105 @@ linked binary/runtime hashes remain identical; the four focused run receipts
 therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
+### ROOT dependency publication, frontend timeout diagnosis and iteration cost (2026-11-23)
+
+Preserved D1's complete local3fbd9c9 history after its four fetch-first rejections.
+Merged publishedc7ad4f42, then B1 structural-reuse9d98c95f without source conflicts;
+the frozen union is5b05d6bb5288591794d378c1802c2a790357b204. The same ROOT native
+cache on KinmenA (Linux x64 LLVM19, CPUs24-31,24GiB, public bootstrap, six build
+actions/one compiler lane) rebuilt its affected closure in27.43wall/79.54CPU
+seconds,779584KiB peak RSS. dependency-units passed at9.31wall/16.21CPU/717532KiB:
+serial observed one thread/peak1, workers4 observed four distinct threads/peak4;
+known answers, imported forward decltype/comptime, lazy branch behavior, canonical
+bytes and diagnostic order agree. query-smoke passed .21/.24/87100, unit-admission
+6.37/7.67/476424. These are integration costs, not new before/after speedup claims.
+
+The wrapper initially used the nonexistent grammar-reuse selector and exited1;
+its grammar log/time and original exit.status remain intact. The actual registered
+structure-reuse selector then passed .03s/56332KiB and the complete frozen source
+manifest verified. The corrected.status0 is separate. SSH-context Windows Git
+credential persistence failed before pushing; no credentials/settings were changed.
+Transferred the exact validated history through a Git bundle and pushed normally
+from ROOT's existing authenticated local checkout; ls-remote verified5b05d6bb.
+No force push, lost history, runtime deployment or final-source release claim.
+Artifacts are ROOT_dependency_merge_5b05 locally/on KinmenA and /cache there.
+
+Added phase labels to the default frontend test entry, preserving every assertion,
+case and existing focused selector. This is test observability, not a production
+compiler change; production performance/memory comparisons are inapplicable.
+Frozenb83eeca7 plus these labels still timed out at the original300s deadline,
+exit124,288.03CPU seconds/277016KiB. It reached the second body diagnostic-width
+group after both execution/canonical target widths; there was sustained CPU work,
+not evidence of a deadlock. CMake's frontend registration has no300s timeout.
+
+The later5b05d6bb union plus the identical labels completed the FULL default suite
+under a separately declared900s diagnostic deadline:328.14wall/315.05CPU seconds,
+275496KiB peak RSS, no swaps, exit0, frozen input manifest verified. All body
+width/worker combinations and diagnostic groups, ownership/world/editor, LR/parser,
+format/scan,300 generated+500 arbitrary regex patterns and165 contextual lexer
+inputs ran. No case was removed, replaced by smoke, or relabeled as passing the
+old300s limit. Logs/source patch/hashes remain /cache/root_frontend_gate_b83 and
+root_frontend_complete_5b05. This establishes completion at that exact source,
+not validation of later inferred-stage, ownership or backend changes.
+
+Observed automatic Git maintenance holding a pull after its merge had completed;
+the owned repack finished naturally. Set maintenance.auto=false and gc.auto=0
+only in the12 campaign checkouts (normal+two agent clones per host), retaining
+previous local settings in each coordinator's git_auto_maintenance_before JSON.
+No global Git setting or repository content changed. Explicit maintenance/disk
+monitoring remains necessary; no measured compilation speedup is attributed to it.
+A later unrestricted container git diff spent its setup in vendor submodule
+status, before any build. Reaped only that verified read-only Git pair and retained
+the failed wrapper status; the retry captures the exact three changed paths with
+diff.ignoreSubmodules=all. This avoids redundant status traversal without omitting
+compiler/build inputs from their separate tracked source manifests.
+
+### ROOT executable worker aggregate-signature admission (2026-11-23)
+
+The remaining semantic_executable_kernel aggregate-signature component addition
+used the unchecked API followed by sem_require. It now calls the checked producer
+and records the exact WorkBudgetError on its private program with the canonical
+function offset, without allocating diagnostic text. Failed admission skips further
+lowering; the existing joined coordinator retains the failed work state, publishes
+no ready executable input, and disposes the snapshot through its ordinary owner.
+Invariant checks for already-prepared parameter remapping are unchanged.
+
+Extended the existing admission fixture/registration with signature and
+signature-healthy, both target widths and worker budgets1/4. It uses the bounded
+world constructor, a synchronized ledger when needed, and a valid metadata kind
+whose payload fits the total but exceeds remaining capacity alongside live owners.
+It checks the actual pump, exact Capacity/offset17, failed query/no readiness,
+terminal retry and complete world/grant teardown. No unsafe allocation hook,
+synthetic successful fallback or extra scheduler. These cases do not assert real
+overlap; existing query/stage suites provide that separate evidence.
+
+Failures retained: the first fixture misspelled KType as KStruct; its build failed
+before runtime. The initial legacy bind_budget setup did not bind store storage
+and correctly failed its strict denial expectations. The bounded constructor then
+reproduced old production abort134. That first bounded payload exceeded the total
+and the checked producer correctly returned Invalid, not Capacity; the final
+fixture instead reserves live pressure and requests a within-total payload. The
+first after run exposed this expectation mismatch with exact error2/offset17;
+the final capacity version passes. The original unchecked crash and each failed
+fixture/build log remain, not relabeled as passing baseline acceptance.
+
+Frozen5b05d6bb plus this patch passes all13 registered selectors (52 width/worker
+trials), query-smoke and real comptime_aggregates interpretation at jobs1/4.
+Known output is exactly0 newline, stderr empty, complete source hashes unchanged.
+Initial copied-compiler profiling lacked adjacent grammar resources and failed;
+copied the complete share directory before measuring. An inline OS quoting error
+also malformed the expected newline, corrected in the retained shell file without
+changing program bytes. These setup failures are not compiler failures or samples.
+
+Same KinmenA/Linux x64 LLVM19/public-bootstrap cache, warm filesystem, one sample
+per mode while other lanes remain active. comptime_aggregates wall/CPU/RSS before
+then after: jobs1 1.06/1.05/177816KiB ->1.04/1.03/178232KiB;
+jobs4 .95/1.16/197276KiB ->.93/1.14/196612KiB. Both compare known aggregate fields,
+array limits, callback results, signed zero and cleanup. No speedup/regression bound
+is inferred from n1. Admission .18wall/.17CPU/51972KiB; query .21/.22/87256.
+Before compiler bf393994275f2d23832fe0183e6ae0b7484866a9985f110854c3966ce5af8970;
+after1e573673b7f535e4c548a9bc740d104483787d4340b703a263d17514b7797205.
+Artifacts: root_signature_before_5b05, root_signature_after_5b05 (failed first
+after) and root_signature_after_capacity_5b05 under /cache and the ROOT coordinator
+directory. The old default frontend result above precedes this production patch.
+Final integrated instrumentation/browser/generation/publication remain pending.
