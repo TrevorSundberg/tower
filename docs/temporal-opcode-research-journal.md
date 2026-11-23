@@ -59406,7 +59406,6 @@ fixture hooks and updated bootstrap import policy. Final coherent native,
 bootstrap-generation, browser, scaling and supported sanitizer validation plus
 atomic publication/hosted verification remain required. No public refs changed.
 
-### D1 source union reconciliation (root 1fec1b91)
 ### D1 all-eight source checkpoint and final inventory refresh
 
 Verified ROOT_main_3915aee8.bundle SHA256
@@ -59490,6 +59489,7 @@ Single-sample process RSS314192to339728KiB (+8.1%) has not been independently
 attributed or established as a repeatable regression. Neither accounting nor
 admitted worker width establishes profitable scaling. Paired frozen compiler
 measurements remain pending in this same slot.
+### D1 source union reconciliation (root 1fec1b91)
 
 Malformed lifecycle selectors all reject with exit1 before reading a deliberately
 missing resource root: missing/extra arguments, empty/nondecimal/negative values,
@@ -60148,6 +60148,33 @@ claims for that bundle. ROOT6b8355 and A2ecc35d74 bundles have been hash-verifie
 and fetched; their constructor/clone/typed-transport changes still require
 merge and complete dependent rebuild before new runtime acceptance.
 
+D1 merges only approved A1ab603725, verified child ofb7bf916c from complete bundle
+4ef71298. The advertised0e36d5c9 constructor/dispatch tip remains excluded.
+Root86 grammar and root6b clone histories are preserved. Resource entry conflict
+keeps parameterized semantic_resource_tests(width,workers), adds owner's growth
+mode loop, and retains all trial bodies/typed-capacity/peak/cleanup assertions;
+resolved SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
+
+Root/D2 approved LR query registration calls semantic_publish_tests()18pressure
+and semantic_publish_cancellation_tests()4pre-cancel cases exactly once beside
+generic_clone_parallel_tests, before existing outer matrix. No duplicate main,
+new runner or repeated18-case loop. Patch49927ff78d90068ba36b51476c94a4030316f7f7631b3db56ceb0b194ce8490e
+passes source/reverse checks and is immediately handed to D2. Full new173-line
+fixture and resource growth reviewed; census1,084/499direct. D2 owns five matched
+provider imports; source build/link/runtime and positive instrumentation remain
+pending. Latest owner times sometimes have future manual labels; only actual
+tool/process clocks establish scheduling or measurement intervals.
+
+D2 supplies exact committed five-import provider patch3f242bffa59c6c9719e3f70086585872a45daf2ea310eb14ae2dcac6a685dc2b.
+D1 reads/applies it without additional production changes: existing evaluation,
+evaluation_checks, interpreter, interpreter_browser and interpreter_checks entry
+variants each import semantic_known_publish. They are alternative artifact
+compositions; do not link both complete interpreter/evaluation implementations.
+No new object/manifest or entity-unit semantic provider. D2's five native/two
+WASI smallest provider receipts remain its evidence; D1 local whole closure and
+actual linked symbol uniqueness remain pending. Resource helper hashes match
+across lanes. The newer unsupported constructor/dispatch advertised tip remains
+excluded. No heavy D1 job overlaps D2's canonical build.
 ### D2 matched clone baseline and Publish provider composition (2026-11-23)
 
 Frozen main6b8355b/scaffolding66163156 passes the public9653 smallest clone
@@ -60280,16 +60307,41 @@ keeps parameterized semantic_resource_tests(width,workers), adds owner's growth
 mode loop, and retains all trial bodies/typed-capacity/peak/cleanup assertions;
 resolved SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
 
-Root/D2 approved LR query registration calls semantic_publish_tests()18pressure
-and semantic_publish_cancellation_tests()4pre-cancel cases exactly once beside
-generic_clone_parallel_tests, before existing outer matrix. No duplicate main,
-new runner or repeated18-case loop. Patch49927ff78d90068ba36b51476c94a4030316f7f7631b3db56ceb0b194ce8490e
-passes source/reverse checks and is immediately handed to D2. Full new173-line
-fixture and resource growth reviewed; census1,084/499direct. D2 owns five matched
-provider imports; source build/link/runtime and positive instrumentation remain
-pending. Latest owner times sometimes have future manual labels; only actual
-tool/process clocks establish scheduling or measurement intervals.
+### D1 provider-history reconciliation and next validation boundary
 
+Before the2026-11-23 02:27:27UTC clock receipt, D1 verifies D2 bundle39f2efd5180a6dd4ed767f22f9730fef20c515de61abaf2b852cae87b5b986d1,
+sole60741 prerequisite, and merges406d1709 asfc7662bc. Only D2 audit/journal
+content differs from the existingaa22 tree; compiler, test, CMake, bootstrap and
+build-script bytes remain identical. Original provider commit1fa854a5 is now
+reachable alongside D1's hooks/ledger target and all source histories. No todo
+change. Runtime profiling is inapplicable to this history/documentation merge;
+new code introduced by earlier checkpoints still awaits D1's next measured run.
+
+D2 corrects its joined query failure attribution at02:24:02: the first fatal
+check is generic_clone_parallel.tower:149, workers2/Publish production interval
+overlap, not a semantic Publish result. Runnerbe56164e and fixtureea0a4909 identify
+the failure. Debugger execution and ten bounded subsequent plain query runs pass,
+but the original134 remains open with L2. D1 source review confirms the barrier
+covers admission only, and intervals exclude barrier waiting. Do not manufacture
+overlap by moving timestamps or replace the oracle with requested queue width.
+Later successful22 publication/24 resource cases retain their separate identity.
+No D1 duplicate reproduction or competing owner edit is performed while D2 owns
+the single Deck heavy slot.
+
+The L1 stale-object failure informs the next build recipe: changed copied source
+must be newer than dependent objects or those targets explicitly rebuilt. D1's
+current semantic_known_types/lr_grammar/interpreter entry/LR main inputs have
+normal checkout/apply timestamps newer than their existing native objects. This
+check does not replace actual rebuild logs. Prepared OS-only build transport
+under build/d1_ecs/registered_units_next compiles the smallest three changed
+entries, then the canonical no-override native build and affected targets; source
+hashes and before/after object timestamps are recorded. Independent arena linkage
+and type-errors checks precede the query suite, retain nonzero failures and exact
+symbol/output assertions. Scripts pass bash syntax checking but have NOT run.
+The sanitizer caches still require clearing an old CMAKE_PROJECT_INCLUDE override
+and enabling backend tests for the thread profile before wholecompiler checks.
+No deliberate invalid-memory/race probes are added. Available RAM9.3GiB,
+free disk138GiB and existing host swap6.6GiB do not require cleanup.
 D2 supplies exact committed five-import provider patch3f242bffa59c6c9719e3f70086585872a45daf2ea310eb14ae2dcac6a685dc2b.
 D1 reads/applies it without additional production changes: existing evaluation,
 evaluation_checks, interpreter, interpreter_browser and interpreter_checks entry
@@ -60344,3 +60396,42 @@ four-unit frontend duration as a finite bound, keeping the ordinary30s selector
 and all workload/output/overlap assertions. Its implementation and execution
 are pending; the original timeout remains failed. A2 constructor/graph/pool
 changes still exceed public aggregate limits and are not in this root checkpoint.
+
+D1 independently verifies D2's exported failure archivebb626610 and reads its
+original stdout/stderr/time/status: only workers1/Publish has a completion receipt,
+then the actual overlap assertion aborts. The command reports signal6 and stored
+status134; GNUtime's trailing Exit status0 does not turn it into a pass. Recorded
+wall1.19s, CPU.07s and RSS53276KiB describe the failed process, not kernel timing
+or throughput. No kernel interval timestamps exist in that receipt. Source406d
+and runner/source hash manifests remain available for L2's targeted diagnosis.
+
+D2's separately reported new type-errors mode passes93.18wall/100.56CPU/
+251372KiB on406d, along with arena linkage and parser/allocation/storage/module
+checks. This is independent evidence for D1's hooks, not D1's own execution or
+full type-smoke/lifecycle coverage on the newer compiler inputs. Root's later
+0c8b7d66 bundleba76f764 merges without compiler/test/build changes, retaining both
+histories and the D1 ledger target. D1 keeps final instrumentation/bootstrap/
+browser/generation/publication gates open. The earlier manually estimated02:28
+journal label is corrected against the actual02:27:27 tool clock; no benchmark
+or lease used that estimate.
+
+### D1 explicit calibrated overlap entry after owner review
+
+Root02:32:45 approves B2 observer patcha08e822929d1c8d1a923b0bfaaa866ce0d005453a03812f22cd7c4177e52594a
+then policyff030d95a41b37b810229944adb4974faafb4edec92476f79c309d02ed57580a.
+D1 reads and applies both after its own jobs are drained; D2 still owns the Deck
+heavy lock. Checked nanosecond clock conversion, finite bounded waits, private
+trace storage and unchanged serial object/worker/budget assertions are recorded
+in the per-file audit. No compiler production input changes. The explicit new
+mode measures the existing complete serial four-unit frontend once; it freezes
+max30seconds/baseline only for frontend2 awaiting backend1. Ordinary/all and the
+backend acknowledgement keep30seconds. No extra baseline compile, guessed
+multiplier, retry extension or unsupported skip.
+
+D1's separate tiny LR entry patch100a1083b5fb442c5953a4b104cbb95fd0ca79bd9fb158546b1f7d21e68f0142
+adds usage, selector validation and the exact owner export call. Source/reverse
+checks pass; public compilation and runtime are unrun locally. B2 has reported
+only its native leaf so far. Await B2 ordinary runtime before any instrumented
+use per root. Upcoming normal/calibrated receipts must identify source and bound;
+previous normal TSan timeout134 remains failed. Hook/runtime measurements and
+final coherent sanitizer/browser/generation/publication evidence remain open.

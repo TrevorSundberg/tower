@@ -1924,3 +1924,53 @@ Generic hook49927ff7 is exported for D2's matched provider build. D1 awaits D2's
 exact five provider imports before any local build; this joined source is not
 runtime evidence. L2/B2 partial inspection resource recovery remains separately
 open, and later constructor/dispatch drafts must not enter via advertised tip.
+
+### D2 provider history reconciliation and overlap failure
+
+Merged verified complete D2 bundle39f2efd5 at406d1709 into mainfc7662bc after
+checking the sole60741 prerequisite. This preserves the original five-provider
+commit1fa854a5 and all three D1 hooks; compiler, fixture and build inputs are
+byte-identical to D1aa22 before this merge. The D1 ledger target and README
+coverage remain present. Census remains1,084 tracked/499 direct reviewed files.
+No local runtime acceptance follows from this history/documentation-only merge.
+
+D2's first joined query run failed134 in generic_clone_parallel.tower's two-worker
+Publish interval-overlap assertion, before semantic publication checks. Its
+initial attribution to Publish was corrected using the actual fatal diagnostic
+and debugger. The admission barrier precedes both production-kernel intervals;
+distinct threads and simultaneous admission do not ensure a short kernel pair
+will overlap after wakeup. D2's ten later successful same-binary runs establish
+successful executions, not resolution of the original failure. L2 owns the
+fixture correction; preserve timing outside the admission barrier and actual
+work/ownership assertions. D1 has not rerun or weakened this assertion. This
+follow-up qualifies the earlier generic_clone_parallel audit row; it does not
+establish a production race, deadlock, speedup or reliable overlap on every run.
+
+D1 verified D2 failure archivebb626610 and read the original failed process
+receipt: signal6/status134 overrides GNUtime's trailing0. There are no actual
+kernel interval timestamps to attribute why overlap was absent. D2 also reports
+independent406d type-errors PASS93.18s/251372KiB and arena-linkage PASS; those
+qualified receipts advance the two generic hooks' validation without validating
+new full lifecycle coverage or current wholecompiler instrumentation. Root0c8b7d66
+history is now merged; no new Tower path or source-byte change.
+
+### Explicit calibrated overlap policy, B2ff030d95 plus D1 hook
+
+Read both complete owner patches (observera08e8229 followed by calibratedff030d95)
+and applied only after root's02:32:45 authorization. Existing backend_units.tower
+owns private formatter/event lines and checked nonnegative/normalized monotonic
+nanoseconds, including multiply/add overflow and backwards-clock rejection.
+Calibration times the already-required complete four-unit serial frontend batch;
+no extra compiler invocation or hidden sanitizer/environment test. Before dispatch,
+the context freezes max30seconds/measured duration for frontend2's wait. Backend1's
+acknowledgement and ordinary/full-suite paths keep30seconds. Exact serial objects,
+original decltype/comptime workload, shared budget and distinct-worker assertions
+remain. Traces precede fatal errors; private formatter allocations are disposed.
+The timing-bound change is test policy, not production throughput evidence.
+
+D1 lr_work_main adds only the authorized explicit selector/usage/admission and
+call to backend_units_overlap_calibrated_tests(root). It does not alter default/all
+coverage or retry failure. Patch100a1083 is exported independently for current
+owner closures. Native smallest entry/link, both normal modes and instrumentation
+are locally pending; root requires B2 normal runtime before instrumented adoption.
+Existing old TSan134 stays failed. No new Tower path; census remains499 direct.
