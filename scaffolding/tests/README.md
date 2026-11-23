@@ -1851,3 +1851,24 @@ captures at the original declaration, including shadow identity. Its negative
 runner compiles without executing the rejected loop. The positive
 `module_header_capture_controls.tower` (CTest workers1/4) prints0 and retains
 immutable known captures, type-only uses and lazy untaken staged reads.
+
+`tower-storage-tests RESOURCE_ROOT backend-import-bytes` reconstructs real LLVM
+counted initializers through shared Foundation formatting and an independent
+parse/check, then executes their byte reads at explicit 32/64-bit profiles. The
+literal oracle covers `65,0,128,255,0,67`, adjacent zero/128/255 runs, both endpoints,
+and preinitialized guards around each counted destination copy. Original LLVM
+callback/phi output42 remains first. The original import world closes before
+reparsing; interpreter, compiler worlds, buffer owners and budget grants drain.
+The existing admission fixture/selector remains unchanged in purpose.
+
+Build only `tower-storage-tests`, then select these four registered CTests:
+
+```sh
+ctest --test-dir <build> -R '^tower-storage-backend-import(-bytes(-wrong-byte|-wrong-guard)?)?$' --output-on-failure
+```
+
+`backend-import-bytes-wrong-byte` and `backend-import-bytes-wrong-guard` first
+require the correct literal output, then deliberately compare against129 or94;
+both return1 after cleanup and are registered with `WILL_FAIL`. Assertion crashes
+remain failures. These are single-owner native interpreter checks of reconstructed
+LLVM data, not native LLVM/Wasm machine execution or general overflow detection.
