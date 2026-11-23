@@ -81420,3 +81420,29 @@ Supported integrated memory/thread instrumentation, final public bootstrap,
 browser/generation/hosted deployment and complete core-scaling acceptance remain
 pending under the user's batched milestone workflow. Current focused tests are
 not proof of universal race freedom or final compiler completion.
+
+Merged executable admission validation: source2be47c9ebbbd30891af3ce3ff57b4648c948c9ad
+contains published3912f25b and this executable-stage patch. Its nine selectors
+(36 width/worker trials), query-smoke and comptime_flow jobs1/4 pass with exact
+expected output and empty comptime stderr. Input SHA256 manifest verifies after
+the run. Compiler SHA256:
+aa1fb00222d200ed2e18cc3f891798bf18807e67a38de6a30d63172680685d4e.
+Comptime jobs1 wall1.12/CPU1.10/RSS179472KiB; jobs4 .96/1.19/193644.
+These are merged correctness/cost receipts, not a new before/after speed claim.
+
+The Docker bind-mounted Git index check was an iteration bottleneck: recursive
+status was interrupted143; ignoring submodules still refreshed the Windows index
+slowly. Native Windows Git had already verified clean tracked inputs. Future
+wrapper uses that host receipt plus the frozen build-input manifest instead.
+A second attempted interrupt found the status process already finished; an
+unnecessary second wrapper consequently reran the focused checks after the
+14-action build. Both wrappers exited0, but the same output directory was reused:
+the retained build log/timing is the second no-work build, not the original
+compilation timing. No timing claim is made for that overwritten first build.
+Both observed runs passed; retained final checks/manifests are authoritative.
+No source was edited during compilation and no second compiler build action was
+observed concurrently. This wrapper error is recorded rather than counted as
+additional performance evidence. Logs are retained in ROOT_executable_merged_2be47
+under the existing coordinator build directory and the matching container cache.
+The remote pre-integration candidate remains preserved in a named Git stash;
+its three scoped source files match committed2be47 ignoring line endings.
