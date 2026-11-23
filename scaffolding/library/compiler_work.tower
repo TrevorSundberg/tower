@@ -1,6 +1,5 @@
 import tower;
-import work_graph_api;
-import work_graph_types;
+import work_graph;
 import entities;
 import entity_types;
 import compiler_work_types;

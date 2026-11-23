@@ -18,8 +18,7 @@ import semantic_type_values;
 import semantic_work_ids;
 import semantic_control;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.

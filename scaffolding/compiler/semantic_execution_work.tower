@@ -15,10 +15,8 @@ import foundation_tags;
 import interpreter_context_types;
 import .library.vector;
 import .library.stack;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 extern fn entity_query_count(kind: void*): usize;
 extern fn entity_query_at(kind: void*, index: usize): void*;

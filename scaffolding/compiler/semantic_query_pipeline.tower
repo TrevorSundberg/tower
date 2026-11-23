@@ -11,8 +11,7 @@ import semantic_execution_work;
 import semantic_body_work;
 import semantic_support;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 fn sem_query_pipeline_merge(current: SemanticPumpResult, next: SemanticPumpResult): SemanticPumpResult {
     if current == SemanticPumpResult.Failed || next == SemanticPumpResult.Failed { return SemanticPumpResult.Failed; }

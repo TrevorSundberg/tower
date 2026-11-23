@@ -4,8 +4,7 @@ import foundation_types;
 import interpreter_context_types;
 import semantic_context_types;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 import .library.work_budget_types;
 
 struct SemanticEvaluation {

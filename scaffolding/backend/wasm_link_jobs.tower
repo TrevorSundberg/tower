@@ -7,10 +7,8 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import .library.entity_types;
 import .library.entity_api;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 struct WasmLinkCopy { input: usize; chunk: WasmChunkLayout*; source: WasmBytes; original_offset: u32; offset: usize; }
 struct WasmLinkJob {

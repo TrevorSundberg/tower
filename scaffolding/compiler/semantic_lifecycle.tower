@@ -25,8 +25,7 @@ import semantic_known_bindings;
 import semantic_modules;
 import .library.stack;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.

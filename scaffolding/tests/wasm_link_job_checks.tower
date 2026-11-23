@@ -14,8 +14,7 @@ import .library.bytes_interface;
 import .library.bytes_types;
 import .library.entity_types;
 import .library.entity_api;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 
 struct WasmJobProbe { job: WasmLinkJob; entered: void*; release: void*; }
 struct WasmCancelProbe { link: WasmLink*; polls: usize; }

@@ -16,8 +16,7 @@ import .library.bytes_types;
 import .library.vector;
 import .library.entity_types;
 import .library.entity_api;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .library.ar_archive;
 
 fn elf_check_load(link: ElfLink*, machine: ElfMachine, inputs: vector(ByteBuffer)*): void {

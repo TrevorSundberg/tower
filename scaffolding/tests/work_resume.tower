@@ -1,7 +1,6 @@
 import tower;
 import .host.memory;
 import .library.work_graph;
-import .library.work_graph_types;
 import .library.vector;
 
 var failures: u32 = 0;

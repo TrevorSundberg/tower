@@ -4,8 +4,7 @@ import elf_link_world;
 import elf_link_symbols;
 import elf_dynamic_emit;
 import wasm_bytes;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 
 fn elf_dynamic_link_open(link: ElfLink*, machine: ElfMachine, interpreter: WasmBytes): bool {
     if !elf_link_open(link, machine) { return false; }

@@ -4,8 +4,7 @@ import .compiler.lr_types;
 import .library.entity_types;
 import .library.work_budget;
 import .library.work_budget_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 
 // Linux x64 measurement entry linked against the existing production LR test
 // objects. No allocator instrumentation is shared with native worker threads.

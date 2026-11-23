@@ -1,8 +1,6 @@
 import tower;
 import .library.work_graph;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
 import .host.memory;
@@ -13,6 +11,25 @@ extern fn pthread_self(): usize;
 
 fn schedule_check(ok: bool): void {
     if !ok { trap("Scheduling storage budget regression", 0); }
+}
+
+fn schedule_length_boundary(): void {
+    // Exercise only the shared arithmetic boundary: no invented payload
+    // address, huge allocation, or out-of-range element access is necessary.
+    var graph: WorkGraph;
+    work_init(&graph, 1, 7);
+    var maximum = ~convert(usize, 0);
+    schedule_check(work_next_length(&graph, 0) == 1
+        && work_next_length(&graph, maximum - 1) == maximum
+        && graph.resource_error == WorkBudgetError.None);
+    schedule_check(work_next_length(&graph, maximum) == 0
+        && graph.error == WorkError.Memory && graph.resource_error == WorkBudgetError.Invalid);
+    work_dispose(&graph);
+    work_init(&graph, 2, 7);
+    schedule_check(!work_resource(&graph, WorkBudgetError.Capacity));
+    schedule_check(work_next_length(&graph, maximum) == 0
+        && graph.resource_error == WorkBudgetError.Capacity);
+    work_dispose(&graph);
 }
 
 fn schedule_denial(): void {
@@ -212,6 +229,7 @@ fn schedule_terminal_denial(success: bool): void {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
+    schedule_length_boundary();
     schedule_denial();
     schedule_reset();
     schedule_terminal_denial(true);

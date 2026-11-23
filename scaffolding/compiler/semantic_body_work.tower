@@ -28,10 +28,8 @@ import semantic_generic_body_work;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 var BodyQuery: u32 = convert(u32, SemanticQuery.Body);
 var BodyPrepareQuery: u32 = convert(u32, SemanticQuery.BodyPrepare);

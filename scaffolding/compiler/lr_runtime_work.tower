@@ -13,10 +13,8 @@ import .library.work_buffer_types;
 import .library.work_budget_types;
 import .library.work_vector;
 import .library.work_vector_types;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 // Private derived table rows. Grammar entities remain authoritative; worker
 // results publish in source-state order, including the first conflict.

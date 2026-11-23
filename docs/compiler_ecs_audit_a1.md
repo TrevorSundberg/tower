@@ -617,3 +617,26 @@ expressions contain no effects and are evaluated once. No type/generic owner
 site is changed. Current-ABI runtime, supported instrumentation, canonical
 outputs and matched profiles remain open. A2 is asked to test the smaller
 nominal graph variant without the provisional graph/pool API split.
+
+### Minimal selected scheduler closure (2026-11-23)
+
+A2's reviewed selected package8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c
+retains nominal borrowed graph views, nongeneric WorkBuffer owners, checked
+constructor/dispatch receipts and typed length overflow. It removes the
+experimental graph/pool API/type split and restores the original providers.
+A2 independently compiled the actual parser and semantic aggregates with the
+unchanged public bootstrap and this lane's ordinary snapshot helper. A1 adopts
+that exact owner transition, generated between the two review-package trees
+in a temporary Git index; application is clean. Library/kernel/manifest trees
+match the selected package exactly. The only extra import reversal is A1's new
+semantic_dispatch_checks fixture, which was absent from A2's original base.
+All sixteen snapshot sites and A1's pending checked-known draft remain intact.
+No numeric provider or literal module remains. The API experiments and their
+cost/failure receipts remain in history, not in selected production source.
+
+The root-compatible snapshot-only patch5acefe43f2ac7926fbf2e5168990947fb25842baa6fcec5d14064b3fb17c2991
+passes git apply --cached --check against exact ROOT0c8; its one-line context
+avoids the newer checked-dispatch context in the first patch. Neither patch
+is a runtime acceptance claim. Next, rebuild all affected current-ABI objects
+before linking the focused dispatch/admission tests. Earlier cached objects
+and preconstructor runtime results cannot establish this joined source.

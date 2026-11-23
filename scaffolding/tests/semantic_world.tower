@@ -9,8 +9,7 @@ import .compiler.semantic_program_types;
 import .compiler.compiler_kernel;
 import .compiler.interpreter_context_types;
 import .library.vector;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 
 extern fn evaluation_query_tests(width: u32, workers: usize): u32;
 extern fn sem_workers_open(c: SemanticContext*): bool;

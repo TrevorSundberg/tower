@@ -3,10 +3,8 @@ import pe_types;
 import pe_relocate;
 import .library.vector;
 import .library.entity_api;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 struct PeLinkJob { link: PeLink*; object: PeObject*; output: u8*; ticket: WorkTicket; error: PeDiagnostic; }
 var PeInputDomain: u64 = 1;

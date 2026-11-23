@@ -6,8 +6,7 @@ import parser_types;
 import syntax_types;
 import foundation_types;
 import grammar_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
 

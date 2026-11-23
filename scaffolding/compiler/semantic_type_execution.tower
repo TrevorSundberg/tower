@@ -12,8 +12,7 @@ import foundation_tags;
 import interpreter_context_types;
 import type_primitives;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 extern fn compiler_node_world(node: void*): void*;
 

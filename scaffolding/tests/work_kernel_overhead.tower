@@ -1,8 +1,7 @@
 import tower;
 import .host.memory;
 import .compiler.compiler_kernel;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .host.work_linux;
 import .host.work_dispatch;
 

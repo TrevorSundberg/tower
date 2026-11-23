@@ -21,8 +21,7 @@ import semantic_work_ids;
 import foundation_types;
 import foundation_tags;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 // Static identity forms use the existing type producer graph. Resolve ordinary
 // callees first: a user function named function is still an ordinary call.

@@ -23,10 +23,8 @@ import foundation_tags;
 import foundation_types;
 import interpreter_context_types;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;

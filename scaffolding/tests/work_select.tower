@@ -1,7 +1,6 @@
 import tower;
 import .host.memory;
 import .library.work_graph;
-import .library.work_graph_types;
 
 // Linux x64 measurement boundary: timespec is two signed words; rusage is
 // eighteen signed words (user/system timeval, then ru_maxrss and counters).

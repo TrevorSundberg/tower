@@ -22,8 +22,7 @@ import semantic_known_bindings;
 import foundation_types;
 import foundation_tags;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 fn sem_type_value_node(node: void*): void* {
     node = sem_surface_unwrap(node);

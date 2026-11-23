@@ -1,6 +1,5 @@
 import tower;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .host.memory;
 import work_order;
 

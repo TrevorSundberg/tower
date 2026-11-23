@@ -1,6 +1,5 @@
 import tower;
 import .library.work_graph;
-import .library.work_graph_types;
 import .library.vector;
 import .host.memory;
 

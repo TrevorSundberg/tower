@@ -1,12 +1,10 @@
 import tower;
 import grammar_types;
 import worker_policy;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
-import .library.work_graph_api;
-import .library.work_graph_types;
+import .library.work_graph;
 
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;

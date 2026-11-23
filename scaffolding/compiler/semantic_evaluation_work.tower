@@ -12,10 +12,8 @@ import semantic_support;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 var EvaluationPrepareQuery: u32 = convert(u32, SemanticQuery.EvaluationPrepare);
 

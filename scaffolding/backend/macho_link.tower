@@ -6,8 +6,7 @@ import macho_jobs;
 import macho_unwind;
 import macho_metadata;
 import macho_emit;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_pool;
 
 fn macho_link_run(link: MachoLink*): bool {
     link.output.length = 0;

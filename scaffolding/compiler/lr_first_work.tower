@@ -7,10 +7,8 @@ import lr_types;
 import lr_work;
 import parser_workers;
 import .library.vector;
-import .library.work_graph_api;
-import .library.work_graph_types;
-import .library.work_pool_api;
-import .library.work_pool_types;
+import .library.work_graph;
+import .library.work_pool;
 
 struct LRFirstResult {
     ranges: vector(SymbolRange);
