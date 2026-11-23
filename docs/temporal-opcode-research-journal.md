@@ -88782,3 +88782,12 @@ identity; these old reactors cannot accept or reject those later fixes. Reuse
 unchanged20/22 evidence rather than rerun a compiler matrix. ROOT should run the
 two minimal cases on its next affected reactor. Worktree/todo/history preserved,
 all owned jobs drained; normal main push follows, no runtime deployment.
+
+B1 rejected-candidate publication reconciliation: required ff-only pull refused
+divergence, normal merge221c68dea09f7e84448f7a750b35f0131f0d4220 preserves complete
+c299b862 history without conflict. Serial LR/grammar inputs byte-identical to
+12722151; incoming generic-semantic/backend-test/browser changes have separate
+owner evidence and are not validated by the frozen timing/compiler artifacts.
+B1 diff against incoming main is receipt/journal only. No runtime delta, second
+candidate or unnecessary merged compiler build. Original source/binary/check
+receipts stay exact; owned jobs drained, todo preserved. Normal push follows.

@@ -138,3 +138,10 @@ range entries. A separately bounded attempt would need to reduce work per union
 with sparse-size bounds and conversion costs measured before adoption. This is
 an unimplemented proposal, not another cache or an approved optimization. No
 second candidate was attempted here; the ordinary solver remains published.
+
+Publication reconciliation preserved complete incoming c299b862 history through
+merge221c68dea09f7e84448f7a750b35f0131f0d4220. Serial LR/grammar inputs remain
+byte-identical to the freeze; incoming generic-semantic/backend-test/browser
+changes retain their owners' evidence. B1 contributes only this receipt/journal.
+No timings or functional checks above are relabeled as validation of those later
+compiler inputs; the restored native binaries retain their12722151 boundary.
