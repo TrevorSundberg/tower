@@ -2,7 +2,7 @@ import tower;
 
 // These are reviewed cross-unit imports, not a wildcard permission for native
 // implementations. Compare each compiler component's emitted object closure.
-enum BootstrapUnit: i32 { Unknown, Utf8, Bytes, Entities, ParserNodes, Host, Interpreter, Semantics }
+enum BootstrapUnit: i32 { Unknown, Utf8, Bytes, Entities, ParserNodes, Host, Interpreter, Semantics, ParserFormat, TemplateBuild }
 enum SymbolByte: u8 { Nul = 0, Tab = 9, LF = 10, CR = 13, Space = 32, Underscore = 95 }
 struct BootstrapSymbol { data: u8*; length: usize; }
 
@@ -19,6 +19,8 @@ fn bootstrap_unit(name: u8*): BootstrapUnit {
     if strcmp(name, "host") == 0 { return BootstrapUnit.Host; }
     if strcmp(name, "interpreter") == 0 { return BootstrapUnit.Interpreter; }
     if strcmp(name, "semantics") == 0 { return BootstrapUnit.Semantics; }
+    if strcmp(name, "parser-format") == 0 { return BootstrapUnit.ParserFormat; }
+    if strcmp(name, "template-build") == 0 { return BootstrapUnit.TemplateBuild; }
     return BootstrapUnit.Unknown;
 }
 
@@ -97,6 +99,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Diagnostic text retains the ParserFormat provider's buffer result.
+        if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
         // Configured module startup fixtures consume world and unit ownership.
         if bootstrap_symbol_in("compiler_world_create_result frontend_units_close frontend_units_create_bounded_result", symbol, length) { return true; }
         // Grammar admission retains exact results from the existing entities unit.
@@ -130,11 +134,33 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("parser_table_destroy parser_table_finish parser_table_finish_result parser_table_open parser_table_open_result syntax_description_text syntax_diagnostic_text_finish", symbol, length)
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
+    // Separate native objects: reviewed nm closures, not ParserNodes imports.
+    // Target-only runtime additions require their own observed object evidence.
+    if unit == BootstrapUnit.ParserFormat {
+        return bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_get", symbol, length)
+            || bootstrap_symbol_in("entity_child_at entity_child_count entity_child_index entity_child_name entity_component_data entity_component_get entity_parent", symbol, length)
+            || bootstrap_symbol_in("format_bytes format_char format_dispose format_entity format_match format_repeat format_text format_unsigned format_write", symbol, length)
+            || bootstrap_symbol_in("lr_grammar_missing_count lr_grammar_missing_name lr_grammar_name lr_grammar_name_count lr_grammar_rule_count lr_grammar_rule_data lr_grammar_symbol_count lr_grammar_symbol_data", symbol, length)
+            || bootstrap_symbol_in("lr_runtime_action_count lr_runtime_actions lr_runtime_conflict lr_runtime_goto_count lr_runtime_goto_data", symbol, length)
+            || bootstrap_symbol_in("parser_table_non_terminal_id_to_string_result parser_table_rule_next putchar puts syntax_nodes_equal syntax_parser_describe syntax_parser_token_name_result syntax_source_location", symbol, length)
+            || bootstrap_symbol_in("tower_allocate tower_trap tower_utf8_encode", symbol, length);
+    }
+    if unit == BootstrapUnit.TemplateBuild {
+        return bootstrap_symbol_in("bytes_append compiler_buffer_free compiler_node_world", symbol, length)
+            || bootstrap_symbol_in("entity_attach entity_child_at entity_component_data entity_component_get entity_member_index entity_release entity_retain", symbol, length)
+            || bootstrap_symbol_in("format_dispose format_entity frontend_revision_release frontend_revision_retain", symbol, length)
+            || bootstrap_symbol_in("parser_recognizer_create_result parser_recognizer_destroy parser_recognizer_get_error parser_recognizer_resource_error parser_recognizer_step", symbol, length)
+            || bootstrap_symbol_in("parser_stream_create parser_stream_destroy parser_stream_get_userdata parser_table_finish_result parser_table_grammar parser_table_open_result", symbol, length)
+            || bootstrap_symbol_in("syntax_destroy syntax_emission_find_index syntax_emission_keyword_count syntax_emission_keywords syntax_emission_production_count syntax_emission_productions syntax_emission_repetition_count syntax_emission_repetitions syntax_emission_wrapper syntax_pending_contains", symbol, length)
+            || bootstrap_symbol_in("syntax_replacement_candidate syntax_replacement_error syntax_replacement_host syntax_replacement_inspect syntax_replacement_resource_fail syntax_replacement_sequence syntax_replacement_tree", symbol, length)
+            || bootstrap_symbol_in("syntax_revision_reference syntax_revision_rule syntax_session_allocate syntax_session_diagnostic_result syntax_session_inputs_source syntax_session_pin_revision syntax_session_pin_version syntax_session_progress", symbol, length)
+            || bootstrap_symbol_in("syntax_template_holes_revision_result syntax_template_remap_revisions_result syntax_version_create_result syntax_version_lexicon_result syntax_version_release syntax_version_seed_result", symbol, length);
+    }
     if unit == BootstrapUnit.Semantics {
         // Checked semantic admission and module startup retain provider causes.
         if bootstrap_symbol_in("compiler_world_component_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result frontend_module_root_world_size_result", symbol, length) { return true; }
         // Generic publication consumes the entities unit's per-call outcomes.
-        if bootstrap_symbol_in("entity_stage_open_result entity_stage_publish_result entity_view_open_result", symbol, length) { return true; }
+        if bootstrap_symbol_in("entity_stage_open_result entity_stage_publish_result entity_stage_hold_result entity_view_open_result", symbol, length) { return true; }
         if bootstrap_symbol_in("generic_begin_result generic_register_result generic_instantiate_result generic_instantiate_deferred_result", symbol, length) { return true; }
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free semantic_known_publish_kernel work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
         if bootstrap_symbol_in("frontend_module_resource_error syntax_session_resource_error", symbol, length) { return true; }

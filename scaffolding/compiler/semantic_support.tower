@@ -753,8 +753,16 @@ fn sem_shape(c: SemanticContext*, n: void*, capture: u8*): bool {
 }
 
 fn sem_node(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
+    var result = sem_node_result(c, n, kind);
+    sem_require(result != null);
+    return result;
+}
+
+fn sem_node_result(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
     var fresh: bool = sem_get(n) == null;
-    var result: FoundationNode* = sem_attach(n, kind);
+    var error: WorkBudgetError;
+    var result = sem_attach_result(n, kind, &error);
+    if result == null { sem_resource_record(c.program, error, sem_offset(c, n)); return null; }
     var step4 = sem_offset(c, n);
     result.start = step4;
     result.end = result.start;

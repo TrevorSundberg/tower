@@ -9,6 +9,7 @@ import semantic_evaluation;
 import semantic_capture_work;
 import semantic_control;
 import semantic_support;
+import semantic_types;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
@@ -91,19 +92,26 @@ export fn sem_evaluation_clone_all(c: SemanticContext*): void {
 // dependencies discovered later by executed interpreter reads. Clones snapshot
 // inferred inputs before ordinary lowering mutates their source expressions.
 export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void* {
+    if !sem_ok(c) { return null; }
     var kind = cloning ? &c.evaluation_clones : &c.evaluation_preparations;
     var registered = cloning ? &c.evaluation_clone_registered : &c.evaluation_registered;
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
     for(var i = *registered; i < c.evaluation_jobs.length; i++) {
         var evaluation = bits(SemanticEvaluation*, c.evaluation_jobs.data[i]);
-        if cloning && !evaluation.inferred { continue; }
-        if *kind == null {
-            *kind = sem_create(c.program.root);
-            sem_require(entity_register(*kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
+        if cloning && !evaluation.inferred { *registered = i + 1; continue; }
+        var subject = evaluation.subject;
+        var id = work_find(&c.queries, subject, query_kind, 0);
+        if id == 0 || sem_evaluation_get(c, subject) != evaluation || evaluation.ready == null {
+            sem_type_resource(c, subject, WorkBudgetError.Invalid); return null;
         }
-        var component = entity_component_add(evaluation.subject, *kind);
+        var error: WorkBudgetError;
+        if *kind == null {
+            *kind = sem_kind_result(c.program.root, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), &error);
+            if *kind == null { sem_type_resource(c, subject, error); return null; }
+        }
+        var component = entity_component_add_result(subject, *kind, &error);
         var result = bits(SemanticEvaluationWork*, entity_component_data(component));
-        sem_require(result != null);
+        if result == null { sem_type_resource(c, subject, error); return null; }
         fill(result, 0, sizeof(SemanticEvaluationWork));
         result.evaluation = evaluation;
         result.ordinal = i;
@@ -113,21 +121,20 @@ export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void
         result.require_relocatable = evaluation.inferred || sem_capture_evaluation(c, evaluation);
         result.kernel.kind = CompilerKernelKind.PrepareEvaluation;
         result.kernel.payload = bits(void*, result);
-        var id = work_find(&c.queries, evaluation.subject, query_kind, 0);
-        sem_require(id != 0);
         // Disjoint expression output, immutable types and nested placeholders.
         // Evaluation reads expressions and writes results, so the graph also
         // excludes evaluation while a preparation wave owns these inputs.
         var domain = convert(u64, SemanticWorkDomain.Compiler);
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), i, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain,
-            convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_seal(&c.queries, id));
-        if cloning { sem_require(work_demand(&c.queries, id)); }
+        if !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), i, 1, WorkAccessMode.Write)
+            || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            || !work_seal(&c.queries, id) || (cloning && !work_demand(&c.queries, id)) {
+            sem_type_resource(c, subject, sem_query_error(c)); return null;
+        }
+        *registered = i + 1;
     }
     *registered = c.evaluation_jobs.length;
     return *kind;
@@ -136,7 +143,7 @@ export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void
 fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
     if !sem_ok(c) { return; }
     var kind = sem_evaluation_work_register(c, cloning);
-    if kind == null { return; }
+    if kind == null || !sem_ok(c) { return; }
     sem_control_names(c);
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
     if c.workers.count == 0 && !sem_workers_open(c) { return; }
@@ -149,6 +156,11 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticEvaluationWork*, entity_component_data(entity_component_get(subject, kind)));
+            if result == null {
+                sem_type_resource(c, subject, WorkBudgetError.Invalid);
+                if !work_finish(&c.queries, &ticket, false) { sem_type_resource(c, subject, sem_query_error(c)); }
+                break;
+            }
             result.ticket = ticket;
             result.stage = entity_stage_open(c.program.root);
             sem_require(result.stage != null);

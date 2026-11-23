@@ -19,6 +19,7 @@ import semantic_capture_work;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 export fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding* {
     if declaration == null || c.known_bindings == null { return null; }
@@ -39,18 +40,25 @@ fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
 
 
 fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal: usize): void {
+    if !sem_ok(c) { return; }
     if !sem_known_candidate(subject) { return; }
     if sem_known_binding(c, subject) != null { return; }
     if c.known_bindings == null {
-        c.known_bindings = sem_create(c.program.root);
-        sem_require(entity_register(c.known_bindings, sizeof(SemanticKnownBinding), alignof(SemanticKnownBinding), 0));
+        var error: WorkBudgetError;
+        var kind = sem_kind_result(c.program.root, sizeof(SemanticKnownBinding), alignof(SemanticKnownBinding), &error);
+        if kind == null { sem_type_resource(c, subject, error); return; }
         if c.value_inputs == null {
-            c.value_inputs = sem_create(c.program.root);
-            sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+            c.value_inputs = sem_kind_result(c.program.root, sizeof(IMValueInput), alignof(IMValueInput), &error);
+            if c.value_inputs == null {
+                sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
+                sem_type_resource(c, subject, error); return;
+            }
         }
+        c.known_bindings = kind;
     }
-    var binding = bits(SemanticKnownBinding*, entity_component_data(entity_component_add(subject, c.known_bindings)));
-    sem_require(binding != null);
+    var error: WorkBudgetError;
+    var binding = bits(SemanticKnownBinding*, entity_component_data(entity_component_add_result(subject, c.known_bindings, &error)));
+    if binding == null { sem_type_resource(c, subject, error); return; }
     fill(binding, 0, sizeof(SemanticKnownBinding));
     binding.owner = owner;
     binding.ordinal = ordinal;
@@ -59,41 +67,38 @@ fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal
 }
 
 fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBinding*): void {
-    sem_evaluation_begin(c);
-    var subject = sem_control_node(c, node, KOperand);
+    sem_evaluation_begin_at(c, node);
+    if !sem_ok(c) { return; }
+    var subject = sem_evaluation_node(c, node);
+    if subject == null { return; }
     var literal = sem_get(subject);
     sem_set_type(&literal.type, &sem_get(node).type);
     literal.constant = true;
-    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
-    sem_require(result != null);
-    *result = default;
-    result.subject = subject;
+    var result = sem_evaluation_state(c, subject);
+    if result == null { return; }
     result.owner = binding.owner == null ? c.program.root : binding.owner;
     result.literal = subject;
     result.requested = true;
     result.inferred = true;
-    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
-    sem_require(result.ready != null);
-    *result.ready = default;
-    result.ready.subject = subject;
-    result.kernel.kind = CompilerKernelKind.Evaluate;
-    result.kernel.payload = bits(void*, &result.invocation);
-    sem_push(&c.evaluation_jobs, bits(void*, result));
+    result.expression = sem_get(node).value;
     sem_evaluation_request(c, result);
-    sem_require(work_depend(&c.queries,
-        work_find(&c.queries, subject, convert(u32, SemanticQuery.KnownClone), 0), binding.input_query));
-    binding.evaluation = subject;
+    if !sem_ok(c) { return; }
+    if !work_depend(&c.queries,
+        work_find(&c.queries, subject, convert(u32, SemanticQuery.KnownClone), 0), binding.input_query) {
+        sem_type_resource(c, node, sem_query_error(c)); return;
+    }
     var input = bits(IMValueInput*, entity_component_data(entity_component_get(node, c.value_inputs)));
     if input == null {
-        input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
-        sem_require(input != null);
+        var error: WorkBudgetError;
+        input = bits(IMValueInput*, entity_component_data(entity_component_add_result(node, c.value_inputs, &error)));
+        if input == null { sem_type_resource(c, node, error); return; }
         *input = default;
     }
     // Fresh components initialize every role and projection field above. A
     // preexisting required capture keeps its own producer and borrowed leaves;
     // optional inference must not overwrite that proof or consume its storage.
     input.known_producer = subject;
-    result.expression = sem_get(node).value;
+    binding.evaluation = subject;
     c.surface_expressions = true;
 }
 
@@ -152,6 +157,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     var root = sem_get(c.program.root);
     for(var index: usize = 0; index < root.items.length; index++) {
         sem_known_register(c, root.items.data[index], null, index);
+        if !sem_ok(c) { return; }
     }
     var kind = sem_known_kind(c);
     var count: usize = 0;
@@ -169,6 +175,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     foreach(var job in &scans) {
         foreach(var &candidate in &job.candidates) {
             if job.owner != null { sem_known_register(c, candidate.subject, job.owner, candidate.ordinal); }
+            if !sem_ok(c) { sem_known_jobs_dispose(&scans); return; }
             sem_push(nodes, candidate.subject);
         }
     }
@@ -226,6 +233,7 @@ fn sem_known_infer(c: SemanticContext*): void {
             result.requested = true;
             if !result.started { result.type_argument = false; }
         }
+        if !sem_ok(c) { return; }
     }
     // Lowering consumes this joined receipt, rather than relying on a hidden
     // phase-order rule while inferred expressions still borrow runtime nodes.

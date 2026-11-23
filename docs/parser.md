@@ -580,3 +580,24 @@ maximum Unicode scalar are named language-data limits. The downstream pattern
 table remains responsible for propagating the result into its own diagnostics;
 adding this producer alone does not complete that consumer or budget raw text
 vectors. Validation status is recorded in the journal.
+
+### Sparse grammar construction measurements
+
+On the native Linux frontend test entry, `iteration-cold` and
+`iteration-installed` compile the same small `import tower` source through
+`frontend_compile_sources`, execute its answer and report a canonical hash.
+The latter installs Bedrock/Foundation first and reports that cost separately.
+`CompilerGrammarCache.observer` borrows an optional coordinator-owned callback;
+set it before compilation and clear it after synchronous work drains, before
+releasing its context. It observes Lookup, Build and Table spans; Table time is
+nested inside Build, so these elapsed totals must not be added. The default
+observer is empty and the compiler itself performs no clock reads or logging.
+This observer is for a single coordinator, not a shared concurrent accumulator.
+
+Run `tower-frontend-tests RESOURCE_ROOT grammar-equivalence` from RESOURCE_ROOT
+for existing parser/live grammar checks, including boundaries, imported-rule
+isolation, cache reset/churn, lexical patterns and replacement provenance.
+It excludes the separate allocation-failure selector. Counts and timings alone
+do not establish interchangeable versions: tables retain version userdata,
+emission and replacement/provenance bindings. The journal records the measured
+prerequisite for wider immutable runtime reuse; no wider cache was implemented.

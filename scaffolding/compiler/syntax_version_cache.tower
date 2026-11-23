@@ -8,6 +8,7 @@ import syntax_version_build;
 import syntax_version_types;
 import .library.vector;
 import .library.work_budget_types;
+import grammar_observer;
 
 export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
     frontend_cache_dispose(&value.index);
@@ -52,13 +53,17 @@ export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, defini
     if kind is null {
         return null;
     }
+    grammar_observe(world, GrammarPhase.Lookup, true, definitions.rules.length, definitions.tokens.length);
     var slot = frontend_cache_find(&value.index, definitions.rules.data, definitions.rules.length,
     definitions.tokens.data, definitions.tokens.length, kind);
+    grammar_observe(world, GrammarPhase.Lookup, false, definitions.rules.length, definitions.tokens.length);
     if slot != lr_none() {
         diagnostic.fallback = "";
         return syntax_version_retain(value.versions.data[slot]);
     }
+    grammar_observe(world, GrammarPhase.Build, true, definitions.rules.length, definitions.tokens.length);
     var version = syntax_version_build(world, definitions, bedrock, diagnostic);
+    grammar_observe(world, GrammarPhase.Build, false, definitions.rules.length, definitions.tokens.length);
     if version is null {
         return null;
     }
