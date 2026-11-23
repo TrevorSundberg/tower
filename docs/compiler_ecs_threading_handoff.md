@@ -10,6 +10,10 @@ the fixed closeout scope, not an instruction to start another audit cycle.
 Other workers' unpushed memory/body work is **in progress and excluded** from
 this checkpoint. Later changes need affected owner receipts at final integration.
 
+Publication reconciliation preserved subsequent main87a5da1, including ownership
+and scratch changes with their own receipts. They are outside this review: an
+open defect at c20 is not a claim that its later fix is absent or unvalidated.
+
 Evidence references name frozen receipts in the [journal](temporal-opcode-research-journal.md),
 [services](compiler-services.md) and [D1 composed-source review](compiler_ecs_audit_d1.md#frozen-integration-review-at-c20dc56-2026-11-23).
 `ff6820e2` and this freeze have identical runtime sources/build configuration;

@@ -3602,3 +3602,10 @@ against the actual changed-path lists, with no missing-source inference. Metadat
 is build/d1_ecs/review_c20dc56/. No compiler/test/profiling job or cache mutation;
 D2's heavy resources untouched. Documentation-only runtime profiling is
 inapplicable. Earlier journal/owner receipts and pinned resources stay intact.
+
+Publication reconciliation: documentation commitbeb7822 met newer main87a5da1.
+Required ff-only pull refused divergence; normal merge preserved both complete
+histories without conflicts. Later ownership/scratch implementations and receipts
+remain outside the c20 review. In particular, its confirmed budget defect is a
+statement about c20, not a verdict on the subsequent fix. No heavy revalidation
+or new census was started; final merged documentation checks retain this freeze.

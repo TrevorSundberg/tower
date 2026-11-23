@@ -85081,3 +85081,10 @@ Consequently the retained memory and semantic source audit above remain explicit
 LR helpers, the chosen suffix candidate, profile source and five language resources
 remain unchanged. Saved executable/evidence hashes, documentation diff checks and
 todo preservation pass; no broad rebuild or relabeled performance acceptance.
+
+D1 publication reconciliation: review commitbeb7822; required ff-only pull
+refused divergence at newer main87a5da1. Merged complete upstream normally without
+conflicts, preserving new ownership/scratch/profile receipts. c20 source identity
+and the fixed ledger remain unchanged in scope; later changes do not inherit
+this review, and its c20 budget defect does not deny a subsequent fix. Final
+checks are documentation/path/history checks only; no compiler input was rebuilt.
