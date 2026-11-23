@@ -45,6 +45,8 @@ extern fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_bodies_admitted(c: SemanticContext*): usize;
 extern fn sem_body_pipeline_finish(c: SemanticContext*): void;
 extern fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult;
+extern fn sem_layout_discover(c: SemanticContext*, n: void*): usize;
+extern fn sem_layout_execute(c: SemanticContext*): usize;
 extern fn sem_push(v: vector(void*)*, n: void*): void;
 extern fn sem_type_execution_request(c: SemanticContext*, owner: void*, request: IMTypeConstruction*, receipt: WorkTicket*): usize;
 extern fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult;

@@ -73,7 +73,7 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
         vector_dispose(void*, bits(vector(void*)*, context.lists.data[i]));
     }
     vector_dispose(void*, &context.lists);
-    for(var i: usize = 0; i < context.allocations.length; ++i) { free(context.allocations.data[i]); }
+    for(var i: usize = 0; i < context.allocations.length; ++i) { compiler_buffer_free(context.allocations.data[i]); }
     vector_dispose(void*, &context.allocations);
 }
 

@@ -197,6 +197,12 @@ Do NOT modify todo.txt.
   function substitutes. Preserve stable ABI values and actual numeric fixture data.
   Use `i8/u8/i16/u16` for matching storage/ABI widths, wider intermediates as needed,
   and typed `f32/f64` for floats; use `bits` only for representation work.
+- Derive sizes, lengths, element counts, loop bounds and related offsets from
+  the actual collection, type or input using supported size/length operations;
+  do not duplicate them as hardcoded values. Pass an explicit count with raw
+  pointers; pointer size does not describe the pointed-to array. Keep literal
+  values only where they define the data or contract, using named constants for
+  semantic limits and protocol values.
 - Project-owned Tower module/file/directory names use underscores. Prefer unquoted
   imports; each leading dot moves up one directory from the importer, with no
   library fallback. Quoted imports are exact, case-sensitive full filenames with

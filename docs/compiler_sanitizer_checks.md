@@ -42,16 +42,43 @@ cmake --build "$TOWER_NATIVE_BUILD" --target tower-work-tests tower-lr-work-test
 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 "$TOWER_NATIVE_BUILD/tower-work-tests"
 ```
 
-For thread mode use a different cache and `TSAN_OPTIONS=halt_on_error=1`.
-Original LLVM is instrumented after foreign-symbol binding; final links supply
-compiler-rt. Build-host tools and distributed cross-target guest runtime assets
-remain uninstrumented. The mode does not instrument programs later compiled by
-the resulting compiler. Driver tests use their own instrumented guest library.
-Unsupported modes/targets/versions fail explicitly. `sanitizer-objects.tsv`
-lists configured inputs and outputs, not executed coverage; inspect actual link
-objects/archive members and preserved run logs. D2's owner receipts and A2's
-manual receipts below are distinct; changed merged inputs need fresh checks.
-This mode supplies no source-language UBSan coverage.
+For thread mode, use a separate cache, `-DTOWER_SANITIZER=thread`, and
+`TSAN_OPTIONS=halt_on_error=1`. The normal empty mode retains the production
+build recipes. Other modes, targets and LLVM versions fail configuration or the
+object rule with a diagnostic. Keep outer build concurrency and per-compiler
+jobs within the host budget. Do not share a cache between concurrent builds.
+
+Each original module is instrumented after any required foreign-symbol binding;
+Clang compiles the result without another sanitizer pass. Final executable links
+supply compiler-rt. Native build-host tools remain uninstrumented to avoid a
+recursive bootstrap. Distributed cross-target guest runtime resources also
+remain ordinary target artifacts; this mode does not instrument programs later
+compiled by the resulting compiler. Driver tests use a separate instrumented
+guest library instead of the build-host tool library.
+
+`sanitizer-objects.tsv` records configured object/Tower-source/original-IR/instrumented-IR/mode
+paths. It is **not** an execution receipt: inspect the actual target link and
+archive members, build logs and instrumentation references for coverage. D2's
+first shared-mode checks built and ran all four Tower objects of work-pool tests
+under ASan with leak detection and under TSan. Both deliberate probes produced
+their required diagnostic and exit status with instrumented guest runtimes.
+The full 26-object LR target also builds under TSan: all 22 direct objects and
+four memory-archive members contain instrumentation references. Three LR runs
+produce identical passing output, and query-smoke passes. The backend selector
+timed out after 180 seconds without a diagnostic; its overlap/sanitizer acceptance
+remains open. This receipt is for D2 `599e8a8`, whose production compiler sources
+match published `60741c5`; it does not validate other lanes' pending changes.
+No source-language UBSan coverage is implemented by this mode.
+
+A later unchanged-source backend diagnostic used a bounded600s run after the
+normal selector passed142.39s. It failed at458.83s with raw exit134 and
+`frontend/backend overlap deadline`, the fixture's internal30s signal wait.
+It is not a TSan pass. Supported user-space sampling identified substantial
+instrumented LALR construction cost before the overlap interval; the final
+producer deadline still needs owner attribution. No deadline, assertion or
+instrumentation was weakened. See the D2 audit/journal for exact input hashes,
+sampling limits and preserved raw status; GNU time's accompanying Exit status0
+does not override its signal6 termination or the actual process134.
 
 ## Manual reproduction of the tool
 

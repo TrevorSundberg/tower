@@ -53,4 +53,7 @@ struct IMState {
     // Borrowed from the root world before dispatch; outlives retained storage.
     // Null is the explicit standalone execution boundary.
     budget: WorkBudget*;
+    // First physical-storage failure, distinct from an unsupported optional
+    // stage. Coordinators must retain/report it before disposing this state.
+    storage_error: WorkBudgetError;
 }

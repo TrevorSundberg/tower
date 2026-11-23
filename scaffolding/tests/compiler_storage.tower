@@ -226,10 +226,15 @@ fn storage_session_tests(): void {
     var retained = semantic.source; syntax_source_retain(retained);
     utility_check(strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session source snapshot immutable");
     var original = retained.text.data;
-    // The session has no module provider. Each reset stays within Bedrock's
-    // declaration seed and yields one node before EOF.
+    // The session has no module provider. Each reset activates its own grammar
+    // from Bedrock's declaration seed before parsing a statement.
     for (var index: usize = 0; index < 100; ++index) {
-        syntax_reset(session, "parse Next = 'fresh';", null);
+        // An independent file activates its own grammar. Baseline caches do
+        // not import executable syntax into a fresh source snapshot.
+        syntax_reset(session, "parse Statement = 'again' ';';again;", null);
+        var declaration = syntax_next(session);
+        utility_check(declaration is not null, "Session reset activates grammar");
+        tower_node_release_ref(declaration);
         var item = syntax_next(session); utility_check(item is not null, "Session reset parses");
         utility_check(syntax_next(session) is null && syntax_get_error(session)[0] == 0, "Session reset reaches EOF");
         utility_check(retained.text.data == original && strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session reset preserves retained provenance");
@@ -237,7 +242,10 @@ fn storage_session_tests(): void {
     }
     tower_test_buffer_fail_next(); syntax_reset(session, "parse Failed = 'failure';", null);
     utility_check(strcmp(syntax_get_error(session), "Unable to allocate source text") == 0 && syntax_next(session) is null, "Session reset allocation diagnostic");
-    syntax_reset(session, "parse Recovered = 'ready';", null);
+    syntax_reset(session, "parse Statement = 'recovered' ';';recovered;", null);
+    var declaration = syntax_next(session);
+    utility_check(declaration is not null, "Session recovery activates grammar");
+    tower_node_release_ref(declaration);
     var item = syntax_next(session); utility_check(item is not null, "Session reset recovers");
     syntax_destroy(session);
     utility_check(strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session destruction preserves retained source");

@@ -9,7 +9,8 @@ import .library.work_graph;
 import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
-import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
 
 extern fn frontend_units_work_acquire(frontend: void*): void*;
 extern fn frontend_units_work_release(frontend: void*): void;
@@ -66,8 +67,7 @@ struct BackendUnits {
     pool: WorkPool;
     budget: WorkBudget*;
     own_budget: WorkBudget;
-    inputs: WorkReservation;
-    target: vector(u8);
+    target: WorkBuffer;
     count: usize;
     join: usize;
     completed: usize;
@@ -204,8 +204,7 @@ export fn backend_units_close(batch: BackendUnits*): void {
     }
     if batch.kind != null { entity_release(batch.kind); }
     if batch.frontend != null { frontend_units_work_release(batch.frontend); }
-    vector_dispose(&batch.target);
-    backend_units_release(batch, &batch.inputs);
+    work_buffer_dispose(&batch.target);
     if !work_budget_dispose(&batch.own_budget) { trap("Backend budget still borrowed", 0); }
     free(batch);
 }
@@ -261,15 +260,11 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
     batch.count = count;
     var length: usize = 0;
     while target[length] != 0 { length++; }
-    if length == ~convert(usize, 0) || work_budget_reserve_result(batch.budget, 0, 0,
-        length + 1, &batch.inputs) != WorkBudgetError.None {
+    if length == ~convert(usize, 0) || work_buffer_resize(&batch.target, batch.budget,
+        length + 1, 0) != WorkBudgetError.None {
         backend_units_close(batch); return null;
     }
-    batch.target.data = alloc(u8, length + 1);
-    if batch.target.data == null { backend_units_close(batch); return null; }
-    batch.target.capacity = length + 1;
     copy(batch.target.data, target, length + 1);
-    batch.target.length = length;
     // Policy/target allocation failure above leaves the borrowed graph usable.
     batch.graph = batch.streaming ? compiler_work_plan(batch.work) : compiler_work_graph(batch.work);
     if batch.graph == null { backend_units_close(batch); return null; }

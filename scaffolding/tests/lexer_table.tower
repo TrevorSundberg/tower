@@ -5,10 +5,13 @@ import .compiler.syntax_types;
 import utility_checks;
 import lexer_table_oracle;
 import mt19937;
+import .library.work_budget;
+import .library.work_budget_types;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_next(): void;
 extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 
 var TestNfaRange: u32 = 0;
 var TestNfaSplit: u32 = 1;
@@ -149,7 +152,51 @@ fn lexer_failure_tests(): void {
     utility_check(tower_test_buffer_count() == baseline, "Lexer failure sweep cleanup");
 }
 
+fn symbol_sequence_budget_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var ranges: SymbolRange[3] = default;
+    var count = sizeof(decltype(ranges)) / sizeof(SymbolRange);
+    var object_bytes = compiler_buffer_allocation_size(sizeof(SymbolSequence));
+    var range_bytes = compiler_buffer_allocation_size(sizeof(decltype(ranges)));
+    var total = object_bytes + range_bytes;
+    var limits: usize[4];
+    limits[0] = object_bytes - 1;
+    limits[1] = object_bytes;
+    limits[2] = total - 1;
+    limits[3] = total;
+    for(var index: usize = 0; index < sizeof(decltype(limits)) / sizeof(usize); index++) {
+        var limit = &limits[index];
+        var budget: WorkBudget = default;
+        utility_check(work_budget_init(&budget, 1, *limit, 1), "Sequence bounded memory ledger");
+        var sequence = symbol_sequence_create_owned(count, &budget);
+        utility_check((sequence != null) == (*limit == total), "Sequence object and range denial boundaries");
+        var snapshot: WorkBudgetSnapshot = default;
+        if sequence != null {
+            for(var index: usize = 0; index < count; index++) {
+                var symbol = convert(u32, index);
+                symbol_sequence_set(sequence, index, symbol, symbol);
+                utility_check(symbol_sequence_accepts(sequence, index, symbol), "Budgeted sequence preserves transitions");
+            }
+            utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == total,
+                "Sequence retains exact object and range allocation charges");
+        }
+        symbol_sequence_destroy(sequence);
+        utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+            && snapshot.live == 0 && snapshot.peak_bytes <= *limit && work_budget_dispose(&budget),
+            "Sequence denial and retirement return every physical grant");
+    }
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, object_bytes, 1), "Empty sequence object allowance");
+    var empty = symbol_sequence_create_owned(0, &budget);
+    utility_check(empty != null && empty.symbols == null && !symbol_sequence_accepts(empty, 0, 0),
+        "Empty sequence owns no range storage and accepts no transition");
+    symbol_sequence_destroy(empty);
+    utility_check(work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Sequence budget checks restore all allocator ownership");
+}
+
 export fn lexer_table_tests(): void {
+    symbol_sequence_budget_tests();
     test_random_check();
     automaton_tests();
     lexer_failure_tests();

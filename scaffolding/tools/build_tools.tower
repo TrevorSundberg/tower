@@ -38,8 +38,9 @@ fn build_tool_run(args: vector(u8*)*): i32 {
 }
 
 // Existing inputs must resolve. Compare every destination before compilation,
-// including aliases through symlinks. This does not promise hard-link identity
-// checks or protection against concurrent filesystem replacement.
+// including symlink and hard-link aliases through the shared Linux file identity
+// check. Paths must remain unchanged until writing; concurrent replacement is
+// outside this contract.
 fn build_tool_outputs_safe(inputs: vector(u8*)*, outputs: vector(u8*)*): bool {
     foreach (var input in inputs) {
         foreach (var output in outputs) {

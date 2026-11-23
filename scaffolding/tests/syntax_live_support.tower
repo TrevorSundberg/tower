@@ -34,7 +34,7 @@ fn live_allocations(value: LiveAllocations*): void {
 fn live_released(value: LiveAllocations*): void {
     utility_check(value.nodes == tower_node_get_allocated_count() && value.components == tower_component_get_allocated_count() && value.memory == tower_memory_get_allocated_count(), "Live syntax releases nodes, components and memory");
 }
-fn live_base(): u8* { return "parse Variable = Identifier;parse Expression = Identifier | Number;parse Statement = Expression ';';"; }
+fn live_base(): u8* { return "parse Variable = Identifier;parse Expression = Identifier | AttributeInteger;parse Statement = Expression ';';"; }
 fn live_feature(): u8* { return "parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';parse Statement |= ForEach;"; }
 fn live_join(out: ByteBuffer*, a: u8*, b: u8*, c: u8*): void {
     utility_check(bytes_assign_text(out, a, strlen(a)) && bytes_append(out, b, strlen(b)) && bytes_append(out, c, strlen(c)) && bytes_push(out, 0), "Live syntax fixture text allocation"); --out.length;

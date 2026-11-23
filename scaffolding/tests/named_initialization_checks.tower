@@ -36,10 +36,14 @@ fn named_initialization_reject(modules: void*, source: u8*, message: u8*): void 
 }
 
 fn named_initialization_diagnostic(source: u8*, wanted: u8*, bedrock: u8*, foundation: u8*, root: u8*): void {
+    named_initialization_diagnostic_width(source, wanted, bedrock, foundation, root, 8);
+}
+
+fn named_initialization_diagnostic_width(source: u8*, wanted: u8*, bedrock: u8*, foundation: u8*, root: u8*, width: u32): void {
     var baseline: vector(u8) = default;
     defer vector_dispose(&baseline);
     for(var workers: usize = 1; workers <= 8; workers *= 2) {
-        var batch = frontend_units_create(1, workers, 8, 91, 23, bedrock, foundation, root);
+        var batch = frontend_units_create(1, workers, width, 91, 23, bedrock, foundation, root);
         execution_check(batch != null, "Named initializer diagnostic batch");
         defer frontend_units_close(batch);
         execution_check(frontend_units_source(batch, 1, "named_diagnostics.tower", source, strlen(source)), "Named initializer diagnostic source");
