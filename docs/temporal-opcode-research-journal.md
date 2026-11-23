@@ -96083,6 +96083,30 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+## 2026-11-23 A1: shared bounded lazy DEFLATE improvement
+Reviewed actual03d8123d package change preserved by6b74889b, plus write/remove/
+manifest and browser/build callers. Dist-only post-gzip unlink leaves complete
+sources/support/raw build inputs and failure contracts; no deployment operation.
+Baseline1e428ede, exacta06 LLVM35420122B. Implemented one-byte lookahead for
+short matches, reusing prepared matches/index and all old scratch/fallback rules.
+No token-buffer/dynamic-tree architecture. Gzip13671333 ->12786963B (-884370,
+6.47%). Matched n2 LLVM wall2.71/2.72 ->3.30/3.35s, CPU1.58/1.57 ->2.18/2.20,
+RSS62488/62008 ->60456/60456KiB. Accept bounded offline packaging cost; no
+compiler-throughput claim. Small/random unchanged sizes, measured separately.
+Public768/Clang19, CPU12-23/24GiB, only focused Tower providers/tests/depfiles.
+161 independent ZIP decodes,39 gzip reference round trips, seeded mixtures,
+known CRC,29 truncations/two corruptions/recovery, alias/invalid/overflow and
+independent token recipe pass. Preserved old codec fails recipe134; no false pass.
+Three fixture syntax errors retained before supported corrections. Initial tiny
+timings below resolution retained; final tiny samples10000 repetitions.
+[Receipt](deflate_lazy_a1.md) has exact identities/costs/ownership limits and raw
+A1/cache/deflate_1e428ede paths. Match scratch unchanged294912B; retained output
+capacity lower, explicit buffer disposal checked; no global allocation census or
+new instrumentation claim. No broad matrix/rejected operation; ROOT release
+remains separate. Todo unchanged, jobs drained; normal reconciliation/push next.
+
+Final codec review passes explicit hash/window counts with borrowed raw arrays.
+The accepted profile binary is byte-identical817718658081644e7e5285db730bbacbd5068c0a59148e53e17773326a147b75 to the measured candidate; reused n2 evidence by identity. Final39-gzip and161-member reference checks pass after that source clarification. Accepted depfile closure hashes frozen externally; no extra allocator or matrix.
 ## A2 exact abort host capability and two complete T9 selectors (2026-11-23)
 
 Implemented only the shared foreign/host boundary: platformImports supplies an
@@ -96214,3 +96238,4 @@ from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergeab68f799 adopts b4bd9980 browser abort fixtures/peer receipts. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output and resource hashes reverified, checked evidence reused. Incoming browser-only adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
+A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.

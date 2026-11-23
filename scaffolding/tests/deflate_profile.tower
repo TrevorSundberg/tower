@@ -1,0 +1,32 @@
+import tower;
+import utility_checks;
+import .library.gzip;
+import .library.bytes;
+import .library.bytes_types;
+import .tools.tool_streams_posix;
+import .host.driver_files;
+
+// Shared encoder measurement entry: immutable file, complete gzip output.
+// Repeating small inputs makes their process-level timing useful; no codec model.
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { puts("Supply input and gzip output paths"); return 2; }
+    var input: ByteBuffer = default; var output: ByteBuffer = default;
+    defer bytes_dispose(&input); defer bytes_dispose(&output);
+    var input_limit: usize = 67108864;
+    var small_limit: usize = 1048576;
+    var small_repetitions: usize = 100;
+    var tiny_limit: usize = 256;
+    var tiny_repetitions: usize = 10000;
+    utility_check(tool_read_file(argv[1], input_limit, &input), "read compression measurement input");
+    var repetitions: usize = input.length < small_limit ? small_repetitions : 1;
+    if input.length < tiny_limit { repetitions = tiny_repetitions; }
+    for (var run: usize = 0; run < repetitions; run++) {
+        utility_check(gzip_compress(input.data, input.length, &output), "measured gzip compression");
+    }
+    utility_check(driver_write_file(argv[2], output.data, output.length), "write measured gzip");
+    print(input.length); print(output.length); print(output.capacity); print(repetitions);
+    bytes_dispose(&output); bytes_dispose(&input);
+    utility_check(output.data == null && output.capacity == 0 && output.length == 0
+        && input.data == null && input.capacity == 0 && input.length == 0, "measurement buffers relinquished");
+    return 0;
+}

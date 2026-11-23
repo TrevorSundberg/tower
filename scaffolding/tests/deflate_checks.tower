@@ -13,6 +13,29 @@ extern fn strlen(text: u8*): usize;
 
 enum DeflateFixturePattern: usize { Random, Run, Alphabet, WindowRepeat, Count }
 
+fn deflate_lazy_check(): void {
+    var alphabet = "abcdefghijklmnopqrstuvwx";
+    var prefix = "abcdefghijklmnopqrstuvwx!Y";
+    var input = "abcdefghijklmnopqrstuvwx!Yabc?Yabcdefghijklmnopqrstuvwx";
+    var recipe: DeflateBits = { limit: ~convert(usize, 0), ok: true, ..default };
+    var actual: ByteBuffer = default;
+    defer bytes_dispose(&recipe.output); defer bytes_dispose(&actual);
+    // Independent token recipe: after prefix + abc + ?, emit literal Y and
+    // the full alphabet, not the greedy Yabc match that hides its beginning.
+    var final_fixed: u32 = 3; var header_bits: u32 = 3;
+    deflate_put(&recipe, final_fixed, header_bits);
+    for (var at: usize = 0; at < strlen(prefix); at++) { deflate_symbol(&recipe, convert(u32, prefix[at])); }
+    deflate_match(&recipe, strlen("abc"), strlen(prefix));
+    var separator = "?Y";
+    for (var at: usize = 0; at < strlen(separator); at++) { deflate_symbol(&recipe, convert(u32, separator[at])); }
+    deflate_match(&recipe, strlen(alphabet), strlen(prefix) + strlen("abc?Y"));
+    deflate_symbol(&recipe, DeflateEndCode);
+    if recipe.count != 0 { deflate_put(&recipe, 0, DeflateByteBits - recipe.count); }
+    utility_check(recipe.ok && !recipe.larger && deflate_compress(input, strlen(input), &actual)
+        && actual.length == recipe.output.length && utility_equal(actual.data, recipe.output.data, actual.length),
+        "lazy match uses the independently specified longer continuation");
+}
+
 fn deflate_fixture_add(entries: vector(ZipEntry)*, directory: u8*, input: ByteBuffer*, supplied: ByteBuffer*): void {
     var name: ByteBuffer = default;
     var source: ByteBuffer = default;
@@ -139,6 +162,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var argument_count: i32 = 2;
     var usage_status: i32 = 2;
     if argc != argument_count { puts("Supply an isolated corpus output directory"); return usage_status; }
+    deflate_lazy_check();
     var entries: vector(ZipEntry) = default;
     defer {
         foreach (var &entry in &entries) { free(entry.name); free(entry.content); free(entry.compressed); }
