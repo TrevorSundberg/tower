@@ -10,15 +10,21 @@ extern fn frontend_modules_location(environment: void*, offset: usize, line: usi
 struct LoopQueryFailure { path: u8*; location: u8*; message: u8*; }
 
 fn module_loop_query_checks(root: u8*): void {
-    var cases: LoopQueryFailure[4];
+    var capture = "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer";
+    var cases: LoopQueryFailure[9];
     cases[0] = {path: "/tests/semantic_invalid/while_type.tower", location: "value {",
         message: "Expected bool, got i32; use an explicit conversion"};
     cases[1] = {path: "/tests/semantic_invalid/module_for_condition_scalar.tower", location: "value;",
         message: "Expected bool, got i32; use an explicit conversion"};
     cases[2] = {path: "/tests/semantic_invalid/module_loop_update_capture.tower", location: "var input",
-        message: "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer"};
+        message: capture};
     cases[3] = {path: "/tests/semantic_invalid/module_loop_query_cycle.tower", location: "struct Recursive",
         message: "Recursive by-value layout: Recursive -> Recursive; use a pointer"};
+    cases[4] = {path: "/tests/semantic_invalid/module_header_capture_update.tower", location: "var index: i32 = 0", message: capture};
+    cases[5] = {path: "/tests/semantic_invalid/module_header_capture_body.tower", location: "var index: i32 = 0", message: capture};
+    cases[6] = {path: "/tests/semantic_invalid/module_header_capture_escape.tower", location: "var index: i32 = 0", message: capture};
+    cases[7] = {path: "/tests/semantic_invalid/module_block_capture_write.tower", location: "var local", message: capture};
+    cases[8] = {path: "/tests/semantic_invalid/module_header_capture_shadow.tower", location: "var index: i32 = 0", message: capture};
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
