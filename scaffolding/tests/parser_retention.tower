@@ -1,0 +1,114 @@
+import tower;
+import .host.syntax_baseline_api;
+import .compiler.syntax_session_types;
+import .compiler.syntax_version_types;
+import .compiler.frontend_revision_types;
+import .library.entity_types;
+import .library.vector;
+import parser_retention_observer;
+
+// Attribution companion to parser_benchmark, not a replacement for its strict
+// stability assertion. Reproduce its reset/declaration/statement/release order,
+// then observe longer reuse and complete explicit-world teardown.
+extern fn syntax_create(source: u8*, module: void*): void*;
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_destroy(session: void*): void;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): EntityStore*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn tower_test_buffer_count(): usize;
+extern fn work_thread_available(): bool;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn puts(text: u8*): i32;
+extern fn printf(format: u8*, phase: u8*, size: usize, iteration: usize,
+    buffers: usize, entities: usize, components: usize, pages: usize,
+    used: usize, live: usize, capacity: usize, cached: usize, requested: usize, payload: usize): i32;
+
+var RetentionSamples: usize = 128;
+var RetentionWarmups: usize = 5;
+
+fn retention_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); trap("Parser retention attribution failed", 0); }
+}
+
+fn retention_snapshot(world: void*, session: SyntaxSession*, phase: u8*, size: usize, iteration: usize): ParserRetentionSnapshot {
+    var snapshot: ParserRetentionSnapshot;
+    retention_check(parser_retention_observe(world, session, &snapshot), "Page bounds and live ownership");
+    printf("%s,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n", phase, size, iteration,
+        snapshot.buffers, snapshot.entities, snapshot.components, snapshot.pages, snapshot.used,
+        snapshot.live, snapshot.capacity, snapshot.cached, snapshot.requested_bytes, snapshot.live_payload_bytes);
+    return snapshot;
+}
+
+fn retention_parse(session: void*): void {
+    var root = syntax_next(session);
+    if root == null { puts(syntax_get_error(session)); }
+    retention_check(root != null, "Expected accepted grammar/statement");
+    entity_release(root);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 || (strcmp(argv[1], "host") != 0 && strcmp(argv[1], "owned") != 0) { return 2; }
+    retention_check(!work_thread_available(), "Retention counters require serial transport");
+    var owned = strcmp(argv[1], "owned") == 0;
+    var baseline = tower_test_buffer_count();
+    var world = owned ? compiler_world_create_workers(1) : compiler_host_world();
+    retention_check(world != null, "Retention world");
+    var declaration = "parse Statement = 'x'* ';';";
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    var installed = syntax_host_install(world, declaration, true, &diagnostic);
+    if !installed { puts(syntax_version_diagnostic_text(&diagnostic)); }
+    syntax_version_diagnostic_dispose(&diagnostic);
+    retention_check(installed, "Retention baseline");
+    var sizes: usize[4];
+    sizes[0] = 256; sizes[1] = 512; sizes[2] = 1024; sizes[3] = 2048;
+    var size_count = sizeof(decltype(sizes)) / sizeof(usize);
+    var declaration_length = strlen(declaration);
+    var fragment = "x ";
+    var token_length = strlen(fragment);
+    var ending = ";";
+    var ending_length = strlen(ending);
+    puts("phase,symbols,iteration,buffers,entities,components,pages,used_slots,live_slots,capacity_slots,cached_revisions,requested_page_bytes,live_payload_bytes");
+    var baseline_snapshot = retention_snapshot(world, null, "baseline", 0, 0);
+    for(var index: usize = 0; index < size_count; index++) {
+        var size = sizes[index];
+        var body_length = size * token_length;
+        var source = alloc(u8, declaration_length + body_length + ending_length + 1);
+        retention_check(source != null, "Retention source");
+        copy(source, declaration, declaration_length);
+        for(var symbol: usize = 0; symbol < size; symbol++) {
+            copy(source + declaration_length + symbol * token_length, fragment, token_length);
+        }
+        copy(source + declaration_length + body_length, ending, ending_length + 1);
+        var session = owned ? syntax_session_open(world, null, source, null, SyntaxFoundationBaseline)
+            : bits(SyntaxSession*, syntax_create(source, null));
+        retention_check(session != null, "Retention session");
+        var previous: ParserRetentionSnapshot;
+        for(var iteration: usize = 0; iteration < RetentionSamples; iteration++) {
+            syntax_reset(bits(void*, session), source, null);
+            retention_parse(bits(void*, session));
+            retention_parse(bits(void*, session));
+            var snapshot = retention_snapshot(world, session, "statement", size, iteration);
+            if iteration > RetentionWarmups {
+                retention_check(parser_retention_same_owners(&previous, &snapshot), "Stable owners and exact page-attributed buffer delta");
+            }
+            previous = snapshot;
+        }
+        syntax_destroy(bits(void*, session));
+        free(source);
+        var disposed = retention_snapshot(world, null, "session_disposed", size, RetentionSamples);
+        retention_check(parser_retention_same_owners(&baseline_snapshot, &disposed), "Session restores baseline ownership");
+    }
+    if owned {
+        retention_check(frontend_world_clear(world) && compiler_world_dispose(world), "World ownership drains");
+        retention_check(tower_test_buffer_count() == baseline, "Disposed world returns every tracked buffer");
+        puts("Owned-world teardown returned all tracked buffers.");
+    }
+    return 0;
+}

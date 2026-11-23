@@ -3,28 +3,36 @@ import lr_types;
 import syntax_types;
 import parser_nodes;
 import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
 
 // Derived lexer tables only: token declarations remain on shared syntax entities.
 // Flat transition rows and maximal-prefix matching are owned and executed by Tower.
 // A finite-state chain over arbitrary integer symbols. State n accepts; each
 // earlier state has one range transition to its successor. No parse stack.
 struct SymbolSequence {
+    storage: WorkBuffer;
+    symbol_storage: WorkBuffer;
     symbols: SymbolRange*;
     count: usize;
 }
 
 export fn symbol_sequence_create(count: usize): SymbolSequence* {
-    var sequence = alloc(SymbolSequence, 1);
-    var failed = sequence == null;
-    if failed {
+    return symbol_sequence_create_owned(count, null);
+}
+
+export fn symbol_sequence_create_owned(count: usize, budget: WorkBudget*): SymbolSequence* {
+    if count > ~convert(usize, 0) / sizeof(SymbolRange) { return null; }
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, budget, sizeof(SymbolSequence), 0) != WorkBudgetError.None { return null; }
+    var sequence = bits(SymbolSequence*, storage.data);
+    *sequence = {storage: storage, ..default};
+    if work_buffer_resize(&sequence.symbol_storage, budget, count * sizeof(SymbolRange), 0) != WorkBudgetError.None {
+        symbol_sequence_destroy(sequence);
         return null;
     }
-    sequence.symbols = alloc(SymbolRange, count);
-    failed = sequence.symbols == null;
-    if failed {
-        free(sequence);
-        return null;
-    }
+    sequence.symbols = bits(SymbolRange*, sequence.symbol_storage.data);
     sequence.count = count;
     return sequence;
 }
@@ -33,8 +41,9 @@ export fn symbol_sequence_destroy(sequence: SymbolSequence*): void {
     if sequence == null {
         return;
     }
-    free(sequence.symbols);
-    free(sequence);
+    work_buffer_dispose(&sequence.symbol_storage);
+    var storage = sequence.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn symbol_sequence_set(sequence: SymbolSequence*, state: usize, first: u32, last: u32): void {

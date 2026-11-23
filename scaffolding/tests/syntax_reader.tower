@@ -77,8 +77,21 @@ fn reader_test_warm(declaration: void*, source: SyntaxSource*, kind: SyntaxKind)
     var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
     utility_check(reader_test_read(warm, source, kind, &error, false), "Warm reader component indexes");
 }
-fn reader_test_fixture(text: u8*, kind: SyntaxKind, failures: bool): void {
+fn reader_test_fixture(text: u8*, kind: SyntaxKind, failures: bool, foundation: bool): void {
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    if foundation {
+        var language = "import foundation;\n";
+        utility_check(bytes_assign_text(&input, language, strlen(language))
+            && bytes_append(&input, text, strlen(text)) && bytes_push(&input, 0), "Reader explicit language input");
+        text = input.data;
+    }
     var session = syntax_create(text, null);
+    if foundation {
+        var imported = syntax_next(session);
+        utility_check(imported != null, "Reader fixture imports its extended language");
+        tower_node_release_ref(imported);
+    }
     var root = syntax_next(session);
     if root is null { puts(text); puts(syntax_get_error(session)); }
     utility_check(root is not null, "Reader fixture parsed"); defer tower_node_release_ref(root);
@@ -150,14 +163,14 @@ fn reader_test_identifiers(): void {
 }
 export fn syntax_reader_tests(): void {
     reader_test_identifiers();
-    reader_test_fixture("parse Example = 'a' $name:Identifier* | 'b' Identifier? | ;", SyntaxKind.Rule, true);
-    reader_test_fixture("parse Example = [^'{' '}']+;", SyntaxKind.Rule, true);
-    reader_test_fixture("parse `escaped\\tname` = Identifier;", SyntaxKind.Rule, false);
-    reader_test_fixture("parse Statement |= 'noop' ';' => replace { print(1); };", SyntaxKind.Rule, true);
-    reader_test_fixture("token Example = /[a-z]+/ when expected as string;", SyntaxKind.Token, true);
-    reader_test_fixture("token Example = /[a-z]+/;", SyntaxKind.Token, false);
-    reader_test_fixture("skip Example = /[~]+/ as comment;", SyntaxKind.Skip, true);
-    reader_test_fixture("skip Example = /[~]+/;", SyntaxKind.Skip, false);
+    reader_test_fixture("parse Example = 'a' $name:Identifier* | 'b' Identifier? | ;", SyntaxKind.Rule, true, false);
+    reader_test_fixture("parse Example = [^'{' '}']+;", SyntaxKind.Rule, true, false);
+    reader_test_fixture("parse `escaped\\tname` = Identifier;", SyntaxKind.Rule, false, false);
+    reader_test_fixture("parse Statement |= 'noop' ';' => replace { print(1); };", SyntaxKind.Rule, true, true);
+    reader_test_fixture("token Example = /[a-z]+/ when expected as string;", SyntaxKind.Token, true, false);
+    reader_test_fixture("token Example = /[a-z]+/;", SyntaxKind.Token, false, false);
+    reader_test_fixture("skip Example = /[~]+/ as comment;", SyntaxKind.Skip, true, false);
+    reader_test_fixture("skip Example = /[~]+/;", SyntaxKind.Skip, false, false);
     {
         var node = tower_node_create(); defer tower_node_release_ref(node);
         var source = syntax_source_create("bad.tower", "", 0); defer syntax_source_release(source);

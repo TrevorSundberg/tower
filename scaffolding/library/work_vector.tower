@@ -5,8 +5,6 @@ import work_buffer_types;
 import work_budget_types;
 import work_vector_types;
 
-extern fn compiler_buffer_alignment(): usize;
-
 fn work_vector_init(T: type, value: work_vector(T)*): void {
     *value = default;
 }
@@ -20,20 +18,14 @@ fn work_vector_reserve_result(T: type, value: work_vector(T)*, budget: WorkBudge
         || (value.data != null && value.reservation.owner != budget) { return WorkBudgetError.Invalid; }
     if needed <= value.capacity { return WorkBudgetError.None; }
     var size = sizeof(T);
-    if size == 0 || alignof(T) > compiler_buffer_alignment()
-        || needed > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
-    var capacity = value.capacity * 2;
-    if capacity < value.capacity { capacity = needed; }
-    if capacity < 8 { capacity = 8; }
-    if capacity < needed || capacity > ~convert(usize, 0) / size { capacity = needed; }
     // This temporary is a transactional borrow, not an independently disposable
     // copy. resize either preserves it or retires exactly this old allocation.
     var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * size,
         reservation: value.reservation};
-    var result = work_buffer_resize(&buffer, budget, capacity * size, value.length * size);
+    var result = work_buffer_grow_elements(&buffer, budget, value.length, value.capacity, needed, size, alignof(T));
     if result != WorkBudgetError.None { return result; }
     value.data = bits(T*, buffer.data);
-    value.capacity = capacity;
+    value.capacity = buffer.capacity / size;
     value.reservation = buffer.reservation;
     return WorkBudgetError.None;
 }

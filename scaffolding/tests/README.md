@@ -960,3 +960,11 @@ does not provide production threading or whole compiler sanitizer coverage.
 and failure suites without the unrelated body matrix. It includes valid trace
 output and serial allocation-failure/ownership checks. Use the serial frontend
 target for this fault allocator; it is not a threaded allocator sanitizer.
+
+The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
+optional final `runtime` argument. It measures runtime-table construction over
+already prepared LR states, binds a finite synchronized world budget, and checks
+every action/goto against a serial reference outside each interval. Reported
+peak/current bytes include actual owned buffer headers; ledger metadata and
+process peak RSS are separate columns. Each table must return its grants on
+destruction. Requested workers and reserved lanes do not prove physical overlap.
