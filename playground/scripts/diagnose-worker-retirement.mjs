@@ -61,11 +61,11 @@ const traceError = (phase, error) => {
   report.trace.errors.push({phase, error:error.stack || error.message});
   process.exitCode = 1;
 };
-async function startTrace() {
+async function startTrace(page) {
   if (!tracePath) return;
   const requestedCategories = ['blink.worker', 'devtools.timeline',
     'disabled-by-default-devtools.timeline', 'toplevel'];
-  report.trace = {path:path.resolve(tracePath), requestedCategories, bufferKiB:TRACE_BUFFER_KIB,
+  report.trace = {path:path.resolve(tracePath), session:'page', requestedCategories, bufferKiB:TRACE_BUFFER_KIB,
     fileLimitBytes:TRACE_FILE_BYTES, flushBudgetMilliseconds:TRACE_FLUSH_MS,
     bytes:0, complete:false, errors:[]};
   const startDeadline = performance.now()+TRACE_FLUSH_MS;
@@ -73,7 +73,10 @@ async function startTrace() {
   try {
     // Never replace a prior failure trace. Open before enabling browser capture.
     traceFile = await open(tracePath, 'wx');
-    traceSession = await browser.newBrowserCDPSession();
+    // Use the page tracing endpoint, as Playwright's page-scoped Chromium
+    // tracing does, before this page creates any worker. The separately
+    // attached browser target may acknowledge commands without a trace stream.
+    traceSession = await page.context().newCDPSession(page);
     report.trace.availableCategories = (await send('Tracing.getCategories')).categories;
     // Enumeration can be empty before any renderer exists. It is an inventory,
     // not an admission contract; only returned events establish observation.
@@ -102,7 +105,9 @@ async function stopTrace() {
     if (!traceStarted) return;
     record('trace.stop.begin');
     await send('Tracing.end');
+    record('trace.stop.acknowledged');
     const completed = await bounded(traceComplete, flushDeadline-performance.now());
+    record('trace.stream.ready');
     report.trace.dataLossOccurred = completed.dataLossOccurred;
     stream = completed.stream;
     if (!stream) throw new Error('Chromium returned no trace stream');
@@ -117,7 +122,22 @@ async function stopTrace() {
     }
     await traceFile.close(); traceFile = undefined;
     report.trace.sha256 = hash(await readFile(tracePath));
-    const {traceEvents} = JSON.parse(await readFile(tracePath, 'utf8'));
+    const {traceEvents, metadata} = JSON.parse(await readFile(tracePath, 'utf8'));
+    assert.ok(Array.isArray(traceEvents) && traceEvents.length, 'Chromium returned an empty trace');
+    const markers = traceEvents.filter(event => event.name === 'clock_sync' &&
+      event.args?.sync_id === report.trace.clockSyncId);
+    assert.equal(markers.length, 1, 'Trace must contain the requested clock-sync marker');
+    assert.ok(Number.isFinite(markers[0].ts), 'Invalid native clock-sync timestamp');
+    const before = report.events.find(event => event.event === 'trace.clock-sync.begin');
+    const after = report.events.find(event => event.event === 'trace.clock-sync.end');
+    assert.ok(before && after && before.at <= after.at, 'Missing external clock-sync bracket');
+    report.trace.clockCorrelation = {nativeTimestampMicroseconds:markers[0].ts,
+      clockDomain:metadata?.['clock-domain'], externalBeginMilliseconds:before.at,
+      externalEndMilliseconds:after.at, epochOffsetMilliseconds:
+        [before.at-markers[0].ts/1000, after.at-markers[0].ts/1000]};
+    // Preserve browser-provided fullness/loss counters rather than treating
+    // JSON size or an absent periodic bufferUsage event as native occupancy.
+    report.trace.bufferStatistics = metadata?.trace_processor_stats?.traced_buf ?? null;
     const counts = new Map();
     for (const event of traceEvents) {
       const key = JSON.stringify([event.cat || '', event.name]);
@@ -126,6 +146,7 @@ async function stopTrace() {
     report.trace.eventCounts = [...counts].map(([key, count]) => {
       const [category, name] = JSON.parse(key); return {category, name, count};
     });
+    assert.equal(typeof completed.dataLossOccurred, 'boolean', 'Missing Chromium trace data-loss status');
     report.trace.complete = !completed.dataLossOccurred;
     if (completed.dataLossOccurred) throw new Error('Chromium reports lost trace data');
     record('trace.stop.saved');
@@ -138,7 +159,6 @@ async function stopTrace() {
 try {
   browser = await chromium.launch(report.launch);
   report.browser = browser.version();
-  await startTrace();
   const discovery = await browser.newBrowserCDPSession();
   const known = new Map();
   discovery.on('Target.targetCreated', ({targetInfo}) => {
@@ -165,6 +185,8 @@ try {
   report.host = await page.evaluate(() => ({userAgent:navigator.userAgent,
     hardwareConcurrency:navigator.hardwareConcurrency, isolated:crossOriginIsolated}));
   assert.equal(report.host.isolated, true);
+  // Bind tracing after navigation settles, before any worker is created.
+  await startTrace(page);
   await page.exposeFunction('joinBoundaryChildren', async () => {
     deadline = performance.now()+RETIREMENT_MS;
     const children = workers.filter(entry => !isCoordinator(entry));
