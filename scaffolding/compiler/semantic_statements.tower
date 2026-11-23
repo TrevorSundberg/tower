@@ -86,6 +86,7 @@ fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
 // participate in the same declaration graph as globals, fields and returns.
 fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticScope* {
     var state = sem_declaration_state(c, n);
+    if state == null { return null; }
     if state.scope != null {
         return state.scope;
     }
@@ -111,8 +112,10 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
             sem_fail(c, p, "Invalid or duplicate function parameter");
             break;
         }
-        sem_declaration_state(c, p).scope = state.scope;
-        if !sem_push_checked(c, &function_node.parameters, p) { return default; }
+        var parameter_state = sem_declaration_state(c, p);
+        if parameter_state == null { return null; }
+        parameter_state.scope = state.scope;
+        if !sem_push_checked(c, &function_node.parameters, p) { return null; }
     }
     if function_node.parameters.length > FoundationParameterLimit {
         sem_fail(c, n, "Foundation parameter limit is 64");
@@ -138,6 +141,7 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
     var saved_scope = c.scope;
     var saved_current = c.current;
     c.scope = sem_parameters(c, n, definition);
+    if c.scope == null { c.scope = saved_scope; return; }
     c.current = n;
     for(var i: usize = 0; i < function_node.parameters.length && sem_ok(c); ++i) {
         var p = function_node.parameters.data[i];
@@ -490,6 +494,7 @@ fn sem_declaration_bind(c: SemanticContext*, n: void*): bool {
 fn sem_declaration_storage(c: SemanticContext*, n: void*): void {
     var value = sem_get(n);
     var state = sem_declaration_state(c, n);
+    if state == null { return; }
     if state.storage_ready { return; }
     if !value.global { sem_add_local(c, n); }
     state.storage_ready = sem_ok(c);

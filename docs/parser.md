@@ -669,6 +669,27 @@ publishes nothing and permits retry; workers borrow the completed index, and the
 analysis retires it after their joins. Repeated completion reuses the same owner.
 This is neither a cross-world cache nor a cap on the remaining raw LR storage.
 
+LALR construction with disjoint terminal labels now uses the existing LR(0)
+items as the lookahead propagation graph. Each active item contributes its goto
+edge, immutable suffix-FIRST seeds and nullable closure dependencies directly;
+the existing fixed-point solver and ordered action publication remain shared.
+Kernel reachability is tracked separately, so an empty nonnullable FIRST suffix
+cannot activate an otherwise unreachable dot-zero production. Every kernel,
+including nullable reductions and recursive start items, remains a source.
+
+This path requires completed FIRST analysis and disjoint terminal labels in
+every state. Overlapping range labels retain the established per-kernel closure
+algorithm: its contained-label transitions depend on the symbols present in
+that individual closure. The independent oracle checks both paths. No grammar,
+version binding, priority or declaration boundary changes, and no persistent or
+cross-world cache is added. The coordinator builds the graph before workers
+borrow it; the existing worker solver/action joins preserve publication order.
+Reachability scratch uses a checked work buffer charged to the explicit world
+budget, sized from the largest state, and is released before dispatch. Failed
+construction destroys the unpublished graph and permits retry. The underlying
+legacy propagation vectors retain their existing allocation contract; this
+change does not claim to charge all LR memory or foreign allocator metadata.
+
 ### Checked provenance and presentation ownership
 
 `SyntaxExpansion.rule` and `SyntaxOrigin.splices` own checked work vectors charged

@@ -238,9 +238,9 @@ fn backend_hex(out: vector(u8)*, value: u64, digits: usize): void {
     backend_text_append(out, &buffer[1], digits);
 }
 
-fn backend_decimal(out: vector(u8)*, value: u64): void {
+fn backend_decimal(out: vector(u8)*, value: u64): bool {
     var buffer: u8[20];
-    var i: usize = 20;
+    var i = sizeof(decltype(buffer));
     loop {
         i--;
         var remainder = value % 10;
@@ -251,8 +251,8 @@ fn backend_decimal(out: vector(u8)*, value: u64): void {
             break;
         }
     }
-    var length = 20 -i;
-    backend_text_append(out, &buffer[i], length);
+    var length = sizeof(decltype(buffer)) - i;
+    return backend_text_append(out, &buffer[i], length);
 }
 
 fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64): void {

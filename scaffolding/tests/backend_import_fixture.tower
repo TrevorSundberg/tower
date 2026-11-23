@@ -1,0 +1,67 @@
+import tower;
+import .backend.bindings;
+import .backend.context;
+import .backend.target;
+import .backend.import_bindings;
+import .backend.lowering;
+import .backend.pipeline;
+import .backend.text;
+import .compiler.foundation_tags;
+
+extern fn LLVMBuildPhi(builder: void*, type: void*, name: u8*): void*;
+extern fn LLVMAddIncoming(phi: void*, values: void**, blocks: void**, count: u32): void;
+
+// The same world-owned Foundation input and LLVM C boundary used by the backend
+// fixtures. Fault injection starts only after this healthy module exists.
+export fn backend_import_fixture_open(root: void*): Backend* {
+    var b = backend_open("x86_64-unknown-linux-gnu");
+    if b == null { return null; }
+    b.source_root = root;
+    var program = sem_attach(root, KProgram);
+    program.type.scalar = SVoid;
+    program.type.pointer_bytes = b.pointer_bytes;
+    backend_require(b, backend_text(&program.comments, "// reconstruction admission\n"));
+    backend_runtime_declarations(b);
+    var parameters: void*[1]; parameters[0] = b.i32;
+    var signature = LLVMFunctionType(b.i32, &parameters[0], convert(u32, sizeof(decltype(parameters)) / sizeof(void*)), 0);
+    var choose = LLVMAddFunction(b.module, "choose", signature);
+    var entry = LLVMAppendBasicBlockInContext(b.context, choose, "entry");
+    var yes = LLVMAppendBasicBlockInContext(b.context, choose, "yes");
+    var no = LLVMAppendBasicBlockInContext(b.context, choose, "no");
+    var join = LLVMAppendBasicBlockInContext(b.context, choose, "join");
+    LLVMPositionBuilderAtEnd(b.builder, entry);
+    LLVMBuildCondBr(b.builder, LLVMBuildICmp(b.builder, 33, LLVMGetParam(choose, 0), LLVMConstInt(b.i32, 0, 0), ""), yes, no);
+    LLVMPositionBuilderAtEnd(b.builder, yes); LLVMBuildBr(b.builder, join);
+    LLVMPositionBuilderAtEnd(b.builder, no); LLVMBuildBr(b.builder, join);
+    LLVMPositionBuilderAtEnd(b.builder, join);
+    var phi = LLVMBuildPhi(b.builder, b.i32, "answer");
+    var values: void*[2]; values[0] = LLVMConstInt(b.i32, 42, 0); values[1] = LLVMConstInt(b.i32, 40, 0);
+    var blocks: void*[2]; blocks[0] = yes; blocks[1] = no;
+    LLVMAddIncoming(phi, &values[0], &blocks[0], convert(u32, sizeof(decltype(values)) / sizeof(void*)));
+    LLVMBuildRet(b.builder, phi);
+    var function = LLVMAddFunction(b.module, "tower_main", LLVMFunctionType(LLVMVoidTypeInContext(b.context), null, 0, 0));
+    LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, function, "entry"));
+    var slot = LLVMBuildAlloca(b.builder, b.pointer_type, "callback");
+    LLVMBuildStore(b.builder, choose, slot);
+    var callback = LLVMBuildLoad2(b.builder, b.pointer_type, slot, "loaded");
+    var argument: void*[1]; argument[0] = LLVMConstInt(b.i32, 1, 0);
+    var result = LLVMBuildCall2(b.builder, signature, callback, &argument[0], convert(u32, sizeof(decltype(argument)) / sizeof(void*)), "result");
+    var print_args: void*[3];
+    print_args[0] = LLVMConstInt(b.i32, convert(u64, SI32), 0);
+    print_args[1] = LLVMBuildZExt(b.builder, result, b.i64, "");
+    print_args[2] = LLVMConstInt(b.i32, convert(u64, b.pointer_bytes), 0);
+    backend_call_values(b, b.print_fn, &print_args[0], convert(u32, sizeof(decltype(print_args)) / sizeof(void*)));
+    LLVMBuildRetVoid(b.builder);
+    if !backend_optimize(b, false) { backend_close(b); return null; }
+    return b;
+}
+
+export fn backend_import_fixture_failure(b: Backend*, offset: usize): void {
+    b.source_offset = offset;
+    backend_fail(b, "Earlier backend diagnostic");
+}
+
+export fn backend_import_fixture_unsupported(b: Backend*): void {
+    var type = LLVMIntTypeInContext(b.context, 128);
+    LLVMAddFunction(b.module, "unsupported", LLVMFunctionType(type, null, 0, 0));
+}

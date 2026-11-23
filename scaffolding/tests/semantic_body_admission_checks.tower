@@ -1,0 +1,312 @@
+import tower;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_declaration_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.compiler_kernel;
+import .library.work_graph;
+import .library.work_budget;
+import .library.work_pool;
+import .library.vector;
+
+// Body continuations are opaque ECS payloads; only the owning production pumps
+// inspect them. These declarations link the real providers already in the test.
+extern fn sem_body_request(c: SemanticContext*, subject: void*): void*;
+extern fn sem_body_sources_execute(c: SemanticContext*, batch: void**, count: usize): usize;
+extern fn sem_declaration_add_result(c: SemanticContext*, subject: void*): bool;
+extern fn sem_declaration_discover(c: SemanticContext*): void;
+extern fn sem_workers_open(c: SemanticContext*): bool;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease(stage: void*, node: void*): bool;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
+extern fn puts(text: u8*): i32;
+
+enum BodyAdmissionCase: u32 {
+    Healthy, KindPin, ComponentPin, Graph, SourceTake, CheckTake,
+    Scratch, Lease, SourceFinish, Finish, Cancelled, JoinedCapacity, Count
+}
+var BodyAdmissionBytes: usize = 8388608;
+var BodyAdmissionRevision: u64 = 151;
+var BodyAdmissionRetries: usize = 3;
+
+fn body_admission_check(ok: bool, text: u8*, failures: u32*): void {
+    if !ok { puts(text); (*failures)++; }
+}
+
+fn body_admission_node(world: void*, owner: void*, label: u8*, offset: usize): void* {
+    var node = sem_create(owner);
+    var syntax = bits(ParserMatchData*, compiler_world_component(world, node, CompilerParserMatch));
+    sem_require(syntax != null && node_match_set_label(syntax, label));
+    syntax.start = offset;
+    return node;
+}
+
+fn body_admission_complete(c: SemanticContext*, query: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, query) && work_finish(&c.queries, &ticket, true));
+}
+
+fn body_admission_pressure(budget: WorkBudget*, pressure: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+    sem_require(work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, pressure) == WorkBudgetError.None);
+}
+
+// Consumer count is derived from the real ready allocation. All consumers wait
+// on the selected producer; no fabricated successful task bypasses its kernel.
+fn body_admission_consumers(c: SemanticContext*, subject: void*, producer: usize): void {
+    var count = c.queries.ready.capacity + 1;
+    for(var i: usize = 0; i < count; i++) {
+        var consumer = work_request(&c.queries, subject, convert(u32, SemanticQuery.CheckedBinding), convert(u64, i + 1));
+        sem_require(consumer != 0 && work_depend(&c.queries, consumer, producer)
+            && work_seal(&c.queries, consumer) && work_demand(&c.queries, consumer));
+    }
+}
+
+fn body_admission_trial(workers: usize, body: bool, mode: BodyAdmissionCase): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var scratch: WorkBudget = default;
+    var pressure: WorkReservation = default;
+    sem_require(work_budget_init(&budget, workers, BodyAdmissionBytes, BodyAdmissionRevision));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var gate: void* = null;
+    if mode == BodyAdmissionCase.Scratch {
+        gate = work_signal_open();
+        sem_require(gate != null);
+        work_signal_post(gate);
+        sem_require(work_budget_init(&scratch, workers, BodyAdmissionBytes, BodyAdmissionRevision)
+            && work_budget_synchronize(&scratch, gate, work_signal_wait, work_signal_post)
+            && compiler_world_bind_budget(world, &scratch));
+    }
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    sem_get(root).start = 3;
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    work_dispose(&c.queries);
+    sem_require(work_init_budget(&c.queries, 1, convert(u64, program.pointer_bytes), &budget));
+    sem_require(sem_workers_open(&c));
+    var subjects: vector(void*) = default;
+    var payloads: vector(void*) = default;
+    var headers: vector(usize) = default;
+    defer { vector_dispose(&subjects); vector_dispose(&payloads); vector_dispose(&headers); }
+    // Distinct offsets make source ownership observable even before Foundation
+    // attachment in declaration kind/component admission.
+    var offsets: usize[2] = default;
+    offsets[0] = 17;
+    offsets[1] = 29;
+    for(var i: usize = 0; i < sizeof(decltype(offsets)) / sizeof(usize); i++) {
+        var offset = offsets[i];
+        var subject = body_admission_node(world, root, body ? "CoreFunction" : "CoreStruct", offset);
+        sem_push(&subjects, subject);
+        var syntax = body_admission_node(world, subject, body ? "CoreBlock" : "CoreFields", offset);
+        sem_require(entity_attach(syntax, subject, body ? "body" : "fields"));
+        if body {
+            var function = sem_attach(subject, KFunction);
+            function.start = offset;
+            function.type.scalar = SVoid;
+            function.type.pointer_bytes = program.pointer_bytes;
+            function.index = program.functions.length;
+            function.body = syntax;
+            sem_push(&program.functions, subject);
+            var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
+            var header = sem_declaration_state(&c, subject);
+            sem_require(header != null && query != 0);
+            header.subject = subject;
+            header.query = query;
+            sem_require(work_seal(&c.queries, query) && vector_push(&headers, query));
+        } else {
+            if mode != BodyAdmissionCase.KindPin && mode != BodyAdmissionCase.ComponentPin {
+                var record = sem_attach(subject, KType);
+                record.start = offset;
+                record.type = {scalar: SStruct, pointers: 0, record: subject, pointer_bytes: program.pointer_bytes};
+            }
+        }
+    }
+    var pinned: void* = null;
+    var foreign: void* = null;
+    var expected_error = WorkBudgetError.Invalid;
+    var offset = offsets[0];
+    if mode == BodyAdmissionCase.Graph {
+        var argument: u64 = 0;
+        sem_require(work_request(&c.queries, root, convert(u32, SemanticQuery.BodyPrefix), argument++) != 0);
+        while c.queries.tasks.length < c.queries.tasks.capacity {
+            sem_require(work_request(&c.queries, root, convert(u32, SemanticQuery.BodyPrefix), argument++) != 0);
+        }
+        body_admission_pressure(&budget, &pressure);
+        expected_error = WorkBudgetError.Capacity;
+    }
+    if mode == BodyAdmissionCase.KindPin {
+        pinned = entity_view_open(root);
+        sem_require(pinned != null);
+        expected_error = WorkBudgetError.Busy;
+    }
+    for(var i: usize = 0; i < subjects.length; i++) {
+        if i != 0 && mode == BodyAdmissionCase.ComponentPin {
+            pinned = entity_view_open(root);
+            sem_require(pinned != null);
+            expected_error = WorkBudgetError.Busy;
+            offset = offsets[i];
+        }
+        if body {
+            var result = sem_body_request(&c, subjects.data[i]);
+            if result == null { break; }
+            sem_push(&payloads, result);
+        } else { if !sem_declaration_add_result(&c, subjects.data[i]) { break; } }
+    }
+    if pinned != null { entity_view_close(pinned); pinned = null; }
+    var admitted = mode != BodyAdmissionCase.KindPin && mode != BodyAdmissionCase.ComponentPin && mode != BodyAdmissionCase.Graph;
+    var source_query = convert(u32, body ? SemanticQuery.BodyDiscovery : SemanticQuery.DeclarationDiscovery);
+    var check_query = convert(u32, body ? SemanticQuery.Body : SemanticQuery.Declaration);
+    var first_source = work_find(&c.queries, subjects.data[0], source_query, 0);
+    var first_check = work_find(&c.queries, subjects.data[0], check_query, 0);
+    if admitted {
+        sem_require(program.resource.error == WorkBudgetError.None && program.error.length == 0);
+        if body {
+            foreach(var header in &headers) { body_admission_complete(&c, header); }
+            foreach(var subject in &subjects) {
+                body_admission_complete(&c, work_find(&c.queries, subject, convert(u32, SemanticQuery.BodyInputs), 0));
+            }
+        }
+        if mode == BodyAdmissionCase.SourceTake {
+            work_task(&c.queries, work_find(&c.queries, subjects.data[1], source_query, 0)).dispatch = ~convert(u64, 0);
+            offset = offsets[1];
+        }
+        if mode == BodyAdmissionCase.SourceFinish {
+            body_admission_consumers(&c, root, first_source);
+            // Warm take scratch without consuming a source task.
+            var warm = work_request(&c.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+            sem_require(work_seal(&c.queries, warm) && work_demand(&c.queries, warm));
+            body_admission_complete(&c, warm);
+            body_admission_pressure(&budget, &pressure);
+            expected_error = WorkBudgetError.Capacity;
+        }
+        if mode == BodyAdmissionCase.Scratch {
+            body_admission_pressure(&scratch, &pressure);
+            expected_error = WorkBudgetError.Capacity;
+        }
+        if mode == BodyAdmissionCase.Cancelled { work_cancel(&c.queries); offset = 3; }
+        if body { sem_body_sources_execute(&c, payloads.data, payloads.length); }
+        else { sem_declaration_discover(&c); }
+        if program.resource.error == WorkBudgetError.None {
+            if !body {
+                foreach(var subject in &subjects) {
+                    sem_require(work_demand(&c.queries, work_find(&c.queries, subject, check_query, 0)));
+                }
+            }
+            if mode == BodyAdmissionCase.CheckTake {
+                work_task(&c.queries, work_find(&c.queries, subjects.data[1], check_query, 0)).dispatch = ~convert(u64, 0);
+                offset = offsets[1];
+            }
+            if mode == BodyAdmissionCase.Lease {
+                foreign = entity_stage_open(root);
+                var owned = body ? subjects.data[1] : sem_declaration_state(&c, subjects.data[1]).nodes.data[0];
+                sem_require(foreign != null && entity_stage_lease(foreign, owned));
+                expected_error = WorkBudgetError.Busy;
+                offset = offsets[1];
+            }
+            if mode == BodyAdmissionCase.Finish {
+                body_admission_consumers(&c, root, first_check);
+                body_admission_pressure(&budget, &pressure);
+                expected_error = WorkBudgetError.Capacity;
+            }
+            if mode == BodyAdmissionCase.JoinedCapacity {
+                // Each empty body attaches one real block. Each worker fits;
+                // their joined count exceeds the single shared remaining slot.
+                c.node_limit = subjects.length - 1;
+                expected_error = WorkBudgetError.Capacity;
+                offset = offsets[1];
+            }
+            var state = body ? sem_bodies_pump(&c) : sem_declarations_pump(&c);
+            if mode == BodyAdmissionCase.Healthy {
+                while state == SemanticPumpResult.Progress { state = body ? sem_bodies_pump(&c) : sem_declarations_pump(&c); }
+                body_admission_check(state == SemanticPumpResult.Complete && program.error.length == 0
+                    && program.resource.error == WorkBudgetError.None, "Healthy registered body/declaration work completes", &failures);
+                foreach(var subject in &subjects) {
+                    body_admission_check(work_task(&c.queries, work_find(&c.queries, subject, check_query, 0)).state == WorkState.Succeeded,
+                        "Both real check kernels publish successful receipts", &failures);
+                }
+            }
+        }
+    }
+    if foreign != null { entity_stage_discard(foreign); }
+    if pressure.owner != null { sem_require(work_budget_release(pressure.owner, &pressure)); }
+    if mode != BodyAdmissionCase.Healthy {
+        body_admission_check(program.resource.error == expected_error && program.resource.offset == offset
+            && c.queries.cancelled && c.queries.running == 0 && c.workers.running == 0,
+            "Body/declaration denial preserves exact owner/cause and drains the partial window", &failures);
+        if first_check != 0 {
+            body_admission_check(work_task(&c.queries, first_check).state != WorkState.Succeeded,
+                "Denied body/declaration wave exposes no successful check prefix", &failures);
+        }
+        if mode == BodyAdmissionCase.SourceTake || mode == BodyAdmissionCase.SourceFinish {
+            body_admission_check(work_task(&c.queries, first_source).state != WorkState.Succeeded,
+                "Denied discovery wave exposes no successful discovery prefix", &failures);
+        }
+    }
+    var components = entity_store_component_count(store);
+    var tasks = c.queries.tasks.length;
+    var dispatch: u64 = 0;
+    foreach(var &task in &c.queries.tasks) { dispatch += task.dispatch; }
+    var saved = program.resource;
+    for(var i: usize = 0; i < BodyAdmissionRetries; i++) {
+        if body { sem_body_request(&c, subjects.data[0]); }
+        else { sem_declaration_add_result(&c, subjects.data[0]); sem_declaration_discover(&c); }
+        var state = body ? sem_bodies_pump(&c) : sem_declarations_pump(&c);
+        var again: u64 = 0;
+        foreach(var &task in &c.queries.tasks) { again += task.dispatch; }
+        body_admission_check(state == (mode == BodyAdmissionCase.Healthy ? SemanticPumpResult.Complete : SemanticPumpResult.Failed)
+            && c.queries.tasks.length == tasks && entity_store_component_count(store) == components && again == dispatch
+            && program.resource.error == saved.error && program.resource.offset == saved.offset
+            && c.queries.running == 0 && c.workers.running == 0,
+            "Terminal body/declaration retries preserve effects, metadata and first error", &failures);
+    }
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    body_admission_check(compiler_world_dispose(world), "Body/declaration denial releases all views, stages and worlds", &failures);
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    body_admission_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0 && work_budget_dispose(&budget),
+        "Body/declaration graph reservations are released", &failures);
+    if gate != null {
+        sem_require(work_budget_snapshot(&scratch, &snapshot));
+        body_admission_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0 && work_budget_dispose(&scratch),
+            "Body/declaration scratch reservations are released", &failures);
+        work_signal_close(gate);
+    }
+    return failures;
+}
+
+fn semantic_body_admission_tests(): u32 {
+    var failures: u32 = 0;
+    for(var mode: u32 = 0; mode < convert(u32, BodyAdmissionCase.Count); mode++) {
+        failures += body_admission_trial(1, true, convert(BodyAdmissionCase, mode));
+        failures += body_admission_trial(4, true, convert(BodyAdmissionCase, mode));
+        if mode != convert(u32, BodyAdmissionCase.JoinedCapacity) {
+            failures += body_admission_trial(1, false, convert(BodyAdmissionCase, mode));
+            failures += body_admission_trial(4, false, convert(BodyAdmissionCase, mode));
+        }
+    }
+    return failures;
+}

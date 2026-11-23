@@ -195,29 +195,25 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
     vector_dispose(&targets);
 }
 
-fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
+fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): bool {
     var n = sem_get(entity);
     if n == null {
-        return;
+        return true;
     }
     if strip {
         n.comments.length = 0;
     }
     else {
-        sem_require(bytes_append(target, n.comments.data, n.comments.length));
+        if !bytes_append(target, n.comments.data, n.comments.length) { return false; }
     }
     if n.kind == KFunction {
-        source_comments_walk(n.body, target, strip);
-        return;
+        return source_comments_walk(n.body, target, strip);
     }
     if n.kind == KIf {
-        source_comments_walk(n.body, target, strip);
-        source_comments_walk(n.otherwise, target, strip);
-        return;
+        return source_comments_walk(n.body, target, strip) && source_comments_walk(n.otherwise, target, strip);
     }
     if n.kind == KLoop {
-        source_comments_walk(n.body, target, strip);
-        return;
+        return source_comments_walk(n.body, target, strip);
     }
     var list = n.kind == KProgram;
     if n.kind == KBlock {
@@ -229,10 +225,11 @@ fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
             if i == n.items.length {
                 break;
             }
-            source_comments_walk(n.items.data[i], target, strip);
+            if !source_comments_walk(n.items.data[i], target, strip) { return false; }
             i++;
         }
     }
+    return true;
 }
 
 export fn semantic_strip_comments(root: void*): void {
@@ -242,6 +239,10 @@ export fn semantic_strip_comments(root: void*): void {
 // Optimization can remove/reorder statements. Retain their comments at module
 // scope, without inventing an instruction association or an original source span.
 export fn semantic_collect_comments(source: void*, destination: void*): void {
+    sem_require(semantic_collect_comments_result(source, destination));
+}
+
+export fn semantic_collect_comments_result(source: void*, destination: void*): bool {
     var n = sem_get(destination);
-    source_comments_walk(source, &n.comments, false);
+    return n != null && source_comments_walk(source, &n.comments, false);
 }
