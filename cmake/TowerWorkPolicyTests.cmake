@@ -69,6 +69,21 @@ function(tower_lr_work_policy_test)
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
 
+  if(TOWER_MODULE_TESTS)
+    tower_runtime_object(module-cache-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/module_cache_checks.tower" "${triple}")
+    add_executable(tower-module-cache-tests ${sources} "${module-cache-checks_OBJECT}")
+    set_target_properties(tower-module-cache-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-module-cache-tests PRIVATE ${libraries})
+    target_link_options(tower-module-cache-tests PRIVATE
+      -Wl,--export-dynamic-symbol=work_thread_entry
+      -Wl,--export-dynamic-symbol=backend_register_targets
+      -Wl,--export-dynamic-symbol=backend_thread_entry)
+    add_test(NAME tower-module-cache-regressions COMMAND tower-module-cache-tests)
+    set_tests_properties(tower-module-cache-regressions PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" TIMEOUT 180)
+  endif()
+
   # Explicit Linux x64 clock/rusage measurement, using this same compiler closure.
   # No default build, CTest registration or timing pass threshold.
   if(triple MATCHES "^x86_64-.*linux")
