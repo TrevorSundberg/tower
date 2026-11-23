@@ -80157,3 +80157,15 @@ Full compiler/build input manifests match SHA256
 Logs: L1/logs/execution_ownership_final_9985. No owned child remains running.
 This final receipt adds documentation only, so no new runtime measurement is
 needed for it. Normal main push follows; no gh-pages deployment is claimed.
+
+Policy commitc508be03 then pulled concurrent L1 historye2ace4c4; preserving merge
+552b5332 includes its changed interpreter layout. Rebuilt only the affected
+provider targets through their real depfiles, retaining the originalb042 reports.
+Current reports still show all four Semantics imports and Entities exports; the
+updated checker and focused fixture pass again. Policy/fixture/checker import
+inputs are unchanged across this merge, so no duplicate tool compilation.
+Original checked report processes are n1 per unit/side, warm filesystem, fresh
+processes: wall/user/system0.00 at0.01s resolution, RSS1352KiB before/1616KiB after.
+This tiny sample establishes no speed or retention claim; the policy remains
+allocation-free and serial. Logs and both failures from fast-forward-only pulls
+are preserved in the session; no forced update, abandoned work or broad rerun.
