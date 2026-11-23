@@ -2759,3 +2759,31 @@ metadata workers overlap yet lose to serial in the final measured workload.
 All fixed-four tests retain their deliberate oracle and need four allowed CPUs.
 D1 original Cancel4 failure remains independent. Current union runtime/release
 acceptance is pending; documentation review itself needs no runtime profiling.
+
+The complete d3+cbe history is now adopted as fa15ea45c; exact current roster is
+537/537 assigned of1126. D1's new generic targets preserve the Tower fixture
+bodies and ordinary provider ownership. Source-proof/aggregate use the existing
+compiler composition, with aggregate replacing only the semantic implementation.
+The self-contained mutation fixture declares its existing serial transport via
+the existing target property; deferred fault-runtime binding honors it, avoiding
+a second provider. Other fault targets retain their explicit portable object.
+
+Native evidence at fa15: four public leaves plus both affinity leaves pass,
+canonical42-action build passes, manual40 proof/aggregate cases and four standalone
+fixtures each pass three processes. Actual missing SOURCE object mode reproduces
+duplicate-main/exit1. The explicit object correction produces the same object
+bytes as the direct reference and the same412/544/0 fault result. Final registered
+targets use existing ordered LLVM symbol bindings for the fault boundaries;
+the public native linker has no GNU --wrap support. Five ordinary fixture objects
+are byte-identical, all registered runtimes match before output, and14 CTests pass.
+Lease/mutation/real-affinity executables also match completely; the two semantic
+executables have different object ordering, so no full-image identity is claimed.
+D2 independently reviewed the exact four CMake drafts with no source blocker.
+
+The first after build passed12 actions, then an OS comparison script used the
+wrong generated mutation-object name and exited2 before its runtimes. Original
+logs/script remain; after drain, correcting only that filename yielded a no-work
+build and successful checks. Runtime wall/CPU/RSS samples and limitations are in
+the journal. Newly joined scoped instrumentation and current full-query/release
+gates remain pending; incoming ROOT metadata/child-owner fixtures will require
+coherent revalidation. No existing failed Cancel4 oracle was weakened or relabeled.

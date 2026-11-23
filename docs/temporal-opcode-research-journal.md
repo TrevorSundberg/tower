@@ -75618,3 +75618,96 @@ whole-union browser/generation/final clean-cache bootstrap and atomic publicatio
 remain open. Prior L2 Cancel4-on-two-CPU failure is not closed by this correction;
 current tests have explicit actual lane counts. Public-pin native rebuilds above
 are coherent incremental builds, not mislabeled empty-cache release checks.
+
+### D1 six-target native harness checkpoint, 2026-11-23
+
+Complete d3+cbe merges cleanly as fa15ea45cf15bcfc3f4b123bfd4375fc46d6fb0f;
+537/537 assigned of1126 tracked Tower paths. Current source freeze stayed intact
+through public9653 native baseline4325/controller2989752/container87401. Same
+SteamDeck/Linux x64/LLVM19 Docker, CPU0,2/jobs1, ordinary production allocator,
+warm filesystem and fresh processes. Reuse four c93 leaf objects only after
+checking every actual depfile import hash. Affinity normal/fault leaves pass
+4.23wall/4.17CPU/190396KiB and3.76/3.67/187136 respectively. Canonical42 native
+actions pass287.76wall/280.83CPU/751196KiB. Current compiler7d8d1c5b48985d86fa2e023db7a77da4525ec2f79c8de64da513f0ebf3a5bce1
+and all50 packaged resources are retained; this is coherent incremental public
+bootstrap evidence, not an empty-cache final release.
+
+Manual proof24/aggregate16 cases (three processes per selector), leases3,
+mutation3, affinity normal3/fault3 and observer try/wait pass. Normal affinity
+prints2allowed/2actual fixture lanes; fault output412attempts/544peak underlying
+bytes/0retained. Full source hash check passes. Actual parser-node undefined and
+entity-provider defined reports plus object hashes were sent to D2 for its
+separate exact import-policy audit; D1 did not claim its checker or WASI passed.
+
+After baseline drain, six targets reuse existing runtime/provider composition.
+The aggregate fixture replaces only the semantic implementation while preserving
+frontend/query service objects. Entity mutation retains its own portable source;
+the existing TOWER_SERIAL_WORK_TRANSPORT property prevents duplicate deferred
+injection. Other allocator-fault targets still select the serial object. New
+native SOURCE/no-binding target reproduces the actual duplicate-main failure1
+(session5927,5.95wall/5.71CPU/187432KiB). It previously attempted executable
+output despite an .o pathname. Explicit --emit object only in that branch fixes
+it:2104 passes4.74wall/4.60CPU/187120KiB, exact object comparison to the direct
+reference, and actual GNU-linked412/544/0 runtime. These unlike failed/successful
+operations are not a throughput comparison; library and LLVM paths are unchanged.
+
+Caller audit also showed driver_link_flags has no GNU --wrap support. Preserve
+D2's manual Clang GNU-link reference, then use existing runtime_bind for the
+registered target: move actual buffer definitions to __real names first, then
+bind wrappers to the ordinary buffer and sched_getaffinity symbols. The separate
+production transport uses those boundaries; no native adapter or alternate
+allocator is introduced. Both normal and instrumented helper paths retain these
+bindings. Five ordinary fixture objects match manual bytes. Native unique symbols
+confirm one main, semantic pump/worker entry, portable mutation transport, and
+each fault/real-buffer provider. Real/fault tests still own/drain all their work.
+
+Registered build24392 passes12actions56.55wall/55.26CPU/754668KiB, then its OS
+comparison script exits2 on an incorrect generated mutation-object filename.
+All original script/logs/time/source data are saved in after/attempt1. After the
+child drained, correct only the script to entity-mutation-results.o; retry19674
+has no build work and passes all comparisons/runtimes and14CTest in.41s. Do not
+call the first wrapper successful or the no-work retry a fresh12-action build.
+All source/packaged compiler hashes remain unchanged. D2 independently reviewed
+exact draft hashes144c319d/c09a992d/14f437a5/844222b5 and found no source blocker.
+
+Before/after fresh-process medians, n3 each (wall s/CPU user+system s/RSS KiB):
+
+| Case | Manual before | Registered after |
+| --- | --- | --- |
+| Proof healthy | .02/.01/50388 | .03/.02/50436 |
+| Proof failed | .02/.01/49976 | .03/.02/49948 |
+| Proof cancelled | .02/.01/49928 | .03/.02/49996 |
+| Proof query | .02/.02/50316 | .05/.04/50360 |
+| Proof edge | .04/.03/50268 | .03/.02/50328 |
+| Proof finish | .03/.03/50408 | .02/.01/50480 |
+| Aggregate healthy | .02/.01/50024 | .02/.02/49916 |
+| Aggregate failed | .03/.03/49916 | .02/.01/49904 |
+| Aggregate cancelled | .03/.03/49952 | .03/.02/49840 |
+| Aggregate lowering | .03/.03/50500 | .03/.02/50380 |
+| Lease | <.01/<.01/1600 | <.01/<.01/1600 |
+| Mutation | <.01/<.01/1600 | <.01/<.01/1600 |
+| Actual affinity | <.01/<.01/1644 | <.01/<.01/1600 |
+| Affinity faults | <.01/<.01/1600 | <.01/<.01/1600 |
+
+GNU time prints0.00 for the last four; these are resolution bounds, not zero
+execution cost. The five ordinary objects match; lease/mutation/real-affinity
+entire executables also match. Semantic executable object ordering differs.
+Times include startup, n3 is short/sequential and physical executable paths differ;
+no speedup or neutral-cost claim. The proof-query wall/CPU increase is retained
+as a concern for a bounded same-path alternating control at the next free slot,
+not erased by favorable cases. RSS changes are small; Tower final ownership and
+allocation/failure checks remain independent of RSS. These tests do not add a
+scheduler or prove useful multi-core speedup; real affinity gates check isolation,
+while proof/aggregate admission budgets alone are not overlap evidence.
+
+Logs are proof_forest_leaf_c93, proof_forest_registration_before and
+proof_forest_registration_after, including source_failure/source_fixed/attempt1.
+D1 drained19674 and released its own lock with exact saved timestamp; D2 acquired
+11:50:54 for independent forest policy work. No concurrent D1 build/test. Root's
+new complete metadata checkpoint dba and later child-ownership fixture edits are
+queued for review/adoption at the next coherence boundary. Scoped current
+address/thread validation, query/units/control, clean bootstrap/browser/generation
+and leased atomic publication remain OPEN. Original D1 Cancel4 failure is not
+closed by a different affinity profile; unsupported source UBSan/foreign LLVM
+instrumentation is unchanged. No new Tower body, production edit, todo change,
+publication request or lease in this harness checkpoint.
