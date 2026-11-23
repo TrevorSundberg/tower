@@ -2268,3 +2268,26 @@ description/final-text allocation remain legacy boundaries; this is not complete
 compiler allocation coverage. The small native comparison and exact provenance
 are in the journal. Final integrated instrumentation and deployment remain ROOT's
 pending gates. The earlier open-ended cache investigation is outside this task.
+
+Bounded syntax-iteration follow-up (2026-11-23, production f2f12e5b): sparse
+world-owned observer measures Lookup/Build/Table without compiler clocks or
+allocation. The isolated normal frontend_compile_sources request checks answer42
+and canonical output. Cold and preinstalled compilation both perform185 lookups,
+155 version builds and159 tables; lookup is below0.1% of construction. This
+supports investigation of repeated LR work, not a structural-lookup optimization.
+No cache identity or grammar activation changed. The old300s fullfrontend failure
+is still open: historical stack/phase evidence does not supply a named isolated
+slow request, and the ordinary request completes in about1s. Wider reuse requires
+complete world/Bedrock/import/revision/profile/provenance identity and pinned
+ownership; cross-version LR sharing also needs separation from version userdata,
+emission and replacement bindings. This is an evidence-backed prerequisite,
+not a completed performance fix.
+
+Own five diagnostic symbol interfaces are closed with actual native nm and exact
+policy fixtures. ParserFormat and TemplateBuild now have distinct policy units.
+The actual provider of parser_table_non_terminal_id_to_string_result is
+ParserIntegration; earlier prose grouping under ParserNodes was inaccurate.
+Focused live grammar/cache/lexical checks and native policy reports pass; n1
+serial/parallel control preserves canonical output, adds16 retained bytes/world,
+and establishes no speedup bound. Full evidence/remaining limits are in the
+journal and build/ecs_b1/cache_iteration. ROOT retains integrated release gates.

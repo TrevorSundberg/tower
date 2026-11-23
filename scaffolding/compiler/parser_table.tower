@@ -9,6 +9,7 @@ import .library.work_buffer_types;
 import .library.work_budget_types;
 import .library.work_vector;
 import parser_markers;
+import grammar_observer;
 
 
 extern fn entity_child_count(root: void*): usize;
@@ -168,8 +169,9 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
     return true;
 }
 
-// Hosts resolve missing grammar names before building. This never calls a host
-// callback. A failure leaves the grammar available for retry and owns no runtime.
+// Hosts resolve missing grammar names before building. Construction invokes only
+// the optional phase observer, not parsing callbacks. Failure retains the grammar
+// for retry and owns no runtime.
 // Conflicts retain their runtime for diagnostics; they are never specialized.
 export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     if table.built {
@@ -183,6 +185,9 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     parser_table_clear_runtime(table);
     table.error = null;
     table.resource_error = WorkBudgetError.None;
+    var world = compiler_node_world(table.match_kind);
+    if world != null { grammar_observe(world, GrammarPhase.Table, true, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); }
+    defer { if world != null { grammar_observe(world, GrammarPhase.Table, false, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); } }
     if lr_grammar_pending(grammar) != parser_table_none() {
         table.error = "Unresolved grammar rule";
         return false;
