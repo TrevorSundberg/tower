@@ -81846,3 +81846,126 @@ SHA256517abdba21612824d76b182810aa07a8ce66da325456966a21343ccd6b0cf75f.
 All owned jobs drained. The final commit includes the two exact upstream
 foreign-world assertions and this receipt; normal main push follows. Earlier
 matched measurements retain their afca-based identity. No hosted release claim.
+### A2 checked queued-stage ownership implemented, 2026-11-23
+
+The new explicit user grant includes `syntax_provenance` and its immediate
+caller/lifecycle changes, removing the prerequisite recorded in `53d63157`.
+Base: `53d631572cb62fc45f3c3a4b22e3bb541eaa0f88`, clean main, no owned surviving
+build. Current session remains `01a2046f-fec2-7c71-be46-cad28f9ac147`; resumed
+Codex PID21712 was verified through the command process's parent. No goal,
+additional agent, inbox polling, sibling-cache mutation or todo edit occurred.
+
+Implemented `entity_stage_references_cancellable_result(stage, nodes, count,
+cancel: function(void, void*), context)` with private stable payload cancellation
+records admitted atomically before borrowed fields are installed. The existing
+queue validation and self-alias rebasing remain shared by both admission APIs.
+The provenance callback clears only expansion/splice pointers; the usual
+finalizer still frees owned vectors. Empty/null-only admissions allocate no
+cancellation metadata. No global state, alternate graph or release suppression.
+
+`entity_stage_hold_result(stage): WorkBudgetError` acquires the entire pending
+suffix without allocation. Temporary increments cumulatively account for
+duplicate targets; failure restores every increment without reclaiming pinned
+zero-count inputs. `held` advances only on success. Invalid stage/held bounds
+return Invalid, a newly leased queued target returns Busy, and counter exhaustion
+returns Exhausted. Earlier held ownership is unchanged. Publication reserves
+component-type ownership before the queued transaction, detecting their combined
+count when a queued target is also a component type. Failure restores temporary
+type counts and unprepares table rows; no semantic publication has occurred.
+
+`entity_stage_discard_result(stage): WorkBudgetError` cancels unheld borrowed
+fields before ordinary finalizers. For a legacy queue without cancellation
+metadata it first performs checked hold; failure preserves the entire stage and
+returns the exact error. Legacy void hold/discard wrappers trap on failure,
+instead of wrapping counts, leaking silently or finalizing unowned pointers.
+Already-held/empty discard skips the cancellation scans. Producers must keep
+callback contexts stable, forbid queue mutation/releasing targets in callbacks,
+and retain source owners/views through hold success or failure cleanup.
+
+The generic-body pump now drains and discards every peer before its last view
+close on hold failure, then propagates the exact dispatch/hold receipt. A real
+provenance fixture verifies repeated/null splices, an unchanged previous-history
+chain, no published clone and complete stage/world/budget cleanup on Exhausted
+at target widths4/8. Shared stage tests cover held-prefix preservation, zero-count
+rollback, alias input, retry idempotence, combined type/payload counts, legacy
+safe failure/retry and finalizer totals. The concurrent fixture uses the real
+allocator/transport and the new admission API; its original overlap and ownership
+oracles remain. The exact semantic import allowlist and its existing fixture add
+only `entity_stage_hold_result`, the immediate ABI consequence of the caller edit.
+
+Validation used one dependency-aware native target set, incrementally resumed
+after actionable compile errors: `cmake --build /cache/native --parallel 2
+--target tower-entity-stage-result-tests tower-entity-stage-concurrent-tests
+tower-lr-work-tests`. Baseline and final normal stage tests pass; concurrent
+output checks57792 finalizers across original2/4-worker trials. Final
+`tower-lr-work-tests /work/scaffolding query-smoke` and `lifecycle 14 16` pass,
+including workers1/4 and32/64-bit staging. The small standalone
+`bootstrap_symbols_checks.tower` check also passes using the same pinned compiler
+and existing `guest-work-tests.o` runtime. This was no second compiler build or
+platform/bootstrap matrix. `git diff --check` passes.
+
+Preserved failures: `stage_hold_after.log` reports an undeclared abort, corrected
+to the library's supported trap; `stage_hold_check.log` rejects the positional
+array initializer, replaced with element assignments; `stage_hold_focused.log`
+rejects reserved `expected` and a missing explicit vector import;
+`stage_hold_validation.log` requires `sizeof(decltype(references))`. Every failed
+container drained before edits. Final evidence: `stage_hold_final.log`,
+`stage_hold_symbols.log`, `stage_hold_final_sources.csv`, all under
+`C:\Sandbox\build\codex_ecs_20261122\A2\cache\logs`. Earlier successful
+`stage_hold_regressions.log` precedes the already-held discard fast-path guard;
+the final affected checks were rerun after that change. No failed gate is passed.
+
+Small before/after measurement: Windows11 host, Docker Linux x64, CPU12-23,
+24GiB limit, Clang/LLVM19, Release, public bootstrap SHA256
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, compiler jobs1.
+Before binaries were built on the frozen base and retained. Three paired samples
+per case followed one warm-up per binary. Existing Tower `ecs_process_profile`,
+`profile_process_values` and `profile_medians_all` checked child status and parsed
+wall/CPU/RSS receipts. Serial uses the original ordinary stage operations and
+unchanged payload/state layouts (`profile` argument skips only new regression
+cases); concurrent uses the same entity workload and finalizer oracle. They are
+different workloads and must not be divided into a scaling ratio.
+
+| Checked workload | Median wall ms before -> after | CPU ms | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Ordinary serial stage process | 3.457795 -> 3.927438 | 1.106 -> 1.144 | 1372 -> 1096 |
+| Existing concurrent stage trials,2/4 workers | 102.659565 -> 103.315155 | 98.554 -> 99.720 | 1656 -> 1612 |
+
+The serial process wall increase is13.6% (0.470ms), CPU3.4% (0.038ms); concurrent
+wall/CPU increase0.6%/1.2%. Do not claim neutral cost or speedup. These short
+process samples include startup, page faults and the added fixture dispatch
+branch: the serial executable grew67032->71672 bytes and median major faults
+were1->2. Most additional wall time is outside measured child CPU; this suggests
+startup/scheduling contribution but does not isolate the ownership algorithm.
+The earlier three-pair window is retained in `stage_hold_profile.log`, not
+substituted for the final guard's evidence. Raw final CSV/output/value files,
+medians and all binary SHA256s are in `stage_hold_final_profile.log` and matching
+`stage_hold_final_*` files. Complete store/component and world-budget teardown is
+checked; ordinary private-vector allocation counts/retention are not claimed as
+instrumented. No allocation-failure instrumentation or old node-control probe ran.
+
+API handoff to ROOT: leave `semantic_execution_work` and its executable fixture
+under ROOT ownership. After dispatch joins, call checked hold on every stage
+before closing the final input view; on failure, discard all peers while inputs
+remain live, clear stage pointers and propagate the exact receipt. Held peers
+release ownership; cancellable unheld peers clear borrows. The other existing
+production stage publishers have no direct queue producer on the inspected
+current path and retain compatibility wrappers. Their general resource-admission
+rewrites are outside this batch. Full sanitizer/UB/thread, useful scaling,
+canonical bootstrap/browser/generation and deployed release verification remain
+ROOT's pending integrated checks. No overall compiler or hosted-release claim.
+
+Merged validation: the required ff-only pull fetched `baf2a5a0` and stopped on
+divergence. `git rebase --rebase-merges origin/main` preserved complete published
+history and replayed the owned commit cleanly. The six stage/producer/consumer
+and runtime fixture files are byte-identical to measured commit `00bd5e10`;
+incoming work-pool/budget, parser, semantic and test inputs changed. The same
+dependency-aware focused target set rebuilt28 affected steps, then stage result,
+57792-finalizer concurrent coverage, query-smoke and lifecycle14-16 all passed
+on the merged source (`stage_hold_merged.log`). The merged exact-symbol fixture
+also passed (`stage_hold_merged_symbols.log`), preserving D2's incoming policy
+changes. Performance receipts remain scoped to the original frozen base/batch,
+not relabeled for the merged scheduler. ROOT's incoming execution pump now holds
+before view close using the void wrapper; checked-result failure adoption remains
+ROOT's explicitly assigned follow-up. All owned jobs drained before commit/push;
+final deployment remains ROOT-owned.

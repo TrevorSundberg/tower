@@ -21,7 +21,7 @@ extern fn generic_body_cost(context: void*, node: void*): usize;
 extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
 extern fn compiler_generic_body_kernel(payload: void*): void;
 extern fn compiler_node_world(node: void*): void*;
-extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_hold_result(stage: void*): WorkBudgetError;
 extern fn entity_stage_discard(stage: void*): void;
 extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
 extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
@@ -239,7 +239,23 @@ export fn sem_generic_copies_execute(c: SemanticContext*): bool {
         var dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, &batch.data[first], stop - first, extra);
         // Histories can have zero references pending reclamation under this pin.
         // Acquire their queued payload ownership before releasing the last view.
-        for(var i = first; i < stop; i++) { entity_stage_hold(batch.data[i].request.stage); }
+        var held = WorkBudgetError.None;
+        for(var i = first; i < stop && held == WorkBudgetError.None; i++) {
+            held = entity_stage_hold_result(batch.data[i].request.stage);
+        }
+        if held != WorkBudgetError.None {
+            // Some peers may already own their references. Discard cancels only
+            // unheld borrows, and all histories remain pinned through cleanup.
+            for(var i = first; i < stop; i++) {
+                var request = &batch.data[i].request;
+                entity_stage_discard(request.stage);
+                request.stage = null;
+            }
+            entity_view_close(view);
+            sem_generic_body_resource(c, batch.data[first].request.node,
+                dispatched != WorkBudgetError.None ? dispatched : held);
+            return false;
+        }
         entity_view_close(view);
         if dispatched != WorkBudgetError.None {
             sem_generic_body_resource(c, batch.data[first].request.node, dispatched);
