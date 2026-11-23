@@ -95961,3 +95961,12 @@ L1 native-generation receipt088baa95 has matching a06 compiler/library trees:
 records the complete a18 development candidate while keeping public repin/default
 adoption and restricted standalone release open. No new authored source delta or
 D2 runtime. Evidence cutoff41c8a5db; historical tail/todo checks remain unchanged.
+
+A1 T2 receipt reconciliation:858ff392 preserved through merge45d23d6a with
+incoming44bfbbc8. Required ff-only pull stopped on divergence; normal merge
+preserved complete histories. Only measured-map differences are an uncalled
+LLVM memory-capacity accessor and unrelated native-backend fixture; exclude
+those later bytes once, keep original failed result/inputs, no broad rerun.
+Selected test/production behavior unchanged; todo/diff checks pass. L2's two
+selected T8 successes are separately preserved, not counted as this full-file
+run. Normal push follows; no active A1 test/build or deployment.

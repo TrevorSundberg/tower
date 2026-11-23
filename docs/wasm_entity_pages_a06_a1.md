@@ -109,3 +109,12 @@ specific intrinsic/producer responsible. ROOT/D1/L2 can consume the exact
 optimized request and response; no overlapping producer edit, raised limit,
 rerun or weakened expectation was made. Full T2 acceptance remains blocked.
 ROOT retains release/generation/hosted ownership.
+
+Publication reconciliation: required ff-only pull refused ordinary divergence;
+merge45d23d6a preserved complete incoming44bfbbc8 and this receipt. The selected
+tests and relevant production providers remain unchanged. The incoming
+llvm-host addition is only an uncalled memoryCapacityBytes accessor; the other
+mounted change is the unrelated backend_source_native fixture. Both later bytes
+are excluded from the measured manifest, with no rerun/relabeling. L2's separately
+published two-case T8 pass remains its own receipt, not this conditional full-file
+run. Diff checks and todo identity pass; no deployed runtime is claimed.
