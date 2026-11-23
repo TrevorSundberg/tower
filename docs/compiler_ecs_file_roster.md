@@ -1321,3 +1321,13 @@ reviewed in the D1 audit; production ownership is unchanged.
 After staging: 1,064 tracked Tower files / 483 D1 direct files. Existing updated
 query/frontend/backend/buffer fixtures retain their rows. The D1 supporting
 library review is not a replacement for A2's audit or current runtime evidence.
+
+### Typed resource failure regression integration
+
+`scaffolding/tests/semantic_resource_checks.tower` is one new D1 audit path,
+implemented by A1 (original efde967a) and registered by D1 after independent
+A1/B2 after-pass confirmation. Entry-only helper source SHA256
+0b6cbbef608d3b3085b1a471400f98ec78e4359289b94f303c2b8513902e9e6b.
+Every trial body and assertion is preserved. This brings the current tracked
+roster to1,065 Tower files and484 D1 direct files; substantive review and pending
+local execution are distinguished in compiler_ecs_audit_d1.md.

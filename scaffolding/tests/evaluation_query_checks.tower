@@ -2,6 +2,7 @@ import tower;
 import .compiler.semantic_context_types;
 import .compiler.semantic_evaluation_types;
 import semantic_source_proof_checks;
+import semantic_resource_checks;
 import type_execution_receipts;
 import semantic_world;
 import .compiler.foundation_tags;
@@ -198,6 +199,7 @@ fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): S
 export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
     failures += semantic_source_proof_tests(width, workers);
+    failures += semantic_resource_tests(width, workers);
     type_execution_receipt_tests(width);
     failures += call_query_tests(width);
     failures += body_query_tests(width, workers, BodyQueryFixture.Resume);

@@ -1666,3 +1666,25 @@ unique-order validation fix was read, but is not included in f635 evidence.
 All483 current D1 paths remain substantively reviewed; no new path was added by
 this receipt. New resource-error/clone fixtures and the complete source union
 still require fresh review/registration and coherent validation before release.
+
+### Typed resource failures and unique import-cache validation
+
+Reviewed after 5bfa1c6, with exact owner source handoffs deba07ac (B2),
+a8ecf458/bad3e4f1 (L1), and 76e1a971 (A1). These remain paired shared-layout
+changes; old f635 artifacts cannot validate the new IMState/SemanticEvaluation.
+
+| Path | Review conclusions and disposition |
+| --- | --- |
+| `scaffolding/tests/interpreter_call_query.tower` | Reports actual bound-world retained and replacement-peak bytes separately from vector capacity. Denied growth keeps allocation, receipt generation and bytes while latching Capacity. Denied startup consumes the remaining budget, requires failed/null private state, then checks partial receipt retirement before world disposal. Existing owner/frame, mutable-buffer isolation and continuation assertions remain unchanged. |
+| `scaffolding/tests/semantic_resource_checks.tower` | Full132-line A1 efde967a body reviewed; entry converted to127-line reusable width/worker helper. Two demanded literal producers at offsets11/29 exercise required, inferred and declaration-isolated denial. Checks both started, no running peers, first-source diagnostic, ready+failed query tickets, disposed private memory, no published value, no redispatch on another pump, and zero world/budget ownership. Known proof is explicitly complete only for capture-free inferred literals. Current1B setup targets interpreter storage; future budgeted world constructors must adapt setup without weakening these assertions. |
+| `scaffolding/tests/evaluation_query_checks.tower` | Two-line import/call integrates the three cases into existing width/worker query callers. Native LR supplies32/64-bit and1/4worker combinations; semantic_world retains its existing serial/worker caller. No new scheduler, transport, CMake target or separate test runner. |
+| `scaffolding/compiler/frontend_modules.tower` (B2 supporting review) | Completed dependency/cycle invariant replaces exponential cacheability path walking. Per-request validation walks retained unique graph order, checks every edge's current lexical resolution and returned bytes, reuses two local buffers, and retains root-byte checking. No persistent memo or authoritative graph added. Frozen before profile reproduced277–309ms warm18-layer traversal; independent after measurements pending. |
+| `scaffolding/compiler/interpreter{,_context,_storage,_types}.tower` (L1 supporting review) | First physical-storage error from three WorkVector owners is latched in IMState separately from optional unsupported-stage failure. Success does not clear an earlier error; coordinator must preserve it before disposal. Shared layout requires dependent rebuild. |
+| `scaffolding/compiler/semantic_evaluation{,_types,_work}.tower` (A1 supporting review) | Persistent result error survives invocation retirement and isolated diagnostic selection. Both failure/terminal paths distinguish resource errors from ordinary inferred fallback, finish failed tickets, and prevent alias publication after failure. Short nonnull diagnostics are reserved before dispatch. This does not complete fallible general semantic arena allocation. |
+
+Root reports unchanged standalone efde regression failed on the before closure,
+then all12cases passed at A1 source1ac577a8 after full62-step build. B2 separately
+passed the coherent pair in0.018994s/51460KiB. These are owner evidence, not D1
+execution. Entry conversion preserves every trial body and oracle. Local public
+smallest units, paired runtime, cache profiling and current instrumentation remain
+pending. Scope becomes1,065tracked/484D1direct after adding this one reviewed file.

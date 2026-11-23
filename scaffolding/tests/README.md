@@ -960,3 +960,10 @@ does not provide production threading or whole compiler sanitizer coverage.
 and failure suites without the unrelated body matrix. It includes valid trace
 output and serial allocation-failure/ownership checks. Use the serial frontend
 target for this fault allocator; it is not a threaded allocator sanitizer.
+
+The existing native `tower-lr-work-tests RESOURCE_ROOT query-smoke` also runs
+`semantic_resource_checks.tower`: required, inferred and declaration-isolated
+storage denial for32/64-bit targets and1/4 requested workers. It requires failed
+query receipts, first-source diagnostic selection, joined peers, no replay or
+published value, and zero retained ownership. This reuses the production query
+transport; serial fault instrumentation does not establish threaded coverage.

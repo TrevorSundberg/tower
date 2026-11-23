@@ -1,0 +1,127 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.compiler_kernel;
+import .compiler.interpreter_context_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn puts(text: u8*): i32;
+
+fn resource_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool): SemanticEvaluation* {
+    var subject = sem_create(c.program.root);
+    var value = sem_attach(subject, KOperand);
+    value.type.scalar = SI32;
+    value.type.pointer_bytes = c.program.pointer_bytes;
+    value.constant = true;
+    value.start = offset;
+    var input = sem_create(c.program.root);
+    var literal = sem_attach(input, KOperand);
+    literal.type = value.type;
+    literal.constant = true;
+    literal.bits = 42;
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+    *result = default;
+    result.subject = subject;
+    result.owner = c.program.root;
+    result.literal = subject;
+    result.expression = input;
+    result.requested = true;
+    result.inferred = inferred;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+    *result.ready = default;
+    result.ready.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_push(&c.evaluation_jobs, bits(void*, result));
+    sem_evaluation_request(c, result);
+    return result;
+}
+
+fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open();
+    sem_require(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    sem_require(work_budget_init(&budget, workers, 1, 91)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    sem_evaluation_begin(&context);
+    if inferred {
+        // The immutable-input proof is already complete. These literal inputs
+        // have no captures; normal clone/preparation kernels still run below.
+        var proof = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownProof), 0);
+        var ticket: WorkTicket = default;
+        sem_require(work_seal(&context.queries, proof) && work_demand(&context.queries, proof)
+            && work_take_task(&context.queries, &ticket, proof));
+        sem_require(work_finish(&context.queries, &ticket, true));
+    }
+    var first = resource_stage(&context, 11, inferred);
+    var second = resource_stage(&context, 29, inferred);
+    context.declaration_isolated = isolated;
+    sem_evaluation_pump(&context);
+    resource_check(context.workers.running == 0 && first.started && second.started,
+        "Resource denial joins every admitted preparation/evaluation peer", &failures);
+    if isolated {
+        resource_check(program.error.length == 0, "Isolated resource receipts wait for owning diagnostic selection", &failures);
+        context.declaration_isolated = false;
+        sem_evaluations(&context);
+    }
+    resource_check(program.error.length != 0 && program.error_offset == 11,
+        "Required and inferred resource denial selects the first source-ordered diagnostic", &failures);
+    for(var index: usize = 0; index < context.evaluation_jobs.length; index++) {
+        var result = bits(SemanticEvaluation*, context.evaluation_jobs.data[index]);
+        var query = work_find(&context.queries, result.subject, convert(u32, SemanticQuery.Evaluation), 0);
+        resource_check(result.ready.ready && result.ready.failed && work_task(&context.queries, query).state == WorkState.Failed,
+            "Resource failure never becomes successful optional inference", &failures);
+        resource_check(result.invocation.state.memory.data == null && sem_get(result.subject).bits == 0,
+            "Failed invocations retire storage without publishing a value", &failures);
+        var dispatch = work_task(&context.queries, query).dispatch;
+        sem_evaluation_pump(&context);
+        resource_check(work_task(&context.queries, query).dispatch == dispatch,
+            "Repeated failed pumps do not replay interpreter work", &failures);
+    }
+    work_pool_close(&context.workers);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    resource_check(compiler_world_dispose(world), "Resource-denied stages release their world", &failures);
+    var snapshot: WorkBudgetSnapshot = default;
+    resource_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+        && snapshot.used_lanes == 0 && snapshot.live == 0 && work_budget_dispose(&budget),
+        "All resource receipts retire after worker and world cleanup", &failures);
+    return failures;
+}
+
+fn semantic_resource_tests(width: u32, workers: usize): u32 {
+    var failures: u32 = 0;
+    failures += resource_trial(width, workers, false, false);
+    failures += resource_trial(width, workers, true, false);
+    failures += resource_trial(width, workers, true, true);
+    return failures;
+}

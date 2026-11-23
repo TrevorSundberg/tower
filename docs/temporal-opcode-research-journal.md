@@ -49471,3 +49471,48 @@ New A1/L1 typed resource-error propagation/fixture, B1 shared growth/fixed parse
 buffer, L2 clone budget and B2 cache fix remain subsequent coherent work. Full42,
 current whole-compiler instrumentation, complete union public bootstrap/browser/
 generation and leased atomic publication/hosted verification remain open.
+
+### D1 paired resource-error regression and cache successor preparation
+
+After all f635 jobs drained, adopted exact authorized B2 deba07ac cache fix and
+paired L1 a8ecf458/bad3e4f1 plus A1 76e1a971 (-p2). The new shared IMState and
+SemanticEvaluation layouts require dependent rebuild; no half-ABI executable
+was run. The first physical-storage error is latched, copied to the persistent
+query result before invocation disposal, and remains a failed required/inferred
+or isolated ticket. Both failure/terminal coordinator paths use nonnull fixed
+messages with pre-dispatch diagnostic reservation. Ordinary unsupported optional
+staging retains its separate fallback. General semantic scratch allocation is
+still outside this completed slice and must not be called fallible by association.
+
+The B2 cache change uses the already retained unique dependency order, checking
+every edge's current lexical resolution and returned bytes. Root source bytes
+remain checked by module_cached; two private vectors are reused within each
+validation. It does not add another graph or persistent validity memo. D1's exact
+before093 profile and f635 package are preserved for independent after comparison.
+
+Root reports A1 source1ac577a8 full62-step build and all12 unchanged efde967a
+resource regression cases pass, with independent B2 coherent build and runtime
+0.018994s/51460KiB. The standalone before test returned1 on incorrect optional/
+isolated success. These are owner receipts, not D1 runtime evidence. Following
+that explicit readiness handoff, copied the fixture and changed only its entry
+into semantic_resource_tests(width,workers), importing/calling it from existing
+evaluation_query_checks. Existing LR loops supply target widths4/8 and workers1/4;
+all three variants per pair remain. Existing semantic_world callers also retain
+coverage. No runner, production implementation, scheduler or CMake target added.
+Full127-line source0b6cbbef is reviewed; every original trial body/assertion is
+unchanged. Current1B budget targets interpreter storage; later budgeted world
+constructors must adapt setup to preserve this precise failure point.
+
+The audit/roster now includes this one new path (1,065 total/484 D1 direct).
+Local smallest units, coherent native rebuild, regression/runtime, cache profiles
+and appropriate current instrumentation remain pending the shared Deck slot.
+D2 is currently measuring/verifying its own closure, so D1 does not overlap it.
+No new syntax or bootstrap override; public predecessor compilation is next.
+
+Frozen f635 raw evidence exported as D1/physical_arena_f6358ea_receipt.tar,
+SHA2562ea9142cb30b4d14282b09047c220b1c4b6d51434ae8063777dce154959c82f6,
+27MiB. Original binary hashes verified before copying, complete compiler+48
+resources, all raw logs except temporary objects, all64 arena profile samples,
+frequency snapshots, actual ASan/TSan hook checks and stress, exact profile
+sources included. Original basename-collision timing limitation remains explicit.
+This receipt does not validate the subsequent source or integrated union.

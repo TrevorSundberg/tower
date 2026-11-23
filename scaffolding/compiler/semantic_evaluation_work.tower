@@ -153,6 +153,15 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
             count++;
         }
         if count == 0 { break; }
+        if !cloning {
+            // Resource diagnostics must not grow their storage after a worker
+            // exhausts its arena/buffer budget. Reserve the short fixed receipt
+            // and its immediate coordinator destination before dispatch.
+            sem_require(vector_reserve(&c.program.error, EvaluationResourceDiagnosticBytes));
+            for(var i: usize = 0; i < count; i++) {
+                sem_require(vector_reserve(&batch.data[i].evaluation.error, EvaluationResourceDiagnosticBytes));
+            }
+        }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var context = *c;
