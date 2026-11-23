@@ -1,0 +1,26 @@
+import tower;
+import work_vector;
+import work_vector_types;
+import work_budget_types;
+
+// Counted text owns its terminator as well as its payload. Input is borrowed
+// from a separate live owner. Denial preserves the complete previous value.
+fn work_text_write(out: work_vector(u8)*, budget: WorkBudget*, text: u8*, count: usize, append: bool): WorkBudgetError {
+    if out == null { return WorkBudgetError.Invalid; }
+    if count == 0 {
+        if !append {
+            out.length = 0;
+            if out.data != null { out.data[0] = 0; }
+        }
+        return WorkBudgetError.None;
+    }
+    var start = append ? out.length : 0;
+    if (count != 0 && text == null) || count >= ~convert(usize, 0) - start { return WorkBudgetError.Invalid; }
+    var end = start + count;
+    var result = work_vector_reserve_result(out, budget, end + 1);
+    if result != WorkBudgetError.None { return result; }
+    if count != 0 { copy(out.data + start, text, count); }
+    out.data[end] = 0;
+    out.length = end;
+    return WorkBudgetError.None;
+}

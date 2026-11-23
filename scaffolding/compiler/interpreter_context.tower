@@ -1,5 +1,6 @@
 import tower;
 import interpreter_types;
+import interpreter_text;
 import interpreter_abi;
 import interpreter_context_types;
 import .library.vector;
@@ -84,16 +85,7 @@ fn ix_root(m: IMExecution*): void* {
 // Invocation diagnostics can borrow a counted producer message. Preserve the
 // first failure even when its optional presentation cannot be allocated.
 fn ix_context_fail_counted(m: IMExecution*, text: u8*, length: usize, offset: usize): void {
-    if m.state.failed {
-        return;
-    }
-    m.state.failed = true;
-    m.state.error_offset = offset;
-    if length != ~convert(usize, 0) && vector_reserve(u8, &m.context.error, length + 1) {
-        copy(m.context.error.data, text, length);
-        m.context.error.data[length] = 0;
-        m.context.error.length = length;
-    }
+    im_text_fail(m.state, &m.context.error, text, length, offset);
 }
 
 fn ix_fail(m: IMExecution*, text: u8*, offset: usize): void {
@@ -137,18 +129,5 @@ fn ix_append(m: IMExecution*, text: u8*, count: usize): void {
         im_append(m.state, text, count);
         return;
     }
-    var out = &m.context.output;
-    var needed = out.length + count;
-    if needed < out.length || needed == ~convert(usize, 0) {
-        ix_fail(m, "Evaluation output size overflow", 0);
-        return;
-    }
-    if !vector_reserve(u8, out, needed + 1) {
-        ix_fail(m, "Cannot allocate evaluation output", 0);
-        return;
-    }
-    copy(out.data + out.length, text, count);
-    out.data[needed] = 0;
-    out.length = needed;
-    m.state.output_bytes = needed;
+    im_text_append(m.state, &m.context.output, &m.context.error, text, count);
 }

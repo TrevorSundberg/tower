@@ -422,6 +422,14 @@ retry. Sweep bounds and retained test arrays derive from each successful run's
 allocation count. This uses the single-owner fault allocator; real concurrency
 is checked separately by `tower-lr-work-tests RESOURCE_ROOT lr` and unit profiles.
 
+`tower-storage-tests RESOURCE_ROOT diagnostic-faults` selects the diagnostic
+construction oracle with the same single-owner allocator. At both target widths
+it denies every observed allocation boundary for plain and generic-trace
+diagnostics, checks physical budget denial, preserves the explicit source offset
+when generated spans differ, and verifies private current/scope restoration.
+Retained semantic and resource failures reject later declaration admission without
+another allocation or diagnostic. This selector needs no grammar bootstrap run.
+
 Formatter fixtures now run in Tower. Configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
@@ -1163,16 +1171,18 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
-and emits unoptimized x86_64-pc-linux-gnu library objects. The older backend
+and emits unoptimized x86_64-pc-linux-gnu library objects; `optimized` selects
+the existing O2 pipeline and default code-generation policy as a control. The older backend
 workload did not export its functions and could emit empty objects; those
 measurements are not useful code-generation evidence. The profile checks exported
 names, known interpreter results (answer and loop body return42), canonical
 Foundation and object hashes. Compare each workload's hashes across worker counts.
-Its explicit byte ceiling is `(UNITS + 1) * DriverUnitRetainedByteLimit`; the
+Its explicit byte ceiling is `(UNITS + UnitsProfileTransientUnits) * DriverUnitRetainedByteLimit`
+(four transient units accommodate tracked scratch for4096 bodies); the
 production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
 are supported, with workers bounded by the current host transport capacity.
 
@@ -1544,6 +1554,19 @@ not packed payloads. No hardware counters, parallel mutation, finite whole-world
 cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
 receipt and audit for measured source identity and limits.
 
+The execution `core` selector includes `execution_output_storage.tower`: counted
+first-error/output admission, no replay after capacity returns, graph/Fast parity,
+producer teardown with a retained package snapshot, transactional replacement and
+complete world/grant retirement at both target widths. `type-construction` covers
+counted constructor-diagnostic transfer without a second allocation; `query-smoke`
+observes typed capacity failures even when diagnostic storage is unavailable.
+
+For the changed Wasm/host boundary, enable `TOWER_IDE_PACKAGE_TESTS=ON`, build only
+`tower-browser`, and run `TOWER_TEST_WASM=/absolute/path/tower.wasm node --test
+playground/tests/bytecode.test.mjs`. The file closes its host transport and uses the
+selected artifact without requiring an unrelated default browser build. This is
+package coverage, not the browser concurrency or integrated release matrix.
+
 ### Focused LR closure ordering and frontend iteration cost
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
@@ -1603,3 +1626,16 @@ Every owned receipt is gone before ledger teardown. Run `parser` for immediate
 request/admission callers and `grammar-equivalence` for canonical live grammar and
 replacement coverage. These focused checks do not replace integrated sanitizers,
 bootstrap, browser or release verification.
+
+### Scratch identity lookup regression
+
+`tower-storage-tests RESOURCE_ROOT scratch` runs the focused semantic scratch
+allocation/denial/retry tests and a 1,024-list ownership-index regression. It
+checks exact pointer identity, bounded lookup probes, ordinary-vector fallback,
+private scan storage, lexical parent borrowing, allocation-free joined transfer,
+failed-registration atomicity and zero grants after teardown. The optional
+`sem_scratch_find` probe output is caller-owned; lookup never mutates the parent.
+Run the existing native `tower-lr-work-tests . query-smoke` and `control-smoke`
+from the `scaffolding` directory for the affected continuation/canonical checks.
+The separately observed absolute-resource-root control diagnostic is retained in
+the B1 journal; it is not a passing variant of this command.

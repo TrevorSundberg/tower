@@ -1,0 +1,151 @@
+import tower;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_arena_api;
+import .library.work_arena_types;
+import .library.vector;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn sem_context_init(context: SemanticContext*, program: SemanticProgram*): void;
+extern fn sem_context_dispose(context: SemanticContext*): void;
+extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn sem_fail(context: SemanticContext*, node: void*, text: u8*): void;
+extern fn sem_declaration_add_result(context: SemanticContext*, node: void*): bool;
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+extern fn generic_instantiate_result(context: void*, definition: void*, use: void*, arguments: void**, count: usize, error: WorkBudgetError*): void*;
+
+var DiagnosticStorageBudgetBytes: usize = 16777216;
+
+// One serial allocator owner. Discover the actual diagnostic allocation count,
+// then deny each boundary; no assumed arena size or allocation ordinal.
+fn semantic_diagnostic_trial(width: u32, traced: bool, allowed: usize, pressure: bool, prior: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, DiagnosticStorageBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Diagnostic world budget");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_world(&fixture, 1, 1, world);
+    var source = "owner use diagnostic";
+    var use_offset = strlen("owner ");
+    var diagnostic_offset = strlen("owner use ");
+    var use = generic_clone_child(fixture.store, fixture.root, "CoreCall", null, use_offset);
+    var subject = generic_clone_child(fixture.store, fixture.root, "CoreParameter", null, diagnostic_offset);
+    var error: WorkBudgetError;
+    if traced {
+        var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
+        var instance = generic_instantiate_result(fixture.context, fixture.definition, use, &argument, 1, &error);
+        utility_check(instance != null && error == WorkBudgetError.None, "Diagnostic has actual generic provenance");
+        // Function bodies are deferred; the already cloned header owns the
+        // same real use provenance and needs no unrelated body execution.
+        subject = instance;
+        utility_check(generic_origin(fixture.context, subject) == use, "Diagnostic header retains its use owner");
+        parser_match_create(subject).start = diagnostic_offset;
+    }
+    sem_attach_result(fixture.definition, KFunction, &error).start = 0;
+    // Source ownership remains explicit even for a generated Foundation span.
+    sem_attach_result(subject, KParameter, &error).start = use_offset;
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    context.source = source;
+    context.current = fixture.definition;
+    var lexical_scope = context.scope;
+    var large: vector(u8) = default;
+    var message = "first semantic diagnostic";
+    if traced {
+        // Cross the actual scratch chunk boundary during sem_text/sem_cat,
+        // as well as the list and final diagnostic-vector allocation gates.
+        var length = context.scratch.arena.chunk_bytes * 2;
+        utility_check(length != 0 && vector_reserve(&large, length + 1), "Diagnostic text input");
+        fill(large.data, 120, length);
+        large.data[length] = 0;
+        large.length = length;
+        message = large.data;
+        var tail = context.scratch.arena.last;
+        if tail != null && tail.used < tail.storage.capacity {
+            var padding: u8* = null;
+            utility_check(work_arena_allocate_result(&context.scratch.arena,
+                tail.storage.capacity - tail.used, 1, &padding) == WorkBudgetError.None, "Drain admitted diagnostic scratch");
+        }
+    }
+    var occupied: WorkReservation = default;
+    if pressure {
+        var snapshot: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &snapshot)
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied)
+                == WorkBudgetError.None, "Deny the next diagnostic scratch grant");
+    }
+    if prior { sem_resource_record(&program, WorkBudgetError.Capacity, use_offset); }
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    sem_fail(&context, subject, message);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    var wanted = prior || pressure ? WorkBudgetError.Capacity
+        : allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory;
+    utility_check(program.resource.error == wanted, "Diagnostic retains the exact first resource cause");
+    if wanted == WorkBudgetError.None {
+        utility_check(program.error.length >= strlen(message)
+            && utility_equal(program.error.data, message, strlen(message))
+            && program.error_offset == diagnostic_offset, "Complete semantic message keeps its explicit source offset");
+    } else {
+        utility_check(program.error.length == 0 && program.resource.offset == (prior ? use_offset : diagnostic_offset)
+            && (prior || program.error_offset == diagnostic_offset), "Unallocated diagnostic reports its own source, never the surrounding function");
+    }
+    utility_check(context.current == fixture.definition && context.scope == lexical_scope,
+        "Diagnostic restores private lexical state on success and every denied exit");
+    var retained = program.error;
+    var offset = program.error_offset;
+    var resource = program.resource;
+    var jobs = context.declaration_jobs.length;
+    var count = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(0);
+    sem_fail(&context, use, "later diagnostic");
+    var admitted = sem_declaration_add_result(&context, fixture.definition);
+    tower_test_buffer_fail_after(unlimited);
+    utility_check(!admitted && context.declaration_jobs.length == jobs
+        && tower_test_buffer_allocations() == count && program.error.data == retained.data
+        && program.error.length == retained.length && program.error_offset == offset
+        && program.resource.error == resource.error && program.resource.offset == resource.offset
+        && context.current == fixture.definition && context.scope == lexical_scope,
+        "Retained semantic or resource failure stops later admission without a second diagnostic allocation");
+    if prior { utility_check(calls == 0, "An earlier resource failure needs no diagnostic allocation"); }
+    if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release diagnostic pressure"); }
+    vector_dispose(&large);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    utility_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == buffers, "Diagnostic cancellation and teardown drain every owner");
+    return calls;
+}
+
+fn semantic_diagnostic_storage_tests(): void {
+    var unlimited = ~convert(usize, 0);
+    var widths: u32[2]; widths[0] = 4; widths[1] = 8;
+    var traces: bool[2]; traces[0] = false; traces[1] = true;
+    for(var index: usize = 0; index < sizeof(decltype(widths)) / sizeof(u32); index++) {
+        var width = widths[index];
+        for(var mode: usize = 0; mode < sizeof(decltype(traces)) / sizeof(bool); mode++) {
+            var traced = traces[mode];
+            var calls = semantic_diagnostic_trial(width, traced, unlimited, false, false);
+            for(var allowed: usize = 0; allowed < calls; allowed++) {
+                semantic_diagnostic_trial(width, traced, allowed, false, false);
+            }
+            if traced { semantic_diagnostic_trial(width, true, unlimited, true, false); }
+            semantic_diagnostic_trial(width, traced, 0, false, true);
+        }
+    }
+    puts("Diagnostic construction preserves first cause, exact source ownership and allocation-free retries.");
+}

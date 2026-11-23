@@ -29,12 +29,17 @@ struct SemanticScratchList {
     value: vector(void*);
     storage: WorkBuffer;
     next: SemanticScratchList*;
+    // Intrusive digital search tree, keyed by the exact address of value.
+    // Both links live in the descriptor's existing checked arena allocation.
+    index_zero: SemanticScratchList*;
+    index_one: SemanticScratchList*;
 }
 
 struct SemanticScratch {
     arena: WorkArena;
     first: SemanticScratchList*;
     last: SemanticScratchList*;
+    index: SemanticScratchList*;
 }
 
 struct SemanticScope {
