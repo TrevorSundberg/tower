@@ -89400,7 +89400,7 @@ public bootstrap `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c1
 This is a fixture/contract correction, not a compiler extension. The current
 native binary reproduces D1's `generic_pointer_alias.tower` failure at 3:36 and
 the user's reduced indirect case at 2:32, exit1: "A pointer type spelling cannot
-be used as a value". `sem_surface_expression` deliberately rejects that spelling.
+be used as a value". `sem_surface` deliberately rejects that spelling.
 `return type_value(T*);` and `return pointer_type(T);` both yield42 with explicit
 `indirect(i64, &value)`. Both omitted-type calls reject at5:7: "Cannot infer type
 argument 'T'; pass explicit type arguments". `sem_infer_match` follows structural
@@ -89500,3 +89500,16 @@ and remaining-trap receipts; this does not test newer native compiler providers.
 Missing-LLVM control, source syntax and diff checks are clean at their stated
 scope. Docker is idle; own heavy lease released. Normal main publication follows,
 with no Pages asset changes and the three resource failures still explicitly open.
+
+L1 pointer alias reconciliation: complete published `578437af` merged as
+`5486bd6d595aa643521e39763eb12d8b85da48e0`; L2's actual lexical module-expression
+provider changed, so the dependency-aware target rebuilt only semantics and
+relinked. Build38.01s wall/27.01s CPU/1069516KiB peak. New compiler SHA256
+`16fa4f76285392663a201c58b26109ec54980f8766b159ba5863c3bd78fea23f`.
+Merged focused registered/canonical/Graph/Fast/import/combined/negative consumers
+pass, retaining all four canonical hashes and exact original rejection locations.
+The source manifest is unchanged across this run, SHA256
+`eaa53a1992f6809f10c93ea5edfcc8a3408e9882af91c04c552b4cd1cdb15b59`.
+Earlier baseline costs and broader checks remain scoped to their frozen input;
+all merge metrics/hashes are appended in `pointer_alias_receipt.json`. No L1
+production repair or browser/release adoption is claimed.
