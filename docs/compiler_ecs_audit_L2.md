@@ -949,3 +949,20 @@ ROOT assigned the affinity-aware Linux provider to D2. The serial calibration
 was not a lower bound for worker duration; controlled calibration diagnosis
 remains open without weakening overlap. Late inspection will reuse the current
 completion_semantic_failed owner after the frozen scratch instrument milestone.
+
+Current supported native instrumentation is now complete for frozen
+2e3d82c1a0825d1e46b8233a07818c183b3007e0: full ROOT565, L1return9e8 and L2scratch9ced.
+ADDRESS69404 and THREAD66144 each pass a coherent97-step rebuild and11 runtime
+gates, with identical source manifests, exact CLI outputs, seven actual IR
+symbol/hash checks, and empty runtime stderr. This includes typed pool/scratch/
+publication cases, return-failure regression, construction, three real clone
+overlap/cancellation runs per mode and actual four-unit overlap. Complete raw
+receipt1c8e80ca and immutable binaries/IR/resources are identified in the journal.
+
+The2e3d results supersede the earlier pending-instrument statement only for this
+union. They do not accept later map/node changes, D1's restricted-host overlap
+failure, source-language UBSan, browser instrumentation or integrated release.
+No universal race-freedom claim follows. The measured9ced serial generic cost
+remains explicit. Next owned work is the assigned language_document_inspect
+extraction and actual late producer fixture; its before/after profile reuses
+unchanged editor_units_trial instead of timing the expanded regression suite.

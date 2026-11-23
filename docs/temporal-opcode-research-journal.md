@@ -67681,6 +67681,102 @@ queued quiet32 profiles get the next host slot. Full ROOT351 production adoption
 cache performance follow-up, remaining map/function/Fast ownership and integrated
 public-bootstrap/browser/generation/publication acceptance remain open.
 
+### L2 current scratch/return ownership union: supported instruments (2026-11-23)
+
+The next unstarted boundary joined complete ROOT565cd436 (bundle8d838127) and
+L1's direct-return correction9e8e2665 (bundlebeeb5dc7), preserving full histories.
+Final frozen source is2e3d82c1a0825d1e46b8233a07818c183b3007e0, including L2's
+9ced scratch migration and c1dc fixed-path evidence. Reviewed the changed
+IMState function table, common failed-return guard, capture admission and
+borrowed-grant validation. Both merges, subsequent pull, diff check and clean
+status passed. Fetch's known pack-index warnings were followed by successful
+connectivity fsck; no work or history was discarded. No owner draft was adopted.
+
+ADDRESS69404 and THREAD66144 each completed one coherent97-step rebuild and
+ELEVEN runtime gates, all status0. Source manifests are byte-identical between
+modes and pass at completion. Gates: execution core and functions; four-unit
+frontend work; three predetermined query-smoke stress runs; type construction;
+and exact constructor/generic CLI outputs at requested jobs1/4. Every runtime
+stderr is empty. Query coverage includes both widths' typed resource receipts,
+scratch admission, Busy publication, real cloned results and cancellation.
+The previously exposed direct-return failure is covered by the joined fixture.
+These are current-source results, not relabeled02a8 or6aa instrumentation.
+
+Environment: Linux6.18.33.2 WSL2 x86_64, LLVM/Clang19, Release, compiler jobs1,
+build jobs2, runtime budget4, separate owned address/thread caches. The private
+bootstrap override was unset; the canonical resolver selected the checked-in
+bootstrap/linux-x64/towerc, SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:exitcode=66 and
+TSAN_OPTIONS=halt_on_error=1:exitcode=66. Checked actual instrument symbols and
+hashes in seven emitted units: LR runner, semantics, entities, interpreter,
+evaluation, execution runner and frontend profile. The instrumenter executable
+and object manifest are hashed too; an instrumented launcher alone is not the
+evidence. External CLI input hashes match86934 before runtime and after drain;
+the thread recipe also checks them in its final trap.
+
+Validation costs below are wall seconds / summed CPU seconds / peak RSS KiB;
+instrumented runs are not production performance comparisons:
+
+| Gate | Address | Thread |
+| --- | --- | --- |
+| coherent build | 211.00 / 362.50 / 749628 | 159.14 / 263.62 / 749544 |
+| execution core | 73.48 / 78.34 / 907120 | 149.67 / 176.35 / 711588 |
+| functions | 113.49 / 135.70 / 963888 | 292.15 / 352.55 / 750276 |
+| four frontend units | 20.26 / 77.44 / 1246780 | 47.46 / 183.57 / 1908392 |
+| type construction | 10.84 / 14.15 / 763488 | 30.42 / 38.26 / 560740 |
+| serial constructor | 13.77 / 13.17 / 755348 | 34.47 / 34.42 / 551916 |
+| four-lane constructor | 10.80 / 14.06 / 793932 | 28.29 / 36.72 / 567112 |
+| serial generic | 13.42 / 13.64 / 754216 | 35.19 / 35.20 / 600276 |
+| four-lane generic | 11.58 / 14.30 / 795960 | 29.08 / 37.91 / 617152 |
+
+Three query runs take .86-.88s address and1.90-1.97s thread, with peak RSS
+310704-312048KiB and145572-146752KiB respectively. Both frontend observations
+report actual outer_peak4, identical canonical hash17697577322696030917,
+retained20192809 bytes at observation, selected peak268748094 bytes and ledger
+storage20971520 bytes. Those observations occur before final teardown and are
+not leaked-byte counts. The largest instrumented RSS is about1.82GiB, within
+the15.7GiB WSL allocation; no runtime resource failure or sanitizer diagnostic
+occurred. Native fixed-path9ced costs, including the serial generic regression,
+remain separately recorded rather than being replaced by these slower checks.
+
+All six query invocations retain the strict distinct-thread clone overlap
+oracle. They select width256/depth8 under instrumentation. For example the
+last thread Cancel4 run records four2048-node kernels of5.732-5.741ms with
+overlap1 and selected frame peak1664 bytes. This validates these observed
+executions; it neither resolves D1's preserved restricted-cpuset ff3 failure
+nor proves race freedom for every execution. Linux affinity correction and
+calibration diagnosis remain separate assigned work. No artificial delay,
+skipped gate, repeated-until-pass check or sanitizer suppression was used.
+
+Address compiler008ed47fc52fbbfe0630b9aeec76d0de28e1abfc38bff6a9689dcfc5262904d4,
+LRdacaa1cc344065e351af39ce7d09df6bde74f9e78503262b14d917c9a44b6be8;
+thread compilerf41eed8496c9a2dac109f3a96e1d2b199eab7bffcd9608cd6aa5c41549d3e098,
+LR02d9f1bb970c50beda5a693104c18e4e6acae9460b5282c08fe4d9157114bfc4.
+After every child drained, verified and copied four executables, seven actual
+IR units, instrumenter, object manifest, cache configuration and resources per
+mode into /root/.cache/tower/l2_scratch_instruments_2e3d82c. Its complete manifest
+is generic_scratch_instrument_snapshot.sha256. The112-file portable raw receipt
+L2_scratch_union_2e3d_instrument_receipt.tgz has SHA256
+1c8e80ca3a8e4754763d4c98047831218539054c96336d6d891125de23f6aaae.
+Earlier52-file address-only receipt2c792793 remains preserved too.
+
+The first process-inventory shell pipeline failed PowerShell/WSL quote parsing;
+direct ps transport corrected that before the first launch. No compiler/test
+failure was hidden. L1 used a separate bounded test-only slot between modes;
+its map fixture failure and corrected prerequisite are not L2 passes and no
+map production change entered this frozen union. Primary host lock was released
+only after both runs and the verified snapshot drained.
+
+This closes the supported native scratch/return instrument milestone for2e3d.
+Source-language UBSan coverage and browser sanitization are not implemented by
+these address/thread modes and remain unsupported coverage, not passes. Clean
+canonical publication bootstrap, browser/generation matrices, future ownership
+unions and atomic publication/hosted verification remain open under ROOT's
+lease. The assigned existing-provider late-inspection extraction can now proceed
+with a separate baseline and unchanged editor workload comparison. Typed raw
+node/metadata producers are still prerequisites for their generic consumers.
+
 After current4bef native/address/thread jobs drain and evidence7dc1b7d is committed,
 apply the two-path fixed-extent candidate9eac93fa. The shared constructor input now
 derives the lookup mask; the existing storage fixture checks the actual constructed
@@ -74193,6 +74289,81 @@ missing-import failure. The owned primary lease is released. Same-real-path32
 constructor/generic comparisons and current supported instrumentation are queued;
 no performance, whole-union or publication acceptance follows from this gate.
 
+### L2 scratch fixed-path costs and preserved overlap failure (2026-11-23)
+
+Quiet86934 completed after native99552, with9cedd12 committed and the shared
+host exclusively reserved. All32 processes, exact outputs, package/resource/
+input hashes and final checks pass. The two immutable compiler packages were
+copied and byte-checked outside timing at ONE actual executable/resource path,
+/root/.cache/tower/l2_generic_scratch_profile_fixed. Each prior child had exited
+before replacement. Linux6.18.33.2 WSL2 x86_64, glibc2.39-0ubuntu8.12, default
+allocator environment, Release native compiler, --interpret --timings, requested
+jobs1/4. One discarded warmup and three alternating retained pairs per case:
+
+| Workload/jobs | Wall seconds before -> after | CPU seconds before -> after | Peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| constructor/1 | 1.53 -> 1.55 | 1.52 -> 1.52 | 179812 -> 179836 |
+| constructor/4 | 1.28 -> 1.30 | 1.59 -> 1.61 | 199280 -> 198448 |
+| generic/1 | 1.54 -> 1.58 | 1.52 -> 1.57 | 184592 -> 184496 |
+| generic/4 | 1.30 -> 1.32 | 1.62 -> 1.65 | 206028 -> 205988 |
+
+These are medians, not a zero-cost or speedup claim. The serial generic median
+increases2.6% wall/3.3% CPU; compile phase1391.139626->1427.950542ms. Wall ranges
+are1.41-1.56 before and1.49-1.59 after. Source review identifies the extra
+source-window revisit as possible work alongside the new budget admission;
+these timings do not isolate either cause. No favorable-only repeats or new
+optimization candidate were adopted. RSS shows no excessive growth in these
+observations; native scratch fixtures separately prove zero selected retained
+grants. Four requested lanes do not independently establish useful overlap;
+the separate99552 clone intervals do. Neither is a general scaling claim.
+
+The constructor input is3846 bytes, SHA256
+bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071,
+with output0. Generic input is4613 bytes, SHA256
+c7348160a58a5dfd987a8a96a705e6ddb92f3d7586d42448928f94fb5087e41f,
+with output28/36/504/504/73. Compiler identities are the beforedbaad653 and
+after379f7097 recorded above. The117-file complete profile receipt is
+L2_generic_scratch_86934_profile_receipt.tgz, SHA256
+3073a8d3104a67e19ba3830a019e51903ece41880dc209c0d00ab62ef6261061.
+This supplements, without overwriting, native receipt4e0f3a3b. Current supported
+instruments remain pending; the next unstarted boundary will join the settled
+L1 function-table/return correction rather than rebuild an obsolete IMState ABI.
+
+ROOT transferred diagnosis of D1's preserved ff3a0bb47f98ed1f3a42072744171e3d9810539d
+Cancel4 failure to L2. The actual receipt, not a repeated test, shows Docker
+cpuset0,2 (two physical cores), no quota, eight online logical CPUs. The runner
+SHA256 is1d01b2e141c76f07546d94fc9b6499a17b8299c40a646cf90e34b60e569b6a91.
+Frozen/current generic_clone_parallel source is identical, SHA256
+f06c32d201934386cf98b5019c330fddf7032521983a193d24ab73cfb8dec5af.
+work_linux.work_thread_capacity calls get_nprocs and admits4 despite the2-core
+affinity limit. This is a real admission mismatch, not proof it alone caused
+the failed overlap. Upstream glibc explains get_nprocs prefers system online
+CPU sources before affinity:
+https://sourceware.org/pipermail/glibc-cvs/2022q1/076629.html.
+The Linux sched_getaffinity contract covers the calling thread's permitted mask,
+cpuset restrictions and undersized-buffer EINVAL:
+https://man7.org/linux/man-pages/man2/sched_getaffinity.2.html.
+ROOT assigned D2 the Linux provider correction and restricted/unrestricted
+validation; L2 will not independently edit that shared host boundary.
+
+Serial calibration chose width256/depth8 at fastest2.069996ms against the2ms
+threshold, yet one Publish4 worker needed only0.693642ms. Thus serial caller
+timing is demonstrably not a worker-duration lower bound. Publish2/4 overlapped.
+Cancel4 copied all2048 nodes per job on four distinct threads, with prior
+correctness/cleanup assertions passing, but its intervals were sequential in
+order3/0/2/1:1.420365/2.004646/1.547747/1.375564ms. Gaps were9.710/12.730/20.340us,
+total6.391102ms, selected frame peak416B (one live frame). The strict overlap
+assertion correctly failed SIG6/process134: .76s wall/.14s CPU/55588KiB. This is
+neither semantic-corruption evidence nor a sanitizer race report. Raw logs,
+binary, fixture and topology remain in capture_overlap_ff3_receipt. No rerun,
+weakened oracle or artificial delay was used. Calibration/scheduling diagnosis
+remains open after the real host-capacity correction; merely reducing selected
+workers cannot establish that the original overlap concern is resolved.
+
+This entry and the audit update only preserve existing evidence; no runtime
+code changed, so new runtime performance tests for this documentation commit
+are inapplicable. Public-bootstrap, current union instruments and integrated
+atomic publication/hosted verification remain open under ROOT's lease.
 ### 2026-11-23T10:45:29.2622630Z ROOT: Integrate budgeted generic pump scratch
 
 Reviewed complete L2 9cedd12c, bundlea2f041b0. The stable function window replaces a redundant request-pointer vector; executor batches use the shared world-budgeted work_vector and preserve exact admission errors before dispatch. Empty and ready bounded cases retain no extra owners, cancel taken work and prevent replay after failure. Actual before134, corrected public leaf/coherent native/query pass and32 fixed-path output/hash checks are retained. Serial generic wall/CPU medians rise2.6%/3.3%; small positive costs remain explicit, RSS stays stable. No causal attribution or neutral-cost claim. Current ownership-union instrumentation remains pending with L1's later direct-return correction. Root source/diff review passes; no final publication acceptance, todo unchanged.
