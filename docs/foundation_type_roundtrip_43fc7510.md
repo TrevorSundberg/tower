@@ -152,3 +152,19 @@ format a fixture with `--target wasm32-unknown-unknown --emit foundation -o FILE
 then independently consume FILE with `--interpret`, `--interpret-fast`, or
 `--emit bytecode --raw-ir RAW.ll --optimized-ir OPT.ll -o PACKAGE`.
 `--no-optimize` selects the raw profile; repeat with wasm64 for the other width.
+
+## Publication reconciliation
+
+Receipt `db27b108` merged complete published `cc21bb4e` history as
+`2c96e4a08a68aa16250b9674a6b8fc815bb33a58`. A1's generic-inspection producer
+changed; its methods were preserved. One dependency build refreshed only the
+semantics object and compiler link (35.54s wall/25.45s CPU/1063440KiB peak RSS).
+Both fixtures at both widths then formatted to exactly the hashes above and
+passed independent graph/Fast execution again, all stdout `0\n`.
+The original 52-operation/native/package evidence retains its original source
+identity; this was a focused merged check, not a repeated full matrix.
+Merged compiler SHA256 is
+`f8e05b223083e737979e95c0c5728718e35e4a61dd68e72d9c94a38889de4268`;
+before/after source manifest
+`b9ea3fc29b2089451e0d61e2a6a7a27c0814963b8fce3c9395e69b2ba963c8fe`.
+Exact logs are `logs/foundation_type_merged` in the same external lane.
