@@ -90626,3 +90626,15 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+A1 reconciliation: implementation/receipt8de9ce72 preserves complete published
+48db0f27 through the normal full-history merge after ff-only pull refused
+divergence. Incoming changes are documentation and separate build-packaging/
+semantic-port Node selectors. The supplied reactors, selected test, its two
+host adapters, both fixtures and entire scaffolding/host trees remain identical
+to the measured freeze; frozen SHA checks pass. Reused the three passing cases
+without a repeat. Both large cases also return to the same held-reference live
+node counts after independent loads (24446 narrow,41227 control) before final
+reference destruction; the recorded final counts are shared-world owners, not
+an unsupported zero-handle/LLVM-store census. No compiler build or deployed
+runtime adoption is implied. All jobs drained before normal main publication.
