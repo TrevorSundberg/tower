@@ -89178,3 +89178,46 @@ changes retain independent owner evidence, not validation by these frozen
 binaries. Our diff against incoming main is receipt/journal only; no rejected
 index or new API is present. Reused unchanged frozen checks; no unnecessary
 merged compiler matrix. Owned jobs drained, todo unchanged; normal push follows.
+## 2026-11-23 B1 bounded LR closure scratch-capacity trial: rejected
+
+Frozen e7558fa836b46c61bc5c46398ba672117c6a3d05/tree
+ e4bf788e58edfe3a409627a0ff4f31b05d1ebd33, public768 ordinary bootstrap,
+KinmenB CPU0-11/24GiB, one native cache. Saved prior phase profile attributes
+592066 allocations to states and881413 to lookahead; actual lr_items_close
+callers repeatedly allocate private range/expanded-item/membership vectors.
+One candidate retains only their capacities per LRStates builder, rebuilds
+logical membership for every closure, keeps worker scratch private, and releases
+scratch before graph publication/on failure. Existing vector error/allocation
+contracts and compiler-buffer grants stay intact; no allocator/cap/global cache,
+range algorithm, original LIFO or B2 scheduling change. Candidate is REJECTED,
+not a shipped implementation or accounting migration.
+
+Matched n3 serial wall small .49->.49s, large .63->.63s; CPU .42->.42/.56->.56.
+Small RSS median185712->186536KiB (+824), large238096->237952. Single workers4
+controls .55->.55/.70->.69s, CPU .51->.50/.66->.66. All16 linked outputs15/999
+and16 fixture objects exact; two frozen parser_table unit objects also equal.
+Production observation1.16->1.15s is n1, not a speed claim. Cold/installed
+observer wall .41->.41/.49->.49s; allocations2144035->2108324 and2562308->2517503
+(-1.7%). Charged live1893528/peak58035248/metadata5242880 and retained buffers
+36677/48979 unchanged; zero grants/buffers after teardown. Cold table
+214.21->218.12ms, nested lookahead134.67->139.76ms; no useful latency gain.
+All original/noisy/regressing samples are retained, no second candidate.
+
+PASS: independent150 grammar/order/range oracle, analysis allocation denial/
+retry/cleanup, grammar/revision/cache equivalence, structural reuse/cancellation,
+parser, regex, diagnostics, native production serial/threaded LR and actual
+parser-nodes nm/symbol policy. Baseline dependency refresh once; candidate and
+restoration each one changed provider plus three links. Rejected patch/sources/
+binaries preserved before original sources restored with explicit fresh mtimes.
+All restored compiler/test binaries byte-match baseline; complete frozen source
+manifest passes, owned jobs drained, todo untouched. Before/restored compiler
+8488788470d819cd6d7780dfbce41b53294eab86e325a3a958c68f11f17c0369;
+candidate695c79d980ff9f0678910cc80b371b45769637dbb3196d5d1d9946be186e1a81.
+
+Exact receipt docs/lr_closure_scratch_e7558fa8.md; raw commands/frozen sources/
+measurements/checks/patch/restoration at build/ecs_b1/cache/closure_scratch_e755.
+Remaining measured producer is lookahead construction/propagation, including
+lr_propagation_solve_result/exact-range union; this capacity change removes too
+little work, and neither rejected frontier order nor bitmap was retried.
+No further tuning, broad matrices, generation, public pin or deployment claim.
+ROOT owns final integrated acceptance; earlier receipts retain exact boundaries.
