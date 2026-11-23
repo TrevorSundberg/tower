@@ -1,0 +1,53 @@
+import tower;
+import .library.entity_api;
+import .library.entity_types;
+import .library.work_budget_types;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn puts(text: u8*): i32;
+
+fn create_fault_check(ok: bool): void {
+    if !ok { trap("Entity creation allocation failure regression", 0); }
+}
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected entity creation fault finalizer", 0);
+}
+
+// Existing single-owner fault allocator only. Real allocator/transport stress
+// remains separate; this test makes no claim about concurrent fault injection.
+export fn main(argc: i32, argv: u8**): i32 {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    create_fault_check(store != null);
+    var root = entity_create(store);
+    create_fault_check(root != null);
+    var prior = store.next_id;
+    var live = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(0);
+    var missing = entity_create_result(store, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    create_fault_check(missing == null && error == WorkBudgetError.Memory
+        && tower_test_buffer_allocations() == calls + 1 && tower_test_buffer_count() == live
+        && store.next_id == prior && store.entity_count == 1 && store.views == 0);
+    tower_test_buffer_fail_after(0);
+    missing = entity_create_related_result(root, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    create_fault_check(missing == null && error == WorkBudgetError.Memory
+        && tower_test_buffer_allocations() == calls + 2 && tower_test_buffer_count() == live
+        && store.next_id == prior && root.references == 1 && root.child_count == 0);
+    var related = entity_create_related_result(root, &error);
+    create_fault_check(related != null && error == WorkBudgetError.None && related.id == prior
+        && related.store == store && related.parent == null && store.entity_count == 2
+        && tower_test_buffer_allocations() == calls + 3 && tower_test_buffer_count() == live + 1);
+    entity_release(related);
+    entity_release(root);
+    create_fault_check(store.entity_count == 0 && entity_store_dispose(store)
+        && tower_test_buffer_count() == baseline);
+    puts("0");
+    return 0;
+}

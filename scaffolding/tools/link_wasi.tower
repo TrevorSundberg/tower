@@ -15,6 +15,7 @@ import .library.vector;
 import .library.bytes;
 import .library.bytes_types;
 import .host.driver_files;
+import .host.memory;
 import .host.driver_mapped_file;
 import .host.driver_map_posix;
 import .host.work_linux;
