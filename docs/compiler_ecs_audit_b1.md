@@ -2040,3 +2040,56 @@ These are currentac65 scoped checks on the full d1ff producer union, not a relab
 B1 attachment milestone portable checks completed onac65. Independent parser build21.24s/30.61CPU/797332KiB, lr-analysis reference/tree/allocation oracle.22s/6072KiB PASS. Canonical public-pin/SDK34 WASI build33.76s/40.93CPU/867736KiB PASS, reactor SHA256c66a889ba08efdd670c7dd08d96f7cec689dd06fc3b128629ca90c6a97b39d2c. Actual IDE7687 passed27.5835455s; its entire log and timing trailer are UTF8 this time. Jobs39965/7687 drained0. The native/ASan/TSan/profile gates above and these portable checks complete this narrow attachment consumer correction, not the whole ECS/threading acceptance goal.
 
 All current source remainsac65 for artifact identity. This evidence-only documentation adds no runtime input or performance delta; measurements apply to the recorded code and binaries. No new ParserNodes import is introduced by calling entity_attach_result inside the Entities unit. D2 still owns the two previous forest imports. ROOTdba metadata bundleef383e94 was verified/fetched and its host_metadata/syntax_provenance changes reviewed read-only; its destination-discard/hold-before-unpin contract must be honored by future owned consumers, and no half producer signature was copied. The union is not adopted until this milestone's receipt jobs drain. Full frontend300s failure, earlier LR/pool/graph storage, remaining raw request/lexer/metadata allocations, final clean bootstrap/generation and atomic hosted publication remain open. No publication lease/push; originalsession/PID33768 and todo unchanged.
+
+B1 FIRST result follow-through on merged5b6140ae (implementation, checks in progress):
+`lr_analysis.tower` now validates borrowed array counts and rule bounds before
+allocation and has explicit create/compute results; range/vector helpers preserve
+Invalid overflow versus Memory. `lr_first_work.tower` owns each worker cause,
+finishes all joined tickets before selecting the first frontier result, propagates
+typed world/component/view/pool/admission/dispatch errors and preserves serial
+fallback. `lr_work.tower` uses the complete checked attachment producer for job
+nodes and distinguishes graph storage errors from logical Invalid. `lr_api.tower`
+and `parser_table.tower` consume these complete functions; no signature-only
+producer adoption. The old state/LALR fallback remains explicitly open.
+
+`tests/lr_work.tower` now derives its FIRST grammar counts from actual arrays and
+named shape constants, checks exact reached Invalid/unreached success, and adds
+retained-pool Busy followed by same-analysis retry on the unbudgeted fixture.
+The shared-budget exhausted-lane fixture keeps its serial fallback. Existing
+`lr_analysis_api.tower`/`lr_analysis_failures.tower` exercise malformed raw counts,
+overflow, exact Memory and retry through the serial fault allocator. No new harness
+or non-Tower logic. Native smallest ParserNodes and dependent link passed; actual
+LR/parser and independent parser-only oracle job76458 are still being inspected.
+Baseline and frozen hashes are in the journal. Physical FIRST vectors, state/LALR,
+pool/graph charging and fullfrontend timeout are not declared complete.
+
+B1 state/LALR and physical scheduling follow-through (same5b before-input batch):
+`lr_analysis.tower` now retains item failures and diagnoses references only when
+closure reaches them; lookahead creation/seed/edge/solve return per-call causes.
+`lr_states.tower`/`lr_state_work.tower` propagate reserve/intern/transition and
+worker causes, preserving serial order and private results. `lr_lalr.tower` carries
+explicit closure-cache counts and complete closure/link/solve/action errors;
+`lr_work.tower` joins before reading private causes and cleans cancelled logical
+tickets before releasing grants. `parser_table.tower` consumes the whole phase
+chain, removing its old Memory fallback. Unused private bool adapters were removed;
+public wrappers remain. `lr_api.tower` is the opaque unit boundary, not another IR.
+
+`parser_workers.tower` now charges retained slots to the world's stable ledger.
+`lr_first_work.tower`, `lr_state_work.tower`, `lr_work.tower` and
+`lr_runtime_work.tower` bind WorkGraph storage to that same borrowed ledger.
+`world.tower` was inspected read-only: late budget binding rejects existing pool
+slots, so no uncharged retained pool can be rebound. Explicit null-budget library
+boundaries remain. Host thread handles/stacks and raw analysis vectors are not
+claimed as charged; byte reservations and lane admission remain separate.
+
+Owned `lr_budget.tower` measures actual pool storage for a one-byte-short denial,
+checks unchanged execution lanes and retry, then derives retained-owner counts
+from live receipts and requires zero physical bytes after world disposal.
+`lr_work.tower` checks Capacity in FIRST/state/LALR work-graph setup, matching
+snapshot restoration and retry, while preserving the no-extra-lanes serial path.
+No allocation index/array size was guessed. Serial allocation and malformed-input
+oracle coverage is in `lr_analysis_failures.tower`; real overlap uses production
+allocation. State intermediate29710 and LALR95124 passed native LR/parser and
+independent 150-grammar/reference/allocation cases. New physical-storage native
+validation is still running; missing-import and null deferred fixture cleanup
+failures and their corrections are preserved in the journal and raw logs.

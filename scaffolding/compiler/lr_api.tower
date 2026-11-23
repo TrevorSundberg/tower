@@ -41,18 +41,26 @@ extern fn lr_grammar_detach(grammar: void*): void;
 extern fn lr_grammar_pending(grammar: void*): usize;
 
 extern fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize, names: usize): void*;
+extern fn lr_analysis_create_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
+    names: usize, error: WorkBudgetError*): void*;
 
 extern fn lr_analysis_destroy(analysis: void*): void;
 
 extern fn lr_analysis_order(analysis: void*, index: usize, order: usize): void;
 
 extern fn lr_analysis_compute(analysis: void*): bool;
+extern fn lr_analysis_compute_result(analysis: void*): WorkBudgetError;
+extern fn lr_analysis_compute_parallel_result(analysis: void*, anchor: void*): WorkBudgetError;
 
 extern fn lr_states_create(analysis: void*): void*;
+extern fn lr_states_create_result(analysis: void*, error: WorkBudgetError*): void*;
+extern fn lr_states_create_parallel_result(analysis: void*, anchor: void*, error: WorkBudgetError*): void*;
 
 extern fn lr_states_destroy(states: void*): void;
 
 extern fn lr_states_lalr(states: void*, constructs: bool): bool;
+extern fn lr_states_lalr_result(states: void*, constructs: bool): WorkBudgetError;
+extern fn lr_states_lalr_parallel_result(states: void*, constructs: bool, anchor: void*): WorkBudgetError;
 
 extern fn lr_states_count(states: void*): usize;
 

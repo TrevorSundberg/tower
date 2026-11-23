@@ -75530,3 +75530,59 @@ was launched. Completed dfcef history remains integrated. ROOT now owns its
 remaining ordinary entity ownership work and cancelled the unused profiling hold.
 Current metadata checkpoint is not final bootstrap/browser/generation/hosted
 release acceptance; source publication remains coordinated at the final boundary.
+
+### B1 FIRST analysis result chain (implementation in progress)
+
+At 5b6140ae, complete ROOT metadata history dba was merged after all attachment
+receipts drained. Both parent journals retain every nonblank line; the first
+PowerShell check used the platform default text encoding and falsely reported
+423 missing lines. Explicit UTF8 restored the correct zero-missing result without
+changing journal content. The known dba bare-store metadata compatibility issue is
+ROOT-owned and still pending here; this baseline does not claim its regression.
+
+Native baseline88389 drained0: entities5.26s/324096KiB, affected closure10.64s/
+455500KiB; fullunits22.97s/788076KiB, LR1.83s/116564, query.23s/88020,
+grammar-resource1.28s/53252, parser.04s/54256, editor10.86s/914888,
+fullstorage.24s/98944, runtimefaults.02s/50316 and resourcephases.03s/51344.
+These are coherence checks, not isolated speed comparisons. Frozen before inputs
+in /cache/parser_memory_profile/analysis_results_5b6140ae: units a59cbdd77e6c9288042a8c63817a1001ac69796a08723271caf90eeb6c9735f6,
+editor554ba4978fd6e401c843efe259fa0c27d30e4a27cf223607e80e990beee8113a,
+resources.tar9aa99e95b617d1cdcc9252e407d92ac63424596e8d1057f4b7e93e65fda0389a.
+ROOT received the next <=180s quiet56 grant after this drain and began11:58:52;
+B1 performs Windows source work only until actual release.
+
+Current FIRST implementation adds per-call create/compute/parallel result APIs,
+keeping old bool/pointer wrappers. Constructor validates supplied pointer/count,
+byte overflow and production bounds before allocation. References after an
+unreached terminal remain unexamined by FIRST. Raw vector reserve/push/range
+helpers distinguish overflow Invalid from actual allocation Memory. No claim that
+these raw vectors are physically budgeted. The worker's cause is private, selected
+in frontier order after all tickets finish; typed related-node/component/view,
+admission and dispatch results propagate. WorkGraph logical failure is Invalid,
+never guessed Memory when no graph storage result exists. A successful retry
+clears the analysis failed flag. lr_work_node_result now consumes the complete
+entity_attach_result producer rather than assuming every failed attach is Memory.
+
+parser_table consumes the new constructor/FIRST results. State/LALR still have
+the explicitly documented legacy fallback: pool/graph physical charging must wait
+until those paths have a complete result chain. No shared runtime layout or new
+syntax; LRFirstTask is private derived scratch. The existing parallel cyclic/
+nullable/unreachable-tail fixture now checks exact Invalid, retained-pool Busy and
+same-analysis retry. Its counts/bounds derive from actual arrays and named grammar
+shape constants. Existing serial allocation sweeps assert precise FIRST Memory,
+and malformed/count-overflow constructors have direct tests. All new edits are
+currently uncompiled/unprofiled; no passing prior gate is relabeled.
+
+B1 2026-11-23T12:07:55.7802180Z: FIRST intermediate76458 ACTUALdrain0: leaf19.28s/756660KiB, dependentbuild12.48s/452948, LR1.92s/116152, parser.05s/54028, independentparserbuild23.81s/756812 and oracle.26s/6096 PASS. No fullmatrix/profile yet. Continued related statechain in same batch: LRItems privatefirstcause, reachedreference/bounds validation, serial/parallel state_result APIs, sourceordered privateworker errors and typedentity/pool/view/dispatch/graph outcomes. Tests add exactstateMemory/Invalid/Busy/retry; no generic harness or publicASTlayout. Starts frozen state_result_native.sh smallestleaf/LR/parser/oracle CPU0-11/24GiB, no otherB1job/quietgrant. ROOTmetadatafix pending completehistory; before5b keptimmutable. LALR/poolphysical remainsopen.
+
+B1 2026-11-23T12:10:09.2808739Z: State intermediate29710 ACTUALdrain0, nativeLR/parser and independentoracle includingnew exactMemory/Busy/retry/reachedInvalid allPASS. No fullmatrix/profile yet; proceeds related LALR result chain in same frozen-before5b batch. NewROOT4b4 child/metadata completehistory received; read-onlyreview atnextboundary, no halfsignaturecopy or midbuildmerge. Quietgrantclosed. LRItems field is private derived scratch, not an authoritativeIR or publicABI; currentnative/parser caches coherent. LALR/poolphysical and finalallgoalremainopen.
+
+B1 2026-11-23T12:16:51.3619497Z: LALR typed chain nowimplemented (unvalidated): closure/link/solve/action workers each own WorkBudgetError, alljoined before firstordered cause; serial lookahead create/seed/edge/solve results validateactualcounts; countedcache helpers, exacttypedentity/admission/view/dispatch/graph propagation. parser_table no longer falls backtoMemory forlogicalfailures. Existingpublicboolwrappers retained, unusedprivatewrappersremoved. Tests coverexactMemorysweep/Invalidendpoints/LALRcache retry/parallelpoolBusy; LRFirst/State/Link/Closure/Propagation/Action taskdescriptors privatechanged, no publicAST/typecontextABI. Starting frozen lalr_result_native smallestleaf/nativeLR/parser/independentoracle CPU0-11/24GiB. No quietgrant or newprofile; wholecombined performance/sanitizers pending. ROOT4b4 completebundle queuedread-onlyreview, notadoptedmidcomparison.
+
+B1 REQUEST_ROUTE ROOT/D1/D2 2026-11-23T12:22:33.4763198Z: completeFIRST/state/LALR per-call chain intermediate95124 ACTUALdrain0, nativeLR/parser and independent150grammar+allocation/referenceoracle PASS. Now adds physical retained ParserWorkers slots and four phase WorkGraphs via existing WorkBuffer/work_init_budget on worldbudget; laneadmission remainsseparate. Pool/storagegraphs can nowproduce actualCapacity and everyphase/parser_table preservesit. ExistingLRbudget fixture measuresactualpoolbytes for minus-one denial, testsFIRST/state/LALR graph denial/retry and exactledger restoration, thenexpectsretainedpoolreceipt untilworlddisposal andzeroafter. No guessedbytes/counts; rawanalysis vectors/request/lexer remainunbudgeted. Changed production: lr_analysis/first_work/state_work/states/lalr/work/runtime_work/api,parser_table/workers; ownedtests only, no generic harness. NewactualParserNodesimport stillonly entity_attach_result pluspreviousforest2. ROOT4b4 hash188337 verified/fetched and completeproductionreviewedread-only, notmergedmid5b before/after. Newcode frozen for pool_graph_native.sh nativechecks now; fullcombinedprofile/instrumentation/publicWASI pending. No quietgrant/newcontext/publicationlease.
+
+B1 2026-11-23T12:23:32.9724877Z: pool_graph native14579 ACTUALdrain1, nochild remains. Smallestleaf failed11.60s/577812KiB at tests/lr_work:42 Unknown function work_budget_snapshot; no runtimecheckstarted. Explicitwork_budget import added to ownedfixture, plus worker_policy directimport for lr_budget's new capacitycall. Originalfailure preserved pool_graph_leaf_missing_import.log. No weakenedassertion/extraAPI/syntaxchange. Restartssamefrozencombinednative checks afterfix, noquietgrant. LALR95124 prior typedchainchecks remain their earlierinputs.
+
+B1 2026-11-23T12:25:09.1182572Z: pool_graph retry30455 ACTUALdrain1. Smallestleaf andnativebuild0, first LR runtime crashedSIG11 at1.25s; GNUtime trailingstatus isnotpass. Remainingparser/query/units/editor/storage neverstarted. Rawpool_graph_lr.log preserved, inputsfrozen forbacktrace, no heavyjob remains. PreviousLALR95124 passedbeforephysicalpool/graph/fixturechanges. Investigatingnewdenial/teardown boundary, not weakeningchecks or restartingmatrix.
+
+B1 2026-11-23T12:25:35.4342209Z: unchangedfailedbinary gdb reproducedSIGSEGV in entity_release, caller main, allworkerthreads exited. Sourcecause is newfixture's explicitroot/world teardown followedby unconditional deferred entity_release(root=null); entity_release requiresnonnull. Added guard onlyin lr_budget fixture deferredcleanup; productionpool/graphlogic unchanged. Backtrace pool_graph_lr_backtrace.log and originalSIG11 pool_graph_lr_null_cleanup.log retained. This isnot a runtimepass; rerun affectedfixture thenpendingnativechecks afteractualgdbdrain.
