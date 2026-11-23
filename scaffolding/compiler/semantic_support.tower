@@ -14,9 +14,77 @@ import .library.float_text;
 import .library.work_arena_api;
 import .library.work_arena_types;
 import .library.work_budget_types;
+import .library.work_buffer;
 
 extern fn compiler_buffer_allocate(bytes: usize): void*;
 extern fn compiler_buffer_free(pointer: void*): void;
+extern fn compiler_buffer_alignment(): usize;
+
+var SemanticScratchChunkBytes: usize = 4096;
+var SemanticTableInitialCapacity: usize = 16;
+
+// This path is also used under denied allocation. Recording the first typed
+// cause and source position requires no diagnostic buffer or shared mutation.
+fn sem_scratch_error(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    if c.program.resource.error != WorkBudgetError.None { return; }
+    if subject == null { subject = c.current; }
+    var node = sem_get(subject);
+    var offset = node == null ? sem_offset(c, subject) : node.start;
+    sem_resource_record(c.program, error, offset);
+    c.program.error_offset = offset;
+}
+
+export fn sem_scratch_dispose(scratch: SemanticScratch*): void {
+    var list = scratch.first;
+    while list != null {
+        work_buffer_dispose(&list.storage);
+        list = list.next;
+    }
+    work_arena_dispose(&scratch.arena);
+    *scratch = default;
+}
+
+export fn sem_scratch_private(c: SemanticContext*, parent: SemanticContext*): void {
+    c.scratch = default;
+    c.scratch_parent = parent;
+    c.scan = default;
+    c.token_text = default;
+    c.scan_storage = default;
+    c.token_storage = default;
+}
+
+fn sem_scan_dispose(c: SemanticContext*): void {
+    work_buffer_dispose(&c.scan_storage);
+    work_buffer_dispose(&c.token_storage);
+    c.scan = default;
+    c.token_text = default;
+}
+
+// Joined owners only. Splicing existing receipts cannot need another grant.
+export fn sem_scratch_append(c: SemanticContext*, source: SemanticScratch*): void {
+    if source.arena.chunk_bytes == 0 { return; }
+    if c.scratch.arena.chunk_bytes == 0 {
+        c.scratch = *source;
+        *source = default;
+        return;
+    }
+    if !work_arena_append(&c.scratch.arena, &source.arena) {
+        sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
+        return;
+    }
+    if c.scratch.last == null { c.scratch.first = source.first; }
+    else { c.scratch.last.next = source.first; }
+    if source.last != null { c.scratch.last = source.last; }
+    *source = default;
+}
+
+fn sem_scratch_prepare(c: SemanticContext*): bool {
+    if c.program.resource.error != WorkBudgetError.None { return false; }
+    if c.scratch.arena.chunk_bytes != 0 { return true; }
+    if work_arena_init(&c.scratch.arena, compiler_world_work_budget(compiler_node_world(c.program.root)), SemanticScratchChunkBytes) { return true; }
+    sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
+    return false;
+}
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -71,6 +139,7 @@ fn semantic_numeric_binary(t: FoundationType*, operation: u32): bool {
 fn sem_float_literal(c: SemanticContext*, node: void*): bool {
     if !sem_literal(c, node) { return false; }
     var text = sem_token_text(c, node);
+    if text == null { return false; }
     var start: usize = text[0] == FloatDecimalMinus ? 1 : 0;
     if !float_decimal_digit(text[start]) { return false; }
     for (var i: usize = 0; text[i] != 0; i++) {
@@ -157,6 +226,7 @@ fn sem_length(s: u8*): usize {
 }
 
 export fn sem_equal(a: u8*, b: u8*): bool {
+    if a == null || b == null { return false; }
     for(var i: usize = 0; a[i] == b[i]; i++) {
         if a[i] == 0 {
             return true;
@@ -165,15 +235,21 @@ export fn sem_equal(a: u8*, b: u8*): bool {
     return false;
 }
 
-fn sem_allocate(c: SemanticContext*, count: usize): u8* {
-    var result = bits(u8*, compiler_buffer_allocate(count));
-    sem_require(result != null);
-    sem_track(c, result);
+export fn sem_allocate(c: SemanticContext*, count: usize): u8* {
+    if !sem_scratch_prepare(c) { return null; }
+    var result: u8* = null;
+    var error = work_arena_allocate_result(&c.scratch.arena, count, compiler_buffer_alignment(), &result);
+    if error != WorkBudgetError.None { sem_scratch_error(c, c.current, error); }
     return result;
 }
 
 fn sem_text(c: SemanticContext*, s: u8*, count: usize): u8* {
+    if count == ~convert(usize, 0) || (count != 0 && s == null) {
+        sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
+        return null;
+    }
     var result: u8* = sem_allocate(c, count + 1);
+    if result == null { return null; }
     if count != 0 {
         copy(result, s, count);
     }
@@ -184,7 +260,12 @@ fn sem_text(c: SemanticContext*, s: u8*, count: usize): u8* {
 fn sem_cat(c: SemanticContext*, a: u8*, b: u8*): u8* {
     var x: usize = sem_length(a);
     var y: usize = sem_length(b);
+    if y >= ~convert(usize, 0) - x {
+        sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
+        return null;
+    }
     var result: u8* = sem_allocate(c, x + y + 1);
+    if result == null { return null; }
     copy(result, a, x);
     copy(&result[x], b, y);
     var step6 = x + y;
@@ -216,6 +297,7 @@ fn sem_decimal(c: SemanticContext*, value: u64): u8* {
 
 fn sem_type_new(c: SemanticContext*, scalar: u32, pointers: u32, record: void*): FoundationType* {
     var step2 = sem_allocate(c, sizeof(FoundationType));
+    if step2 == null { return null; }
     var t: FoundationType* = bits(FoundationType*, step2);
     var step4 = sizeof(FoundationType);
     fill(t, 0, step4);
@@ -226,17 +308,25 @@ fn sem_type_new(c: SemanticContext*, scalar: u32, pointers: u32, record: void*):
     return t;
 }
 
+fn sem_type_value(c: SemanticContext*, scalar: u32, pointers: u32, record: void*): FoundationType {
+    return init(FoundationType) {scalar: scalar, pointers: pointers, record: record,
+        pointer_bytes: c.program.pointer_bytes, ..default};
+}
+
 fn sem_type_copy(c: SemanticContext*, t: FoundationType*): FoundationType* {
     var result: FoundationType* = sem_type_new(c, SI32, 0, null);
+    if result == null { return null; }
     *result = *t;
     return result;
 }
 
 fn sem_set_type(out: FoundationType*, t: FoundationType*): void {
+    if t == null { return; }
     *out = *t;
 }
 
 fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
+    if !sem_ok(c) || t == null { return null; }
     var name: u8* = "";
     if t.scalar == SFunction {
         var signature = sem_get(t.record);
@@ -289,31 +379,76 @@ export fn sem_name(n: FoundationNode*): u8* {
     return n.name.data;
 }
 
-fn sem_set_name(n: FoundationNode*, name: u8*): void {
+fn sem_set_name(c: SemanticContext*, n: FoundationNode*, name: u8*): bool {
+    if !sem_ok(c) || name == null { return false; }
     var count: usize = sem_length(name);
     var step2 = count + 1;
-    sem_require(vector_reserve(&n.name, step2));
+    if !vector_reserve(&n.name, step2) {
+        sem_scratch_error(c, c.current, WorkBudgetError.Memory); return false;
+    }
     var step4 = count + 1;
     copy(n.name.data, name, step4);
     n.name.length = count;
+    return true;
 }
 
+export fn sem_push_checked(c: SemanticContext*, v: vector(void*)*, n: void*): bool {
+    if !sem_ok(c) { return false; }
+    if v == null || v.length == ~convert(usize, 0) {
+        sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
+        return false;
+    }
+    var owner = c;
+    var list: SemanticScratchList* = null;
+    while owner != null {
+        list = owner.scratch.first;
+        while list != null && &list.value != v { list = list.next; }
+        if list != null { break; }
+        owner = owner.scratch_parent;
+    }
+    var storage = list == null ? null : &list.storage;
+    var budget = list == null ? null : owner.scratch.arena.budget;
+    if v == &c.scan {
+        storage = &c.scan_storage;
+        budget = compiler_world_work_budget(compiler_node_world(c.program.root));
+    }
+    if storage != null {
+        if v.length == v.capacity {
+            var error = work_buffer_grow_elements(storage, budget,
+                v.length, v.capacity, v.length + 1, sizeof(void*), alignof(void*));
+            if error != WorkBudgetError.None {
+                sem_scratch_error(c, c.current, error);
+                return false;
+            }
+            v.data = bits(void**, storage.data);
+            v.capacity = storage.capacity / sizeof(void*);
+        }
+        v.data[v.length++] = n;
+        return true;
+    }
+    if vector_push(v, n) { return true; }
+    sem_scratch_error(c, c.current, WorkBudgetError.Memory);
+    return false;
+}
+
+// Compatibility for non-semantic API clients. Scratch owners use the checked
+// context-taking operation above so a denial has a durable failure receipt.
 export fn sem_push(v: vector(void*)*, n: void*): void {
     sem_require(vector_push(v, n));
 }
 
-fn sem_list(c: SemanticContext*): vector(void*)* {
-    var step1 = sizeof(vector(void*));
-    var step2 = sem_allocate(c, step1);
-    var v: vector(void*)* = bits(vector(void*)*, step2);
-    var step4 = sizeof(vector(void*));
-    fill(v, 0, step4);
-    var step5 = bits(void*, v);
-    sem_require(vector_push(&c.lists, step5));
-    return v;
+export fn sem_list(c: SemanticContext*): vector(void*)* {
+    var list = bits(SemanticScratchList*, sem_allocate(c, sizeof(SemanticScratchList)));
+    if list == null { return null; }
+    *list = default;
+    if c.scratch.last == null { c.scratch.first = list; }
+    else { c.scratch.last.next = list; }
+    c.scratch.last = list;
+    return &list.value;
 }
 
 fn sem_has(v: vector(void*)*, n: void*): bool {
+    if v == null { return false; }
     foreach(var & v_item in v) {
         if *v_item == n {
             return true;
@@ -328,51 +463,73 @@ fn sem_scan_children(c: SemanticContext*, n: void*): void {
     var i = sem_child_count(n);
     while i != 0 {
         i--;
-        sem_require(stack_push(&c.scan, sem_child(n, i)));
+        if !sem_push_checked(c, &c.scan, sem_child(n, i)) { return; }
     }
 }
 
 fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
+    defer { c.scan.length = 0; }
     var result = sem_list(c);
+    if result == null { return null; }
     if n != null {
-        sem_require(stack_push(&c.scan, n));
+        if !sem_push_checked(c, &c.scan, n) { return null; }
     }
     var at: void* = null;
-    while stack_pop(&c.scan, &at) {
+    while sem_ok(c) && stack_pop(&c.scan, &at) {
         if sem_is(at, wanted) {
-            sem_push(result, at);
+            sem_push_checked(c, result, at);
         } else {
             sem_scan_children(c, at);
         }
     }
-    return result;
+    return sem_ok(c) ? result : null;
 }
 
 // Borrow until the next token query on this private context. Callers that retain
 // or decode text must use sem_tokens instead.
 fn sem_token_text(c: SemanticContext*, n: void*): u8* {
+    if !sem_ok(c) { return null; }
+    defer { c.scan.length = 0; }
     c.token_text.length = 0;
     if n != null {
-        sem_require(stack_push(&c.scan, n));
+        if !sem_push_checked(c, &c.scan, n) { return null; }
     }
     var at: void* = null;
-    while stack_pop(&c.scan, &at) {
+    while sem_ok(c) && stack_pop(&c.scan, &at) {
         var parsed = sem_match(at);
         var is_token = parsed != null;
         is_token &&= parsed.rule == sem_maximum();
         if is_token {
-            sem_require(bytes_append(&c.token_text, parsed.label.data, parsed.label.length));
+            if parsed.label.length >= ~convert(usize, 0) - c.token_text.length {
+                sem_scratch_error(c, n, WorkBudgetError.Invalid); return null;
+            }
+            if !sem_token_reserve(c, n, c.token_text.length + parsed.label.length + 1) { return null; }
+            copy(c.token_text.data + c.token_text.length, parsed.label.data, parsed.label.length);
+            c.token_text.length += parsed.label.length;
         } else {
             sem_scan_children(c, at);
         }
     }
-    sem_require(vector_reserve(&c.token_text, c.token_text.length + 1));
+    if !sem_ok(c) { return null; }
+    if !sem_token_reserve(c, n, c.token_text.length + 1) { return null; }
     c.token_text.data[c.token_text.length] = 0;
     return c.token_text.data;
 }
 
+fn sem_token_reserve(c: SemanticContext*, subject: void*, needed: usize): bool {
+    if needed <= c.token_text.capacity { return true; }
+    var error = work_buffer_grow_elements(&c.token_storage,
+        compiler_world_work_budget(compiler_node_world(c.program.root)), c.token_text.length,
+        c.token_text.capacity, needed, sizeof(u8), alignof(u8));
+    if error != WorkBudgetError.None { sem_scratch_error(c, subject, error); return false; }
+    c.token_text.data = c.token_storage.data;
+    c.token_text.capacity = c.token_storage.capacity;
+    return true;
+}
+
 fn sem_tokens(c: SemanticContext*, n: void*): u8* {
     var text = sem_token_text(c, n);
+    if text == null { return null; }
     // Identifier decoding mutates this owned copy, never the parsed token or
     // scratch storage subsequently reused by another query.
     return sem_text(c, text, c.token_text.length);
@@ -380,6 +537,7 @@ fn sem_tokens(c: SemanticContext*, n: void*): u8* {
 
 fn sem_identifier(c: SemanticContext*, n: void*): u8* {
     var text: u8* = sem_tokens(c, n);
+    if text == null { return null; }
     sem_decode_identifier(text);
     return text;
 }
@@ -419,6 +577,7 @@ fn sem_literal(c: SemanticContext*, n: void*): bool {
         return sem_literal(c, right);
     }
     var text = sem_token_text(c, n);
+    if text == null { return false; }
     var step3 = sem_equal(text, "true") || sem_equal(text, "false") || sem_equal(text, "null") || text[0] == 39 || text[0] == 34 || text[0] == 45 || text[0] >= 48 && text[0] <= 57;
     return step3;
 }
@@ -445,8 +604,9 @@ fn sem_hash(key: u8*): usize {
     return h;
 }
 
-fn sem_table(c: SemanticContext*): SemanticTable* {
+export fn sem_table(c: SemanticContext*): SemanticTable* {
     var step2 = sem_allocate(c, sizeof(SemanticTable));
+    if step2 == null { return null; }
     var t: SemanticTable* = bits(SemanticTable*, step2);
     var step4 = sizeof(SemanticTable);
     fill(t, 0, step4);
@@ -454,7 +614,7 @@ fn sem_table(c: SemanticContext*): SemanticTable* {
 }
 
 export fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
-    if t.capacity == 0 {
+    if t == null || t.capacity == 0 {
         return null;
     }
     var h: usize = bits(usize, entity);
@@ -506,64 +666,34 @@ fn sem_insert(t: SemanticTable*, entry: SemanticEntry*): void {
 }
 
 fn sem_entry(c: SemanticContext*, t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
-    var found: SemanticEntry* = sem_find(t, text, entity);
-    if found != null {
-        return found;
-    }
-    if(t.count + 1) *2 >= t.capacity {
-        var capacity: usize = t.capacity *2;
-        if capacity < 16 {
-            capacity = 16;
-        }
-        var old: SemanticEntry** = t.entries;
-        var count: usize = t.capacity;
-        var step8 = sizeof(SemanticEntry*);
-        var step10 = sem_allocate(c, capacity *step8);
-        var step11 = bits(SemanticEntry **, step10);
-        t.entries = step11;
-        var step12 = sizeof(SemanticEntry*);
-        var step13 = capacity *step12;
-        fill(t.entries, 0, step13);
-        t.capacity = capacity;
-        for(var i: usize = 0; i < count; i++) {
-            if old[i] != null {
-                sem_insert(t, old[i]);
-            }
-        }
-    }
-    var step18 = sem_allocate(c, sizeof(SemanticEntry));
-    var result: SemanticEntry* = bits(SemanticEntry*, step18);
-    var step20 = sizeof(SemanticEntry);
-    fill(result, 0, step20);
-    result.text = text;
-    result.entity = entity;
-    sem_insert(t, result);
-    t.count++;
+    if !sem_scratch_prepare(c) { return null; }
+    var result: SemanticEntry* = null;
+    var error = sem_entry_arena(&c.scratch.arena, t, text, entity, &result);
+    if error != WorkBudgetError.None { sem_scratch_error(c, entity == null ? c.current : entity, error); }
     return result;
 }
-
 // Fallible common-lifetime storage uses the same semantic index and identity
 // rules as ordinary scratch. Existing entries remain stable through growth;
 // a failed insertion never publishes a partial entry or replaces the output.
 export fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*,
     output: SemanticEntry**): WorkBudgetError {
+    if table == null || output == null { return WorkBudgetError.Invalid; }
     var found = sem_find(table, text, entity);
     if found != null { *output = found; return WorkBudgetError.None; }
     var maximum = ~convert(usize, 0);
     if table.count >= maximum / 2 { return WorkBudgetError.Invalid; }
+    var next = *table;
     if (table.count + 1) * 2 >= table.capacity {
         if table.capacity > maximum / 2 { return WorkBudgetError.Invalid; }
-        var capacity = table.capacity < 8 ? 16 : table.capacity * 2;
-        if capacity > maximum / sizeof(SemanticEntry*) { return WorkBudgetError.Invalid; }
+        next.capacity = table.capacity < SemanticTableInitialCapacity / 2 ? SemanticTableInitialCapacity : table.capacity * 2;
+        if next.capacity > maximum / sizeof(SemanticEntry*) { return WorkBudgetError.Invalid; }
         var memory: u8* = null;
-        var error = work_arena_allocate_result(arena, capacity * sizeof(SemanticEntry*), alignof(SemanticEntry*), &memory);
+        var error = work_arena_allocate_result(arena, next.capacity * sizeof(SemanticEntry*), alignof(SemanticEntry*), &memory);
         if error != WorkBudgetError.None { return error; }
-        var previous = *table;
-        table.entries = bits(SemanticEntry**, memory);
-        table.capacity = capacity;
-        fill(table.entries, 0, capacity * sizeof(SemanticEntry*));
-        for(var i: usize = 0; i < previous.capacity; i++) {
-            if previous.entries[i] != null { sem_insert(table, previous.entries[i]); }
+        next.entries = bits(SemanticEntry**, memory);
+        fill(next.entries, 0, next.capacity * sizeof(SemanticEntry*));
+        for(var i: usize = 0; i < table.capacity; i++) {
+            if table.entries[i] != null { sem_insert(&next, table.entries[i]); }
         }
     }
     var memory: u8* = null;
@@ -571,8 +701,9 @@ export fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, e
     if error != WorkBudgetError.None { return error; }
     var entry = bits(SemanticEntry*, memory);
     *entry = init(SemanticEntry) {text: text, entity: entity, ..default};
-    sem_insert(table, entry);
-    table.count++;
+    sem_insert(&next, entry);
+    next.count++;
+    *table = next;
     *output = entry;
     return WorkBudgetError.None;
 }
@@ -587,14 +718,14 @@ fn sem_lookup_table(t: SemanticTable*, text: u8*): void* {
 
 fn sem_put(c: SemanticContext*, t: SemanticTable*, text: u8*, value: void*): bool {
     var found: SemanticEntry* = sem_entry(c, t, text, null);
-    if found.value != null {
+    if found == null || found.value != null {
         return false;
     }
     found.value = value;
     return true;
 }
 
-fn sem_state(c: SemanticContext*, t: SemanticTable*, n: void*): SemanticEntry* {
+export fn sem_state(c: SemanticContext*, t: SemanticTable*, n: void*): SemanticEntry* {
     return sem_entry(c, t, null, n);
 }
 
@@ -660,7 +791,10 @@ export fn sem_restore_resource(c: SemanticContext*, error: WorkBudgetError, mess
 fn sem_restore_error(c: SemanticContext*, error: vector(u8)*, offset: usize): bool {
     if error.length == 0 { return false; }
     if sem_ok(c) {
-        sem_require(vector_reserve(&c.program.error, error.length + 1));
+        if !vector_reserve(&c.program.error, error.length + 1) {
+            sem_resource_record(c.program, WorkBudgetError.Memory, offset);
+            return true;
+        }
         copy(c.program.error.data, error.data, error.length + 1);
         c.program.error.length = error.length;
         c.program.error_offset = offset;
@@ -687,12 +821,13 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     var step3 = sem_offset(c, n);
     c.program.error_offset = step3;
     var seen: vector(void*)* = sem_list(c);
+    if seen == null { return; }
     var use: void* = sem_instantiation_use(c, n);
     loop {
-        if !(use != null && seen.length < 8 && !sem_has(seen, use)) {
+        if !(sem_ok(c) && use != null && seen.length < 8 && !sem_has(seen, use)) {
             break;
         }
-        sem_push(seen, use);
+        sem_push_checked(c, seen, use);
         var at: usize = sem_offset(c, use);
         var line: u64 = 1;
         var column: u64 = 1;
@@ -721,9 +856,13 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
         text = sem_cat(c, text, step26);
         use = sem_instantiation_use(c, use);
     }
+    if !sem_ok(c) { return; }
     var count: usize = sem_length(text);
     var step30 = count + 1;
-    sem_require(vector_reserve(&c.program.error, step30));
+    if !vector_reserve(&c.program.error, step30) {
+        sem_scratch_error(c, n, WorkBudgetError.Memory);
+        return;
+    }
     var step32 = count + 1;
     copy(c.program.error.data, text, step32);
     c.program.error.length = count;

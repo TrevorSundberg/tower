@@ -81,23 +81,28 @@ fn page_serial(): void {
     page_check(view != null && entity_component_add_result(root, type, &error) == null
         && error == WorkBudgetError.Busy && root.component_count == 0);
     entity_view_close(view);
+    var owner_bytes = budget.used_bytes;
     store.resource_error = WorkBudgetError.Stale;
     var block: WorkReservation = default;
     page_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - 1, &block));
     page_check(entity_component_add_result(root, type, &error) == null && error == WorkBudgetError.Capacity
         && root.component_count == 0 && type.instance_count == 0 && store.storage.first == null);
-    page_check(work_budget_release(&budget, &block) && budget.used_bytes == store_bytes);
+    page_check(work_budget_release(&budget, &block) && budget.used_bytes == owner_bytes);
     var first = entity_component_add_result(root, type, &error);
     page_check(first != null && error == WorkBudgetError.None && first.page != null
         && bits(usize, first.data) % 64 == 0 && entity_component_from_data(first.data) == first);
     *bits(u64*, first.data) = 12345;
     var page_bytes = compiler_buffer_allocation_size(first.page.allocation.capacity);
     var generation = first.page.allocation.reservation.generation;
-    page_check(budget.used_bytes == store_bytes + page_bytes && budget.live == 2);
+    // The complete owner census lives in entity_accounting. This fixture checks
+    // exact payload grants independently of the newly charged nodes/indexes.
+    page_check(first.page.allocation.reservation.bytes == page_bytes
+        && budget.used_bytes >= store_bytes + page_bytes
+        && work_budget_validate_result(&budget, &first.page.allocation.reservation) == WorkBudgetError.None);
     var second = entity_component_add_result(other, type, &error);
     page_check(second != null && second.page == first.page && error == WorkBudgetError.None
         && first.page.allocation.reservation.generation == generation
-        && budget.used_bytes == store_bytes + page_bytes && *bits(u64*, first.data) == 12345);
+        && budget.used_bytes >= store_bytes + page_bytes && *bits(u64*, first.data) == 12345);
     view = entity_view_open(root);
     page_check(view != null && entity_component_add_result(root, type, &error) == first
         && error == WorkBudgetError.None);
@@ -111,11 +116,12 @@ fn page_serial(): void {
         && bits(usize, large.data) % 4096 == 0 && entity_component_from_data(large.data) == large);
     fill(large.data, 73, PageLargeBytes);
     var large_bytes = compiler_buffer_allocation_size(bits(EntityComponentAllocation*, large.allocation).allocation.capacity);
-    page_check(budget.used_bytes == store_bytes + page_bytes + large_bytes && budget.live == 3);
-    page_check(entity_component_remove(root, type) && budget.used_bytes == store_bytes + page_bytes + large_bytes);
-    page_check(entity_component_remove(other, type) && budget.used_bytes == store_bytes + large_bytes);
+    page_check(bits(EntityComponentAllocation*, large.allocation).allocation.reservation.bytes == large_bytes
+        && budget.used_bytes >= store_bytes + page_bytes + large_bytes);
+    page_check(entity_component_remove(root, type) && type.instance_count == 1);
+    page_check(entity_component_remove(other, type) && store.storage.owned == null);
     page_check(large.data[PageLargeBytes - 1] == 73 && entity_component_remove(root, large_type)
-        && budget.used_bytes == store_bytes && budget.live == 1 && store.resource_error == WorkBudgetError.Stale);
+        && store.storage.owned == null && store.resource_error == WorkBudgetError.Stale);
     entity_release(root); entity_release(other); entity_release(type); entity_release(large_type);
     page_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store));
     page_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
@@ -148,8 +154,8 @@ export fn work_kernel_execute(payload: void*): void {
     if job.cancelled { return; }
     var wanted = job.first.page.capacity + 1;
     for(var i: usize = 1; i < wanted; i++) {
-        var node = entity_stage_create(job.stage, job.parent);
-        page_check(node != null);
+        var node = entity_stage_create_result(job.stage, job.parent, &job.error);
+        if node == null { return; }
         var component = page_job_component(job, node, job.type, i);
         if component == null { return; }
         job.last = component;
@@ -234,7 +240,12 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         var job = &jobs[i];
         page_check(job.error == (disposition == PageDisposition.Deny ? WorkBudgetError.Capacity : WorkBudgetError.None));
         var wanted = disposition == PageDisposition.Cancel ? 1 : job.first.page.capacity + 1;
-        if disposition == PageDisposition.Deny { wanted = job.first.page.capacity; }
+        if disposition == PageDisposition.Deny {
+            // Any newly physical node/index/queue/page owner can be the first
+            // denial. Already charged slots may still be reused without growth.
+            page_check(job.rows != 0 && job.rows < wanted);
+            wanted = job.rows;
+        }
         if job.rows != wanted || bits(PagePayload*, job.first.data).ordinal != 0 {
             print(lanes); print(convert(u32, disposition)); print(i);
             print(job.rows); print(wanted); print(bits(PagePayload*, job.first.data).ordinal);
@@ -249,7 +260,7 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         holds += job.holds;
         entity_stage_hold(job.stage);
     }
-    page_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == retained
+    page_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes >= retained
         && snapshot.used_lanes == 0 && snapshot.peak_bytes <= snapshot.bytes);
     entity_view_close(view);
     for(var i: usize = 0; i < lanes; i++) {
@@ -262,7 +273,8 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         job.stage = null;
     }
     page_check(work_budget_snapshot(&budget, &snapshot)
-        && snapshot.used_bytes == (disposition == PageDisposition.Publish ? retained : store_bytes)
+        && snapshot.used_bytes >= store_bytes && snapshot.peak_bytes <= snapshot.bytes
+        && (disposition == PageDisposition.Publish || store.storage.owned == null)
         && store.resource_error == WorkBudgetError.Stale);
     entity_release(root); entity_release(type); entity_release(large_type);
     page_check(state.finalized == holds && store.entity_count == 0 && store.component_count == 0

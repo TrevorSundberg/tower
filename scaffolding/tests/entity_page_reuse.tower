@@ -84,10 +84,15 @@ export fn main(argc: i32, argv: u8**): i32 {
         reuse_check(entity_component_get(nodes[i], kind) == components[i]);
         bits(ReuseValue*, components[i].data).value = nodes[i].id;
     }
-    var generation = budget.generation;
-    var live_bytes = budget.used_bytes;
     var probe = entity_create(store);
     reuse_check(probe != null);
+    // Admit independently owned indexes first; the following check isolates
+    // payload-slot reuse and must still acquire no new physical page/grant.
+    reuse_check(entity_reserve_components(store.budget, &probe.components, &probe.component_capacity, 0) == WorkBudgetError.None
+        && entity_reserve_components(store.budget, &kind.instances, &kind.instance_capacity, kind.instance_count) == WorkBudgetError.None
+        && entity_table_reserve(nodes[count - 1].table, nodes[count - 1].table.length + 1) == WorkBudgetError.None);
+    var generation = budget.generation;
+    var live_bytes = budget.used_bytes;
     var reused = reuse_add(probe, kind, target, null);
     reuse_check(reused.page == components[count - 1].page && budget.generation == generation
         && budget.used_bytes == live_bytes && last_b.page.pool == &second.storage);
@@ -99,7 +104,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     // The other stage still owns its own full and partial pages. Discard must
     // release those grants without touching published survivors or pool links.
     entity_stage_discard(second);
-    reuse_check(budget.used_bytes == live_bytes - private_bytes && state.finalized == count + 1
+    // Descriptor/index/vector owners now retire too, beyond these two payload pages.
+    reuse_check(budget.used_bytes <= live_bytes - private_bytes && state.finalized == count + 1
         && kind.instance_count == count + 2 && original.data == original_data
         && components[count - 1].page.pool == &store.storage);
     entity_release(probe);

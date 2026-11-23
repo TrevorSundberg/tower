@@ -1426,7 +1426,7 @@ publication remain prerequisites. Lowering/evaluation windows still join before
 cross-phase mutation, and diagnostics retain the full lowering priority.
 Integrated sanitizers/platform checks remain separate release gates.
 
-### Entity accounting census and pending finite-cap gate
+### Entity accounting census and finite-cap gate
 
 On the supported Linux x64 native configuration with `TOWER_WORK_TESTS=ON`:
 
@@ -1442,23 +1442,26 @@ allocator, one owner and no dispatch/fault counters. Each named profile record
 prints the twelve fields listed in its header, one value per line. Canonical
 component sums, detach/reuse, cancellable staged borrows, finalizers and complete
 world/ledger disposal are checked. `tower-measure-entity-accounting` runs that
-same profile. The small workload's store/pages have no replacement-buffer growth,
-so its compiler-buffer peak is captured by these phases. The separately labeled
-world-retained peak is sampled: transient raw replacement allocations, malloc
-metadata, libc output buffers and RSS are not included. Ledger metadata is
-reported separately and is outside the declared work-byte allowance.
+same profile. Physical ownership includes full and partial descriptor/payload
+pages, individually owned buffers and their headers, and stage work vectors.
+The node/child/index/table/query/stage columns describe payload categories already
+included in those physical allocations; do not add them twice. Every sampled
+physical total must equal the ledger's live bytes. Sampled retained peaks exclude
+transient replacement overlap; the ledger peak includes it. Allocator metadata,
+libc output buffers and RSS are outside this census. Ledger metadata is reported
+separately and is outside the declared work-byte allowance.
 
-The explicit cap target is **currently failing**, not a CTest expected-failure
-pass or a skip. It calibrates the actual charged empty-store footprint, gives a
-fresh store exactly that finite allowance, verifies a charged buffer is denied,
-then requires raw entity creation to return `Capacity` without changing identity
-or publishing a node. It always disposes the attempted owner before returning.
-Current baseline admits a 184-byte node after using all 2,232 ledger bytes and
-returns1. This is an independent descriptor-admission regression for A2's future
-producer closure; a passing profile is not finite-cap acceptance, and fixing
-this one denial does not establish child/index/query/stage accounting. The census
-must remain tied to the actual allocation layout as those owners migrate.
-See the journal's D2 entity accounting receipt for source hashes and byte totals.
+The strict cap target must exit zero; it is not an expected-failure pass or a
+skip. It calibrates the actual empty-store footprint, gives a fresh store exactly
+that allowance, then requires entity creation to return `Capacity` without
+changing identity or publishing a node. Additional finite-cap cases cover child,
+component/instance index, archetype, view/query, and stage admission/growth;
+replacement rollback, charged-slot reuse, cancellation, pinned retirement and
+final zero grants. These use explicit budget reservations with the normal
+allocator, not allocation-failure instrumentation. The separate concurrent
+component-budget fixture checks synchronized grants and private stage pools with
+real workers. The census must follow actual ownership representation. See the
+journal's historical D2 baseline and subsequent A2 accounting receipt.
 
 The native compiler regression `tower-generation-layout-frontier-1` (and `-4`)
 imports the actual frontend unit producer through
@@ -1498,8 +1501,12 @@ every second owner and a third on every sixteenth. These are dense/sparse
 **membership populations**, all backed by the same stable component pages.
 Each process measures initial population, one-survivor-per-primary-page removal,
 and refill; primary sums are 33,550,336 / 508,096 / 33,550,336. Refill must acquire
-zero new byte grants and preserve surviving payload addresses. Complete world
+zero new payload pages and preserve surviving payload addresses; reconstructed
+archetype indexes may acquire their own charged buffers. Complete world
 and ledger disposal is checked. Views close before every structural edit.
+The measurement allowance is 2MiB: its 2,048-owner mixed population now charges
+descriptor/index storage too, exceeding the former 1MiB payload-only allowance.
+The separate accounting cap target continues to require actual denial.
 
 Each labeled record emits its fields in order, one per line. First traversal is
 after creation and planning; it is not an OS/hardware cold-cache experiment.
@@ -1513,7 +1520,10 @@ The new mode has no packed snapshot. It enumerates unique live `component.page`
 pointers because full pages are absent from the free-slot pool list. Occupancy,
 payload bytes, physical page allocation requests, strided slot bytes, raw owner
 storage, query plan storage and live allocation-owner count are reported. Those
-counts are retained owners, not malloc call counts. Ledger metadata and census
+counts are retained owners, not malloc call counts. Descriptor pages (including
+full pages) and independent index buffers now contribute their actual physical
+bytes and headers. Raw owner/plan payload columns overlap that physical total;
+the total must equal charged live bytes. Ledger metadata and census
 scratch are separate; stack arrays, allocator-private overhead and transient raw
 resize peaks are outside this census. Page payloads have stable addresses and
 stride/back-reference overhead; archetype columns contain component pointers,
@@ -1554,8 +1564,9 @@ no backend/link output is timed here.
 The iteration fixture requires its existing serial instrumentation transport,
 binds a 256MiB ledger before the first entity, reports charged live/peak bytes,
 separate ledger metadata, allocation calls and retained buffers, then requires
-zero final buffers/grants. Binding this ledger does not impose a whole-world cap
-on raw entity/index/analysis allocations. Installed allocation counts include its
+zero final buffers/grants. Entity-owned descriptors and indexes are charged;
+independently owned analysis allocations are not covered automatically. This is
+not a whole-process cap. Installed allocation counts include ledger
 startup. These counters must not be used during real overlap; the separate native
 `lr` selector uses normal worker transport. Preserve exact old/new executables and
 resource hashes for alternating timing pairs; requested lanes or passing oracle

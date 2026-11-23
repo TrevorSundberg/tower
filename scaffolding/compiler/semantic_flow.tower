@@ -285,7 +285,9 @@ export fn sem_flows(c: SemanticContext*): void {
             message = "Flow dependency cycle";
             for(var i: usize = 0; i < cycle.length; i++) {
                 message = sem_cat(c, message, i == 0 ? ": " : " -> ");
+                if !sem_ok(c) { return; }
                 message = sem_cat(c, message, sem_decimal(c, convert(u64, sem_get(work_task(&c.queries, cycle.data[i]).subject).start)));
+                if !sem_ok(c) { return; }
             }
         }
         sem_fail(c, task.subject, message);
