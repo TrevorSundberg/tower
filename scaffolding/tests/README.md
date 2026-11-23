@@ -888,6 +888,39 @@ handoffs. Fixed four/eight worker cases are concurrency stress, not the host's
 recommended compilation budget. Failures/timeouts stay failures. Neither the
 historical invalid-memory probe nor the intentional-race probe is registered.
 
+Windows x64 can run the same budget and pool oracles through
+`work_gate_windows.tower` and `work_pool_windows.tower`. The shared budget test
+borrows its platform transport at link time; the Linux target supplies its usual
+host object. `work_thread_windows.tower` supplies actual `GetCurrentThreadId`
+values through the existing fixture identity ABI. It does not implement a lock.
+Use the public Linux bootstrap with the installed Windows SDK import libraries:
+
+```sh
+# OUT is an existing output directory; SDK contains SDK x64 kernel32.lib/ucrt.lib.
+for name in gate pool; do
+  bootstrap/linux-x64/towerc scaffolding/tests/work_${name}_windows.tower \
+    --jobs 4 --target x86_64-pc-windows-msvc --emit object \
+    --bedrock scaffolding/bedrock.tower --foundation scaffolding/foundation.tower \
+    --depfile "$OUT/$name.d" -o "$OUT/$name.obj"
+done
+clang --target=x86_64-pc-windows-msvc -O2 -c \
+  bootstrap/linux-x64/share/tower/runtime-windows-x64.ll -o "$OUT/runtime.obj"
+for name in gate pool; do
+  lld-link /machine:x64 /subsystem:console /entry:mainCRTStartup /nodefaultlib \
+    /export:work_windows_entry "/map:$OUT/$name.map" "/out:$OUT/$name.exe" \
+    "$OUT/$name.obj" "$OUT/runtime.obj" "$SDK/kernel32.lib" "$SDK/ucrt.lib"
+done
+```
+
+Run `gate.exe` on Windows with `TOWER_GATE_WORKERS=1`, then `4`; each must exit0
+and print `0`. Run `pool.exe` with no arguments: its original pool/order/partial
+and full failure-drain assertions must pass, with exit0 and the order-control
+message plus `0`. The gate fixture includes repeated owner closure, protected
+counter/receipt conservation, real overlap, counting permits and cancellation
+before gate release. An invalid mode must exit1 with its diagnostic. No Wine or
+object-only result is Windows runtime evidence; see the
+[actual Windows receipt](../../docs/windows_budget_gate_cabc2062.md).
+
 The retained-buffer checks reserve replacement storage while the old allocation
 is still live, preserve owners on denial, transfer receipts with buffers, and
 retain charges after joins/cancellation until disposal. The shared fixture uses

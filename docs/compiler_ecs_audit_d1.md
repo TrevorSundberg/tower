@@ -5412,3 +5412,126 @@ publish complete implementation/fixture/receipt history, then independently
 review that exact composed source. No producer/test edit or build/runtime/profile
 was attempted; documentation-only profiling is inapplicable. D2's slot and all
 prior failures remain untouched. This is an incomplete review, not a closed gate.
+
+## Published unsigned multiply-overflow review — 2026-11-23
+
+The preceding publication prerequisite is resolved. Freeze
+`a06ec4b1f9f44419882477bc1a55b6ed39e2200b`, tree
+`057500a4a7e8a687ecdb383825709f19c7e2b676`, backend
+`e6f2cf5da2d358ddeab719d4b08098f81aa590bc`; implementation
+`a5ffb99d5d9dbd341ff3574676687f456245b9ea` and fresh caller `3bc5f626` are published.
+Read the composed changes with the prior importer/width/SSA/stage contracts.
+This is independent **source review**, not a rerun of L2's native checks.
+
+**R1 — admitted i1 reconstruction fails Foundation checking (source-confirmed,
+not executed here).** `backend/import_instructions.tower:37` accepts i1, mapped
+by `bi_scalar` to SBool. At line51, `bi_multiply_overflow` constructs `OGt` on
+`b` and `limit`, both bool. `bi_binary` legalizes boolean arithmetic only for
+op<8; OGt is12. `semantic_support.tower:166,175` excludes bool from numeric
+operands, and `semantic_values.tower:1177` rejects the emitted comparison with
+`This operation requires integer operands`. The shared formatter emits that
+comparison unchanged. The arithmetic construction avoids division by zero, but
+the standalone Foundation recheck cannot accept this function. No current25
+program is claimed to have generated this i1 case; it is an admitted-input
+boundary defect, separate from the repaired observed i32 allocation guard.
+
+Small exact LLVM trigger for the existing **Tower-owned** import probe (retain
+this verified module without O2, which may simplify i1 before import):
+
+```llvm
+declare {i1, i1} @llvm.umul.with.overflow.i1(i1, i1)
+define i1 @flag(i1 %a, i1 %b) {
+entry:
+  %pair = call {i1, i1} @llvm.umul.with.overflow.i1(i1 %a, i1 %b)
+  %overflow = extractvalue {i1, i1} %pair, 1
+  ret i1 %overflow
+}
+define void @tower_main() {
+entry:
+  %value = call i1 @flag(i1 true, i1 true)
+  ret void
+}
+```
+
+L2 owns the producer and active fixtures. Proposed smallest Tower regression:
+construct this call through the existing LLVM C API fixture, import/format/recheck,
+then require the four bool input pairs to return overflow=false and product=a&b.
+No new harness, parallel implementation or unrun fixture was added. This is a
+source-derived expected failure phase/message, not an observed runtime offset.
+
+| Reviewed path under scaffolding / exact Git blob | Disposition |
+| --- | --- |
+| `backend/import_bindings.tower` `eee01fad5654152a55ee7cdbad85c4c521d62553` | Seven LLVM foreign declarations match pointer/u32 API shapes. IsA guards precede index access; one index is required before reading element0. Uses/indices remain borrowed from an unchanged LLVM module through the synchronous import. |
+| `backend/import_instructions.tower` `9d29dcbcbdf5c261f53743c268350f7931b5d6d8` | Direct intrinsic recognition, guarded unsigned division and per-extract assignment reviewed. R1 affects i1. No additional numerical defect found for unsigned carriers8/16/32/64 or other admitted widths2–64. No operand-producing call is replayed. |
+| `backend/import_module.tower` `7af1cfc513546c2c2a7036253c7ea431c8f3a2d3` | Excludes only the recognized aggregate call from scalar-local creation; every scalar extract retains its distinct destination. All blocks are predeclared before instruction emission. Existing staged publication/discard and source/output ownership are unchanged. |
+| `tests/backend_source.tower` `4e61066cd7c7aafba610bfa1df6a81d5d8935cf1` | Existing shared native/browser source suite calls the new u32 guard check. It asserts successful optimized import/recheck and actual intrinsic presence; it does not itself execute returned output. Session cleanup is deferred. |
+| `tests/backend_source_native.tower` `a0f3d4f9093a980bea73a661783dde66c6218256` | Explicit optimized mode preserves default unoptimized/deny/census behavior, validates width4/8 and workers1/4, and saves actual optimized IR. Existing checked output, source response and world/budget teardown remain; saving text is not execution. |
+| `tests/backend_unsigned_overflow.tower` `ea76fd44f9601104df57fc96954682ebdd73af21` | Twelve literal product/overflow cases for u32/u64: both zero orders, max*1, max*2, square power-of-two overflow, neighboring-factor exact max. Exported operations remain in optimized IR; original top-level constant calls may fold. |
+| `tests/backend_unsigned_overflow_calls.tower` `74e4f363f8127b394be145b2afbeac628c8f82dc` | Fresh ordinary caller repeats those twelve independent expected outcomes against the unchanged reconstructed module. Required lexical mount is documented; expected0 LF0 LF includes the imported module's folded print and the fresh checks. This closes the original folded-call evidence gap. |
+| `tests/driver_c_cases.tower` `a5199568130bec941f81bf4ccbc13c074a8dfd7f` | Native C-driver selection adds the original overflow fixture and preserves backend_void_returns_direct. This is registration, not execution or coverage of imported extractvalue paths. |
+
+**Numerics and order.** The helper uses LLVMGetIntTypeWidth, not pointer width or
+its wider carrier, for `2^w-1`; u64 wrapping makes the w64 computation all ones.
+`bi_mask` preserves the low w product bits. A nonzero divisor is selected and
+assigned before division; for a=0 the flag is false and product0, while b=0 also
+compares false. The formula is mathematically equivalent to the independent
+bound a<=floor(max/b) for b>0. Fixture verdicts use exact constants/factor identities:
+(2^(w/2)-1)*(2^(w/2)+1)=max, while the square is2^w and max*2 wraps to max-1.
+No overflow-prone wider u64 reference is assumed. Graph/Fast share scalar unsigned
+arithmetic and target-aware storage; that source connection does not constitute
+a newly executed Graph/Fast differential.
+
+SSA operands resolve to earlier locals/constants; helper temporaries are emitted
+once at the call's position. Each extraction has its own predeclared local, so
+multiple users of either index are assigned independently before control leaves
+the call. Moving pure scalar extraction assignments to the dominating call does
+not move operand effects. Existing phi-edge snapshots and labels retain loop/CFG
+order even when block listing order differs. LLVM use-list traversal mutates only
+Foundation entities, so next-use pointers remain valid. Nonextract users fail;
+some aggregate users fail even earlier in scalar predeclaration. No partial stage
+is published on either path. Index>1/depth!=1 are rejected before assignment;
+missing destinations become typed Invalid. Normal session import verifies LLVM
+before these operand APIs; this does not authorize calling the raw importer with
+malformed/unverified arity or type shapes. Existing first-error text/offset and
+resource causes remain retained by backend_fail/backend_resource_fail. Source
+recheck retains the prior canonical output on failure. The graph/stage/vector
+owners and single-session mutation contract remain unchanged.
+The helper does not update source_offset; a retained backend offset is not a new
+precise source mapping for an optimization-generated intrinsic.
+
+Supported scalar intrinsics are not permission for all LLVM aggregates: vectors,
+integers>64 and other overflow families still fail. Existing poison/undef-to-zero
+selection and freeze handling are unchanged; defined-input arithmetic is reviewed,
+not full poison equivalence or general arbitrary-LLVM import. LLVM contracts:
+[unsigned multiply overflow](https://releases.llvm.org/19.1.0/docs/LangRef.html#llvm-umul-with-overflow-intrinsics),
+[use iteration and checked index API](https://github.com/llvm/llvm-project/blob/llvmorg-19.1.0/llvm/lib/IR/Core.cpp).
+
+**Evidence adopted and finite follow-up.** L2's journal retains the original
+current25 entity_views failure, native before/after controls, actual optimized IR,
+and post-Entity-ABI/source-gate checks. Reconstructed u32/u64 module SHA256
+`b4e571ae3aa898c4b8be1b2779212b7e0812815033bb0e203c0db90642089251`; fresh caller
+SHA256 `a860f8e84a16f539d61a4f5cbe7073e2e98c3ea4191c7a604ad9375a4ad473ec` matches
+published bytes. Owner reports target32/64 ×workers1/4 fresh executions with exact
+0 LF0 LF and empty stderr; original folded calls are not counted as boundary
+execution. CLI mode is Graph unless --fast/package is requested; the published
+fresh-call receipt does not establish both engines. Source-service owner counters
+are separate from CLI execution, which did not expose those counters. Existing
+CTest source-worlds runs the inline compile/recheck assertion; README documents
+the fresh caller, but no automatic CTest/Node registration executes that mounting
+procedure. C-driver addition was not run by the owner. No external raw log was
+independently authenticated here.
+
+Required remaining edges for ROOT/L2 are finite: (1) repair/test R1 at i1;
+(2) retained i8/i16 intrinsic controls, explicit product index0 plus duplicate and
+cross-block extraction users; (3) direct nonextract rejection and verifier/index
+negative controls preserving the first diagnostic and prior output. Owner IR
+receipt explicitly mentions flag extracts and separate wrapped multiplication;
+it does not prove product-extract0 coverage. Use the existing Tower import fixture
+and fresh caller, with both requested Graph/Fast modes where acceptance needs it.
+These are gaps, not additional asserted bugs. Reactor/current25 T8 continuation,
+Wasm fit and final release remain ROOT/L2 acceptance work.
+
+Local eight-path blobs/SHA256 manifest: `build/d1_ecs/umul_review_a06ec4b1/`.
+Only audit/journal documentation changed. No build, runtime repeat, profile,
+sanitizer or release operation; documentation-only profiling is inapplicable.
+No blanket race-freedom claim, new census or change to another owner's code.
