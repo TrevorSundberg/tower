@@ -94027,3 +94027,16 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
+D2 routine push-race recovery: ce7bba6b lost the main race; full merge
+edf8d78dab422cb546d442833b349afb03cd780f retains published3211cb1e. Resolved
+TowerWorkTests overlap by preserving incoming module_header_capture_controls
+with its unchanged expected0 in the same exact-output boundary. L1's incoming
+source-binding producer required only four native refresh actions:56.17wall/
+54.70CPU/1075696KiB, exit0. Alias negatives pass again at32/64 workers1/4
+(8.72/8.66/197692); all8 positive CTest registrations, including the two new
+header controls, pass (7.24/7.16/177084). No unrelated matrix or negative-control
+rerun. Joined source manifestd6f1a6cbd985b29b4e39ae390854e0206d90707ac6ca43a1d0f3edf3f0088cc6 and changed-input hashes verified after checks.
+Compiler1a450186111373b79ee8af8c563a1ed38f6cac7bd037ab57bf32cd402d337d24;
+runner0a689450eac0a1fb9b76e7a8281bc6690010631c5a81a3c4f1cc2100b8e38a6c.
+Exact joined_* logs preserve this source boundary separately. Jobs drained,
+heavy lock released; normal publication retry, no force push or deployment.
