@@ -1111,6 +1111,31 @@ It checks syntax-session first-failure propagation and aliased stream replacemen
 revision/location fixture without the complete frontend suite. These are focused
 native checks; integrated sanitizer and hosted release acceptance are separate.
 
+The native work/backend configuration (`TOWER_NATIVE`, `TOWER_BACKEND_TESTS` and
+`TOWER_WORK_TESTS` enabled) also registers these existing focused selectors:
+
+| CTest name | Existing binary and selector | Timeout |
+| --- | --- | --- |
+| `tower-frontend-structure-reuse` | `tower-frontend-tests RESOURCE_ROOT structure-reuse` | 60 s |
+| `tower-native-unit-admission` | `tower-lr-work-tests RESOURCE_ROOT unit-admission` | 180 s |
+| `tower-native-backend-ir` | `tower-lr-work-tests RESOURCE_ROOT backend-ir` | 180 s |
+
+All three carry `native;focused` labels and use the configured source tree's
+`scaffolding` resource root. The 60-second bound follows focused producer checks;
+180 seconds matches existing native unit/backend integration checks. Existing
+default and `all` selectors are unchanged. CTest does not build these binaries:
+refresh the existing `tower-frontend-tests` and `tower-lr-work-tests` targets as
+part of the frozen integrated build before running:
+
+```sh
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure -j 1 \
+  -R '^tower-(frontend-structure-reuse|native-unit-admission|native-backend-ir)$'
+```
+
+Registration/configuration discovery is validated separately from execution.
+Current-source runtime results for these registrations remain pending ROOT's
+integrated milestone; older explicit-selector receipts keep their source identity.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
