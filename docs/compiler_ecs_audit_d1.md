@@ -1760,3 +1760,36 @@ These are source-only registrations at this point. Smallest unit/link/runtime,
 malformed selector cases, individual lifecycle receipts and measured common-path
 cost remain pending. Added test work must not be called a compiler regression or
 speedup based on differing suite sizes. No new Tower path is introduced.
+
+### All-eight checkpoint 3915aee8 reconciliation
+
+Verified root bundle08a0cecd and merged after own jobs drained. The sole README
+append conflict retains both D1 selector/registration documentation and B1 runtime
+profile documentation. New AGENTS size/count guidance was read before edits;
+counts derived from actual collections are preferred, literal fixture data stays.
+Six new direct paths make1,080 tracked /497 D1 direct; complete bodies reviewed.
+
+| New path / lines at3915aee8 | Substantive review and limits |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` /150 | A2 Linux x64 measurement compares per-owner lookup, pinned component query, archetype pointer columns and derived packed snapshot against exact sums. Snapshot construction separately timed; it is not authoritative storage. Keeps one stable live payload per page to expose retained fragmentation and checks final zero entities/components/pages. malloc_usable_size is a host allocator boundary; this does not establish production packed-payload implementation or multicore speedup. |
+| `scaffolding/tests/layout_frontier_profile.tower` /163 | A2 actual layout pump over32branches plus leaf/sink, unique ordered fields and chained/independent ready frontiers. Exact sizes/alignments/offsets/ticket completion checked; world, pool and shared lane ledger drain. Cold/warm startup separately scoped; reported pool peak is admission, not overlap. Current sizes8/1024/4096 all fall below newer8192-field parallel threshold: this checked-in entry cannot validate that profitable branch. Route owner coverage gap; no threshold or workload rewrite inferred. |
+| `scaffolding/tests/lr_state_benchmark.tower` /251 | B1 explicit Linux x64 timing/rusage over prepared grammars. Serial reference compares every LR item/transition, or every runtime action/goto/conflict, outside timed construction. Runtime mode binds finite synchronized memory budget, checks actual retained/header bytes and retirement, separates ledger/RSS, and preserves world entity/component counts. Requested workers/lanes alone prove no overlap; samples3warm+15 and repetition counts are explicit. |
+| `scaffolding/tests/parser_retention.tower` /114 | B1 attribution companion keeps strict benchmark separately.128resets at four input sizes, explicit own/default-host world mode, statement/declaration release order, owner/page observations after warmups and session baseline restoration. Owned mode must release every tracked allocation. Serial fault counters only; per-page movement is explained, not hidden as a stability pass. |
+| `scaffolding/tests/parser_retention_observer.tower` /94 | Quiescent derived page index validates page/type bounds, checked stride/header/capacity arithmetic, aggregate live payload and requested page bytes; temporary index dies before return. Distinguishes requested bytes from usable/RSS and explicitly lacks per-page independent live-count reconciliation. same_owners permits page-attributed buffer movement while holding entity/component/cache/live counts. |
+| `scaffolding/tests/work_budget_allocation.tower` /78 | A2 serial ledger failure fixture checks empty no-allocation grant, first/growing entry Memory rejection, unchanged caller output/storage/generation/counters, allocation-free slot reuse, stale copied receipt rejection and final baseline.16repeats; explicitly rejects production threaded transport. This is ledger metadata allocation coverage, not whole compiler or new constructor coverage. |
+
+| Updated direct path | Changed conclusions |
+| --- | --- |
+| `scaffolding/tests/lexer_table.tower` | Budget boundaries separately deny object/header/range storage, admit exact full physical bytes, check transitions and zero retirement, plus empty-range owner. Existing oracle/fuzz/failure sweep preserved. |
+| `scaffolding/tests/lr_budget.tower` | Measures actual retained serial runtime lower bound, reserves competing bytes to force threaded construction denial, requires joined ledger restoration and successful retry of same states. Lane-saturation fixture now permits parser bytes explicitly; no bounded-allheap claim. |
+| `scaffolding/tests/syntax_live_attributes.tower` | Complete Bedrock import replaces incomplete hand-copied declaration grammar, including precedence dependencies. Consumed declaration count changes3to1 to match actual import; attribute negative assertions remain. |
+| `scaffolding/tests/syntax_live_replacements.tower` | Seed-only numeric grammar explicitly names available AttributeInteger; malformed replacement list bound derives from array. Actual alternatives/outputs/error cases unchanged. |
+| `scaffolding/tests/syntax_live_support.tower` | Shared seed fixture likewise uses AttributeInteger instead of nonexistent ambient Number. No parser or grammar implementation added. |
+| `scaffolding/tests/syntax_reader.tower` | Only extended replacement-body fixture prepends Foundation import, consumes/releases that declaration, then applies existing reader/fault assertions. Seed-only grammar/token/skip cases remain seed-only. |
+| `scaffolding/tests/syntax_replacements.tower` | Same explicit seed numeric rule correction across existing replacement cases; exact malformed-output/ambiguous-destination diagnostics and successful counts preserved. |
+
+B1 shared nongeneric growth helper and exactly-sized LR runtime results are in
+this root checkpoint, alongside its runtime-table ownership migration; complete
+ABI rebuild is required. A2 constructor patchfe458 and L2 public-clone API remain
+separate pending work. All local execution claims still belong to prior frozen
+sources until the next public build and exact runtime checks finish.

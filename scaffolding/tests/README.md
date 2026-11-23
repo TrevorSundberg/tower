@@ -988,3 +988,11 @@ or select CTest `tower-module-cache-regressions`. This uses the existing
 `parser_modules_work` composition and `module_cache_checks.tower` entry with
 production transport. The separate cache profile's invalidation check does not
 replace these malformed-input, cycle, resolution and session regressions.
+
+The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
+optional final `runtime` argument. It measures runtime-table construction over
+already prepared LR states, binds a finite synchronized world budget, and checks
+every action/goto against a serial reference outside each interval. Reported
+peak/current bytes include actual owned buffer headers; ledger metadata and
+process peak RSS are separate columns. Each table must return its grants on
+destruction. Requested workers and reserved lanes do not prove physical overlap.

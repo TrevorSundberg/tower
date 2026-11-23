@@ -1,0 +1,94 @@
+import tower;
+import .compiler.syntax_session_types;
+import .library.entity_types;
+import .library.vector;
+
+extern fn compiler_world_store(world: void*): EntityStore*;
+extern fn tower_test_buffer_count(): usize;
+
+struct ParserRetentionSnapshot {
+    buffers: usize;
+    entities: usize;
+    components: usize;
+    cached: usize;
+    pages: usize;
+    used: usize;
+    live: usize;
+    capacity: usize;
+    requested_bytes: usize;
+    live_payload_bytes: usize;
+}
+
+struct ParserRetentionPage { page: EntityComponentPage*; type: Entity*; }
+
+// Quiescent, joined world only. These are allocator-requested bytes, not usable
+// allocation sizes or RSS. The private observer index dies before returning.
+fn parser_retention_observe(world: void*, session: SyntaxSession*, out: ParserRetentionSnapshot*): bool {
+    *out = default;
+    out.buffers = tower_test_buffer_count();
+    var store = compiler_world_store(world);
+    out.entities = store.entity_count;
+    out.components = store.component_count;
+    out.cached = session == null ? 0 : session.cache.index.entries.length;
+    var pages: vector(ParserRetentionPage) = default;
+    defer vector_dispose(&pages);
+    var buckets = sizeof(decltype(store.tables)) / sizeof(EntityTable*);
+    var pooled: usize = 0;
+    for(var bucket: usize = 0; bucket < buckets; bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            for(var row: usize = 0; row < table.length; row++) {
+                var node = table.rows[row];
+                for(var index: usize = 0; index < node.component_count; index++) {
+                    var component = node.components[index];
+                    var page = component.page;
+                    if page == null { continue; } // Large individual allocations.
+                    if page.type_id != component.type.id || page.capacity < 2 || page.live == 0 || page.live > page.used
+                        || page.used > page.capacity { return false; }
+                    pooled++;
+                    var found = false;
+                    foreach(var & existing in &pages) { if existing.page == page { found = true; break; } }
+                    if !found {
+                        var entry: ParserRetentionPage = { page: page, type: component.type };
+                        if !vector_push(&pages, entry) { return false; }
+                    }
+                }
+            }
+            table = table.next;
+        }
+    }
+    var pointer_size = sizeof(EntityComponent*);
+    foreach(var & entry in &pages) {
+        var page = entry.page;
+        var alignment = entry.type.data_alignment;
+        if alignment < pointer_size { alignment = pointer_size; }
+        var mask = alignment - 1;
+        var maximum = ~convert(usize, 0);
+        if entry.type.data_size > maximum - pointer_size - mask { return false; }
+        var stride = (entry.type.data_size + pointer_size + mask) & ~mask;
+        if stride != page.stride || stride > maximum - sizeof(EntityComponent) { return false; }
+        var slot = stride + sizeof(EntityComponent);
+        var overhead = sizeof(EntityComponentPage) + pointer_size + mask;
+        if page.capacity > (maximum - overhead) / slot { return false; }
+        var requested = overhead + page.capacity * slot;
+        var live_bytes = page.live * entry.type.data_size; // Bounded by slot capacity above.
+        if requested > maximum - out.requested_bytes || live_bytes > maximum - out.live_payload_bytes { return false; }
+        out.requested_bytes += requested;
+        out.live_payload_bytes += live_bytes;
+        out.used += page.used;
+        out.live += page.live;
+        out.capacity += page.capacity;
+    }
+    out.pages = pages.length;
+    // Allocator contract: every retained page has a live owner, so each type's
+    // page count is bounded by its pooled live components. Enumeration finds
+    // an owner for each observed page and reconciles the aggregate live count;
+    // it does not compare each page's live field with a per-page reference count.
+    return out.live == pooled && out.pages <= pooled && out.pages <= out.buffers;
+}
+
+fn parser_retention_same_owners(left: ParserRetentionSnapshot*, right: ParserRetentionSnapshot*): bool {
+    return left.entities == right.entities && left.components == right.components
+        && left.cached == right.cached && left.live == right.live
+        && left.buffers - left.pages == right.buffers - right.pages;
+}

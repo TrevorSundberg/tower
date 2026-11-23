@@ -1344,3 +1344,13 @@ checkpoint, recording conclusions in compiler_ecs_audit_d1.md. New
 scaffolding/backend/execution_functions.tower belongs to B2 and
 scaffolding/benchmarks/compiler_reference_inputs.tower to D2. Total1,074 Tower
 paths /491 D1 direct paths. Local merged runtime remains unrun.
+
+### Root all-eight checkpoint3915aee8
+
+Six additional D1 audit paths beneath scaffolding/tests: entity_locality,
+layout_frontier_profile, lr_state_benchmark, parser_retention,
+parser_retention_observer and work_budget_allocation (all.tower). A2 owns the
+locality/layout/ledger measurement implementations, B1 the LR/retention sources;
+D1 reviewed every complete body and the seven modified existing fixtures.
+Current total1,080 tracked /497 direct D1 paths; all have substantive review,
+without transferring owner implementation scope or claiming merged execution.
