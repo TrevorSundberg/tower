@@ -85213,3 +85213,92 @@ this review, and its c20 budget defect does not deny a subsequent fix. Final
 checks are documentation/path/history checks only; no compiler input was rebuilt.
 
 B2 publication closure: complete ef40e4dc history (including D2 LR interning) merged and pushed normally as b210b449. Required affected parser-node rebuild/relink2 actions passes20.274wall/15.125CPU/740636KiB; inference CTest workers1/4 passes2/2. D2 does not change the diagnosed scratch lookup; the incomplete latest-main self-hosting check remains pending L2's efficient ownership lookup, with exact earlier b21c13c7 sample identity retained. No repeat of the slow check or the frozen complete generation matrix. All child jobs drained and working tree clean before this documentation receipt. Complete frozen packages/provenance remain unchanged; no public pin or Pages deployment.
+### 2026-11-23 A2: final focused storage ASan/LSan/TSan milestone
+
+ROOT delegated the final storage closure separately from the integrated compiler,
+query/browser and publication gates. Initial requested pull was already current,
+clean main at published `42c1e1422e85f9304c422ae28a5050f27c9d7610`; no owned jobs
+survived. CodexPID11768, same supplied thread01a2046f-fec2-7c71-be46-cad28f9ac147.
+About344.75GB disk free initially,344.32GB after builds; no cleanup was justified.
+Read the instrumentation contract and historical personality/control limitations.
+
+Reused `native_address_joined` and `native_thread_joined` with the public bootstrap,
+LLVM/Clang19.1.1, Release, jobs2/compiler jobs1, CPU12–23/24GiB, one mode at a time.
+Image `tower_build:latest` ID
+`sha256:ba707de6a29fd47e22b186ce711f82e51146fd0d38f7c557dadaf77f7e087156`.
+Only the 14 existing storage executables listed in compiler_sanitizer_checks.md
+were selected through dependency-aware CMake; no compiler/browser/type matrix.
+ASan enables leak detection/halt-on-error; TSan uses halt-on-error and actual
+production allocation/worker transport. Its network-none container used the
+previously documented per-container seccomp accommodation, unchanged limits,
+without changing host settings or rerunning the denied personality startup.
+
+Failures and fixes are preserved under
+`A2/cache/logs/storage_ownership_42c1e142`. The image lacks `/usr/bin/time`;
+initial orchestration exited127 before building, and native argument quoting
+prevented the first fallback replacement. Both failed attempts are retained.
+A literal OS-boundary script then used the existing Tower `ecs_process_profile`
+(binary SHAb77d1f750cdc3072261f186f0c8b999abf20a834b075ed8c938a2cebb7994ccd)
+for wall/CPU/RSS and child status. `containers.json` retains raw container exits.
+
+The first ASan suite stopped on the component-layout fixture's obsolete
+payload-only ledger equality (exit1, no sanitizer memory diagnostic). It now
+checks exact payload grant bytes and live-to-Stale retirement while descriptor
+and index grants remain separately owned; the complete accounting census and
+strict cap are unchanged. Resumption exposed a real ASan SEGV in
+`stage_queue_cost`: a raw StageQueuePayload vector was used before initialization,
+with `0xbebebebebebebebe` in the failing trace. The fixture constructor now writes
+`default` before reserve; its existing65536x8 queued case passes, and a two-reference
+case now runs in the normal entry point. No automatic zeroing or production
+owner/allocator change was introduced. The failed executable and instrumented
+IR are retained (`stage_queued_failed_asan`, SHA4538ebb8cb4500dd42fc4dd0e975e15909f66740bdfd896b674260714cef1adc).
+The original `address_final_stage-queued.time` contains the complete diagnostic.
+Earlier queued benchmark receipts do not establish initialized lifetime; accepted
+compiler/ordinary serial/concurrent costs exclude that optional queued selector.
+Only affected fixture targets rebuilt after each correction, and unchanged
+passing checks were reused.
+
+Final evidence:26 zero-exit process receipts per mode,52 total, selected in
+`passing_cases.csv`; each concurrent stage/component-budget/buffer/arena/budget
+fixture ran three times. Existing barriers/distinct-thread oracles establish
+actual overlap, including leases/pins, joined handoff, cancellation and finalizers.
+Stage runs each check57,792 finalizers. Strict cap genuinely denies creation at
+2256B; accounting retains45567B physical=charged, omitted0 and final zero grants.
+Both modes pass page reuse, reentrant-finalizer, checked stage/reference, large
+aligned component, buffer/vector and separate arena-provider ownership checks.
+No final ASan/LSan or TSan finding remains in this selected suite.
+
+All16 actual linked Tower objects per mode have memory-access hooks (14 fixture
+objects plus guest runtime and separate arena provider). Actual link commands,
+input lists, import depfiles, IR/object/executable hashes and sanitizer runtime
+initializers are retained. Five concurrent binaries expose work_thread_entry.
+The configured sanitizer-objects.tsv is corroborated by actual linked artifacts,
+not treated as a run receipt. Source hashes verify unchanged across execution.
+Production remains42c1e142; the two fixture-only changes have exact hashes in the
+instrumentation document. Final source manifest SHA
+`bb38d0767dd83e09b340f7068e8bd4a9160209b7c5c0b1199ce88642408b02d3`;
+address artifact manifest
+`c94f3ffee8082b6aea19aef4fa1403fc6ea2ceca7d075ae769f7211f5cc46c6f`;
+thread artifact manifest
+`f9870bf169d79e28e4a464b2ebd9a71c7bb91be23c383991e0d76430053816e2`;
+case-receipt manifest
+`437529d3c427f8379313689ec7f7f30660e06438a8bd3720f8b27bbee516fa2d`.
+`identities.status` is0; `final_receipts.sha256` also pins the toolchain manifest.
+
+Instrumented costs (single recorded samples, not before/after performance claims):
+
+| Case | Address wall/CPU ms; peak KiB | Thread wall/CPU ms; peak KiB |
+| --- | --- | --- |
+| Concurrent stages, first repetition | 354.102458 /480.489;94716 | 279.064680 /291.898;26916 |
+| Corrected65536x8 queue | 34.110355 /20.966;17644 | 79.468854 /69.023;22300 |
+
+Initial50-action builds cost71.372s wall/68.865s CPU/268364KiB (address) and
+60.248s/53.569s/267876KiB (thread); small fixture rebuild receipts are separate.
+No production code changed, so the accepted normal +6% time/+10%RSS accounting
+comparison is unchanged; no new production profiling campaign is warranted.
+All owned jobs are drained. No deliberate invalid sensitivity probe was rerun;
+historical receipts and the current missing-provider control gap remain explicit.
+Source-language UBSan and Windows/macOS/browser sanitizer coverage are unsupported.
+ASan physical allocation checks are not per-slot language lifetime checks or a
+proof of universal race freedom. This closes the frozen storage milestone only;
+ROOT retains integrated compiler/query/browser instrumentation and release gates.
