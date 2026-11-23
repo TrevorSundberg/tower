@@ -89649,3 +89649,49 @@ external prefixcurrent_dependency_merged_7340d7ba retains commands/manifests/log
 No production defect found or broad rerun needed; normal push follows, ROOT
 retains final release. Todo unchanged and all owned work drained.
 B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
+
+### ROOT matching eac16533 portable/LLVM/cross artifact refresh (2026-11-23)
+
+Frozen source eac16533ad7169988c53af934ece62e083b39bad, including the published
+invocation/resource fixture fixes and96cd1eda module-expression preparation.
+Ordinary public768 bootstrap, no private override, existing LLVM19/WASI-SDK34
+caches, CPU8-15/build parallel4. Complete source-hash verification before/after
+portable and LLVM/cross packaging passed; both commands returned0, no warning
+or error diagnostics. Portable reused unchanged fixture compiler inputs:
+3.70wall/1.76CPU s,199212KiB peak. LLVM/cross refreshed22 dependency actions:
+87.37wall/160.29CPU s,1097816KiB peak. These are build costs, not end-to-end
+compiler speedup or a new complete-generation fixed point.
+
+SHA256:
+- tower.wasm df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99
+- tower-llvm.wasm87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472
+- tower-cross.wasm e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1
+- project.json420d6de1421f4c3c7ae2efe40ed235537860b61168c13f4dea72e8b7c1b875d9
+
+All30 artifacts copied to C:/Sandbox/build/codex_ecs_20261122/
+ROOT_browser_inputs_eac with per-file bytes/hashes in files.json; prior9d/f7/b0
+snapshots remain immutable. The portable/LLVM pair was copied to Deck
+/home/deck/tower_coord_ecs_20261122/root_release_eac16533 and independently
+SHA256-checked there. Active Deck tasks retain their older frozen inputs until
+a subsequent explicitly assigned adoption; copying files is not a passing test.
+Original ROOT logs/source manifests/status0 are in WSL
+/root/.cache/tower/root_release_eac16533; exec67121 drained. An optional snapshot
+size summary failed because PowerShell did not enumerate its object array;
+the30 copy/hash records and original build evidence are intact, not inferred
+from that failed summary command.
+
+Reconciliation through3ea43517 adds pointer-alias fixture/registration and owner
+receipts; production compiler/library/backend/host and packaged tool inputs
+remain unchanged. It does not relabel eac artifacts as a fresh full later-source
+matrix. Prior9d two edited browser generations, f7 native generations and old
+shared-browser receipts retain their original identities. Current shared-browser
+adoption is assigned B2; A1 package caller changes and L1 composition repair
+remain in progress. Final current runtime release and instrumented compiler
+ownership gate remain open.
+
+The fixture source commit eac16533 was atomically pushed with unchanged Pages
+6f142bef15f58380831ed344ab5eac5c4b3c2840. Fresh hosted manifest at20:02:20UTC
+matches SHA256 eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c
+and Git blob c0c17f4ac2b3ef7747e044c91022c72842dd35ed; old source013ae550 and
+build98ade8cc remain reachable from main. No new runtime deployed. This appended
+receipt changes documentation only, so further runtime profiles are inapplicable.
