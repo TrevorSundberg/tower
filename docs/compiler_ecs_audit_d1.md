@@ -1793,3 +1793,8 @@ this root checkpoint, alongside its runtime-table ownership migration; complete
 ABI rebuild is required. A2 constructor patchfe458 and L2 public-clone API remain
 separate pending work. All local execution claims still belong to prior frozen
 sources until the next public build and exact runtime checks finish.
+
+work_budget_allocation now shares the existing serial fault-target registration.
+Its source does not import host.memory, so that target alone links the existing
+host_memory object; buffer/arena fault fixtures keep their imported implementation.
+No extra allocator, transport or test runner body. Build/runtime still pending.

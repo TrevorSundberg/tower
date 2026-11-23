@@ -996,3 +996,8 @@ every action/goto against a serial reference outside each interval. Reported
 peak/current bytes include actual owned buffer headers; ledger metadata and
 process peak RSS are separate columns. Each table must return its grants on
 destruction. Requested workers and reserved lanes do not prove physical overlap.
+
+`tower-work-budget-allocation-tests` runs the existing ledger metadata failure
+fixture through the serial fault allocator. It checks rollback, output and receipt
+preservation, slot reuse and stale releases. The registration reuses the host
+memory object and instrumented runtime; it does not sanitize concurrent workers.

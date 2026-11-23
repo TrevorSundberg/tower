@@ -59191,3 +59191,9 @@ receipts, not D1 measurements of the newer union. D1 next freezes current union,
 compiles smallest changed units, builds through public canonical entry without
 override, validates the new selectors/clone/storage/module/query paths, then
 records equivalent before/after profiles and bounded lifecycle cases.
+
+The newly delivered work_budget_allocation fixture had no generic registration.
+Added it to the existing serial fault-target loop, linking the already-built
+host.memory object only for this fixture (buffer/arena import that code themselves).
+No new test body/runtime/allocator. This keeps allocation injection single-owner
+and avoids duplicate memory definitions. Smallest compile/link/runtime pending.
