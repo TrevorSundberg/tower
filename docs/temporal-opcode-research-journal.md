@@ -93001,3 +93001,56 @@ preserved; six restored candidate paths still match pre-experiment023955e1,
 new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
 fixture work retained/excluded from frozenf167 evidence. No browser rerun or
 rejected-fix adoption; normal source publication only. All B2 jobs drained.
+
+### B2 page-owned lifetime candidate prerequisite fixed (2026-11-23)
+
+Base mainba52a932 after required pull; own container idle, cache924GiB free,
+CPU12-23/quota12/24GiB. Restored exact80daea98 rejected candidate and preserved
+all08d209fa failures. No new ownership design, compiler rebuild or D2trace edits.
+Frozen f167 compiler8e7e3d63/work6411/resourceJSON67561156/Chromium159 executable
+24eb unchanged. Relevant before/after boundaries instrumented before one failing
+control repeat. All4initialports arrive5874.675-5877.770ms within epoch1795470275
+before ANY adapter import completes5883.005-5890.235; handler stillnull. No
+portattach/initialize/ready/guestentry occurs. Lost early bootstrap proven;
+45sdiagnosticguard failure retained, not a drain pass or native-race attribution.
+
+Small prerequisite repair: compiler-failure-worker statically imports its
+ordinary handler before browser messages; same wasi_thread_start injected trap.
+After trace shows4portattach/init/ready, real guestentries, actual injected
+errors/shared publication and coordinator error return. Temporary production
+instrumentation removed. Fixed adapterSHA5bda6fe5c03b1e371ad06d607d31e3b89371161d2e08357ed8abeaea328e0230.
+Production group/worker/callers EXACTLY match retained three strict candidate
+trials; helperSHA356a8ca9ace1aa6458cffab748be424ce5cee630c32ae9df99ab9c823bcc0bc5,
+worker97fb8ea39d4f74ba10f3fb2624a1eb6a560871f68736bb3898c453db72427774,
+transportd912cd1e3b44114d55f9e5e74a43d8e8a572f9030ef39332aa197c1a21ddcb2d.
+Therefore retain original3normal5/2/5close/zeroCDP/canonical/output/query/budget
+passes and4completed controls; no passing matrix repeated/relabelled.
+
+Final focused controls3/3PASS: real sharedtrap error+failedstate; partialstartup
+ack from actual child holding initialization port, heldCount1/readyCount0; and
+generation retirement after coordinator actually posts an oldreply that never
+reaches retiredcaller. Each observes5actualcloses/zeroCDPtargets under unchanged
+30sdeadline/capacity. Generation case exercises production default factory.
+Partialgate is OS-message readiness, no sleep/fakeguestwork. Pageowned native
+Workers communicate via directports; no extra pool/Tower scheduling changes.
+Actual app/language browser caller creation uses same group hook; separateLLVM
+compiler-unitpool unchanged. Originalfailedcandidate now has required gates.
+
+Costs(waitedchildCPU/RSS): before45.066398s/1.518551s/202916KiB FAIL; instrumented
+fixedtrap2.487863/1.453777/202108 PASS; final3controls2.938851/1.858478/205184 PASS.
+Existing Node trap test only1/1PASS0skips,0.274434/0.243517/100240; four created
+Nodeworkers/fourend-events, expectederror unchanged, no NodeT5alias matrixrerun.
+No retainedallocation/race/sanitizer claim; browserWasmcapacities keep prior
+matchedvalues. Sevenbrowserentrypoints bundle with installed nativeWindows
+esbuild after Linux attempt fails wrong-platform installedwin32package. Failure
+retained; no npm install. Windowsaffinity12-23 set before stdin startgate,
+GOMAXPROCS4; bundle validation only, not fullUI/runtimepackaging.
+
+All evidence: C:/Sandbox/build/codex_ecs_20261122/B2/page_worker_repair_ba52a932
+and matching/cache; before/aftertrace sources, failedlogs, finalpatch/providers,
+commands/reports/manifests, Nodeend-events and bundle logs. Receipt
+ docs/browser_page_worker_repair_ba52a932.md and README contract updated. Original
+08d209fa/ROOT failures and three normal receipts remain intact. Current-source
+successor/hosted/platform/fullrelease acceptance stays ROOT-owned; no runtime or
+Pages deployment. All B2jobs drained; coherent browsertransport/testfix ready
+for normal source publication.
