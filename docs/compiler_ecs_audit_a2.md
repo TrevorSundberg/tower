@@ -1289,3 +1289,101 @@ void/trapping host ABI. A false submit never drains earlier jobs. No new submit
 API or semantic-layout ownership change was made; L2 owns that caller proof.
 ROOT chose existing evaluation.tower for A1's thin Publish provider, with D2
 manifest/symbol validation. A2 will not add semantic implementation to entities.
+
+### Graph storage and shared implementation boundary, provisional review 2026-11-23
+
+Reviewed `d0d8b6d8` plus the current A2 draft. This is source review and partial
+validation, not acceptance. The five new library files bring the core inventory
+to 41 files (39 library, two kernel), and expanded reviewed inventory to 117.
+Earlier rows retain their original reviewed commits and evidence.
+
+| Path relative to scaffolding | Ownership, storage and scheduling conclusion | Evidence and disposition |
+| --- | --- | --- |
+| `library/work_view_types.tower` | A nominal borrowed contiguous view with data/length/capacity and borrowed iteration hooks. Its physical owner controls growth and disposal; neither iteration nor stable addresses establish noalias. It cannot be passed as an ordinary vector owner. | Full file reviewed. Compile-negative vector disposal fixture added; exact diagnostic validation pending at this writing. |
+| `library/work_graph_types.tower` | One defining module for graph enums, tickets, tasks, edges, access ranges and graph/storage descriptors. Nine WorkBuffer owners back the typed views. Subjects remain borrowed; one coordinator mutates the derived graph, with revision/profile/dispatch receipts. | All fields reviewed against the prior implementation. No second semantic graph. Descriptor growth versus WorkVector layout needs a measured sizeof receipt. |
+| `library/work_graph_api.tower` | Typed declarations for 27 existing operations, including the externally used failure propagation operation. Existing entities unit is the sole production implementation provider. | Signature and private-function caller audit found work_fail used by backend/units and semantic_body_work; initial 26-operation draft omitted it and failed compilation. Hot-call costs and complete linkage remain pending. |
+| `library/work_graph.tower` | Physical owners are separate from non-owning typed views. Nongeneric buffer growth charges replacement capacity before allocation; a view changes only after successful growth. Reset retains charged capacities, disposal retires all nine owners. Algorithms, ordered handles, tickets, access and cycle contracts are unchanged. | Nominal pre-API implementation passes focused graph/scale/constructor/scheduling tests and 18 ASan/TSan executions. These are not final API-boundary receipts. Both ready-growth and failure-scratch denial can invalidate remaining graph tickets after partial settlement; caller must drain transport and cancel at a joined frontier. |
+| `library/work_pool_types.tower` | Sole defining WorkSlot/WorkPool descriptors, with unchanged fields and maximum capacity. Slots and their physical owner survive all admitted joins. | Full field comparison reviewed. Moving a definition does not transfer ownership. |
+| `library/work_pool_api.tower` | Typed declarations for 15 pool operations and existing host primitives. Callers explicitly import defining types. Native, serial and WASI providers are mutually exclusive final implementations. | All declarations reviewed. Initial separately linked pool and typed-result fixtures pass; fresh final interface/instrumented/WASI checks remain pending. |
+| `library/work_pool.tower` | One existing algorithm, now exporting its 15 public operations. WorkBatch and helpers remain private. Existing work_dispatch owns production method definitions and the thread callback. | Public compiler accepts struct aliases retained in this implementation. No new queue, transport, allocator or cancellation mechanism. Serial provider must also import work_dispatch to avoid extracting the native archive member. D2 owns that manifest correction. |
+| `library/compiler_work.tower` | Uses the graph API and defining types. Its world, ordered unit subjects, budget, cancellation and result ownership are unchanged. | Full changed imports/callers reviewed. Prior constructor tests do not establish current separate-provider linkage. |
+| `compiler/compiler_kernel.tower` | Uses pool API and defining types while retaining the generic kernel projection and inline zero/single-job path. | No additional scan or lease inference. Current boundary call costs require profiles beyond the earlier typed-dispatch measurements. |
+| `compiler/host_entities.tower` | Its unused compiler_work implementation import moved to the existing entities provider with ROOT/B2 agreement. | Import-only change; no entity function or type altered. This smaller change alone did not resolve the public compiler limit. |
+| `compiler/units/entities.tower` | Explicit sole production providers for compiler_work and work_graph, alongside existing entities/stages/arena. | Manifest role agreed with ROOT. A1 Publish remains in the existing evaluation provider. Exact export uniqueness and full ABI are pending. |
+| `tests/work_schedule_budget.tower` | New terminal-denial cases exercise ready-buffer and failure-scratch Capacity denial with two unsettled graph receipts after transport is modeled as joined. Remaining receipt becomes invalid; graph cancellation retires its frontier and disposal returns all grants. | Focused normal/ASan/TSan passes on nominal pre-API implementation. This fixture does not claim an asynchronous join or interrupted-worker test. |
+| `tests/work_view_invalid_dispose.tower` | Compile-negative test prevents a borrowed view from being freed by vector_dispose. | Added; exact expected diagnostic still pending. |
+
+ROOT authorized mechanical production Pool imports at02:18:45 UTC, Graph
+imports at02:25:57, and aggregate fixture imports at02:34:35. Production callers
+change only to API plus defining-type imports. Sixteen aggregate fixture clients
+were selected by existing LR/query/frontend/backend and serial-work target
+membership; standalone full-provider fixtures retain their implementation.
+No assertion, registration, owner algorithm or oracle changes are included.
+Exact path lists and patches accompany the forthcoming checkpoint.
+
+The unchanged public predecessor still fails the merged semantic aggregate at
+semantic_values825 with Foundation component memory budget exceeded. Earlier
+Pool-only and graph-export-only attempts also failed. Direct defining-type
+imports avoid a separately observed predecessor enum-alias type mismatch; no
+conversion workaround or cap increase was retained. The missing work_fail
+interface failure is fixed, but that is not aggregate closure. Packed ECS payloads,
+remaining physical accounting, useful scaling, full ABI and release gates remain
+open. Documentation additions themselves have no runtime path; code profiling
+and final boundary instrumentation remain explicit unfinished work.
+
+Follow-up evidence: the negative borrowed-view diagnostic is now checked;
+parser/entities and the immutable pre-constructor semantic baseline pass.
+The separate-provider v1 fixture set passes18ASan/TSan, and v2's affected pool
+paths pass12more after moving four default-selecting constructors into the API.
+The provider now has12exports, not the earlier15; actual serial buffer-fault
+linking proved why the default kernel must be selected only by its using client.
+The original undefined-symbol failure is retained. All remaining fixture pool
+imports use API/types with an explicit provider, and the newly merged
+semantic_publish_checks was added to the aggregate import audit. No oracle or
+registration changed. WASI serial entry coordination and complete link checks
+remain pending.
+
+Paired graph metadata measurements (journal table) find useful large four-worker
+scaling1.71x, unprofitable eight-worker work, and mixed serial costs including
++2.3% large plain and+8.9% small accounted versus before. No end-to-end speedup
+or neutral overhead is claimed. Public target sizeof measures graph784->928B
+x64 and624->664B wasm32; the former inferred +72B32-bit estimate is explicitly
+superseded by measured +40B. Serial charged peak increases exactly144B and grant
+counts stay281/617 with zero retained live grants after each run. A1's typed
+context-copy helper experiment may supersede unnecessary API boundary changes;
+all current boundary receipts therefore remain provisional until that choice.
+
+### Selected smaller boundary after public compilation, 2026-11-23
+
+The API/type splits above are now retired experiments, not current source.
+A1's reviewed typed sem_context_snapshot helper performs one ordinary assignment
+and serves the16 existing borrowed context-copy sites. Together with nominal
+graph views and nongeneric physical owners, this restores the unchanged public
+bootstrap's actual parser and semantic aggregates:17.868s and20.337s, respectively.
+The entities unit passes4.736s, and exactly one snapshot helper export is present.
+No numeric implementation split, raw copy, cap increase or noalias was retained.
+
+Removed the four new Graph/Pool API/type modules, their27/12 exports, all
+mechanical production/fixture API imports, and the now-unnecessary D2 serial
+manifest change. WorkPool is exactly the committed typed-dispatch implementation.
+The provider-only unused compiler_work import move remains. Current core source
+coverage is37/37 (35 library plus two kernel); expanded coverage is113/113.
+Historical rows for removed experimental files remain as review evidence.
+
+The selected graph also routes task/edge/access/frame/index length overflow
+through one checked arithmetic helper, preserving the first WorkBudgetError and
+using Invalid consistently with shared buffer representability rejection.
+Hash-index doubling now latches the same typed error. A bounded fixture tests
+0/max-1/max and preservation of an earlier Capacity error without any invented
+payload address or huge allocation. Several call-site overflows are physically
+unreachable under allocation limits; no dynamic coverage of those branches is
+claimed. Final selected-source runtime, profiles and whole-compiler gates are
+still in progress; the successful public units prove buildability only.
+
+Selected-source five normal fixtures and18ASan/TSan runs pass. Final paired
+metadata profiles are recorded in the journal: serial small/large improves
+slightly in this window, but large accounted2/4/8-worker medians regress
+3.8/5.7/10.4%, with variable overlapping samples. Actual overlap is measured;
+no neutral overhead or compiler speedup is asserted. Four workers remain useful,
+eight do not. All grants drain; descriptor overhead remains explicit. Full
+compiler and remaining lane acceptance are still open.
