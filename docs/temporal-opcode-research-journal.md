@@ -88185,6 +88185,53 @@ passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e9730
 Owned container is idle. Normal main push/remote verification follows; ROOT's
 broader integrated publication gates remain pending.
 
+### B1 complete native generation candidate at frozen f7e764ab (2026-11-23)
+
+Bounded release prerequisite completed on own KinmenB tower_ecs_b1, CPU0-11,
+24GiB, LLVM19.1.1, outer jobs6/compiler jobs1. Previous jobs drained; required
+pull clean/current. Frozen source f7e764ab0807376025700b2a3176c6f6130e34a8,
+tree b0bbfdf8a68f2ad10b3bede4b10c71d7d83c6149 includes accepted body/backend,
+KnownScan and both LR improvements. Public768a predecessor built generation1
+with TOWER_BOOTSTRAP_COMPILER unset in a fresh documented native cache. Complete
+verified predecessor packages built generations2/3 at the identical successor
+path; full generation2 build/objects/depfiles preserved before CMake clean.
+All52 target actions completed per generation. All34 compiler/runtime/helper
+binaries plus4 configure probes and all53 package payloads plus SHA256SUMS match
+byte-for-byte across2/3. No normalization or selected-object waiver. All three
+source manifests have identical1173 source hashes and no source patch; actual
+predecessor/command metadata remains unchanged. Compiler SHA256 for all three:
+a01cd156ecfa382cbb9ae5740f771c384f9dfb62b2e141ca24125449f26b5674.
+
+Existing Tower package/verification tools only. Relocated archive with spaces,
+checksums, executable0755, declared resources/license and development verifier
+PASS; expected restricted missing-Clang control PASS, standalone release remains
+UNPASSED. Exact nine native symbol policies PASS on actual gen3 nm reports.
+Build wall/CPU/peakKiB: gen1 44.77/143.75/1061276, gen2 34.92/90.72/1060636,
+gen3 33.53/95.88/1059996. Single candidate jobs1 small/large observations:
+.45/.44/186884 and .60/.58/238692; original object bytes and execution15/999 exact.
+Original paired range-union performance and allocation receipts remain unchanged.
+GNU time peak is child peak, not concurrent summed RSS. No new speedup claim.
+
+Failures retained: post-gen1 evidence command invalid-C recovered via absolute
+sha256sum/Ninja; Windows bind-mount atomic package publication failed, Linux
+package then archive transport succeeded. Fixture runtime-link warning failed
+its diagnostic gate; original log/object retained, only link control repeated
+with runtime-declared x86_64-unknown-linux-gnu target, no diagnostics, exact outputs.
+No compiler-generation warning/error or byte-comparison failure occurred.
+
+Full receipt docs/compiler_generation_f7e764ab.md; raw builds/logs/depfiles
+/cache/b1_generation_f7e764ab. Complete packages and handoff evidence delivered
+C:\Sandbox\build\codex_ecs_20261122\B1\current_generation_f7e764ab.
+Archive generation3.tar.gz SHA256
+7ee019b4a35faf1182744620d348e75fed691c50349be5db0ca4d7e5b74efde7;
+original gen3 development.json SHA256
+ffbd4fbea2e66d7f22a806fc532c916e744f08e60b0e3c1518d39fb704f9ee7d;
+complete gen2/3 SHA256SUMS SHA256
+4adde1c84f7f407eb11c7bd4af09ff5270370b33f6a6bbabc512e5352180ebc9.
+Transfer hash and archive roundtrip checked. Source/report publication follows.
+No public pin/hosted deployment, new agents, broad matrix or todo changes.
+Later A1/L2 IDE/metadata fixes explicitly outside freeze; ROOT owns adoption,
+composition and final integrated gates. This native fixed point is not their pass.
 Publication reconciliation: fa65b305 committed the repair; required ff-only pull
 found B1 f7e764ab. Complete normal merge0d27e9fbaa50830c7434e53c204909d2dfea108e
 preserved both histories without conflict. Only ParserNodes' actual depfiles
@@ -88279,3 +88326,65 @@ remaining broad failures are preserved, not waived. Normal main push follows.
 B2 normal push recovery: preserved incoming69391085 in merge381fc109 after one fetch-first rejection. Changes are browser transport/tests/docs only, outside the affected native closure; reused unchanged e292754d native checks and frozen d5b65afe timings. No rebuild, relabeling or hosted claim. Both journal histories retained; normal push retry follows.
 
 L1 final normal reconciliation preserved complete e0e3530b history in3cb252c4202072a21ce61d00a28e5803e8ad4e1a. Incoming LR worker grain/observer changes affected grammar headers; dependency targets refreshed once (59.33wall/92.34CPU/1058424KiB). Source-world, backend target/codegen, backend-IR serial/parallel/retention/cancellation, native execution roots2 and package modules8 all pass. Costs respectively0.81/0.61/140208KiB, backend-ir2.08/1.88/237092KiB, roots2.98/2.71/191884KiB, modules16.97/14.22/148248KiB (wall/CPU/RSS). The browser wrapper's actual depfile includes grammar_types, so recompiled that one WASI object; it remains exactly d32c6b6d. No browser matrix repeated. Current towerc00d68588ffe71bb1b48bde3dac487784ad7dde3e96d92c946d7b63f4b6f4d412, backend objecta6f03ff7 unchanged; frozen source manifestc6110592521f9d9fb96cf495f0a692c192c4f43d8cad2e665c1691b7d8f4c94a. Exact logs/backend_acceptance_worker_merge and backend_acceptance_wrapper_merge extend the external receipt without relabeling earlier full-corpus inputs. All owned jobs drained; receipt-only commit and normal main push, with ROOT's final platform/release gates still separate.
+B1 generation receipt publication reconciliation: required ff-only pull fetched
+e0e3530b and correctly refused divergence; normal merge 95c33836307f23150073f3e96a2932a880542db0
+preserves both complete histories without conflict. Incoming completion,
+grammar metadata, worker policy, semantic-module and provenance inputs are
+explicitly later than frozenf7e764ab. Candidate archive/manifests and all original
+evidence remain at f7; none is relabeled as validation of the merged compiler.
+Our changes relative to incoming main are documentation only; ROOT's later
+composition remains pending. Archive hash/recorded comparisons rechecked,
+owned jobs drained, todo unchanged; normal source/report push follows.
+### ROOT f7 browser artifact checkpoint and eight-lane continuation (2026-11-23)
+
+Implementation/evidence boundaries remain explicit. ROOT's existing public-pin
+build completed on frozen f7e764ab0807376025700b2a3176c6f6130e34a8 in local
+Orchestral-Revng WSL, CPU8-15, outer jobs4/compiler jobs1, with no private bootstrap
+override. Source hashes match before/after. The portable dependency build used
+three actions, 41.15s wall/54.96s CPU/1092796KiB peak RSS; LLVM/cross used eight
+actions plus packaging, 74.30s/111.34s/1092572KiB. The log receipt is
+/root/.cache/tower/root_release_f7e764ab/status=0. Its owned process drained.
+Portable SHA b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42;
+LLVM ba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543;
+cross 01ab5260e6ece701c314aefc77310f761ffa616321b3a0474558922e00054173;
+compiler-project a63811109fddaaa7f9701665b6b8d38fc3681bcdbfad24d8e88ec5bdf5772b56.
+These exclude later alias, metadata, hover and scheduling changes. The failed b0
+browser generation remains failed; no edited-generation check was rerun or passed.
+
+ROOT preserved the prior b0 browser inputs (30 files/166102325 bytes) before
+replacement and transferred matching f7 portable/LLVM bytes to the Deck; remote
+SHA256 checks match. D1 and D2 now own distinct bounded language-fixture and LLVM
+differential selections. Their earlier broad Node failures are still open.
+B1's complete f7 native candidate receipt12722151 is adopted as evidence only;
+ROOT independently checked the transferred generation3.tar.gz SHA
+7ee019b4a35faf1182744620d348e75fed691c50349be5db0ca4d7e5b74efde7.
+Public bootstrap pin768 and hosted runtime remain unchanged. This does not
+validate later compiler sources or a restricted standalone release.
+
+The external Windows process measurement boundary now retains its native handle
+before polling and rejects an unavailable exit status. Native Node exit0/7 probes
+returned exactly0/7; their subsecond peak memory was uncaptured and remains null.
+Earlier literal-comma argument and cmd-shell quoting probes failed and remain
+preserved; they were not compiler tests. Future measurement scope explicitly
+excludes separately spawned child processes. This corrects the prior invalid
+wrapper success classification without rewriting any original log.
+
+ROOT reviewed L2's full48d791a8 frontend/body/query/unit checkpoint and later
+affected adoption3a7f4b39, D2's three strict shared retirement trials at984dc4d7
+publisheda3fbe0a4, and B2's measured grain receipte0e3530b. These are owner-run
+checks, not executions repeated by ROOT. All eight existing UUIDs retain bounded
+inline tasks and watcher-owned window retirement, with no new contexts. Completed
+L2/D1/D2/B1/B2 lanes resumed on distinct remaining concerns. The new nominal-call
+scan concern is not yet accepted as a reproduced defect: a popped slot makes
+the proposed reserve failure unreachable; L2 is testing a different ordinary
+import-ambiguity/errored-context path. A1 owns the independent array-hover/layout
+repair. Static source concerns must not be mislabeled as executed failures.
+
+Remaining gates include current browser/type/generic behavior, profitable
+within-unit scaling and real compiler-kind occupancy, final-source generation
+and public release composition, and the explicitly unfinished service-rejected
+instrumentation operation. That operation was not retried or routed elsewhere.
+This ROOT checkpoint changes documentation only; runtime before/after profiling
+is inapplicable. Publication reuses the verified existing Pages assets and cannot
+claim these newer compiler sources deployed. The preexisting todo.txt bytes
+remain unchanged.
