@@ -131,3 +131,12 @@ It contains both original Wasm artifacts, the frozen complete scaffolding/resour
 tree, original browser transport/test sources, provenance and a verified per-file
 SHA256 manifest. Its provenance explicitly marks the release gate BLOCKED.
 Later documentation merges do not change the tested source identity.
+
+Publication reconciliation: merged complete origin/main150bda59 into0efb7803,
+retaining both journals. Incoming declaration storage/semantic/package changes
+are not covered by the frozen f167c444 artifacts. B2's resulting delta is only
+this receipt and journal; original strict test, worker transport and pool fixture
+are byte-identical to f167c444. No later-source pass or rebuilt runtime is claimed.
+Archive SHA256 was independently checked after copying to Windows. The existing
+external Chromium retirement blocker remains; no unchanged failing run was looped
+for a green publication result.

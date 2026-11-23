@@ -90232,3 +90232,5 @@ controls pass, negation/compositions retain final8pass/4fail evidence. Link and
 stack/pointer host successes remain owner evidence only. No provider/package/pin
 change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit records
 both later input boundaries rather than extending acceptance indefinitely.
+
+B2 shared-browser publication reconciliation: complete150bda59 history merged as0efb7803; both journals preserved. Own delta documentation only. Frozen f167c444 artifacts do not validate incoming declaration/semantic/package changes. Strict script, worker transport and pool fixture remain byte-identical to freeze. Windows archive SHA verified. Original retirement blocker retained; no deployment or new pass claimed.
