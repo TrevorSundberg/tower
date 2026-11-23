@@ -358,6 +358,16 @@ fn backend_units_anchor(frontend: void*): Entity* {
     return bits(Entity*, compiler_work_anchor(work));
 }
 
+fn backend_units_count_storage(allocations: vector(u8*)*, result: WorkBudgetSnapshot*,
+    buffer: WorkBuffer*, budget: WorkBudget*): void {
+    foreach(var allocation in allocations) { if allocation == buffer.data { return; } }
+    units_check(vector_push(allocations, buffer.data), "backend storage receipt index");
+    units_check(buffer.reservation.active && buffer.reservation.owner == budget,
+        "coordinator storage retains its frontend physical grant");
+    result.used_bytes += buffer.reservation.bytes;
+    result.live++;
+}
+
 // The frontend keeps this stable anchor alive. Read component receipts only
 // before dispatch or after every job joins, while the caller owns publication.
 fn backend_units_component_storage(anchor: Entity*, budget: WorkBudget*): WorkBudgetSnapshot {
@@ -368,17 +378,26 @@ fn backend_units_component_storage(anchor: Entity*, budget: WorkBudget*): WorkBu
         var node = row == 0 ? anchor : anchor.children[row - 1].entity;
         for(var index: usize = 0; index < node.component_count; index++) {
             var component = node.components[index];
-            var seen = false;
-            foreach(var allocation in &allocations) { seen ||= allocation == component.allocation; }
-            if seen { continue; }
-            units_check(vector_push(&allocations, component.allocation), "backend component receipt index");
             var buffer = component.page == null
                 ? &bits(EntityComponentAllocation*, component.allocation).allocation
                 : &component.page.allocation;
-            units_check(buffer.reservation.active && buffer.reservation.owner == budget,
-                "coordinator components retain their frontend physical byte grants");
-            result.used_bytes += buffer.reservation.bytes;
-            result.live++;
+            backend_units_count_storage(&allocations, &result, buffer, budget);
+            // Registered kinds own a separately charged instance index. The
+            // backend kind and its index die together after the last component;
+            // count the actual physical receipt once, just like shared pages.
+            if component.type.instances != null {
+                var allocation = bits(u8*, component.type.instances) - sizeof(EntityBufferAllocation);
+                backend_units_count_storage(&allocations, &result,
+                    &bits(EntityBufferAllocation*, allocation).allocation, budget);
+            }
+        }
+        // Removing the backend column restores the original archetype. Its
+        // row/column allocation has a different stride; count both actual
+        // receipts, not only component payload pages.
+        if node.table != null && node.table.rows != null {
+            var allocation = bits(u8*, node.table.rows) - sizeof(EntityBufferAllocation);
+            backend_units_count_storage(&allocations, &result,
+                &bits(EntityBufferAllocation*, allocation).allocation, budget);
         }
     }
     return result;
@@ -481,7 +500,7 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     var remaining = backend_units_component_storage(anchor, frontend_units_work_budget(frontend));
     units_check(remaining.used_bytes == original_components.used_bytes && remaining.live == original_components.live
         && components.used_bytes >= remaining.used_bytes && components.live >= remaining.live,
-        "Backend disposal releases its component pages and preserves frontend component ownership");
+        "Backend disposal restores frontend component pages, kind indexes and archetype columns");
     var component_bytes = components.used_bytes - remaining.used_bytes;
     var component_owners = components.live - remaining.live;
     if streaming {

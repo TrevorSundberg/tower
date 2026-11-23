@@ -3850,3 +3850,41 @@ failure; generation2 did not run and wrapper0 is invalid evidence. A1 owns the
 qualified-completion reproducers. The CURRENT ledger records these receipts,
 while later A1/L1 source adoption, final instruments/performance/browser/hosted
 acceptance remain explicit. No subsequent source audit or heavy run was started.
+
+## Browser diagnostic fixture boundary (ce4f724, 2026-11-23)
+
+Reviewed `playground/tests/diagnostics.test.mjs` against Bedrock's declaration
+seed, `foundation_syntax.tower`'s Number/CoreDeclare/CoreCallStatement and
+`foundation.tower`'s explicit syntax/types imports. Source freeze
+ce4f7240392b283a2af9d8cf378a359b32aa7dda; execution deliberately uses D2's unchanged
+2013ad28 portable IDE reactor SHA256
+0b9d22e60d545e82e6079addd6c67e8e6c6ebc607036c5b4a8143ff4aca08bae.
+Relevant language/type sources and Node transport are unchanged from2013.
+
+Basic executable snippets and custom Number grammars now explicitly import
+Foundation, preserving their intended original basic-language scope. Literal-only
+ambiguous/shift-conflict/broad/nullable and Identifier-only custom grammars retain
+the seed-only input. Imported user rules move down one line; byte gaps include
+the actual import string length. The no-newline negative replaces the statement
+newline, not the newly introduced import boundary. Message text, repair choices,
+zero-length insertion spans, ordered conflict alternatives and Foundation rule
+provenance stay intact. Reset checks additionally retain exact EOF byte positions;
+deep input must reach its invalid final semicolon, closing an accidental earlier
+pass on an undefined Number rule.
+
+Reuse audit: `scaffolding/tests/frontend_diagnostic_revision.tower` already tests
+native moved-rule provenance using its own Number token; frontend_diagnostic_text
+covers repair/alternative text construction, and parser_structure_reuse covers
+owned revision reuse. Those are compiled Tower test functions, not source-data
+exports callable by this frozen reactor's Node transport. No duplicate Tower
+implementation, new runner or broad migration is justified. Existing JS source
+strings remain fixture data; the small added assertions check reactor byte-offset
+transport/reset, with compiler diagnostic semantics/assertions retained.
+
+Reproduced9 failures/1 pass before; final10 diagnostics plus existing Unicode
+source-location control pass11/11, no skips. The first repair left the ordinary
+lone-semicolon input on the seed and failed1/11; corrected that input's language
+boundary without accepting its import error. All failed logs preserved. Final
+Node22.23.5/Docker run2.02s wall/2.39s CPU/133468KiB peak, no swaps. No compiler
+build, production speed claim or current-source compiler/runtime matrix. Aliased
+IDE completion and shared worker retirement remain separate owner gates.

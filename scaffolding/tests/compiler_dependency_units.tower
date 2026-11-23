@@ -1,5 +1,6 @@
 import tower;
 import frontend_units;
+import compiler_dependency_source;
 import backend_units;
 import .library.vector;
 import .library.work_budget;
@@ -76,7 +77,7 @@ fn dependency_units_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usi
     var cyclic: vector(u8) = default;
     defer vector_dispose(&cyclic);
     defer vector_dispose(&shared);
-    var helpers = "fn pick(take:bool):i32{if take{return Selected;}return imported_later();}fn imported_later():i32{return 42;}fn chosen_type():type{return type_later();}fn type_later():type{return i32;}fn identity(T:type,value:T):T{return value;}fn unused(T:type,value:T):T{return missing_dormant_body;}";
+    var helpers = dependency_unit_helpers_source();
     dependency_unit_append(&shared, "import tower;var Selected=comptime(pick(false));");
     dependency_unit_append(&shared, helpers);
     dependency_unit_append(&cyclic, "import tower;var Selected=comptime(pick(true));");
@@ -150,7 +151,7 @@ fn dependency_units_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usi
             format_dispose(&formatted);
         }
         units_check(workers == 1 ? peak == 1 && threads == 1
-            : peak > 1 && separate_workers && threads == workers && reservation.peak_lanes > 1,
+            : peak > 1 && separate_workers && threads == (workers < count ? workers : count) && reservation.peak_lanes > 1,
             "Dependency units observe real distinct-thread overlap, not queue width");
     }
     var receipt: FormatResult = default;
@@ -170,6 +171,10 @@ fn dependency_units_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usi
 }
 
 export fn compiler_dependency_units_tests(root: u8*): void {
+    compiler_dependency_units_checks(root, false);
+}
+
+export fn compiler_dependency_units_checks(root: u8*, scaling: bool): void {
     units_check(work_thread_available() && work_thread_capacity() >= DependencyUnitWorkers,
         "Dependency integration requires four available native worker lanes");
     var bedrock: vector(u8) = default;
@@ -191,11 +196,18 @@ export fn compiler_dependency_units_tests(root: u8*): void {
         defer vector_dispose(&parallel);
         defer vector_dispose(&serial);
         var first = dependency_units_trial(root, bedrock.data, foundation.data, 1, cycle_cases[mode], &serial, &serial_error);
-        var second = dependency_units_trial(root, bedrock.data, foundation.data, DependencyUnitWorkers, cycle_cases[mode], &parallel, &parallel_error);
-        units_check(first == second && serial.length == parallel.length && serial_error.length == parallel_error.length,
-            "Dependency serial/parallel canonical and diagnostic extents");
-        for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "Dependency canonical bytes agree"); }
-        for(var i: usize = 0; i < serial_error.length; i++) { units_check(serial_error.data[i] == parallel_error.data[i], "Dependency diagnostic bytes and order agree"); }
+        var limits: usize[3]; limits[0] = 4; limits[1] = 8; limits[2] = 12;
+        var variants = scaling ? sizeof(decltype(limits)) / sizeof(usize) : 1;
+        for(var variant: usize = 0; variant < variants; variant++) {
+            var workers = limits[variant];
+            if workers > work_thread_capacity() { break; }
+            parallel.length = 0; parallel_error.length = 0;
+            var second = dependency_units_trial(root, bedrock.data, foundation.data, workers, cycle_cases[mode], &parallel, &parallel_error);
+            units_check(first == second && serial.length == parallel.length && serial_error.length == parallel_error.length,
+                "Dependency serial/parallel canonical and diagnostic extents");
+            for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "Dependency canonical bytes agree"); }
+            for(var i: usize = 0; i < serial_error.length; i++) { units_check(serial_error.data[i] == parallel_error.data[i], "Dependency diagnostic bytes and order agree"); }
+        }
     }
     puts("Dependency units: imported helpers, forward decltype/comptime, executed branches, canonical output and error order passed.");
 }

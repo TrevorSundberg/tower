@@ -258,6 +258,14 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
 }
 
 export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, files: u8**, lengths: usize*, count: usize): void {
+    completion_analyze_target(q, active, mode, 4, files, lengths, count);
+}
+
+// The browser ABI retains its 32-bit target; native clients can check the same
+// query producer with their explicit target pointer width.
+export fn completion_analyze_target(q: CompletionQuery*, active: void*, mode: u32, width: u32, files: u8**, lengths: usize*, count: usize): void {
+    if completion_semantic_failed(q) { return; }
+    if width != 4 && width != 8 { q.resource_error = WorkBudgetError.Invalid; return; }
     var owner = bits(SyntaxSession*, active);
     if owner is null || owner.inputs.world != q.world || owner.inputs.environment != q.environment {
         return;
@@ -326,7 +334,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     var suffix_length = q.length -q.to;
     sem_require(bytes_append(&text, &q.source[q.to], suffix_length));
     sem_require(host_text_terminate(&text));
-    if !completion_initialize(q, 4) {
+    if !completion_initialize(q, width) {
         vector_dispose(&text);
         return;
     }
@@ -341,7 +349,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     if !valid {
         semantic_program_dispose(&q.program);
         entity_release(root);
-        if !completion_initialize(q, 4) {
+        if !completion_initialize(q, width) {
             vector_dispose(&text);
             return;
         }

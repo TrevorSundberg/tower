@@ -21,6 +21,57 @@ extern fn lr_states_lalr_parallel_result(states: void*, constructs: bool, anchor
 
 var LRSuffixTestBytes: usize = 1048576;
 
+enum LRMergeNode: usize { Source, Destination, Count }
+fn lr_range_merge_failure(): void {
+    var baseline = tower_test_buffer_count();
+    {
+        var source = convert(usize, LRMergeNode.Source);
+        var destination = convert(usize, LRMergeNode.Destination);
+        var graph = lr_propagation_create(convert(usize, LRMergeNode.Count));
+        utility_check(graph != null, "Range merge graph owner");
+        defer lr_propagation_destroy(graph);
+        var seeds: SymbolRange[33] = default;
+        var count = sizeof(decltype(seeds)) / sizeof(SymbolRange);
+        for(var i: usize = 0; i < count; i++) {
+            seeds[i] = {first: convert(u32, i * 2), last: convert(u32, i * 2 + 3)};
+            utility_check(lr_propagation_seed(graph, source, seeds[i].first, seeds[i].last), "Range merge source seed");
+        }
+        utility_check(lr_propagation_edge(graph, source, destination), "Range merge dependency");
+        tower_test_buffer_fail_after(0);
+        var error = lr_propagation_solve_result(graph);
+        tower_test_buffer_fail_after(oracle_none());
+        utility_check(error == WorkBudgetError.Memory && lr_propagation_count(graph, destination) == 0
+            && lr_propagation_count(graph, source) == count, "Denied bulk merge preserves exact Memory and original sets");
+        // A failed solver has consumed its queue entry. Requeue through the
+        // established edge API before retrying the unchanged source owner.
+        utility_check(lr_propagation_edge(graph, source, destination) && lr_propagation_solve(graph), "Range merge retry");
+        utility_check(lr_propagation_count(graph, destination) == count, "Range merge initial exact count");
+        for(var i: usize = 0; i < count; i++) {
+            utility_check(lr_propagation_seed(graph, destination, seeds[i].first, seeds[i].last + 1), "Equal starts retain distinct ends");
+        }
+        utility_check(lr_propagation_edge(graph, source, destination), "Subset merge requeue");
+        tower_test_buffer_fail_after(0);
+        error = lr_propagation_solve_result(graph);
+        tower_test_buffer_fail_after(oracle_none());
+        utility_check(error == WorkBudgetError.None, "Subset merge needs no allocation");
+        utility_check(lr_propagation_edge(graph, destination, source) && lr_propagation_edge(graph, destination, destination)
+            && lr_propagation_solve(graph), "Interleaved merge and aliased self cycle");
+        var variants: usize = 2;
+        for(var node: usize = 0; node < convert(usize, LRMergeNode.Count); node++) {
+            utility_check(lr_propagation_count(graph, node) == count * variants, "Exact overlapping range identities survive union");
+            var ranges = lr_propagation_data(graph, node);
+            for(var i: usize = 0; i < count; i++) {
+                for(var variant: usize = 0; variant < variants; variant++) {
+                    var range = &ranges[i * variants + variant];
+                    utility_check(range.first == seeds[i].first && range.last == seeds[i].last + convert(u32, variant),
+                        "Sorted merge keeps equal-start and overlapping intervals distinct");
+                }
+            }
+        }
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Range merge denied/retried owners release every buffer");
+}
+
 fn lr_suffix_budget_failure(): void {
     var buffers = tower_test_buffer_count();
     var budget: WorkBudget = default;
@@ -304,6 +355,7 @@ fn lr_kernel_resize_trial(): void {
         "LR kernel resize final EOF reduction");
 }
 fn lr_analysis_storage_failures(): void {
+    lr_range_merge_failure();
     lr_analysis_invalid_inputs();
     lr_suffix_budget_failure();
     var baseline = tower_test_buffer_count(); var success = false;
