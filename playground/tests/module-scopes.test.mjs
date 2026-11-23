@@ -6,7 +6,7 @@ import {loadLLVM, executeWasm} from '../src/llvm-host.mjs';
 import {hoverAt, hoverIndex} from '../src/language-queries.mjs';
 import {builtins as grammar} from './compiler-fixtures.mjs';
 
-const read = name => readFile(new URL('../../' + name, import.meta.url));
+const read = name => readFile(new URL(name, new URL('../../', import.meta.url)));
 const compiler = await loadTower(await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, grammar.foundation,
   undefined, grammar.bedrock, {tower: grammar.tower, builtins: grammar});
 const file = (path, text) => ({path, text});

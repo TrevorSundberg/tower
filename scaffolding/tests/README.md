@@ -1171,7 +1171,7 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [artifacts DIRECTORY]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [grammar] [artifacts DIRECTORY]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
@@ -1218,6 +1218,18 @@ context-switch counts accompany wall/CPU/RSS. Live per-thread OS samples can
 supplement these counters; threads active during a sampling interval are not an
 instantaneous concurrency count. See the frozen
 [KinmenB partition receipt](../../docs/compiler_partition_utilization_b0f507c6.md).
+`grammar` enables the existing world-owned GrammarObserver for pool leases,
+lookahead graph/solver/action phases and synchronous dispatch waves. Its JSON
+`grammar` array is indexed by `GrammarPhase`; enclosing phase times are nested,
+not additive. Kernel callbacks write distinct ordinal slots; the coordinator
+aggregates only after join. `kernel_peak` and `threads` are observed per-wave
+maxima within a world, not requested width or combined cross-world concurrency.
+Kernel time is summed over overlapping jobs; off-CPU time includes blocking and
+preemption. Serial worklist fallback is included in solver time and emits no
+worker-kernel events. PoolClose measures a lease end; retained threads survive
+until world teardown. Leave `grammar` off for ordinary throughput samples.
+The measured grain change and retained controls are in the
+[worker admission receipt](../../docs/compiler_worker_grain_d5b65afe.md).
 `kernel_peak` counts overlapping **outer** frontend/backend kernels; nested lane
 limits and `reserved_peak_lanes` are admission ceilings/observations, not measured
 nested leaf execution. `refill_*` measures same-thread reuse before a ready
@@ -1681,3 +1693,25 @@ buffers, bytes, grants and lanes. The default storage suite includes these cases
 The normal-allocator `query-smoke` and lifecycle case17 retain separate worker
 overlap, execution and canonical-recompile controls; serial faults are not a
 thread-safety claim.
+
+### Integrated frontend and dependency selection
+
+For composed language acceptance, run the full `tower-frontend-tests RESOURCE_ROOT`
+and native `tower-lr-work-tests RESOURCE_ROOT bodies`, then `query-smoke` and
+`units` once each. Use the documented broad 900-second diagnostic deadline for
+the full runners; the historical 300-second timeout remains a separate result.
+The frontend's serial allocator and the native production allocator/worker host
+are distinct contracts, even where they share body fixtures.
+
+Both full body entries include all 42 lifecycle cases, the 32/64-bit continuation
+matrix at requested workers 1/2/4/8, canonical reparses and ordered diagnostics.
+The existing deferred-signature diagnostic is included in the full loop too.
+Do not repeat `type-smoke`, `type-errors`, `control-smoke`, `capture-policy` or
+individual lifecycle ranges alongside these full entries. `query-smoke` adds
+receipt/frontier/stale/cancellation and actual clone-overlap checks; `units`
+already includes `dependency-units`, so neither needs its included selector again.
+
+The existing `allocations` frontend selector checks metadata copies from the
+first published entity (ID zero), exact Memory/Capacity causes and staged cleanup.
+Owned cloning distinguishes published stage leases from new private nodes by
+their actual lease membership. Numeric ID zero alone is not a private-node test.

@@ -11,8 +11,16 @@ struct FrontendKinds {
     syntax: void*;
 }
 
-enum GrammarPhase: u32 { Lookup, Build, Table, Reuse, Count }
+enum GrammarPhase: u32 {
+    Lookup, Build, Table, Reuse, PoolOpen, PoolClose, Lookahead,
+    LookaheadGraph, LookaheadSolve, LookaheadActions, PropagationWave, ActionWave,
+    LookaheadKernel, Count
+}
 struct GrammarObserver {
+    // Borrowed until the world's synchronous work drains. Coordinator phases
+    // are serial. LookaheadKernel events may overlap: their first argument is
+    // a private ordinal within the enclosing PropagationWave/ActionWave, whose
+    // exit runs only after every started kernel has joined. Second is work size.
     context: void*;
     event: function(void, void*, GrammarPhase, bool, usize, usize);
 }

@@ -49,6 +49,8 @@ fn ide_completion_checks(): void {
     q_labels(&f, "import tower; import lib.helper; helper(sh|", "shared");
     q_labels(&f, "import tower; import lib.helper as helpers; helpers.he|", "helper");
     q_labels(&f, "import tower; import lib.helper as helpers; print(helpers.he|);", "");
+    q_file(&f, "helpers/answer.tower", "import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }");
+    q_labels(&f, "import tower; import helpers.answer as left; left.an|", "answer");
     q_offer(&f, "import tower; import lib.helper; 1 + he|;", "helper", false);
 
     q_case(&f, "completion: imported generic registry");

@@ -929,6 +929,21 @@ Tower session, completion, hover, candidate and lifetime checks; `npm test` runs
 them before the Node transport suite. A missing export fails explicitly.
 Reconfigure with `-DTOWER_IDE_TESTS=OFF` before building release assets.
 
+To run the Node selection separately, use the repository root (several fixtures
+read repository-relative resource paths):
+
+```sh
+TOWER_TEST_WASM=/absolute/path/to/tower.wasm node --test playground/tests/*.test.mjs
+```
+
+`TOWER_TEST_WASM` also accepts a repository-relative path. Record its reactor hash
+separately from the current fixture/resource sources. This selection includes
+LLVM, shared-thread, compiler-project and packaging checks as well as portable
+transport checks; those retain their own artifact/resource prerequisites and
+existing optional skips. `TOWER_TEST_LLVM_WASM` selects an existing LLVM reactor,
+and `TOWER_PLAYGROUND_ASSET_PACKAGER` selects an already built packaging tool to
+avoid an implicit tool build. The Tower IDE export gate remains `test:ide`.
+
 ```powershell
 npm test
 npx playwright install chromium
@@ -983,6 +998,17 @@ timings and monotonic Wasm memory capacity. Capacity is not process RSS; cold
 initialization and the extra parallel-only fixtures prevent interpreting total
 trial times as a scaling benchmark. Hosted service-worker isolation, other
 browsers and the release matrix remain separate checks.
+
+The fixture's page owns coordinator termination. After Tower joins its jobs and
+closes its owner, the test observes every nested browser worker's `close` event,
+probes the coordinator's still-active message loop, then terminates it. Calling
+`terminate()` only requests shutdown; counting those calls is not retirement.
+The coordinator must keep its event loop available during child shutdown rather
+than also calling `self.close()`. Acceptance requires every observed worker's
+close notification **and** zero worker targets in the unchanged browser context;
+it does not filter out the coordinator or close the page to satisfy that check.
+The journal's D2 retirement receipt retains the original Chromium159 failures
+and the independent OS-thread observation supporting this transport correction.
 
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its

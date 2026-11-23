@@ -6,6 +6,7 @@ import .library.bytes_types;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_pool;
 import .host.driver_types;
 import .library.compiler_work_types;
 import .compiler.semantic_program_types;
@@ -14,6 +15,7 @@ import .compiler.component_kinds;
 import .compiler.format_types;
 import .compiler.interpreter_context_types;
 import .backend.observation_types;
+import .compiler.grammar_types;
 
 // Linux x64 observation ABI. Each invocation owns fresh worlds; filesystem
 // caches may be warm. Timed work ends before reference execution/formatting.
@@ -30,6 +32,17 @@ struct UnitsProfileUsage {
 }
 struct UnitsProfileSpan { start: u64; end: u64; thread: usize; cpu_start: u64; cpu_end: u64; }
 struct UnitsProfileEvents { spans: UnitsProfileSpan*; count: usize; phases: usize; }
+var UnitsGrammarPhaseCount: usize = convert(usize, GrammarPhase.Count);
+struct UnitsGrammarPhase {
+    span: UnitsProfileSpan;
+    calls: usize; work: usize; wall: u64; cpu: u64;
+    kernel_wall: u64; kernel_cpu: u64; kernel_peak: usize; threads: usize;
+}
+struct UnitsGrammarObservation {
+    phases: UnitsGrammarPhase[UnitsGrammarPhaseCount];
+    jobs: UnitsProfileSpan[WorkPoolMaximumCapacity];
+    pool_before: usize; pool_creations: usize; pool_slots: usize;
+}
 var UnitsProfileMaximumUnits: usize = 32;
 var UnitsProfileMaximumBodies: usize = 4096;
 var UnitsProfileBodyBands: usize = 4;
@@ -62,6 +75,8 @@ extern fn backend_size(backend: void*): usize;
 extern fn fwrite(data: void*, size: usize, count: usize, file: void*): usize;
 extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
 extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+extern fn frontend_modules_world(environment: void*): void*;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 
 fn units_profile_thread_cpu(): u64 {
     var time: UnitsProfileTime;
@@ -74,6 +89,57 @@ fn units_profile_clock(): u64 {
     var time: UnitsProfileTime;
     units_check(clock_gettime(1, &time) == 0, "profile monotonic clock");
     return convert(u64, time.seconds) * 1000000000 + convert(u64, time.fraction);
+}
+
+// One observer per world. Kernels write only their ordinal's slot; the owning
+// coordinator reads/aggregates it after the dispatch joins. No observer lock.
+fn units_profile_grammar(context: void*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
+    var observation = bits(UnitsGrammarObservation*, context);
+    var index = convert(usize, phase);
+    units_check(index < UnitsGrammarPhaseCount, "grammar profile phase");
+    if phase == GrammarPhase.LookaheadKernel {
+        units_check(first < sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan), "grammar kernel ordinal");
+        var job = &observation.jobs[first];
+        if entering { job.start = units_profile_clock(); job.thread = pthread_self(); job.cpu_start = units_profile_thread_cpu(); }
+        else { job.cpu_end = units_profile_thread_cpu(); job.end = units_profile_clock(); }
+        return;
+    }
+    var entry = &observation.phases[index];
+    var wave = phase == GrammarPhase.PropagationWave || phase == GrammarPhase.ActionWave;
+    if entering {
+        if wave {
+            units_check(first <= sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan), "grammar wave extent");
+            for(var i: usize = 0; i < first; i++) { observation.jobs[i] = default; }
+        }
+        if phase == GrammarPhase.PoolOpen { observation.pool_before = second; }
+        entry.span.start = units_profile_clock(); entry.span.cpu_start = units_profile_thread_cpu();
+        entry.span.thread = pthread_self();
+        return;
+    }
+    var end_cpu = units_profile_thread_cpu();
+    var end = units_profile_clock();
+    entry.calls++; entry.work += second;
+    entry.wall += end - entry.span.start; entry.cpu += end_cpu - entry.span.cpu_start;
+    if phase == GrammarPhase.PoolOpen && observation.pool_before != second {
+        observation.pool_creations++; observation.pool_slots += second;
+    }
+    if !wave { return; }
+    var threads: usize = 0;
+    for(var i: usize = 0; i < first; i++) {
+        var job = &observation.jobs[i];
+        if job.start == 0 { continue; }
+        units_check(job.start >= entry.span.start && job.end >= job.start && job.end <= end, "grammar joined kernel interval");
+        entry.kernel_wall += job.end - job.start; entry.kernel_cpu += job.cpu_end - job.cpu_start;
+        var active: usize = 0; var seen = false;
+        for(var j: usize = 0; j < first; j++) {
+            var other = &observation.jobs[j];
+            if other.start <= job.start && other.end > job.start { active++; }
+            if j < i && other.thread == job.thread { seen = true; }
+        }
+        if !seen { threads++; }
+        if active > entry.kernel_peak { entry.kernel_peak = active; }
+    }
+    if threads > entry.threads { entry.threads = threads; }
 }
 
 fn units_profile_cpu(usage: UnitsProfileUsage*): u64 {
@@ -161,13 +227,15 @@ export fn main(argc: i32, argv: u8**): i32 {
     var spread = false;
     var optimize = false;
     var dependencies = false;
+    var grammar_profile = false;
     var artifacts: u8* = null;
     for(var i: i32 = 5; i < argc; i++) {
         if strcmp(argv[i], "backend") == 0 && !backend_mode { backend_mode = true; }
+        else { if strcmp(argv[i], "grammar") == 0 && !grammar_profile { grammar_profile = true; }
         else { if strcmp(argv[i], "dependencies") == 0 && !dependencies { dependencies = true; }
         else { if strcmp(argv[i], "artifacts") == 0 && artifacts == null && i + 1 < argc { artifacts = argv[++i]; }
         else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; }
-        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } }
+        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } } }
     }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
@@ -215,6 +283,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     fill(spans, 0, span_count * sizeof(UnitsProfileSpan));
     defer free(spans);
     var events = init(UnitsProfileEvents) { spans: spans, count: count, phases: phases };
+    var grammar_observations: UnitsGrammarObservation* = null;
+    if grammar_profile {
+        grammar_observations = alloc(UnitsGrammarObservation, count);
+        units_check(grammar_observations != null, "grammar observer slots");
+        fill(grammar_observations, 0, count * sizeof(UnitsGrammarObservation));
+    }
+    defer free(grammar_observations);
     var backend_phase_count = backend_mode ? convert(usize, BackendPhase.Count) : 0;
     var backend_spans: UnitsProfileSpan* = null;
     if backend_phase_count != 0 {
@@ -237,6 +312,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     defer frontend_units_close(batch);
     units_check(frontend_units_observer(batch, bits(void*, &events), units_profile_event), "profile observer");
     for(var i: usize = 1; i <= count; i++) {
+        if grammar_profile {
+            var world = frontend_modules_world(frontend_units_environment(batch, i));
+            compiler_world_grammar(world).observer = { context: bits(void*, &grammar_observations[i - 1]), event: units_profile_grammar };
+        }
         var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
             : (i == count ? bodies : 0);
         units_check(frontend_units_source(batch, i, "profile_unit.tower", source.data,
@@ -449,6 +528,37 @@ export fn main(argc: i32, argv: u8**): i32 {
         }
         if phase != 0 { units_profile_text(&out, ","); }
         units_profile_number(&out, total);
+    }
+    units_profile_text(&out, "],\"grammar\":[");
+    if grammar_profile {
+        for(var phase: usize = 0; phase < UnitsGrammarPhaseCount; phase++) {
+            var total: UnitsGrammarPhase = default;
+            var creations: usize = 0; var slots: usize = 0;
+            for(var ordinal: usize = 0; ordinal < count; ordinal++) {
+                var observed = &grammar_observations[ordinal].phases[phase];
+                total.calls += observed.calls; total.work += observed.work;
+                total.wall += observed.wall; total.cpu += observed.cpu;
+                total.kernel_wall += observed.kernel_wall; total.kernel_cpu += observed.kernel_cpu;
+                if observed.kernel_peak > total.kernel_peak { total.kernel_peak = observed.kernel_peak; }
+                if observed.threads > total.threads { total.threads = observed.threads; }
+                creations += grammar_observations[ordinal].pool_creations; slots += grammar_observations[ordinal].pool_slots;
+            }
+            if phase != 0 { units_profile_text(&out, ","); }
+            units_profile_text(&out, "{\"phase\":"); units_profile_number(&out, convert(u64, phase));
+            units_profile_text(&out, ",\"calls\":"); units_profile_number(&out, convert(u64, total.calls));
+            units_profile_text(&out, ",\"work\":"); units_profile_number(&out, convert(u64, total.work));
+            units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, total.wall);
+            units_profile_text(&out, ",\"cpu_ns\":"); units_profile_number(&out, total.cpu);
+            units_profile_text(&out, ",\"kernel_ns\":"); units_profile_number(&out, total.kernel_wall);
+            units_profile_text(&out, ",\"kernel_cpu_ns\":"); units_profile_number(&out, total.kernel_cpu);
+            units_profile_text(&out, ",\"kernel_peak\":"); units_profile_number(&out, convert(u64, total.kernel_peak));
+            units_profile_text(&out, ",\"threads\":"); units_profile_number(&out, convert(u64, total.threads));
+            if phase == convert(usize, GrammarPhase.PoolOpen) {
+                units_profile_text(&out, ",\"creations\":"); units_profile_number(&out, convert(u64, creations));
+                units_profile_text(&out, ",\"slots\":"); units_profile_number(&out, convert(u64, slots));
+            }
+            units_profile_text(&out, "}");
+        }
     }
     units_profile_text(&out, "],\"spans\":[");
     for(var i: usize = 0; i < span_count; i++) {
