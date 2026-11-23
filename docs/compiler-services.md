@@ -176,9 +176,12 @@ arguments and source effects across progress/waiting/completion/failure.
 `sem_lifecycle_lowering_pump` mixes independent AggregatePrepare/Lowering work
 with function-specific dependencies. `sem_lifecycle_queries_pump` now alternates
 joined lowering and ready executed-stage producers through root-owned
-`semantic_phase_work` joins. Explicit stages wait on signatures and their owner;
-inferred execution waits on all canonical lowering. This is resumable admission,
-not simultaneous lowering/evaluation kernels. Global initialization/effect proofs
+`semantic_phase_work` joins. Required and inferred stages wait on signatures and
+their owner; inferred work retains its KnownProof/KnownClone prerequisites.
+Reached calls request the existing executable snapshots, so unrelated canonical
+lowering no longer gates inference. Optional capture/effect policy is unchanged;
+diagnostic publication still preserves the full lowering priority. Pumps join
+before cross-phase mutation. Global initialization/effect proofs
 and publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
 The lifecycle/capture/type fixtures and actual mixed-kernel rendezvous have
 source-specific journal receipts. They do not prove every staging capability,

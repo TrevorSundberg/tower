@@ -151,9 +151,10 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bo
         sem_require(query != 0 && work_depend(&c.queries, query, gate));
     }
     sem_evaluation_request(c, result);
-    if growth && !inferred {
-        // The required stage consumes the existing production helper-readiness
-        // contract. This checked ordinary callee is already available.
+    if growth {
+        // Both policies consume the production helper-readiness contract.
+        // This checked ordinary callee is already available; deny its executed
+        // frame growth, not an unrelated snapshot preparation allocation.
         var callee = sem_get(input).binding;
         var executable = bits(IMFunctionInput*, entity_component_data(entity_component_add(callee, c.executable_ready)));
         *executable = default;

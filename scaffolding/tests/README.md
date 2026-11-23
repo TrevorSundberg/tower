@@ -1348,14 +1348,18 @@ build/native/tower-lr-work-tests scaffolding control-smoke
 
 The flow fixture checks idempotent admission, deterministic errors, waits,
 cancellation and graph failures. The lifecycle fixture includes actual mixed
-signature/lowering rendezvous. The staging fixture verifies explicit stages
-finish before unrelated waiting **and ready** lowering, lexical-owner and
-canonical-inference prerequisites, executed-only lazy dependencies, retained
-suspended interpreter state and diagnostic priority. Its function count follows
-the production window size. All cover budgets1/4 and teardown; budget variants
-alone do not prove concurrent execution. Lowering/evaluation windows still join
-before cross-phase publication. Integrated sanitizers/platform checks remain
-separate release gates.
+signature/lowering rendezvous. The staging fixture checks required and optional
+inferred work before unrelated waiting **and ready** lowering, with actual
+evaluation rendezvous at four workers. It covers per-owner lowering, lazy
+executable inputs, suspended nested frames, untaken calls/stages, module/local
+known captures, separate required capture producers, optional fallback and
+ordered required errors. Its function count follows the production window size.
+All cover budgets1/4 and teardown; budget variants alone do not prove overlap.
+The resource fixture supplies ready executable inputs for both policies before
+denying actual nested frame growth. Known proofs/snapshots and shared signature
+publication remain prerequisites. Lowering/evaluation windows still join before
+cross-phase mutation, and diagnostics retain the full lowering priority.
+Integrated sanitizers/platform checks remain separate release gates.
 
 ### Entity accounting census and pending finite-cap gate
 
