@@ -89888,3 +89888,12 @@ their owners' evidence; the frozen runners do not claim those new tests passed.
 The change against published main is receipt/journal only. Reused unchanged
 compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
+
+A2 declaration-page publication reconciliation: implementation f4e42223; required
+ff-only pull reported normal divergence, resolved by full-history merge646a0927
+of bcd0e3ab. Only incoming docs/browser and separate type-composition fixtures;
+all378 imported/changed hash entries match measured inputs, so reused unchanged
+build/functional/performance evidence rather than repeat a matrix. No conflicts,
+source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
+stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
+and final-source instrumentation/release exclusions. Normal main push follows.

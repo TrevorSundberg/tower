@@ -159,3 +159,14 @@ ROOT owns final affected-source adoption, bootstrap/generation/browser and relea
 Old storage sanitizer evidence is not relabeled as validating these new producer
 fields/branches. The service-rejected instrumentation gate remains open; no
 retry/reconstruction occurred. No universal race-freedom claim.
+
+## Main reconciliation
+
+Implementation/evidence commit `f4e42223` merged complete published `bcd0e3ab`
+as `646a0927`, preserving both histories. Incoming changes are documentation,
+browser contracts and two separate type-composition fixtures. All378 expanded
+imported/changed source hash entries still match the measured closure; no source
+or profile input was silently moved. Unchanged focused results and n3 samples
+are reused without a redundant build/matrix. `merged_adoption.txt` records the
+check. ROOT's later browser/type/release evidence remains separate. Owned jobs
+are drained; three preserved stashes and todo remain untouched.
