@@ -4480,3 +4480,8 @@ exit1. No source changes or compiler build; timing is validation cost, not a
 production before/after or scaling measurement. All owned jobs drained, shared
 heavy lock released. Later phases within failed cases remain unpassed as detailed
 in the journal; completing registrations does not imply all their assertions ran.
+
+Reconciliationaaf01529 preserves selected test/host/fixture inputs. L1's newer
+5cb0b061 wrapper implementation and unrelated registered test additions are outside
+the eac executable and measured resource identity; their source/native receipts
+are not substitutes for this still-required joined-artifact adoption. No rerun.

@@ -91884,3 +91884,14 @@ never returned, so it cannot provide missing error/timing evidence retroactively
 Original test hash/logs retained; no rerun or passing claim for that later source.
 All jobs drained, todo unchanged; normal source push follows, ROOT owns release.
 A2 six-file reconciliation: scoped commit73caf3fd merged complete published fdf4ffa7 as4ac85095e2031817307d2041daa3b2e6aa4dc7f7/tree2669072c685014177efc376d6b1138474964fad8. Required ff-only pull detected divergence; normal merge preserved histories, no conflicts. All final transport hashes match;1138/1144 mounted Tower blobs match. Six changed blobs are backend/session, backend/source_session, backend_source_native fixture, bootstrap_symbols_checks fixture, comment_functions stress entry and bootstrap_symbols tool, outside these tests' imported closures. Unchanged fixture/library/host inputs and frozen eac executable pair retain the recorded results; new backend implementation is not validated by old LLVM. Exact residual remains open, no new runtime/sanitizer claim. No active jobs; exact-path receipt update and normal main push follow.
+LLVM43 publication reconciliation: required ff-only pull refused divergence;
+normal mergeaaf015296eee064c8bb640365bd7ead7e2fc66fb preserves116c0e7c and full
+publishedb79737e2. Selected Node/host input hashes still match. Existing resource
+mismatches are exactly compiler/generics.tower, semantic_constructor_types.tower,
+semantic_constructor_work.tower and tests/lr_work_main.tower; nine new unrelated
+Tower test files also entered the registry. These are not imported/executed by
+this selection and are not baked into eac. L1's published5cb0b061 wrapper fix now
+has its own native receipt; the old-eac failures remain final-artifact adoption,
+not evidence that the newer implementation fails. Preserve resource mismatch
+logs and original measured identity; no entire merged-registry runtime claim or
+passing-case rerun. Current actual selected fixture/language closure unchanged.
