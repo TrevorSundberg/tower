@@ -75661,3 +75661,132 @@ was launched. Completed dfcef history remains integrated. ROOT now owns its
 remaining ordinary entity ownership work and cancelled the unused profiling hold.
 Current metadata checkpoint is not final bootstrap/browser/generation/hosted
 release acceptance; source publication remains coordinated at the final boundary.
+
+### 2026-11-23 D2: current forest/metadata consumer review after affinity commit
+
+Same original session/CLI2918222, main only. Complete host correctioncbe00ff22
+was committed, pulled and exported with full receipt9f6a4494 before adopting
+ROOTd3/dba. Clean merged source3c74dc193 preserves all histories and todo. Own
+Docker is idle; D1 holds the single host heavy lock for its registration group.
+Disk132GiB free/RAM9.8GiB available; no generated-artifact cleanup needed.
+
+Current supplemental audit records real forest descriptor/vector budgeting,
+shared canonical entity leaves, request lifetime and exact per-call metadata/
+provenance errors. Raw containment/string/history/stage arrays and hold overflow
+remain separate gaps. parse_forest_attach still uses bool entity_attach at this
+checkpoint and can lose a typed cause; source finding routed to B1/ROOT, not a
+new runtime reproduction or an unauthorized D2 production edit.
+
+D1 supplied actualfa15 ParserNodes undefined report (object0fde0ac8) and entities
+definitions (8c2af996). Both exact names parse_forest_create_result and
+parse_forest_resource_error are justified. Existing checkerf502529a is preserved.
+Prepared own frozen3c74 native/WASI baseline under build/d2_ecs/forest_policy_3c74,
+source archivedc41b0d5. It is UNRUN until shared-slot handoff; a prior acquisition
+attempt failed atomic mkdir because D1 owned the lock and started no competing
+job. No permission edit or speculative allowance has yet been applied.
+
+Independently reviewed D1's four-file registration draft and runtime_bind's
+actual sequential replacement semantics. Explicit SOURCE object emission is
+limited to native no-binding branch; existing library/LLVM paths remain intact.
+Ordered allocator renames preserve real definitions before wrappers; separate
+host transport resolves to the wrapper names. Self-contained mutation fixture
+keeps its portable transport, and aggregate avoids a duplicate implementation
+while retaining service providers. Source review sent once via external inbox;
+actual D1 helper reproduction, registered runs and instrumentation are separate
+evidence. No D2 CMake edit. Read-only review/documentation requires no runtime
+profile; the future exact two-symbol policy edit does. Integrated release,
+ROOT-owned linker budget contract and final public-bootstrap/browser/generation/
+served publication gates remain open. Earlier type-value helper readiness still
+supersedes the old missing-helper handoff; no historical experiment is reinstated.
+
+### 2026-11-23 D2: four exact current-result imports and coherent native gate
+
+Implemented only four scoped permissions in bootstrap_symbols.tower plus the
+existing Tower regression: ParserNodes gains parse_forest_create_result and
+parse_forest_resource_error; Interpreter gains compiler_world_create_result and
+strlen. Final two-file patch0058caa6. No new language, allocator permission,
+namespace wildcard or compiler production change. Before edits, public9653
+compiled the smallest parse_tree leaf, then fresh native/WASI parser entries.
+Both f502 checker runs failed1 on exactly the two forest names; actual entities
+NM and source definitions established the providers. The first final native gate
+subsequently exposed the two Interpreter names. Both configured interpreter and
+evaluation entries import tests.interpreter_call_query: L1's function-reference
+case creates an explicitly budgeted world and derives prior-output extent with
+strlen. Entities and libc supply those functions. Fresh WASI interpreter and
+evaluation reproduced the same two-name failure before permissions were added.
+The native gate's original exit1/logs remain preserved; no compiler rebuild was
+needed for the later tool-only extension.
+
+Raw evidence: build/d2_ecs/forest_policy_3c74, source3c74dc193 plus0058 patch,
+before source archivedc41b0d5, public9653, Docker image4be584fb, Linux x64,
+LLVM/Clang19.1.1. Build/measurement allowance0,2, buildjobs1, no bootstrap
+override. Canonical incremental native9actions passes130.12wall/126.80CPU seconds,
+751624KiB peak RSS; focused9actions54.89/53.31/330840. These are incremental
+coherence checks, not clean-cache bootstrap or comparable build-speed samples.
+Current compiler325cd2a3 and all packaged resources are preserved; checker
+eec40a2c. Fresh parser native25.68/25.47/730316, WASI29.25/28.82/764172;
+WASI interpreter14.05/13.70/361512 and evaluation8.23/8.16/326460. All child swaps0.
+
+Smallest changed fixture compile/link/run passes; final compile3.80/3.74/179896.
+Canonical checker build5.06/4.91/196340. Native/WASI positives and both truncated,
+suffixed and wrong-unit negatives cover every new name using actual strlen
+bounds. All7native reports and fresh WASI parser/interpreter/evaluation pass.
+Scoped actual11-definition fixture plus matching guest passes address/LSan and
+thread modes:109ASan report sites/11TSan accesses, Clang -O1 consumes already
+instrumented IR without reinstrumenting. This serial checker does not establish
+threaded compiler race coverage; source UBSan and foreign-library instrumentation
+are unsupported by this recipe. The earlier cbe real-host/pool instrumentation
+retains its own exact source scope.
+
+Measurement correction: initial before invocations used time directly while
+after used time+timeout, yielding1352 versus1616KiB typical RSS. This wrapper
+mismatch invalidates a code-attributed comparison. Preserved those readings and
+reran only18 frozen-report pairs, three samples per native/WASI entry, with the
+same time+timeout wrapper on both sides. This bounded correction took0.41s under
+its own atomic lock12:03:27–12:03:40 UTC; no build or input changes. Before/after
+medians are1616KiB for every entry; both wall/CPU below0.01s timer resolution.
+No speedup claim. The exact-symbol scan itself allocates nothing; CLI ByteBuffer
+ownership and its deferred release are unchanged. RSS is not a live-byte ledger.
+No worker scheduling changed in this synchronous policy path.
+
+Current native package independently compiles the retained16/1000-function
+inputs at jobs1/2. All four objects byte-match the retained565 baseline and all
+linked outputs match15/999. One warm-filesystem observation each, in order:
+
+| Input/jobs | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| small/1 | 6.52 | 6.28 | 183524 |
+| small/2 | 3.27 | 3.82 | 195924 |
+| large/1 | 2.43 | 2.41 | 211952 |
+| large/2 | 4.18 | 4.79 | 224484 |
+
+These are current-union correctness/profile observations, not a new causal
+before/after experiment. The previously documented host-frequency variability
+and pinned residual costs remain; large/2 is slower despite extra CPU use.
+Existing equivalent C11/Clang/GCC reference evidence stays at its frozen inputs
+and is not relabeled as a new cross-language comparison.
+
+For hardcoded1/4-worker correctness suites, explicitly allowed actual host0-7
+while holding the sole heavy slot, then restored0,2 in the host wrapper on exit.
+Query-smoke passes0.29wall/0.34CPU/64456KiB; calibration chose width512,
+fastest serial2898800ns, and actual Publish2/4, Cancel4 and failure-drain intervals
+report overlap1. Resource24 passes, fullunits50.02/71.59/823144 passes, and exact
+constructor/body/declaration failures plus runtime-faults pass. This does not
+explain or erase D1's earlier width256/2048-node Cancel4 failure on two CPUs.
+No barrier/threshold weakening or repeat-until-pass run occurred. All children
+and source hashes passed before main slot release12:02:06; the tiny measurement
+correction also drained before its separate release. Disk132GiB free/RAM9.7GiB
+available/preexisting swap6.0GiB; no cleanup.
+
+D1 independently reviewed the final four-name0058 patch, its exact-match negative
+cases and actual fixture callers. Its independent fa15 native interpreter and
+evaluation reports corroborate both additional imports; no source blocker found.
+Complete D1bf093 bundle
+and native-only receipt hashes verified, all four committed CMake files exactly
+match the independently reviewed draft. Adoption waits this completed freeze and
+own commit. Negative race-probe composition lacks a host.memory provider in the
+old documented recipe; D1 will reproduce and repair its own sensitivity fixture
+before claiming current negative-control coverage. ROOT-owned linker world/budget
+contract, final merged instrumentation/clean bootstrap/browser/generation and
+leased atomic publication remain open. Audit/documentation changes themselves
+have no runtime profiling applicability.

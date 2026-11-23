@@ -88,6 +88,15 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_world_type_result\n", "compiler_world_type_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U entity_component_add_result\n", "entity_component_add_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_node_create\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_world_create_result\n U strlen\n", null);
+    symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi",
+        " U compiler_world_create_result\n U strlen\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_world_create_resul\n", "compiler_world_create_resul");
+    symbol_case(BootstrapUnit.Interpreter, false, " U compiler_world_create_result_extra\n", "compiler_world_create_result_extra");
+    symbol_case(BootstrapUnit.Interpreter, false, " U strle\n", "strle");
+    symbol_case(BootstrapUnit.Interpreter, false, " U strlen_extra\n", "strlen_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_world_create_result\n", "compiler_world_create_result");
+    symbol_case(BootstrapUnit.Utf8, false, " U strlen\n", "strlen");
     // Check-only allocator hooks are not production bootstrap dependencies.
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_count\n", "tower_test_buffer_count");
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_fail_next\n", "tower_test_buffer_fail_next");
@@ -95,6 +104,16 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_clone_tree_result\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U compiler_clone_tree_result\n", "compiler_clone_tree_result");
     symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_clone_tree_result_extra\n", "compiler_clone_tree_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false,
+        " U parse_forest_create_result\n U parse_forest_resource_error\n", null);
+    symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-wasi",
+        " U parse_forest_create_result\n U parse_forest_resource_error\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U parse_forest_create_resul\n", "parse_forest_create_resul");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U parse_forest_resource_erro\n", "parse_forest_resource_erro");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U parse_forest_create_result_extra\n", "parse_forest_create_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U parse_forest_resource_error_extra\n", "parse_forest_resource_error_extra");
+    symbol_case(BootstrapUnit.Interpreter, false, " U parse_forest_create_result\n", "parse_forest_create_result");
+    symbol_case(BootstrapUnit.Semantics, false, " U parse_forest_resource_error\n", "parse_forest_resource_error");
     symbol_case(BootstrapUnit.Semantics, false, " U frontend_module_position\n U syntax_completion_callable\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U work_signal_wait\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U work_signal_open\n", "work_signal_open");
