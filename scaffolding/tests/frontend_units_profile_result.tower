@@ -1,0 +1,10 @@
+import tower;
+
+extern fn answer(): i32;
+extern fn body_0(value: i32): i32;
+
+var first = answer();
+var second = body_0(36);
+if first != 42 || second != 42 { trap("Profile object result differs from reference", 0); }
+print(first);
+print(second);

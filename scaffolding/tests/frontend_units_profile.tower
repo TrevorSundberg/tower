@@ -1,5 +1,6 @@
 import tower;
 import frontend_units;
+import compiler_dependency_source;
 import .library.bytes_interface;
 import .library.bytes_types;
 import .library.vector;
@@ -21,9 +22,13 @@ struct UnitsProfileUsage {
     user: UnitsProfileTime;
     system: UnitsProfileTime;
     peak_rss: i64;
-    remaining: i64[13];
+    shared_memory: i64; unshared_data: i64; unshared_stack: i64;
+    minor_faults: i64; major_faults: i64; swaps: i64;
+    block_inputs: i64; block_outputs: i64;
+    messages_sent: i64; messages_received: i64; signals: i64;
+    voluntary_switches: i64; involuntary_switches: i64;
 }
-struct UnitsProfileSpan { start: u64; end: u64; thread: usize; }
+struct UnitsProfileSpan { start: u64; end: u64; thread: usize; cpu_start: u64; cpu_end: u64; }
 struct UnitsProfileEvents { spans: UnitsProfileSpan*; count: usize; phases: usize; }
 var UnitsProfileMaximumUnits: usize = 32;
 var UnitsProfileMaximumBodies: usize = 4096;
@@ -54,6 +59,16 @@ extern fn backend_units_result(batch: void*, ordinal: usize): void*;
 extern fn backend_units_error(batch: void*): u8*;
 extern fn backend_bytes(backend: void*): u8*;
 extern fn backend_size(backend: void*): usize;
+extern fn fwrite(data: void*, size: usize, count: usize, file: void*): usize;
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+
+fn units_profile_thread_cpu(): u64 {
+    var time: UnitsProfileTime;
+    var thread_cpu_clock: i32 = 3; // Linux CLOCK_THREAD_CPUTIME_ID.
+    units_check(clock_gettime(thread_cpu_clock, &time) == 0, "profile thread CPU clock");
+    return convert(u64, time.seconds) * 1000000000 + convert(u64, time.fraction);
+}
 
 fn units_profile_clock(): u64 {
     var time: UnitsProfileTime;
@@ -73,8 +88,8 @@ fn units_profile_event(context: void*, phase: CompilerQuery, ordinal: usize, ent
     var index = phase == CompilerQuery.Unit ? UnitsProfileFrontendPhase : UnitsProfileBackendPhase;
     units_check(index < events.phases, "profile configured phase");
     var span = &events.spans[index * events.count + ordinal - 1];
-    if entering { span.start = units_profile_clock(); span.thread = pthread_self(); }
-    else { span.end = units_profile_clock(); }
+    if entering { span.start = units_profile_clock(); span.thread = pthread_self(); span.cpu_start = units_profile_thread_cpu(); }
+    else { span.cpu_end = units_profile_thread_cpu(); span.end = units_profile_clock(); }
 }
 
 fn units_profile_backend_event(context: void*, phase_ordinal: usize, phase: BackendPhase, entering: bool): void {
@@ -92,6 +107,23 @@ fn units_profile_text(out: ByteBuffer*, text: u8*): void {
 
 fn units_profile_number(out: ByteBuffer*, number: u64): void {
     units_check(host_json_unsigned(out, number), "profile number");
+}
+
+// Optional post-join artifacts for exact cross-worker comparison and native
+// execution through the existing CLI. The caller supplies an existing directory.
+fn units_profile_save(directory: u8*, ordinal: usize, suffix: u8*, data: u8*, length: usize): void {
+    if directory == null { return; }
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    units_profile_text(&path, directory); units_profile_text(&path, "/");
+    if ordinal != 0 { units_profile_text(&path, "unit_"); units_profile_number(&path, convert(u64, ordinal)); }
+    units_profile_text(&path, suffix);
+    units_check(host_text_terminate(&path), "profile artifact path");
+    var file = fopen(path.data, "wb");
+    units_check(file != null, "profile artifact open");
+    var written = fwrite(bits(void*, data), 1, length, file);
+    var closed = fclose(file);
+    units_check(written == length && closed == 0, "profile complete artifact write");
 }
 
 fn units_profile_argument(text: u8*): usize {
@@ -123,15 +155,19 @@ fn units_profile_result(function: void*, arguments: u64*, count: usize): void {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    if argc < 5 || argc > 8 || sizeof(usize) != 8 { return 2; }
+    if argc < 5 || sizeof(usize) != 8 { return 2; }
     units_check(work_thread_available(), "profile requires production native worker transport");
     var backend_mode = false;
     var spread = false;
     var optimize = false;
+    var dependencies = false;
+    var artifacts: u8* = null;
     for(var i: i32 = 5; i < argc; i++) {
         if strcmp(argv[i], "backend") == 0 && !backend_mode { backend_mode = true; }
+        else { if strcmp(argv[i], "dependencies") == 0 && !dependencies { dependencies = true; }
+        else { if strcmp(argv[i], "artifacts") == 0 && artifacts == null && i + 1 < argc { artifacts = argv[++i]; }
         else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; }
-        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } }
+        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } }
     }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
@@ -148,8 +184,18 @@ export fn main(argc: i32, argv: u8**): i32 {
     var source: ByteBuffer = default;
     defer bytes_dispose(&source);
     units_profile_text(&source, "import tower; ");
+    if dependencies { units_profile_text(&source, "import dependency_shared; "); }
     if backend_mode { units_profile_text(&source, "export "); }
-    units_profile_text(&source, "fn answer():i32{return comptime(later());} fn later():i32{return 42;}");
+    if dependencies {
+        units_profile_text(&source, "fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 0;}");
+    } else { units_profile_text(&source, "fn answer():i32{return comptime(later());} fn later():i32{return 42;}"); }
+    var imported: ByteBuffer = default;
+    defer bytes_dispose(&imported);
+    if dependencies {
+        units_profile_text(&imported, "import tower;var Selected=comptime(pick(false));");
+        units_profile_text(&imported, dependency_unit_helpers_source());
+        units_check(host_text_terminate(&imported), "profile imported source");
+    }
     var small = source.length;
     var lengths = alloc(usize, bodies + 1);
     units_check(lengths != null, "profile body prefix lengths");
@@ -195,6 +241,11 @@ export fn main(argc: i32, argv: u8**): i32 {
             : (i == count ? bodies : 0);
         units_check(frontend_units_source(batch, i, "profile_unit.tower", source.data,
             lengths[unit_bodies]), "profile source snapshot");
+        if dependencies {
+            var environment = frontend_units_environment(batch, i);
+            units_check(environment != null && frontend_modules_source(environment, "dependency_shared.tower",
+                imported.data, imported.length), "profile imported dependency snapshot");
+        }
     }
     var backend: void* = null;
     if backend_mode {
@@ -229,6 +280,7 @@ export fn main(argc: i32, argv: u8**): i32 {
                 "profile target object envelope");
             units_check(units_profile_object_has(data, backend_size(result), "answer"), "profile emitted answer export");
             object_bytes += backend_size(result);
+            units_profile_save(artifacts, ordinal, ".o", data, backend_size(result));
             for(var i: usize = 0; i < backend_size(result); i++) {
                 object_hash = (object_hash ^ convert(u64, data[i])) * 1099511628211;
             }
@@ -240,6 +292,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var peak: usize = 0;
     var separate_workers = false;
     var worker_ns: u64 = 0;
+    var outer_cpu_ns: u64 = 0;
     var kernel_peak: usize = 0;
     var kernel_ns: u64 = 0;
     var first = started + elapsed;
@@ -256,6 +309,8 @@ export fn main(argc: i32, argv: u8**): i32 {
         if span.end > last_end { last_end = span.end; }
         if i < count && span.start > last_start { last_start = span.start; }
         kernel_ns += span.end - span.start;
+        units_check(span.cpu_end >= span.cpu_start, "profile CPU interval");
+        outer_cpu_ns += span.cpu_end - span.cpu_start;
         var active: usize = 0;
         var previous: u64 = 0;
         for(var j: usize = 0; j < span_count; j++) {
@@ -324,6 +379,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         units_profile_result(answer, null, 0);
         var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
             : (i == count ? bodies : 0);
+        units_profile_save(artifacts, i, ".tower", source.data, lengths[unit_bodies]);
         if unit_bodies != 0 {
             units_check(body != null, "profile ordinary loop body binding");
             var arguments: u64[1]; arguments[0] = 36;
@@ -337,19 +393,25 @@ export fn main(argc: i32, argv: u8**): i32 {
         format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
             compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
         units_check(!formatted.failed, "profile canonical output");
+        units_profile_save(artifacts, i, ".foundation", formatted.text.data, formatted.text.length);
         foreach(var byte in &formatted.text) { hash = (hash ^ convert(u64, byte)) * 1099511628211; }
         format_dispose(&formatted);
     }
     var out: ByteBuffer = default;
+    if dependencies { units_profile_save(artifacts, 0, "dependency_shared.tower", imported.data, imported.length); }
     defer bytes_dispose(&out);
     units_profile_text(&out, "{\"units\":"); units_profile_number(&out, convert(u64, count));
     units_profile_text(&out, ",\"budget\":"); units_profile_number(&out, convert(u64, budget));
     units_profile_text(&out, ",\"bodies\":"); units_profile_number(&out, convert(u64, bodies));
     units_profile_text(&out, ",\"backend\":"); units_profile_number(&out, backend_mode ? 1 : 0);
     units_profile_text(&out, ",\"optimized\":"); units_profile_number(&out, optimize ? 1 : 0);
+    units_profile_text(&out, ",\"dependencies\":"); units_profile_number(&out, dependencies ? 1 : 0);
     units_profile_text(&out, ",\"spread\":"); units_profile_number(&out, spread ? 1 : 0);
     units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, elapsed);
     units_profile_text(&out, ",\"cpu_us\":"); units_profile_number(&out, units_profile_cpu(&after) - units_profile_cpu(&before));
+    units_profile_text(&out, ",\"outer_cpu_ns\":"); units_profile_number(&out, outer_cpu_ns);
+    units_profile_text(&out, ",\"voluntary_switches\":"); units_profile_number(&out, convert(u64, after.voluntary_switches - before.voluntary_switches));
+    units_profile_text(&out, ",\"involuntary_switches\":"); units_profile_number(&out, convert(u64, after.involuntary_switches - before.involuntary_switches));
     units_profile_text(&out, ",\"peak_rss_kib\":"); units_profile_number(&out, convert(u64, after.peak_rss));
     units_profile_text(&out, ",\"outer_peak\":"); units_profile_number(&out, convert(u64, peak));
     units_profile_text(&out, ",\"outer_ns\":"); units_profile_number(&out, worker_ns);
@@ -396,6 +458,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         units_profile_text(&out, ",\"start_ns\":"); units_profile_number(&out, spans[i].start - started);
         units_profile_text(&out, ",\"end_ns\":"); units_profile_number(&out, spans[i].end - started);
         units_profile_text(&out, ",\"thread\":"); units_profile_number(&out, convert(u64, spans[i].thread));
+        units_profile_text(&out, ",\"cpu_ns\":"); units_profile_number(&out, spans[i].cpu_end - spans[i].cpu_start);
         units_profile_text(&out, "}");
     }
     units_profile_text(&out, "]}");

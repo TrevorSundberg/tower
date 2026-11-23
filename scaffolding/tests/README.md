@@ -1171,7 +1171,7 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [artifacts DIRECTORY]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
@@ -1181,6 +1181,15 @@ workload did not export its functions and could emit empty objects; those
 measurements are not useful code-generation evidence. The profile checks exported
 names, known interpreter results (answer and loop body return42), canonical
 Foundation and object hashes. Compare each workload's hashes across worker counts.
+`dependencies` reuses the imported helper input from `dependency-units`: forward
+`decltype`, type-producing calls, generics, staged calls and an untaken cyclic
+branch. `artifacts` writes each generated source, complete canonical Foundation
+and object after the timed join into an existing directory. Link one saved object
+with `frontend_units_profile_result.tower` through `towerc --link` to check native
+answers42/42 independently of the interpreter. Units deliberately export the
+same names, so link them separately. The `dependency-scaling` selector compares
+the existing four-unit success/cycle cases against serial at4/8/12 workers within
+host capacity; four units alone cannot demonstrate eight or twelve outer workers.
 Its explicit byte ceiling is `(UNITS + UnitsProfileTransientUnits) * DriverUnitRetainedByteLimit`
 (four transient units accommodate tracked scratch for4096 bodies); the
 production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
@@ -1202,6 +1211,13 @@ sample at each configuration; fresh processes/worlds with warm filesystem caches
 are different from reused parser sessions. Timing includes snapshot/configuration
 and frontend/backend compilation, excluding postjoin reference execution and
 formatting. JSON retains phase0/frontend and phase1/backend spans with thread IDs.
+Each outer span also records its thread CPU time; `outer_cpu_ns` sums these
+intervals. Process CPU minus that sum includes nested workers and unobserved
+coordinator/setup overhead, not exclusively useful nested work. Linux rusage
+context-switch counts accompany wall/CPU/RSS. Live per-thread OS samples can
+supplement these counters; threads active during a sampling interval are not an
+instantaneous concurrency count. See the frozen
+[KinmenB partition receipt](../../docs/compiler_partition_utilization_b0f507c6.md).
 `kernel_peak` counts overlapping **outer** frontend/backend kernels; nested lane
 limits and `reserved_peak_lanes` are admission ceilings/observations, not measured
 nested leaf execution. `refill_*` measures same-thread reuse before a ready
