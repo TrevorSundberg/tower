@@ -95243,3 +95243,15 @@ D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
 remain unchanged after merge; existing evidence is reused without another run.
+
+D1 final push reconciliation retained complete6019450c B1 exclusive-budget-gate
+history after another normal push race. Its source delta switches frontend unit
+batch open/close and adds host work_gate functions; this selected provider never
+opens a unit batch, instead creating its world with its unchanged explicit
+work_signal budget. Execution_main returns the selected provider before other
+suites. Read those actual changed callers; selected fixtures/producer path and
+Entity ABI remain unchanged. Reuse the fd8f8dac44 receipt, without relabeling its
+binary as built from the later B1 source or claiming that batch-gate path executed.
+No additional rebuild/run is needed for this unchanged selected path; B1's own
+receipt retains gate adoption. Diff checks pass, no owned work/lock; normal push
+retry follows. Final full-artifact adoption remains ROOT-owned.
