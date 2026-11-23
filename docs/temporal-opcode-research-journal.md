@@ -86464,3 +86464,43 @@ PENDING, not passed. Already-passed frozen oracle/failure/retry/native-worker
 checks, all paired/noisy samples and final source hashes remain preserved.
 No whole-matrix restart or new task is needed; ROOT still owns final release.
 This bookkeeping changes no executable input, so adds no runtime profile.
+
+### ROOT current native integration and publication recovery (2026-11-23)
+
+Frozen source f72179d22cb855dc0b882284d26fe550731b326f preserves complete
+D2 suffix-FIRST history21359923/8c39bde5 plus published B1 scratch, L1
+interpreter/diagnostic, L2 node admission, A2 capacity and B2 codegen work, and
+D1's exact-symbol/resource-root fixture repairs. ROOT took D2's final merged
+check off the occupied Deck slot; no additional agent or runtime redesign.
+
+KinmenA tower-c-validation, Linux/LLVM19, CPU24-31/24GiB, build jobs4/compiler
+jobs1, unchanged public bootstrap9653f818: dependency-aware native build30
+actions PASS48.45s wall/135.21s accumulated CPU/826720KiB child peak RSS.
+LR oracle/failure/retry (150 randomized grammars), suffix caller, cold iteration,
+real native LR equivalence/lifetimes, and both relative/absolute resource-roots
+PASS. The last cases retain intentional ambiguous-Item negatives and serial/
+four-worker canonical/execution checks. Cold sanity .86s wall/.84s CPU/
+181728KiB RSS is merged-source evidence, not a replacement paired speedup:
+D2's original matched/noisy Deck samples remain unchanged. No broad matrix ran.
+
+Evidence /cache/root_suffix_integration_f72179d2_retry1 on that container:
+status0, individual logs/time receipts, source manifest
+71faa740afed56237392fed8129f9686ff4131b9c652282d16e80c285a8777d8, compiler
+39ae7020322d421a3b627e98094673a88f1ff2d2e9f6c37df5d793f2a220948a.
+All tracked build inputs matched before/after. The first preflight was cancelled
+while Git recursively scanned the unrelated LLVM submodule; no build ran there.
+Its logs remain in root_suffix_integration_f72179d2. The retry separately checks
+tracked project changes without recursive submodule/untracked enumeration and
+hashes actual tracked compiler/build/bootstrap inputs. Owned jobs are drained.
+
+ROOT also completed B2's stopped publication: source40fc340e merged only B1's
+journal update as76c38e7a; production inputs stayed exact. A fresh GitHub DNS
+answer was used per-command with HTTPS validation intact. SSH credential-store
+access failed, then the existing authenticated desktop task performed normal
+push and exact remote verification. No permanent DNS/credential setting changed.
+
+This closes D2/D1's selected merged native checks, not final compiler acceptance.
+The public pin and hosted runtime remain unchanged. A2's complete capacity
+successor still needs generation/pin adoption before A1's preserved body batch;
+L2 module/inspection admission and final current-source performance,
+instrumentation, complete generations, browser and hosted release remain pending.
