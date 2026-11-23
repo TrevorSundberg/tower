@@ -4,6 +4,7 @@ import lr_api;
 import parser_markers;
 import parser_table_types;
 import format_parser_table_types;
+import .library.work_budget_types;
 
 extern fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): u8*;
 
@@ -65,6 +66,12 @@ fn parser_copy_text(source: u8*): u8* {
 // Complete construction on the coordinator before sharing. Missing-name
 // resolution, conflict formatting and all failure cleanup are Tower-owned.
 export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable* {
+    var resource_error = WorkBudgetError.None;
+    return parser_table_finish_result(table, error, specialize, &resource_error);
+}
+
+export fn parser_table_finish_result(table: ParserHostTable*, error: u8**, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable* {
+    *resource_error = table == null ? WorkBudgetError.Invalid : table.resource_error;
     var output = error != null;
     if output {
         *error = null;
@@ -114,6 +121,8 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
         }
     }
     if failed {
+        *resource_error = table.resource_error;
+        if message == null && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; }
         if output {
             *error = message;
         } else {
