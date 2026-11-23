@@ -1,0 +1,53 @@
+import tower;
+import backend_source;
+import utility_checks;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.syntax_version_types;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+
+struct BackendTestClock { seconds: i64; nanoseconds: i64; }
+extern fn clock_gettime(clock: i32, value: BackendTestClock*): i32;
+
+// Linux test transport for the existing session's WASI monotonic timing call.
+// This observes time only; compilation, linking and assertions stay unchanged.
+export fn __wasi_clock_time_get(clock: u32, precision: u64, out: u64*): u32 {
+    var monotonic: u32 = 1;
+    var unsupported: u32 = 28;
+    if clock != monotonic || out == null { return unsupported; }
+    var value: BackendTestClock = default;
+    if clock_gettime(convert(i32, monotonic), &value) != 0 { return unsupported; }
+    var nanoseconds_per_second: u64 = 1000000000;
+    *out = convert(u64, value.seconds) * nanoseconds_per_second + convert(u64, value.nanoseconds);
+    return 0;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_arguments: i32 = 4;
+    utility_check(argc == required_arguments, "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT");
+    var bedrock: ByteBuffer = default;
+    var foundation: ByteBuffer = default;
+    var runtime: ByteBuffer = default;
+    defer { bytes_dispose(&runtime); bytes_dispose(&foundation); bytes_dispose(&bedrock); }
+    utility_check(driver_read_file(argv[1], &bedrock) && driver_read_file(argv[2], &foundation)
+        && driver_read_file(argv[3], &runtime), "Read exact backend source test inputs");
+    var fixture: BackendWorldFixture = default;
+    fixture.world = compiler_world_create_workers(1);
+    fixture.modules = frontend_modules_create();
+    defer utility_check(backend_world_close(&fixture), "Source session fixture ownership drains");
+    utility_check(fixture.world != null && fixture.modules != null, "Source session explicit world");
+    frontend_modules_configure(fixture.modules, "world_input.tower", ".tower");
+    utility_check(frontend_modules_source(fixture.modules, ".tower/bedrock.tower", bedrock.data, bedrock.length)
+        && frontend_modules_source(fixture.modules, ".tower/foundation.tower", foundation.data, foundation.length), "Source session baseline spans");
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    utility_check(syntax_baseline_install(fixture.world, fixture.modules, bedrock.data, false, &diagnostic)
+        && syntax_baseline_install(fixture.world, fixture.modules, foundation.data, true, &diagnostic), "Source session baselines");
+    var result = backend_source_tests_runtime(fixture.modules, runtime.data, runtime.length);
+    if result != 0 { return result; }
+    result = backend_source_world_tests_runtime(bedrock.data, foundation.data, runtime.data, runtime.length);
+    if result != 0 { return result; }
+    puts("Backend source sessions/worlds: shared Tower assertions passed.");
+    return 0;
+}
