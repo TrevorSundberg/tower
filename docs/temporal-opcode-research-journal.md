@@ -95862,3 +95862,15 @@ two selected T8 continuation cases; D1's source-derived i1 issue and additional
 narrow-width/extraction coverage requests remain separate pending producer work,
 not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
 All owned processes drained, unchanged todo, normal push; ROOT owns final release.
+Second D2 publication reconciliation: ff-only pull fetched6649bbe1 and refused
+ordinary divergence; complete merge51ab5a02 preserves all work. Received actual
+new a06 evidence55a6a91f (full views/registry), e71956ab (Node3/strict browser3+9),
+and2bad3e52 (same965691B entity_pages request now fits unchanged2GiB cap). Ledger
+adopts each exact boundary, retaining the older failures and entity_pages full
+execution/optimized/package/remaining-target gap. Later native observer/accessor
+are explicitly outside a06 peer review; no compiler/library/backend/host Tower
+producer changed. Evidence cutoff6649bbe1 is fixed for this finite reconciliation.
+New byteLength accessor is browser transport, not a compiler storage remedy.
+No repeated runtime/build/profile; final map/tail/source/diff checks reused by
+identity. ROOT's final generations/pin/UI/atomic release and instrumentation
+remain open, as do the source-confirmed i1 defect and named independent reviews.

@@ -3235,14 +3235,31 @@ seven explicitly **post-a06 fixture** paths; these are not silently covered by t
   [Receipt](windows_budget_gate_cabc2062.md); independent final fixture/registration
   review not identified. No Tower producer is newly adopted through these tests.
 
-ROOT b520e436 now records source-checked a06 portable/LLVM-cross/shared build exits0;
-execution adoption remains pending. B1 05daa172/bcd854aa supplies the actual joined
+Second publication merge `51ab5a02` preserves complete6649bbe1. One additional
+post-a06 Tower path, A2 `tests/backend_source_native.tower`, replaces a max-ID
+observer allocation with actual distinct-ID work_vector storage and adds physical
+index categories; `playground/src/llvm-host.mjs` only exposes the existing memory's
+byteLength. [Owner2bad3e52/5744969c](entity_pages_wasm_storage_a06ec4b1.md) records
+failed sentinel admission and corrected small/large, plain/census, worker1/4
+checks. This is the eighth later Tower path; its final observer and read-only
+transport accessor still lack a matching independent review. D1 U above covers
+the older a06 native probe, not this incoming change. No production Tower provider
+differs between a06 and the reconciled source.
+
+ROOT b520e436 records source-checked a06 portable/LLVM-cross/shared build exits0.
+New [L2 full views/registry55a6a91f](compiler_entities_t8_a06ec4b1.md) and
+[B2 shared e71956ab](shared_wasm_a06_a18d584e.md) receipts complete actual execution:
+two full T8 cases, Node3 and strict browser3+9 selections, including actual closes
+and zero worker targets. They use their own frozen resources; older25 failures
+are preserved. A2's exact965691B entity_pages unoptimized request now succeeds
+under the original2GiB ceiling and matches native bytes; the complete semantic-port
+execution/package/optimized/remaining-target gate is still unstarted by that probe.
+B1 05daa172/bcd854aa supplies the actual joined
 1/4/8/12 study (matching frontend/library/host source at a06), rather than multiplying
 isolated gains. Four-worker multi-unit frontend speedup2.11x contrasts with best
-single-unit1.063x; parsing/ordered work remains dominant. Current25 heavy failures
-stay distinct: entity_pages typed Memory; entity_views optimized scalar-return
-failure after unoptimized passes, with later modes/generic registry unstarted.
-Native overflow success is not new-pair Wasm success. The i1 implementation defect,
+single-unit1.063x; parsing/ordered work remains dominant. Actual successor Wasm
+success, not a native result or higher cap, supplies the new scoped acceptance.
+The full entity_pages remainder, the i1 implementation defect,
 finite peer gaps, supported instrumentation, generations/public pin/current UI and
 atomic release remain open in the [ledger](compiler_ecs_threading_handoff.md).
 No broad source cleanup, build, new runtime assertion or performance claim by D2.
