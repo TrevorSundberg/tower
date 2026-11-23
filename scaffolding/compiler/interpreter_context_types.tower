@@ -3,6 +3,7 @@ import interpreter_types;
 import foundation_types;
 import .library.vector;
 import .library.work_vector_types;
+import .library.work_budget_types;
 
 // One reached constructor retains evaluated operands until the coordinator
 // publishes a descriptor. Owner and sequence distinguish recursion/loop visits;
@@ -16,7 +17,9 @@ struct IMTypeConstruction {
     second: u64;
     input: FoundationType;
     result: FoundationType;
-    error: vector(u8);
+    error: work_vector(u8);
+    budget: WorkBudget*;
+    storage_error: WorkBudgetError;
     ready: bool;
     failed: bool;
 }
@@ -42,8 +45,8 @@ struct IMValueStorage { producer: void*; address: usize; bytes: usize; frame: us
 struct IMContext {
     root: void*;
     pointer_bytes: usize;
-    error: vector(u8);
-    output: vector(u8);
+    error: work_vector(u8);
+    output: work_vector(u8);
     result: u64;
     returned: bool;
     strict: bool;

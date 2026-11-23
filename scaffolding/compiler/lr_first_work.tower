@@ -141,12 +141,12 @@ fn lr_analysis_work_result(value: LRAnalysis*, anchor: void*, capacity: usize): 
         var count = frontier.length / LRFirstGrain;
         // A retained world pool may be wider than this analysis's job array.
         if count > capacity { count = capacity; }
-        if count < 2 { return lr_analysis_compute_result(value); }
+        if count < 2 { return lr_analysis_first_result(value); }
         var admission: ParserAdmission = default;
         error = parser_admission_open_result(&admission, anchor, count);
         if error != WorkBudgetError.None { return error; }
         defer parser_admission_close(&admission, &graph);
-        if admission.extra == 0 { return lr_analysis_compute_result(value); }
+        if admission.extra == 0 { return lr_analysis_first_result(value); }
         if workers.pool == null {
             error = parser_workers_open_result(&workers, anchor, capacity);
             if error != WorkBudgetError.None { return error; }
@@ -219,10 +219,18 @@ export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool 
 export fn lr_analysis_compute_parallel_result(value: LRAnalysis*, anchor: void*): WorkBudgetError {
     if value == null { return WorkBudgetError.Invalid; }
     var capacity = compiler_worker_capacity(anchor);
-    if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain { return lr_analysis_compute_result(value); }
-    var useful = value.nonterminal_count / LRFirstGrain;
-    if capacity > useful { capacity = useful; }
-    var error = lr_analysis_work_result(value, anchor, capacity);
+    var error = WorkBudgetError.None;
+    if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain {
+        error = lr_analysis_first_result(value);
+    } else {
+        var useful = value.nonterminal_count / LRFirstGrain;
+        if capacity > useful { capacity = useful; }
+        error = lr_analysis_work_result(value, anchor, capacity);
+    }
+    if error == WorkBudgetError.None {
+        var budget = anchor == null ? null : compiler_world_work_budget(compiler_node_world(anchor));
+        error = lr_suffix_index_result(value, budget);
+    }
     value.failed = error != WorkBudgetError.None;
     return error;
 }

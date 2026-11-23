@@ -16,6 +16,26 @@ fn lr_fixture_rule(rules: vector(LRProduction)*, owner: usize, begin: usize, cou
 fn lr_fixture_symbol(symbols: vector(LRSymbol)*, owner: usize, first: u32, last: u32): void {
     var symbol: LRSymbol; symbol.nonterminal = owner; symbol.first = first; symbol.last = last; oracle_append(symbols, &symbol);
 }
+// Nullable suffixes, left recursion and distinct overlapping terminal ranges.
+// The root and recursive A production repeatedly request the same suffix with
+// different incoming lookaheads, including the propagation and end markers.
+fn lr_suffix_fixture(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, nullable: bool): usize {
+    lr_fixture_rule(rules, 0, symbols.length, 3);
+    lr_fixture_symbol(symbols, 1, 0, 0); lr_fixture_symbol(symbols, 2, 0, 0); lr_fixture_symbol(symbols, 3, 0, 0);
+    lr_fixture_rule(rules, 1, symbols.length, 2);
+    lr_fixture_symbol(symbols, 1, 0, 0); lr_fixture_symbol(symbols, 2, 0, 0);
+    lr_fixture_rule(rules, 1, symbols.length, 0);
+    lr_fixture_rule(rules, 2, symbols.length, 1); lr_fixture_symbol(symbols, oracle_none(), 10, 20);
+    lr_fixture_rule(rules, 2, symbols.length, nullable ? 0 : 1);
+    lr_fixture_rule(rules, 3, symbols.length, 1); lr_fixture_symbol(symbols, oracle_none(), 15, 25);
+    lr_fixture_rule(rules, 3, symbols.length, 1); lr_fixture_symbol(symbols, 2, 0, 0);
+    // A second production can borrow the same symbol span with a shorter end.
+    // A suffix index must use production identity, not just the symbol offset.
+    lr_fixture_rule(rules, 0, 0, 2);
+    var names: usize = 0;
+    foreach(var &rule in rules) { if rule.owner >= names { names = rule.owner + 1; } }
+    return names;
+}
 // Exercise odd/even heap boundaries and differently ordered private closures.
 // The independent oracle uses sorted insertion, not the production heap repair.
 fn lr_closure_order_cases(): void {
@@ -65,6 +85,13 @@ fn lr_closure_order_cases(): void {
 }
 fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
+    for(var nullable: usize = 0; nullable < 2; nullable++) {
+        var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+        var names = lr_suffix_fixture(&rules, &symbols, nullable != 0);
+        lr_check_graph(&rules, &symbols, names, current_contract);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Nullable suffix fixture cleanup");
     lr_closure_order_cases();
     utility_check(tower_test_buffer_count() == baseline, "Closure order fixture cleanup");
     // Every terminal reaches a distinct shifted core, then revisits all of

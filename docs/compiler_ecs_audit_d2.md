@@ -3006,3 +3006,28 @@ The single proposed B1 follow-up is immutable per-analysis suffix FIRST/nullable
 reuse with bounded storage and exact incoming lookahead handling; its gain is
 unmeasured. No new D1 registration, production ownership transfer, broad audit
 count, race-freedom claim or final all-core acceptance is implied.
+
+## Suffix-FIRST implementation / D1 adoption — frozen 2e77d747
+
+Full changed-file review, public-bootstrap dependency build and focused checks;
+production sources retain B1's state-core changes. Hashes below are final before
+publication reconciliation. Evidence and preserved failed/noisy experiments are
+in the journal's D2 suffix-FIRST receipt and build/d2_ecs/lr_suffix.
+
+| Changed Tower file / SHA256 | Storage, world, scheduling, ownership and disposition |
+| --- | --- |
+| `scaffolding/compiler/lr_analysis.tower` — `3d99bd416a81c84f3a793818e987bce0f7c89eedffb86a1e5c3daab6fd10ca3c` (988 lines) | One derived index per analysis, typed pointer and two WorkBuffers; count/alignment/overflow checked. Production bases handle overlapping spans. Partial storage rolls back, completed rows/ranges are immutable, analysis destroys owner after readers join. Exact overlapping ranges/propagation/nullable behavior and deferred Invalid preserved. Standalone null budget explicit; remaining raw LR descriptors/FIRST/scratch are outside this subtotal. Full-file review includes unchanged closure ordering/indexes and lookahead propagation; no second semantic authority or interning-order change. |
+| `scaffolding/compiler/lr_first_work.tower` — `cc3cbd674bb5e923a4092b76b453cd29a54890cccedb04bde129b6c5117c71cf` (236 lines) | Narrow parallel frontiers call serial FIRST only; outer completion builds the index with the world budget after all producer joins. Existing frozen snapshots, disjoint ranges, graph tickets, lane grants, private errors, typed failures and drain order preserved. Native exact equivalence/rendezvous passes. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `b7efe4418dd010afb7404494de84512c9a1cc1396e78329c7c6b8c2f80452a23` (183 lines) | Extends existing serial profile with the actual closure caller and independent oracle.32 seeds/2000 rounds define fixture data; bounds derive from arrays/types. Checks every ordered result outside timed interval, releases all owners, requires counter-safe serial transport. Cold/installed entries unchanged; no real-worker counter use. |
+| `scaffolding/tests/frontend_main.tower` — `e3c7da9333576fab424c9fc1601cf5ef9a9c5731b1b7b490adaca6f0c7978e2e` (148 lines) | Adds only lr-suffix selector, preserving all B1 entries and lr-order failure checks. Reuses existing target/transport; no D1 generic harness or manifest change. Full entry/default path reviewed. |
+| `scaffolding/tests/lr_analysis_comparisons.tower` — `0e153cc0989355ba78f811adf357e0a654f790b1c895151ed96e05d8b639c129` (173 lines) | Nullable/nonnullable recursive range fixtures, shared symbol spans with distinct ends, names/counts derived from data. Existing independent oracle compares full items/states/actions/probes, not queue width. B1 duplicate-core cases and150 random trials preserved; all temporary graphs/buffers retire. |
+| `scaffolding/tests/lr_analysis_failures.tower` — `ea36898c5ee7d344873fa0fb233b650967907c28be88c154cf1cfbe649b72acf` (313 lines) | Finite world-budget exhaustion returns Capacity before publishing index; same-analysis retry/reuse and408-byte charged census, final zero grants/buffers. Allocation sweep now checks same-analysis recovery, and a reached invalid suffix must fail after FIRST deliberately accepted its unreachable tail. Serial instrumentation only. Unchanged runtime/control/probe failure helpers reviewed; broad control allocation sweep was not rerun in this batch. |
+
+Pinned Deck medians cold1.65->1.60s and installed1.78->1.72s; caller17.858->16.701ms
+for2000 checked closures. Peak ledger grows30656B, final retained bytes unchanged.
+The initial unpinned installed regression and all outliers remain visible in the
+journal. Normal native LR equivalence passes; the1000-body workers1/2 control is
+only modestly faster with increased CPU, not final all-core acceptance. No ABI
+export additions, persistent cache, cross-world sharing, hardware-counter claim
+or universal race-freedom claim. Full integrated sanitizers/platform/bootstrap/
+browser/generation/deployment remain ROOT's pending milestone.

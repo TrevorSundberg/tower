@@ -16,7 +16,7 @@ fn body_runs_trial_output(source: u8*, budget: usize, width: u32, bedrock: u8*, 
     var batch = frontend_units_create(1, budget, width, 81, 23, bedrock, foundation, root);
     units_check(batch is not null, "Body continuation batch");
     defer frontend_units_close(batch);
-    units_check(frontend_units_source(batch, 1, "continuations.tower", source, strlen(source)), "Body continuation source");
+    units_check(units_source(batch, 1, root, "/continuations.tower", source, strlen(source)), "Body continuation source");
     while !frontend_units_step(batch, true) {}
     if frontend_units_failed(batch) != 0 {
         puts(frontend_units_error(batch));
@@ -69,7 +69,7 @@ fn body_runs_diagnostic(budget: usize, bedrock: u8*, foundation: u8*, root: u8*,
     if structural {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a:i32=1; a++; var b=id(a); b++; return id(unknownFirst);} fn later():i32 {return unknownSecond;}";
     }
-    units_check(frontend_units_source(batch, 1, "diagnostic.tower", source, strlen(source)), "Body diagnostic source");
+    units_check(units_source(batch, 1, root, "/diagnostic.tower", source, strlen(source)), "Body diagnostic source");
     while !frontend_units_step(batch, true) {}
     units_check(frontend_units_failed(batch) == 1 && strstr(frontend_units_error(batch), "unknownFirst") is not null && strstr(frontend_units_error(batch), "unknownSecond") is null, "Earlier resumed body diagnostic wins");
 }
@@ -82,7 +82,7 @@ fn body_runs_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, earl
     if earlier_fails {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return unknownFirst;} fn later():i32{var invalid:bad(i32);return 0;}";
     }
-    units_check(frontend_units_source(batch, 1, "cycle.tower", source, strlen(source)), "Body layout-cycle source");
+    units_check(units_source(batch, 1, root, "/cycle.tower", source, strlen(source)), "Body layout-cycle source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1, "Body layout-cycle failure");
@@ -98,7 +98,7 @@ fn body_runs_nested_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8
     units_check(batch is not null, "Nested error batch");
     defer frontend_units_close(batch);
     var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a:i32=1; {var b=id(a); b++; {var c=id(b); return unknownNested;}}} fn later():i32{return unknownSecond;}";
-    units_check(frontend_units_source(batch, 1, "nested_error.tower", source, strlen(source)), "Nested error source");
+    units_check(units_source(batch, 1, root, "/nested_error.tower", source, strlen(source)), "Nested error source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownNested") is not null && strstr(error, "unknownSecond") is null, "Earlier nested error wins across resumptions");
@@ -109,7 +109,7 @@ fn body_runs_control_error(budget: usize, bedrock: u8*, foundation: u8*, root: u
     units_check(batch is not null, "Control error batch");
     defer frontend_units_close(batch);
     var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {loop {var a=id(1); if a>0 {var b=id(a); {var c=id(b); return unknownControl;}} break;} return 0;} fn later():i32{return unknownSecond;}";
-    units_check(frontend_units_source(batch, 1, "control_error.tower", source, strlen(source)), "Control error source");
+    units_check(units_source(batch, 1, root, "/control_error.tower", source, strlen(source)), "Control error source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownControl") is not null && strstr(error, "unknownSecond") is null, "Earlier control-body error wins across resumptions");
@@ -120,7 +120,7 @@ fn body_runs_header_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8
     units_check(batch is not null, "Header error batch");
     defer frontend_units_close(batch);
     var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a=id(1); if id(unknownHeader)>0 {return a;} return 0;} fn later():i32{return unknownSecond;}";
-    units_check(frontend_units_source(batch, 1, "header_error.tower", source, strlen(source)), "Header error source");
+    units_check(units_source(batch, 1, root, "/header_error.tower", source, strlen(source)), "Header error source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownHeader") is not null && strstr(error, "unknownSecond") is null, "Failed header preparation releases its lexical state and preserves error order");
@@ -134,7 +134,7 @@ fn body_runs_header_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8
     if earlier_fails {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return unknownFirst;} fn later():i32{if sizeof(bad(i32))>0{return 1;}return 0;}";
     }
-    units_check(frontend_units_source(batch, 1, "header_cycle.tower", source, strlen(source)), "Header cycle source");
+    units_check(units_source(batch, 1, root, "/header_cycle.tower", source, strlen(source)), "Header cycle source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1, "Header construction cycle fails");
@@ -160,7 +160,7 @@ fn body_runs_surface_error(budget: usize, bedrock: u8*, foundation: u8*, root: u
     if mode == BodyLoopFailure.ForInitialExpression {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {for(id(unknownLoop); false;) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
     }
-    units_check(frontend_units_source(batch, 1, "loop_error.tower", source, strlen(source)), "Loop header error source");
+    units_check(units_source(batch, 1, root, "/loop_error.tower", source, strlen(source)), "Loop header error source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyLoopFailure.ForCondition ? "Recursive by-value layout": "unknownLoop") is not null && strstr(error, "unknownSecond") is null, "Loop header failure preserves scopes, cleanup and error order");
@@ -187,7 +187,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     if mode == BodyArmFailure.IterationBody {
         source = "import tower; import library.vector; fn id(T:type,x:T):T{return x;} fn first(values:vector(i32)*):i32 {foreach(var item in values) {var a=id(item);return unknownMatch;} return 0;} fn later():i32{return unknownSecond;}";
     }
-    units_check(frontend_units_source(batch, 1, "arm_error.tower", source, strlen(source)), "Match/defer/iteration diagnostic source");
+    units_check(units_source(batch, 1, root, "/arm_error.tower", source, strlen(source)), "Match/defer/iteration diagnostic source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyArmFailure.DuplicatePattern ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
@@ -324,7 +324,7 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         source = "import tower;enum First:u8{last=255,next}enum Later:u8{unknownLater,unknownLater}";
         diagnostic_text = "Enum discriminant overflow";
     }
-    units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
+    units_check(units_source(batch, 1, root, "/local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
     if frontend_units_failed(batch) == 0 || strstr(error, diagnostic_text) == null { puts(error); }
@@ -372,6 +372,38 @@ fn body_runs_control_smoke(root: u8*): void {
     body_runs_smoke_select(root, BodySmokeKind.Control);
 }
 
+// Run from the resource directory with either '.' or its absolute spelling.
+// Ordinary and quoted imports of one path share identity; distinct files do not.
+fn body_runs_resource_roots(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&canonical);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var source = "import tower; import './tower.tower'; import library.vector as v; import tests.worker_modules.left as left; import tests.worker_modules.right as right; var a:left.Item=default; var b:right.Item=default; a.value=left.seed; b.value=right.seed; var values:v.vector(u64)=default; if !v.vector_push(&values,a.value+b.value){trap(\"resource vector\",0);} print(values.data[0]); v.vector_dispose(&values);";
+    body_runs_trial_output(source, 1, 8, bedrock.data, foundation.data, root, &canonical, "10\n");
+    body_runs_trial_output(source, 4, 8, bedrock.data, foundation.data, root, &canonical, "10\n");
+    units_check(vector_push(&canonical, 0), "Resource canonical terminator");
+    canonical.length--;
+    body_runs_trial_output(canonical.data, 4, 8, bedrock.data, foundation.data, root, &canonical, "10\n");
+    var ambiguous = "import tower; import tests.worker_modules.left; import tests.worker_modules.right; var value:Item;";
+    for(var workers: usize = 1; workers <= 4; workers *= 4) {
+        var batch = frontend_units_create(1, workers, 8, 81, 23, bedrock.data, foundation.data, root);
+        units_check(batch != null, "Distinct module identity batch");
+        defer frontend_units_close(batch);
+        units_check(units_source(batch, 1, root, "/resource_identity.tower", ambiguous, strlen(ambiguous)), "Distinct module identity source");
+        while !frontend_units_step(batch, true) {}
+        puts(frontend_units_error(batch));
+        units_check(frontend_units_failed(batch) == 1
+            && strstr(frontend_units_error(batch), "Ambiguous imported name 'Item'") != null,
+            "Distinct explicit imports retain their own nominal definitions");
+    }
+    puts("Resource roots: aliases, canonical reparse, execution and distinct module identity passed.");
+}
+
 fn body_runs_defer_depth(root: u8*, bedrock: u8*, foundation: u8*): void {
     var source: vector(u8) = default;
     var diagnostic: vector(u8) = default;
@@ -394,7 +426,7 @@ fn body_runs_defer_depth(root: u8*, bedrock: u8*, foundation: u8*): void {
         var batch = frontend_units_create(1, budget, 8, 1, 1, bedrock, foundation, root);
         units_check(batch != null, "Deferred depth batch");
         defer frontend_units_close(batch);
-        units_check(frontend_units_source(batch, 1, "defer_depth.tower", source.data, source.length - 1), "Deferred depth source");
+        units_check(units_source(batch, 1, root, "/defer_depth.tower", source.data, source.length - 1), "Deferred depth source");
         while !frontend_units_step(batch, true) {}
         var error = frontend_units_error(batch);
         if frontend_units_failed(batch) != 1 || strstr(error, "defer expansion exceeds") == null { puts(error); }

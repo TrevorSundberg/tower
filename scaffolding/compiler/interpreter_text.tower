@@ -1,0 +1,31 @@
+import tower;
+import interpreter_types;
+import .library.work_vector_types;
+import .library.work_text;
+import .library.work_budget_types;
+
+// Diagnostics are optional presentation of an already terminal first failure.
+// Neither reporting that failure nor a later append may replay an effect.
+fn im_text_fail(machine: IMState*, error: work_vector(u8)*, text: u8*, count: usize, offset: usize): void {
+    if machine.failed { return; }
+    machine.failed = true;
+    machine.done = true;
+    machine.error_offset = offset;
+    var result = work_text_write(error, machine.budget, text, count, false);
+    if machine.storage_error == WorkBudgetError.None { machine.storage_error = result; }
+}
+
+fn im_text_append(machine: IMState*, output: work_vector(u8)*, error: work_vector(u8)*, text: u8*, count: usize): void {
+    if machine.failed { return; }
+    var result = count > ~convert(usize, 0) - machine.output_bytes ? WorkBudgetError.Invalid
+        : work_text_write(output, machine.budget, text, count, true);
+    if result != WorkBudgetError.None {
+        if machine.storage_error == WorkBudgetError.None { machine.storage_error = result; }
+        var message = "Cannot allocate interpreter output";
+        var length: usize = 0;
+        while message[length] != 0 { length++; }
+        im_text_fail(machine, error, message, length, 0);
+        return;
+    }
+    machine.output_bytes += count;
+}

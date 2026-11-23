@@ -3609,3 +3609,40 @@ histories without conflicts. Later ownership/scratch implementations and receipt
 remain outside the c20 review. In particular, its confirmed budget defect is a
 statement about c20, not a verdict on the subsequent fix. No heavy revalidation
 or new census was started; final merged documentation checks retain this freeze.
+
+### D1 exact Semantics imports and resource-root fixture correction (2026-11-23)
+
+Source review frozen at `3dc3251ea97ef6c83557fb318bcf1021a1cd6a86` plus this
+bounded delta. This does not reopen the accepted census or completion ledger.
+
+| Changed path | Substantive receipt / disposition |
+| --- | --- |
+| `scaffolding/tools/bootstrap_symbols.tower` | Admit exactly `entity_stage_create_result` and `work_arena_append` for Semantics. The former is the checked stage-owned producer called by semantic_control::sem_control_node and semantic_defer::sem_defer_clone; failures retain their typed cause/source position, and failed staged nodes remain stage-owned. The latter is the existing same-budget, joined-owner chunk transfer used by semantic_support::sem_scratch_append, then body/declaration/iteration publication; it empties the source links without copying payloads or allocating grants. Both are owned Tower exports, not foreign exceptions. No prefix allowance or unrelated unit permission added. |
+| `scaffolding/tests/bootstrap_symbols_checks.tower` | Reuse symbol_admission_cases for both exact names: positive Linux/Windows/Wasm/macOS policy spellings and negative truncated/suffixed/wrong-unit/Entities cases. Target strings exercise policy only, not those platforms. Existing unexpected-import and first-rejection cases preserved. |
+| `scaffolding/tests/frontend_units.tower` | Factor the existing resource-path join into units_path; units_source uses it for virtual filenames. frontend_units_source snapshots the path before the local vector is disposed, so no borrowed path survives its owner. Counts derive from actual strings. No realpath/symlink resolution, filesystem identity merge or production module resolver change. |
+| `scaffolding/tests/body_runs.tower` | Anchor every existing virtual body source to its RESOURCE_ROOT. A bare continuations.tower found relative tower/types from the working directory, while vector's nested import fell back to the absolute library root, loading a second lexical prelude and making i32 ambiguous. New focused case checks ordinary plus quoted same-path imports, aliased vector and distinct left/right nominal Item definitions, known output10, workers1/4 canonical equality and reparse. Removing the aliases must fail on Item for both worker counts; distinct files remain distinct. Existing continuations, cleanup, cycles and ordered-error assertions are preserved. |
+| `scaffolding/tests/lr_work_main.tower` | Add explicit native resource-roots selector using the existing body fixture/interpreter/formatter. No duplicate all-selector execution, new runner or compiler implementation. Worker counts alone are not an observed-overlap/scaling receipt. |
+
+Producer/caller trace also reads library/entity_stage, work_arena/API;
+compiler/semantic_context, semantic_control, semantic_defer, semantic_support,
+semantic_body_work, semantic_declarations, semantic_iteration_work, frontend_units
+and frontend_modules. module_resolve searches the importing lexical directory
+before library fallback; module_path normalizes lexical components, not cwd or
+filesystem aliases. Thus the reproduced absolute-root failure is a fixture input
+identity defect, not an unsupported RESOURCE_ROOT invocation. Explicit distinct
+imports and docs/modules.md lexical identity remain intact.
+
+Focused evidence and limitations are recorded in the matching journal entry and
+`build/d1_ecs/symbol_root_3dc3251/`. The existing native compiler has a recorded
+873f944 provider closure, so the rebuilt fixture is tested against that complete
+verified closure. Current-source tool policy is compiled separately. No receipt
+is relabeled as full 3dc3251 compiler, browser, sanitizer or generation acceptance;
+ROOT retains those integrated checks and deployment.
+
+Final focused results: absolute and relative control-smoke both pass, preserving
+execution/canonical reparse/cleanup/ordered errors; resource-roots passes both
+spellings with serial/four-worker aliases and the distinct-import negative.
+Native exact-symbol positive and suffix negatives, existing policy cases and the
+recorded cached Semantics object's undefined list pass their expected outcomes.
+Original absolute exit134 remains a failed before receipt. Current scratch-object
+policy verification and integrated current-compiler runs remain ROOT/B1's action.

@@ -28,6 +28,7 @@ struct UnitsProfileEvents { spans: UnitsProfileSpan*; count: usize; phases: usiz
 var UnitsProfileMaximumUnits: usize = 32;
 var UnitsProfileMaximumBodies: usize = 4096;
 var UnitsProfileBodyBands: usize = 4;
+var UnitsProfileTransientUnits: usize = 4;
 var UnitsProfileFrontendPhase: usize = 0;
 var UnitsProfileBackendPhase: usize = 1;
 extern fn clock_gettime(clock: i32, out: UnitsProfileTime*): i32;
@@ -122,13 +123,15 @@ fn units_profile_result(function: void*, arguments: u64*, count: usize): void {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    if argc < 5 || argc > 7 || sizeof(usize) != 8 { return 2; }
+    if argc < 5 || argc > 8 || sizeof(usize) != 8 { return 2; }
     units_check(work_thread_available(), "profile requires production native worker transport");
     var backend_mode = false;
     var spread = false;
+    var optimize = false;
     for(var i: i32 = 5; i < argc; i++) {
         if strcmp(argv[i], "backend") == 0 && !backend_mode { backend_mode = true; }
-        else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; } else { return 2; } }
+        else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; }
+        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } }
     }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
@@ -179,9 +182,9 @@ export fn main(argc: i32, argv: u8**): i32 {
     var after: UnitsProfileUsage;
     units_check(getrusage(0, &before) == 0, "profile before usage");
     var started = units_profile_clock();
-    // This many-world profile has an explicit per-input ceiling plus one unit
-    // of transient headroom. The production driver's project limit is unchanged.
-    var retained_limit = (count + 1) * DriverUnitRetainedByteLimit;
+    // This many-world profile has an explicit per-input ceiling plus transient
+    // headroom. The production driver's project limit is unchanged.
+    var retained_limit = (count + UnitsProfileTransientUnits) * DriverUnitRetainedByteLimit;
     var batch = frontend_units_create_bounded(count, budget, retained_limit,
         8, 81, 19, bedrock.data, foundation.data, argv[1]);
     units_check(batch != null, "profile batch");
@@ -195,7 +198,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     var backend: void* = null;
     if backend_mode {
-        backend = backend_units_create(batch, count, budget, "x86_64-pc-linux-gnu", true, false);
+        backend = backend_units_create(batch, count, budget, "x86_64-pc-linux-gnu", true, optimize);
         units_check(backend != null, "profile bounded streaming backend");
         units_check(backend_units_retain_ir(backend, false), "profile object-only IR policy");
         units_check(backend_units_observer(backend, bits(void*, &backend_events), units_profile_backend_event), "profile backend observer");
@@ -343,6 +346,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_profile_text(&out, ",\"budget\":"); units_profile_number(&out, convert(u64, budget));
     units_profile_text(&out, ",\"bodies\":"); units_profile_number(&out, convert(u64, bodies));
     units_profile_text(&out, ",\"backend\":"); units_profile_number(&out, backend_mode ? 1 : 0);
+    units_profile_text(&out, ",\"optimized\":"); units_profile_number(&out, optimize ? 1 : 0);
     units_profile_text(&out, ",\"spread\":"); units_profile_number(&out, spread ? 1 : 0);
     units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, elapsed);
     units_profile_text(&out, ",\"cpu_us\":"); units_profile_number(&out, units_profile_cpu(&after) - units_profile_cpu(&before));

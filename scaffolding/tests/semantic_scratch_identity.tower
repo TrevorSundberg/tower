@@ -1,0 +1,121 @@
+import tower;
+import generic_result_storage;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_tags;
+import .library.vector;
+import .library.work_budget;
+import .library.work_arena_api;
+
+extern fn sem_scratch_private(context: SemanticContext*, parent: SemanticContext*): void;
+extern fn sem_scratch_append(context: SemanticContext*, source: SemanticScratch*): void;
+extern fn sem_scratch_find(scratch: SemanticScratch*, value: vector(void*)*, probes: usize*): SemanticScratchList*;
+
+fn semantic_scratch_identity_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Identity test owner");
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    var parent: SemanticContext = {program: &program, ..default};
+    var child: SemanticContext = {program: &program, ..default};
+    sem_scratch_private(&child, &parent);
+    var lists: vector(void*)*[1024];
+    var count = sizeof(decltype(lists)) / sizeof(vector(void*)*);
+    var bound = sizeof(usize) * convert(usize, IntegerByteWidth) + 1;
+    var maximum: usize = 0;
+    var total: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        var owner = i % 2 == 0 ? &parent : &child;
+        lists[i] = sem_list(owner);
+        utility_check(lists[i] != null && sem_push_checked(owner, lists[i], root), "Register each checked list");
+    }
+    var foreign: vector(void*) = default;
+    utility_check(sem_push_checked(&child, &foreign, root), "Ordinary vector has no hidden scratch header");
+    vector_dispose(&foreign);
+    utility_check(sem_push_checked(&child, &child.scan, root), "Private scan uses its explicit buffer");
+    var parent_index = parent.scratch.index;
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(0);
+    // Reverse traversal revisits early and late identities in both lexical owners.
+    // Already admitted list capacity makes lookup/registration independence from
+    // allocation observable, including borrowed parent pushes and the join.
+    for(var i = count; i != 0; i--) {
+        var at = i - 1;
+        var owner = at % 2 == 0 ? &parent : &child;
+        var probes: usize = 0;
+        var found = sem_scratch_find(&owner.scratch, lists[at], &probes);
+        utility_check(found != null && &found.value == lists[at] && probes <= bound,
+            "Many live lists have pointer-width-bounded identity lookup");
+        total += probes;
+        if probes > maximum { maximum = probes; }
+        utility_check(sem_push_checked(&child, lists[at], root), "Lexical parent lookup keeps the original buffer owner");
+    }
+    utility_check(parent.scratch.index == parent_index, "Borrowed parent lookup does not change its index");
+    sem_scratch_append(&parent, &child.scratch);
+    sem_scratch_append(&parent, &parent.scratch);
+    utility_check(program.resource.error == WorkBudgetError.None && child.scratch.index == null
+        && child.scratch.first == null && child.scratch.arena.first == null, "Joined transfer empties the source owner");
+    for(var i: usize = 0; i < count; i++) {
+        var probes: usize = 0;
+        var found = sem_scratch_find(&parent.scratch, lists[i], &probes);
+        utility_check(found != null && &found.value == lists[i] && probes <= bound
+            && sem_push_checked(&parent, lists[i], root) && lists[i].length == 3,
+            "Transferred identities preserve storage, values and bounded lookup");
+        total += probes;
+        if probes > maximum { maximum = probes; }
+    }
+    var probes: usize = 0;
+    utility_check(sem_scratch_find(&parent.scratch, &foreign, &probes) == null && probes <= bound,
+        "Nonmember identity has the same bounded lookup contract");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(tower_test_buffer_allocations() == calls, "Indexed borrowing and joined transfer allocate nothing");
+    var tail = parent.scratch.arena.last;
+    var remaining = tail.storage.capacity - tail.used;
+    var padding: u8* = null;
+    if remaining != 0 {
+        utility_check(work_arena_allocate_result(&parent.scratch.arena, remaining, 1, &padding) == WorkBudgetError.None,
+            "Registration denial starts at an actual arena boundary");
+    }
+    var saved_index = parent.scratch.index;
+    var saved_last = parent.scratch.last;
+    tower_test_buffer_fail_after(0);
+    utility_check(sem_list(&parent) == null && program.resource.error == WorkBudgetError.Memory
+        && parent.scratch.index == saved_index && parent.scratch.last == saved_last && saved_last.next == null,
+        "Denied descriptor cannot publish half an ownership registration");
+    calls = tower_test_buffer_allocations();
+    utility_check(sem_list(&parent) == null && tower_test_buffer_allocations() == calls
+        && program.resource.error == WorkBudgetError.Memory
+        && sem_scratch_find(&parent.scratch, lists[0], &probes) != null && probes <= bound
+        && sem_scratch_find(&parent.scratch, lists[count - 1], &probes) != null && probes <= bound,
+        "Terminal retry retains the first failure and both prior index endpoints");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    puts("Scratch identity: list count, total probes, maximum probes, live bytes, peak bytes");
+    generic_clone_number(count); generic_clone_number(total); generic_clone_number(maximum);
+    generic_clone_number(budget.used_bytes); generic_clone_number(budget.peak_bytes);
+    sem_context_dispose(&child);
+    sem_context_dispose(&parent);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Joined identity index and list storage release every owner and grant");
+}
+
+fn semantic_scratch_focused_tests(): void {
+    semantic_scratch_identity_tests();
+    var unlimited = ~convert(usize, 0);
+    for(var tag = convert(u32, ScratchAdmissionOperation.Initialize); tag < convert(u32, ScratchAdmissionOperation.Count); tag++) {
+        var operation = convert(ScratchAdmissionOperation, tag);
+        var calls = semantic_scratch_storage_trial(operation, unlimited, false);
+        for(var allowed: usize = 0; allowed < calls; allowed++) { semantic_scratch_storage_trial(operation, allowed, false); }
+        semantic_scratch_storage_trial(operation, unlimited, true);
+    }
+    semantic_scratch_table_atomicity();
+}

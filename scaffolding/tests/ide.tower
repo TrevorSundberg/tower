@@ -412,7 +412,8 @@ fn ide_test_resource_width(width: u32): IdeResourceCheck {
         || !ide_test_contains(tw_exec_foundation(handle), "\"status\":\"error\"") {
         return IdeResourceCheck.Artifact;
     }
-    if tw_exec_prepare_package(handle, 0) != 0 || tw_exec_bytecode_size() != 0
+    var package_bytes = tw_exec_bytecode_size();
+    if tw_exec_prepare_package(handle, 0) != 0 || tw_exec_bytecode_size() != package_bytes
         || tw_exec_bytecode_data() != null { return IdeResourceCheck.Package; }
     if session.program.resource.error != WorkBudgetError.Capacity || session.program.resource.offset != offset
         || !ide_test_same(tw_last_error(), sem_resource_message(WorkBudgetError.Capacity))

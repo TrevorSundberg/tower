@@ -6,6 +6,12 @@ import .compiler.frontend_revision_types;
 import .compiler.format_types;
 import .library.vector;
 import .library.work_budget;
+import lr_analysis_comparisons;
+import lr_analysis_api;
+import lr_analysis_oracle;
+import lr_analysis_oracle_types;
+import lr_graph_checks;
+import .compiler.lr_types;
 
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
@@ -55,6 +61,52 @@ fn iteration_report(profile: IterationProfile*): void {
         units_check(dprintf(2, "grammar wall_ns=%zu phase=%u calls=%u\n", convert(usize, profile.elapsed[index]),
             convert(u32, index), convert(u32, profile.calls[index])) >= 0, "Iteration phase output");
     }
+}
+
+// Focused caller measurement, using the independent sorted-insertion oracle.
+// Only production closure construction is timed; reference checking is outside.
+fn frontend_suffix_profile(): void {
+    units_check(!work_thread_available(), "Suffix profile uses serial counters");
+    var baseline = tower_test_buffer_count();
+    var rules: vector(LRProduction) = default;
+    var symbols: vector(LRSymbol) = default;
+    defer {
+        vector_dispose(&rules); vector_dispose(&symbols);
+        units_check(tower_test_buffer_count() == baseline, "Suffix profile cleanup");
+    }
+    var names = lr_suffix_fixture(&rules, &symbols, true);
+    var analysis = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    units_check(analysis != null && oracle != null && lr_analysis_compute(analysis)
+        && oracle_analysis_compute(oracle), "Suffix profile FIRST");
+    defer lr_analysis_destroy(analysis); defer oracle_analysis_destroy(oracle);
+    var reference = oracle_items_create(); defer oracle_items_destroy(reference);
+    var seeds: LRItem[32] = default;
+    var count = sizeof(decltype(seeds)) / sizeof(LRItem);
+    for(var i: usize = 0; i < count; i++) {
+        var lookahead = i == 0 ? LRTokenPropagation : (i == 1 ? LRTokenEnd : convert(u32, 100 + i));
+        seeds[i] = {rule: 0, position: 0, first: lookahead, last: lookahead};
+        oracle_item_insert(&reference.values, &seeds[i]);
+    }
+    oracle_items_close(oracle, reference, true);
+    var rounds: usize = 2000;
+    var elapsed: u64 = 0;
+    var allocations = tower_test_buffer_allocations();
+    for(var round: usize = 0; round < rounds; round++) {
+        var items = lr_items_create(); units_check(items != null, "Suffix profile items");
+        defer lr_items_destroy(items);
+        for(var i: usize = 0; i < count; i++) {
+            units_check(lr_items_insert(items, &seeds[i]), "Suffix profile seed");
+        }
+        var started = iteration_clock();
+        units_check(lr_items_close(analysis, items, true), "Suffix profile closure");
+        elapsed += iteration_clock() - started;
+        lr_check_items(items, reference);
+    }
+    units_check(dprintf(2, "suffix closure_ns=%zu rounds=%u items=%u\n", convert(usize, elapsed),
+        convert(u32, rounds), convert(u32, reference.values.length)) >= 0
+        && dprintf(2, "suffix allocation_calls=%zu\n", tower_test_buffer_allocations() - allocations, 0, 0) >= 0,
+        "Suffix profile report");
 }
 
 // Isolate the ordinary frontend_compile_sources path from the full suite's

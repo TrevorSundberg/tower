@@ -12,6 +12,7 @@ import foundation_tags;
 import interpreter_context_types;
 import type_primitives;
 import .library.vector;
+import .library.work_text;
 import .library.work_graph;
 import .library.work_budget_types;
 
@@ -172,13 +173,9 @@ fn sem_type_execution_current(c: SemanticContext*, state: SemanticTypeExecution*
 fn sem_type_execution_error(c: SemanticContext*, request: IMTypeConstruction*, message: u8*): void {
     var length: usize = 0;
     while message[length] != 0 { length++; }
-    if !vector_reserve(&request.error, length + 1) {
-        sem_type_execution_resource(c, request.subject, WorkBudgetError.Memory);
-        return;
-    }
-    copy(request.error.data, message, length + 1);
-    request.error.length = length;
+    if request.failed { return; }
     request.failed = true;
+    request.storage_error = work_text_write(&request.error, request.budget, message, length, false);
 }
 
 fn sem_type_execution_input(c: SemanticContext*, input: FoundationType*): bool {

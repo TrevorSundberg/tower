@@ -29,12 +29,17 @@ struct SemanticScratchList {
     value: vector(void*);
     storage: WorkBuffer;
     next: SemanticScratchList*;
+    // Intrusive digital search tree, keyed by the exact address of value.
+    // Both links live in the descriptor's existing checked arena allocation.
+    index_zero: SemanticScratchList*;
+    index_one: SemanticScratchList*;
 }
 
 struct SemanticScratch {
     arena: WorkArena;
     first: SemanticScratchList*;
     last: SemanticScratchList*;
+    index: SemanticScratchList*;
 }
 
 struct SemanticScope {
@@ -83,10 +88,12 @@ var EditorEnumMembers: u32 = 5;
 // Default resource policy for attached semantic payloads, not a language/node
 // index limit or a bound on the entire process heap. Callers may supply another
 // explicit budget through semantic_compile_budget.
-// The compiler's threaded parser/fixture unit exceeds 64 MiB after aggregate
-// value lowering. This is a lazy payload allowance, not an up-front allocation;
-// hosts with a tighter policy still use semantic_compile_budget explicitly.
-var SemanticComponentBudgetBytes: usize = 134217728;
+// The compiler semantic provider needs 391866 newly attached 344-byte payloads
+// (128.56 MiB), including joined aggregate/expression lowering. Allow 160 MiB
+// with bounded headroom; this is not an up-front allocation. Hosts with tighter
+// policies still use semantic_compile_budget explicitly. Physical world/storage
+// grants and generic expansion quotas remain separate limits.
+var SemanticComponentBudgetBytes: usize = 167772160;
 
 // Optional editor observation of ordinary resolution. The hole is identified by
 // source coordinates, never by a reserved identifier or an independent AST.

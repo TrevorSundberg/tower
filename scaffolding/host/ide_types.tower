@@ -4,6 +4,7 @@ import .library.vector;
 import .compiler.host_handle_types;
 import .compiler.semantic_program_types;
 import .compiler.interpreter_types;
+import .library.work_vector_types;
 
 // Transport ownership only. Programs own ordinary Foundation entity roots;
 // the interpreter state contains disposable execution indexes over those roots.
@@ -16,8 +17,8 @@ struct IdeExecution {
     machine: IMState;
     program: SemanticProgram;
     fast: void*;
-    error: ByteBuffer;
-    output: ByteBuffer;
+    error: work_vector(u8);
+    output: work_vector(u8);
     handle: u32;
 }
 
@@ -27,7 +28,6 @@ struct IdeState {
     error_fallback: u8*; // Borrowed static presentation; never freed as a buffer.
     execution: ByteBuffer;
     completion: ByteBuffer;
-    bytecode: u8*;
-    bytecode_size: usize;
+    bytecode: work_vector(u8);
     foundation_error: ByteBuffer;
 }

@@ -3,6 +3,25 @@ import lr_types;
 import lexer_table;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+
+struct LRSuffix {
+    begin: usize;
+    count: usize;
+    nullable: bool;
+    error: WorkBudgetError;
+}
+
+// Derived, immutable after FIRST converges. Production bases distinguish rules
+// that borrow overlapping symbol spans but have different suffix boundaries.
+struct LRSuffixIndex {
+    storage: WorkBuffer;
+    range_storage: WorkBuffer;
+    bases: usize*;
+    entries: LRSuffix*;
+    ranges: vector(SymbolRange);
+}
 
 // Disposable FIRST/nullable and LR item indexes over the shared grammar entities.
 // Character and token streams use the same integer ranges and closure algorithm.
@@ -21,6 +40,8 @@ struct LRAnalysis {
     nonterminals: LRNonterminal*;
     nonterminal_count: usize;
     failed: bool;
+    suffix_ready: bool;
+    suffix: LRSuffixIndex*;
 }
 
 struct LRItems {
@@ -147,6 +168,7 @@ export fn lr_analysis_destroy(value: LRAnalysis*): void {
     if value == null {
         return;
     }
+    lr_suffix_index_dispose(value.suffix);
     var index: usize = 0;
     for(; index != value.nonterminal_count; index++) {
         var item = &value.nonterminals[index];
@@ -221,6 +243,15 @@ export fn lr_analysis_compute(value: LRAnalysis*): bool {
 }
 
 export fn lr_analysis_compute_result(value: LRAnalysis*): WorkBudgetError {
+    var error = lr_analysis_first_result(value);
+    if error == WorkBudgetError.None { error = lr_suffix_index_result(value, null); }
+    if value != null { value.failed = error != WorkBudgetError.None; }
+    return error;
+}
+
+// The parallel FIRST pump may finish a narrow frontier here. Its owning caller
+// publishes suffix storage only after the entire FIRST dependency graph joins.
+fn lr_analysis_first_result(value: LRAnalysis*): WorkBudgetError {
     if value == null { return WorkBudgetError.Invalid; }
     loop {
         var changed: bool = false;
@@ -387,6 +418,19 @@ export fn lr_items_data(value: LRItems*): LRItem* {
 
 fn lr_suffix_result(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: vector(SymbolRange)*): WorkBudgetError {
     var changed: bool = false;
+    if value.suffix_ready && position != 0 && position < rule.count {
+        var suffix = &value.suffix.entries[value.suffix.bases[item.rule] + position - 1];
+        if suffix.error != WorkBudgetError.None { return suffix.error; }
+        var needed = suffix.count + (suffix.nullable ? 1 : 0);
+        if needed < suffix.count { return WorkBudgetError.Invalid; }
+        var error = lr_reserve_result(ranges, needed);
+        if error != WorkBudgetError.None { return error; }
+        if suffix.count != 0 {
+            copy(ranges.data, value.suffix.ranges.data + suffix.begin, suffix.count * sizeof(SymbolRange));
+        }
+        ranges.length = suffix.count;
+        return suffix.nullable ? lr_range_insert_result(ranges, item.first, item.last, &changed) : WorkBudgetError.None;
+    }
     loop {
         if position >= rule.count {
             return lr_range_insert_result(ranges, item.first, item.last, &changed);
@@ -405,6 +449,106 @@ fn lr_suffix_result(value: LRAnalysis*, rule: LRProduction*, position: usize, it
         }
         position++;
     }
+}
+
+fn lr_suffix_index_dispose(index: LRSuffixIndex*): void {
+    if index == null { return; }
+    work_buffer_dispose(&index.range_storage);
+    var storage = index.storage;
+    work_buffer_dispose(&storage);
+}
+
+fn lr_suffix_range_result(index: LRSuffixIndex*, budget: WorkBudget*, begin: usize,
+    first: u32, last: u32): WorkBudgetError {
+    var needed = index.ranges.length + 1;
+    if needed == 0 { return WorkBudgetError.Invalid; }
+    var error = WorkBudgetError.None;
+    if needed > index.ranges.capacity {
+        error = work_buffer_grow_elements(&index.range_storage, budget, index.ranges.length,
+            index.ranges.capacity, needed, sizeof(SymbolRange), alignof(SymbolRange));
+        if error != WorkBudgetError.None { return error; }
+        index.ranges.data = bits(SymbolRange*, index.range_storage.data);
+        index.ranges.capacity = index.range_storage.capacity / sizeof(SymbolRange);
+    }
+    // Non-owning bounded view: the work buffer reserved the insertion slot, so
+    // the shared exact-range insertion cannot grow or free this borrowed slice.
+    var ranges: vector(SymbolRange) = {data: index.ranges.data + begin,
+        length: index.ranges.length - begin, capacity: index.ranges.capacity - begin};
+    var changed = false;
+    error = lr_range_insert_result(&ranges, first, last, &changed);
+    index.ranges.length = begin + ranges.length;
+    return error;
+}
+
+fn lr_suffix_index_result(value: LRAnalysis*, budget: WorkBudget*): WorkBudgetError {
+    if value.suffix_ready { return WorkBudgetError.None; }
+    var count: usize = 0;
+    for(var i: usize = 0; i < value.rule_count; i++) {
+        if value.rules[i].count > ~convert(usize, 0) - count { return WorkBudgetError.Invalid; }
+        count += value.rules[i].count;
+    }
+    if count == 0 { value.suffix_ready = true; return WorkBudgetError.None; }
+    var maximum = ~convert(usize, 0);
+    if value.rule_count > (maximum - sizeof(LRSuffixIndex)) / sizeof(usize) { return WorkBudgetError.Invalid; }
+    var offset = sizeof(LRSuffixIndex) + value.rule_count * sizeof(usize);
+    var alignment = alignof(LRSuffix);
+    var padding = (alignment - offset % alignment) % alignment;
+    if padding > maximum - offset { return WorkBudgetError.Invalid; }
+    offset += padding;
+    if count > (maximum - offset) / sizeof(LRSuffix) { return WorkBudgetError.Invalid; }
+    var storage: WorkBuffer = default;
+    var error = work_buffer_resize(&storage, budget, offset + count * sizeof(LRSuffix), 0);
+    if error != WorkBudgetError.None { return error; }
+    var index = bits(LRSuffixIndex*, storage.data);
+    *index = default;
+    index.storage = storage;
+    index.bases = bits(usize*, storage.data + sizeof(LRSuffixIndex));
+    index.entries = bits(LRSuffix*, storage.data + offset);
+    var unpublished = index;
+    defer lr_suffix_index_dispose(unpublished);
+    fill(index.entries, 0, count * sizeof(LRSuffix));
+    var base: usize = 0;
+    for(var i: usize = 0; i < value.rule_count; i++) {
+        var rule = &value.rules[i];
+        index.bases[i] = base;
+        for(var at: usize = 0; at < rule.count; at++) {
+            // Closure only requests the suffix following a nonterminal.
+            if value.symbols[rule.begin + at].nonterminal == lr_none() { continue; }
+            var suffix = &index.entries[base + at];
+            suffix.begin = index.ranges.length;
+            suffix.nullable = true;
+            for(var position = at + 1; position < rule.count && suffix.nullable; position++) {
+                var symbol = &value.symbols[rule.begin + position];
+                if symbol.nonterminal == lr_none() {
+                    error = lr_suffix_range_result(index, budget, suffix.begin, symbol.first, symbol.last);
+                    if error != WorkBudgetError.None { return error; }
+                    suffix.nullable = false;
+                } else {
+                    // An invalid unreachable tail must not fail FIRST early.
+                    // Publish its error only when a closure requests this row.
+                    if symbol.nonterminal >= value.nonterminal_count {
+                        suffix.error = WorkBudgetError.Invalid;
+                        suffix.nullable = false;
+                        break;
+                    }
+                    var next = &value.nonterminals[symbol.nonterminal];
+                    foreach(var &range in &next.first) {
+                        error = lr_suffix_range_result(index, budget, suffix.begin, range.first, range.last);
+                        if error != WorkBudgetError.None { return error; }
+                    }
+                    suffix.nullable = next.nullable;
+                }
+            }
+            suffix.count = index.ranges.length - suffix.begin;
+        }
+        base += rule.count;
+    }
+    // No partially built row escapes on denial. Workers copy only a borrow of
+    // these buffers; the analysis owner releases them after every reader joins.
+    value.suffix = index;
+    unpublished = null;
+    value.suffix_ready = true;
+    return WorkBudgetError.None;
 }
 
 // Closure-local membership index. Item order is private until the closure joins;

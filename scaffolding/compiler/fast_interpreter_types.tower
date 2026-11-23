@@ -79,5 +79,7 @@ struct FMState {
     instructions: usize;
     wide_instructions: usize;
     preserve_error_offset: bool;
+    // Retain the provider target without shifting the existing hot cache fields.
+    pointer_bytes: usize;
 }
 

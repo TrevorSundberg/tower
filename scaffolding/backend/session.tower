@@ -146,6 +146,10 @@ fn backend_session_resource_failure(s: BackendSession*): u8* {
 }
 
 export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize): u32 {
+    return backend_session_begin_codegen(s, source, length, BackendCodegen.Default);
+}
+
+export fn backend_session_begin_codegen(s: BackendSession*, source: u8*, length: usize, codegen: BackendCodegen): u32 {
     backend_session_reset(s);
     var invalid = source == null;
     if length > 8388608 {
@@ -162,7 +166,7 @@ export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize):
         }
     }
     s.times[0] = backend_session_clock();
-    s.backend = backend_open(s.target.data);
+    s.backend = backend_open_codegen(s.target.data, codegen);
     if s.backend == null {
         backend_session_failure(s, "Unable to allocate backend storage", 0);
         return 0;
