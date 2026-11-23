@@ -796,7 +796,7 @@ replacement source provenance, semantic ABI syntax changes and grammar reuse.
 
 With `TOWER_WORK_TESTS=ON`, native Linux x64 builds register the ready-index,
 reservation ledger, shared-ledger overlap, admitted kernel dispatch, tool output
-identity, semaphore observer and concurrent entity-stage fixtures through the
+identity, semaphore observer, concurrent entity-stage and retained-buffer fixtures through the
 common Tower object/runtime rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
 allocator; configured object manifests alone are not execution evidence.
 
@@ -804,9 +804,10 @@ allocator; configured object manifests alone are not execution evidence.
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
   tower-work-ready-tests tower-work-budget-tests tower-work-budget-shared-tests \
   tower-work-kernel-admission-tests tower-tool-output-identity-tests \
-  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests
+  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests \
+  tower-work-buffer-tests tower-work-buffer-shared-tests tower-work-buffer-faults-tests
 ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
-  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
+  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission|buffer|buffer-shared|buffer-faults)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
 
 These checks preserve explicit stale/owner receipts, independent budget totals,
@@ -815,7 +816,13 @@ handoffs. Fixed four/eight worker cases are concurrency stress, not the host's
 recommended compilation budget. Failures/timeouts stay failures. Neither the
 historical invalid-memory probe nor the intentional-race probe is registered.
 
-Four measurement targets are excluded from the default build and CTest. Request
+The retained-buffer checks reserve replacement storage while the old allocation
+is still live, preserve owners on denial, transfer receipts with buffers, and
+retain charges after joins/cancellation until disposal. The shared fixture uses
+four real worker threads. The separate faults fixture uses only the existing
+single-owner allocation injector and serial transport; it is not race coverage.
+
+Five measurement targets are excluded from the default build and CTest. Request
 one explicitly, with exclusive host budget and frozen inputs:
 
 ```sh
@@ -823,6 +830,7 @@ cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-sel
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-budget-profile
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-overhead
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-profile
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-buffer-profile
 ```
 
 They check workload results and report timing/memory fields; no timing threshold
@@ -831,6 +839,18 @@ sums do not establish portable host coverage or total live allocator bytes.
 Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
+
+The buffer measurement target supplies `budget 1`. For equivalent baseline and
+accounted runs, invoke `tower-work-buffer-profile-tests baseline 1` and
+`tower-work-buffer-profile-tests budget 1` in that build directory; repeat both
+with `2` for a two-lane host. Supported counts are1/2/4/8. The workload always
+performs262144 replacements and checks the retained bytes independently. Its ten
+fields are workers, budget mode, wall nanoseconds, CPU microseconds, peak RSS KiB,
+observed interval overlap, allocation calls, retained payload bytes, peak charged
+bytes and retained ledger bytes. Timing excludes pool setup and postjoin
+verification/disposal. Charged bytes include the compiler header but exclude
+ledger storage, allocator-private overhead and RSS; this is buffer-accounting
+cost, not evidence of a complete compiler memory limit or useful core scaling.
 
 The Linux x64 worker-test build also provides the opt-in
 `tower-semantic-layout-profile` executable and `tower-measure-semantic-layout`

@@ -49097,3 +49097,42 @@ D2 local affected checks pending next slot; production compiler146 bytes remain
 unchanged, so repeat full compiler performance profiling is not warranted for
 test-only wrappers. Measure affected harness wall/CPU/RSS and exact results
 when executed; no current browser/known acceptance claim from source review.
+
+Root supplied A2 retained-buffer v3 archive3b03fc54 after v2 review: native,
+serial-fault, actual four-thread ASan/TSan owner results now reported; WASI
+pending. Reviewed full delta/profile, integrated exact six files+B2helper07e634
+and D1registration551edc40, no production caller migration. work_vector adds
+init/pop/push_result; edge fixture checks allocation-size overflow/admission,
+0–65byte alignment, denial leaving existing512capacity/257values and pop/push
+identity. Fault puts fixes actual D1 undefined tower_print without runtime shim.
+Profile count grows8192→262144 total reallocations, all expected bytes/count/
+checksum unchanged in meaning, timing excludes setup/postjoin checking/disposal.
+Owner shared-gate contention is explicit:8workers93.7ms vs serial15.6, raw8worker
+baseline3.79. This microbenchmark establishes an overhead problem, not a compiler
+speed result or universal budget design verdict. Actual physical-owner adoption,
+modest-host1/2worker overhead/retention and integration checks remain necessary.
+
+D1 CMake registration uses existing production/work runtime rules and dynamic
+shared/profile callback; faults compose existing serial injector/trap, no second
+memory body. Opt-in profile argument passthrough preserves prior no-argument
+targets. Initial README patch check failed on newer local layout prose before
+any mutation; applied CMake exactly and reconciled only intended README additions,
+preserving newer text and correcting count262144. No generic harness redesign.
+Browser correctedeb0aaa reverse-check confirms exact Captured type-binding
+fixture/source match.
+
+Applied root-reviewed L1inputstorage741b6cb4 afterd982:8/65536byte layouts, final
+i32 projection, same interleaved/nested immutable invocations. Uses shared
+formatter to report peak live snapshot bytes and memory/initialization/metadata
+capacities plus observed growth changes. These are invocation-a step samples,
+not total allocator/RSS/other invocation census. Explicit capacity bounds include
+alignment/frame allowance; completed/retained teardown nulls all owned vectors,
+cancellation/immutable operation checks preserved. New incoming measurement
+snapshot21 reviewed, per-file source SHA39366a25 in D2 audit. Owner3query passes
+are separate; D2 compilation/runtime/supported sanitizer checks pending slot.
+
+Root00:26 assigns D2 frontend_units/module_cache measurement source/entrypoints
+and receipt packaging, B2 exact current source/link composition/symbol handoff,
+D1 opt-in CMake registration. Await concrete recipe instead of inventing another
+native link stack. All source frozen only when next build starts; current D1
+slot remains exclusive. No publication readiness claimed by these integrations.

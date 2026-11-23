@@ -1346,3 +1346,50 @@ transport uses the correct entry path in both Tower and LLVM so relative imports
 resolve, updates three specific observed diagnostics, retains alias as negative
 and does not alter already-correct threaded regex. Current actual browser/backend
 execution still requires final assets. No false pass from source review.
+
+#### Retained-buffer v3 integration and snapshot capacity measurement
+
+Root supplied v3 archive3b03fc54a4d08e3b7913f29e8b9e2da563f385b54be88594343feb0f9388648e.
+Reviewed every delta against six already-read v2 files and reread profile in
+full. Integrated all six plus allocator helper07e634dd and exact D1 CMake
+registration551edc40 after drain; no compiler caller migration yet. New local
+source SHA: work_vector e59bd35405354bd1aa358502cb9d98f62c97bf02e75f799f9078e3535ca43a52,
+work_buffer fixture7d2a2e8d1b61211fefe403a4be07aa2f1bdc1303395a3f49eb2869030c0a695a,
+faults980b01bd1c92201023cbbf9f8b43e01f90164b0c333fe757220bc9bf034cb7a2,
+profilec74c8ede4ef2358c1ebd38b90770fa22087441fee2e18b35f40be3623c6346be.
+work_buffer library/shared fixture unchanged from their preceding exact rows.
+No silently inherited runtime credit for the newer source.
+
+work_vector adds explicit empty initialization, pop and status-returning push;
+ordinary descriptor copies still do not transfer ownership. New tests verify
+allocator size boundary,0–65byte alignment, denied1535-element capacity leaves
+existing512capacity/257values, pop/push roundtrip and empty-pop output stability.
+Fault fixture uses existing puts boundary, fixing D1's actual missing tower_print
+link without a runtime shim. Profile now performs262144 total replacements,
+preserves independent checksum/count/data assertions, same physical lifetime and
+timing exclusions. D1 generic registration forwards optional arguments only for
+opt-in measurement, supplies budget1, retains old no-argument profiles, exports
+real shared/profile worker entry, and uses serial/trap fault composition without
+duplicate host memory. README context differed from newer local layout prose;
+initial check failed before changes. Reconciled only intended additions and
+updated replacement count, preserving both owners' existing text.
+
+Root reports v3 native/fault/ASan/TSan real-four-thread passes; actual WASI remains
+pending. Its eight-worker shared-ledger resize stress is93.7ms versus15.6serial,
+raw baseline8workers3.79ms: serious measured contention, not compiler speed.
+Do not transfer every logical allocation into a global hot grant path blindly;
+A2's proposed physical-chunk arena is not yet implementation/evidence here.
+D2 modest1/2worker checked profile, current instrumented tests and actual caller
+overhead/retention remain required. Source adoption is not acceptance closure.
+
+| Additional incoming measurement path/snapshot | Full delta review and evidence limits |
+| --- | --- |
+| scaffolding/tests/interpreter_call_query.tower, source39366a255dc1924b8b740eb0b0f36882dc0bf87431d95cdebb1a44feebc974d7; handoff741b6cb425f11310211dd4853a1e9259b418091811c2eb3659e1cc6ba92c7cde | Existing explicit-world immutable snapshot query fixture now runs8/65536-byte layouts, second projection at finali32, interleaved independent invocations and nested frames. Samples invocation a's peak live snapshot bytes, memory/initialization/metadata vector capacities and observed capacity growth at executed steps; not all allocations or b's peak/RSS. Bounds include alignment/frame allowance, and completed/retained/cancelled paths retain prior value/immutability checks plus null vector teardown. Shared formatter emits numeric observations portably; no Linux ABI or new evaluator. Owner three query runs reported; local new-query/current instrumentation still pending. |
+
+This is the21st incoming measurement snapshot review, not another primary tool
+or a unique count summed with overlapping local reviews. Root now explicitly
+assigns D2 frontend_units/module_cache measurement entrypoints and receipts,
+B2 exact current sources/production link composition, D1 opt-in CMake wiring.
+Existing source reviews stand; current self-contained recipe/hash handoff and
+runtime slot are pending. No competing default heavy test or hardcoded new
+compiler link architecture is introduced.
