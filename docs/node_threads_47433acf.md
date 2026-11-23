@@ -185,3 +185,11 @@ the selected Tower inputs and language/host implementation are unchanged. These
 extra files are hashed as mounted resources, not claimed compiled reactor inputs.
 Later numeric, malformed-grammar and parse-memory changes remain excluded.
 ROOT retains final source adoption, browser integration and release publication.
+
+Publication reconciliation: `a0ee23cb` merged complete incoming `c93ddaab` history
+in `f721d1ec` after ff-only pull refused divergence. All saved resource, host,
+selected-test and artifact hashes pass on the merged tree; test syntax and diff
+checks pass. Incoming changes are receipts and a separate compiletime/LLVM test
+boundary; no selected input changed, so the failed selection is not repeated.
+Both journal histories survive. B2's Node work is drained; a later ROOT browser
+job in its separate frozen f167 snapshot was observed and left untouched.

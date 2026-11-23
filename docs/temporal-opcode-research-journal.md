@@ -92263,3 +92263,11 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+B2 T5 Node publication reconciliation: a0ee23cb merged full c93ddaab history as
+f721d1ec after required ff-only pull refused divergence. All saved mountedresource,
+host, selectedtest and artifact SHA checks pass; Node syntax/diff checks pass.
+Incoming changes are separate compiletime/LLVM boundary and receipts; no measured
+input changed. Both journals preserved, no failed selection repeated or result
+relabeled. B2 jobs drained; later ROOT browser job uses its separate f167 snapshot
+and remains untouched. Node gate still2PASS/1FAIL(alias), later modes UNSTARTED;
+normal main push only, final deployment stays ROOT-owned.
