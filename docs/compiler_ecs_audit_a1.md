@@ -1868,3 +1868,29 @@ Reviewed 294194a0 plus this bounded batch; previous full file audit remains.
 Measurements, retained failures, build identity and exact deferred checks are in
 the corresponding journal entry. This closes coordinator admission paths, not
 every shared semantic allocator or the compiler-wide release gate.
+
+## A1 body/declaration admission follow-up, 2026-11-23
+
+Reviewed fae7f9c6 plus this bounded batch; final integration identity is recorded
+in the journal. The existing full file census above remains the lane audit.
+
+| Reviewed path | Storage/world/scheduling and ownership conclusion | Evidence/disposition |
+| --- | --- | --- |
+| scaffolding/compiler/semantic_body_work.tower | Stable world component owns one lexical continuation; nullable checked pipeline/kind/work admission, graph claims/transitions and world-budgeted discovery/lease windows. Joined capacity and completion storage precede logical success; common wave helper drains/discards before closing views. Dispose includes components denied before window append. | 24 real body cases at workers1/4; query/control/overlap and canonical checks. Shared allocation/list/table internals remain L2; layout assertions preserved for B2. |
+| scaffolding/compiler/semantic_declarations.tower | Checked metadata/request indices, discovery and type/expression pumps; graph takes distinguish denial from blocked readiness. Joined diagnostics retained per producer; final successful tickets wait until the whole metadata wave admits. Failure traversal does not cancel retained semantic outcomes. | 22 real declaration cases at workers1/4; source-only offset pins, partial takes, actual ledger pressure, cancellation/retry and zero retained owners. Shared scratch tables remain L2. |
+| scaffolding/compiler/semantic_completion_work.tower | Thin checked graph/vector/resource adapters, no additional graph/scheduler or authoritative data. Canonical syntax/Foundation ownership; reserve graph's existing ready/failure scratch using real consumer edges. | Denied discovery/body/declaration completion leaves no successful check prefix; existing lowering/flow regressions retained. |
+| scaffolding/compiler/semantic_statements.tower | Immediate nullable declaration-state/parameter-scope guards preserve lexical owner; no storage producer rewrite. | Control/query smoke, canonical execution; L2 shared allocations untouched. |
+| scaffolding/compiler/semantic_iteration.tower | Synthetic lexical item stops on denied declaration metadata. | Existing control continuation regression; no protocol/scheduling change. |
+| scaffolding/compiler/semantic_types.tower | Immediate declaration-state null guard; retained capture-error consumer already checks null. | Query/control smoke; type registry/layout untouched. |
+| scaffolding/compiler/semantic_type_values.tower | Checked dependency-vector context and immediate failed-admission guard avoid interpreting denial as no prerequisite. | Query smoke required/optional and executed dependencies; no inference-policy change. |
+| scaffolding/compiler/semantic_constructor_work.tower | Scan calls forward owning context for typed scratch-growth error; constructor producer unchanged. | Query smoke and smallest semantics target. |
+| scaffolding/tests/semantic_body_admission_checks.tower | Focused Tower fixture links actual production providers. Opaque body component handles remain provider-owned; no parallel body structure or test-only success fallback. Source nodes and actual graph/world caps drive denials. | 46 trials, workers1/4, all teardown ledgers zero; terminal metadata/dispatch stability. |
+| scaffolding/tests/semantic_lifecycle_frontier_checks.tower | Imports/calls new fixture in existing durable focused executable and query selector. Existing overlap probes unchanged. | Total flow/lifecycle/staging trials now132; actual rendezvous retained. |
+
+Actual remaining unchecked shared-helper sites in this scope include sem_push
+transfers/collectors in sem_body_publish/sem_body_collect/sem_body_sources and
+sem_declaration_error/dependencies/constructed, plus sem_table/sem_state/sem_scope
+used in lexical checking. Their underlying allocation and 25-file callers are
+L2's active closure, not passed by these checks. Prepared syntax/identity and
+completed-layout assertions remain structural contracts. This audit does not
+claim whole-compiler allocator closure or universal race freedom.

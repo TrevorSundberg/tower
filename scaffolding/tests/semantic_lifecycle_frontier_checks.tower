@@ -1,4 +1,5 @@
 import tower;
+import semantic_body_admission_checks;
 import .compiler.semantic_query_api;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
@@ -436,7 +437,7 @@ fn lifecycle_denial(workers: usize, mode: LowerDenial): u32 {
 
 export fn main(): i32 {
     sem_require(work_thread_available());
-    var failures: u32 = 0;
+    var failures = semantic_body_admission_tests();
     for(var mode: u32 = 0; mode < convert(u32, LifecycleCase.Count); mode++) {
         failures += lifecycle_trial(1, convert(LifecycleCase, mode));
         failures += lifecycle_trial(4, convert(LifecycleCase, mode));

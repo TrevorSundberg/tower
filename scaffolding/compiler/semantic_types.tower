@@ -983,6 +983,7 @@ fn sem_lookup(c: SemanticContext*, n: void*): void* {
 fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     var value: FoundationNode* = sem_get(n);
     var state = sem_declaration_state(c, n);
+    if state == null { return false; }
     var alias = value.kind == KType && value.global;
     var step4 = value.kind != KDeclare && value.kind != KParameter && !alias;
     if !step4 {

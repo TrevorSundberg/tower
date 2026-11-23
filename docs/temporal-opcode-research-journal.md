@@ -84251,3 +84251,85 @@ A1/cache/a1_checked_merged_*. Sessions93620/7372 reaped0, no owned active jobs.
 Actual process chain: codex.exe12060, node launcher28232, PowerShell36308;
 startup status's PID28232 was the launcher, now corrected. Normal main push
 follows. Shared allocator/diagnostic and integrated release limits above remain.
+
+## 2026-11-23 A1 body/declaration admission boundary (implementation)
+
+Bounded follow-up to fae7f9c6, same session
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, main in tower-agent-1. No goal,
+additional agents, sibling cache or deployment. Actual Codex PID39556 (node34036).
+The clean initial prescribed pull was up to date. semantic_body_sources is a
+function in semantic_body_work.tower; there is no separate source file.
+
+Checked admission now covers pipeline kind/component creation, body requests,
+discovery/lexical preparation claims and graph transitions, declaration metadata
+and immediate nullable consumers. Syntax-only owners retain sem_offset rather
+than losing their offset before Foundation attachment. Failed graph takes are
+attributed to the unchanged eligible candidate, not treated as idle/cycles.
+World-budgeted work vectors own discovery/check windows and body lease scratch.
+Stage/view admission uses A2's existing sem_stage_wave after joins and for
+undispatched partial-window discard; no second scheduler/hold implementation.
+Completion queue/failure scratch is reserved before exposing successful body or
+declaration receipts. Body joined component counts are checked before prefix
+publication. Terminal denial cancels outstanding graph work; lexical state and
+private buffers remain owned until disposal. Immediate guards span statement,
+iteration, type-value/type and constructor scan callers only. L2's arena/list/
+table APIs, B2's module-layout reconciliation/assertions and ROOT executable
+admission remain untouched. Discovery retains each joined producer's own error;
+source-order diagnostic selection occurs after the wave settles.
+
+The registered lifecycle fixture imports semantic_body_admission_checks.tower.
+It exercises real registration/discovery/check pumps, not substitute kernels:
+kind/component pins, actual graph-capacity and world-scratch pressure, stale
+partial takes, foreign lease denial, joined completion reservation pressure,
+cancellation, terminal retries and healthy checking. Separate graph/world
+ledgers check zero retained bytes, lanes and owners after teardown. Existing
+flow/lifecycle/staging fixtures retain their actual overlap rendezvous and
+required/optional, lazy branch, capture and ordered-diagnostic coverage.
+
+Validation failures preserved in A1/cache: a1_body_build_syntax/array/sizeof/
+initializer/release.log record fixture predecessor-syntax/API corrections.
+a1_body_query_cancel_regression.log records the substantive failure found by
+query-smoke: cancelling during retained diagnostic lookup rewrote peer Failed
+receipts to Cancelled. The fix cancels only new traversal/admission failures;
+restoring existing producer errors is diagnostic-only. Query/control smoke and
+the exact three focused executables subsequently passed. A malformed shell
+selector failed before tests; an overbroad selector also selected unbuilt
+unrelated executables (Not Run, never passes). a1_body_selector_too_broad.log
+is retained; the corrected exact selector is in a1_body_checks.sh.
+
+One dependency-aware target: cmake --build /cache/native --target
+ tower-semantic-staging-smoke --parallel 6. It builds the smallest semantics
+provider and affected registered fixtures with the public Linux x64 predecessor
+(bootstrap SHA2569653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02),
+--jobs1, x86_64-pc-linux-gnu, LLVM19.1.1. Docker tower-a1-environment owns
+CPU0-11/24GiB; no overlapping A1 build/cache jobs. Windows11 KinmenA host,
+16 cores/32 threads; C:322GiB free at build start. All inputs frozen during each
+build/check. ROOT's broader instrumentation, generation/bootstrap/browser and
+hosted release are deferred, not passed by this batch.
+
+Matched minimal baseline: frozen comptime_flow.tower, --interpret with explicit
+Bedrock/Foundation resources, jobs1/4, fresh process/warm files, n1, output0.
+Preserved predecessor executable a1_body_before_towerc SHA256
+382dfc545c1d1b82bd28a1127fc44c10a1418cd5d895de04155febce75aa5040:
+jobs1 wall1.32s CPU1.10s RSS176856KiB; jobs4 wall1.00s CPU1.16s RSS194500KiB.
+The first checked implementation (23765cf71c405eb6a0270ace662aa6648ac2ed0259c953cfd44f55caf98f10d2)
+measured jobs1 wall1.14s CPU1.06s RSS177824KiB; jobs4 wall0.98s CPU1.14s
+RSS192536KiB. Single samples do not establish speedup; ledger-retention tests
+are ownership evidence, not a complete allocation census or threaded sanitizer.
+Canonical known_bindings bytes match the preserved baseline at both widths of
+worker count, SHA256215fb1fdd887278348d4c814c130bcd8d799b0905d2be9db4383b52ad662670d;
+canonical reparse output0, comptime_capture_values output0 and expected cycle
+exit1 with identical source-ordered diagnostics passed at jobs1/4.
+Final joined-capacity regression and merged-input receipt follow below.
+
+Remaining boundaries are explicit: shared sem_push/sem_table/sem_state/sem_scope
+and node/string allocation/finalizer internals remain L2/B1's checked-storage
+closure. The preserved worker layout assertions require B2's early-helper layout
+frontier fix. Structural ownership assertions (prepared lexical identities,
+completed layouts, drained workers/null stages) remain assertions. The existing
+known-snapshot, ordered effects/diagnostics, module initialization and final
+publication dependencies are retained; this change neither widens inferred
+execution nor turns untaken branches into dependencies. Full compiler release
+acceptance belongs to ROOT's integrated milestone.
+
+Joined-capacity receipt: all132 focused trials plus query/control smoke passed; actual empty body workers each fit but their sum exceeds the remaining node count, which is now Capacity at the second owner before prefix publication. Checked single-sample jobs1 wall1.11s CPU1.04s RSS178016KiB; jobs4 wall1.00s CPU1.16s RSS192576KiB. Compiler SHA2566a4d96b33900d31456da35d5ce071e2ed4199030c16b741aabc5d7cea95d079a. Canonical/reference/capture/error checks passed unchanged. Four immediate dependency-vector consumer guards were then tightened to return failure before reporting waiting; merged validation below includes those guards.

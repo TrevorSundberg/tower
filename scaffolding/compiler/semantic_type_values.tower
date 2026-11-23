@@ -54,6 +54,7 @@ fn sem_type_value_request(c: SemanticContext*, node: void*, parent: SemanticDecl
     if sem_type_value_simple(c, node) { return 0; }
     node = sem_type_value_node(node);
     var result = sem_declaration_state(c, node);
+    if result == null { return 0; }
     if result.query == 0 {
         result.integer_argument = true;
         result.expression = true;
@@ -70,8 +71,9 @@ fn sem_type_value_request(c: SemanticContext*, node: void*, parent: SemanticDecl
         sem_resource_record(c.program, sem_query_error(c), sem_offset(c, node));
         return 0;
     }
-    if sem_declaration_input(parent, result.query)
-        || work_task(&c.queries, result.query).state != WorkState.Succeeded { return result.query; }
+    var added = sem_declaration_input(c, parent, result.query);
+    if !sem_ok(c) { return 0; }
+    if added || work_task(&c.queries, result.query).state != WorkState.Succeeded { return result.query; }
     return 0;
 }
 

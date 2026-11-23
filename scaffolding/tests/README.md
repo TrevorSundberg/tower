@@ -1485,3 +1485,5 @@ stride/back-reference overhead; archetype columns contain component pointers,
 not packed payloads. No hardware counters, parallel mutation, finite whole-world
 cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
 receipt and audit for measured source identity and limits.
+
+A1 body/declaration admission checks are imported by semantic_lifecycle_frontier_checks.tower (tower-semantic-lifecycle-frontier-tests and query-smoke). The46 new real-pump trials cover workers1/4, kind/component pins, graph/world capacity, partial takes and foreign leases, joined completion/body-count denial, cancellation, deterministic owner offsets, no successful check prefix, stable terminal retries and zero retained budget owners. Existing flow/lifecycle/staging coverage totals132 trials; build with tower-semantic-staging-smoke. Broader release instrumentation remains ROOT's integration work.
