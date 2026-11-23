@@ -281,10 +281,16 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         result.context = null;
     }
     foreach(var result in &batch) {
-        if !sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads)) {
+        if !sem_query_check(c, result.subject, work_ticket_valid(&c.queries, &result.ticket)
+            && sem_query_observe_checked(c, &result.ticket, &result.query_reads)) {
             return SemanticPumpResult.Failed;
         }
-        sem_evaluation_aliases(c, &result.aliases);
+        // Failed worker output cannot publish aliases or replace its retained
+        // diagnostic with a secondary coordinator failure.
+        if result.resource.error == WorkBudgetError.None && result.error.length == 0 {
+            sem_evaluation_aliases(c, &result.aliases);
+            if !sem_ok(c) { return SemanticPumpResult.Failed; }
+        }
         c.count += result.count;
         if c.count > c.node_limit && result.resource.error == WorkBudgetError.None && result.error.length == 0 {
             sem_fail(c, result.subject, "Foundation component memory budget exceeded");
@@ -292,6 +298,11 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
             result.error_offset = c.program.error_offset;
             c.program.error = default;
         }
+    }
+    // Every joined alias must be accepted before any input in this wave becomes
+    // ready. Failure above leaves tickets for the existing terminal cancellation
+    // and published nodes for ordinary context teardown, never a replay.
+    foreach(var result in &batch) {
         var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(result.subject, c.executable_ready)));
         var ready = result.resource.error == WorkBudgetError.None && result.error.length == 0;
         if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, ready)) {

@@ -1,0 +1,44 @@
+import tower;
+
+fn known(value: i32): i32 { return value; }
+var failures: i32 = 0;
+
+// Mutating a shadow must not invalidate the immutable outer declaration.
+var index: i32 = 7;
+for (var index: i32 = 0; index < 2; index++) {}
+if comptime(known(index)) != 7 { failures++; }
+fn body_reference(): i32 {
+    var index: i32 = 7;
+    for (var index: i32 = 0; index < 2; index++) {}
+    return comptime(known(index));
+}
+if body_reference() != 7 { failures++; }
+
+// A header binding with a known initializer and no writes remains capturable.
+var count: i32 = 0;
+for (var limit: i32 = 3; count < comptime(known(limit)); count++) {
+    var limit: i32 = 9;
+    limit++;
+}
+if count != 3 { failures++; }
+{
+    var local: i32 = 11;
+    { var local: i32 = 0; local++; }
+    if comptime(known(local)) != 11 { failures++; }
+}
+
+// Layout/type queries do not read a mutable binding's runtime value.
+var typed: i32 = 0;
+for (var address: usize = 0; address < 2; address++) {
+    if comptime(sizeof(decltype(address))) != sizeof(usize) { failures++; }
+    typed++;
+}
+if typed != 2 { failures++; }
+
+// Ordinary staged lazy execution must not request the untaken capture.
+var skipped: i32 = 0;
+for (var index: i32 = 0; index < 2; index += comptime(false ? known(index) : 1)) {
+    if comptime(true || known(index) == 0) { skipped++; }
+}
+if skipped != 2 { failures++; }
+print(failures);

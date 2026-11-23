@@ -74,6 +74,9 @@ diagnostic cost, not an overlap or browser-memory claim. The source tests includ
 bound primitive spelling with lexical shadowing and nominal return reconstruction;
 `backend_import_constants` checks exact escaped string bytes/terminator and enum
 results. Import admission trials include actual interior-NUL byte initializers.
+`backend_void_returns` covers direct/exported and callback pointer results across
+call boundaries, nulls, deeper pointers, store/read/free and true-void effects;
+the source-service tests also require retained result assignments after import.
 
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
@@ -1833,3 +1836,8 @@ controls. It checks Graph/Fast output and canonical equality at32/64 bits with
 one/four workers, exact unknown/recursive diagnostics, Foundation round trips
 and final zero budget owners. It is also registered in `all`.
 `body-type-reproduce` selects the exact original seven-line failure source.
+The module-loop query selector also checks mutable/escaped header and block
+captures at the original declaration, including shadow identity. Its negative
+runner compiles without executing the rejected loop. The positive
+`module_header_capture_controls.tower` (CTest workers1/4) prints0 and retains
+immutable known captures, type-only uses and lazy untaken staged reads.
