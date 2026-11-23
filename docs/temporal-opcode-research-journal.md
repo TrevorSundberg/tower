@@ -77322,3 +77322,103 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+### D2: joined queue/inspection package and exact WASM Entities table (2026-11-23)
+
+Complete ROOTc944 bundle7b28e024 was reviewed and integrated as c8019dc44 after
+all previous owned jobs drained. Queue production/fixture hashes exactly match
+D2's reviewed d75ab177/0b92be42; complete L2 inspection source/evidence8c428 was
+read. Guarded pull and todo/source checks pass. D2's earlier docs31387e8 clarify
+historical negative-control evidence without editing/executing that probe. Later
+ROOT2252 ABI/parser/executable source is queued; it is not included below.
+
+Actual shared lock12:54:10–13:11:39UTC, same CLI2918222, native controller3012658/
+container3012701, own tower-d2-ecs. Linux x64 SteamDeck, existing image4be584fb,
+LLVM/Clang19.1.1, pinned public9653f818, Release native x86_64 Linux and explicit
+wasm32-unknown-wasi object target. No bootstrap override; canonical build-native
+jobs1/compilerjobs1, CPU allowance0,2; fixed-four correctness explicitly uses0-7
+then restores0,2. Host initially132GiB free/9.7GiB available, preexisting swap6.2GiB.
+No cleanup or compiler import mutation during builds. GNU time-v plus per-command
+stdout/stderr/status and frozen source/package hashes are in queue_join_c801,
+package_c801 and entities_table_policy under build/d2_ecs.
+
+Smallest public changed leaves entity_stage/parse_tree/capture/language_query
+pass. Wall/CPU/RSS KiB:6.07/5.97/208552;3.76/3.73/205860;
+30.38/29.90/691288;31.11/30.72/691172. Native3 actions pass48.32/46.79/752680;
+focused12 actions71.97/69.83/755316. Registered14 cases, allocation and parser
+selectors plus all7 actual native symbol reports pass. Current compiler SHA
+c3724363dee165211f08a3ab964fbc2ed9160941031efaa983f48e99429096b6 and all50 resources,
+nine executed test binaries and seven native providers are captured. This is
+incremental canonical public-bootstrap evidence, not the final empty-cache gate.
+The two broad semantic leaf compilations cost61.49s in addition to the coherent
+semantic rebuild. Future checks can reuse the coherent unit after the smallest
+changed leaf; no new build-policy code or unnecessary full matrix was introduced.
+
+Full-host correctness65639 passes query .24wall/.26CPU/66132KiB, resources24,
+editor23.88/36.78/875940, units48.94/69.42/809088 and runtime-faults. Clone
+calibration width256/fastest3098096ns demonstrates actual2/4-worker and Cancel4
+interval overlap1 under0-7. This does not erase the older two-CPU failure. Current
+editor exercises the real late inspection producer/no-replay/failure output
+suppression. Unit RSS is below the prior883748n1 observation; different inputs/
+interleavings and n1 gate costs do not establish a memory improvement. No timed
+child swaps. Source hashes pass, workers drain and the allowance returns0,2.
+
+Existing Tower compiler_project_units exports actual four-unit depfile closures.
+All entities/evaluation/semantics/parser native objects match their coherent
+originals byte-for-byte, and the entities WASI original/exported pair matches.
+Then package30688 stops with actual1: the existing checker rejects only
+__indirect_function_table from Entities WASI. The failure and partial products
+remain intact; no later check is falsely marked passed. Container is idle before
+investigation/edit. Actual llvm-objdump/readobj identifies call_indirect and
+R_WASM_TABLE_NUMBER_LEB in existing work_budget_reserve_result/release_result,
+whose typed enter/leave gates are included by the Entities world/store closure.
+Read those producers, callback ownership types, exact matcher and CLI callers.
+This is a target table dependency, not a new compiler implementation/provider.
+
+Before editing, retained old checker eec40a2c and ran24 fixed-report observations:
+three samples for seven current native reports plus the failing Entities WASI
+report, all expected status/stdout/stderr checks pass. Exact patch00682b68 changes
+only bootstrap_symbols and its owned fixture: add WASM Entities beside the
+existing Interpreter table permission. Add two WASM-policy positives and six
+native/wrong-unit/truncated/suffixed/table_base negatives. No native table,
+Entities table_base, broad namespace or language_document_inspect permission.
+Both semantic unit definitions/callers remain internal; the separate LR fixture
+owns the inspection external call. D1 independently reviewed exact patch and
+actual relocation/object/report evidence at13:08 and found no blocker. WASM64
+case tests policy classification only; actual object evidence is wasm32.
+
+After5313 completes, actual group.status and every child status are0. Smallest
+expanded fixture compile/link/run and canonical --tools verify_bootstrap_symbols
+pass. New checker a19e878f40c7af6b5bcad38dd561a56bc22e43465ba04496933122419ae7f511
+passes all24 matched after observations. Both sides use identical GNU time+
+timeout wrappers, the same report paths/flags, fresh processes and warm filesystem
+state, n3 per entry; CPU allowance0,2 and unchanged public compiler/runtime.
+All wall and user/system CPU samples are0.00s at0.01s reporting resolution;
+every entry's RSS median is1616KiB on both sides (raw1488/1612 outliers retained).
+This is no speed/neutrality/scaling assertion. Predicate adds no allocation,
+retained owner or scheduling; the unchanged reader still disposes its bounded
+input buffer. No allocator-count or complete live-heap measurement is invented.
+
+Actual fixture original LLVM has11 definitions; transformed modules contain109
+ASan report sites and11 TSan access hooks. Normal, ASan with leak detection and
+TSan runs pass with identical output and matching retained guest objects; compiler
+source manifests verify. Clang compiles already-instrumented IR without another
+sanitizer pass; final links supply the runtime. Serial fixture coverage does not
+sanitize threaded compiler execution, foreign internals or source-language UB.
+The outer policy launch collector did not set pipefail; acceptance explicitly
+checks the retained raw group0 and individual child statuses, rather than relying
+on tee's exit. Subsequent continuation uses pipefail. No failed check was hidden.
+
+Separate continuation63582 reuses unaffected four native/Entities WASI pairs;
+original package group1 remains unchanged. New checker accepts Entities and the
+three remaining fresh WASI original/exported pairs all match and pass exact policy.
+Ordinary current compiler interpretation of known_bindings outputs0; canonical
+Foundation emission and jobs2 re-interpretation also output0. Four native+four
+WASI pairs now have checked closure evidence, but no full browser execution or
+new interpreter-layout acceptance follows. All source/product/resource hashes
+verify. Actual jobs23620/65639/5313/63582 drain0, original30688 drains1. First OS
+release check failed because docker top requested args without a PID field; its
+error is preserved, corrected PID-bearing query confirms only init/sleep before
+actual13:11:39 lock removal. D1 notified for its next complete ABI/registration
+phase. Final public-bootstrap/browser/generation/full instrumentation, linker
+budget contract and leased atomic source+Pages publication remain open.
