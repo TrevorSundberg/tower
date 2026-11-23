@@ -48,6 +48,17 @@ direct runs retain sources, binaries and capture logs there for inspection.
 Unknown filters fail. Child exit statuses are preserved, including abnormal
 termination, with a 30-second child limit and a 20-minute CTest limit.
 
+Linux native builds with `TOWER_BACKEND_TESTS=ON` also provide
+`tower-backend-source-tests` and CTest `tower-backend-source-worlds`. They run
+the existing browser source/session assertions against native LLVM: explicit
+world ownership, retained Foundation, reconstructed type values, object/link
+failure and retry. The direct arguments are `BEDROCK FOUNDATION WASM_RUNTIME_OBJECT`;
+use the build's `tower-backend-source-checks` working directory and `guest-wasm32.o`.
+CMake mounts the source resources there as `.tower`. The runtime is a counted
+input; browser exports retain their existing embedded-runtime transport. This
+Linux entry supplies only file and monotonic-clock transport, and does not test
+browser worker lifecycle or non-Linux execution.
+
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
 raw and optimized native execution. Its direct, callback and recursive calls
@@ -1715,3 +1726,24 @@ The existing `allocations` frontend selector checks metadata copies from the
 first published entity (ID zero), exact Memory/Capacity causes and staged cleanup.
 Owned cloning distinguishes published stage leases from new private nodes by
 their actual lease membership. Numeric ID zero alone is not a private-node test.
+
+The focused `tower-lr-work-tests RESOURCE_ROOT declaration-calls` and
+`tower-storage-tests RESOURCE_ROOT declaration-calls` selectors check actual
+ambiguous imported `function` calls, terminal diagnostic/offset preservation and
+fresh nominal/decltype/comptime compilation at 32/64-bit widths. Native mode
+compares one/four-worker canonical Foundation and diagnostics; storage mode uses
+serial transport and checks zero final owned-buffer delta. Both execute the
+healthy answer42. These cover the declaration-discovery prerequisite, which
+rejects callable ambiguity before structural call scanning. The same-node
+nominal re-push reuses the just-popped capacity; no artificial reserve-failure
+or manually failed scan is presented as a reachable production regression.
+See the journal's 2026-11-23 L2 declaration-call correction for exact evidence.
+`type-smoke` also registers `imported_alias_checks.tower`: ordinary imported
+stack aliases in inferred/explicit deferred calls, the complete vector/stack/queue
+browser control, vector reference behavior, once-only cleanup effects, qualified
+same-named module constructors and ordered nominal mismatch diagnostics. It
+compares serial/four-worker execution and canonical Foundation, including recompile,
+at32/64-bit widths. Use `imported-alias minimal|containers|controls|scopes 1|4`
+for a small checked process-cost sample; that selector runs only its named case
+at both widths and does not itself compare separate worker processes.
+The bare "imported-alias" selector runs only the complete28-trial alias regression set, for affected merged-source validation without repeating type-smoke's existing lifecycle cases.

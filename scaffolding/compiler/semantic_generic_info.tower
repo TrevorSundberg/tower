@@ -7,8 +7,12 @@ import semantic_statements;
 import semantic_types;
 import semantic_modules;
 import semantic_generic_values;
+import semantic_declarations;
+import semantic_constructor_work;
 import .library.vector;
 import .library.work_budget_types;
+
+extern fn entity_component_owner(component: void*): void*;
 
 // Optional, disposable analysis on the original shared entities. The annotation
 // is the actual type-expression tree, whose name leaves bind to declarations;
@@ -51,6 +55,7 @@ struct GenericAnalysis {
     definition: void*;
     constructor: bool;
     resolve_types: bool;
+    binding: bool;
     budget: usize;
     truncated: bool;
 }
@@ -147,7 +152,7 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
     // A failed check may leave a named type with an unfinished layout in the
     // ordinary registry. Its written annotation/bindings remain useful, but
     // querying that partial registry must not turn zeroed fields into a layout.
-    if !a.resolve_types {
+    if !a.resolve_types || a.binding {
         return;
     }
     if sem_equal(sem_tokens(a.context, annotation), "type") {
@@ -159,6 +164,7 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
 
 fn generic_resolved_type(a: GenericAnalysis*, annotation: void*): void* {
     var c = a.context;
+    if !generic_type_inputs(a, annotation, 0) { return null; }
     var previous = c.entity_stage;
     defer c.entity_stage = previous;
     // Function-type parameters belong to the leased annotation. Only this
@@ -166,6 +172,54 @@ fn generic_resolved_type(a: GenericAnalysis*, annotation: void*): void* {
     if a.stage != null { c.entity_stage = a.stage; }
     var type = sem_type(c, annotation);
     return sem_ok(c) ? sem_type_entity(c, type, annotation) : null;
+}
+
+// Failed speculative constructors remain failed graph receipts. Never fall
+// through to synchronous construction under the annotation's lease on retry.
+fn generic_type_inputs(a: GenericAnalysis*, node: void*, depth: usize): bool {
+    if node == null { return true; }
+    if depth >= InspectionDepthLimit { a.truncated = true; return false; }
+    if sem_declaration_query(a.context, node) != 0 {
+        sem_declaration_report(a.context, node);
+        return sem_ok(a.context);
+    }
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
+        if !generic_type_inputs(a, sem_child(node, i), depth + 1) { return false; }
+    }
+    return true;
+}
+
+// Binding establishes which annotations are concrete. Its stage must release
+// the source leases before declaration workers can borrow those same trees.
+// The component kind stays query-private until the entire inspection succeeds.
+fn generic_types_prepare(a: GenericAnalysis*): void {
+    var c = a.context;
+    sem_require(c.entity_stage == null && a.stage == null);
+    if !a.resolve_types { return; }
+    var subjects = sem_list(c);
+    if subjects == null { return; }
+    var previous_subjects = c.declaration_subjects;
+    var previous_isolated = c.declaration_isolated;
+    c.declaration_subjects = subjects;
+    c.declaration_isolated = true;
+    defer { c.declaration_subjects = previous_subjects; c.declaration_isolated = previous_isolated; }
+    for(var i: usize = 0; i < entity_query_count(a.component) && sem_ok(c); i++) {
+        var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(a.component, i)));
+        if meaning.kind != GenericInfoKind.TypeExpression || meaning.dependent || meaning.annotation == null { continue; }
+        if !sem_type_query_syntax(c, meaning.annotation) { continue; }
+        var owner = sem_declaration_state(c, meaning.definition);
+        if owner == null { return; }
+        var existing = sem_declaration_query(c, meaning.annotation);
+        var query = sem_type_query_add(c, meaning.annotation, owner, false);
+        if query == null { return; }
+        // Inspection consumes storage descriptions, not only nominal identity.
+        // Its root query owns the ordinary constructed-layout continuation;
+        // the unused template definition has no executable declaration job.
+        if existing == 0 { query.construction_owner = null; }
+    }
+    if !sem_ok(c) || subjects.length == 0 { return; }
+    sem_declaration_discover(c);
+    sem_declarations_execute(c, subjects);
 }
 
 fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, types: SemanticScope*, depth: usize): void {
@@ -304,11 +358,10 @@ export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncate
     defer { if !committed { sem_require(entity_attach_result(component, null, null) == WorkBudgetError.None); } }
     var stage = entity_stage_open_result(c.program.root, &error);
     if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
-    // New annotations are private until both binding and value passes finish.
-    // Discard removes their kind references before the private kind retires.
-    defer { if !committed { entity_stage_discard(stage); } }
+    // No client receives the private kind before every inspection phase joins.
+    defer { if stage != null { entity_stage_discard(stage); } }
     var a: GenericAnalysis = {context: c, component: component, resolve_types: resolve_types,
-        stage: stage, budget: InspectionNodeLimit, ..default};
+        stage: stage, binding: true, budget: InspectionNodeLimit, ..default};
     var i: usize = 0;
     for(; i < c.template_nodes.length && c.program.resource.error == WorkBudgetError.None; i++) {
         var definition = c.template_nodes.data[i];
@@ -347,6 +400,26 @@ export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncate
         }
         generic_info_walk(&a, definition, values, types, 0);
     }
+    if !sem_ok(c) { return null; }
+    error = entity_stage_publish_result(stage);
+    if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+    stage = null;
+    a.stage = null;
+    generic_types_prepare(&a);
+    if !sem_ok(c) { return null; }
+    stage = entity_stage_open_result(c.program.root, &error);
+    if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
+    a.stage = stage;
+    a.binding = false;
+    for(var index: usize = 0; index < entity_query_count(component); index++) {
+        var entry = entity_query_at(component, index);
+        error = entity_stage_lease_result(stage, entity_component_owner(entry));
+        if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+    }
+    for(var index: usize = 0; index < entity_query_count(component) && sem_ok(c); index++) {
+        var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(component, index)));
+        generic_info_type(&a, meaning);
+    }
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.
     i = 0;
@@ -358,6 +431,7 @@ export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncate
     if !sem_ok(c) { return null; }
     error = entity_stage_publish_result(stage);
     if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+    stage = null;
     committed = true;
     return component;
 }

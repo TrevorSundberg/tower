@@ -5,6 +5,7 @@ import semantic_attributes;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
+import grammar_types;
 import semantic_definitions;
 import semantic_statements;
 import semantic_body_work;
@@ -148,10 +149,16 @@ fn sem_lifecycle_lowering(c: SemanticContext*): void {
 // next phase can mutate canonical nodes, captured ranges or executable inputs.
 export fn sem_lifecycle_queries_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_phase_begin(c) { return SemanticPumpResult.Failed; }
+    sem_observe(c, GrammarPhase.SemanticLowering, true, 0, 0);
     var state = sem_lower_pipeline_pump(c);
+    sem_observe(c, GrammarPhase.SemanticLowering, false, 0, 0);
     if state == SemanticPumpResult.Failed { return state; }
+    sem_observe(c, GrammarPhase.SemanticPhasePublish, true, 0, 0);
     state = sem_query_pipeline_merge(state, sem_phase_publish(c));
+    sem_observe(c, GrammarPhase.SemanticPhasePublish, false, 0, 0);
     if state == SemanticPumpResult.Failed { return state; }
+    sem_observe(c, GrammarPhase.SemanticLifecycleQueries, true, 0, 0);
+    defer sem_observe(c, GrammarPhase.SemanticLifecycleQueries, false, 0, 0);
     state = sem_query_pipeline_merge(state, sem_evaluation_pump(c));
     if state == SemanticPumpResult.Failed { return state; }
     return sem_query_pipeline_merge(state, sem_query_pipeline_pump(c));
@@ -175,7 +182,11 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     var context: SemanticContext;
     var c: SemanticContext* = &context;
     sem_context_init(c, program);
-    defer sem_context_dispose(c);
+    defer {
+        sem_observe(c, GrammarPhase.SemanticDispose, true, 0, 0);
+        sem_context_dispose(c);
+        sem_observe(c, GrammarPhase.SemanticDispose, false, 0, 0);
+    }
     if !sem_ok(c) { return; }
     c.node_limit = component_bytes / sizeof(FoundationNode);
     c.source = source;
@@ -190,15 +201,23 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
         if step4 == null { return; }
         step4.number = bases[i];
     }
+    sem_observe(c, GrammarPhase.SemanticRun, true, 0, 0);
     sem_run(c);
+    sem_observe(c, GrammarPhase.SemanticRun, false, 0, 0);
     sem_foreign_signatures(c);
     sem_defer_hygiene(c);
+    sem_observe(c, GrammarPhase.SemanticKnown, true, 0, 0);
     sem_known_infer(c);
+    sem_observe(c, GrammarPhase.SemanticKnown, false, 0, 0);
+    sem_observe(c, GrammarPhase.SemanticLifecycle, true, 0, 0);
     sem_lifecycle_queries(c);
+    sem_observe(c, GrammarPhase.SemanticLifecycle, false, 0, 0);
+    sem_observe(c, GrammarPhase.SemanticFinish, true, 0, 0);
     sem_attributes_publish(c);
     sem_known_publish(c);
     sem_module_initializers(c);
     sem_flows(c);
+    sem_observe(c, GrammarPhase.SemanticFinish, false, 0, 0);
 }
 
 export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*): void {

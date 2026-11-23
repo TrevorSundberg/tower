@@ -4,7 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {loadTower, runToEnd} from './compiler-fixtures.mjs';
 const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)),
   undefined, await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8'));
-const grammar = direction => `parse E = Number | '(' $value:E ')';
+const numericGrammar = 'import bedrock;\n' + await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8');
+const grammar = direction => numericGrammar + `parse E = Number | '(' $value:E ')';
 parse E |= $left:E '-' $right:E @ 10 ${direction};
 parse E |= $left:E '+' $right:E @ 10 ${direction};
 parse E |= $left:E '*' $right:E @ 20 left;
@@ -45,7 +46,7 @@ test('numeric levels and directional aliases preserve left and right associativi
   }
 });
 test('ordinary chained rules remain an equivalent way to express precedence', () => {
-  const source = `parse Atom = Number | '(' $value:E ')';
+  const source = numericGrammar + `parse Atom = Number | '(' $value:E ')';
 parse Product = Atom | $left:Product '*' $right:Atom;
 parse E = Product | $left:E '+' $right:Product | $left:E '-' $right:Product;
 parse Statement = $value:E ';'; 8-3-1; 2+3*4; (2+3)*4;`;
@@ -60,9 +61,9 @@ test('precedence never silently resolves unannotated or reduce/reduce ambiguitie
   for (const source of [
     "parse E = Number | E '+' E; parse Statement = E ';';",
     "parse E = Number; parse E |= E '+' E @ 10 left; parse E |= E '*' E; parse Statement = E ';';",
-  ]) assert.match(parsed(source).end.error, /shift\/reduce/);
-  assert.match(parsed("parse A = Number @ 10 left; parse B = Number @ 20 right; parse E = A | B; parse Statement = E ';';").end.error, /reduce\/reduce/);
-  for (const number of ['0','4294967296']) assert.match(parsed(`parse E = Number @ ${number} left;`).end.error, /precedence/);
+  ]) assert.match(parsed(numericGrammar + source).end.error, /shift\/reduce/);
+  assert.match(parsed(numericGrammar + "parse A = Number @ 10 left; parse B = Number @ 20 right; parse E = A | B; parse Statement = E ';';").end.error, /reduce\/reduce/);
+  for (const number of ['0','4294967296']) assert.match(parsed(numericGrammar + `parse E = Number @ ${number} left;`).end.error, /precedence/);
 });
 test('editing metadata invalidates cached tables and restores old grouping correctly', () => {
   const handle = tower.create(grammar('left') + '8-3-1;');

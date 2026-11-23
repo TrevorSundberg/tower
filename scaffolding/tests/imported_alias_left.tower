@@ -1,0 +1,4 @@
+import tower;
+import library.vector;
+fn stack(T: type): type { return vector(T); }
+fn dispose(T: type, value: stack(T)*): void { vector_dispose(value); print(31); }
