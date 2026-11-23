@@ -1,5 +1,6 @@
 import tower;
 import wasm_link_reader;
+import .host.memory;
 import .host.work_linux;
 import .host.work_dispatch;
 

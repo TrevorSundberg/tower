@@ -4,29 +4,33 @@ import .compiler.syntax_emission_types;
 import tower;
 import syntax_emission;
 import .compiler.parser_types;
+import .library.work_budget_types;
+
+extern fn syntax_template_holes_revision_result(input: SyntaxTemplateGrammar*, revision: void*, error: WorkBudgetError*): bool;
+extern fn tower_test_buffer_allocations(): usize;
 
 // Typed holes preserve scalar/token distinctions and list cardinality. Exercise
 // every allocator failure while retaining the partial grammar's owning root.
 fn template_test_holes(context: SyntaxEmissionInput*): usize {
+    var baseline = true;
+    var allocations: usize = 0;
     var budget: usize = 0;
     loop {
-        if budget == 512 {
-            return 501;
-        }
+        if !baseline && budget == allocations { return 0; }
         var buffers = tower_test_buffer_count();
         var f: EmissionFixture;
         emission_test_init(&f, context, false);
         var rule = emission_test_rule(&f, "Inputs");
         var sequence = emission_test_sequence(&f, rule);
         var captures: SyntaxTemplateCapture[4];
-        fill(&captures[0], 0, sizeof(SyntaxTemplateCapture[4]));
+        fill(&captures[0], 0, sizeof(decltype(captures)));
         captures[0].source = emission_test_term(&f, sequence, "Identifier", false, 0, "name");
         captures[0].wrapper = "TokenWrapper";
         captures[1].source = emission_test_term(&f, sequence, "Expression", false, 0, "one");
         captures[2].source = emission_test_term(&f, sequence, "Expression", false, 43, "many");
         captures[3].source = emission_test_term(&f, sequence, "Expression", false, 63, "maybe");
         var helpers: SyntaxEmissionHelper[5];
-        fill(&helpers[0], 0, sizeof(SyntaxEmissionHelper[5]));
+        fill(&helpers[0], 0, sizeof(decltype(helpers)));
         helpers[0].name = "Star";
         helpers[0].source = emission_test_term(&f, sequence, "Expression", false, 42, "");
         helpers[1].name = "Plus";
@@ -42,15 +46,17 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
         copy(&input.emission, context, sizeof(SyntaxEmissionInput));
         input.emission.root = entity_create_related(context.root);
         input.captures = &captures[0];
-        input.count = 4;
+        input.count = sizeof(decltype(captures)) / sizeof(SyntaxTemplateCapture);
         input.repetitions = &helpers[0];
-        input.repetition_count = 5;
-        tower_test_buffer_fail_after(budget);
-        var ran = syntax_template_holes(&input);
+        input.repetition_count = sizeof(decltype(helpers)) / sizeof(SyntaxEmissionHelper);
+        var calls = tower_test_buffer_allocations();
+        var error = WorkBudgetError.None;
+        tower_test_buffer_fail_after(baseline ? ~convert(usize, 0) : budget);
+        var ran = syntax_template_holes_revision_result(&input, null, &error);
         tower_test_buffer_fail_after(~convert(usize, 0));
-        var ok: bool = true;
+        calls = tower_test_buffer_allocations() - calls;
+        var ok = ran ? error == WorkBudgetError.None : error == WorkBudgetError.Memory;
         if ran {
-            ok = entity_child_count(input.emission.root) == 7;
             var names: u8*[7];
             names[0] = "TokenWrapper";
             names[1] = "Expression";
@@ -67,8 +73,11 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
             ids[4] = 3145730;
             ids[5] = 3145731;
             ids[6] = 3145731;
+            var count = sizeof(decltype(names)) / sizeof(u8*);
+            ok &&= entity_child_count(input.emission.root) == count;
+            ok &&= sizeof(decltype(ids)) / sizeof(u32) == count;
             var index: usize = 0;
-            for(; index != 7; index++) {
+            for(; index != count; index++) {
                 if !ok {
                     break;
                 }
@@ -108,9 +117,12 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
         if !ok {
             return 503;
         }
-        if ran {
-            return 0;
+        if baseline {
+            if !ran { return 501; }
+            allocations = calls;
+            baseline = false;
+        } else {
+            budget++;
         }
-        budget++;
     }
 }
