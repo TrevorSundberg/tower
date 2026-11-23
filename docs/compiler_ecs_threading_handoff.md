@@ -233,6 +233,11 @@ The unchanged public resources must not be edited or treated as current compiler
 acceptance. ROOT retains integrated instrumentation/bootstrap/browser/generation
 and hosted-release ownership; those gates remain separate and pending.
 
+Publication reconciliation later merged36ad337 without changing this substantive
+freeze. Its inventory is1146 (B2277/D1551); the roster separately enumerates its
+two additions and28 modifications, including13 D1 deltas pending adoption. Those
+later inputs do not inherit the5b05 source or runtime receipts.
+
 Audit principles: [Flecs systems](https://www.flecs.dev/flecs/Systems.html)
 and [storage traits](https://www.flecs.dev/flecs/ComponentTraits.html) motivate
 explicit access, staged publication and deliberate stable/sparse storage;

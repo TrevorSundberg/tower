@@ -3279,3 +3279,11 @@ lists finite remaining owner-review actions. This D1 source adoption does not
 upgrade other lanes' changed production sources, pinned resources or historical
 validation to current acceptance. Documentation-only profiling is inapplicable;
 no runtime, sanitizer, browser, bootstrap, generation or deployment gate was run.
+
+Publication-boundary note: normal merge91397b77 preserves upstream36ad337 after
+ff-only divergence. Its tree has551 D1 paths; one addition and12 modified fixtures
+postdate the frozen review above. Their exact paths are in the roster's
+[publication boundary](compiler_ecs_file_roster.md#publication-integration-boundary-36ad337).
+They remain pending source-delta adoption, including newer inferred-stage,
+retention, accounting and layout fixtures; the550-path5b05 review and preserved
+native evidence are not relabeled as acceptance of those later bytes.

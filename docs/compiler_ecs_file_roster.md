@@ -1791,3 +1791,60 @@ are in D1's ignored `build/d1_ecs/audit_5b05/`. Existing logs and todo are prese
 No runtime code changed, so profiling is inapplicable. No tests/builds/sanitizers
 or hosted checks ran; no claim that an old runtime receipt validates this freeze.
 ROOT retains final integrated validation and gh-pages publication ownership.
+
+### Publication integration boundary: 36ad337
+
+After the audit commit `e8407e9`, the required fast-forward-only pull fetched
+published `36ad33782b53e1a3c5be50860ab3eb0a7cddae67` and refused divergence.
+Normal merge `91397b779d89a4845ea86eed6def5cd0d7fc08eb` preserves both histories.
+The requested substantive freeze remains5b05; it is not silently advanced by
+that merge. The later tracked tree is **1146 paths**, with these two additions:
+
+| Exact added path | Owner | Post-freeze disposition |
+| --- | --- | --- |
+| `scaffolding/backend/observation_types.tower` | B2 | Backend observation layout; later implementation/receipt needs its own source adoption. |
+| `scaffolding/tests/entity_accounting.tower` | D1 | D2 implementation receipt is preserved; independent D1 adoption is outside the frozen batch. |
+
+The other28 post-freeze modified paths are exactly:
+
+```text
+scaffolding/backend/context.tower
+scaffolding/backend/lowering.tower
+scaffolding/backend/pipeline.tower
+scaffolding/backend/units.tower
+scaffolding/compiler/compiler_kernel.tower
+scaffolding/compiler/semantic_body_work.tower
+scaffolding/compiler/semantic_context.tower
+scaffolding/compiler/semantic_declarations.tower
+scaffolding/compiler/semantic_evaluation.tower
+scaffolding/compiler/semantic_evaluation_work.tower
+scaffolding/compiler/semantic_lowering_work.tower
+scaffolding/compiler/semantic_phase_work.tower
+scaffolding/host/driver_api.tower
+scaffolding/host/driver_compile.tower
+scaffolding/host/driver_units.tower
+scaffolding/tests/backend_units.tower
+scaffolding/tests/bootstrap_symbols_checks.tower
+scaffolding/tests/entity_locality.tower
+scaffolding/tests/entity_stage_concurrent.tower
+scaffolding/tests/entity_stage_result.tower
+scaffolding/tests/execution_main.tower
+scaffolding/tests/frontend_units_profile.tower
+scaffolding/tests/lr_work_main.tower
+scaffolding/tests/parser_state.tower
+scaffolding/tests/semantic_lifecycle_frontier_checks.tower
+scaffolding/tests/semantic_resource_checks.tower
+scaffolding/tests/semantic_staging_frontier_checks.tower
+scaffolding/tools/bootstrap_symbols.tower
+```
+
+Keep these30 later inputs separate from the frozen26-path action list. Some
+already have newly integrated owner receipts; no adoption of those later receipts
+or runtime rerun is claimed here. In particular, the13 later D1 additions/changes
+need source-delta adoption before describing all551 current fixtures as reviewed.
+The exact union is49 paths (seven overlap); it is a finite reconciliation worklist,
+not a claim that49 files lack any substantive review.
+The inventory extension is exact: the frozen1144-owner set plus the two named
+additions equals the later Git tree, without duplicates. B2 becomes277 and D1551;
+other domain counts stay fixed. This finite integration boundary prevents an
+unbounded audit chase or automatic approval of concurrently published inputs.

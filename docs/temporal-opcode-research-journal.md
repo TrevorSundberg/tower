@@ -84007,3 +84007,12 @@ linked binary/runtime hashes remain identical; the four focused run receipts
 therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
+
+Publication reconciliation: scoped commit `e8407e9`; ff-only pull fetched
+published36ad337 and failed128 on divergent histories. Normal merge91397b77
+completed without conflict and preserved every upstream source/audit/journal
+change. Later inventory is1146, adding backend/observation_types(B2) and
+entity_accounting(D1), with28 modified Tower paths. The roster records all30
+later inputs separately; the requested substantive freeze remains5b05, and13
+later D1 deltas are explicitly pending adoption. Exact extended owner/tree sets
+and whitespace pass. No compiler code was authored, built or retested here.
