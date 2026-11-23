@@ -84985,3 +84985,20 @@ receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+B1 merged receipt: implementation81381afb, complete publishede116e966 merged
+without conflicts ase2f1da83. Preserved A2 physical entity/stage and L2 semantic
+scratch producer contracts.29 affected native actions in the same cache finished
+43.45wall/150.09CPU seconds/816440KiB, then all focused selectors above, native
+lr, cold observer,3-unit workers1/4 and exact ParserNodes symbol policy passed.
+No LR production/test inputs changed in integration. Original paired comparison
+remains tied to81381afb/c20dc56a, not relabeled as a merged performance result.
+Merged cold retains185/155/123/36 counts and canonicalhash13832670361687071853;
+737.223ms LR, allocation2257338 and retained36677 buffers include other providers.
+Merged provenance peak47467B and diagnostic peak1411510B include newly charged
+physical owners; final live grants0. Normal workers1/4 canonicalhash
+1173729914654460811/entities48240/components55014 and peaks1/3 still match.
+Their n1 request controls2.900353/1.443253s wall,2.818568/4.183528CPU seconds,
+226656/513636KiB RSS, retained49905443/49897083B, peak140012347/318573851B,
+ledger metadata20971520/41943040B are integrated ownership costs, not B1-only
+speedup evidence. All jobs drained, todo hash unchanged, source/log evidence
+preserved; normal main push follows. ROOT release gates remain pending.
