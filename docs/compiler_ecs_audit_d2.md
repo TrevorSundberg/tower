@@ -2601,3 +2601,63 @@ compiler optimization. No CMake or shared harness change was made. Final explici
 linker-world budgets, new interpreter ABI integration, complete current release
 instrumentation/public-bootstrap/browser/generation and leased hosted publication
 remain open.
+
+### Next complete ABI join — source review at2252b889, integrated6e7feea51
+
+After the prior freeze and actual13:11:39 release, verified D1's complete
+1beec/7160ccfd history/receipt. Its archived missing-provider link1 and original
+ASan units124/followup0 are directly inspected; no probe was executed. README
+conflicts were duplicate paragraph relocations, with all complete content kept.
+Moved journal metadata/affinity/policy sections remain present. Complete ROOT2252
+bundle3ae22ed0 is then reviewed and merged; only D2's committed exact WASM table
+policy/fixture differs from its production/build source. The c372 receipts remain
+c801 evidence, not acceptance for this new interpreter ABI.
+
+| Supplemental path/scope | Ownership and evidence disposition |
+| --- | --- |
+| `compiler/interpreter_types.tower`, `compiler/interpreter_storage.tower`, `compiler/interpreter.tower`, `compiler/fast_interpreter.tower` | Six sorted execution maps now use work_vector and the invocation's world budget; Foundation entities remain authoritative. Checked growth preserves prior storage and exact errors. Heap metadata is prepaid before committing a guest range so valid free/coalescing needs no allocation. All production map-set callers inspected use the new bool result; statement/address/value/return paths stop on failure rather than replay effects. Fast teardown uses matching work-vector disposal. IMFrame/IMState sizes change, requiring every actual depfile consumer to rebuild. Owner's costs/retention/instrumentation stay at6818; current joined native/browser execution is pending. Wide-call argument storage and other raw owners remain outside this change. |
+| `compiler/lr_api.tower`, `compiler/lr_work.tower`, `compiler/lr_runtime_work.tower`, `compiler/parser_workers.tower`, `compiler/parser_table.tower`; current parser contract | Per-call FIRST/state/LALR failures replace guessed Memory; worker causes are read after joins in source/frontier order. Pool slot and graph buffers borrow the world's stable budget, separately from lane grants; retained pool bytes live until cache/world teardown. Partial derived products remain caller-discard-owned and raw analysis vectors are still outside this accounting. The exact new external ParserNodes call is entity_attach_result in lr_work_node_result; failed attachment releases the creator reference, success transfers containment before releasing it. Other new LR result functions are internal to that provider. Fresh native/WASI reports are required before changing the owned allowlist. |
+| `compiler/semantic_context.tower`, `compiler/semantic_capture_work.tower`, `compiler/semantic_execution_work.tower`, `tests/semantic_executable_admission_checks.tower` | Shared internal sem_query_check preserves the existing first resource/cancellation/subject provenance path. Query/edge/access/seal admission precedes executable metadata, failed partial take discards undispatched private stages before cancellation, and observation/finish must succeed before ready input publication. Full238-line fixture reviewed: eight real selectors, actual graph-capacity pressure, terminal no-replay and world/ledger cleanup; budget variants are not overlap. Fixture imports production services itself and requires the existing aggregate-style provider deduplication. D1 owns the concrete registration and current validation; no D2 harness edit. Component/stage/dispatch/hold gaps remain explicitly separate. |
+
+This is read-only source/receipt review and integration, with no new runtime
+profiling claim. D1 now owns the Deck heavy slot for current leaves/native/manual
+baselines and registrations. D2 awaits its actual parser/provider reports and a
+free slot for fresh WASI/policy validation; no speculative API permission was
+added. Final linker budget contract and integrated release gates remain open.
+
+### Exact checked LR attachment import at9db1be18 +227bf39a
+
+The completed primary audit remains 40/40 paths; this change updates the owned
+`scaffolding/tools/bootstrap_symbols.tower` disposition and its existing
+`scaffolding/tests/bootstrap_symbols_checks.tower` fixture. B1's checked
+`lr_work_node_result` now imports `entity_attach_result` from the existing Entities
+provider. It releases the creator on failed attachment and after successful
+containment transfer. This adds no graph, allocator, world, scheduler or ABI.
+
+D1 exported immutable reports after its current2252 native build drained: parser
+object9928d135 has the exact undefined name and Entities e62f8520 exports it.
+D2 independently compiled the current public-bootstrap WASI parser entry and
+confirmed the same import. Before checker a19e878f rejects only that name for
+both targets. Exact patch227bf39a adds that single ParserNodes permission; eight
+cases cover Linux/Windows/WASI acceptance and truncation, suffix and three wrong
+units. String bounds still derive from actual text, and rejected spans remain
+borrowed from the captured input. Windows here is policy coverage only.
+
+On the same Deck/image4be584fb/public9653, CPU0,2, jobs1, fresh processes with
+warm filesystem, identical GNU-time/timeout wrappers and fixed report paths,
+three samples per target before/after all have the expected status and exact
+stdout/stderr. Wall/user/system times are below0.01s resolution; each target's
+RSS median is1616KiB on both sides (raw1488 outliers retained). No measurable
+speedup, regression bound, overlap or whole-heap retention claim follows. The
+allocation-free permission lookup adds no live storage; tool input ownership
+and serial error publication are unchanged. WASI compile is34.43wall/33.69CPU/
+773060KiB, zero swaps, n1; that is validation cost, not policy runtime cost.
+
+Smallest fixture compile/link/run, canonical selected-tool build, actual fixed
+reports and scoped ASan/LSan/TSan all pass. Retained public LLVM has11 definitions,
+109 ASan report sites and11 TSan access hooks, with the byte-matching guest runtime.
+These serial policy checks do not sanitize the threaded compiler, prove general
+race freedom or provide source UBSan coverage. New checker c8b98a2f and all raw
+statuses/profiles/source manifests are in `build/d2_ecs/parser_attach_2252`.
+Both controllers drained before lock release. Current joined compiler/native/
+browser/generation acceptance and the linker-world budget API remain open.
