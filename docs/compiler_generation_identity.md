@@ -116,3 +116,32 @@ merge `43c680fe`. The affected native rebuild, workers1/4 regression, canonical
 comparison and actual semantics-unit successor compilation pass on that merge.
 The complete generation result above remains scoped to `b5b585fb`; ROOT's final
 integrated milestone must validate later source changes independently.
+
+The subsequent L2 scratch migration was merged through `e116e966` as
+`b21c13c7d886319c1c03f943604f95479f11651e`. Its incremental native build and
+inference CTest workers1/4 pass, and both inference/layout fixes remain intact.
+However, latest-main self-hosting validation has a measured performance blocker:
+
+- Identical current `compiler/units/semantics.tower`, explicit native target and
+  grammars, `--jobs 1 --library`: the frozen compiler completes in
+  21.693 s wall / 16.911 s CPU / 799500 KiB.
+- The merged compiler, SHA256
+  `039a46bbae53eb25b8f7719a10ef75e076b7e2aa2b9212045bb40f1bd4a142d9`,
+  had not completed at 228.184 s wall / 223.281 s CPU / 607328 KiB. It was
+  terminated explicitly (exit143); this check is incomplete, not passed.
+- One bounded 45-second debugger run stopped at `sem_push_checked+83`, the
+  scratch ownership linked-list traversal. Source inspection confirms that
+  every push searches retained lists, even before the known `c.scan` case;
+  newly created lists are appended at the tail. The sample identifies this
+  concrete hot path, without claiming a statistical attribution of all runtime.
+
+Logs `b2_inference_scratch_merged_semantics.log`,
+`b2_inference_scratch_merged_bounded_trace.log`,
+`b2_inference_scratch_push_asm.txt` and
+`b2_inference_scratch_matched_reference.log` retain the failure and matched
+reference. Attaching to the first process was unsupported; the bounded trace
+used a debugger-owned child. All children were drained. The L2-owned follow-up
+is to avoid the scratch-list search for known scan storage and supply an efficient
+derived ownership lookup while preserving budget receipts and parent lifetimes.
+No scratch ownership redesign was made in this inference task. This later-source
+blocker does not alter the complete, frozen `b5b585fb` generation evidence above.
