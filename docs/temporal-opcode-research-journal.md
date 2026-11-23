@@ -64547,3 +64547,84 @@ that identity. Repeating those unchanged measurements would add no coverage.
 Full final four-path consumer patchfac2742091115a23eafaab911ad030aca64d9901b3c9e2fd4eea190b84056882
 supersedes afb3. Thirty-two CLI processes will measure corrected before/after;
 supported current instrumentation remains next, not yet passed.
+
+Corrected CLI profile79050 drained0:32 processes,8 warmups and24 retained,
+identical checked5000/500000 results and all frozen manifests. Same7e06 baseline,
+resources, environment, flags and balanced ordering as above; after is4511ed9.
+Median wall/CPU/RSSKiB before -> after:
+- graph small1.52/1.52/176040 ->1.52/1.50/179840;
+  large1.74/1.71/179980 ->1.75/1.72/180396;
+- fast small1.62/1.61/176364 ->1.63/1.62/180348;
+  large1.73/1.73/180640 ->1.68/1.68/180836.
+Small graph execution3.676->5.436ms; small fast preparation1.207->3.130ms.
+The~4MiB small-process peak increase persists and stays an explicit cost; large
+RSS differs by196-416KiB. Large fast execution is now74.632->74.574ms, so the
+previous e3-only12% phase cost does not recur on the corrected binary. This does
+not prove that its cause was link placement or eliminate the retained old data.
+Graph large execution220.312->219.611ms; compile1366.885->1392.580ms. Fast large
+compile1498.287->1468.709ms. No general performance/heap-neutrality claim.
+
+The32 previous frontend observations retain exact same98125e35 after executable,
+7e06 before executable, common resources and workload. Their~1-2% medians,
+canonical equality and actual outer peak4 remain scoped evidence for unchanged
+frontend paths. Logs counted_diagnostic_profiles preserve the new32 processes.
+Current451 address checks began only after this actual drain, after saving complete
+l1_counted_diagnostics_4511ed9 native and l1_address_type_index_f46b3e2 caches.
+
+### 2026-11-23 L1: corrected counted-consumer address checks
+
+Actual69241 drained0 at frozen451 inputs: public-bootstrap Release/address,
+build-j2/compiler-j1, ASAN_OPTIONS detect_leaks=1:halt_on_error=1:exitcode=66.
+The72-step rebuild passed189.85wall/322.13CPU/733356KiB. All five gates pass with
+empty stderr: full core55.28wall/77.12CPU/902592KiB (including the valid counted-
+buffer tests), query-smoke three times and four-unit profile22.45/87.63/1241816.
+Actual outer peak4, canonical17697577322696030917,64320 entities/73352 components,
+retained7561564 and ledger20971520 match the native oracle. Source before/after/
+final manifests agree with the corrected native inputs. Actual generated LR,
+execution, evaluation and profile IR references/hashes were verified, not only
+configured flags. Binaries LRea56d4e3b67743a788a1bc5bf6e723279c3b5dbf71bd525a8b809349f6ce682c,
+executionf3f2b080d1f3d9ce3dcadd0466bb66df40ae763b6890db4b5efab1fa0404e426,
+profile54679af62cf96a4a4661f80fa34900323eed97b7afd4c1445344123fdcab5163.
+
+Only after this build finished, L2 received a one-child subordinate slot for
+short profile preparation (no timed profiles/type-smoke), overlapping runtime
+checks. These times are validation costs, not isolated performance results.
+Primary lock remains until L2 also drains; current thread checks will follow.
+No deliberate invalid-memory/race probe was run. Foreign LLVM/system libraries
+and unsupported native Tower UBSan are outside coverage; no universal correctness
+claim. ROOT75's newer semantic-producer/page union is queued outside this freeze;
+its inclusion of451 does not retroactively validate that newer combined source.
+
+### 2026-11-23 L1: corrected counted-consumer thread checks
+
+Actual7553 drained0 on the same4511ed9 source manifests as native/address.
+The72-step public-bootstrap Release/thread build passed139.68wall/221.38CPU/
+733316KiB, build-j2/compiler-j1, LLVM19.1.1, WSL Linux x64. All five gates pass:
+full core129.07wall/172.22CPU/716864KiB, query-smoke three times, and four units
+47.46wall/184.52CPU/1880624KiB. Every stderr is empty. Real outer peak4 and
+canonical17697577322696030917 agree with native/address; retained7561564,
+ledger20971520,64320 entities/73352 components and physical peak234354756.
+TSAN_OPTIONS halt_on_error=1:exitcode=66, unchanged600s per-process bound.
+Actual generated LR/execution/evaluation/profile IR instrumentation references
+and hashes were checked; before/after/final source manifests match native.
+LR7482a5765fd0bb6823b9cc583a6f4b015a7bf037527bb7340168c40cf8662deb;
+executiond07a0fb3784e60b2a1f227a195b19dc49bad6027ba4739b71dd11b361693fbc8;
+profilef87bd8823cb15c3de807dc6fdf5cbe706019864373ebca33fca198b2298de697.
+
+L2's prior short preparation99201 had drained before this build started. After
+all five current statuses were0, a separate bounded current type-smoke grant
+was issued; primary host lock stays held until that subordinate actually drains.
+No timing above is claimed as an isolated performance sample. These are valid
+program regressions, not deliberate invalid-memory or race probes. Native Tower
+UBSan and foreign-library coverage remain unsupported/incomplete; backend uses
+the current native calibrated receipt and earlier instrumented source identities.
+ROOT75 is fetched for review but was not adopted during this frozen milestone.
+Final producer integration, remaining allocation owners and public-bootstrap/
+browser/generation/leased publication acceptance remain open. This evidence-only
+update changes no runtime behavior, so new performance measurements do not apply.
+
+Complete raw receipt L1_counted_diagnostic_451_receipt.tgz SHA256
+bf2e7913ee8c48e49af87eb1f752225141c022a0598a237b838448c99a785662 preserves
+initial native/profile results, the independently reproduced e3 failures, corrected
+native/32 CLI and unchanged frontend samples, both instrumented gates, hashes,
+commands and Tower workloads. It does not confer acceptance on newer source.
