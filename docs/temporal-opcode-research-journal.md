@@ -96335,4 +96335,40 @@ A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after 
 L1 publication recovery: incoming A2page-policy/census adopted at5e50a5fa; five-actionrefresh/eightfocusedCTests/largeoptimized32workers4/directGraphFast1-4/backend-ir pass, bytes unchanged and ownerszero. Latestcosts/hashes in receipt pages_*; original paired freeze unchanged. No owner methods edited, no broad rerun.
 
 L2 small-serial follow-up final integration: revert647bb6fc + complete-history mergea93f5444 adoptsae99ce12, including B1Foundation stage policy and D1dependency/A2platform receipts. New world registration affects storage inputs, so one narrow query-runner dependency refresh3actions16.14s and mergedquery-smoke4.96wall/4.02CPU/350892KiB pass (ELF962c8a98). Frozen four new samples and original16 are unchanged, not relabeled new policy; restored helper matches original68345ada exactly. No further profiling/matrix; owned jobs drained, todo unchanged. Normal main push follows.
+
+### 2026-11-23 ROOT: accepted size/memory gains and rejected serial regression
+
+Accepted published source-bound receipts: codec26f99a40 reduces the exact a06 LLVM
+gzip by884370B/6.47%, with~0.61s more package time and unchanged match scratch;
+Foundation31bba36a/ae99ce12 saves277357681B charged pages (54.04% of that
+category,10.11% charged peak,~4.2% RSS), with large serial+2.7% and four-worker-2.1%.
+These are different measured tradeoffs, not a universal compiler speedup.
+Abort b4bd9980 closes both complete work_access/work_observe T9 selections;
+e330a2c9 fixes the stale platform canonical-binding oracle, full4/4 pass.
+A1 independent427d6aca found no abort defect, including four nominal-name controls.
+D1 e68981c3 adds15 seeded dependency batches/36 result checks, cancellation and
+revision recovery, real two-worker overlap and a failing wrong-result oracle.
+L2 ae5d34b2's lowering guard was NOT accepted after extra small-serial evidence:
+3011c77f reverts it; original and added timings stay preserved. No cherry-picked win.
+
+ROOT inspected the draft L1 bi_compare pointer legalization and LLVM19's primary
+[icmp contract](https://releases.llvm.org/19.1.0/docs/LangRef.html#icmp-instruction).
+Unsigned control was present; actual signed-pointer coverage remains requested.
+Correction to earlier transport evidence: native console writes recorded input
+events, but the L1/L2 follow-up text did not appear in their session logs.
+Do not treat those events as consumed instructions. L2's acceptance follow-up
+was delivered by a new bounded resume prompt and completed; L1's next full
+prompt must include signed coverage and L2's retained stage-ownership request.
+
+L1 also preserved a separate unsupported-value failure in a SECOND optimization
+of its returned1327388B Foundation. ROOT copied input,608571B IR and error to
+KinmenA root_second_normalization_l1, verified all hashes, and resumed A2 with
+the complete diagnosis task. A2 now identifies constant-expression add of a
+32-bit ptrtoint global address and38; repair/evidence are pending, not assumed.
+All8 existing UUIDs remain bounded; no additional contexts were created.
+Next memory/speed experiments are explicitly gated by measured benefit, while
+L2 independently reviews/profiles the published page policy. Final new artifacts,
+bootstrap pin, full adoption and hosted runtime remain unfinished. Earlier
+sanitizer and local-deployment-verifier service blocks remain unchanged.
+No ROOT runtime code changed; documentation-only profiling is inapplicable.
 L1 final checked producer boundary b03841da includes L2's rollback to original lowering logic: changed-object refresh, worlds/recheck, exactlarge optimized4/directGraphFast1-4/backend-ir PASS, same bytes/zeroowners. Final source/binaries/costs in published_artifacts.sha256/final_*; original paired freeze retained.
