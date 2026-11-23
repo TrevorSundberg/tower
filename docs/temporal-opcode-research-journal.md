@@ -92365,3 +92365,18 @@ absent from lr-work-main-unbound.ll.d. Reused those exact scoped results without
 rebuilding identical leaves or running another matrix. No claim validates the
 new profile tool or ROOT's separate frozen portable bundle. All jobs drained,
 prior failures retained, todo unchanged; normal publication follows.
+Module-path publication reconciliation: ff-only pull refused divergence; normal
+mergecd4f85b0fe47abca6e8268ef424e458cb8b4520c preserves9331c763 and published
+22e15d5b. L1's numeric-wrapper integration adds11Tower fixtures and changes three
+production files plus two test providers, so the filesystem naming input really
+changed. Reran only the affected host-only module-path-names file:2/2pass,
+0skip/timeout,0.48wall/0.55CPU(0.45+0.10)s,62272KiB,0swaps. Current scan now1162
+scaffolding+3browser fixture paths. The new resource manifest SHA is
+d71ff3cbd23a6812e22462d180724383860cb91a8bf5543875599e49afc68391;
+merged_names.* preserves this separate cost/status, not an extra unique case.
+All selected Node/host hashes and the five real resolution language files plus
+functions example remain identical. Resolution's13passes therefore reuse their
+actual module-input boundary without a repeat; added registry files are filtered
+out of that host's supplied baseline. New compiler sources are not baked into
+47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
+group, implementation change or blanket merged compiler validation.

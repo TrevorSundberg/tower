@@ -4563,3 +4563,10 @@ Costs wall/CPU s/peakKiB: names0.36/0.43/62296; resolution22.76/25.22/223384;
 0swaps. These are validation costs, not production profiling/scaling. Inputs
 verify unchanged after runs; jobs drained and owned lock released. Other fixed
 checklist gates and ROOT's final joined runtime release remain separate.
+
+Mergedcd4f85b0 adds11numeric-wrapper fixtures. Only the affected two-case host
+naming check reran:2/2P on1162scaffolding+3browser paths,0.48wall/0.55CPU s,
+62272KiB,0swaps. Resolution's actual five baseline language files, functions
+example, test and host bytes still match, so its13passes are reused without a
+repeat. Separate merged resource manifest/receipts preserve both input boundaries;
+new producer sources do not become a newly built47433acf reactor.
