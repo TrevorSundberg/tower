@@ -70400,7 +70400,7 @@ stage before checking publication. The default production pool callback is used.
 This supersedes the earlier global observation proposal; no guessed offsets,
 duplicate component definition or new scheduler. Retry2 remains unrun.
 
-## 2026-11-23 � L2 complete caller/provider convergence before publication regression
+## 2026-11-23 - L2 complete caller/provider convergence before publication regression
 
 Same L2 session/PID12136, gpt-6-astra/xhigh/default tier. Complete ROOT556
 and A1 caller0beeb histories now merge at eec97f62f87ffe7c559efbba393212c014231d09.
@@ -70505,7 +70505,7 @@ package, source and input hashes pass. Source bytes equal committed d65c110
 use the identical beforeeec runtime resources and explicit Bedrock/Foundation,
 ordinary --interpret --timings, jobs1/4. Host: same WSL Linux6.18.33.2 x64,
 glibc2.39-0ubuntu8.12, Ryzen5900HX8 cores/16 threads. Arena, mmap threshold and
-GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06�09:32:55UTC; one
+GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06-09:32:55UTC; one
 warmup per combination discarded, then three alternating before/after pairs.
 No cold-cache or isolated-kernel speed claim. Constructor input3846 bytes has
 SHA256bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071
@@ -70523,9 +70523,9 @@ Medians of three retained samples (CPU=user+system, RSS KiB):
 | Generic /4 |1.31 ?1.30|1.62 ?1.61|206300 ?206548|
 
 The generic one-worker median increases3.2% wall/2.0% CPU; it is not recorded as
-neutral or faster. Retained wall ranges are1.52�1.55s before and1.53�1.64s after.
+neutral or faster. Retained wall ranges are1.52-1.55s before and1.53-1.64s after.
 CLI phase review locates most of that difference in compilation: median1388.413
-?1444.867ms (ranges1376.975�1412.658 and1381.404�1478.624). These three samples
+?1444.867ms (ranges1376.975-1412.658 and1381.404-1478.624). These three samples
 do not establish a persistent cause; no additional identical rerun is justified
 solely to obtain a better result. Other configurations vary in the opposite
 direction; the four-worker generic median is close. All median RSS increases are
@@ -71101,3 +71101,24 @@ its uncommitted LR runtime typed-result correction; matched profiles and support
 instrumentation remain pending. No root runtime or release acceptance is claimed.
 The next combined acceptance must rebuild coherent changed page-header providers.
 Root retains publication ownership; todo.txt has not been modified or staged.
+
+### 2026-11-23T09:48:04.4031406Z ROOT: journal encoding and measurement attribution correction
+
+D1 independently found six Windows-1252 dash bytes in four L2 journal lines
+introduced by the incoming99123604 history (one heading and three range lines).
+Root's earlier UTF-8 read/write had rendered those bytes as replacement characters.
+Recovered the exact pre-conversion Git blob through binary stdout, verified the
+six original0x96/0x97 bytes, and changed only those six separators to ASCII hyphens.
+The current journal passes strict UTF-8 decoding; all values and prose remain.
+An initial decoder-index diagnostic loop repeated the same index and was stopped;
+a bounded retry verified the adjacent byte before replacement. No code/build or
+runtime performance change is involved. Use explicit UTF-8 for future OS appends.
+
+L1's48 identical-installation-path controls passed outputs/resource/binary hashes.
+No material charged-cache regression is established by those controlled samples;
+its proposed fixed-extent lookup did not improve results and is being reverted.
+Earlier different-path measurements retain their observations but cannot isolate
+code costs, because executable-derived fallback paths also affect allocations.
+L2 and B1 are controlling that variable in their next bounded comparisons. This
+does not establish that the explicit primary Foundation resource trees differed.
+All final combined acceptance and publication gates remain open.
