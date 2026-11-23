@@ -71696,6 +71696,101 @@ original long/short Foundation bytes and preserve their checked objects/outputs,
 with bounded existing measurement. Iteration and sample policy stay unchanged.
 The experiment/regression remains recorded; the refined implementation and its
 actual evidence are still D2 work, with no competing D1 source edit.
+
+### D1 cache/page/pool coherent baseline starts (2026-11-23)
+
+D2 drained and released its lock before any D1 job began. Complete L164c15b8e
+arrived at that boundary, so verified bundleb5ed5358 and merged as85c79ae1 before
+starting the prepared baseline, avoiding an intermediate page-only ABI rebuild.
+Read all five production and three assigned fixture deltas plus the controlled
+path experiment and retained failures. The exact D1 cache-startup handoff is
+present;24 gated cases keep16KiB allowance/8KiB nested frame. Audit remains525/525.
+The rejected fixed-extent optimization is absent; source derives the lookup bound
+from actual length. The new cache owner is charged before execution and disposed
+in both ordinary and Fast paths; other map/function owners remain open.
+
+L1's later48-process same-real-path comparison supersedes attribution from earlier
+different install paths. Explicit language resource arguments alone did not remove
+the executable-derived fallback-root allocation. Full resources and per-run binary
+hashes match in the controlled trial; baseline/charged graph-small wall1.53/1.52,
+graph-large1.73/1.72, Fast-small1.64/1.62 and Fast-large1.69/1.70 seconds. Three
+retained samples and overlapping execution ranges do not establish general speedup
+or universal neutrality. Candidate mask narrowing did not improve measured cost
+and was rejected. Its cache binaries are not a valid accepted source package;
+D1 builds its own coherent closure from the complete accepted history.
+
+Actual D1 session7127/controller2962445 (container84102), logs
+build/d1_ecs/pool_registration_before. Atomic Deck lock acquired after review,
+public9653/no override, same Docker/LLVM19.1.1/cpus0,2/jobs1. Eight smallest public
+leaves precede three manual existing-composition targets and the coherent native
+compiler/LR/frontend/storage build. Focused query/resource/regex/grammar/parser/
+allocation/storage checks follow; current process is running, no pass inferred.
+Source stays frozen throughout. The three minimal registrations will be edited
+only after this baseline drains, then compared on equivalent inputs. D2 retains
+next count-only validation priority after this bounded native group.
+
+D1 read-only next-boundary review: complete ROOT76d297c2 bundle4e5e70e9 arrived
+after session7127 started. Fetched only, leaving85c79 closure frozen. Read B1's
+six production result-propagation changes and four fixture deltas, including the
+authorized existing storage selector. Audit rows distinguish real serial/worker
+Capacity/Memory/Busy from grammar conflict None, measured fault-sweep bounds and
+deterministic reference/cleanup checks. Owner unchanged full units before134 and
+after pass are retained with503 source identity. Fixed-path20-process profiles
+are the valid narrow comparisons; earlier different-path outputs do not isolate
+code cost. LR graph/pool binding and FIRST/state fallbacks remain explicit work.
+No new D1 runtime result follows from read-only review; runtime profiling is
+inapplicable to this documentation. Plan: finish the85c native comparison, release
+D2 and preserve its evidence, then adopt complete76 before matching final scoped
+instrumentation, avoiding a needless obsolete instrumented rebuild.
+
+### D1 pool/reuse registration native comparison (85c79ae1)
+
+Baseline7127 completed0 with unchanged source hashes. All eight public-pin leaves
+pass; pool6.20wall/6.04CPU/216148KiB, generic publication7.54/215308KiB,
+semantic context29.49/688160KiB, call-query4.90/195156KiB, interpreter storage
+4.22/182428KiB, gated resource4.73/216100KiB, reuse4.35/213768KiB and reentrant
+4.01/212480KiB. The two positive entity fixtures each pass three manual runs.
+Canonical20-action native compiler/LR/frontend/storage build198.53wall/
+193.84CPU/749968KiB passes. The16 pool cases pass three manual processes with
+the existing production composition and unique main/worker/semantic providers.
+
+Current query.25wall/.26CPU/61508KiB and resource24 pass. Regex.05/.04/52340,
+grammar-resource3.19/3.15/52104, parser.08/.07/53276,
+serial allocations7.19/6.98/173336 and storage.34/.32/98184 allpass. The storage
+suite includes A2's corrected exact UTF8 receipt/terminal EOF oracle. These
+allocation sweeps are correctness workloads, not equivalent-time comparisons
+against older sources with different admitted buffers/failure-prefix counts.
+Compiler SHA256b8c36092f4aa3e91e0836f15ba2736543176a4272474304edc727f52cf00b43a
+and all50 resources/source archive are preserved before registration edits.
+
+After every baseline child drained, add two names to the existing normal fixture
+factory and one production-composition pool target/CTest. All Tower bodies remain
+unchanged; no new provider, wrapper, SOURCE mode or timing-based test is added.
+Exact patch2d03795d0a08536a4c1213fced211b9f27a62f6c85176e67022928002f548284
+was independently reviewed by D2, with no source issue. Native59759 completed0:
+10 actions32.93wall/31.96CPU/237628KiB, three runs each newtarget, exact baseline
+object bytes and stdout, unique mains, and all three CTest registrations pass.
+Refreshed real worker-stage and component-budget fixtures each pass three more
+runs on the changed page header; stage cases retain57792 finalizations and their
+barrier/publication/cancellation oracles. No universal race claim follows.
+
+Registration comparison uses the same frozen85c code/public compiler and fresh
+processes, warm filesystem/vendor cache, no cold-cache claim. Pool n3 wallseconds
+.04/.02/.03 -> .04/.04/.04; CPU .03/.01/.01 -> .03/.03/.03;
+RSSKiB50456/50456/50428 ->50680/50492/50496. Reuse and reentrant wall/CPU round
+below.01seconds in all samples. Reuse RSS1472/1600/1596 ->1600/1548/1600;
+reentrant1472/1472/1472 ->1600/1600/1600. Timer resolution/process setup and n3
+do not support a small-cost neutrality or speedup claim. Byte-identical fixture
+objects and unchanged exact final-owner assertions establish preserved workload
+semantics; no scheduler change was made. All raw samples and commands remain.
+
+At actual10:06:56UTC both D1 containers were idle after terminal0/source0;
+owned lock receipt was saved and only the owned empty lock removed. D2 receives
+the next count-only slot. Supported matching instrumentation remains PENDING:
+complete ROOT76 runtime Capacity history arrived during the native freeze, so
+preserve/commit this native evidence before merging it, then instrument the next
+coherent union instead of rebuilding an already-obsolete instrumented closure.
+This is not final code acceptance, clean bootstrap/browser/generation or release.
 ### L1 coherent source union after cache attribution closure (2026-11-23)
 
 Merged complete ROOT9d73da0b history (verified sole60741 prerequisite, bundle

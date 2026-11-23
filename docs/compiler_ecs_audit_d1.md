@@ -2515,3 +2515,64 @@ retained; strict UTF-8 validation now passes locally. The changed page-header AB
 and pool/publication union have not yet been built in D1; no older runtime result
 is relabeled. New pool/reuse/reentrant registration will follow equivalent manual
 baseline measurements on these coherent sources.
+
+### Charged interpreter cache — reviewed85c79ae1 (complete L164c15b8e)
+
+Full bundleb5ed5358 includes ROOT9d73 and was reviewed/merged before the next
+unstarted build. No census change:525 assigned files. All five producer/storage
+deltas were read: invocation startup admits the existing direct-mapped cache as a
+world-budgeted work_vector before execution; prevalidation reads the actual node
+directly; lookup derives its mask from actual initialized length and checks the
+full key. Ordinary and Fast disposal release the same physical grant. The rejected
+fixed-mask optimization is absent. Private maps/function tables remain separate
+owner work, so this is not whole-interpreter allocation closure.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/interpreter_call_query.tower | Exact retained ownership now includes node-cache reservation. Five startup phases derive allowances from a successful invocation's actual grants and explicitly record which earlier owners may exist. Capacity denies the intended buffer, forbids partial outputs, and preserves exact text/owner bytes. Returning pressure cannot replay a failed invocation or change its steps; disposal restores the measured baseline. Existing alias/value/capture/query checks remain. |
+| scaffolding/tests/interpreter_storage.tower | Adds serial physical Memory and budget Capacity denial of actual cache admission. Ledger metadata is prepared first so the physical fault hits the intended cache buffer. Failure requires null data/zero length/capacity/no grant; successful low-level storage retry owns exactly one physical grant without clearing the sticky failure. Disposal restores allocator count and zero ledger state. This is single-owner fault coverage, not threaded allocator instrumentation. |
+| scaffolding/tests/semantic_resource_checks.tower | D1-authorized handoff is preserved: startup now identifies exact node-cache denial with no retained cache owner; successful gated preparation proves a nonempty cache grant owned by that invocation's budget. The separate executed nested stack-growth oracle remains exact. All24 width/worker/decltype/isolation cases,16KiB budget,8KiB nested frame and owning-program receipt assertions remain unchanged. No broad message alternative or guessed allowance increase. |
+
+L1's controlled48-process comparison uses the same real executable path and
+identical complete resources, superseding earlier code-cost attribution confounded
+by executable-derived fallback roots. Three retained samples show no established
+material cache regression but do not prove neutrality or general speedup; Fast
+large wall1.69->1.70s remains visible. Owner5 address/5 thread gates and actual IR
+hooks apply to4bef, not this newer union. D1's current eight-leaf/coherent native
+baseline is running on85c79ae1; matching runtime acceptance remains pending.
+
+### Prospective LR Capacity producer — reviewed1944d6a01/ROOT76d297c2
+
+Complete bundle4e5e70e9 arrived during the85c79 build. Fetched/read only; no
+adoption or census change. Reviewed all six corresponding producer/consumer files
+and the following four assigned fixture deltas. Per-call buffer/vector errors
+now flow through serial and worker-owned runtime rows; joined publication selects
+source-state order, retaining earlier grammar conflicts. No shared budget-error
+field is used as a cross-worker result. LR graph and retained parser pool storage
+remain explicitly unbudgeted, and FIRST/state bool fallbacks remain separate work.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/lr_budget.tower | Actual successful retained bytes establish pressure. Both serial and explicit-worker runtime constructors must return exact Capacity, restore original owners/lanes and retry after pressure release. Null input is exact Invalid; ordinary successful table/conflict checks remain. This tests underlying allocation outcomes rather than accepting any null result. |
+| scaffolding/tests/lr_runtime_faults.tower | Existing independent action/goto/conflict reference now exercises both serial and worker-result implementations under serial fault injection. Null means exact Memory; successful grammar conflicts retain None. Two complete sweeps compare actual allocation counts and outcomes; scratch arrays derive from measured successful calls with overflow check. Clean retries and final allocator baseline remain, with no fixed1024 bound. This is not real worker overlap. |
+| scaffolding/tests/lr_work.tower | Retained worker-pool collision now requires exact Busy from the typed lease API. Serial/parallel table comparison requires explicit None before comparing all rows/conflicts. Existing lifetime/thread/owner checks remain. |
+| scaffolding/tests/storage_main.tower | Root-authorized runtime-faults selector calls the already imported oracle immediately after the serial-transport guard. Unknown selectors fail; default resource-root setup/order remains. No new runner, provider, or production ownership. |
+
+Owner unchanged full-units peak-minus-one/no-output/retry oracle changes from
+before134 to after pass on its503-based source. Fixed-real-path20-process profiles
+preserve outputs/canonical counts/retention; n2 wall differences about-0.07% to
++1.23% do not establish neutrality or speedup. Earlier different-install-path
+measurements remain historical output evidence, not isolated code costs. Current
+joined address/thread/WASI and D1 acceptance remain pending. Old85c known failure
+is not relabeled as fixed until this complete source is adopted and checked.
+
+Current85c native disposition: all eight changed public leaves, coherent compiler/
+LR/frontend/storage, query/resource24, regex/grammar/parser/allocation/storage
+checks pass. The16 pool cases and two positive entity fixtures each pass three
+manual baseline runs, then three registered runs with byte-identical objects and
+stdout. All three new CTest entries pass. D2 independently reviewed patch2d03795d;
+existing factory/provider ownership is preserved. Refreshed worker-stage and
+component-budget fixtures each pass three native runs, separate from serial slot
+admission/finalizer checks. Exact measurements and limits are in the journal.
+Matching address/thread checks remain pending after the queued complete76 merge;
+no obsolete instrumentation run or whole-release acceptance is claimed.
