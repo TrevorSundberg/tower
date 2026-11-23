@@ -58570,6 +58570,67 @@ cache, retire the private partial graph, and propagate the resource diagnostic
 before clearing errors or exposing a successful document. Those are reviewed
 requirements, not completed fixes.
 
+### D1 source union reconciliation (root 1fec1b91)
+
+Fetched and verified complete ROOT_main_1fec1b91.bundle SHA256
+79350aa1820854d6ee537aa20b48c244e8421d098059263ae7b82786c924ce01,
+sole prerequisite60741. Merged on existing main after all own jobs drained, with
+D2 holding the shared heavy slot. Merge reported two conflicts, preserved as
+explicit unresolved work until inspected: interpreter_call_query had the newer
+L1 two-stage startup denial versus D1's earlier one-stage test; the resource
+fixture had original standalone main versus D1's authorized query helper entry.
+Resolved to the stronger complete L1 startup fixture and D1 helper entry. Both
+histories and all newer diagnostics/ownership assertions survive. Journal merged
+without conflict; D1 audit/roster/current hook retained. No todo change.
+
+Reviewed all seven newly delivered direct test bodies and all changed assigned
+fixtures against prior complete reviews. Current census1,074tracked/491D1direct;
+per-file conclusions recorded separately from execution. New clone tests use
+actual registry/kernel/graph/pool and private stages, reserve lanes before work,
+hold queued stages before last view closure, then publish/discard and check zero
+retention. Native intervals and distinct threads prove overlap only. Serial
+allocation and node-quota failures remain distinct from real threaded transport.
+A1's semantic_world cleanup now drains full-slot failed admission before releasing
+invocations/views/worlds, and tracks every pending stage through early exits.
+B2's pure execution_functions helper resolves the earlier fixture import/link
+boundary; focused/default serial registration can now reuse it without copying
+backend lowering. New token_text supplies explicit ordinary-language reference
+values/bit patterns, including signed minimum and negative zero.
+
+No merged build or sanitizer pass is claimed. Root union still excludes later
+A2 constructor budgets, B1 fixed LR result, L2 publicclone_result and paired B2
+consumers, plus subsequent arena caller work. D1's current compiler/profile
+recipes need their source identity refreshed before next freeze. Do not reuse
+f635 binary receipts as union validation or run only one side of a new layout.
+
+### D1 bounded lifecycle and existing fixture registration
+
+After root approved the proposal, added lifecycle FIRST [LAST] solely to
+lr_work_main plus usage docs. Existing semantic_lifecycle_range supplies the
+unchanged case assertions, widths4/8 and workers1/4. Decimal parsing rejects
+empty/nondecimal/overflow/out-of-range/reversed arguments before opening resources;
+start/end receipts flush around each selected case. Default all/bodies/type-smoke
+remain unchanged. This addresses the measured opaque180s whole-suite timeout by
+making bounded per-case attribution possible; it does not change that failed
+receipt or claim any previously unfinished cases passed.
+
+Root1fec delivered the pure B2 backend execution_functions helper. Registered
+existing backend_execution_index in default and focused execution-index paths of
+the serial frontend runner, preserving every allocation/identity/canonical oracle.
+D2 also reported its queued tower-parser-tests target is absent from native mode.
+Audited actual callers: TOWER_MODULE_TESTS selects parser_modules_work, which
+already includes frontend_modules_tests. Added only a conditional native target
+for existing B2 module_cache_checks, same production sources/libraries/callbacks,
+with scaffolding cwd. No new Tower runner, parser implementation or fixture body.
+Default native configuration remains unchanged unless that option is selected.
+
+Exported source-only incremental hooks: lifecycle fca3db6b, execution-index
+d679e180, module-cache62b9d819. They are not validation receipts. Current D2 build
+must drain before adoption; D1 has no heavy process. Public smallest units then
+coherent link/runtime and malformed/range checks are next. Individual case timing
+will report actual wall/CPU/RSS and exact completed scope; reduced selected work
+will not be presented as a compiler speedup. Final union instrumentation/release
+and remaining owner constructor/clone/arena handoffs stay open.
 A1 integrated ROOT's1fec source union while preserving the committed Publish draft. Subsequent merge-preserving pull succeeds at874f53de; only owned new Publish fixture was untracked. d3ec5a4 is already reachable from upstream60741 and is documentation-only, so it does not invalidate frozen compiler inputs. L2's constructor/type/generic reservation remains untouched by A1 edits. Scheduler review routed exact remaining transport failures: semantic waves still assert a false dispatch/admission instead of disposing partial outputs and selecting a diagnostic. ROOT correctly refined the drain contract: only a valid initially drained dispatch owns its deferred join; Busy invalid entry does not drain preexisting caller work. A failed partial submission can execute all jobs, so failure cannot replay them. A2 owns the typed transport result; A1 will consume it, without asynchronous WorkGraph mutation or new scheduler. Inner-kernel cancellation latency remains uncovered beyond joined frontiers.
 
 A2 arena linkage patch819a9542 and new API/fixture archive2f16b385 were hash-verified, fully read and adopted. Exact six exports have one provider in existing entities.tower; three semantic consumers now import only typed API. On otherwise identical1fec+A1 source, the aggregate before-import boundary fails at completion198 (13.08wall/7.75user/.89system seconds,756024KiB), after boundary advances to completion886 but still fails (13.25wall/8.04user/.85system seconds,752588KiB). Neither is a pass. Actual provider/link instrumentation has A2-owned evidence; full A1 current ABI remains unbuilt.
@@ -59346,59 +59407,165 @@ bootstrap-generation, browser, scaling and supported sanitizer validation plus
 atomic publication/hosted verification remain required. No public refs changed.
 
 ### D1 source union reconciliation (root 1fec1b91)
+### D1 all-eight source checkpoint and final inventory refresh
 
-Fetched and verified complete ROOT_main_1fec1b91.bundle SHA256
-79350aa1820854d6ee537aa20b48c244e8421d098059263ae7b82786c924ce01,
-sole prerequisite60741. Merged on existing main after all own jobs drained, with
-D2 holding the shared heavy slot. Merge reported two conflicts, preserved as
-explicit unresolved work until inspected: interpreter_call_query had the newer
-L1 two-stage startup denial versus D1's earlier one-stage test; the resource
-fixture had original standalone main versus D1's authorized query helper entry.
-Resolved to the stronger complete L1 startup fixture and D1 helper entry. Both
-histories and all newer diagnostics/ownership assertions survive. Journal merged
-without conflict; D1 audit/roster/current hook retained. No todo change.
+Verified ROOT_main_3915aee8.bundle SHA256
+08a0cecdb3ed44050806224e0ef5f51459245777adebfc9e3d4d4c60b7ba6a8b,
+sole60741prerequisite and full owner histories. Merged into current D1 main after
+own jobs drained; README append conflict retains both independent sections.
+Read new AGENTS size/count contract. Six new direct Tower measurement/fixture
+bodies and every existing assigned-file delta reviewed, total1,080/497direct.
+No todo changes or unsupported partial ABI execution.
 
-Reviewed all seven newly delivered direct test bodies and all changed assigned
-fixtures against prior complete reviews. Current census1,074tracked/491D1direct;
-per-file conclusions recorded separately from execution. New clone tests use
-actual registry/kernel/graph/pool and private stages, reserve lanes before work,
-hold queued stages before last view closure, then publish/discard and check zero
-retention. Native intervals and distinct threads prove overlap only. Serial
-allocation and node-quota failures remain distinct from real threaded transport.
-A1's semantic_world cleanup now drains full-slot failed admission before releasing
-invocations/views/worlds, and tracks every pending stage through early exits.
-B2's pure execution_functions helper resolves the earlier fixture import/link
-boundary; focused/default serial registration can now reuse it without copying
-backend lowering. New token_text supplies explicit ordinary-language reference
-values/bit patterns, including signed minimum and negative zero.
+The checkpoint includes B1 physical lexer/runtime-table storage and nongeneric
+WorkVector growth/fixed LR result changes, plus A2 locality/layout/ledger failure
+fixtures. Owner inventories distinguish archetype pointer index from packed data,
+retained page fragmentation from live payload, requested allocation bytes from RSS,
+and admitted slots from actual overlapping work. D1 found one current coverage
+gap: layout_frontier_profile only selects8/1024/4096 fields, while the integrated
+layout scheduler now dispatches at8192. Route to A1/A2 for a measured additional
+case; the old profile does not validate the new profitable path.
 
-No merged build or sanitizer pass is claimed. Root union still excludes later
-A2 constructor budgets, B1 fixed LR result, L2 publicclone_result and paired B2
-consumers, plus subsequent arena caller work. D1's current compiler/profile
-recipes need their source identity refreshed before next freeze. Do not reuse
-f635 binary receipts as union validation or run only one side of a new layout.
+D2 has drained/released the shared slot after its own fa725bf resource checks,
+canonical build and controlled cache profiles. Its CPU2 warm18-layer median
+309.109msbefore/.549529after and first42.085/37.151ms eliminate the earlier
+uncontrolled first-load slowdown on that closure; these remain independent owner
+receipts, not D1 measurements of the newer union. D1 next freezes current union,
+compiles smallest changed units, builds through public canonical entry without
+override, validates the new selectors/clone/storage/module/query paths, then
+records equivalent before/after profiles and bounded lifecycle cases.
 
-### D1 bounded lifecycle and existing fixture registration
+The newly delivered work_budget_allocation fixture had no generic registration.
+Added it to the existing serial fault-target loop, linking the already-built
+host.memory object only for this fixture (buffer/arena import that code themselves).
+No new test body/runtime/allocator. This keeps allocation injection single-owner
+and avoids duplicate memory definitions. Smallest compile/link/runtime pending.
 
-After root approved the proposal, added lifecycle FIRST [LAST] solely to
-lr_work_main plus usage docs. Existing semantic_lifecycle_range supplies the
-unchanged case assertions, widths4/8 and workers1/4. Decimal parsing rejects
-empty/nondecimal/overflow/out-of-range/reversed arguments before opening resources;
-start/end receipts flush around each selected case. Default all/bodies/type-smoke
-remain unchanged. This addresses the measured opaque180s whole-suite timeout by
-making bounded per-case attribution possible; it does not change that failed
-receipt or claim any previously unfinished cases passed.
+### D1 frozen all-eight public build and focused registration receipt (0e544ac)
 
-Root1fec delivered the pure B2 backend execution_functions helper. Registered
-existing backend_execution_index in default and focused execution-index paths of
-the serial frontend runner, preserving every allocation/identity/canonical oracle.
-D2 also reported its queued tower-parser-tests target is absent from native mode.
-Audited actual callers: TOWER_MODULE_TESTS selects parser_modules_work, which
-already includes frontend_modules_tests. Added only a conditional native target
-for existing B2 module_cache_checks, same production sources/libraries/callbacks,
-with scaffolding cwd. No new Tower runner, parser implementation or fixture body.
-Default native configuration remains unchanged unless that option is selected.
+Frozen source0e544ac852aec2aa55702a6c2e3b4767d626fc13 includes complete root3915
+histories plus the D1 resource-query, lifecycle, execution-index, module-cache
+and ledger-failure registrations. New constructor/public-clone/arena-linkage
+owner drafts are explicitly excluded. Guarded pull is a no-op; todo unchanged.
+D2 drained before D1 acquired the shared mkdir lock. Linux x64 SteamDeck,
+Docker image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+LLVM19.1.1/GCC13, CPUs0,2, one build job, public bootstrap9653f818 with no
+private override. Current group logs: build/d1_ecs/union_0e544ac.
 
+All12 direct public unit commands pass. Native20-step dependent build passes
+174.15wall/170.16CPU seconds,797556KiB peak RSS; affected18-step eight-target
+build passes78.49/76.28,363392KiB. Both measured children report zero swaps.
+Source hashes verify before/after. Complete compiler SHA256
+ae1609ab2d9cc53e141fb15f5863bf7d073a79aeeb6b9c77cf8c892628f3b7f1 and48resources
+are preserved in native_package_0e544ac; every packaged Tower resource compares
+byte-identically with frozen scaffolding. This is a canonical public-pin
+incremental development build, not a clean final generation/browser release.
+
+Measured iteration redundancy: manually compiling parser_modules_work34.05s
+and semantics_checks30.74s duplicated the same aggregate compilation immediately
+performed by the canonical native build. Future recipes should compile the
+smallest changed direct entry first, then obtain aggregate evidence from the
+mandatory canonical build. The running recipe was left untouched and its
+successful duplicate evidence retained. A display-only invalid tail invocation
+and a read of a not-yet-created log failed independently; neither changed build
+inputs nor supplied a successful check receipt.
+
+The focused runtime group passes with unchanged source hashes. Wall/CPU seconds
+and peak RSS KiB: production units46.43/62.93/773544; backend-overlap22.54/30.55/
+530036; aggregate-stages51.12/57.69/351000; frontend control4.66/8.76/339728.
+Storage, serial ledger rollback, allocations, parser, newly registered
+execution-index, query-smoke including all resource cases and generic-clone
+workers, and production LR all pass. The newly registered full native module
+CTest runs one actual test, passes0.18s, and reports no skipped/missing test.
+It is distinct from the cache profile's narrower invalidation checks.
+
+The unchanged three-unit/two-worker control preserves canonical hash
+1173729914654460811 and48240entities/55014components. Compared with f635, reported
+retained budget bytes rise1422356to5389148, peak26373268to111274988, and ledger
+storage2621440to10485760. New lexer/LRRuntime/LRRow/action/goto/state/rule buffers
+now carry physical WorkBuffer/WorkVector grants; prior budget totals excluded
+these owners, so this is not a like-for-like wholeheap growth measurement.
+Ledger capacity itself is real fourfold metadata growth, routed to B1/A2/B2.
+Single-sample process RSS314192to339728KiB (+8.1%) has not been independently
+attributed or established as a repeatable regression. Neither accounting nor
+admitted worker width establishes profitable scaling. Paired frozen compiler
+measurements remain pending in this same slot.
+
+Malformed lifecycle selectors all reject with exit1 before reading a deliberately
+missing resource root: missing/extra arguments, empty/nondecimal/negative values,
+large decimal overflow,42 and reversed range. Each raw stdout/stderr/status is
+retained. The bounded42-case sweep is running with60s per individual case,
+unchanged32/64 and1/4worker trials and canonical assertions. No full42 or
+type-smoke pass is claimed yet. Type-smoke also contains later body/binding/
+declaration checks; lifecycle-only completion must not be relabeled as that
+larger suite. Current wholecompiler supported ASan/TSan, remaining integrations,
+clean public generation/browser and named-lease atomic publication remain open.
+
+The full bounded lifecycle sweep subsequently passes all42 cases0–41, each with
+its original32/64-bit,1/4-worker, explicit output/diagnostic and successful
+Foundation reconstruction checks. Individual wall times range10.14–17.22s;
+per-case peak RSS209628–228464KiB, all measured children0swaps. Every CPU/wall/RSS
+receipt, start time and completion line is retained. Original aggregate180s
+failure remains unchanged; this complete case sweep does not claim the separate
+post-lifecycle type-smoke negatives passed. First/last starts were01:44:55 and
+01:53:22UTC, showing why another opaque180s invocation was not useful on Deck.
+
+The following profile preflight failed1 before its first sample: the old baseline
+executable was in host coordination storage outside Docker's mount. Session92442
+stderr and cache_profiles_missing_mount status/partial manifest/original script
+are preserved. After verified process drain, copied the exact baseline into
+D1's mounted build root and byte-compared it; corrected measurements run in a new
+receipt directory. No completed lifecycle case was repeated or failed preflight
+reported as successful. Coordinator authorizes the minimal TypeErrors mode and
+LR selector after this freeze; L2 owns the new inspection-denial fixture/hook.
+
+Corrected cache comparison completes: identical0930654a input, archived f635
+executable versus current0e544, CPU2, warmup plus three alternating process pairs.
+All128 internal reports, changed-shared-leaf invalidations and teardown checks
+pass; binary/source hashes remain unchanged. Requested1 eighteen-layer first
+medians42.081508msbefore/40.833296after, pooled nine warm306.413835ms/.516939ms,
+CPU305099us/507us. Exact retained graph counts7047/8725 match. Peak cumulative
+RSS median55908/56736KiB (+828KiB), not wholeheap live memory. Three-layer first
+8.232137/8.421110ms and warm85.872/89.162us show overlapping small-path variation;
+CPU warm87/83us. Counts1646/1680 match. This independently validates removal of
+exponential cache validation work without claiming universal compiler speedup,
+zero overhead or multicore scaling. Requested4 reports are retained but one-CPU
+affinity cannot demonstrate parallel execution. Main compiler profiles continue.
+
+A host attempt to write the transport note inside Docker's root-owned output
+directory failed Permission denied. The note was written adjacent to it without
+changing ownership; this was receipt bookkeeping, not a test execution or pass.
+
+Common compiler profiles finish with32 checked runs (two fixed fixtures,1/2jobs,
+warmup plus three alternating before/after pairs) and eight exact Foundation
+comparisons across both compilers/work counts. Each execution prints0 with empty
+stderr. Language/type/vector resource sources match byte-for-byte between saved
+f635 and0e544 packages. Serial uses CPU2; dual uses separate physical cores0,2.
+All binaries and full frozen source manifest verify unchanged after execution.
+
+| Input / workers | Wall seconds before/after | CPU seconds before/after | Peak RSS KiB before/after |
+| --- | --- | --- | --- |
+| known_bindings /1 | 2.09 /2.15 | 2.07 /2.13 | 177784 /180204 |
+| known_bindings /2 | 3.35 /3.21 | 3.95 /3.69 | 185648 /192812 |
+| body_continuation /1 | 2.17 /2.25 | 2.15 /2.22 | 186664 /194760 |
+| body_continuation /2 | 3.35 /3.46 | 3.90 /3.88 | 198160 /205900 |
+
+Values are medians of three measured processes, excluding warmup. Serial wall
+regressions are2.9%/3.7%; RSS increases2420/8096KiB. These are real observed
+integrated-source differences, not dismissed as zero overhead or isolated to a
+single change. New LR physical owner descriptors/grants and ledger capacity are
+the reviewed attribution candidates, routed to their owners. Two-worker samples
+vary and remain slower than fast serial for both inputs; no useful scaling claim.
+Independent overlapping-worker checks above establish actual concurrency, not
+profitability. No cross-language or cold-cache performance conclusion follows.
+
+The valid inclusive lifecycle0–1 call also passes and matches concatenated
+individual receipts exactly. All owned jobs drain; both Docker containers show
+only their idle init/sleep command. D1 releases its own heavy lock at actual
+01:57:47UTC to D2.139GiB free disk/9.6GiB available RAM; existing host swap6.4GiB
+is reported separately from measured children0swaps. Saved LR executable permits
+equivalent harness comparison after the approved TypeErrors selector change.
+No final merged instrumentation/generation/browser/publication gate is closed.
 Exported source-only incremental hooks: lifecycle fca3db6b, execution-index
 d679e180, module-cache62b9d819. They are not validation receipts. Current D2 build
 must drain before adoption; D1 has no heavy process. Public smallest units then
@@ -59708,6 +59875,26 @@ accounting, checked dispatch and interpreter frame/task ownership remain active
 owner work. Final clean bootstrap/browser builds, scaling, sanitizers and atomic
 main/Pages publication are still required.
 
+D1 next merges complete root6b8355b after measured jobs drain, verifying bundle
+aa7eaf7c and sole60741 prerequisite. It includes matched public-clone producer,
+node/attach failure classification and B2 module/document consumers, plus D2 exact
+symbol policy. Three existing direct fixture deltas reviewed; no new Tower path.
+README's only conflict duplicated the same B1 runtime-profile paragraph at two
+positions; retained it once with all newer D1 ledger/selector text. Audit/journal
+histories merge intact, no todo change. New runtime remains pending and is not
+credited with the prior0e544 measurements. Root authorizes TypeErrors mode only
+after freeze; it will preserve existing Types/default behavior and share oracles.
+
+D1 implements the root-approved minimal TypeErrors mode/wrapper and LR selector
+afterc2d0064. Every existing body/negative oracle remains shared; existing modes
+keep their lifecycle behavior and messages. The new narrower success message
+cannot be mistaken for a full type-smoke pass. Source-only patch SHA256
+56f043005e92922db5e3aa924c31fd7a0144aae7dae588c71a7da7546549ed2e is exported with
+reverse-apply/diff checks. No production edits or new syntax. Compilation/runtime
+and focused measurement remain pending while D2 owns the heavy lock. The old
+full42 receipt establishes the repeated work's cost; changed clone production
+still needs applicable current checks and final frozen full coverage. D1 does not
+claim identical input closure after this merge or inherited instrumentation.
 ### B1 complete-history join and grammar storage continuation
 
 B1 committed8ee486cd, exported complete history8b36934c, then merged root1fec into
@@ -59838,6 +60025,28 @@ The existing LLVM Wasm asset was deliberately not used as current evidence.
 All owned children are drained; next is the source checkpoint and coordinated
 root6b8355 clone/caller union. Remaining LR analysis/state/automata/request
 storage and shared world/store/constructor accounting stay explicitly open.
+
+D1 merges root86e7ec98 grammar ownership checkpoint after verifying d8a450a6
+bundle/sole60741 prerequisite; no merge conflict, no todo change. Review covers
+new39-line separate arena client and complete113-line parser budget successor,
+plus public getter callsite preservation. Census1,082/498direct. B1 measured
+two paired small/large caller samples and actual ASan/TSan/WASI on its own
+grammar/provider source; those receipts predate the public-clone-v2 union and
+are not relabeled as final current acceptance. D1 keeps its already committed
+TypeErrors and ledger hooks. New separate-client target is proposed through
+manifest-owner coordination; no duplicate provider or non-Tower fixture logic.
+D2 holds the heavy slot. No D1 build starts or frozen sibling input changes.
+
+Root approves D1 arena linkage registration at02:10:50UTC. Implemented a single
+conditional provider object in the existing tower_work_fixture function and added
+work_arena_linkage to its ordinary positive loop. Same guest/runtime/sanitizer
+recipes, no entity/compiler object linkage or extra runner. Source-only patch
+3ada5d30b836f2dc4e5e438aa69b6db2392e7bddf0073874b5e69b9fa0eadb7a passes reverse
+check/diff check. It requires the complete root86 arena API/provider sources.
+Fixture logic is unchanged from A2's independently measured separate-boundary
+source; D1 target build/runtime time/RSS and symbol/instrumentation evidence are
+still pending. This registration supplies reproducible coverage, not a claimed
+runtime optimization or inherited wholecompiler sanitizer acceptance.
 ### A1 Publish source boundary and transport cleanup audit (2026-11-23)
 
 Source under review: f9c40fad, the complete ROOT3915 union plus the explicitly
@@ -60064,3 +60273,74 @@ or threaded instrumentation. Tool compilation and sub-centisecond verifier
 runs retain wall/CPU/RSS in publish_symbols_406d; allocation-free borrowed spans
 and dispatch remain unchanged, so no verifier throughput improvement is claimed.
 No redundant verifier rebuild after the final test-only negative additions.
+D1 merges only approved A1ab603725, verified child ofb7bf916c from complete bundle
+4ef71298. The advertised0e36d5c9 constructor/dispatch tip remains excluded.
+Root86 grammar and root6b clone histories are preserved. Resource entry conflict
+keeps parameterized semantic_resource_tests(width,workers), adds owner's growth
+mode loop, and retains all trial bodies/typed-capacity/peak/cleanup assertions;
+resolved SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
+
+Root/D2 approved LR query registration calls semantic_publish_tests()18pressure
+and semantic_publish_cancellation_tests()4pre-cancel cases exactly once beside
+generic_clone_parallel_tests, before existing outer matrix. No duplicate main,
+new runner or repeated18-case loop. Patch49927ff78d90068ba36b51476c94a4030316f7f7631b3db56ceb0b194ce8490e
+passes source/reverse checks and is immediately handed to D2. Full new173-line
+fixture and resource growth reviewed; census1,084/499direct. D2 owns five matched
+provider imports; source build/link/runtime and positive instrumentation remain
+pending. Latest owner times sometimes have future manual labels; only actual
+tool/process clocks establish scheduling or measurement intervals.
+
+D2 supplies exact committed five-import provider patch3f242bffa59c6c9719e3f70086585872a45daf2ea310eb14ae2dcac6a685dc2b.
+D1 reads/applies it without additional production changes: existing evaluation,
+evaluation_checks, interpreter, interpreter_browser and interpreter_checks entry
+variants each import semantic_known_publish. They are alternative artifact
+compositions; do not link both complete interpreter/evaluation implementations.
+No new object/manifest or entity-unit semantic provider. D2's five native/two
+WASI smallest provider receipts remain its evidence; D1 local whole closure and
+actual linked symbol uniqueness remain pending. Resource helper hashes match
+across lanes. The newer unsupported constructor/dispatch advertised tip remains
+excluded. No heavy D1 job overlaps D2's canonical build.
+
+### Coordinator: publication provider join and independent failures, 2026-11-23
+
+Root merged D2 406d1709 and D1 aa22d592 at 1dfe22ec after verifying complete
+bundles, source ancestry and exact owner diffs. This includes A1 ab603725's
+publication scratch/cancellation changes, five mutually exclusive provider
+entries, both publication regression exports, TypeErrors and arena/ledger
+registrations. Root scaffolding and CMake trees match D1 aa22d592 exactly.
+Reviewed all new publication production paths; the traversal preserves first
+encounter order and transfers output only after successful joined work.
+The merge moved older journal text; checked that every removed line remains
+present elsewhere. No todo.txt changes were made.
+
+D2's seven public provider leaves and native build pass on their stated source.
+Its first combined query run failed at the existing generic clone interval-overlap
+assertion, before either new publication export executed. The initially reported
+publication attribution was incorrect. The same executable later passed under a
+debugger and in ten ordinary repetitions, including all22 publication and24
+resource cases. Those successes do not erase the original failure. L2 owns
+interval diagnostics and representative-work calibration; admission barriers and
+distinct threads alone do not prove overlapping kernel intervals. Final joined
+instrumentation, full browser/generation checks and publication remain open.
+
+L2's independent exhausted-budget inspection test exposed a separate real failure:
+language_document_world returns a nonnull partial result. The test verifies cache
+recovery and complete cleanup before rejecting that result. B2's typed module/
+completion propagation draft is compiling; no successful denial test is claimed.
+Preserve legitimate incomplete-document recovery while rejecting resource failure.
+
+L1 identified stale ABI objects after Copy-Item preserved source timestamps older
+than baseline outputs. Its partial run, including an eventual control-smoke139,
+is invalid evidence for the changed source. Re-materializing only the three
+changed inputs with identical bytes triggered the full dependency rebuild;
+query/storage/control/units/backend/aggregate/types then passed. Frozen hashes
+alone do not prove object freshness. The frame/task patch was reviewed in full;
+paired measurement analysis and current instrumentation are still pending.
+
+The old TSan overlap diagnostic records frontend2 waiting29.889s before frontend1
+has completed or any backend entry occurs, without a TSan report. Approved an
+explicit calibrated instrumentation selector using the already required serial
+four-unit frontend duration as a finite bound, keeping the ordinary30s selector
+and all workload/output/overlap assertions. Its implementation and execution
+are pending; the original timeout remains failed. A2 constructor/graph/pool
+changes still exceed public aggregate limits and are not in this root checkpoint.
