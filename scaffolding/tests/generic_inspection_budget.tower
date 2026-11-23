@@ -1,0 +1,98 @@
+import tower;
+import frontend_units;
+import .compiler.syntax_version_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_configure(environment: void*, path: u8*, library: u8*): void;
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, width: u32): void*;
+extern fn language_document_result(query: void*): u8*;
+extern fn completion_dispose(query: void*): void;
+
+var GenericInspectionBudgetBytes: usize = 134217728;
+
+fn generic_inspection_baseline(world: void*, environment: void*, source: u8*, foundation: bool): void {
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var installed = syntax_baseline_install(world, environment, source, foundation, &diagnostic);
+    if !installed { puts(syntax_version_diagnostic_text(&diagnostic)); }
+    units_check(installed, "Inspection baseline installation");
+}
+
+// Exercise the public inspection service, including its cached import path.
+// A resource failure must not become a successful partial editor query.
+fn generic_inspection_budget_trial(root: u8*, width: u32, workers: usize): bool {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var gate = work_signal_open();
+    units_check(gate != null, "Inspection budget gate");
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, workers, GenericInspectionBudgetBytes, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Inspection shared budget");
+    var world = compiler_world_create_workers(workers);
+    units_check(world != null && compiler_world_bind_budget(world, &budget), "Inspection frozen world budget");
+    var environment = frontend_modules_create();
+    units_check(environment != null && frontend_modules_bind_world(environment, world), "Inspection environment world");
+    frontend_modules_configure(environment, "generic_inspection.tower", root);
+    generic_inspection_baseline(world, environment, bedrock.data, false);
+    generic_inspection_baseline(world, environment, foundation.data, true);
+    var source: u8* = "import tower; fn inspect(T:type):i32{return 1 + 2;}";
+    var query = language_document_world(world, environment, source, strlen(source), 0, width);
+    units_check(query != null, "Inspection setup query");
+    var output = language_document_result(query);
+    if strstr(output, "\"complete\":true") == null { puts(output); }
+    units_check(strstr(output, "\"complete\":true") != null && strstr(output, "function template") != null,
+        "Inspection fixture is a valid complete generic document before denial");
+    completion_dispose(query);
+    var before: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &before) && before.used_bytes < before.bytes,
+        "Inspection setup retains space for an explicit denial reservation");
+    var occupied: WorkReservation = default;
+    units_check(work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &occupied),
+        "Inspection denial begins only after the successful setup query");
+    query = language_document_world(world, environment, source, strlen(source), 0, width);
+    var rejected = query == null;
+    if query != null {
+        puts("Resource-denied inspection returned a partial query:");
+        puts(language_document_result(query));
+        completion_dispose(query);
+    }
+    units_check(work_budget_release(&budget, &occupied), "Release inspection denial occupancy");
+    query = language_document_world(world, environment, source, strlen(source), 0, width);
+    units_check(query != null && strstr(language_document_result(query), "\"complete\":true") != null,
+        "Inspection recovers through the preserved cache after resource denial");
+    completion_dispose(query);
+    frontend_modules_destroy(environment);
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Inspection resource failure releases its world");
+    var final: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget), "Inspection releases every byte and lane grant");
+    work_signal_close(gate);
+    vector_dispose(&bedrock);
+    vector_dispose(&foundation);
+    return rejected;
+}
+
+fn generic_inspection_budget_tests(root: u8*): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            units_check(generic_inspection_budget_trial(root, width, workers),
+                "Inspection resource failure never becomes successful partial analysis");
+        }
+    }
+}

@@ -59991,3 +59991,74 @@ root6b; own timeline history remains newer. The fixture checks a successful gene
 document, explicit full budget occupancy, rejected query, cache recovery, and zero
 final grants for widths4/8 and worker limits1/4. It has not yet run against this
 fix; source checkpoint and independent fixture integration are the next step.
+### L2: public inspection resource-denial regression on complete clone union, 2026-11-23
+
+Required pull --rebase=merges --autostash preserves018d and pending fixture edits.
+Verified ROOT_main_clone_join_v2.bundle SHAaa7eaf7c3f37fb631ef4ee653c0f8d4706eac67ffc359be07cf41c1babadc195
+with sole60741 prerequisite, then fast-forwarded to6b8355b16a7d39cfcaa1f63866bf9e3bcbba3338.
+This joins complete clone-result, node Memory classification, actual frame sizing,
+B2 cache/query consumers, D1 registrations and D2 exact symbol policy. Restoring
+pending work leaves only the new fixture and existing editor selector hook.
+Git emitted old-pack index-unavailable diagnostics during merge; that pack was
+absent afterward, the resulting tree remained readable, and git fsck
+--connectivity-only --no-dangling passed. Preserve the transient diagnostic;
+concurrent automatic maintenance is an inference, not an observed root cause.
+
+The new generic_inspection_budget.tower uses the public world/environment,
+baseline installation and language_document_world service. A synchronized128MiB
+ledger is bound before work. It first obtains a complete valid generic document,
+then reserves every remaining byte, repeats that same request, releases the
+reservation, verifies successful recovery, and disposes the environment/world
+with zero byte/lane grants. This is a real resource denial after successful setup;
+it does not use serial fault instrumentation in native workers or mirror a
+private query/module layout. The existing all/editor selector calls it after
+ordinary mixed-unit inspection and cancellation checks; query-smoke is unchanged.
+Root acknowledged this hook before editing. No new runner or compiler export.
+
+First attempt88017: all four public9653 smallest units pass, but the64-step
+coherent build fails at LR runner linkage with undefined tower_test_buffer_count.
+Importing editor_world also roots its exported serial-buffer fixture. This is a
+test-composition error, not a compiler resource failure. After all jobs drain,
+replace that import with declaration-only diagnostic types and existing opaque
+baseline/service ABI calls. No fake counter or serial allocator adapter is added.
+The failed build costs133.55wall/214.39CPU seconds,794268KiB; logs remain
+L2/logs/caller_join_*. The corrected fixture smallest passes3.68wall/2.96CPU,
+205052KiB; three incremental build steps pass8.41wall/5.76CPU,274172KiB.
+
+Corrected84071 reaches the independent negative and exits134/SIGABRT. Exact
+observed denied response is a NONNULL handle containing
+{"entries":[],"complete":false}. Recovery and complete world/byte/lane cleanup
+pass before the final assertion rejects that handle. Only the first32-bit,
+one-worker case ran; subsequent64-bit/four-worker cases were not run after the
+failure. GNU time records signal6 on its first line but misleadingly prints a
+trailing Exit status0; neither that trailing field nor earlier passing output is
+an editor-suite pass. Failed combined editor run:13.97wall/18.46CPU,959048KiB.
+This peak includes baseline/parser/entity allocations outside the charged128MiB
+scope and is not evidence of a whole-compiler memory bound. Further attribution
+of that high RSS remains separate from the denied reservation receipt.
+
+Preceding checks on the same frozen source pass: storage .28wall/.23CPU,
+100336KiB; parser .02/.01,52260KiB; query-smoke .08/.08,61564KiB. Ordinary
+editor-unit checks also print success before the new assertion. Current compiler
+SHA7ba14c94b2935cabcc03c5429605ee7f11792587ae93980cbecd7ce1c6bfaf4f;
+storage344b367a, LR9e5e13d7, frontend8a4e9f3f, execution6861b29b, with full hashes
+in caller_join_retry_binaries.sha256. Exact Tower, CMakeLists and cmake source
+hashes still match after drain. Host: local WSL Orchestral-Revng, Linux x64,
+LLVM19.1.1, public bootstrap9653, two outer build jobs/one compiler job,
+production worker transport except the existing serial storage/parser fixtures.
+These times are validation costs, not a before/after performance comparison.
+
+The early public parse/import failure is still converted into successful partial
+analysis. B2 owns the service propagation fix; the regression does not isolate
+late sem_generic_inspect clone denial and must not be described as that coverage.
+Exact fixture v2 SHA8178ff552b5fa26a4f3b7443cb5961131c4d7d2f7145d14a1eba2da544ae8120
+is in the external lane handoff. All jobs drained and primary host lock released.
+A later attempted quiet-profile acquisition failed atomically because L1 already
+owned the TSan observer slot; no profile process started or lease was claimed.
+
+The type-values document now distinguishes historical capture failures from the
+later recorded30fd58bd aggregate/defined-order successes. That prose correction
+changes no runtime behavior; runtime measurements for the correction itself are
+inapplicable. Current equivalent profiles, resource-error fix, final supported
+instrumentation, clean public-bootstrap/generation/browser and leased atomic
+main/Pages publication remain required. No todo edits or public refs changed.
