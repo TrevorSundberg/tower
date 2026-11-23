@@ -5,6 +5,9 @@ import tower;
 import grammar_builder;
 import grammar_types;
 
+var RegexAsciiExtent: usize = 128;
+var RegexMaximumScalar: u32 = 1114111;
+
 fn regex_reference(builder: GrammarBuilder*, name: u8*, child: u8*): void {
     var rule = grammar_builder_rule(builder, name, false);
     grammar_builder_reference(builder, rule, child, "value");
@@ -25,19 +28,24 @@ fn regex_symbols(builder: GrammarBuilder*, name: u8*, symbols: u8*): void {
 }
 
 fn regex_characters(builder: GrammarBuilder*, name: u8*, excluded: u8*): void {
-    var blocked: u8[128];
-    fill(&blocked, 0, 128);
+    var blocked: u8[RegexAsciiExtent];
+    var extent = sizeof(decltype(blocked)) / sizeof(u8);
+    fill(&blocked, 0, sizeof(decltype(blocked)));
     var i: usize = 0;
     loop {
         var value = excluded[i];
         if value == 0 {
             break;
         }
+        if convert(usize, value) >= extent {
+            grammar_builder_fail(builder, WorkBudgetError.Invalid);
+            return;
+        }
         blocked[value] = 1;
         i++;
     }
     var first: u32 = 0;
-    for(var scalar: u32 = 0; scalar != 128; scalar++) {
+    for(var scalar: u32 = 0; convert(usize, scalar) < extent; scalar++) {
         if blocked[scalar] != 0 {
             if first < scalar {
                 var last = scalar -1;
@@ -48,13 +56,19 @@ fn regex_characters(builder: GrammarBuilder*, name: u8*, excluded: u8*): void {
         }
     }
     var rule = grammar_builder_rule(builder, name, false);
-    grammar_builder_range(builder, rule, first, 1114111);
+    grammar_builder_range(builder, rule, first, RegexMaximumScalar);
 }
 
 export fn regex_grammar_create(kinds: FrontendKinds*): void* {
+    var error = WorkBudgetError.None;
+    return regex_grammar_create_result(kinds, &error);
+}
+
+export fn regex_grammar_create_result(kinds: FrontendKinds*, error: WorkBudgetError*): void* {
     var storage: GrammarBuilder;
     var builder = &storage;
-    grammar_builder_init(builder, kinds);
+    grammar_builder_init_result(builder, kinds);
+    if builder.failed { return grammar_builder_finish_result(builder, error); }
     regex_reference(builder, "Regex", "RegexChoice");
 
     var rule = grammar_builder_rule(builder, "RegexChoice", false);
@@ -134,5 +148,5 @@ export fn regex_grammar_create(kinds: FrontendKinds*): void* {
     grammar_builder_range(builder, rule, 65, 70);
     rule = grammar_builder_rule(builder, "RegexHexDigit", false);
     grammar_builder_range(builder, rule, 97, 102);
-    return grammar_builder_finish(builder);
+    return grammar_builder_finish_result(builder, error);
 }
