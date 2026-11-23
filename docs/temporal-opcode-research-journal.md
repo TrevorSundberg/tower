@@ -63011,3 +63011,58 @@ L1 reports all six current thread gates passed after its six address gates;
 the complete67669 history is ready but not yet in this root union. D1's current
 phase-fixture public leaves and native compiler pass; paired24-case and successor
 instrumentation remain pending. Full objective and publication remain open.
+
+### Coordinator: resumed owners and resource-boundary review, 2026-11-23
+
+All four hosts completed device authentication; all eight original worker goals
+resumed with successful tool work, preserving thread identities, clones, visible
+terminals and gpt-6-astra/xhigh/default configuration. No additional worker/context
+was created. Usage-limit messages are not execution receipts. Root remains at
+72a218b8; required fast-path pull reports Already up to date, and user todo.txt
+hash remains8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
+
+D1's stronger production resource fixture confirms a diagnostic-order defect:
+width4/workers1 immediate required and inferred growth select offset29 while
+retained first/second producer receipts are11/29. Exact nested denial probes and
+teardown pass; isolated inferred growth selects11. The first six cases ran;
+eighteen remain unrun after failure. Root delivered the actual source SHA
+1f1f2f29334e478f47b041ce148c7a59554ad8a8e0f8ec4c9fdb2589ff38a223 to A1.
+Accepted design: select retained failures by canonical owning evaluation-job order
+at joined frontiers, deferring behind earlier demanded pending producers without
+changing dispatch/effect order. Implementation, reversed-readiness/cross-frontier
+regressions and independent validation remain pending.
+
+Verified/fetched L1 complete e3c5f00 history, bundle1535b1a8 with sole60741, and
+reviewed all four owned afb3cc69 execution-consumer paths. Fixed failure latching
+and package-output suppression look appropriate. Owner native six gates and64
+checked comparisons pass, with actual outer overlap4. Reported wall medians:
+body1.63->1.66s, units serial6.00->6.06s and four-worker2.12->2.14s. Small-case RSS
+increases about4MiB and remains under investigation. No root-union claim.
+
+Review found a blocking counted-text regression. frontend_compile_error appends
+exactly the diagnostic length without promising a terminator. New
+execution_session_program_failed passes that buffer to execution_session_fail/
+strlen; execution_package_encode likewise replaced the length-aware copy with
+strlen. Routed counted copying to L1, preserving the latch and using strlen only
+for static text. Requested a valid bounded fixture with non-NUL trailing bytes
+and a later terminator inside the allocation: only the declared diagnostic may
+be copied. No deliberate invalid-memory probe is authorized or needed. e3 remains
+unmerged pending correction and current instrumentation.
+
+Reviewed L2 e55c06e3: terminal completion precedes TypeExecution ready/result
+publication; wave cleanup precedes graph lease cancellation. Stage/view open and
+stage publish can reject invalid/staged anchors, reclaiming/pinned stores,
+overflow or duplicate names as well as allocation. Unconditional Memory labels
+are inaccurate; routed shared typed-result coordination to A2/L2 without changing
+their frozen inputs or creating another entity implementation.
+
+Fetched/hash-verified A2 page review3f735cfb and B2 consumer drafta4cc3682. A2
+transfers physical WorkBuffer receipts into page/oversized headers, copying them
+out before disposal. Side indexes and sparse-page retention remain separate
+accounting/storage gaps. Owner136 checked runs show +104 bytes/native page,
+large physical5864448->5970944 bytes, still1024 pages for32768 live payload bytes.
+Large creation9.472->10.111ms is a regression; further quiet comparison is pending.
+B2's fixed-error gates suppress false success after optional text clearing;
+matching full browser ABI/runtime is still pending. Root's source review has no
+runtime performance delta. Full integrated bootstrap/browser/scaling/sanitizer
+and atomic publication gates remain open; hosted runtime identity is unchanged.
