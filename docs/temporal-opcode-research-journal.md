@@ -81170,3 +81170,62 @@ No production change or skipped check was hidden. Earlier baseline comparison
 retains its measured source identity. This receipt is documentation only; no new
 runtime measurement applies. All owned jobs drained; normal main push follows,
 with ROOT deployment and the explicitly listed remaining chains still pending.
+
+### D2 exact current module-startup symbol policy (2026-11-23)
+
+Bounded implementation on main3912f25b6368ebdb15ce332af8370eb57bf37f00, after
+pulling complete published history and checking the owned container was idle.
+Refreshed only Semantics, ParserNodes and frontend-units through one existing
+dependency-aware CMake invocation. Public9653/Linux x64/LLVM19.1.1, Deck image
+4be584fb, CPU0,2, build/compiler jobs1. Three object actions passed in80.43wall/
+77.91CPU seconds,760104KiB peak RSS. Source manifests verify before/after.
+
+Actual native nm U/T boundaries determine the additions, not the earlier audit's
+tentative grouping. Semantics imports frontend_module_root_world_size_result from
+ParserNodes. Current integrated L2 consumers additionally import
+compiler_world_component_result, entity_attach_result, entity_component_add_result,
+entity_create_related_result and entity_create_result from Entities. The configured
+parser_modules_work entry includes B2's module fixture, which imports
+compiler_world_create_result from Entities and frontend_units_create_bounded_result
+plus its paired frontend_units_close from the separate frontend-units provider.
+All nine were rejected by the retained old checker; add exactly those six
+Semantics and three ParserNodes permissions. No producer, layout or scheduler edit.
+
+Provider SHA256 identities:
+
+- Semantics:214d9217688e5eb3aa705888e28dcc1ae1ddd059ea6b5ac3d7c14ee81dc656fa.
+- ParserNodes:79fbe19031f05fde50b91a7af1ac3a66b8b750fe02863f6c6cb047c3ce1bb491.
+- frontend-units:ab30e9322092a25725f0e8c332a4ea9ac848a79195ec8ecb0dc9420206440a5c.
+- Entities:030ae5b4ec3c21805e92b57a3d9be0baa9cde30fdbf1f5fe400e514d2fd4b57c;
+  unchanged object/import closure reused from the prior current native receipt.
+
+frontend_modules_create_result/bind_world_result are U only in frontend-units,
+T in ParserNodes; module_new_result is a local t symbol there. None justifies
+a Semantics permission. The existing seven-unit comparison has no standalone
+frontend-units policy profile; this batch does not invent one or claim that
+report passed such a profile. New negative cases explicitly retain these rejects.
+Nine scoped fixture groups cover four target-policy spellings, exact truncation,
+suffix and wrong consumer/provider rejection; two normalized underscore cases
+also pass. Two historical negative expectations were updated only for their
+newly observed imports. No generic result-suffix permission or new normalization.
+
+Smallest public fixture compile/link/run passes (compile3.25s/180496KiB), canonical
+selected checker build passes (4.37s/197628KiB), then both full native reports
+pass with empty stdout/stderr. Checker3706ce5e4a5aa61b6ccc168d17dec969b1cf31b5334063c65bcdf1e773870a4e;
+fixturec2ea21785a5da5e38cac232e592b0ffbc3d71e4a996537fc7daf88a92cacc70f.
+Same frozen reports/target/flags, warm filesystem, fresh processes, n1 per unit
+and side: before/after wall and CPU all below0.01s resolution; peak RSS1352->1616
+KiB (Semantics),1348->1616 (ParserNodes). This establishes no speed or regression
+bound. Matcher additions allocate nothing and borrow input; whole-process live
+allocation/retention was not separately measured. This serial lookup has no
+worker scheduling/scaling change. Raw commands, hashes, expected old exit1s,
+after exit0s and profiles remain in build/d2_ecs/module_policy_3912. A diagnostic
+summary initially hit absent container rg (127); nm files were already complete
+and host rg inspected them without another build. No failure was counted passed.
+
+No WASI objects, Windows runtime, broad native/backend, sanitizers or browser
+matrix were executed. Portable cases validate policy strings only. ROOT retains
+final current-source instrumentation/bootstrap/browser/generation/deployment;
+the separate queued-provenance ownership prerequisite remains open. All owned
+jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
+and exact remote verification follow, recorded in D2's existing status.
