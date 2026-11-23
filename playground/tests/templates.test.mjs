@@ -36,7 +36,7 @@ test('the short fixed-size stack example specializes type and integer arguments'
  const source=(await read('scaffolding/examples/templates.tower')).toString();
  const text=await compare(source,'20\n10\n');
  assert.equal((text.match(/struct `buffer\(i32, 4\)`/g)||[]).length,1);
- assert.ok(text.includes('data: i32[4];'));
+ assert.ok(text.includes('data: array_type(integer_type(32, 1), 4);'));
  assert.ok(!text.includes('T: type'));
  assert.ok(!text.includes('fn buffer('));
  const h=tower.create(source);
@@ -44,47 +44,58 @@ test('the short fixed-size stack example specializes type and integer arguments'
 });
 
 test('integer type arguments preserve identity, forward through constructors and resolve array lengths',async()=>{
- const source=`fn buffer(T: type, size: usize): type { struct Result { data: T[size]; } return Result; }
-fn wrapped(T: type, size: usize): type { return buffer(T, size); }
-var a: buffer(i32, 2); var b: buffer(i32, 3); var alias: wrapped(i32, 2)* = &a;
-a.data[1] = 42; b.data[2] = 7; print(alias.data[1]); print(b.data[2]);
-print(sizeof(buffer(i32, 2))); print(sizeof(buffer(i32, 3)));
-fn fixed(size: i32): type { struct R { data: i32[size]; } return R; }
-var c: fixed(3); c.data[2] = 9; print(c.data[2]);`;
+ const source=(await read('scaffolding/tests/type_numeric_composition.tower')).toString();
  const text=await compare(source,'42\n7\n8\n12\n9\n');
  assert.equal((text.match(/struct `buffer\(i32, 2\)`/g)||[]).length,1);
- for(const [program,error] of [
-  ['var x: buffer(i32,0);',/Array length/],
-  ['var x: buffer(i32,1048577);',/Array length/],
-  ['var x: buffer(i32,-1);',/out of range/],
-  ['var size: usize = 2; var x: buffer(i32,size);',/compile-time integer argument/],
-  ['var x: buffer(i32,i32);',/compile-time integer argument/],
-  ['fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
- ]) {
-  const result=execute('fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
-  assert.equal(result.status,'error',program);assert.match(result.error,error);
- }
+});
+for(const [name,program,error] of [
+ ['zero length','var x: buffer(i32,0);',/Array length/],
+ ['excessive length','var x: buffer(i32,1048577);',/Array length/],
+ // Unsigned negation wraps; the resulting extent must fail the array bound.
+ ['negative unsigned argument','var x: buffer(i32,-1);',/Array length must be between 1 and 1,048,576/],
+ ['type instead of integer','var x: buffer(i32,i32);',/^Expected usize, got type; use an explicit conversion$/],
+ ['boolean argument type','fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
+]) {
+ test('invalid integer type argument: '+name,()=>{
+  const result=execute('import tower; print(123); fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
+  assert.equal(result.status,'error',program);
+  assert.equal(result.output,'');assert.equal(result.steps,0);
+  assert.match(result.error,error);
+ });
+}
+test('invalid integer type argument: mutable storage',async()=>{
+ const result=execute((await read('scaffolding/tests/semantic_invalid/type_numeric_mutable.tower')).toString());
+ assert.equal(result.status,'error');
+ assert.equal(result.output,'');assert.equal(result.steps,0);
+ assert.match(result.error,/^Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer/);
+});
+test('immutable known storage supplies an integer type argument',async()=>{
+ await compare((await read('scaffolding/tests/type_numeric_known.tower')).toString(),'8\n');
+});
+test('nested integer negation supplies a valid array extent',async()=>{
+ await compare((await read('scaffolding/tests/type_numeric_negation.tower')).toString(),'8\n');
 });
 test('generic calls bind types without replacing value identifiers or duplicating effects',async()=>{
- await compare(`parse CoreTypeArguments = CoreType | CoreTypeArguments ',' CoreType;
+ await compare(`import tower;
+parse CoreTypeArguments = CoreType | CoreTypeArguments ',' CoreType;
 ${box} var x: box(i32); x.value = 42; print(x.value);`,'42\n');
- await compare(`fn id(T: type, value: T): T { var T: i32 = 99; print(T); return value; }
+ await compare(`import tower;
+fn id(T: type, value: T): T { var T: i32 = 99; print(T); return value; }
 var calls = 0; fn next(): i32 { calls = calls + 1; return calls; }
 print(id(i32, next())); print(id(i32, next())); print(calls);`,'99\n1\n99\n2\n2\n');
- await compare(`fn id(T: type, value: T): T { return value; }
-var value = 42; var p = id(i32*, &value); print(*p);
-fn same(T: type): type { return T; } var x: same(i32) = 7; print(x);
-fn fixed(): type { return i32; } var y: fixed() = 8; print(y);`,'42\n7\n8\n');
+ await compare((await read('scaffolding/tests/type_identity_composition.tower')).toString(),'42\n7\n8\n');
 });
 test('template names bind forward and recursion reuses concrete nodes',async()=>{
- await compare(`var p: list(i32); p.next = null; p.value = factorial(i32, 5); print(p.value);
+ await compare(`import tower;
+var p: list(i32); p.next = null; p.value = factorial(i32, 5); print(p.value);
 fn list(T: type): type { struct Node { value: T; next: list(T)*; self: Node*; } return Node; }
 fn factorial(T: type, n: T): T { var done = n <= 1; if done { return 1; } var previous = n - 1; var rest = factorial(T, previous); var result = n * rest; return result; }
 fn alias(T: type): type { return list(T); }
 var pointer: alias(i32)* = &p; print(pointer.value);`,'120\n120\n');
 });
 test('nominal identities, type-argument shapes and generated name collisions stay distinct',async()=>{
- const text=await compare(`${box}
+ const text=await compare(`import tower;
+${box}
 struct \`box(i32)\` { other: i32; }
 struct \`i32[2]\` { other: i32; }
 struct Left { value: i32; } struct Right { value: i32; }
@@ -111,22 +122,22 @@ test('invalid templates fail before effects and retain instantiation context',()
  for(const [source,expected] of [
   [box+'var a: box();',/Wrong argument count/],
   [box+'var a: box(Missing);',/Unknown type 'Missing'/],
-  [box+'var a = box(i32);',/produces a type, not a runtime value/],
+  [box+'var a: i32 = box(i32);',/Expected i32, got type/],
   ['fn f(T: type, v: T): T { return v; } var x = f(5, 1);',/Unknown type '5'/],
   ['fn f(T: type, v: T): T { return v; } var x: u32 = 1; f(i32,x);',/Expected i32, got u32/],
   ['fn f(T: type, T: i32): T { return T; }',/Duplicate template parameter/],
   ['fn f(T: type): type { struct S { value: f(T); } return S; } var x: f(i32);',/Recursive by-value/],
-  ['fn f(T: type): type { return f(T); } var x: f(i32);',/Recursive type constructor/],
+  ['fn f(T: type): type { return f(T); } var x: f(i32);',/Tower call stack limit exceeded/],
   ['fn f(T: type): type { struct S { value: f(T*)*; } return S; } var x: f(i32);',/nesting|specialization limit/],
-  ['fn f(T: type): type { print(9); return T; } var x: f(i32);',/general compile-time execution is not implemented/],
-  ['fn f(T: type): type { struct S { value: T; } return i32; } var x: f(i32);',/must return that struct/],
+  ['fn f(T: type): type { print(9); return T; } var x: f(i32);',/Compile-time output requires an explicit effect capability/],
+  ['fn f(T: type): type { struct S { value: T; } return i32; } var x: f(i32);',/Struct types must be declared at top level/],
   ['export fn f(T: type, v: T): T { return v; }',/export a concrete wrapper/],
-  ['fn f(T: type, v: T): void {} struct S { x: i32; } var s: S; f(S,s);',/by-value arguments/],
+  ['fn f(T: type, v: T): void {} struct S { x: i32; } struct R { x: i32; } var s: R; f(S,s);',/Expected S, got R/],
   ['fn f(T: type): void {} fn f(): void {}',/duplicate function/],
-  ['struct type { value: i32; }',/duplicate type/],
+  ['struct type { value: i32; } struct type {}',/duplicate type/],
  ]){
-  const result=execute('print(123); '+source);assert.equal(result.status,'error',source);assert.match(result.error,expected,source);assert.equal(result.output,'');assert.equal(result.steps,0);
+  const result=execute('import tower; print(123); '+source);assert.equal(result.status,'error',source);assert.match(result.error,expected,source);assert.equal(result.output,'');assert.equal(result.steps,0);
  }
- const bad=execute('fn broken(T: type, value: T): T { return absent; }\nprint(broken(i32, 1));');
+ const bad=execute('import tower; fn broken(T: type, value: T): T { return absent; }\nprint(broken(i32, 1));');
  assert.match(bad.error,/Unknown local 'absent'/);assert.match(bad.error,/Instantiated by broken\(i32,1\) at line 2/);
 });

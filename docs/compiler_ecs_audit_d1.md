@@ -4068,3 +4068,120 @@ peak RSS. Original and targeted failures retained under
 cost; these are validation costs, not scaling/profile claims. No compiler build,
 heavy lock, sanitizer, generation or deployment. Earlier four-file20/22 remains
 historical and separate (stack/defer L2, pointer-alias L1). ROOT owns release.
+
+## Eight-file ordinary Node follow-up at b3ac7aca (2026-11-23)
+
+Source freeze `b3ac7aca41deca72f0944782c9f4a80526fc0256`, scaffolding tree
+`f7bc350e1f7e911facc1d8d420a69267dcbafc00`; host tree before repair
+`24bd709ce4b6f7c4243b00bf333264ec0f18a7c6`. Same immutable ROOT9d reactors
+and hashes as the preceding entry: portable13de3949/LLVMbd26f079, public768.
+Full hashes, source manifests, statuses and raw logs live in
+`build/d1_ecs/browser_eight_b3ac7aca`. No compiler build, shared heavy slot or
+D2 artifact change. Earlier23/25 and20/22 receipts remain separate failures.
+
+| Path under playground/tests | Substantive finding and checked disposition |
+| --- | --- |
+| platform.test.mjs | Basic executable strings now import Foundation. Canonical sizeof assertion uses the exact array/pointer/integer representation, preserving dimensions, width and signedness. Existing library.platform import already supplies its grammar; left unchanged. All3 pass, including split UTF-8 bytes, foreign tables and typed argument negatives. |
+| projects.test.mjs | Large source imports its language. Project-root fixture now transports the existing complete builtin collection, including foundation_syntax/types, and selects the entry by its path instead of assuming three library files. All8 pass; ZIP Unicode/order/link bytes, invalid paths, replaced FDs, file coordinates/effect order and import isolation stay strict. |
+| raw-memory.test.mjs | Ordinary strings explicitly import Foundation; already-imported examples/libraries and empty allocator program stay unchanged. Graph/Fast, exact outputs/layouts, canonical types, raw LLVM IR, host byte views, target widths and allocator reuse remain checked.24pass, missing C archive1fail, preexisting absent native-Wasm1skip. No uninitialized-value, per-object bounds or lifetime guarantee was added to raw Foundation. |
+| structs.test.mjs | Explicit Foundation inputs reach real checking. Primitive layouts are looked up by their actual names rather than obsolete first-four registry positions. Source-defined primitive names may be shadowed; duplicate declarations still reject. Obsolete rejection of ordinary struct copies/arguments/returns becomes concrete nominal mismatch and foreign pointer-ABI negatives, matching tests/struct_value_checks.tower. All12 pass, including exactly-once destination capture and node cleanup; no expected successful output changed. |
+| templates.test.mjs | Tower imports and canonical array spelling corrected. Ordinary type values/struct arguments are supported, so the old negatives now test wrong value type and distinct nominal arguments. Exact interpreter call-depth/effect/local-struct diagnostics replace retired constructor-only wording; all no-output/zero-step assertions remain.6pass/2fail; two composed programs moved unchanged into Tower fixtures below. Following numeric negative cases are still unrun after the positive failure; their pending coverage is not passed. |
+| wasm.test.mjs | Custom numeric grammar reuses numeric_token.tower; other seed-only cases retain the seed. Foreach example now has8 revisions/10 events; exact event/highlight sequences, step cursor and byte offsets remain asserted. Cache counts account for import transition; import cache is warmed before session-ownership counters, as in the existing ABI case. Foundation editing overrides the rule after its wrapper imports, pins the import before mutation, and retains invalid-candidate recovery. All15 pass, including exact shape/provenance/cache comparisons and zero warmed lifetime deltas. |
+| module-scopes.test.mjs | All19 pass on9d, including qualified completion, hover and the full repeated ownership exercise previously blocked by completion. Direct LLVM loading now honors the same absolute override; baseline used older default6ec53230 for its single LLVM case, so only final matched-pair evidence adopts that case. No label, nominal or visibility assertion weakened. |
+| semantic-port.test.mjs | Added only transport phase messages around existing compile/execute/reparse/LLVM boundaries. Baseline completed semantic layouts, language_control, language_collections and language_enums; the19-case file remains incomplete. The actual entity_pages source and all expected outputs remain unchanged. Details below; no skip introduced. |
+
+The only production change is browser transport `src/tower-host.mjs:89`:
+validate Foundation grammar before publishing its source to future imports.
+Previously an invalid candidate threw but remained installed in the module input
+map. The two existing configuration tests, repaired to use explicit imports,
+reproduce failed recovery before the change and pass afterward, including pinned
+sessions and the last accepted Word/call grammar. Tower's
+`syntax_baseline_install` still owns parsing, diagnostics and baseline publication;
+no JS grammar/semantic implementation or compiler method was added.
+
+New Tower receipts, consumed by the existing templates compare transport:
+
+- `scaffolding/tests/type_numeric_composition.tower`, SHA256
+  `56ceefd2c94f7d9d6a5dc886a8574d817ae4d9f86d489801028067cf423295ac`:
+  explicit language, two numeric nominal instances, wrapper pointer alias and
+  integer-only constructor. Expected42/7/8/12/9. First graph32 check fails with
+  `Compile-time expression cannot capture runtime storage: binding is mutable,
+  escaped or lacks an initializer`, instantiation line1,column1. ROOT/L2 type
+  preparation/capture follow-up; no capture policy workaround.
+- `scaffolding/tests/type_identity_composition.tower`, SHA256
+  `1086e0de7f5cac5e9b5af09bf2087e30412183d939181f0997ebfe62a5cd6e2d`:
+  explicit language, pointer-valued generic call, transparent identity helper and
+  nullary type helper. Expected42/7/8. First graph32 check fails with initializer
+  dependency cycle `i32`. ROOT routes type/generic ownership; this is not asserted
+  identical to L1's existing pointer-alias case. Later modes are unrun.
+
+These are the smallest **demonstrated failing compositions retained here**, not
+claims that their individual features fail. Four smaller controls (numeric
+wrapper, integer-only constructor, local value shadowing T, identity helper)
+passed existing32/64/canonical/LLVM comparisons; copies remain in the receipt
+folder. Original composed assertions/outputs remain. Inspected generics.tower
+registration/lookup and semantic_types preparation/interning context, but did not
+prove a specific stale capture/ticket edge. No producer patch or speculative
+root-cause claim. Native registration/execution of these new sources is pending
+ROOT; they are registered only through the existing Node caller here.
+
+Eight-file baseline hit its180s guard after60 completed reports; only the three
+never-started files were then run (35 reports). The entity_pages follow-up had
+its own60s guard, reached32-bit Graph/Fast and canonical checks, and last logged
+`LLVM Foundation 32-bit optimize=false`. That phase includes LLVM reconstruction
+and execution of its rebuilt Foundation; it did not return a completed receipt.
+Its child reached80s observed CPU and1652696KiB observed RSS at59s. Parent GNU
+ time excludes that killed/unreaped child, so its48276KiB is **not** the test's
+peak. First-run sampling similarly saw1749880KiB. No deadline widening, false
+success or leak diagnosis. Processes exited on the guards; dead children await
+the container's reaper and hold no live compiler execution. ROOT/B2/A1 should
+adopt the expensive reconstruction phase and remaining14 never-started cases
+with their frozen milestone; the15 incomplete case receipts stay pending.
+
+Final affected seven-file run:87pass/3fail/1existing skip,72.39wall/84.45CPU s,
+495812KiB peak RSS,0swaps. Missing `build/linking/wasm-fixture.a` is the third
+failure; missing native-compiled.wasm triggers the unchanged optional skip.
+Foundation transport's equivalent two-case sample before/after:0/2 ->2/2,
+1.82/2.76wall,2.25/3.05CPU s,168900/156484KiB peak, n1/fresh process. Passing
+now executes the formerly blocked recovery assertions; no speedup claim. These
+are validation costs, not universal scaling or current-source release evidence.
+No native/compiler rebuild, sanitizer, generation or deployment was performed.
+
+Publication reconciliation: `9b0ba0bb` merged published `f167c444` in
+`4dcd13fc`, preserving both histories. The only changed recorded Node input was
+D2's llvm-host artifact source-map/error-localization transport; inspected its
+producer and consumer. Four affected canonical/LLVM/host-byte/alias-capture checks
+passed on the merged host (17.61wall/16.60CPU s,434088KiB, no swaps). Original
+seven-file aggregate and immutable9d compiler identities remain distinct. Six
+recorded compiler/test resource deltas and new upstream files retain their owner
+receipts; none relabels an old reactor as rebuilt. Exact manifest differences and
+commands are in the journal and `browser_eight_b3ac7aca/merged*`. The two type
+compositions, linking prerequisites and15 incomplete semantic-port cases remain
+open; no full-suite, sanitizer or release acceptance claimed.
+
+## Supplied-artifact adoption at bcd0e3ab (2026-11-23)
+
+Source freeze `bcd0e3abf9bd2d970c771133b95d11990defb02c`; matching ROOTeac
+portable df541c16 / LLVM87c8fbc9, full hashes and source manifests in the journal
+and `build/d1_ecs/adoption_bcd0e3ab`. No compiler build. Earlier four-file20/22
+and seven-file87/91 remain historical; this is focused changed-input adoption.
+
+| Path / caller | Source review and executed evidence |
+| --- | --- |
+| tests/generic_stack_module.tower + generic-inference collection case | Unchanged explicit tower/library.stack input, initialized owner, deferred disposal. L2 deferred-module query preparation now reaches actual binding before checking. Complete collection case passes Graph/Fast32/64, canonical and LLVM, including vector/queue/stack cleanup and expected effects. |
+| tests/generic_pointer_alias.tower + generic-inference nested case | Adopt L1 corrected pointer_type/type_value returns and explicit specialization for noninvertible representation calls. Structural T* deduction, nominal identity, two widths, operand order12, pointer size/null and combined nested wrappers all pass through existing compare. No new compiler semantics claimed. |
+| forward-references/inference/foundation-storage Node callers | Exact source comparison to8b2bb2d7 retains earlier unchanged reviews. Current module forward/initializer-order cases and generic negative case pass; four Foundation storage host cases reuse identical producer/data independent of reactor. Remaining earlier compiler cases are retained historical evidence, not newly executed eac coverage. |
+| raw-memory Node link tests + tests/foreign_fixture.tower/linking.tower | Real supplied Tower archive/native Wasm now execute full linkedOutput. Completion, callback export, tower-only imports, malformed archive failure and clean recovery checked. Two passes, zero skips. Corrected C title; raw Foundation memory policy unchanged. |
+| tests/type_numeric_known.tower | New minimal immutable initialized usize capture; expected sizeof8 passes32/64/canonical and LLVM. SHA2560f5c0b3ef789cce402003a814c9e0ecf0dc0472ce830fae8728bd87d678f09bd. Plain declaration data, no dynamic owner escape. |
+| tests/semantic_invalid/type_numeric_mutable.tower | Deliberately invalid counterpart: later write invalidates the known-size proof. Exact capture error before print123, zero steps/empty output pass. SHA2563290679e729fbe04449ba8aa99b6b788b90bd12b74f58edfd067c46ebb76f26b. |
+| tests/type_numeric_negation.tower | Minimal valid -(-2) extent, expected size8; first Graph32 fails "Expected a compile-time integer argument". SHA256af6bcd0949168b4f84b3eecd6502ab35c48ab98c4b088ce5c8b942e032f81290. Source-confirmed literal admission skips staging while unary minus builds a nonconstant operation. ROOT/type-query owner repair pending; later modes unrun. |
+| templates Node registration | Six numeric negatives run independently of two positive compositions. Exact type mismatch and invalid-bound/capture/effect assertions retained; no blanket alternate errors. Unsigned -1 now expects the array-bound diagnostic because negation wraps, and remains a visible failure paired with the valid negation reproducer. Existing L1-owned compositions unchanged and still fail. |
+
+New Tower files use the ordinary compiler/interpreter through existing Node
+transport only; no native registrations or executions claimed. All production
+inputs and original positive fixtures are preserved. Initial focused adoption7/7;
+final changed link/template selection8pass/4fail, zero skips,12.30wall/14.98CPU s,
+345540KiB/0swaps. Two failures are the same newly exposed negation preparation
+edge; two are the existing L1 compositions. This closes supplied-artifact and
+former generic-stack/pointer fixture gates, not overall template or release
+acceptance. ROOT retains semantic-port/reconstruction and final platform gates.

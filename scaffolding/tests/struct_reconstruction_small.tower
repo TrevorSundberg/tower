@@ -1,0 +1,13 @@
+import tower;
+
+// Reduced from struct_values: retain the mixed-width by-value generic copy.
+// Padding has no asserted value; only initialized fields are observed.
+struct Tagged { tag: u8; wide: u64; }
+fn identity(T: type, value: T): T { return value; }
+var original: Tagged = { tag: 7, wide: 18446744073709551615 };
+var copied = identity(original);
+copied.tag = 9;
+if original.tag != 7 || copied.tag != 9 || copied.wide != original.wide {
+    trap("Mixed-width struct reconstruction changed a value", 0);
+}
+print(0);

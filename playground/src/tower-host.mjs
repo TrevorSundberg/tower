@@ -86,7 +86,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     configureModules: modules.configure,
     dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
-    configure: source => { modules.configure({builtins:{foundation:source}}); configureTower(exports, source, modules.environment); },
+    configure: source => { configureTower(exports, source, modules.environment); modules.configure({builtins:{foundation:source}}); },
     // Reject invalid grammar before publishing its source to future imports.
     configureBedrock: source => { configureBedrock(exports, source); modules.configure({builtins:{bedrock:source}}); },
     bedrockSeed: () => string(exports.tw_bedrock_seed()),
@@ -151,7 +151,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       try {
         const size = exports.tw_exec_bytecode_size();
         const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
-        return {bytecode,handle:canonical};
+        return {bytecode,handle:remember(canonical)};
       } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
       finally { exports.tw_exec_bytecode_release?.(); }
     },
@@ -168,7 +168,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       try {
         const size = exports.tw_exec_bytecode_size();
         const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
-        return {bytecode,handle:canonical};
+        return {bytecode,handle:remember(canonical)};
       } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
       finally { exports.tw_exec_bytecode_release?.(); }
     },
@@ -180,7 +180,8 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         new Uint8Array(exports.memory.buffer).set(bytes, pointer);
         const handle = exports.tw_exec_load_bytecode(pointer, bytes.length);
         if (!handle) throw new Error(string(exports.tw_last_error()));
-        return handle;
+        try { return remember(handle); }
+        catch (error) { exports.tw_exec_destroy(handle); throw error; }
       } finally { exports.tw_free(pointer); }
     },
     compileFoundation: source => remember(withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length))),

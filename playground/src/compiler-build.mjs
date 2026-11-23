@@ -154,12 +154,14 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   for (const optimize of [true,false]) {
     const lowered = llvm.compile(foundation,{emit:'foundation',optimize});
     if (lowered.status === 'error') throw new Error('Candidate LLVM Foundation: '+lowered.error);
-    const optimized = tower.compile(lowered.foundation);
+    const prepared = tower.prepareFoundationPackage(lowered.foundation,{optimizationProfile:lowered.optimizationProfile});
+    const optimized = prepared.handle;
     try {
       tower.checkCandidate(optimized,{fast:true});
-      const restored = tower.loadBytecode(tower.bytecode(optimized,{optimizationProfile:lowered.optimizationProfile}));
-      tower.destroyExecution(restored);
     } finally { tower.destroyExecution(optimized); }
+    const restored = tower.loadBytecode(prepared.bytecode);
+    try { tower.checkCandidate(restored,{fast:true}); }
+    finally { tower.destroyExecution(restored); }
   }
   const cross = await loadLLVM(modules.cross, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});
   const native = cross.compile(foundation,{emit:'object',target:'x86_64-unknown-linux-gnu'});
