@@ -89649,3 +89649,39 @@ external prefixcurrent_dependency_merged_7340d7ba retains commands/manifests/log
 No production defect found or broad rerun needed; normal push follows, ROOT
 retains final release. Todo unchanged and all owned work drained.
 B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
+
+## L2 finite ledger/source adoption at published3ea43517 (2026-11-23)
+
+Documentation-only task, CLI PID3460, same clone/main/session; required clean pull,
+no owned build. Frozen3ea435174a3529aabbeeea8544aa640653214bb3/root1648e0fc9ae12bd778612a7ccb07fb942f7bd497.
+Updated the existing12-row compiler_ecs_threading_handoff ledger in place; appended
+substantive39-path later-delta provider/caller/registration map to compiler_ecs_audit_a2.
+All39 authored Tower paths since A2's3a review read/mapped, no package Tower delta;
+unchanged blobs adopt A2/D1 prior full/finite review. No new census or future-source approval.
+
+Reconciles qualified alias141ef1e4, hover64450fc1, fullIDE523f29ad/94ddfa7a,
+D2fa65b305/984 three browser trials+27Node passes, nativef7 full generations12722151,
+ROOT9d two actual edited generations0c4ac94a/cc21bb4e, eac invocation/portablecapacity
+Node3/3/native24+query and new source-frozen normal/LLVM/cross artifacts. Read actual
+ROOT release status0/complete and manifests38893a11/35ebfd9d; no runtime deployment.
+Hosted6f142bef remains old reachable build98ade8cc/manifesteb70f538, ROOT recorded
+20:02:20UTC verification, not a new network check here. Public pin2013ad28/252b/768a
+unchanged:53 manifest payload hashes agree,42 Tower blobs match recorded252b sources.
+Only packaged WorkPool differs from today's authored observer ABI; no partial-copy adoption.
+
+A2 real stage-kind occupancy through578 now closes missing measurement, not packing:
+28ordinary processes/zero final grants; declaration22.63%,9.10MBphysical/1.91MBlive.
+Four-slot experiment remains in progress. B1 frontier/bitmap and B2 lowering candidates
+remain rejected/restored, including negative small/serial and CPU/RSS evidence.
+L1 type composition, A1 direct large-package/fullLLVM, D1 remainingNode/D2 structLLVM,
+B2 current shared reactor and ROOT final packs/generations/hosted gates remain open.
+Real4-thread overlap/multi-unit gains do not meet universal within-unit full-core use;
+small serial still wins. Current compiler instrumentation OPEN/service-blocked, no
+retry/reconstruction. Source-languageUBSan/unsupported host limits remain explicit.
+
+Validation is static:39/39 mapped, exactly12 acceptance rows, payload/source blob
+trace, git diff --check. Original handoff historical tail52044bytes SHA256
+21def6370c33c91b73518087756afecac6046bc0043f36299bfe9888dfb72ce0 preserved exactly;
+prior journal bytes preserved by append. No compiler/tool/test/browser/profile or
+sanitizer campaign; runtime measurements inapplicable to docs. Existing owner
+receipts are evidence, not freshly executed or blanket current acceptance.
