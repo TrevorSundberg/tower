@@ -252,13 +252,17 @@ export fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation
             || !work_depend(&c.queries, preparation, clone) {
             sem_type_resource(c, result.subject, sem_query_error(c)); return;
         }
-    } else {
+    }
+    // Required and optional stages share lazy executable readiness. This does
+    // not grant optional inference capture/type/effect capabilities: those stay
+    // on its invocation policy and its separate known-value producer links.
+    sem_executables_begin(c);
+    if !sem_ok(c) { return; }
+    if !result.inferred {
         // Required expressions are checked and published before registration.
         // Their lexical owner remains provenance, not a whole-body barrier:
         // a later declaration may need this earlier prefix's staged value.
         // Executed reads request existing capture/function producers instead.
-        sem_executables_begin(c);
-        if !sem_ok(c) { return; }
         sem_captures_begin(c);
         if !sem_ok(c) { return; }
     }
@@ -397,7 +401,7 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, requir
     result.invocation.context.type_arguments = !result.inferred;
     result.invocation.context.capture_order = result.capture_order;
     result.invocation.context.capture_ordinal = result.capture_ordinal;
-    result.invocation.context.executable_functions = result.inferred ? null : c.executable_ready;
+    result.invocation.context.executable_functions = c.executable_ready;
     result.invocation.context.retain_result_storage = result.aggregate;
     // Required stages (explicit comptime, type arguments and their captures)
     // have compiler capability. Optional known-value inference must retain a
@@ -618,20 +622,24 @@ fn sem_evaluation_value(node: void*, invocation: IMInvocation*, bits_value: u64)
     }
 }
 
-fn sem_evaluation_dispose(c: SemanticContext*): void {
+fn sem_evaluation_dispose_jobs(jobs: vector(void*)*): void {
     // The owning pipeline has drained its worker pool. Dispose every consumer
     // invocation before releasing any producer's borrowed projection array.
-    foreach(var job in &c.evaluation_jobs) {
+    foreach(var job in jobs) {
         var result = bits(SemanticEvaluation*, job);
         interpreter_invocation_dispose(&result.invocation);
     }
     var index: usize = 0;
-    while index < c.evaluation_jobs.length {
-        var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
+    while index < jobs.length {
+        var result = bits(SemanticEvaluation*, jobs.data[index]);
         vector_dispose(&result.aliases);
         vector_dispose(&result.leaves);
         vector_dispose(&result.error);
         index++;
     }
-    vector_dispose(void*, &c.evaluation_jobs);
+    vector_dispose(jobs);
+}
+
+fn sem_evaluation_dispose(c: SemanticContext*): void {
+    sem_evaluation_dispose_jobs(&c.evaluation_jobs);
 }

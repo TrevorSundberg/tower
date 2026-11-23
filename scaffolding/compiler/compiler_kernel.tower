@@ -11,6 +11,43 @@ struct CompilerKernel {
     payload: void*;
 }
 
+// Consume this wave's input view only after its dispatch has joined. An entry
+// Busy receipt admits none of this wave; it must not join another owner's jobs.
+// Every T owns its stage/context fields. No result readiness is published here.
+fn compiler_kernel_stages_result(T: type, jobs: T**, count: usize, view: void*, cause: WorkBudgetError,
+    hold: function(WorkBudgetError, void*), publish: function(WorkBudgetError, void*),
+    discard: function(void, void*), close: function(void, void*),
+    cancel: function(void, void*)): WorkBudgetError {
+    var error = cause;
+    for(var i: usize = 0; error == WorkBudgetError.None && i < count; i++) {
+        if jobs[i].stage != null { error = hold(bits(void*, jobs[i].stage)); }
+    }
+    if error == WorkBudgetError.None {
+        if view != null { close(view); view = null; }
+        for(var i: usize = 0; error == WorkBudgetError.None && i < count; i++) {
+            if jobs[i].stage != null {
+                error = publish(bits(void*, jobs[i].stage));
+                if error == WorkBudgetError.None { jobs[i].stage = null; }
+            }
+        }
+    }
+    // On hold failure this still owns the pin. Earlier held peers release
+    // normally; later peers cancel their unheld borrows before finalization.
+    // Publication failure also discards every remaining held stage, so callers
+    // cannot publish ready results from a partially committed structural wave.
+    // Unpublished result buffers may borrow staged component payloads. Cancel
+    // those buffers before any remaining stage destroys their backing nodes.
+    if error != WorkBudgetError.None && cancel != null {
+        for(var i: usize = 0; i < count; i++) { cancel(bits(void*, jobs[i])); }
+    }
+    for(var i: usize = 0; i < count; i++) {
+        if jobs[i].stage != null { discard(bits(void*, jobs[i].stage)); jobs[i].stage = null; }
+        jobs[i].context = null;
+    }
+    if view != null { close(view); }
+    return error;
+}
+
 // Callers reserve query tickets/leases and freeze every job context before
 // dispatch. T retains the concrete component type and embeds its kernel.
 // This helper only refills transport slots and joins; graph/publication changes

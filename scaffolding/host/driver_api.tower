@@ -85,6 +85,7 @@ extern fn backend_import_foundation(backend: void*, root: void*): bool;
 extern fn backend_emit(backend: void*): bool;
 
 extern fn backend_raw(backend: void*): u8*;
+extern fn backend_retain_ir(backend: void*, retain: bool): bool;
 
 extern fn backend_optimized(backend: void*): u8*;
 

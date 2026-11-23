@@ -1,0 +1,14 @@
+import tower;
+
+// Optional, frozen before dispatch. Callbacks borrow their context through the
+// final join, own their synchronization, and never mutate compiler/LLVM state.
+enum BackendPhase: u32 { Setup, Preparation, Declarations, IR, Verification, RawText, Optimization, OptimizedText, Emission, Count }
+struct BackendObservation {
+    context: void*;
+    ordinal: usize;
+    event: function(void, void*, usize, BackendPhase, bool);
+}
+
+fn backend_observation_event(observation: BackendObservation*, phase: BackendPhase, entering: bool): void {
+    if observation.event != null { observation.event(observation.context, observation.ordinal, phase, entering); }
+}

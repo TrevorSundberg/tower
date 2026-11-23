@@ -2888,3 +2888,97 @@ that exact local dist. Verify the deployed workflow/ref and every served asset;
 the old manifest check in this audit is not that final gate. Implemented portable
 interpretation, target object emission and shared-Wasm transport do not establish
 published acceptance of this current integrated source.
+
+### Bounded entity accounting fixture, reviewed c7ad4f42 (2026-11-23)
+
+User explicitly assigns D2 the focused fixture/profile and narrow registration;
+A2 retains production entities/stage ownership. This is supplemental test review,
+not a reassignment of D1's full test inventory or a new allocator framework.
+
+| Path | Full review / ownership and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/entity_accounting.tower` (new) | Actual EntityStore and paged payloads remain authoritative. Stack node arrays are borrowed test indexes; no copied AST/scheduler. One normal allocator owner creates32 nodes, checks canonical query sum528, detaches/removes alternating rows, reuses them, and creates4 staged nodes plus an existing-node lease. A cancellable borrowed payload clears before discard finalization while the input view survives. All52 payload finalizers, view/lease/store cleanup and zero ledger grants are checked. Actual capacities/type sizes drive raw ownership census, including combined table row/column storage and borrowed query columns without double count. No threaded/global allocator counter or failure injection. Profile/repeated byte equality pass; finite-cap descriptor gate deliberately fails1 after cleanup, with exact None versus required Capacity. This fixture tests one necessary cap boundary, not complete world-budget coverage. |
+| `cmake/TowerWorkTests.cmake` (narrow registration) | Reuses tower_work_fixture and its normal guest runtime/object rules. Profile executable stays EXCLUDE_FROM_ALL; explicit measure target reports checked census. Separate tower-check-entity-accounting-cap propagates real nonzero exit, no WILL_FAIL or skip. No generic fixture helper/allocator/ABI change. Smallest dependency-aware target compiles and links through the public predecessor; target's baseline failure was actually run. |
+| `scaffolding/tests/README.md` (caller instructions) | Documents exact targets, field order, physical requested bytes versus sampled retained peak/RSS, separate ledger metadata, and baseline nonacceptance. No passing result is assigned to the desired cap. |
+
+Read-only producer closure for A2, at the recorded hashes in the journal:
+
+| Producer | Omitted owner / required lifetime |
+| --- | --- |
+| `library/entities.tower::entity_create_result` | Raw Entity descriptor; own byte receipt until final entity_release, including pinned deferred reclamation. Baseline184bytes/node; stage_create_result has the corresponding private descriptor path. |
+| `entity_attach_result`, `entity_reserve_components` | Child array/name storage lives with parent until resize/detach/destruction; component pointer array belongs to node, instance index to kind. Replacement admission must cover old+new live storage and preserve prior links/indexes on failure. |
+| `entity_table_prepare_result`, `entity_table_reserve` | Table/type IDs and combined row/column block belong to store's derived archetype table until prune. Reserve replacement before freeing old block; no packed-payload claim. |
+| `entity_view_open_result`, `entity_view_tables` | View and cached query/type/match/column blocks belong to input view; query match columns borrow one common allocation. Retire only after consumers drain. |
+| `library/entity_stage.tower::entity_stage_open_result/create_result/lease_result/references_cancellable_result` | Stage descriptor and node/reference/cancellation/lease vectors need stage-owned receipts, transferred/disposed at joined publication/discard; private nodes must not be charged through unsynchronized global counters. Queue callbacks/context survive failure cleanup before the last input pin closes. |
+
+No production file changed. Physical compiler-buffer peak11862B equals charged
+peak; observed live world storage peaks22086B, omitting10224B from that ledger,
+plus320B separate ledger metadata. This measures requested owner storage, not
+allocator usable size/hidden replacement peaks or process-wide retained memory.
+Native profile and exact repeat pass; finite-cap failure stays an open A2 gate.
+Final instrumentation/platform/bootstrap/browser release remains ROOT-owned.
+
+### Bounded layout extension: full fixture review (2026-11-23)
+
+Reviewed complete `scaffolding/tests/entity_locality.tower`, including preserved
+legacy functions, at base published `3bee18e2371465aa9718ca4ba5cbb2aa18cb850a`
+plus fixture SHA256
+`4d27a7c1b03fe651ccc41d1cb0a701dabccf08742b569bad871e66cb0ddaa18c`.
+This exact source identity is the D1 adoption boundary; production entities and
+types remain A2-owned and unchanged. The journal's D2 bounded layout receipt
+records exact producer/compiler/binary identities and all paired measurements.
+
+| Path | Ownership/storage/scheduling review and disposition |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` | One explicit store/ledger, normal allocator, no workers/global counters. Kinds derived from that store; stack owner/address arrays borrow its entities. Both lookup and planned column traversal read the same primary payloads. Pinned views own immutable query plans and close before structural churn. Plan columns are component pointers, not packed SoA; full pages are counted through unique live component.page references rather than incomplete free-slot links. Scratch WorkBuffer is private, unbudgeted and reported separately; no second authoritative payload/index escapes. Counts/bounds derive from arrays, page/type sizes and actual capacities; fixture density periods and warm-round count define input policy. Full-file reviewed cleanup, CLI failure, deterministic sum arithmetic, page retention, free-slot refill and stable survivor addresses. Four counterbalanced serial runs pass; raw whole-world cap and parallel access acceptance are not asserted. Legacy default snapshot experiment retained without claiming a new run. |
+| `cmake/TowerWorkTests.cmake` (one registration) | Adds existing `tower_work_fixture(entity_locality ON layout mixed direct)`, normal runtime, excluded from default build; shares dependency-aware compilation and optional measurement target. No helper/harness policy changed. |
+| `scaffolding/tests/README.md` | Documents commands, first-pass/warm distinction, mixed membership versus storage trait, count/byte scope and missing counters; no unrun gate promoted to passed. |
+
+Known sum33,550,336 full/refilled and508,096 fragmented matches both paths.
+Homogeneous32pages retain186848B while live payload shrinks65536→1024B;
+mixed50pages retain291950B while live payload shrinks102400→37888B. Refills
+restore occupancy with zero new page grants and unchanged survivor addresses.
+Measured world+plan storage680984B homogeneous,786654–808222B mixed, exceeds
+charged buffers189080/294182B; ledger metadata2560B is separate. Complete cleanup
+passes. Planned scans avoid per-owner type search; fragmented comparisons also
+avoid2016 nonmatching candidates. Warm full scans256rounds cost8.868–10.105ms
+direct versus2.072–3.326ms planned across the two populations; these small serial
+numbers do not predict compiler throughput or hardware misses. Production choice
+requires compiler workload/lifetime evidence, not a blanket dense-storage mandate.
+
+### LR construction optimization: source-specific adoption receipt (2026-11-23)
+
+ROOT delegated LR construction helpers for this bounded batch. Base published
+main36ad33782b53e1a3c5be50860ab3eb0a7cddae67; existing component-locality evidence
+is preserved. Full-file reviews below cover the final contents, not only the
+edited lines. D1 can adopt these exact hashes; no roster ownership is reassigned.
+
+| Reviewed path and SHA256 | Ownership, algorithm and evidence disposition |
+| --- | --- |
+| `scaffolding/compiler/lr_analysis.tower` — `80ee516d379d27b4bd16c7e38dcf8062a0f83fb1c5748ebfb2b9c388c321db2a` | Full844-line review: borrowed immutable productions/symbols, owned FIRST/nullable vectors, closure-local membership/expansion indexes, sorted item publication, raw derived propagation graph and typed failures. Only private final closure sort changes: median-of-three partitioning, insertion sort for small spans, original heapsort fallback after2×floor(log2(count)) partitions. Smaller-side recursion/tail iteration bounds stack by input size; no allocations, new authoritative representation, persistent cache, API/layout or worker scheduling changes. Pointer/count borrows stay within one closure owner, including failure-path deferred sorting. Comparator and exact rule/dot/range identities remain unchanged. Raw vectors/graphs remain outside comprehensive world-budget accounting; no new cap claim. |
+| `scaffolding/tests/lr_analysis_comparisons.tower` — `2af0a0246fab3fb54fa2995a563490218d6260e775731461264047b9b907d5a2` | Full127-line review. Adds33 ordering cases over actual array bounds, including empty/odd/even spans and ordered/reversed/seeded shuffle inputs. Mutates only the fixture-owned derived item array; dots face terminals/completion, so closure adds nothing. Independent insertion oracle checks every rule/position/first/last and exact count; no heap/partition implementation copied into the oracle. Existing150 deterministic grammars continue to cover nullable/ranges, reopened closure, states, runtime actions and error/probe paths. All fixture owners dispose and serial allocation count returns to baseline. |
+| `scaffolding/tests/frontend_iteration_profile.tower` — `66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2` | Full131-line review. Existing ordinary cold/installed request and grammar observer retained. Explicit one-lane ledger bound before first entity; snapshots, allocations and retained buffers reported at the same checked canonical point. Counter transport explicitly requires serial execution; never used for real overlap. World/module/resource-vector/ledger cleanup asserted. No whole-world cap claim: legacy world/store construction and raw allocations are not covered by binding. Both frozen executables use this identical fixture hash. |
+| `scaffolding/tests/frontend_main.tower` — `7f7c606f2e7839e4ff66c0f0dabea3be6df555c44be9b37d0fdd91cc1af0919e` | Full112-line entry review. Adds only lr-order selector/import; existing selectors/default flow and caller resource conventions preserved. Reuses native target because parser-only executable is absent from this cache; no generic harness or manifest change. |
+
+Checked final source: all33 ordering cases and existing150-grammar independent
+oracle, structural reuse/identity/capture/lifetime, grammar activation/live syntax,
+parser/error paths, diagnostics and normal native serial/threaded LR equivalence.
+Measured cold median2.05→1.93s wall (three alternating pairs), LR phase median
+1.761→1.586s; all185 lookups/155 builds/123 actual tables/36 reuses and canonical
+976bytes/hash13832670361687071853 unchanged. No allocation/retention reduction;
+see journal for all pairs, substantial outliers and rejected bottom-up experiment.
+The final sort's software-sampled CPU share15.42% replaces old heap27.63%; these
+are not hardware cache metrics. Native3-unit workers1/2 control observes real
+outer peaks1/2, but only modest latency reduction and higher CPU/RSS; no all-host
+scaling claim. Full sanitizer/bootstrap/browser/generation/deployment remain ROOT
+release gates, not passed here. B1 provenance/formatter and B2 ordering untouched.
+
+Merged adoption follow-up: complete upstream98d69cf4 was merged as1906afcd after
+implementationd9e1b348. Re-reviewed the full129-line frontend_main: upstream adds
+only default-suite progress labels; focused selectors/imports retain their prior
+behavior. Final merged entry SHA256
+`aa5b76080914f65c0c1e5edfda8e9a1ba06b9d47165cd1f47c39d866a01a1485`
+supersedes its112-line hash above. The other three reviewed Tower files retain
+exact hashes. Upstream A1 semantic completion changes are outside this owner
+review; affected merged consumers are rebuilt/rechecked separately, and paired
+performance remains tied to the stated36ad inputs rather than relabeled.

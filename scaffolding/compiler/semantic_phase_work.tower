@@ -20,6 +20,7 @@ fn sem_phase_begin(c: SemanticContext*): bool {
     if sem_phase_query(c, SemanticQuery.LifecycleLowered) != 0 { return true; }
     sem_lower_register(c, true);
     sem_lower_register(c, false);
+    if !sem_ok(c) { work_cancel(&c.queries); return false; }
     var signatures = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.LifecycleSignatures), 0);
     var lowered = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.LifecycleLowered), 0);
     if !sem_query_check(c, c.program.root, signatures != 0 && lowered != 0
@@ -62,9 +63,10 @@ fn sem_phase_publish(c: SemanticContext*): SemanticPumpResult {
 fn sem_phase_evaluation_input(c: SemanticContext*, result: SemanticEvaluation*): usize {
     // Early type checking retains its existing executed-dependency pipeline.
     if sem_phase_query(c, SemanticQuery.LifecycleLowered) == 0 { return 0; }
-    // Inferred execution can call canonical functions directly. Explicit stages
-    // use executable snapshots requested only when the interpreter reaches a call.
-    return sem_phase_query(c, result.inferred ? SemanticQuery.LifecycleLowered : SemanticQuery.LifecycleSignatures);
+    // Both policies execute reached calls through stable executable inputs.
+    // KnownClone/Proof protect each inferred expression before its owner lowers;
+    // unrelated canonical bodies are no longer inputs to that evaluation.
+    return sem_phase_query(c, SemanticQuery.LifecycleSignatures);
 }
 
 fn sem_phase_evaluation_depend(c: SemanticContext*, result: SemanticEvaluation*, query: usize): bool {
