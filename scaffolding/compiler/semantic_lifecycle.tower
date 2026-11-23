@@ -26,6 +26,7 @@ import semantic_modules;
 import .library.stack;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -118,10 +119,15 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     var context: SemanticContext;
     var c: SemanticContext* = &context;
     sem_context_init(c, program);
+    defer sem_context_dispose(c);
     c.node_limit = component_bytes / sizeof(FoundationNode);
     c.source = source;
-    var step1 = generic_begin(program.root);
-    c.generics = step1;
+    var resource_error = WorkBudgetError.None;
+    c.generics = generic_begin_result(program.root, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(program, resource_error, 0);
+        return;
+    }
     for(var i: usize = 0; i < count; i++) {
         var step4 = sem_state(c, c.source_bases, roots[i]);
         step4.number = bases[i];
@@ -136,7 +142,6 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_known_publish(c);
     sem_module_initializers(c);
     sem_flows(c);
-    sem_context_dispose(c);
 }
 
 export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*): void {

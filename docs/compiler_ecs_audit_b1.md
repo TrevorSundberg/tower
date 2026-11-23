@@ -2138,3 +2138,64 @@ sanitizer logs and source/binary identities are retained. This closes the narrow
 68fa implementation, not the full acceptance goal, remaining raw storage or final
 joined clean/public/hosted release. Evidence-only documentation adds no runtime
 performance delta. No publication lease or push; todo remains unchanged.
+
+B1 grammar-construction follow-through on complete81c26d44 (implementation,
+final validation pending): ROOT12:40:39 explicitly approved the shared
+GrammarBuilder.resource_error field and checked producer boundaries. All prior
+68fa jobs/receipts drained before the clean c944 merge; both parent journals retain
+every nonblank line. Coherent baseline62833 passed and froze units/editor/resources
+under parser_memory_profile/grammar_builder_81c26d44 before any new code.
+
+- grammar_types.tower adds the first-cause field beside the existing bool.
+- grammar_builder.tower uses complete typed create/component/attach producers,
+  returns checked init/finish outcomes, releases its local child hold with defer,
+  discards failed documents and retains old wrappers. Failed initialization skips
+  later calls before reading absent kinds. No shared global builder or callback.
+- parser_nodes.tower adds counted text results and checked UTF8 append. Null/count
+  overflow is Invalid, actual reserve failure Memory, malformed decoding Invalid
+  with logical-length rollback. The old bool append no longer accepts a malformed
+  prefix as success. Raw vector capacity is still outside the world ledger.
+- regex_grammar.tower exposes the checked complete producer; the mask derives
+  bytes/iteration bounds from its array and names the true ASCII/scalar limits.
+  Its ordered root/rule/reference/string/range entities remain authoritative.
+- New tests/grammar_builder_results.tower calls production exports, measures the
+  actual allocation path for its fault sweep and checks exact Busy/Invalid/Capacity,
+  cleanup/retry and counted UTF8 rejection. Owned parser_failures imports it;
+  no generic harness or independent grammar implementation was introduced.
+
+ROOT retains frontend_table's downstream pattern consumer. The new producers are
+not yet a complete source/evidence handoff. Production smallest unit passed;
+two fixture compile failures (missing direct rule declarations, then strlen)
+were preserved and corrected by explicit opaque declarations. Current native
+retry21801 has passed the new parser fixture and continues remaining checks;
+profile, supported instrumentation and public portable validation remain pending.
+
+B1 ea1b grammar producer validation now passed: native21801 parser/new exact
+constructor/UTF8 regressions, regex300/500 corpus, LR/query/grammar-resource/
+fullunits/editor/storage; current ASanLSan74293 and TSan23306 parser/regex/query
+plus real3unit4lane overlap (two thread runs); independent parser reference/tree/
+allocation/150-grammar oracle; public-pin/SDK34 WASI and actualIDE23197
+26.7086166s. Reactor SHA256eff2508fc80abe91cb581eca8fb48fed87eb00e1e20329becaa06ad56a9abff5.
+All execution jobs actually drained0; receipt62295 is being packaged before source
+adoption. The two fixture declaration compile failures remain preserved failures.
+
+Fixed-path20 job97445 passed with identical canonical/entity/component/retained
+bytes at3units, bodies0/4096, workers1/4, two alternating pairs. Mean wall changes
++0.12/+1.02/-0.78/+1.57%; CPU +0.28/+1.01/-0.91/-0.30%. Actual peaks1/3;
+RSS changes under0.8% in these unit samples. Editor RSS930794 ->924674KiB has
+broad overlapping ranges. No precise speedup/neutrality or memory improvement
+claim, and no adverse retained signal warrants a redundant follow-up. Full raw
+wall/CPU/RSS/reservation/hash evidence and failed scheduling attempts are in the
+journal. The first profile grant crossed an already-started thread job and was
+returned unused; the renewed grant preceded the actual profile. No timed build
+overlap occurred. ROOT now assigns B1 primary KinmenB compute ownership, retaining
+CPU0-11/24GiB and requiring ROOT to request a slot before further KinmenB work.
+
+ROOT's2252 maps/query complete history remains queued until this receipt drains;
+its IMFrame/IMState layout requires coherent providers and is not validated by
+these ea1b results. ROOT owns the new regex producer's downstream pattern consumer.
+Next read-only finding: parser_state's request descriptor has an existing typed
+constructor and runtime.budget but raw allocation; diagnostic vector ownership
+also crosses parser_stream_return. No partial buffer conversion is adopted.
+Fullfrontend300s timeout, remaining raw storage and final joined clean bootstrap/
+generation/browser publication/hosted verification remain explicit open gates.

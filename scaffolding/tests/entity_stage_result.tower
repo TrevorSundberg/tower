@@ -31,7 +31,54 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
     state.finalized++;
 }
 
+fn stage_result_lease(): void {
+    var store = entity_store_create();
+    var foreign = entity_store_create();
+    var root = entity_create(store);
+    var node = entity_create(store);
+    var type = entity_create(store);
+    var outsider = entity_create(foreign);
+    stage_result_check(root != null && node != null && type != null && outsider != null
+        && entity_register(type, sizeof(usize), alignof(usize), 0));
+    var stage = entity_stage_open(root);
+    var other = entity_stage_open(root);
+    var empty: EntityStage = default;
+    stage_result_check(stage != null && other != null);
+    store.resource_error = WorkBudgetError.Stale;
+    stage_result_check(entity_stage_lease_result(null, node) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(&empty, node) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, null) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, outsider) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, type) == WorkBudgetError.Invalid);
+    var view = entity_view_open(root);
+    stage_result_check(view != null && entity_stage_lease_result(stage, node) == WorkBudgetError.Busy
+        && stage.leases.length == 0 && node.stage == null && node.storage == null);
+    entity_view_close(view);
+    store.reclaiming++;
+    stage_result_check(entity_stage_lease_result(stage, node) == WorkBudgetError.Busy);
+    store.reclaiming--;
+    stage.leases.length = ~convert(usize, 0) / sizeof(EntityStageLease);
+    stage_result_check(entity_stage_lease_result(stage, node) == WorkBudgetError.Invalid
+        && stage.leases.data == null && node.stage == null && node.storage == null);
+    stage.leases.length = 0;
+    stage_result_check(entity_stage_lease_result(stage, node) == WorkBudgetError.None
+        && entity_stage_lease_result(stage, node) == WorkBudgetError.None
+        && entity_stage_lease(stage, node) && stage.leases.length == 1
+        && stage.leases.data[0].node == node && stage.leases.data[0].components == node.component_count
+        && node.stage == bits(void*, stage) && node.storage == &stage.storage
+        && entity_stage_lease_result(other, node) == WorkBudgetError.Busy
+        && other.leases.length == 0 && store.resource_error == WorkBudgetError.Stale);
+    entity_stage_discard(stage);
+    stage_result_check(node.stage == null && node.storage == null
+        && entity_stage_lease_result(other, node) == WorkBudgetError.None
+        && entity_stage_publish_result(other) == WorkBudgetError.None
+        && node.stage == null && node.storage == null);
+    entity_release(node); entity_release(type); entity_release(root); entity_release(outsider);
+    stage_result_check(entity_store_dispose(store) && entity_store_dispose(foreign));
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    stage_result_lease();
     var store = entity_store_create();
     stage_result_check(store != null);
     var state: StageResultState = default;

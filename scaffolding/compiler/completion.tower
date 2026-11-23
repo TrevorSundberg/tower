@@ -359,7 +359,14 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     c.source = q.input.data;
     c.editor = &q.editor;
     q.editor.offset = q.from;
-    c.generics = generic_begin(root);
+    var resource_error = WorkBudgetError.None;
+    c.generics = generic_begin_result(root, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(&q.program, resource_error, 0);
+        completion_semantic_failed(q);
+        c.editor = null;
+        return;
+    }
     i = 0;
     for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);

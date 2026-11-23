@@ -442,7 +442,14 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     q.analyzed = true;
     language_grammar_index(q);
     c.source = q.input.data;
-    c.generics = generic_begin(root);
+    var resource_error = WorkBudgetError.None;
+    c.generics = generic_begin_result(root, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(&q.program, resource_error, 0);
+        completion_semantic_failed(q);
+        completion_dispose(q);
+        return null;
+    }
     var i: usize = 0;
     for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);

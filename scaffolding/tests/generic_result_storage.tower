@@ -1,0 +1,243 @@
+import tower;
+import .compiler.generic_body_types;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.entity_types;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn generic_begin_result(root: void*, error: WorkBudgetError*): void*;
+extern fn generic_register_result(context: void*, definition: void*, error: WorkBudgetError*): u32;
+extern fn generic_instantiate_result(context: void*, definition: void*, use: void*, arguments: void**, count: usize, error: WorkBudgetError*): void*;
+extern fn generic_instantiate_deferred_result(context: void*, definition: void*, use: void*, arguments: void**, count: usize, error: WorkBudgetError*): void*;
+extern fn generic_error_clear(context: void*): void;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn sem_context_init(context: SemanticContext*, program: SemanticProgram*): void;
+extern fn sem_context_dispose(context: SemanticContext*): void;
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+
+enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
+var GenericResultBudgetBytes: usize = 1048576;
+var GenericResultOrdinaryKind: u32 = 0;
+
+fn generic_result_call(operation: GenericResultOperation, fixture: GenericCloneFixture*, argument: void*, error: WorkBudgetError*): void* {
+    if operation == GenericResultOperation.Begin { return generic_begin_result(fixture.root, error); }
+    if operation == GenericResultOperation.Register {
+        var kind = generic_register_result(fixture.context, fixture.definition, error);
+        return kind == GenericResultOrdinaryKind ? null : fixture.definition;
+    }
+    if operation == GenericResultOperation.Instantiate {
+        return generic_instantiate_result(fixture.context, fixture.definition, fixture.definition, &argument, 1, error);
+    }
+    return generic_instantiate_deferred_result(fixture.context, fixture.definition, fixture.definition, &argument, 1, error);
+}
+
+// Each trial owns its allocator injection and world. A successful first trial
+// derives the complete fault sweep from the operation's actual allocation count.
+fn generic_result_storage_trial(operation: GenericResultOperation, allowed: usize, pressure: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Generic result fixture constructs its physically bounded world");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_world(&fixture, 2, 2, world);
+    var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
+    if operation == GenericResultOperation.Instantiate || operation == GenericResultOperation.Deferred {
+        var result_type = generic_clone_child(fixture.store, fixture.definition, "type", "type", 0);
+        parser_match_create(result_type).rule = ~convert(usize, 0);
+        var statement = generic_clone_child(fixture.store, fixture.body, "Statement", null, 0);
+        var returned = generic_clone_child(fixture.store, statement, "CoreReturn", null, 0);
+        var value = generic_clone_child(fixture.store, returned, "T", "value", 0);
+        parser_match_create(value).rule = ~convert(usize, 0);
+        generic_register(fixture.context, fixture.definition);
+    }
+    if operation == GenericResultOperation.Register {
+        // A fresh registry has no template page; the definition and parser
+        // metadata are the same actual nodes used by the ordinary fixture.
+        fixture.context = generic_begin(fixture.root);
+    }
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var children = entity_child_count(fixture.root);
+    var occupied: WorkReservation = default;
+    if pressure {
+        var snapshot: WorkBudgetSnapshot = default;
+        var frames = operation == GenericResultOperation.Begin || operation == GenericResultOperation.Register
+            ? 0 : compiler_buffer_allocation_size(CloneInitialFrames * sizeof(CloneFrame));
+        utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.bytes - snapshot.used_bytes >= frames
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes - frames, &occupied)
+                == WorkBudgetError.None, "Generic result fixture occupies the exact remaining page allowance");
+    }
+    var calls = tower_test_buffer_allocations();
+    var error = WorkBudgetError.Invalid;
+    tower_test_buffer_fail_after(allowed);
+    var result = generic_result_call(operation, &fixture, argument, &error);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    var wanted = pressure ? WorkBudgetError.Capacity : allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory;
+    if error != wanted || (result != null) != (wanted == WorkBudgetError.None) {
+        puts("Generic result receipt: operation, allowed allocations, actual error, wanted error");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+        generic_clone_number(convert(usize, error)); generic_clone_number(convert(usize, wanted));
+    }
+    utility_check(error == wanted && (result != null) == (wanted == WorkBudgetError.None),
+        "Generic operation preserves exact allocator or physical page denial");
+    if wanted != WorkBudgetError.None {
+        utility_check(entity_store_count(fixture.store) == nodes
+            && entity_store_component_count(fixture.store) == components
+            && entity_child_count(fixture.root) == children,
+            "Generic failure publishes no partial registry, template or specialization");
+        if occupied.active {
+            utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+                "Release generic result page pressure");
+        }
+        generic_error_clear(fixture.context);
+        result = generic_result_call(operation, &fixture, argument, &error);
+        utility_check(result != null && error == WorkBudgetError.None,
+            "Generic result retries successfully after failure drains");
+    }
+    if operation == GenericResultOperation.Register {
+        utility_check(generic_parameter_count(fixture.context, fixture.definition) == 1
+            && generic_type_parameter(fixture.context, fixture.definition, 0),
+            "Typed registration preserves actual parameter identity");
+    }
+    if operation == GenericResultOperation.Instantiate || operation == GenericResultOperation.Deferred {
+        var deferred = operation == GenericResultOperation.Deferred;
+        utility_check(generic_body_pending(fixture.context, result) == deferred
+            && entity_child_count(generic_clone_fixture_body(result))
+                == (deferred ? 0 : entity_child_count(fixture.body)),
+            "Eager and deferred type constructors preserve their distinct body contracts");
+        var before = tower_test_buffer_allocations();
+        error = WorkBudgetError.Memory;
+        utility_check(generic_result_call(operation, &fixture, argument, &error) == result
+            && error == WorkBudgetError.None && tower_test_buffer_allocations() == before
+            && entity_child_count(fixture.root) == children + 1,
+            "A completed generic specialization reuses its exact identity without allocating");
+    }
+    generic_clone_fixture_close(&fixture);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Generic result trials release all physical storage and grants");
+    return calls;
+}
+
+fn generic_result_storage_tests(): void {
+    var unlimited = ~convert(usize, 0);
+    for(var tag = convert(u32, GenericResultOperation.Begin); tag < convert(u32, GenericResultOperation.Count); tag++) {
+        var operation = convert(GenericResultOperation, tag);
+        var calls = generic_result_storage_trial(operation, unlimited, false);
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            generic_result_storage_trial(operation, allowed, false);
+        }
+        generic_result_storage_trial(operation, unlimited, true);
+    }
+    generic_result_admission_tests();
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        generic_result_lifecycle_trial(width, false);
+        generic_result_lifecycle_trial(width, true);
+    }
+}
+
+// Measure the real context's entity demand before positioning the ID boundary.
+// This reaches generic_begin inside semantic_compile_budget, after successful
+// context setup, without inserting a test hook or duplicating that setup logic.
+fn generic_result_lifecycle_trial(width: u32, prior_failure: bool): void {
+    var buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Generic lifecycle world");
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var probe = entity_create(bits(void*, store));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, probe, width);
+    var context: SemanticContext = default;
+    var first = store.next_id;
+    sem_context_init(&context, &program);
+    var context_nodes = store.next_id - first;
+    first = store.next_id;
+    context.generics = generic_begin(probe);
+    var registry_nodes = store.next_id - first;
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(probe);
+    puts("Generic lifecycle measured context entities and registry entities");
+    generic_clone_number(context_nodes); generic_clone_number(registry_nodes);
+    utility_check(registry_nodes != 0, "Generic lifecycle derives actual producer ID demand");
+    for(var admitted: usize = 0; admitted < registry_nodes; admitted++) {
+        var root = entity_create(bits(void*, store));
+        program = default;
+        semantic_initialize(&program, root, width);
+        if prior_failure { sem_resource_record(&program, WorkBudgetError.Capacity, admitted); }
+        var next = store.next_id;
+        store.next_id = ~convert(usize, 0) - context_nodes - admitted;
+        semantic_compile_budget(&program, null, null, 0, "", sizeof(FoundationNode));
+        var wanted = prior_failure ? WorkBudgetError.Capacity : WorkBudgetError.Exhausted;
+        utility_check(store.next_id == ~convert(usize, 0) && program.resource.error == wanted
+            && program.resource.offset == (prior_failure ? admitted : 0),
+            "Actual semantic lifecycle preserves generic ID failure and the first resource cause");
+        semantic_program_dispose(&program);
+        entity_release(root);
+        // Every temporary high-ID owner has now retired; future entities can
+        // reuse the original monotonic sequence without colliding with one.
+        store.next_id = next;
+    }
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Generic lifecycle early exits dispose context scratch and all world owners");
+}
+
+fn generic_result_admission_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 1, 1, 1, null);
+    var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
+    var error = WorkBudgetError.None;
+    utility_check(generic_begin_result(null, &error) == null && error == WorkBudgetError.Invalid,
+        "Generic begin rejects a missing owner");
+    utility_check(generic_register_result(null, fixture.definition, &error) == GenericResultOrdinaryKind
+        && error == WorkBudgetError.Invalid, "Generic registration rejects a missing context");
+    utility_check(generic_instantiate_result(fixture.context, fixture.definition, fixture.definition, null, 1, &error) == null
+        && error == WorkBudgetError.Invalid, "Generic instantiation requires storage for nonempty arguments");
+    utility_check(generic_instantiate_deferred_result(fixture.context, null, fixture.definition, &argument, 1, &error) == null
+        && error == WorkBudgetError.Invalid, "Deferred generic instantiation rejects a missing definition");
+    var store = bits(EntityStore*, fixture.store);
+    var nodes = store.entity_count;
+    var components = store.component_count;
+    var next = store.next_id;
+    for(var tag = convert(u32, GenericResultOperation.Begin); tag < convert(u32, GenericResultOperation.Count); tag++) {
+        var operation = convert(GenericResultOperation, tag);
+        var view = entity_view_open(fixture.root);
+        utility_check(view != null, "Generic result admission pins its real input store");
+        var result = generic_result_call(operation, &fixture, argument, &error);
+        entity_view_close(view);
+        utility_check(result == null && error == WorkBudgetError.Busy
+            && store.entity_count == nodes && store.component_count == components,
+            "Generic operations preserve Busy without changing published owners");
+        generic_error_clear(fixture.context);
+        if operation != GenericResultOperation.Register {
+            store.next_id = ~convert(usize, 0);
+            result = generic_result_call(operation, &fixture, argument, &error);
+            store.next_id = next;
+            utility_check(result == null && error == WorkBudgetError.Exhausted
+                && store.entity_count == nodes && store.component_count == components,
+                "Generic node creation preserves exhausted entity identifiers");
+            generic_error_clear(fixture.context);
+        }
+    }
+    generic_clone_fixture_close(&fixture);
+    utility_check(tower_test_buffer_count() == buffers, "Generic admission trials release all buffers");
+}
