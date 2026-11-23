@@ -77414,3 +77414,34 @@ B1_pool_graph_receipts_68fa00d9.tgz SHA256
 contains the exact current artifacts and all24 profile records. No owned job,
 quiet watcher or hold remains. Evidence commit follows without runtime changes;
 complete ROOTc944 adoption and new grammar work have not begun.
+### Joined executable/parser/map native validation on2252
+
+ROOT joins complete L191875/6818 and B178cb/68fa after own2c454 drain. No private
+layout fragment is copied. Root2252 source joins into A1 e61d5f8b3508b0349b6d0c48429839a79329a9ff;
+the owned main checkout is clean and the prior four validated files are preserved
+in ROOT_validated_executable_query_backup, not discarded. First wrapper14395
+fails1 before compilation because ROOT guessed nonexistent target
+tower-interpreter-storage-tests. Retain root_parser_maps_union_2252/build.log.
+After actual drain, inspect canonical TowerStorageTests: existing target is
+tower-storage-tests and its option was OFF. Enable TOWER_STORAGE_TESTS in the
+existing native cache and pass RESOURCE_ROOT. No compiler or fixture edit.
+
+Corrected73060 drains0 with final source hash verification. KinmenA public pin,
+CPU0-11/24GiB, native max2 build, no other active lane. Full coherent rebuild
+57.70wall/83.70CPU/750160KiB. Allocations2.17/2.07/173748, parser.04/.02/53824,
+LR1.75/2.28/124500, query.22/.22/87996, resource.03/.01/51680,
+fullunits21.02/31.06/783004, control31.64/34.36/281904, type211.03/226.63/288916,
+storage.23/.17/99036, execution core21.04/10.51/304816,
+functions10.27/11.18/315516, type-construction1.04/1.19/188292 all PASS.
+These are single validation runs of the combined source, not comparative
+performance measurements or a new instrumented-union claim. Owner matched
+profiles/instrumentation retain their preceding exact identities. Current
+native211s type suite passes its existing300s wrapper; no timeout was increased
+in response to a failure. Source/layout consumers genuinely rebuilt.
+
+B1 holds primary KinmenB compute/profile ownership from13:17 after crossed quiet
+messages; ROOT must obtain a slot before further Linux/build/TSan work there.
+Five original CLI workers continue, three service-stopped sessions stay stopped.
+ROOT's next owned scope is precise stage lease admission and the remaining
+executable ownership/publication boundary. Existing raw lease storage accounting
+and general queued hold-counter exhaustion are separate open items.
