@@ -94767,3 +94767,41 @@ Tower blobs and the audit text remain unchanged. Incoming D2 C/LLVM fixture
 split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba950;
 no source/runtime adoption of those unrelated changes is claimed. Diff checks
 pass; no owned test/build or lock, todo unchanged. Normal main push follows.
+
+### 2026-11-23 D1: module-body initializer and diagnostic-position oracles
+
+Freeze4354581caeaf2bc71189617c04d48cdd45750f9e/compilerb90a997e29d4d30547a026b5b5d1481bf6a41579,
+library62350befa8df3e261fd184a23a64e6bb7263204a; same thread/PID3182858. Read
+existing declaration/query review, owner compiler_module_body_types_78d675c4
+receipt, module mapping and execution/provider/registration contracts. Only two
+Tower tests change: effectful self-address explicit initializer in the existing
+loop (no uninitialized read/raw address output), and independent source-token
+file/line/column oracles for the unchanged negatives. Original alias/layout,
+shadow, assignment effects, recursive trace, raw offsets, rejected start and
+zero-owner assertions stay intact. Actual markers yield unknown1:69/recursive1:37;
+expected positions are not learned from the first engine.
+
+D2 released its lock before successful native D1 mkdir/owner write. Existing
+Docker CPU0,2/8GiB, Release native x64 jobs1; checked public bootstrap768a0cdf,
+no override. One affected execution target refreshed35 cached dependency actions;
+first build failed on provider global string initialization at line25 (216.77wall/
+211.26CPU/1082876KiB), preserved. Local literal fixes it with no production change.
+Corrected wrong-position leaf build17.94/17.35/509264; actual control abort134
+(expected1:63 vs actual1:69),7.21/5.64/183908. Restored leaf15.53/15.08/509452.
+Doubled runtime initializer count abort134 at exact-output/effect oracle,
+5.22/3.75/183208; restored before final run. Each control source/log preserved.
+
+Final `tower-execution-tests /home/deck/tower-agent-1/scaffolding body-type-queries`
+under time/timeout180:44/44 sessions pass,28 positive executions/16 negatives,
+Graph/Fast32/64workers1/4 and four canonical reparses;21.77wall/21.55CPU/206252KiB,
+exit0/no skip/timeout. No claimed overlap merely from requested workers. Runner
+SHAf1e4d5e35498aac105f15651fc43942a6a39465cca1257a0b552b16e8763e8af;
+providerSHA bec273a2f826ebaf6cc2629499df66486a1d7a8199bdb6852723ace5863d1962;
+fixtureSHA89164e03bc33971283616fb799a5955f7c14c2268d095737452984a404f920b9.
+All frozen inputs verified after execution. Local build/d1_ecs/module_body_oracles_4354581c
+retains commands/manifests/failures/binaries; audit records exact boundaries/costs.
+Old owner baseline and cached runner retain their identities, not relabeled.
+Warm-cache validation cost only; fixture-only edits do not imply production
+performance change. All jobs drained/own lock released, disk127GiB/RAM9.7GiB,
+todo unchanged. No production edit, broad matrix, browser, generation, sanitizer
+or release operation. ROOT final adoption stays separate; normal publication next.
