@@ -147,7 +147,7 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
     return true;
 }
 
-fn sem_known_infer(c: SemanticContext*): void {
+export fn sem_known_infer(c: SemanticContext*): void {
     if !sem_ok(c) || c.editor != null || !sem_known_needed(c) { return; }
     defer { if !sem_ok(c) { sem_query_cancel_failure(c); } }
     // Absence of writes is a whole-program fact. One joined proof query records
@@ -173,11 +173,14 @@ fn sem_known_infer(c: SemanticContext*): void {
         sem_known_job(c, kind, evaluation.subject, evaluation.expression, null, count++, SemanticKnownAction.Scan);
     }
     var scans = sem_known_jobs(c, kind, count, SemanticQuery.KnownScan);
-    if !sem_ok(c) { sem_known_jobs_dispose(&scans); return; }
+    // Dispatch has joined. Own every scan output across coordinator failures
+    // until the successful input-query join explicitly transfers these jobs.
+    defer sem_known_jobs_dispose(&scans);
+    if !sem_ok(c) { return; }
     foreach(var job in &scans) {
         foreach(var &candidate in &job.candidates) {
             if job.owner != null { sem_known_register(c, candidate.subject, job.owner, candidate.ordinal); }
-            if !sem_ok(c) { sem_known_jobs_dispose(&scans); return; }
+            if !sem_ok(c) { return; }
             if !sem_push_checked(c, nodes, candidate.subject) { return; }
         }
     }
@@ -188,7 +191,6 @@ fn sem_known_infer(c: SemanticContext*): void {
         }
     }
     if c.known_bindings == null {
-        sem_known_jobs_dispose(&scans);
         return;
     }
     var scan_kind = kind;
@@ -199,13 +201,12 @@ fn sem_known_infer(c: SemanticContext*): void {
         var value = sem_get(subject);
         if value == null || value.kind == KFunction || value.kind == KType || value.kind == KLabel { continue; }
         var job = sem_known_job(c, kind, subject, subject, null, count++, SemanticKnownAction.Order);
-        if job == null { sem_known_jobs_dispose(&scans); return; }
+        if job == null { return; }
         job.source_ordinal = index;
     }
     var orders = sem_known_jobs(c, kind, count, SemanticQuery.KnownOrder);
     if !sem_ok(c) {
         sem_known_jobs_dispose(&orders);
-        sem_known_jobs_dispose(&scans);
         return;
     }
     foreach(var job in &orders) {
@@ -213,16 +214,18 @@ fn sem_known_infer(c: SemanticContext*): void {
     }
     sem_known_jobs_dispose(&orders);
     if !sem_known_query_check(c, c.program.root, work_seal(&c.queries, proof) && work_demand(&c.queries, proof)) {
-        sem_known_jobs_dispose(&scans); return;
+        return;
     }
     var proof_ticket: WorkTicket = default;
     if !sem_known_query_check(c, c.program.root, work_take_task(&c.queries, &proof_ticket, proof)
-        && work_finish(&c.queries, &proof_ticket, true)) { sem_known_jobs_dispose(&scans); return; }
+        && work_finish(&c.queries, &proof_ticket, true)) { return; }
     // Reuse the per-function candidate components after mutation/order facts
     // publish. Each worker owns its eligibility scratch and candidate output.
     foreach(var job in &scans) { job.action = SemanticKnownAction.Inputs; }
     var inputs = sem_known_jobs(c, scan_kind, scans.length, SemanticQuery.KnownInputs);
-    if !sem_ok(c) { sem_known_jobs_dispose(&scans); vector_dispose(&inputs); return; }
+    if !sem_ok(c) { vector_dispose(&inputs); return; }
+    // Both vectors point at the same components. Transfer output ownership to
+    // inputs by releasing only this pointer vector; the deferred owner is empty.
     vector_dispose(&scans);
     foreach(var job in &inputs) {
         var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.KnownInputs), 0);
