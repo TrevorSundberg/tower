@@ -58235,6 +58235,48 @@ further source changes. Exact incremental production patch
 L2_clone_node_storage_error_draft.patch SHAeb2d65011480a512b1110cbaccb8e93bb8a4c43db076b71d58c7ab0de93b3a10
 applies after the public result checkpoint. B2 caller adoption, whole merged
 compiler measurements and final instrumentation/publication remain pending.
+
+### L2 eight-lane source join and actual clone storage layout checks
+
+Pull/rebase preserves bff853c and its tested tree/hashes despite replaying the
+merge plan. Verify ROOT_main_3915aee8.bundle SHA08a0cecdb3ed44050806224e0ef5f51459245777adebfc9e3d4d4c60b7ba6a8b
+with sole60741 prerequisite; merge3915 into main as38cb22b. Both root and owned
+node-fix ancestors remain reachable, with all owned compiler/fixture bytes
+unchanged by the merge. Read the newly merged AGENTS rule requiring actual type
+and collection sizes. Move the existing CloneFrame record and CloneInitialFrames
+policy into existing generic_body_types, then use sizeof(CloneFrame) and the
+existing compiler_buffer_allocation_size in the serial fixture. Remove duplicated
+three-word frame/four-word header arithmetic and the duplicate initial count.
+GenericBodyCopy fields/layout, frame layout, clone algorithm and allocations
+remain unchanged. No new native export or language feature is added.
+
+After L1's actual release, acquire the ordinary host lock and freeze this eight-
+lane source plus the three-file layout change. Three smallest public-pin units,
+the40-step coherent storage/native-worker build and three storage/query pairs
+pass. Source manifests enumerate Tower files and CMakeLists; the other tracked
+build inputs are identified by38cb22b and remain unchanged. This clarification
+does not retroactively expand earlier manifests to include every cmake/ file.
+No source edit occurs during the build or runtime checks.
+
+The derived initial allocation remains416bytes. Existing wide/deep allocation
+counts783/2434 and frame peaks416/36928 remain unchanged. Public-node and staged
+faults retain precise errors and zero ownership. Actual clone kernels overlap on
+distinct native threads at1/2/4 lanes; cancellation, failed peer and stale-ticket
+checks pass with peaks416/832/1664, cancellation1664 and failed-peer1248. The
+joined query suite also passes the new interpreter physical-storage/error cases.
+This is scoped storage/query evidence for the union, not bounded frontend caller
+or whole compiler release acceptance.
+
+Build104.63s wall/164.22s CPU/794324KiB RSS. Storage runs0.22/0.22/0.21s wall,
+0.21s CPU each and99596/99748/99720KiB RSS; query runs0.08s wall/CPU each and
+61744/61640/61688KiB RSS. The suite grew with the union, so no before/after suite
+speed claim follows. Storage SHAe4731964bd2c47cce600f6aa6b9d50337a435ef8201f82faf5383c662d752e23,
+LR SHAe90478b00fbe5a7be7a18b01d1e3c076e2c615aeb806a317aa47d9a9544806dd.
+Session43044 drains0 before lock release and sibling notification. Exact records
+are clone_layout_*; production layout-sharing patch488af8a76c152b4890352403b11f0c1b61431843f6e20fa19e7fb3e2e0fcfb0c
+adds no result-API change. B2 caller cleanup, D2 symbol closure, remaining owner
+memory work, matched equivalent compiler profiles and final public release checks
+remain active.
 ### B2 coherent interpreter/semantic resource-failure checkpoint
 
 Reviewed and integrated L1 reporting a8ecf458 then typed storage failure bad3e4f1

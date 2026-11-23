@@ -105,12 +105,6 @@ export fn generic_type_parameter(context: GenericContext*, definition: Entity*, 
     return false;
 }
 
-struct CloneFrame {
-    source: Entity*;
-    destination: Entity*;
-    next: usize;
-}
-
 // One private owner per clone job. Sibling branches reuse its physical buffer;
 // growth may invalidate frame pointers, never canonical entity addresses.
 struct CloneStack {
@@ -118,8 +112,6 @@ struct CloneStack {
     budget: WorkBudget*;
     error: WorkBudgetError;
 }
-
-var CloneInitialFrames: usize = 16;
 
 fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*): Entity* {
     var result = stage == null ? entity_create(source.store) : entity_stage_create_named(stage, parent, name);

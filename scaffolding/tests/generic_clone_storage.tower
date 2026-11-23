@@ -19,11 +19,9 @@ extern fn generic_body_complete(context: void*, node: void*, copied: usize): voi
 extern fn compiler_generic_body_kernel(payload: void*): void;
 extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
 extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 
 var GenericCloneBudgetBytes: usize = 131072;
-var GenericCloneInitialFrames: usize = 16;
-var GenericCloneFrameWords: usize = 3;
-var GenericCloneHeaderWords: usize = 4;
 
 enum CloneTreeOutcome: u32 { Success, NodeLimit, CapacityStart, CapacityGrow, Memory, MemoryNode }
 
@@ -38,7 +36,7 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
     var nodes = entity_store_count(fixture.store);
     var components = entity_store_component_count(fixture.store);
     var occupied: WorkReservation = default;
-    var first = (GenericCloneInitialFrames * GenericCloneFrameWords + GenericCloneHeaderWords) * sizeof(usize);
+    var first = compiler_buffer_allocation_size(CloneInitialFrames * sizeof(CloneFrame));
     if outcome == CloneTreeOutcome.CapacityStart || outcome == CloneTreeOutcome.CapacityGrow {
         var available = outcome == CloneTreeOutcome.CapacityGrow ? first : 0;
         utility_check(work_budget_reserve(&budget, 0, 0, GenericCloneBudgetBytes - available, &occupied),
@@ -75,7 +73,7 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
         entity_release(clone);
     } else {
         var expected_count = outcome == CloneTreeOutcome.NodeLimit ? count - 1
-            : outcome == CloneTreeOutcome.CapacityGrow ? GenericCloneInitialFrames : 0;
+            : outcome == CloneTreeOutcome.CapacityGrow ? CloneInitialFrames : 0;
         var expected_error = outcome == CloneTreeOutcome.NodeLimit ? WorkBudgetError.None
             : memory_failure ? WorkBudgetError.Memory : WorkBudgetError.Capacity;
         var matched = clone == null && copied == expected_count && error == expected_error;
@@ -124,7 +122,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
         limit: short_limit ? count - 1 : count, budget: budgeted ? &budget : null, ..default };
     var occupied: WorkReservation = default;
     if deny_growth {
-        var first = (GenericCloneInitialFrames * GenericCloneFrameWords + GenericCloneHeaderWords) * sizeof(usize);
+        var first = compiler_buffer_allocation_size(CloneInitialFrames * sizeof(CloneFrame));
         utility_check(work_budget_reserve(&budget, 0, 0, GenericCloneBudgetBytes - first, &occupied),
             "Clone growth test leaves room for exactly the initial stack");
     }
@@ -136,7 +134,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
     entity_stage_hold(stage);
     entity_view_close(view);
     if fail_allocation || short_limit || deny_growth {
-        var copied = fail_allocation ? 0 : deny_growth ? GenericCloneInitialFrames : count - 1;
+        var copied = fail_allocation ? 0 : deny_growth ? CloneInitialFrames : count - 1;
         var error = fail_allocation ? WorkBudgetError.Memory : deny_growth ? WorkBudgetError.Capacity : WorkBudgetError.None;
         var matched = !request.success && request.copied == copied && request.storage_error == error;
         if !matched {

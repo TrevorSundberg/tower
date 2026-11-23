@@ -681,3 +681,14 @@ three times with complete cleanup, alongside all existing storage cases. The
 source/binary/signal receipts are in the journal. Native worker instrumentation
 and bounded frontend caller acceptance remain separate; the old nonstaged fatal
 metadata boundary is explicitly not changed by this classification fix.
+
+The eight-lane3915 source join preserves those fixes. To follow the merged size
+contract, generic_body_types now owns the existing CloneFrame declaration and
+initial-capacity policy; the serial fixture derives its denial boundary with the
+actual sizeof and allocator size function. No transport field or allocation
+algorithm changes. Public-pin smallest/coherent storage+LR builds and three
+storage/query pairs pass on this joined source, including real native clone
+overlap, cancellation, exact allocation failures and all new interpreter storage
+cases. Frame sizes/peaks and783/2434 allocator counts remain unchanged. The
+journal preserves exact hashes and distinguishes these focused checks from
+unfinished frontend failure propagation, full profiles and release acceptance.
