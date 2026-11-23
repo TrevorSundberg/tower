@@ -2261,3 +2261,29 @@ link work and teardown. The earlier provider/TSan corrections do not close this
 accounting gap. Routed to B2 for one complete owned constructor/budget contract
 before adapting these D2 CLI callers; no guessed cap/global ledger/competing API.
 Final whole-package/runtime/generation/publication acceptance remains open.
+
+### World/query and counted-regex integration review
+
+Reviewed full ROOT351 and B1dce8 histories after D2 jobs drained, merged as
+8db1499e6e85939d98b60f7f959a3d58a76522bd. Prior D2 policy/package receipts
+remain exact7fb8/core53ec; they do not validate this changed world/semantic ABI.
+The original40 assigned tools/benchmarks remain unchanged in this integration.
+Supplemental consumer dispositions at8db1499e:
+
+| Paths | Ownership/scheduling conclusion and evidence limit |
+| --- | --- |
+| `compiler/world.tower`; `compiler/frontend_units.tower`; `backend/units.tower` | New typed constructor charges world/store descriptors before exposing the owner; unit world, graph and pool borrow the synchronized batch ledger. Backend acquires the frontend graph only after target/pool setup succeeds. Legacy null-budget constructors remain explicit boundaries. Review finds no competing scheduler or new authoritative graph; coherent current runtime validation is pending in D2. |
+| `compiler/frontend_compilation.tower`; `compiler/frontend_modules.tower`; `compiler/completion.tower`; `compiler/language_query.tower` | Preserve parser/module/program resource receipts before diagnostic allocation and skip successful publication on failure. Optional text recovery cannot clear the fixed receipt. Imported session/depth teardown remains in the owning module path; completion disposes failed private queries. |
+| `host/driver_compile.tower`; `host/ide_execution.tower`; `host/ide_artifacts.tower`; `host/ide_state.tower`; `backend/session.tower`; `backend/source_session.tower` | CLI, execution, package and IDE gates consume resource state independently of text length. Static fallback text is borrowed and reset separately from owned output buffers. New synthetic receipt fixtures are consumer checks, not physical producer denial or browser-runtime proof. |
+| `compiler/semantic_type_execution.tower`; `compiler/semantic_generic_body_work.tower`; `compiler/semantic_evaluation.tower` and their declaration/body/constructor consumers | Query identity and target/revision/dispatch checks remain shared. Results become ready after terminal completion; joined failure drains remaining invocations without peer publication. Generic waves hold staged references before closing input views and discard unpublished stages before releasing grants/cancelling graph. Current generic stage/view/publication boolean fallback still loses non-Memory causes; L2 owns the pending typed-result followup. |
+| `compiler/regex_lowering.tower`; `tests/regex.tower`; `tests/frontend_main.tower` | Counted result validates parse spans and output-table state, separates actual Memory from semantic rejection, preserves legacy root-span wrapper and embedded NUL. Allocation sweep derives its bound from successful calls; independent regex oracle and existing selector remain. Current production callers frontend_pattern/frontend_table still use the old wrapper. No new symbol-policy allowance follows merely from exporting the new API; inspect actual native/WASI imports first. |
+| `tests/semantic_query_failure_checks.tower`; proposed D1 registrationc98d06d0 | Real interpreter suspension precedes denied producer admission; joined peers are disposed without publication, repeated pumps preserve counts, final ledger ownership is zero. D2 independently reviewed the exact registration: one existing exported-main object, original compiler libraries and actual worker entry, three selectors, no provider/wrapper duplication. D1 owns runtime/instrumented registration evidence; patch is not adopted independently here. |
+
+Newer ROOT09:23 trace corrects the historical phrase "late semantic failure":
+peak-minus-one Capacity currently becomes Memory in B1 replacement preparation,
+before semantic_compile, at source offset3436. The required Capacity oracle stays
+failing; the earlier phase label is superseded, not its preserved failure evidence.
+WasmLinkWorld remains separate from CompilerWorld: this merge does not resolve
+D2's linker tool budget gap above. Full B2 contract/caller adoption is pending.
+This subsection records source review and integration only; no runtime logic was
+changed by D2, so before/after runtime profiling is inapplicable to this text.

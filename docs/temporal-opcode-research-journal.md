@@ -69555,3 +69555,60 @@ resource20.999s, not0.346/20.844. Build75.06s/777008KiB; outer26.381/26.368s.
 No newrun or changedoutcome: all actual16592children exited0, noreports. Runtime
 source490d488e; this correction changes documentation only, no runtime/memory
 measurement applies to its text. Raw artifacts remain authoritative and retained.
+
+### D2 resumed world/query and counted-regex source integration
+
+Same thread01a2046a-45eb-7452-8fb0-6d924bb320a6, actual CLI2918222 and launcher
+2918189, unchanged gpt-6-astra/xhigh/default tier. Active goal remains incomplete.
+Guarded pull --rebase=merges --autostash --ff-only reported Already up to date;
+no surviving D2 child beyond container init/sleep. D1 owns the host heavy slot,
+so this phase performs source/receipt review and preparation only. Disk135GiB
+free/RAM9.8GiB available/preexisting swap5.8GiB; no cleanup or other cache access.
+
+Verified ROOT_world_query_join.bundle84a4fdc4, sole60741, and merged complete351
+as edf0b2cf after reviewing all new production consumer deltas and relevant tests.
+Verified B1_main_regex_result.bundleaf8973d8, sole60741, reviewed exact490d/dce8
+regex implementation, fault/count/oracle tests, authorized existing selector and
+owner profile/instrumentation journal, then merged complete history as8db1499e.
+Both merges preserve newer D1 stage216 registration, all own72d package records,
+exact tool policies and todo hash. No source conflict or unrelated edit. Historical
+multiple-merge-base diff warning was avoided for the review by inspecting the two
+actual new nonmerge commits; no foreign patch/provider body was copied.
+
+The current world constructor prebinds the synchronized unit budget before world/
+store/pool ownership. Fixed resource receipts gate completion/CLI/IDE/package/
+source-service publication; borrowed static diagnostics survive allocation failure.
+A1 joined callers drain peers after failed producer registration. L2 retains the
+shared query/ordinary interpreter model and owner ticket checks, but typed stage/
+view/publication followup remains absent and cannot be called accepted. The new
+regex counted result retains the legacy wrapper, exact input extent, semantic
+versus resource distinction and independent oracle. Existing production callers
+still use the wrapper. Exact observed imports, not export availability, will decide
+whether D2 bootstrap policy needs changes after the coherent build.
+
+Read newer ROOT09:23 tracing from coordinator's D1 inbox: the required peak-minus-
+one failure originates in B1 replacement preparation before semantic_compile,
+Memory3/offset3436. This supersedes earlier "late semantic" phase attribution;
+Capacity expectation and failed logs remain unchanged. No redundant known-red
+full units matrix will run just to rediscover this owner bug. Separate linker tool
+budget gap remains: WasmLinkWorld is not the newly bounded CompilerWorld.
+
+Independent source review sent to D1 for exact query registrationc98d06d0: existing
+backend main is removed once, one exported-main fixture object and existing real
+providers, actual work_thread_entry export, three selectors; no SOURCE wrapper,
+allocator override or duplicate provider. Runtime evidence remains D1's actual
+current frozen result, not a D2 rerun. The sent review's future09:34 timestamp was
+corrected immediately to before the actual clock receipt09:31:21; conclusions and
+run counts did not change. A read of a guessed old run.sh path failed because the
+actual scripts are run_native/run_policy; rg located them, with no mutation/run.
+
+Prepared but UNRUN own next group build/d2_ecs/policy_8db1499e: full source archive
+f73728e8e38cb26059115c3bea93f9844f0d7d5732bbcb093e49608349797f3e, source hash
+manifest, unchanged accepted checker66496c86 and public bootstrap9653f818. Planned
+smallest world/regex leaves then canonical Docker native/jobs1/nooverride and
+actual seven native provider reports; WASI checks follow observed imports. Same
+cpus0,2/cache/container contract. Existing c691+50resource package and its7fb8
+byte-identical export receipt remain frozen, separate from this unbuilt union.
+This documentation changes no runtime path; profiling is inapplicable to the text.
+Final current public bootstrap/native/browser/generation, measured performance,
+supported memory/thread instrumentation and atomic leased publication remain open.
