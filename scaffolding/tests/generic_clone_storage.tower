@@ -25,7 +25,7 @@ var GenericCloneInitialFrames: usize = 16;
 var GenericCloneFrameWords: usize = 3;
 var GenericCloneHeaderWords: usize = 4;
 
-enum CloneTreeOutcome: u32 { Success, NodeLimit, CapacityStart, CapacityGrow, Memory }
+enum CloneTreeOutcome: u32 { Success, NodeLimit, CapacityStart, CapacityGrow, Memory, MemoryNode }
 
 // The public synchronous API must obtain its budget from the source world;
 // callers do not supply a second, potentially different ledger.
@@ -48,7 +48,9 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
     var limit = outcome == CloneTreeOutcome.NodeLimit ? count - 1 : count;
     var copied: usize = 0;
     var error = WorkBudgetError.Invalid;
-    if outcome == CloneTreeOutcome.Memory { tower_test_buffer_fail_next(); }
+    var memory_failure = outcome == CloneTreeOutcome.Memory || outcome == CloneTreeOutcome.MemoryNode;
+    // With a fresh ledger, its entry and the frame buffer precede the first node.
+    if memory_failure { tower_test_buffer_fail_after(outcome == CloneTreeOutcome.MemoryNode ? 2 : 0); }
     var clone = compiler_clone_tree_result(fixture.body, limit, &copied, &error);
     tower_test_buffer_fail_after(~convert(usize, 0));
     if outcome == CloneTreeOutcome.Success {
@@ -75,8 +77,14 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
         var expected_count = outcome == CloneTreeOutcome.NodeLimit ? count - 1
             : outcome == CloneTreeOutcome.CapacityGrow ? GenericCloneInitialFrames : 0;
         var expected_error = outcome == CloneTreeOutcome.NodeLimit ? WorkBudgetError.None
-            : outcome == CloneTreeOutcome.Memory ? WorkBudgetError.Memory : WorkBudgetError.Capacity;
-        utility_check(clone == null && copied == expected_count && error == expected_error,
+            : memory_failure ? WorkBudgetError.Memory : WorkBudgetError.Capacity;
+        var matched = clone == null && copied == expected_count && error == expected_error;
+        if !matched {
+            puts("Public clone failure receipt: copied, expected copied, error, expected error");
+            generic_clone_number(copied); generic_clone_number(expected_count);
+            generic_clone_number(convert(usize, error)); generic_clone_number(convert(usize, expected_error));
+        }
+        utility_check(matched,
             "Public clone distinguishes node quota, capacity and allocation failure");
     }
     utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
@@ -93,8 +101,9 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
 
 // The production registry and deferred-header API create the actual instance.
 // Only fixture syntax is synthetic; no second clone implementation is compared.
-fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool, short_limit: bool,
+fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize, short_limit: bool,
     budgeted: bool, deny_growth: bool): void {
+    var fail_allocation = failure_index != ~convert(usize, 0);
     var buffers = tower_test_buffer_count();
     var budget: WorkBudget = default;
     if budgeted {
@@ -120,7 +129,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
             "Clone growth test leaves room for exactly the initial stack");
     }
     var started = tower_test_buffer_allocations();
-    if fail_allocation { tower_test_buffer_fail_next(); }
+    if fail_allocation { tower_test_buffer_fail_after(failure_index); }
     compiler_generic_body_kernel(bits(void*, &request));
     tower_test_buffer_fail_after(~convert(usize, 0));
     var allocations = tower_test_buffer_allocations() - started;
@@ -129,7 +138,13 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
     if fail_allocation || short_limit || deny_growth {
         var copied = fail_allocation ? 0 : deny_growth ? GenericCloneInitialFrames : count - 1;
         var error = fail_allocation ? WorkBudgetError.Memory : deny_growth ? WorkBudgetError.Capacity : WorkBudgetError.None;
-        utility_check(!request.success && request.copied == copied && request.storage_error == error,
+        var matched = !request.success && request.copied == copied && request.storage_error == error;
+        if !matched {
+            puts("Staged clone failure receipt: fault index, copied, expected copied, error, expected error");
+            generic_clone_number(failure_index); generic_clone_number(request.copied); generic_clone_number(copied);
+            generic_clone_number(convert(usize, request.storage_error)); generic_clone_number(convert(usize, error));
+        }
+        utility_check(matched,
             "Clone failure reports exact partial count and distinct resource error");
         entity_stage_discard(stage);
         utility_check(entity_child_count(destination) == 0 && entity_store_count(store) == nodes
@@ -164,12 +179,18 @@ fn generic_clone_storage_tests(): void {
     generic_clone_tree_trial(1, 600, CloneTreeOutcome.CapacityStart);
     generic_clone_tree_trial(1, 600, CloneTreeOutcome.CapacityGrow);
     generic_clone_tree_trial(16, 2, CloneTreeOutcome.Memory);
-    generic_clone_storage_trial(256, 1, false, false, false, false);
-    generic_clone_storage_trial(1, 600, false, false, false, false);
-    generic_clone_storage_trial(16, 2, false, true, false, false);
-    generic_clone_storage_trial(16, 2, true, false, false, false);
-    generic_clone_storage_trial(256, 1, false, false, true, false);
-    generic_clone_storage_trial(1, 600, false, false, true, false);
-    generic_clone_storage_trial(1, 600, false, false, true, true);
-    generic_clone_storage_trial(16, 2, true, false, true, false);
+    generic_clone_tree_trial(16, 2, CloneTreeOutcome.MemoryNode);
+    var no_failure = ~convert(usize, 0);
+    generic_clone_storage_trial(256, 1, no_failure, false, false, false);
+    generic_clone_storage_trial(1, 600, no_failure, false, false, false);
+    generic_clone_storage_trial(16, 2, no_failure, true, false, false);
+    generic_clone_storage_trial(16, 2, 0, false, false, false);
+    generic_clone_storage_trial(256, 1, no_failure, false, true, false);
+    generic_clone_storage_trial(1, 600, no_failure, false, true, false);
+    generic_clone_storage_trial(1, 600, no_failure, false, true, true);
+    // The instance header warmed the ledger. Failure0 is the frame allocation;
+    // subsequent points exercise staged node/index/metadata allocation failures.
+    for(var failure: usize = 0; failure <= 4; failure++) {
+        generic_clone_storage_trial(16, 2, failure, false, true, false);
+    }
 }

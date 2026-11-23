@@ -55656,6 +55656,63 @@ SHA072c1df4d6cc3614d53e9776307e49fbcb3f7a4012d81cf14a0dd183bd0c82a1;
 public_clone_storage_* logs and full source manifests preserve input identity.
 Session14851 drains0, then releases the host. The complete before package remains
 available for equivalent compiler measurements after the owner caller join.
+
+### L2 six-lane source integration and clone node-failure follow-up
+
+Verify ROOT_main_1fec1b91.bundle SHA79350aa1820854d6ee537aa20b48c244e8421d098059263ae7b82786c924ce01,
+sole published60741 prerequisite, and merge its complete six-lane histories into
+L2 main after all owned jobs drain. Merge5d438415 preserves both root1fec1b91 and
+L2's public-clone checkpoint0975e75. The journal merges automatically; the three
+owned production files and L2 audit are unchanged relative to0975. Git autostash
+restores the sole pending serial regression edit. No todo change or branch is
+introduced. This union includes L1/A1 typed interpreter resource errors, current
+parser/frontend retained buffers, B2 unique-graph cache validation and full test
+registration prerequisites, but not the next B2 public-clone consumer repair,
+D2 allowlist, A2 constructor storage or B1 LR runtime slice. Old executable
+receipts do not validate this new unbuilt source identity.
+
+The new result contract exposes one further narrow issue on review: frame
+reservation failures set scratch.error, but a later fallible node/metadata or
+relationship allocation can return null with None. Optional inspection would
+then mislabel it as quota truncation. Root confirms this belongs to the same
+typed clone result contract; None must remain the actual node-limit result.
+Prepare a before regression with failure after the fresh ledger and frame have
+allocated, plus staged node/index/metadata allocation points. Production is not
+changed before observing that baseline. Nonstaged metadata still has an older
+infallible allocation boundary; this follow-up must not claim to repair that
+separate owner contract. The host remains with L1's supported TSan milestone;
+the regression script waits for actual drain/release.
+
+L1 subsequently grants one subordinate compile job and serial storage execution
+while its instrumented unit check uses about one CPU/1.1GiB. The primary lock
+remains L1's; L2 never acquires or removes it. These overlapping timings are
+validation costs only, not performance qualification. The public-pin fixture
+compiles and the15-step dependent storage rebuild completes on the frozen six-lane
+union. The before test then reports copied0/expected0 and errorNone0/expectedMemory3
+and aborts. The native failure is SIGABRT(signal6), recorded on the first line of
+the time log; the outer PowerShell tool returns1. GNU time's trailing Exit status0
+after a signal is not a pass. Preserve the entire log and before executable hash
+848f9ff4ebc99dceca38b9ef3502951ada10e4b7c3e52eb9d6acb75c546e9fa3.
+
+After actual8417 drain, set Memory on first/later fallible clone-node failure and
+failed relationship attachment, while leaving quota exhaustion as None. The
+template diagnostic now refers to clone storage, encompassing frames and nodes.
+No allocator, shared layout, source metadata or scheduling contract changes.
+The same fixture plus staged allocation faults0 through4 now passes three times,
+with exact counts/error distinctions and complete stage/entity/component/frame/
+world cleanup. Three smallest units and the coherent storage rebuild also pass;
+full source hashes stay unchanged throughout22028. The resulting storage binary
+is cc950f568496d74e53d26250ed7f1bef4bf0e8287c82ce7526d31ec135b5b098.
+
+Concurrent validation costs: before build131.76s wall/105.21s CPU/794576KiB RSS;
+failed before run0.35/0.16/90980. After build37.34/29.71/794664; three after runs
+0.22s wall each,0.21/0.22/0.22s CPU and95436/95428/95344KiB RSS. Different build
+work and early before abort prohibit performance comparison. Successful wide/deep
+allocation counts remain783/2434. Both jobs are drained and L1 is notified before
+further source changes. Exact incremental production patch
+L2_clone_node_storage_error_draft.patch SHAeb2d65011480a512b1110cbaccb8e93bb8a4c43db076b71d58c7ab0de93b3a10
+applies after the public result checkpoint. B2 caller adoption, whole merged
+compiler measurements and final instrumentation/publication remain pending.
 ### B2 coherent interpreter/semantic resource-failure checkpoint
 
 Reviewed and integrated L1 reporting a8ecf458 then typed storage failure bad3e4f1

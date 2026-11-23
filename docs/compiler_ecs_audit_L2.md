@@ -671,3 +671,13 @@ source identity and complete public package.
 | compiler/semantic_generic_body_work.tower | Coordinator freezes budget/tickets/access ranges before dispatch, holds stages before closing views, publishes or discards before completion, and drains before disposal. | Distinct-thread overlapping kernels, cancelled outputs, failed peer and stale-ticket rejection pass. Final current sanitizer stress remains open. |
 | compiler/semantic_generic_info.tower | Disposable components remain on original definitions and query root; one document owns mutation. Draft default-initializes the full analysis and returns null on resource failure. | Existing generic/type hover checks pass before the draft; smallest draft compiles. B2 frontend null rejection and bounded inspection regression are pending. |
 | compiler/semantic_generic_values.tower | Temporary concrete expression clone uses ordinary checking; substitution views remain borrowed canonical relationships. Draft latches typed clone resource failure and stops recursive traversal without mislabeling truncation. | Existing exact type/generic presentation tests pass before the draft; smallest draft compiles. No claim that unrelated speculative checker failures have acquired full byte accounting. |
+
+The subsequent six-lane merge preserves the owned production paths. A new serial
+fault after successful ledger/frame allocation proves that node allocation was
+still reported as None: the exact before receipt is0 versus expectedMemory3,
+followed by SIGABRT. First/later node and attachment failure now report Memory;
+quota remains None. The same public failure plus staged fault indices0..4 pass
+three times with complete cleanup, alongside all existing storage cases. The
+source/binary/signal receipts are in the journal. Native worker instrumentation
+and bounded frontend caller acceptance remain separate; the old nonstaged fatal
+metadata boundary is explicitly not changed by this classification fix.
