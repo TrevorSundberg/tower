@@ -89513,3 +89513,81 @@ The source manifest is unchanged across this run, SHA256
 Earlier baseline costs and broader checks remain scoped to their frozen input;
 all merge metrics/hashes are appended in `pointer_alias_receipt.json`. No L1
 production repair or browser/release adoption is claimed.
+### ROOT portable invocation/resource fixture repair and merged adoption (2026-11-23)
+
+D1's b8a14fa3 handoff retained two failing native-export tests under the ordinary
+portable reactor. This batch repairs only test construction/capability binding;
+production interpreter, world, scheduler and budget contracts are unchanged.
+Read interpreter.tower::ix_local_binding, world.tower::compiler_world_bind_budget,
+work_budget/work_pool, host/work_portable and the resource-query journal history.
+The stricter local registry requires identity at function.locals[local.index].
+The hand-built parameter and intentionally uninitialized local lacked that
+registration, so the fixture did not reach its intended valid-frame/strict-read
+paths. Both now register exactly as frontend-produced locals do; failed vector
+growth returns a nonzero test result and releases the root.
+
+resource_trial unconditionally opened a signal even though the portable transport
+explicitly has no threads/signals. It now uses a one-lane budget/world/pool there,
+and keeps the real synchronized requested one/four-worker setup on native hosts.
+No fake signal, resource-cap increase, skipped case, production admission change
+or relaxed typed-error/cleanup assertion was introduced. Startup and executed
+nested-frame denial, inferred/required/isolated receipts, source-priority errors,
+no replay/value publication and zero grants are still checked.
+
+Failures and validation boundaries are retained. Immutable9d9329db reactor and
+all30 release inputs were copied to ROOT_browser_inputs_9d with hashes before
+replacement. Original direct Node invocation test:1 pass/2 fail, exit1,
+0.558114wall/0.796875CPU s, peak not captured. A separate50ms measurement repeat
+captured114008064B peak,0.790952wall/1.109375CPU s, same failures. Invocation-local
+repair plus signal-capability selection passed2/3 but still trapped when the
+four-requested-worker fixture bound an unsynchronized four-lane ledger. This is
+the existing world admission contract, not a production bug. Preserved Wasm
+disassembly locates the failed world/budget bind at0x14bc67. Binding actual
+portable capacity1 fixes that second setup defect. All3 exports then passed at
+both pointer widths,0.696206wall/0.890625CPU s,118988800B observed peak.
+
+Initial frozen source b3ac7aca plus the exact patch: smallest changed portable
+objects then portable link passed; native fresh ROOT-owned cache built38 actions
+in62.83wall/195.08CPU s, peak1067460KiB. Native resource-smoke passed all24
+32/64-bit requested1/4-worker cases in0.02s,52460KiB; query-smoke passed in
+0.33wall/0.37CPU s,104280KiB. Production allocator and actual native transport;
+these are functional tests, not sanitizer evidence or proof of universal overlap.
+
+After jobs drained, ff adopted578437af, including96cd1eda module-deferred query
+preparation and observer/profile/transport receipts. The same fixture sources
+were retained. Source hashes before/after both affected builds match:
+portable2actions32.61wall/24.89CPU s,1097868KiB; native3actions39.34wall/
+37.30CPU s,1067784KiB. Merged resource-smoke24cases passed0.02wall/0.01CPU s,
+52484KiB; query-smoke passed0.21wall/0.21CPU s,71844KiB. Direct Node3/3passed,
+zero skips,0.7747187wall/1.25CPU s,118861824B observed peak. These validation
+costs compare failing and successful fixture workloads, not compiler speedups.
+No runtime algorithm changed; test/docs changes require no claimed production
+performance improvement.
+
+Environment: local Windows Node21.7.3, direct node (no separate test child);
+50ms PeakWorkingSet64 polling observes this process and threads only. Linux
+Orchestral-Revng WSL, LLVM19 native x64/portable WASI, public bootstrap768a0cdf,
+Release existing dependency-aware CMake targets, CPU8-15, build parallel4.
+Native resource selectors themselves exercise requested1/4 workers. Fresh test
+processes/warm filesystem; single observations, not statistical regression bounds.
+Portable success demonstrates serial capability coverage, not native concurrency.
+
+Exact merged executable SHA256:
+- portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99
+- native runner9435651e4f2aad3b472a174f14bd099bdc6b224389c047dd270cb1c5f837b906
+
+Receipts: C:/Sandbox/build/codex_ecs_20261122/ROOT_portable_fixtures_before_9d,
+_before_memory, _after_b3ac, _after_serial and _merged_578437af; WSL
+/root/.cache/tower/root_portable_fixture_checks_b3ac{,_serial},
+root_native_fixture_checks_b3ac and root_fixture_merged_578437af retain patches,
+source manifests, commands, timings, logs and exit status. Build/check sessions
+drained with0. The root todo.txt hash remains
+8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc, never staged.
+
+This is affected fixture acceptance, not a complete new runtime release.
+LLVM/cross/project assets remain frozen9d and must not be combined with this
+portable candidate as a final bundle. Prior9d edited browser generations retain
+their own exact success boundary. Final current-source complete artifacts,
+remaining Node/LLVM resource failures, hosted release and the service-blocked
+instrumentation gate remain open. No retry/bypass of that rejected operation,
+new contexts or sanitizer claim occurred.
