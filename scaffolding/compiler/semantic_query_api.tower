@@ -35,6 +35,7 @@ extern fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourc
 extern fn sem_source_binding_request(c: SemanticContext*, subject: void*): usize;
 extern fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void;
+extern fn sem_context_snapshot(destination: SemanticContext*, source: SemanticContext*): void;
 extern fn sem_context_dispose(c: SemanticContext*): void;
 extern fn sem_evaluation_begin(c: SemanticContext*): void;
 extern fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void;
