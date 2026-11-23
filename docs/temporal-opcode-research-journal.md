@@ -80142,3 +80142,21 @@ Full compiler/build input manifests match SHA256
 Logs: L1/logs/execution_ownership_final_9985. No owned child remains running.
 This final receipt adds documentation only, so no new runtime measurement is
 needed for it. Normal main push follows; no gh-pages deployment is claimed.
+
+Merged validation: the required post-commit fast-forward-only pull fetched
+origin/e2ace4c4 but correctly refused divergent history. `git merge --no-edit
+origin/main` preserved both complete histories without conflicts, producing
+1c9f723dc701fbea2b217784949e1e781375d3f4. Upstream changed interpreter/execution
+ownership, so the same dependency-aware target rebuilt10 affected actions.
+The fixture was recompiled/relinked against that provider:26/26 trials passed;
+query-smoke passed; comptime_flow --interpret --jobs1/4 still matched the
+preserved expected0 outputs. Flow source/fixture are unchanged from8b7da722.
+The original before/after timing comparison remains evidence for its frozen
+82b99488+flow inputs, not a new measurement of unrelated upstream changes.
+Merged compiler SHA8b442c4593f17c90eb10194d2c10d16fe86e1e01583617387ed5bf4b6643e328,
+fixture4a652c072d422644950e585e75ab4db62b95aa868d61d51ab3043e432b56cd23,
+semantic providerc02fa58100e7a8b0e2d13e2f7def4257e019bce775e6519c971200fcd3001b9e.
+Commands/logs: a1_flow_merged_build.log, a1_flow_merged_checks.sh,
+a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
+still match ROOT's three committed entity-stage files exactly. Final publication
+for this bounded task is normal main push only; gh-pages remains ROOT-owned.
