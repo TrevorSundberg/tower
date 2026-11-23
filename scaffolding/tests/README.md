@@ -77,6 +77,17 @@ results. Import admission trials include actual interior-NUL byte initializers.
 `backend_void_returns` covers direct/exported and callback pointer results across
 call boundaries, nulls, deeper pointers, store/read/free and true-void effects;
 the source-service tests also require retained result assignments after import.
+`backend_unsigned_overflow` covers ordinary unsigned multiplication guards at
+32/64 bits: zero operands, exact limits, wrapped products and overflow flags.
+The source-service fixture requires the actual optimized LLVM overflow intrinsic
+and successful Foundation reconstruction. The source runner's optional `optimized`
+mode saves that exact optimized LLVM beside the reconstructed `OUTPUT` as
+`OUTPUT.ll`; without this mode it retains the existing unoptimized policy.
+For runtime boundary checks, copy that unchanged output into a fresh directory
+as `backend_unsigned_overflow.tower` and copy `backend_unsigned_overflow_calls.tower`
+beside it. Interpret the caller at the output's target width: expected output is
+`0\n0\n`. This checks calls to the reconstructed exports after optimization;
+the original fixture's top-level constant calls may already be folded by LLVM.
 
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
