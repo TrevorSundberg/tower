@@ -59489,6 +59489,7 @@ Single-sample process RSS314192to339728KiB (+8.1%) has not been independently
 attributed or established as a repeatable regression. Neither accounting nor
 admitted worker width establishes profitable scaling. Paired frozen compiler
 measurements remain pending in this same slot.
+### D1 source union reconciliation (root 1fec1b91)
 
 Malformed lifecycle selectors all reject with exit1 before reading a deliberately
 missing resource root: missing/extra arguments, empty/nondecimal/negative values,
@@ -60174,3 +60175,66 @@ WASI smallest provider receipts remain its evidence; D1 local whole closure and
 actual linked symbol uniqueness remain pending. Resource helper hashes match
 across lanes. The newer unsupported constructor/dispatch advertised tip remains
 excluded. No heavy D1 job overlaps D2's canonical build.
+### D2 matched clone baseline and Publish provider composition (2026-11-23)
+
+Frozen main6b8355b/scaffolding66163156 passes the public9653 smallest clone
+units, canonical Docker native20-step build and10 focused target steps. Native
+191.47wall/187.27CPU/796040KiB, targets37.57/36.97/364004. Query, full module
+cache transaction checks, storage/clone, serial allocation denial, production
+units and actual backend overlap all exit0. Units46.27wall/63.33CPU/776788KiB;
+backend18.49/27.03/526568. Input hashes match before/after; all measured children
+report zero swaps. Same Deck image4be584fb, CPUs0/2, public bootstrap9653,
+per-compiler jobs1, Release Linuxx64, one build process, warm dependency cache.
+These single build/check measurements are not a scaling comparison. Exact logs
+and process metrics: build/d2_ecs/clone_union_6b8355b. Fresh relocated compiler
+509facfd162c9df5e1630bd886bf9c03b1956ab65c46c23cbf484f89ca308201 and48 resources
+are preserved in native_package_6b8355b; each Tower resource matches frozen source.
+
+Actual native nm reports expose nine missing per-component import allowances:
+Entities buffer alignment/allocate/allocation_size/free; ParserNodes alignment,
+allocation_size/world_bind_budget; Semantics allocate/free. Existing verifier
+6e97faac exits1 on those three units; utf8/bytes/host/interpreter pass. Preserve
+these failures and actual object hashes; update policy only from emitted imports
+and defining Tower owners. A host log redirection into a Docker-root-owned
+subdirectory initially failed before invocation; corrected container redirection
+captured the same rejection. Read-only navigation also hit nonexistent guessed
+paths and Docker's absent rg; none are compiler validation or successful checks.
+
+Root86 grammar history and A1b7 checked Publish source were reviewed and merged
+as5681da4. The only source conflict preserved D1's parameterized resource test
+entry and inserted A1's startup/growth loop, retaining all24 cases through the
+existing width/worker caller. Journal additions preserve both histories. Fetched
+A1 bundle0e36 (SHA4ef71298) but merged ONLY ab603725 cancellation guard/four cases
+as63aaba35; later unvalidated constructor/transport changes were not adopted.
+
+Caller audit rejects evaluation-only placement: native/plain browser use the
+interpreter family, LLVM/cross/compile-only artifacts use evaluation instead.
+Both objects strongly define the interpreter invocation/core functions, so linking
+both wholesale would duplicate providers. Root and L1 reserved five import lines
+for D2. The same thin semantic_known_publish implementation is now imported by
+interpreter, interpreter_browser, interpreter_checks, evaluation and
+evaluation_checks. Each final artifact selects its existing mutually exclusive
+entry; no new object, manifest parser, entity semantic provider or implementation.
+Shared query/semantic helpers and the six arena exports retain their existing
+owners. Compiler-project unit mapping and tree traversal already include these
+entries plus new helper/API files. Actual package/recipe validation remains open.
+
+Public smallest leaf compilation on5681da4 plus exactly those five imports passes
+all five native entries and the browser interpreter/evaluation WASI entries.
+Native times8.96–10.79s, peak317804–360256KiB; WASI8.30/7.49s and352940/315152KiB.
+Every one of seven objects defines exactly one semantic_known_publish_kernel,
+with no local work_arena provider. Full nm and object/source hashes are retained
+in publish_provider_5681da4. These are relocatable object checks before the
+cancellation guard, not final linked WASI, browser execution or generation proof.
+The guard does not change the thin leaf import closure; joined native/runtime
+and equivalent before/after common CLI measurements are next. Current whole
+compiler ASan/TSan, supported concurrency stress and final public/native/browser/
+generation/atomic hosted release remain required; unsupported UBSan is not a pass.
+
+D2 then adopted D1's exact authorized registration patches49927ff7 (both Publish
+exports once under all/query),56f04300 (type-errors reuses unchanged remaining
+checks after separately validated lifecycle), and3ada5d30 (arena linkage through
+one separate provider in existing fixture recipe). The resolved resource helper
+SHA14e0d6db matches D1. Default/all/type-smoke behavior and every owner assertion
+remain intact. These source additions require their own public smallest/native
+build and runtime; no new pass is inferred from D1's earlier lifecycle42 receipt.

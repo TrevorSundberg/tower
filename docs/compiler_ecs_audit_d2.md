@@ -1679,3 +1679,39 @@ the new file or exactly one provider: final package hashes, source comparisons,
 link and symbol checks must establish that. Prior failed read-only searches of
 guessed build-file paths were corrected using the tracked inventory; no check was
 run or counted as passing by those searches.
+
+### Current provider and clone follow-up at63aaba35 (2026-11-23)
+
+This supersedes the earlier current-table claim that public clone25503293 and
+matched consumers were not adopted. Root6b includes the node/attachment Memory
+correction and B2 transactional module/query cleanup. D2's exact6b public native,
+query/full-module/storage/allocations/units/backend checks pass. Nonstaged metadata
+allocation and separately reproduced partial inspection failure remain owner gaps;
+positive editor or clone tests do not establish that missing failure behavior.
+
+The following overlapping provider/caller rows extend the audit, not the40-file
+primary tooling count. Source reviewed at63aaba35 plus D2's five import lines;
+compiled leaf evidence retains5681da4+five-import identity. New owner algorithms
+are reviewed here for build/lifetime composition, not reassigned to D2.
+
+| Path | Storage/world/scheduling/ownership conclusion | Evidence and disposition |
+| --- | --- | --- |
+| scaffolding/compiler/units/interpreter.tower | Existing native execution owner imports the thin Publish kernel; its private arena/derived queue borrow frozen world nodes. No additional authoritative graph or global state. | Native public leaf PASS; exactly one kernel definition and external arena/semantic helpers. Actual native link/runtime pending. |
+| scaffolding/compiler/units/interpreter_browser.tower | Same production provider with existing browser invocation fixtures; browser workers still own their session/input lifetimes. | Native and WASI leaf PASS; one kernel each. Browser threading/linked artifact acceptance remains separate. |
+| scaffolding/compiler/units/interpreter_checks.tower | Parser-check profile selects this instead of the other interpreter entries. It adds no second provider within that artifact. | Public native leaf PASS; nm one kernel. Current full parser-check link and sanitizer closure pending. |
+| scaffolding/compiler/units/evaluation.tower | Existing invocation-only alternative used by LLVM/cross and compile-only tests. Linking it alongside interpreter would duplicate core definitions, so current mutually exclusive recipes are required. | Public native/WASI leaves PASS; each one kernel. No manifest change needed; native alternate and final browser/backend link still required. |
+| scaffolding/compiler/units/evaluation_checks.tower | Explicit import list, not inheritance from evaluation; requires its own same helper import for check profile. Scratch and publication ownership stay in the common helper/coordinator. | Public native leaf PASS, one kernel. No duplicate implementation introduced. |
+| scaffolding/compiler/semantic_known_publish.tower | Private stable arena entries combine identity index and first-seen linked traversal; derived indexes only. Traverses owned executable edges in existing order, omits nested function/type/label bodies. Checked patches/read logs/output vectors suppress canonical publication on failure; vectors retain their older allocation ownership. | Fully reviewed b7; public provider leaves pass. No packed ECS claim, complete memory budget or fallible transport claim. A1 owns kernel;22 registered runtime cases pending locally. |
+| scaffolding/compiler/semantic_known_bindings.tower | Coordinator pre-reserves diagnostics/jobs, joins before ordered publication, releases arena after join; ab603725 rejects cancelled graph before captures or dispatch. | Guard and four-case source reviewed. Owner22-case receipt is source-specific; D2 joined runtime pending. Shared dispatcher fallibility remains a later owner change. |
+| scaffolding/tests/semantic_resource_checks.tower | Existing parameterized helper retains two-peer required/inferred/isolated failure semantics, exact source offset, no replay and final zero grants. Added mode loop covers successful entry allocation then nested storage denial. | Entry-only conflict resolution preserves24 trials. D1 owns generic hook; no duplicated runner or weakened budget/error oracle. |
+| scaffolding/tools/bootstrap_symbols.tower; scaffolding/tests/bootstrap_symbols_checks.tower | Allocation-free exact per-unit borrowed-span policy remains appropriate. Actual6b imports reveal nine stale entries; no wildcard expansion is justified. | Seven actual object reports preserved: four pass, three fail1. Current provider imports require final emitted closure review before narrow policy update. |
+
+Root86 grammar review confirms budgeted fixed rule columns and common-lifetime
+names/captures arena are derived snapshots of immutable ordered grammar entities.
+Existing getters preserve source order/first nonnull anchor; destruction releases
+all buffers and arena before its descriptor. This is not evidence of packed
+world payloads. B1's denied object/retained-minus-one/partial cleanup/retry fixture
+and source-specific native/ASan/TSan/WASI receipts remain qualified in its journal.
+D2 joined provider and grammar performance, current instrumentation and final
+artifact validation are pending. No further runtime measurement is attributed to
+these audit paragraphs themselves.
