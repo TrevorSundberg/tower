@@ -90346,3 +90346,15 @@ its expectation remains untouched and its native acceptance is pending. Both
 actual failures/metrics remain in type_composition_adopted_controls and
  type_composition_adoption_triage, appended to the external receipt. No passing
 claim for nested negation or for unsupported numeric nominal forwarding.
+
+D1 three-gate reconciliation: receipt80ca7d85 merged complete published5e1c92c9
+asbc681ac3 after the required ff-only pull refused divergence. Selected test
+bodies, fixtures, language resources and vector/platform imports are unchanged.
+Two recorded host deltas are A1's compiler-build packaging caller and tower-host
+package/loadBytecode handle retention; inspected changed calls, none is invoked
+by these three selections. Three recorded resource deltas (generics,
+semantic_declarations, ide_package_checks) and added upstream fixtures retain
+their owner receipts and are not compiled into eac. In particular L1's newly
+published type-return repair is not retroactively tested by the old reactor.
+Exact mismatch lists are in merged_host_check.log/merged_resources_check.log.
+Reuse the unchanged selected evidence; no redundant rerun or expanded audit.
