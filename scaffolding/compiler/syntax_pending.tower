@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 import frontend_cache;
 import frontend_revision_types;
 import format_api;
@@ -76,6 +77,12 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
 // Copy only pending rules and retain their alternatives through FrontendRevision.
 // An empty successful revision is null: the common ready path allocates nothing.
 export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*, out: SyntaxPendingRevision**): bool {
+    var error = WorkBudgetError.None;
+    return syntax_pending_create_result(rules, count, waiting, kind, out, &error);
+}
+
+export fn syntax_pending_create_result(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*, out: SyntaxPendingRevision**, error: WorkBudgetError*): bool {
+    *error = WorkBudgetError.None;
     *out = null;
     var total: usize = 0;
     var index: usize = 0;
@@ -89,8 +96,10 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
         return true;
     }
     if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) {
+        *error = WorkBudgetError.Invalid;
         return false;
     }
+    *error = WorkBudgetError.Memory;
     var value = alloc(SyntaxPendingRevision, 1);
     if value is null {
         return false;
@@ -120,6 +129,7 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
         return false;
     }
     *out = value;
+    *error = WorkBudgetError.None;
     return true;
 }
 

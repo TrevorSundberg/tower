@@ -176,7 +176,12 @@ fn syntax_session_expand(value: SyntaxSession*, root: void**): bool {
 
 fn syntax_session_finish(value: SyntaxSession*): void {
     if value.completing {
-        syntax_session_completion(value, parser_table_completion(bits(ParserHostTable*, value.pins.version.table)));
+        syntax_session_completion(value, parser_table_completion_result(bits(ParserHostTable*, value.pins.version.table), &value.resource_error));
+        if value.resource_error != WorkBudgetError.None {
+            syntax_session_pin_version(&value.pins.completion_version, null);
+            syntax_session_error(value, "Unable to allocate parser completion within its memory budget");
+            return;
+        }
         syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
     }
     if value.finalized { return; }
@@ -208,7 +213,7 @@ fn syntax_session_finish(value: SyntaxSession*): void {
 
 export fn syntax_next(opaque: void*): void* {
     var value = bits(SyntaxSession*, opaque);
-    if value.error.length != 0 { return null; }
+    if value.error.length != 0 || value.resource_error != WorkBudgetError.None { return null; }
     fill(&value.expansion_stats, 0, sizeof(SyntaxSessionExpansionStats));
     syntax_session_skip(value, &value.cursor, &value.highlights);
     if value.cursor == value.source_length { syntax_session_finish(value); return null; }

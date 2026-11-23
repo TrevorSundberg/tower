@@ -6,6 +6,7 @@ import syntax_nodes;
 import syntax_reader;
 import syntax_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Disposable revision analysis over shared grammar entities. Only lookup and
 // dependency indexes live here; declarations remain the authoritative nodes.
@@ -707,6 +708,12 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
 }
 
 export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: vector(u8)*, offset: usize*, pending: void**): bool {
+    var resource_error = WorkBudgetError.None;
+    return syntax_validate_result(rules, count, tokens, token_count, kind, error, offset, pending, &resource_error);
+}
+
+export fn syntax_validate_result(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: vector(u8)*, offset: usize*, pending: void**, resource_error: WorkBudgetError*): bool {
+    *resource_error = WorkBudgetError.None;
     var value: SyntaxValidation = {
         rules: rules, count: count, tokens: tokens, token_count: token_count, kind: kind,
         error: error, offset: offset, pending: pending, allocated: true, ..default
@@ -742,6 +749,7 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     vector_dispose(&value.queue);
     vector_dispose(&value.captures);
     if !value.allocated {
+        *resource_error = WorkBudgetError.Memory;
         vector_dispose(error);
         index = 0;
         for(; index != count; index++) {

@@ -132,7 +132,14 @@ export fn compiler_world_type_existing(world: CompilerWorld*, kind: u32): Entity
 }
 
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
-    if kind >= CompilerComponentCount {
+    var error = WorkBudgetError.None;
+    return compiler_world_type_result(world, kind, &error);
+}
+
+export fn compiler_world_type_result(world: CompilerWorld*, kind: u32, error: WorkBudgetError*): Entity* {
+    *error = WorkBudgetError.None;
+    if world is null || kind >= CompilerComponentCount {
+        *error = WorkBudgetError.Invalid;
         return null;
     }
     var type = world.types[kind];
@@ -180,13 +187,14 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
         alignment = alignof(SyntaxExpansion);
         lifecycle = compiler_expansion_lifecycle();
     }
-    type = entity_create(world.store);
+    type = entity_create_result(world.store, error);
     if type == null {
         return null;
     }
     var registered = entity_register(type, size, alignment, lifecycle);
     if !registered {
         entity_release(type);
+        *error = WorkBudgetError.Invalid;
         return null;
     }
     world.types[kind] = type;

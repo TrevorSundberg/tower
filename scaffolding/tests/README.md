@@ -1019,3 +1019,9 @@ separately compiled implementation and the ordinary guest runtime. It exercises
 all six exported operations, physical retention, alignment, denial and ownership
 transfer. The existing native work-test object rules apply supported sanitizer
 instrumentation to both client and provider; no compiler entity unit is linked.
+
+`tower-frontend-tests RESOURCE_ROOT grammar-resource` selects the existing syntax
+version construction, cache and captured-replacement allocation-failure sweeps.
+It checks typed resource denial, ordinary grammar diagnostics, optional uncached
+success, pinned type admission and exact cleanup.
+It uses the serial fault allocator; it does not test production worker overlap.

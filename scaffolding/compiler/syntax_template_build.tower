@@ -10,6 +10,7 @@ import syntax_template_types;
 import syntax_types;
 import syntax_version_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn compiler_node_world(node: void*): void*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
@@ -22,15 +23,16 @@ extern fn entity_release(node: void*): usize;
 extern fn compiler_buffer_free(memory: void*): void;
 extern fn frontend_revision_retain(value: FrontendRevision*): FrontendRevision*;
 extern fn frontend_revision_release(value: FrontendRevision*): void;
-extern fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion*;
+extern fn syntax_version_create_result(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*, error: WorkBudgetError*): SyntaxVersion*;
 extern fn syntax_version_release(value: SyntaxVersion*): void;
-extern fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: void*): bool;
-extern fn syntax_version_lexicon(value: SyntaxVersion*): bool;
+extern fn syntax_version_seed_result(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: void*, error: WorkBudgetError*): bool;
+extern fn syntax_version_lexicon_result(value: SyntaxVersion*, error: WorkBudgetError*): bool;
 extern fn syntax_replacement_candidate(owner: void*, category: u8*): SyntaxReplacement*;
 extern fn syntax_replacement_host(owner: void*): void*;
 extern fn syntax_replacement_sequence(owner: void*): void*;
 extern fn syntax_replacement_tree(owner: void*, tree: void*): void;
 extern fn syntax_replacement_error(owner: void*, error: u8*): void;
+extern fn syntax_replacement_resource_fail(owner: void*, error: WorkBudgetError): void;
 extern fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession*;
 extern fn syntax_destroy(session: void*): void;
 extern fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*, length: usize, name: u8*): bool;
@@ -43,15 +45,16 @@ extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
 extern fn syntax_emission_repetition_count(value: void*): usize;
 extern fn syntax_emission_productions(value: void*): SyntaxEmissionProduction*;
 extern fn syntax_emission_production_count(value: void*): usize;
-extern fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, emission: void*): bool;
-extern fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: void*, destination: void*): bool;
-extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
-extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): void*;
+extern fn syntax_template_holes_revision_result(input: SyntaxTemplateGrammar*, emission: void*, error: WorkBudgetError*): bool;
+extern fn syntax_template_remap_revisions_result(input: SyntaxTemplateRemap*, source: void*, destination: void*, error: WorkBudgetError*): bool;
+extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32, error: WorkBudgetError*): ParserHostTable*;
+extern fn parser_table_finish_result(table: ParserHostTable*, error: u8**, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable*;
 extern fn parser_table_grammar(table: void*): void*;
 extern fn parser_stream_create(bytes: usize, service: ParserInputService): void*;
 extern fn parser_stream_get_userdata(stream: void*): void*;
 extern fn parser_stream_destroy(stream: void*): void;
-extern fn parser_recognizer_create(table: void*, stream: void*): void*;
+extern fn parser_recognizer_create_result(table: void*, stream: void*, error: WorkBudgetError*): void*;
+extern fn parser_recognizer_resource_error(recognizer: void*): WorkBudgetError;
 extern fn parser_recognizer_destroy(recognizer: void*): void;
 extern fn parser_recognizer_step(recognizer: void*, running: bool*): void*;
 
@@ -64,6 +67,15 @@ var TemplateAttemptGrammarConflict: u32 = 2;
 fn template_build_error(owner: void*, message: u8*): u32 {
     syntax_replacement_error(owner, message);
     return TemplateAttemptFailed;
+}
+
+fn template_build_resource(owner: void*, error: WorkBudgetError, message: u8*): u32 {
+    syntax_replacement_resource_fail(owner, error);
+    return template_build_error(owner, message);
+}
+
+fn template_build_memory(owner: void*, message: u8*): u32 {
+    return template_build_resource(owner, WorkBudgetError.Memory, message);
 }
 
 fn template_build_node(node: void*, version: SyntaxVersion*): SyntaxNode* {
@@ -81,22 +93,23 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     var definitions = frontend_revision_retain(version.grammar);
     defer frontend_revision_release(definitions);
     var world = compiler_node_world(version.rules);
-    var grammar = syntax_version_create(world, definitions, version.bedrock);
-    if grammar is null { return template_build_error(owner, "Unable to allocate replacement grammar"); }
+    var resource_error = WorkBudgetError.None;
+    var grammar = syntax_version_create_result(world, definitions, version.bedrock, &resource_error);
+    if grammar is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement grammar"); }
     defer syntax_version_release(grammar);
     var destination = version.emission;
-    if !syntax_version_seed(grammar, definitions, template_build_text(&replacement.category), destination) {
-        return template_build_error(owner, "Unable to allocate replacement grammar");
+    if !syntax_version_seed_result(grammar, definitions, template_build_text(&replacement.category), destination, &resource_error) {
+        return template_build_resource(owner, resource_error, "Unable to allocate replacement grammar");
     }
     // A template parses captured source, not an imported module. No module
     // environment or process-global default world is needed for this session.
     var session = syntax_session_allocate(world, null);
-    if session is null { return template_build_error(owner, "Unable to allocate replacement session"); }
+    if session is null { return template_build_memory(owner, "Unable to allocate replacement session"); }
     defer syntax_destroy(bits(void*, session));
     var sequence = template_build_node(syntax_replacement_sequence(owner), version);
     var text = &template_build_node(sequence.replacement, version).text;
     if !syntax_session_inputs_source(&session.inputs, text.data, text.length, "replacement") {
-        return template_build_error(owner, "Unable to allocate replacement source text");
+        return template_build_memory(owner, "Unable to allocate replacement source text");
     }
     syntax_session_progress(session);
     syntax_session_pin_revision(&session.pins.grammar, definitions);
@@ -107,7 +120,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     vector_init(&captures);
     defer vector_dispose(&captures);
     if !vector_reserve(&captures, replacement.captures.length) {
-        return template_build_error(owner, "Unable to allocate replacement capture storage");
+        return template_build_memory(owner, "Unable to allocate replacement capture storage");
     }
     foreach (var &capture in &replacement.captures) {
         var entry = &captures.data[captures.length];
@@ -127,27 +140,31 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     holes.count = captures.length;
     holes.repetitions = syntax_emission_repetitions(emission);
     holes.repetition_count = syntax_emission_repetition_count(emission);
-    if !syntax_template_holes_revision(&holes, emission) {
-        return template_build_error(owner, "Unable to allocate replacement hole productions");
+    if !syntax_template_holes_revision_result(&holes, emission, &resource_error) {
+        return template_build_resource(owner, resource_error, "Unable to build replacement hole productions");
     }
     var diagnostic: u8* = null;
     defer compiler_buffer_free(bits(void*, diagnostic));
-    var table = parser_table_open(grammar.rules, &grammar.kinds, bits(void*, grammar), ParserPresentation.Syntax, convert(u32, ParserReadMode.WholeInput));
+    var table = parser_table_open_result(grammar.rules, &grammar.kinds, bits(void*, grammar), ParserPresentation.Syntax, convert(u32, ParserReadMode.WholeInput), &resource_error);
+    if table is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement parser"); }
     if table is not null { table.trace = entity_member_index(grammar.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
-    grammar.table = bits(void*, parser_table_finish(table, &diagnostic, true));
+    grammar.table = bits(void*, parser_table_finish_result(table, &diagnostic, true, &resource_error));
     if grammar.table is null {
+        if resource_error != WorkBudgetError.None {
+            return template_build_resource(owner, resource_error, diagnostic ?? "Unable to allocate replacement parser");
+        }
         syntax_replacement_error(owner, diagnostic ?? "Cannot build replacement parser");
         return TemplateAttemptGrammarConflict;
     }
-    if !syntax_version_lexicon(grammar) {
-        return template_build_error(owner, "Unable to allocate replacement lexical indexes");
+    if !syntax_version_lexicon_result(grammar, &resource_error) {
+        return template_build_resource(owner, resource_error, "Unable to allocate replacement lexical indexes");
     }
     var stream = parser_stream_create(sizeof(SyntaxTemplateInput*), ParserInputService.Template);
-    if stream is null { return template_build_error(owner, "Unable to allocate replacement input stream"); }
+    if stream is null { return template_build_memory(owner, "Unable to allocate replacement input stream"); }
     defer parser_stream_destroy(stream);
     *bits(SyntaxTemplateInput**, parser_stream_get_userdata(stream)) = &input;
-    var recognizer = parser_recognizer_create(grammar.table, stream);
-    if recognizer is null { return template_build_error(owner, "Unable to allocate replacement recognizer"); }
+    var recognizer = parser_recognizer_create_result(grammar.table, stream, &resource_error);
+    if recognizer is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement recognizer"); }
     defer parser_recognizer_destroy(recognizer);
     session.recognizer = bits(void*, recognizer);
     var root: void* = null;
@@ -156,6 +173,10 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     while running {
         if root is not null { entity_release(root); }
         root = parser_recognizer_step(recognizer, &running);
+    }
+    resource_error = parser_recognizer_resource_error(recognizer);
+    if resource_error != WorkBudgetError.None {
+        return template_build_resource(owner, resource_error, "Unable to allocate replacement parser state");
     }
     if root is null {
         replacement.error_offset = replacement.start + session.error_offset;
@@ -173,7 +194,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     vector_init(&uses);
     defer vector_dispose(&uses);
     if !vector_reserve(&uses, captures.length) {
-        return template_build_error(owner, "Unable to allocate replacement template mapping");
+        return template_build_memory(owner, "Unable to allocate replacement template mapping");
     }
     uses.length = captures.length;
     fill(uses.data, 0, uses.length * sizeof(usize));
@@ -183,8 +204,8 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
         destination_count: syntax_emission_production_count(destination), grammar: parser_table_grammar(version.table),
         uses: uses.data, count: uses.length, ..default
     };
-    if !syntax_template_remap_revisions(&remap, emission, destination) {
-        return template_build_error(owner, "Unable to allocate replacement template mapping");
+    if !syntax_template_remap_revisions_result(&remap, emission, destination, &resource_error) {
+        return template_build_resource(owner, resource_error, "Unable to map replacement template");
     }
     for (var i: usize = 0; i < captures.length; ++i) { replacement.captures.data[i].uses = uses.data[i]; }
     return TemplateAttemptReady;
