@@ -1216,3 +1216,76 @@ bootstrap closure or end-to-end speedup is claimed. D2 owns package allowlists.
 This one new production file brings core coverage to36/36 (34library+2kernel)
 and expanded reviewed coverage to112/112. Packed payload/stage transfer, remaining
 memory ownership, typed transport failure propagation and final release remain open.
+
+### Typed finite-dispatch result review, 2026-11-23
+
+Reviewed merged `f8444b2e` plus `A2_typed_dispatch_result.patch` SHA94d765f8.
+The 36/36 core and 112/112 expanded production review counts are unchanged;
+this change adds one owned focused fixture, not a second scheduler.
+
+| Path relative to scaffolding | Conclusion and evidence |
+| --- | --- |
+| `library/work_pool.tower` | `work_pool_batch_result` returns None/Invalid/Busy/Memory while the bool wrapper remains. Empty input does not change ownership or prior receipt. Invalid/Busy entry owns no drain; specifically, Busy does not release earlier caller borrows. A valid drained call resets its coordinator-only receipt. Claim allocation fails before execution; after stack batch construction the existing defer joins all admitted peers on every return. A partial admission failure may already have executed the whole queue, so failed outputs must be discarded without replay. Close preserves the receipt. Named entry batch projection remains invalid, but inline work remains legal. No allocation, extra queue, graph authority or unsynchronized cancellation flag was added. |
+| `compiler/compiler_kernel.tower` | Both total-capacity and explicitly admitted typed result APIs share the same transport. Null pointer array/first pointer is rejected before computing the concrete embedded-kernel offset; nonempty input still borrows a valid, frozen array of nonnull ready jobs. No per-element validator or noalias promise was added. Bool callers keep their source interface; A1 owns replacing fatal semantic dispatch assertions with checked failure and source-ordered diagnostics. |
+| `tests/work_dispatch_result.tower` | Real Linux transport and allocator, separately linked with GNU `--wrap=work_signal_open`. Only the coordinator accesses the one-shot signal fault flag; no threaded malloc-failure instrumentation. Covers empty/null/closed/named entry, nonzero member offset, claim denial before any execution, receipt reset/preservation, bool compatibility, an actually blocked prior job surviving Busy rejection, and close-before-borrow-release. Sixteen rounds retain exact outputs. The defensive partial-submission branch is not naturally reachable under valid admission invariants and is NOT claimed dynamically covered. |
+
+Eight public-predecessor units compile. Three normal new-fixture executions,
+three ASan and three TSan executions pass; the existing forced-overlap admission
+fixture also passes normal and three runs of each instrument. Client, separate
+transport and production runtime are instrumented. TSan first failed during
+runtime startup because Docker seccomp denied `personality(ADDR_NO_RANDOMIZE)`;
+the unchanged binary passes with `--security-opt seccomp=unconfined`. The failed
+startup log remains, and is not labeled a test pass. Ordinary source mode is
+required for the fixture's mutable coordinator flag; two incorrect library-mode
+attempts are retained. Counts are derived from actual fixed-array types.
+
+No bounded interruption inside whole kernels is established. Cancellation still
+belongs at joined owning-pipeline frontiers; stages publish or discard before
+leases, grants and worlds are released. Current merged whole-compiler ABI,
+Windows/WASI/browser coverage and paired dispatch performance remain pending.
+
+Paired dispatch window01:54:15.684760-01:54:46.286896Z had a fresh A1 quiet
+acknowledgment and release, same frozen binaries/inputs, one warmup plus three
+alternating pairs. Every SHA-256 million-a result matches the FIPS reference;
+every tiny job checks its exact arithmetic result. Analysis is the Tower
+profile_table_medians.tower (existing parser generalized to multiple rows).
+
+| Fixed useful work | Before wallms / CPUms / RSSKiB | Typed result |
+| --- | --- | --- |
+| 1 million-byte job,1lane | 54.725870 /54.735 /2352 | 54.865627 /54.866 /2360 |
+| 32 jobs,1lane | 1733.592893 /1731.510 /2352 | 1748.805479 /1743.412 /2360 |
+| 32 jobs,2lanes | 901.140340 /1770.910 /2352 | 894.751131 /1760.279 /2360 |
+| 32 jobs,4lanes | 444.857231 /1766.626 /2656 | 455.000912 /1775.141 /2640 |
+| 32 jobs,8lanes | 300.869164 /2158.947 /2656 | 287.752616 /2064.379 /2640 |
+
+Actual overlapping jobs are1/2/4/8; the caller executes work too. Current useful
+scaling is1.95/3.84/6.08x at2/4/8 versus its own fixed32-job serial run; eight
+lanes spend more CPU. Same owned input/job/slot payload sizes1,002,872 through
+1,003,264B, same host handles/claim lifetime. These are retained payload subtotals,
+not whole RSS or instrumented malloc-call counts. No additional allocation was
+introduced by returning a typed result. Serial useful work is0.88% slower and
+four lanes2.28% slower in this window; parallel differences have mixed signs,
+so this is not a claim of a speed improvement or zero cost.
+
+Retained tiny dispatch1job/100000rounds has318.237->344.035us wall,
+323->350us CPU with1lane; with8 retained slots318.997->351.958us,
+349->385us CPU. The added guards/receipt reset have a measurable8-10% cost on
+this heavily optimized micro (about0.26-0.33ns per dispatch), not an end-to-end
+compiler regression estimate.32jobs/1000rounds serial56.426->55.764us,
+2lanes54.581->53.258ms,4lanes92.249->90.954ms,8lanes163.291->161.823ms;
+1024jobs/100rounds at8lanes16.353->16.224ms. Tiny work is decisively better
+serial. RSS1324->1364KiB forsingle-job cases,1596->1660KiB forlarger cases;
+owned payload/slot subtotals unchanged96/488/1336/1392/1504/1728/41408B.
+Retained transports avoid repeated startup, but queue width is not useful speedup.
+These profiles do not isolate OS scheduling idle/critical-path time.
+
+A1 also asked about incremental layout submit. Source review of
+sem_layout_execute/work_pool_submit confirms that submission allocates nothing:
+false is pre-admission only (null job/callback, full capacity, incompatible named
+callback, or a broken free-slot invariant). With valid opened exclusive
+coordinator state, nonnull job and running<extra<=count, it cannot fail under
+the current transport contract. OS semaphore post errors remain the existing
+void/trapping host ABI. A false submit never drains earlier jobs. No new submit
+API or semantic-layout ownership change was made; L2 owns that caller proof.
+ROOT chose existing evaluation.tower for A1's thin Publish provider, with D2
+manifest/symbol validation. A2 will not add semantic implementation to entities.

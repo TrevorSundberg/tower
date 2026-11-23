@@ -225,21 +225,37 @@ fn work_batch_execute(payload: void*): void {
 // authority moves into this view. The caller already owns its lane. The pool
 // must be drained, and all jobs, leases and contexts must survive this call.
 fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, extra_lanes: usize): bool {
-    if count == 0 { return true; }
-    if pool.running != 0 || pool.count == 0 || jobs == null { return false; }
+    return work_pool_batch_result(pool, jobs, count, offset, extra_lanes) == WorkBudgetError.None;
+}
+
+// Empty input leaves ownership and the previous receipt unchanged. Busy entry
+// does NOT own or drain preexisting jobs. Invalid entry likewise changes no
+// state. A valid drained entry resets its coordinator-owned failure receipt;
+// once dispatch starts, every return joins this call's admitted peers. A failed
+// batch may have executed jobs: discard their outputs, never replay the batch.
+fn work_pool_batch_result(pool: WorkPool*, jobs: void**, count: usize, offset: usize,
+    extra_lanes: usize): WorkBudgetError {
+    if count == 0 { return WorkBudgetError.None; }
+    if pool == null { return WorkBudgetError.Invalid; }
+    if pool.running != 0 { return WorkBudgetError.Busy; }
+    if pool.count == 0 || pool.execute == null || jobs == null { return WorkBudgetError.Invalid; }
     var extra = extra_lanes < pool.count ? extra_lanes : pool.count;
     if extra >= count { extra = count - 1; }
     if !pool.threaded { extra = 0; }
+    if extra != 0 && pool.custom_entry { return WorkBudgetError.Invalid; }
+    pool.resource_error = WorkBudgetError.None;
     if extra == 0 {
         for(var i: usize = 0; i < count; i++) {
             pool.execute(bits(void*, bits(u8*, jobs[i]) + offset));
         }
-        return true;
+        return WorkBudgetError.None;
     }
-    if pool.custom_entry { return false; }
     if pool.claim == null {
         pool.claim = work_signal_open();
-        if pool.claim == null { return false; }
+        if pool.claim == null {
+            pool.resource_error = WorkBudgetError.Memory;
+            return pool.resource_error;
+        }
         work_signal_post(pool.claim);
     }
     var batch = init(WorkBatch) {
@@ -250,10 +266,13 @@ fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, e
     // failure. No caller may reclaim the borrowed descriptor before the join.
     defer { while pool.running != 0 { work_pool_receive(pool, true); } }
     for(var lane: usize = 0; lane < extra; lane++) {
-        if !work_pool_admit_execute(pool, bits(void*, &batch), work_batch_execute) { return false; }
+        if !work_pool_admit_execute(pool, bits(void*, &batch), work_batch_execute) {
+            pool.resource_error = WorkBudgetError.Busy;
+            return pool.resource_error;
+        }
     }
     work_batch_execute(bits(void*, &batch));
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Exactly one consumed completion token accounts for one returned result. A
