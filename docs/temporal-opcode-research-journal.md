@@ -79133,3 +79133,32 @@ explicit limitations. No runtime profiling applies to this prose/source review.
 Next useful D1 work is lightweight final browser/portable preparation and checking
 missing dependency acceptance coverage, with no competing production edit. Full
 ECS/threading and integrated leased publication acceptance remain open.
+
+### D1 portable ticket coverage, focused batch
+
+Coverage review finds shared native/Wasm work_pool imports work_order, which
+checks stale dispatch, while explicit revision/profile rejection is in separate
+native work_observe. Add eight Tower lines to work_order: copies of a real running
+ticket with changed revision or profile cannot publish success or failure, release
+the running claim, or prevent the existing valid yield/readmission/completion.
+No new production API, graph, allocation, module or manifest. D2 independently
+reviews exact0b61eedc against the complete caller/producer chain with no blocker.
+
+Use existing dependency-aware tower-work-tests once per side; no separate leaf.
+Before is no-work and normal pool succeeds. After53432 is two actions5.82wall/
+5.64CPU/202640KiB; same-path normal output matches and the actual two-lane overlap/
+injected-failure/drain CTest passes in.02s, no skip. Single warm-process samples
+before .01wall/.01CPU/16488KiB and after<.01/<.01/11816 are too small/variable for
+a speed or RSS improvement claim. Public9653/Linux x64/LLVM19.1.1, CPU0,2/jobs1;
+serial graph assertions precede real worker work, with no separate graph-phase
+profile claim. Raw binaries/commands/source hashes remain in
+build/d1_ecs/portable_ticket_checks. Init-only drain precedes own lock release.
+Wasm128-lifecycle execution and supported instrumentation are deferred to stable
+integration, not passed by this native result. No new large evidence archive.
+
+Existing final browser checks and artifact guards are mapped in external
+D1/final_browser_scope.md. TOWER_REQUIRE_THREADS=1 already makes absent threaded
+work artifacts fail rather than skip. Current local browser files have incomplete/
+old identities and are not executed as current evidence. D2 supplies its own
+browser setup; no duplicated install or new JS test logic. Final source-matched
+portable/threaded/LLVM assets, project manifest and leased publication remain open.
