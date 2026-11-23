@@ -80867,3 +80867,99 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+
+## 2026-11-23 A1 lifecycle mixed transformation frontier
+
+Bounded follow-up to published a2ffdedb, on clean main
+ afca69b171c790ce9386ae85c3f3d493d21cec59. Existing jobs were drained before
+inputs changed. Session01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, PID24256. L2's
+sem_context/root admission and semantic_initialize hunks are unchanged; A2's
+queued-stage hold protocol and ROOT's executable admission are untouched.
+
+Removed barrier: the lifecycle's expression-lowering entry previously drained
+ALL AggregatePrepare work before admitting ANY Lowering work. It now registers
+both producer/consumer sets and fills one mixed ready frontier using existing
+WorkGraph tickets, CompilerKernel dispatch and shared WorkPool grants. Each
+function's lowering depends on its own signature preparation plus existing Body
+and KnownSnapshot prerequisites. Unrelated ready functions lower concurrently
+with aggregate preparation; this is not a queue around the former phase loop.
+Lowering reads only its own aggregate return metadata; call argument/result
+lowering uses checked expression types rather than callee parameter vectors.
+The aggregate read claim is therefore narrowed to that function's ordinal.
+Shared callback ABI mutation remains an ordered successful-join publication.
+
+A necessary ownership fix accompanies registration before preparation: a
+signature worker can replace function.body with an aggregate prelude. Lowering
+refreshes that pointer only after its producer publishes, rather than consuming
+the pre-registration body. Stages publish after every admitted peer joins and
+before ticket completion. Partial take discards undispatched stages; checked
+transport/observe/finish failures cancel receipts after joining. Ordinary errors
+remain on the function's work component across waits. Selection retains the old
+priority (signature phase before expression phase, source order within each).
+The lifecycle pump exposes Progress/Waiting/Complete/Failed. Only its owning,
+quiescent wrapper diagnoses unfinished producers/cycles. Existing single-phase
+pump entry points retain their progress convention and are still supported.
+
+Reviewed executable helper closure: semantic_expression_lowering accesses its
+own aggregate result metadata; aggregate argument lowering uses each operand's
+checked type; field-copy lowering reads immutable nominal layout. No new callee
+signature read, type registry, constant folder, scheduler or AST was introduced.
+The unchanged SemanticLowering layout moved to a declaration-only types module
+so the focused fixture links the actual production implementation once.
+
+Validation: KinmenA Windows11, Docker tower-a1-environment, CPU0-11/24GiB,
+Linux x64/LLVM19.1.1/public bootstrap9653, max6 build actions with compiler --jobs1.
+Before/after production builds used only the dependency-aware target:
+`cmake --build /cache/native --parallel 6 --target towerc tower-lr-work-tests`.
+First changed compile needed the existing entity_stage_discard extern declaration.
+Fixture compilation caught missing explicit initializer fields and unsupported
+mutable globals in library mode; the final observer uses function-owned ECS
+probe components instead. Failed logs are preserved, not counted as passing.
+The final standalone fixture is declaration-only, built/linked through the exact
+commands in `/cache/a1_lifecycle_fixture.sh`, using the same semantic provider.
+No shared harness/build-manifest edit was made.
+
+New `semantic_lifecycle_frontier_checks.tower`:10 trials (5 modes at workers1/4)
+passed. Ready and waiting multiworker cases rendezvous a REAL signature kernel
+with a REAL independent lowering kernel on two fresh semaphores; separate phase
+drains cannot satisfy this rendezvous. Other assertions cover snapshot/body
+gating, published-prelude consumption, repeat waits/terminal calls, signature
+error priority over an earlier expression error, callback publication suppression,
+cancellation, partial ticket admission, joined workers and world cleanup.
+This establishes simultaneous mixed-phase invocations, not universal race freedom
+or measured end-to-end speedup. Existing production LR overlap/equivalence suite
+passed1.78wall/2.31CPU seconds/120432KiB; query-smoke .23/.23/88204; control-smoke
+32.16/34.96/260676. Control smoke checks execution, serial/parallel canonical
+reparse, lexical cleanup and ordered diagnostics. No broad matrix was run.
+
+Small frozen-input comparison: comptime_aggregates.tower SHA256
+10fc9c7811a6e0b0dde8a7a70707ef00a32055b777756c7f76abf0dadde1d64a,
+--interpret --jobs1/4, explicit /work/scaffolding/bedrock.tower and foundation.tower,
+warm filesystem/fresh process, n=1 per configuration. Every output is exactly0.
+
+| Workers | Before wall / CPU seconds / peak RSS KiB | After wall / CPU seconds / peak RSS KiB |
+| --- | --- | --- |
+| 1 | 1.14 / 1.08 / 178160 | 1.14 / 1.07 / 178944 |
+| 4 | 1.00 / 1.17 / 197708 | 1.02 / 1.19 / 197276 |
+
+No material regression is visible at this sample resolution; no scaling claim.
+Canonical Foundation emitted by both compilers at both worker counts is byte-equal,
+SHAf2b3811c6cae66312b88eaec5301aa7516da2f872338ea97da3d6d297154f030.
+Preserved before compiler `/cache/a1_lifecycle_afca_before_towerc` SHA
+7545e1f392298072145c9bfd3196e7d239d74d57400ab5901daa09fcbf799f7d;
+after compiler98c23a86418cd91b6e50c76592c85c4f5d49edbc4f4349c3b1b1ab0d742a660a,
+fixture6fe6d9cbc0120fd6f81044733fc5ebb4ca4b23acc5d9e848a407f0ce86672bfc.
+All commands/errors/output/time logs remain in
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_lifecycle_*.
+
+Remaining barriers are explicit: sem_run; foreign-signature validation; defer
+hygiene; global known-write/order proof and inferred-expression snapshot; the
+mixed transformation join before evaluation; evaluation preparation/execution
+windows; attribute publication; known-value publication; module-initializer
+validation; late flow. This milestone removes the aggregate-to-expression barrier
+inside lifecycle lowering, not every top-level phase boundary. Dependency-window
+joins and shared callback publication remain deliberate. Structural/view/vector
+allocation assertions and the separate queued-stage hold work remain owned
+follow-ups. Generic fixture registration, broader allocation/critical-path/scaling
+measurement, sanitizers, clean bootstrap/browser/generation and deployment remain
+pending with ROOT. Documentation-only receipt edits need no runtime profiling.
