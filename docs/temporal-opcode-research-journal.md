@@ -95923,3 +95923,10 @@ identity. ROOT's final generations/pin/UI/atomic release and instrumentation
 remain open, as do the source-confirmed i1 defect and named independent reviews.
 
 L1 generation receipt088baa95 reconciled through complete-history merge07bd99db with published6649bbe1. Production native compiler/library/host/backend/runtime, language resources and public predecessor trees unchanged. Incoming Windows/native fixture registration, browser memory-capacity transport and owner receipts stay outside frozena18d584e. Complete archive/manifests retain their original identities, no generation rerun for unrelated inputs. All owned jobs drained; normal push follows.
+
+Final documentation-only advance41c8a5db merged at14f2f797 without conflict.
+L1 native-generation receipt088baa95 has matching a06 compiler/library trees:
+38 actual binaries match1/2/3,54 package payloads/checksums match2/3. Ledger now
+records the complete a18 development candidate while keeping public repin/default
+adoption and restricted standalone release open. No new authored source delta or
+D2 runtime. Evidence cutoff41c8a5db; historical tail/todo checks remain unchanged.
