@@ -92207,3 +92207,64 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+### D1 finite changed-resource module-path adoption (2026-11-23)
+
+Frozen mainc93ddaabdd961c4be27d825ae4e3bf59575ec303 after normal pull. Read both
+complete test files, projects.refreshCompilerSources, compiler-fixtures resource
+filter/loader, moduleInputs transport and current modules contract. Only the two
+requested files executed: module-path-names2/2, module-resolution13/13;0fail/skip/
+cancel/timeout. Expected names extracted from registrations exactly match TAP.
+No fixture, resolver, host or expectation change was necessary.
+
+Actual scan1151scaffolding .tower files plus3browser fixtures: foundation_legacy,
+numeric_token and package_runtime_error. Direct originald5b65afe delta has37new
+paths (35scaffolding tests,2browser fixtures), all now checked by the existing
+naming test. It accepts identifier/underscore path components and validates
+production dotted imports/local-or-library existence; test import bodies remain
+excluded because deliberate malformed/Foundation-only cases must not be rewritten.
+Its path.posix normalization is inventory availability checking, not a new module
+resolver or filesystem-identity guarantee. Synthetic upgrade recipe tests retire
+unchanged old-name.tower while preserving edited-name.tower/custom.tower contents,
+update active entry and remain idempotent; no generated build/compiler-project/
+project.json is read. Arbitrary historical user names are valid test data.
+
+compiler-fixtures reads the complete current source tree, but module-resolution
+uses the real host directly with just its five root language resources plus
+explicit per-case source maps. No new non-test baseline language file was added:
+Bedrock/Foundation/Foundation syntax/Tower/types and project-refresh bytes match
+d5b65afe. The fresh run still matters because the portable reactor is new.13cases
+preserve removed-capability failure/recovery, renamed grammar imports, nearest-file
+cache invalidation, no tower privilege/cycle exemption, shared lexical identity
+and exactly-once effects across spellings, importer-relative/no-fallback paths,
+exact case/complete names, legacy seed grammar, malformed dotted paths and exact
+selected errorFile assertions, repeated formatting/comments/aliases. Browser
+lexical source keys are distinct from filesystem/symlink identity; no native
+filesystem or numeric-error-offset claims beyond these existing assertions.
+
+Verified supplied pair source47433acff17e8ca6b3fffb6ce9875a37b38aec08 and reused
+unchanged own copies: portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad,
+LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Both absolute overrides set, interpreter-only cleared. Path test instantiates
+no compiler; resolution instantiates portable only. Verified LLVM bytes are not
+LLVM execution evidence. No old default substituted, compiler build or other gate.
+
+Each file once in a fresh Node22.23.5 process, Docker tower-d1-ecs on Deck AMD
+Custom APU0932/Linux x64,CPU0,2,8GiB memory+swap,concurrency1,warm filesystem,n1.
+Command shape: `env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=.../portable.wasm
+TOWER_TEST_LLVM_WASM=.../llvm.wasm /usr/bin/time -v -o GROUP.time timeout -k 5s 180s
+node --test --experimental-test-isolation=none --test-concurrency=1
+playground/tests/GROUP.test.mjs`. Exact absolute command saved in command.txt.
+Costs wall/CPU(user+system) seconds/peakKiB: names0.36/0.43(0.33+0.10)/62296;
+resolution22.76/25.22(23.99+1.23)/223384. Both exit0,0swaps; no retries. No source
+performance change to profile; these are validation costs, not speedup/scaling.
+
+Evidence build/d1_ecs/module_paths_c93ddaab: paths/additions, expected/completed
+names, logs/time/status and verified manifests. Resource digest260d130286ede7a325fabf88a68c1371d182ef37718146a90415e9e6bd93a4bf;
+Node/host digest2314cd1ef1c8124014377a7acec32d6879039152cf2bc27854342793634fd940.
+Test SHAs dfa0e2d50c7d42df01b4354ea7815374ff32ab2e67152126491cae86eb4c46a5 /
+8c98d616856c5cf4611faffaf4b8fbe8a10707a12e39883d6249c88698a47ca1. Artifact,
+source and host hashes rechecked unchanged after execution. Lock owner was written
+only after successful native mkdir, and removed only after verifying own PID3153060
+and draining jobs. Disk128GiB/RAM9.9GiB available before run; todo unchanged.
+This closes the bounded changed-resource/module-path gate at these identities;
+other compiler/release acceptance remains ROOT-owned, no broader census rerun.

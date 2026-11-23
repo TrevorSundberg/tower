@@ -4304,8 +4304,8 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | interpreter-invocation | O2 1P/2F | G4 same failures; R closes all3 exact export groups (invocation4/8, worlds4/8, stage), portable serial capability correctly selected. |
 | language-service | O2 3P | Unchanged mock worker scheduling/cancellation; reuse O2. |
 | llvm-execution | O2 2P/49F | LL48 scoped P/3F; LA closes narrow/body and rechecks division zero. T3 struct remains unpassed; T4 records scoped closure, not a whole-file current-source run. |
-| module-path-names | O2 2P | Historical P; path inventory/project resources subsequently added, so final changed-input adoption remains necessary. |
-| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; lexical alias/path expectations unchanged. |
+| module-path-names | O2 2P | Current c93ddaab2/2P: actual resource paths/import availability and synthetic project upgrade checked; changed-resource gap closed at this freeze. Receipt below. |
+| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; new c93ddaab/47433acf13/13P with current language/module inputs. Exact case, lexical identity, relative boundaries and selected-file diagnostics retained; receipt below. |
 | module-scopes | O2 file-init F | N17P/2F; G8 19/19P, qualified completion plus full repeated-lifetime case now reached, matching LLVM override. |
 | operators | O2 6P | Historical pairO source/canonical/LLVM P; not relabeled current compiler evidence. |
 | output-syntax | O2 8P | Unchanged display-only lexer/dependencies/data; reuse O2. |
@@ -4530,3 +4530,36 @@ Merge2d8a96fe leaves selected test/host/artifact and executed import hashes inta
 The sole resource delta, tests/frontend_units_profile.tower, is an unexecuted
 native profiling fixture; its recorded mismatch does not relabel the earlier
 full registry as rerun. Scoped4P/6F evidence reused, no further selection.
+
+## Module-path/resource adoption at c93ddaab (2026-11-23)
+
+Frozen sourcec93ddaabdd961c4be27d825ae4e3bf59575ec303. Fresh runs only of
+module-path-names2/2 and module-resolution13/13 pass, zero skips/timeouts; no code
+or fixture changes. Both matching47433acf overrides verified; path test uses no
+reactor and resolution uses portable68cd7a8a only, not LLVM execution evidence.
+Exact names, commands, hashes and TAP/time/status: build/d1_ecs/module_paths_c93ddaab/.
+
+Actual inputs reviewed: path test scans1151scaffolding and3browser Tower fixture
+paths, checking identifier/underscore components, dotted production imports and
+local/library availability. Compared with originald5b65afe there are35added
+scaffolding test files and2browser fixtures; all are included in this fresh scan.
+Test/invalid import contents are deliberately excluded from the production-import
+assertion. The upgrade test supplies a synthetic recipe, not generated project.json;
+unchanged old names retire, edited/user files survive, active entry updates and
+repeat upgrade is idempotent. Historical hyphenated user strings remain deliberate.
+
+Resolution imports compiler-fixtures' resource data but directly uses the real
+host with five root language files (bedrock,foundation,foundation_syntax,tower,
+types) and explicit case modules. All1151 sources are read by the fixture loader;
+they are not all configured or compiled by these cases. The five baseline files
+and project-refresh implementation match the older receipt, while actual new
+portable execution validates renamed grammars, capability removal/recovery,
+nearest-file cache edits, cycles, lexical dotted/quoted/separator identity with
+once-only effects, exact case/extension, parent boundaries, comment/alias canonical
+formatting and selected errorFile values. No realpath/symlink identity collapse,
+native filesystem equivalence or numeric-offset coverage is inferred.
+
+Costs wall/CPU s/peakKiB: names0.36/0.43/62296; resolution22.76/25.22/223384;
+0swaps. These are validation costs, not production profiling/scaling. Inputs
+verify unchanged after runs; jobs drained and owned lock released. Other fixed
+checklist gates and ROOT's final joined runtime release remain separate.
