@@ -35,7 +35,7 @@ export class LanguageService {
   pump() {
     if (this.active || !this.queued.size) return;
     if (!this.worker) {
-      this.worker = new Worker(new URL('./language-worker.js', import.meta.url), {type:'module'});
+      this.worker = createCompilerWorker(new URL('./language-worker.js', import.meta.url), {type:'module'});
       this.worker.onerror = event => { event.preventDefault(); this.stop(event.message || 'Language worker stopped'); };
       this.worker.onmessage = ({data}) => {
         const task = this.active;
@@ -76,3 +76,4 @@ export function highlightFoundation(source, consumer) {
   result.then(value => { if (!value && cache.get(source) === result) cache.delete(source); }, () => {});
   return result;
 }
+import {createCompilerWorker} from './compiler-worker-group.mjs';
