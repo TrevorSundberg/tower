@@ -87853,3 +87853,15 @@ performance sample or relabeling of the n3 ce4f7240 comparison. Source checks
 passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
 Owned container is idle. Normal main push/remote verification follows; ROOT's
 broader integrated publication gates remain pending.
+
+Normal push raced B1's253af949 LR range-union change. Merged complete f7e764ab
+history asfad0531493806f5dd4383846a783095ef95f9cae; no alias-code conflict.
+Dependency builds rebuilt only the changed parser provider and relinked consumers.
+Native alias suites PASS again (8.37s/10.20s,18.61s total); final fixture
+8b824644a5e287b87dd82c1c1224726da90f8d1e106c0315433a5e0789a5bb8d,
+compilerb8d6d63d2ca59b8181f3e37fb52f234e30097124afe606e192c1fc6e7af51011,
+portablea3559c7fbd6b21beafea73190bb8bf77025b60290e2ce626bbb3ecaeb2bd7404.
+Exact Node IDE again passes all completion sections, then exits1 at the same
+later pointer/array hover boundary. Logs a1_alias_push_retry_* retain final
+frozen input hashes, timings, diagnostic and exit; all jobs drained. Earlier
+measurements retain their exact source identities. Normal push retry follows.
