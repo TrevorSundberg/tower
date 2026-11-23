@@ -1423,3 +1423,46 @@ now uses three precise diagnostics, and imports the original immutable capture
 through the new positive Tower value/type oracle. Both frontend/LLVM transports
 receive its real entry path. The original threaded alias negative remains correct
 and unchanged. New browser test execution/full backend acceptance is pending.
+
+### Contract correction and retained-buffer v2 review (after bab4c34)
+
+The coordinator's newer contract correction supersedes the preceding unbuilt
+known-order529b draft: Foundation325–326/365–367 excludes raw uninitialized
+reads from portable differential results. Original source is retained as a
+compile-admission positive at32/64, without executing its raw forward read.
+The portable matrix now uses initialized state0, one incrementing call, and exact
+1,1,7 output across graph/fast, canonical reparse and workers1/2/4/8. Required
+comptime(earlier) still rejects before initialization. Earlier raw0/7 mismatch
+receipts are investigated out-of-contract observations, not compiler defects or
+new passes. Existing lifecycle EarlyRead/CaptureReuse raw observations remain
+scoped to their graph engine; strict EarlyCapture negatives are not removed.
+No production semantics changed to force raw zero initialization.
+
+Incoming archive71d28d31 and allocator patch07e634dd were read completely in a
+separate staging directory, then adopted after D1's jobs drained. All six added
+files compare byte-identically with the owner snapshot. Review identity is
+bab4c34 plus those exact source hashes; this is source review, not runtime proof.
+
+| Path | Storage, ownership, scheduling and independent oracle audit | Disposition |
+| --- | --- | --- |
+| scaffolding/tests/work_buffer.tower | e08c4c2f,88lines: two explicit budgets; rejected growth preserves pointer/data/receipt; releasing outer lane leaves physical buffers charged; swapped/moved ownership survives joined publication; stale receipt, null standalone boundary, overflow, u64 alignment,257-element sum32896 and complete disposal checked. Raw descriptors are not implicitly safe copies. | D1 audit/A2 implementation; normal test registered, local compile/runtime pending. |
+| scaffolding/tests/work_buffer_faults.tower | d2f6c729,46lines: single-owner ledger allocation failure precedes buffer allocation; later physical replacement failure preserves old pointer/generation/data and exact allocator baseline; successful retry and disposal return both counters to baseline. Imports host.memory directly. | Existing instrumented allocator/trap and serial transport only; no duplicate host_memory object or race claim. Link recipe confirmation and execution pending. |
+| scaffolding/tests/work_buffer_shared.tower | 8d5f8a5a,105lines: four production threads enter a barrier with distinct pthread IDs and separate result descriptors; coordinator writes cancellation before releasing the barrier;512 resize cycles, denied growth, join-before-lane-release, retained bytes after cancellation/join, then buffer-before-budget cleanup. Gate outlives budget. | Normal shared-runtime registration with exported work_thread_entry. Four threads on two Deck cores are stress, not profitable scaling. Current native/ASan/TSan pending. |
+| scaffolding/tests/work_buffer_profile.tower | 16821eb3,129lines: baseline and budget modes use equivalent8192 replacements plus initial allocations; checks checksum and all4096 retained bytes. Reports actual time-interval overlap, CPU/RSS, allocation count, retained payload, charged peak and separate ledger bytes. Thread IDs are recorded but not compared; distinct-thread proof belongs to shared fixture. Setup/postjoin verification/disposal excluded from timing. | Opt-in Linuxx64 profile; valid budget1 target arguments, documented baseline/budget1/2. Whole compiler budget/outer+nested lane integration and profitable scaling are not established. |
+| scaffolding/library/work_buffer.tower | ccc61ca8,68lines supporting owner review: allocation and byte-only grant move together; complete replacement reserved before allocation/copy, old owner intact on failure; physical free precedes receipt release; explicit null standalone boundary; budget and immutable gate outlive every funded buffer. Header bytes included, allocator-private/RSS excluded. | A2 production ownership; exact authorized source adopted, joint owner/runtime validation pending. |
+| scaffolding/library/work_vector.tower | 7e95b161,92lines supporting review: distinct nominal descriptor retains budget grant, transactional WorkBuffer borrow, alignment/size/overflow guards and geometric growth; moves/swaps transfer owners and foreach borrows structurally stable storage. No ownership claim for ordinary struct copies. | A2 production ownership; no duplicate authoritative container model, no compiler callers adopted here. |
+
+The B2 host/memory patch factors the previous conservative allocation-size
+calculation without changing admission and exports exact header-size accounting
+plus the documented two-word alignment guarantee. That is an allocator boundary,
+not a global memory-budget implementation. New library packaging is D2/bootstrap
+owner work before compiler/tool adoption; D1 did not alter resource manifests.
+
+The generic helper's optional command arguments preserve all old no-argument
+profiles. New normal/shared fixtures use production runtime; fault composition
+uses the existing instrumented runtime/trap plus serial worker library. No new
+scheduler or test runner was added. Runtime, independent before/after baseline
+costs, actual sanitizer hooks/stress and final coherent release remain open.
+After staging these additions the census is1054tracked/477D1direct, with all477
+substantively reviewed; the two production library reviews do not claim A2 audit
+credit and new inventory does not imply executed coverage.

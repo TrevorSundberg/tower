@@ -49059,3 +49059,52 @@ oracle edits are now prepared: three exact errors and positive original capture
 via the new Tower value/type fixture, with consistent entry paths for Tower/LLVM.
 Threaded alias remains negative and unchanged. Local actual positive/harness
 execution awaits D2's current held slot; no old LLVM asset substituted.
+
+### D1 initialized-order correction and retained-buffer registration preparation
+
+At bab4c34, the coordinator corrected its earlier portable raw0,7,7 directive.
+Direct reading of Foundation325–326/365–367 confirms uninitialized reads have no
+portable defined result, and source-order bindings do not zero-initialize forward
+storage. CLI --fast's LLVM normalization also differs from direct same-graph fast
+execution. L2's raw graph0 versus normalized/native7 observation therefore does
+not establish a compiler defect. Preserve all old failed logs and the never-run
+529b draft as history; do not relabel them passing or change production semantics.
+
+The pending known fixture now admits the exact original program at both widths
+without executing its raw forward read. A fully initialized state0 and ordinary
+incrementing helper require exact1,1,7 through the existing graph/fast/canonical/
+worker matrix. Required comptime(earlier) retains its precise before-initialization
+rejection and deterministic worker/width checks. Other negatives remain unchanged.
+This corrects a proposed test oracle, not a measured compiler fix. Independent
+control and runtime measurements await the next D1 slot; D2 currently owns the
+shared lock. Lifecycle raw EarlyRead/CaptureReuse observations must stay graph-
+scoped, with strict EarlyCapture coverage preserved.
+
+Read all528lines in A2 archive71d28d31 plus B2 allocator patch07e634dd, verified
+hashes, and adopted exactly six files only after D1's prior jobs drained. Source
+ownership/limitations are recorded per path in the D1 audit. Full-replacement
+reservation covers overlapping old/new storage; denial preserves old owner;
+free precedes grant release; explicit moves/swaps retain physical ownership after
+joins. The typed vector is distinct from ordinary vector and retains its grant.
+The helper counts requested header/payload, not ledger/private allocator or RSS.
+No production caller adoption or complete memory-budget claim follows from this.
+
+Generic registration reuses tower_work_fixture for normal/shared and opt-in
+profile, with work_thread_entry dynamic export. D2 correctly identified the
+profile requires baseline|budget and worker count; optional helper arguments now
+supply budget1 without changing existing no-argument profiles. The serial fault
+fixture already imports host.memory, so its target links only its own object,
+existing policy runtime/trap and serial transport, avoiding a duplicate object.
+A2's exact manual symbol/link recipe remains requested; no link result yet.
+README documents equivalent baseline/accounted1/2 runs,8192 replacements, all ten
+measurement fields and excluded timing/accounting boundaries. The four-thread
+fixture supplies real barrier/thread identity, while profile intervals alone do
+not prove speedup. No alternative scheduler/runner or non-Tower logic introduced.
+
+Environment unchanged: SteamDeck Docker LLVM19.1.1, canonical publicpin9653,
+cpuset0,2;139GiB free,9.8GiB available,6.2GiB preexisting swap. D1 owns no active
+job or lock. Prepared code still requires smallest-unit predecessor compilation,
+normal/fault/real shared execution, paired1/2 cost measurements and applicable
+current ASan/TSan/stress. Documentation additions have no runtime path of their
+own. Final clean public bootstrap/native/browser/generation, named publication
+lease, atomic refs and exact hosted verification remain open; goal stays active.

@@ -1279,3 +1279,18 @@ value/type independently. After staging:1048tracked Tower paths/473D1direct.
 All new/current test bodies have substantive audit receipts; normal/fault/query
 updates above are existing paths, not additional inventory. Aggregate source
 current25e8 plusd982 supersedes initial0a47 draft; failed receipts remain historical.
+
+Postbab4c34 retained-buffer handoff71d28d31 adds six exact owner sources:
+
+| Path | Audit lane | Implementation owner | Review |
+| --- | --- | --- | --- |
+| scaffolding/library/work_buffer.tower | A2 | A2 | D1 supporting API review ccc61ca8; allocation/grant transfer and rollback, no production-owner credit inferred. |
+| scaffolding/library/work_vector.tower | A2 | A2 | D1 supporting API review7e95b161; distinct budgeted descriptor/alignment/borrow lifetime. |
+| scaffolding/tests/work_buffer.tower | D1 | A2 | Full88lines e08c4c2f; explicit retention/denial/move/swap/stale/alignment/cleanup oracles. |
+| scaffolding/tests/work_buffer_faults.tower | D1 | A2 | Full46lines d2f6c729; serial ledger/physical failure rollback and exact allocator cleanup. |
+| scaffolding/tests/work_buffer_shared.tower | D1 | A2 | Full105lines8d5f8a5a; actual four-worker barriers, cancel/denial, retained ownership after join. |
+| scaffolding/tests/work_buffer_profile.tower | D1 | A2; D2 measurement audit | Full129lines16821eb3; equivalent baseline/accounted buffers and measured overlap/cost, explicit accounting/timing limits. |
+
+Once staged, totals are1054tracked Tower paths/477D1direct. Existing allocator,
+known-order and generic harness updates are not new paths. All added bodies have
+substantive D1 review in the audit; no local compile/runtime pass is claimed yet.

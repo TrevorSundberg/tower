@@ -1,0 +1,105 @@
+import tower;
+import .library.work_buffer;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+
+struct BufferJob {
+    budget: WorkBudget*;
+    entered: void*;
+    release: void*;
+    retained: WorkBuffer;
+    thread: usize;
+    cancelled: bool;
+    denied: bool;
+    success: bool;
+}
+
+fn shared_buffer_check(ok: bool): void {
+    if !ok { trap("Concurrent retained buffer regression", 0); }
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(BufferJob*, payload);
+    job.thread = pthread_self();
+    shared_buffer_check(work_buffer_resize(&job.retained, job.budget, 4096, 0) == WorkBudgetError.None);
+    fill(job.retained.data, 71, 4096);
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    // The coordinator publishes cancellation before releasing this worker.
+    // Even cancelled/failed results remain physically owned until the join.
+    if job.cancelled { job.success = true; return; }
+    if job.denied {
+        var previous = job.retained.data;
+        job.success = work_buffer_resize(&job.retained, job.budget, 8192, 4096) == WorkBudgetError.Capacity
+            && job.retained.data == previous && job.retained.data[4095] == 71;
+        return;
+    }
+    for(var round: usize = 0; round < 512; round++) {
+        var bytes: usize = round % 2 == 0 ? 8192 : 4096;
+        if work_buffer_resize(&job.retained, job.budget, bytes, 4096) != WorkBudgetError.None
+            || job.retained.data[0] != 71 || job.retained.data[4095] != 71 { return; }
+    }
+    job.success = true;
+}
+
+fn shared_buffers(cancelled: bool, denied: bool): void {
+    var gate = work_signal_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    shared_buffer_check(gate != null && entered != null && release != null);
+    defer work_signal_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    work_signal_post(gate);
+    var bytes = 4 * (4096 + 4 * sizeof(usize));
+    var budget: WorkBudget = default;
+    shared_buffer_check(work_budget_init(&budget, 4, denied ? bytes : 65536, 1));
+    shared_buffer_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var jobs: BufferJob[4] = default;
+    var lanes: WorkReservation[4] = default;
+    var pool: WorkPool = default;
+    shared_buffer_check(work_pool_open(&pool, 4) && pool.threaded && pool.count == 4);
+    for(var i: usize = 0; i < 4; i++) {
+        jobs[i].budget = &budget;
+        jobs[i].entered = entered;
+        jobs[i].release = release;
+        jobs[i].denied = denied;
+        shared_buffer_check(work_budget_reserve(&budget, 1, 1, 0, &lanes[i]));
+        shared_buffer_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    for(var i: usize = 0; i < 4; i++) { work_signal_wait(entered); }
+    var snapshot: WorkBudgetSnapshot;
+    shared_buffer_check(work_budget_snapshot(&budget, &snapshot));
+    shared_buffer_check(snapshot.used_bytes == bytes && snapshot.used_lanes == 4);
+    shared_buffer_check(work_pool_receive(&pool, false) == null);
+    for(var i: usize = 0; i < 4; i++) { jobs[i].cancelled = cancelled; }
+    for(var i: usize = 0; i < 4; i++) { work_signal_post(release); }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    work_pool_close(&pool);
+    for(var i: usize = 0; i < 4; i++) {
+        shared_buffer_check(jobs[i].success && jobs[i].thread != pthread_self());
+        for(var j: usize = 0; j < i; j++) { shared_buffer_check(jobs[i].thread != jobs[j].thread); }
+        shared_buffer_check(work_budget_release(&budget, &lanes[i]));
+    }
+    shared_buffer_check(work_budget_snapshot(&budget, &snapshot));
+    shared_buffer_check(snapshot.used_lanes == 0 && snapshot.used_bytes == bytes && snapshot.live == 4);
+    shared_buffer_check(!work_budget_dispose(&budget));
+    for(var i: usize = 0; i < 4; i++) { work_buffer_dispose(&jobs[i].retained); }
+    shared_buffer_check(work_budget_snapshot(&budget, &snapshot));
+    shared_buffer_check(snapshot.used_bytes == 0 && snapshot.live == 0 && snapshot.peak_bytes <= snapshot.bytes);
+    shared_buffer_check(work_budget_dispose(&budget));
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    shared_buffers(false, false);
+    shared_buffers(true, false);
+    shared_buffers(false, true);
+    print(0);
+    return 0;
+}

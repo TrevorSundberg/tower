@@ -91,12 +91,19 @@ fn known_binding_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var count=0;fn effect():i32{count++;return 4;}var fixed=effect();print(comptime(fixed));", "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer");
     struct_value_reject(modules, "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
     struct_value_reject(modules, "import tower;fn equal():bool{var a=1;var b=2;return &a == &b;}var fixed=equal();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
-    // Failed optional staging preserves the earlier runtime read. Explicitly
-    // demanding that earlier initializer still rejects its premature capture.
+    // Failed optional staging admits the original runtime initializer. Its raw
+    // forward read has no portable value, so do not execute it for comparison.
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var admitted: ExecutionSession = default;
+        defer execution_session_close(&admitted);
+        execution_compile(&admitted,
+            "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", width, modules);
+    }
+    // Fully initialized state gives a defined oracle for exactly-once effects
+    // and source order across engines, canonical reparsing and worker counts.
     known_initialization_order_case(modules, root, bedrock.data, foundation.data,
-        "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", "7\n");
-    known_initialization_order_case(modules, root, bedrock.data, foundation.data,
-        "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(earlier);print(later);print(comptime(later));", "0\n7\n7\n");
+        "import tower;var state:i32=0;fn read():i32{state++;return state;}var earlier=read();var later=7;print(earlier);print(state);print(comptime(later));", "1\n1\n7\n");
+    // Required staging still diagnoses the executed before-initialization read.
     var demanded = "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(earlier));";
     var diagnostic = "Compile-time initializer reads a module binding before its initialization";
     struct_value_reject(modules, demanded, diagnostic);
