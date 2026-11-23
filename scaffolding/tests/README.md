@@ -69,7 +69,10 @@ use the production allocator. The 24 GiB ledger covers the explicit world and
 checked buffers, not LLVM's allocator, legacy vectors or whole-process RSS.
 The optional `census` mode records joined core-kind live payload/page capacity,
 retained parse-rule leaves/wrappers, LLVM function/block/instruction counts and
-Linux peak RSS. Its private histogram is released at each observation. It is a
+Linux peak RSS. It also separates physical payload/descriptor pages and heap
+component/child/table indexes; inline component indexes belong to descriptor
+pages. Its budgeted private histogram counts IDs actually present, including
+sparse/sentinel IDs, and is released at each observation. It is a
 diagnostic cost, not an overlap or browser-memory claim. The source tests include
 bound primitive spelling with lexical shadowing and nominal return reconstruction;
 `backend_import_constants` checks exact escaped string bytes/terminator and enum

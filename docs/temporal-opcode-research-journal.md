@@ -95523,3 +95523,53 @@ all owned jobs drained, source checks reused by identity; retry normal main push
 L1 independent review d7635e9c reconciled through complete-history merge 20cba101e427d285d019022373d58d13616b047a with published6b74889b. Library/host/compiler gate and Entity producer blobs are unchanged. Incoming L2 unsigned-overflow reconstruction, package pruning and declaration-oracle work are preserved outside this review. Read changes to the two inventoried legacy-gate fixtures backend_source_native/module_body_type_checks: optimized artifact saving and error/output oracles change; synchronization callbacks/ownership/teardown do not. Frozen66-file review manifest retains its original identity; these later fixture blobs are explicitly separate. No build/test rerun for this documentation review; diff check passes. Normal main push follows.
 
 B2 fault receipt publication: complete-history merge8bcd4a36 preserves implementation2f4361f6 plus incomingd21fb20d. Entity/budget/host/selectedfixture closure unchanged; dependency target saysno work, full defaultcomponent/stage fault modesPASS again with identical b3c778e9/18ecb7f4 binaries. Incoming LLVM/packaging/modulebody changes excluded once. Independent review's corrected16-byte descriptor alignment derivation retained in priorreceipt; measuredtables unchanged. ROOT finalrelease remainsseparate; ownedjobs drained.
+## A2 entity_pages exact Wasm storage frontier and joined inline adoption (2026-11-23)
+
+Completed the bounded request using ROOT's retained965691B/fadb0568 canonical,
+not the older1101861B native fixture. Receipt: docs/entity_pages_wasm_storage_a06ec4b1.md.
+Original25dddd04/ea606d329b selected-test Memory failure remains preserved;
+offsets beyond submitted length were not used to guess the allocator. Isolated
+25 request on4354581c resources confirmed actual2GiB LLVM linear-capacity
+saturation, exit1,172.180s command wall, response CPU238.765s/peak2028912KiB.
+Current joined a06ec4b1 reactor on separately frozen a18d584e resources succeeds,
+exit0,132.545s wall, response CPU195.452s/peak1862976KiB, linear1978990592B.
+Both isolated requests use default input.tower entry, unlike ROOT's module path.
+New output4675795B/5bfbd3be is identical to preserved and current native output.
+The portable/LLVM pair was hash-verified; only LLVM was invoked here.
+
+Current native smallest dependency-aware target (public768, LLVM19/Linux x64,
+CPU0-11/24GiB, production allocator) passes six small/large workers1/4 plain/census
+checks, exact output comparisons and final bytes/grants/lanes0. Whole-process
+large plain10.802s/10.698CPU/2933020KiB serial and8.935s/11.884CPU/2945648KiB
+four workers; n1 is bounded evidence, no universal scaling/overlap claim.
+Joined census confirms original/imported graphs close before recheck (~20MB
+live). ~3million parse entities are material; ParserMatch slots ~100% occupied.
+Foundation449808 payloads/154733952B occupy31409pages/1256360slots,
+509799479B physical pages (~35.8% slots); this limitation stays explicit.
+B2's already-published inline indexes remove344676904B of heap index allocation
+at semantic-dispose entry, larger descriptors add50574632B, exactly explaining
+294102272B lower peak charge (3020547282 ->2726445010). Ledger metadata halves
+335544320 ->167772160B. No further production storage rewrite is justified by
+this successful exact request; foreign LLVM/libc/legacy raw vectors remain
+outside the world ledger, and native sizes do not establish wasm32 byte counts.
+
+Only optional observation/transport changed: backend_source_native reads joined
+physical categories without double-counting descriptor-owned inline indexes;
+its work_vector histogram is keyed by present IDs, not maximum numeric ID.
+The small control exposes sentinel4294967294: old observer admission fails,
+new173/168 groups fit12288B and sum to every parser component. Preserved old-source
+large before/after census output/charged peak matches; optional observation costs
+~6.2% extra wall in n1. Current census overhead~3.7%; plain samples omit it.
+llvm-host exposes read-only exported linear capacity at the necessary host boundary.
+No compiler/backend semantic policy, Entity layout or guest limit was changed.
+
+All failures retained: original Wasm Memory; old observer guard exit134;
+explicit borrowed-foreach compile correction; post-success metadata script's
+obsolete semantics.o name and a metadata-only tr quoting error. Actual link
+provider/dependency hash verification then passed via a literal script, without
+repeating the six measurements. Logs and scripts are in A2/cache/logs/
+entity_pages_25dddd04_4354581c and entity_pages_a06ec4b1_a18d584e; ROOT originals
+remain A2/root_entity_pages_25dddd04. See receipt for full hashes/process scope.
+No Node full selector/package execution, optimized branch, wider target matrix,
+reactor build or sanitizer rerun. ROOT/L2 own later integrated test/release gates;
+service-rejected instrumentation remains open. Three old stashes/todo unchanged.
