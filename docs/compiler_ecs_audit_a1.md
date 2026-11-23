@@ -858,3 +858,80 @@ iteration issue was routed to ROOT/D2 without weakening dependency checks or
 changing shared build tools. Matching pre-receipt baseline build and quiet paired
 profiling follow the current immutable build. ROOTc917 entity/backend integration
 is queued after that freeze so its changes cannot confound the comparison.
+
+The current census atc6ed1d2d is55 assigned semantic*.tower paths: the earlier54
+plus scaffolding/tests/semantic_receipt_checks.tower. Full source review of this
+new file: its receipt trials own distinct diagnostic vectors with scoped disposal,
+exercise both pre-reserved and absent destination storage plus exact self-alias,
+and assert unchanged pointer/capacity, first-caller provenance despite a later
+smaller numeric offset, and persistence across ordinary text clearing. Cancellation
+trials use actual world/context/capture queries at32/64-bit widths, show a healthy
+undemanded capture completes without a false failure, then cancel demanded work
+and repeat entry three times. Exact entity/component counts and final world
+cleanup check no replay/retention. Five native trials pass; supported current
+instrumentation remains pending. No scheduler, allocator or evaluator is mocked.
+semantic_dispatch_checks additionally asserts typed transport/admission failures
+survive ordinary diagnostic clearing before repeated entry. Its ELF semaphore
+wrapper remains coordinator-only and delegates all normal production operations.
+
+ROOT identified these two owner's fixtures lack durable runtime registration.
+D1 owns the existing runner/CMake/README integration. A1 authorized receipt entry
+conversion to a callable query test after its freeze. Dispatch needs the existing
+production semantic sources plus ELF --wrap=work_signal_open, so a normal unwrapped
+LR import or serial allocation-fault substitute is invalid. The proposed existing
+CMake source/library composition with three bounded default/admission/source
+registrations preserves all assertions; exact harness choice remains coordinated.
+Formatting-glob discovery is explicitly not a runtime registration receipt.
+
+### A1 resumed receipt profile and deterministic-selection investigation (2026-11-23)
+
+Same session 01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7 resumed with Codex PID32512.
+The required merge-preserving ff-only pull returned Already up to date and kept
+c6ed1d2d and the two pending documentation edits. No old usage-limit response or
+lost job was counted as progress. Both own container and tower-c-validation were
+idle. The authorized own container is now CPU0-11, 12CPU/24GiB, one compiler
+process; A2 has CPU12-23. All current measurements below use this same environment.
+
+The immutable pre-receipt tree8490874169ce199f7f69a3ffecb3624a0caab545 now
+builds successfully with the shipped Linux x64 compiler9653f818 and LLVM19.
+Raw CMake attempts1/2 failed before compilation for missing native/bootstrap
+arguments. Attempts3/4 reached linking but lacked backend_units_close. Matching
+test flags alone did not resolve it: the actual omitted setting was
+CMAKE_PROJECT_scaffolding_INCLUDE pointing to the archived TowerBackend.cmake.
+Corrected build5 passed53 actions,146.19wall/123.36user/21.63sys/778640KiB peakRSS,
+explicit jobs12, CMake parallel1. This is a profiling build, not documented
+clean-bootstrap closure evidence. All failures remain in the lane cache logs.
+
+Receipt comparison uses before binary4e8acdd69f66c80bf54b52a7de1d1b376554b97a5a48ed2fc71e6d1d0a61359e
+and afterc6ed binaryb8bc2055e3394419eed6ccab12b027974fc260765ba574d11b116afba7e57560.
+The existing resource_hook_profile small/large Tower staged inputs, packaged
+Foundation/Bedrock/type resources, targetwasm32-unknown-unknown and --interpret
+are identical; hashes and every command are in semantic_receipt_paired1.log and
+the per-run time logs. One excluded warmup plus three alternating pairs per case
+ran under a fresh A2 quiet ACK. All32 executions matched expected output;
+before/after serial/4worker canonical Foundation matched bytewise and reparsed
+to the expected result. All jobs drained before A2's subsequent quiet profile.
+
+| Input/jobs | Before median wall / CPU seconds / peakRSS KiB | After median wall / CPU seconds / peakRSS KiB |
+| --- | --- | --- |
+| Small/1 | 1.20 / 1.10 / 179080 | 1.19 / 1.10 / 178208 |
+| Small/4 | 1.07 / 1.22 / 194520 | 1.08 / 1.23 / 195664 |
+| Large/1 | 1.22 / 1.13 / 177984 | 1.22 / 1.13 / 178024 |
+| Large/4 | 1.08 / 1.21 / 198636 | 1.08 / 1.22 / 197256 |
+
+CPU is user+system per sample. These short workloads show no material receipt
+regression at this resolution; they do not establish general multicore scaling,
+critical-path/idle costs or a cross-language advantage. Current15 focused cases
+supply exact zero-retention/receipt-lifetime checks, not a complete allocation
+profile. Current sanitizer, integrated provider and final release gates remain
+open. The earlier4CPU/8GiB admission profile is separate, not this comparison.
+
+ROOT's evaluation-order source triage is confirmed in current code: immediate
+restoration in sem_evaluation_fail and preparation publication uses ready batch
+order. Planned fix retains per-producer failures until the canonical
+evaluation_jobs owner-publication frontier permits selection, including an
+earlier demanded producer waiting across pumps. Dispatch order remains ready
+order. A focused before-failure fixture and actual D1 phase receipt are still
+needed; this paragraph is design/source evidence, not an implementation pass.
+L2's historical constructor proposal already exists with the stronger fourth
+WorkTicket* parameter; no new helper/opcode or constructor edit is needed.
