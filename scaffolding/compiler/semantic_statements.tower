@@ -35,7 +35,8 @@ fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
     if !external && !sem_shape(c, n, "body") {
         return;
     }
-    var function_node: FoundationNode* = sem_node(c, n, KFunction);
+    var function_node: FoundationNode* = sem_node_result(c, n, KFunction);
+    if function_node == null { return; }
     if name[0] == 0 {
         var step15 = sem_member(n, "name");
         name = sem_identifier(c, step15);
@@ -101,7 +102,8 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         if !sem_shape(c, p, "name") || !sem_shape(c, p, "type") {
             break;
         }
-        var param = sem_node(c, p, KParameter);
+        var param = sem_node_result(c, p, KParameter);
+        if param == null { return default; }
         var name = sem_identifier(c, sem_member(p, "name"));
         if !sem_ok(c) { return default; }
         if !sem_set_name(c, param, name) { return default; }
@@ -326,7 +328,8 @@ fn sem_labels(c: SemanticContext*, body: void*): void {
             item = sem_unwrap(item);
             var call = sem_control_call(c, item, "label");
             if call != null {
-                var label = sem_node(c, call, KLabel);
+                var label = sem_node_result(c, call, KLabel);
+                if label == null { return; }
                 var name = sem_label_name(c, call);
                 if !sem_set_name(c, label, name) { return; }
                 label.body = body;
@@ -362,9 +365,10 @@ fn sem_block_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticBl
         sem_fail(c, n, "Expected a CoreBlock tree");
         return false;
     }
-    sem_node(c, n, KBlock);
-    c.scope = sem_scope(c, c.scope);
+    if sem_node_result(c, n, KBlock) == null { return default; }
+    var scope = sem_scope(c, c.scope);
     if !sem_ok(c) { return default; }
+    c.scope = scope;
     return true;
 }
 
@@ -421,7 +425,7 @@ fn sem_block_finish(c: SemanticContext*, cursor: SemanticBlockCursor*): u32 {
     return cursor.flow;
 }
 
-fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
+export fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
     var cursor: SemanticBlockCursor;
     if !sem_block_begin(c, n, depth, &cursor) {
         return FlowNext;
@@ -442,7 +446,8 @@ fn sem_if_begin_value(c: SemanticContext*, n: void*, condition: void*): bool {
     if !sem_shape(c, n, "condition") || !sem_shape(c, n, "body") {
         return false;
     }
-    var value = sem_node(c, n, KIf);
+    var value = sem_node_result(c, n, KIf);
+    if value == null { return default; }
     value.value = condition ?? sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
     if !sem_ok(c) { return default; }
     value.body = sem_member(n, "body");
@@ -467,7 +472,8 @@ fn sem_loop_finish(flow: u32): u32 {
 // suspended declaration resumes completion without rebinding or replaying it.
 fn sem_declaration_bind(c: SemanticContext*, n: void*): bool {
     if !sem_shape(c, n, "name") { return false; }
-    var value = sem_node(c, n, KDeclare);
+    var value = sem_node_result(c, n, KDeclare);
+    if value == null { return default; }
     var name = sem_identifier(c, sem_member(n, "name"));
     if !sem_ok(c) { return default; }
     if !value.global { sem_set_name(c, value, name); }
@@ -516,7 +522,8 @@ fn sem_statement_complete(c: SemanticContext*, n: void*, flow: u32): u32 {
 
 fn sem_expression_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
     c.surface_expressions = true;
-    var value = sem_node(c, n, SurfaceDiscard);
+    var value = sem_node_result(c, n, SurfaceDiscard);
+    if value == null { return default; }
     value.value = prepared ?? sem_surface_discard(c, sem_surface_unwrap(sem_member(n, "value")));
     if sem_ok(c) && sem_get(value.value).kind == KTrap { return FlowStop; }
     return FlowNext;
@@ -553,7 +560,8 @@ fn sem_return_source(c: SemanticContext*, n: void*): void* {
 }
 
 fn sem_return_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
-    var value = sem_node(c, n, KReturn);
+    var value = sem_node_result(c, n, KReturn);
+    if value == null { return default; }
     if prepared != null { value.value = prepared; }
     else {
         var source = sem_return_source(c, n);
@@ -564,14 +572,16 @@ fn sem_return_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
 
 fn sem_assignment_target(c: SemanticContext*, n: void*): void* {
     if !sem_shape(c, n, "target") || !sem_shape(c, n, "value") || !sem_shape(c, sem_member(n, "target"), "name") { return null; }
-    var value = sem_node(c, n, KAssign);
+    var value = sem_node_result(c, n, KAssign);
+    if value == null { return default; }
     var target = sem_member(n, "target");
     value.target = sem_location(c, sem_member(target, "name"), 0);
     if !sem_ok(c) { return null; }
     var expected_type = sem_type_copy(c, &sem_get(value.target).type);
     if !sem_ok(c) { return default; }
     if sem_equal(sem_tokens(c, sem_child(target, 0)), "*") {
-        var destination = sem_node(c, target, KLoad);
+        var destination = sem_node_result(c, target, KLoad);
+        if destination == null { return default; }
         destination.value = value.target;
         if expected_type.pointers == 0 { sem_fail(c, target, "Store requires a pointer"); }
         else { expected_type.pointers--; }
@@ -605,7 +615,8 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     var jump_call = sem_control_call(c, n, "jump");
     if jump_call != null {
-        var value = sem_node(c, jump_call, KJump);
+        var value = sem_node_result(c, jump_call, KJump);
+        if value == null { return default; }
         var name = sem_label_name(c, jump_call);
         if !sem_set_name(c, value, name) { return default; }
         var labels = c.labels != null;
@@ -683,7 +694,8 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                                     return sem_if_finish(c, n, yes, no);
                                 } else {
                                     if sem_equal(kind, "CoreLoop") {
-                                        var value: FoundationNode* = sem_node(c, n, KLoop);
+                                        var value: FoundationNode* = sem_node_result(c, n, KLoop);
+                                        if value == null { return default; }
                                         var step99 = sem_member(n, "body");
                                         value.body = step99;
                                         c.loops++;
@@ -698,7 +710,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                                                 op = 15;
                                                 result = 2;
                                             }
-                                            sem_node(c, n, op);
+                                            if sem_node_result(c, n, op) == null { return default; }
                                             if c.loops == 0 {
                                                 sem_fail(c, n, sem_cat(c, kind, " requires an enclosing loop"));
                                             }
@@ -825,7 +837,8 @@ fn sem_run(c: SemanticContext*): void {
             if !sem_shape(c, n, "name") {
                 break;
             }
-            var value: FoundationNode* = sem_node(c, n, KDeclare);
+            var value: FoundationNode* = sem_node_result(c, n, KDeclare);
+            if value == null { return; }
             value.global = true;
             var step42 = sem_member(n, "name");
             var name: u8* = sem_identifier(c, step42);

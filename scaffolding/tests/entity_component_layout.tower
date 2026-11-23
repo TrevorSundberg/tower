@@ -44,7 +44,12 @@ export fn main(argc: i32, argv: u8**): i32 {
         && entity_component_from_data(first.data) == first
         && entity_component_from_data(second.data) == second);
     var page_bytes = compiler_buffer_allocation_size(first.page.allocation.capacity);
-    component_layout_check(budget.used_bytes == store_bytes + page_bytes);
+    // Non-owning receipt snapshots test this payload's exact grant/lifetime.
+    // Descriptor/index grants are separate; entity_accounting checks their census.
+    var page_receipt = first.page.allocation.reservation;
+    component_layout_check(page_receipt.bytes == page_bytes
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
+        && budget.used_bytes > store_bytes + page_bytes);
     var block: WorkReservation = default;
     component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - 1, &block));
     component_layout_check(entity_component_add_result(owner, large_type, &error) == null
@@ -57,8 +62,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     fill(large.data, 91, large_type.data_size);
     var allocation = bits(EntityComponentAllocation*, large.allocation);
     var large_bytes = compiler_buffer_allocation_size(allocation.allocation.capacity);
-    component_layout_check(&allocation.component == large && budget.live == 3
-        && budget.used_bytes == store_bytes + page_bytes + large_bytes
+    var large_receipt = allocation.allocation.reservation;
+    component_layout_check(&allocation.component == large && large_receipt.bytes == large_bytes
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
         && large.data[large_type.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
     var view = entity_view_open(owner);
     component_layout_check(view != null && entity_component_add_result(owner, type, &error) == first
@@ -67,10 +74,14 @@ export fn main(argc: i32, argv: u8**): i32 {
     print(sizeof(usize)); print(sizeof(WorkBuffer)); print(sizeof(EntityComponentPage));
     print(sizeof(EntityComponentAllocation)); print(page_bytes); print(large_bytes);
     component_layout_check(entity_component_remove(owner, type)
-        && budget.used_bytes == store_bytes + page_bytes + large_bytes);
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None);
     component_layout_check(entity_component_remove(other, type)
-        && budget.used_bytes == store_bytes + large_bytes);
-    component_layout_check(entity_component_remove(owner, large_type) && budget.used_bytes == store_bytes);
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.Stale
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None);
+    component_layout_check(entity_component_remove(owner, large_type)
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.Stale
+        && store.storage.owned == null && budget.used_bytes > store_bytes);
     entity_release(owner); entity_release(other); entity_release(type); entity_release(large_type);
     component_layout_check(store.entity_count == 0 && store.component_count == 0
         && entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
