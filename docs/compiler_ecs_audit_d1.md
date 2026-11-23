@@ -2019,3 +2019,63 @@ binary hashes verify unchanged. Remaining before trials were not run; no retry
 turns this failure into a pass. Candidate native and matching instrumented checks
 are next. Extra workload cost must be reported as changed test coverage, not a
 compiler speed comparison or acceptance from selected width alone.
+
+### Frozenbf97 clone validation and successor source review
+
+Native3/3 and ASan/LSan3/3 query runs pass onbf97; all serial calibration and real
+parallel production-kernel receipts are retained in clone_calibrated_2cb32.
+Native selectedwidth512, addresswidth256. Both retain output/ownership assertions;
+chosen width is not a proof of overlap, speedup or future scheduling reliability.
+Original baseline134 remains. Thread build/run is pending. The journal records
+wall/CPU/RSS, exact runners/hooks/source identities and limits; no release claim.
+
+Incoming source only, reviewed without mutating the active closure:
+
+| Path at incoming reviewed identity | Substantive disposition |
+| --- | --- |
+| scaffolding/tests/interpreter_storage.tower at L1e68e2b2 | Four frame/task Capacity/Memory replacement cases preserve pointer, length, capacity, grant slot/generation/bytes and every queued offset. Pop/reuse keeps nested task owners across outer frame moves; final charged/live/physical buffer counts return to baseline. Injection is serial; does not establish threaded instrumentation. |
+| scaffolding/tests/interpreter_call_query.tower at L1e68e2b2 | Complete owner accounting now includes frame capacity and all retained task depths. Four startup-denial boundaries derive exact prior successful owners, retain typed Capacity and precise failure text, permit only preceding buffers and no result/output. Existing suspended-call/capture/aggregate/input-storage assertions remain. |
+| scaffolding/tests/generic_inspection_budget.tower at root97b10daa |98-line public editor regression, widths4/8 andworkers1/4: install real baselines, prove complete generic query, occupy measured remaining shared bytes, require null query, release pressure and prove preserved-cache recovery, then destroy environment/world/ledger with zero bytes/lanes/live. Owner native/address evidence remains distinct from a D1 execution. |
+| scaffolding/tests/editor_world.tower at root97b10daa | Keeps ordinary incomplete syntax inspectable with its preceding declaration and complete:false, distinguishing valid recovery from resource-failed partial output. Query lifetime is scope owned. |
+| scaffolding/tests/frontend_modules.tower at root97b10daa | Uses the public typed resource accessor for read/write clone denial; exact Capacity, repeated rejection and prior cache/world/ledger assertions remain. |
+| scaffolding/tests/frontend_session_world.tower at root97b10daa | Adds direct vector import and checked NUL append before passing formatted seed bytes through the C-string baseline interface; owns formatted result until install returns. |
+| scaffolding/tests/parser_table_budget.tower at root97b10daa | Adds real control/probe/completion partial construction and growth denials, unchanged source parser on probe failure, retry of the same uncommitted step, exact physical retention/restoration, session prepare/grammar denial and reset recovery. Ordinary malformed input retains None resource status. Failed setup never becomes a successful result; owner follow-up for earlier grammar/probe errors remains open. |
+| scaffolding/tests/lr_work_main.tower at root97b10daa | Adds the four-case inspection test exactly once to all/editor; preserves existing calibrated-overlap selector and every previous mode. Root merge contains both registrations. |
+
+These rows are preintegration review, not added current-path counts or runtime
+acceptance. The current tracked census remains499direct/1084total until adoption.
+
+Selected A2 snapshot8e4e2d085a55de95e73fb041929aa75d3de3a22b3ba5b5e98abc55c4cebbbc2c
+source review (not adopted or executed here yet):
+
+| Path | Storage, scheduling and ownership disposition |
+| --- | --- |
+| scaffolding/tests/work_constructor_budget.tower |59-line result-contract fixture derives descriptor/store/index charges from actual types and allocation-size API, distinguishes Invalid from Capacity, preserves a nonempty output owner, completes source-ordered unit tickets and requires zero grants after partial/success cleanup. No concurrent work or wholeheap census inferred. |
+| scaffolding/tests/work_constructor_faults.tower |45-line bounded serial allocation sweep stops only after an observed complete construction; all preceding failures must report Memory/null output with exact physical/live baseline. Test injector is disabled before cleanup and does not claim threaded sanitizer coverage. |
+| scaffolding/tests/work_dispatch_result.tower |164-line native fixture keeps callback opaque only at transport boundary and embeds typed kernel at a nonzero offset. Coordinator-only semaphore-open fault proves pre-dispatch Memory/no execution and subsequent valid retry. Busy must leave earlier borrowed work running and is followed by explicit release/drain; empty calls preserve prior receipt, named entry rejects parallel batches but allows serial work. Independent jobs own scratch and outputs; wrapper is OS test boundary. |
+| scaffolding/tests/work_schedule_budget.tower |240-line graph/pool fixture checks arithmetic rejection without fabricated buffers, partial constructor cleanup, retained reset/stale ticket, unchanged live payload on denied growth, post-join terminal failure/cancel and shared synchronized budget with private graphs. Distinct threads/semaphores demonstrate simultaneous admitted owners; no timed throughput claim. Terminal cancellation settles joined tickets, not arbitrary thread termination. |
+| scaffolding/tests/work_view_invalid_dispose.tower |11-line deliberate compile-negative fixture attempts ordinary vector disposal on nominal borrowed graph view. Preserve invalid operation; success would violate the ownership boundary. Rejection still needs exact selected-compiler evidence. |
+| scaffolding/tests/work_vector_profile.tower |131-line Linuxx64 profile partitions fixed element counts across independent vectors and checks every value/sum, actual intervals, growth count, CPU/wall/RSS and final grants. Requested capacity is not allocator call count. Flagged duplicated accounted-header sizeof(usize)*4 for owner replacement with allocation-size API; no new benchmark results here. |
+| scaffolding/tests/compiler_work_profile.tower |Existing profile rewritten as eight fixed independent metadata plans over shared WorkPool/budget, exact source-order checksum/entity/component totals and final zero grants. Timing excludes pool setup, includes dispatch/join. Charged descriptor/graph/slot buffers explicitly exclude ECS nodes/pages/index allocations; profile does not establish whole compiler scaling or packed payloads. |
+
+Import-only fixture deltas were read for compiler_work, entities, entity_locality,
+entity_pages, entity_stage_concurrent, entity_stage_ownership, entity_store,
+entity_tables, entity_views, work_access, work_budget_shared, work_graph, work_graph_scale,
+work_instrumented, work_kernel_admission, work_kernel_overhead, work_kernel_profile,
+work_named, work_observe, work_order, work_pool, work_ready, work_resume and work_select.
+Standalone allocation providers are necessary OS composition; work_named also
+belongs to the LR runner and its added provider duplicates the existing one.
+Root/A2 already own correction; no D1 duplicate fix. No fixture or invalid-data
+rewrite proposed. Full corrected source and caller compositions must be checked
+before adopting these rows into the current census.
+
+Caller-review qualification: work_instrumented also has an established separate
+host/memory object in TowerWorkPolicyTests.cmake. Its selected new import should
+be removed, preserving that shared provider and the work_budget_allocation caller.
+Routed source-only duplication finding to A2/D2; not yet executed or fixed here.
+
+TSan subsequently passes3/3 on unchangedbf97, with actual six-object read/write
+hooks/IR hashes, empty stderr and final source verification. All9 candidate
+queries pass, preserving original134 separately. Actual selected shape differs
+by instrumentation; no cross-mode throughput comparison. Clone validation scope
+is now evidenced atbf97; incoming source rows and final release remain pending.

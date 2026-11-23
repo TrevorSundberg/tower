@@ -60682,3 +60682,70 @@ three-run and exact matching address/thread LR closure validation are pending.
 No new runner, invalid-memory probe, accepted width-only result or full L2 bundle
 merge. Root's subsequent03:06:13 A1-reviewed authority permits the graph-gated
 resource phase fixture after this frozen validation; no competing edit now.
+
+### D1 calibrated clone native/address evidence, thread gate still running
+
+Frozen sourcebf97d880b89db30e229d691ccf55d3fbc9f9c3d3 changes only the L2 fixture
+from the verified8f46 production closure. Docker image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+LLVM19.1.1, Linuxx64, Release, public checked-in bootstrap, one compilation job,
+CPU affinity0,2 and synchronized real worker transport. No private compiler override.
+Public smallest fixture6.60wall/6.50CPU/241712KiB and native LR rebuild12.04wall/
+11.70CPU/286824KiB pass. Three native query runs pass(.30/.27/.24wall,
+.31/.28/.25CPU,61348/62280/62192KiB), including exact final receipt and empty stderr.
+Each selects width512/depth8,4096nodes per successful worker; fastest serial
+calibration2.575017/4.050574/2.411113ms. Actual two/four-worker distinct-thread
+intervals, cancellation, failed peers and final ownership checks pass. This adds
+checked work relative to the original2048-node trial. Its failing1.25s baseline
+is not a meaningful throughput denominator; no compiler speedup is claimed.
+
+Address cache previously had the parser benchmark project include and modules
+OFF; thread cache likewise did not match the complete native closure. Reconfigure
+both through canonical TowerBackend with module/work/backend/driver/execution/
+format/storage targets enabled, preserving logs and rebuilding actual dependencies.
+Address40-step build392.46wall/385.21CPU/844492KiB passes. ASan/LSan query3/3 pass
+with detect_leaks=1:halt_on_error=1, each within unchanged180s child bound and
+empty stderr:1.67/2.05/1.55wall,1.73/2.09/1.61CPU,241972/245504/241672KiB.
+Instrumented trials all selectwidth256,2048nodes, and retain actual overlap checks.
+Runnerf79817fbe498250a27f1c19205f265c2e426637a9075cefdcb522dc14cac6d89;
+actual ASan load/store hooks and object/generated-IR hashes checked for LR main,
+parser-nodes, semantics, query-checks, entities and evaluation. Source manifest
+verified unchanged after address execution. TSan remains RUNNING, not passed.
+Only address/thread modes are supported by the LLVM19 tooling; source-language
+UBSan and external-library instrumentation are not provided. No deliberately
+invalid-memory/race probe or universal-race-freedom conclusion.
+
+Read-only successor review while this closure stays frozen: complete L145dd
+bundle975790 and root97 inspection join0d75 verified/fetched, not merged. Reviewed
+L1 frame/task replacement ownership and four measured startup denials; root
+inspection/control/session failure fixtures and their typed-error/recovery
+contracts. Selected A2 nominal/nongeneric8e4 patch retains original graph/pool
+modules; discarded API/literal experiments must not be adopted. New tests cover
+constructor cleanup, typed transport failure/Busy/empty/named semantics, graph
+reset/cancel/terminal denial and invalid borrowed-view disposal. Profiles distinguish
+actual intervals and charged buffers from total heap or compilation throughput.
+Routed profile header-size duplication to A2: use compiler_buffer_allocation_size
+instead of sizeof(usize)*4. Root03:18 assigns the exact type_object_storage hook
+to L2; D1 has no competing storage_main edit. Resource phase adaptation is approved
+and next after instrumented jobs drain, with per-job production-delegating probes.
+
+D1 selected-source caller audit found a second potential duplicate provider:
+A2 adds host.memory to tests/work_instrumented, while TowerWorkPolicyTests.cmake
+already compiles and links both tests/work_instrumented and host/memory. Routed
+exact one-import removal to A2/D2 via coordinator, preserving the existing shared
+host_memory object used by work_budget_allocation. This is source evidence, not
+a reproduced link failure. No manifest change/new provider/new target proposed.
+
+TSan completes on the samebf97 frozen closure:60-step canonical build285.36wall/
+279.24CPU/794908KiB, followed by3/3 query passes2.92/3.78/3.90wall,
+2.97/3.79/3.92CPU,134436/133148/132556KiB. All final receipts/empty stderr,
+six actual read/write hook/object/IR checks and final source hashes pass. Every
+thread trial selectswidth256 and records actual distinct-thread clone overlap.
+Runnerc748806c428427424bca10f992b903d638ea286ed0443b0ee78dd523a7cc6656,
+nativeafter6183560a14fed709e2027982998291ab2f0546a381ccf9eb2a03a563c9448cb4.
+Both containers contain only their idle init after session87903 exits0. D1 saves
+all actual runners, six object/IR pairs per instrumented mode, raw logs and source
+copies in external clone_bf97_receipt; releases only its drained heavy.lock at
+2026-11-23 03:26:11UTC. Original prechange134 remains. Scope is the registered
+query group atbf97, not allcompiler behavior or incoming frame/constructor ABI.
+Disk138GiBfree/RAM9.2GiBavailable; measured children report0swaps while host swap
+occupancy grew to7.5GiB, so no host-wide no-swap claim. Newer joined gates remain.
