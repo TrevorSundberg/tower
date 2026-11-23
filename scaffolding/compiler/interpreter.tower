@@ -998,7 +998,15 @@ fn ix_store(m: IMExecution*, target: void*, value: u64, offset: usize): void {
     }
 }
 
+fn ix_schedule(m: IMExecution*, node: void*, loop_resume: bool, phase: usize, offset: usize): bool {
+    if !ix_ok(m) { return false; }
+    if im_task_push(m.state, node, loop_resume, phase, offset) { return true; }
+    ix_fail(m, "Cannot allocate interpreter task storage", offset);
+    return false;
+}
+
 fn ix_enter(m: IMExecution*, node: void*): void {
+    if !ix_ok(m) { return; }
     var n = im_cached_node(m.state, node);
     var i = n.items.length;
     loop {
@@ -1012,7 +1020,7 @@ fn ix_enter(m: IMExecution*, node: void*): void {
         var test = c.kind == KType;
         omitted = im_or(omitted, test);
         if !omitted {
-            im_task_push(m.state, child, false, 0, 0);
+            if !ix_schedule(m, child, false, 0, c.start) { return; }
         }
     }
 }
@@ -1144,7 +1152,10 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
             i++;
         }
     }
-    im_frame_push(m.state, binding, base, offset, node);
+    if !im_frame_push(m.state, binding, base, offset, node) {
+        ix_fail(m, "Cannot allocate interpreter frame storage", offset);
+        return;
+    }
     ix_enter(m, function.body);
 }
 
@@ -1173,7 +1184,7 @@ fn ix_needs(m: IMExecution*, node: void*): bool {
 
 fn ix_queue(m: IMExecution*, node: void*, phase: usize, offset: usize): void {
     if node != null {
-        im_task_push(m.state, node, false, phase, offset);
+        ix_schedule(m, node, false, phase, offset);
     }
 }
 
@@ -1201,7 +1212,11 @@ export fn ix_init(m: IMExecution*): void {
         m.state.done = true;
         return;
     }
-    im_frame_push(m.state, root, base, 0, null);
+    if !im_frame_push(m.state, root, base, 0, null) {
+        ix_fail(m, "Cannot allocate interpreter frame storage", 0);
+        m.state.done = true;
+        return;
+    }
     if !ix_initialize_frame(m, base, size) {
         return;
     }
@@ -1340,7 +1355,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         }
         if m.context != null && m.context.dependency_kind != null {
             if ix_pending(m, task.node) {
-                im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                 m.state.steps--;
                 break;
             }
@@ -1356,7 +1371,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
             im_cache_clear(m.state);
             if ix_needs(m, task.node) {
                 var resume = task.loop_resume != 0;
-                im_task_push(m.state, task.node, resume, 1, n.start);
+                if !ix_schedule(m, task.node, resume, 1, n.start) { break; }
                 var assign = n.kind == KDeclare;
                 var test = n.kind == KAssign;
                 assign = im_or(assign, test);
@@ -1480,7 +1495,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                 if m.context != null && m.context.waiting_function {
                                     // Callee and arguments are already cached. Resume
                                     // this finish task, never their effects or statements.
-                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                                     m.state.steps--;
                                     break;
                                 }
@@ -1490,7 +1505,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                 // FinishValue; completing its children cannot evaluate the parent.
                                 var result = ix_evaluate_uncached(m, task.node, n, task.offset);
                                 if m.context != null && m.context.waiting_type {
-                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    if !ix_schedule(m, task.node, task.loop_resume != 0, task.phase, task.offset) { break; }
                                     m.state.steps--;
                                     break;
                                 }
@@ -1582,7 +1597,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         return;
     }
     if n.kind == KLoop {
-        im_task_push(m.state, task.node, true, 0, 0);
+        if !ix_schedule(m, task.node, true, 0, n.start) { return; }
         ix_enter(m, n.body);
         return;
     }
@@ -1598,7 +1613,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
             im_task_pop(m.state, &at);
             if at.loop_resume != 0 {
                 if n.kind == KContinue {
-                    im_task_push(m.state, at.node, true, at.phase, at.offset);
+                    ix_schedule(m, at.node, true, at.phase, at.offset);
                 }
                 break;
             }
@@ -1637,7 +1652,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
                 break;
             }
             i--;
-            im_task_push(m.state, body.items.data[i], false, 0, 0);
+            if !ix_schedule(m, body.items.data[i], false, 0, n.start) { return; }
         }
         return;
     }

@@ -59275,3 +59275,175 @@ receipt. This is a proposal only. Fast-cache register/word arrays and map/type/
 function/diagnostic arrays remain separate explicit boundaries. No budgeted-null
 or partial scheduling continuation may be consumed as success. Before/after
 profiles must use the same joined source and resources outside that exact slice.
+### L1 frame/task ownership baseline and checked-growth draft (2026-11-23)
+
+Frozen main15ff7d2 (root8 plus complete L2018d and matched B2 caller606c)
+passes public-pin smallest generics/frontend_modules/language_query, the coherent
+68-step native build, and query-smoke, production units, backend-overlap, serial
+storage/parser and aggregate-stages. Build139.40wall/794892KiB; units24.88wall,
+39.97CPU/804748KiB; backend10.46wall/14.33CPU/530000KiB. Source SHA manifests
+before/after match. Complete saved binaries/share are in
+/root/.cache/tower/l1_before_frame_tasks_20261123 and explicit frozen resources
+in l1_resources_frame_tasks_20261123. Compiler98296342, LRc9af1933,
+executionff34e1d4, storage0d1a9d21. Logs are L1/logs/frame_tasks_before_*.
+This validates the recorded clone union, not future Publish/constructor layouts.
+
+Read every im_frame_push/im_task_push caller and all capacity-owned frame cleanup.
+The missing physical ownership boundary is real: ordinary vector reserve could
+abort before emitting a compiler failure, and neither scheduling family charged
+the shared world ledger. Proposed then implemented a five-file draft using
+work_vector for IMState.frames and IMFrame.tasks, borrowing the frozen state
+budget, latching the first WorkBudgetError, returning checked bool from both
+pushes, and routing task failures through an execution-context diagnostic helper.
+All frame pushes check before entering a body; partial task scheduling terminates
+without executing/replaying those tasks. Per-depth reuse is preserved. Growth is
+only requested by length+1 when length equals old capacity, so the live copied
+prefix contains every retained nested owner; all new capacity slots are zeroed.
+Children are disposed before the parent buffer/grant. L2 independently reviewed
+that invariant and the invocation boundary; root approved the owned slice.
+No fast-cache/map/type/function/diagnostic or whole-heap accounting claim follows.
+
+Added checks in the existing storage/query fixtures, not a new runner: exact
+capacity/Memory denial preserves payloads, counts and receipt slot/generation;
+frame reuse survives outer growth; all capacity-retained children retire; startup
+denies memory, frames, initialization map and tasks at measured physical receipt
+boundaries with exact diagnostics/no effects. Original memory/map denial coverage
+remains. Query ledger sums now include both scheduling families. Derived array
+counts replace touched duplicated fixture bounds. Draft initially used reserved
+identifier expected; smallest predecessor compilation rejected it at test332.
+Production interpreter passed4.65wall/197972KiB. All jobs drained before renaming
+the test local wanted_error. Preserve failed frame_tasks_smallest logs; retry and
+full new-layout validation are pending. This is not accepted runtime evidence.
+
+Equivalent small/large runtime call fixtures are plain Tower, with independent
+arithmetic oracles N*(N+3)/2 for1000/100000 calls. They will run through saved
+before/current-after compilers with the same resources, plus existing aggregate
+and production frontend profiles. L2 owns the current shared host slot. One
+B2-owned observer-timeline diagnostic patcha08e will be compiled against a copied
+old01e source tree and the unchanged old TSan objects after drain; no deadline or
+assertion changes, and no reinterpretation of the prior native134 as a pass.
+
+Verified/fetched root6b8355 bundleaa7eaf7c; its production compiler code equals
+main15ff. Remaining diff is D1 test registration/selectors and D2 bootstrap symbol
+policy. Defer adopting those while preserving the exact frame/task paired source
+comparison. Read and acknowledged D2's reservation for Publish imports in the
+five explicit interpreter/evaluation entrypoints; no conflicting L1 entrypoint
+edit. Require complete sole-definition native/WASI/generation evidence from the
+coherent A1/D2 owner closure before treating that later source as validated.
+The single B2 observer-timeline diagnostic on frozen old01e is complete:
+166.63wall/197.56CPU/678252KiB; native134/SIGABRT, no TSan report (empty stderr).
+Events are frontend1 enter569110895739ns, frontend2 enter569110910295ns,
+frontend2 timeout599000015208ns: entry spacing14.556us and held wait29.889104913s.
+There is no frontend1 completion or backend-entry event before failure. The
+existing seconds-based30s bound therefore expires while the first frontend has
+not completed, before backend admission. This supports the owner's deadline-scope
+attribution; it is not successful overlap or proof of an underlying infinite
+stall. Do not treat GNU time's trailing Exit status0 after its signal6 line as a
+pass. Shell status134 and raw trace are authoritative. B2 owns the policy/fix;
+no production/deadline change was made here and this run will not be repeated.
+
+The only rebuilt object is the observer-containing LR test unit, emitted from a
+copied old source tree using public9653 and bound by the existing runtime_bind,
+then instrumented by the existing Tower instrument_llvm tool. The real old
+production objects and oldc603 executable are unchanged, verified by before/after
+SHA manifests. No new frame/task layout was linked into this diagnostic. Complete
+receipt L1_stream_timeline_receipt.tgz SHAb29b4bf565440d91dc6a9123bca82eb34e0ec59b9e9139e0781c3039898f29c3
+contains raw stdout/stderr/time/status, object hashes and emitted artifact hashes.
+All processes drained before primary host release. Main valid-program compiler
+work continues; no deliberate invalid-memory/race sensitivity probe was used.
+
+The existing interpreter_storage fixture runs in portable parser checks, not the
+native storage runner. Its new low-level scheduling cases therefore also need a
+thin local Tower main calling that unchanged existing fixture, linked only with
+the established single-owner memory/trap objects. The prepared entry adds no
+runner to the repository and no alternate storage implementation. Native query
+coverage remains in the ordinary production LR runner. Do not count a native
+storage-suite pass as execution of the new interpreter_storage cases.
+### L1 frame/task coherent validation and measured cost (2026-11-23)
+
+Implementation now includes six owned paths: interpreter_types/storage/interpreter,
+fast_interpreter and the existing interpreter_storage/interpreter_call_query tests.
+Review found two FastInterpreter graph-to-cache disposals still using vector;
+the first full build rejected these. They now use work_vector_dispose, with an
+explicit defining import. No fast execution algorithm or cache representation
+changed. Corrected smallest storage/query checks and the complete existing storage
+fixture through a thin external Tower main pass three times (executable34883b54).
+That fixture uses the existing single-owner allocation instrument, not threaded
+sanitization. It checks exact Capacity/Memory rollback, unchanged receipt identity,
+reuse across frame growth, partial grants and zero final owned storage.
+
+Preserved an actual failed incremental execution: control-smoke native139 after
+Copy-Item retained draft source mtimes older than baseline objects. The changed
+IMState layout had not rebuilt driver/LR/profile wrappers. Their dependency files
+correctly named interpreter_types; this was source materialization metadata, not
+a missing CMake dependency. Query/storage passes from that mixed-ABI run do not
+qualify the joined change. After actual process drain, rewrote only the three
+known changed inputs with identical bytes, checking hashes and recording metadata
+in frame_tasks_materialization.tsv. The resulting 17-step build regenerated all
+actual dependents in53.32wall/77.38CPU/794452KiB. No blanket touch, limit change or
+failure suppression. Frozen source manifests match before/after.
+
+The coherent compiler1f8e7e5d, LR5aedf6af, execution3c568bb1, storage0ae1c2b0
+then pass query-smoke, storage, control-smoke, production units, backend-overlap,
+aggregate-stages and full types. Control42.59wall/264340KiB; types57.63wall,
+67.63CPU/438684KiB. Types includes graph/fast/canonical and constructor checks.
+The bound-world fixture now accounts for both scheduling owners: small pair4992
+retained/5088peak bytes; large pair529024/594336, versus previous1216 and525248
+retained. These are physical receipts including headers/replacement overlap for
+the covered families, not the whole interpreter heap. Root independently reviewed
+the complete six-file patch23fffa48, including live-prefix growth and child disposal.
+
+Paired measurements use Ryzen5900HX8c/16t, WSL Ubuntu24.04.5, LLVM19.1.1,
+x86_64 Linux Release/public bootstrap, identical frozen resources and before982963
+versus after1f8e7e compilers. Host was exclusive and awake. One warmup plus three
+balanced retained pairs at jobs1/4 cover1000/100000 ordinary nested calls and the
+existing production frontend profile (four units or one unit with256 bodies).
+All64 processes exit0. CLI results exactly equal independent N*(N+3)/2 oracles
+501500/5000150000. Frontend answer/format checks pass; raw canonical hashes match
+17697577322696030917 for units and12683198132697182263 for bodies across all runs.
+Medians are wall seconds / process CPU seconds / peak RSS KiB:
+
+| Workload | Jobs | Before | After |
+| --- | --- | --- | --- |
+| Small calls | 1 | 1.45 / 1.48 / 181852 | 1.47 / 1.50 / 177980 |
+| Small calls | 4 | 1.25 / 1.55 / 199624 | 1.26 / 1.56 / 199612 |
+| Large calls | 1 | 1.70 / 1.71 / 181664 | 1.75 / 1.75 / 181736 |
+| Large calls | 4 | 1.48 / 1.78 / 199564 | 1.51 / 1.81 / 199600 |
+| 256 bodies | 1 | 1.58 / 1.58 / 187540 | 1.54 / 1.57 / 187624 |
+| 256 bodies | 4 | 1.35 / 1.73 / 210448 | 1.32 / 1.69 / 210460 |
+| Four units | 1 | 5.93 / 6.00 / 213240 | 5.61 / 5.89 / 213328 |
+| Four units | 4 | 2.10 / 7.87 / 567416 | 2.71 / 7.81 / 566116 |
+
+The last row required investigation: inner compilation medians2031.226->1974.543ms
+while two after runs spent an extra0.67/0.73s outside that region, without matching
+CPU cost. Preserve these observations, not a performance-neutral claim. A narrow
+unchanged-binary control wrote stdout/time on Linux ext4, copied only after drain:
+one warmup plus five balanced pairs, all12 exact canonical/answer/overlap checks
+pass. Medians external2.12/7.94/566396 ->2.11/7.92/566500; inner2047.408->2040.277ms.
+All retained outside-region gaps are66-79ms; the long tails did not recur. This
+supports host/output-path variability but does not establish a filesystem cause.
+No outlier was deleted or original failure relabeled.
+
+Existing --timings provides execution-phase attribution without new test logic:
+16 additional processes (small/large, jobs1, warmup plus three pairs), all exact
+outputs. Small execution median5.008->3.793ms; large239.497->257.476ms, about7.5%
+extra execution time. End-to-end original large cost is about2-3%. Reviewing the
+hot path shows additional checked task scheduling and WorkVector owner/length
+validation; no individual check is independently proven causal. Keep the measured
+cost and mandatory validation rather than bypass ownership on existing capacity.
+No whole-compiler speedup or performance neutrality is claimed.
+
+Actual four-unit outer_peak4 demonstrates overlap; one-unit bodies outer_peak1
+must not be called outer concurrency. Body retained1823508/1820428 and peak
+55274388/55231172 (jobs1/4), ledger5242880 are unchanged. Four-unit retained
+7196567/7184247 is unchanged; ledger5242880/20971520. Parallel peak bytes vary with
+real scheduling; original medians218930815->219232367 are not unexplained retained
+leaks. All timing samples, source/binary hashes, stdout/stderr and authoritative
+statuses remain in L1/logs/frame_tasks_{profile,ext4,timing,joined}_*.
+
+Current-source instrumentation is next. Old01e TSan receipts remain source-specific;
+its failed backend deadline is still failed. The approved owner-calibrated selector
+is separate and not adopted into these profiles. Root0c8 Publish/grammar/test hooks,
+constructor dispatch and TypeObjectIndex remain outside this frozen slice. Later
+integration needs coherent rebuilds, supported instrumented valid workloads, public
+bootstrap/browser/generation and atomic publication/hosted evidence. Goal active.

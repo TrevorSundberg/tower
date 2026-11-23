@@ -1,5 +1,17 @@
 # L1 execution ownership audit
 
+Current owned follow-up: main15ff plus the six-file frame/task WorkVector change
+passes a coherent native rebuild and query/storage/control/units/backend-overlap/
+aggregate/types checks. The existing low-level storage fixture passes three times,
+including physical denial, exact rollback and retained child-owner cleanup.
+FastInterpreter's graph handoff disposes the matching new owners. All 64 paired
+profile processes preserve outputs and canonical hashes. Large call-heavy runs
+cost about 2-3% end to end; separate phase timing shows about 7.5% execution cost.
+Two slow process exits outside compilation did not recur in twelve Linux-local
+output controls; their original measurements remain recorded, cause unproven.
+Current instrumentation and integrated publication remain pending. Preserve older
+evidence below as historical; see the journal for source identities and limits.
+
 This is an in-progress audit of `6282238779034442e0578d76b921ca117df819f1`,
 begun on 2026-11-22. It is not an acceptance or publication receipt. Paths below
 are relative to `scaffolding/compiler/` unless qualified. Tests cited here are

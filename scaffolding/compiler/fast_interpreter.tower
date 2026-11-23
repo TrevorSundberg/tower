@@ -7,6 +7,7 @@ import interpreter_storage;
 import interpreter;
 import type_objects;
 import .library.vector;
+import .library.work_vector;
 import .library.float_bits;
 
 var FMIntegerBinaryBase: usize = 64;
@@ -827,10 +828,10 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     // still the program and is available to formatting/reflection outside us.
     im_frame_pop(m);
     var graph_frame = &m.frames.data[0];
-    vector_dispose(&graph_frame.tasks);
+    work_vector_dispose(&graph_frame.tasks);
     vector_dispose(&graph_frame.values);
     vector_dispose(&graph_frame.addresses);
-    vector_dispose(&m.frames);
+    work_vector_dispose(&m.frames);
     vector_dispose(&m.node_cache);
     return f;
 }
