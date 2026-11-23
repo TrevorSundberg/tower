@@ -131,3 +131,34 @@ all possible user grammar shapes. Previously adopted malformed Node controls
 remain D2's separate artifact evidence. ROOT owns joined reactor/release and
 integrated instrumentation gates. The service-rejected instrumentation operation
 was not retried. Three preserved stashes and `todo.txt` are untouched.
+
+## Merged-source verification
+
+Implementation `ee91c300` merged complete published `340989cf` as
+`d4fc3225a6f00cac7dba686d6b3ac40aaa1a948b`, tree
+`73e1e5c722c6223499304675bb5d316247d97b7e`, after the required ff-only pull
+refused ordinary divergence. Own producer/fixture/registration blobs remained
+identical. Incoming B1 grammar/cache and L2 formatter/reconstruction changes
+really affect executed dependencies, so the 14 affected build actions were
+refreshed once (44.223 wall /66.990 CPU s,1,073,348KiB).
+
+All32 shapes pass again (19.729/29.044s,437,584KiB); query-smoke passes
+(3.686/4.591s,415,056KiB). One existing RootCall lifecycle check additionally
+passes exact42, serial/four-worker canonical equality at32/64 and serial
+Foundation reconstruction (1.967/1.833s,223,584KiB). Two healthy profile checks
+pass at workers1/4:0.464/0.407s,177,336KiB and0.536/0.521s,180,276KiB, with zero
+bytes/lanes/live grants. Ledger peaks now107,430,664/107,378,560B. Their source
+and imported-source hashes are unchanged; the newly published formatter
+intentionally reduces canonical spelling to11,412bytes/hash13963953848021265584,
+identical across workers. These checks validate that new boundary; they do not
+replace or extend the earlier matched before/after comparison or attribute
+upstream changes to this shape fix.
+
+Merged runner SHA256 `1ad9e5c673533dd6cbe9bf48191bf33e4960a0bbc2fedc908686aecd99428fee`;
+profile `736547c316002b00cb548cd41e7e0491f7449c201dd56d14731574db1327c59b`;
+semantics object `594f54a98a4cc297b7115ef85d59ca3c4838200273885239a08471669186cf81`.
+The checked79-entry fixture and368-entry profile manifests have SHA256
+`df33d68c805af6739194eebbca001cc7137ff29664d8c4be14b2511ded3533bb` and
+`3c5c9071dc2a46ae5142f5d079c06e6c2c3cab8bde8669cee1ff5544f1391cf5`.
+`merged.sh` and all merged logs/statuses remain beside the initial receipts.
+All processes drained; ROOT's runtime adoption and integrated gates remain open.
