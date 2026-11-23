@@ -2199,3 +2199,48 @@ constructor and runtime.budget but raw allocation; diagnostic vector ownership
 also crosses parser_stream_return. No partial buffer conversion is adopted.
 Fullfrontend300s timeout, remaining raw storage and final joined clean bootstrap/
 generation/browser publication/hosted verification remain explicit open gates.
+
+### Request descriptor: implementation pending final evidence
+
+Reviewed6fd430af and the owned candidate. parser_state.tower already has complete
+whole/prefix typed constructor outcomes and a runtime-owned ledger. Its descriptor
+now charges sizeof(ParserRequest) through WorkBuffer before allocation, retaining
+its byte-only receipt until destruction. The destructor copies the receipt out
+before freeing the object. Partial forest/control failure releases the descriptor.
+Tests in parser_table_budget.tower measure actual footprint/allocation positions,
+zero-available-byte admission, minus-one rollback, Memory failures, stream-preserving
+retry and ledger/allocator cleanup for both input modes. Before64889 actually
+failed the no-allocation assertion; after native66619 pending. No public API or
+shared semantic layout change; no separate authoritative graph/scheduler.
+
+parser_stream.tower's moved diagnostic vectors remain an explicit cross-owner
+accounting gap; there is no partial work_vector substitution. Raw LR analysis and
+lexer storage are also still open. The default fullfrontend timeout remains open:
+corrected minimal debugger markers prove frontend_world_tests completes, and the
+later sampled stack is grammar construction during frontend_compile_sources.
+High-frequency debugger samples are not performance measurements. Initial wrong
+breakpoint offsets induced a rejectedSIGABRT probe; all logs/drains are preserved.
+No cache/private pin establishes release closure; publication remains unleased.
+### Complete pattern result consumer batch
+
+Reviewed5f3404bb plus the owned batch. ROOT transferred frontend_table.tower and
+frontend_pattern.tower. Their result variants now use complete typed grammar/LR
+producers and a world-budgeted character forest. frontend_world.tower preserves
+kind/constructor/read causes; syntax_session_next.tower consumes them before
+ordinary text diagnostics. lr_tree.tower and parser_nodes.tower retain actual label
+copy failures. The shared entity graph remains authoritative; wrappers preserve
+legacy callers, and all new result outputs are per-call, not shared budget.error.
+No shared layout or syntax adoption. regex.tower exercises real Capacity/Busy,
+measured Memory failures, exact cleanup/retry and syntax/error separation; native
+85600 parser/regex/query passed. Broader sanitizers/portable release are explicitly
+deferred under ROOT's integrated-batch directive, not relabeled as current passes.
+
+Read-only critical-path finding: syntax_session_declare calls syntax_version_cached
+for each activated grammar boundary. A miss calls syntax_version_build and the
+complete parser/LR construction; cache matching structurally compares ordered
+rules/tokens. Imports pass through syntax_session_open and that same declaration
+path, as confirmed in the fullfrontend sampled stack. The order is semantic, so
+neither batching activation past a declaration nor sharing mutable session caches
+is justified. Next evidence should distinguish cache misses from LR phase cost
+using existing counters/sparse timing, not thousands of GDB breakpoints. No claim
+that this alone explains the unresolved300second fullfrontend timeout.

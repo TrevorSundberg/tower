@@ -22,6 +22,8 @@ extern fn entity_store_count(store: void*): usize;
 extern fn parser_stream_utf8_null_terminated_create(text: u8*): void*;
 extern fn parser_stream_destroy(stream: void*): void;
 extern fn parser_recognizer_create(table: ParserHostTable*, stream: void*): void*;
+extern fn parser_recognizer_create_result(table: ParserHostTable*, stream: void*, error: WorkBudgetError*): void*;
+extern fn parser_recognizer_create_prefix_result(table: ParserHostTable*, stream: void*, error: WorkBudgetError*): void*;
 extern fn parser_recognizer_destroy(request: void*): void;
 extern fn parser_recognizer_step(request: void*, running: bool*): void*;
 extern fn parser_recognizer_resource_error(request: void*): WorkBudgetError;
@@ -62,6 +64,86 @@ fn parser_control_occupy(budget: WorkBudget*, available: usize, reservation: Wor
 
 struct ForestBudgetSpan { first: usize; last: usize; }
 var ForestGrowthProbeLimit: usize = 128;
+
+fn parser_budget_request(table: ParserHostTable*, stream: void*, prefix: bool, error: WorkBudgetError*): void* {
+    if prefix { return parser_recognizer_create_prefix_result(table, stream, error); }
+    return parser_recognizer_create_result(table, stream, error);
+}
+
+// The descriptor, forest and LR control share the runtime's borrowed ledger.
+// Measure their actual footprint and allocation count, without exposing private layouts.
+fn parser_request_budget_trial(prefix: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Request physical ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Request world ledger");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Request component kinds");
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var mode = prefix ? ParserReadMode.Constructs : ParserReadMode.WholeInput;
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, convert(u32, mode));
+    utility_check(table != null && parser_table_build(table, true), "Request frozen table");
+    var input: u8* = "ab";
+    var stream = parser_stream_utf8_null_terminated_create(input);
+    utility_check(stream != null, "Request input owner");
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Request initial ledger");
+    var retained = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    var request = parser_budget_request(table, stream, prefix, &error);
+    var allocations = tower_test_buffer_allocations() - calls;
+    var opened: WorkBudgetSnapshot = default;
+    utility_check(request != null && error == WorkBudgetError.None && allocations != 0
+        && work_budget_snapshot(&budget, &opened) && opened.used_bytes > before.used_bytes
+        && opened.live > before.live && opened.used_lanes == before.used_lanes,
+        "Request owns physical bytes without worker lanes");
+    var footprint = opened.used_bytes - before.used_bytes;
+    parser_recognizer_destroy(request);
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    calls = tower_test_buffer_allocations();
+    request = parser_budget_request(table, stream, prefix, &error);
+    utility_check(request == null && error == WorkBudgetError.Capacity
+        && tower_test_buffer_allocations() == calls,
+        "Request descriptor byte denial occurs before any allocation");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release request descriptor blocker");
+    parser_control_occupy(&budget, footprint - 1, &occupied);
+    request = parser_budget_request(table, stream, prefix, &error);
+    var failed: WorkBudgetSnapshot = default;
+    utility_check(request == null && error == WorkBudgetError.Capacity && work_budget_snapshot(&budget, &failed)
+        && failed.used_bytes == before.used_bytes + occupied.bytes && failed.live == before.live + 1
+        && failed.used_lanes == before.used_lanes && tower_test_buffer_count() == retained,
+        "Request footprint minus one releases every partial owner");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release request footprint blocker");
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        tower_test_buffer_fail_after(failure);
+        request = parser_budget_request(table, stream, prefix, &error);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        utility_check(request == null && error == WorkBudgetError.Memory && work_budget_snapshot(&budget, &failed)
+            && failed.used_bytes == before.used_bytes && failed.live == before.live
+            && failed.used_lanes == before.used_lanes && tower_test_buffer_count() == retained,
+            "Request allocation failure preserves Memory and releases partial grants");
+    }
+    request = parser_budget_request(table, stream, prefix, &error);
+    utility_check(request != null && error == WorkBudgetError.None, "Request constructor retry");
+    var running = true;
+    var result: void* = null;
+    while running { result = parser_recognizer_step(request, &running); }
+    utility_check(result != null && parser_recognizer_resource_error(request) == WorkBudgetError.None,
+        "Failed constructors leave the borrowed stream unconsumed");
+    var data = bits(ParserMatchData*, compiler_world_component(world, result, CompilerParserMatch));
+    utility_check(data != null && data.start == 0 && data.length == strlen(input), "Retried request preserves the complete input span");
+    entity_release(result);
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(stream);
+    parser_table_destroy(table);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && work_budget_snapshot(&budget, &failed)
+        && failed.used_bytes == 0 && failed.live == 0 && work_budget_dispose(&budget), "Request ledger outlives and releases all owners");
+    utility_check(tower_test_buffer_count() == buffers, "Request failures and retry release every buffer");
+}
 
 // Isolate the temporary index ledger from entity storage. Discover its actual
 // growth boundary by denial rather than duplicating the vector's capacity policy.
@@ -588,6 +670,8 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
 }
 
 fn parser_table_budget_tests(): void {
+    parser_request_budget_trial(false);
+    parser_request_budget_trial(true);
     parser_forest_budget_test();
     parser_tree_budget_trial(TableOwnerFixture.Sequence, false, false);
     parser_tree_budget_trial(TableOwnerFixture.Sequence, true, false);

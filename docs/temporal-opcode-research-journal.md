@@ -79835,6 +79835,156 @@ contains currentea1b evidence and frozen81c26 inputs. All owned jobs have exited
 no profile hold or watcher remains. B1 primary KinmenB compute ownership continues
 under ROOT's13:16:58 coordination grant. Evidence commit follows; source has not
 yet adopted2252 or begun the next request-storage change.
+## B1 request descriptor admission and full-frontend diagnosis (2026-11-23)
+
+Implementation follows the complete6fd430af join of68fb grammar producers and
+ROOT2252 query/interpreter-map history. No signatures or private layout were copied
+in isolation. Native32843 rebuilt the interpreter first and affected providers
+through depfiles: interpreter5.91s/402844KiB, dependent22.68/798856, fullunits21.34/
+754692, LR1.79/116704, parser.04/54124, query.23/87956, grammarresource1.26/52732,
+editor10.50/875800, storage.24/99220; runtimefault/resourcephases also passed.
+CPU totals and complete GNUtime output remain request_join_*.log. These checks
+are6fd evidence; ea1b sanitizer/browser results were not relabeled.
+
+Same original PID33768/session, gpt-6-astra/xhigh/default. A plain startup
+pull --rebase attempted to flatten the existing merged history and conflicted.
+Rebase was immediately aborted, preserving6fd and the clean tree; the established
+merge-preserving --rebase=merges --autostash --ff-only pull then reported up to date.
+Restoration changed some mtimes, so later depfile rebuilds legitimately regenerated
+unchanged providers; old objects were not presented as fresh validation. Todo's
+SHA256e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327 is unchanged.
+
+The unresolved default frontend300s/124 received bounded diagnostic samples on
+unchanged6fd. An entry-only frontend_world_tests breakpoint followed by a60s LR
+sample does NOT prove the sampled function still belongs to the world fixture.
+High-frequency breakpoint tracing showed thousands of allocation/table trials
+but materially added debugger overhead. Minimal instruction-boundary markers,
+derived from the actual binary's symbol/disassembly addresses, prove all world
+fixtures finish before30s. The sampled stack then runs LR closure/LALR through
+parser_table_build/finish_result, syntax_version_build/cached, session declaration,
+module import and frontend_compile_sources. A specific later compiler fixture is
+not yet established. No deadlock, full-suite pass or raised timeout is inferred.
+All diagnostic children drained. One initial boundary probe had two incorrectly
+calculated offsets and induced SIGABRT despitegdb exiting0; it is retained and
+rejected as production failure evidence. Corrected probes timed out124 normally.
+The complete logs request_join_full_frontend_* preserve all failures and stacks.
+ROOT/D1 received the finding; first routing to nonexistent root/inbox.md failed,
+then the actual parent inbox received it. No output was treated as progress merely
+because a wrapper returned0.
+
+File findings: parser_state.tower owns a private ParserRequest descriptor, forest,
+control, completion and unread node, borrowing runtime/table/stream. Its existing
+whole/prefix result chain already propagates exact WorkBudgetError. Only the
+request descriptor still used raw compiler_buffer_allocate. The implementation
+now uses WorkBuffer with runtime.budget and sizeof(ParserRequest), then copies the
+receipt to a local before freeing its containing object. This avoids accessing
+freed receipt storage. No new public API, shared AST/type layout or syntax.
+Diagnostic vectors remain raw: lookahead_error ownership can move through
+parser_stream_return, so changing one side alone would lose the ledger owner or
+outlive its world. That separate gap remains open.
+
+The new parser_table_budget fixture measures actual constructor allocations and
+retained physical footprint for both WholeInput and Constructs. It requires no
+allocation at all with zero available bytes, exactCapacity at footprint-minus-one,
+exactMemory/ledger restoration at every actual allocation failure, and successful
+parsing of the same unconsumed stream after retry. All owners release before the
+budget. Actual regression-before64889 built successfully then failedSIG6 at the
+zero-allocation assertion (.02s); GNUtime's trailing0 does not override the signal.
+The source fix and fixture are now frozen under native66619; current after checks,
+profiles and supported instrumentation are pending, not claimed complete.
+
+Before profile inputs were frozen from coherent6fd at request_6fd430af:
+units2a5bcc7632b3f94a32608842fb658118c6e8e3cf2b5a495f10143b71323f8a8a,
+editorb88f0eedce2a1759b2ad45a579620989721ad6ec55fe9762c694a57f1af3d9b7,
+resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+B1 primary KinmenB compute grant continues, CPU0-11/24GiB/one heavy job, outer3 and
+compiler4, separate caches, checked-in Linux9653 bootstrap/LLVM19.1.1. ROOT requests
+a slot before KinmenB work. No publication lease, private bootstrap, new session,
+agent or full-goal completion. Raw LR/lexer/stream storage and final clean joined
+bootstrap/generation/browser publication/hosted gates remain open.
+B1 substantial pattern-result batch after request5f3404bb (2026-11-23): ROOT's
+acceleration directive transfers frontend_table/pattern consumers and defers
+per-helper sanitizer/WASI/archive campaigns to the stable integrated milestone.
+Top measured sinks reported: repeated grammar address/thread builds90.95+60.51s,
+portable75.56s+IDE26.71s; invasive30s debugger trace with9995table/25790allocation
+breaks and8.60system seconds. Immediate change: complete caller chains, one
+-j6/compiler1 dependency-aware native build, focused parser/regex/query only.
+The VM remains60.6GiB; B1 keepsCPU0-11/24GiB. The already-running request20 profile
+47973 drained0 before this batch; no new broad campaign was launched. Resume pull
+failed GitHub DNS, preserving5f and the draft; retry only at commit boundary.
+
+Implemented frontend_table init/finish/read/pattern result variants retaining the
+legacy wrappers/status values. Existing typed FIRST/state/LALR/runtime producers
+now preserve exact errors through this older character-reader boundary. Its forest
+charges runtime.budget; LR label copies expose their actual Invalid/Memory result
+instead of making consumers guess. Character syntax/UTF8 errors remain ordinary
+input errors. frontend_pattern create/read and frontend_world_pattern result APIs
+preserve the first cause through kind registration, grammar/table construction,
+character reading and counted regex lowering. The counted source reaches lowering
+unchanged, including embedded NUL bytes; the named4096byte semantic limit formats
+its actual constant. Diagnostic allocation cannot overwrite Capacity/Busy/Invalid.
+syntax_session_next consumes that result into its existing sticky resource field.
+No public struct/layout, syntax feature or separate IR was added. Legacy Bedrock
+construction still exposes its existing pointer wrapper; this is not a claim that
+all independent Bedrock entity constructors have typed results.
+
+regex.tower now tests cold constructorCapacity, pinned-ownerBusy, warm reader
+Capacity, actual measured allocation-failure positions, exact owner restoration,
+retry, ordinary malformed syntax and invalid counted pointers. Existing300generated,
+500arbitrary-byte patterns and independent lowering oracle remain. Native85600
+actually drained0: dependency-aware43step build and parser/regex/query checks
+passed. Compiler1/j6 changed command identities and correctly regenerated affected
+providers once. No fixture declaration failure or retry in this batch. Minimal
+matched serial/parallel profiles follow; current broad supported instrumentation,
+clean portable/generation/hosted release remain pending for ROOT's integrated gate.
+
+
+B1 measured batch evidence, 2026-11-23. Request47973 and pattern6871 both
+actually drained0, with no remaining Docker child. Frozen equivalent resources,
+installation path/cwd, public Linux9653/LLVM19.1.1, warm caches,3units, bodies0/4096,
+runtime workers1/4, CPU0-11/24GiB. Request n2 alternating before6fd/after5f;
+pattern n1 before5f/after110419. No runtime compiler inputs changed during runs.
+Pattern native85600:43-step dependency-aware build34.59s/155.62CPU/749960KiB,
+parser.04s/54092KiB, regex.04s/51968KiB, query.18s/73696KiB, all exit0.
+Compiler generation used1 worker/object with outerj6; prior generation used4/j3,
+while measured programs used the same explicit runtime budgets on both sides.
+
+| Request case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean RSS KiB before -> after |
+| --- | --- | --- | --- |
+|Small,1|3452.075 -> 3469.453|3250.501 -> 3263.006|197460 -> 197686|
+|Large,1|4812.176 -> 4728.252|4611.431 -> 4515.921|679714 -> 679500|
+|Small,4|1354.442 -> 1396.209|4056.142 -> 4152.727|461554 -> 461432|
+|Large,4|2515.416 -> 2526.391|5743.238 -> 5823.190|939484 -> 933678|
+
+Request unitwall deltas +0.50/-1.74/+3.08/+0.44%, with exact retained memory,
+canonical strings, entity/component counts and ledger storage in every pair.
+Small parallel overhead is observed, not called zero-cost; it does not establish
+a precise regression from n2. Editor beforewall11.02/11.14s, CPU16.96/17.19s,
+RSS988400/860088KiB; after11.07/11.09s,17.06/16.97s,904168/1026172KiB. Mean RSS
+924244->965170KiB lies in broad overlapping ranges also seen in prior receipts;
+no memory-neutrality claim or new per-helper followup matrix. Current request
+artifacts editor1801a36c26b94c7d72e5f6e4acfbb5a25dd9c240d309c37a034dc8b60306e8d7,
+units8cc54e3007e97febfe0a03e782b938cfeaf08293ced5af0ad3f7616c29fbedc3.
+
+| Pattern case | Wall ms before -> after | CPU ms before -> after | RSS KiB before -> after |
+| --- | --- | --- | --- |
+|Small,1|3431.475 -> 3441.336|3231.153 -> 3237.427|197660 -> 197824|
+|Large,1|4697.008 -> 4701.129|4497.709 -> 4492.313|679848 -> 679244|
+|Small,4|1365.775 -> 1378.327|4064.963 -> 4085.432|455948 -> 459696|
+|Large,4|2457.509 -> 2432.682|5702.910 -> 5642.285|932128 -> 933644|
+
+Pattern wall +0.29/+0.09/+0.92/-1.01%, n1 mixed; no speedup/neutrality claim.
+All exact canonical/entity/component/retention/ledger comparisons passed. Actual
+outer overlap peaks1/3, lane ceilings1/4; retained bytes15158986/15150626 small
+and289307675/289299315 large serial/parallel. Canonical1173729914654460811 and
+4242261087906147675 match as exact integers, not rounded floating JSON values.
+Pattern units5ad27934372d92a8b70beec3feb287a2bf9870571582153a209fb6e8f3bf5f8c;
+shared resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+Raw results stay in build/ecs_b1/cache/parser_memory_profile/request_6fd430af
+(results and pattern_results). GitHub DNS recovered at110419 commit pull, no
+source rebase occurred. No current sanitizer/portable pass is claimed: these are
+pending integrated milestones under ROOT's revised cadence. The full goal and
+publication/hosted gates remain open.
 ### 2026-11-23 L2: generic per-call result closure, frozen 000a960 baseline (in progress)
 
 Implementation ownership: ROOT explicitly assigned L2 the four generic result
@@ -80581,6 +80731,46 @@ checks are pending ROOT's integrated release milestone; none is relabeled as pas
 This task pushes main only and does not claim a runtime deployment. todo.txt remains
 unchanged. Historical draft entries above are preserved as chronology and superseded
 by these implementation/check receipts.
+
+### B1 bounded parser request/pattern completion after integration (2026-11-23)
+
+The direct bounded task closes the request descriptor and seven-file pattern
+result batch: production5f3404bb/11041911, earlier native/measurement evidence
+e18a4557. Existing APIs and canonical grammar behavior are preserved; exact
+Capacity/Busy/Invalid/Memory causes reach the syntax-session consumer, with
+partial-owner cleanup and retry regressions. No cache-sharing or allocator-wide
+work was added. Existing before/after measurements and their limitations above
+remain the batch performance evidence.
+
+No interrupted owned build remained (container only init/sleep). The required
+`git pull --rebase=merges --autostash --ff-only` fetched6714a030 but rejected the
+divergent histories. A normal merge preserved both complete histories without
+conflicts as c07203d8726b34ae0f7b596ecbcb77c74e754234, including ROOTb0421447.
+Incoming shared entity/semantic changes justified one dependency-aware native
+rebuild of frontend-tests, lr-work-tests and frontend-units-profile; no separate
+public leaf build or broad matrix. Linux x64, public bootstrap9653, LLVM19.1.1,
+existing B1 cache/container, CPU0-11/24GiB, six object jobs/compiler1. Ten build
+actions passed:22.70s wall/43.52s CPU/750700KiB peak RSS. Focused parser passed
+.04s/53984KiB, regex .04s/51564KiB, query-smoke .23s/88080KiB; all exit0.
+
+Two warm merged-behavior runs (three units,4096 bodies, immutable6fd resources,
+workers1/4) also passed. Wall/CPU/RSS were4631.031ms/4399.480ms/679384KiB and
+2429.351ms/5605.990ms/935728KiB. Both canonical hashes exactly match the saved
+batch result4242261087906147675; entities646269/components792327 and each lane's
+retained/ledger/reserved bytes match as well. Actual outer peaks1/3, reserved
+lane ceilings1/4. These n1 post-merge checks are not another controlled
+before/after experiment or a speedup claim. Earlier paired measurements remain
+unchanged. Logs, executable/resource hashes and exact source are retained under
+`build/ecs_b1/logs/pattern_result_merged_*`; owned session33322 drained0 and the
+container returned to init only. `git diff --check` passed; todo.txt hash remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+
+This completes the assigned producer-to-consumer batch and focused integration
+validation. ROOT retains the final integrated sanitizers, bootstrap/browser/
+generation and hosted deployment gates, all pending for this merged source.
+Older grammar instrumentation receipts are not relabeled. The separate historical
+full-frontend timeout remains outside this bounded task. This evidence-only
+entry changes no runtime behavior; final commit/push result is in B1 status.
 ### D2: bounded generic-result symbol policy at ROOT b0421447 (2026-11-23)
 
 The direct user task replaces the open-ended campaign for this batch. Required
@@ -80618,6 +80808,18 @@ Logs: L1/logs/execution_ownership_final_9985. No owned child remains running.
 This final receipt adds documentation only, so no new runtime measurement is
 needed for it. Normal main push follows; no gh-pages deployment is claimed.
 
+B1 final bounded integration: the required post-commit pull fetched L1e2ace4c4
+while B1 was validating. Normal merge ca286d12751732e60443cb424525baa3e171c08b
+preserves both complete histories; all B1 batch files are unchanged from the
+checked c07203d8 source. Incoming interpreter changes required an incremental
+dependency build of the two focused targets, nine actions,22.78s wall/46.58s CPU/
+750572KiB RSS. Parser .04s/53696KiB, regex .04s/51720KiB and query-smoke
+.23s/88112KiB all passed (exit0), with the same CPU0-11/24GiB/jobs6/compiler1
+limits. Logs/source/artifact hashes: `build/ecs_b1/logs/pattern_result_final_merge_*`.
+Session63664 drained0; container only init. No performance sweep, broad matrix
+or deployment repeated. Prior paired and c072 units evidence retains its exact
+source identity; final integrated milestone gates remain with ROOT. This last
+receipt changes documentation only; status records the normal main push result.
 Policy commitc508be03 then pulled concurrent L1 historye2ace4c4; preserving merge
 552b5332 includes its changed interpreter layout. Rebuilt only the affected
 provider targets through their real depfiles, retaining the originalb042 reports.

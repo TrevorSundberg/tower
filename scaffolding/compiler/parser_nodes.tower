@@ -238,5 +238,12 @@ export fn node_match_label(value: ParserMatchData*): u8* {
 }
 
 export fn node_match_set_label(value: ParserMatchData*, label: u8*): bool {
-    return node_text_set(&value.label, label);
+    return node_match_set_label_result(value, label) == WorkBudgetError.None;
+}
+
+export fn node_match_set_label_result(value: ParserMatchData*, label: u8*): WorkBudgetError {
+    if value == null || label == null { return WorkBudgetError.Invalid; }
+    var count: usize = 0;
+    for(; label[count] != 0; count++) {}
+    return node_text_set_result(&value.label, label, count);
 }
