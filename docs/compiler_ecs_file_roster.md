@@ -1363,3 +1363,11 @@ D1 reviewed all39 linkage lines plus the complete113-line parser_table_budget
 successor and preserved prior fixture intent. Inventory1,082 total /498 direct,
 all current direct paths substantively reviewed. Runtime remains source-specific;
 new registration and latest merged validation are pending.
+
+### A1 accepted publication ancestorab603725
+
+New compiler/semantic_known_publish belongs to A1; new
+scaffolding/tests/semantic_publish_checks.tower (173lines) is A1's specific test
+and D1's complete direct audit. Existing resource fixture's growth delta and
+entry-only registration conflict were reviewed in full. Counts1,084/499direct.
+Advertised later0e36d5c9 constructor/dispatch additions were not adopted or counted.

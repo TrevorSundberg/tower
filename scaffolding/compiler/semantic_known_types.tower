@@ -3,8 +3,24 @@ import compiler_kernel;
 import semantic_context_types;
 import .library.vector;
 import .library.work_graph;
+import .library.work_arena_types;
+import .library.work_budget_types;
 
 enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
+
+// Independent facts: mutation/escape analysis proves a fixed binding; ordinary
+// interpreter execution may then prove its value. Neither fact implies the other.
+struct SemanticKnownBinding {
+    owner: void*;
+    ordinal: usize;
+    immutable: bool;
+    ordered: bool;
+    input_query: usize;
+    evaluation: void*;
+    block: void*;
+    begin: usize;
+    end: usize;
+}
 
 struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
 struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
@@ -36,4 +52,8 @@ struct SemanticKnownWork {
     patches: vector(SemanticKnownPatch);
     query_reads: vector(usize);
     storage: vector(SemanticKnownStorage);
+    // Publish scratch never escapes the worker. The receipt remains available
+    // for source-ordered failure selection after all readers have joined.
+    scratch: WorkArena;
+    resource_error: WorkBudgetError;
 }

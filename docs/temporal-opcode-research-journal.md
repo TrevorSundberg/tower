@@ -57713,6 +57713,18 @@ The implemented counterpart retains WorkBudgetError on SemanticEvaluation, disti
 Exact three-file incremental export A1_semantic_resource_error.patch SHA25676e1a971fc5b23f327924d014bdc59a784474e7f567cf087fc7563375e15da4c was forward applied against frozen pre-hook sources and all outputs compared byte-for-byte. Companion fixture SHAefde967a08e526585c41dde10813547d99c0a5146e9e7494474d3f736355c03a is standalone pending D1 registration. L1 bad3/a8ec and this shared-layout counterpart require a complete dependent rebuild; resource_native1 is running, so no after-runtime or current sanitizer acceptance is claimed. Root now requests a complete committed-main bundle at the next drained checkpoint; that does not waive remaining full-scope implementation, measurement or final integrated release gates.
 
 Joined resource closure now passes: public default62-step build165.14wall/123.03user/9.90system seconds,793680KiB; compiler1ac577a8b0cbbc4a4f96f62cf05208cc078d1257426e965014f729ed47a4ba50, LRbebad41f41ddad541613625f5764be8c89b446ead9d516bf8212c50115385138, executionf46b2cdbe757f58b730e2e593a30cd76cef03330a2e8f8c11a2d79359c4c823c. Exact new regression passes12trials .03wall/.00user/.01system seconds,51292KiB; this short check is correctness evidence, not a statistically meaningful speed claim. query-smoke (including L1 startup/growth denial), units, control-smoke and aggregate-stages all pass on that same frozen source; sessions43994/79243 are reaped0. Aggregate18.09wall/18.29user/1.47system seconds,314196KiB. Resource-specific successful-path paired measurements and latest instrumented closure remain pending. Preparing ROOT-requested committed-source bundle against sole60741 prerequisite; approved later arena/import/test/constructor handoffs remain explicitly outside this checkpoint, not silently accepted.
+
+### A1 measured resource checkpoint and fallible Publish draft (2026-11-23)
+
+Committed04d6319173875901fb47ae5a100982b049f795b5 exports complete main history in A1_main_04d63191.bundle SHA87bbc2f6b80b63f6f25c413b9078fd8c7ad32960706c8d302311d0fcb9c046b0 against sole published60741 prerequisite. Ancestor/bundle verification and post-commit merge-preserving pull pass; todo was unchanged. One supplied work_vector extra blank EOF was removed after staged whitespace checking, without a code change.
+
+Frozen4b7e3625 versus1ac577a8 successful-path measurements use identical resources, a small explicit comptime source and the larger aggregate_capture_inputs fixture, wasm32 interpretation, workers1/4, one warmup plus three alternating retained pairs on quiet KinmenA. All32 outputs, four canonical files and reparse match (canonicalc60eb8ac8bd1dfd127b26876b089812c606dd91404aff06ff4a2c40a8c4c59a3). Median wall/totalCPU/RSSKiB: small1 1.14/1.06/172932 ->1.16/1.07/173516; small4 1.03/1.17/191584 ->1.04/1.19/190232; aggregate1 1.15/1.06/169824 ->1.16/1.08/173008; aggregate4 1.04/1.19/191004 ->1.05/1.20/192332. This is a real10-20ms measured cost and up to~3.1MiB RSS, not neutrality or speedup. The comparison includes L1's fixed receipt and semantic diagnostic reserves; allocation attribution is not yet isolated. Normal small work also imports the ordinary Tower prelude. Shared hardware quiet window was explicitly released after session74049 exited0.
+
+Resource fixture v2 SHA91b37239debd065ddf50fda62cbc6d13db3d81c6aff00959b07bc40cf6645580 now passes24startup/executed-nested-growth cases at32/64 and1/4 workers, required/inferred/isolated. It asserts exact Capacity retained past invocation disposal, failed tickets, no result/replay, source offset11, actual entry-buffer retention before growth denial, and zero cleanup grants. A separately held receipt leaves1 or1024 available bytes in a16384-byte budget; an8192-byte callee frame triggers actual execution growth. The earlier one-byte-total fixture caused Invalid, correctly: requests above the configured total cannot ever fit. Its original12passing fatal-resource cases remain valid, but earlier Capacity terminology was inaccurate. Initial v2 also omitted required callee IMFunctionInput readiness, which correctly suspended. Both fixture mistakes are fixed without production or oracle weakening; resource_growth3/diagnostic3 failures remain, final resource_growth23 passes .03wall/.00user/.01system seconds,51636KiB. D1 registration remains coordinated.
+
+The approved Publish-only storage migration is now SOURCE IMPLEMENTATION, not runtime acceptance. SemanticKnownWork owns a shared WorkArena and fixed error; coordinator initializes the root-world budget before dispatch. New semantic_known_publish.tower uses existing semantic-table identity/hash rules with checked arena storage and checked WorkVector traversal; null edges are omitted without changing relative order. Its query log and output vectors have checked physical failure, but canonical Foundation vector storage still uses its distinct existing ownership and is not claimed budgeted. No field was added to general SemanticContext. All peers join, every ticket finishes with its actual result, first source-ordered failure is copied into reserved diagnostic storage, and any error suppresses all patches/storage publication. Existing late sem_known_publish is exposed via the existing typed query API for focused boundary evidence, requiring completed proof/lowering.
+
+Public-bootstrap aggregate semantics unit first failed on a missing defining worker_policy import, then on Foundation component capacity at completion.tower:380. After the already-reviewed/independently instrumented B1 common WorkVector growth helper ae819, the aggregate still fails at completion.tower:333. No limit was increased. Smaller actualchanged semantic_known_publish.tower compiles17.15wall/12.43user/.90system seconds,758452KiB. These establish a concrete aggregate import-size bottleneck, not a complete build. ROOT/D2/A2 received an explicit API/unit-boundary request; no second implementation or manifest change is made locally. v5 arena defining imports are adopted only as their exact five one-line deltas. Before1ac package and source remain frozen; the draft's eventual timing must distinguish shared-helper prerequisites from arena attribution. ROOT's complete1fec union will be integrated after preserving this draft and draining every owned job.
 ### L2 review follow-ups after the coherent checkpoint
 
 Checkpoint 7ac22f4 contains all reviewed source that produced compiler d09bad2c
@@ -58619,6 +58631,13 @@ coherent link/runtime and malformed/range checks are next. Individual case timin
 will report actual wall/CPU/RSS and exact completed scope; reduced selected work
 will not be presented as a compiler speedup. Final union instrumentation/release
 and remaining owner constructor/clone/arena handoffs stay open.
+A1 integrated ROOT's1fec source union while preserving the committed Publish draft. Subsequent merge-preserving pull succeeds at874f53de; only owned new Publish fixture was untracked. d3ec5a4 is already reachable from upstream60741 and is documentation-only, so it does not invalidate frozen compiler inputs. L2's constructor/type/generic reservation remains untouched by A1 edits. Scheduler review routed exact remaining transport failures: semantic waves still assert a false dispatch/admission instead of disposing partial outputs and selecting a diagnostic. ROOT correctly refined the drain contract: only a valid initially drained dispatch owns its deferred join; Busy invalid entry does not drain preexisting caller work. A failed partial submission can execute all jobs, so failure cannot replay them. A2 owns the typed transport result; A1 will consume it, without asynchronous WorkGraph mutation or new scheduler. Inner-kernel cancellation latency remains uncovered beyond joined frontiers.
+
+A2 arena linkage patch819a9542 and new API/fixture archive2f16b385 were hash-verified, fully read and adopted. Exact six exports have one provider in existing entities.tower; three semantic consumers now import only typed API. On otherwise identical1fec+A1 source, the aggregate before-import boundary fails at completion198 (13.08wall/7.75user/.89system seconds,756024KiB), after boundary advances to completion886 but still fails (13.25wall/8.04user/.85system seconds,752588KiB). Neither is a pass. Actual provider/link instrumentation has A2-owned evidence; full A1 current ABI remains unbuilt.
+
+The next owned simplification removes redundant traversal arrays before considering a larger services split: Publish's existing stable seen entries form a private typed-head/tail first-encounter chain using their otherwise unused payload link. Nodes enqueue once; dead traversal's identity index is also its removed set; unique source traversal removes the redundant containers table. This preserves first-visit order and uses the single shared WorkArena, with no shared record layout or canonical graph change. It removes the new WorkVector implementation import. The first aggregate trial still fails during vector_reserve instantiation (13.07wall/7.60user/.99system seconds,742720KiB); no runtime or speed claim follows. Vector-based draft and all failure logs remain in the assigned cache. ROOT3915 all-eight-owner bundle was verified/fetched and its immutable scaffolding archived into the assigned cache for an independent baseline aggregate check, to distinguish preexisting union size from candidate cost.
+
+New semantic_publish_checks.tower is declaration-only and compiles as a small public-pin unit. It drives the real late publication entry with three source-ordered jobs, successful null compaction, startup/arena/growth denials, and a serial mixed success-failure-success wave. The mixed wave deliberately avoids making diagnostics depend on concurrent allocator admission; separate forced-denial4worker cases check joins. Assertions cover per-ticket results, no canonical replacement on any peer failure, exact node order/values, repeated-call dispatch identity, private scratch retirement and world cleanup. Runtime evidence is pending coherent link; no test registration is invented. This is the53rd audited semantic path.
 ### 2026-11-22 A2 coherent owner checkpoint merge
 
 A2 first committed only its measured stage work as45bf1d33, then preserved the
@@ -60027,3 +60046,120 @@ Fixture logic is unchanged from A2's independently measured separate-boundary
 source; D1 target build/runtime time/RSS and symbol/instrumentation evidence are
 still pending. This registration supplies reproducible coverage, not a claimed
 runtime optimization or inherited wholecompiler sanitizer acceptance.
+### A1 Publish source boundary and transport cleanup audit (2026-11-23)
+
+Source under review: f9c40fad, the complete ROOT3915 union plus the explicitly
+unaccepted Publish draft; public Linux x64 predecessor9653f818, LLVM19, jobs1,
+own Docker CPU0-3/4CPU/8GiB. The immutable own-cache ROOT3915 baseline compiles
+semantics_checks successfully:21.57wall/15.00user/1.07sys/793440KiB. The candidate
+still fails the same public component cap after traversal deduplication:
+12.83wall/7.57user/.92sys/744484KiB, vector_reserve(&jobs,count), log
+publish_queue_unit2. Both processes drained. This attributes the new failure to
+the added Publish closure; the root union itself passes this unit. No compiler
+limit, resource cap or private bootstrap override was changed.
+
+Prepared an ordinary Tower declaration boundary: SemanticKnownBinding moves
+unchanged to its existing defining-type module; existing sem_find,
+sem_entry_arena, sem_known_binding, sem_evaluation_get and
+sem_query_input_checked become exported implementations, declared through the
+existing semantic_query_api. The Publish kernel now imports those declarations
+instead of recursively importing the semantic implementation, and its caller
+uses the typed kernel declaration. Single authoritative graph, table and arena
+implementations remain. This is implemented source separation, but the sole
+linked provider placement is still a proposal routed to D2/B2/A2; no foreign
+unit or manifest was edited without agreement.
+
+The isolated kernel now passes2.72wall/2.08user/.14sys/219528KiB, and the semantic
+aggregate passes20.54wall/15.13user/1.14sys/791084KiB (publish_link_kernel1 and
+publish_link_semantics1). These are single-sample build receipts, not a compiler
+speedup claim or runtime acceptance. The updated focused fixture derives its
+case count from the actual fixed array type and also compiles2.84wall/2.15user/
+.17sys/211452KiB. Its18 runtime cases remain pending a complete ABI rebuild.
+A2's separately measured thin arena call boundary costs38-59% in its large
+serial microbenchmark; end-to-end Publish cost remains unknown and must be
+measured. Do not label the API free or neutral.
+
+Expanded transport audit finds eleven dispatch callsites across ten semantic
+files, including the L2-owned generic body implementation. The two body sites
+are source discovery and continuation execution. Besides previously reported
+evaluation/known waves, declaration discovery/checking, executable preparation,
+iteration resolution, lowering and flow also abort on false transport. Existing
+worker admission traps on reservation failure. A2's proposed typed result must
+distinguish invalid Busy entry (does not own earlier jobs) from a valid drained
+batch failure; partial submission may already have executed every queue item.
+
+Cleanup needs phase-specific ownership, not a blanket stage discard. Body,
+declaration, executable, evaluation preparation and lowering may have installed
+links from leased canonical payloads to private-stage nodes. Join all peers and
+publish those structural ownership stages before releasing leases; suppress
+successful semantic readiness and external result publication on transport
+failure. Body workers also transfer allocations/lists, pending evaluations,
+aliases and lexical continuations; these owners must be adopted or disposed
+without resuming statements. Iteration resolution transfers scratch before
+ordinary signature preparation; failed transport must skip that preparation and
+retire its arrays. Flow and known analysis own private result vectors and no
+structural stage. Interpreter invocations must all retire before borrowed
+producer projections. Current cancellation remains at joined frontiers, without
+unsynchronized WorkGraph mutation or an invented bounded whole-kernel latency.
+This is an audit/design, not implemented typed-dispatch cleanup.
+
+Logs remain in the A1 cache; disk328.77GiB free at this boundary, no outstanding
+owned build, no publication lease. Current instrumented/runtime/normal-WASI-
+generation link closure and final release remain open. No todo modification.
+
+Focused current-ABI runtime evidence now exists: all existing LR dependency
+objects refreshed in34steps126.02wall/93.82user/7.44sys/790240KiB, then the owned
+fixture linked with exactly one isolated Publish kernel object through the
+existing Tower linker. All18 cases pass (.03wall/.01CPU/51988KiB), including
+serial mixed success/failure and actual four-worker all-denied waves, both
+target widths, no partial canonical output and zero retained scratch receipts.
+Logs publish_objects1, publish_runtime_unit1/link1/runtime1. This scoped manual
+composition is not the still-pending production provider/native/WASI/generation
+closure. It uses no private compiler override or alternate implementation.
+
+A1 late-publication cancellation admission: a new focused selector cancels the
+existing graph at a joined frontier, then calls the normal late Publish entry.
+On b7bf916c it aborts while trying to create new work. This is valid graph
+cancellation, not an invalid-memory/race probe. The before log preserves
+signal6/nonzero; GNU time's trailing Exit status0 does not override that signal.
+Add the same work_ok admission check already used by semantic pumps before
+capture finalization or any publication job/component creation. The cancelled
+graph remains cancelled and untouched storage is retained; no completed compile
+or successful publication is reported by the fixture.
+
+The exact fixture object is identical before/after (e34d00cd); before executable
+4467f7d4 fails, afterc2166057 passes all4 width/worker combinations, repeated
+entry creates no query or dispatch. Smallest semantic object passes20.88wall/
+15.08user/1.17sys/790488KiB. After cancellation run .02wall/50524KiB; unchanged18
+pressure cases also pass .02wall/.02CPU/51928KiB. These single cold focused
+receipts do not establish a performance improvement. Final fixture source
+simplifies the equivalent cancellation/error condition; all22 cases rerun
+successfully (publish_cancel_final1 and publish_pressure_final1). Full current
+sanitizers and end-to-end paired profiles remain pending.
+
+ROOT has approved five existing mutually exclusive interpreter/evaluation
+entrypoint imports in principle. D2 owns exact placement after L1 acknowledgment
+and native/WASI/generation sole-definition audit. A1 did not add an entity
+provider or edit those reserved units. Complete A1b7 bundle ec75283b retains the
+typed kernel source and18case evidence, solely60741 prerequisite. The guard and
+four new cancellation cases are the following checkpoint, not retroactive
+claims for that bundle. ROOT6b8355 and A2ecc35d74 bundles have been hash-verified
+and fetched; their constructor/clone/typed-transport changes still require
+merge and complete dependent rebuild before new runtime acceptance.
+
+D1 merges only approved A1ab603725, verified child ofb7bf916c from complete bundle
+4ef71298. The advertised0e36d5c9 constructor/dispatch tip remains excluded.
+Root86 grammar and root6b clone histories are preserved. Resource entry conflict
+keeps parameterized semantic_resource_tests(width,workers), adds owner's growth
+mode loop, and retains all trial bodies/typed-capacity/peak/cleanup assertions;
+resolved SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
+
+Root/D2 approved LR query registration calls semantic_publish_tests()18pressure
+and semantic_publish_cancellation_tests()4pre-cancel cases exactly once beside
+generic_clone_parallel_tests, before existing outer matrix. No duplicate main,
+new runner or repeated18-case loop. Patch49927ff78d90068ba36b51476c94a4030316f7f7631b3db56ceb0b194ce8490e
+passes source/reverse checks and is immediately handed to D2. Full new173-line
+fixture and resource growth reviewed; census1,084/499direct. D2 owns five matched
+provider imports; source build/link/runtime and positive instrumentation remain
+pending. Latest owner times sometimes have future manual labels; only actual
+tool/process clocks establish scheduling or measurement intervals.

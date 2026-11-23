@@ -1904,3 +1904,23 @@ No compiler entity unit, new runner, duplicate arena implementation or deliberat
 probe. Ordinary sanitizer object rules cover both separate objects and runtime.
 Source checks pass; smallest compilation/link, exact symbol uniqueness, positive
 runtime and supported instrumentation remain pending the next D1 heavy slot.
+
+### Exact A1 publication/cancellation joinab603725
+
+Verified4ef71298 bundle but merged ONLY ab6037256073afd69007e2bd424a6e2317479655,
+whose sole parent is reviewedb7bf916c. The advertised0e36d5c9 tip contains later
+unvalidated constructor/dispatch work and was not adopted. New production helper
+and one direct test bring census1,084/499direct. Every new direct body is read.
+
+| Path / sourceab603725 | Substantive conclusions |
+| --- | --- |
+| scaffolding/tests/semantic_publish_checks.tower /173lines | Owns explicit world, synchronized lane/byte ledger and ordinary shared query/work pool. Three source-ordered blocks preserve literal/order metadata and null compaction marker.18 pressure cases cover32/64,1/4workers, descriptor/arena/growth denial and deterministic serial mixed success/failure. Each joined ticket records its own result; any failure suppresses all canonical replacement, repeated call preserves dispatch, private scratch retires before context/world/budget. Four pre-cancelled cases demand no query creation, no dispatch or revival, unchanged canonical storage and zero ownership. This is pre-dispatch cancellation, not an asynchronous midworker-cancel proof or measured speedup. |
+| scaffolding/tests/semantic_resource_checks.tower | Adds executed nested ordinary callee frame growth after successful charged entry storage. Required helper readiness uses existing IMFunctionInput, not a new producer. Competing occupancy inside a sufficiently large configured budget now distinguishes Capacity from Invalid, persists the typed error after interpreter disposal, checks peak above occupancy for growth and exact final retirement. D1 preserves the parameterized helper and wraps its unchanged three variants in the owner's startup/growth loop,24 outer-matrix cases. No standalone main or weakened diagnostic/oracle. |
+| scaffolding/tests/lr_work_main.tower | Imports the complete publication fixture and calls both noarg exports exactly once beside generic-clone checks, before the existing query width/worker loop. All22 owner cases retained without fourfold repetition or hidden width gate. Default/all/query and current TypeErrors/lifecycle selectors preserved. |
+
+Only resource entry conflicted; trial bodies retain exact owner changes.
+Resolved resource SHA14e0d6db70dde4079133788bd8d3103c5fa790daffe4cf21c6498bcadde1e694.
+Generic hook49927ff7 is exported for D2's matched provider build. D1 awaits D2's
+exact five provider imports before any local build; this joined source is not
+runtime evidence. L2/B2 partial inspection resource recovery remains separately
+open, and later constructor/dispatch drafts must not enter via advertised tip.

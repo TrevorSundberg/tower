@@ -5,6 +5,7 @@ import editor_units;
 import body_runs;
 import lr_budget;
 import generic_clone_parallel;
+import semantic_publish_checks;
 import utility_checks;
 import semantic_lifecycle_checks;
 import .library.vector;
@@ -105,6 +106,8 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     }
     if all || queries {
         generic_clone_parallel_tests();
+        utility_check(semantic_publish_tests() == 0, "Semantic publication pressure and atomic output");
+        utility_check(semantic_publish_cancellation_tests() == 0, "Cancelled semantic publication never dispatches");
         for(var width: u32 = 4; width <= 8; width *= 2) {
             for(var workers: usize = 1; workers <= 4; workers *= 4) {
                 utility_check(evaluation_query_tests(width, workers) == 0,

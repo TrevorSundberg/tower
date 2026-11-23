@@ -963,10 +963,16 @@ target for this fault allocator; it is not a threaded allocator sanitizer.
 
 The existing native `tower-lr-work-tests RESOURCE_ROOT query-smoke` also runs
 `semantic_resource_checks.tower`: required, inferred and declaration-isolated
-storage denial for32/64-bit targets and1/4 requested workers. It requires failed
+startup and nested-frame storage denial for32/64-bit targets and1/4 requested workers. It requires failed
 query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
+
+The same query entry runs `semantic_publish_checks.tower` once before its
+width/worker loop:18 pressure cases plus4 pre-cancelled cases. These check joined
+resource failures, source-ordered diagnostics, atomic canonical storage changes,
+stable dispatch receipts and cancellation without new work. The separate
+resource helper contributes24 startup/growth trials across the outer matrix.
 
 `tower-lr-work-tests RESOURCE_ROOT lifecycle FIRST [LAST]` selects an inclusive
 range from `SemanticLifecycleCase` (currently0–41), or one case when LAST is

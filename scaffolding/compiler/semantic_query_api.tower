@@ -6,7 +6,10 @@ import semantic_program_types;
 import semantic_evaluation_types;
 import semantic_declaration_types;
 import semantic_source_binding_types;
+import semantic_known_types;
 import semantic_work_ids;
+import .library.work_arena_types;
+import .library.work_budget_types;
 import .library.vector;
 import .library.work_graph;
 
@@ -39,6 +42,17 @@ extern fn sem_evaluations(c: SemanticContext*): void;
 extern fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_evaluation_prepare_all(c: SemanticContext*): void;
 extern fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void*;
+// Late publication requires completed proof/lowering prerequisites. It drains
+// every dispatched peer before selecting errors or replacing canonical values.
+extern fn sem_known_publish(c: SemanticContext*): void;
+// Private publication kernels read frozen proof/evaluation components and own
+// their scratch. These declarations share the existing implementation owners.
+extern fn semantic_known_publish_kernel(result: SemanticKnownWork*): void;
+extern fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding*;
+extern fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation*;
+extern fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u32): bool;
+extern fn sem_find(table: SemanticTable*, text: u8*, entity: void*): SemanticEntry*;
+extern fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*, output: SemanticEntry**): WorkBudgetError;
 extern fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration*;
 extern fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult;

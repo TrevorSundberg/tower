@@ -78,7 +78,7 @@ fn sem_evaluation_aliases(c: SemanticContext*, aliases: vector(SemanticEvaluatio
     aliases.length = 0;
 }
 
-fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* {
+export fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* {
     if c.evaluation_results == null { return null; }
     var component = entity_component_get(subject, c.evaluation_results);
     return bits(SemanticEvaluation*, entity_component_data(component));
