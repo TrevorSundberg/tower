@@ -588,3 +588,12 @@ merge is byte-identical to the frozen validated scaffolding/CMake tree
 e853a0e7d1995abe6c3df8e123882648f3d97b5c. Earlier failure receipts remain historical
 evidence. Early grammar allocation, probe/candidate error propagation and broader
 query scratch accounting remain open; this is not whole-lane acceptance.
+
+Host allocator declaration follow-up: host/syntax_baseline.tower now agrees with
+host.memory's void* allocation/free signatures and explicitly converts at its
+byte-buffer boundary. The actual host-baseline fixture passes before/after and
+returns all tracked buffers; native and ASan adapter objects are byte-identical.
+Matched native editor/inspection checks also pass. This corrects public aggregate
+declaration compatibility without adopting the pending world/WorkPool constructor
+change or changing runtime scheduling. Exact identities and observations are in
+the journal's host allocator agreement entry.

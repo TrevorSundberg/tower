@@ -61179,3 +61179,57 @@ still name the exact compiler/test inputs. Documentation changes only describe
 this merge; they require no new runtime performance measurement. A requested
 allocator declaration correction in host/syntax_baseline will be a separate
 source change with its own affected validation.
+
+### B2 host allocator declaration agreement (2026-11-23)
+
+Root's03:06 request confirms the earlier constructor-closure diagnostic: the
+host syntax adapter declared compiler_buffer_allocate/free using u8*, while the
+real host.memory exports use void*. Reconciled the four-line delta from the
+preserved constructor draft: exact void* declarations and explicit conversions
+at the byte-buffer boundary. Ownership, allocation sizes, cleanup and exported
+symbols are unchanged. No new language syntax or private compiler is required.
+
+The inspection checkpoint e4d3967 remained unchanged after merge-aware pull.
+Its source-identical postmerge public rebuild refreshed41 targets after Git
+checkout timestamps changed:41.037511511 wall/153.623789 CPU/846092 KiB.
+Parser passed.031345223/.027863/54496; native editor including exact8178 passed
+10.900369903/17.327726/861812. These are current merged receipts, not old objects
+being relabeled as a new compiler. Logs build/b2_inspection_merged_build.log and
+b2_host_allocator_before_{parser,editor}.log.
+
+Used one ignored Tower entry to call the unchanged frontend_host_baseline_tests
+with serial allocation instrumentation. It covers actual syntax_host_set,
+independent worlds, canonical seed termination/reuse, malformed/NUL/oversize
+inputs, atomic rejection, borrowed context selection, pinned cleanup and exact
+buffer restoration. The same compiled entry and all unchanged objects were
+linked once with each adapter object; no fixture or tracked runner was added.
+Public entry compile4.348538349/4.063452/282100; smallest changed adapter compile
+1.877656792/1.885596/202548. Both linked fixture executables have identical SHA256
+acf34f093f2d9bb318fc15506a75971f8b071a1afdac1db08b0cca717c953c35.
+Before/after fixture runs passed.019505305/.016940/52800 and
+.018799541/.016572/52776 (wall seconds/CPU seconds/peak RSS KiB).
+
+Native adapter object SHA256 is identical before/after:
+87283a182068997171b3a251fa94923945f3c5dd5d9ce4ed01422495cad7c0d3.
+The affected three native executables relinked successfully.801435963/.233508/
+70956; frontend SHAe76b3a1a4d9b6db0feba62f584cc6f64e575bb7f8a9d6a4ad81ac6c75a3ec784
+and native LR SHAc221ea5b604b84b47e4c5106a4a42a5cc731529aed6447b21c2f86985637c32a
+remain identical. Repeated native editor/denial passed10.665904419/16.971503/
+937788. These n1 warm, nonquiet observations on the existing12-CPU/24GiB Docker
+allocation are not evidence of speedup or memory regression; they execute the
+same bytes. No scheduling or layout changed, so new scaling measurements are
+inapplicable to this declaration correction.
+
+The supported address-instrumented adapter was regenerated from corrected source
+with public bootstrap,15 dependency steps11.025658656/14.231435/201032. Its object
+also remains byte-identical, SHA7d5306afe7342fd5dfaa3855e207c2469d19b476d7f473f2080ae147692e22ef.
+The prior current ASan/LSan inspection receipts therefore retain executable-code
+identity across this correction; no redundant full sanitizer matrix was claimed
+or run. UBSan/external-library/whole-union TSan limits remain as recorded above.
+All children drained before committing. Patch B2_host_allocator_signature.patch
+SHA2885410288365f6202aa74399a186fe9756e842ed10ec98f468deeb0b3473c92
+is only the four production lines; no constructor adoption is hidden in it.
+
+Updated compiler-services documentation to distinguish implemented session/table/
+control error propagation from still-open early grammar and candidate paths.
+That wording itself changes no runtime behavior and needs no performance test.
