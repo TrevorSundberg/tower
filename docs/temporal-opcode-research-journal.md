@@ -89673,3 +89673,29 @@ instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
 
 B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
+
+D1 eight-file publication reconciliation (2026-11-23): implementation `9b0ba0bb`
+merged complete published `f167c444` as `4dcd13fc`; the required ff-only pull
+reported divergence, then a normal merge preserved both histories without
+conflicts. The seven-file 87pass/3fail/1skip receipt above retains its original
+source boundary. Hash comparison found exactly one changed recorded Node input,
+`playground/src/llvm-host.mjs`: D2 now snapshots the module source map on emitted
+artifacts and localizes execution failures through that snapshot. Inspected both
+changed call sites; adopted D2's separate failure-phase receipt without rerunning
+its LLVM suite. Focused merged checks for colliding-name canonical/LLVM roundtrip,
+raw byte aliasing, external host byte views and destination-before-call capture
+passed4/4, exit0:17.61wall/16.60CPU s,434088KiB peak RSS,0swaps (same9d pair,
+Node22.23.5, concurrency1, n1). Logs: `browser_eight_b3ac7aca/merged.*`.
+
+Recorded resource hashes differ only for semantic_statements, generic_pointer_alias,
+interpreter_invocation, lr_work_main, semantic_resource_checks and stress_sources;
+new upstream files also retain their owner receipts. These later compiler/test
+changes are not compiled into the immutable9d reactors. Actual language/library
+and example inputs consumed by the seven-file selection, its fixtures and the
+new composition reproducers retain their checked hashes. ROOT's invocation/resource
+and L2's statement-discovery repairs are adopted as source plus their own receipts,
+not a retroactive pass of D1's older23/25 or20/22 runs. No current compiler-generation,
+sanitizer or hosted release claim. All active owned test jobs drained; todo hash
+`e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327`
+unchanged. ROOT retains the two composition failures, missing linking prerequisites
+and semantic-port's15 incomplete case receipts for final acceptance.

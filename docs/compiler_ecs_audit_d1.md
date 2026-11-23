@@ -4146,3 +4146,15 @@ Foundation transport's equivalent two-case sample before/after:0/2 ->2/2,
 now executes the formerly blocked recovery assertions; no speedup claim. These
 are validation costs, not universal scaling or current-source release evidence.
 No native/compiler rebuild, sanitizer, generation or deployment was performed.
+
+Publication reconciliation: `9b0ba0bb` merged published `f167c444` in
+`4dcd13fc`, preserving both histories. The only changed recorded Node input was
+D2's llvm-host artifact source-map/error-localization transport; inspected its
+producer and consumer. Four affected canonical/LLVM/host-byte/alias-capture checks
+passed on the merged host (17.61wall/16.60CPU s,434088KiB, no swaps). Original
+seven-file aggregate and immutable9d compiler identities remain distinct. Six
+recorded compiler/test resource deltas and new upstream files retain their owner
+receipts; none relabels an old reactor as rebuilt. Exact manifest differences and
+commands are in the journal and `browser_eight_b3ac7aca/merged*`. The two type
+compositions, linking prerequisites and15 incomplete semantic-port cases remain
+open; no full-suite, sanitizer or release acceptance claimed.
