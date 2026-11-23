@@ -93784,6 +93784,23 @@ or performance comparison is needed for this documentation/transport recovery.
 B2's published7890ebd7 browser ownership repair is now assigned actual b8
 strict/static-application adoption; all32 b8 artifacts were copied and remotely
 rehashed on KinmenB (168164918B). The existing eight UUIDs remain the only workers.
+### 2026-11-23 D1: original twelve-row ledger reconciliation at7890ebd7
+
+Required pull froze7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2; exact root/compiler/
+library trees recorded in handoff and D1 audit. Same original12 requirements,
+historical3ea/c20 rows preserved. Reconciled b8 builds versus Windows/A1 fullT5/
+D2 actual alias-malformed execution, B1 grammar/uniform evidence, L1 loop receipts,
+L2 published amplification/byte correction and pending void* execution. B2's
+repair is now published with exact matching host bytes and scoped f167 controls;
+current-successor adoption remains separate. No final-release claim or percentage.
+Finite delta92 Tower/3CMake:73 exact independent source-review matches;19 Tower/
+2contracts mapped to owner receipts and explicitly pending full independent
+final-source review. Actual shared registrations/negative gap checked; no new
+census or implementation. Source map in D1 audit; evidence
+build/d1_ecs/ledger_7890ebd7. Unpushed fixes excluded; nativeRSS is not guest capacity.
+No tests/builds/profiles/sanitizer or rejected-operation retry; docs-only profiling
+inapplicable. Same D1 UUID, PID3169473; disk127GiB/RAM9.8GiB available, no owned
+jobs/heavy lock, todo unchanged. ROOT owns final-source/generation/pin/hosted gates.
 Final source adoption: merge460d5e12200c26f342942e44fdc0478f939990b8
 preserves A2's required type-name/binding capture guards (ee91c300) and B2's
 browser worker-group repair through published78d675c4. Browser behavior stays
@@ -93803,3 +93820,12 @@ A shell-quoting failure during that hash bookkeeping did not run a compiler/test
 or alter binaries; the native file hashes above were independently recomputed.
 Owned jobs drained, no new runtime deployment; remaining Wasm/other-input limits
 are unchanged. Normal source publication follows with all prior histories intact.
+
+D1 ledger publication reconciliation: receipt1da28a69 merged complete74ccfb00
+following required ff-only divergence. Later L2 pointer-return importer/fixtures
+and A2 malformed type/capture guards, shared runners and their execution receipts
+are preserved but excluded from frozen7890ebd7. No new census/source adoption or
+runtime rerun; fixed pending entries do not deny the presence of later repairs.
+Own finite audit remains unchanged; historical handoff ledger bytes preserved
+apart from the explicit historical heading. Diff checks pass, todo unchanged;
+normal source push follows. ROOT retains final integrated acceptance.
