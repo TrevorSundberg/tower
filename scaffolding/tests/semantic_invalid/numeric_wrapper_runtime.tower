@@ -1,0 +1,5 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+fn runtime(count: usize): type { return numeric.direct(count); }
+fn use(): void { var callback = runtime; var value = callback(2); }
+use();

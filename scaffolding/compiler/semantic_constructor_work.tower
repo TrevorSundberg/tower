@@ -158,6 +158,13 @@ fn sem_constructor_wrapper(c: SemanticContext*, node: void*): void* {
     if name == null || sem_call_uses_value(c, name) { return null; }
     var spelling = sem_identifier(c, name);
     var definition = sem_resolve(c, c.templates, name, spelling);
+    if definition == null { definition = sem_resolve(c, c.functions, name, spelling); }
+    return sem_constructor_wrapper_definition(c, definition);
+}
+
+// Body admission and known type calls use the same declaration proof. This
+// inspects only a strict forwarding chain, never executes or completes a body.
+fn sem_constructor_wrapper_definition(c: SemanticContext*, definition: void*): void* {
     if definition == null || !sem_ok(c) { return null; }
     var first = definition;
     var seen = sem_list(c);
@@ -198,7 +205,7 @@ fn sem_constructor_wrapper(c: SemanticContext*, node: void*): void* {
         if definition == first && !numeric { return null; }
         if !sem_ok(c) || sem_resolve(c, c.globals, callee, called) != null { return null; }
         var next = sem_resolve(c, c.templates, callee, called);
-        if sem_resolve(c, c.functions, callee, called) != null { return null; }
+        if next == null { next = sem_resolve(c, c.functions, callee, called); }
         if !sem_ok(c) { return null; }
         if next == null {
             return sem_resolve(c, c.type_functions, callee, called) != null ? first : null;

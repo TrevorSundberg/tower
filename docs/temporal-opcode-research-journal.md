@@ -91847,6 +91847,93 @@ Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
 
 A2 six-file reconciliation: scoped commit73caf3fd merged complete published fdf4ffa7 as4ac85095e2031817307d2041daa3b2e6aa4dc7f7/tree2669072c685014177efc376d6b1138474964fad8. Required ff-only pull detected divergence; normal merge preserved histories, no conflicts. All final transport hashes match;1138/1144 mounted Tower blobs match. Six changed blobs are backend/session, backend/source_session, backend_source_native fixture, bootstrap_symbols_checks fixture, comment_functions stress entry and bootstrap_symbols tool, outside these tests' imported closures. Unchanged fixture/library/host inputs and frozen eac executable pair retain the recorded results; new backend implementation is not validated by old LLVM. Exact residual remains open, no new runtime/sanitizer claim. No active jobs; exact-path receipt update and normal main push follow.
+### 2026-11-23 L1 — numeric-only known nominal forwarding
+
+Completed the previously isolated numeric-only case on published
+9caa921cb409f83d59a3c010e27219d4d8eb2e17 after owned jobs drained and the required
+pull fast-forwarded. ROOT's frozen47433acf clone/cache was untouched. Minimal
+`tests/numeric_wrapper_minimal.tower` declares integers(count:usize):type returning
+buffer(i32,count), aliases buffer(i32,2), and expects42/8/true. Before production
+edits, preserved predecessor e3c91d990c7dfd73a289144792284289b3cb8d9197faf2edaa45587e47fb5a2c
+rejected at3:13 (runtime-storage capture). An independent direct-buffer reference
+run with that predecessor produces42/8/true at both widths/workers; the expected
+layout and identity were not changed to accommodate the implementation.
+
+Cause: generic registration retained no parameter metadata for ordinary
+single-return type-valued wrappers; even after a known call could bind all
+arguments, sem_body_needed unconditionally admitted their original unbound
+ordinary bodies. The repair retains existing GenericTemplate metadata without
+changing ordinary callable classification, permits deferred cloning for that
+known instance, and shares the existing declaration/module-resolved forwarding
+proof between type-call and body admission. The proof must end at a real nominal
+constructor and the ordinary signature must have integer parameters. Known type
+uses retain canonical argument keys and the existing IntegerArgument/clone/Alias
+queries. Actual KCall/KFunctionReference demand still admits the original body;
+unknown runtime layout still rejects. General/effectful bodies are not deferred
+by this proof. Existing pruning is shared for generated and root statements so
+undemanded forwarding declarations cannot appear as unchecked Foundation bodies.
+No evaluator, name registry, authoritative IR, recursive completion, signature
+or layout change. No owner files outside this constructor/generic/body closure.
+
+Focused Tower fixtures cover direct, forwarded, nested count+1, a chain through
+the existing typed wrapper, imported Extent/module identity, caller shadowing,
+known local arguments, repeated versus distinct nominal arguments, target width,
+module initialization order, ordinary callback effects and untaken mutable reads.
+All32/64 workers1/4 results pass. Minimal42/8/true and broader42 canonical bytes
+match across workers, independently reparse identically, and execute through
+Graph/Fast with exact reference output. Accepted original42/7/8/12/9 and
+nominal_wrapper_known42 remain unchanged with identical prior canonical bytes.
+Four new CTest registrations pass. Seven negatives at both widths/workers reject
+unknown size, later-written size, nominal mismatch, premature initializer read,
+ordinary staged effect, runtime function-reference demand and an actual shared
+query cycle. Existing Tower test machinery checks28 exact diagnostic/offset
+comparisons, no published partial program, drained lanes and unchanged retained
+bytes/live grants on terminal retries; frontend_units_close disposes each owner.
+Existing query-smoke (including cancellation) and A2 integer-arguments all pass.
+No full type/browser/generation/sanitizer or allocation-injection campaign.
+
+Preserved failures: the first broader fixture attempted runtime array_type and
+failed its existing compile-stage capability at42:33; corrected the ordinary
+runtime control to choose existing i32/u8 type values, retaining its callback
+and exactly-one runtime effect assertion. Dynamic runtime type construction was
+not added. Initial test-runner refresh failed Unknown function work_budget_snapshot
+at59:29: added the missing explicit work_budget import, then the runner-only
+refresh passed. Logs and original probe text are retained, not counted as passes.
+
+Environment: WSL Orchestral-Revng Ubuntu24.04/LLVM19 Release, checked-in public
+bootstrap/cache /root/.cache/tower/l1_ecs_native, Ryzen9 5900HX, taskset CPU0–3,
+24GiB process address-space ceiling. Actual WSL physical memory was15GiB (5.5GiB
+available), not24GiB; disk923GiB WSL/112GiB C free at start. No private bootstrap,
+ROOT input edits, duplicate public-leaf builds or overlapping owned cache jobs.
+One production closure refresh34.51wall/33.34CPU/1068848KiB; failed runner refresh
+12.02/5.93/360056; corrected runner-only11.32/8.17/428664. Validation costs:
+registered3.06/2.67/187540;28 negatives20.89/19.34/224860; query .31/.34/86828;
+A2 integer arguments14.62/13.91/252764 (wall/CPU/peakKiB).
+
+Healthy matched wasm64 source/flags/output/canonical checks, warm caches, fresh
+processes. Initial separated n1 wall samples increased .08–.09s, so one adjacent
+before/after pair per same setting checked whether that persisted:
+
+| Fixture / workers | Wall s before → after | CPU s before → after | Peak RSS KiB before → after |
+| --- | --- | --- | --- |
+| type_numeric_composition /1 | .64 → .62 | .56 → .56 |181488 →181744 |
+| type_numeric_composition /4 | .67 → .71 | .62 → .69 |184228 →184904 |
+| nominal_wrapper_known /1 | .68 → .67 | .59 → .59 |181464 →181792 |
+| nominal_wrapper_known /4 | .70 → .66 | .65 → .63 |184544 →185452 |
+
+No consistent wall-time increase reproduced; no speedup, scaling or observed
+parallel overlap is claimed from these small samples. RSS increases256–908KiB
+include retained wrapper metadata; GNU time is process peak, not live ownership.
+All initial and adjacent samples are retained. Exact source/resource hashes stayed
+frozen across checks. Compiler9cc9ec7bdae3d37bf84c41d7e28743149c73fa85c8f847322b9040378ab24e7b;
+entities0c9bc045a20654dd8c5800d581c755abe70915fd9e837c48ff450ef12a6ff5b3;
+semantics ccc88e80cc2d1c593d3512c05c56cee7f59f7f249427ae4201bcd5db4ac0ab4a;
+runner03f247c3a40cb9fa1acefee3610366ae042b3ce897e2f8134021fd97ea889866.
+Evidence/inputs/failed probes/costs: external L1 numeric_wrapper_receipt.json and
+logs/numeric_wrapper_*. Original composition SHA56ceefd2 and nested-negation
+SHAaf6bcd09 unchanged. Remaining scope: only proven strict forwarding chains
+with known integer arguments gain nominal layout; dynamic runtime extents and
+arbitrary type-producing bodies remain outside this batch. ROOT owns release.
 ### 2026-11-23 A1: final authored Tower delta review, fixed 9caa921c
 
 Reviewed all42 authored Tower paths changed since L2's fixed3ea43517 audit at
@@ -92271,3 +92358,13 @@ input changed. Both journals preserved, no failed selection repeated or result
 relabeled. B2 jobs drained; later ROOT browser job uses its separate f167 snapshot
 and remains untouched. Node gate still2PASS/1FAIL(alias), later modes UNSTARTED;
 normal main push only, final deployment stays ROOT-owned.
+Numeric-only L1 reconciliation: implementation0c1d24dd preserved via normal
+mergeaa648406466c3313027c20344dda147a8915c1b1 with complete publishedc93ddaab
+history after required ff-only pull rejected divergence. Incoming edits are
+receipts, Node fixture boundaries and B2's standalone frontend_units_profile
+uniform-work measurement mode. The actual compiler/backend/CMake/runner and
+selected fixtures are unchanged from checked inputs; the profile source is
+absent from lr-work-main-unbound.ll.d. Reused those exact scoped results without
+rebuilding identical leaves or running another matrix. No claim validates the
+new profile tool or ROOT's separate frozen portable bundle. All jobs drained,
+prior failures retained, todo unchanged; normal publication follows.
