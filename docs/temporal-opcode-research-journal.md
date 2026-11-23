@@ -92266,6 +92266,62 @@ unchanged; diff checks pass. Incoming nominal-wrapper/backend reconstruction/
 Node/test work is excluded once from frozen56c892c1 evidence. No rebuilt or
 relabeled artifacts, repeated matrix, or deployment claim; owned jobs idle.
 
+### B2 T5 Node shared acceptance on ROOT47433acf (2026-11-23)
+
+Independent Node gate executed once; browser retirement remains separately ROOT
+owned and was not rerun. Required pull froze host/resource main1210dc21; reactor
+source47433acff17e8ca6b3fffb6ce9875a37b38aec08. Supplied shared compilerSHA
+50f2ba6054b38057613a8d3e6a47c6f517ee17240a9a29ed67e9e76a634625a8/workSHA
+6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c verified
+before/after eager-path installation. Prior eager files backed up; old f167
+compiler8e7e3d63 and work6411 remain unchanged in B2 cache/archive. No build.
+
+Only compiler-threads.test.mjs ran, absolute shared TOWER_TEST_WASM and
+TOWER_TEST_WORK_WASM, TOWER_REQUIRE_THREADS=1. Optional host-only progress labels
+identify current fixture/target/engine/worker count; original assertions, source
+order and30/10/120s per-test deadlines unchanged. NODE_DEBUG=worker captures
+actual lifecycle end events. Existing process_profile plus finite180s timeout,
+no widening/retry. Linux6.18.33.2 WSL2, Node22.23.5/V8 12.4.254.21-node.57,
+CPU12-23/quota12/24GiB, one owned idle cache;924GiB cache free before test.
+
+Result2PASS/1FAIL,0skips/0cancelled, exit1 naturally in11.640358s wall,
+13.370040s waited-childCPU,239612KiB peakRSS. Pool test completes all128 real
+four-thread barrier/reuse lifecycle iterations in5.286781s. Injected trap
+propagates shared failure to blocked coordinator, PASS0.155336s. Compiler test
+fails6.078131s into capacity1 at inference_alias_invalid(default32-bit target,
+Graph diagnostic), not at worker startup or a missing export. Completed four
+Tower stress producers, LR/world widths4/8, ordinary+generic workers Graph/Fast
+widths4/8 with exact output/canonical, body-window/implicit iteration and preceding
+ordered-invalid/cycle cases. Alias actual: Type constructors currently support
+a struct and return; general compile-time execution is not implemented. Required
+Cannot infer type argument 'T' unchanged. InputSHA7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9.
+
+Exact source is existing alias(T:type) body with local var then returnT, used
+by generic read(T:type,value:alias(T)); first/second read(actual). Actual message
+producer generic_type_result_read non-struct/non-return statement branch;
+expected inference producer sem_infer_finish. ROOT/L1 constructor admission plus
+L2 inference/error-publication ownership: no competing producer edit or weakened
+regexp/source rewrite. Existing known-wrapper fix is in47433 already. No stale
+fixture setup independently established, no failed matrix rerun. Later capacity1
+index/field/dependency/clone/cycle/module/lifetime modes and all capacities2/4/8
+UNSTARTED, not accepted. Thus T5 compiler determinism remains BLOCKED.
+
+Node records9 workers created/9 terminate calls/9 actual end events; poolIDs1-4,
+trapIDs5-8, compilerID9. Capacity1 finally-close executes; ID9end precedes TAP
+summary and process exit. No remaining owned process, no timeout/kill. terminate
+promises are not awaited by production close and were not separately observed;
+end events/natural exit establish this run's drain only. Wasm capacity/live guest
+allocation not measured separately; RSS is not guest allocation or leak proof.
+
+Exact imports confirm env.memory/wasi.thread-spawn/hostheap transport on both
+modules; no portable substitute. Resource manifestSHA2f8e48230607f9c562db6e195cb8023426415ea419e86e8c1bfa132b7d8ddca1;
+hostmanifestSHA3cfa1dcfb67487cbacb966d6e2c62ab793b1d834ee54e7262cdab4b972b0c4a9;
+TAP+phase+workerlogSHA22750614289b583d4a52e6d5f2ed57a482a01168871e4c101c421af1581d293e.
+Full receipt docs/node_threads_47433acf.md; raw commands/imports/manifests/backup/
+logs/errorfixture: C:/Sandbox/build/codex_ecs_20261122/B2/node_threads_47433acf.
+Observer overhead included, no compiler-speed claim or runtime policy change.
+Later numeric/malformedgrammar/parsememory and browser/fullNode/generation/
+sanitizer acceptance excluded. ROOT retains final runtime/Pages publication.
 Joined-pair adoption reconciliation: required ff-only pull refused divergence;
 normal merge2d8a96fe9d4849a1b1e3dfd3cba84b4748f9e653 preserves c39efca5 and
 published1210dc21. All selected Node/host/artifact hashes still match. Exactly one
@@ -92294,6 +92350,75 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+### D1 finite changed-resource module-path adoption (2026-11-23)
+
+Frozen mainc93ddaabdd961c4be27d825ae4e3bf59575ec303 after normal pull. Read both
+complete test files, projects.refreshCompilerSources, compiler-fixtures resource
+filter/loader, moduleInputs transport and current modules contract. Only the two
+requested files executed: module-path-names2/2, module-resolution13/13;0fail/skip/
+cancel/timeout. Expected names extracted from registrations exactly match TAP.
+No fixture, resolver, host or expectation change was necessary.
+
+Actual scan1151scaffolding .tower files plus3browser fixtures: foundation_legacy,
+numeric_token and package_runtime_error. Direct originald5b65afe delta has37new
+paths (35scaffolding tests,2browser fixtures), all now checked by the existing
+naming test. It accepts identifier/underscore path components and validates
+production dotted imports/local-or-library existence; test import bodies remain
+excluded because deliberate malformed/Foundation-only cases must not be rewritten.
+Its path.posix normalization is inventory availability checking, not a new module
+resolver or filesystem-identity guarantee. Synthetic upgrade recipe tests retire
+unchanged old-name.tower while preserving edited-name.tower/custom.tower contents,
+update active entry and remain idempotent; no generated build/compiler-project/
+project.json is read. Arbitrary historical user names are valid test data.
+
+compiler-fixtures reads the complete current source tree, but module-resolution
+uses the real host directly with just its five root language resources plus
+explicit per-case source maps. No new non-test baseline language file was added:
+Bedrock/Foundation/Foundation syntax/Tower/types and project-refresh bytes match
+d5b65afe. The fresh run still matters because the portable reactor is new.13cases
+preserve removed-capability failure/recovery, renamed grammar imports, nearest-file
+cache invalidation, no tower privilege/cycle exemption, shared lexical identity
+and exactly-once effects across spellings, importer-relative/no-fallback paths,
+exact case/complete names, legacy seed grammar, malformed dotted paths and exact
+selected errorFile assertions, repeated formatting/comments/aliases. Browser
+lexical source keys are distinct from filesystem/symlink identity; no native
+filesystem or numeric-error-offset claims beyond these existing assertions.
+
+Verified supplied pair source47433acff17e8ca6b3fffb6ce9875a37b38aec08 and reused
+unchanged own copies: portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad,
+LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Both absolute overrides set, interpreter-only cleared. Path test instantiates
+no compiler; resolution instantiates portable only. Verified LLVM bytes are not
+LLVM execution evidence. No old default substituted, compiler build or other gate.
+
+Each file once in a fresh Node22.23.5 process, Docker tower-d1-ecs on Deck AMD
+Custom APU0932/Linux x64,CPU0,2,8GiB memory+swap,concurrency1,warm filesystem,n1.
+Command shape: `env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=.../portable.wasm
+TOWER_TEST_LLVM_WASM=.../llvm.wasm /usr/bin/time -v -o GROUP.time timeout -k 5s 180s
+node --test --experimental-test-isolation=none --test-concurrency=1
+playground/tests/GROUP.test.mjs`. Exact absolute command saved in command.txt.
+Costs wall/CPU(user+system) seconds/peakKiB: names0.36/0.43(0.33+0.10)/62296;
+resolution22.76/25.22(23.99+1.23)/223384. Both exit0,0swaps; no retries. No source
+performance change to profile; these are validation costs, not speedup/scaling.
+
+Evidence build/d1_ecs/module_paths_c93ddaab: paths/additions, expected/completed
+names, logs/time/status and verified manifests. Resource digest260d130286ede7a325fabf88a68c1371d182ef37718146a90415e9e6bd93a4bf;
+Node/host digest2314cd1ef1c8124014377a7acec32d6879039152cf2bc27854342793634fd940.
+Test SHAs dfa0e2d50c7d42df01b4354ea7815374ff32ab2e67152126491cae86eb4c46a5 /
+8c98d616856c5cf4611faffaf4b8fbe8a10707a12e39883d6249c88698a47ca1. Artifact,
+source and host hashes rechecked unchanged after execution. Lock owner was written
+only after successful native mkdir, and removed only after verifying own PID3153060
+and draining jobs. Disk128GiB/RAM9.9GiB available before run; todo unchanged.
+This closes the bounded changed-resource/module-path gate at these identities;
+other compiler/release acceptance remains ROOT-owned, no broader census rerun.
+B2 T5 Node publication reconciliation: a0ee23cb merged full c93ddaab history as
+f721d1ec after required ff-only pull refused divergence. All saved mountedresource,
+host, selectedtest and artifact SHA checks pass; Node syntax/diff checks pass.
+Incoming changes are separate compiletime/LLVM boundary and receipts; no measured
+input changed. Both journals preserved, no failed selection repeated or result
+relabeled. B2 jobs drained; later ROOT browser job uses its separate f167 snapshot
+and remains untouched. Node gate still2PASS/1FAIL(alias), later modes UNSTARTED;
+normal main push only, final deployment stays ROOT-owned.
 Numeric-only L1 reconciliation: implementation0c1d24dd preserved via normal
 mergeaa648406466c3313027c20344dda147a8915c1b1 with complete publishedc93ddaab
 history after required ff-only pull rejected divergence. Incoming edits are
@@ -92348,3 +92473,18 @@ Protected todo.txt hash8C39608BCE025104ED1FE00CCC131F8EE242EB142E8CE5AB50E1B223C
 is unchanged. Documentation-only ROOT work has no runtime optimization or
 before/after memory claim. Current generations, final supported instrumentation,
 Linux retirement and hosted runtime replacement remain unpassed.
+Module-path publication reconciliation: ff-only pull refused divergence; normal
+mergecd4f85b0fe47abca6e8268ef424e458cb8b4520c preserves9331c763 and published
+22e15d5b. L1's numeric-wrapper integration adds11Tower fixtures and changes three
+production files plus two test providers, so the filesystem naming input really
+changed. Reran only the affected host-only module-path-names file:2/2pass,
+0skip/timeout,0.48wall/0.55CPU(0.45+0.10)s,62272KiB,0swaps. Current scan now1162
+scaffolding+3browser fixture paths. The new resource manifest SHA is
+d71ff3cbd23a6812e22462d180724383860cb91a8bf5543875599e49afc68391;
+merged_names.* preserves this separate cost/status, not an extra unique case.
+All selected Node/host hashes and the five real resolution language files plus
+functions example remain identical. Resolution's13passes therefore reuse their
+actual module-input boundary without a repeat; added registry files are filtered
+out of that host's supplied baseline. New compiler sources are not baked into
+47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
+group, implementation change or blanket merged compiler validation.
