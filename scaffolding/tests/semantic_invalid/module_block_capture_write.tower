@@ -1,0 +1,7 @@
+import tower;
+fn known(value: i32): i32 { return value; }
+{
+    var local: i32 = 7;
+    print(comptime(known(local)));
+    local++;
+}

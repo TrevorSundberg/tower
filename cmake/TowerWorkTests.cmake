@@ -179,7 +179,7 @@ if(TARGET towerc)
       PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8[\r\n]+12[\r\n]+9")
     set_tests_properties(tower-numeric_wrapper_minimal-${workers} PROPERTIES
       PASS_REGULAR_EXPRESSION "42[\r\n]+8[\r\n]+true")
-    foreach(fixture IN ITEMS decltype_type_fields alias_type_query_controls module_loop_queries)
+    foreach(fixture IN ITEMS decltype_type_fields alias_type_query_controls module_loop_queries module_header_capture_controls)
       add_test(NAME tower-${fixture}-${workers}
         COMMAND "${CMAKE_COMMAND}"
           "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"

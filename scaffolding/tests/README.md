@@ -1829,3 +1829,9 @@ header bindings and observed condition/update/continue order. The existing
 source-position and terminal-budget checks; `module-loop-queries` selects those
 checks alone. Known separate body-local annotation and mutable header-local
 capture limitations are recorded in the2026-11-23 L1 journal receipt.
+
+The module-loop query selector also checks mutable/escaped header and block
+captures at the original declaration, including shadow identity. Its negative
+runner compiles without executing the rejected loop. The positive
+`module_header_capture_controls.tower` (CTest workers1/4) prints0 and retains
+immutable known captures, type-only uses and lazy untaken staged reads.
