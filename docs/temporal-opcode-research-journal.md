@@ -95100,3 +95100,8 @@ publication follows; ROOT retains later-provider builds/generations/hosted relea
 
 
 L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
+
+D2 reconciliation preserves upstream4a8694da and its later inline entity-index
+producer/tests. Those are not adopted here; the measured resource snapshot stays
+0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
+remain unchanged after merge; existing evidence is reused without another run.
