@@ -1,5 +1,6 @@
 import tower;
 import grammar_types;
+import grammar_observer;
 import worker_policy;
 import .library.work_pool;
 import .library.work_budget;
@@ -81,6 +82,8 @@ fn parser_workers_open_result(lease: ParserWorkers*, anchor: void*, capacity: us
     var limit = compiler_world_worker_limit(world);
     if capacity > limit { capacity = limit; }
     var cache = compiler_world_grammar(world);
+    grammar_observe(world, GrammarPhase.PoolOpen, true, capacity, cache.workers.count);
+    defer grammar_observe(world, GrammarPhase.PoolOpen, false, capacity, cache.workers.count);
     if cache.workers_busy { return WorkBudgetError.Busy; }
     var pool = &cache.workers;
     // Grow only between leases. Never move live thread slots or discard jobs.
@@ -97,6 +100,10 @@ fn parser_workers_open_result(lease: ParserWorkers*, anchor: void*, capacity: us
 
 fn parser_workers_close(lease: ParserWorkers*): void {
     if lease.pool == null { return; }
+    var observer: GrammarObserver = default;
+    if lease.cache != null { observer = lease.cache.observer; }
+    if observer.event != null { observer.event(observer.context, GrammarPhase.PoolClose, true, lease.pool.running, lease.pool.count); }
+    defer { if observer.event != null { observer.event(observer.context, GrammarPhase.PoolClose, false, 0, 0); } }
     // Failure/cancellation must drain before the caller releases pinned inputs,
     // result components or scratch, even though these threads remain reusable.
     while lease.pool.running != 0 { work_pool_receive(lease.pool, true); }

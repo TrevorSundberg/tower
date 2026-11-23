@@ -8,6 +8,8 @@ import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
 import utility_checks;
+import .compiler.format_api;
+import .compiler.format_types;
 
 extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
@@ -61,6 +63,7 @@ fn world_constructor_trial(cap: usize, allowed: usize, wanted: WorkBudgetError):
 export fn world_constructor_tests(): void {
     utility_check(!work_thread_available(), "World constructor allocation faults require serial transport");
     world_bare_clone();
+    world_metadata_source_identity();
     world_component_results();
     world_metadata_results();
     var unlimited = ~convert(usize, 0);
@@ -95,7 +98,40 @@ extern fn entity_store_create(): void*;
 extern fn entity_store_dispose(store: void*): bool;
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, error: WorkBudgetError*): void*;
+extern fn compiler_clone_tree_owned_result(source: void*, limit: usize, copied: usize*, error: WorkBudgetError*, owner: void*): void*;
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
 extern fn syntax_origin_copy_result(world: void*, source: void*, destination: void*): WorkBudgetError;
+
+fn world_metadata_source_identity(): void {
+    var buffers = tower_test_buffer_count();
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, null, &world) == WorkBudgetError.None, "Metadata identity world");
+    var source = entity_create(compiler_world_store(world));
+    utility_check(source != null && bits(Entity*, source).id == 0 && bits(Entity*, source).stage == null,
+        "First published entity has zero ID without private stage ownership");
+    var error: WorkBudgetError;
+    var span = bits(ParserMatchData*, compiler_world_component_result(world, source, CompilerParserMatch, &error));
+    utility_check(span != null && node_match_set_label(span, "published_zero"), "Published zero-ID metadata");
+    var owner = entity_stage_open(source);
+    var foreign = entity_stage_open(source);
+    utility_check(owner != null && foreign != null && entity_stage_lease_result(owner, source) == WorkBudgetError.None,
+        "Published zero-ID source retains its owning lease");
+    var copied: usize = 0;
+    var clone = compiler_clone_tree_owned_result(source, 1, &copied, &error, owner);
+    utility_check(clone != null && error == WorkBudgetError.None && copied == 1,
+        "Owned clone reads a published zero-ID source through its actual lease");
+    entity_release(clone);
+    utility_check(compiler_clone_tree_owned_result(source, 1, &copied, &error, foreign) == null
+        && error == WorkBudgetError.Busy, "Foreign stage cannot read the source lease");
+    var private_node = entity_stage_create(owner, source);
+    utility_check(private_node != null && compiler_clone_tree_owned_result(private_node, 1, &copied, &error, owner) == null
+        && error == WorkBudgetError.Busy, "An owner's new private node is not a published source lease");
+    entity_stage_discard(owner);
+    entity_stage_discard(foreign);
+    entity_release(source);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Metadata identity clones and stages release every owner");
+}
 
 fn world_bare_clone(): void {
     var buffers = tower_test_buffer_count();
@@ -180,6 +216,17 @@ fn world_metadata_trial(staged: bool, allowed: usize, pressure: bool): usize {
     tower_test_buffer_fail_after(unlimited);
     calls = tower_test_buffer_allocations() - calls;
     var wanted = pressure ? WorkBudgetError.Capacity : (allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory);
+    if error != wanted {
+        var diagnostic: FormatResult = default;
+        defer format_dispose(&diagnostic);
+        var out: FormatEngine = {result: &diagnostic, ..default};
+        format_text(&out, "Metadata trial staged="); format_unsigned(&out, staged ? 1 : 0);
+        format_text(&out, " allowed="); format_unsigned(&out, convert(u64, allowed));
+        format_text(&out, " actual="); format_unsigned(&out, convert(u64, error));
+        format_text(&out, " wanted="); format_unsigned(&out, convert(u64, wanted));
+        utility_check(!diagnostic.failed && vector_push(&diagnostic.text, 0), "Metadata failure receipt text");
+        puts(diagnostic.text.data);
+    }
     utility_check(error == wanted, "Metadata copy preserves its actual allocation or budget cause");
     if pressure {
         utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
