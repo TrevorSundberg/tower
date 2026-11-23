@@ -91371,3 +91371,82 @@ Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a
 is retained separately from the measured resource identity, not relabeled as a
 new full runtime acceptance. L2 residual inputs/responses remain actionable for
 its newer backend producer; no new reactor was available or adopted here.
+### D2 T9 work_access/work_observe bounded failures (2026-11-23)
+
+Frozen published main7865011829a2fedd7e1bb44d3b63dadf30643ecf; existing matching
+ROOTeac16533ad7169988c53af934ece62e083b39bad/public768 reactors reverified against
+supplied originals and reused without rebuild: portable
+df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Read both complete Tower fixtures, WorkGraph access/observe/ticket/disposal
+contracts, existing D1 ownership audit and current semantic-port loader. Explicit
+.tower/tests/NAME.tower entries and output expectations were already correct;
+no fixture, host, assertion, scheduler, storage or backend edit was made.
+
+D1 initially owned the Deck heavy slot with a live cross-test Node process. Did
+read-only preflight until its jobs-drained/lock-release milestone, then acquired
+heavy.lock atomically; no live sibling lock removed or tests overlapped. Each
+case ran once in a fresh Node22.23.5 process, Docker tower-d2-ecs CPU0,2/8GiB,
+with `/usr/bin/time -v -o NAME.time timeout --signal=KILL 120s node --test
+--experimental-test-isolation=none --test-concurrency=1 --test-reporter=tap
+--test-name-pattern='^Tower NAME agrees across graph, fast, LLVM and Foundation text$'
+playground/tests/semantic-port.test.mjs`. TOWER_TEST_PHASES=1 and exact
+TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM overrides select the verified own copies;
+TOWER_TEST_ARTIFACTS saves each case separately. TOWER_INTERPRETER_ONLY and the
+TEST_INTERPRETER_ONLY/TEST_PORTABLE_ONLY variants were unset. No optional branch,
+missing-mode skip, deadline/cap extension or retry. Anchored registration is
+unique for each name and every phase line names only that case; timeout prevents
+a final TAP count/summary, so neither selection is counted as a completed pass.
+
+| Case / Tower bytes | Result / wall | Last completed assertions | Pending call at termination |
+| --- | --- | --- | --- |
+| work_access /2649 | exit137 /120.00s | Graph32/Fast32 exact0, both canonical executions and byte-identical formatting | LLVM Foundation32 optimize=false, entered11.626s |
+| work_observe /5498 | exit137 /120.00s | Graph32/Fast32 exact8192/256/0, both canonical executions and byte-identical formatting | LLVM Foundation32 optimize=false, entered24.823s |
+
+Neither LLVM call returned a status/error, typed resource category, IR or rebuilt
+Foundation. Thus there is no proven Memory/Capacity classification or internal
+subphase attribution. Last successful operation is the Fast canonical execute/
+equality check immediately before the logged LLVM call. Reconstructed execution,
+optimize=true, all64-bit checks and actual LLVM source/canonical executable tests
+remain unstarted. L2 owns the exact-input reconstruction handoff; no second backend
+implementation or source reduction attempted. These frozen eac observations do
+not validate or refute later L2 session/error-handoff repairs.
+
+The hard-kill command exposed a **measurement limitation**: timeout and its Node
+process group die together, so outer GNU time loses the child's wait-rusage.
+Its0CPU/1488KiB values describe only the timeout wrapper, **not** compiler usage.
+Do not report them as measured compiler cost. work_access final CPU/peakRSS is
+unavailable; an OS ps observation at44s recorded1311380KiB RSS, a lower bound.
+work_observe had already started independently with the same command when that
+limitation was identified. Preserved OS snapshots: at52s CPU72s/RSS1230680KiB;
+at111s /proc/stat15819user+657system ticks with CLK_TCK100 gives164.76CPU seconds,
+/proc/status VmHWM1802764KiB. These are partial lower bounds, not final totals or
+proof of a whole-world memory cap/leak. Virtual reservation is not resident memory.
+No rerun to repair measurement coverage. A future owner must use a bounded process
+launcher that reaps Node and collects its rusage after killing it; the unchanged
+hard bound and ownership drain remain required.
+
+Preserved exact canonical inputs for L2:
+- work_access395107B, SHA256208a1d7d0bb94bbcb4afde92384a1fdc909f111ec0d8b63843a3fef0e240be1a.
+- work_observe428307B, SHA2569c92b227725586fd7eaee56650bcf0f59487e1402a9cc790ea867962d01957b8.
+Raw logs/status/time, proc samples, manifests and measurement_limits.txt are in
+build/d2_ecs/semantic_work_78650118/; exact canonical/log handoff copies are at
+/home/deck/tower_coord_ecs_20261122/D2/work_pair_eac_78650118/.
+Fixture SHA256:work_access2c5c6367869f93999ca98563d827b8de16c06098cf778c9162b93686ee5c883b;
+work_observe545a78644486676d0529d509b777005e4910268cf9be0906845fc875300fe659.
+Shared test remains ebe611510dfcced1ad5d57a0151b3af336b8746cdcf331c4b8a2a0f221088b82.
+Host manifest8834462070b12354e81a37dd162828c0b2d30360fde0e54d374f58dcc063dfd4;
+resource manifest937f76229ed8143973604b6523bcb3cb62cd2e202778f64e50951e96653830dd.
+All hashes rechecked unchanged after execution, separately from reactor identity.
+
+Completed32-bit assertions cover shared/disjoint/structural access, stale revision,
+cancellation, range overflow/zero ranges; observer deduplication, stale revision/
+profile/dispatch, retained exclusive claim, completed/unused inputs and cleanup.
+8192versus256 is the fixture's dependency-edge count, not speedup or actual worker
+overlap. Handles release on completed phases; killed in-flight LLVM cleanup is
+not proved in process. Docker top after drain contains only init/sleep; no live
+reader remains, and heavy slot released. Disk128GiB/RAM9.8GiB available afterward;
+host swap display5.9GiB unchanged (no per-case swap accounting claim). Todo intact.
+Documentation-only receipt, no runtime optimization/profile comparison applies.
+No other T9, Node/LLVM, browser, generation, sanitizer or hosted checks performed.
+Both acceptance gates remain pending; ROOT/L2 retain final joined-artifact work.
