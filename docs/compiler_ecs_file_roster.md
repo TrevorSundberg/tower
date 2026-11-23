@@ -1272,3 +1272,10 @@ tracked Tower files /472direct D1 files. Updated42-case lifecycle, call-query,
 entity tables/stage, parser/storage and generic runners remain existing paths.
 These totals exclude incoming unadopted backend helper files and do not imply
 runtime or release acceptance.
+
+Post01946 adds `scaffolding/tests/comptime_capture_values.tower`, D1 source/audit,
+full8-lineebf8e86a. It imports the unchanged original capture fixture and checks
+value/type independently. After staging:1048tracked Tower paths/473D1direct.
+All new/current test bodies have substantive audit receipts; normal/fault/query
+updates above are existing paths, not additional inventory. Aggregate source
+current25e8 plusd982 supersedes initial0a47 draft; failed receipts remain historical.

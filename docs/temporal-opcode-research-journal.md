@@ -48901,3 +48901,161 @@ profiles, address rejection and global/local aggregate positives on compiler
 489761dd; these are separate owner receipts, not D1 execution or full42 proof.
 A read of nonexistent utility_files.tower exited2 during preparation; corrected
 to inspect actual storage_main/utility_checks, no validation result was affected.
+
+### D1 independent joint-harness evidence at01946b7
+
+Canonical Docker tower-d1-ecs, image4be584fb, cpuset0,2, public bootstrap9653f818,
+LLVM19.1.1, Linuxx64, one build job and compiler jobs1. Own cache remains
+native-coherent-127ca98; no private bootstrap override or overlapping build.
+Inputs frozen by source.sha256 and9changed-unit compilations pass before larger
+build: utility_checks3.69s/174368KiB, compiler_storage2.94/185020,
+body_runs4.18/217196, comptime_aggregate_checks6.53/247344,
+interpreter_call_query3.66/183380, parser_trace_failures2.09/173700,
+frontend_main13.31/350772, lr_work_main6.17/256400 and generated complete
+execution_main10.63/338792. Raw user/system times and commands are retained in
+build/d1_ecs/joint_aggregate_453d8b1 and exported D1/joint_harness_receipt.
+
+Native12steps pass in109.55wall/107.10CPU seconds,792096KiB peakRSS,0swaps;
+changed5target/9step link phase passes50.32wall/49.01CPU,350812KiB,0swaps.
+Session3473 terminal0 and source hashes verify. New compiler SHA256
+86bf2aa2a1fb27532c91095fb67a16ec3169c78d365fb201edb9a6a1d7710fc6.
+Prior completead2 package and storage/frontend/execution runners are retained
+inside this phase's before_package and *_before files. This is an incremental
+public-pin build, not final clean compiler-generation/browser acceptance.
+
+Independent failure-diagnostic comparison calls the actual old/current storage
+runner with missing required argument. Both abort134; old bufferedstdout is
+empty, currentstdout is exactly Storage test resource root plusnewline. The
+original failure status is preserved, now with actionable captured diagnostics.
+Full current storage passes. Exact previous address/comparison guest sources
+both reject1 with Automatic compile-time value depends on an address
+representation, widths/worker policy fixture below also checks untaken branches.
+
+| Current test | Result | Wall s | CPU s | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: |
+| Full storage/serial fault ownership | PASS |0.90|0.86|92800|
+| Query smoke32/64 serial/threaded | PASS |0.10|0.10|59824|
+| Capture-policy12,48source+12canonical | PASS |144.82|155.23|214772|
+| New captured aggregates plus existing staged aggregate suite | PASS |51.24|57.58|329660|
+| Focused parser integration/faults, tracea261 | PASS |0.04|0.02|50920|
+| Full type-smoke including42lifecycle and body remainder | INCOMPLETE, outertimeout124 |180.01|193.60|217524|
+| Independent full known selector | FAIL, existing rejection accepted |79.22|89.50|319764|
+
+All rows report0swaps. Positive aggregate checks include nested/global/local
+copies, type/function/null/empty members, exact output, graph/fast engines,
+32/64 layouts, canonical reconstruction and workers1/2/4/8. Query observation
+correction retains original nested/root/cancellation/immutable-write assertions.
+The focused parser still uses unbounded success-seeking trace fault loopa261;
+reviewed323ae806 will be adopted only after the frozen jobs drain. Its test
+pass is not current ASan or a guarantee against future persistent failure.
+
+The180s wrapper was reused from existing LR bounded checks, but full42 now
+contains the separately measured144.82s policy subset plus30other cases and
+body checks. It emitted no flushed per-case result before timeout; no completed
+coverage is inferred. Coordinator explicitly requests owner A1 case-progress and
+range helper, D1 existing-runner selection, bounded groups with exact coverage,
+then a full frozen milestone with evidence-based host budget. This is not
+permission to raise the signed32package's original30s child deadline. The
+fail-fast group stopped at124, so known was run independently, never marked
+passed by continuation.
+
+Known's actual failing source is preserved verbatim:
+`import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));`
+The fixture printed it and failed Invalid struct value rejected with exit1.
+B1 independently reproduces the same acceptance. A1/L1/L2 own source-order and
+required/optional capture contract analysis; no expectation or source is relaxed.
+Earlier aggregate/known positives preceding this failure are not a fullknown pass.
+
+D2's initial browser hypotheses were independently classified with16 native CLI
+calls: four unchanged sources, target widths4/8, jobs1/4. Every per-width
+status/stdout/stderr agrees exactly across worker settings. comptime_capture
+succeeds0 with empty output. decltype_aggregate_operator rejects Binary operators
+require scalar or pointer operands at5:22. aggregate_inferred_copy rejects
+Expected Other, got Item; use an explicit conversion at5:16. inference_alias_invalid
+still rejects Cannot infer type argument 'T'; pass explicit type arguments at5:11.
+Original files remain unchanged. Root reserved the corresponding narrow browser
+oracle edits to D1 and requested fresh same-source WASI evidence from B1.
+Alias stays in the threaded negative list, whose existing specific alternative
+already matches. New Tower positive draft imports original capture source and
+checks value7/exacti32; it is outside the repository and uncompiled, not adopted
+or accepted. Browser input transport must supply its real entry path to both
+Tower and LLVM. No broad regex or invalid-pointer/cycle/effect weakening.
+
+Signed32 original driver matrix is running separately at this closure. It has
+passed first wasm32/unoptimized emission/loading/Foundation reconstruction and
+reached repeat emission, beyond oldad2's first-emission timeout; four-variant
+completion remains pending. Raw old59.59s/-14 failure stays retained. Pending
+paired common-input profiles, stronger storage Statement grammar variant318149b0,
+boundedtrace323, supported current instrumentation and final release remain open.
+Documentation changes here do not alter the frozen compiler/import/test closure.
+
+Signed32 session47165 subsequently completed exit0 and driver printed4, covering
+both wasm32/wasm64 unoptimized/optimized variants with original30s child limits.
+Wall209.26s, CPU204.42s, peak287224KiB,0swaps. Current and previous failed source
+SHA256 are identically c2ae2a504f418d770739bc3e99a9b2d0459164ad0c237e1ac561f664b27202b1.
+All reference/fast stdout and exit checks, package headers, loads, Foundation
+reconstruction and byte-identical repeated emission passed. This closes that
+specific oldad2 first-emission deadline failure on86bf, not the entire scalar
+JSON/native/backend/release matrix. The closure contains multiple stage/capture
+changes, so no isolated causal speedup is claimed. Raw oldfailure and newcomplete
+matrix logs remain separate.
+
+Paired common-input profiling session28137 completed0 at01946 with all24outputs
+exact0newline and8canonical copies byte-identical across versions/jobs. Same
+public-built oldad2/current86bf packages, Linuxx64 --interpret, jobs1/2, three
+interleaved before/after samples per workload/width, warm filesystem and fresh
+process/world each time; cpuset0,2 and powersave policy unchanged. No swaps.
+
+| Workload/jobs | Before median wall/CPU s | After median wall/CPU s | Before RSS range KiB | After RSS range KiB |
+| --- | --- | --- | --- | --- |
+| known_bindings86lines/1 |2.93/2.89|2.28/2.24|171904–172116|171404–171612|
+| known_bindings/2 |3.38/3.81|3.15/3.59|183376–183712|183020–184476|
+| body_continuation771lines/1 |2.78/2.72|2.81/2.76|180792–180936|181048–181228|
+| body_continuation/2 |3.21/3.86|3.36/3.83|195656–196644|195852–196456|
+
+Serial body median is stable within sample variation; two-worker body median is
+slower by0.15s despite similar CPU. Both current workloads are slower with2jobs
+than1, with roughly12–15MiB extra RSS. This does not satisfy profitable multicore
+scaling. No excessive retained memory appears in these process peaks; per-query
+allocation/retention requires separate world counters and is not inferred here.
+Before serial outliers4.73s known/6.50s body also consume extra CPU; all samples
+are preserved, not discarded as hibernation. No suspend occurred. Frequency was
+not recorded per trial, so the cause of variability is unresolved; a point read
+showed powersave/1.55GHz. This small mixed-closure sample cannot attribute effects
+to one stage/capture change or establish a broad regression/speedup. D2's planned
+more isolated stage pair and A1/A2 scheduling profiles must resolve scaling.
+
+All owned sessions were reaped, both D1 containers returned to idle sleep, and
+final frozen-source hashes verified before releasing own heavy.lock normally
+to D2. Source edits after that release include owner323boundedtrace,318active
+storage grammar andd982aggregate edges, plus narrow known-order oracle alignment.
+Root contract decision is supported by docs/struct-values-and-bindings58–68,
+computed-type-arguments41–54 and independent L1 before/current source/output/
+canonical receipts. Optional failed staging preserves ordinary runtime order;
+requiring comptime(earlier) still reports its executed premature capture.
+
+New known helper preserves original7 and observed0,7,7 sources verbatim, checks
+both engines/widths and existing canonical/worker paths. Existing body-output
+helper is generalized only by an explicit wanted string with its0newline wrapper
+retained. Existing named-diagnostic helper is generalized only by explicit width,
+with width8 wrapper retained. Caller inventories are in coordinationD1; no
+parallel test scheduler or evaluation implementation was added. Initial unbuilt
+known draft10503137 kept graph/fast worlds until worker loops; corrected529b07e0
+closes them after canonical roundtrip, matching existing known-loop ownership.
+No intermediate draft was compiled or claimed passed. New browser positive
+8-lineebf8 fixture is entirely Tower and imports original source unchanged;
+compile/freshWASI and browser transport/oracle changes remain pending.
+
+B1_browser_current_receipt438bceb6 was extracted to a dedicated coordination
+receipt, never into live source/cache/assets. All manifest hashes verify;
+reactor8bcc91ca is1549736bytes and was built with publicpin9653f818. Raw WASI
+observations were UTF16LE (initial ordinary cat showed encoded bytes); iconv
+reveals exact native-matching diagnoses at widths4/8. All four original fixtures
+compare byte-identically. Source diff versus D1 is two layout profiling exports
+and API declarations, extra EOFs and budget ownership comments; type prelude/host
+algorithms match. This supports current frontend oracle classification, not a
+claim of identical build or backend/threaded/release validation. Narrow browser
+oracle edits are now prepared: three exact errors and positive original capture
+via the new Tower value/type fixture, with consistent entry paths for Tower/LLVM.
+Threaded alias remains negative and unchanged. Local actual positive/harness
+execution awaits D2's current held slot; no old LLVM asset substituted.

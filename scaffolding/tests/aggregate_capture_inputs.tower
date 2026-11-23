@@ -26,6 +26,7 @@ fn capture_bundle(): CaptureBundle {
 }
 
 var CapturedBundle: CaptureBundle = capture_bundle();
+var CapturedEmpty: CaptureEmpty = default;
 
 fn capture_sum(): i32 {
     return CapturedBundle.pair.first + CapturedBundle.pair.second
@@ -41,6 +42,7 @@ fn capture_repeat(count: usize): i32 {
 fn capture_verify(): i32 {
     var failures: i32 = 0;
     var global = comptime(CapturedBundle);
+    var empty = comptime(CapturedEmpty);
     var original: CaptureBundle = capture_bundle();
     var local = comptime(original);
     if global.pair.first != 7 || local.pair.second != 8 { failures++; }
@@ -49,6 +51,7 @@ fn capture_verify(): i32 {
     if global.callback(41) != 42 || local.callback(8) != 9 { failures++; }
     if global.pointer != null || local.pointer != null { failures++; }
     if sizeof(decltype(global.empty)) != 1 { failures++; }
+    if sizeof(decltype(empty)) != 1 { failures++; }
     if comptime(capture_repeat(32)) != 704 { failures++; }
     // Mutating the consumer's ordinary shallow copy does not mutate the input.
     global.pair.first = 99;

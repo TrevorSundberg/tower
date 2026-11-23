@@ -1385,3 +1385,41 @@ roundtrip/matrix/performance and release evidence remain open.
   do not establish current browser completion. Publication is not requested;
   coordinator named lease, atomic main+gh-pages push, workflow and exact served
   manifest/assets/behavior verification remain required.
+
+### Post01946 harness and oracle review
+
+Current01946 evidence is in the journal: changed units/native/links, storage,
+query, policy12, aggregate and parser pass; full42 times out180s and known fails
+its preserved early-read expectation. Signed32 now passes all4package variants
+under the original30s child limit. Neither incomplete/fullknown is relabeled.
+
+| Path | Reviewed postfreeze change and evidence still needed |
+| --- | --- |
+| scaffolding/tests/compiler_storage.tower | Exact318149b0 stronger owner variant reconciled by narrow diff: each reset/recovery activates Statement grammar, consumes/releases declaration, then tests statement;100resets/provenance pointer/text/EOF/fault diagnostics/final buffer count remain. Matches owner full source byte-for-byte. Seed-only01946 passes; stronger current compile/run pending. |
+| scaffolding/tests/parser_trace_failures.tower | Owner323ae806 bounds the fault sweep by actual successful allocation count after warmup. Every prefix must fail, terminal count must succeed, and ownership/toggle baselines remain exact. Original a261 normal pass is retained; current source/sanitizer execution pending. |
+| scaffolding/tests/aggregate_capture_inputs.tower | Ownerd9827cd8 adds a whole empty struct capture with zero projections, keeping exactsize1 and stdout0 oracle. Earlier25e8 matrix passes; new edge must be rerun. |
+| scaffolding/tests/interpreter_call_query.tower | Same owner delta requires the exact immutable-capture diagnostic for store/copy/fill, in addition to unchanged bytes/ownership. Existing ef014 query passes; stronger message assertion unrun locally. |
+| scaffolding/tests/body_runs.tower | Audited22old occurrences (definition+21calls): old helper remains a wrapper with exact0newline expected bytes; new explicit-output helper shares unchanged world/session/compiler/formatter lifetime and canonical comparison. Added length plus byte loop preserves previous0oracle and supports original7/observed0,7,7. No duplicate compiler runner or guest execution path. Compile/equivalence/timing pending. |
+| scaffolding/tests/named_initialization_checks.tower | Existing callers retain width8 wrapper; explicit-width helper reuses the same worker1/2/4/8 failure selection, byte-identical diagnostics and batch/vector disposal. New demanded initializer checks use widths4/8. No broad expected-message weakening. |
+| scaffolding/tests/known_binding_checks.tower | Root-authorized contract alignment follows docs and independent original/current receipts. Exact original source becomes7positive; strengthened source checks0,7,7; demanded comptime(earlier) still rejects before initialization. Both positive engines, widths4/8, canonical roundtrip and worker1/2/4/8 are checked. Graph/fast sessions close before worker worlds to avoid extra retention. All other existing negatives stay byte-identical. New529b07e0draft uncompiled; oldfailedknown receipt remains. |
+| scaffolding/tests/comptime_capture_values.tower | New8-line D1 fixture SHAebf8e86a imports the untouched formerly-negative immutable-input source; checks input/result7 and exacti32 type, then prints failure count0. Explicit module identity/entry path required in native and browser transports. No world or scheduler implementation; original source remains covered through ordinary import. Current compile/runtime/freshWASI pending. |
+
+New tracked scope will be1048Tower paths/473D1 direct paths after staging this
+one new source; all473 have substantive review, distinct from runtime acceptance.
+The four browser original classifications have independent native32/64 jobs1/4
+receipts. Fresh same-source WASI confirmation is still required before browser
+oracle validation; alias remains negative with Cannot infer type argument 'T'.
+No new browser test logic is implemented outside Tower; transport changes remain
+pending. Lifecycle per-case/range helper is A1-owned, generic dispatch D1-owned;
+full default42/body coverage must remain, with explicit completion records.
+
+Browser follow-up now has independent B1 current frontend evidence: immutable
+receipt438bceb6 verifies all source hashes and wasm8bcc91ca, original four source
+files compare byte-identically to D1. UTF16LE raw results decoded with iconv match
+D1 native classifications at both widths. Production differences are layout
+profile exports/API declarations, extra EOFs and ownership comments; this is not
+an identical-build or LLVM/threaded-browser receipt. Narrow compiletime transport
+now uses three precise diagnostics, and imports the original immutable capture
+through the new positive Tower value/type oracle. Both frontend/LLVM transports
+receive its real entry path. The original threaded alias negative remains correct
+and unchanged. New browser test execution/full backend acceptance is pending.
