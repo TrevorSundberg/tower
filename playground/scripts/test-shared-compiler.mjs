@@ -11,7 +11,7 @@ import {files, builtins} from '../tests/compiler-fixtures.mjs';
 
 const [compilerPath, workPath, reportPath, selection] = process.argv.slice(2);
 if (!compilerPath || !workPath || !reportPath) throw new Error('Usage: node playground/scripts/test-shared-compiler.mjs COMPILER.wasm WORK.wasm REPORT.json');
-const ownershipModes = ['startup-cancel', 'partial-startup-cancel', 'busy-cancel', 'coordinator-error', 'startup-error', 'shared-trap', 'generation-retire'];
+const ownershipModes = ['startup-cancel', 'partial-startup-cancel', 'busy-cancel', 'coordinator-error', 'coordinator-messageerror', 'startup-error', 'shared-trap', 'generation-retire', 'retired-errors'];
 const selectedModes = selection === 'ownership' ? ownershipModes : selection?.startsWith('ownership:') ? selection.slice('ownership:'.length).split(',') : null;
 if (selection !== undefined && (!selectedModes || selectedModes.some(mode => !ownershipModes.includes(mode)))) throw new Error('Unknown shared compiler selection');
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -94,27 +94,64 @@ try {
           const busy = data.mode === 'busy-cancel';
           const worker = createCompilerWorker('/playground/tests/'+(busy ? 'shared_compiler_worker' : 'compiler_group_control')+'.mjs',
             {type:'module', capacity:data.capacity});
-          let closed = false, ready = false;
+          let closed = false, ready = false, retired = false, replacement;
+          let errors = 0, staleErrors = 0, staleMessageErrors = 0, staleMessages = 0;
           const timer = setTimeout(() => finish({error:'Ownership control exceeded 180 seconds'}, true), 180000);
           const finish = (result, failed = false) => {
             if (closed) return;
-            closed = true; clearTimeout(timer); worker.terminate();
+            closed = true; clearTimeout(timer); worker.terminate(); replacement?.terminate();
             // Let already-queued messages cross their event boundary; the owner
             // must suppress them. This does not wait for or substitute retirement.
-            setTimeout(() => failed ? reject(new Error(result.error)) : resolve({...result, ready}), 0);
+            setTimeout(() => failed ? reject(new Error(result.error)) : resolve({...result, ready,
+              errors, staleErrors, staleMessageErrors, staleMessages}), 0);
+          };
+          const replace = () => {
+            retired = true; worker.terminate();
+            replacement = createCompilerWorker('/playground/tests/shared_compiler_worker.mjs', {type:'module', capacity:data.capacity});
+            replacement.onerror = event => { event.preventDefault(); finish({error:event.message}, true); };
+            replacement.onmessage = ({data:message}) => {
+              if (message.probe === 'start') {
+                // Controlled page EventTarget delivery, not a claim that the
+                // browser queued a native error. Old callbacks model stop() on
+                // the reusable Engine/LanguageService owner's current worker.
+                for (let repeat = 0; repeat < 2; repeat++) {
+                  worker.dispatchEvent(new ErrorEvent('error', {message:'Retired coordinator failure', cancelable:true}));
+                  worker.dispatchEvent(new MessageEvent('messageerror'));
+                }
+                worker.dispatchEvent(new MessageEvent('message', {data:{echo:'retired-generation'}}));
+                if (staleErrors || staleMessageErrors || staleMessages) {
+                  finish({error:'Retired coordinator events reached its owner'}); return;
+                }
+                replacement.postMessage({...data, mode:'pool'});
+              } else if (message.error) finish({error:message.error}, true);
+              else if (message.result) finish({replacement:message.result});
+            };
+            replacement.postMessage({probe:'start'});
           };
           worker.onerror = event => {
             event.preventDefault();
+            if (retired) { staleErrors++; replacement?.terminate(); return; }
+            errors++;
+            if (closed) return;
             const expected = data.mode === 'coordinator-error' ? /Injected compiler coordinator failure/
-              : data.mode === 'startup-error' ? /Compiler thread failed during startup/ : null;
+              : data.mode === 'startup-error' ? /Compiler thread failed during startup/
+              : data.mode === 'coordinator-messageerror' ? /Compiler coordinator message failed/ : null;
             finish({error:event.message}, !expected?.test(event.message));
+            // The first active failure must be delivered once even when more
+            // coordinator failures arrive reentrantly after group retirement.
+            worker.dispatchEvent(new ErrorEvent('error', {message:'Duplicate coordinator failure', cancelable:true}));
+            worker.dispatchEvent(new MessageEvent('messageerror'));
           };
+          worker.addEventListener('messageerror', () => { staleMessageErrors++; replacement?.terminate(); });
           worker.onmessage = ({data:message}) => {
+            if (retired) { staleMessages++; replacement?.terminate(); return; }
             if (closed) { reject(new Error('Retired compiler forwarded an old-generation message')); return; }
             if (message.ready) {
               ready = true;
               if (data.mode === 'coordinator-error') worker.postMessage({crash:true});
+              else if (data.mode === 'coordinator-messageerror') worker.dispatchEvent(new MessageEvent('messageerror'));
               else if (data.mode === 'generation-retire') worker.postMessage({retire:true});
+              else if (data.mode === 'retired-errors') replace();
               else finish({error:'Unexpected completed startup'}, true);
             } else if (data.mode === 'generation-retire' && message.retireBoundary) {
               finish({cancelled:'generation'});
@@ -145,8 +182,21 @@ try {
       assert.equal(remaining.length, 0, 'Ownership control must close every worker: '+JSON.stringify(remaining));
       await waitClosed(workers);
       assert.ok(workers.every(worker => worker.closed));
-      assert.ok(workers.length >= 1 && workers.length <= capacity+1, 'No workers beyond the declared group');
-      if (!['startup-cancel', 'partial-startup-cancel', 'startup-error'].includes(mode)) assert.equal(workers.length, capacity+1);
+      receipt.browserWorkersClosed = workers.length;
+      receipt.browserWorkersAfterClose = remaining.length;
+      const groups = mode === 'retired-errors' ? 2 : 1;
+      assert.ok(workers.length >= 1 && workers.length <= groups*(capacity+1), 'No workers beyond the declared groups');
+      if (mode === 'retired-errors') {
+        assert.equal(receipt.error, undefined);
+        assert.equal(receipt.replacement?.mode, 'pool');
+        assert.equal(receipt.replacement.opened, capacity);
+        assert.equal(receipt.replacement.closed, capacity);
+      }
+      if (!['startup-cancel', 'partial-startup-cancel', 'startup-error'].includes(mode)) assert.equal(workers.length, groups*(capacity+1));
+      assert.equal(receipt.errors, ['coordinator-error', 'coordinator-messageerror', 'startup-error'].includes(mode) ? 1 : 0);
+      assert.equal(receipt.staleErrors, 0);
+      assert.equal(receipt.staleMessageErrors, 0);
+      assert.equal(receipt.staleMessages, 0);
       if (mode === 'startup-cancel') assert.equal(receipt.ready, false);
       if (mode === 'partial-startup-cancel') {
         assert.ok(workers.length > 1, 'Cancellation must observe an actual child');
@@ -155,8 +205,6 @@ try {
       }
       if (mode === 'generation-retire') assert.ok(report.boundaries.some(item => item.label === 'coordinator:old-reply-posted'),
         'The retiring coordinator must actually post its old-generation reply');
-      receipt.browserWorkersClosed = workers.length;
-      receipt.browserWorkersAfterClose = remaining.length;
       console.log('Ownership control passed: '+mode);
     }
   } else for (const trial of [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {

@@ -46,12 +46,21 @@ export function createCompilerWorker(url, {capacity = 4, ...options} = {}) {
   };
   const fail = message => {
     if (closed) return;
-    close();
+    // The first error listener retires the group before calling its owner.
+    // Forward while active so synthesized and native failures share that gate.
     worker.dispatchEvent(new ErrorEvent('error', {message}));
   };
   worker.terminate = close;
-  worker.addEventListener('error', close);
-  worker.addEventListener('messageerror', () => fail('Compiler coordinator message failed'));
+  worker.addEventListener('error', event => {
+    if (closed) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    close();
+  });
+  worker.addEventListener('messageerror', event => {
+    // The owner receives the first failure through error, never a second raw
+    // event (or a queued failure belonging to a retired generation).
+    event.stopImmediatePropagation();
+    fail('Compiler coordinator message failed');
+  });
   // A queued old-generation result must not reach a caller after cancellation.
   worker.addEventListener('message', event => { if (closed) event.stopImmediatePropagation(); });
   port1.onmessage = ({data}) => {
