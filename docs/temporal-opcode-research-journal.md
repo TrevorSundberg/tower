@@ -96082,3 +96082,16 @@ not relabeled as independently executed. No invalidated storage dependency or
 runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
+
+### 2026-11-23 D1: seeded cross-unit dependency/cancellation differential
+
+At1e428ede, added one Tower fixture through existing frontend-unit/ordinary
+invocation/observer APIs and lr-work registration. Three seeds combine forward
+imported queries, shadow/capture aliases, ordered effects and untaken cycles;
+admitted cancellation then changed seed/revision under same filenames uses fresh
+worlds. Paired15-batch/36-answer check and wrong-result1215vs1216 rejecting control
+both passed, clean disposal, no skips/timeouts. [Finite receipt](compiler_ecs_audit_d1.md#d1-seeded-dependencycancellation-interaction--1e428ede-2026-11-23)
+records exact blobs and native binary. Six-batch serial11.74wall/11.52CPU/207840KiB,
+two-worker10.76/17.61/427952; increased CPU/RSS, no broad speedup claim. CTest32.13s;
+logs/failures/measurements `build/d1_ecs/dependency_stress_1e428ede/`. Production,
+importer and scheduling untouched; no sanitizer/build-generation/release claim.

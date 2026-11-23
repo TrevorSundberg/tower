@@ -5597,3 +5597,36 @@ and other unsupported intrinsic families are unchanged, not newly validated.
 Threaded instrumentation, sanitizers, final reactor/generation/hosted adoption stay
 with ROOT's frozen milestone; neither old a06 nor its passing tests include this
 future fix. No race-freedom or whole-compiler completion claim.
+
+### D1 seeded dependency/cancellation interaction — 1e428ede (2026-11-23)
+
+Freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d` plus the following fixture delta;
+compiler/library/host remain unchanged. Existing unit/profile tests cover forward
+imports and overlap, module-body/header fixtures cover frames, and work_observe
+covers stale revision/profile tickets separately. The missing composition was
+admitted cancellation followed by changed seeded inputs under identical virtual
+paths, with independent body captures and imported dynamic query branches.
+
+| Path | Tested blob and disposition |
+| --- | --- |
+| `scaffolding/tests/compiler_dependency_seeded.tower` | `de906ee60abdda62a9ab205285f1c11a150c358c`: fixed seeds2/17/101, three units/two bodies. Existing observer gates only cancellation; two admitted jobs drain, third remains unstarted, no cancelled result escapes. New seed/revision uses fresh worlds, not an invented in-place invalidation API. Each body combines owning-frame known capture despite shadow writes, imported nominal alias, forward type/value producers, untaken cycle and left-to-right pointer effects. Ordinary invocation answers derive from explicit small arithmetic plus trace12/returns3, independent of compiler output. Real ungated distinct-thread overlap, exact canonical/error bytes and raw offsets, earliest cycle unit2 versus invalid unit3 are asserted. Close checks lanes0 and uses production world/budget disposal assertions; no unsafe global threaded allocation counter. |
+| `scaffolding/tests/lr_work_main.tower` | `6dc0d79df7ead0a9c543d46ddb921f5a62e08cba`: four explicit selectors; `all` invokes correct paired fixture once. Wrong-result control returns1 after cleanup, never suppresses a compiler diagnostic. |
+| `cmake/TowerWorkPolicyTests.cmake` | `3d335340a03639abdf8be2411b0bb2de70910fcb`: two focused existing-binary registrations, normal native180s convention; only deliberate wrong-result oracle uses `WILL_FAIL`. |
+
+Actual paired CTest:15 batches (3 cancellations,6 successful compilations,
+6 deterministic cycle controls),36 independent body answers; pass29.61s.
+Wrong oracle: unit1/first actual1215 versus wanted1216, logged exact seeded
+sources/request/workers, checked cleanup then required nonzero result; pass2.50s.
+Both registered tests pass, zero skips/timeouts. Two earlier fixture build errors
+(missing direct vector/observer imports) are retained and corrected, not passed.
+Deck Docker CPU0,2/8GiB, public768, LLVM19 Release jobs1; only dependency-aware
+`tower-lr-work-tests` target. Successful build31.20wall/30.29CPU/453152KiB.
+Equivalent fresh-process six-batch samples (warm filesystem, n1): serial
+11.74wall/11.52CPU/207840KiB; two workers10.76/17.61/427952. Modest latency reduction
+costs more CPU/RSS; this small functional workload is not a scaling benchmark.
+Full paired+negative CTest32.13wall/39.74CPU/575096KiB; no memory pressure.
+Test executable SHA256 `6622c5b0f15d03f2706b865f727f59d65434445ac833a6af20bf78e2681340ab`.
+Raw commands/failures/time, source/resource hashes and preserved prior binary:
+`build/d1_ecs/dependency_stress_1e428ede/`. No production change: before/after
+production profiling is inapplicable. Target64 ordinary interpreter only;
+32-bit/Fast/browser/sanitizer/release remain ROOT's separate frozen gates.

@@ -1933,3 +1933,19 @@ no partial publication; an earlier diagnostic keeps its text/offset. Both worlds
 buffer counts and budget grants drain. The existing CTest registration includes
 all of this once; its 120-second limit is unchanged. These are single-owner
 native importer/interpreter checks, not LLVM machine execution or worker scaling.
+
+`tower-lr-work-tests RESOURCE_ROOT dependency-stress` runs three fixed seeds
+through three independent units with two bodies each. It combines imported
+forward `decltype`/`comptime`, nominal aliases, owning-frame/shadow captures,
+ordered effects and an untaken cycle edge. Each seed first cancels admitted
+units at the existing observer hook, then uses changed input/revision in fresh
+batches under the same virtual filenames. Serial/two-worker canonical bytes and
+cycle-first diagnostics/offsets must agree; all results are hidden on failure or
+cancellation. The ordinary interpreter checks an independent arithmetic oracle.
+`dependency-stress-serial`/`dependency-stress-parallel` select equivalent six-batch
+cost samples without gated cancellation. `dependency-stress-wrong-result` expects
+one deliberately wrong value and must return1 after cleanup. CTests
+`tower-dependency-stress` and `tower-dependency-stress-wrong-result` use the existing
+native binary/180s convention; the latter has `WILL_FAIL`. `all` includes only the
+correct paired fixture once. These target64 checks require two native lanes;
+observed unit overlap is not a body-overlap, race-safety or general speedup claim.
