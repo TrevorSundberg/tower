@@ -48644,3 +48644,159 @@ stimulus now uses a valid Bedrock declaration, and utility_check flushes failure
 The failed dry run occurred before any changes. No reset count, source-pointer,
 provenance, EOF or buffer oracle was removed. B1's pending timing slot is honored
 with source-only work; B2's crossed unused grant was explicitly released.
+
+### B2 current acceptance gaps and joined lifecycle result
+
+At440751b plus audit documentation, the complete42-case lifecycle/type-smoke
+passes in215.082044396 s wall /229.465420 s CPU /236256 KiB RSS. This includes
+serial/worker32/64-bit checks, canonical reparse, and focused failures/cycles.
+Current corrected query smoke passes0.061482150 /0.061253 /58716; concurrent
+entity-stage workload passes0.100185780 /0.099944 /1684. The complex corrected
+aggregate source prints exact0 in1.160448080 /1.112919 /171960. These supersede
+only the corresponding earlier failing fixture observations, whose logs remain.
+
+The audit now has a Current remaining scope section with exact functions and next
+steps, distinguishing measured implementation, unvalidated current integration,
+missing cross-unit semantic-cache/failure behavior, and explicit host limits.
+The census is243 assigned production paths plus31 supporting production/entry
+paths and77 related fixtures,351 distinct existing files with source review rows.
+The new helper, aggregate fixture and trace fixture have full review entries;
+the pending bounded trace follow-up is not counted as adopted validation.
+
+Outstanding owned evidence includes current equivalent small/large1/2/4/8/12
+profiles, actual browser/Wasm retention, current comparable C-like measurements,
+joined cancellation/stale/overlap/backend/frontend gates, current ASan/TSan,
+clean public bootstrap/browser generation and coordinated atomic publication.
+The exact signed32 harness30-second deadline failure remains open until the
+original harness passes. D1 generic index/allocation/parser/policy/aggregate
+registration and portable profile separation are concrete integration dependencies.
+Cross-unit immutable semantic graph reuse and broad backend allocation-error
+handling remain implementation work, not optional items concealed by passing
+focused tests. No publication lease or final acceptance is claimed.
+
+### B2 frozen stage comparison across worker counts
+
+Coordinator-granted150-second quiet slot completed and released at23:44:56Z.
+B1 process inspection showed only its idle container process (and old defunct
+symbolizer/gzip entries); all B2 builds/tests drained before timing. Forty fresh
+CLI object compilations use two alternating before/after pairs at1/2/4/8/12
+workers, with reversed worker and compiler order in the second pair. Filesystem
+inputs are warm; compiler processes are fresh. No excluded warmup sample or
+sampling profiler is mixed into these timings. Commands use native x86_64 target,
+--emit object, ordinary optimization and identical explicit Bedrock/Foundation
+paths under the before package. Complete resource trees compare byte-identical.
+
+Before compiler0dd38248 and after373f9a94 are frozen complete packages. The
+execution-path delta is A2stage452; linked test fixtures also contain the reviewed
+observation/oracle corrections, which the CLI does not execute. Normal native
+build resources remain untouched; this equal-resource pin is measurement-only.
+Inputs are functions.tower429 bytes SHA4c833691de9359bf32782051eccc0ff718b82b0e27d7a6ae11bf2aeed82940f9
+and B1's4096-body fixture351269 bytes SHA1bc960f4ca59d7dddff1f56d953f43cd350134e79d55ba9e1867c4d12eeff0e7.
+The large case produces only944 object bytes: it exercises source checking, not
+4096 machine-code functions. Small object1176 bytes. All20 objects per workload
+match exactly across versions/workers/pairs; hashes8348613a and2ed0f90f. Independent
+ordinary graph execution checks exact720,721 and42,42 respectively.
+
+Medians of two samples (wall/CPU seconds; peak RSS KiB):
+
+| Input | Workers | Before wall | After wall | Before CPU | After CPU | Before RSS | After RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| small |1|1.113972|1.098595|1.102709|1.091302|179666|178888|
+| small |2|0.957270|0.966776|1.150112|1.160504|189438|188786|
+| small |4|0.976979|0.981530|1.195053|1.206968|196052|196226|
+| small |8|0.968926|0.984445|1.191739|1.208730|196674|196498|
+| small |12|0.968071|0.984613|1.188702|1.210670|194060|196184|
+| large |1|2.434806|2.408883|2.423659|2.398212|640772|641238|
+| large |2|2.219973|2.218948|2.721756|2.724439|655012|655118|
+| large |4|2.081907|2.073034|2.868450|2.865164|666252|665634|
+| large |8|2.004646|2.001151|3.058292|3.057262|666844|665942|
+| large |12|1.998517|2.004035|3.324808|3.338678|664628|665466|
+
+The stage change has little observed effect on these native-object workloads;
+small changes with n=2 are not treated as established regressions/improvements.
+Current large1->8 lanes reduces wall time about17%, increases CPU about27% and
+adds24704 KiB RSS. Twelve lanes adds CPU without an observed latency benefit.
+The small case benefits most from2 lanes. This is modest useful overlap, not a
+claim of linear scaling or efficient use of every core. Raw samples, object
+hashes and oracle output: build/b2_stage_profile_*. First paired normalization
+results in the earlier journal remain a separate workload/source closure.
+
+The joined full backend matrix at440751b subsequently passes51.255262250 s wall /
+73.364004 s CPU /1200120 KiB RSS, including actual frontend/LLVM overlap, shared
+admission, deterministic object/error output and drained cancellation. Log:
+build/b2_stage_backend_full.log. The signed32 package harness is running with its
+unchanged30-second child deadline. An initial shorthand filter signed32 selected
+no case and failed immediately; the retry uses the exact existing case name
+'signed saturating add i32'. That failed invocation is not acceptance evidence.
+
+- REQUEST_ROUTE root/A2/B1: concrete helper SOURCE-REVIEW export B2_memory_buffer_contract.patch in shared parent (-p1, host/memory.tower only). Shared compiler_node_allocation_size preserves original max-overhead-word admission, diagnostic rounding, zero-size payload and four-word header ABI; compiler_buffer_allocation_size returns exact underlying requested bytes or 0 if unsupported, no allocation/side effects. compiler_buffer_alignment guarantees 2*sizeof(usize), matching existing owner fixture and supported libc baseline (native16/WASI32 8), not max_align_t. Source compiled/runtime evidence pending next; A2 may integrate/read-review now. All B2 jobs drained before edit (container only tail PID1); full frontend at440751b PASS323.902358552wall/311.204621CPU/258176KiB incl42 lifecycle,32/64 body1/2/4/8, parser failures/regex/lexer; log build/b2_stage_frontend_full.log. Pull --rebase=merges initially rejected dirty docs; --autostash succeeded, HEAD unchanged440751b and edits restored. Native before-memory archive/source preserved /cache/b2_memory_before for matched profiling. No quiet slot or publication lease held.
+
+### B2 compiler buffer size/alignment contract and focused validation, 2026-11-23
+
+The complete frontend suite at440751b passed323.902358552 s wall /311.204621 s CPU /
+258176 KiB RSS: all42 lifecycle cases, body continuation32/64 at1/2/4/8 workers,
+canonical/diagnostic checks, parser allocation failures, regex and lexer matrices.
+The exact signed saturating add i32 package case also passed four variants with
+the unchanged30-second child deadline (41.731286494 /41.569822 /286504). Older
+failures remain logged. Neither result validates subsequently received fast-engine
+forward-read fixes or the new retained-memory API.
+
+Root/A2 needed exact physical request sizes before admitting retained buffers.
+host/memory.tower now shares compiler_node_allocation_size with allocation:
+unsupported size returns0; the existing maximum-overhead-word restriction,
+diagnostic rounding, four-word header, owner policy and zero-size one-byte payload
+are unchanged. compiler_buffer_allocation_size is allocation-free. The conservative
+compiler_buffer_alignment guarantee is2*sizeof(usize), preserving the existing
+compiler_buffer_owner contract:16 on supported64-bit hosts and8 on WASI32.
+This is not max_align_t or arbitrary over-alignment. Reference: official wasi-libc
+[dlmalloc source](https://github.com/WebAssembly/wasi-libc/blob/main/dlmalloc/src/malloc.c)
+defines its default alignment as twice pointer width; GNU's corresponding
+[allocator alignment definition](https://sourceware.org/pipermail/glibc-cvs/2017q2/062597.html)
+provides at least twice size-word width. Actual native/WASI tests are evidence below.
+No new allocator ABI, global state or scheduler was introduced.
+
+New shared Tower fixture compiler_buffer_contract tests zero/small/boundary query
+results, every allocation size0..129, and valid typed u64/f64 storage. The existing
+instrumented owner fixture additionally verifies query side-effect freedom, exact
+rejected-size fault-ticket preservation, recovery and original live-buffer balance.
+Native public predecessor smallest memory unit1.222039366 /1.141875 /179584;
+actual focused native fixture .000829978 /.000684 /1348. ASan current memory and
+fixture IR, existing unchanged instrumented allocator/trap composition, LLVM19
+-O1 -g -fno-omit-frame-pointer -fsanitize=address, detect_leaks=1:halt_on_error=1:
+PASS .007587255 /.006728 /5880, no findings. This is valid serial allocation/fault
+coverage, not threaded-race or UBSan evidence.
+
+WASI32 uses public predecessor emit llvm-optimized, existing runtime_bind aliases
+and separate memory/runtime/trap/test units, cached wasi-sdk34 clang,1MiB stack,
+and Node WASI Preview1. Actual test exit0; wasm SHA047fbe014d62677a85ace42eae6296341ebB2d00e163c9b321fdFefe89d5d843.
+The first empty-argv Node launch exited71; adding the program name corrected the
+OS boundary, not the Tower oracle. SDK reports target spelling override from
+wasm32-wasi to wasm32-unknown-wasip1. Initial fixture compile failures were an
+incorrect named-initializer spelling and missing explicit void* conversion;
+f64 equality/conversion introduced unnecessary strict-float link dependencies,
+so this storage test checks the exact1.25 representation after typed write/read.
+Importing memory and its opaque runtime declarations in one unit correctly failed
+foreign signature agreement; using the established separate-unit link fixed it.
+Failed compile/link/launch logs are retained in build/b2_memory_*.
+
+Matched allocator microprofile uses one frozen Tower entry (SHA0ad79b9c75f4fc10f3e4363e1ef594b820e8fb3f11231e4b379826e168ecd426),
+67,108,864 valid allocate/write/read/free operations, sizes1..256 and exact checksum
+8556380160. Same entry/runtime/trap objects and clang19 link; only old/new memory.o
+differs. Binaries3a633048/ee2a560e. KinmenB Ryzen AI MAX+395, Linux Docker12CPU/24GiB,
+public bootstrap9653f818, one worker, default Tower optimization, warm filesystem,
+fresh processes. Six alternating pairs; B1 quiet grant00:09:50.965Z, actual12
+samples drained before release00:10:11.511Z (grant-to-release20.546 s, roughly7 s
+measurement; no build during samples). Every output oracle passed.
+Before/after median wall .502523512/.496964070 s, CPU .5011145/.4963785 s,
+peak RSS1226/1328 KiB. Wall ranges .498346734-.568185670 and .495064534-.502135837;
+RSS ranges1064-1340 and1040-1348. No demonstrated regression or meaningful speedup
+claim from this small difference. One allocation is live at a time; focused
+instrumentation independently confirms no retained-buffer growth. This pure
+calculation change adds no synchronization; broader real-overlap checks remain
+part of the final integrated milestone. Raw12 samples and excluded pilot logs are
+build/b2_memory_profile_*. No whole-compiler memory-budget completion is claimed.
+
+Handoffs: helper-only07e634dd, full helper+tests e69a3c18 in the external shared
+coordination directory. A2 may adopt the helper independently; full patch replaces,
+not stacks over, helper-only. A2 six-file retained WorkBuffer/WorkVector v2 received
+and staged for review; B1 owns parser/table adoption and B2 outer-unit boundaries.
