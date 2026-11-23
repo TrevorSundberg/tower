@@ -90192,3 +90192,119 @@ controls pass, negation/compositions retain final8pass/4fail evidence. Link and
 stack/pointer host successes remain owner evidence only. No provider/package/pin
 change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit records
 both later input boundaries rather than extending acceptance indefinitely.
+### L2 backend reconstruction: real recheck denial and ownership boundary (2026-11-23)
+
+Frozen starting main `150bda591d04e53649dd7bffe9055464b461eb50`, CLI PID4872,
+Orchestral-Revng native cache `/root/.cache/tower/l2_ecs_native`, CPU4-7,
+public bootstrap `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`.
+No other build survived. This is the bounded backend source/reconstruction task;
+no semantic owner methods, B1/D2 transport, package caller, sanitizer, browser or
+release work was changed. All evidence is retained under external
+`L2/reconstruction_150bda59`; before/after source and executable SHA manifests
+identify the actual provider inputs. Initial probe builds stopped on a missing
+extern and direct import; both logs remain, followed by a successful provider build.
+
+Current-native `entity_pages.tower` is 5471 B, canonical is 1107757 B SHA256
+`cfd1c53c254de9296398711a25997ddc679a5b3877d50d77e7353f8fbd5b56f6`.
+The real `backend_source_compile_world` unoptimized LLVM path emits 9707075 B
+SHA256 `dcede543f74e1bac88e6839639a23f0b5d49295d879df632d194658af9a22567`
+before its second frontend validates it. This is ordinary imported source and
+LLVM reconstruction, not an invented graph or mocked scan state. B1's separate
+published `semantic_port_four_bcd0e3ab` receipt uses the older eac reactors and a
+1101861 B canonical SHA7db91392; it is not the same native input. Its stated
+external delivery directory was absent locally at review. Its four browser
+failures remain artifact-scoped; the generic message cannot prove Memory vs
+Capacity or a particular source offset.
+
+The first native full request reached the existing 180-second bound (exit124),
+180.68 wall / 180.66 CPU s, 10647268 KiB peak RSS; it did not return a resource
+receipt or execute the result. Initial join probe used legacy selected-buffer
+binding, so its charged bytes do NOT include entity storage. That limitation is
+preserved, not silently relabeled. It counted 1005929 live entities/1074016
+components entering recheck, then 6930815/6999261 after parsing. Timeout gives
+no final-cleanup receipt. Subsequent probes construct the world through
+`compiler_world_create_result` with an explicit synchronized 24 GiB ledger,
+so entity allocations are accounted from construction. This is a declared
+compiler budget, not a cap on LLVM/libc/whole-process RSS.
+
+A serial coordinator observer reserves remaining byte capacity exactly as the
+real second frontend begins, after import/format join; no worker is live. GDB
+reads the actual `SemanticProgram` via a Tower-typed read-only helper (no guessed
+layout): Capacity=1, offset0, one function, no diagnostic text. The old backend
+returns generic resource failure with backend receipt None=0, and publicly
+replaces the prior 1425 B valid result with all 9707075 B unvalidated text.
+The expected regression exits1. GDB itself exits0 after reporting the inferior
+exit1; it is not a pass. Before and after pressure release, fresh healthy compile
+and final world/ledger close complete. Final charged bytes/grants/lanes are0.
+This proves a receipt/publication defect and excess overlapping lifetimes,
+not persistent leakage or the category of the old Wasm failure.
+
+Repair: use checked root creation; carry the frontend's first resource category
+and offset into the existing backend receipt; include `resourceError` in normal
+JSON diagnostics. Format with the world budget, keep candidate text private,
+and release joined input/imported graphs plus formatter spans before parsing
+that text. Their source references are consumed only by import/format, whose
+synchronous calls have returned. Semantic close clears its descriptor for lexical
+cleanup. Only successful recheck and complete response construction replace
+session Foundation. Session output remains independently owned, preserving its
+existing lifetime beyond the supplied world; no alternate IR, evaluator, resource
+cap increase, skipped unoptimized pass or weakened provenance/cache check.
+
+The same controlled entity_pages request now returns exact Capacity/offset0,
+retains its prior 1425 B canonical result and then reproduces the healthy result
+byte-for-byte. At recheck entry, live entities/components drop from
+1006338/1074431 to10653/12061; charged bytes from1166403556 to28263047.
+These counts include the fixture's prior healthy compile and cached baseline.
+The artificially occupied capacity makes peak charged bytes24 GiB by design;
+it is NOT physical memory consumption. Actual fixed denial run:6.01 wall,
+5.83 CPU s,1283032 KiB peak RSS. It ends with zero bytes/grants/lanes and
+83886080 B ledger capacity before disposal. The old GDB run is diagnostic cost,
+not a fair speed comparison.
+
+Healthy frozen struct control: 518 B Tower ->9926 B canonical (SHAa64bb2b6) ->
+126234 B unoptimized Foundation. Target32 SHA b18d4478; target64 SHA819fbe86.
+Before/after and workers1/4 are byte-identical within each target; both reconstructed
+outputs execute independently to exact `0\n` with empty stderr. n1 matched
+process samples, same canonical/grammar/runtime/host/allocator/CPU affinity:
+
+| Target / workers | Before wall / CPU s / peak KiB | After wall / CPU s / peak KiB |
+| --- | --- | --- |
+|32 /1|1.12 /1.06 /261352|.84 /.80 /248848|
+|32 /4|1.35 /1.49 /265628|1.02 /1.12 /253508|
+|64 /1|1.14 /1.11 /261580|.88 /.84 /249048|
+|64 /4|1.25 /1.40 /265920|1.04 /1.13 /253672|
+
+These small samples suggest reduced retained work, not a universal speedup;
+four workers remain slower here and no distinct-thread-overlap claim is made.
+All healthy request closes assert final zero byte/grant/lane owners. Target32
+serial peak charged bytes208681595 ->196202496. Process RSS includes independent
+LLVM/libc allocation and is separate from the budget ledger.
+
+Dependency-aware affected source/storage targets pass. CTest selection exactly
+`tower-backend-source-worlds`, new `tower-backend-source-recheck`, and existing
+`tower-storage-backend-import`:3/3 pass,1.59 s total. Existing import fixtures
+retain real Memory allocation sweeps, Capacity/pinned Busy, prior error/offset,
+terminal no-allocation retry and zero allocation/grant cleanup. New source test
+covers actual frontend Capacity, prior valid output and fresh session retry;
+it is not claimed to inject every frontend allocation. No full type/frontend,
+generation/platform or instrumentation matrix was repeated.
+The full post-fix entity_pages request completed with **failure**, not timeout:
+153.52 wall /153.49 CPU s,10660176 KiB peak RSS, exit1. It returns
+`Foundation component memory budget exceeded` at reconstructed offset204461.
+`sem_node_result` deliberately retains this logical-limit diagnostic when
+`c.count >= c.node_limit`; `semantic_compile_budget` derives that count from
+`SemanticComponentBudgetBytes` (167772160 B) / `sizeof(FoundationNode)`.
+This is distinct from the controlled physical Capacity receipt and must not be
+renamed Memory/Capacity from speculation. No limit was changed. Recheck entered
+with10243 entities/11644 components and ended parsing with5935129/5936889;
+at semantic disposal it held5935203/6747566,10644222967 charged bytes before
+scratch disposal and6713807066 afterward. Final world close asserted bytes0,
+grants0,lanes0; charged peak10644228015 B, ledger capacity671088640 B before
+disposal. There was no successful/partial Foundation publication (output length0).
+The old timeout had different entity-budget instrumentation, so these full runs
+are not a controlled performance comparison. Both peaks are retained; this
+repair does not claim to make the large ECS program fit the semantic limit or
+Wasm address space. Full entity_pages and the other three browser ECS acceptance
+gates remain pending. The exact eac Wasm first typed cause remains unobserved.
+Further expansion/semantic work and current-reactor adoption belong to ROOT's
+next explicitly scoped milestone; this task does not raise caps or bypass checks.

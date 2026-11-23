@@ -132,8 +132,17 @@ export fn backend_session_failure(s: BackendSession*, error: u8*, offset: usize)
     if !backend_text(&s.response, "{\"status\":\"error\",\"error\":")
         || !backend_json_text(&s.response, error)
         || !backend_text(&s.response, ",\"errorOffset\":")
-        || !backend_decimal(&s.response, convert(u64, offset))
-        || !backend_text(&s.response, "}") { return backend_session_resource_failure(s); }
+        || !backend_decimal(&s.response, convert(u64, offset)) { return backend_session_resource_failure(s); }
+    if s.backend != null && s.backend.resource_error != WorkBudgetError.None {
+        var cause = s.backend.resource_error;
+        var name = cause == WorkBudgetError.Memory ? "Memory" : cause == WorkBudgetError.Capacity ? "Capacity"
+            : cause == WorkBudgetError.Busy ? "Busy" : cause == WorkBudgetError.Stale ? "Stale"
+            : cause == WorkBudgetError.Exhausted ? "Exhausted" : "Invalid";
+        if !backend_text(&s.response, ",\"resourceError\":") || !backend_json_text(&s.response, name) {
+            return backend_session_resource_failure(s);
+        }
+    }
+    if !backend_text(&s.response, "}") { return backend_session_resource_failure(s); }
     return s.response.data;
 }
 
@@ -451,8 +460,11 @@ export fn backend_session_import_report(s: BackendSession*, optimize: bool): u8*
 
 fn backend_session_foundation_report(s: BackendSession*, profile: ExecutionProfile): u8* {
     s.response.length = 0;
-    backend_text(&s.response, "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":");
-    backend_decimal(&s.response, convert(u64, profile));
-    backend_text(&s.response, "}");
+    s.response_fallback = null;
+    if !backend_text(&s.response, "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":")
+        || !backend_decimal(&s.response, convert(u64, profile)) || !backend_text(&s.response, "}") {
+        backend_resource_fail(s.backend, WorkBudgetError.Memory);
+        return backend_session_resource_failure(s);
+    }
     return s.response.data;
 }
