@@ -100,7 +100,8 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     var plain = entity_create(store);
     var target = entity_create(store);
     stage_check(root != null && type != null && plain != null && target != null
-        && entity_register(type, sizeof(StageReference), alignof(StageReference), StageReferenceLifecycle)
+        && entity_register_stage_result(type, sizeof(StageReference), alignof(StageReference),
+            StageReferenceLifecycle, 4) == WorkBudgetError.None
         && entity_register(plain, sizeof(u64), alignof(u64), 0));
     var entered = work_signal_open();
     var release = work_signal_open();
