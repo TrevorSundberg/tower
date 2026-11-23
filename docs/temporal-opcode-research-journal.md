@@ -81314,3 +81314,31 @@ final current-source instrumentation/bootstrap/browser/generation/deployment;
 the separate queued-provenance ownership prerequisite remains open. All owned
 jobs drained before heavy-lock release; todo unchanged. Normal main commit/push
 and exact remote verification follow, recorded in D2's existing status.
+
+B1 final merged receipt: published e66666c9 advanced during the batch; the required
+fast-forward-only pull refused divergence and normal merge preserved both complete
+histories as73c48dacc7d16937ec7d6fefa1f4fb05ad8120f3. All diagnostic batch files
+remain identical to production d5132ed5. Incoming module/semantic changes required
+six dependency-build actions,23.57s wall/45.42s CPU/756324KiB RSS. Merged parser
+.04s/53616KiB, diagnostics .02s/52644KiB, regex .04s/51552KiB and grammar-resource
+1.26s/52520KiB all exit0. Session67630 drained0; container only init. Logs/source/
+artifact hash: build/ecs_b1/logs/parser_diagnostic_merged_*. Frontend executable
+SHA256795b9ec5c5a1bbf7972773f0699c83e28b1da39f31e1e818d0cf1d145b71f5ba.
+No profiling or broad matrix repeated; prior profiles retain their frozen source.
+
+Exact observed native interface handoff: ParserNodes now imports
+parser_presentation_buffer_result from ParserFormat; ParserFormat imports
+parser_table_non_terminal_id_to_string_result and syntax_parser_token_name_result
+from ParserNodes; TemplateBuild imports syntax_session_diagnostic_result and
+parser_recognizer_get_error from ParserNodes. The linked focused checks resolve
+these complete providers. Strict bootstrap symbol-policy/release validation is a
+ROOT/D2 integrated gate, pending for these newly observed names, not claimed passed.
+The pointer wrappers remain available. Public checked diagnostic signature is
+parser_recognizer_diagnostic_result(request, ParserDiagnosticReader, source,
+WorkBudgetError*) -> ParserDiagnostic*; syntax_session_diagnostic_result(session,
+request, repairs, WorkBudgetError*) -> u8*. Both return null on resource failure;
+the latter retains the existing compiler_buffer_free text ownership on success.
+parser_stream_return_owned accepts work_vector(u8)* and transfers its receipt;
+legacy vector handoff remains unchanged. Remaining formatter allocation and budget
+lifetime limits are documented in docs/parser.md. Final normal push/status follows;
+no gh-pages deployment is part of this bounded task.
