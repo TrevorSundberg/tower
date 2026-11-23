@@ -84731,3 +84731,22 @@ Reuse merged focused runtime evidence without recompilation. Both owners' journa
 and README additions retained. Normal main push retried; no deployment claimed.
 
 B2 inference publication receipt: type-smoke completed PASS,213.762wall/230.153CPU/268560KiB; owned jobs drained. Implementation0e9db271 merged complete origin68f906a1 as5b16b584 after required ff-only pull correctly refused divergence. Both journal histories retained. Incoming LR change required exactly parser-nodes plus relink (21.313wall/15.676CPU/732456KiB); merged inference CTest2/2 PASS and workers4 canonical remains byte-identical to the recorded workers1 baseline. Whole-generation source is frozen after this publication receipt; generation/package lineage will name that published commit rather than the earlier intermediate binaries.
+
+L1 merged publication receipt: implementationf2ae81f3c31b plus complete published
+b5b585f merged as49082de01b053ca500361504c18b7eba22f0a03b. Two documentation
+conflicts retained both owners' updated gates and test sections; no production
+conflict or history loss. Incoming LR/generic/lifecycle changes triggered one
+focused dependency build: native39.21wall/55.15CPU/798844KiB, core15.16wall/
+17.11CPU/315728KiB and query0.25wall/0.28CPU/75328KiB, all actual exit0.
+Shared changed closure36.84wall/51.55CPU/849316KiB; package file again5/5,
+zero skips,4.531wall/7.297CPU/274513920bytes peak working set, actual exit0.
+All source manifests remain frozen across each build. Earlier before/after
+performance stays scoped to its original inputs, not relabeled as a comparison
+of unrelated incoming implementation changes.
+
+Merged artifact hashes: towerc8808acfd37147570830951d231d5d1a3df84e013d381a5dd91696f3bd79792f1;
+shared-Wasm09a090815cec6146e30aca510f58288159684cfc02f346cedc3a8a521846c813.
+Complete hashes, source manifest07c6eae7b3f2d2227a339cf641dd0d6f1b758c173088661dd0d9df89646059cb,
+logs and exact limits are in external L1/output_storage_receipt.json and
+logs/output_storage_merged. Jobs are drained; todo hashb927852f is unchanged.
+Normal main publication follows; no hosted deployment or release-pin claim.
