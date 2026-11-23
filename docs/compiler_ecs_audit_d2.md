@@ -2099,3 +2099,62 @@ D2/linker_cancellation_race_receipt.tar81297fc5; minimal provider patchf2d71650.
 D2 releases its drained slot08:12:41UTC and records the concrete B2 request in
 status. Current coherent race acceptance and final integration/publication remain
 open; earlier successful receipts are neither erased nor broadened.
+
+### ROOT75 receipt/page union: source review only (2026-11-23)
+
+Verified complete bundle5fe3be67/sole60741 and merged as7f09c731 after all owned
+jobs drained. Assigned tools/benchmarks, policy fixture and authorized reader
+entry are byte-identical to committed a6ba2e9e. Compiler/library ABI changes below
+are locally unbuilt; de6c1330 receipts continue to name ROOT72a inputs.
+
+| Supplemental path / reviewed75fdf0bf source | Ownership and measurement disposition |
+| --- | --- |
+| `tests/entity_locality.tower` | Page retention now reads the page-owned WorkBuffer's requested physical allocation size, including compiler header. This replaces allocator-private malloc usable bytes; old/new memory figures need distinct labels. Stable type pages still permit holes and retained pages, and packed traversal is a disposable snapshot whose construction time is reported separately. This is not proof of packed authoritative payloads or wholeheap accounting. No new D2 performance sample. |
+| `tests/entity_component_layout.tower` | New target-layout/reference fixture checks shared small-payload page, exact strides/back-pointers, large aligned fallback, denied growth preserving membership, page retention until last payload and zero final grants. Sizes/offsets derive from target types and allocator capacities, so one source can run native/Wasm32. Prints are measured allocation/layout values, not a throughput benchmark. Owner receipt exists; independent D2 execution is pending. |
+| `compiler/type_object_index_types.tower`, `type_object_index_api.tower` | The disposable execution index owns one accounted vector and sticky receipt, borrows canonical type descriptors, and requires its frozen budget through every call. Zero signals failure; denied growth retains prior entries/grant. Readers must drain before disposal; copying a live owner is forbidden. Existing interpreter providers own implementation, and project packaging must follow the emitted depfile closure. No new ambient registry or alternate Foundation graph. |
+| `compiler/execution_session.tower`, `execution_package.tower` | These earlier routed output gates now reject the shared fixed resource receipt independently of diagnostic allocation. Counted text keeps explicit spans; failure flag/offset survives a failed presentation copy, and package failure clears output. This source closes those particular text-only admission gaps, not the still-pending B2 service/backend consumers or the whole current runtime. |
+
+Shared SemanticProgram, interpreter indexes/frames and component-page descriptors
+changed. Next builds must rebuild all affected ABI consumers and inspect actual
+new native/WASI undefined symbols before any exact policy additions. B1 grammar,
+B2 output/world consumers and linker cancellation repair remain later inputs.
+This integration/review does not add executable logic; new performance testing
+of the documentation is inapplicable, and source-union runtime acceptance remains
+open. Complete prior source/tool/compiler receipts are archived as220MiB
+policy_72a_receipt.tar464fdf04; no newer source identity is assigned to them.
+
+### Independent owner cancellation repair and registration review (2026-11-23)
+
+The earlier unresolved linker race is now independently reproduced and cleared
+for its exact fixture. This does not close unrelated resource/publication work.
+Source is97d934a6 (complete ROOT75 plus D2 changes), before archive5a183f1e,
+after ONLY ROOT-authorized B2 patch5d8b5a62. Both sides use the final native
+reader's single host.memory provider; previous separate-provider receipts remain
+historical. No competing backend implementation was introduced.
+
+| Supplemental reviewed path | Ownership, evidence and disposition |
+| --- | --- |
+| `backend/wasm_link_jobs.tower`,97d934a6 + B2 patch5d8b5a62 | Workers borrow the entire shared linker owner when making private snapshots. Cancellation must join before graph lease cancellation and shared error publication. The owner adds that drain; unconditional deferred drain/view close remains. Original shared inputs, private job errors/output ranges and source-order selection are unchanged. Matched current before firstTSan66 versus after normal3/address3/thread10 passes; no universal alias/race guarantee. |
+| `tests/wasm_link_reader_native.tower`,a6ba2e9e | Same one-provider entry on both sides; unchanged shared reader exercises a real two-worker barrier, canonical bytes, pinned close rejection, error order with requested1/2/4 workers and cancellation1/2. Every normal and successful instrumented stdout matches. Two host CPUs do not establish useful four-core scaling. |
+| `cmake/TowerRuntime.cmake`, D1 draftcb7943f5 on2c1eec38 | Necessary build boundary only: consumes explicit SOURCE before symbol bindings in sanitizer IR, direct object and bound optimized IR; default library mode and remaining binding order remain. No second runner/compiler/provider. D2 read the full patch and caller scopes; no source issue found. D1 reports actual native/address/thread checks; direct unbound SOURCE branch remains unrun. No D2 manifest edit. |
+| `cmake/TowerWorkTests.cmake`, `TowerWorkPolicyTests.cmake`, same D1 draft | Existing outer scope supplies real renamed transport/dispatch objects to deferred policy registration. Receipt/order bodies join existing LR providers; mutable dispatch fixtures use ordinary-source initialization and exact runtime_bind names. Existing body assertions remain. Source review is separate from D1's runtime receipt and final coherent integration. |
+
+SteamDeck Linux x64, Docker4be584fb, public9653, LLVM19.1.1, cpus0/2, jobs1,
+normal O1 objects, warm filesystem/fresh processes. Before public IR17.55wall/
+17.28CPU/518604KiB; after16.69/16.44/519648, one build each. Native3 runtime
+is below.01s wall/CPU both sides, RSS2052–2064 versus2124–2128KiB. These samples
+cannot establish a throughput change or meaningful allocation/retention delta.
+After address3: .05–.08wall/.04–.07CPU/39468–41324KiB; thread10:
+.04–.08wall/.03–.07CPU/31420–33780KiB. All measured swaps0. Before failed
+TSan is not completed-throughput evidence; its exact status66/reportc8f1fbb9
+remains preserved without retries. The symbolizer's missing `[stack]` filename
+message does not invalidate the explicit conflicting function stacks.
+
+Actual709 emitted definitions,341 ASan access/memory hooks and1871 TSan access
+hooks, matching instrumented guest runtime and one allocator provider verified.
+LSan enabled. Lifecycle assertions check drained views and preserved output;
+there is no full heap-allocation census, source UBSan/system-library coverage or
+per-worker idle attribution. All owned children drained before08:41:50UTC release.
+Complete paired sources/IR/objects/binaries/logs/script are exported as
+D2/linker_race_75_receipt.tar9f5bf0be (118MiB). Frozen hashes pass. Final whole
+compiler/public-bootstrap/browser/generation and leased publication remain open.
