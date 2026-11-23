@@ -2992,3 +2992,23 @@ D1 releases its lock only after both containers are init-only, allowing D2's
 short actual ParserNodes policy gate before the new instrumentation freeze.
 Standalone negative-control, old restricted-host overlap, current broad native,
 clean bootstrap/browser/generation and leased hosted publication remain open.
+
+### Exact ParserNodes attachment policy review
+
+D2 draft227bf39a7d1dc6b97cabbc245ddc5917f38ee92107fdbc8e399bc47f1e57a9b7
+extends assigned bootstrap_symbols_checks.tower at2252+8cb. D1's rebuilt native
+ParserNodes9928d135 has U entity_attach_result and Entitiese62f8520 has its T
+provider. D2's fresh public WASI report has the same import. Reviewed the actual
+lr_work_node_result caller: it retains the producer's exact error and releases
+the created node on failure before returning null. This is a real cross-unit
+producer dependency, unlike the prior Entities Wasm table ABI allowance.
+
+Eight fixture cases accompany one exact ParserNodes permission: Linux/Windows/
+WASI policy positives and truncation, suffix and three wrong-unit negatives.
+Existing full-token normalization/matching is unchanged; no general entity_ or
+result suffix permission. Windows is policy coverage, not runtime evidence.
+No new ownership, storage or scheduling layer is added. D1 source review finds
+no blocker; D2 owns the matched observed-report and supported instrumentation
+receipt. Adoption is pending the complete history; no independent runtime pass
+is inferred from reading the draft. Documentation-only review has no runtime
+performance delta and does not require repeating unaffected policy matrices.

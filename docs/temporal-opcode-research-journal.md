@@ -78440,3 +78440,17 @@ actual ParserNodes WASI/policy slot next. This is a native harness checkpoint,
 not final integrated acceptance. Negative probe is unchanged and unexecuted;
 current broad native/address/thread, oldff3 restricted-host Cancel4, final clean
 bootstrap/browser/generation and leased atomic hosted publication remain open.
+
+### D1 independent ParserNodes policy review after native registration
+
+While D2 holds its short slot, D1 reads exact227bf39a draft and actual public
+native/WASI undefined reports. Current ParserNodes9928d135 imports
+entity_attach_result, provided by Entitiese62f8520; lr_work_node_result preserves
+its exact cause and cleans up the node before failure. The narrowly scoped
+ParserNodes allowlist addition is justified by that measured boundary. Eight
+Tower policy tests preserve prefix/suffix/wrong-unit rejection and cover Linux,
+Windows and WASI parsing; no Windows execution is claimed. No production or
+fixture edit by D1. D2 reports its bounded after checks drained0; complete bundle
+and current receipt remain pending before adoption. Source review finds no blocker
+and is sent once to D2. It changes only audit prose, so runtime profiling is
+inapplicable; prior registration performance/raw failures remain separately scoped.
