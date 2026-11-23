@@ -1025,6 +1025,22 @@ declaration/type cycles for serial/four-worker budgets. Reuse a completed
 lifecycle receipt for the same compiler inputs when iterating these checks.
 This selector does not replace lifecycle coverage; `type-smoke` still runs both.
 
+For a complete type/staging checkpoint without duplicate suites, run
+`tower-lr-work-tests RESOURCE_ROOT lifecycle 0 41` followed by `type-errors`.
+Together these select the existing `type-smoke` cases; do not additionally run
+`type-smoke` or its `capture-policy` subset on the same frozen inputs.
+`tower-execution-tests RESOURCE_ROOT type-staging` then selects the existing
+constructor protocol, type binding/computed argument/type object/constructor,
+known binding and staged aggregate suites. Their shared aggregate capture fixture
+runs once. Individual `types`, `known`, `aggregate-stages` and `type-construction`
+selectors retain their standalone coverage and need not run again.
+These fixtures compare known outputs and canonical Foundation reconstruction at
+32/64-bit target widths, using the graph and cached interpreters and requested
+worker counts 1/2/4/8. Negative-case widths follow their existing helpers.
+Use the existing lifecycle/staging-frontier tests for barrier-backed worker
+overlap and scheduling contracts; a requested worker count by itself is not
+overlap or throughput evidence. Retain the exact source and binary identities.
+
 The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
 existing executable-function index fixture, including exact canonical preservation,
 declaration identity and allocation-failure cleanup. The default frontend suite

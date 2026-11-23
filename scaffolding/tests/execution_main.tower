@@ -65,7 +65,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     var source_rejection = strcmp(suite, "source-rejection") == 0;
     var encoder_rejection = strcmp(suite, "encoder-rejection") == 0;
     var type_construction = strcmp(suite, "type-construction") == 0;
-    execution_check(all || known || bodies || type_smoke || capture_policy || editor || rejection || source_rejection || encoder_rejection || type_construction || floating || oracle || negation || narrow || functions || semantics || core || core_static || attributes || aggregates || type_bindings, "known execution suite");
+    var type_staging = strcmp(suite, "type-staging") == 0;
+    execution_check(all || known || bodies || type_smoke || capture_policy || editor || rejection || source_rejection || encoder_rejection || type_construction || type_staging || floating || oracle || negation || narrow || functions || semantics || core || core_static || attributes || aggregates || type_bindings, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies || type_smoke || capture_policy {
@@ -104,14 +105,16 @@ export fn main(argc: i32, argv: u8**): i32 {
     if source_rejection { return 0; }
     if all || encoder_rejection { execution_encoder_rejection_tests(request.modules); }
     if encoder_rejection { return 0; }
-    if all || type_construction { execution_type_construction_tests(request.modules); }
+    if all || type_construction || type_staging { execution_type_construction_tests(request.modules); }
     if type_construction { return 0; }
-    if all || type_bindings || known || aggregates { aggregate_capture_tests(request.modules, argv[1]); }
-    if all || type_bindings { type_binding_tests(request.modules, argv[1]); }
+    // The subsystem checkpoint runs the existing suites with shared capture
+    // coverage once. Individual selectors retain their standalone coverage.
+    if all || type_bindings || known || aggregates || type_staging { aggregate_capture_tests(request.modules, argv[1]); }
+    if all || type_bindings || type_staging { type_binding_tests(request.modules, argv[1]); }
     if type_bindings { return 0; }
     if all || attributes { syntax_attribute_tests(); declaration_attribute_tests(request.modules, argv[1]); }
     if attributes { return 0; }
-    if all || aggregates { comptime_aggregate_tests(request.modules, argv[1]); }
+    if all || aggregates || type_staging { comptime_aggregate_tests(request.modules, argv[1]); }
     if aggregates { return 0; }
     if oracle { floating_oracle_tests(request.modules); return 0; }
     if all || core { execution_fast_storage_tests(&request); }

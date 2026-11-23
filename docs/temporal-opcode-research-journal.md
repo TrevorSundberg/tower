@@ -82871,3 +82871,99 @@ Owned jobs drained. Earlier timing receipts keep their measured compiler identit
 no repeated profiling or broad gates. The remaining scratch/synthesis and legacy
 caller admissions above remain pending; stage leases stay A2-owned. Normal main
 push follows this receipt; final lane status records the verified remote commit.
+## 2026-11-23 L2 frozen full type/staging acceptance checkpoint
+
+Direct bounded acceptance task, CLI PID14128. Required pull froze published
+b959ad59 (production inputs include known/capture d585fcc9); only documentation
+changed from d585fcc9. No surviving child builds. Do not substitute ROOT's old
+b83 serial-allocator full-frontend300s gate for this production checkpoint.
+
+Selector audit: lifecycle0-41 plus type-errors selects type-smoke once.
+Capture-policy duplicates lifecycle28-39 and is omitted. The 42 lifecycle modes
+cover26 accepted and16 rejected programs at widths4/8 and workers1/4:168 source
+trials, plus52 successful serial canonical Foundation recompilations. Type-errors
+adds the existing body_continuation serial/worker/canonical trials and15 negative
+binding/type/layout cases at workers1/4 (that selector's target width is8).
+The existing execution selectors types/known/aggregate-stages repeat the same
+aggregate_capture_inputs fixture. Added only a type-staging selection in their
+existing Tower runner to call the shared fixture once and the original full
+constructor protocol, type binding/computed argument/type object/constructor,
+known binding and staged aggregate helpers. No fixture semantics or production
+compiler/runtime changed. Negative cases keep their original helper widths.
+
+The documented full-source fixtures include type_bindings, computed_type_arguments,
+type_object_values, type_construction_execution, aggregate_capture_inputs,
+comptime_aggregates, known_bindings, enum_expressions and the fixed/cyclic module
+library cases. They use exact known outputs, graph/cached interpreter agreement,
+canonical Foundation recompile and source-worker comparisons at widths4/8,
+workers1/2/4/8. Constructor capability/operand-order/suspension cases remain
+honest about unsupported runtime construction. Existing lifecycle/staging-frontier
+fixtures separately test actual mixed signature/lowering barrier rendezvous,
+executed-only lazy dependencies and held interpreter state. Requested worker
+counts alone are not proof of per-case overlap or useful scaling.
+
+Native build uses the existing public-bootstrap CMake cache l2_ecs_native,
+production allocator/worker transport, compiler jobs1, build parallel2, affinity4-7,
+4GiB virtual-memory limit, one test process at a time. Test-only selector diff,
+source manifest, revision, binary hashes and raw wall/CPU/RSS receipts are under
+L2/type_checkpoint0* and L2/logs/type_checkpoint0*. The immutable source check
+runs on exit. Six dependency build actions passed; acceptance runtime cases are
+running, not yet claimed passed. No new framework, production fix, performance
+claim, sanitizer/platform/editor expansion, agents, goal, todo edit or deployment.
+Checkpoint0 completed PASS, session84816 drained normally, process_status0 and
+source_status0; all runtime stderr files empty. Exactly42 lifecycle completion
+receipts are present. Full production source identity is
+b959ad595baae204f45add57db31fd8ef04d94cc with only the recorded test-selector diff.
+There were no contract failures and no production fixes. Successful declared
+known outputs, rejected diagnostics, canonical Foundation reconstruction and
+serial/worker comparisons were checked by the existing Tower fixtures, not by
+accepting process completion alone.
+
+| Executed selection | Coverage | Wall / CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| dependency build | six actions, public bootstrap, production link closure |17.32 /16.55|397488|
+| lifecycle0-41 |168 source trials +52 canonical reparses, widths4/8, workers1/4 |235.95 /252.88|244092|
+| type-errors | body source1/4 +canonical,30 binding/type/cycle diagnostics, width8 |44.43 /48.13|263732|
+| execution type-staging | full existing types/known/aggregates/constructor protocol, shared capture once |140.86 /149.31|370164|
+| lifecycle-frontier |10 native-width1/4-budget cases, including real mixed-phase rendezvous |.01 /.01|52392|
+| staging-frontier |10 native-width1/4-budget cases, executed stages and ready/waiting lower frontiers |.02 /.01|52772|
+
+Execution type-staging emitted all eight successful suite receipts: constructor
+operand order/suspension/runtime capability; aggregate captures; computed type
+arguments; type objects; executed constructors; source types; staged aggregates;
+known bindings. Full-source comparisons cover widths4/8 and requested workers
+1/2/4/8; rejected cases retain each helper's documented width. Required versus
+optional values, decltype and helper calls, forward/cyclic and module/local
+bindings, aliases/constructors, initialization/effect order, untouched lazy arms,
+exact frame identity and relocatable aggregate captures are covered. No old
+full-frontend timeout, editor/platform/sanitizer or duplicate storage smoke was
+substituted for this acceptance.
+
+Overlap evidence is specifically the native lifecycle-frontier Ready/Waiting
+cases: a threaded pool with more than one slot runs signature and expression
+callbacks which post their own semaphore and wait for the peer before calling
+the production lowering kernel. Both complete once; disposal checks retain no
+workers/tickets/world owners. This proves rendezvous overlap for those cases,
+not that every source case overlaps or scales. Source suites request up to8 slots
+on the four-core affinity; no8-core speedup claim. Frontier fixtures use native
+64-bit descriptors; source suites supply the explicit32/64-bit coverage.
+
+Compiler SHA256 be521b36b92d5e8060d6886a539a4b37c042cec37318615c1ac8e7455f6781cd;
+execution runner b191ac287d5ef55657bb50f38824036035d6c931cbeffbb6cf460f028cefa2b9;
+LR runner b46539cfcdd8136c8dc7dd0ad194f0b75d127338975080126665d24d5f4911a8.
+The binary manifest also identifies both frontier executables. Public bootstrap
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02 was selected
+without an override. Frozen source/revision/selector patch, binary manifests and
+all timings remain in L2/type_checkpoint0* and logs. Test-only dispatch and docs
+changed; production before/after profiling is inapplicable. Listed timings are
+checkpoint costs, not performance comparisons.
+
+No genuine blocker remains in this frozen subsystem checkpoint. Unsupported
+runtime type construction, invalid numeric widths/bounds, mutable/escaped/raw
+representation captures and invalid type ABI uses remain explicit rejections.
+Legacy scratch/synthesis admission gaps from L2's preceding batch are not silently
+converted by this functional acceptance. ROOT retains integrated sanitizers,
+platform/bootstrap/browser/generation/scaling and hosted publication. A1/A2/B1/B2
+ownership code was not edited. Normal evidence commit/integration/push follows;
+later unrelated documentation pushes do not trigger a repeated full matrix or
+relabel these receipts as a different compiler revision.
