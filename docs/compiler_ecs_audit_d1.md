@@ -2258,3 +2258,28 @@ no emitted recipe changes. ROOT's later owner-order fixture32case expansion is
 not yet adopted here, so this exact28case checkpoint stays distinct. Pages,
 constructor/schedule/borrowed-view registration work and integrated release gates
 remain open; no global race-freedom or unsupported UBSan claim.
+
+### Typed receipt at the actual phase boundary (after 9842b1f5)
+
+`scaffolding/tests/semantic_resource_checks.tower` now also requires
+SemanticProgram.resource None after successful gated entry preparation and while
+an isolated declaration still owns failure selection. After the actual startup/
+nested-growth denial publishes, Capacity must carry the same independently
+checked first-source offset as the diagnostic. This checks the merged producer
+ABI at the real phase boundary; it does not duplicate the separate setter or
+message-clearing fixture. All24cases/probes/cleanup remain unchanged. Existing
+9842 runner supplies the before reference; three before and three after native
+runs pass on identical program inputs, public leaf/native dependent rebuild pass.
+Supported focused instrumentation is pending at this entry. No production code,
+new allocation, guessed storage bound or unrelated fixture rewrite.
+
+Typed actual-phase assertions now pass3native/3address/3thread focused runs,
+all24cases; logs phase_receipt_9842. Six prior-reviewed page/constructor/schedule
+fixtures now have durable existingfactory registrations, with independent manual
+before and targetafter outputs3each,6CTest and3address/3thread each. Normal
+concurrent and serial-fault allocator profiles remain distinct; no provider/body
+rewrite. `work_view_invalid_dispose.tower` stays invalid and now has current
+compiler evidence: jobs1/2 both exit1, identical9:27 nominal-type diagnostic
+`Expected vector(usize)*, got work_view(usize)*`, no artifact. Pending scope is
+new ROOT556 stage/view tests and affected changed grammar/owner paths, not an
+unresolved claim that this old borrowed-view rejection has never been run.
