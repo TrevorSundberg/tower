@@ -42,3 +42,5 @@ CRC/ZIP/Roku checks pass. Three fixture-only compile mistakes (array foreach, si
 Raw logs, failures, binaries, depfiles, inputs, n2 outputs/hashes and manifests: C:/Sandbox/build/codex_ecs_20261122/A1/cache/deflate_1e428ede/.
 README documents existing build entries/reference dependency and new profile fixture. No reactor/generation/browser/sanitizer matrix.
 ROOT owns integrated instrumentation/release and deployment. Jobs drained; todo preserved; final reconciliation retains the frozen evidence.
+
+Integration: implementation1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980. All accepted codec depfile hashes and focused tests are unchanged; incoming browser abort transport/fixtures are excluded, so evidence is reused without rebuilding.

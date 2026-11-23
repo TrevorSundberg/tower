@@ -96227,3 +96227,5 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
+
+A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
