@@ -1487,7 +1487,7 @@ unchanged. Original failed link/status remain in corrected/targets.log.
   push preserving denial reason and bool wrapper, plus pop with output-before-
   length update and unchanged storage charge. Raw owner initialization is not
   disposal of a live owner. All prior reservation/overflow/borrow rules remain.
-- `tests/work_buffer.tower`: now112lines; adds exact zero-size header/overflow
+- `tests/work_buffer.tower`: now110lines; adds exact zero-size header/overflow
   boundary and66 physical allocation alignment checks, retained-vector capacity
   denial, pop/reinsert result and unchanged output on empty pop. Fresh grant and
   full cleanup remain independently asserted; no scalar type registry involved.
