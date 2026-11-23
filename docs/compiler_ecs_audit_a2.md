@@ -1765,3 +1765,260 @@ generic/execution pumps. New A1 phase-frontier and L2 evaluation-admission hunks
 are preserved. The common kernel and three stage/lowering regression fixtures
 are byte-identical to the measured batch; compiler profiles remain scoped to
 the original frozen inputs, not relabeled for incoming scheduling/parser work.
+
+## Current-source static adoption at 3a7f4b39 (2026-11-23)
+
+Frozen published main **3a7f4b39de05d44d4f8e2a26083afd44082a0eb9**;
+root tree `782f4465b1e9e1d3478499ac5294b41f04b95d33`, compiler tree
+`bfecc19bb4e4b4f45fc45ff4bd3cf2eeb347d06b`, library tree
+`2f95648e1bd178028f615ff5f414655f8f2ebda3`, CMake tree
+`9af253dd4184859f4234daf89d7fa18bbceb9a08`. Adopt D1's
+[6767cd30 review](compiler_ecs_audit_d1.md#final-source-delta-at-6767cd30-2026-11-23)
+for **unchanged blobs**, including its earlier finite/c20 reviews and their limits.
+`git diff --name-status 6767cd30..3a7f4b39 -- '*.tower'` gives exactly **84 paths**:
+50 authored paths (43 modified, seven added) and 34 packaged paths (20 added or
+updated, 14 retired). This is a finite delta, not a new repository census.
+
+Every authored delta below was read, including producer/caller joins and immediate
+unchanged helpers where required. The table records substantive static review;
+Git identities establish scope, not correctness by themselves. Execution cited
+below belongs to the named owners, not this review. No compiler, target program,
+instrumentation, browser code or failure probe ran. Runtime profiling is
+inapplicable to these documentation changes. No implementation change is proposed
+as already tested. ROOT owns final source adoption/publication.
+
+No owned build was active before pull. The named path-limited stash
+`37894097de0fd0465c75e1e5097c10f6d96c7643` remains unapplied, with only the unfinished
+frontend_modules (+1) and storage_main (+8) sanitizer edits. Its inputs, logs and
+failed/passed receipts are excluded, preserved and not retried. The separate
+service-blocked sanitizer gate remains **open**.
+
+### Authored producer/caller and registration map
+
+Paths are relative to `scaffolding/`; blob prefixes resolve at the full freeze
+above. A row saying checked means source-reviewed, not newly executed.
+Evidence keys A/B/L/K/M/P below retain exact owner execution boundaries.
+
+| Changed path | Blob | Reviewed contract / disposition |
+| --- | --- | --- |
+| `backend/context.tower` | ee6bcd56 | L: session-private failed flag and typed resource receipt survive unavailable error text; first cause/offset stops later producers. No global last-error dependency. |
+| `backend/disassembly.tower` | dc0357b1 | Decimal append returns success; offsets derive from the actual local buffer. Import/session callers consume the result; existing presentation callers are not newly budgeted. |
+| `backend/import_bindings.tower` | 47f59837 | Declarations bind real checked stage, attach, world-budget and Foundation disposal producers. Opaque LLVM/ABI handles remain boundaries. |
+| `backend/import_foundation.tower` | ca2ba4a8 | Stage-created canonical nodes and exact attach errors; world-budget work-vector associations and LLVM parameter scratch have explicit disposers. Borrowed lookup slice never disposes its backing vector. Guard every touched result dereference; no second authoritative IR. |
+| `backend/import_instructions.tower` | 61d3737f | Phi snapshots stay private until ordered assignments; checked temporary associations, null/type/signature guards and deferred block restoration on failure. First failure halts further reconstruction. Duplicate null guards are harmless; no cleanup sweep proposed. |
+| `backend/import_module.tower` | 67332c32 | Synchronous input/root ownership; checked type-object scan, root lease, private reconstruction, publish before replacing old root payload. Discard and association cleanup run on every failed exit. The transferred private payload is reset before finalization. |
+| `backend/import_values.tower` | 7022ac6b | Typed child failures stop loads/casts/literals/calls; deferred c.block restoration covers branch exits. LLVM-private allocations and existing canonical payload vectors are outside the new temporary-vector ledger. |
+| `backend/lowering.tower` | 600ec3e2 | Entry/exit use durable failure state, not nonempty diagnostic text as success. Existing source functions and lowering caches retain their owners. |
+| `backend/pipeline.tower` | fd24badf | Optimization/emission cannot continue after an allocation-free typed failure. Existing observation enter/exit pairing remains. |
+| `backend/session.tower` | f034265d | Checked JSON construction drops partial response/output and selects static fallback; Memory/Capacity/Busy remain identifiable. Backend's original offset persists even where fallback JSON cannot allocate formatted offset text. |
+| `backend/source_session.tower` | eafad61f | Checked root/init/type-object preservation scan; failed imported program disposed before returning durable backend error. Source world remains alive through synchronous import/format. |
+| `compiler/completion.tower` | b8893d0c | A: explicit native target width shares existing producer; browser wrapper stays width4. Prior failure wins before new width validation; partial query/program owners retained for normal disposal. |
+| `compiler/host_metadata.tower` | 5126cdd0 | M: published ID0 is legal; source readability uses actual stage lease membership. Copy requires matching store/world, unpinned destination context; label copy now propagates exact result instead of bool-to-Memory collapse. |
+| `compiler/lr_analysis.tower` | 029c5686 | B: sorted unique exact-range union reserves once then merges backward. Self/empty/subset no-ops preserve changed flag; singleton uses existing insertion. Distinct equal-start/overlapping intervals remain distinct, no interval normalization or arbitrary alias support. |
+| `compiler/lr_lalr.tower` | e7864313 | B: derived LR(0) item graph borrows completed suffix FIRST; bounded WorkBuffer queue/flags and unpublished graph unwind on error. Empty nonnullable suffix cannot activate unreachable items. Overlapping terminal labels or incomplete suffix analysis use original per-kernel closure. |
+| `compiler/lr_work.tower` | 39d4adf5 | Same safe-path predicate, explicit world budget, coordinator graph construction before workers; existing solver/action private outputs and ordered joins retained. Serial/grain paths remain; no new scheduler or all-LR-allocations cap claim. |
+| `compiler/semantic_body_work.tower` | f259acf9 | A: checked kind/component/request/take/view/lease/dispatch/finish transitions. Entire window admitted before dispatch; shared joined stage wave precedes publication/readiness; cumulative node allowance checked before ready prefix. Deferred failure drains private stages/evaluations, cancels graph, clears borrowed contexts. Disposal scans owned kind even for jobs never added to window. Lexical cursors persist without replay. |
+| `compiler/semantic_completion_work.tower` | 566977dc | A: source offset survives pre-Foundation admission; take denial differs from idle. Ticket/consumer-ready/failure scratch reserved through shared WorkGraph before finishing a wave. No second work queue or mutable global error state. |
+| `compiler/semantic_constructor_work.tower` | 27673c1f | Context passed into checked scan/dependency append; ordinary constructor phases still demand/suspend on actual producers. No eager execution of untaken value branches or substitute evaluator. |
+| `compiler/semantic_declarations.tower` | 944dad91 | A: nullable state/expression results, reserve-before-job-index publication, checked dependency/access/lease ownership, frozen dispatch context. Joined errors retained per source; finishing deferred until the complete wave's transfers succeed. Scratch/evaluation cancellation before stage discard; selected error vector explicitly moved/reset. Owning pump diagnoses quiescence. |
+| `compiler/semantic_iteration.tower` | 5438c81e | Generated item state must exist before marking resolved/publishing lexical binding; null path stops with existing context receipt. |
+| `compiler/semantic_known_bindings.tower` | ff7d96cd | K: joined scans have one deferred cleanup owner across all coordinator exits. Successful Inputs join transfers shared component output ownership by disposing only scans' pointer vector; failed transfer frees inputs pointer vector and leaves deferred scans responsible. K1 closed at this source. |
+| `compiler/semantic_modules.tower` | ee759b03 | A: exact cursor/first-error check and actual namespace lookup precede intentional editor-boundary diagnostic. Module handle borrows retained registry/world; no spelling special case or weakened general error guard. |
+| `compiler/semantic_statements.tower` | 81f75d8d | Parameter/header/declaration consumers check nullable state before slot/type publication; failed parameter setup restores prior scope. |
+| `compiler/semantic_type_values.tower` | 0224ef7b | Checked declaration/dependency append failure returns before interpreting false as satisfied; ordinary query state remains authoritative. |
+| `compiler/semantic_types.tower` | 01decd74 | New nullable declaration guard prevents dereference on admission failure. Unchanged sem_array_intern stage assertion remains live H1 below; this one-line guard is not its repair. |
+| `compiler/source_comments.tower` | 3a69f09c | L: checked traversal stops on failed append while source comments remain borrowed; compatibility asserting wrapper remains. Import calls result form into its private output. |
+| `compiler/syntax_provenance.tower` | 6d60ced2 | M: readable published source is unleased or explicitly in the matching owner's lease vector, not merely ID!=0 or same stage pointer. Private staged nodes/foreign leases remain Busy; checked provenance ownership protocol unchanged. |
+| `compiler/units/backend_checks.tower` | 77af9f09 | Adds real backend-import fixture provider to existing check unit; no alternate backend or production ABI copy. |
+| `host/driver_compile.tower` | 2a135971 | L: checked type-object scan preserves exact error and disposes imported root/program on denial before format/normalization. Canonical Foundation remains authority. |
+| `tests/backend_import_fixture.tower` | 31f5d8df | Real LLVM boundary with phi/indirect-call module and world-owned Foundation source. Unsupported/prior-diagnostic controls drive production importer, not a model. |
+| `tests/backend_import_storage.tower` | a323310a | Measured allocation-boundary sweeps, bare/existing output, Capacity/Busy, first cause, no partial output/terminal replay and final grants/buffers. Called by explicit backend-import selector/CTest; serial fault transport, not concurrency instrumentation. |
+| `tests/backend_units.tower` | 88c47386 | Physical receipt census now includes kind instance indexes and changed table stride, deduplicating allocation owners. Existing disposal assertion still requires restoring original frontend ownership, not a weakened cap. |
+| `tests/body_runs.tower` | 753aa827 | M: adds existing DeferredSignature negative to full diagnostic loop; no expectation change. Native bodies and serial frontend have distinct transport contracts. |
+| `tests/bootstrap_symbols_checks.tower` | 92680cf3 | P: three exact Semantics names tested for target spellings, truncation/suffix/wrong-unit rejection. Policy checks are not platform execution. |
+| `tests/compiler_dependency_source.tower` | 0193f6c1 | Shared existing helper source byte string factors unchanged executed/untaken/cyclic/generic cases; production fixture/profile inputs now share it. |
+| `tests/compiler_dependency_units.tower` | af1114d4 | Optional4/8/12 scaling compares each to serial canonical/diagnostic bytes; expected distinct threads derive from min(workers,units). Default1/4 behavior retained; requested lanes alone not overlap evidence. |
+| `tests/completion_alias_checks.tower` | edd58f25 | Real completion/environment/world producers, exact offers, distinct nominal modules, widths4/8, worker1/4, Capacity+invalid-width terminal retry and zero byte/lane retirement. Linux CTest entries registered. |
+| `tests/frontend_units_profile.tower` | bd9b5845 | Production worker transport, per-ordinal private event slots; Linux thread CPU/rusage boundary explicit. Optional artifacts copied after joins, same import dependency source, checked execution/canonical bytes. Full-process versus outer-thread CPU remain distinct. |
+| `tests/frontend_units_profile_result.tower` | 943647cf | Small native link oracle independently requires answer() and body_0(36) both42; invoked by documented saved-object link workflow, not imported as a second compiler. |
+| `tests/ide_completion_checks.tower` | f71e7e5a | Adds ROOT's exact left.an/answer repro without changing prior helpers.he assertion. Completion section success is not complete IDE success. |
+| `tests/known_scan_storage.tower` | 821cec73 | Real KnownScan kernel returns populated candidate/mutation outputs before serial coordinator denial. Widths4/8, Memory/Capacity/healthy, first offset/no replay/no ready proof and zero owners check K1. Not a threaded allocator fixture. |
+| `tests/lr_analysis_comparisons.tower` | da44c27e | Independent existing oracle gains empty/nonnullable, reachable and nullable suffix cases with shared spans; unreachable LR(0) items must not seed actions. |
+| `tests/lr_analysis_failures.tower` | b227d976 | Exact33-range failure preserves both sets; retry uses established requeue, subset is allocation-free, equal-start/different-end and self-cycle preserved. Item graph finite-cap cleanup/retry owns scratch once; final suffix/page grants retire. |
+| `tests/lr_work_main.tower` | 0ca91f5f | Explicit dependency-scaling selection; default production-worker assertion/receipts retained. New selection is registration, not proof12 workers ran on every host. |
+| `tests/semantic_body_admission_checks.tower` | d18c1b47 | Real body/declaration pumps, distinct17/29 source offsets, partial take, foreign lease, graph/scratch/finish and cumulative node allowance denial; retries preserve no-success prefix and zero owners.46 cases at1/4 workers; not exhaustive allocation-site injection. |
+| `tests/semantic_lifecycle_frontier_checks.tower` | d1bf5af5 | Existing real frontier executable imports/calls new46 cases; preceding mixed-kernel rendezvous and stage exhaustion cases retained. Existing query-smoke and CMake receipt loop consume it. |
+| `tests/storage_main.tower` | 2b7fccc4 | KnownScan default+explicit selector; backend-import explicit selector only. Existing single-owner transport assertion preserved. Stashed ownership-delta selector is absent and unreviewed. |
+| `tests/world_constructor.tower` | 9373e4ae | Actual published ID0, matching/foreign/private-stage source cases, serial/staged label failures/retry and zero owners. Discards owning lease before foreign anchor. Called by allocations/default frontend, not merely an unused import. |
+| `tools/bootstrap_symbols.tower` | 6368e9d0 | P: permits only compiler_clone_tree_owned_result, frontend_module_cyclic_result, syntax_session_open_result for Semantics. Definitions/consumers inspected; unchanged exact membership/target normalization rejects broader imports. |
+
+### Packaged resources: identity adoption, not new implementations
+
+Prefix below is `bootstrap/linux-x64/share/tower/`. Each live row's blob equals
+`252b424a:scaffolding/<suffix>`, `6767cd30:scaffolding/<suffix>` and this freeze's
+authored counterpart; actual file SHA256 also matches `bootstrap/development.json`.
+All twenty comparisons passed. The complete library tree is unchanged from D1.
+The package was adopted by ROOT in2013ad28, not authored by this delta review.
+
+| Packaged suffix | Exact blob prefix / disposition |
+| --- | --- |
+| `library/compiler_work.tower` | f5fd28b9, adopt unchanged owner review |
+| `library/entities.tower` | 5f9d3a3f, same |
+| `library/entity_api.tower` | fc72af00, same |
+| `library/entity_stage.tower` | 6e5e0515, same |
+| `library/entity_types.tower` | 7076d1d1, same |
+| `library/vector.tower` | eaa9dcf3, same |
+| `library/work_arena.tower` | aa658c54, same |
+| `library/work_arena_api.tower` | 1849ddfd, same |
+| `library/work_arena_types.tower` | 68d1a36d, same |
+| `library/work_budget.tower` | 748f6703, same |
+| `library/work_budget_types.tower` | 65d5f648, same |
+| `library/work_buffer.tower` | 2a0ebee8, same |
+| `library/work_buffer_types.tower` | 32e3a19e, same |
+| `library/work_graph.tower` | 6e148643, same |
+| `library/work_pool.tower` | 9761377d, same |
+| `library/work_text.tower` | dd268a1b, same; not in older storage sanitizer closure |
+| `library/work_vector.tower` | 18755c22, same |
+| `library/work_vector_types.tower` | 38ca39b8, same |
+| `library/work_view_types.tower` | ba36e8db, same |
+| `types.tower` | 903a3730, consolidated authored types already reviewed |
+| `types/bool.tower`, `types/f32.tower`, `types/f64.tower`, `types/i16.tower`, `types/i32.tower`, `types/i64.tower`, `types/i8.tower` | Seven retired package stubs; absent from current manifest, consolidated source identity above |
+| `types/integer.tower`, `types/u16.tower`, `types/u32.tower`, `types/u64.tower`, `types/u8.tower`, `types/usize.tower`, `types/void.tower` | Seven retired package stubs; same disposition |
+
+Manifest source base `252b424ab770a0b334f31fa68eede1f1584a5acc`, executable and
+fixed-point predecessor SHA256 both
+`768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`.
+The [252b complete generation](compiler_generation_252b424a.md), ROOT's clean
+2013 adoption and b0 browser artifact build remain different boundaries. Reuse
+[static package review](compiler_release_artifact_review_b0.md); these blob/hash
+checks are not portable standalone or current-source runtime acceptance.
+
+### Changed assumptions and exact owner execution adoption
+
+**B (B1):** read all five range-merge caller categories: serial FIRST owns one
+vector per nonterminal (same descriptor self merge allowed), suffix scratch versus
+immutable FIRST, serial propagation node vectors, worker-private FIRST copies,
+and worker-private propagation copies versus a frozen snapshot. All inserts use
+lexicographic first/last order and exact duplicate elimination. No caller supplies
+distinct shallow descriptors aliasing one backing buffer; the new merge does not
+promise that unsupported alias contract. Reserve precedes writes; failure leaves
+both logical sets/lengths intact. State edges use lr_symbol_less ordering, so the
+item-graph disjoint-label test and binary search share an ordering. The legacy
+range closure fallback is essential: the unrestricted candidate failed its oracle.
+
+Adopt implementation46167039 and253af949; journal `serial_frontend_6767` and
+`serial_prepare_ce4f` retain matched n3 inputs and independent objects/execution.
+First item-graph pair: f2261dd2 ->11481c16; later range merge pair04996b9 ->14241bad.
+Small/large serial wall gains43%/39%, then18%/16%, remain separate experiments;
+four workers still trail serial on the later inputs. Merged2920e6e7 compiler
+`bd4e492d9b760e0effba278a14df5f591e8c10c2c54e96cd66c2edf933bef9e6`
+passes focused LR/oracle/structure/parser and exact15/999 controls. Full object
+hashes, failures and CPU/RSS/allocation trade-offs remain in the journal, not
+relabeled as new measurements here. LR vectors retain explicit legacy accounting
+exclusions; no full-world or process cap inferred.
+
+**A (A1):** cb4bb586/2051414e plus public-pin integration ddcacc9d covers the132
+registered staging trials (46 new admission cases), query/control/resource and
+canonical/capture/ordered errors. Compiler
+`3285cd9d62fbd2bf3d1bf212895f393b5dfe24dd4d90a682c4253c7d97b1e700`;
+body-smoke217.37s passed after its preserved180s timeout. Partial startup owners
+and jobs not yet indexed have explicit final cleanup; discovery and checking
+freeze tickets/access/leases before dispatch and do not complete a successful
+wave prefix after admission failure. Existing exactly-once lexical continuation,
+source-ordered diagnostics and ordinary evaluation dependencies are preserved.
+
+Alias implementation5fdb4827 resolves module before editor boundary. Final affected
+reconciliation fad05314 compiler
+`b8d6d63d2ca59b8181f3e37fb52f234e30097124afe606e192c1fc6e7af51011`,
+portable `a3559c7fbd6b21beafea73190bb8bf77025b60290e2ce626bbb3ecaeb2bd7404`:
+native alias tests pass, Node completion sections pass, **later hover exits1**.
+Do not mark full IDE/generations passed. The freeze adds metadata changes after
+that portable artifact; it is not a rebuilt current browser runtime.
+
+**L (L1):**041912d1 transactional reconstruction and37b9c8d2 integration retain541
+allocation-boundary controls, exact Memory/Capacity/Busy, terminal prior errors,
+unchanged existing output and final zero grants. Native compiler
+`d6b0f6c077b6d962ad85f82d018f8d21dea0d185e362c8bf9965802dd4ad9a86`,
+backend object `a6f03ff78b12d9cd5041a289e982b176684095e34f6f5df9ae59cbb72e595917`.
+CTest backend-import, backend-ir/reference/roundtrip and selected package8/8 pass.
+WASI consumer `1552a79e83239fbe6de2cbb4260540970593a4efd0944a55789b368b4862f66d`
+is **compile-only**. The importer remains synchronous per Backend; jobs4 alone
+is not reconstruction overlap. Original matched jobs4 wall cost+5.3% (n1) remains;
+canonical node-vector/LLVM allocations are not falsely claimed physically capped.
+
+**K/M (L2):**c635afae closes D1 K1 with defer and explicit alias-vector transfer.
+Six width4/8 Memory/Capacity/healthy production-scan trials demonstrate candidate
+append cleanup, first offset/no replay and zero buffers/grants under serial fault
+transport; ordinary known_value proves the separate normal allocator path.
+48d791a8 fixes published ID0 versus private-stage identity and exact label-copy
+cause. Prior full frontend exit134 and fixture teardown failure remain failed.
+Corrected full frontend227.33s, native bodies240.63s, query.37s, units32.14s pass on
+its frozen integrated_language_fixed inputs, including all42 lifecycle cases,
+168 source/52 canonical trials per host. Runner SHA256s:
+frontend `bd79c30d4e09e24dbe1bf0956c658b6b89d8e7576e2b109e0fcf1d9b5497fb58`,
+native `721c7247cf86d91075792f956e0e545e37b033bb6c12c6f6b333b5860b297936`.
+Actual clone overlap uses four distinct threads with intersecting intervals;
+imported units answer42/43/44/45, serial/worker canonical/error bytes agree,
+joined lanes0. Not universal simultaneous inner/outer overlap or race freedom.
+
+After merge603fa60a, L2 ran **affected** lr-order/query/dependency-units/alias1/4,
+not another complete body matrix. `603fa60a..3a7f4b39 -- '*.tower' cmake` is empty:
+those focused checks adopt the actual current source. The LR process returned0;
+its wrapper initially failed on two expected counter lines in stderr, recorded
+without rerun or erased failure. Full48d functional evidence retains its earlier
+boundary; later LR/alias adoption is focused. CPU/RSS and matched editor cost
+(+1/4 worker wall1.98->2.05s/1.32->1.35s, n1) stay in L2's journal receipt.
+
+**P (D1/B2 registration):** D1's three exact Semantics imports now match actual
+producers/callers; native policy fixture d8b1c323 passed at its original boundary.
+CMake maps backend-import explicitly and alias workers1/4; query-smoke consumes
+lifecycle-frontier/body admission. KnownScan runs in default storage and its named
+selector. Metadata runs in allocations/default frontend. LR new oracle/denial
+cases run through lr-order, not simply module inclusion. B2 dependency-scaling and
+saved-object native oracle are explicit optional/manual profile paths. B2's
+[b0 partition receipt](compiler_partition_utilization_b0f507c6.md) shows2.70x at8
+units workers versus1.07x single-unit, with12 workers worse and substantial CPU/RSS
+growth. No final32-core or newer-source scaling claim.
+
+### Live defects, preserved gates and finite disposition
+
+- **H1 remains open, A1 owner (latest user assignment):**
+  `compiler/semantic_generic_info.tower:166` installs the inspection stage before
+  `sem_type`; `compiler/semantic_types.tower:653` requires `c.entity_stage == null`
+  when interning nonempty arrays. The existing `tests/ide_hover_generic_checks.tower:99`
+  i32[4] pointer-store/array-dereference hover reaches that boundary in A1's actual
+  Node stack. Smallest required regression is that existing ordinary hover, plus
+  width/lease/identity/cleanup controls for its shared producer. This is both
+  source-confirmed and **owner-runtime-reproduced**, not reproduced by this review.
+  Keep assertions; do not strip inspection leases or duplicate the assigned fix.
+- **M1 closed at this freeze:** metadata/provenance formerly rejected published
+  ID0 and collapsed label Capacity into Memory.48d791a8, actual lease-membership
+  source and called world_constructor cases above supersede the old open report.
+- **K1 closed at this freeze:** defer-owned scans and successful Inputs transfer,
+  with actual post-join denial receipts, supersede D1's unclosed cleanup edge.
+- No additional runtime defect is established by this static review. A tentative
+  re-push allocation-denial concern at semantic_declarations:1433-1434 was ruled
+  out: the just-popped slot already provides capacity. No invented failing probe
+  or speculative implementation accompanies this receipt.
+- Current-source sanitizer acceptance remains service-blocked/open. c13c2631
+  retains only its unchanged physical-storage closure; no serial fault test,
+  metadata comparison or earlier overlap interval substitutes for missing final
+  compiler instrumentation. Source-language UBSan and unsupported OS/browser
+  instrumentation remain unsupported. Unfinished WIP is not adopted.
+- D2's original normal/shared retirement and full IDE milestone, both edited
+  browser generations, mandatory-thread reactor and ROOT's final integrated
+  generation/bootstrap/hosted gates remain pending at this freeze. A1's fixed
+  completion section and D1's eleven diagnostic/location passes do not close
+  later hover/retirement. Old Pages6f142bef remains old; no runtime deployed here.
+- Reuse A2's [ordinary locality receipt](compiler_ecs_locality_d5b65afe.md): stable
+  payload pages, dense pointer indexes and copied snapshots are different owners.
+  Sparse183.219x retained-page/live-payload bytes and real compiler phase/kind
+  census requirement remain explicit; copy/build cost is not a free packed speedup.
+  The original physical-accounting +6% time/+10% RSS and the later small/large
+  serial/parallel trade-offs are not erased by this audit.
+
+Static adoption is complete for this frozen delta, with the stated open gates.
+Future publication reconciliation checks hashes and records new inputs separately;
+it cannot silently advance this evidence boundary. The same twelve-row handoff
+ledger is updated in place. No overall compiler, universal locality/scaling,
+race-freedom or release acceptance is claimed.

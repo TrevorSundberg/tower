@@ -87967,3 +87967,63 @@ Publication reconciliation: committed full milestone/fix48d791a8, then required 
 Affected adoption only: integrated_language_merge0 built frontend/native/alias targets8 actions,58.19wall/81.83CPU/1057956KiB, source frozen. lr-order exited0 (.27wall/.26CPU) and passed closure/state/runtime/control plus150 randomized grammar/propagation comparisons. Its existing fixture intentionally writes suffix index charged_bytes=408 and item graph ledger_live=408 peak=1048576 to stderr before teardown; the initial orchestration's empty-stderr predicate therefore exited1. Preserved that wrapper1/source0 and the actual successful test/time/counter receipt. Verified both lines at their producer, then continued ONLY unrun selections under merge0_remaining, without repeating LR or rebuilding. Remaining process/source0, stderr empty: query-smoke .41wall/.40CPU/104424KiB; dependency-units7.17/14.01/750924; alias1 13.23/8.86/185628; alias4 14.79/13.25/189992. All exact canonical/error/known-output/actual-overlap and alias byte/lane retirement checks passed. Sessions15584/39826 drained. Later alias and LR source adoption is focused evidence; complete browser/hover/generation/release gates remain with their owners.
 
 No remaining blocker in the frozen functional milestone or affected merged checks. No additional full matrices/profiling/instrumentation runs, no deployment, no new goal/context/agent. This follow-up only records evidence; compiler inputs unchanged since merged validation and no new runtime performance measurement is needed. Existing complete histories, failed logs, accepted prior receipts and immutable baselines preserved; todo hash remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Normal main push follows.
+
+### 2026-11-23 A2: finite current-source audit/adoption at 3a7f4b39
+
+Documentation-only static review, no compiler/target/browser/instrumentation or
+allocation probe. Source3a7f4b39de05d44d4f8e2a26083afd44082a0eb9, root tree
+782f4465b1e9e1d3478499ac5294b41f04b95d33, compiler tree
+bfecc19bb4e4b4f45fc45ff4bd3cf2eeb347d06b. Required main pull fast-forwarded;
+no owned child was active. Named sanitizer stash37894097 remains unapplied and
+excluded, with all old failed/passed logs and todo unchanged. Service-blocked
+final instrumentation stays open; no rejected operation retried.
+
+Compared git diff/name/blob identities from D1's6767cd30 through this published
+freeze and read all50 changed authored Tower paths, production callers and
+registration manifests. Updated the SAME twelve-row handoff ledger and appended
+exact per-path/source/owner mapping in docs/compiler_ecs_audit_a2.md. Reuse D1's
+unchanged substantive reviews, not a new census.34 package changes are separate:
+20 live resources match252b authored blobs,6767 reviewed blobs and current source,
+and actual SHA256 matches development.json;14 split-type stubs are retired and
+absent from that manifest. This is static source adoption, not execution or a
+relabelled public generation.252b/2013/b0/old Pages6f142bef boundaries retained.
+
+Reviewed B1 exact sorted-range union, source/destination ownership, unique exact
+identities (no interval normalization), denied reserve atomicity, private worker
+copies and item-graph disjoint-label fallback. Reviewed A1 admission/joins, typed
+source errors, failed-wave no-success prefix, partial-owner disposal, lexical
+suspension without replay; L1 private transactional reconstruction/first error and
+immediate consumers; L2 KnownScan defer plus explicit alias-vector transfer;
+metadata actual lease membership and exact label errors; A1 alias capture order.
+No new confirmed defect is claimed. A tentative scan re-push allocation-denial
+concern was ruled out because the just-popped capacity is reused; no speculative
+failure probe or patch. Existing array-under-inspection H1 remains source-confirmed
+and owner-Node-reproduced at semantic_generic_info:166/semantic_types:653, fixture
+ide_hover_generic_checks:99; A1 owns that ordinary hover repair.
+
+Adopt owner execution with exact identities detailed in the audit: A1 body132/
+new46 and qualified aliases, L1 backend541 boundaries, B1 both LR implementations
+and merged independent oracle, L2 scan denial plus corrected full48d791a8 language
+milestone. Later603fa60a affected LR/query/dependency/alias checks have no Tower/
+CMake delta to this freeze. Full48d bodies are not silently rerun or relabeled as
+full603/current coverage. K1 and metadata ID0/Capacity defects are now closed by
+their actual published repairs/fixtures. L2 original metadata134 and teardown
+failures, A1 Node hover1 and D2 retirement failures remain visible. L1 WASI object
+is compile-only; current browser generations/integrated host/release gates remain
+pending. Unchanged physical-storage c13 sanitizer evidence is scoped, not a pass
+for the service-rejected current compiler operation; unsupported UBSan/hosts stay
+unsupported.
+
+Runtime profiling is inapplicable to documentation. Reuse unchanged locality
+receipt d5b65afe and owner matched performance sources without rerun: stable pages
+versus dense pointer indexes versus copied snapshots,183.219x sparse retention,
+small serial advantage, bounded large overlap and real compiler phase/kind census
+requirement remain. B1 gains, B2 multi2.70x/single1.07x and12-worker regression,
+A2 accounting+6% time/+10% RSS, and L1/L2 small positive costs are retained.
+Static checks: exact changed-path coverage, packaged blob/hash mapping, actual
+fixture dispatch/CTest/provider closure and preserved historical ledger bytes.
+Initial PowerShell unquoted tree/path/wildcard reads produced harmless command
+errors; corrected quoted identities/read paths above, no failed runtime receipt.
+Only audit/handoff/journal are staged; reconciliation preserves incoming history
+and records new source deltas by hash, never moving this freeze silently. ROOT
+alone owns final publication; no gh-pages or runtime deployment by A2.
