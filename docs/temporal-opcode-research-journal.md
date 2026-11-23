@@ -59312,3 +59312,39 @@ clone-result API25503293 would then classify it as node-quota truncation in
 optional inspection. This is source evidence for an unmigrated non-stack failure
 path, not a reproduced budgeted-page error: pages/payloads are not yet charged.
 Preserve true quota exhaustion semantics while completing typed failure propagation.
+
+### D2 current closure audit and arena packaging boundary (2026-11-23)
+
+At clean2a8646e/scaffoldingfb4371, refreshed the current remaining-scope table
+in compiler_ecs_audit_d2 rather than carrying forward historical missing-helper,
+layout-grant or stage claims. Full primary directory census still33tools+7benchmarks.
+Current sem_layout_execute already refreshes eligible grants after joined work
+publishes; the current layout_frontier_profile's largest4096fields is below8192
+admission threshold. D1 independently found the same coverage gap. Routed exact
+functions/entry to A1/A2; a threshold-eligible profile and real overlap/scaling
+are needed, not inferred from reservations. No D2 competing production edit.
+
+Read/hash-verified A2 arena boundary patch819a9542/archive2f16b385 and both complete
+new files: API5df4ac6b and linkage fixtureada9e5cc. Six existing operations gain
+exports, sole provider is the already-linked entities unit, clients use defining
+types plus externs. Existing native library glob, compiler-project tree collection,
+browser builtins and bootstrap share-tree packaging cover the new API once adopted.
+No manifest rewrite is justified; actual merged object imports, provider uniqueness
+and complete resource hashes remain required. Owner native/ASan/TSan reports are
+not D2 execution. Handoff remains unadopted pending coherent owner source.
+
+D1's ongoing0e544 union run exposed redundant iteration work: separately compiling
+parser_modules_work34.05s and semantics_checks30.74s, then recompiling both in the
+mandatory canonical build. Next recipes will compile smallest changed direct units
+first and rely on that canonical build for aggregate evidence. This removes two
+duplicate commands without dropping a required check; no measured total improvement
+is claimed before the revised recipe runs. D1 current native20steps174.15wall/
+170.16CPU/797556KiB is an independent reported receipt, not a D2 runtime identity.
+
+D2 owns no running job or shared lock. Read-only guessed filenames returned explicit
+missing-path diagnostics and were corrected from the tracked inventory; these were
+navigation failures, not build/test results. No source changes or runtime performance
+effect in this documentation-only audit, so new runtime profiling is inapplicable.
+Own last measured package remainsfa725bf/8388c79a+48resources. Current full42,
+matched clone/constructor/fallible arena callers, final whole-compiler instrumentation,
+clean public/native/browser/generation and leased atomic hosted release remain open.
