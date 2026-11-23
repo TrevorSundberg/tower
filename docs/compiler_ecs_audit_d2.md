@@ -2099,3 +2099,26 @@ D2/linker_cancellation_race_receipt.tar81297fc5; minimal provider patchf2d71650.
 D2 releases its drained slot08:12:41UTC and records the concrete B2 request in
 status. Current coherent race acceptance and final integration/publication remain
 open; earlier successful receipts are neither erased nor broadened.
+
+### ROOT75 receipt/page union: source review only (2026-11-23)
+
+Verified complete bundle5fe3be67/sole60741 and merged as7f09c731 after all owned
+jobs drained. Assigned tools/benchmarks, policy fixture and authorized reader
+entry are byte-identical to committed a6ba2e9e. Compiler/library ABI changes below
+are locally unbuilt; de6c1330 receipts continue to name ROOT72a inputs.
+
+| Supplemental path / reviewed75fdf0bf source | Ownership and measurement disposition |
+| --- | --- |
+| `tests/entity_locality.tower` | Page retention now reads the page-owned WorkBuffer's requested physical allocation size, including compiler header. This replaces allocator-private malloc usable bytes; old/new memory figures need distinct labels. Stable type pages still permit holes and retained pages, and packed traversal is a disposable snapshot whose construction time is reported separately. This is not proof of packed authoritative payloads or wholeheap accounting. No new D2 performance sample. |
+| `tests/entity_component_layout.tower` | New target-layout/reference fixture checks shared small-payload page, exact strides/back-pointers, large aligned fallback, denied growth preserving membership, page retention until last payload and zero final grants. Sizes/offsets derive from target types and allocator capacities, so one source can run native/Wasm32. Prints are measured allocation/layout values, not a throughput benchmark. Owner receipt exists; independent D2 execution is pending. |
+| `compiler/type_object_index_types.tower`, `type_object_index_api.tower` | The disposable execution index owns one accounted vector and sticky receipt, borrows canonical type descriptors, and requires its frozen budget through every call. Zero signals failure; denied growth retains prior entries/grant. Readers must drain before disposal; copying a live owner is forbidden. Existing interpreter providers own implementation, and project packaging must follow the emitted depfile closure. No new ambient registry or alternate Foundation graph. |
+| `compiler/execution_session.tower`, `execution_package.tower` | These earlier routed output gates now reject the shared fixed resource receipt independently of diagnostic allocation. Counted text keeps explicit spans; failure flag/offset survives a failed presentation copy, and package failure clears output. This source closes those particular text-only admission gaps, not the still-pending B2 service/backend consumers or the whole current runtime. |
+
+Shared SemanticProgram, interpreter indexes/frames and component-page descriptors
+changed. Next builds must rebuild all affected ABI consumers and inspect actual
+new native/WASI undefined symbols before any exact policy additions. B1 grammar,
+B2 output/world consumers and linker cancellation repair remain later inputs.
+This integration/review does not add executable logic; new performance testing
+of the documentation is inapplicable, and source-union runtime acceptance remains
+open. Complete prior source/tool/compiler receipts are archived as220MiB
+policy_72a_receipt.tar464fdf04; no newer source identity is assigned to them.

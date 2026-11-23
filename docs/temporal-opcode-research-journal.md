@@ -65746,3 +65746,43 @@ ordinary reparse/reexecution returns the reference output. Final page checkpoint
 therefore retains explicit overhead/fragmentation limits alongside improved
 physical ownership and exact errors. ROOT requested typed stage/view/publication
 results next; proposal is in status, no implementation/caller adoption yet.
+
+### D2 ROOT75 source join and measurement-boundary review (2026-11-23)
+
+Committed owned policy/bounds/native-provider work asa6ba2e9e; guardedpull/diffcheck
+and todo/source preservation pass. Complete history bundlea740d6d7 exported with
+sole60741 prerequisite. Full current72a raw receipt464fdf04 (220MiB) includes
+baseline source, actual tools and instrumented products, native compiler/resources,
+failed reports and timings. Host du cannot enter private root-owned fixture dirs;
+Docker tar reads them completely without permission changes or deletion. Dedicated
+race receipt81297fc5 remains separately available. Root independently copied/read
+the actual TSan report and assigned B2's drain-before-cancel/error repair; D2 has
+not changed production backend code or retried the failure.
+
+Verified ROOT75fdf0bf bundle5fe3be67 and merged as7f09c731 after all D2 jobs drained.
+Tools, benchmarks, own regression and authorized reader entry remain identical to
+a6ba2e9e; journal history preserved. This source adds A1 fixed semantic receipts/
+ordering, L1 counted execution failure/TypeIndex and A2 physical page accounting.
+Read defining receipt/index/component APIs, affected standalone constructors,
+execution success/package gates and new entity layout/locality measurements.
+TypeObjectIndex remains a disposable vector borrowing canonical descriptors, with
+one retained failure and explicit frozen budget; it is not another type registry.
+Execution/package failure now survives inability to copy diagnostic text and keeps
+output empty. Other B2 service/backend consumers remain pending owner integration.
+
+Locality changes its metric from malloc usable bytes to compiler-buffer requested
+physical bytes including header. Do not equate old/new totals or call either
+process RSS/wholeheap live allocation. Existing derived packed snapshot excludes
+construction from traversal timings and reports it separately; authoritative
+payloads retain stable page slots/holes. New target layout fixture derives headers,
+alignment/back-pointers and exact physical grants from actual types/capacities;
+checks denial, membership preservation and final zero ownership. Source review is
+not D2's execution of that fixture or new performance evidence.
+
+New SemanticProgram/interpreter/page layouts require coherent affected-consumer
+rebuild. Current7f09 source union is UNBUILT here; old de6c1330/full72a package and
+policy evidence stay immutable. D1 owns the priority Deck slot and new shared
+CMake mode work under explicit ROOT08:18 authorization; D2 technical review is
+already incorporated, no duplicate approval request. No active D2 job, new agent,
+publication request or lease. Final current race/sanitizer/public-bootstrap/
+browser/generation and atomic hosted publication gates remain open.
