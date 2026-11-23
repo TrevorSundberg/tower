@@ -90795,6 +90795,94 @@ project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
 
+### 2026-11-23 L1 — known numeric nominal-wrapper composition
+
+Implemented against published main48db0f27b439e9d0c7bb15e6f0c4beb932650e89,
+public-bootstrap native cache `/root/.cache/tower/l1_ecs_native`, WSL
+Orchestral-Revng Ubuntu24.04/LLVM19, Ryzen9 5900HX, CPU0–3. Initial required
+pull fast-forwarded; no surviving owned jobs. Original positive
+`tests/type_numeric_composition.tower` is unchanged (SHA256
+56ceefd2c94f7d9d6a5dc886a8574d817ae4d9f86d489801028067cf423295ac).
+History3156273e already expected42/7/8/12/9 and shared nominal specialization;
+08173754's exclusion of CoreCall-returning wrappers from static constructors
+lost numeric forwarding. This supersedes the preceding L1 unsupported-contract
+conclusion for the known generic wrapper case. Baseline95cb9b38d5c62904bd8485a307b7d4f74812f47b7f681e84afbaa1716d0f513f
+reproduced exit1 at3:21: compile-time capture rejects the wrapper's unbound
+numeric formal; the old instantiation trace additionally prints an empty name.
+
+The shared constructor query now resolves a chain of strict single-return
+generic calls ending at a real static constructor, using declaration/module
+identity. A resumable Parameters phase prepares source-bound parameter types
+before selecting the integer-only known-call path; non-integer/dependent
+signatures and general/effectful bodies retain ordinary execution. Existing
+IntegerArgument queries evaluate actual operands; deferred generic instantiation
+binds the complete parameter list before cloning. Canonical keys already include
+argument count and identities, distinguishing these instances from ordinary
+functions that bind only type arguments. The existing clone/Alias/type query
+returns the underlying buffer specialization. No separate evaluator, primitive
+name registry, recursive worker completion, public signature or struct layout
+was added. Existing enum values remain stable; Parameters is appended. A2's
+value/negation helpers and L2's reconstruction are untouched.
+
+Preserved failures/controls: preliminary external nested/numeric probes had a
+missing space in `* =` and failed lexing; corrected Tower fixtures pass. A broader
+numeric-only ordinary wrapper still gets its body checked without a bound size
+and fails at the wrapped formal; speculative ordinary-template metadata was
+removed. This separate body-admission capability remains unsupported, explicitly
+documented, and is not needed by the original positive. An initial order probe
+using a later immutable literal passed, as did the unchanged predecessor's direct
+nominal reference (8): preparing that binding is permitted. The committed order
+negative instead tests an initializer that actually reads a later initializer;
+it rejects. Positive coverage verifies that early type preparation does not
+change ordinary module initialization (the early runtime read remains0).
+
+Focused validation on frozen inputs: original output42/7/8/12/9 and new
+`nominal_wrapper_known` output42, both32/64-bit profiles and workers1/4. Covers
+nested `count + 1` forwarding, imported Extent alias, declaration/frame ownership,
+caller shadowing, explicit/inferred calls, nominal identity/count mismatch,
+ordinary boolean/dependent wrappers, untaken trap, local exactly-once argument
+helper effects and target-size layout. Canonical bytes are identical between
+worker settings and idempotent after independent reparse; canonical Graph/Fast
+execution matches both independent output oracles at both widths. Four existing
+CTest-style registrations pass. Four Tower negative fixtures reject runtime
+unknown size, mismatched buffer instance, premature module initialization and
+ordinary staged effects: no partial program/output, equal diagnostic text and
+exact offsets at both widths/workers. `nominal_wrapper_checks` registers all16
+negative trials in existing type-smoke/type-errors/all coverage. Existing
+`type-errors` (including declaration cycles) and `query-smoke` pass. No allocator
+injection, sanitizers, broad frontend/backend/browser/generation reruns.
+
+Native compiler SHA256
+9e289eb460a76ecc6599e02c78e071dfbc9447e61c2bcb2453de795c0bd1e8a3;
+entities object df17b5cfa0ed7452ae981503eac1c50f3d3418f2ae5295be31b7091d583b6ea3;
+semantics object85a79f8a2650c9cc352dffcf7079c04f63734c68f95d4963b23fa15f58c5e8bd;
+runner62c9f54b71d8eeb9e3f3501b342dbea7715f70519a53715ee3dc01987787d459.
+Source/resource manifests before and after validation compare exactly. No ABI
+provider layout change; dependency-aware targets rebuilt the affected native
+closure. No private bootstrap override or duplicate public-leaf build.
+
+GNU time-v, fresh processes with warm filesystem caches, one sample per setting,
+checked stdout and before/after canonical bytes, wasm64 profile, CPU0–3:
+
+| Healthy fixture / workers | Wall seconds before → after | CPU seconds before → after | Peak RSS KiB before → after |
+| --- | --- | --- | --- |
+| type_return_dependencies /1 | .66 → .62 | .58 → .57 |181464 →181632 |
+| type_return_dependencies /4 | .66 → .66 | .61 → .63 |184844 →185048 |
+| computed_type_arguments /1 | .67 → .65 | .59 → .59 |192848 →193116 |
+| computed_type_arguments /4 | .72 → .71 | .67 → .67 |195600 →196040 |
+
+These small samples show no material regression, not a speedup/scaling claim;
+worker width alone is not observed overlap. No new allocator-retention metric.
+Four registered checks cost2.85wall/2.54CPU/185008KiB; type-errors including16
+new trials28.99wall/27.78CPU/278352KiB; query-smoke .32wall/.37CPU/104592KiB.
+Incremental build iterations were33.73/46.36/1069716,41.75/68.09/1070076,
+34.86/33.53/1069788 (wall/CPU/peakKiB); final test-runner-only refresh
+15.45/8.78/426060. Failed probe inputs/exits and all build/check logs are retained
+externally in `C:/Sandbox/build/codex_ecs_20261122/L1/logs/nominal_wrapper_*`,
+with exact manifests/receipt and frozen predecessor adjacent. ROOT retains
+portable/release/publication acceptance. Numeric-only ordinary forwarding,
+general runtime nominal layouts and broad constructor-path unification remain
+limits; the original required positive is passed, never reclassified negative.
 ### B2 bounded browser worker-boundary diagnosis — 2026-11-23
 
 Adopted48db0f27; owned jobs idle, CPU12-23/quota12/24GiB, exact existing Chromium159
@@ -91449,6 +91537,27 @@ Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a
 is retained separately from the measured resource identity, not relabeled as a
 new full runtime acceptance. L2 residual inputs/responses remain actionable for
 its newer backend producer; no new reactor was available or adopted here.
+L1 merged acceptance: commit5cb0b0611b55d474890b90afa0bcdcd492477d7d
+preserved via normal merge30b45f5a766edfb2d851e530eda7f80bf0572411 with complete
+origin78650118 history after the required ff-only pull rejected divergence.
+Incoming A2 unary IntegerArgument admission is relevant; L2 backend/session
+ownership and all other published edits remain intact. The test registration
+was moved before A2's type-smoke early return so neither suite is skipped.
+One dependency-aware refresh compiled semantics and the test runner, then linked
+both consumers:37.13wall/35.08CPU/1068692KiB. Frozen merged32/64 workers1/4
+original/nested Graph and canonical outputs equal the earlier checked bytes;
+canonical Fast outputs match; exactly one buffer(i32,2) declaration remains.
+Merged type-errors including16 wrapper negatives PASS29.59wall/28.32CPU/
+293236KiB; query-smoke PASS .24/.27/86528; A2's focused integer-arguments all
+PASS13.26/12.54/253216. These are validation costs, not performance comparisons.
+Merged compiler e3c91d990c7dfd73a289144792284289b3cb8d9197faf2edaa45587e47fb5a2c;
+semantics bffe99fbb9afa801ebad9248126189670d46d674a7f7a8f09a767ffc1356dca9;
+runner3f353218727b007735e3f203c80a1633eeba1de0c06841740b59d3e033a8fa6d;
+entities object unchanged. Exact source/resource/artifact manifests, prior
+failures, costs and limitations are in external L1 `nominal_wrapper_receipt.json`
+and `logs/nominal_wrapper_merged`. Owned jobs drained; todo unchanged. No broad
+matrix or publication claimed. Original positive and all original source hashes
+are preserved; numeric-only ordinary wrapper admission remains a separate limit.
 ### 2026-11-23 A1: T9 stage ownership, compiler work and batch observations
 
 Exactly three anchored semantic-port selections, each ONCE in a separate fresh

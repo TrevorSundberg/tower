@@ -1,0 +1,45 @@
+import tower;
+import nominal_wrapper_module as types;
+
+fn check(value: bool): void { if !value { trap("Known nominal wrapper", 0); } }
+fn read(T: type, value: types.wrapped(T, 2)*): T { return value.data[1]; }
+fn next(state: usize*): usize { *state += 1; return *state; }
+fn extent(): usize {
+    var state: usize = 0;
+    var first = next(&state);
+    var second = next(&state);
+    check(first == 1 && second == 2 && state == 2);
+    return second;
+}
+var count: usize = extent();
+// Preparing a later immutable capture does not run its module initializer early.
+fn read_later(): usize { return later; }
+var forced: types.wrapped(i32, later);
+var earlier: usize = read_later();
+var later: usize = 2;
+check(earlier == 0 && sizeof(decltype(forced)) == 8);
+var a: types.buffer(i32, 2);
+var b: types.buffer(i32, 3);
+var alias: types.wrapped(i32, count)* = &a;
+var nested: types.nested(i32, count)* = &b;
+var boolean: types.boolean(true)* = &a;
+var dependent: types.dependent(i32, 2)* = &a;
+var selected: types.selected(true)* = &a;
+a.data[1] = 42;
+b.data[2] = 7;
+check(alias.data[1] == 42 && nested.data[2] == 7);
+check(read(alias) == 42 && read(i32, alias) == 42);
+check(boolean == &a && dependent == &a && selected == &a);
+check(sizeof(types.wrapped(usize, 2)) == sizeof(usize) * 2);
+check(type_value(types.wrapped(i32, 2)) == type_value(types.buffer(i32, 2)));
+check(type_value(types.wrapped(i32, 2)) != type_value(types.wrapped(i32, 3)));
+// The imported wrapper's bindings must not resolve in this caller's scope.
+fn caller(): bool {
+    var buffer: i32 = 9;
+    var count: usize = 2;
+    var value: types.wrapped(i32, count);
+    value.data[1] = buffer;
+    return value.data[1] == 9;
+}
+check(caller());
+print(42);
