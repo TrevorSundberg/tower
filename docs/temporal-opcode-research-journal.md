@@ -75396,3 +75396,26 @@ at11:32:39UTC. D2's prior release was11:29:14 per its saved receipt, correcting
 its draft11:28 label; no heavy overlap. Full manual runtime baseline and durable
 registration remain pending the coherent affinity handoff. A2/ROOT received the
 concrete duplicate serial-transport composition issue before any harness edit.
+
+### D1 independent complete Linux-affinity handoff review, 2026-11-23
+
+All c93 leaf jobs drained before inspecting/adopting D2 cbe00ff22. Full bundle
+SHA89c2676aaabf6a14c746b687c0fb25db3981db9909a0c1fce447ea86cb2e0aba verifies
+sole60741;176MiB receiptSHA9f6a449403ac6ba4282ade339b7a0ffc5576839409f7ce757d1e200e81a2cf60
+also verifies. Exact real/fault fixture hashes match independently read drafts.
+Read final shared-parser profile guard and actual child-process argument oracle,
+transport/observer delta, full owner journal and missing-emit receipt: focused
+status1 and `Link failed: duplicate ELF symbol: main` precede any fixture runtime.
+The original command omitted both --library and --emit object. Supported explicit
+object recipe is a different recorded successful command, not a hidden fallback.
+
+The fixture audit adds four assigned files plus the coordinated observer delta.
+Owner evidence separates24 scoped instrumented executions, argument parent/child
+checks and explicit two/four-worker pool stress. Same-path compiler objects and
+outputs are exact; raw metrics retain variable clock effects and pinned serial
+wall regressions3.2%/2.2%. Actual two-worker metadata overlap loses against serial
+in its final profile. Correct affinity slots and lower query microcost are the
+supported conclusions, not overall compiler speedup or closure of D1 Cancel4.
+No user/sibling container, quota, model or policy changed. Current d3+affinity
+union requires its own coherent check; owner565 observations are not relabeled.
+The generic native SOURCE object correction/registrations remain D1's work.

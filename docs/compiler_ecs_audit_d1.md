@@ -2734,3 +2734,28 @@ Raw staged node payloads remain uncharged; an index ledger is not packed storage
 Documentation-only review changes no executable, so new runtime profiling is
 inapplicable. Owner measurements and the next actual D1 coherent checks stay
 distinct from adoption and from final public-bootstrap/browser/release acceptance.
+
+### Linux affinity fixture handoff review (2026-11-23)
+
+Complete D2 cbe00ff22d98edcf33c3a92b40e8a1d33d0f71cb and its176MiB receipt
+verify against the announced hashes. The real/fault source hashes exactly match
+the previously reviewed drafts; the profile guard and process fixture were read
+in full. Four new assigned files bring the prospective joined count to537/1126.
+
+| Assigned path | World/storage/scheduling/ownership review and disposition |
+| --- | --- |
+| scaffolding/tests/work_linux_affinity.tower | Actual libc CPU-count reference checks current-thread capacity, two derived job slots and child-only affinity restriction/restoration. Parent observes its unchanged mask while children wait; stack job/signal/pool owners survive every join, including partial submission cleanup. Fixed128-byte real-test mask is the explicit glibc fixture boundary; production grows beyond it, tested separately. Before1/after0 and restricted/unrestricted scoped sanitizer evidence retained. Register ordinary library object with existing guest runtime and worker-entry export; no overlap claim from capacity alone. |
+| scaffolding/tests/work_linux_affinity_faults.tower | Ordinary SOURCE entry initializes the single borrowed stack-state pointer. Three GNU wrappers observe actual production transport and buffer allocation/free; only one heap buffer is live. Sparse high IDs, zero/full/clamped masks,64 seeded libc bit-count references, OS error, growth/physical failure/retry and pool denial check exact results and final zero bytes. Actual412 allocation attempts/544 peak underlying bytes. Bounds derive from native words/type/array. Serial injection is not thread safety evidence; overflow is reviewed rather than forced through enormous allocation. Existing SOURCE/no-bindings helper must explicitly emit object; preserve its actual duplicate-main failure before correction. |
+| scaffolding/tests/work_linux_capacity_profile.tower | Reuses shared driver_unsigned_limit for positive capacity/rounds and actual usize bound. Timed loop checks every current-thread answer; pool setup/one dispatched checked result follows timing and drains through defer. Output records measured count and actual slots; no useful-overlap claim. Manual expected-capacity argument is necessary, so no hardcoded host-capacity CTest. Linux clock ABI/host-only profile remains explicit. |
+| scaffolding/tests/work_linux_capacity_arguments.tower | Existing Tower process transport executes the actual profile, waits/reaps each child and checks exact status2 for eight invalid strings in each position plus one valid control. Array bounds derive from sizeof; no shell or duplicate parser. Covers signs/space/junk/zero/overflow/decimal input. Owner before accepted +1 fails1; final native plus instrumented parent/17 children per mode pass. Keep manual PROFILE_PATH/ACTUAL_CAPACITY invocation, with no invented universal capacity. |
+| scaffolding/tests/work_signal_observe.tower | Existing try/wait signal ownership/oracles unchanged. Coordinated host.memory import resolves the demonstrated new compiler-buffer extern link failure after transport migration. Both modes and actual scoped address/thread runs pass; sanitizer_race_probe was not edited without a demonstrated need. Existing target retained. |
+
+The transport snapshot is not an OS CPU lease and does not resize already-open
+pools or model CPU-time quota. Its stack-first native-word probe grows through
+compiler_buffer APIs, counts real allowed bits and returns0 on unavailable/error.
+No global cache, invented noalias or second scheduler. D2's per-query microcost
+improves, but pinned serial compiler wall medians still rise3.2%/2.2%; two useful
+metadata workers overlap yet lose to serial in the final measured workload.
+All fixed-four tests retain their deliberate oracle and need four allowed CPUs.
+D1 original Cancel4 failure remains independent. Current union runtime/release
+acceptance is pending; documentation review itself needs no runtime profiling.
