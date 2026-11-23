@@ -75204,3 +75204,29 @@ before caller adoption; no production edit to these paths in this checkpoint.
 The full A2 goal, node physical accounting, hold-exhaustion ownership, complete
 shared budget/locality acceptance and integrated leased publication stay open.
 Existing parser_table_budget now exercises descriptor Capacity/Memory, first-leaf denial, observed capture-index growth denial with unchanged receipts, traversal denial, retries and final entity/ledger/buffer ownership. The probe discovers an actual growth boundary instead of copying vector capacity. Two recognizer trials prewarm match-component storage so denial reaches forest growth; the earlier real component-page tests remain. Production entities leaf passed5.03s. An initial fixture target was unaffected (ninja no work), correctly not evidence for new tests; the actual frontend test compile failed on missing explicit entity_create declaration. Failure log retained; declaration and member getter added, correct smallest target selected, validation continues. No source change during owned builds; no publication lease, no universal resource/race/release claim.
+
+### ROOT combined component admission validation, bffbd3f7
+
+The frozen bffbd3f7 source union passes native query-smoke, frontend allocations,
+and full ECS units on KinmenB CPU12-23, 24 GiB Docker budget, two build jobs.
+Native build34.865wall/57.877CPU/796368KiB; units21.667wall/32.229CPU/827148KiB.
+ASan/LSan allocations and query pass; real three-unit/four-lane overlap reports
+outer_peak3, canonical1173729914654460811, wall9.591s/CPU30.328s/1111760KiB.
+TSan build and byte-verified copied binaries pass query and the same real overlap:
+wall25.000s/CPU79.239s/1437000KiB, outer_peak3 and the same canonical hash.
+These instrumented costs are validation observations, not before/after speed claims.
+
+The first WSL runtime attempt stopped before execution: Docker-owned log directory
+rejected shell redirection. Preserve that failure; the corrected transport writes
+only logs under /home/trevo/root_component_union_bff as the existing WSL user.
+Binaries, sources and security settings are unchanged. Source manifest verification
+passes after both builds and final runtime. Logs are in B2 build/root_component_union
+and the named WSL log directory. No reports appeared; this is scoped sanitizer
+coverage, not proof of universal race freedom or final release acceptance.
+
+ROOT merged complete A2 dfcef909 typed containment and B1 8b4614 forest histories
+after source review. Their new combined source is not covered by the earlier bff
+receipt. A2 holds, adjacent containment leases, B1 editor memory follow-up and
+ROOT typed metadata/provenance and linker consumers remain explicit work.
+The next metadata work will retain wrappers and propagate per-call producers;
+no signature-only consumer migration or global last-error state is proposed.
