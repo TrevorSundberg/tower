@@ -13,34 +13,32 @@ universal race freedom is implied. See the primary [ASan documentation](https://
 [TSan documentation](https://clang.llvm.org/docs/ThreadSanitizer.html) and
 [UBSan documentation](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html).
 
-## Build through the shared entry point
+## Shared build entry
 
-D2 integrates the tool as an explicit selection; ordinary packaging does not
-build it. Use the canonical Docker environment and public bootstrap:
+D2 also exposes the tool through the canonical Docker/public-bootstrap entry:
 
 ```sh
 tools=$(bash playground/scripts/build-bootstrap.sh --tools instrument_llvm)
 "$tools/instrument_llvm" address INPUT.ll OUTPUT.ll
 ```
 
-The tool build supplies the configured compiler worker budget, depfile and
-explicit grammar inputs. Its link reuses the normal guest-library object and
-the same discovered LLVM library as `runtime_bind`. D2 validated this entry
-with the public pin; the manual A2 evidence below is a separate receipt.
+This selection supplies the configured compiler worker budget, depfile and
+explicit grammar inputs. Linking reuses the normal guest-library object and
+the same discovered LLVM library as `runtime_bind`; ordinary packaging does
+not build the tool. D2 validated this entry independently of the manual A2
+receipts below. Use a separate cache for each active build and sanitizer mode.
 
-## Instrument existing native build targets
-
-The optional CMake mode applies the same pipeline to the existing compiler and
-test object recipes, including foreign-bound runtime and archive members. Use
-Linux x64 with Clang/LLVM19, directly or inside the canonical Docker image:
+D2's optional Linux x64 Clang/LLVM19 mode uses this same Tower policy with the
+existing native object recipes. Build the tool alone through
+`bash playground/scripts/build-bootstrap.sh --tools instrument_llvm`, or use a
+separate native cache with `-DTOWER_SANITIZER=address` or `thread`:
 
 ```sh
-export TOWER_NATIVE_BUILD="$HOME/.cache/tower/native-address"
+export TOWER_NATIVE_BUILD=/cache/native-address
 export TOWER_BUILD_JOBS=1
 bash playground/scripts/build-native.sh -DTOWER_SANITIZER=address \
   -DTOWER_COMPILER_JOBS=1 -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON
-cmake --build "$TOWER_NATIVE_BUILD" --target tower-work-tests tower-lr-work-tests \
-  --parallel 1
+cmake --build "$TOWER_NATIVE_BUILD" --target tower-work-tests tower-lr-work-tests --parallel 1
 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 "$TOWER_NATIVE_BUILD/tower-work-tests"
 ```
 
@@ -179,6 +177,10 @@ Logs are under `C:/Sandbox/build/codex_ecs_20261122/A2/cache/logs`:
 `memory_probe_asan.log`, `race_probe_tsan.log` (startup failure),
 `race_probe_tsan_seccomp.log`, `instrument_pool_positive.log`,
 `work_pool_{asan,tsan}_{1,2,3}.log`, `budget_instrumented.log` and
-`work_budget_shared_{asan,tsan}_{1,2,3}.log`. D1's failure/cancellation cleanup,
-execution/session/constructor paths and full integrated compiler remain separate
-pending checks. Rebuild those actual inputs before claiming coverage.
+`work_budget_shared_{asan,tsan}_{1,2,3}.log`. D1's cleanup regression subsequently
+passes three runs in each mode, including partial/full early-error draining;
+see `work_pool_cleanup_{asan,tsan}_{1,2,3}.log`. The 26-object LR closure at
+main89d60388 plus recorded A2/D1/D2 patches passes three LR and one query-smoke
+TSan runs (`lr_tsan_{1,2,3}.log`, `lr_tsan_query_smoke.log`). Later dispatcher/world
+changes, B1's separate parser delta, execution/session/constructor paths and the
+final integrated compiler require their own frozen-input checks.

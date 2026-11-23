@@ -1,0 +1,150 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+
+// Linux x64 measurement boundaries; ownership, workload and references are Tower.
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn malloc_usable_size(allocation: void*): usize;
+
+struct LocalityValue { a: u64; b: u64; c: u64; d: u64; }
+fn locality_check(ok: bool): void { if !ok { trap("Entity locality reference mismatch", 0); } }
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Locality payload has no finalizer", 0);
+}
+fn locality_time(): i64 {
+    var stamp: i64[2];
+    locality_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+fn locality_value(value: LocalityValue*): u64 { return value.a + value.b + value.c + value.d; }
+
+fn locality_scan(kind: Entity*, owners: Entity**, count: usize, reference: u64): void {
+    var view = entity_view_open(kind);
+    locality_check(view != null);
+    defer entity_view_close(view);
+    var terms: Entity*[1]; terms[0] = kind;
+    var table = entity_view_tables(view, &terms[0], 1);
+    locality_check(table != null && entity_table_query_count(table) == count);
+    var query: EntityQuery;
+    locality_check(entity_view_query(view, kind, 0, count, &query));
+    var packed = alloc(LocalityValue, count);
+    locality_check(packed != null);
+    defer free(packed);
+    // A read-only derived snapshot, not another authoritative entity payload.
+    // Its construction cost is outside traversal timing and reported separately.
+    var start = locality_time();
+    for(var i: usize = 0; i < count; i++) { packed[i] = *bits(LocalityValue*, query.data[i].data); }
+    print(locality_time() - start);
+    var rounds: usize = 4194304 / count;
+    for(var mode: usize = 0; mode < 4; mode++) {
+        var before: i64[18]; var after: i64[18];
+        locality_check(getrusage(0, &before[0]) == 0);
+        start = locality_time();
+        var total: u64 = 0;
+        for(var round: usize = 0; round < rounds; round++) {
+            var sum: u64 = 0;
+            if mode == 0 {
+                for(var i: usize = 0; i < count; i++) {
+                    sum += locality_value(bits(LocalityValue*, entity_component_get(owners[i], kind).data));
+                }
+            }
+            if mode == 1 {
+                for(var i: usize = 0; i < count; i++) {
+                    sum += locality_value(bits(LocalityValue*, query.data[i].data));
+                }
+            }
+            if mode == 2 {
+                for(var range: usize = 0; range < entity_table_query_ranges(table); range++) {
+                    var column = entity_table_query_column(table, range, 0);
+                    var length = entity_table_query_range_count(table, range);
+                    for(var row: usize = 0; row < length; row++) {
+                        sum += locality_value(bits(LocalityValue*, column[row].data));
+                    }
+                }
+            }
+            if mode == 3 {
+                for(var i: usize = 0; i < count; i++) { sum += locality_value(&packed[i]); }
+            }
+            locality_check(sum == reference);
+            total += sum;
+        }
+        var elapsed = locality_time() - start;
+        locality_check(getrusage(0, &after[0]) == 0);
+        locality_check(total == reference * convert(u64, rounds));
+        // mode, live rows, rounds, wall ns, CPU us, process peak RSS KiB.
+        print(mode); print(count); print(rounds); print(elapsed);
+        print((after[0] - before[0] + after[2] - before[2]) * 1000000
+            + after[1] - before[1] + after[3] - before[3]);
+        print(after[4]);
+    }
+}
+
+fn locality_case(count: usize): void {
+    var store = entity_store_create();
+    locality_check(store != null);
+    var kind = entity_create(store);
+    locality_check(kind != null && entity_register(kind, sizeof(LocalityValue), alignof(LocalityValue), 0));
+    var owners = alloc(Entity*, count);
+    var addresses = alloc(LocalityValue*, count);
+    var pages = alloc(EntityComponentPage*, count);
+    var live = alloc(Entity*, count);
+    locality_check(owners != null && addresses != null && pages != null && live != null);
+    defer free(owners); defer free(addresses); defer free(pages); defer free(live);
+    var page_count: usize = 0;
+    var page_bytes: usize = 0;
+    var reference: u64 = 0;
+    var start = locality_time();
+    for(var i: usize = 0; i < count; i++) {
+        owners[i] = entity_create(store);
+        locality_check(owners[i] != null);
+        var component = entity_component_add(owners[i], kind);
+        locality_check(component != null && component.page != null);
+        addresses[i] = bits(LocalityValue*, component.data);
+        var value = convert(u64, i);
+        *addresses[i] = init(LocalityValue) {a: value, b: value * 3 + 1, c: value * 5 + 2, d: value * 7 + 3};
+        reference += value * 16 + 6;
+        if page_count == 0 || pages[page_count - 1] != component.page {
+            pages[page_count++] = component.page;
+            page_bytes += malloc_usable_size(bits(void*, component.page));
+        }
+    }
+    print(count); print(locality_time() - start); print(page_count); print(page_bytes);
+    print(count * sizeof(LocalityValue));
+    locality_scan(kind, owners, count, reference);
+    // Keep the first live payload in every original page, removing other rows.
+    // Stable surviving addresses deliberately prevent moving/compacting payloads.
+    var survivors: usize = 0;
+    reference = 0;
+    var last: EntityComponentPage* = null;
+    start = locality_time();
+    for(var i: usize = 0; i < count; i++) {
+        var component = entity_component_get(owners[i], kind);
+        var page = component.page;
+        if page != last {
+            live[survivors++] = owners[i];
+            reference += convert(u64, i) * 16 + 6;
+            last = page;
+        } else { locality_check(entity_component_remove(owners[i], kind)); }
+    }
+    locality_check(survivors == page_count);
+    for(var i: usize = 0; i < count; i++) {
+        var component = entity_component_get(owners[i], kind);
+        if component != null { locality_check(component.data == bits(u8*, addresses[i])); }
+    }
+    var retained: usize = 0;
+    for(var i: usize = 0; i < page_count; i++) {
+        locality_check(pages[i].live == 1);
+        retained += malloc_usable_size(bits(void*, pages[i]));
+    }
+    locality_check(retained == page_bytes && entity_query_count(kind) == survivors);
+    print(survivors); print(locality_time() - start); print(retained); print(survivors * sizeof(LocalityValue));
+    locality_scan(kind, live, survivors, reference);
+    for(var i: usize = 0; i < count; i++) { entity_release(owners[i]); }
+    entity_release(kind);
+    locality_check(entity_store_count(store) == 0 && entity_store_component_count(store) == 0);
+    locality_check(store.storage.first == null && entity_store_dispose(store));
+}
+
+locality_case(1024);
+locality_case(65536);

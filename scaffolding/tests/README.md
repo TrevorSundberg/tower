@@ -962,9 +962,37 @@ output and serial allocation-failure/ownership checks. Use the serial frontend
 target for this fault allocator; it is not a threaded allocator sanitizer.
 
 The Linux x64 `tests/lr_state_benchmark.tower` measurement entry accepts an
-optional final `runtime` argument. It then measures runtime-table construction
-over already prepared LR states, binds a finite synchronized world budget, and
-checks every action/goto against a serial reference outside each interval.
-Reported peak/current bytes include actual owned buffer headers; ledger metadata
-and process peak RSS are separate columns. Each table must return its grants on
+optional final `runtime` argument. It measures runtime-table construction over
+already prepared LR states, binds a finite synchronized world budget, and checks
+every action/goto against a serial reference outside each interval. Reported
+peak/current bytes include actual owned buffer headers; ledger metadata and
+process peak RSS are separate columns. Each table must return its grants on
 destruction. Requested workers and reserved lanes do not prove physical overlap.
+
+The existing native `tower-lr-work-tests RESOURCE_ROOT query-smoke` also runs
+`semantic_resource_checks.tower`: required, inferred and declaration-isolated
+storage denial for32/64-bit targets and1/4 requested workers. It requires failed
+query receipts, first-source diagnostic selection, joined peers, no replay or
+published value, and zero retained ownership. This reuses the production query
+transport; serial fault instrumentation does not establish threaded coverage.
+
+`tower-lr-work-tests RESOURCE_ROOT lifecycle FIRST [LAST]` selects an inclusive
+range from `SemanticLifecycleCase` (currently0–41), or one case when LAST is
+omitted. It rejects empty, nondecimal, out-of-range and reversed bounds. Each case
+prints and flushes start/completion receipts, using the unchanged32/64-bit and
+1/4-worker assertions and successful canonical reparses. Default `all`, `bodies`
+and `type-smoke` coverage is unchanged. Use separate case invocations for external
+wall/CPU/RSS measurements; an unfinished case has no completion receipt.
+
+The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
+existing executable-function index fixture, including exact canonical preservation,
+declaration identity and allocation-failure cleanup. The default frontend suite
+also runs it. Its pure backend helper avoids importing the full lowering unit.
+
+For full native module/cache/session regressions, configure the existing native
+work/backend test build with `-DTOWER_MODULE_TESTS=ON`, build
+`tower-module-cache-tests`, then run it with `scaffolding` as the working directory
+or select CTest `tower-module-cache-regressions`. This uses the existing
+`parser_modules_work` composition and `module_cache_checks.tower` entry with
+production transport. The separate cache profile's invalidation check does not
+replace these malformed-input, cycle, resolution and session regressions.
