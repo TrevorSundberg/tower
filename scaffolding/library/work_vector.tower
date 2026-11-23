@@ -1,22 +1,11 @@
 import tower;
 import vector;
 import work_buffer;
+import work_buffer_types;
 import work_budget_types;
+import work_vector_types;
 
 extern fn compiler_buffer_alignment(): usize;
-
-// Same explicit element ownership and growth invalidation as vector(T), with a
-// physical-storage receipt. It is a distinct type so an ordinary vector free or
-// realloc cannot accidentally lose the receipt or compiler allocation header.
-fn work_vector(T: type): type {
-    struct Result {
-        data: T*;
-        length: usize;
-        capacity: usize;
-        reservation: WorkReservation;
-    }
-    return Result;
-}
 
 fn work_vector_init(T: type, value: work_vector(T)*): void {
     *value = default;
@@ -91,21 +80,3 @@ fn work_vector_swap(T: type, left: work_vector(T)*, right: work_vector(T)*): voi
     *left = *right;
     *right = previous;
 }
-
-fn work_vector_iterate_begin(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {
-    state.data = source.data;
-    state.length = source.length;
-    state.index = 0;
-}
-
-fn work_vector_iterate_next(T: type, source: work_vector(T)*, state: vector_iteration(T)*): bool {
-    if state.index == state.length { return false; }
-    state.index++;
-    return true;
-}
-
-fn work_vector_iterate_element(T: type, source: work_vector(T)*, state: vector_iteration(T)*): T* {
-    return &state.data[state.index - 1];
-}
-
-fn work_vector_iterate_end(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {}

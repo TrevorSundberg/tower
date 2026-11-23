@@ -1,19 +1,11 @@
 import tower;
 import work_budget;
 import work_budget_types;
+import work_buffer_types;
 
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn compiler_buffer_allocate(bytes: usize): void*;
 extern fn compiler_buffer_free(memory: void*): void;
-
-// One physical buffer and its byte-only grant. Move this complete owner when
-// publishing or swapping retained results; joining a job does not retire it.
-// The budget (and its immutable gate) must outlive every buffer it funded.
-struct WorkBuffer {
-    data: u8*;
-    capacity: usize;
-    reservation: WorkReservation;
-}
 
 fn work_buffer_dispose(buffer: WorkBuffer*): void {
     compiler_buffer_free(bits(void*, buffer.data));

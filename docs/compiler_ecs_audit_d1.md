@@ -1571,3 +1571,56 @@ This adds one current tracked path after staging: 1,055 Tower files and 478 D1
 direct paths, all substantively reviewed. The earlier incoming-only module-cache
 row was not counted as a tracked file. Documentation itself has no runtime cost;
 the new executable registrations still need checked before/after measurements.
+
+### Physical-owner integration review after fe7a660
+
+Exact owner handoffs were applied only after D1 jobs drained: type split 7f9fa3c4,
+explicit imports a4eb4477, parser 9e4d5f50 plus cfd3d2c0, frontend c65497c8 plus
+6e961029, backend retention 93b99934 and interpreter 9228ea76 after 741b6cb4.
+D2's additional ad306d0a imports defining WorkBuffer modules in both production
+callers and IMState in the query test; no duplicate nominal definitions. The
+split-added final blank was removed, without algorithm changes. These sources
+are prepared, not covered by the earlier 1a64007 execution receipt.
+
+| Path / reviewed owner artifact | Substantive conclusions and disposition |
+| --- | --- |
+| `scaffolding/tests/parser_table_budget.tower` / 9e4d5f50, 80 lines, source 5804dab8 | Explicit world-bound ledger; full-cap table creation denial, exact object/header receipt, construction denial with partial runtime/context cleanup, successful retry, stable reused storage and no duplicate grants. Direct table/state/context subtotal is separate from other LR/world allocations. Table and world retire before ledger; instrumented buffer baseline restored. New parser_failures call preserves existing failure suite. Local runtime pending. |
+| `scaffolding/tests/frontend_units.tower` / c654 + 6e961 | Existing per-unit source snapshots and canonical/execution oracles retained. Independently computes exact physical input subtotal, checks it before dispatch and after join/cancel. Whole ledger uses justified lower bounds and peak cap because cached parser owners now coexist. Joined lanes are zero; retained inputs survive until close. Counts do not prove full memory accounting or overlap. |
+| `scaffolding/tests/frontend_units_memory.tower` / 6e961 | Independent documented four-word allocation-header expectation. Finite 64 MiB compilation allowance is reserved during tight input denial/replacement checks, then released before compilation. Exact input ownership, replacement peak and invalid-span diagnostics retained; compilation may add bounded parser owners without changing inputs. No unbounded fallback or deleted denial assertion. |
+| `scaffolding/tests/frontend_units_allocation.tower` / 6e961 | Deliberately serial fault allocator, separately failing first/second physical snapshot allocation after priming receipt capacity. Exact old data, input subtotal, ledger and allocation baseline survive failure; finite compilation allowance avoids conflating parser growth with snapshot capacity. Default existing frontend runner already calls its root entry. |
+| `scaffolding/tests/backend_units.tower` / 93b99934 | Streaming frontend parsing now retains additional owners. Test compares exact target/object receipt release against the joined frontend baseline, while preserving input subtotal/cap, no active lanes, and separate-ledger exact baseline for later targets. Functional ELF/object comparison unchanged. Does not charge all backend heap allocations. |
+| `scaffolding/tests/interpreter_call_query.tower` / 9228 + ad306 | Both target widths, small/64 KiB layouts, budgeted/unbudgeted interleaved invocations. Exact three physical buffer receipt sums per invocation, retained results charged until disposal, full-cap resize denial preserves pointer/length/capacity/generation and values. Existing owner/frame, cancellation, immutable input and no-replay checks retained. World outlives buffers; final ledger zero. Shared IMState/IMContext layout changed, so every dependent object must rebuild before execution. |
+| `scaffolding/library/work_buffer_types.tower` / 7f9, 10 lines, 49cb7029 | Single nominal owner descriptor and borrowed ledger lifetime; moves complete allocation/receipt, no implicit copy ownership. A2 production audit remains separately owned. |
+| `scaffolding/library/work_vector_types.tower` / 7f9, 35 lines, 035f61b3 | Single type-producing definition with its four allocation-free iteration hooks in the defining module. Stable borrow contract unchanged; generic implementation methods import this definition explicitly. No second authoritative container type. |
+
+### Common-lifetime arena source review
+
+Read all six new bodies from A2 archive 9c01ae65 before adopting them. Existing
+buffer files were compared individually and left at the newer explicit-import
+versions; the archive would otherwise remove those imports. New arena imports
+have the same defining-module omission and are routed to A2 before compilation.
+No current arena source/runtime/sanitizer acceptance is claimed yet.
+
+| Path / reviewed source | Substantive conclusions and disposition |
+| --- | --- |
+| `scaffolding/library/work_arena_types.tower` / 3410b911, 27 lines | Private complete arena owner, linked stable physical chunks, quiescent snapshot counters; explicit borrowed WorkBudget. Shared layouts can import data without allocation methods. This is common-lifetime scratch storage, not an authoritative AST/IR or packed entity payload implementation. |
+| `scaffolding/library/work_arena.tower` / bb167f82, 118 lines | Checked aligned bump path makes no gate/heap call; growth reserves a full physical chunk before publication. Denial leaves old chunks/output unchanged. Descriptor lives inside its buffer and is copied before free. Append requires joined borrowers and the same budget lifetime, transfers complete chunks without payload copies. Snapshot separates payload/used/capacity/retained. Resource destructors and borrower drains remain callers' responsibility; no implicit Stronghold safety policy. |
+| `scaffolding/tests/work_arena.tower` / 6697f992, 98 lines | Two-budget rejection, same-owner append, retained grants after transfer, denied growth preserving output/data, stale disposed-owner rejection and reusable emptied owner. 128 varied aligned slices plus oversized/zero-size allocations check every byte and exact retained-header accounting; null-budget standalone boundary and final zero grants. |
+| `scaffolding/tests/work_arena_faults.tower` / dee0c37c, 45 lines | Existing serial fault allocator fails first allocation and subsequent chunk growth. Output/first-last pointers/data/receipt totals and physical buffer count remain unchanged; retry succeeds and disposal restores baseline. Not concurrent allocator instrumentation. |
+| `scaffolding/tests/work_arena_shared.tower` / d9423e43, 115 lines | Four distinct production pthreads stop at a barrier with private arenas. Cancellation and cap denial preserve first slices; normal work creates 2,048 values per worker. Coordinator drains/joins before complete chunk transfers, checks stable values after source disposal and exact payload/retention, then retires joined arena before budget/gate. Four threads on two Deck cores are stress, not useful speedup. |
+| `scaffolding/tests/work_arena_profile.tower` / 952b6326, 165 lines | Equal 2,048/262,144 object workloads, initialized variable-size payload with all-byte reference after timing. Raw per-object allocation versus budgeted 4/16/64 KiB chunks; common pointer index is equally pre-touched, outside budget and timed allocation. Reports actual interval overlap, separate allocation/join and retirement wall/CPU, peak RSS, allocation count, payload/physical/ledger/index bytes. Chunk padding/internal fragmentation remains visible; benchmark does not establish compiler speed or allheap coverage. |
+
+Generic registration reuses the existing fixture/runtime/sanitizer path, adds the
+same dynamic callback export for arena shared/profile, and extends the existing
+serial fault composition to both buffer and arena without duplicate memory code.
+Profile is opt-in with valid `arena16 1 large` arguments. After staging the nine
+new paths in this integration, census is 1,064 tracked / 483 D1 direct, all fully
+reviewed. Link/runtime, measurements, current instrumentation and final coherent
+release remain required; the coverage count is only source review.
+
+Defining-import follow-up d167a9c6 adds only `work_buffer_types` to the arena
+implementation and `work_arena_types` to its four fixtures, preserving all body
+hashes described above except those single imports. Current line counts are
+119/99/46/116/166 respectively. Exact draft was sent to A2/root for comparison;
+no independent implementation or nominal alias was introduced. Public-predecessor
+compile and current runtime checks remain pending the shared build slot.

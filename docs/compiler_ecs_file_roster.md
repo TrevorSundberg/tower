@@ -1302,3 +1302,22 @@ The existing frontend profile is updated to D2's 57e392d9 transport guard; it is
 not a second path. This gives 1,055 tracked Tower files / 478 D1 direct paths once
 staged. Both full bodies have substantive audit receipts; registration/runtime
 acceptance is still pending.
+
+Post-fe7a660 source integration adds these nine paths. Their complete bodies are
+reviewed in the D1 audit; production ownership is unchanged.
+
+| Path | Audit lane | Implementation owner |
+| --- | --- | --- |
+| scaffolding/library/work_buffer_types.tower | A2 | A2/L1 coordinated type split |
+| scaffolding/library/work_vector_types.tower | A2 | A2/L1 coordinated type split |
+| scaffolding/library/work_arena.tower | A2 | A2 |
+| scaffolding/library/work_arena_types.tower | A2 | A2 |
+| scaffolding/tests/parser_table_budget.tower | D1 | B1 |
+| scaffolding/tests/work_arena.tower | D1 | A2 |
+| scaffolding/tests/work_arena_faults.tower | D1 | A2 |
+| scaffolding/tests/work_arena_shared.tower | D1 | A2 |
+| scaffolding/tests/work_arena_profile.tower | D1 | A2; D2 measurement review |
+
+After staging: 1,064 tracked Tower files / 483 D1 direct files. Existing updated
+query/frontend/backend/buffer fixtures retain their rows. The D1 supporting
+library review is not a replacement for A2's audit or current runtime evidence.

@@ -49286,3 +49286,52 @@ five-file import-only correction a4eb4477 matches D1's prior source analysis and
 docs/modules.md's explicit no-re-export contract. That correction and split will
 be adopted together after this source checkpoint; no partial split execution or
 replacement nominal type is acceptable. Original failing logs remain preserved.
+
+### D1 combined physical-owner source review — 2026-11-23 00:50 UTC
+
+After fe7a660 and with both own containers idle, integrated reviewed owner patches
+7f9fa3c4/a4eb4477 (types/imports), 9e4d5f50/cfd3d2c0 (parser),
+c65497c8/6e961029 (frontend), 93b99934 (backend test retention), and 9228ea76
+(interpreter buffers after storage measurement741b). All patch checks passed.
+The split's new final blank was removed after diff-check reported it; no semantic
+rewrite. A source audit found two direct WorkBuffer users and new IMState test
+signature lacking defining imports. D2 supplied ad306d0a and independently passed
+those smallest units; D1 adopted it unchanged. A full dependent rebuild is required
+for the changed interpreter layouts before any local execution.
+
+The joint tests distinguish exact input receipts from additional retained parser
+owners. A finite compilation allowance remains occupied during tight snapshot
+denial/replacement tests and is released before compilation. Backend streaming
+tests measure exact output release against the joined frontend baseline. Query
+tests account physical memory/initialization/input metadata through retained
+invocations and preserve live data/receipt on denied growth. All old lifecycle,
+execution and cleanup assertions remain. Whole compiler heap accounting and
+current cross-suite/sanitizer coverage are not established by this source merge.
+
+Read all six new WorkArena bodies from A2 archive9c01ae65 and copied those paths
+individually, preserving newer explicit imports in the eight existing buffer/type
+files. The API provides private stable slices in owned chunks with common
+retirement, no gate on successful bump allocation, checked physical growth, and
+complete chunk transfer after joins. Tests cover byte/alignment/overflow/denial,
+serial physical failure rollback and real four-thread cancellation/transfer.
+The benchmark checks equal initialized payload, reports retained fragmentation
+and unbudgeted pointer-index bytes, and separates allocation/join from retirement.
+No compiler speedup or general fallible scratch conversion is inferred.
+
+The same no-re-export omission affected the arena implementation and four tests.
+D1's exact import-only draft d167a9c6 was sent to A2/root; no API/layout/body
+change. Generic registration b94c45ee reuses the existing native fixture and
+instrumentation path, adds serial faults without duplicate allocator symbols,
+and gives the opt-in profile valid arena16/1/large arguments. Runtime is unrun
+locally because D2 holds the one shared heavy slot. Source audit reaches 483
+direct reviewed paths / 1,064 tracked after staging; measurements and integrated
+release remain open. Documentation itself needs no runtime performance test.
+
+Exported the completed earlier1a receipt as
+`D1/buffer_defined_1a64007_receipt/logs.tgz`, SHA256
+1384202afabb2173b923dae45998bc8ebe8b11f03cde55093e98284ca2574118,
+695 members including failed statuses and their successful corrections, raw
+profiles, inputs, outputs, sanitizer hooks and source/binary/resource identities.
+Objects/copied WASM remain in the original owned build paths. This is evidence
+for the earlier frozen source only. Current Docker processes are idle, disk
+139 GiB free and memory9.7 GiB available; no source mutation occurred during jobs.

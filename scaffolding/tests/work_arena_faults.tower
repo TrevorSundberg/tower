@@ -1,0 +1,46 @@
+import tower;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn puts(text: u8*): i32;
+
+fn arena_fault_check(ok: bool): void {
+    if !ok { trap("Stable chunk allocation failure regression", 0); }
+}
+
+// Existing serial fault allocator only; the separate shared fixture uses the
+// production allocator and real workers for concurrent lifetime validation.
+export fn main(argc: i32, argv: u8**): i32 {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    arena_fault_check(work_budget_init(&budget, 1, 16384, 1));
+    var arena: WorkArena = default;
+    arena_fault_check(work_arena_init(&arena, &budget, 4096));
+    var output: u8* = null;
+    tower_test_buffer_fail_after(0);
+    arena_fault_check(work_arena_allocate_result(&arena, 64, 8, &output) == WorkBudgetError.Memory);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    arena_fault_check(output == null && arena.first == null && budget.live == 0 && budget.used_bytes == 0);
+    arena_fault_check(work_arena_allocate_result(&arena, 64, 8, &output) == WorkBudgetError.None);
+    fill(output, 63, 64);
+    var first = output;
+    var chunk = arena.first;
+    var live = tower_test_buffer_count();
+    var bytes = budget.used_bytes;
+    tower_test_buffer_fail_after(0);
+    arena_fault_check(work_arena_allocate_result(&arena, 4000, 8, &output) == WorkBudgetError.Memory);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    arena_fault_check(output == first && arena.first == chunk && arena.last == chunk && first[63] == 63);
+    arena_fault_check(tower_test_buffer_count() == live && budget.used_bytes == bytes && budget.live == 1);
+    arena_fault_check(work_arena_allocate_result(&arena, 4000, 8, &output) == WorkBudgetError.None && first[63] == 63);
+    work_arena_dispose(&arena);
+    arena_fault_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget));
+    arena_fault_check(tower_test_buffer_count() == baseline);
+    puts("0");
+    return 0;
+}
