@@ -55,6 +55,8 @@ fn units_memory_snapshot(batch: void*): WorkBudgetSnapshot {
 // Independent expected bytes: exact NUL-terminated payload plus the documented
 // four-word compiler buffer header. Parser/world storage is additional.
 var UnitSnapshotHeaderWords: usize = 4;
+var UnitSharedSnapshotBuffers: usize = 3;
+var UnitSourceSnapshotBuffers: usize = 2;
 var UnitCompilationAllowance: usize = 67108864;
 
 fn units_memory_span_bytes(length: usize): usize {
@@ -129,7 +131,8 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     units_memory_check(batch != null, "Exact resource capacity accepted");
     var before = units_memory_snapshot(batch);
     units_memory_check(frontend_units_input_bytes(batch) == resources
-        && before.used_bytes == resources && before.peak_bytes == resources && before.live == 3
+        && before.used_bytes == resources && before.peak_bytes == resources
+        && before.live == UnitSharedSnapshotBuffers
         && !frontend_units_source(batch, 1, path, source, strlen(source)), "Source denied before allocation at full resource cap");
     var after = units_memory_snapshot(batch);
     units_memory_check(after.used_bytes == before.used_bytes && after.live == before.live,
@@ -163,7 +166,8 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
         && strcmp(frontend_units_error(batch), "Compilation source contains an embedded NUL byte") == 0
         && frontend_units_error_offset(batch) == length, "Unit source rejection reports exact NUL offset");
     units_memory_check(frontend_units_input_bytes(batch) == resources + input
-        && before.used_bytes == resources + input + UnitCompilationAllowance && before.live == 6
+        && before.used_bytes == resources + input + UnitCompilationAllowance
+        && before.live == UnitSharedSnapshotBuffers + UnitSourceSnapshotBuffers + 1
         && !frontend_units_source(batch, 1, "failed.tower", "@", 1)
         && !frontend_units_source(batch, 1, path, source, ~convert(usize, 0)),
         "Replacement and length overflow reject without losing configured source");
@@ -193,7 +197,8 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     units_memory_check(frontend_units_input_bytes(batch) == resources + input
         && after.used_bytes == resources + input + UnitCompilationAllowance
         && after.peak_bytes == resources + old_input + input + UnitCompilationAllowance
-        && after.live == 6, "Commit releases only the previous input receipts");
+        && after.live == UnitSharedSnapshotBuffers + UnitSourceSnapshotBuffers + 1,
+        "Commit releases only the previous input receipts");
     units_memory_check(work_budget_release(frontend_units_work_budget(batch), &compilation),
         "Release replacement compilation allowance");
     while !frontend_units_step(batch, true) {}

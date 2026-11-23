@@ -2,10 +2,10 @@ import tower;
 import vector;
 
 // Admission accounting, serialized by one coordinator or an explicitly bound
-// gate. Declared bytes are
-// reservations, not an allocator/RSS limit. Retained outputs need their own
-// reservation until reclaimed. Neither this owner nor a live receipt is copied.
-// Release only after every nested/outer job using the grant has joined.
+// gate. Declared bytes are reservations, not an allocator/RSS limit. Execution
+// grants release after all nested/outer jobs join and stages publish. Physical
+// buffers use separate byte-only grants until storage is freed, including any
+// retained results. Move receipts with their owners; never duplicate ownership.
 enum WorkBudgetError: u32 { None, Capacity, Invalid, Memory, Stale, Busy, Exhausted }
 
 struct WorkBudgetEntry {
@@ -57,4 +57,3 @@ struct WorkBudgetSnapshot {
     live: usize;
     retained: usize;
 }
-

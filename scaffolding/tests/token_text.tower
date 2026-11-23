@@ -1,0 +1,27 @@
+import tower;
+
+var failures: u32 = 0;
+fn check(value: bool): void { if !value { failures++; } }
+fn identity(T: type, value: T): T { return value; }
+fn `match`(value: i32): i32 { return value + 1; }
+var `false.name`: i32 = 19;
+var named_value = `match`(`false.name`);
+check(named_value == 20);
+check(identity(-7) == -7);
+check(comptime(identity(-(7))) == -7);
+var minimum: i64 = -(9223372036854775808);
+check(bits(u64, minimum) == 9223372036854775808);
+var negative_zero: f64 = -(0.0);
+check(bits(u64, negative_zero) == 9223372036854775808);
+var exponent: f64 = identity(1.25e+2);
+check(exponent == 125.0);
+var enabled = identity(true);
+check(enabled && !identity(false));
+var pointer: u8* = null;
+check(pointer == null);
+var text = "a\n\"b\\c";
+check(text[0] == 97 && text[1] == 10 && text[2] == 34);
+check(text[3] == 98 && text[4] == 92 && text[5] == 99 && text[6] == 0);
+var nested: decltype(identity(-7)) = `match`(identity(-8));
+check(nested == -7 && `false.name` == 19);
+print(failures);

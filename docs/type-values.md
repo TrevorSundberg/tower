@@ -93,10 +93,11 @@ Construction currently requires compile-stage capability. Reaching one at runtim
 evaluates its operands in order, preserving earlier effects and operand failures,
 then reports the missing capability. It is not silently constant-folded. Static
 signature and nominal identity forms retain their existing preparation, with
-ordinary callee bindings taking precedence. The merged successor passes the
-complete type suite; final performance, sanitizer, public pin and deployment
-receipts remain pending in the L2 audit. The published bootstrap does not gain a
-capability merely because these source changes are present.
+ordinary callee bindings taking precedence. The frozen `6aa8ffb` successor passes
+the complete type suite; the newer capture integration still fails required
+aggregate and address-observation cases. Final coherent validation, public pin
+and deployment remain pending in the L2 audit. The published bootstrap does not
+gain a capability merely because these source changes are present.
 
 The Tower fixture is `scaffolding/tests/type_object_values.tower`. The `types`
 execution suite checks both interpreter engines, target pointer widths 4/8,

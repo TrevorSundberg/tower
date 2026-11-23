@@ -97,7 +97,7 @@ export fn sem_context_dispose(c: SemanticContext*): void {
     vector_dispose(&c.inferring);
     i = 0;
     for(; i < c.allocations.length; i++) {
-        free(c.allocations.data[i]);
+        compiler_buffer_free(c.allocations.data[i]);
     }
     vector_dispose(&c.allocations);
 }

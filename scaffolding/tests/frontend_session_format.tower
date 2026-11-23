@@ -59,7 +59,13 @@ fn frontend_session_setup_tests(): void {
     var baseline: u8* = "parse Statement = 'a' ';';";
     frontend_world_check(syntax_baseline_install(world, null, baseline, true, &diagnostic));
     frontend_format_text(syntax_version_diagnostic_text(&diagnostic), "");
-    var old = syntax_create("a;", null);
+    // Published baseline caches are not implicit imports for ordinary files.
+    var unimported = syntax_create("a;", null);
+    diagnostic_revision_read(unimported);
+    frontend_world_check(syntax_get_error(unimported)[0] != 0);
+    syntax_destroy(unimported);
+    var source: u8* = "parse Statement = 'a' ';';a;";
+    var old = syntax_create(source, null);
     defer syntax_destroy(old);
     tower_test_buffer_fail_after(0);
     var ready = syntax_baseline_install(world, null, baseline, true, &diagnostic);
@@ -73,10 +79,10 @@ fn frontend_session_setup_tests(): void {
     frontend_world_check(syntax_baseline_install(world, null, "parse Statement = 'b' ';';", true, &diagnostic));
     diagnostic_revision_read(old);
     frontend_world_check(syntax_get_error(old)[0] == 0);
-    syntax_reset(old, "a;", null);
+    syntax_reset(old, source, null);
     diagnostic_revision_read(old);
     frontend_world_check(syntax_get_error(old)[0] == 0);
-    var current = syntax_create("b;", null);
+    var current = syntax_create("parse Statement = 'b' ';';b;", null);
     diagnostic_revision_read(current);
     frontend_world_check(syntax_get_error(current)[0] == 0);
     syntax_destroy(current);

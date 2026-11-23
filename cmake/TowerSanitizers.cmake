@@ -36,7 +36,7 @@ function(tower_instrumentation_tool)
   set_property(GLOBAL PROPERTY TOWER_INSTRUMENT_LLVM "${program}")
 endfunction()
 
-function(tower_sanitizer_object name input triple)
+function(tower_sanitizer_object name input triple source)
   if(NOT TOWER_SANITIZER MATCHES "^(address|thread)$"
       OR NOT TOWER_NATIVE OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux"
       OR NOT triple MATCHES "^x86_64-.*linux")
@@ -52,7 +52,7 @@ function(tower_sanitizer_object name input triple)
     COMMAND "${CMAKE_C_COMPILER}" --target=${triple} -O1 ${ARGN} -c "${ir}" -o "${object}"
     DEPENDS "${input}" "${tool}" tower-instrument-llvm VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  set_property(GLOBAL APPEND PROPERTY TOWER_SANITIZER_OBJECTS "${object}\t${input}\t${ir}\t${TOWER_SANITIZER}\n")
+  set_property(GLOBAL APPEND PROPERTY TOWER_SANITIZER_OBJECTS "${object}\t${source}\t${input}\t${ir}\t${TOWER_SANITIZER}\n")
   set(${name}_OBJECT "${object}" PARENT_SCOPE)
 endfunction()
 
@@ -61,7 +61,7 @@ function(tower_sanitizer_manifest)
     get_property(objects GLOBAL PROPERTY TOWER_SANITIZER_OBJECTS)
     string(JOIN "" entries ${objects})
     file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/sanitizer-objects.tsv"
-      CONTENT "# Configured objects, not an execution receipt. Object\tOriginal IR\tInstrumented IR\tMode\n${entries}")
+      CONTENT "# Configured objects, not an execution receipt. Object\tTower source\tOriginal IR\tInstrumented IR\tMode\n${entries}")
   endif()
 endfunction()
 cmake_language(DEFER CALL tower_sanitizer_manifest)

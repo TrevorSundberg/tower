@@ -4,9 +4,9 @@ import .library.work_pool;
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_worker_limit(world: void*): usize;
 
-// Each compilation has an immutable budget. A project executor divides its
-// lanes before handing off exclusive worlds; nested phases never rediscover a
-// machine-wide width. Plain library entity stores retain the host policy.
+// Each world has an immutable capacity ceiling. Shared-ledger callers reserve
+// extra lanes separately before dispatch; capacity alone grants no entitlement.
+// Plain library entity stores retain the host policy.
 fn compiler_worker_capacity(anchor: void*): usize {
     var world = compiler_node_world(anchor);
     var available = work_thread_capacity();

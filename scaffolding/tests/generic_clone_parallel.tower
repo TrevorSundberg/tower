@@ -1,0 +1,182 @@
+import tower;
+import .compiler.compiler_kernel;
+import .compiler.generic_body_types;
+import .compiler.semantic_work_ids;
+import .library.work_pool;
+import .library.work_graph;
+import .library.work_budget;
+import .library.work_budget_types;
+import generic_clone_fixture;
+import backend_units;
+import utility_checks;
+
+extern fn compiler_generic_body_kernel(payload: void*): void;
+extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_publish(stage: void*): bool;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn pthread_self(): usize;
+
+enum CloneTrial: u32 { Publish, Cancel, FailedPeer }
+var CloneTrialBudgetBytes: usize = 262144;
+var CloneTrialWidth: usize = 256;
+var CloneTrialDepth: usize = 8;
+var CloneTrialJobs: usize = 4;
+
+struct CloneParallelJob {
+    kernel: CompilerKernel;
+    request: GenericBodyCopy;
+    ticket: WorkTicket;
+    gate: void*;
+    release: void*;
+    arrived: usize*;
+    participants: usize;
+    thread: usize;
+    started: u64;
+    stopped: u64;
+}
+
+// Reuse this native runner's existing monotonic clock ABI and nominal record.
+fn clone_parallel_clock(): u64 {
+    var time: UnitStreamTime = default;
+    utility_check(clock_gettime(UnitStreamMonotonicClock, &time) == 0, "Clone monotonic clock");
+    return convert(u64, time.seconds) * 1000000000 + convert(u64, time.nanoseconds);
+}
+
+// The barrier surrounds only admission. Timed intervals cover the actual
+// production clone kernel, excluding the barrier; every result remains private.
+fn clone_parallel_execute(payload: void*): void {
+    var job = bits(CloneParallelJob*, bits(CompilerKernel*, payload).payload);
+    job.thread = pthread_self();
+    work_signal_wait(job.gate);
+    (*job.arrived)++;
+    if *job.arrived == job.participants {
+        for(var i: usize = 0; i < job.participants; i++) { work_signal_post(job.release); }
+    }
+    work_signal_post(job.gate);
+    work_signal_wait(job.release);
+    job.started = clone_parallel_clock();
+    compiler_generic_body_kernel(bits(void*, &job.request));
+    job.stopped = clone_parallel_clock();
+}
+
+fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial): void {
+    var gate = work_signal_open();
+    var release = work_signal_open();
+    var ledger_gate = work_signal_open();
+    utility_check(gate != null && release != null && ledger_gate != null, "Clone worker synchronization");
+    defer work_signal_close(gate);
+    defer work_signal_close(release);
+    defer work_signal_close(ledger_gate);
+    work_signal_post(gate);
+    work_signal_post(ledger_gate);
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, workers, CloneTrialBudgetBytes, 1)
+        && work_budget_synchronize(&budget, ledger_gate, work_signal_wait, work_signal_post), "Clone shared worker ledger");
+    var outer: WorkReservation = default;
+    var extra: WorkReservation = default;
+    utility_check(work_budget_reserve(&budget, 1, 1, 0, &outer)
+        && work_budget_reserve(&budget, 0, workers - 1, 0, &extra), "Clone reserves caller and extra lanes before dispatch");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, CloneTrialWidth, CloneTrialDepth, workers, &budget);
+    var graph: WorkGraph = default;
+    work_init(&graph, 1, 1);
+    defer work_dispose(&graph);
+    var pool: WorkPool = default;
+    utility_check(work_pool_open_kernel(&pool, workers, clone_parallel_execute), "Clone production pool opens");
+    var jobs: CloneParallelJob[4];
+    var pointers: CloneParallelJob*[4];
+    var arrived: usize = 0;
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    var count = CloneTrialWidth * CloneTrialDepth;
+    for(var i: usize = 0; i < workers; i++) {
+        var job = &jobs[i];
+        *job = { gate: gate, release: release, arrived: &arrived, participants: workers, ..default };
+        job.request = { context: fixture.context, node: generic_clone_fixture_instance(&fixture),
+            budget: &budget, limit: outcome == CloneTrial.FailedPeer && i == 0 ? 0 : count, ..default };
+        job.kernel = { kind: CompilerKernelKind.GenericBody, payload: bits(void*, job) };
+        pointers[i] = job;
+        var id = work_request(&graph, job.request.node, convert(u32, SemanticQuery.GenericBody), 0);
+        utility_check(id != 0
+            && work_access(&graph, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_access(&graph, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_access(&graph, id, domain, convert(u64, SemanticAccess.GenericBody), id, 1, WorkAccessMode.Write)
+            && work_seal(&graph, id) && work_demand(&graph, id)
+            && work_take_task(&graph, &job.ticket, id), "Clone tickets reserve disjoint instance outputs");
+        job.request.stage = entity_stage_open(fixture.root);
+        utility_check(job.request.stage != null, "Clone private stage opens");
+    }
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var view = entity_view_open(fixture.root);
+    utility_check(view != null, "Clone input pin opens before dispatch");
+    var dispatched = compiler_kernel_dispatch_admitted(&pool, &pointers[0], workers, extra.lanes);
+    // Even failed admission must drain before the last input view is released.
+    var joined = compiler_kernel_join(&pool);
+    utility_check(dispatched && joined && pool.running == 0 && arrived == workers, "Clone jobs join after simultaneous admission");
+    work_pool_close(&pool);
+    for(var i: usize = 0; i < workers; i++) { entity_stage_hold(jobs[i].request.stage); }
+    entity_view_close(view);
+    var overlap = false;
+    for(var i: usize = 0; i < workers; i++) {
+        var job = &jobs[i];
+        utility_check(job.started != 0 && job.stopped >= job.started, "Clone kernel monotonic interval");
+        for(var j: usize = i + 1; j < workers; j++) {
+            utility_check(job.thread != jobs[j].thread, "Barrier requires distinct native execution threads");
+            overlap ||= job.started < jobs[j].stopped && jobs[j].started < job.stopped;
+        }
+        var failed = outcome == CloneTrial.FailedPeer && i == 0;
+        utility_check(job.request.success != failed && job.request.copied == (failed ? 0 : count)
+            && job.request.storage_error == WorkBudgetError.None, "Clone worker retains exact independent result");
+        if outcome == CloneTrial.Cancel || failed { entity_stage_discard(job.request.stage); }
+        else {
+            utility_check(entity_stage_publish(job.request.stage), "Clone joined stage publication");
+            generic_body_complete(fixture.context, job.request.node, job.request.copied);
+            generic_clone_fixture_check(&fixture, job.request.node);
+        }
+        job.request.stage = null;
+        if outcome != CloneTrial.Cancel {
+            utility_check(work_finish(&graph, &job.ticket, !failed), "Clone finishes only after stage retirement");
+            utility_check(!work_finish(&graph, &job.ticket, true), "Finished clone ticket cannot publish twice");
+        }
+    }
+    if workers > 1 && outcome != CloneTrial.FailedPeer {
+        utility_check(overlap, "Production clone kernel intervals overlap on distinct native threads");
+    }
+    if outcome == CloneTrial.Cancel {
+        utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
+            "Cancelled clone stages publish no entities or payloads");
+        work_cancel(&graph);
+        for(var i: usize = 0; i < workers; i++) {
+            utility_check(!work_finish(&graph, &jobs[i].ticket, true)
+                && entity_child_count(generic_clone_fixture_body(jobs[i].request.node)) == 0,
+                "Cancelled clone receipt cannot publish stale results");
+        }
+    }
+    var released: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0
+        && released.used_lanes == workers && released.peak_bytes <= released.bytes,
+        "Clone byte grants retire while admitted lanes still belong to coordinator");
+    if extra.active { utility_check(work_budget_release(&budget, &extra), "Release clone extra lanes after retirement"); }
+    utility_check(work_budget_release(&budget, &outer), "Release clone caller lane after retirement");
+    generic_clone_fixture_close(&fixture);
+    utility_check(work_budget_snapshot(&budget, &released) && released.live == 0 && released.used_lanes == 0
+        && released.used_bytes == 0 && work_budget_dispose(&budget), "Clone world and workers release the shared ledger");
+    puts("Generic clone native trial: workers, outcome, peak physical bytes");
+    generic_clone_number(workers); generic_clone_number(convert(usize, outcome)); generic_clone_number(released.peak_bytes);
+}
+
+fn generic_clone_parallel_tests(): void {
+    utility_check(work_thread_available() && work_thread_capacity() >= 2, "Clone overlap requires at least two native lanes");
+    generic_clone_parallel_trial(1, CloneTrial.Publish);
+    generic_clone_parallel_trial(2, CloneTrial.Publish);
+    var workers = work_thread_capacity() < CloneTrialJobs ? work_thread_capacity() : CloneTrialJobs;
+    generic_clone_parallel_trial(workers, CloneTrial.Publish);
+    generic_clone_parallel_trial(workers, CloneTrial.Cancel);
+    generic_clone_parallel_trial(workers, CloneTrial.FailedPeer);
+}

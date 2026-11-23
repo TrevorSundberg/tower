@@ -1,0 +1,63 @@
+import tower;
+import .tests.stress_sources;
+import .tests.utility_checks;
+import .tools.tool_files_posix;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+
+var ReferenceSmallFunctions: usize = 16;
+var ReferenceLargeFunctions: usize = 1000;
+
+fn reference_write(directory: u8*, name: u8*, source: ByteBuffer*): void {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    utility_check(tool_join(&path, directory, name)
+        && driver_write_file(path.data, source.data, source.length), "write compiler reference input");
+}
+
+fn reference_case(directory: u8*, count: usize, tower_name: u8*, c_name: u8*, expected_name: u8*): void {
+    var source: ByteBuffer = default;
+    var reference: ByteBuffer = default;
+    var expected_output: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    defer bytes_dispose(&reference);
+    defer bytes_dispose(&expected_output);
+
+    // Reuse the parameterized shared body generator. Emit the same calls into
+    // both languages below without mutating imported workload constants.
+    stress_text(&source, "import tower;\n");
+    stress_functions(&source, count, "f", false);
+
+    // Independently authored C reference syntax, not output from Tower's C
+    // backend. Counts, names, returned values and calls match the shared input.
+    // No header expansion; the explicit libc output ABI is the only foreign call.
+    stress_text(&reference, "_Static_assert(sizeof(int) == 4, \"32-bit int reference\");\nextern int printf(const char *, ...);\n");
+    for(var index: usize = 0; index < count; index++) {
+        stress_name(&reference, "static int f", index, "(void) { return ");
+        stress_name(&reference, "", index, "; }\n");
+    }
+    stress_text(&reference, "int main(void) {\n");
+    for(var index: usize = 0; index < count; index++) {
+        stress_name(&source, "f", index, "();\n");
+        stress_name(&reference, "f", index, "();\n");
+    }
+    stress_name(&source, "print(f", count - 1, "());\n");
+    stress_name(&reference, "printf(\"%d\\n\", f", count - 1, "());\nreturn 0;\n}\n");
+    utility_check(source.length <= StressOutputLimit, "reference source exceeds shared workload bound");
+    stress_number(&expected_output, count - 1);
+    stress_text(&expected_output, "\n");
+    reference_write(directory, tower_name, &source);
+    reference_write(directory, c_name, &reference);
+    reference_write(directory, expected_name, &expected_output);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { puts("Usage: compiler_reference_inputs NEW_OUTPUT_DIRECTORY"); return 2; }
+    var private_mode: u32 = 448;
+    utility_check(mkdir(argv[1], private_mode) == 0, "fresh compiler reference directory");
+    reference_case(argv[1], ReferenceSmallFunctions, "small.tower", "small.c", "small.expected.txt");
+    reference_case(argv[1], ReferenceLargeFunctions, "large.tower", "large.c", "large.expected.txt");
+    puts("Wrote paired 16/1000-function Tower/C inputs with expected outputs 15/999");
+    return 0;
+}
