@@ -91,7 +91,7 @@ test('traps stop execution without unwinding and deferred traps preserve definit
   }
 });
 test('Foundation retains defer as an ordinary identifier', () => {
-  const handle = tower.compile('var defer: i32 = 42; print(defer);');
+  const handle = tower.compile('import foundation; var defer: i32 = 42; print(defer);');
   try { assert.equal(finish(handle).output, '42\n'); }
   finally { tower.destroyExecution(handle); }
 });

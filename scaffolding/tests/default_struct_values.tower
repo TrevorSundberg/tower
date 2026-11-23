@@ -1,0 +1,14 @@
+import tower;
+
+struct Cell { value: i32; }
+var original: Cell = default;
+var copied = original;
+copied.value = 7;
+print(original.value);
+print(copied.value);
+
+fn staged_zero(): i32 {
+    var value: Cell = default;
+    return value.value;
+}
+print(comptime(staged_zero()));
