@@ -91664,3 +91664,47 @@ Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
 
 A2 six-file reconciliation: scoped commit73caf3fd merged complete published fdf4ffa7 as4ac85095e2031817307d2041daa3b2e6aa4dc7f7/tree2669072c685014177efc376d6b1138474964fad8. Required ff-only pull detected divergence; normal merge preserved histories, no conflicts. All final transport hashes match;1138/1144 mounted Tower blobs match. Six changed blobs are backend/session, backend/source_session, backend_source_native fixture, bootstrap_symbols_checks fixture, comment_functions stress entry and bootstrap_symbols tool, outside these tests' imported closures. Unchanged fixture/library/host inputs and frozen eac executable pair retain the recorded results; new backend implementation is not validated by old LLVM. Exact residual remains open, no new runtime/sanitizer claim. No active jobs; exact-path receipt update and normal main push follow.
+### 2026-11-23 A1: final authored Tower delta review, fixed 9caa921c
+
+Reviewed all42 authored Tower paths changed since L2's fixed3ea43517 audit at
+published9caa921cb409f83d59a3c010e27219d4d8eb2e17, tree
+2c8f5bd108675e4f840740e440fa0b29833da670. f25799cc is the prior handoff,
+not a replacement source baseline. L1's5cb0b061/30b45f5a nominal-wrapper repair
+arrived before this freeze and is included. Whole touched methods and immediate
+producer/caller/registration paths were read; unchanged earlier reviews reused.
+The compact per-file findings and exact evidence boundaries are in
+[compiler_source_delta_9caa921c.md](compiler_source_delta_9caa921c.md).
+
+Review confirms immutable four-row declaration stage policy with stable payload
+transfer/reuse; unary arguments demand ordinary evaluation; wrapper Parameters
+stays coordinator-owned and deferred identity includes complete argument count;
+cloned named/nullary reads gain real producer/read dependencies before checking.
+Backend canonical candidate remains private through recheck, retiring joined
+inputs before reconstruction and retaining prior output on failure. Normal
+resource JSON preserves first cause/offset; allocation-free fallback loses some
+cause/offset detail. That boundary and the remaining large logical-capacity
+failure stay L2-owned. Numeric-only ordinary wrappers stay L1's explicit limit.
+Package map/independent-handle tests and exact cross-unit symbol policies retain
+their separate host/compiler and source/artifact identities. No new unowned
+production defect was established; no producer was changed.
+
+New fixtures are not retroactively run by eac reactors. The map distinguishes
+native merged wrapper/unary/page/backend receipts from old-eac Node evidence,
+including real denial/cancel/independent reconstruction versus simple values.
+T8/T9 reconstruction failures and the malformed call-capture exception remain
+failures; no unchanged tests were rerun. No all-current compiler acceptance,
+new race proof, sanitizer, generation, bootstrap adoption or hosted claim.
+Documentation-only changes need no runtime profiling/build/matrix. ROOT keeps
+final artifact/deployment and blocked-instrumentation ownership.
+
+Environment: same A1 thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, actual Codex
+PID44428, KinmenA Windows11, own idle tower-a1-environment CPU12-23/24GiB;
+no active build/test jobs. Initial required pull hit transient Git DNS failure;
+ordinary DNS resolution and command-local http.curloptResolve recovered HTTPS
+pull without changing verification or persistent settings. Git source delta
+against3ea43517 and document membership check cover42/42 paths. Source/docs
+reads and git diff --check are the only validation this turn. Disk free
+340744204288B at final review; todo SHA256 remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Later incoming sources will remain excluded from this fixed review when merged
+for normal publication; no additional source audit or runtime run is implied.
