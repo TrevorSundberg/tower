@@ -1158,3 +1158,20 @@ joined peer cleanup without publication or replay. The declaration case rejects
 false idle progress after failed admission. Capacity derives from the live graph
 and shared budget; final ownership must return to zero. The unchanged fixture
 runs with production allocation and supported address/thread instrumentation.
+
+Pool ownership, stable page reuse and live-owner reentrant finalization use these
+existing-composition targets:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-pool-budget-tests \
+  tower-entity-page-reuse-tests tower-entity-stage-reentrant-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(semantic-pool-budget|entity-page-reuse|entity-stage-reentrant)-tests$'
+```
+
+The sixteen pool cases check exact physical slot charges, retained-slot reuse and
+terminal admission denial at 32/64-bit targets with one/four requested slots.
+Page checks retain live addresses and private-stage isolation through publication,
+reuse and discard. Reentrant checks use separately live owners during finalization.
+These are ownership checks; actual concurrent publication remains covered by the
+worker-stage fixtures. The separate page-churn measurement is not a default test.

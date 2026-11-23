@@ -11,6 +11,8 @@ import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
+import .library.work_vector;
+import .library.work_vector_types;
 import .library.work_budget_types;
 
 extern fn generic_body_pending(context: void*, node: void*): bool;
@@ -108,26 +110,27 @@ fn sem_generic_body_failure(c: SemanticContext*, subject: void*): bool {
 // decltype use leaves the body descendants unmaterialized. A source window
 // bounds retained work independently of the host's worker capacity.
 fn sem_generic_bodies(c: SemanticContext*, next: usize): void {
-    var batch: vector(SemanticGenericBodyWork*);
-    vector_init(&batch);
-    defer vector_dispose(&batch);
+    var requested = false;
     var end = next + BodyPreparationWindow;
     if end > c.program.functions.length { end = c.program.functions.length; }
     for(var i = next; i < end; i++) {
         var subject = c.program.functions.data[i];
         if !sem_body_needed(c, subject) || !generic_body_pending(c.generics, subject) { continue; }
         var signature = sem_declaration_query(c, subject);
-        var result = sem_generic_body_request(c, subject, signature);
+        sem_generic_body_request(c, subject, signature);
         if !sem_ok(c) { return; }
-        if !vector_push(&batch, result) {
-            sem_generic_body_resource(c, subject, WorkBudgetError.Memory);
-            return;
-        }
+        requested = true;
     }
     while sem_generic_copies_execute(c) {}
-    foreach(var result in &batch) {
+    if !requested { return; }
+    // Cloning publishes descendants, never function entries or body demands.
+    // Revisit the same stable source window for ordered failure selection.
+    for(var i = next; i < end; i++) {
         if !sem_ok(c) { break; }
-        sem_generic_body_failure(c, result.request.node);
+        var subject = c.program.functions.data[i];
+        if sem_body_needed(c, subject) && generic_body_pending(c.generics, subject) {
+            sem_generic_body_failure(c, subject);
+        }
     }
 }
 
@@ -140,20 +143,22 @@ export fn sem_generic_copies_execute(c: SemanticContext*): bool {
         sem_generic_body_resource(c, c.program.root, WorkBudgetError.Busy);
         return false;
     }
-    var batch: vector(SemanticGenericBodyWork*) = default;
+    var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
+    var batch: work_vector(SemanticGenericBodyWork*) = default;
     defer {
         // Wave defers have already discarded unpublished stages and returned
         // worker grants. Only now may graph cancellation release their leases.
         if !sem_ok(c) { work_cancel(&c.queries); }
-        vector_dispose(&batch);
+        work_vector_dispose(&batch);
     }
     var ticket: WorkTicket;
     while batch.length < SemanticPreparationWindow
         && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.GenericBody)) {
         var result = sem_generic_body_work(c, work_task(&c.queries, ticket.task).subject);
         result.ticket = ticket;
-        if !vector_push(&batch, result) {
-            sem_generic_body_resource(c, result.request.node, WorkBudgetError.Memory);
+        var admitted = work_vector_push_result(&batch, budget, result);
+        if admitted != WorkBudgetError.None {
+            sem_generic_body_resource(c, result.request.node, admitted);
             return false;
         }
     }

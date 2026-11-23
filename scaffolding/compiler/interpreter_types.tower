@@ -49,7 +49,7 @@ struct IMState {
     sequenced: vector(IMEntry);
     frames: work_vector(IMFrame);
     node_cache: work_vector(IMEntry);
-    function_values: vector(void*);
+    function_values: work_vector(void*);
     type_values: TypeObjectIndex;
     // Borrowed from the root world before dispatch; outlives retained storage.
     // Null is the explicit standalone execution boundary.

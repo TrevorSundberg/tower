@@ -1,0 +1,56 @@
+import tower;
+
+// One compiled entry can link against frozen before/after production providers.
+// It never imports or copies the private ForeignName layout. The instrumented
+// allocator observes one owner; process_profile supplies wall/CPU/RSS separately.
+extern fn foreign_profile_for_target(triple: u8*): u32;
+extern fn foreign_symbol(profile: u32, source: u8*): void*;
+extern fn foreign_name_text(result: void*): u8*;
+extern fn foreign_name_error(result: void*): u8*;
+extern fn foreign_name_close(result: void*): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+extern fn printf(format: u8*, text: u8*, value: usize): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 || strlen(argv[1]) != 1 || (argv[1][0] != 49 && argv[1][0] != 50) { return 2; }
+    var count: usize = 0;
+    var length = strlen(argv[2]);
+    for(var at: usize = 0; at < length; at++) {
+        var digit = argv[2][at];
+        if digit < 48 || digit > 57 { return 2; }
+        var value = convert(usize, digit - 48);
+        if count > (~convert(usize, 0) - value) / 10 { return 2; }
+        count = count * 10 + value;
+    }
+    if count == 0 { return 2; }
+    var source = "ordinary_name";
+    var wanted = "ordinary_name";
+    if argv[1][0] == 50 {
+        source = "cpp_name(using size_t = unsigned long; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, size_t, unsigned int))";
+        wanted = "_ZN4llvm16FileOutputBuffer6createENS_9StringRefEmj";
+    }
+    var wanted_length = strlen(wanted);
+    var profile = foreign_profile_for_target("wasm32-unknown-unknown");
+    if profile == 0 { return 3; }
+    var baseline = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var peak: usize = 0;
+    for(var iteration: usize = 0; iteration < count; iteration++) {
+        var result = foreign_symbol(profile, source);
+        var text = foreign_name_text(result);
+        var ok = result != null && foreign_name_error(result)[0] == 0
+            && strlen(text) == wanted_length && memcmp(text, wanted, wanted_length) == 0;
+        var retained = tower_test_buffer_count() - baseline;
+        if retained > peak { peak = retained; }
+        foreign_name_close(result);
+        if !ok || tower_test_buffer_count() != baseline { return 4; }
+    }
+    printf("%s %zu\n", "iterations", count);
+    printf("%s %zu\n", "allocation_calls", tower_test_buffer_allocations() - calls);
+    printf("%s %zu\n", "peak_returned_owner_buffers", peak);
+    printf("%s %zu\n", "final_retained_buffers", tower_test_buffer_count() - baseline);
+    return 0;
+}

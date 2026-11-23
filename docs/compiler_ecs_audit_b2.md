@@ -695,3 +695,26 @@ observed times and unsupported coverage are in the journal and exported receipts
 The new standalone foreign fault fixture is unvalidated and the regexdce successor
 is only fetched. These scoped passes do not close the required parser Capacity
 failure, new IDE reactor, remaining accounting contracts or integrated release.
+
+Foreign failure implementation now covers backend/text, foreign_reader,
+foreign_symbol, foreign_api, foreign_itanium, foreign_microsoft,
+foreign_declarators and foreign_operators: durable first cause, checked text/key
+construction, ownership insertion rollback, null propagation and nested substitution
+cleanup. Existing tests/foreign_tool_checks now exercises515 actual fault positions
+from twelve successful ABI inputs plus semantic error-presentation denial; native
+and raw-IR ASan/LSan pass, with exact symbols and zero retained buffers. The separate
+new tests/foreign_name_profile uses opaque production exports and one compiled
+entry for frozen before/after providers; fixed-path paired measurements are pending.
+This is scoped mangler evidence, not complete linker/raw-vector budgeting or a
+claim that non-foreign text callers now propagate all failures. Full merged9e4c
+native/concurrency validation remains due after its new entity-page header join.
+
+Root takeover reviewed all foreign producer changes. Fixed-path paired samples
+are complete: small/complex wall costs +5.94%/+16.16%, CPU +6.82%/+17.04%, with
+unchanged allocations and zero retention; these costs remain explicit. A separate
+missing-parenthesis allocation sweep reproduced diagnostic-prefix loss at actual
+allocation14. foreign_expect now appends context only after successful prefix
+presentation. Native515 ABI plus18 diagnostic positions and prior tool checks
+pass. Current guard/sweep instrumentation and full merged compiler checks remain
+pending; the earlier ASan receipt is not relabeled. L2 owns the existing-provider
+late inspection extraction; ROOT owns remaining metadata/module/linker contracts.
