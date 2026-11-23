@@ -90345,3 +90345,17 @@ its expectation remains untouched and its native acceptance is pending. Both
 actual failures/metrics remain in type_composition_adopted_controls and
  type_composition_adoption_triage, appended to the external receipt. No passing
 claim for nested negation or for unsupported numeric nominal forwarding.
+
+B1 semantic-port publication reconciliation: required ff-only pull refused
+normal divergence; complete-history merge cff9d3ae062d3185ff0f02e9261b27d4538209dc preserves published5e1c92c9
+without conflicts. Measured semantic-port transport, fixture loader and LLVM
+host are unchanged; Node syntax/diff checks pass. Incoming Tower host hunks
+only register packaged/loaded bytecode handles, APIs not used by this four-case
+slice. A2 entity registration/type/page-policy and semantic inputs did change:
+the old failed observations are NOT acceptance of those newer resources.
+All original frozen hashes, canonical requests, statuses and raw diagnostics
+remain intact; no repeat of the bounded four cases or isolated failure. The
+new inspector/tool and independent owner receipts are preserved, not rerun.
+Source boundary remains bcd0e3ab plus transport patch, reactor eac16533; source
+history is complete and public. Four gates remain unpassed, ROOT/L1 producer
+handoff exact; normal push follows.

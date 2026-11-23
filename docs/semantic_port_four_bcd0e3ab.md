@@ -124,3 +124,13 @@ portable host `8b743c3d6955326ee0e7097385725fc7c5e9f0d3fa3f47740056c47b80fea60a`
 LLVM host `80be1da99218dca064251c36160d268baa4b3048a501237ff1a73ae860084671`.
 Node syntax validation and diff checks pass. Owned test processes are drained.
 ROOT retains final composition/publication and all still-unpassed gates.
+
+Publication reconciliation preserves complete incoming `5e1c92c9` history.
+The measured test transport, loader and LLVM host are unchanged; merged syntax
+and diff checks pass. Incoming portable-host edits concern bytecode package/load
+APIs unused here. Entity layout/registration/page policy and semantic resources
+changed, so these frozen failures are not reclassified as tests of newer source.
+`merged_changed_paths.txt` records that boundary; no bounded case was repeated.
+The exact failing canonical files, raw response, commands, manifests and receipt
+are also delivered in
+`C:/Sandbox/build/codex_ecs_20261122/B1/semantic_port_bcd0e3ab`.
