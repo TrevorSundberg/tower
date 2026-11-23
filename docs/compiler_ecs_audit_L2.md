@@ -508,3 +508,35 @@ checks. The journal records compilerba48c54f, all source boundaries and raw logs
 Later focused-harness/profile portability edits are outside this frozen receipt.
 Known-suite precise-message updates, final paired performance, actual updated
 ASan/TSan, public-bootstrap closure and leased publication remain required.
+
+## Portable profile and strengthened harness receipt
+
+The Linux x64 measurement ABI now belongs only to an opt-in standalone target.
+The profile still uses the same production predicate, ordinary execution session,
+canonical formatter, independent output and zero-retention assertions. Its main
+owns the driver request, syntax diagnostics and path buffer with lexical cleanup.
+The existing native execution link closure is reused; no second runtime or new
+portable foreign dependency is introduced. Actual normal execution Tower object
+symbols exclude getrusage; the standalone object imports it. Smallest public-pin
+compilation, runner links and all nine profile samples pass. Current1000-function
+query time is approximately3.542ms; the earlier2.9ms measurement is not a matched
+comparison. L1 owns balanced attribution before any regression conclusion.
+
+Focused query/parser/aggregate/capture-policy checks pass on independent compiler
+596e, execution1d94 and LR7097, exactly matching L1 artifact hashes. Whole empty
+aggregate projections, exact immutable write diagnostics, target widths4/8,
+worker1/2/4/8 canonical equivalence and full measured trace-failure prefix coverage
+are included. The prior f6 complete type/full42 receipts retain their source
+boundaries; no unnecessary full rerun substitutes for the focused additions.
+
+The exact browser alias case remains a generic-inference error, not a newly
+supported arbitrary alias inversion. Initialized immutable capture is accepted
+and independently observed as7,7; aggregate operator and nominal copy errors are
+preserved. The strengthened forward-read source exposes graph/normalized-fast
+output differences in both older/current packages, but reads raw uninitialized
+storage. Foundation explicitly excludes that operation from portable differential
+results. Initial stronger defect attribution is withdrawn; direct-cache and
+defined-order controls remain under owner review. No zero-initialization policy,
+oracle weakening or final known-suite acceptance follows. The journal preserves
+all failed comparisons and exact checked evidence. Updated ownership sanitizers,
+public-bootstrap closure and leased publication remain outstanding.

@@ -47604,3 +47604,140 @@ tests are excluded from this receipt. Complete known has not been rerun against
 its two obsolete expected strings. The final bootstrap pin, clean successor,
 browser/deployment and publication lease remain open. This local source checkpoint
 records an independently passing ownership milestone, not final acceptance.
+
+### L2 portable measurement and focused harness follow-up queued
+
+Validated local checkpointf6e861d has verified bundle6dd69583 frome83fb27 with
+full Git tree, raw source hashes and binary manifest. No runtime inputs change
+through its passing264.72-second42-case run or subsequent commit/pull. All jobs
+drain before the host slot returns to L1.
+
+Afterward, the reviewed focused_harness_portability handoff is integrated as a
+separate unbuilt candidate. Reverse only the exact old518 profile selector,
+install the unchanged standalone draft9f1c9657 and D1 f542 target together. The
+ordinary execution entry no longer imports the Linux getrusage ABI; actual link
+verification is still pending. The target reuses the existing execution source
+and link closure, is gated to native Linux x64, and is excluded from all/CTest.
+Its exact reviewed README paragraph is inserted beside the existing measurement
+instructions; unrelated absent layout prose is not copied.
+
+The capture selector22ee requires the older backend-overlap registration430 and
+reviewed B2 source2e177. The full source diff preserves all original compilation,
+object-byte, worker identity, budget and timeout assertions; only the shared
+streaming-case extraction, focused entry and directional phase diagnostics change.
+Those prerequisites apply before22ee. Aggregate registrationec4e then applies
+with its already-identical25e8 source-file hunk excluded. Parser selector2d94,
+bounded trace sweep323 and exactly two address/equality wanted strings3fe3 apply
+cleanly. All old negative sources remain. No compiler jobs run during this
+migration, and no earlier runner pass is claimed for these new selectors.
+
+### L2 focused harness portability and independently observed fast-engine ordering failure
+
+After f6e861d, adopt the reviewed standalone Linux x64 profile9f1c/f542,
+focused selectors22ee/ec4e/2d94, backend-overlap prerequisites2e177/430,
+bounded parser trace323, exact address diagnostics3fe3, and L1 edge testsd982.
+The last patch adds a whole empty aggregate (zero projections) and exact
+immutable store/copy/fill diagnostics without changing the production ABI.
+All patches are reviewed and applied after owned workers drain. Root's later
+source-order decision authorizes D1's narrow oracle alignment, but its patch is
+not yet applied here. The old known rejection remains intact in this snapshot.
+
+The first snapshot command stalls over64 seconds scanning the unchanged LLVM
+submodule through WSL Git. Terminate only its owned Git processes393/390 and
+reap session70268 with exit1 before restarting. No compiler had started.
+Project patch snapshots then use --ignore-submodules=all; the separate cached
+submodule identity remains LLVM1e57ee22. Preserve the interruption diagnostic in
+L2/logs/portable_harness_snapshot_interruption.log. This is a transport failure,
+not a passing test or a compiler failure hidden by retry.
+
+Freeze all tracked scaffolding/CMake bytes in portable_harness_source.sha256,
+with complete copied resources in l2_resources_portable_harness_20261123.
+Use the public pin without TOWER_BOOTSTRAP_COMPILER, own l2_ecs_native cache,
+compiler jobs1 and outer build jobs2 on the recorded Linux x64/LLVM19 host.
+Smallest profile/query units pass, then native and all affected runner links.
+Both initial and final resource comparisons are empty; every source hash matches.
+The compiler596e2cb0598fd05e4c0d8f6535e52feb01b31f1f190f59b4413d362e63a0997c,
+execution1d94dda9a86daf6faba49e18580bfaf7fe9a052429268330c25edbc43fa9ee54,
+and LR70979ae350d697589f8d501eb7045c6c21646cfc8eca67ce60b47d7cc9aa04ba
+independently match L1's corresponding frozen artifacts exactly.
+
+| Check | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Public-pin standalone profile unit | 3.29 | 2.83 | 200904 |
+| Public-pin query edge unit | 1.91 | 1.82 | 184944 |
+| Incremental normal compiler build | 9.87 | 4.70 | 292800 |
+| Four affected runner/profile targets | 20.57 | 29.24 | 348360 |
+| Query smoke, including exact immutable diagnostics | 0.18 | 0.11 | 58924 |
+| Focused parser and every measured trace allocation-failure prefix | 0.02 | 0.01 | 51980 |
+| Aggregate graph/cache, widths4/8, Foundation and workers1/2/4/8 | 20.89 | 25.16 | 322572 |
+| Standalone type reachability profile | 4.55 | 5.03 | 210768 |
+| Focused12-case capture policy, workers and widths | 62.93 | 69.87 | 210412 |
+
+All listed processes exit zero. llvm-nm on the actual normal execution Tower
+object finds no getrusage import; the standalone profile object has it. The
+nine profile samples retain entity/component counts and canonical output, with
+component counts19851/41929/110377 for16/256/1000 functions. The current1000-function
+median is906704258ns/256 queries, about3.542ms per query, versus the earlier
+unpaired approximately2.9ms result. This is not attributed to a code regression
+from unmatched samples; L1 owns the requested balanced old/new comparison.
+No all/CTest profile work or portable Linux ABI dependency is introduced.
+
+Independent exact browser/source-order probes then expose a real differential
+failure beyond the previous graph-only evidence. On compiler596e, width4/jobs1:
+
+    import tower;fn read():i32{return later;}var earlier=read();var later=7;print(earlier);print(comptime(later));print(later);
+
+Graph execution prints0,7,7; fast execution prints7,7,7. Both child processes exit
+zero, but the independent stdout comparison correctly exits1, ending the batch
+at15.93s wall/16.14s CPU/175924KiB. Preserve raw outputs and commands in
+L2/logs/oracle_known_later_capture_ordered_w4_j1_interpret[-fast].* and
+portable_oracle_transport.*. Canonical Foundation keeps earlier=read() before
+later=7; read still loads later. Thus the accepted positive original and correct
+graph canonical are insufficient to establish fast execution order. L1 owns
+fast encoding/execution diagnosis; A1/D1/root receive the exact finding. No
+semantic workaround, expected-output change or positive known-suite claim follows.
+The remaining width/worker matrix is a separate diagnostic run, not a retry that
+erases this failure. Final ownership instrumentation/public bootstrap/browser and
+leased publication remain open.
+
+#### Contract correction and complete probe matrix
+
+The initial label "real differential failure" describes the checked output
+mismatch, not an established production defect. Subsequent contract review finds
+that docs/foundation.md explicitly excludes raw uninitialized reads from portable
+differential behavior and preserves source-order initialization without defining
+forward storage. The observed source reads later before its initializer. Moreover,
+CLI --interpret-fast first performs LLVM normalization (driver_compile), while
+--interpret uses the direct checked graph. backend/lowering deliberately initializes
+raw globals with LLVM undef. Therefore no blanket zero-initialization or fast-cache
+repair is justified by this source alone. Preserve the initial failed comparison,
+but withdraw the stronger production-defect inference pending L1's direct-cache,
+normalization and defined-source-order controls. This does not permit weakening
+ordering or defined operations, or accepting a mismatch on defined programs.
+
+The independent matrix runs both the complete preserved185044e3 package and
+current596e at widths4/8, workers1/4 and both CLI engines: all eight graph runs
+print0,7,7, and all eight normalized fast runs print7,7,7. The diagnostic transport
+records all eight mismatches and exits1 (22.52s wall/24.54s CPU), never a pass.
+Current canonical text retains read's load and earlier=read() before later=7;
+worker1/4 canonical files are byte-identical. The source-order contract remains
+under coordinated A1/L1/B2/D1 review, with no production edit or oracle weakening.
+
+A separate remaining-probes transport exits0. All four original browser fixtures
+are checked at widths4/8 and workers1/4. comptime_capture compiles and runs with
+empty output. Its separately named observation prints7,7 in graph and normalized
+fast execution, and inspected canonical text emits two typed7 values. Generic
+alias inference still rejects at5:11 with Cannot infer type argument 'T'; the
+aggregate operator rejects at5:22 with Binary operators require scalar or pointer
+operands; nominal copy rejects at5:16 with Expected Other, got Item. Exact worker
+stderr matches. The original known-later case prints7 in both engines. Explicitly
+requesting comptime(earlier) rejects before-initialization in both engines, widths
+and worker settings. All source hashes and copied resources remain unchanged.
+Raw sources, SHA identities, stdout/stderr, expected files, process statuses,
+canonical text and commands are retained in L2/logs/oracle_* and the external
+Tower probes. These native receipts are not fresh WASI/browser release evidence.
+
+Owned sessions98779/6009 finish zero, initial90387 and diagnostic45560 finish with
+their recorded nonzero comparison outcomes, and all are drained before the host
+slot returns to L1. Final ordinary known gates, matched profile attribution,
+updated ownership instrumentation and public bootstrap/deployment remain open.

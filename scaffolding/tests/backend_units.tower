@@ -25,6 +25,7 @@ extern fn frontend_units_peak(frontend: void*): usize;
 extern fn frontend_units_pending(frontend: void*): bool;
 extern fn pthread_self(): usize;
 extern fn sched_yield(): i32;
+extern fn fflush(stream: void*): i32;
 
 struct UnitStreamTime { seconds: i64; nanoseconds: i64; }
 extern fn clock_gettime(clock: i32, value: UnitStreamTime*): i32;
@@ -39,13 +40,13 @@ struct UnitStreamOverlap {
     backend_thread: usize;
 }
 
-fn unit_stream_wait(signal: void*): void {
+fn unit_stream_wait(signal: void*, diagnostic: u8*): void {
     var started: UnitStreamTime;
     units_check(clock_gettime(UnitStreamMonotonicClock, &started) == 0, "stream monotonic clock");
     while !work_signal_try(signal) {
         var now: UnitStreamTime;
         units_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0
-            && now.seconds - started.seconds < UnitStreamTimeoutSeconds, "frontend/backend overlap deadline");
+            && now.seconds - started.seconds < UnitStreamTimeoutSeconds, diagnostic);
         sched_yield();
     }
 }
@@ -55,13 +56,15 @@ fn unit_stream_observe(payload: void*, phase: CompilerQuery, ordinal: usize, ent
     var overlap = bits(UnitStreamOverlap*, payload);
     if phase == CompilerQuery.Unit && ordinal == UnitStreamHeldFrontend {
         overlap.frontend_thread = pthread_self();
-        unit_stream_wait(overlap.backend_entered);
+        unit_stream_wait(overlap.backend_entered,
+            "frontend/backend overlap deadline: frontend unit 2 awaits backend unit 1");
         work_signal_post(overlap.frontend_released);
     }
     if phase == CompilerQuery.Backend && ordinal == UnitStreamFirstBackend {
         overlap.backend_thread = pthread_self();
         work_signal_post(overlap.backend_entered);
-        unit_stream_wait(overlap.frontend_released);
+        unit_stream_wait(overlap.frontend_released,
+            "frontend/backend overlap deadline: backend unit 1 awaits frontend unit 2");
     }
 }
 
@@ -144,6 +147,60 @@ fn backend_units_memory(frontend: void*, target: u8*): void {
         && backend_units_result(batch, 1) == null, "denied object output is reclaimed before failed publication");
 }
 
+fn backend_units_stream_trial(width: u32, budget: usize, root: u8*, bedrock: u8*, foundation: u8*,
+    target: u8*, serial: vector(u8)*, parallel: vector(u8)*): void {
+    var streaming = backend_units_inputs(width, budget, root, bedrock, foundation);
+    defer frontend_units_close(streaming);
+    var overlap: UnitStreamOverlap = default;
+    overlap.backend_entered = work_signal_open();
+    overlap.frontend_released = work_signal_open();
+    units_check(overlap.backend_entered != null && overlap.frontend_released != null, "stream overlap signals");
+    defer work_signal_close(overlap.backend_entered);
+    defer work_signal_close(overlap.frontend_released);
+    if budget > 1 {
+        units_check(frontend_units_observer(streaming, bits(void*, &overlap), unit_stream_observe), "stream observer");
+    }
+    parallel.length = 0;
+    backend_units_trial(streaming, budget, target, parallel);
+    units_check(frontend_units_failed(streaming) == 0 && !frontend_units_cancelled(streaming), "stream frontend success");
+    units_check(frontend_units_peak(streaming) <= budget, "shared frontend/backend budget");
+    units_check(serial.length == parallel.length, "stream deterministic object lengths");
+    for(var i: usize = 0; i < serial.length; i++) {
+        units_check(serial.data[i] == parallel.data[i], "stream deterministic object bytes");
+    }
+    if budget > 1 {
+        units_check(overlap.frontend_thread != 0 && overlap.backend_thread != 0
+            && overlap.frontend_thread != overlap.backend_thread
+            && overlap.frontend_thread != pthread_self() && overlap.backend_thread != pthread_self(),
+            "actual frontend/backend overlap on distinct worker threads");
+    }
+}
+
+// A focused entry to the unchanged full-suite overlap case. Keep the same real
+// compilation, independent serial object baseline, deadline and worker assertions.
+export fn backend_units_overlap_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var serial: vector(u8) = default;
+    var parallel: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&serial);
+    defer vector_dispose(&parallel);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    puts("Backend overlap: preparing the serial 64-bit object baseline");
+    fflush(null);
+    var frontend = backend_units_frontend(8, root, bedrock.data, foundation.data);
+    defer frontend_units_close(frontend);
+    var target: u8* = "x86_64-unknown-linux-gnu";
+    backend_units_trial(frontend, 1, target, &serial);
+    puts("Backend overlap: running the existing two-worker streaming case");
+    fflush(null);
+    backend_units_stream_trial(8, 2, root, bedrock.data, foundation.data, target, &serial, &parallel);
+    puts("Backend overlap: exact objects and distinct worker overlap passed");
+}
+
 export fn backend_units_tests(root: u8*): void {
     work_named_tests();
     var bedrock: vector(u8) = default;
@@ -171,31 +228,8 @@ export fn backend_units_tests(root: u8*): void {
         // LLVM on a different worker. A whole-frontend barrier times out here;
         // queued work or timing-dependent sample observations cannot pass it.
         for(var budget: usize = 1; budget <= BackendFixtureUnits; budget *= 2) {
-            var streaming = backend_units_inputs(width, budget, root, bedrock.data, foundation.data);
-            defer frontend_units_close(streaming);
-            var overlap: UnitStreamOverlap = default;
-            overlap.backend_entered = work_signal_open();
-            overlap.frontend_released = work_signal_open();
-            units_check(overlap.backend_entered != null && overlap.frontend_released != null, "stream overlap signals");
-            defer work_signal_close(overlap.backend_entered);
-            defer work_signal_close(overlap.frontend_released);
-            if budget > 1 {
-                units_check(frontend_units_observer(streaming, bits(void*, &overlap), unit_stream_observe), "stream observer");
-            }
-            parallel.length = 0;
-            backend_units_trial(streaming, budget, target, &parallel);
-            units_check(frontend_units_failed(streaming) == 0 && !frontend_units_cancelled(streaming), "stream frontend success");
-            units_check(frontend_units_peak(streaming) <= budget, "shared frontend/backend budget");
-            units_check(serial.length == parallel.length, "stream deterministic object lengths");
-            for(var i: usize = 0; i < serial.length; i++) {
-                units_check(serial.data[i] == parallel.data[i], "stream deterministic object bytes");
-            }
-            if budget > 1 {
-                units_check(overlap.frontend_thread != 0 && overlap.backend_thread != 0
-                    && overlap.frontend_thread != overlap.backend_thread
-                    && overlap.frontend_thread != pthread_self() && overlap.backend_thread != pthread_self(),
-                    "actual frontend/backend overlap on distinct worker threads");
-            }
+            backend_units_stream_trial(width, budget, root, bedrock.data, foundation.data,
+                target, &serial, &parallel);
         }
         for(var budget: usize = 1; budget <= BackendFixtureUnits; budget += BackendFixtureUnits - 1) {
             var failure = backend_units_create(frontend, BackendFixtureUnits, budget,
