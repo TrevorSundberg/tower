@@ -59197,3 +59197,129 @@ Added it to the existing serial fault-target loop, linking the already-built
 host.memory object only for this fixture (buffer/arena import that code themselves).
 No new test body/runtime/allocator. This keeps allocation injection single-owner
 and avoids duplicate memory definitions. Smallest compile/link/runtime pending.
+
+### D1 frozen all-eight public build and focused registration receipt (0e544ac)
+
+Frozen source0e544ac852aec2aa55702a6c2e3b4767d626fc13 includes complete root3915
+histories plus the D1 resource-query, lifecycle, execution-index, module-cache
+and ledger-failure registrations. New constructor/public-clone/arena-linkage
+owner drafts are explicitly excluded. Guarded pull is a no-op; todo unchanged.
+D2 drained before D1 acquired the shared mkdir lock. Linux x64 SteamDeck,
+Docker image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+LLVM19.1.1/GCC13, CPUs0,2, one build job, public bootstrap9653f818 with no
+private override. Current group logs: build/d1_ecs/union_0e544ac.
+
+All12 direct public unit commands pass. Native20-step dependent build passes
+174.15wall/170.16CPU seconds,797556KiB peak RSS; affected18-step eight-target
+build passes78.49/76.28,363392KiB. Both measured children report zero swaps.
+Source hashes verify before/after. Complete compiler SHA256
+ae1609ab2d9cc53e141fb15f5863bf7d073a79aeeb6b9c77cf8c892628f3b7f1 and48resources
+are preserved in native_package_0e544ac; every packaged Tower resource compares
+byte-identically with frozen scaffolding. This is a canonical public-pin
+incremental development build, not a clean final generation/browser release.
+
+Measured iteration redundancy: manually compiling parser_modules_work34.05s
+and semantics_checks30.74s duplicated the same aggregate compilation immediately
+performed by the canonical native build. Future recipes should compile the
+smallest changed direct entry first, then obtain aggregate evidence from the
+mandatory canonical build. The running recipe was left untouched and its
+successful duplicate evidence retained. A display-only invalid tail invocation
+and a read of a not-yet-created log failed independently; neither changed build
+inputs nor supplied a successful check receipt.
+
+The focused runtime group passes with unchanged source hashes. Wall/CPU seconds
+and peak RSS KiB: production units46.43/62.93/773544; backend-overlap22.54/30.55/
+530036; aggregate-stages51.12/57.69/351000; frontend control4.66/8.76/339728.
+Storage, serial ledger rollback, allocations, parser, newly registered
+execution-index, query-smoke including all resource cases and generic-clone
+workers, and production LR all pass. The newly registered full native module
+CTest runs one actual test, passes0.18s, and reports no skipped/missing test.
+It is distinct from the cache profile's narrower invalidation checks.
+
+The unchanged three-unit/two-worker control preserves canonical hash
+1173729914654460811 and48240entities/55014components. Compared with f635, reported
+retained budget bytes rise1422356to5389148, peak26373268to111274988, and ledger
+storage2621440to10485760. New lexer/LRRuntime/LRRow/action/goto/state/rule buffers
+now carry physical WorkBuffer/WorkVector grants; prior budget totals excluded
+these owners, so this is not a like-for-like wholeheap growth measurement.
+Ledger capacity itself is real fourfold metadata growth, routed to B1/A2/B2.
+Single-sample process RSS314192to339728KiB (+8.1%) has not been independently
+attributed or established as a repeatable regression. Neither accounting nor
+admitted worker width establishes profitable scaling. Paired frozen compiler
+measurements remain pending in this same slot.
+
+Malformed lifecycle selectors all reject with exit1 before reading a deliberately
+missing resource root: missing/extra arguments, empty/nondecimal/negative values,
+large decimal overflow,42 and reversed range. Each raw stdout/stderr/status is
+retained. The bounded42-case sweep is running with60s per individual case,
+unchanged32/64 and1/4worker trials and canonical assertions. No full42 or
+type-smoke pass is claimed yet. Type-smoke also contains later body/binding/
+declaration checks; lifecycle-only completion must not be relabeled as that
+larger suite. Current wholecompiler supported ASan/TSan, remaining integrations,
+clean public generation/browser and named-lease atomic publication remain open.
+
+The full bounded lifecycle sweep subsequently passes all42 cases0–41, each with
+its original32/64-bit,1/4-worker, explicit output/diagnostic and successful
+Foundation reconstruction checks. Individual wall times range10.14–17.22s;
+per-case peak RSS209628–228464KiB, all measured children0swaps. Every CPU/wall/RSS
+receipt, start time and completion line is retained. Original aggregate180s
+failure remains unchanged; this complete case sweep does not claim the separate
+post-lifecycle type-smoke negatives passed. First/last starts were01:44:55 and
+01:53:22UTC, showing why another opaque180s invocation was not useful on Deck.
+
+The following profile preflight failed1 before its first sample: the old baseline
+executable was in host coordination storage outside Docker's mount. Session92442
+stderr and cache_profiles_missing_mount status/partial manifest/original script
+are preserved. After verified process drain, copied the exact baseline into
+D1's mounted build root and byte-compared it; corrected measurements run in a new
+receipt directory. No completed lifecycle case was repeated or failed preflight
+reported as successful. Coordinator authorizes the minimal TypeErrors mode and
+LR selector after this freeze; L2 owns the new inspection-denial fixture/hook.
+
+Corrected cache comparison completes: identical0930654a input, archived f635
+executable versus current0e544, CPU2, warmup plus three alternating process pairs.
+All128 internal reports, changed-shared-leaf invalidations and teardown checks
+pass; binary/source hashes remain unchanged. Requested1 eighteen-layer first
+medians42.081508msbefore/40.833296after, pooled nine warm306.413835ms/.516939ms,
+CPU305099us/507us. Exact retained graph counts7047/8725 match. Peak cumulative
+RSS median55908/56736KiB (+828KiB), not wholeheap live memory. Three-layer first
+8.232137/8.421110ms and warm85.872/89.162us show overlapping small-path variation;
+CPU warm87/83us. Counts1646/1680 match. This independently validates removal of
+exponential cache validation work without claiming universal compiler speedup,
+zero overhead or multicore scaling. Requested4 reports are retained but one-CPU
+affinity cannot demonstrate parallel execution. Main compiler profiles continue.
+
+A host attempt to write the transport note inside Docker's root-owned output
+directory failed Permission denied. The note was written adjacent to it without
+changing ownership; this was receipt bookkeeping, not a test execution or pass.
+
+Common compiler profiles finish with32 checked runs (two fixed fixtures,1/2jobs,
+warmup plus three alternating before/after pairs) and eight exact Foundation
+comparisons across both compilers/work counts. Each execution prints0 with empty
+stderr. Language/type/vector resource sources match byte-for-byte between saved
+f635 and0e544 packages. Serial uses CPU2; dual uses separate physical cores0,2.
+All binaries and full frozen source manifest verify unchanged after execution.
+
+| Input / workers | Wall seconds before/after | CPU seconds before/after | Peak RSS KiB before/after |
+| --- | --- | --- | --- |
+| known_bindings /1 | 2.09 /2.15 | 2.07 /2.13 | 177784 /180204 |
+| known_bindings /2 | 3.35 /3.21 | 3.95 /3.69 | 185648 /192812 |
+| body_continuation /1 | 2.17 /2.25 | 2.15 /2.22 | 186664 /194760 |
+| body_continuation /2 | 3.35 /3.46 | 3.90 /3.88 | 198160 /205900 |
+
+Values are medians of three measured processes, excluding warmup. Serial wall
+regressions are2.9%/3.7%; RSS increases2420/8096KiB. These are real observed
+integrated-source differences, not dismissed as zero overhead or isolated to a
+single change. New LR physical owner descriptors/grants and ledger capacity are
+the reviewed attribution candidates, routed to their owners. Two-worker samples
+vary and remain slower than fast serial for both inputs; no useful scaling claim.
+Independent overlapping-worker checks above establish actual concurrency, not
+profitability. No cross-language or cold-cache performance conclusion follows.
+
+The valid inclusive lifecycle0–1 call also passes and matches concatenated
+individual receipts exactly. All owned jobs drain; both Docker containers show
+only their idle init/sleep command. D1 releases its own heavy lock at actual
+01:57:47UTC to D2.139GiB free disk/9.6GiB available RAM; existing host swap6.4GiB
+is reported separately from measured children0swaps. Saved LR executable permits
+equivalent harness comparison after the approved TypeErrors selector change.
+No final merged instrumentation/generation/browser/publication gate is closed.

@@ -1798,3 +1798,47 @@ work_budget_allocation now shares the existing serial fault-target registration.
 Its source does not import host.memory, so that target alone links the existing
 host_memory object; buffer/arena fault fixtures keep their imported implementation.
 No extra allocator, transport or test runner body. Build/runtime still pending.
+
+### Frozen0e544ac harness execution evidence
+
+The full497-file direct review is unchanged; no new Tower file was added.
+Public smallest entries, canonical native build and eight affected targets pass
+on frozen0e544ac with the public predecessor and complete saved resource package.
+The new execution-index selector executes the original canonical/identity/fault
+checks; ledger target executes its serial failure/rollback sweep; conditional
+module-cache target links the existing parser_modules composition and CTest
+executes the complete module/session regression. All pass. Query-smoke includes
+both widths/workers and the resource/clone/failed-peer lifetime checks. Actual
+backend worker overlap and exact serial/parallel objects, aggregate Foundation
+round trips, storage, allocations and parser/LR pass. See the journal and raw
+union_0e544ac receipts for source, commands, measurements and exact scope.
+
+Eight malformed lifecycle invocations return1 before touching a deliberately
+missing resource directory. The case sweep is still running; a partial case list
+is not full lifecycle/type-smoke acceptance. Type-smoke's separate post-lifecycle
+body/binding/declaration oracles remain a distinct gate. No broad sanitizer,
+clean generation, browser or publication result is inferred from these passes.
+
+Read-only pending-owner review does not change the tracked inventory:
+A2 arena-linkage819a/2f16 supplies a declaration-only typed API, one linked
+entities-unit provider and a standalone separate-object fixture covering all six
+functions, alignment, capacity denial/output preservation, append ownership,
+snapshot retention and zero final grants. B2 public-clone606c includes full-cache
+read/write denial after successful setup, old-entry identity/count preservation,
+partial-request cleanup and successful unchanged cache reuse; positive editor
+checks do not exercise failed inspection allocation. These drafts are not adopted
+or locally executed until their complete matching producer/layout closure arrives.
+
+Subsequent0e544 completion: all42 lifecycle cases pass, widths32/64 and workers1/4,
+explicit expected outputs/errors and successful canonical reconstructions intact.
+Individual receipts bound wall10.14–17.22s and RSS209628–228464KiB. Inclusive0–1
+range matches concatenated individual output. Eight malformed cases rejectbefore
+resource I/O. The original180s full-type timeout remains a failed historical
+receipt; post-lifecycle type negatives are still pending a focused selector.
+
+Paired unchanged-source cache profiles and32 compiler executions plus8canonical
+comparisons pass. Large warm cache validation improves sharply; small serial
+compiler paths regress2.9%/3.7% and retain more RSS, while two workers remain slower
+than one. These integrated-source measurements and physical-ledger attribution
+are recorded without a general speedup claim. All owned jobs drained before
+D2 took the next slot; complete saved source/binary/resource identity remains0e544.
