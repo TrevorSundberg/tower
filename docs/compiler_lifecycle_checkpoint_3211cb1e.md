@@ -81,3 +81,10 @@ recorded boundaries, not relabeled or repeated. No independent capture-proof
 regression was exposed, so no A1/A2 production work was duplicated or failure
 route needed. Their separate active gates, later compiler revisions and ROOT's
 portable/shared/hosted release acceptance remain outside this checkpoint.
+
+Publication reconciliation preserved complete incoming history through merge
+`1b7ba13c1d362d42ce5097475e48452a27d12dfd`. In particular, A1's executable alias
+publication repair `b78d606b` and the later exact-output/alias test gates are
+**excluded** from this frozen run. Their `semantic_execution_work.tower`,
+admission/alias tests and CMake registration changes require their own acceptance
+boundary; the lifecycle matrix was not restarted or relabeled after that merge.
