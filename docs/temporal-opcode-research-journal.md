@@ -95889,6 +95889,37 @@ Matched n2 CLI16/1000 functions, widths1/4: wall .420->.430/.560->.570 serial; .
 Cold table205.73->210.61ms, lookahead124.28->130.26ms; installed request table174.94->176.31. Allocation calls1947816->1842552 (-5.4%), installed2064545->1959279, with unchanged charged live/peak/ledger and retained buffers.4096 livegrants432300/432301, retained521369964/521367140bytes, ledger40MiB unchanged; RSS slightly increases. Correctness/allocation reduction does not offset CLI/parallel/table regressions. Reject; no second tune.
 
 PASS new atomic-denial/direct-retry/span/overlap test; independent150-grammar oracle/storage/Capacity controls, grammar-equivalence, structure-reuse, grammar-resource, parser, regex, nativeLR/shared-budget/cancel. No compiler/test failure or sample discarded. Restored allfour source files with advanced timestamps; one dependency rebuild then full source manifest and allfour original executable byte comparisons PASS. Current compilerb7d399ee69fbcc3fa661ed0e25756eebb1317b77004a0f10d70cfe5c2a4a1949, units profilee8398c4a0389522b8ee42a6ddd0cae33ac9241a6a679ba61b4f13cd6e764249c; rejected binaries retained. No new API/test hook or production change ships. A2 observer/storage untouched, todo unchanged, no broad matrices/rejected probes. Remaining table producer is exact lookahead construction/propagation/actions124.28of205.73ms; reducing allocator count alone does not resolve its fixed-point cost. Receipt docs/compiler_table_seed_8ff77438.md; raw build/ecs_b1/cache/table_seed_8ff77438; handoff B1/table_seed_8ff77438. ROOT owns final release; normal publication follows.
+## 2026-11-23 A1: actual a06 entity-pages T2 acceptance stops at optimized reconstruction
+
+Frozen mounted main e637ba384037a6305fd945dd1e7c6296f5a98635, compiled source
+a06ec4b1f9f44419882477bc1a55b6ed39e2200b. Verified ROOT portable f0657574 / LLVM
+8acbaf08 full hashes and SOURCE/files provenance. Exactly one anchored
+entity_pages semantic-port run, all old assertions, 600s test/outer guard,
+Node21.7.3 Windows11 CPU12-23/24GiB; no rebuild or private compiler override.
+32-bit Graph/Fast/canonical equality PASS, unoptimized LLVM Foundation
+reconstruction/reparse/Fast output0 LF PASS. First failure: optimized32 LLVM
+Foundation "This operation requires integer operands", offset1290736,
+errorFile .tower/tests/entity_pages.tower. This is not a Memory result.
+Potential relation to D1 i1 finding is an inference, not a diagnosed producer;
+exact input/response are routed in status to ROOT/D1/L2. No overlapping fix.
+
+Actual Node child exit1, wall302.3651s, CPU454.2656s, kernel peak working
+set3840491520B from retained handle; OS job wall302.5201s, two processes,
+zero active before close. No timeout. Source/resource/artifact manifests
+unchanged before/after. Raw canonical972596B, unoptimized Foundation4709291B,
+IR and exact optimized error retained externally under
+A1/wasm_t2_a06_e637ba38. This differs from the older isolated A2 request.
+No per-phase CPU/Wasm-capacity/live-owner census inferred from RSS.
+
+One selected failure/zero passes;18 filtered cases excluded, later64/optimized
+execution/actual executable phases unrun. Conditional compiler-entities
+unstarted (current file registers four tests). No tests weakened/repeated,
+limits raised, production source edited or release claimed. Documentation-only
+runtime comparison inapplicable; recorded costs are this acceptance run.
+Full identities, command, measurements, hashes and limits:
+[wasm_entity_pages_a06_a1.md](wasm_entity_pages_a06_a1.md).
+Todo unchanged; owned work drained, disk338717982720B free. Normal receipt
+commit/reconciliation/push follows; ROOT retains final release.
 D2 ledger publication reconciliation: the required ff-only pull fetched e637ba38
 and refused ordinary divergence; complete history merged at d9e7e5c7, preserving
 both journal streams. New receipts arrived during review, so the final CURRENT
@@ -95943,3 +95974,11 @@ adoption and restricted standalone release open. No new authored source delta or
 D2 runtime. Evidence cutoff41c8a5db; historical tail/todo checks remain unchanged.
 
 B1 table-seed receipt44d0fd4a reconciled with complete44bfbbc8 history as7d0e738d8b9bbba154cca58d7fa9ce85fb1ef779 after normal ff-only divergence. Compiler/library/host and selected LR/profile fixtures remain unchanged; incoming Windows/shared-budget linkage, backend/browser fixtures and owner generation/memory receipts are preserved outside the8ff freeze. No B1 runtime delta to adopt, no repeated unrelated build. Exact four restored binaries retain original identities. Frozen input and rejected-source hashes pass; candidate/before native undefined symbols are equal. One checksum transport sed quoting failure was corrected through a retained OS script, preserving original error. Disk118GiB, todo hash unchanged, owned jobs drained. Normal push follows; no deployment or later-source runtime claim.
+A1 T2 receipt reconciliation:858ff392 preserved through merge45d23d6a with
+incoming44bfbbc8. Required ff-only pull stopped on divergence; normal merge
+preserved complete histories. Only measured-map differences are an uncalled
+LLVM memory-capacity accessor and unrelated native-backend fixture; exclude
+those later bytes once, keep original failed result/inputs, no broad rerun.
+Selected test/production behavior unchanged; todo/diff checks pass. L2's two
+selected T8 successes are separately preserved, not counted as this full-file
+run. Normal push follows; no active A1 test/build or deployment.
