@@ -1188,16 +1188,20 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [grammar] [artifacts DIRECTORY]`
-uses the production native compiler closure. `spread` repeats four body counts
-from one quarter through the requested maximum across units; without it, only
-the final unit has the extra bodies. `backend` exports the generated functions
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread|uniform] [optimized] [dependencies] [grammar] [artifacts DIRECTORY]`
+uses the production native compiler closure. `uniform` gives every unit the
+requested body count. `spread` repeats four body counts from one quarter through
+the requested maximum; these options are mutually exclusive. With neither,
+only the final unit has the extra bodies. `backend` exports the generated functions
 and emits unoptimized x86_64-pc-linux-gnu library objects; `optimized` selects
 the existing O2 pipeline and default code-generation policy as a control. The older backend
 workload did not export its functions and could emit empty objects; those
 measurements are not useful code-generation evidence. The profile checks exported
 names, known interpreter results (answer and loop body return42), canonical
 Foundation and object hashes. Compare each workload's hashes across worker counts.
+`lanes_after_join` must be zero; `live_grants` and `retained_bytes` describe the
+still-owned results at that boundary. Successful process exit also runs the
+existing world/budget teardown checks; retained results are not a leak count.
 `dependencies` reuses the imported helper input from `dependency-units`: forward
 `decltype`, type-producing calls, generics, staged calls and an untaken cyclic
 branch. `artifacts` writes each generated source, complete canonical Foundation

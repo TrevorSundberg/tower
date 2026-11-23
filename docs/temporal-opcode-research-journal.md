@@ -91017,3 +91017,57 @@ The fixed checklist now records both source boundaries and separate selectors;
 no failed result, filtered LLVM assertion or native generation became a pass.
 ROOT's incoming35b93404 native generation/import policy evidence stays separate.
 No tests run or owner sources edited; all D1 edits remain documentation only.
+
+### B2 native useful-core acceptance, frozen 56c892c1 (2026-11-23)
+
+Compiler/runtime source56c892c1e9422f2c667bc7976a5fdc44bd48481a frozen after
+required pull; production allocator/transport, CPU12-23/quota12/24GiB in owned
+tower-b2-work (six physical cores/twelve SMT logical lanes). Prior browser
+boundary receipt05885561 and failed strict retirement gate unchanged; ROOT owns
+that integration. No other lane/cache or todo edits. Initial disk924GiB cache,
+114GiB Windows free; all owned work drained before changing inputs.
+
+Implementation is fixture-only: existing frontend_units_profile gains uniform
+same-body-count units, mutually exclusive with spread, plus post-join used lanes
+and live grants. Defaults unchanged. No runtime scheduler/allocator/policy edit.
+One public768 bootstrap dependency target build,9actions,29.317s wall/61.376s
+CPU/1065876KiB max waited-child RSS. ProfileSHA
+cf43fd17ae9fd326fbb3c3094fb8ea26ea4acff008ff11635f8ce8fe64197654;
+source/build manifests and preserved older executable remain with raw results.
+
+Frozen workloads:1x4096 independent ordinary bodies,12x256 equal bodies,1x16
+serial control; all include existing imported type/decltype/comptime dependency
+helper. Workers1/4/8/12 n1 each large input, observeroff then separate observeron;
+repeat only serial/best in counterbalanced pairs. Confirmed n3 median single1/8
+wall2.1888/1.9856s CPU2.1418/3.2553s (1.102x); multi1/4 wall6.5253/5.5206s
+CPU6.0316/17.0070s (1.182x). Smallserial0.4594s/0.4183s/172.63MiB. Multi12
+wall6.1868s CPU49.4640s RSS1964.06MiB: real overlap, not profitable12-core gain.
+No scaling comparison between different unit counts; observer costs kept separate.
+
+Actual simultaneous distinct semantic workers1/4/8/12 within one unit and
+outerworkers1/4/8/12 across units. Single bodydiscovery150.3->31.7ms, bodywave
+278.3->143.6ms at12; parse619.4->705.8ms and lowering329.4->360.2ms do not
+improve. Semantic dispatch occupancy99.73/93.85/88.30/85.02%; at12 only14.46ms
+with no executing kernel, admission1.28ms. Multi outer-ready vacancy<=1.44lane-ms,
+max refill0.13ms. Aggregate grammarbuildCPU4.018->27.151s at12 dominates
+amplification; no lock/bandwidth cause proven. Concrete B1 followup:
+lr_states_lalr_parallel_result selects itemgraph via nominal capacity before
+extra-lane admission; multi4/12 have zero parallel LR waves but still prepare
+that path. Isolate selection cost under exhausted outer grants; no speculative
+LR tuning/rejected optimization or generic scheduler rewrite shipped.
+
+PASS25 primary samples: existing interpreter answer/body both42, exact complete
+canonical/source comparisons against worker1 across settings/repeats, allbudget
+and owning world/pool teardown checks. PASS legacy versus uniform single-unit
+bytes,12equal source identities, conflicting distribution flags exit2 in both
+orders. Peaklanes<=requested, usedlanes0 afterjoin; singlepeak665MB of1.25GiB,
+multipeak722-1689MB of4GiB, no measured byte saturation. Live preclose result
+bytes567MB/632MB are owned results, not leaks; successful close requires no
+budget grants. No new race/cancel/sanitizer claim for unchanged runtime.
+
+Detailed observations, sample/phase tables, hashes and exact limits:
+docs/compiler_core_acceptance_56c892c1.md. Raw executable/resources/commands/
+JSON/source/canonical/checks: C:/Sandbox/build/codex_ecs_20261122/B2/
+core_acceptance_56c892c1. No object/backend timing, fullnative/generation,
+Node/browser or platform matrix; broader acceptance remains pending ROOT.
+Full profitable12-core acceptance remains OPEN despite genuine overlap.
