@@ -85601,3 +85601,27 @@ work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
 
 Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
+L1 publication reconciliation: complete3dc3251 merged as5c4a7012677f, retaining
+L2 checked sem_node callers and ROOT instrumentation receipts. Merged denial and
+duplicate-parameter tests passed. Core then exposed a distinct synthetic-result
+location change: new ancestor-span fallback moved the recursion-limit diagnostic
+from entry19137 to generated call19199 with resourceNone. The unchanged oracle
+caught it; diagnostic_origin_merged preserves the failure. L1's result producer
+now explicitly assigns its own sem_offset source-base fallback after successful
+checked admission. The parent provenance used when admission fails is unchanged;
+no L2 admission code or consumer receipt preference was altered.
+
+Changed merged inputs PASS: native rebuild32.33wall/24.73CPU seconds/824348KiB;
+diagnostic-faults0.01wall/51332KiB; core13.27/14.88/345600;
+query-smoke0.23/0.25/86680. Shared-Wasm affected semantics object+link
+28.71wall/22.22CPU/874520KiB. Node package5/5 zero skips,4.129wall/6.703CPU/
+274817024bytes peak. Every actual job exited0 and both build source manifests
+match. The original matched performance evidence remains scoped to f353cec's
+inputs; it is not relabeled to include the incoming L2 implementation.
+Current towerc SHA256 be47fe90677e16e6bade36cb26593d0bd77d5f0221834169d4bc63bf0bd858f2;
+shared-Wasm ab4ee2c4929cbd4c7ef4c5200272fde56868085595d5ea159d951355ca46a41f.
+Exact receipt: external L1/diagnostic_origin_receipt.json; successful merged logs
+are diagnostic_origin_merged_checked and diagnostic_origin_wasm_merged. All prior
+failures and todo preserved, jobs drained; final normal main publication follows.
+ROOT's sanitizer results keep their own documented source identities and do not
+become instrumentation evidence for this diagnostic repair by merging alone.

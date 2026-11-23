@@ -223,6 +223,11 @@ fn sem_evaluation_node(c: SemanticContext*, parent: void*): void* {
         sem_require(entity_attach_result(node, null, null) == WorkBudgetError.None);
         return null;
     }
+    // A synthetic result has no expression span. Retain its own source-base
+    // fallback, not the parent's operation span used for admission failures.
+    var value = sem_get(node);
+    value.start = sem_offset(c, node);
+    value.end = value.start;
     return node;
 }
 
