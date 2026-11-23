@@ -92721,3 +92721,22 @@ shape has16 bodies in its last unit and zero in three others, not later uniform.
 Documentation-only result; no runtime patch/policy adoption, new rebuild or
 passing-test repeat. Original error remains precise evidence for its frozen
 candidate, not a claim that the rejected patch was tested on later main.
+
+L1 alias merged acceptance: implementationb78af3aa preserved through
+merge2848983552272c754d122f0df3ff2de17a53bbef with complete5caffe04 history.
+Resolved the test-selector conflict by retaining both alias-type-queries and A2
+malformed-call selectors; A2's new shape guards and failure-preserving module
+list remain intact alongside the expected-type helper argument. That actual
+shared producer change required one frozen dependency-aware refresh:
+32.95wall/34.57CPU/1073128KiB. Short,256-chain and explicit/condition controls
+again pass32/64 workers1/4 Graph and canonical Fast; canonical bytes equal the
+previous complete checks. Exact inference/offset gate passes2.40wall/2.31CPU/
+218204KiB. Updated query-smoke including A2's malformed CoreIf/Call recovery,
+retained program and zero-grant recovery checks passes4.73/6.00/410856. These
+are validation costs, not performance comparisons. Source manifests match.
+Final compiler2c6e62312f00f8c799a4a482184deaecda7327b04d1667037134f55cbafe4373;
+semantics6b3273f0ad5c51501fb9af541c823eb616451f6c7e49c9e9b4af9dd62c98c4b9;
+runnerfab9827ef127bbe57648918525b95c9aac8fd81229979ee11045cb0b33762837.
+External L1 alias_fields_receipt.json and logs/alias_fields_merged retain exact
+inputs, results and original failures. All owned jobs drained, todo unchanged;
+ROOT portable/LLVM/shared artifact adoption remains pending after publication.
