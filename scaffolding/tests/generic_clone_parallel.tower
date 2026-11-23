@@ -10,6 +10,7 @@ import .library.work_graph;
 import .library.work_budget;
 import .library.work_budget_types;
 import generic_clone_fixture;
+import generic_pump_publication;
 import backend_units;
 import utility_checks;
 
@@ -205,6 +206,7 @@ fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial, width: usiz
 }
 
 fn generic_clone_parallel_tests(): void {
+    generic_pump_publication_tests();
     utility_check(work_thread_available() && work_thread_capacity() >= 2, "Clone overlap requires at least two native lanes");
     // Calibrate real, fully checked clone work before concurrent admission. Use
     // the faster of two serial samples so a cold allocation or descheduling is

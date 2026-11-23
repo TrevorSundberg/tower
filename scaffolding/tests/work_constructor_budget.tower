@@ -53,13 +53,14 @@ export fn main(argc: i32, argv: u8**): i32 {
     var component = entity_component_get(compiler_work_subject(probe, 1), probe.kind);
     constructor_check(component != null && component.page != null);
     var page_bytes = compiler_buffer_allocation_size(component.page.allocation.capacity);
+    var index_bytes = compiler_buffer_allocation_size(probe.graph.storage.task_index.capacity);
     compiler_work_close(probe);
     constructor_limit(1, WorkBudgetError.Invalid);
     constructor_limit(self_bytes, store_bytes > self_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
     var initial_bytes = self_bytes + store_bytes;
     constructor_limit(initial_bytes, page_bytes > initial_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
-    var ready_bytes = initial_bytes + compiler_buffer_allocation_size(16 * sizeof(usize));
-    constructor_limit(ready_bytes, page_bytes > ready_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    var indexed_bytes = initial_bytes + index_bytes;
+    constructor_limit(indexed_bytes, page_bytes > indexed_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
     constructor_limit(initial_bytes + page_bytes, WorkBudgetError.Capacity);
     constructor_limit(1048576, WorkBudgetError.None);
     var budget: WorkBudget = default;

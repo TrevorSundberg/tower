@@ -87,6 +87,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     work_owner_profile_check(work_budget_init(&budget, workers, 67108864, 1)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
     var jobs: WorkOwnerProfileJob[8] = default;
+    var plans = sizeof(decltype(jobs)) / sizeof(WorkOwnerProfileJob);
+    work_owner_profile_check(workers <= plans && plans % workers == 0);
     var pool: WorkPool = default;
     work_owner_profile_check(work_pool_open_budget(&pool, workers, accounted ? &budget : null) && pool.count == workers);
     var before: i64[18]; var after: i64[18];
@@ -95,7 +97,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     for(var i: usize = 0; i < workers; i++) {
         jobs[i].units = units;
         if accounted { jobs[i].budget = &budget; }
-        jobs[i].rounds = 8 / workers;
+        jobs[i].rounds = plans / workers;
         work_owner_profile_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
     }
     while pool.running != 0 { work_pool_receive(&pool, true); }
@@ -116,8 +118,8 @@ export fn main(argc: i32, argv: u8**): i32 {
         }
         if active > overlap { overlap = active; }
     }
-    work_owner_profile_check(checksum == convert(u64, units) * convert(u64, units + 1) * 4
-        && entities == (units + 2) * 8 && components == units * 8);
+    work_owner_profile_check(checksum == convert(u64, units) * convert(u64, units + 1) / 2 * convert(u64, plans)
+        && entities == (units + 2) * plans && components == units * plans);
     // Unit count per plan, workers, wall ns, CPU us, process peak RSS KiB,
     // actual private-plan overlap, checked ordinal sum, entities/components
     // constructed and completely retired. Counts are not physical heap bytes.
@@ -128,8 +130,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     var snapshot: WorkBudgetSnapshot;
     work_owner_profile_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0);
     if accounted {
-        // Physical graph/descriptor/slot requests only. ECS node/page/index
-        // allocations are not yet charged; this is not a whole-heap census.
+        // Physical graph/descriptor/slot and component-page requests. Raw ECS
+        // nodes and membership indexes remain outside this ownership subtotal.
         print(budget.generation); print(snapshot.peak_bytes); print(snapshot.retained);
     }
     work_owner_profile_check(work_budget_dispose(&budget));

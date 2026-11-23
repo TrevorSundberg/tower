@@ -1,0 +1,116 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+// Linux measurement boundaries only; the checked workload is ordinary Tower.
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+var ChurnLifecycle: usize = 1;
+var ChurnRounds: usize = 4;
+var ChurnBudgetBytes: usize = 268435456;
+struct ChurnValue { target: Entity*; index: usize; value: u64; check: u64; }
+struct ChurnRow { owner: Entity*; original: EntityComponent*; id: usize; survivor: bool; }
+struct ChurnState { finalized: usize; }
+fn churn_check(ok: bool): void { if !ok { trap("Stable page churn reference mismatch", 0); } }
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    var state = bits(ChurnState*, entity_context(component.owner));
+    var value = bits(ChurnValue*, data);
+    churn_check(lifecycle == ChurnLifecycle && state != null && value.target != null
+        && value.check == value.value + convert(u64, value.index));
+    state.finalized++;
+    entity_release(value.target);
+}
+fn churn_time(): i64 {
+    var stamp: i64[2];
+    churn_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+fn churn_add(owner: Entity*, kind: Entity*, target: Entity*, index: usize): EntityComponent* {
+    var component = entity_component_add(owner, kind);
+    churn_check(component != null && component.page != null);
+    var value = convert(u64, index) * 17 + 3;
+    *bits(ChurnValue*, component.data) = init(ChurnValue) {
+        target: target, index: index, value: value, check: value + convert(u64, index)};
+    entity_retain(target);
+    return component;
+}
+fn churn_case(count: usize): void {
+    var budget: WorkBudget = default;
+    churn_check(work_budget_init(&budget, 1, ChurnBudgetBytes, 1));
+    var store: EntityStore* = null;
+    churn_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var store_bytes = budget.used_bytes;
+    var state: ChurnState = default;
+    churn_check(entity_store_set_context(store, bits(void*, &state)));
+    var kind = entity_create(store);
+    var target = entity_create(store);
+    churn_check(kind != null && target != null
+        && entity_register(kind, sizeof(ChurnValue), alignof(ChurnValue), ChurnLifecycle));
+    var rows = alloc(ChurnRow, count);
+    var pages = alloc(EntityComponentPage*, count);
+    churn_check(rows != null && pages != null);
+    defer free(rows); defer free(pages);
+    var page_count: usize = 0;
+    var page_bytes: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        var owner = entity_create(store);
+        churn_check(owner != null);
+        var component = churn_add(owner, kind, target, i);
+        var survivor = page_count == 0 || pages[page_count - 1] != component.page;
+        rows[i] = init(ChurnRow) {owner: owner, original: component, id: owner.id, survivor: survivor};
+        if survivor {
+            pages[page_count++] = component.page;
+            page_bytes += compiler_buffer_allocation_size(component.page.allocation.capacity);
+        }
+    }
+    churn_check(budget.used_bytes == store_bytes + page_bytes && target.references == count + 1);
+    for(var round: usize = 0; round < ChurnRounds; round++) {
+        var before: i64[18]; var after: i64[18];
+        churn_check(getrusage(0, &before[0]) == 0);
+        var start = churn_time();
+        for(var i: usize = 0; i < count; i++) {
+            if !rows[i].survivor { churn_check(entity_component_remove(rows[i].owner, kind)); }
+        }
+        var removed_ns = churn_time() - start;
+        churn_check(kind.instance_count == page_count && target.references == page_count + 1
+            && state.finalized == (round + 1) * (count - page_count));
+        for(var i: usize = 0; i < page_count; i++) { churn_check(pages[i].live == 1); }
+        churn_check(budget.used_bytes == store_bytes + page_bytes);
+        var retained = budget.used_bytes;
+        var generation = budget.generation;
+        start = churn_time();
+        for(var i: usize = 0; i < count; i++) {
+            var row = &rows[i];
+            var component = entity_component_get(row.owner, kind);
+            if row.survivor { churn_check(component == row.original); }
+            else { churn_check(component == null); component = churn_add(row.owner, kind, target, i); }
+            var value = bits(ChurnValue*, component.data);
+            churn_check(row.owner.id == row.id && row.owner.references == 1
+                && value.index == i && value.value == convert(u64, i) * 17 + 3);
+        }
+        var refill_ns = churn_time() - start;
+        churn_check(kind.instance_count == count && target.references == count + 1);
+        var snapshot: WorkBudgetSnapshot;
+        churn_check(work_budget_snapshot(&budget, &snapshot) && getrusage(0, &after[0]) == 0);
+        // Fixed record: count, round, pages, remove/refill ns, new grants,
+        // retained/refilled/peak physical bytes, ledger metadata, CPU us, RSS KiB.
+        print(count); print(round); print(page_count); print(removed_ns); print(refill_ns);
+        print(budget.generation - generation); print(retained); print(snapshot.used_bytes);
+        print(snapshot.peak_bytes); print(snapshot.retained);
+        print((after[0] - before[0] + after[2] - before[2]) * 1000000
+            + after[1] - before[1] + after[3] - before[3]);
+        print(after[4]);
+    }
+    for(var i: usize = 0; i < count; i++) { entity_release(rows[i].owner); }
+    churn_check(state.finalized == ChurnRounds * (count - page_count) + count && target.references == 1);
+    entity_release(target);
+    entity_release(kind);
+    churn_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget));
+}
+
+churn_case(1024);
+churn_case(65536);
