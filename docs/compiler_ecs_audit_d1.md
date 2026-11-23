@@ -3093,6 +3093,7 @@ Direct Git census, using tracked `.tower` paths and the existing D1 prefixes
 | Prior current_executable_d1 roster | 540 | 1129 |
 | ROOT b0421447 | 542 | 1131 |
 | Integrated c3eb1b499 | 543 | 1132 |
+| Final integration ab7dfe7fe | 543 | 1132 |
 
 The exact additions to the prior direct roster are the two reviewed paths and,
 only after b042, `scaffolding/tests/semantic_flow_checks.tower`. Thus542 of the
@@ -3109,3 +3110,28 @@ reviewed input comparison and `git diff --check`. Documentation changes no runti
 input, so runtime profiling/builds/tests are inapplicable to this edit. Integrated
 instrumentation, bootstrap/browser/generation and deployment remain ROOT's
 pending milestone; no old receipt is relabeled as merged runtime validation.
+
+Final pull brought complete upstream afca69b17; ff-only again refused divergent
+history, and the conflict-free merge is `ab7dfe7fe874717afd9e63511ca643cb7a7d5758`.
+The grammar fixture, builder/regex producers, four generic result producers and
+both registration chains remain unchanged. ParserNodes adds a typed label setter;
+its reviewed counted UTF8 append is unchanged. The census and portable stale-ticket
+fixture are unchanged. Other upstream edits are preserved, not authored here.
+
+L2's1525e54ff expands `generic_result_storage.tower` to400 lines. Reviewed its
+entire delta against the corresponding semantic_context/lifecycle/frontend guards
+and existing `world.tower::compiler_world_component_result`. New create trials
+measure allocation calls, require failed private children to retire, retry, and
+reject missing owners. Attachment trials distinguish physical Capacity from
+pinned structural Busy, preserve existing payload fields on an admitted write,
+and retain distinct explicit custom components. A lifetime pin does not establish
+exclusive payload access; this remains a single-owner test. New root-init cases
+cover widths4/8, actual allocation prefixes and Capacity/Busy/Exhausted, requiring
+no function-index entry on failure and complete world/budget cleanup. They invoke
+both compiler entry points after failure and assert no allocation, replay or
+first-cause overwrite. The original lifecycle prior-failure case now correctly
+expects unchanged ID/allocation counters: semantic_compile_budget returns before
+context creation, rather than reaching a second failure. Its healthy ID-boundary
+oracle remains. These additions are reached by the same default storage caller;
+no D1 fixture/harness change is needed. This merged source review finds no blocker;
+L2's recorded runtime checks retain their own identities and were not rerun here.
