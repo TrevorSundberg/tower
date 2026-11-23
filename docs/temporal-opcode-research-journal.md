@@ -95805,3 +95805,21 @@ two selected T8 continuation cases; D1's source-derived i1 issue and additional
 narrow-width/extraction coverage requests remain separate pending producer work,
 not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
 All owned processes drained, unchanged todo, normal push; ROOT owns final release.
+## A2 bounded current-artifact T9 work pair (2026-11-23)
+
+Receipt docs/work_pair_t9_a06_6649bbe1.md: exact a06 pair, host6649bbe1 plus
+optional existing semantic-port child CPU/RSS/capacity/released metrics;1242
+host/resource hashes and both reactors unchanged. work_access actualexit1,
+20.8506912s wall, childCPU42.953s/peak1169772KiB; portable509804544B,
+LLVM496435200B. Four32/64 Graph/Fast executions, four canonical executions/byte
+equalities and four raw/optimized Foundation reconstructions/rechecks/Fast
+executions pass0newline. First source-Wasm executable compile passes, then
+executeWasm rejects external abort before instantiation (host ABI capability,
+no typed resource denial and no evidence abort executed). Canonical executable
+and work_observe unstarted as ordered; TAP0pass/1fail/18 unrelated exclusions.
+No retry, cap/fixture/assertion change, compiler build or sanitizer. Fourteen
+artifacts plus exact request/failure/process/phase receipts retained in
+A2/cache/logs/work_pair_a06_6649bbe1. Source-Wasm bytes were not saved by the
+existing selector; no hash invented. Native7e54b96a remains a separate boundary.
+ROOT owns foreign ABI resolution/final release; T9 gaps remain open. Jobs drained,
+three prior stashes/todo preserved. No performance claim for optional transport.
