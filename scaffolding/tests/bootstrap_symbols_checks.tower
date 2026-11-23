@@ -31,6 +31,9 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_clone_tree_owned_result", "compiler_clone_tree_owned_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "frontend_module_cyclic_result", "frontend_module_cyclic_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "syntax_session_open_result", "syntax_session_open_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_stage_create_result", "entity_stage_create_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "work_arena_append", "work_arena_append_extra");
     symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_allocate_result", "syntax_session_allocate_result_extra");

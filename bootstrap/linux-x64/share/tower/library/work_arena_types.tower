@@ -1,0 +1,27 @@
+import tower;
+import work_buffer_types;
+import work_budget_types;
+
+// One private owner of stable slices with a common retirement boundary. Shared
+// layouts import these records without pulling allocation methods into a unit.
+struct WorkArena {
+    budget: WorkBudget*;
+    chunk_bytes: usize;
+    first: WorkArenaChunk*;
+    last: WorkArenaChunk*;
+}
+
+struct WorkArenaChunk {
+    next: WorkArenaChunk*;
+    storage: WorkBuffer;
+    used: usize;
+    payload: usize;
+}
+
+struct WorkArenaSnapshot {
+    chunks: usize;
+    capacity: usize;
+    used: usize;
+    payload: usize;
+    retained: usize;
+}

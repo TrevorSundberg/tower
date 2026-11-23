@@ -174,11 +174,11 @@ export fn sem_constructor_add(c: SemanticContext*, node: void*, parent: Semantic
 fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
     var work = result.constructor;
     if work.phase == SemanticConstructorPhase.Execute {
-        sem_declaration_scan_push(scan, result.subject, false);
+        sem_declaration_scan_push(c, scan, result.subject, false);
         return;
     }
     if work.phase == SemanticConstructorPhase.Alias {
-        sem_declaration_scan_push(scan, work.syntax, true);
+        sem_declaration_scan_push(c, scan, work.syntax, true);
     }
     if work.phase != SemanticConstructorPhase.Call { return; }
     var node = result.subject;
@@ -186,7 +186,7 @@ fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     if !sem_ok(c) { return; }
     var definition = work.definition;
     if definition == null && sem_type_identity_call(c, node) {
-        foreach(var argument in args) { sem_declaration_scan_push(scan, argument, true); }
+        foreach(var argument in args) { sem_declaration_scan_push(c, scan, argument, true); }
         return;
     }
     if definition == null || args.length != generic_parameter_count(c.generics, definition) { return; }
@@ -194,8 +194,8 @@ fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     if !sem_ok(c) { return; }
     for(var i: usize = 0; i < args.length; i++) {
         var type = generic_type_parameter(c.generics, definition, i);
-        if !type { sem_declaration_scan_push(scan, sem_member(parameters.data[i], "type"), true); }
-        if type { sem_declaration_scan_push(scan, args.data[i], true); }
+        if !type { sem_declaration_scan_push(c, scan, sem_member(parameters.data[i], "type"), true); }
+        if type { sem_declaration_scan_push(c, scan, args.data[i], true); }
     }
 }
 
@@ -288,7 +288,7 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
             return false;
         }
-        if sem_declaration_input(result, instance.query)
+        if sem_declaration_input(c, result, instance.query)
             || work_task(&c.queries, instance.query).state != WorkState.Succeeded {
             result.waiting = instance.query;
             return false;
@@ -374,7 +374,7 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
             return false;
         }
-        if sem_declaration_input(result, query) || work_task(&c.queries, query).state != WorkState.Succeeded {
+        if sem_declaration_input(c, result, query) || work_task(&c.queries, query).state != WorkState.Succeeded {
             result.waiting = query;
             return false;
         }

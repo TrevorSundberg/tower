@@ -1,2 +1,0 @@
-import .foundation_syntax;
-var f64: type = float_type(64);

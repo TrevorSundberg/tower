@@ -294,7 +294,9 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     if !sem_ok(c) { return false; }
     // A generated declaration has a checked initializer but no source type/value
     // capture. Publish its resolved type before exposing the lexical binding.
-    sem_declaration_state(c, item).number = 2;
+    var declaration = sem_declaration_state(c, item);
+    if declaration == null { return false; }
+    declaration.number = 2;
     var name = sem_identifier(c, sem_member(n, "name"));
     if !sem_ok(c) { return default; }
     if name[0] == 0 {
