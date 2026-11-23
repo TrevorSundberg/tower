@@ -93411,3 +93411,5 @@ concrete importer diagnosis and dispatched repair. This documentation/source
 review has no new runtime implementation or before/after performance obligation.
 Existing runtime assets/build provenance are retained for documentation-only
 atomic publication; no new compiler/runtime release is asserted.
+
+A2 finalnormalpushrace: incomingae1b75ec changesonlyD1audit/journal andL2voidpointerfindingreceipt. Completehistorymerged; all447executedinputs plus3owncodehashes unchanged. Reuse testedd4fc3225 evidence, no repeatbuild. SeparateL2backendfinding staysopen. Secondnormalpush follows, noforcedrefs orruntimeassetpublication.

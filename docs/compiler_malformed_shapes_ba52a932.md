@@ -162,3 +162,8 @@ The checked79-entry fixture and368-entry profile manifests have SHA256
 `3c5c9071dc2a46ae5142f5d079c06e6c2c3cab8bde8669cee1ff5544f1391cf5`.
 `merged.sh` and all merged logs/statuses remain beside the initial receipts.
 All processes drained; ROOT's runtime adoption and integrated gates remain open.
+Final source publication raced docs-only ae1b75ec. Normal full-history merge
+preserves D1's scoped grammar audit and L2's separate reconstructed-void-pointer
+finding. All447 executed input hash entries and three own code/registration
+hashes still match the tested d4fc3225 boundary. Reuse its evidence without
+another runtime build; the new backend finding remains a separate owner gate.
