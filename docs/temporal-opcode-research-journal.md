@@ -93170,3 +93170,36 @@ without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
 compiler build or relabeled current-source validation. All jobs remain drained.
+### A1 independent executable-budget source review (2026-11-23)
+
+Frozen published e6be70d5e96f8ccb86a05d679f6fd4c75e8937cf after the required
+pull --rebase=merges --autostash --ff-only. Reviewed A2 995af4d8, preserved
+through a2bd2987: complete executable request/kernel/pump/disposal, both temporary
+batch and persistent query-read owners, work_vector/buffer/budget, filtered and
+targeted graph admission, serial/threaded dispatch joins, stage holds/publication,
+first-error restoration and immediate callers. Repair source/tests/registration
+are unchanged since 995af4d8. No defect found in the new world-ledger batch charge.
+
+Concrete adjacent pre-existing finding: semantic_execution_work.tower:287 calls
+sem_evaluation_aliases but does not check sem_ok before the result-only readiness
+at296 and work_finish/input publication. The helper can record Memory on alias
+append or Invalid for a missing producer; graph cancellation runs only after the
+pump has marked a healthy worker result Succeeded/ready. The outer pipeline still
+returns Failed, but the internal readiness contract is violated. Blame predates
+the budget repair (c2c0d9621/2c454321b). Routed in A1 status for executable/evaluation
+owners, avoiding A2's active malformed-capture and L2 shared evaluation edits.
+
+Detailed source map, smallest proposed real-pump Tower Invalid regression and
+separate Memory-arm gap: docs/compiler_executable_budget_review_a1.md. These
+regressions are proposed/unrun, not newly registered or passed. Existing 15-mode
+admission/query/lifecycle receipts and merged healthy n1 wall/CPU/RSS are A2's
+owner evidence, not this review's execution. Raw alias/query vectors, ledger
+metadata and foreign overhead remain distinct from the bounded temporary batch;
+whole-wave structural rollback and universal race freedom are not claimed.
+
+This turn is documentation-only: runtime profiling/builds are inapplicable.
+Read-only source/diff/blame/hash checks used the exclusive main clone; no compiler,
+T5, browser, sanitizer or helper test was run. Initial owned jobs were drained,
+container idle, disk free340414099456B; Codex PID1900, thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7. todo and earlier receipts preserved. ROOT
+owns final integrated release; later incoming source is excluded from this freeze.
