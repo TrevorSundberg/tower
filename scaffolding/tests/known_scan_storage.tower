@@ -1,0 +1,169 @@
+import tower;
+import generic_result_storage;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .compiler.semantic_known_types;
+import .compiler.compiler_kernel;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_graph;
+import .library.work_arena_api;
+import .library.vector;
+
+extern fn sem_known_infer(context: SemanticContext*): void;
+extern fn sem_known_binding(context: SemanticContext*, subject: void*): SemanticKnownBinding*;
+extern fn sem_member(node: void*, name: u8*): void*;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+
+struct KnownScanProbe {
+    denial: WorkBudgetError;
+    budget: WorkBudget*;
+    occupied: WorkReservation;
+    job: SemanticKnownWork*;
+    candidates: usize;
+    mutations: usize;
+    scratch: usize;
+    calls: usize;
+}
+
+// The storage runner has serial transport. Delegate the actual producer, then
+// deny its next coordinator allocation; never inject into a concurrent allocator.
+fn known_scan_storage_kernel(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    utility_check(kernel.kind == CompilerKernelKind.KnownBinding, "Known scan production kernel");
+    var job = bits(SemanticKnownWork*, kernel.payload);
+    var kind = sem_member(job.context.program.root, "known_scan_probe");
+    var probe = bits(KnownScanProbe*, entity_component_data(entity_component_get(job.context.program.root, kind)));
+    work_kernel_execute(payload);
+    if job.action != SemanticKnownAction.Scan { return; }
+    probe.calls++;
+    probe.job = job;
+    probe.candidates = job.candidates.length;
+    probe.mutations = job.mutations.length;
+    var scratch: WorkArenaSnapshot = default;
+    work_arena_snapshot(&job.scratch, &scratch);
+    probe.scratch = scratch.retained;
+    utility_check(job.resource_error == WorkBudgetError.None && probe.candidates != 0 && probe.mutations != 0,
+        "Real scan owns candidate and mutation outputs before coordinator denial");
+    if probe.denial == WorkBudgetError.Memory { tower_test_buffer_fail_after(0); }
+    if probe.denial == WorkBudgetError.Capacity {
+        utility_check(work_budget_reserve_result(probe.budget, 0, 0,
+            probe.budget.bytes - probe.budget.used_bytes, &probe.occupied) == WorkBudgetError.None,
+            "Known scan denies physical coordinator list growth after worker scratch retires");
+    }
+}
+
+fn known_scan_storage_trial(width: u32, denial: WorkBudgetError): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Known scan bounded world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.current = root;
+    var base = sem_get(root);
+    base.start = 73;
+    var error: WorkBudgetError;
+    var subject = generic_clone_child(store, root, "CoreDeclare", null, base.start);
+    var declaration = sem_attach_result(subject, KDeclare, &error);
+    declaration.start = base.start;
+    declaration.global = true;
+    declaration.type.scalar = SI32;
+    var initial = generic_clone_child(store, subject, "TowerExpression", "value", base.start);
+    var value = sem_attach_result(initial, KOperand, &error);
+    value.type.scalar = SI32;
+    value.constant = true;
+    value.bits = 42;
+    declaration.value = initial;
+    var assignment = sem_create_result(root, &error);
+    var mutation = sem_attach_result(assignment, KAssign, &error);
+    var place = sem_create_result(assignment, &error);
+    sem_attach_result(place, KOperand, &error).binding = subject;
+    mutation.target = place;
+    utility_check(vector_push(&base.items, subject) && vector_push(&base.items, assignment), "Known scan source order");
+    var kind = sem_create_result(root, &error);
+    utility_check(entity_attach(kind, root, "known_scan_probe")
+        && entity_register(kind, sizeof(KnownScanProbe), alignof(KnownScanProbe), 0), "Known scan probe kind");
+    var probe = bits(KnownScanProbe*, entity_component_data(entity_component_add(root, kind)));
+    *probe = {denial: denial, budget: &budget, ..default};
+    utility_check(work_pool_open_kernel(&context.workers, 1, known_scan_storage_kernel), "Known scan serial callback");
+    sem_known_infer(&context);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if probe.occupied.active {
+        utility_check(work_budget_release_result(&budget, &probe.occupied) == WorkBudgetError.None, "Known scan pressure release");
+    }
+    utility_check(probe.calls == 1 && probe.candidates == 1 && probe.mutations == 1 && probe.scratch == 0
+        && context.workers.running == 0 && context.queries.running == 0 && budget.used_lanes == 0,
+        "Known scan joins once and releases private traversal scratch and lanes");
+    var scan = work_find(&context.queries, root, convert(u32, SemanticQuery.KnownScan), 0);
+    var proof = work_find(&context.queries, root, convert(u32, SemanticQuery.KnownProof), 0);
+    var snapshot = work_find(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+    utility_check(scan != 0 && work_task(&context.queries, scan).state == WorkState.Succeeded,
+        "Append denial follows the successful production scan receipt");
+    var binding = sem_known_binding(&context, subject);
+    utility_check(program.resource.error == denial && binding != null && binding.owner == null
+        && binding.ordinal == 0 && binding.evaluation == null && context.evaluation_jobs.length == 0
+        && declaration.value == initial && value.constant && value.bits == 42,
+        "Known scan retains declaration, initializer and first typed cause without ready evaluation");
+    if denial != WorkBudgetError.None {
+        utility_check(program.resource.offset == base.start && snapshot == 0
+            && work_task(&context.queries, proof).state != WorkState.Succeeded
+            && context.queries.cancelled && binding.input_query == 0 && binding.immutable,
+            "Denied candidate append publishes no mutation/order proof or snapshot");
+        var allocations = tower_test_buffer_allocations();
+        var tasks = context.queries.tasks.length;
+        tower_test_buffer_fail_after(0);
+        sem_resource_record(&program, WorkBudgetError.Invalid, 0);
+        sem_known_infer(&context);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(tower_test_buffer_allocations() == allocations && context.queries.tasks.length == tasks
+            && probe.calls == 1 && program.resource.error == denial && program.resource.offset == base.start,
+            "Terminal retry allocates nothing, replays no scan and retains the first cause");
+    } else {
+        utility_check(!binding.immutable && binding.ordered && snapshot != 0
+            && work_task(&context.queries, proof).state == WorkState.Succeeded
+            && work_task(&context.queries, snapshot).state == WorkState.Succeeded,
+            "Fresh successful inference preserves mutation facts and joined proof/snapshot");
+    }
+    var retained = probe.job.candidates.capacity + probe.job.mutations.capacity + probe.job.query_reads.capacity
+        + probe.job.patches.capacity + probe.job.storage.capacity;
+    puts("Known scan: width / denial / produced candidates / produced mutations / retained output capacity / worker scratch bytes");
+    generic_clone_number(convert(usize, width)); generic_clone_number(convert(usize, denial));
+    generic_clone_number(probe.candidates); generic_clone_number(probe.mutations);
+    generic_clone_number(retained); generic_clone_number(probe.scratch);
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world), "Known scan world closes");
+    var final_grants = budget.live;
+    var final_bytes = budget.used_bytes;
+    var final_lanes = budget.used_lanes;
+    utility_check(work_budget_dispose(&budget), "Known scan ledger closes its synchronization owner");
+    var final_buffers = tower_test_buffer_count();
+    puts("Known scan final: live grants / bytes / lanes / leaked buffers");
+    generic_clone_number(final_grants); generic_clone_number(final_bytes); generic_clone_number(final_lanes);
+    generic_clone_number(final_buffers - buffers);
+    utility_check(retained == 0 && final_grants == 0 && final_bytes == 0 && final_lanes == 0 && final_buffers == buffers
+        && tower_test_buffer_count() == buffers,
+        "Known scan coordinator retires every joined output, vector and budget owner");
+}
+
+fn known_scan_storage_tests(): void {
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        known_scan_storage_trial(width, WorkBudgetError.Memory);
+        known_scan_storage_trial(width, WorkBudgetError.Capacity);
+        known_scan_storage_trial(width, WorkBudgetError.None);
+    }
+}
