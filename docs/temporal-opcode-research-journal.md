@@ -89979,3 +89979,16 @@ build/functional/performance evidence rather than repeat a matrix. No conflicts,
 source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
 stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
 and final-source instrumentation/release exclusions. Normal main push follows.
+L1 composition merged receipt: implementation48499b3a preserves complete
+origin0d789444 in63cb31f1dec51c134ec184f90dc6f449d6cc17c7. The incoming entity
+stage-page policy changed actual semantic providers, so one dependency-aware
+native compiler/work-runner refresh completed11 actions,40.95s wall/86.28s CPU/
+1066896KiB. Compiler95cb9b38d5c62904bd8485a307b7d4f74812f47b7f681e84afbaa1716d0f513f.
+All6 focused registrations, D1's now-published exact identity fixture42/7/8,
+32/64 workers1/4 canonical Graph/Fast, original numeric rejection and real alias
+cycle diagnostics, query-smoke and focused type-errors pass. Canonical hashes
+remain69a9c1e4; source manifests match before/after. Full type-smoke and paired
+performance remain scoped to the prior frozen input, not rerun or relabeled.
+D1's exact numeric fixture still honestly rejects runtime size capture at3:21;
+its original expected nominal behavior was not weakened. Exact merged hashes,
+metrics and limitations are appended to external type_composition_receipt.json.
