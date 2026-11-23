@@ -93878,3 +93878,20 @@ runtime rerun; fixed pending entries do not deny the presence of later repairs.
 Own finite audit remains unchanged; historical handoff ledger bytes preserved
 apart from the explicit historical heading. Diff checks pass, todo unchanged;
 normal source push follows. ROOT retains final integrated acceptance.
+
+D2 exact-zero publication reconciliation: implementation0817273a; required
+ff-only pull fetched c2c97058 and refused divergence. Complete-history merge
+733b04e87d7c08e0a438992d50f8db4a902c3006 preserves concurrent selectors/journal.
+Incoming semantic type-capture guards and LLVM void-pointer import changed the
+linked native providers. Reacquired the heavy slot and refreshed only five
+required actions for the same two targets:64.27wall/62.50CPU/1076088KiB, exit0.
+Affected merged alias gate passes both cases at32/64 workers1/4 (10.29/10.16/
+197640); six real CTests pass again (6.72/6.62/177000), both exit0. No unchanged
+synthetic boundary rerun; its exact wrapper/fixture hashes still match. Merged
+tracked Tower source manifest527891711ed519f1a7a57e13f257d93bd99a998e5075bf696cd8707d386c5159 matches after checks.
+Compiler8fa0c35d540446aafc2cc7e6836d2f63520fe1e0a1226f8872840ff23dfeff64;
+runner82fb6544f9c38212e860b275c9b690398d70546978e2bd2749e364cc1d55716a;
+semanticsb71d43833ea136ca58034695b9897d2446e7c26bac23cb7e381e558dd79f942e.
+Exact merged commands/results in the same receipt's merged_* files. Earlier
+measurements retain original identities. All owned jobs drained and lock released;
+no broader malformed/backend/runtime acceptance or deployment claim.
