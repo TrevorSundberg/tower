@@ -86552,3 +86552,139 @@ Actual cross-unit dependency success: workers1 observed_threads1/outer_peak1,5.1
 Reused current-input query coverage includes TypeReceiptCase.StaleRevision/StaleProfile/StaleDispatch plus changed sequence/operand, cancellation, wrong dependency/target and real denial; lazy layout/body/lowering/evaluation continuations, first-error ordering after eligible producers, publication no-replay, capture ownership and zero-resource teardown. Four distinct clone workers had intersecting measured intervals for actual12288-node branch work (1664 charged scratch bytes); mixed signature/expression frontier has a shared-barrier check before coordinator publication. The new dependency measurement adds real cross-unit overlap. These separate observations do not establish simultaneous outer-and-inner overlap for every program, full compiler scaling, race freedom, or whole-language acceptance. No new before/after runtime comparison applies to this evidence-only turn; the accepted immutable baseline remains untouched.
 
 Later-source adoption remains explicit: A1's preserved86843700 semantic_body_work admission and its complete public-capacity-successor prerequisite must be integrated by its owners, then rebuild and rerun affected body/query/diagnostic/cancellation slices. L1's pending checked backend import_foundation/import_module/import_bindings producer/caller closure needs its own source/binary identity plus affected interpreter/canonical/import checks after adoption. This6767 receipt cannot validate either future batch. Full42-case lifecycle and unselected execution fixtures, A2/D2 sanitizer/current-platform slices, bootstrap/generations, browser and ROOT hosted publication remain pending/outside this bounded result. No hidden fallback or forced worker completion was introduced; no deployment performed. todo remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Reconcile and normal evidence push follows.
+### 2026-11-23 B2: complete current generation prerequisite, frozen252b424a
+
+PASS on exact published252b424ab770a0b334f31fa68eede1f1584a5acc, tree
+14675a432d410badc6c548370b8632d506b6861e. Only the journal differs from ROOTf72179d2.
+Clean documented public9653 bootstrap/no private override produced generation1;
+its complete package passed development verification before selecting it for gen2.
+Gen2 likewise passed before gen3. Both successor generations used the identical
+build path; gen2 full outputs were preserved before CMake clean. Every generation
+ran all52 native target actions, including runtime/helper objects and resources.
+All34 produced compiler/runtime/helper objects/archive/executables and all53
+manifest payload files plus SHA256SUMS match exactly between gen2/3. No ModuleID,
+object, resource or symbol normalization. Manifests retain distinct predecessor
+lineage and identical1166 source hashes, with no source patch. No compiler edits
+or limit changes were needed; no later L2/A1 work entered this frozen run.
+
+Gen1 executable e885c76780e2e00c5e8ca80786ac87ca1f93f294276867a33923a2a0d342f65c;
+gen2/gen3 executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138.
+Gen3 manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+shared payload checksums bd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+Complete package/archive delivered to B2/current_fixed_point_252b424a under the
+existing C:\Sandbox\build\codex_ecs_20261122 handoff. generation3.tar.gz SHA256
+94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e preserves executable
+mode0755 (2236032 bytes). Original gen1/gen2/gen3 packages, full build paths,
+commands, binary manifests, verification reports and failures are retained.
+
+All nine current native exact unit symbol policies PASS. Existing package checks
+PASS; restricted negative control confirms missing Clang, NOT standalone release
+acceptance. Actual semantics provider default160MiB policy passes workers1/4 with
+identical object b74bac0c8dda6a40af34fba5223c63b56aff41c1134b6f18ad42fb2041923673.
+Generic/cast control relative+absolute package invocation workers1/4 and canonical
+round-trip print42; backend optimized/unoptimized controls print45 then2.
+Build wall/CPU/peakKiB gen1:39.086/144.790/825820; gen2:36.943/134.019/1011532;
+gen3:36.032/132.908/1011920 (12-23 cpuset/quota12/24GiB, outer6/compilerjobs1).
+These are cost observations, not a speedup claim. First profiler attempt used
+bare env and failed before configure; corrected to absolute /usr/bin/env and
+retained that failed log. No completed generation diagnostic/identity failure.
+
+Full exact receipt: docs/compiler_generation_252b424a.md. Historical public-vs-
+successor object mismatch stays FAILED; this complete current fixed point is
+separate evidence. ROOT retains pin/Pages, later-source acceptance and integrated
+instrumentation. No broad browser/type/frontend/sanitizer campaign was run.
+L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+### ROOT public capacity bootstrap and paired reference receipt (2026-11-23)
+
+Required prerequisite: A1's preserved body/declaration provider legitimately
+exceeds the prior128MiB semantic-node payload policy. A2 measured128.56MiB
+and published the explicit160MiB default policy without changing caller limits
+or claiming a process-memory cap. B2 rebuilt complete generations from the
+public9653f818 predecessor on frozen published252b424ab770a0b334f31fa68eede1f1584a5acc.
+Its generations2/3 match all34 actual compiler/runtime/helper binary artifacts
+and complete package payloads, including path-sensitive runtime LLVM resources.
+This is a Linux x64 development bootstrap, not standalone portable acceptance.
+
+ROOT independently copied the complete immutable generation3 package, verified
+all SHA256SUMS, executable mode/hash and relocated development checks on KinmenA
+tower-c-validation. Receipt /cache/root_capacity_pin_252b/status0, full command/
+verification logs retained; current verifier /cache/narrow-verify-tools/bin/verify_compiler.
+Executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+payload checksumsbd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+ROOT transport archive94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e.
+Complete linux-x64 payload and exact manifest replace the prior pin together;
+the old directory remains outside the checkout and is recoverable in Git.
+Publish before A1's canonical no-override adoption. This package predates L2's
+6767cd30 admission batch and still-unpublished A1/L1 work; those do not inherit
+the generation receipt. Final current-source generations/release remain pending.
+
+Separately, ROOT measured unchanged existing compiler_reference_inputs fixtures
+(16/1000 functions, exact expected15/999) against frozen196d and merged f72179d2
+(runtime-identical252b). No project source or fixture logic was added. Host
+Ryzen AI MAX+395, Linux WSL2/LLVM19.1.1, Docker CPU24-31/24GiB. Tower explicit
+Bedrock/Foundation/target x86_64-unknown-linux-gnu, normal optimized object
+pipeline, workers1/4; Clang same target, -std=c11 -m64 -O2 -fwrapv -c. Headerless
+C source, built-in grammar/printf and Tower editable grammar/prelude/runtime
+differ; this is a concrete body/frontend reference, not a language ranking.
+All imported language-resource bytes used here match between Tower versions.
+
+One warmup each, then3 counterbalanced fresh-process samples per size/compiler;
+warm filesystem, no intentional OS-cache flush. GNU time wall/CPU/peak RSS:
+| Input/compiler | Median wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Small frozen196d workers1 | .99 | .99 |184016|
+| Small current workers1 | .89 | .89 |198436|
+| Small current workers4 | .80 | .99 |215276|
+| Small Clang | .02 | .01 |98928|
+| Large frozen196d workers1 |1.13|1.12|211728|
+| Large current workers1 |1.03|1.02|239168|
+| Large current workers4 | .93|1.14|263060|
+| Large Clang | .06| .06|109716|
+
+All32 separately linked executions pass. Repeated own-compiler objects, current
+serial/four-worker objects and these cross-version Tower objects match exactly.
+Both optimizers eliminate private constant-return bodies (only main/tower_main
+and the C constant string remain). Object compile timings exclude link/runtime
+preparation and execution checks. Current serial is about9-10% faster than
+frozen196d on these inputs with about8%/13% higher RSS; intervening ownership/
+index changes prevent attributing this to a single fix. Four workers save about
+10% wall with increased CPU/RSS, not proof of whole-machine scaling. CLI
+parse+check remains about.78/.87s and dominates; the comparable-C speed goal
+is not met. No live-allocation/retention or idle-time data is exposed by this CLI.
+All logs/objects/host/inputs/compiler hashes: /cache/root_reference_f72179d2,
+copied to ROOT_reference_f72179d2 in coordination storage. Original shell
+readback quoting failed without changing results; raw receipt copy then passed.
+No new source implementation was measured or runtime release claimed here.
+
+B2 documentation reconciliation after the frozen proof: commit7c66be3c records
+only the journal and exact receipt. Requested ff-only pull found an advance;
+normal mergeaccde9b0 preserves complete incoming L2 history and ROOT pin2013ad28.
+The tested receipt is unchanged in scope: source252b424a only. ROOT's new pin
+identifies252b424a, matches fixed-point executable768a0cdf and resource checksum
+bd4639d8 exactly, and all checked-in payload checksums pass. ROOT performed that
+publication; B2 did not adopt/change the pin. No new generation or later-source
+acceptance is claimed from this documentation merge.
+
+ROOT canonical adoption PASS after public pin2013ad28ce. KinmenA normal clone
+was pulled to that exact published commit, tracked compiler/build inputs frozen,
+and /cache/root_public_capacity_2013 was created fresh. With
+TOWER_BOOTSTRAP_COMPILER unset, documented build-native.sh selected
+/work/bootstrap/linux-x64/towerc, compiler jobs1/build jobs4, CPU24-31/24GiB.
+All52 actions passed45.83wall/124.90CPU seconds/1016164KiB child peak RSS;
+relocated development checks passed7.41wall/9.04CPU/217384KiB. Compiler
+feed7d647835c9c305487b38faa783f19d120c2528baeebc1b2e2f45af1b8e8b.
+Source manifests match before/after; cache CMake explicitly names the public pin.
+Evidence /cache/root_public_capacity_2013_receipt/status0 and complete local
+coordination copy ROOT_public_capacity_2013_receipt. All ROOT jobs drained.
+This validates clean public adoption including published L2 module admission;
+it is not generations2/3 for later-source inputs or final threaded acceptance.
+
+Atomic publication2013ad28ce preserved Pages6f142bef15f58380831ed344ab5eac5c4b3c2840.
+Fresh hosted raw manifest SHA256eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c
+and Git blobc0c17f4ac2b3ef7747e044c91022c72842dd35ed match that Pages ref exactly.
+No new runtime deployment or full browser/UI acceptance is claimed. Current
+receipt-only follow-up changes no executable input; additional runtime profiling
+is inapplicable. User explicitly corrected coordination: maintain all eight
+existing bounded sessions with useful assignments and replace completed tasks
+promptly. All eight were relaunched/verified; no extra context was created.

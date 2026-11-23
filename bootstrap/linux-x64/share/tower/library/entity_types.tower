@@ -1,8 +1,15 @@
 import tower;
+import work_buffer_types;
+import work_budget_types;
 
 // Shared compiler entities. Raw pointers are valid only while their owner lives.
 // Components keep stable addresses; type indexes support component-wise queries.
 struct EntityStore {
+    // Constructor-owned storage and immutable borrowed ledger. The ledger must
+    // outlive all store allocations; this field does not itself account buffers.
+    allocation: WorkBuffer;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
     next_id: usize;
     entity_count: usize;
     component_count: usize;
@@ -14,19 +21,28 @@ struct EntityStore {
     // resolve node-local component identities without an ambient singleton.
     context: void*;
     storage: EntityComponentPool;
+    // Descriptor/name/query blocks reuse the stable page machinery without
+    // entering component/type indexes. Workers have a private stage pool.
+    buffers: EntityComponentPool;
     tables: EntityTable*[256];
 }
 
 // Allocation indexes only. Canonical component identity/payloads stay on entities.
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
-struct EntityComponentPool { first: EntityComponentPage*; }
+struct EntityComponentPool { first: EntityComponentPage*; owned: EntityComponentPage*; }
 struct EntityComponentPage {
+    allocation: WorkBuffer;
     pool: EntityComponentPool*;
     previous: EntityComponentPage*;
     next: EntityComponentPage*;
+    owner: EntityComponentPool*;
+    owned_previous: EntityComponentPage*;
+    owned_next: EntityComponentPage*;
     type_id: usize;
     used: usize;
     live: usize;
+    // One-based dead slot chain; live components retain their type index.
+    free_slot: usize;
     capacity: usize;
     stride: usize;
     components: EntityComponent*;
@@ -91,7 +107,20 @@ struct EntityComponent {
     page: EntityComponentPage*;
 }
 
-// Stable payload columns and dense entity rows keyed by an exact type signature.
+// Oversized stable payloads own one physical allocation, like pooled pages.
+// Copy the receipt out before freeing the allocation that contains this header.
+struct EntityComponentAllocation {
+    allocation: WorkBuffer;
+    component: EntityComponent;
+}
+
+// Independently replaceable indexes can be resized by different leased workers.
+// Their physical allocation carries its receipt; freeing one never mutates a
+// shared page. The header and old/new overlap both count against the budget.
+struct EntityBufferAllocation { allocation: WorkBuffer; }
+
+// Dense entity rows and component-pointer columns for an exact type signature.
+// Payloads remain in their stable allocations; this index does not pack them.
 struct EntityTable {
     store: EntityStore*;
     next: EntityTable*;
