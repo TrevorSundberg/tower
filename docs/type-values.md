@@ -59,6 +59,16 @@ type. Existing restricted straight-return/nominal type constructors retain their
 early identity publication. General bodies with control flow execute normally.
 Unifying those constructor paths and staging policies is further work.
 
+That distinction also bounds composition. A nominal constructor such as
+`buffer(T, size)` binds its integer arguments before checking its fields. An
+ordinary forwarding function's `size: usize` parameter is runtime storage, so
+`return buffer(T, size);` cannot supply a static nominal layout while that
+function's body is checked. Direct `buffer(i32, 2)`, a transparent binding to
+that specialization, and forwarding a fixed extent retain the same nominal
+identity. `return array_type(T, size);` can instead construct an array through
+ordinary staged execution; it does not create that nominal buffer type. General
+runtime-parameter forwarding into nominal construction remains unsupported.
+
 The portable graph interpreter, cached interpreter, and LLVM native/Wasm output
 support type values. Each execution/module uses its own disposable identity
 index; no host address or index becomes the public identity of a type. Current

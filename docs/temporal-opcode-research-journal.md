@@ -89879,6 +89879,88 @@ remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
 
+### 2026-11-23 L1: late type-return dependencies and nominal composition boundary
+
+Frozen published input5b9194e428903bdbcd7bb57075de31ca6a13b128, native compiler
+16fa4f76285392663a201c58b26109ec54980f8766b159ba5863c3bd78fea23f,
+existing public-bootstrap Release LLVM19 cache, WSL Orchestral-Revng, CPU0-3.
+No surviving jobs; required pull was already current. D1's templates test and
+its type_identity_composition/type_numeric_composition files were not edited.
+
+Independent current-native reductions distinguish the contracts: explicit
+`id(i32*, &value)` prints42 (a valid generic type argument, unlike a bare pointer
+spelling returned as a value); `same(i32)` prints7; integer-only nominal
+`fixed(3)` prints9. Zero-argument `fixed():type{return i32;}` genuinely fails.
+Its first sem_fail is Unknown type constructor signed_integer; the eventual
+reported i32 initializer cycle is secondary. The exact combined identity input
+fails before producing output. Source and all actual exits are preserved under
+external L1 logs/type_composition_reproduce and type_composition_first_error.
+
+The return-shape reader discarded named roles while unwrapping single children,
+losing the type-reference node (and nullary call identity). Preserve named nodes;
+only unnamed wrappers are transparent. That change alone was insufficient:
+constructor discovery precedes body cloning, so the newly exposed alias still
+read a declaration with no dependency. The shared declaration readiness scan now
+adds/suspends on the actual named type producer and its read access before worker
+admission, including an already-ready producer not yet owned by this continuation.
+No recursive forcing, alternative type identity, eager executed-branch scan,
+registry change, layout/ABI change or diagnostic clearing. Initial candidate
+failure and both dependency-aware build logs remain separate evidence.
+
+The repaired exact identity input prints42/7/8. New Tower regression
+`tests/type_return_dependencies.tower`, workers1/4 CTest registrations, also covers
+late named aliases, nullary forwarding, local staged construction, ordinary
+runtime type values, an untaken trapping branch and integer-only nominal fields.
+Existing pointer alias and generic cast/inference registrations remain intact.
+A real alias cycle reports Word -> named -> named -> Word instead of looping.
+
+The second exact input has a different, unchanged capability boundary. Its
+failure is wrapped's ordinary runtime size parameter, not the integer-only
+nominal fixed constructor. A CoreCall-returning wrapper remains ordinary executed
+code; nominal buffer identity requires bound integer arguments before its body
+layout is checked. Capturing that runtime parameter correctly fails. Direct
+nominal specialization, forwarding a fixed extent, and executed array_type(T,size)
+controls pass. Replacing only the pointer annotation with the existing
+buffer(i32,2) specialization preserves nominal identity and gives the exact
+42/7/8/12/9 reference output. Array construction is not a substitute for the
+nominal buffer. This limit is now explicit in type-values.md; no extension or
+change to D1's assertions is smuggled in. General runtime-parameter forwarding
+into nominal construction remains unsupported.
+
+Focused width32/64 and workers1/4 source/canonical/error checks, matched healthy
+samples and type/query smoke receipts are recorded below when complete. Original
+failures are retained, including a debugger lookup using the former prefixed
+sem_fail symbol and a register-string quoting mistake; corrected read-only traces
+established the first cause. Debugger interruption is not an execution pass.
+
+L1 composition validation complete on the frozen patch: all6 focused CTest
+registrations pass; original identity42/7/8, new regression, canonical Graph/Fast
+and byte-idempotent reconstruction pass at32/64 bits and workers1/4. Original
+numeric capture rejection and the real alias cycle retain exact diagnostics and
+empty output across all four profiles. Existing type-smoke PASS141.81s wall /
+134.45s CPU /295964KiB, query-smoke PASS .32/.37/104304; no skips. Only the
+changed entity/generic and semantic units plus their actual test consumers were
+rebuilt through existing targets. Compiler SHA256
+9df563926b7aa7867b316f7ff366bb99cf1ba24555bcbaf1472b7979f4bdd521.
+The new canonical fixture hash is69a9c1e43945b06f4144d5f8daba81963369b846829a592a707997a8eb088dac.
+
+Matched healthy warm-input samples, one per setting, wall/CPU/peakRSSKiB:
+
+| Fixture / workers | Before | After |
+| --- | --- | --- |
+| pointer alias /1 | .82/.65/181136 | .85/.67/181672 |
+| pointer alias /4 | .72/.67/185148 | .66/.63/185284 |
+| computed types /1 | .71/.61/193016 | .69/.61/193028 |
+| computed types /4 | .74/.69/195780 | .73/.69/195884 |
+
+Known outputs and every before/after/serial/parallel canonical comparison pass.
+These small single samples show no consistent timing improvement; the pointer
+serial +.03s wall/+.02s CPU and +536KiB are retained, not hidden or characterized
+as a speedup. No new overlap/scaling claim. Complete source/artifact manifests,
+commands, failures and measurements are in external L1 type_composition_receipt.json;
+its before/after manifests prove inputs stayed frozen during validation. Owned
+jobs drained before reconciliation. ROOT's final platform/release checks and D1's
+browser fixture adoption remain separate pending work.
 ### A2 four-slot declaration stage pages: measured policy retained (2026-11-23)
 
 Bounded follow-up to e9fd7aa5/578437af occupancy, frozen published5b9194e4
@@ -90190,6 +90272,19 @@ build/functional/performance evidence rather than repeat a matrix. No conflicts,
 source edits or scope drift. Owned jobs drained; disk341.4GB free, all three
 stashes/todo unchanged. Receipt includes exact API, measured dense-stream overhead
 and final-source instrumentation/release exclusions. Normal main push follows.
+L1 composition merged receipt: implementation48499b3a preserves complete
+origin0d789444 in63cb31f1dec51c134ec184f90dc6f449d6cc17c7. The incoming entity
+stage-page policy changed actual semantic providers, so one dependency-aware
+native compiler/work-runner refresh completed11 actions,40.95s wall/86.28s CPU/
+1066896KiB. Compiler95cb9b38d5c62904bd8485a307b7d4f74812f47b7f681e84afbaa1716d0f513f.
+All6 focused registrations, D1's now-published exact identity fixture42/7/8,
+32/64 workers1/4 canonical Graph/Fast, original numeric rejection and real alias
+cycle diagnostics, query-smoke and focused type-errors pass. Canonical hashes
+remain69a9c1e4; source manifests match before/after. Full type-smoke and paired
+performance remain scoped to the prior frozen input, not rerun or relabeled.
+D1's exact numeric fixture still honestly rejects runtime size capture at3:21;
+its original expected nominal behavior was not weakened. Exact merged hashes,
+metrics and limitations are appended to external type_composition_receipt.json.
 D2 struct-isolation publication: fd3a095e committed the scoped fixture/transport
 and receipt. Required ff-only pull reported divergence; complete0d789444 history
 merged asf9fb9cb74af44a15510338096b2ed2cdba8b950f, with no conflict or lost entry.
@@ -90234,3 +90329,14 @@ change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit recor
 both later input boundaries rather than extending acceptance indefinitely.
 
 B2 shared-browser publication reconciliation: complete150bda59 history merged as0efb7803; both journals preserved. Own delta documentation only. Frozen f167c444 artifacts do not validate incoming declaration/semantic/package changes. Strict script, worker transport and pool fixture remain byte-identical to freeze. Windows archive SHA verified. Original retirement blocker retained; no deployment or new pass claimed.
+L1 final adoption boundary: complete347a6ba4 merged as37cba0a0; compiler producer
+inputs remain identical to validated63cb. New D1 known-size control prints8 and
+mutable-size control correctly rejects at8:1 with empty output. The newly added
+nested-negation fixture FAILS its expected8: Expected a compile-time integer
+argument at7:24. Preserved pre-change compiler16fa4f76 gives the same exit1,
+empty output and byte-identical diagnostic as merged95cb9b38. This is an inherited
+newly adopted fixture failure, not a regression from the alias dependency repair;
+its expectation remains untouched and its native acceptance is pending. Both
+actual failures/metrics remain in type_composition_adopted_controls and
+ type_composition_adoption_triage, appended to the external receipt. No passing
+claim for nested negation or for unsupported numeric nominal forwarding.
