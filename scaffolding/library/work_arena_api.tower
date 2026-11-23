@@ -1,0 +1,13 @@
+import tower;
+import work_arena_types;
+import work_budget_types;
+
+// Typed declaration boundary for separately compiled clients. Exactly one
+// linked unit imports work_arena, the sole implementation. Ordinary standalone
+// fixtures may continue importing that implementation directly.
+extern fn work_arena_init(arena: WorkArena*, budget: WorkBudget*, chunk_bytes: usize): bool;
+extern fn work_arena_allocate_result(arena: WorkArena*, bytes: usize, alignment: usize, output: u8**): WorkBudgetError;
+extern fn work_arena_allocate(arena: WorkArena*, bytes: usize, alignment: usize): u8*;
+extern fn work_arena_dispose(arena: WorkArena*): void;
+extern fn work_arena_append(destination: WorkArena*, source: WorkArena*): bool;
+extern fn work_arena_snapshot(arena: WorkArena*, output: WorkArenaSnapshot*): bool;
