@@ -1,0 +1,105 @@
+import tower;
+import frontend_units;
+import frontend_units_memory;
+import .compiler.grammar_types;
+import .compiler.frontend_revision_types;
+import .compiler.format_types;
+import .library.vector;
+
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
+extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+extern fn format_dispose(result: FormatResult*): void;
+extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
+struct IterationTime { seconds: i64; nanoseconds: i64; }
+extern fn clock_gettime(clock: i32, time: IterationTime*): i32;
+var IterationNanoseconds: u64 = 1000000000;
+var IterationMonotonicClock: i32 = 1;
+var IterationHashOffset: u64 = 1469598103934665603;
+var IterationHashPrime: u64 = 1099511628211;
+var IterationLogInterval: usize = 32;
+var IterationPhaseCount: usize = convert(usize, GrammarPhase.Count);
+struct IterationProfile {
+    started: u64[IterationPhaseCount];
+    elapsed: u64[IterationPhaseCount];
+    calls: usize[IterationPhaseCount];
+}
+
+fn iteration_clock(): u64 {
+    var now: IterationTime = default;
+    units_check(clock_gettime(IterationMonotonicClock, &now) == 0, "Iteration monotonic clock");
+    return convert(u64, now.seconds) * IterationNanoseconds + convert(u64, now.nanoseconds);
+}
+
+fn iteration_event(context: void*, phase: GrammarPhase, entering: bool, rules: usize, tokens: usize): void {
+    var profile = bits(IterationProfile*, context);
+    var index = convert(usize, phase);
+    if entering {
+        profile.started[index] = iteration_clock();
+        profile.calls[index]++;
+        if phase == GrammarPhase.Build && (profile.calls[index] == 1 || profile.calls[index] % IterationLogInterval == 0) {
+            units_check(dprintf(2, "grammar build begin: call=%zu rules=%u tokens=%u\n",
+                profile.calls[index], convert(u32, rules), convert(u32, tokens)) >= 0, "Iteration event output");
+        }
+    } else { profile.elapsed[index] += iteration_clock() - profile.started[index]; }
+}
+
+fn iteration_report(profile: IterationProfile*): void {
+    for(var index: usize = 0; index < sizeof(decltype(profile.calls)) / sizeof(usize); index++) {
+        units_check(dprintf(2, "grammar wall_ns=%zu phase=%u calls=%u\n", convert(usize, profile.elapsed[index]),
+            convert(u32, index), convert(u32, profile.calls[index])) >= 0, "Iteration phase output");
+    }
+}
+
+// Isolate the ordinary frontend_compile_sources path from the full suite's
+// allocation-failure matrices. Both modes compile the same checked source;
+// cold starts at the immutable seed, installed matches the units startup path.
+fn frontend_iteration_profile(root: u8*, installed: bool): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var world = compiler_world_create_workers(1);
+    var environment = frontend_modules_create();
+    units_check(world != null && environment != null && frontend_modules_bind_world(environment, world), "Iteration explicit owners");
+    frontend_modules_configure(environment, "iteration.tower", root);
+    var profile: IterationProfile = default;
+    compiler_world_grammar(world).observer = {context: bits(void*, &profile), event: iteration_event};
+    if installed {
+        var diagnostic: SyntaxVersionDiagnostic = default;
+        var ok = syntax_baseline_install(world, environment, bedrock.data, false, &diagnostic)
+            && syntax_baseline_install(world, environment, foundation.data, true, &diagnostic);
+        syntax_version_diagnostic_dispose(&diagnostic);
+        units_check(ok, "Iteration installed baseline");
+        iteration_report(&profile);
+        profile = default;
+    }
+    var owner = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, owner, convert(u32, sizeof(void*)));
+    var input = "import tower; fn answer():i32{return 42;}";
+    var source: FrontendSource = {data: input, length: strlen(input)};
+    frontend_compile_sources(&program, &source, 1, environment);
+    iteration_report(&profile);
+    if program.error.length != 0 {
+        units_check(vector_push(&program.error, 0), "Iteration error terminator");
+        program.error.length--;
+        puts(program.error.data);
+    }
+    units_check(program.error.length == 0 && program.resource.error == WorkBudgetError.None, "Iteration compilation");
+    units_memory_answer(&program);
+    var canonical: FormatResult = default;
+    format_entity(&canonical, program.root, null, null, null);
+    units_check(!canonical.failed, "Iteration canonical output");
+    var hash = IterationHashOffset;
+    foreach(var byte in &canonical.text) { hash = (hash ^ convert(u64, byte)) * IterationHashPrime; }
+    units_check(dprintf(2, "grammar canonical=%zu bytes=%u\n", convert(usize, hash), convert(u32, canonical.text.length), 0) >= 0, "Iteration canonical report");
+    format_dispose(&canonical);
+    semantic_program_dispose(&program);
+    entity_release(owner);
+    frontend_modules_destroy(environment);
+    compiler_world_grammar(world).observer = default;
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Iteration world cleanup");
+}

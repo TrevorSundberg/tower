@@ -11,6 +11,12 @@ struct FrontendKinds {
     syntax: void*;
 }
 
+enum GrammarPhase: u32 { Lookup, Build, Table, Count }
+struct GrammarObserver {
+    context: void*;
+    event: function(void, void*, GrammarPhase, bool, usize, usize);
+}
+
 // World-owned caches, populated/reset by the coordinator. Tables are derived;
 // Bedrock remains an ordinary shared-entity document with foundation text.
 struct CompilerGrammarCache {
@@ -19,6 +25,7 @@ struct CompilerGrammarCache {
     syntax: void*; // SyntaxBaselines, owned/reset by the world's coordinator
     workers: WorkPool;
     workers_busy: bool;
+    observer: GrammarObserver;
 }
 
 struct GrammarBuilder {
