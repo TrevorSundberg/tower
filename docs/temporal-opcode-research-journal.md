@@ -94444,3 +94444,11 @@ they and later lifecycle/T9 execution receipts are preserved outsideea606d32, no
 silently source-reviewed or runtime-adopted here. No repeated checks beyond git
 identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
 push follows; this closes the requested independent review only.
+
+B2 lowering attribution reconciliation: evidence6a6faded merged completefd1725d8
+history asee371edd after required ff-only divergence. Both journal histories
+preserved. All10restoredprobe paths still match ef59b0aa; cachedprofile still
+byte-identical to baseline486996f6. Incoming module-body/header query producers,
+fixtures and CMake changes remain preserved but excluded from frozenef59
+measurements. Evidence-only delta needs no new compilerbuild/runtime test;
+no relabel of later source, no deployment. Normalpush follows, task ends.
