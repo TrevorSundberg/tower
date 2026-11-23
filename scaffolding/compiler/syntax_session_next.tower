@@ -156,11 +156,12 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
     if entry.compiled is not null { return true; }
     var error: FormatResult = default;
     defer format_dispose(&error);
-    var pattern = frontend_world_pattern(value.inputs.world, entry.text.data, entry.text.length, &error);
+    var resource_error = WorkBudgetError.None;
+    var pattern = frontend_world_pattern_result(value.inputs.world, entry.text.data, entry.text.length, &error, &resource_error);
     syntax_node_pattern(entry, pattern);
     syntax_pattern_release(pattern);
     if entry.compiled is not null { return true; }
-    if error.failed { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
+    if resource_error != WorkBudgetError.None { syntax_session_resource_fail(value, resource_error); }
     else {
         syntax_session_error_bytes(value, error.text.data, error.text.length);
     }

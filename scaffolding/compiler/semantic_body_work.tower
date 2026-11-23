@@ -1750,10 +1750,14 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // All stages in this worker batch have already published. Continuations
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
-    sem_body_prefix(c, result);
+    if sem_ok(c) { sem_body_prefix(c, result); }
     sem_query_observe(c, &result.ticket, &result.query_reads);
     sem_evaluation_aliases(c, &result.evaluation_aliases);
     sem_type_observations_publish(c, &result.type_observations);
+    if !sem_ok(c) {
+        sem_body_hold_error(c, result);
+        result.done = true;
+    }
     sem_editor_publish(c, &result.editor);
     foreach(var allocation in &result.allocations) {
         sem_push(&c.allocations, allocation);
@@ -1766,7 +1770,7 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     c.count += result.count;
     c.surface_expressions ||= result.surface;
     c.has_defer ||= result.has_defer;
-    for(var j: usize = 0; j < result.captures.length; j++) {
+    for(var j: usize = 0; j < result.captures.length && sem_ok(c); j++) {
         if c.defer_bindings == null {
             c.defer_bindings = sem_table(c);
             c.defer_order = sem_list(c);
@@ -1781,9 +1785,9 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     for(var j: usize = 0; j < result.evaluations.length; j++) {
         var evaluation = bits(SemanticEvaluation*, result.evaluations.data[j]);
         sem_push(&c.evaluation_jobs, bits(void*, evaluation));
-        sem_evaluation_request(c, evaluation);
+        if sem_ok(c) { sem_evaluation_request(c, evaluation); }
     }
-    if result.flow_dependencies.length != 0 {
+    if sem_ok(c) && result.flow_dependencies.length != 0 {
         sem_flow_request(c, result.subject, &result.flow_dependencies);
     }
     vector_dispose(&result.evaluations);

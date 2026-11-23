@@ -103,7 +103,8 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
         data.length = step.end - step.start;
     }
     if data.label.length == 0 {
-        var ok = node_match_set_label(data, label);
+        parser.storage_error = node_match_set_label_result(data, label);
+        var ok = parser.storage_error == WorkBudgetError.None;
         if !ok {
             if !supplied {
                 entity_release(node);
@@ -193,7 +194,8 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         data.rule = step.rule;
         data.start = step.start;
         data.length = step.end - step.start;
-        var ok = node_match_set_label(data, lr_grammar_name(grammar, rule.owner));
+        parser.storage_error = node_match_set_label_result(data, lr_grammar_name(grammar, rule.owner));
+        var ok = parser.storage_error == WorkBudgetError.None;
         if ok {
             ok = parse_forest_attach(forest, node, children.first);
             if !ok { parser.storage_error = parse_forest_resource_error(forest); }

@@ -61,7 +61,9 @@ fn sem_infer_bind(inference: SemanticCallInference*, index: usize, actual: Found
     }
     if old != null { return; }
     if inference.intern {
-        inference.bindings.data[index] = bits(void*, &sem_get(sem_type_entity(c, actual)).type);
+        var type = sem_type_entity(c, actual, inference.use);
+        if type == null { return; }
+        inference.bindings.data[index] = bits(void*, &sem_get(type).type);
     } else {
         var type = bits(void*, sem_type_copy(c, actual));
         inference.bindings.data[index] = type;
@@ -319,7 +321,11 @@ fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, value
     var types = sem_infer_types(c, definition, use, values, true, null);
     var result = sem_list(c);
     if sem_ok(c) {
-        foreach(var type in types) { sem_push(result, sem_type_entity(c, bits(FoundationType*, type))); }
+        foreach(var type in types) {
+            var entity = sem_type_entity(c, bits(FoundationType*, type), use);
+            if entity == null { break; }
+            sem_push(result, entity);
+        }
     }
     return result;
 }

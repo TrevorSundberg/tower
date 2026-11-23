@@ -30,6 +30,7 @@ extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 extern fn compiler_world_store(world: void*): void*;
 
 extern fn entity_create(store: void*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 
@@ -67,6 +68,20 @@ fn completion_semantic_failed(q: CompletionQuery*): bool {
         q.resource_error = q.program.resource.error;
     }
     return q.resource_error != WorkBudgetError.None;
+}
+
+// Root descriptor and Foundation admission share the query's existing receipt.
+// Failed roots remain owned by the query until its ordinary disposal boundary.
+fn completion_initialize(q: CompletionQuery*, width: u32): bool {
+    var error: WorkBudgetError;
+    var root = entity_create_result(compiler_world_store(q.world), &error);
+    if root != null { semantic_initialize(&q.program, root, width); }
+    else {
+        q.program = { pointer_bytes: width, ..default };
+        sem_resource_record(&q.program, error, 0);
+    }
+    q.semantic = true;
+    return !completion_semantic_failed(q);
 }
 
 // Resource failures in grammar/control or imported snapshots cannot use syntax
@@ -298,9 +313,11 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     var suffix_length = q.length -q.to;
     sem_require(bytes_append(&text, &q.source[q.to], suffix_length));
     sem_require(host_text_terminate(&text));
-    var root = entity_create(compiler_world_store(q.world));
-    semantic_initialize(&q.program, root, 4);
-    q.semantic = true;
+    if !completion_initialize(q, 4) {
+        vector_dispose(&text);
+        return;
+    }
+    var root = q.program.root;
     var valid = completion_parse(q, text.data, mode, false);
     if q.resource_error != WorkBudgetError.None {
         vector_dispose(&text);
@@ -311,8 +328,11 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     if !valid {
         semantic_program_dispose(&q.program);
         entity_release(root);
-        root = entity_create(compiler_world_store(q.world));
-        semantic_initialize(&q.program, root, 4);
+        if !completion_initialize(q, 4) {
+            vector_dispose(&text);
+            return;
+        }
+        root = q.program.root;
         q.roots.length = 0;
         q.bases.length = 0;
         q.input.length = 0;
@@ -1150,7 +1170,7 @@ export fn completion_dispose(q: CompletionQuery*): void {
     }
     if q.semantic {
         semantic_program_dispose(&q.program);
-        entity_release(q.program.root);
+        if q.program.root != null { entity_release(q.program.root); }
     }
     if q.inspection_session != null {
         syntax_destroy(q.inspection_session);

@@ -2661,3 +2661,14 @@ race freedom or provide source UBSan coverage. New checker c8b98a2f and all raw
 statuses/profiles/source manifests are in `build/d2_ecs/parser_attach_2252`.
 Both controllers drained before lock release. Current joined compiler/native/
 browser/generation acceptance and the linker-world budget API remain open.
+
+At ROOT's accelerated completion boundary, D2 reuses D1's matching native
+results instead of running the prepared broad ABI suite again. Browser OS
+preparation is complete (pinned dependencies and actual Chromium launch), while
+Tower/runtime acceptance is pending the integrated package. Existing thread
+transport tests require the separate `tower-work-tests.wasm`: without it their
+optional default skips the tests. Final checks must set `TOWER_REQUIRE_THREADS=1`
+and retain the artifact's source identity. The shipped threaded frontend alone
+does not prove four-worker barrier overlap. Existing worker tests cover object
+ordering, cancellation/drain and deterministic diagnostics; full generation and
+integrated runtime builds remain ROOT-owned. No new audit/test framework is added.
