@@ -2303,3 +2303,17 @@ Exact excluded Tower blobs (`scaffolding/` prefix; absent means newly authored):
 | `tests/frontend_storage_profile.tower` | `c9aa6a83ba86` | `408893749941` | A2 declaration pages |
 | `tests/type_identity_composition.tower` | `absent` | `6717ec21e379` | D1 / L1 semantic follow-up |
 | `tests/type_numeric_composition.tower` | `absent` | `e22d3f821ac7` | D1 / L1 semantic follow-up |
+
+A second publication race merged **b90b6f4e4144bb934838fd6a1b6eb211b36932b1**
+through74ee73ed, preserving D1's7f936c33 supplied-artifact receipt. Additional
+excluded authored paths are `tests/type_numeric_known.tower`,
+`tests/semantic_invalid/type_numeric_mutable.tower` and
+`tests/type_numeric_negation.tower` (all new; exact blobs at b90). D1's existing
+Node template caller registers them; there is no claimed native registration.
+The first two controls pass its supplied-eac checks; valid negation still fails,
+along with the separately owned compositions. Its final focused8pass/4fail,
+zero-skip receipt and formerly missing link/generic-stack/pointer gate successes
+are adopted as **owner evidence only**, not a new L2 source/runtime acceptance.
+The root source freeze remains3ea; current template/negation, semantic-port and
+release gates remain open. No compiler/library/provider changed in this second
+merge, no package/pin/deployment changed, and no tests were rerun by this audit.

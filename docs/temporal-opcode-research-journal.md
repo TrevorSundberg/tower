@@ -90042,3 +90042,11 @@ explicitly in focused_fixtures.sha256. Reuse the checked evidence without a new
 compiler build or passing-case rerun; incoming page-policy implementation keeps
 its own source-specific owner receipt. Inspected negation producer chain still
 matches eac exactly. No complete current-main reactor or release claim.
+
+L2 second documentation reconciliation: merge74ee73ed preserves D1 publishedb90b6f4e
+and its7f936c33 supplied-eac artifact receipt. Three new ordinary numeric fixtures
+and Node registrations explicitly excluded from3ea source review; D1 known/mutable
+controls pass, negation/compositions retain final8pass/4fail evidence. Link and
+stack/pointer host successes remain owner evidence only. No provider/package/pin
+change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit records
+both later input boundaries rather than extending acceptance indefinitely.
