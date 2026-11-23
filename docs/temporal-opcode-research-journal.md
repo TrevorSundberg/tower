@@ -75419,3 +75419,202 @@ supported conclusions, not overall compiler speedup or closure of D1 Cancel4.
 No user/sibling container, quota, model or policy changed. Current d3+affinity
 union requires its own coherent check; owner565 observations are not relabeled.
 The generic native SOURCE object correction/registrations remain D1's work.
+
+### 2026-11-23 D2: Linux affinity admission audit (implementation pending)
+
+ROOT assigned `host/work_linux.tower` at10:39UTC. Same CLI2918222, original
+thread01a2046a-45eb-7452-8fb0-6d924bb320a6; no replacement worker or branch.
+Clean b5a740e source was fast-forwarded to complete ROOT565cd436e after verifying
+bundle8d838127/sole60741 prerequisite. Incoming IMState.function_values is now a
+work_vector; interpreter, semantic generic scratch and borrowed-ledger changes
+were source-reviewed. Previous da9 runtime receipts do not validate this ABI.
+D1 holds the host heavy lock; D2 has not started a build or changed the transport.
+Prepared package_b5a740e is UNRUN and now stale; replace its source guard before
+any later package check. Existing per-file primary audit coverage remains40/40.
+
+Current own container cpuset0,2 and `/proc/self/status` allowed CPUs0,2 disagree
+with `getconf _NPROCESSORS_ONLN`8. Saved OS observations are under
+`build/d2_ecs/host_capacity_20261123`; they are not a direct Tower capacity
+measurement or a cause established for L2's Cancel4 nonoverlap. Linux currently
+calls get_nprocs, clamps256 and falls back1. CPU affinity is a thread attribute;
+new pthreads inherit it. Primary references:
+[sched_getaffinity](https://man7.org/linux/man-pages/man2/sched_setaffinity.2.html),
+[CPU sets](https://man7.org/linux/man-pages/man3/CPU_SET.3.html),
+[pthread affinity inheritance](https://man7.org/linux/man-pages/man3/pthread_create.3.html).
+The GNU libc manual fetch timed out; no claim based on unavailable content.
+
+Proposed correction: query pid0 each time, use native unsigned-word mask storage,
+grow only on EINVAL with checked extent arithmetic, count actual returned bits
+and retain WorkPoolMaximumCapacity. Initial stack extent is a fast path, never
+an assumed highest CPU ID. Temporary larger storage uses compiler_buffer APIs
+and ends before return. Return0 on unavailable/error/empty mask rather than
+invent online-core entitlement. Scope excludes cgroup CPU-time quota and Windows
+processor groups; neither is fixed by querying Linux affinity. Exact code,
+allocation behavior and measurements remain pending.
+
+Caller review: WorkPool rejects0 as Capacity and clamps requested slots before
+allocation; compiler_world_create rejects0/above shared maximum. Frontend and
+standalone backend units clamp to provider capacity before ledger construction,
+which rejects0. driver_units' provisional0-to1 still goes through that frontend
+check. compiler_worker_capacity intersects world limit with host capacity;
+wasm_link_jobs can retain its ordinary serial path. No new scheduler or world is
+needed. Provider imports must preserve independent transport composition: the
+standalone signal observer lacks a memory provider, and adding compiler_buffer
+externs requires a coordinated existing-provider import. D1 was notified before
+editing its tests/manifests. Existing fixed-four tests must use an actual
+four-CPU allowance or report unsupported; changing their expected count cannot
+be labeled four-lane evidence. Capacity/queue width alone still proves no useful
+overlap. L2's unchanged Cancel4 oracle remains open.
+
+This entry records read-only review, not a runtime change; profiling is currently
+inapplicable. Before/after public-build capacity microcosts, allocation/retention,
+restricted/unrestricted pools, checked compiler outputs and actual1/2-worker
+costs are required after D1 drains. Prior native/WASI/instrumentation receipts
+remain attached to their original inputs. No publication lease or completion.
+
+### 2026-11-23 D2: affinity correction implemented; frozen measurements/instrumentation
+
+Implementation over565cd436e: work_linux now queries sched_getaffinity(pid0) on
+every call, counts native-word bits up to existing WorkPoolMaximumCapacity,
+starts with one stack word and doubles checked storage on EINVAL through
+compiler_buffer_allocate/free. Non-size errors, empty masks and physical
+allocation denial return0; existing admission rejects it. Temporary storage
+ends before return. This is a current-thread snapshot, not an OS CPU lease;
+already-open pools are not resized when external affinity changes. The query
+does not model cgroup CPU-time quotas, Windows groups, or machine-wide race
+freedom. Explicit Linux glibc x64/AArch64 ABI only; only x64 executed here.
+
+Caller audit found a real standalone linkage consequence: work_signal_observe
+previously imported only the transport. After the change its supported link
+fails1 on compiler_buffer_allocate/free. Under D1's narrow authorization it
+imports the existing memory provider; both try/wait modes pass before/after.
+The negative race probe remains untouched: no newly required provider change
+was demonstrated. No generic CMake or other owner's production file edited.
+D1 received exact draft fixtures/recipe for independent review/registration.
+
+All logs/products/source archives are under build/d2_ecs/affinity_565. Host is
+the same SteamDeck, tower_build image4be584f, LLVM/Clang19.1.1, own cache/container,
+cpuset0,2, public bootstrap9653, jobs1 for builds, no bootstrap override. Sole
+host lock acquired10:55:24 after D1's actual10:54:35 drain. Before native build
+23actions203.90wall/198.78CPU/749356KiB; after3actions4.91/4.75/187832. These are
+different incremental work amounts, not a before/after compiler speed claim.
+Before compiler1d4bf5fbf7db360faa372f38719a2402760e30391a2d40cae4739a7e2438342e;
+after66eb1ccaac629841b4da33f210d04b2d443b657115744e0a67aab4676225363c.
+Full packaged resources are byte-identical. Both packages remain frozen.
+
+Public smallest transport/profile/regression compilation passes. The libc
+CPU_COUNT oracle first fails1 with the precise capacity mismatch, then passes
+capacity2/lanes2. Each worker temporarily restricts itself to one allowed CPU,
+checks1000queries, waits while the parent checks its own unchanged mask, and
+restores its mask before joining. All stack captures/signals remain alive through
+drain. This establishes per-thread behavior on this host, not universal overlap.
+
+The serial fault fixture links a separate actual transport object and three
+GNU boundary wrappers; ordinary source compilation with explicit object emission
+is required for mutable test state. A single borrowed local state pointer ends
+before main returns. Actual compiler-buffer ownership is retained: sparse
+IDs>1024, zero/full masks/shared ceiling,64deterministic libc bit-count comparisons,
+non-size error without allocation, error after growth, first/later allocation
+denial, retry and pool Capacity all pass.412allocation attempts,544peak underlying
+requested bytes including allocator header,0retained; live owner cannot be
+replaced before free. Overflow guard is source-reviewed, not forced via enormous
+real allocations. This injected serial check does not sanitize threaded allocation.
+
+Actual supported address/LSan and TSan instrumentation passes24executions:
+three each of real affinity, mask/failure fixture, observer try and observer wait
+in both modes. All four actual Tower units carry access hooks; matching retained
+guest normal object equals the current native guest object before reuse of its
+instrumented form. Normal/instrumented results agree. Source UBSan, foreign libc/
+LLVM internals, AArch64 execution and whole-compiler thread coverage remain
+unsupported/unrun here. This receipt is scoped, not full union acceptance.
+
+Frozen16/1000-function reference inputs still yield15/999. Initial16compilations
+and32alternating paired before/after compilations pass; every object is identical
+to the independently checked baseline across workers1/2 and both compilers.
+Sample0 is warmup; three retained fresh-process samples, warm filesystem, same
+x64 target/ordinary optimization and explicit jobs. Median wall/CPU seconds and
+process peak RSS KiB (RSS is not a live allocation limit):
+
+| Input/workers | Before | After |
+| --- | --- | --- |
+|16functions/1|2.11/2.09/183752|2.38/2.34/183688|
+|16functions/2|3.57/4.15/194744|3.35/3.70/194804|
+|1000functions/1|5.93/5.72/212312|2.88/2.83/212236|
+|1000functions/2|3.97/4.43/224196|3.58/4.03/224316|
+
+These are noisy observations, not a broad speedup. Before large-serial spans
+2.77–7.07s; small serial's median regresses12.8%. Sample3's before-large parse+
+check6.448s versus after2.465s, involuntary switches614 versus98, CPU6.83versus2.95.
+No specific cause is proven. Observed powersave governors/variable frequencies
+and absence of perf/strace/valgrind in the image are recorded; a narrower same-path
+CPU0 serial followup is running to investigate rather than erase these samples.
+
+100000-query loop medians6.60393us/call before versus.428179us after; whole-process
+median wall/CPU/RSS .66s/.65s/1788KiB versus .04/.04/1664. Before actually opens8
+pool slots despite two allowed CPUs; after2. Query-loop timing excludes pool setup.
+This is the affected microbenchmark, not compiler throughput. Existing CompilerWork
+large metadata profile records real overlap1/2, checked67125248sum,32784entities/
+32768components and complete retirement. Selected job wall/CPU medians in ms:
+before1worker37.854/36.292,2workers25.426/29.759; after1worker20.120/19.784,
+2workers24.148/36.343. Two after workers overlap but cost more than serial.
+Serial charged peak1950176B/metadata5120B; concurrent peaks vary with actual
+interleaving, metadata10240B; final ledger/physical owners retire. This does not
+measure packed node payloads, all heap retention, per-lock idle or critical path.
+
+Failures remain preserved: initial profile reserved-name parse1; real-fixture
+extra-parenthesis parse1; fault attempts with inappropriate library mode1 (including
+two initialization-only revisions), then ordinary default-output duplicate-main1
+before explicit --emit object. All owned children drained before correction.
+A tool-orchestration JS parse rejection executed no shell/source mutation.
+No new language feature, private seed or fixture expectation weakening was used.
+
+D2 completion of this frozen host-fix validation (not the integrated release):
+the same-path CPU0 serial followup passes16identical object checks, plus actual
+one-CPU capacity/pool1. Three retained medians: small before6.25wall/6.03CPU/
+183392KiB versus after6.45/6.21/183328; large7.17/6.91/210872 versus
+7.33/7.04/210776. Residual+3.2%/+2.2%wall and+3.0%/+1.9%CPU remain explicit.
+Recorded pre/post frequencies differ materially between CPUs0/2 under powersave;
+this is evidence of host variability, not a demonstrated full causal explanation.
+No further unchanged expensive compiler matrix is justified solely to select a
+favorable sample. Correct affinity and the microcost improvement are the claims;
+strong serial/end-to-end performance remains broader work.
+
+D1 independently reviewed all original three fixtures/transport and approved the
+ownership/drain design. Its malformed-input finding was addressed by importing
+existing host.driver_options and using driver_unsigned_limit with the shared
+capacity maximum and actual usize limit, instead of strtoull. No duplicated
+decimal parser or shared production edit. New work_linux_capacity_arguments uses
+the existing Tower process transport, eight malformed strings in both positions,
+a valid one-query control, exact exit statuses and reaped children. Old profile
+fails1 at accepted +1; corrected one passes16malformed cases/control. Both parent
+and child are address/thread instrumented and pass (17child processes plus parent
+per mode). This guard does not change the production compiler/previous four
+instrumented units. Repeated guarded profile median.427071us/query,
+.04wall/.04CPU/1576KiB; public profile compile3.20wall/3.17CPU/189684KiB before
+versus4.88/4.81/191260 after shared parser import, one sample each. That extra
+fixture build cost is recorded, not called free or a compiler throughput change.
+
+Unrestricted case temporarily assigns only D2's idle container the actual online
+CPU list0-7. Normal/address/thread real-affinity cases pass8capacity/2fixture
+workers; before/after profile checks8actualslots in four100000-query samples.
+Original0,2 allocation is restored and verified. First host wrapper attempt127
+because this host lacks /usr/bin/time is preserved; its trap restored the CPU
+setting. Corrected timing runs inside the supported image. No policy/security
+change or sibling-container mutation. Existing pool's unchanged normal and
+partial/full failure-drain scenarios then pass18processes across normal/address/
+thread under0,2, plus three complete scenarios allowing0-7 and actually using
+four distinct/barrier-proven workers. These are correctness stress, not four-core
+throughput measurements. New pool/dispatch actual LLVM hooks and matching current
+transport/guest are retained. All owned jobs drained before the lock was released
+at2026-11-23 11:29:14UTC;133GiB disk/9.8GiB memory available, no cleanup.
+
+D1 owns the now-demonstrated generic TowerRuntime SOURCE-without-bindings missing
+--emit object issue and the new fixture registrations. Exact failed command/source
+and duplicate-main stderr are preserved in validation_attempt4, successful direct
+object recipe in validation. Do not rename symbols merely to force the IR path.
+No generic manifest change here. New ROOTbff/d3 bundles were queued and the latter
+verified/fetched read-only; neither was adopted mid-freeze. Current query-smoke/
+whole-union browser/generation/final clean-cache bootstrap and atomic publication
+remain open. Prior L2 Cancel4-on-two-CPU failure is not closed by this correction;
+current tests have explicit actual lane counts. Public-pin native rebuilds above
+are coherent incremental builds, not mislabeled empty-cache release checks.
