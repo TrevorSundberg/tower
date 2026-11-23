@@ -106,11 +106,6 @@ fn sem_lower_finish(c: SemanticContext*, signature: bool): void {
 fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
     var kind = signature ? &c.aggregate_preparations : &c.lowering_results;
     if !sem_ok(c) || (!signature && !c.surface_expressions && !c.has_defer) { return *kind; }
-    // The lifecycle join is created only after both producer sets are registered
-    // for the frozen ordinary functions. Reuse that graph-owned admission receipt
-    // instead of rescanning every signature at each bounded lowering wave.
-    // Standalone pumps still admit newly available bodies through the scan below.
-    if work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.LifecycleLowered), 0) != 0 { return *kind; }
     // Source spellings and names produced by earlier control lowering are frozen
     // before dispatch. Every function owns its generated-name table and prefix.
     sem_control_names(c);
