@@ -1,0 +1,70 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .host.memory;
+import .host.work_portable;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+var ContainmentRounds: usize = 4;
+fn check(ok: bool): void { if !ok { trap("Containment profile mismatch", 0); } }
+fn timestamp(): i64 {
+    var stamp: i64[2];
+    check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Containment profile owns no lifecycle", 0);
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    check(argc == 2 && sizeof(usize) == 8);
+    var count: usize = 0;
+    if strcmp(argv[1], "small") == 0 { count = 1024; }
+    if strcmp(argv[1], "large") == 0 { count = 65536; }
+    check(count != 0);
+    var store = entity_store_create();
+    var roots: Entity*[2];
+    var root_count = sizeof(decltype(roots)) / sizeof(Entity*);
+    for(var i: usize = 0; i < root_count; i++) { roots[i] = entity_create(store); }
+    var nodes = alloc(Entity*, count);
+    check(nodes != null);
+    for(var i: usize = 0; i < count; i++) {
+        nodes[i] = entity_create(store);
+        check(nodes[i] != null && entity_attach(nodes[i], roots[0], null));
+    }
+    var before: i64[18];
+    var after: i64[18];
+    check(getrusage(0, &before[0]) == 0);
+    var start = timestamp();
+    // Move from the last child first: ordered unlink has zero following entries.
+    // The baseline still searches linearly for that last child's index.
+    for(var round: usize = 0; round < ContainmentRounds; round++) {
+        var from = roots[round % root_count];
+        var to = roots[(round + 1) % root_count];
+        while from.child_count != 0 {
+            var child = from.children[from.child_count - 1].entity;
+            check(entity_attach(child, to, null));
+        }
+    }
+    var elapsed = timestamp() - start;
+    check(getrusage(0, &after[0]) == 0);
+    var owner = roots[ContainmentRounds % root_count];
+    check(owner.child_count == count && store.entity_count == count + root_count);
+    for(var i: usize = 0; i < count; i++) {
+        check(nodes[i].parent == owner && nodes[i].references == 2
+            && owner.children[i].entity == nodes[i]);
+        entity_release(nodes[i]);
+    }
+    var retained = store.allocation.capacity;
+    var slots: usize = 0;
+    for(var i: usize = 0; i < root_count; i++) { slots += roots[i].child_capacity; }
+    for(var i: usize = 0; i < root_count; i++) { entity_release(roots[i]); }
+    free(nodes);
+    check(store.entity_count == 0 && entity_store_dispose(store));
+    print(count); print(ContainmentRounds); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(retained); print(slots * sizeof(EntityChild));
+    return 0;
+}

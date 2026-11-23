@@ -74047,3 +74047,160 @@ open; no A2 publication lease exists. No todo or another owner's production edit
 ### 2026-11-23T10:45:31.0103565Z ROOT: Integrate checked borrowed scheduling reservations
 
 Reviewed complete A2 ddefda0e, bundlec91fea22. Shared validate_result checks exact owner/revision/slot/generation/lanes/bytes under the existing gate without changing receipts, diagnostics or counters; release reuses the internal entry validation within its locked transaction. No pointer escapes the transaction. Native, malformed/stale/no-allocation cases, real four-worker churn,18 supported sanitizer invocations and actual WASI pass on owner's source. Selected ledger microcosts remain+0.49%/+1.61%; final fixed-path32 compiler outputs/canonical/reparse pass. Borrowers still require an executing parent lane and caller-owned immutable receipt/ledger lifetime through joins and publication: validation neither pins nor admits work. The eight-stage node observer checks stable identities and real intervals; it does not implement charged node pages. Typed staged create/attach/references producers and reference-counter ownership remain open. Root review passes, with combined runtime/release acceptance still pending and todo untouched.
+
+### A2 typed containment and stage admission (2026-11-23, draft evidence)
+
+Reviewed coherent08c383ef (ROOT565 full function/scratch/grant history plus A1
+proof/publication d60fc743 and A2ddef). Frozen baseline native12 actions passes
+50.862wall/55.925user/4.967sys,11 runner actions21.403/28.513/2.218.
+Query/resource/receipt/units22.696s/control/parser/grammar-resource/storage,
+registered12 query-failure cases and56 A1 admission/proof/aggregate cases pass.
+Compiler d18c5bb81cfec1f1ae5ab5d6f43b1701e080bad05d25b94f051fc5b51f3cc23c
+and complete hashed resources are retained independently of the earlier9329
+baseline04b3955f. Old77c Capacity failure remains a historical failed receipt;
+its unchanged oracle now actually passes with B1's producer repair.
+
+The new standalone Tower lease reproduction fails before mutation changes:
+four failed assertions/exit1 cover moving a child out of a leased old parent
+and replacing a leased named child. Existing attach checks only the incoming
+child and destination parent. The second case unlinks the leased old child,
+then entity_release refuses to decrement its reference, losing containment
+ownership. Cleanup in the before observer explicitly releases that stranded
+reference after discarding the lease. It does not turn the regression into pass.
+
+The owned draft adds entity_attach_result and the thin declaration, retaining
+the bool wrapper. Invalid covers null/self/foreign/size overflow; Busy covers
+all affected leases and pins; Memory is actual host allocation failure;
+Exhausted is a new owning retain at maximum count. Moving an existing child
+transfers its existing parent reference, including at the maximum counter.
+Reserve/copy precedes unlink. Named replacement lookup is reused across the
+transaction, avoiding a second linear name scan; self-renaming is not replacement.
+
+entity_stage_create_result and named_result require a caller-private receipt,
+clear it on success, reject null/foreign/overflow as Invalid and a parent owned
+by another stage as Busy. Allocation remains raw Memory for now; no physical
+node budget or changed layout is claimed. The reference-queue result validates
+all nodes before appending, preserves ignored null entries, accepts count0/null
+array on a valid stage, and reports exact Invalid/Memory without shared error
+writes. Queued length/held references remain unchanged on failure; capacity can
+grow. These are actual draft implementations, not yet cross-lane adoption.
+
+Source audit confirms syntax_origin_copy_staged installs owning payload fields
+only after queue admission succeeds. No queue-failure finalizer defect is
+inferred there. Counter exhaustion in entity_stage_hold remains unresolved:
+naively failing hold is unsafe because discard finalizers would release
+unacquired references. It needs a durable ownership/abort representation.
+Adjacent replace_child and take_last_child also need the same affected-child
+lease audit; they are not silently covered by attach's new checks. Published
+ownership is acyclic by caller contract, not newly guaranteed by this patch.
+
+Focused three-leaf builds, lease regression, typed invalid/order/alias/null/
+exhaustion checks, actual serial allocator failure sweeps, original concurrent
+stage fixture and fixed eight-stage node observer pass before final profiling.
+Each fault bound is the successful operation's measured allocation count;
+failed named creation includes name allocation, stage vector growth and node
+allocation. Every trial checks final owned buffers/graphs close. The ordinary
+concurrent fixture uses the production allocator and pthread transport.
+
+Preserved setup failures: first cache-only lease probe used a mutable module
+counter, rejected as a library top-level executable; replaced it with a local
+counter. New fault fixture initially omitted the enum's required base syntax;
+fixed to supported u32 enum. Its standalone fault runtime does not provide
+print/tower_print; use the existing puts boundary, not another runtime provider.
+All failed children drained before edits, and raw errors remain in logs.
+
+The wide ordered-containment observer finds an additional real algorithmic
+cost: even removing the last child performs a full linear entity_child_index
+search.65536 children/four reverse-order transfers take about1.85s in both old
+and typed-only implementations. The selected candidate tests the last child
+first, retaining the exact ordered scan/copy fallback. No extra authoritative
+index or Entity ABI field is introduced. Preserve typed-only entities source
+2e0174263e7e7b5cfdc2f80835595944414bfcf971a400118d2a873fe18ed02a and observer
+8cd54cff40174509ae135e7b8fbfd133246ef79e1a9d902fdd19577a6f4b19f9 for three-way
+paired timing. This is a specific workload hypothesis, not an end-to-end gain.
+Final candidate instrumentation/native/WASI and matched profile receipts follow
+only after actual completion. No publication lease or lane acceptance closure.
+Selected typed/tail candidate completed entity_typed_closure1 at11:08:21Z,
+exit0/container drained.3smallest units and5 focused executables pass.24 fresh
+ASan+LSan/TSan executions cover lease rejection, wide ordered containment,
+real4worker node forests and real2/4worker stage publish/cancel/failure/name
+collision/partial admission. Per fixture instrumented definitions156/122/177/
+233 plus47 production runtime functions;3 repetitions in each sanitizer mode.
+Fault injection is a different serial executable, never threaded sanitizer
+coverage. Source UBSan, Windows sanitizers, whole-compiler/system-library races
+and hosted browser threading remain separate unsupported/unrun gates.
+
+Canonical native6actions29.258wall/23.819user/2.829sys;4runner links1.246/
+.075/.258. Query .244,resource .040,receipt .041,units22.305,control34.056,
+parser .047,grammar-resource1.362 and storage+12registeredcaller .394s pass.
+All source hashes remained frozen. After compiler2415f8e84a3f965bb5b3b9a925df8a922d204d78d71636325c65cb142b8dcf03.
+Actual Node21.7.3 WASI lease test returns0 using wasm
+b6704534c3c5776985589c680d70c3133354c41ce221857662654783e3f9a369.
+The SDK's explicit wasm32-wasip1 triple override warning is retained. This is
+serial WASI execution, not browser-thread publication evidence.
+
+Matched profiling uses KinmenA Win11/Linux Docker, CPU12-23/24GiB, public9653
+bootstrap, Clang19-O1 native, production allocator/transport, warm OS cache and
+fresh processes. SAME actual install path/cwd for every variant; copies and
+checks happen outside timing after prior children drain. All observer inputs,
+compiler inputs and resources are frozen; every output/return checked. Three
+alternating pairs plus excluded warmup per cell. A1 quiet ACK/start/release
+receipts are in status/inbox:120 standalone runs11:10:51.692-11:11:10.872,
+then32 compiler runs+canonical/reparse completed11:12:52.989, release11:12:56.587.
+No build/source mutation occurred in these windows. All source resources and
+canonical output SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5
+agree. Small Tower and larger Foundation are different grammars, not a valid
+cross-size or cross-language scaling comparison.
+
+| Ordered containment observer | Before | Typed-only linear | Typed + tail check |
+| --- | --- | --- | --- |
+|1024children/four transfers, phase wall ns/CPU us|553428/559|569969/575|34343/40|
+|1024whole process wall ns/CPU us/RSS KiB|6273850/1901/1388|6288884/2006/1588|5644361/1439/1336|
+|65536phase wall ns/CPU us|1798113035/1798125|1775248352/1775272|2253766/2263|
+|65536whole process wall ns/CPU us/RSS KiB|1811669543/1806943/15964|1788643220/1784115/16180|15172485/10475/15976|
+
+Store descriptor2200B and retained child arrays32768/2097152B are identical
+across variants. Creation/release/checks are outside the phase but inside process
+metrics. This large specific-pattern improvement is removal of quadratic
+search, not a compiler-wide speedup. All canonical child order and refcounts
+are checked. No new allocation or extra index is introduced by the tail check.
+
+| Compiler workload/workers | Before wall s/CPU s/RSS KiB | After |
+| --- | --- | --- |
+|Small Tower/1|1.214026266/1.127106/178400|1.200829477/1.114082/178144|
+|Small Tower/4|1.073569361/1.218832/195784|1.076083104/1.221575/195128|
+|Larger Foundation/1|.631305917/.566948/207384|.616652011/.550086/207800|
+|Larger Foundation/4|.792263536/.762934/208744|.790488836/.759387/209044|
+
+Observed wall deltas-2.32% to+0.24%, CPU-2.97% to+0.23%; no universal neutrality
+claim from three pairs. RSS varies-656 to+416KiB; failed admission trials and
+complete node teardown check retained ownership independently of RSS.4workers
+help small Tower wall time but lose on this larger Foundation input.
+
+The fixed8stage node observer retains exact same1024/65536-node graph and
+measures actual execution intervals, publication, release, CPU and RSS. Large
+node payload bytes12058624 are still raw/unaccounted. Ledger peak2320/2488/
+2712B and retained metadata320B are unchanged at1/4/8workers. Large overlap
+really reaches1/4/8; small8worker runs reach only4-7, not the queue width.
+Small serial create/join .080518->.081149ms(flat), .082041->.079427ms(tree);
+thread startup makes small parallel work slower. Large phase ms1/4/8:
+flat4.786984/2.860024/4.803569 ->5.185411/2.846007/5.820584;
+tree4.836446/3.095826/5.472922 ->4.763702/3.276768/4.194073.
+Four workers help creation, but ordered publication/reclamation limit full
+process scaling;8workers spend more CPU and are generally unprofitable.
+
+Initial three-pair large4tree process wall17.314105->19.302936ms, CPU17.817->
+18.718ms,RSS15880->15876KiB. Large1flat phase+8.3% conflicts with tree-1.5%,
+and8flat wall+10.6% with lower CPU while8tree improves. Preserve these observations
+rather than claiming neutral node cost. One bounded9-pair large1/4flat/tree
+control is requested after A1's current coherent job drains; no full compiler
+matrix rerun is justified. Raw logs entity_typed_* and Tower median parsers
+retain every sample, including warmups outside reported medians.
+
+Independent cache-only entity_containment_followup now reproduces the adjacent
+replace_child/take_last_child lease findings:2failed assertions/exit1, not a
+passing regression. It releases the old implementation's stranded/transferred
+holds during cleanup. Proposed typed result wrappers were posted in A2status
+before caller adoption; no production edit to these paths in this checkpoint.
+The full A2 goal, node physical accounting, hold-exhaustion ownership, complete
+shared budget/locality acceptance and integrated leased publication stay open.
