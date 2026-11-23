@@ -2131,3 +2131,28 @@ text-clearing persistence assertions after owner integration. A1 publication/que
 and L2 type-receipt fixtures remain with those owners. Historical execution_graph
 hashes remain supplemental evidence; no blind oracle rebasing is proposed.
 Source review cannot establish a new runtime pass or a current miscompile.
+
+### Measured phase and provider findings on c08d6e82
+
+The new resource fixture compiles but exposes a production source-order failure:
+readiness order after shared-gate completion selects29 before11 in two immediate
+nested-growth modes. Both actual denial probes and cleanup checks pass in the
+first6cases; remaining18unrun after aggregate fail-fast134. A1 owns production
+selection. Failure-only puts diagnostics preserve all oracles; unsupported
+print-link attempt1 is retained separately. Current runtime acceptance is open.
+
+target_once adds one host.memory import after an actual supported-target missing
+compiler_buffer_free failure. Existing named lane/repeat/protocol constants and
+pool.count loop bounds remain unchanged; no duplicated array-size computation.
+Exact linked objects formerly lacked all three required buffer providers; after
+change each has one definition. Public leaf/build and3normal runs pass with real
+prepublication blocking and exact-once repeated calls. Timing below0.01s is not a
+speedup result. Final scoped instrumentation and integrated release remain open.
+
+The target provider milestone now has3native+3ASan/LSan+3TSan passes on the exact
+one-import source. Real overlap/publication assertions remain unchanged. Actual
+access hooks cover fixture, worker transport/dispatch and guest runtime; two
+registry wrappers carry sanitizer attributes/init but no payload-access hooks.
+Two overstrict evidence-script failures were corrected from inspected IR/symbols,
+not ignored. No UBSan support in this TowerLLVM19 path, external libraries remain
+uninstrumented, and no universal race/whole-compiler claim follows.

@@ -204,6 +204,16 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     }
     resource_check(program.error.length != 0 && program.error_offset == 11,
         "Required and inferred resource denial selects the first source-ordered diagnostic", &failures);
+    if program.error.length == 0 || program.error_offset != 11 {
+        puts(growth ? "Diagnostic phase: nested growth" : "Diagnostic phase: startup");
+        puts(inferred ? "Diagnostic stage: inferred" : "Diagnostic stage: required");
+        puts(isolated ? "Diagnostic owner: isolated" : "Diagnostic owner: immediate");
+        puts(program.error_offset == 29 ? "Selected later source offset 29"
+            : program.error_offset == 0 ? "Selected source offset 0" : "Selected unexpected source offset");
+        puts(first.error_offset == 11 ? "Earlier receipt retains offset 11" : "Earlier receipt has unexpected offset");
+        puts(second.error_offset == 29 ? "Later receipt retains offset 29" : "Later receipt has unexpected offset");
+        if program.error.length != 0 { puts(program.error.data); }
+    }
     for(var index: usize = 0; index < context.evaluation_jobs.length; index++) {
         var result = bits(SemanticEvaluation*, context.evaluation_jobs.data[index]);
         var query = work_find(&context.queries, result.subject, convert(u32, SemanticQuery.Evaluation), 0);

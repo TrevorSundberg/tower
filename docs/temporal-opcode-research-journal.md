@@ -62988,3 +62988,96 @@ No production/test source changed during this review. Performance measurements
 are inapplicable to this documentation-only addition; current fixture measurements
 remain pending the D2-owned heavy slot. Both D1 containers have only idle sleep
 processes. No publication request, lease or release claim.
+
+### D1 phase-correct denial exposes production diagnostic-order failure
+
+Frozen c08d6e82 (Tower inputs421e9353; complete ROOT9b318 plus L145dd/L29b)
+compiled through public9653f818 in Docker4be584fb, LLVM19.1.1, Linuxx64 Release,
+jobs1, physical CPU affinity0,2. Public resource leaf7.87wall/7.42CPU/213164KiB;
+LR leaf14.59/14.11/294220. Canonical native22steps220.68wall/214.23CPU/732552KiB,
+exit0, compiler61b0690b02a4fe2c8ec31fc97eb127f301d00476887131f66eb3cf5142e30289.
+Complete compiler plus49resources were saved; all41Tower resources match source,
+with8runtimeLL files retained. Input manifests checked unchanged. This incremental
+public-bootstrap build is not the final clean integrated release matrix.
+
+For an equivalent selector baseline, only the old resource fixture was restored,
+with export added so the identical new LR resource-smoke selector/timing could
+call it. All other inputs were frozen. Build4steps29.21wall/28.41CPU/316688KiB;
+old24cases passed0.02wall/0.01CPU/51032KiB. Their weak peak-only growth assertion
+is not evidence of successful entry followed by actual nested-memory denial.
+After draining, restored the committed new fixture and rebuilt the affected
+query object/LR executable. New first width4/workers1 group failed134/SIG6 with
+two source-order diagnostic errors; exact startup/nested-growth probes, Capacity,
+no-result/no-replay and world/pool/ledger cleanup checks did not report failures.
+The fail-fast group boundary means remaining18cases were NOTRUN, not passed.
+
+Failure-only Tower diagnostics established both required/immediate and inferred/
+immediate nested-growth cases select program offset29 despite the first result
+retaining11 and the second29. Isolated inferred growth selects11. The production
+pump takes Evaluation tickets in readiness order and restores each joined failure
+in that same order. Completing the shared prerequisite exposes the distinction
+between ready order and owning producer order. Root independently confirmed the
+source path; A1 owns the correction, including earlier pending/window boundaries
+and the forthcoming sticky shared resource receipt. Numeric source offsets are
+not a global order across modules. D1 did not weaken the source-order oracle,
+sort its fixture queue, or edit production code.
+
+The first diagnostic attempt used print and linked unsuccessfully because this
+LR composition has no tower_print provider. Preserved that exit1/source/log;
+replaced only failure presentation with existing puts and known-offset labels.
+Its public leaf and LR build passed, then reproduced134 with explicit29/11/29.
+Saved diagnosed runnerf8498f564ce99a660a96ebbc78ee2963e9453fd041904425cff031e3fb2a374c
+and all original receipts under build/d1_ecs/resource_phase_probe/{failed_v4,
+failed_diagnostic_link,failed_offset29}. GNUtime's trailing0 after signal6 does
+not supersede process134. Paired performance and current query instrumentation
+remain unrun because correctness failed. No performance or release claim.
+
+### D1 resumes same session and repairs the target initializer provider
+
+After the user-authorized CLI restart, same thread01a2046a-4644-7ab1-a0ae-
+abd80210f013 resumed as PID2918210. Both D1 containers had only idle sleep;
+prior owned heavy.lock remained. Preserved its history and updated the PID after
+reconciling terminal receipts. The pending target_once build had finished exit1:
+undefined compiler_buffer_free,11.73wall/11.46CPU/186580KiB. Its six linked objects
+provide none of compiler_buffer_allocate/allocation_size/free, all newly imported
+by budgeted WorkPool. This is an actual supported-target failure, not a skip.
+
+Under root's exact ownership assignment, added only import .host.memory to
+scaffolding/tests/target_once.tower. No manifest, allocator, worker algorithm or
+oracle changed. Public leaf4.19wall/4.12CPU/187784KiB; incremental target3.08wall/
+3.03CPU/187232KiB. Link symbol inspection finds exactly one definition of each
+required buffer function. Normal target17a5e333ad273306f59a347a229e0b51dd7ac1106eeb297a59a51f15ef4af8ae
+passes3/3 with unchanged four-caller barrier, blocked initializer publication and
+64repeatedcalls/caller oracle. Wall/CPU below GNUtime0.01s resolution; peak RSS
+1732/1792/1672KiB. Before did not link, so no successful before runtime, ratio or
+speedup is asserted. A serial run cannot satisfy this concurrency contract;77
+remains unsupported, not a pass. Scoped supported sanitizer checks are pending.
+Logs/scripts/source/object/symbol manifests: build/d1_ecs/target_once_provider.
+
+Target initializer scoped instrumentation completed on the unchanged one-import
+source: ASan/LSan3/3, TSan3/3, all exact concurrency receipts and empty stderr.
+ASan times0.03/0.03/0.03wall,0.03/0.02/0.03CPU,17052/17128/16976KiB;
+TSan0.02/0.02/0.03wall,0.01/0.01/0.02CPU,28964/29220/30436KiB. ASan binary2013bba5,
+TSan2f8e1e5b. Nine total normal/instrumented runs retain source hashes and actual
+fixture/transport/guest-runtime access hooks. Saved all six object/IR pairs for
+each instrumented mode. LLVM19 sanitizer mode provides no UBSan coverage here;
+external system libraries are not rebuilt with instrumentation. No intentional
+invalid-memory/race probe ran. These checks do not establish universal race freedom.
+
+Two evidence-script failures were preserved: first incorrectly required access
+hooks in registry wrappers which only return an address or call dlsym/pthread_once;
+second omitted the actual __tsan_unaligned_read4/8 transport symbols. Inspecting
+source/IR showed sanitize attributes and initialization/global registration for
+the two wrappers, with direct access hooks in the other four objects. Corrected
+only those explicit checks, retained all failed script/build/status receipts, and
+resumed only the pending TSan runs after ASan3passed. Initial address9step build
+14.31wall/13.55CPU/181248KiB; thread9step16.74/16.21/181648. Later no-op build checks
+are recorded separately, not substituted for those compilation costs.
+
+All owned jobs drained; verified both containers idle before releasing the D1
+heavy slot at2026-11-23 07:51:15UTC and notifying D2 through its inbox. Source-order
+failure remains open with A1. Resource reproduction archive
+D1/resource_phase_c08_receipt.tar SHA1fb47becf4e9bc7c68ac92643c004ef63b8d023bb42d0234781387dd18e800fe
+contains the complete current compiler/resources, before runner, two failed
+candidate runners, original source/build/run logs and verified relative hashes.
+No new deployment request or integrated release claim.
