@@ -94097,3 +94097,17 @@ comparison remains attached to902f7c4d. All processes exit0/drained, no broad
 matrix or private bootstrap adoption, todo/history preserved; normal push follows.
 
 A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
+
+
+D2 second push-race recovery:792adde3 lost another main advance. Full merge
+5fc375e87bfd99840a714c7f8630e331df04438a preserves25dddd04 and A1 executable
+alias publication changes. Owned fixture/wrapper/registration bytes unchanged.
+That producer is linked into these gates, so three required native actions
+refreshed it (44.59wall/43.25CPU/1076124KiB). Focused alias32/64 workers1/4
+passes10.13/10.04/197452; exact-output8/8 CTests pass9.36/9.20/176920, exit0.
+No new boundary control or broader test run. Final frozen Tower source manifest
+e0d83c6e99fc859e39a59d1b6cddaee19366b8c2044fecdd8770752d15fcb129 matches after
+checks; compiler96ed3119a9fa47883f261cc3fc2740390185ea822719aa11e2da66cebe94796b,
+runner e65cbdaae0d646c16795b52bef9552f182b17440ae6c1801d45a2d546c506000.
+Original and each merged receipt retained under final_*/joined_*/merged_* in
+alias_gate_7890ebd7; no relabeling. Jobs drained, lock released, normal push retry.
