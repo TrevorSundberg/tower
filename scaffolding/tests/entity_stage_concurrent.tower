@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .library.entities;
 import .library.entity_stage;
 import .library.work_graph;

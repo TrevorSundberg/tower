@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;

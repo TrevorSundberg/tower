@@ -1149,3 +1149,70 @@ source hash verification; compiler a7a6a005, source archiveb8b0c9b7 and receipt
 failures remain in the journal. Whole-compiler current instrumentation, isolated
 post-import profile refresh, packed storage/staged transfer and integrated release
 remain open. Core35/35 and expanded111/111 review counts are unchanged.
+
+### Constructor and retained scheduler storage review, 2026-11-23
+
+Reviewed2031d90d plus constructor patchfe458ae8 and B1 helperae819791. This is
+source review and focused validation; whole-compiler integration and measured
+constructor costs remain pending. The following replaces the affected allocation
+conclusions in earlier rows, without changing their scheduler/identity contracts.
+
+| Path relative to scaffolding | Ownership, storage and disposition |
+| --- | --- |
+| library/work_buffer.tower | B1's nongeneric element-growth helper preserves validation, checked size/alignment, minimum8/doubling and full replacement-before-retirement. No new allocator or layout cast. A typed wrapper publishes only on success. Before/after serial cost remains under investigation; do not infer zero runtime cost from equivalent source behavior. |
+| library/work_vector.tower | Owner/length and no-growth checks remain in the typed wrapper; shared growth removes repeated generic implementation. Still a distinct physical owner, with no element destructor/noalias promise. Normal, real4pthread, serial faults and18 ASan/TSan executions pass after helper adoption. |
+| library/work_graph.tower | All nine derived arrays now use WorkVector with one immutable borrowed budget. Handles remain ordinal; task pointers do not survive growth. Initialization allocates nothing, reset retains charged capacity, dispose retires it. First resource error survives subsequent attempts; task/access/ticket ordering is unchanged. The caller's cycle-result vector remains separate. Focused cap/reset/stale/cancellation, original scheduler and64000-task scale checks pass. |
+| library/work_pool.tower | Slot allocation reserves exact physical bytes after host capacity clamp and before host handles/threads. Slots stay owned through every join; close frees them before releasing the grant and preserves the failure receipt. The three budget constructors do not double-charge execution lanes. Native thread/semaphore descriptors remain outside this subtotal. Four-worker barrier/cancellation/close-drain tests and original partial-admission fixture pass. |
+| library/entity_types.tower | Store descriptor records its physical owner, immutable borrowed budget and coordinator-only fixed resource error. Existing payloads remain stable sparse allocations and archetype columns remain pointer indexes. No packed payload policy is implemented by these fields. A shared store error must never become an unsynchronized worker diagnostic sink. |
+| library/entities.tower | Result constructor reserves descriptor bytes before allocation and preserves a null output on failure; dispose copies the self-hosted receipt before freeing. Entity/node/component-page/index/stage allocations still use their existing paths and are explicitly unaccounted. No postallocation binder claims constructor coverage. |
+| library/compiler_work.tower | Result constructor funds its descriptor/store/graph before requesting work, then closes every partial owner on failure while returning the first fixed error. Existing ordinal/subject identity, source-ordered settlement and cancellation remain. All payload reads reacquire CompilerWorkUnit through the stable entity, supporting the reviewed future packed opt-in; it is not adopted yet. |
+
+New owned fixtures `work_schedule_budget.tower`, `work_constructor_budget.tower`
+and `work_constructor_faults.tower` test remaining-capacity denial, invalid absolute
+requests, output preservation, partial cleanup, retained reset, stale tickets,
+four actual simultaneous workers and joined cancellation. Serial allocation-failure
+sweeps are deliberately separate from concurrent allocator/transport runs. New
+`compiler_work_profile.tower` keeps eight identical plans across worker counts,
+checks complete ordinal sums/identity counts and reports actual overlap. Its
+ledger mode reports only charged graph/descriptor/slot requests, not all heap
+allocations. `work_vector_profile.tower` checks every element and fixed total work;
+ordinary realloc requests are not mislabeled allocation counts.
+
+All five smallest production units compile with the public pin. Current focused
+native cases and18 constructor/scheduler ASan/TSan executions pass, including
+eight concurrent private plans sharing a synchronized budget. This does not
+cover every compiler caller, source UBSan, Windows or browser threads. Five
+manual-recipe/fixture failures are preserved: budget error classification,
+reserved identifier, top-level library mode, guest entry and transport linkage.
+They were repaired without weakening original graph/pool output oracles.
+
+Caller review found that standalone ECS/work fixtures need the existing
+compiler-buffer provider explicitly. Added `.host.memory` imports to the owned
+fixtures; normal compiler linking already includes compiler memory. D1 owns any
+generic target/runner adjustment; B2/D2 must verify packaged provider closure.
+No new allocator or adapter is introduced. These imports and full dependent ABI
+rebuild are pending validation. No new production path changes the35/111 counts.
+
+The constructor profile now has checked before/after evidence: large metadata
+plans regress about7% serial and20% at4workers, with8workers unprofitable. Small
+serial is effectively unchanged in this window; its parallel dispatch overhead
+dominates. These costs are not accepted as an end-to-end compiler result. Loss
+of realloc reuse and repeated reserve validation are investigation candidates,
+not established causal attribution. All21 explicit provider-import units compile.
+
+The new `library/work_arena_api.tower` is a complete reviewed declaration boundary
+over the SAME WorkArena/WorkBudget types. Six existing implementation functions
+are exported; `compiler/units/entities.tower` is their single production provider.
+No allocator or arena algorithm is duplicated. The existing four standalone
+fixtures still import the implementation directly. Public units/API/provider and
+separately linked ownership tests pass; nm verifies exactly one definition per
+export in the provider. Original shared concurrency logic, with only import
+declarations changed in a cache copy, passes three ASan and three TSan runs with
+both provider and client instrumented. Linked runtime costs are real: the large
+16KiB serial allocation micro is2.040->2.817ms,64KiB1.785->2.835ms. Payload,
+chunk count, physical retention and checks remain identical. A1's aggregate
+advances further before the predecessor component cap but still fails; no
+bootstrap closure or end-to-end speedup is claimed. D2 owns package allowlists.
+This one new production file brings core coverage to36/36 (34library+2kernel)
+and expanded reviewed coverage to112/112. Packed payload/stage transfer, remaining
+memory ownership, typed transport failure propagation and final release remain open.

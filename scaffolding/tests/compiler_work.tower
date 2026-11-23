@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .library.compiler_work;
 import .library.entities;
 import .library.entity_types;
