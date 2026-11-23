@@ -6,6 +6,21 @@ import execution_core;
 import execution_semantics;
 import .compiler.execution_session;
 import .compiler.interpreter_types;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
+
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+
+var ExecutionHeapBudgetBytes: usize = 33554432;
+var ExecutionHeapStackBase: usize = 16;
 fn execution_matrix(modules: void*): void {
     for(var width: u32 = 4; width <= 8; width += 4) {
         for(var fixture: usize = 0; execution_cases(fixture) != null; fixture++) {
@@ -78,17 +93,18 @@ fn execution_allocations(modules: void*): void {
     execution_compile(&session, "", 4, modules);
     execution_check(execution_session_start(&session), "allocation session starts");
     var blocks: u64[100];
-    for(var i: usize = 0; i < 100; i++) {
+    var block_count = sizeof(decltype(blocks)) / sizeof(u64);
+    for(var i: usize = 0; i < block_count; i++) {
         blocks[i] = interpreter_allocate(&session.machine, i *7);
         execution_check(blocks[i] != 0, "allocation succeeds");
         if i != 0 {
             execution_check(blocks[i] > blocks[i -1], "ascending fresh addresses");
         }
     }
-    for(var i: usize = 0; i < 100; i += 2) {
+    for(var i: usize = 0; i < block_count; i += 2) {
         interpreter_deallocate(&session.machine, blocks[i]);
     }
-    for(var i: usize = 1; i < 100; i += 2) {
+    for(var i: usize = 1; i < block_count; i += 2) {
         interpreter_deallocate(&session.machine, blocks[i]);
     }
     execution_check(session.machine.allocations.length == 0, "all blocks released");
@@ -100,6 +116,114 @@ fn execution_allocations(modules: void*): void {
     execution_check(interpreter_bytes(&session.machine, address, 1, 0)[0] == 93, "failed realloc preserves old block");
     execution_check(interpreter_reallocate(&session.machine, address, 0) == 0, "zero realloc frees");
     execution_session_close(&session);
+    for(var width: u32 = 4; width <= 8; width += 4) { execution_heap_budget_tests(width); }
+}
+
+fn execution_heap_occupy(budget: WorkBudget*, occupied: WorkReservation*, allowance: usize): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(budget, &snapshot) && allowance <= snapshot.bytes - snapshot.used_bytes
+        && work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes - allowance, occupied)
+            == WorkBudgetError.None, "Heap test reserves the actual remaining allowance");
+}
+
+fn execution_heap_budget_tests(width: u32): void {
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    execution_check(work_budget_init(&budget, 1, ExecutionHeapBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Heap test creates an explicitly budgeted world");
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram).type.pointer_bytes = width;
+    var session: ExecutionSession = default;
+    semantic_initialize(&session.program, root, width);
+    session.machine.stack = ExecutionHeapStackBase;
+    execution_check(execution_session_start(&session), "Heap test starts before pressure");
+    var machine = &session.machine;
+    machine.heap = machine.memory.length;
+    var initial_heap = machine.heap;
+    var initial_memory = machine.memory;
+    var block_bytes = sizeof(u64) * 2;
+    var occupied: WorkReservation = default;
+    execution_heap_occupy(&budget, &occupied, 0);
+    execution_check(interpreter_allocate(machine, block_bytes) == 0 && !machine.failed
+        && machine.storage_error == WorkBudgetError.Capacity && machine.heap == initial_heap
+        && machine.memory.data == initial_memory.data && machine.memory.length == initial_memory.length
+        && machine.allocations.length == 0 && machine.free_blocks.length == 0,
+        "Denied initial heap metadata returns null without changing guest storage");
+    execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Heap initial pressure releases");
+
+    var blocks: vector(u64) = default;
+    defer vector_dispose(&blocks);
+    loop {
+        var at = interpreter_allocate(machine, block_bytes);
+        execution_check(at != 0 && !machine.failed && vector_push(&blocks, at), "Heap fills its actual tracking capacity");
+        var bytes = interpreter_bytes(machine, at, block_bytes, 0);
+        for(var byte: usize = 0; byte < block_bytes; byte++) {
+            bytes[byte] = convert(u8, blocks.length + byte);
+        }
+        if machine.allocations.length == machine.allocations.capacity { break; }
+    }
+    var allocations = machine.allocations;
+    var free_blocks = machine.free_blocks;
+    var heap = machine.heap;
+    var memory = machine.memory;
+    execution_heap_occupy(&budget, &occupied, 0);
+    execution_check(interpreter_allocate(machine, block_bytes) == 0
+        && interpreter_reallocate(machine, blocks.data[0], block_bytes * 2) == 0 && !machine.failed
+        && machine.heap == heap && machine.memory.data == memory.data && machine.memory.length == memory.length
+        && machine.allocations.data == allocations.data && machine.allocations.length == allocations.length
+        && machine.allocations.capacity == allocations.capacity && machine.free_blocks.data == free_blocks.data
+        && machine.free_blocks.length == free_blocks.length && machine.free_blocks.capacity == free_blocks.capacity,
+        "Denied alloc/realloc growth preserves both maps, heap cursor and old allocation");
+    execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Heap growth pressure releases");
+
+    // Measure the real replacement size through the same shared vector policy.
+    // Permit that first admission only: the second map must deny before any
+    // guest range changes, while the admitted private capacity remains owned.
+    var probe: work_vector(IMEntry) = default;
+    execution_check(work_vector_reserve_result(&probe, null, allocations.capacity) == WorkBudgetError.None
+        && work_vector_reserve_result(&probe, null, allocations.capacity + 1) == WorkBudgetError.None,
+        "Heap metadata replacement extent probe");
+    var allowance = compiler_buffer_allocation_size(probe.capacity * sizeof(IMEntry));
+    work_vector_dispose(&probe);
+    execution_heap_occupy(&budget, &occupied, allowance);
+    execution_check(interpreter_allocate(machine, block_bytes) == 0 && !machine.failed
+        && machine.heap == heap && machine.memory.data == memory.data && machine.memory.length == memory.length
+        && machine.allocations.length == allocations.length && machine.allocations.capacity > allocations.capacity
+        && machine.free_blocks.data == free_blocks.data && machine.free_blocks.length == free_blocks.length
+        && machine.free_blocks.capacity == free_blocks.capacity,
+        "Second metadata denial retains admitted capacity without committing a guest allocation");
+    var before_free: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &before_free), "Heap pre-free receipt");
+    for(var parity: usize = 0; parity < 2; parity++) {
+        for(var i = parity; i < blocks.length; i += 2) {
+            var bytes = interpreter_bytes(machine, blocks.data[i], block_bytes, 0);
+            for(var byte: usize = 0; byte < block_bytes; byte++) {
+                execution_check(bytes[byte] == convert(u8, i + 1 + byte),
+                    "Denied realloc and metadata admission preserve every live byte");
+            }
+            interpreter_deallocate(machine, blocks.data[i]);
+            execution_check(!machine.failed, "Prepaid free tracking needs no new allowance");
+        }
+    }
+    var after_free: WorkBudgetSnapshot = default;
+    execution_check(machine.allocations.length == 0 && machine.free_blocks.length == 1
+        && work_budget_snapshot(&budget, &after_free) && after_free.used_bytes == before_free.used_bytes
+        && after_free.live == before_free.live, "Fragmented frees coalesce without allocating metadata");
+    var reused = interpreter_allocate(machine, block_bytes);
+    execution_check(reused == blocks.data[0] && machine.heap == heap
+        && interpreter_reallocate(machine, reused, 0) == 0 && !machine.failed
+        && machine.allocations.length == 0 && machine.free_blocks.length == 1,
+        "Free intervals can be reused and zero-reallocated within existing grants");
+    execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Heap final pressure releases");
+    execution_session_close(&session);
+    execution_check(compiler_world_dispose(world), "Heap world closes after its session");
+    var released: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Heap metadata and guest buffers release all world grants");
 }
 
 fn execution_tests(modules: void*): void {

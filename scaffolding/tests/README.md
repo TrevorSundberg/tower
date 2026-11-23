@@ -1267,3 +1267,11 @@ It uses ordinary source initialization; native `SOURCE` objects explicitly selec
 object emission. The manual capacity profile and argument oracle require the
 actual allowed capacity and are not default tests. Tests that deliberately require
 four physical worker slots need at least four allowed CPUs; preserve those oracles.
+
+`semantic_executable_admission_checks.tower` exercises the actual executable-body
+producer with `healthy`, `query`, `edge`, `access`, `take`, `partial`, `observe`
+and `finish` selectors. It checks exact failures and provenance, private-stage
+cleanup, ready-input ordering, cancelled consumers and terminal replay at both
+target widths and worker budgets1/4. Its manual provider composition replaces
+the semantic implementation once, as for the aggregate fixture; durable target
+registration is pending. These variants do not themselves demonstrate overlap.
