@@ -176,6 +176,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         utility_check(semantic_receipt_tests() == 0, "Fixed semantic receipts and cancelled capture ownership");
         utility_check(semantic_failure_order_tests() == 0, "Canonical producer order across waiting failure frontiers");
     }
+    if all { utility_check(malformed_call_checks(argv[1], "shapes") == 0, "Required Foundation captures and optional shape controls"); }
     if all || queries {
         utility_check(malformed_call_checks(argv[1], "all") == 0, "Malformed statement admission and world recovery");
         utility_check(semantic_lifecycle_frontier_tests() == 0, "Mixed lifecycle stage ownership and failure draining");
