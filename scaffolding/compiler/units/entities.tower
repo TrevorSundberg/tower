@@ -4,3 +4,4 @@ import compiler.parse_tree;
 import compiler.generics;
 import compiler.host_entities;
 import library.entity_stage;
+import library.work_arena;

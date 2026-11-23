@@ -154,7 +154,7 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
             }
         }
     }
-    var materialize = !grammar.rule_metadata.data[step.rule].generated;
+    var materialize = !lr_grammar_generated(grammar, step.rule);
     if rule.owner == 1 {
         materialize = true;
     }
