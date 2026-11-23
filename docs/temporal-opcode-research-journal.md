@@ -93599,3 +93599,60 @@ changes only sem_if_begin_value; both reviewed return/fallthrough predicates and
 methods are unchanged. New control/loop query behavior, fixtures and concurrent
 owner reviews are preserved, excluded from the d55d1c0d source-only conclusion.
 Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
+
+### B1 held LR preparation admission trial rejected, frozen902f7c4d (2026-11-23)
+
+Bounded implementation attempted and restored; no production optimization ships.
+Required pull902f7c4dcbd924090e7f706260f67e4b812da7cb/treeae1a4b18, CPU0-11/24GiB,
+owned jobs drained,113GiBfree. Preserved prior3ad7 profiler/input identity. Since
+published L1/L2 sources changed, currentbaseline dependency build16actions
+38.25wall/85.18CPU/1073680KiB preceded patch; public768, no private override.
+Only lr_work.tower and two existing LR tests changed. Candidate5actions21.82/
+22.46/926712. No scheduler, new allocator, cache or LR algorithm.
+
+Candidate holds existing checked ParserAdmission from preparation selection
+through synchronous solve/action dispatch and ordered cleanup; helpers borrow
+without double reservation, old closure/test wrappers retain phase-local grants.
+No extras selects existing owned serial preparation. Capacity/Memory remain typed.
+New shared-budget fixture covers full/exhausted/partial outer grants, held lanes,
+exact state/action equality, continued admittedwaves and restored accounting.
+PASS nativeLR/lifetime, fullunits originalfiniteCapacity/retry/errororder/cancel,
+150grammar/range/propagation oracle, grammar-equivalence and resourcefailures.
+All24 paired/control samples and4 separate observers pass known42/42,
+exact samecurrent source/canonical bytes and zero lanes/grants aftercleanup.
+
+Rejected n2 throughput: small1 .4193->.4178s, small12 .5056->.4963s;
+uniform12x256 serial6.4153->6.5684s (noisy rawbefore6.5517/6.2790 vs after
+7.4000/5.7367), workers4 4.4384->4.4437s unchanged, workers12
+4.9389->5.2243s (+5.8%, both pairs regress) CPU40.1303->42.9696s.
+Large1x4096 n1 serial2.6308->2.2405 not credited to unchanged serialpath;
+workers12 1.9797->2.0758 (+4.9%). Retention equal, memorybounded; fullraw
+wall/CPU/RSS/chargedpeaks/reference outputs retained. No second tuning round.
+
+Critical attribution correction to prior614da574: lr_states_lalr_owned_result
+ALSO calls lr_states_propagation_items_result for safe grammars. LookaheadGraph
+events cover only parallelwrapper. Thus852->0 events with noextras does NOT
+remove underlying graphs; it omits worker setup/parallel scratch only. Existing
+serialalgorithm still needs shared derivedgraph. Beforemulti12 graphphase1.344s
+CPU is not demonstrated removable work. GrammarbuildCPU23.056->23.016s essentially
+unchanged, still1404tables. Availablelane control keeps71graphphases,39propagation/
+67actionwaves, actualLRpeak4/3 andsemantic12; multiouter12 andrefill budgets pass.
+No starvationproof. Candidate regression checks validate receipt/wrapperselection,
+not actualgraphabsence; no misleading eventcount adoption. Priorreceipt appended
+with explicit correction, historical measurements unchanged. Residual repeated
+common graph/version/table cost and CPUamplification remains; no newalgorithm
+or hardware/lock cause guessed.
+
+PatchSHA53f3884e6d81559c7d2786ae98d2763c53ba4134d09a9fe22452bc764b079fe1,
+allcandidate sources/binaries retained. Restored full original source manifest,
+refreshedtimestamps then dependency5actions21.96/22.66/922296. Allthree original
+902baseline binaries cmp exact; profiler07b0bea2f57f6f62b01e6eac042bf0c4e607e5cd33c4c755c71314d4e6b6094c.
+RestoredLR1.78/2.30/118328 andFULLunits13.66/23.18/829972 pass. No discarded
+failure, cap/assertion weakening or uncommitted productionedit. Nativecache now
+holds restored providers and binaries, not stale candidate objects.
+
+Receipt docs/compiler_lr_admission_902f7c4d.md; fullraw
+build/ecs_b1/cache/lr_admission_902f; handoff
+C:/Sandbox/build/codex_ecs_20261122/B1/lr_admission_902f7c4d. No generation,
+reactor, sanitizer or fullmatrix. ROOT owns finalrelease. Publish finite
+negative receipt/correction with completehistory, thenSTOP.
