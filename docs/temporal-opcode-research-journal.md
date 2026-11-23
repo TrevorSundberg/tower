@@ -79061,3 +79061,32 @@ actual ParserNodes WASI/policy slot next. This is a native harness checkpoint,
 not final integrated acceptance. Negative probe is unchanged and unexecuted;
 current broad native/address/thread, oldff3 restricted-host Cancel4, final clean
 bootstrap/browser/generation and leased atomic hosted publication remain open.
+
+### D2: accelerate combined validation, retain open gates (2026-11-23)
+
+After complete policy5edb and D1 registration integration8a5426, ROOT's explicit
+acceleration directive supersedes the earlier per-helper cadence. D2's prepared
+`abi_join_8a5426` broad suite remains UNRUN/deferred; reuse D1's exact matching
+2252+227bf native evidence instead. Measured avoidable iteration cost is61.49s
+for two separate broad leaves before dependency-aware target builds, plus116.78s
+for the parser/semantics original/exported WASI pairs at each checkpoint. Compile
+an affected target once, keep one before package per substantive batch, and run
+full source/export/profile/instrumentation gates at the stable integrated join.
+No evidence is relabeled, deadline relaxed or final gate waived. D1's current
+92 passing processes precede an actual type-smoke124 at300.02s/329.17CPU/235400KiB;
+subsequent broad selectors and queued ASan/TSan are unrun. ROOT/L2/D1 own diagnosis.
+ROOT owns final runtime/bootstrap/project assets and atomic publication on KinmenA;
+D2 does not build the heavyweight LLVM/WASI release here. Final supplied-package
+and hosted browser verification remain pending. Cosmetic profile answer-length
+cleanup is deferred. Browser dependency setup uses the existing pinned npm lock
+and canonical Playwright installation in D2's own workspace/cache after D1's
+actual job drain. This is environment preparation, not runtime acceptance.
+
+D2 browser setup completed after D1 drain: pinned `npm ci --no-audit --no-fund`
+9.47s/249276KiB, canonical Playwright Chromium install32.83s/151544KiB, existing
+CLI blank-page screenshot2.18s/147800KiB, all exit0. Node22.23.5, npm10.9.9,
+Playwright1.65.1; package-lock unchanged, own cache only. Logs remain in
+`build/d2_ecs/browser_verification_setup`. This confirms the browser OS boundary,
+not Tower assets, hosted behavior or compiler generation. A rejected orchestration
+JS call executed no shell; the subsequent actual drain confirmed init/sleep only
+before releasing the D2 lock. No new production code or duplicate compiler matrix.
