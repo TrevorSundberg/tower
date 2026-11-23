@@ -82078,3 +82078,10 @@ dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
 oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
 or broad matrix; the committed receipts and earlier remaining-gap list retain
 their precise scopes. Normal push includes both complete histories and journals.
+Normal push5ed0c54 was rejected because another lane published first. Complete
+84e919e merged cleanly as67a18814; no Fast production or ownership-test file
+changed from908515e. The affected five-action provider rebuild17322 and all
+focused core/functions/constructor plus exact Fast CLI1/4 gates pass, with
+empty stderr and identical input manifests SHA256cfdc7a4240548e3d38b0ca5aa309e7b6e5c7ad52b5584453bd136b0cbf370bce.
+Receipts remain in L1/logs/fast_storage_publish_retry1. All jobs drained; this
+normal push retry preserves all published histories and adds no runtime changes.
