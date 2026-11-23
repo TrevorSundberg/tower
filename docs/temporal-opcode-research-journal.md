@@ -88082,3 +88082,34 @@ Exact Node IDE again passes all completion sections, then exits1 at the same
 later pointer/array hover boundary. Logs a1_alias_push_retry_* retain final
 frozen input hashes, timings, diagnostic and exit; all jobs drained. Earlier
 measurements retain their exact source identities. Normal push retry follows.
+
+A1 adoption arrived during that final pull: merged complete8a0b9cf2 history as
+984dc4d75ad49da9ab008f828595ea53d3c96c52, preserving published alias5fdb4827.
+This supersedes the preceding *pending alias repair* statement, not its failed
+historical receipt. Actual depfiles require only Semantics+IDE; one3-action
+compile/compile/link per profile passed (normal45.46wall/44.12CPU/1080204KiB;
+shared55.25/51.14/1080240). ParserNodes and work stayed unchanged. Final frozen
+source manifest4ae41385808a01cb38f2005848e95b63f097ba8ada11ce2ef723f82312ece86e
+matched; provider manifeste333ac1ce7b93206ff1f327880818d41d9b36058910865c31eac1d8fd2cb420f.
+Normal wasma3559c7fbd6b21beafea73190bb8bf77025b60290e2ce626bbb3ecaeb2bd7404
+is byte-identical to A1's independently published final portable receipt.
+Shared9158d62ff1e4026a52d0ca87edc33d12534ad49aaeea37cbdf3ffaa2348743e5;
+work remainsa1f9a66e. Public pin, SDK, transport hashes and settings are unchanged.
+
+Final984dc4d7 shared all3 PASS15.95wall/3.08 waited-child CPU/201368KiB:
+closes5/2/5, spawns24/0/781, zero targets, child retirement0.20/0.10/3.83ms,
+outer CDP1.88/1.14/1.17ms. Capacities33947648/90636288/97976320B; all checked
+outputs and canonical hashes still exactly equal the preceding receipts.
+Selected Node27 PASS,0fail/0skip,3.33wall/3.97CPU/137188KiB. Exact normal IDE
+now passes every completion section, including helpers.he/helper and left.an/answer,
+then FAILS21.40wall/21.35CPU/205048KiB at ide_hover_generic_checks.tower:99,
+"pointer stores retain element types and reject array dereference". Same binary
+and stack as A1's mapped receipt: generic_resolved_type installs its inspection
+stage before sem_type, while semantic_types.tower:653 sem_array_intern requires
+no entity_stage. This remaining staged-array inspection contract belongs to
+ROOT/L2; no assertion was relaxed and no later IDE/session/generation check is
+claimed passed. No extra named relink, native suite or sanitizer was needed.
+Raw alias_* receipts and final source/provider/artifact identities are copied
+beside the earlier failures. Jobs drained, own heavy lock released, todo hash
+still e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+This closes D2's transport retirement batch; ROOT retains final hosted release.
