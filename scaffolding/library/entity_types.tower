@@ -86,6 +86,9 @@ struct Entity {
     table: EntityTable*;
     table_row: usize;
     pending_table: EntityTable*;
+    // Stable descriptor-owned storage for the first component index entry.
+    // Promoted indexes use the ordinary budgeted replaceable array.
+    inline_components: EntityComponent*[1];
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the

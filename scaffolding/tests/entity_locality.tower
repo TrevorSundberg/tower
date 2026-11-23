@@ -208,10 +208,12 @@ fn layout_buffer(T: type, sample: LayoutStorage*, data: T*): void {
 fn layout_node(sample: LayoutStorage*, node: Entity*): void {
     // This workload has no child names/relationships or private stages.
     locality_check(node.child_capacity == 0 && node.stage == null);
-    sample.bytes += sizeof(Entity)
-        + (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
+    sample.bytes += sizeof(Entity) + node.instance_capacity * sizeof(EntityComponent*);
     layout_owned(sample, node);
-    layout_buffer(sample, node.components);
+    if node.components != &node.inline_components[0] {
+        sample.bytes += node.component_capacity * sizeof(EntityComponent*);
+        layout_buffer(sample, node.components);
+    }
     layout_buffer(sample, node.instances);
 }
 fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,

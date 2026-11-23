@@ -53,7 +53,11 @@ fn accounting_buffer(T: type, data: T*): usize {
 fn accounting_node(sample: AccountingSample*, node: Entity*): void {
     if node == null { return; }
     sample.buffers += accounting_owned(node) + accounting_buffer(node.children)
-        + accounting_buffer(node.components) + accounting_buffer(node.instances);
+        + accounting_buffer(node.instances);
+    if node.components != &node.inline_components[0] {
+        sample.buffers += accounting_buffer(node.components);
+        sample.indexes += node.component_capacity * sizeof(EntityComponent*);
+    }
     for(var i: usize = 0; i < node.component_count; i++) {
         var component = node.components[i];
         if component.page == null {
@@ -68,7 +72,7 @@ fn accounting_node(sample: AccountingSample*, node: Entity*): void {
             sample.buffers += accounting_owned(node.children[i].name);
         }
     }
-    sample.indexes += (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
+    sample.indexes += node.instance_capacity * sizeof(EntityComponent*);
 }
 fn accounting_pages(pool: EntityComponentPool*): usize {
     var bytes: usize = 0;

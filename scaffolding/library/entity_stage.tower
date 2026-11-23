@@ -356,7 +356,7 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
             }
             entity_component_free(component);
         }
-        entity_buffer_free(node.components);
+        entity_components_free(node);
         entity_buffer_free(node.children);
         entity_buffer_free(node.instances);
         entity_owned_free(stage.nodes.data[i].name);
