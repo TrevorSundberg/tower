@@ -88316,3 +88316,56 @@ evidence remain at f7; none is relabeled as validation of the merged compiler.
 Our changes relative to incoming main are documentation only; ROOT's later
 composition remains pending. Archive hash/recorded comparisons rechecked,
 owned jobs drained, todo unchanged; normal source/report push follows.
+### ROOT f7 browser artifact checkpoint and eight-lane continuation (2026-11-23)
+
+Implementation/evidence boundaries remain explicit. ROOT's existing public-pin
+build completed on frozen f7e764ab0807376025700b2a3176c6f6130e34a8 in local
+Orchestral-Revng WSL, CPU8-15, outer jobs4/compiler jobs1, with no private bootstrap
+override. Source hashes match before/after. The portable dependency build used
+three actions, 41.15s wall/54.96s CPU/1092796KiB peak RSS; LLVM/cross used eight
+actions plus packaging, 74.30s/111.34s/1092572KiB. The log receipt is
+/root/.cache/tower/root_release_f7e764ab/status=0. Its owned process drained.
+Portable SHA b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42;
+LLVM ba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543;
+cross 01ab5260e6ece701c314aefc77310f761ffa616321b3a0474558922e00054173;
+compiler-project a63811109fddaaa7f9701665b6b8d38fc3681bcdbfad24d8e88ec5bdf5772b56.
+These exclude later alias, metadata, hover and scheduling changes. The failed b0
+browser generation remains failed; no edited-generation check was rerun or passed.
+
+ROOT preserved the prior b0 browser inputs (30 files/166102325 bytes) before
+replacement and transferred matching f7 portable/LLVM bytes to the Deck; remote
+SHA256 checks match. D1 and D2 now own distinct bounded language-fixture and LLVM
+differential selections. Their earlier broad Node failures are still open.
+B1's complete f7 native candidate receipt12722151 is adopted as evidence only;
+ROOT independently checked the transferred generation3.tar.gz SHA
+7ee019b4a35faf1182744620d348e75fed691c50349be5db0ca4d7e5b74efde7.
+Public bootstrap pin768 and hosted runtime remain unchanged. This does not
+validate later compiler sources or a restricted standalone release.
+
+The external Windows process measurement boundary now retains its native handle
+before polling and rejects an unavailable exit status. Native Node exit0/7 probes
+returned exactly0/7; their subsecond peak memory was uncaptured and remains null.
+Earlier literal-comma argument and cmd-shell quoting probes failed and remain
+preserved; they were not compiler tests. Future measurement scope explicitly
+excludes separately spawned child processes. This corrects the prior invalid
+wrapper success classification without rewriting any original log.
+
+ROOT reviewed L2's full48d791a8 frontend/body/query/unit checkpoint and later
+affected adoption3a7f4b39, D2's three strict shared retirement trials at984dc4d7
+publisheda3fbe0a4, and B2's measured grain receipte0e3530b. These are owner-run
+checks, not executions repeated by ROOT. All eight existing UUIDs retain bounded
+inline tasks and watcher-owned window retirement, with no new contexts. Completed
+L2/D1/D2/B1/B2 lanes resumed on distinct remaining concerns. The new nominal-call
+scan concern is not yet accepted as a reproduced defect: a popped slot makes
+the proposed reserve failure unreachable; L2 is testing a different ordinary
+import-ambiguity/errored-context path. A1 owns the independent array-hover/layout
+repair. Static source concerns must not be mislabeled as executed failures.
+
+Remaining gates include current browser/type/generic behavior, profitable
+within-unit scaling and real compiler-kind occupancy, final-source generation
+and public release composition, and the explicitly unfinished service-rejected
+instrumentation operation. That operation was not retried or routed elsewhere.
+This ROOT checkpoint changes documentation only; runtime before/after profiling
+is inapplicable. Publication reuses the verified existing Pages assets and cannot
+claim these newer compiler sources deployed. The preexisting todo.txt bytes
+remain unchanged.
