@@ -62349,3 +62349,82 @@ duplicate-symbol failure and corrected target/runtime checks are delegated to
 D2 on the matching frozen integration source. They are not passed yet. Runtime
 algorithm/performance is unchanged by this import correction; preserve compile,
 link and normal execution costs without comparing a failed link to a speedup.
+
+### D2 selected storage integration and standalone allocator providers (2026-11-23)
+
+Verified/fetched ROOT_main_storage_join.bundle1ffb81a2 (sole60741 prerequisite)
+and merged it asbf0a5a41. Complete source equals coordinator9b318: selected nominal
+views/accounted constructors/typed dispatch/context snapshots, typed parser/editor,
+allocator ABI casts and both aggregate-fixture provider corrections. No new language
+syntax, API experiment or literal split. Read A1 resource V1interface4ff9 in full
+and apply-checked without adoption; existing sizeof-based program initialization
+covers its added field. Later V2b255 supersedes it and is still unadopted here;
+producer/consumer ABI closure belongs to the coordinated owners.
+
+Acquired the released shared Deck heavy lock at03:31:58UTC. Frozen source hashes,
+public pin9653f818, Docker LLVM19/Linuxx64, cpus0,2, build/compiler jobs1 and warm
+own native cache are recorded in build/d2_ecs/storage_join_9b318. No private
+bootstrap override. Small public parser_modules_work and semantics_checks pass
+27.44/31.02wall,27.14/30.67CPU,722300/730996KiB RSS. Canonical build-native passes
+22steps198.49wall/194.39CPU/733572KiB. The initial test-build command failed1
+because D2 requested unconfigured tower-allocator-tests; no test compilation
+occurred in that failed command. Corrected available targets pass18steps69.13wall,
+67.56CPU,377104KiB. All child swap counts are zero. This is affected incremental
+validation, not a clean release build or a paired speed measurement.
+
+Native compiler SHAe90caced298dfb78d5df98c258f6bcdad5d4f762c7bbe98bfcfb42787b1ba6a6;
+LR69217165ae8f916f428f27507f830659a44500a548a78eee756b216f8005f8e9;
+frontendec4dc55e9b7ee02f8348a9b41f9981c5bf814089fce89addddc568dd51842a20;
+policy701fb195a2b96d8e7500c2c5756ac4585a640041c74926a3cc3ae5ce513d0314.
+Complete runtime resources and compiler are copied and verified against the cache
+in native_package_9b318. Earlier406d artifacts were retained unchanged.
+
+Normal policy/buffer/arena/budget fault checks pass below0.01s each; real pool0.04s.
+Query0.20wall/0.20CPU/63004KiB, editor33.30/43.90/885796, calibrated backend
+17.80/26.37/523344, frontend allocation3.09/3.00/169956 and parser0.06/0.06/53576
+all pass. Query reports32/64-bit staging and backend logs prove distinct native
+thread intervals/exact objects. These do not repair the historical clone134;
+its calibrated fixture is absent here. Runtime group then failed134 at its storage
+resource-root assertion because D2 omitted argv. Module check was not reached.
+After drain, exact documented storage argv/scaffolding cwd passes0.64/0.61/98668;
+module cache passes0.25/0.23/54260. Original failed logs/statuses stay intact;
+GNU time's signal line is read with shell status134, not its misleading exit=0.
+
+Reproduced the old work_instrumented duplicate-provider link from an immutable
+beb8 scaffolding archive (the only relevant source difference is its extra import).
+Public compile4.18wall/4.10CPU/188560KiB passes; exact existing target composition
+fails link1 with compiler_buffer_allocation_size/alignment/node/free duplicates.
+Current corrected target has one compiler_buffer_free and passes its deterministic
+fault sweep. No failed-before-link timing is presented as runtime improvement.
+
+Caller audit also found a D2-owned actual supported-tool regression. link_wasi's
+CMake recipe and wasm_link_audit's documented standalone recipe link only their
+object and guest runtime. New budgeted store/graph/pool calls need compiler_buffer
+exports, but neither tool imports their provider. Both compile, then both actually
+fail1 on undefined compiler_buffer_free; nm records all missing buffer calls.
+Added only import .host.memory to each existing tool. All previous jobs had drained
+and compiler source hashes were checked before editing. The small generic tools
+CLI rejects wasm_link_audit with2; this unsupported selection is preserved, not
+counted as the before link. Its documented direct object/runtime build reproduces
+the actual missing symbol. No build manifest, other owner's fixture, allocator,
+scheduler or callback implementation was changed.
+
+Before/after single compile samples wall/CPU/RSS KiB: linker17.63/17.23/463432 to
+16.21/15.91/468660; audit12.77/12.51/333224 to10.14/9.98/335380. Both after links
+pass0.02s. Unlinkable before sources have no runtime baseline; sample variation
+is not a speedup, and peak compile RSS increases5.1/2.1MiB. Small/large audit and
+small link execution fall below0.01s clock resolution; no live-allocation or
+retention counter is claimed from RSS. Existing wasm_link_library supplies the
+real input: serial/two-worker Tower images are byte-identical, and both plus an
+independent LLVM19 link return42 for add(31). Node is only module invocation/output
+transport. Real larger evaluation-object audit passes too. Malformed source bytes
+reject1/no output, and input-alias rejection1 preserves every artifact hash. One
+allocator definition per tool is verified. Full exact-tool instrumentation remains
+pending; no deliberate unsafe probes or source-level UBSan claim.
+
+Final source/binary/resource checks pass, Docker is init/sleep only, and D2 releases
+only its own empty heavy.lock at03:52:35UTC. Direct external inbox handoff tells D1
+to acquire for the authorized phase/target_once work. Disk138GiB free,8.7GiB RAM
+available,7.7GiB preexisting swap; no artifact deletion. Native/WASI symbol policy,
+remaining provider/package checks, exact supported instrumentation, coherent final
+bootstrap/browser/generation/scaling and leased atomic publication remain open.
