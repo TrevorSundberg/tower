@@ -39,3 +39,19 @@ add_test(NAME tower-backend-source-recheck COMMAND tower-backend-source-tests
   "${source_workdir}/denied_recheck.tower" 4 1 deny-recheck)
 set_tests_properties(tower-backend-source-recheck PROPERTIES WORKING_DIRECTORY "${source_workdir}"
   TIMEOUT 180 LABELS "native;backend;focused")
+
+# Same session provider with the existing single-owner allocation-denial seam.
+get_property(response_runtime GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
+set(response_input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_response_tests.tower")
+file(GENERATE OUTPUT "${response_input}" CONTENT
+  "import tower;\nimport compiler.units.backend_core;\nimport backend.file_posix;\nimport tower_backend_native_targets;\nimport backend.target_once_linux;\nimport backend.linker_wasi_wasm;\nimport tests.backend_response_native;\n")
+tower_runtime_object(tower-backend-response "${response_input}" "${triple}")
+add_custom_command(OUTPUT "${tower-backend-response_OBJECT}" APPEND
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_native_targets.tower")
+add_executable(tower-backend-response-tests ${test_sources} ${source_backend_objects}
+  "${tower-backend-response_OBJECT}" "${response_runtime}")
+set_target_properties(tower-backend-response-tests PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(tower-backend-response-tests PRIVATE ${source_libraries} ${source_backend_libraries})
+target_link_options(tower-backend-response-tests PRIVATE -Wl,--export-dynamic-symbol=backend_register_targets)
+add_test(NAME tower-backend-response COMMAND tower-backend-response-tests)
+set_tests_properties(tower-backend-response PROPERTIES TIMEOUT 30 LABELS "native;backend;focused;storage")

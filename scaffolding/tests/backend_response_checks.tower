@@ -1,0 +1,136 @@
+import tower;
+import utility_checks;
+import .backend.session;
+import .backend.context;
+import .backend.link_types;
+import .library.vector;
+import .library.work_budget_types;
+import .compiler.execution_profiles;
+
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn printf(format: u8*, before: usize, after: usize, reserved: usize): i32;
+
+struct ResponseCause { value: WorkBudgetError; prefix: u8*; }
+struct ResponseOffset { value: usize; text: u8*; }
+
+fn response_equal(actual: u8*, prefix: u8*, offset: u8*): bool {
+    var first = strlen(prefix);
+    var second = strlen(offset);
+    return strlen(actual) == first + second + 1
+        && utility_equal(actual, prefix, first)
+        && utility_equal(actual + first, offset, second)
+        && actual[first + second] == 125;
+}
+
+export fn backend_response_checks(healthy: bool, buffers: function(usize), allocations: function(usize),
+    deny: function(void, usize)): void {
+    var initial = buffers();
+    if !healthy {
+        deny(0);
+        var rejected = backend_session_create(null, 0);
+        deny(~convert(usize, 0));
+        utility_check(rejected == null && buffers() == initial, "Session and reserved tail admit atomically");
+    }
+    var backend: Backend = default;
+    var session = backend_session_create(null, 0);
+    utility_check(session != null, "Backend response owner");
+    session.backend = &backend;
+    var link = session.linker;
+    var cases: ResponseCause[6];
+    cases[0] = {value: WorkBudgetError.Capacity, prefix: "{\"status\":\"error\",\"error\":\"Semantic memory budget exceeded\",\"resourceError\":\"Capacity\",\"errorOffset\":"};
+    cases[1] = {value: WorkBudgetError.Invalid, prefix: "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Invalid\",\"errorOffset\":"};
+    cases[2] = {value: WorkBudgetError.Memory, prefix: "{\"status\":\"error\",\"error\":\"Cannot allocate semantic storage\",\"resourceError\":\"Memory\",\"errorOffset\":"};
+    cases[3] = {value: WorkBudgetError.Stale, prefix: "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Stale\",\"errorOffset\":"};
+    cases[4] = {value: WorkBudgetError.Busy, prefix: "{\"status\":\"error\",\"error\":\"Semantic worker admission failed\",\"resourceError\":\"Busy\",\"errorOffset\":"};
+    cases[5] = {value: WorkBudgetError.Exhausted, prefix: "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Exhausted\",\"errorOffset\":"};
+    var offsets: ResponseOffset[4];
+    offsets[0] = {value: 0, text: "0"}; offsets[1] = {value: 73, text: "73"};
+    offsets[2] = {value: convert(usize, ~convert(u32, 0)), text: "4294967295"};
+    offsets[3] = {value: ~convert(usize, 0), text: sizeof(usize) == 8 ? "18446744073709551615" : "4294967295"};
+    var repeats: usize = healthy ? 1000000 : 1;
+    for(var repeat: usize = 0; repeat < repeats; repeat++) {
+        utility_check(strcmp(backend_session_foundation_report(session, ExecutionProfile.Canonical),
+            "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":0}") == 0
+            && session.response_fallback == null, "Healthy backend response");
+    }
+    vector_dispose(&session.response);
+    if !healthy {
+        for(var i: usize = 0; i < sizeof(decltype(cases)) / sizeof(ResponseCause); i++) {
+            for(var j: usize = 0; j < sizeof(decltype(offsets)) / sizeof(ResponseOffset); j++) {
+                backend = default;
+                backend.source_offset = offsets[j].value;
+                backend_resource_fail(&backend, cases[i].value);
+                backend.source_offset = 1;
+                backend_resource_fail(&backend, WorkBudgetError.Memory);
+                for(var allowed: usize = 0; allowed < 2; allowed++) {
+                    var calls = allocations();
+                    deny(allowed);
+                    // A later caller offset cannot replace the recorded cause's owner.
+                    var result = backend_session_failure(session, "Original diagnostic requires response storage", 1);
+                    deny(~convert(usize, 0));
+                    utility_check(response_equal(result, cases[i].prefix, offsets[j].text), "Fallback exact JSON cause and offset");
+                    utility_check(result == backend_session_response(session) && session.response_fallback != null
+                        && session.response.length == 0 && link.output.length == 0,
+                        "No partial response or successful output after denial");
+                    utility_check(allocations() == calls + allowed + 1,
+                        "Fallback performs no allocations after response denial");
+                    utility_check(backend.resource_error == cases[i].value && backend.error_offset == offsets[j].value,
+                        "Response denial preserves first resource receipt");
+                    vector_dispose(&session.response);
+                }
+                var calls = allocations();
+                deny(0);
+                var result = backend_session_foundation_report(session, ExecutionProfile.Canonical);
+                deny(~convert(usize, 0));
+                utility_check(response_equal(result, cases[i].prefix, offsets[j].text)
+                    && backend.resource_error == cases[i].value && backend.error_offset == offsets[j].value
+                    && allocations() == calls + 1, "Failed success response preserves earlier cause and owner");
+                vector_dispose(&session.response);
+            }
+        }
+        // A response-admission failure without a prior typed cause records Memory.
+        backend = default;
+        backend.source_offset = 73;
+        deny(0);
+        var failure = backend_session_foundation_report(session, ExecutionProfile.Normalized);
+        deny(~convert(usize, 0));
+        utility_check(response_equal(failure, cases[2].prefix, "73")
+            && backend.resource_error == WorkBudgetError.Memory && backend.error_offset == 73,
+            "Response allocation records its own Memory cause only when first");
+        var other = backend_session_create(null, 0);
+        utility_check(other != null, "Independent fallback owner");
+        deny(0);
+        var unrelated = backend_session_failure(other, "No backend yet", 0);
+        deny(~convert(usize, 0));
+        utility_check(response_equal(unrelated,
+            "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"errorOffset\":", "0")
+            && response_equal(failure, cases[2].prefix, "73"), "Session-local fallback lifetime");
+        backend_session_close(other);
+        backend = default;
+        backend.source_offset = 73;
+        backend_fail(&backend, "Earlier ordinary failure");
+        deny(0);
+        var ordinary = backend_session_foundation_report(session, ExecutionProfile.Canonical);
+        deny(~convert(usize, 0));
+        utility_check(response_equal(ordinary,
+            "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"errorOffset\":", "73")
+            && backend.resource_error == WorkBudgetError.None && backend.error_offset == 73
+            && strcmp(backend.error.data, "Earlier ordinary failure") == 0,
+            "Response denial cannot replace an earlier ordinary failure with Memory");
+        vector_dispose(&backend.error);
+        backend = default;
+        var result = backend_session_failure(session, "quote\"\n", 73);
+        utility_check(strcmp(result, "{\"status\":\"error\",\"error\":\"quote\\\"\\u000a\",\"errorOffset\":73}") == 0,
+            "Healthy escaped error response after denial");
+        utility_check(strcmp(backend_session_foundation_report(session, ExecutionProfile.Canonical),
+            "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":0}") == 0
+            && session.response_fallback == null, "Response recovery clears fallback");
+        vector_dispose(&session.response);
+    }
+    session.backend = null;
+    backend_session_close(session);
+    utility_check(buffers() == initial, "Backend response zero retained buffers");
+    printf("buffers_before=%zu buffers_after=%zu reserved_response_bytes=%zu\n", initial, buffers(), backend_session_failure_capacity());
+    puts(healthy ? "Backend healthy response profile passed" : "Backend response denial checks passed");
+}
