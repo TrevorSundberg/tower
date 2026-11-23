@@ -49136,3 +49136,18 @@ and receipt packaging, B2 exact current source/link composition/symbol handoff,
 D1 opt-in CMake registration. Await concrete recipe instead of inventing another
 native link stack. All source frozen only when next build starts; current D1
 slot remains exclusive. No publication readiness claimed by these integrations.
+
+Independent transport attribution after root's B2 serial-profile warning:
+frozen146 binary hashes, Ninja recipes/generated Tower modules and nm/objdump
+confirm towerc598fabed, LR a399ae92, layout45294934, execution62ec5002 use
+work_dispatch/work_linux with callback and real open_named, available returns1.
+Frontend450332ea/storageb586f45a instead directly link work_portable before
+archive extraction and single-owner instrumented allocator; available returns0
+and open_named returnsnull. These are intentional serial functional/fault
+targets, not concurrency/performance evidence. Raw attribution retained in
+build/d2_ecs/transport_1461866. Existing D2 CLI paired profiles and layout
+actualoverlap1 remain applicable; no unsupported withdrawal or throughput claim
+from serial fixtures. New frontend profile composition must reuse production
+native/LR and establish real eligible control overlap. No runtime was executed
+for this source/link audit and no timing claim is added. Current638new sources
+remain unbuilt until shared slot.

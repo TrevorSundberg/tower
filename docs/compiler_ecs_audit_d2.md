@@ -1393,3 +1393,25 @@ B2 exact current sources/production link composition, D1 opt-in CMake wiring.
 Existing source reviews stand; current self-contained recipe/hash handoff and
 runtime slot are pending. No competing default heavy test or hardcoded new
 compiler link architecture is introduced.
+
+#### Actual transport audit after coordinator's B2 serial-profile finding
+
+Read own frozen146 Ninja link recipes, generated host/serial Tower sources,
+nm symbols and exact work_thread_available disassembly. Receipt
+build/d2_ecs/transport_1461866 preserves source/recipe and binary hashes.
+towerc598fabed, LR a399ae92, layout45294934 and execution62ec5002 use archive
+host.work_dispatch+host.work_linux, actual callback/open_named implementations,
+and available returns1. Frontend450332ea/storageb586f45a directly link
+host.work_portable plus single-owner instrumented allocator; available returns0,
+open_named is a null return. Their serial functional/parser/fault checks are
+not overlap/performance evidence. This intentional boundary was previously
+documented; no competing transport fix is needed.
+
+Prior D2 CLI paired measurements use real production transport, as does the
+layout profile whose actual overlap remained1. That failure to scale cannot be
+explained by the serial-fixture linkage found in B2's separate16runs. D2 has not
+yet executed the incoming frontend_units_profile. Its future target must reuse
+production native/LR composition, report allocator/transport explicitly and
+establish actual >1 admission/overlap for an eligible equal-unit control before
+interpreting multiworker timings. Source6388747 API changes are not yet locally
+built; this inspection is exact146 binary attribution, not new runtime credit.
