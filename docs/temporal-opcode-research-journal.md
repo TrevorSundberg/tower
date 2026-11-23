@@ -95062,6 +95062,43 @@ small1 .4202/.3845/177548,multi4 3.4133/11.0911/1127792 exactfullcanonical/sourc
 andzerograntteardown PASS. Currentresource-rootpath16bytesshorter accountsfor
 16bytelowerretention; controls separate from original16matchedpairs. No source/
 binary relabel. Diffchecks/source/manifests pass; normalpush,ROOTownsrelease.
+
+## 2026-11-23 D2: four selected T4 cases adopt 25dddd04
+
+**4/4 selected cases pass**, exit0; zero failures, skips, cancellations, timeouts
+or selected unstarted cases. Name-filter exclusions are not passed coverage.
+Frozen host/resources main `0fe314efe1b8d740a1be3fa829124e92d2cf1f6c`;
+compiler source remains `25dddd0420258bc5174a3039293c447fd60ef367`, excluding
+later A2 body-query, B1 gate, B2 storage and L2 overflow changes. Reverified the
+same immutable root_release_25dddd04 pair/full hashes from the preceding T8
+receipt, using its identical Docker image, Node22.23.5/time binaries and mounts;
+no copies, builds, runtime/fixture edits or private compiler override.
+Unchanged llvm-execution.test.mjs SHA256
+`b6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779`;
+selected.sha256, host.sha256 and resources.sha256 record all frozen input hashes
+locally, verified before/after. TOWER_TEST_PHASES=1 and fresh TOWER_TEST_ARTIFACTS
+were enabled; both exact supplied reactor overrides set, interpreter-only unset.
+From repo root: `node --test --test-concurrency=1 --test-timeout=180000
+"--test-name-pattern=^LLVM matches interpreter: (narrow integers|narrow floating conversions|resumable control bodies|division zero)$"
+playground/tests/llvm-execution.test.mjs`, under GNU time and unchanged180s outer guard.
+Expected/completed names match exactly: narrow integers, narrow floating
+conversions, resumable control bodies, division zero. Every case reached complete
+and released. Graph/Fast, both unoptimized/optimized LLVM Foundation preparation,
+Fast execution, independent package loading/execution, canonical equality and
+actual LLVM Wasm assertions passed. Positives return exact `0\n`; division zero
+retains error status, `Division by zero`, empty output and source offset31 in all
+seven result paths. No diagnostics, fuel, capacities or profiles relaxed.
+One fresh process, filesystem cache not flushed, CPU0,2/8GiB/swap0 after D1's
+bounded lock-release wait: **34.13s wall, 44.88s CPU (43.14+1.74), 970636KiB peak RSS**.
+Portable Wasm capacity peaked at196935680B for the first two cases,422117376B
+for body/division; all four released phases report16160 live nodes. Capacity is
+retained linear memory, not RSS/live ownership; legacy allocation counters0 do
+not prove complete accounting. All cgroup max/oom/kill counters and swaps0.
+Raw `check.log` SHA256 `30565a3572f2e3eb5a96e6dee6f70aa78036f83c0f0fa46e2200a8d4529445e9`,
+GNU `check.time`, phase summaries, manifests and24 exact source/Foundation/response
+artifacts: `build/d2_ecs/t4_25dddd04_0fe314ef/`. Validation cost only, no speedup claim.
+D2 jobs drained/lock released; disk127GiB free/RAM9.7GiB available. No full-file,
+native/browser/generation/sanitizer sweep or deployment; ROOT owns final release.
 B2 publication reconciliation: storage implementation f9565c46 preserved through280429f6 with origin0fe314ef; no producer overlap with B1. Incoming counted-byte backend fixture changes rebuild only native backend/check binding and relink profile f170b5f2; original measured after53186f76 retained. Merged16w1/4096w4 outputs/canonical/cleanup and inline transition/fault checks PASS. Browser/test histories retained, excluded from frozen performance evidence. No deployment; ROOT retains final integration. See the receipt's reconciliation section.
 ## 2026-11-23 L1 — T6/T7 acceptance of immutable25dddd04 reactors
 
@@ -95141,3 +95178,7 @@ symbolclosures PASS. Singlejoined small1 .3793/.3439/165268,multi4
 retention18321455/579913459bytes with17118/498251livepreclose receipts.
 Joinedcontrols separate from matchedgate-onlyclaim; no residualproduceredit or
 newtuning. Originalsources/binaries preserved, normalpushafterdocrecord follows.
+D2 reconciliation preserves upstream4a8694da and its later inline entity-index
+producer/tests. Those are not adopted here; the measured resource snapshot stays
+0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
+remain unchanged after merge; existing evidence is reused without another run.
