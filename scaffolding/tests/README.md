@@ -1650,3 +1650,16 @@ Run the existing native `tower-lr-work-tests . query-smoke` and `control-smoke`
 from the `scaffolding` directory for the affected continuation/canonical checks.
 The separately observed absolute-resource-root control diagnostic is retained in
 the B1 journal; it is not a passing variant of this command.
+
+### Joined known-scan ownership
+
+`tower-storage-tests RESOURCE_ROOT known-scan` delegates the real known-binding
+scan through the public kernel dispatcher, then denies the coordinator candidate
+append with allocator Memory or physical-budget Capacity. The serial fault host
+checks both target widths, succeeded scan tickets, first cause/offset, no ready
+proof/snapshot/value, allocation-free terminal retry, and fresh successful input
+joins. Teardown closes the world and budget before checking zero retained output,
+buffers, bytes, grants and lanes. The default storage suite includes these cases.
+The normal-allocator `query-smoke` and lifecycle case17 retain separate worker
+overlap, execution and canonical-recompile controls; serial faults are not a
+thread-safety claim.
