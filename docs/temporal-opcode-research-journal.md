@@ -87557,3 +87557,51 @@ build is warranted. Incoming known-scan cleanup retains its own owner receipt,
 not validation by this frozen browser reactor. git diff --check passes and todo
 is unchanged. This is source publication only; completion/retirement/generation
 and hosted gates remain separately owned. Normal push retry follows.
+
+### ROOT bounded-agent recovery and integration checkpoint (2026-11-23)
+
+The user-visible A1 failure was a launcher argument error, not a compiler result:
+Windows PowerShell5 through the npm shim split an embedded quoted source prompt,
+so Codex resume rejected an unexpected tower; argument and exited2. The external
+coordination runner now invokes the installed native executable with explicit
+Windows argv escaping. Quotes, backslashes, empty and multiline arguments were
+round-trip checked at the OS boundary. A1's complete original prompt was resumed
+in the same UUID and acknowledged; no extra Codex context was created. Native
+process handles are retained before waiting so missing exit status cannot pass.
+
+Two Deck tasks had actually finished but their SSH-detached replacement watchers
+had died, leaving terminals open and reports delayed. Replaying each watcher from
+its recorded log offset recovered the exact task_complete receipts and retired
+only its recorded systemd terminal unit. Future watchers are separate managed
+user services, with canonical lane terminal units. Both services and both resumed
+CLI tasks were observed active. Windows launcher failures also have a separate,
+explicitly coordinator-generated failure receipt; original Codex logs are never
+rewritten. Default terminal styling and the same eight session IDs are retained.
+
+ROOT reviewed the published46167039 LR item-graph fast path and its exact range
+fallback/reference receipts,041912d1 transactional backend reconstruction and
+first-error propagation, andc635afae joined-scan defer/ownership transfer. Owner
+execution remains owner evidence, not tests rerun by this review. Backend541
+allocation boundaries and scan cleanup failures have focused passing receipts;
+L1/L2 are now running their broader composed functional acceptance. B2's frozen
+b0 partition receipt reports multi-unit2.70x at8 workers but single-unit1.07x;
+these numbers do not validate later source or full32-core utilization. B1's
+matched serial improvements likewise retain their original host/input boundary.
+
+D1's eleven diagnostic/location checks passed after explicit fixture imports;
+D2's original shared retirement failure remains preserved while its ordinary
+lifecycle repair is being validated. A1's alias completion native checks pass,
+but a later hover assertion failed in the complete IDE gate. L2's broader
+frontend run also stopped on a metadata-copy error-cause assertion. Neither
+full suite is marked passed. The service-rejected A2 instrumentation operation
+was not retried; its unfinished edits/logs and final sanitizer gate remain open.
+A2 now has the separate ordinary ECS locality/fragmentation measurement task.
+
+The seven existing b0 target-pack payload identities, omitted from the initial
+static metadata supply, were read into ROOT_release_artifact_audit_b0/target_packs.json.
+This is an additional inventory, not actual-host or final-source acceptance.
+ROOT made no compiler/runtime change in this checkpoint; new runtime profiling
+is inapplicable. All normal/shared/LLVM/cross outputs remain their prior frozen
+b0 artifacts until affected providers are rebuilt. Documentation publication
+reuses the current verified Pages runtime and cannot claim the new compiler
+has deployed. The original todo.txt bytes remain unchanged.
