@@ -68,7 +68,7 @@ test('for diagnoses invalid headers and keeps its binding private', () => {
 });
 
 test('for leaves Foundation grammar and ordinary user identifiers alone', () => {
-  const handle = tower.compile('var for: i32 = 12; print(for);');
+  const handle = tower.compile('import foundation; var for: i32 = 12; print(for);');
   try { assert.equal(execute(handle), '12\n'); }
   finally { tower.destroyExecution(handle); }
 });
