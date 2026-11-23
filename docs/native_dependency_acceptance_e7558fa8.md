@@ -137,8 +137,34 @@ grammar artifacts DIR`, W=1/4, N=16/4096. Other commands use
 `tower-lr-work-tests RESOURCE_ROOT SELECTOR`. Existing frozen baseline executables,
 earlier failed logs, full acceptance and fault receipts remain intact.
 
-No functional blocker was found in this slice. ROOT's unmerged interpreter/resource
-portable fixes, other owners' independent work, browser/reactor adoption,
+No functional blocker was found in this slice. At the freeze, ROOT's unmerged
+interpreter/resource portable fixes, other owners' independent work, browser/reactor adoption,
 sanitizers, generations and hosted release remain separate gates. They are not
 suppressed or marked passed by this native receipt. No owner implementation,
 cache or todo file was changed; all owned jobs drained before reconciliation.
+
+## Publication reconciliation
+
+Receipt commit `2f0220bd`; the required ff-only pull then found normal divergence.
+Full-history merge `7340d7ba0cab406ea75ea24230e83f6832c0b368` preserves published
+`5b9194e4` and both journal histories without conflict. Incoming changes include
+ROOT's test-only invocation/resource fixes `eac16533`, L1's pointer-alias fixtures,
+A2's separate storage profile and D2's browser transport/tests. Compiler, library,
+language resources, selected dependency/admission/lifecycle/profile fixtures and
+the imported-alias fixtures are byte-identical to the frozen checkpoint.
+
+The invocation edit is in `scaffolding/tests/interpreter_invocation.tower`, not
+the production interpreter used by these oracles. The one affected selected
+consumer is query-smoke: `evaluation_query_tests` invokes
+`semantic_resource_tests`, whose host-capacity setup changed. The dependency target
+therefore rebuilt only `tower-compiler-query-checks.o` and the native test link
+after CMake regeneration:9.49wall/4.49CPU seconds/290068KiB peak RSS. Merged
+query-smoke passes0, .38wall/.37CPU/104448KiB, empty stderr and source/status0.
+Its new executable SHA256 is
+`35f769a662dc57b9592c7ba5c380c1c9b6c34e57816940843938047f3e62bf28`.
+Logs/manifests use external prefix `current_dependency_merged_7340d7ba`.
+
+The original whole-tree manifest is not claimed unchanged across that merge.
+Unchanged selected inputs retain their exact frozen results and performance
+samples; only the affected query consumer was rerun. No repeat type/body/profile
+matrix, independent owner fixture campaign, production edit or deployment.

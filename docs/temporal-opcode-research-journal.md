@@ -89626,3 +89626,18 @@ their own exact success boundary. Final current-source complete artifacts,
 remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
+
+L2 current-dependency publication reconciliation: receipt2f0220bd; required
+ff-only pull refused ordinary divergence, then full-history merge7340d7ba
+preserved published5b9194e4 and both journals without conflict. ROOT's incoming
+eac16533 changes test fixtures, not production interpreter; A2 profile/L1 alias/
+D2 browser additions retain their owners. Compiler/library/language and selected
+dependency/admission/capture/profile/imported-alias inputs are byte-identical.
+The complete old manifest is not relabeled unchanged: query-smoke actually calls
+the changed resource fixture through evaluation_query_tests. One affected query
+object/link rebuild9.49wall/4.49CPU/290068KiB; merged query PASS0 .38/.37/104448,
+empty stderr, frozen source/status0. Other exact receipts and samples reused.
+New native runner35f769a662dc57b9592c7ba5c380c1c9b6c34e57816940843938047f3e62bf28;
+external prefixcurrent_dependency_merged_7340d7ba retains commands/manifests/logs.
+No production defect found or broad rerun needed; normal push follows, ROOT
+retains final release. Todo unchanged and all owned work drained.
