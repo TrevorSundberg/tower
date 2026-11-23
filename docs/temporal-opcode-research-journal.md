@@ -92304,3 +92304,47 @@ absent from lr-work-main-unbound.ll.d. Reused those exact scoped results without
 rebuilding identical leaves or running another matrix. No claim validates the
 new profile tool or ROOT's separate frozen portable bundle. All jobs drained,
 prior failures retained, todo unchanged; normal publication follows.
+### ROOT independent Linux retirement reproduction after joined474 acceptance (2026-11-23)
+
+ROOT reran the unchanged strict test-shared-compiler.mjs against the preserved
+f167c444 source/artifact archive on KinmenB tower-b2-work, after B2's Node work
+drained. Linux6.18.33.2/Ubuntu24.04.5, Node22.23.5, Playwright1.65.1,
+Chromium159.0.8154.6, existing12-23 CPU partition/quota12/24GiB. One browser.
+Compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4,
+work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c,
+strict scriptbc41120de240a53d4fe695f5cf89348fb96af3f393175b9163bc9814e4eef548.
+Actual resource JSON67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b
+matches the original Linux failure exactly. No compiler/transport/test edit.
+
+Result FAIL/exit1: pool4 and compiler1 complete with5/2 actual close events and
+zero targets. Compiler4 completes its selected query/world/Graph/Fast fixture
+work in2536.94ms, then its coordinator CDP worker target remains after the
+unchanged30s retirement deadline. Whole process36.33wall/4.44CPU seconds
+(3.10user+1.34sys, Bash time -p); peak RSS not captured. The final cross-trial
+equality/assertion loop is unstarted after retirement failure, not a new pass.
+This reproduces the open Linux failure independently at a later trial than the
+earlier pool failure; it identifies no native Chromium transition or Tower race.
+
+Initial setup failed before invoking Tower because /usr/bin/time was absent;
+next setup lacked the frozen snapshot's @playwright/test lookup. Both logs stay.
+The final run uses Bash timing and a node_modules symlink to the existing exact
+host installation; original source and resource hashes above remain unchanged.
+Browser.close drained owned processes after the failed observation. Report SHA
+af9f6180c15e12c079a6b6065969c86f30600946b8b4109e5e590ef0b003ed4e.
+Receipts /cache/root_retirement_20261123_2116, copied to
+C:/Sandbox/build/codex_ecs_20261122/ROOT_retirement_20261123_2116.
+No unchanged retry loop, timeout extension, filtered target or forced pass.
+
+Reviewed/pulled independent publications: D1's761aa5b5 closes all4 T1 cases on
+new474 artifacts but confirms3 alias failures in both modes; D2'sc93ddaab proves
+and corrects64-bit canonical input sent to wasm32; A1's89c76ebf reviews42changed
+Tower paths at fixed9caa. L1's22e15d5b publishes numeric-only forwarding and its
+focused ownership/width/worker evidence; ROOT read the actual three producer
+diffs and assigned the remaining original aliases back to that same session.
+These receipts retain their own freezes and are not final joined-release proof.
+D2 now owns optional native browser trace capture, A1 the audited loss of typed
+cause/offset in allocation-free backend fallback; original8 UUIDs only.
+Protected todo.txt hash8C39608BCE025104ED1FE00CCC131F8EE242EB142E8CE5AB50E1B223CC473DBC
+is unchanged. Documentation-only ROOT work has no runtime optimization or
+before/after memory claim. Current generations, final supported instrumentation,
+Linux retirement and hosted runtime replacement remain unpassed.
