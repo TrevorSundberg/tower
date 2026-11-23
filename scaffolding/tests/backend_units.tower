@@ -7,6 +7,7 @@ import .library.work_pool;
 import .library.compiler_work_types;
 import .library.work_budget;
 import .library.work_budget_types;
+import .compiler.format_api;
 
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_create_bounded(frontend: void*, count: usize, budget: usize, retained_bytes: usize,
@@ -42,31 +43,56 @@ struct UnitStreamOverlap {
     backend_thread: usize;
 }
 
-fn unit_stream_wait(signal: void*, diagnostic: u8*): void {
+// One private line per event, flushed before an assertion can abort. This uses
+// no shared timing state and does not change admission or the overlap deadline.
+fn unit_stream_trace(phase: CompilerQuery, ordinal: usize, event: u8*): void {
+    var now: UnitStreamTime;
+    units_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0, "stream trace monotonic clock");
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var out: FormatEngine = { result: &text, ..default };
+    format_text(&out, "Stream event ns=");
+    format_unsigned(&out, convert(u64, now.seconds) * 1000000000 + convert(u64, now.nanoseconds));
+    format_text(&out, phase == CompilerQuery.Unit ? " frontend=" : " backend=");
+    format_unsigned(&out, convert(u64, ordinal));
+    format_text(&out, " ");
+    format_text(&out, event);
+    format_text(&out, " thread=");
+    format_unsigned(&out, convert(u64, pthread_self()));
+    units_check(!text.failed && vector_push(&text.text, 0), "stream trace formatting");
+    puts(text.text.data);
+    fflush(null);
+}
+
+fn unit_stream_wait(signal: void*, diagnostic: u8*, phase: CompilerQuery, ordinal: usize): void {
     var started: UnitStreamTime;
     units_check(clock_gettime(UnitStreamMonotonicClock, &started) == 0, "stream monotonic clock");
     while !work_signal_try(signal) {
         var now: UnitStreamTime;
-        units_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0
-            && now.seconds - started.seconds < UnitStreamTimeoutSeconds, diagnostic);
+        units_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0, "stream wait monotonic clock");
+        if now.seconds - started.seconds >= UnitStreamTimeoutSeconds {
+            unit_stream_trace(phase, ordinal, "timeout");
+            units_check(false, diagnostic);
+        }
         sched_yield();
     }
 }
 
 fn unit_stream_observe(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    unit_stream_trace(phase, ordinal, entering ? "enter" : "leave");
     if !entering { return; }
     var overlap = bits(UnitStreamOverlap*, payload);
     if phase == CompilerQuery.Unit && ordinal == UnitStreamHeldFrontend {
         overlap.frontend_thread = pthread_self();
         unit_stream_wait(overlap.backend_entered,
-            "frontend/backend overlap deadline: frontend unit 2 awaits backend unit 1");
+            "frontend/backend overlap deadline: frontend unit 2 awaits backend unit 1", phase, ordinal);
         work_signal_post(overlap.frontend_released);
     }
     if phase == CompilerQuery.Backend && ordinal == UnitStreamFirstBackend {
         overlap.backend_thread = pthread_self();
         work_signal_post(overlap.backend_entered);
         unit_stream_wait(overlap.frontend_released,
-            "frontend/backend overlap deadline: backend unit 1 awaits frontend unit 2");
+            "frontend/backend overlap deadline: backend unit 1 awaits frontend unit 2", phase, ordinal);
     }
 }
 

@@ -55766,3 +55766,51 @@ build/b2_clone_units_validation.log. All owned jobs and quiet holds are drained.
 Root separately requested timestamp evidence for L1's current TSan overlap
 30-second timeout. That failure is preserved; a test-only observer timeline is
 next, with no deadline or production behavior change inferred from the timeout.
+### B2 overlap timeout observation and isolated process measurements
+
+Root requested evidence for L1's current TSan backend-overlap timeout: frontend2
+waits at its entry callback while frontend1 must still compile before backend1
+can enter. Added only tests/backend_units.tower timestamps for frontend/backend
+enter, leave and timeout events. Each event owns its formatting scratch and
+writes one flushed monotonic-nanosecond/thread line. No shared timing fields,
+deadline extension, assertion removal or production change. The original
+30-second predicate, exact serial objects, shared budgets and distinct native
+worker assertions remain. Patch B2_stream_observer_timeline.patch SHA
+a08e822929d1c8d1a923b0bfaaa866ce0d005453a03812f22cd7c4177e52594a
+was supplied for L1's exact frozen instrumented closure; no TSan result is
+claimed locally by this diagnostic patch.
+
+Smallest public unit passed3.294138122wall/3.059665CPU/245920KiB; the35-step native
+closure passed40.573870867/150.776647/843592. Separate-process native baseline
+passed8.279794627/10.553557/496220; instrumented observer fixture passed
+7.955964073/10.247978/495980. These n1 nonquiet observations establish working
+diagnostics, not a speed improvement. First frontend entered at95523865948299ns,
+held frontend2 at95523865948374; frontend1 left at95525023017571 and backend1
+entered at95525023220362, about.203ms later. The normal path still establishes
+actual overlap. This alone does not attribute an instrumented timeout.
+Logs: build/b2_stream_{timeline_normal,before_isolated,after_isolated}.log.
+
+Found and corrected an observation boundary error in the ignored local Tower
+helper build/b2_process_profile.tower: it reads cumulative RUSAGE_CHILDREN after
+one child, assuming a fresh process. Bash may exec the final observer with usage
+inherited from earlier children. The initial timeline-after report's
+176.426262CPU/843592KiB includes earlier compilation and is invalid as isolated
+test usage; its outcome/wall time remain observations. Both fresh invocations
+above avoid that boundary. The previous clone fixture's final module unit also
+inherited earlier usage; fresh module compilation passed
+14.395649879/13.812258/606476. The final editor observation was potentially
+affected; fresh editor passed12.293254972/11.647935/261868. These replace the
+earlier CPU/RSS receipts for those individual operations, not their functional
+outcomes. Matched clone profiles use the executable's own RUSAGE_SELF and event
+clocks and are unaffected by observer-child accumulation.
+
+The local helper now rejects inherited child CPU/RSS with an explicit message
+and exit2 before launching the measured child. A fresh-process true command
+passed; an exec after a prior child was rejected with verified exit2.
+No shared compiler/tool implementation was changed for this guard. Two attempted
+direct executable links failed with duplicate ELF main and are retained; the
+correct recipe compiles a library object with the public pin then links it with
+the existing guest-host-library.o through clang19. Logs:
+build/b2_process_profile_{guard_build,guard_library_build,fresh,inherited,
+inherited_verified}.log. Future measured commands use separate docker exec
+processes. All owned children are drained before the next source integration.
