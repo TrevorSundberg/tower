@@ -180,7 +180,8 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         new Uint8Array(exports.memory.buffer).set(bytes, pointer);
         const handle = exports.tw_exec_load_bytecode(pointer, bytes.length);
         if (!handle) throw new Error(string(exports.tw_last_error()));
-        return remember(handle);
+        try { return remember(handle); }
+        catch (error) { exports.tw_exec_destroy(handle); throw error; }
       } finally { exports.tw_free(pointer); }
     },
     compileFoundation: source => remember(withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length))),
