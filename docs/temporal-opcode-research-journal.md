@@ -71869,3 +71869,112 @@ The former Capacity blocker is fixed in this source; final joined verification,
 remaining ownership/dependency work and publication still remain open. todo.txt
 is untouched. Original bundle lookup used the parent directory and failed; its
 actual B1 subdirectory transfer and complete hash verification succeeded.
+
+### B1 merged runtime/cache/page validation boundary, 2026-11-23T10:07:22.9286113Z
+
+Complete ROOT76d297c2 history is merged as5ceea5fb after native8d2afa0c jobs
+actually drained. Only journal history differs; every nonblank line from both
+parents survives and strict UTF8/diff check pass. Native source is unchanged:
+entities build11.47s/315232KiB, coherent closure32.78s/788292KiB; unchanged full
+units21.72s/32.19CPU/869412KiB, LR1.86s/116728KiB, query.22s/88348KiB,
+resource phases.03s/51428KiB, grammar-resource1.29s/52568KiB, parser.04s/53984KiB,
+editor10.72s/17.02CPU/983432KiB and full storage.24s/98732KiB all exit0.
+The existing runtime-faults selector also passes.02s/50716KiB. This validates the
+previously failing aggregate UTF8 oracle with A2's complete correction, and the
+unchanged Capacity/no-output/retry oracle with the B1 result producer. Historical
+failures stay recorded. Expired exec handle82667 is not a failure or new result:
+individual final GNUtime receipts and empty process inventory establish drain.
+
+Supported address/leak and thread instrumentation is now being rebuilt on this
+coherent source; no current-source pass is claimed yet. Public pin9653, LLVM19,
+CPU0-11/24GiB, outer3/compiler4, separate caches. The newly selected full units
+instrumented check has a300second cap based on native21.72s and prior overhead;
+this does not retry or reinterpret the still-open full frontend300second timeout.
+No standalone UBSan/browser instrumentation or universal race-free claim follows.
+
+Read-only next-step audit: parser_workers.tower still opens retained slots through
+work_pool_open, while world.tower freezes the ledger before any pool and the shared
+WorkPool already offers work_pool_open_budget with exact byte receipts. A binding
+change needs the real clamped count times sizeof(WorkSlot), no second lane grant,
+retention through idle reuse and exact release at world/cache destruction. Tests
+lr_budget.tower currently assume zero retained bytes after warm worker use; replace
+that assumption only with the actual pool receipt and retain zero after teardown.
+Before implementation also close newly exposed typed-cause propagation at the
+FIRST/state/LALR callers: lr_first_work/lr_state_work/lr_work still use bool pool
+opening, and parser_table currently maps those failures to Memory. Merely charging
+the pool would introduce a new Capacity-to-Memory path. No such partial change was
+made during the frozen instrumentation run. Parser graph binding and raw LR heap
+owners remain separate open accounting work. No publication lease or release.
+
+### B1 caller review for proposed node-page accounting, 2026-11-23T10:17:21.8992896Z
+
+This is a source audit on5ceea5fb, not adoption of A2's proposed raw-node pages.
+A2 has supplied no new node/page ABI or complete implementation yet. Current
+instrumentation inputs stay frozen. The following additional typed-cause gaps
+must be addressed before claiming bounded node creation is preserved end to end:
+
+| Owned path | Concrete current finding and required follow-up |
+| --- | --- |
+| grammar_builder.tower | Root/child creation and component insertion collapse to GrammarBuilder.failed. A builder result contract must retain the first exact cause and preserve finish-time disposal of the partial root. Its B2 consumers need the complete producer/history before adoption. |
+| lr_tree.tower, parse_tree.tower | Shift/reduce creation and match-component insertion discard typed entity outcomes. LRParser.storage_error already offers request-owned storage for them. Forest attachment still calls bool entity_attach; its stage/view/cross-store/overflow failures cannot all be labeled Memory. A2 typed attachment contract proposed through coordinator, not implemented or imported. |
+| lr_first_work.tower, lr_state_work.tower, lr_work.tower | Transient owner/component creation, pool opening and some graph operations still discard causes. The runtime result path is repaired, but these earlier phases and physical pool binding remain a separate complete change. |
+| syntax_session_inputs.tower | Reset creates a document and syntax payload through untyped wrappers. Module replacement also depends on B2 frontend_module_root_world, whose current graph allocation uses module_require. A B1 result wrapper alone cannot convert that aborting producer to a recoverable receipt. Preserve existing reset/ownership semantics while coordinating its producer. |
+| syntax_provenance.tower | Trace creation returns null for absent source span, node creation, payload creation or rule-text allocation. Those are distinct invalid/resource outcomes; callers cannot infer a single allocation cause from null. |
+| syntax_expansion.tower | Copy/container creation and provenance failures funnel into expansion_memory. Counted output limit and component kind are also literal values here; when touching this path use a named semantic limit and CompilerParserMatch, preserving the actual limit and diagnostics. |
+| parser_integration.tower | Debug-trace marker creation is a legacy bool boundary, not the table-result API. It still fails explicitly; do not present it as a precise typed resource receipt. |
+
+A2 entity_attach source review distinguishes stage/view refusal, same-node or
+cross-store misuse, extent overflow and actual children/name allocation failure.
+The proposed result variant must preserve the existing ownership/name-replacement
+order and keep its bool compatibility wrapper. B1 has not modified shared entities
+or guessed a shared last-error value. These findings extend the existing full-file
+audit; they do not invalidate the scoped runtime repair or imply whole-parser
+resource acceptance. No runtime performance measurement applies to this read-only
+review/documentation delta. Existing full frontend timeout remains open; historical
+GDB samples only localized active LR work, not a proven hang or completed suite.
+
+### B1 coherent runtime repair acceptance slice, 2026-11-23T10:24:10.7723660Z
+
+Actual address job58078, thread job64471, public WASI job44144 and IDE job68834
+all completed0 with every child drained. Source5ceea5fb has the exact production
+inputs of native8d2afa0c; the merge adds journal history only. No proposed A2 raw
+node pages or later B2 foreign/linker changes are in this source.
+
+ASan/LSan build104.82s/235.70CPU/790860KiB. Full storage1.41s/518804KiB,
+LR19.61s/852300KiB, unchanged full units171.19s/260.51CPU/1198256KiB,
+query.67s/251904KiB, resource phases.10s/76964KiB, grammar-resource11.68s/659916KiB
+and actual three-unit/four-lane overlap9.54s/30.10CPU/1116760KiB all pass.
+No reports with detect_leaks=1:abort_on_error=1. Fault allocation remains serial;
+LR and unit/observer checks use production threading.
+
+TSan build67.75s/168.83CPU/791148KiB. Full storage2.190s, LR48.148s/79.594CPU,
+unchanged full units412.464s/643.273CPU, query1.170s, resource phases.099s,
+grammar-resource19.770s and two actual overlap samples24.980s/79.447CPU and
+25.490s/80.653CPU all pass with halt_on_error=1. The full units600second limit
+was selected before its first run from earlier measured TSan editor overhead;
+there was no timeout retry. Other focused limits remain180seconds. This does not
+alter the historical full frontend300second timeout, which remains open.
+Thread execution uses the established seccomp-unconfined same-image container,
+CPU0-11/24GiB, no network; all children exit before it is removed. Individual
+TSan fixtures have wall/CPU receipts, not separately captured peak RSS. The two
+observer samples report actual peak RSS1430312/1434884KiB. Both observe peak3
+concurrent units and four reserved lanes; ASan agrees on canonical hash
+1173729914654460811, entities48240, components55014 and retained15148176 bytes.
+This new union's retention is not compared as isolated code cost against503.
+The earlier fixed-path runtime before/after experiment remains its own evidence.
+
+Canonical documented WASI build uses public pin9653, SDK34, outer3/compiler4,
+no private bootstrap override:10steps40.88s/71.72CPU/865028KiB. Actual IDE suite
+passes26.5224090s, including current32/64-bit resource and lifetime fixtures.
+Reactor SHA25650837cc746722479841b76ac6d9b71b174d66658e6dee8c3ffccba468a859992.
+This test reactor includes IDE checks and is not relabeled as a portable release
+or hosted deployment. Supported generated Tower/runtime address/thread coverage
+is not standalone UBSan, system LLVM/libc or browser instrumentation, and passing
+stress samples are not proof of universal race freedom.
+
+Only journal/audit text changes in this evidence commit; runtime performance
+measurements are inapplicable to that text delta. Current production code is
+already committed in the complete runtime/cache/page owner histories. Full parser
+resource accounting, pool/FIRST/state/LALR/tree/pattern producer gaps, the broader
+frontend timeout, clean generation/release and atomic publication/hosted verification
+remain open. No publication lease has been granted; no refs were pushed.
