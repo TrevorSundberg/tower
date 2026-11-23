@@ -86107,3 +86107,16 @@ was origin/main a241935e; local implementation f626ed9e, merge f6d1f167 and
 validation35a6f64b are committed with complete history. No force push, deployment
 or pin change. Publication remains PENDING; this bounded task stops after the
 three failed network attempts rather than polling. All owned jobs are drained.
+
+Publication reconciliation: implementation184b2b4 met published76c38e7. The
+required ff-only pull refused divergence; normal merge592f17c preserved both
+complete histories without conflicts. All five tested Tower files and the three
+recorded input fixtures still match their hashes. Every dependency in both
+standalone policy-tool depfiles is unchanged, so their checked native evidence
+remains applicable. Incoming B1 scratch indexing, L1 interpreter ownership and
+B2 code-generation changes are retained; the Semantics stage-create/arena-append
+calls remain present, and no additional policy permission was inferred. The
+873f944 native fixture receipt remains at its explicit compiler identity; it
+cannot validate those new production objects. ROOT/B1 retain current-source
+control-smoke/resource-roots and actual new-object import checks. README entries
+merged intact, git diff --check passes, todo hash unchanged, all D1 jobs drained.
