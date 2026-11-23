@@ -106,11 +106,11 @@ fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): boo
 // declaration/body publication appends this index in canonical source order.
 // An earlier demanded continuation may still discover a failure in a later
 // pump, so retain later failures until that earlier producer has terminated.
-fn sem_evaluation_select_failure(c: SemanticContext*): bool {
+fn sem_evaluation_select_failure(c: SemanticContext*, query: u32): bool {
     if c.declaration_isolated { return false; }
     foreach(var job in &c.evaluation_jobs) {
         var result = bits(SemanticEvaluation*, job);
-        var id = work_find(&c.queries, result.subject, EvaluationQuery, 0);
+        var id = work_find(&c.queries, result.subject, query, 0);
         if id == 0 { continue; }
         var task = work_task(&c.queries, id);
         if !task.demanded || task.state == WorkState.Succeeded { continue; }
@@ -374,7 +374,9 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
     if c.evaluation_jobs.length == 0 { return SemanticPumpResult.Complete; }
     // Early local captures may be registered while a declaration owns a query
     // ticket. Their clone wave becomes runnable after that producer suspends.
-    sem_evaluation_clone_all(c);
+    // Cloning is part of this evaluation owner's frontier. A later clone error
+    // must wait for an earlier demanded evaluation, even if its clone is done.
+    sem_evaluation_work_all(c, true);
     sem_evaluation_work_register(c, false);
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     var index: usize = 0;
@@ -394,7 +396,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         // A suspended interpreter can demand another stage. Prepare only that
         // ready frontier before opening the next immutable execution view.
         sem_evaluation_prepare_all(c);
-        if !sem_ok(c) || sem_evaluation_select_failure(c) { return SemanticPumpResult.Failed; }
+        if !sem_ok(c) || sem_evaluation_select_failure(c, EvaluationQuery) { return SemanticPumpResult.Failed; }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var count: usize = 0;
@@ -480,7 +482,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
             index++;
         }
     }
-    return sem_ok(c) && !sem_evaluation_select_failure(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+    return sem_ok(c) && !sem_evaluation_select_failure(c, EvaluationQuery) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
 }
 
 // Call only after the owning pipeline can no longer satisfy a waiting producer.
