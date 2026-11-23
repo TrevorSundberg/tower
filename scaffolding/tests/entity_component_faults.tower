@@ -5,12 +5,15 @@ import .library.entity_stage;
 import .library.work_budget;
 import .library.work_budget_types;
 import .host.memory;
+import entity_fault_accounting;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
 extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn fflush(stream: void*): i32;
+extern fn printf(format: u8*, value: usize): i32;
 
 var ComponentFaultBudgetBytes: usize = 1048576;
 
@@ -23,6 +26,8 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
 }
 
 fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations: usize*): bool {
+    printf("component trial failure=%zu\n", failure); printf("staged=%zu\n", staged ? 1 : 0);
+    printf("large=%zu\n", large ? 1 : 0); fflush(null);
     var baseline = tower_test_buffer_count();
     var budget: WorkBudget = default;
     component_fault_check(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1));
@@ -48,6 +53,14 @@ fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations:
     var address = stable.data;
     *bits(u64*, address) = 8765;
     var table = node.table;
+    var index = node.components;
+    var capacity = node.component_capacity;
+    var entities = store.entity_count;
+    var components = store.component_count;
+    var identity = store.next_id;
+    var roots: Entity*[3]; roots[0] = root; roots[1] = first_type; roots[2] = next_type;
+    var root_count = sizeof(decltype(roots)) / sizeof(Entity*);
+    entity_fault_census(store, &roots[0], root_count, stage);
     var before = budget.used_bytes;
     var live = budget.live;
     var initial = tower_test_buffer_allocations();
@@ -56,11 +69,21 @@ fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations:
     tower_test_buffer_fail_after(~convert(usize, 0));
     *allocations = tower_test_buffer_allocations() - initial;
     var succeeded = component != null;
+    var census = entity_fault_census(store, &roots[0], root_count, stage);
+    component_fault_check(tower_test_buffer_count() == baseline + census.receipts
+        + (budget.entries.data != null ? 1 : 0));
     if !succeeded {
+        // Published type-instance capacity may grow before payload admission.
+        // Its exact retained allocation remains owned; semantic membership and
+        // the failed owner's inline promotion must remain unchanged.
+        var retained: EntityFaultCensus = default;
+        entity_fault_index(&retained, &budget, next_type.instances);
         component_fault_check(error == WorkBudgetError.Memory && node.component_count == 1
             && next_type.instance_count == 0 && entity_component_get(node, next_type) == null
             && node.table == table && node.pending_table == null
-            && budget.used_bytes == before && budget.live == live
+            && node.components == index && node.component_capacity == capacity
+            && store.entity_count == entities && store.component_count == components && store.next_id == identity
+            && budget.used_bytes == before + retained.bytes && budget.live == live + retained.receipts
             && stable.data == address && *bits(u64*, address) == 8765);
         component = entity_component_add_result(node, next_type, &error);
     }
@@ -70,16 +93,21 @@ fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations:
         var retained = budget.used_bytes;
         var component_address = component.data;
         tower_test_buffer_fail_after(0);
-        var published = entity_stage_publish(stage);
+        var published = entity_stage_publish_result(stage);
         tower_test_buffer_fail_after(~convert(usize, 0));
-        component_fault_check(!published && first_type.instance_count == 0 && next_type.instance_count == 0
+        component_fault_check(published == WorkBudgetError.Memory && first_type.instance_count == 0 && next_type.instance_count == 0
             && budget.used_bytes == retained && component.data == component_address && node.stage == bits(void*, stage));
-        component_fault_check(entity_stage_publish(stage) && component.data == component_address
-            && budget.used_bytes == retained && node.stage == null && node.storage == null);
+        entity_fault_census(store, &roots[0], root_count, stage);
+        component_fault_check(entity_stage_publish_result(stage) == WorkBudgetError.None && component.data == component_address
+            && node.stage == null && node.storage == null);
+        stage = null;
     }
+    census = entity_fault_census(store, &roots[0], root_count, stage);
+    component_fault_check(tower_test_buffer_count() == baseline + census.receipts
+        + (budget.entries.data != null ? 1 : 0));
     entity_release(root); entity_release(first_type); entity_release(next_type);
     component_fault_check(store.entity_count == 0 && store.component_count == 0
-        && entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0
+        && entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
         && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
     return succeeded;
 }

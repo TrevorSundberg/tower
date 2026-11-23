@@ -164,8 +164,9 @@ export fn main(argc: i32, argv: u8**): i32 {
     var reconstruction = argc == 8 || argc == 9;
     var denial = argc == 9 && strcmp(argv[8], "deny-recheck") == 0;
     var census = argc == 9 && strcmp(argv[8], "census") == 0;
+    var optimized = argc == 9 && strcmp(argv[8], "optimized") == 0;
     utility_check(argc == required_arguments || reconstruction,
-        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census]]");
+        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census|optimized]]");
     var workers: usize = 1;
     var width: u32 = 4;
     if reconstruction {
@@ -174,7 +175,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         width = strcmp(argv[6], "4") == 0 ? 4 : 8;
         workers = strcmp(argv[7], "1") == 0 ? 1 : 4;
         utility_check(!denial || (workers == 1 && strcmp(argv[8], "deny-recheck") == 0), "Serial recheck denial transport");
-        utility_check(argc != 9 || denial || census, "Known reconstruction observation mode");
+        utility_check(argc != 9 || denial || census || optimized, "Known reconstruction observation mode");
     }
     var budget: WorkBudget = default;
     var gate: void* = null;
@@ -237,11 +238,19 @@ export fn main(argc: i32, argv: u8**): i32 {
         compiler_world_grammar(fixture.world).observer = {context: bits(void*, &probe), event: reconstruction_observe};
         defer compiler_world_grammar(fixture.world).observer = default;
         var result = backend_source_compile_world(fixture.source, fixture.world, input.data, input.length,
-            BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+            BackendSourceImport | (optimized ? 0 : BackendSourceUnoptimized), fixture.modules, null);
         puts(result);
         printf("input_bytes=%zu output_bytes=%zu backend_resource=%zu backend_offset=%zu reserved=%zu reserved=%zu reserved=%zu\n",
             input.length, fixture.source.foundation.length, convert(usize, fixture.source.backend.backend.resource_error),
             fixture.source.backend.backend.error_offset, 0, 0, 0);
+        if optimized && fixture.source.backend.backend.optimized != null {
+            var path: ByteBuffer = default;
+            defer bytes_dispose(&path);
+            utility_check(bytes_append(&path, argv[5], strlen(argv[5]))
+                && bytes_append(&path, ".ll", strlen(".ll")) && bytes_push(&path, 0), "Optimized IR receipt path");
+            var ir = fixture.source.backend.backend.optimized;
+            utility_check(driver_write_file(path.data, ir, strlen(ir)), "Save actual optimized reconstruction IR");
+        }
         if denial {
             var passed = probe.parses == 2 && !probe.occupied.active
                 && fixture.source.backend.backend.resource_error == WorkBudgetError.Capacity
