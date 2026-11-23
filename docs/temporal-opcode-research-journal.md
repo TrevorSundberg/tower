@@ -96294,3 +96294,5 @@ Receipt docs/platform_binding_a06_26f99a40.md; raw cache/logs/platform_binding_a
 No production change, so before/after profiling inapplicable; no T9/rebuild/backend/
 sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
+
+B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
