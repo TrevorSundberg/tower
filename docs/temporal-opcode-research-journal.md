@@ -59226,3 +59226,89 @@ coherent link/runtime and malformed/range checks are next. Individual case timin
 will report actual wall/CPU/RSS and exact completed scope; reduced selected work
 will not be presented as a compiler speedup. Final union instrumentation/release
 and remaining owner constructor/clone/arena handoffs stay open.
+
+### D2 current resource failure, cache comparison and source union (2026-11-23)
+
+Frozen sourcefa725bf/scaffolding16116eb4 compiled through public9653 in the
+same Docker image4be584fb and own native cache, jobs1, no bootstrap override.
+Six smallest changed storage/evaluation/cache/query units pass. Canonical native
+six-step rebuild:84.04wall/82.34CPU/792944KiB; eight affected native targets:
+31.63/30.98/354312. Compiler8388c79ae048765509f822ad175ebe16bd98a1ae62b43755ab9411baec904c12
+and48 resources are preserved in build/d2_ecs/native_package_fa725bf; every
+Tower resource byte-compares to that frozen source. Seven freshly emitted
+component import reports also pass the exact updated symbol verifier.
+
+Preserved command failures: Docker-root Git refused host-owned repository128
+before any compiler ran; the attempted host replacement of its empty root-owned
+source.txt was permission-denied. A separate host-written source_host.txt and
+complete tracked-input hash manifest corrected identity capture without changing
+Git safety configuration. The next group built native successfully, then failed1
+because tower-parser-tests is a parser-only target, absent from this native
+configuration. Corrected native targets pass separately. No failed step is hidden
+or a skipped full module regression called passed.
+
+The new D1 resource helper executes through query-smoke at widths32/64 and
+workers1/4:0.16wall/0.15CPU/61008KiB. This covers required/inferred/isolated
+resource failures, exact first diagnostic, failed tickets, no replay/value
+publication, peer drain and zero receipts. Serial allocation/root replacement
+checks2.06/2.03/162184 and parser integration0.02/0.02/51464 pass. Production
+independent units48.55/65.24/631052 and backend streaming overlap17.29/25.63/
+490256 pass, including exact serial objects and distinct native threads. These
+are one-run correctness receipts, not before/after speed claims. All child swaps0.
+No current whole-compiler ASan/TSan, full42 or final browser/generation claim.
+
+The exact module-cache profile0930654a now passes shared-leaf invalidation,
+unique module counts and complete world/cache teardown with B2 fixdeba07.
+Initial uncontrolled18-layer reuse improved from273–301ms to0.93–1.46ms, but
+first-load80–92ms versus34–37ms and small reuse were slower. Investigated rather
+than dismissing this: retained original09b7b604 and current394e8b49 executables,
+CPU2 only, warmup plus three alternating process pairs. Each process reports
+first load and three warm reuses for3/18layers and requested1/4 workers. All128
+records and invalidation/cleanup assertions pass; binaries/entry hashes unchanged.
+
+| Requested1 workload | Before wall | Current wall | Qualification |
+| --- | ---: | ---: | --- |
+|3layers first load|8.159ms|8.062ms|Median of3 process-first samples per executable.|
+|3layers reused|103.761us|95.361us|Median of9 warm samples from those processes.|
+|18layers first load|42.085ms|37.151ms|Median of3 process-first samples per executable.|
+|18layers reused|309.109ms|549.529us|Median of9 warm samples; CPU307686us/542us.|
+
+The initial2.5x first-load slowdown is not reproduced under the pinned control;
+all raw observations remain. Retained entities/components exactly1646/1680 and
+7047/8725 match both versions;18-layer reported peak RSS median55860/55880KiB
+is cumulative process memory, not total live ownership. No allocation-call
+counter is available here. The control deliberately pins one CPU; requested4
+is not overlap/scaling evidence. Results describe this cache-validation workload,
+not end-to-end compiler performance. Existing three-unit production profile and
+backend observer provide separate actual-overlap evidence. Inputs and outputs,
+CPU/RSS/frequency samples, original errors and checks are in
+build/d2_ecs/resource_fa725bf. Pinned repeat addresses host variance without
+changing governor or deleting initial results. Heavy lock released at actual
+01:31:05UTC after all jobs drained;139GiB free/9.6GiB available, preexisting
+6.2GiB swap, measured child swaps0.
+
+Then merged coordinator1fec and complete eight-lane3915 histories on main,
+followed by D1's80ec focused registrations, preserving all owner history and
+newer D2 symbol policy. The only code conflict was old standalone resource main
+versus D1's registered helper; preserved exact0b6cbbef helper, all trial bodies
+identical. README conflict retained both LR runtime measurement and new selectors.
+No todo changes. Read the new AGENTS derived-size/count rule. Source78e955c /
+scaffoldingfb4371c6 remains UNBUILT; fa725bf receipts do not validate this union.
+
+D1 module registration62b9 uses existing parser_modules_work composition and
+module_cache_checks entry when TOWER_MODULE_TESTS=ON, with the normal native
+source/library/callback closure and scaffolding working directory. Its lifecycle
+selectorfca3 retains shared case bodies, widths/workers and default coverage,
+adding flushed per-case start/completion receipts. Execution-indexd679 reuses
+B2's pure helper and serial frontend entry. No D2 competing harness or manifest.
+Full module/session regressions, full42, current instrumentation and final clean
+public/native/browser/generation/atomic publication remain required. New shared
+constructor, public clone consumers and fallible semantic-arena ownership are
+still separate owner work, not established by a resource_error field alone.
+
+Cross-lane review sent to L2/A2/B2: in3915 generics, failed entity/node/component
+creation can return null while CloneStack.error remains None. The proposed public
+clone-result API25503293 would then classify it as node-quota truncation in
+optional inspection. This is source evidence for an unmigrated non-stack failure
+path, not a reproduced budgeted-page error: pages/payloads are not yet charged.
+Preserve true quota exhaustion semantics while completing typed failure propagation.
