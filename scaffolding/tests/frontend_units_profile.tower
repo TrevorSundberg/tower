@@ -16,6 +16,7 @@ import .compiler.format_types;
 import .compiler.interpreter_context_types;
 import .backend.observation_types;
 import .compiler.grammar_types;
+import .compiler.compiler_kernel;
 
 // Linux x64 observation ABI. Each invocation owns fresh worlds; filesystem
 // caches may be warm. Timed work ends before reference execution/formatting.
@@ -35,12 +36,16 @@ struct UnitsProfileEvents { spans: UnitsProfileSpan*; count: usize; phases: usiz
 var UnitsGrammarPhaseCount: usize = convert(usize, GrammarPhase.Count);
 struct UnitsGrammarPhase {
     span: UnitsProfileSpan;
-    calls: usize; work: usize; wall: u64; cpu: u64;
+    depth: usize; calls: usize; work: usize; wall: u64; cpu: u64;
     kernel_wall: u64; kernel_cpu: u64; kernel_peak: usize; threads: usize;
+    covered: u64; lane_ns: u64; observer_wall: u64; observer_cpu: u64;
 }
+var UnitsKernelKindCount: usize = convert(usize, CompilerKernelKind.Count);
 struct UnitsGrammarObservation {
     phases: UnitsGrammarPhase[UnitsGrammarPhaseCount];
     jobs: UnitsProfileSpan[WorkPoolMaximumCapacity];
+    semantic_jobs: UnitsProfileSpan*; semantic_kinds: usize*; semantic_capacity: usize;
+    kernels: UnitsGrammarPhase[UnitsKernelKindCount];
     pool_before: usize; pool_creations: usize; pool_slots: usize;
 }
 var UnitsProfileMaximumUnits: usize = 32;
@@ -97,25 +102,46 @@ fn units_profile_grammar(context: void*, phase: GrammarPhase, entering: bool, fi
     var observation = bits(UnitsGrammarObservation*, context);
     var index = convert(usize, phase);
     units_check(index < UnitsGrammarPhaseCount, "grammar profile phase");
-    if phase == GrammarPhase.LookaheadKernel {
-        units_check(first < sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan), "grammar kernel ordinal");
-        var job = &observation.jobs[first];
+    if phase == GrammarPhase.LookaheadKernel || phase == GrammarPhase.SemanticKernel {
+        var semantic = phase == GrammarPhase.SemanticKernel;
+        var capacity = semantic ? observation.semantic_capacity : sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan);
+        units_check(first < capacity, "profile kernel ordinal");
+        var job = semantic ? &observation.semantic_jobs[first] : &observation.jobs[first];
+        if semantic && entering {
+            units_check(second < UnitsKernelKindCount, "profile kernel kind");
+            observation.semantic_kinds[first] = second;
+        }
         if entering { job.start = units_profile_clock(); job.thread = pthread_self(); job.cpu_start = units_profile_thread_cpu(); }
         else { job.cpu_end = units_profile_thread_cpu(); job.end = units_profile_clock(); }
         return;
     }
     var entry = &observation.phases[index];
-    var wave = phase == GrammarPhase.PropagationWave || phase == GrammarPhase.ActionWave;
+    var semantic = phase == GrammarPhase.SemanticDispatch;
+    var wave = phase == GrammarPhase.PropagationWave || phase == GrammarPhase.ActionWave || semantic;
     if entering {
+        entry.depth++;
+        if entry.depth != 1 { return; }
         if wave {
-            units_check(first <= sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan), "grammar wave extent");
-            for(var i: usize = 0; i < first; i++) { observation.jobs[i] = default; }
+            if semantic && first > observation.semantic_capacity {
+                free(observation.semantic_jobs); free(observation.semantic_kinds);
+                observation.semantic_jobs = alloc(UnitsProfileSpan, first);
+                observation.semantic_kinds = alloc(usize, first);
+                units_check(observation.semantic_jobs != null && observation.semantic_kinds != null, "semantic observer slots");
+                observation.semantic_capacity = first;
+            }
+            var jobs = semantic ? observation.semantic_jobs : &observation.jobs[0];
+            var capacity = semantic ? observation.semantic_capacity : sizeof(decltype(observation.jobs)) / sizeof(UnitsProfileSpan);
+            units_check(first <= capacity, "profile wave extent");
+            for(var i: usize = 0; i < first; i++) { jobs[i] = default; }
         }
         if phase == GrammarPhase.PoolOpen { observation.pool_before = second; }
         entry.span.start = units_profile_clock(); entry.span.cpu_start = units_profile_thread_cpu();
         entry.span.thread = pthread_self();
         return;
     }
+    units_check(entry.depth != 0, "profile balanced phase");
+    entry.depth--;
+    if entry.depth != 0 { return; }
     var end_cpu = units_profile_thread_cpu();
     var end = units_profile_clock();
     entry.calls++; entry.work += second;
@@ -124,22 +150,41 @@ fn units_profile_grammar(context: void*, phase: GrammarPhase, entering: bool, fi
         observation.pool_creations++; observation.pool_slots += second;
     }
     if !wave { return; }
+    if semantic { entry.lane_ns += (end - entry.span.start) * convert(u64, second); }
+    var jobs = semantic ? observation.semantic_jobs : &observation.jobs[0];
     var threads: usize = 0;
     for(var i: usize = 0; i < first; i++) {
-        var job = &observation.jobs[i];
+        var job = &jobs[i];
         if job.start == 0 { continue; }
         units_check(job.start >= entry.span.start && job.end >= job.start && job.end <= end, "grammar joined kernel interval");
         entry.kernel_wall += job.end - job.start; entry.kernel_cpu += job.cpu_end - job.cpu_start;
-        var active: usize = 0; var seen = false;
+        units_check(job.cpu_end >= job.cpu_start, "profile kernel CPU interval");
+        var active: usize = 0; var kind_active: usize = 0; var seen = false;
+        var covered_until = job.start;
         for(var j: usize = 0; j < first; j++) {
-            var other = &observation.jobs[j];
-            if other.start <= job.start && other.end > job.start { active++; }
+            var other = &jobs[j];
+            if other.start <= job.start && other.end > job.start {
+                active++;
+                if semantic && observation.semantic_kinds[j] == observation.semantic_kinds[i] { kind_active++; }
+            }
             if j < i && other.thread == job.thread { seen = true; }
+            if (other.start < job.start || (other.start == job.start && j < i)) && other.end > covered_until { covered_until = other.end; }
+        }
+        if job.end > covered_until { entry.covered += job.end - covered_until; }
+        if semantic {
+            units_check(active <= second, "profile kernel admission ceiling");
+            var kernel = &observation.kernels[observation.semantic_kinds[i]];
+            kernel.calls++; kernel.wall += job.end - job.start; kernel.cpu += job.cpu_end - job.cpu_start;
+            if kind_active > kernel.kernel_peak { kernel.kernel_peak = kind_active; }
         }
         if !seen { threads++; }
         if active > entry.kernel_peak { entry.kernel_peak = active; }
     }
     if threads > entry.threads { entry.threads = threads; }
+    // Collection is coordinator work after join, outside dispatch/kernel clocks.
+    // Report it explicitly: enclosing phase spans include this diagnostic cost.
+    entry.observer_cpu += units_profile_thread_cpu() - end_cpu;
+    entry.observer_wall += units_profile_clock() - end;
 }
 
 fn units_profile_cpu(usage: UnitsProfileUsage*): u64 {
@@ -289,7 +334,14 @@ export fn main(argc: i32, argv: u8**): i32 {
         units_check(grammar_observations != null, "grammar observer slots");
         fill(grammar_observations, 0, count * sizeof(UnitsGrammarObservation));
     }
-    defer free(grammar_observations);
+    defer {
+        if grammar_observations != null {
+            for(var i: usize = 0; i < count; i++) {
+                free(grammar_observations[i].semantic_jobs); free(grammar_observations[i].semantic_kinds);
+            }
+        }
+        free(grammar_observations);
+    }
     var backend_phase_count = backend_mode ? convert(usize, BackendPhase.Count) : 0;
     var backend_spans: UnitsProfileSpan* = null;
     if backend_phase_count != 0 {
@@ -539,6 +591,8 @@ export fn main(argc: i32, argv: u8**): i32 {
                 total.calls += observed.calls; total.work += observed.work;
                 total.wall += observed.wall; total.cpu += observed.cpu;
                 total.kernel_wall += observed.kernel_wall; total.kernel_cpu += observed.kernel_cpu;
+                total.covered += observed.covered; total.lane_ns += observed.lane_ns;
+                total.observer_wall += observed.observer_wall; total.observer_cpu += observed.observer_cpu;
                 if observed.kernel_peak > total.kernel_peak { total.kernel_peak = observed.kernel_peak; }
                 if observed.threads > total.threads { total.threads = observed.threads; }
                 creations += grammar_observations[ordinal].pool_creations; slots += grammar_observations[ordinal].pool_slots;
@@ -551,12 +605,34 @@ export fn main(argc: i32, argv: u8**): i32 {
             units_profile_text(&out, ",\"cpu_ns\":"); units_profile_number(&out, total.cpu);
             units_profile_text(&out, ",\"kernel_ns\":"); units_profile_number(&out, total.kernel_wall);
             units_profile_text(&out, ",\"kernel_cpu_ns\":"); units_profile_number(&out, total.kernel_cpu);
+            units_profile_text(&out, ",\"covered_ns\":"); units_profile_number(&out, total.covered);
+            units_profile_text(&out, ",\"admitted_lane_ns\":"); units_profile_number(&out, total.lane_ns);
+            units_profile_text(&out, ",\"observer_ns\":"); units_profile_number(&out, total.observer_wall);
+            units_profile_text(&out, ",\"observer_cpu_ns\":"); units_profile_number(&out, total.observer_cpu);
             units_profile_text(&out, ",\"kernel_peak\":"); units_profile_number(&out, convert(u64, total.kernel_peak));
             units_profile_text(&out, ",\"threads\":"); units_profile_number(&out, convert(u64, total.threads));
             if phase == convert(usize, GrammarPhase.PoolOpen) {
                 units_profile_text(&out, ",\"creations\":"); units_profile_number(&out, convert(u64, creations));
                 units_profile_text(&out, ",\"slots\":"); units_profile_number(&out, convert(u64, slots));
             }
+            units_profile_text(&out, "}");
+        }
+    }
+    units_profile_text(&out, "],\"semantic_kernels\":[");
+    if grammar_profile {
+        for(var kind: usize = 0; kind < UnitsKernelKindCount; kind++) {
+            var total: UnitsGrammarPhase = default;
+            for(var ordinal: usize = 0; ordinal < count; ordinal++) {
+                var observed = &grammar_observations[ordinal].kernels[kind];
+                total.calls += observed.calls; total.wall += observed.wall; total.cpu += observed.cpu;
+                if observed.kernel_peak > total.kernel_peak { total.kernel_peak = observed.kernel_peak; }
+            }
+            if kind != 0 { units_profile_text(&out, ","); }
+            units_profile_text(&out, "{\"kind\":"); units_profile_number(&out, convert(u64, kind));
+            units_profile_text(&out, ",\"jobs\":"); units_profile_number(&out, convert(u64, total.calls));
+            units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, total.wall);
+            units_profile_text(&out, ",\"cpu_ns\":"); units_profile_number(&out, total.cpu);
+            units_profile_text(&out, ",\"peak\":"); units_profile_number(&out, convert(u64, total.kernel_peak));
             units_profile_text(&out, "}");
         }
     }

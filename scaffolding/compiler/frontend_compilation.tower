@@ -1,6 +1,8 @@
 import tower;
 import semantic_program_types;
 import semantic_context;
+import grammar_observer;
+import grammar_types;
 import semantic_lifecycle;
 import semantic_modules;
 import semantic_support;
@@ -83,6 +85,8 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         frontend_compile_error(program, "Compilation source array is missing");
         return;
     }
+    var world = compiler_node_world(program.root);
+    if world != null { grammar_observe(world, GrammarPhase.FrontendParse, true, count, 0); }
     var source: vector(u8);
     var roots: vector(void*);
     var bases: vector(usize);
@@ -225,6 +229,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
         index++;
     }
+    if world != null { grammar_observe(world, GrammarPhase.FrontendParse, false, count, 0); }
     if program.resource.error == WorkBudgetError.None && program.error.length == 0 {
         sem_require(vector_push(&source, 0));
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
