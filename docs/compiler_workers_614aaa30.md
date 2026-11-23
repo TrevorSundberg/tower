@@ -126,3 +126,16 @@ current host/fixture combination only. L1 numeric-wrapper specialization, L2's
 four failed ECS LLVM reconstruction cases, other assigned Node files and ROOT's
 final release remain independent. The accepted native generation freeze and
 artifacts are unchanged; no public pin or hosted deployment was performed.
+
+## Publication reconciliation
+
+Implementation/receipt `768abe11` merged complete published `c95b04a2` as
+`5a385818` after the required ff-only pull refused ordinary divergence. All 54
+recorded host/fixture files and all three consumed artifact hashes still match;
+the merged test also passes Node syntax validation. The eight execution results
+are reused with their original source/artifact identities. Incoming backend
+session/source-session repairs are outside the frozen eac reactors; other Node
+files, backend tests and documentation retain their independent owner evidence.
+No affected input changed, so no worker case or compiler generation was repeated.
+Original manifests, logs and default-file backups remain intact. Main's merged
+compiler source is not relabeled as the source of these supplied reactors.

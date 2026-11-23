@@ -91501,3 +91501,16 @@ The cross main/language closure remains unchanged. Preserve that mismatch log;
 reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
+
+B1 eight-worker publication reconciliation: implementation/receipt768abe11
+merged complete publishedc95b04a2 as5a385818 after required ff-only pull refused
+ordinary divergence. All54 recorded host/fixture hashes and all3 installed
+artifact hashes pass after merge; Node syntax and git diff --check pass.
+No executed input changed, so all eight fresh-case results retain their original
+614aaa30 host plus eac16533 reactor/project identity without another test run.
+Incoming backend session/source_session repair is not inside frozen reactors;
+other Node/backend fixtures and receipts retain independent owner evidence.
+All owned work drained, todo/public768 pin unchanged, prior generation frozen.
+Receipt docs/compiler_workers_614aaa30.md and coordinator handoff preserve the
+original setup failure, exact objects/IR, timings, manifests and old defaults.
+No general speedup or newer-compiler/hosted-release claim; ROOT owns adoption.
