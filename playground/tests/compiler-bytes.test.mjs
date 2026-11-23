@@ -6,8 +6,8 @@ import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const library='import library.bytes; import library.bytes_types;\n';
 const foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
 const source=library+`
 var b: ByteBuffer; bytes_init(&b);
 print(bytes_append(&b, null, 0));
@@ -66,7 +66,7 @@ test('the browser compiler owns its source using the compiled Tower buffer expor
 });
 
 test('source resets retain grammar provenance and formatting',()=>{
- const original="// 🏰 source owns UTF-8 bytes\nparse Statement |= 'hello' ';' => replace { print(42); };\nhello;\n";
+ const original="import foundation;\n// 🏰 source owns UTF-8 bytes\nparse Statement |= 'hello' ';' => replace { print(42); };\nhello;\n";
  const h=tower.create(original);
  try{
   for(let i=0;i<100;i++){

@@ -89,6 +89,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     }
     if unit == BootstrapUnit.Entities {
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free", symbol, length) { return true; }
+        // Checked metadata copying consumes the ParserNodes label owner.
+        if bootstrap_symbol_in("node_match_set_label_result", symbol, length) { return true; }
         return bootstrap_symbol_in("compiler_entity_store abort tower_allocate tower_entity_finalize compiler_node_label", symbol, length)
             || bootstrap_symbol_in("compiler_name_is compiler_name_equal compiler_node_copy_metadata compiler_generic_type compiler_component_add", symbol, length)
             || bootstrap_symbol_in("bytes_assign_text compiler_host_world foundation_node_init node_match_id node_match_label node_match_length node_match_rule", symbol, length)
@@ -158,6 +160,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_template_holes_revision_result syntax_template_remap_revisions_result syntax_version_create_result syntax_version_lexicon_result syntax_version_release syntax_version_seed_result", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        // Actual native imports for observation, owned generic leases and the
+        // immutable declaration-stage page registration contract.
+        if bootstrap_symbol_in("compiler_world_grammar entity_component_owner entity_register_stage_result", symbol, length) { return true; }
         // Checked semantic admission and module startup retain provider causes.
         if bootstrap_symbol_in("compiler_world_component_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result frontend_module_root_world_size_result", symbol, length) { return true; }
         // Generic publication and executable preparation consume the entities

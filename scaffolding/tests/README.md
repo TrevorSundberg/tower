@@ -59,6 +59,15 @@ input; browser exports retain their existing embedded-runtime transport. This
 Linux entry supplies only file and monotonic-clock transport, and does not test
 browser worker lifecycle or non-Linux execution.
 
+`tower-backend-source-recheck` uses the same service with a real second-frontend
+capacity denial after LLVM import/format joins. It checks the typed receipt,
+retained prior canonical output, a fresh successful retry and zero final budget
+owners. The optional direct arguments `INPUT OUTPUT WIDTH WORKERS [deny-recheck]`
+also record joined entity/component/budget counts and reconstructed text. Width
+is 4 or 8 bytes; workers are 1 or 4. Denial is serial only; healthy worker samples
+use the production allocator. The 24 GiB ledger covers the explicit world and
+checked buffers, not LLVM's allocator, legacy vectors or whole-process RSS.
+
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing
 raw and optimized native execution. Its direct, callback and recursive calls
