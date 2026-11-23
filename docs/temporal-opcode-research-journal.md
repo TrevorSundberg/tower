@@ -82197,3 +82197,64 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+### D2 frozen completion-gate handoff reconciliation (2026-11-23)
+
+Documentation-only review of published main68f89640de8f188912a6c98e7a00f21f2702c1c7,
+confirmed by ls-remote after the required preserving pull. Compiler tree
+e5cf39860eb71b39fd513020816a6189ae189bb8, scaffolding545af54b67b398f6c3b659d0ce69f0af4e6cfb38,
+CMakea3093f633cc591b41250c50bbc3c5c1afdab0ff5. D2 PID3050744, original thread/clone;
+no owned child build, sibling heavy lock untouched. Read scoped recent lane
+receipts, the earlier type-value continuation, current providers/callers/fixtures,
+roster and publication/sanitizer contracts instead of rereading the entire journal.
+
+Updated compiler_ecs_threading_handoff.md and compiler-services.md. Production
+helper readiness, local/module capture proofs, ordinary executed type constructors,
+mixed aggregate/lowering, shared nested-lane wakeups, checked module/generic startup
+and cancellable queued ownership supersede the old numbered experiment. Preserve
+its failed build/publication receipts as explicitly historical; retire the old
+percentage. Link the existing final commands rather than create another harness.
+Flecs Systems/ComponentTraits and Unity Burst1.8 aliasing primary docs were read
+for access/staging/storage principles, without borrowing implementation language,
+noalias assumptions or performance claims.
+
+Concrete source gaps: sem_lower_register/frontier and sem_flows_pump retain fatal
+structural/graph/view/scratch admission; semantic_executable_kernel still uses an
+unchecked aggregate-signature component add; semantic scratch/diagnostic helpers
+and Fast fm_push retain fatal allocation boundaries. Entity nodes/indexes, stage
+vectors, Fast storage and provenance/presentation buffers lack complete physical
+ledger coverage. These are missing failure/accounting contracts with existing
+A1/A2/L1/L2/B1/B2/ROOT owners, not newly executed fault reproductions. Flow and
+lifecycle-frontier fixtures have standalone A1 passes but no supported durable
+registration at this frozen source; D1/ROOT own that closure. Shared cross-unit
+cache reuse requires a complete identity/pinning contract and is a performance
+candidate, not an absent isolated-unit implementation. Stronghold/optional backend
+work is excluded; remaining type-policy milestones stay explicit and separate.
+
+Git derives1137 tracked Tower paths: b042 roster1131 plus six additions, with
+exact paths/domain owners in the handoff. D1's grammar/generic full reviews close
+two old roster receipt gaps; three B2 unit-composition adoptions and D1 adoption of
+four newer fixtures remain explicit. Counts do not upgrade older per-file reviews
+to current source. B1 grammar observer additionally needs a consolidated explicit
+path receipt. All eight existing audits remain the substantive review sources.
+
+Reuse evidence only within its identity: D2 baf2 matched C/Tower output15/999
+costs and slower Deck jobs4 control; B2 observed nested refill/backend overlap and
+large-unit cost; A1 actual mixed-kernel rendezvous. B1's merged00d3 runtime inputs
+are identical to68f8 (Git diff checked), so its grammar/canonical/policy receipt
+applies; pre-merge phase timings remain labeled separately. Its repeated LR table
+construction is the measured actionable hot path, with equivalence/invalidation
+required before reuse. Historical300s fullfrontend failure is still unresolved.
+ROOT's5c5a positive address/thread ownership run is pending, per the task; later
+B1 inputs require delta accounting. No sanitizer/build/browser result is invented.
+
+Checked current public manifest/checksum-list hashes unchanged cf7d84b1/101727e0;
+remote Pages still6f142bef, with its prior98ade8cc runtime identity. Current clean
+bootstrap/native/WASI provider/export, browser/thread/generation and exact hosted
+release gates remain ROOT-owned. UBSan source semantics and Windows/macOS/browser
+sanitizers remain unsupported. No runtime code/input changed, so profiling/builds
+are inapplicable; checks are source/caller/receipt identity review, exact inventory,
+Markdown diff/links and unchanged todo hash. One documentation patch initially
+failed its context match and made no changes; the corrected scoped patch applied.
+Normal main commit/reconcile/push identity is recorded in D2 status. No deployment
+claim, new agent/session/goal, polling or broad matrix.
