@@ -3263,3 +3263,41 @@ The full entity_pages remainder, the i1 implementation defect,
 finite peer gaps, supported instrumentation, generations/public pin/current UI and
 atomic release remain open in the [ledger](compiler_ecs_threading_handoff.md).
 No broad source cleanup, build, new runtime assertion or performance claim by D2.
+
+## Independent fault/Windows fixture review — 6e8001fd (2026-11-23)
+
+Freeze `6e8001fd9aaf2fa8be550fb70d4f9e052ec93fc8`; all eight blobs below match B2 `2f4361f6` / A1 `607f9ce9` unchanged.
+**No defect found; these seven Tower paths and the focused CMake delta now have independent source review.** Owner execution remains attributed, not rerun.
+Read complete fixtures/registration, their implementation-parent diffs and necessary allocation/stage/pool/ledger/Windows dispatch callees; L1's accepted generic review remains the base.
+Paths are under `scaffolding/` unless prefixed `cmake/`; Git blobs identify the actual reviewed source, not approval by hash alone.
+
+| Path | Git blob | Disposition |
+| --- | --- | --- |
+| `tests/entity_fault_accounting.tower` | `da37a9e7b7ea0d3b6d45c00d8b413de45f9f4fba` | Allocation-free census of this fixture's disjoint roots/private stage; validates every counted receipt against owner and exact allocator request. |
+| `tests/entity_component_faults.tower` | `a3c6c42c3a4534db8e1094dd9b25aab9dc7de6da` | Exact retained type-index delta, unchanged identity/payload/table/inline index, retry and complete dynamic failure sweep; original inline mode retained. |
+| `tests/entity_stage_result_faults.tower` | `9c7973e8f67b051a80d5ddfdce085791fdfed7f3` | Failed prepare preserves membership/references/values and zero finalizers; successful publish consumes stage; exactly-once finalizers and final zero owners. |
+| `tests/work_budget_shared.tower` | `c45267c7845c50530b439632ba119b0b9a02910a` | Platform-neutral gate import; real four-thread receipts/snapshots, exact byte/lane denial, generation/revision stale rejection, one-shot wake. |
+| `tests/work_gate_windows.tower` | `7ac2b2b447f773f77392ea1ddd7075863ea60e9c` | Modes1/4, eight cycles; barrier proves four distinct native threads before release; protected8192 increments or cancelled zero, three accumulated counting permits. |
+| `tests/work_pool_windows.tower` | `351674315ec6e30c09a71d30726996779ced5180` | Calls unchanged full pool main, including16 rounds, partial/full failure drain and graph-order checks; forwards every nonzero result to ExitProcess. |
+| `tests/work_thread_windows.tower` | `49d4f04dbba1da95c35f367822533887b517c290` | Actual GetCurrentThreadId DWORD/u32 widened to fixture usize; imports production Windows transport, no simulated POSIX thread. |
+| `cmake/TowerWorkTests.cmake` | `282fdcd13fbe6be40051e89e130a856bae6ddba5` | Linux x64 shared-budget target explicitly links the already-built host_work_linux object after hardwired import removal; Threads/dispatch export/30s test remain. |
+
+Census: store allocation and each store/stage owned page are counted once; paged descriptors/payloads/names do not add separate receipts, while oversized allocations do.
+Inline component indexes stay in descriptor bytes; heap child/instance/component/table-row indexes retain their own headers. Type-instance/lease pointers are not traversed as owning entities.
+Private nodes are not published children yet; leased nodes are counted through their published tree. Pool transfer removes the old owner link, and post-publish census passes null instead of dereferencing the freed stage.
+Stage vectors and retained ledger metadata are distinct: allocator live count equals baseline + census receipts + the one raw ledger buffer; teardown requires zero bytes/grants/lanes and the original allocator baseline.
+A failed preparation may retain reachable, charged capacity without membership. The component trial admits only its independently measured new type-instance index; stage failures retain all prior semantic/reference assertions.
+Source callees reserve old+new physical storage before copy/free. This post-call census checks retained ownership, not transient peak or arbitrary-world completeness; no whole-process cap claim.
+Baseline-success allocation counts still drive every injected boundary and after-last success; no test was removed. Finalizers are forbidden on failed preparation and counted once per new payload at teardown.
+
+Windows binding follows GetProcAddress(exported work_windows_entry) → CreateThread → u32 callback returning0 after work_thread_entry; joins precede handle/free, and SRWLOCK remains pointer-sized opaque storage.
+Cancellation is written only while all jobs wait on release; semaphore handoff publishes it, receive observes completed payloads, then pool close stops/joins native threads before jobs/gates/signals leave scope.
+Deferred release precedes pool close; budget parent cleanup/disposal precedes gate close. Wake callback only posts, never reenters. Invalid environment traps before allocating owners; published runtime calls ExitProcess(1).
+Linux gets one platform object, not a second embedded provider; Windows entries instead import host.work_windows. CMake's other longstanding selectors are not newly claimed reviewed/changed here.
+
+Owner evidence: [B2 full faults](entity_fault_accounting_6019450c.md), binaries `b3c778e9`/`18ecb7f4`, retains original exit134 failures and passes6/6/2/2 component boundaries, one lease and five publication boundaries plus retries.
+Owner default wall/CPU ms / peak KiB: component .877308/0-reported/1384; stage1.370116/1.147/1600. Zero CPU is clock resolution, not absent execution.
+[A1 Windows](windows_budget_gate_cabc2062.md), gate `9e62ce7e`/pool `c4e9d21f`: modes1/4/full-pool exit0; invalid3 exit1. Wall/CPU s / peak working-set B: .0159975/.015625/3821568; .0416744/.078125/4259840; .0236705/.015625/37318656; .0152662/0/3780608.
+Plain Linux shared-budget exit0: .00wall/.01CPU s/1652KiB. The accidental instrumented-cache build was **BUILD ONLY**, never executed; no instrumentation acceptance or retry here.
+Full artifact hashes/raw logs remain in those receipts: B2 `entity_faults_6019450c`, A1 `cache/a1_windows_gate`; local source map `build/d2_ecs/peer_fault_windows_6e8001fd/{paths,blobs}.txt`.
+No code/runtime/build/profile change; documentation-only profiling inapplicable. D1 heavy slot untouched; twelve-row ledger unchanged. Remaining peer gaps: D2 direct-C fixture/differential driver/packager and A2 later native census/LLVM capacity accessor; no other gate is closed by this review.

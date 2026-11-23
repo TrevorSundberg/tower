@@ -95982,3 +95982,17 @@ those later bytes once, keep original failed result/inputs, no broad rerun.
 Selected test/production behavior unchanged; todo/diff checks pass. L2's two
 selected T8 successes are separately preserved, not counted as this full-file
 run. Normal push follows; no active A1 test/build or deployment.
+
+### 2026-11-23 D2: independent later fault/Windows test review
+
+Freeze6e8001fd9aaf2fa8be550fb70d4f9e052ec93fc8; seven Tower fixtures plus
+TowerWorkTests.cmake exactly match2f4361f6/607f9ce9. Complete source/diff/caller
+review appended to compiler_ecs_audit_d2.md with eight exact blob dispositions.
+No defect found: disjoint physical owners, retained capacity, stage transfer/
+finalizers, all dynamic denial boundaries and zero cleanup preserved; Windows
+actual thread/barrier/cancel/drain, ABI/failure exits and Linux transport link
+verified in source. Published owner timing/results attributed, not D2 execution.
+Instrumented-cache BUILD-only receipt stays unexecuted. No build/profile/code or
+ledger rewrite; D1 heavy lock untouched. Initial disk127GiB/RAM9.8GiB; no D2 jobs.
+Other C/packager and A2 observer/accessor peer gaps remain explicit. Local map:
+build/d2_ecs/peer_fault_windows_6e8001fd/. Docs-only profiling inapplicable.
