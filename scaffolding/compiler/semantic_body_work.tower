@@ -1936,6 +1936,9 @@ fn sem_bodies(c: SemanticContext*): void {
     // Root expressions have completed before ordinary body roots are demanded.
     // Do not repeat this global scan between declaration frontiers: a newly
     // published nominal identity can still be waiting for its field producer.
+    // Early executed helpers can advance the local-construction frontier before
+    // unrelated module fields finish. Reconcile it once at this safe boundary.
+    if c.body_pipeline != null { c.layout_checked = 0; }
     sem_layout_all(c);
     c.body_roots = true;
     var saved_subjects = c.declaration_subjects;
