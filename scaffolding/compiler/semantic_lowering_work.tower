@@ -205,7 +205,7 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
     {
         var count: usize = 0;
-        for(var index: usize = 0; index < c.program.functions.length && count < SemanticPreparationWindow; index++) {
+        for(var index: usize = 0; index < c.program.functions.length && count < SemanticPreparationWindow && sem_ok(c); index++) {
           var subject = c.program.functions.data[index];
           var phase = convert(u32, mixed || signature ? SemanticLoweringPhase.Signature : SemanticLoweringPhase.Expression);
           var end = mixed ? convert(u32, SemanticLoweringPhase.Count) : phase + 1;
@@ -226,18 +226,18 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
             // root can itself be leased by its own lowering job.
             result.stage = entity_stage_open(kind);
             sem_require(result.stage != null);
+            batch.data[count++] = result;
             if !preparing { sem_capture_ranges(c, result.block, &ticket, result.stage); }
+            if !sem_ok(c) { break; }
             sem_require(entity_stage_lease(result.stage, result.subject));
             if preparing {
                 foreach(var parameter in &sem_get(result.subject).parameters) {
                     sem_require(entity_stage_lease(result.stage, parameter));
                 }
             }
-            batch.data[count] = result;
-            count++;
           }
         }
-        if !work_ok(&c.queries) {
+        if !sem_ok(c) || !work_ok(&c.queries) {
             for(var i: usize = 0; i < count; i++) {
                 entity_stage_discard(batch.data[i].stage);
                 batch.data[i].stage = null;

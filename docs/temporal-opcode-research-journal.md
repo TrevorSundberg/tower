@@ -82068,6 +82068,122 @@ storage, L2 constructor/evaluation admission, D1 cross-file staging integration,
 and D2 the existing independent C-reference cost comparison. No extra contexts
 were spawned, and completed windows were replaced in their existing sessions.
 
+### 2026-11-23 B2: useful compiler scaling within the allocated six cores
+
+Bounded task, production source1f8f7ddd; initial job inventory idle and required
+merge-preserving ff-only pull succeeded. No scheduler/runtime source change is
+justified by this measurement. Extended only the existing Tower frontend_units_profile
+and its README: uneven body prefixes, frontend/backend intervals with thread IDs,
+actual outer overlap, same-thread refill gaps and outer-vacancy upper bounds,
+explicit scaled profile byte limit, canonical/object hashes and known-result checks.
+No new profiling framework, pools, polling, global state or semantic-owner edits.
+
+Important workload correction: the old profile's backend mode used unexported
+functions and produced480-byte empty ELF objects. Initial small observations
+(7680 bytes over16 units) exposed this; they remain in b2_scaling_small_* logs and
+are NOT useful code-generation evidence. Interrupted the initial launch loop,
+let its owned large child drain before editing, and retained the incomplete sample
+without claiming it passed. Backend-mode fixtures now export answer and every
+body, assert export-name presence in bounded ELF bytes, and check answer()==42
+and body_0(36)==42 through the ordinary interpreter. Hash every canonical
+Foundation byte and every object byte after timing. An initial helper identifier
+`match` was reserved; its compile failure is retained, corrected to `matches`.
+The production closure rebuilt once; subsequent profile-only iterations were
+incremental two-action compiles/links, not duplicate compiler/bootstrap matrices.
+
+Frozen setup: Linux x64 WSL2 kernel6.18.33.2, Docker tower-b2-work, CPUs12-23,
+quota12 logical CPUs,24GiB memory. lscpu maps those CPUs to physical cores6-11:
+SIX physical cores with SMT, not twelve cores or whole-machine scaling. B1 CPUs
+were untouched. B1/agent1 containers had only sleep processes at the valid sample
+boundaries; there is no exclusive-whole-host claim. Native Release/O2 compiler
+closure, LLVM19, checked-in bootstrap9653f8187a10; current production compiler
+sources built into the existing harness. Frozen executable SHA256:
+d7592de070617ae1736b8c4332f3a31f1647ba2097e1570a82b200d8572a8571.
+Saved /cache/b2_scaling_exported_profile; initial empty-object baseline is also
+preserved. Resource root stayed /work/scaffolding; each virtual input kept the
+lexical source path profile_unit.tower. All cases use those resources,8-byte target
+pointers, x86_64-pc-linux-gnu library output, backend optimize=false at all widths.
+Objects are independent library compilations, not a linked16-unit executable.
+
+Inputs: small16 ready units repeat8/16/24/32 independent loop bodies; larger16
+repeat256/512/768/1024 bodies; single unit4096 bodies. Every unit also imports
+Tower and has an answer with a staged forward call. Thus16 ready units exceed
+the12-lane cap. One warmup plus ONE retained sample per workers1/4/12, followed
+by one justified8-worker warmup/sample for each16-unit case after12 showed
+increased CPU cost. Fresh processes/worlds, warm filesystem; not warm parser
+sessions. Timed phase includes snapshots/configuration and frontend+backend;
+reference execution/formatting are outside it. Peak RSS is the process high-water
+mark through compilation; full-process wall/CPU/RSS also remain in each log.
+
+| Workload | Workers | Wall s | CPU s | Peak RSS KiB | Actual outer peak | Shared lane peak |
+| --- | --- | --- | --- | --- | --- | --- |
+| small16 | 1 | 18.016 | 17.421 | 437724 | 1 | 1 |
+| small16 | 4 | 6.826 | 24.511 | 780524 | 4 | 4 |
+| small16 | 8 | 5.079 | 33.360 | 1253072 | 8 | 8 |
+| small16 | 12 | 5.493 | 44.265 | 1775840 | 12 | 12 |
+| larger16 | 1 | 28.208 | 27.599 | 1686760 | 1 | 1 |
+| larger16 | 4 | 9.182 | 32.648 | 2014888 | 4 | 4 |
+| larger16 | 8 | 6.595 | 42.624 | 2400000 | 8 | 8 |
+| larger16 | 12 | 7.089 | 58.796 | 2797652 | 12 | 12 |
+| single4096 | 1 | 5.793 | 5.756 | 698108 | 1 | 1 |
+| single4096 | 4 | 4.992 | 5.716 | 720196 | 1 | 4 |
+| single4096 | 12 | 4.917 | 6.105 | 720564 | 1 | 12 |
+
+Actual frontend/backend intervals and distinct thread IDs establish outer
+overlap; these peaks are not queue width. Shared grants stay within requested
+1/4/8/12, with per-parent nested EXTRA ceilings0/3/7/11. Nested leaf execution is
+NOT individually instrumented; reservation peaks and CPU/wall ratios do not
+prove those leaves simultaneously executed. Outer pool limit is min(units,lanes),
+so it stays1 in the single-unit case even when nested grants reach12. Best observed
+16-unit throughput uses8 workers:3.55x small and4.28x larger versus serial.
+Twelve remains profitable versus serial (3.28x/3.98x) but is slower and consumes
+more CPU/RSS than8 in this sample. This supports workload-specific selection,
+not a universal worker cap or a statistically established optimum.
+
+Same-workload canonical/object hashes match across ALL warmups and samples:
+small3797909920181751717 /5812102058794686917 (77440 object bytes),
+larger13997865770159808709 /2065664160384128293 (2109792 bytes),
+single9448338333252003545 /13213760278028976691 (843432 bytes).
+Entity/component counts also match per workload (small304544/351872,
+larger1762784/2147392,single618206/759748). Retained charged bytes stay roughly
+103.43MB /770.71MB /280.58MB, with small known transport-dependent differences.
+All peaks fit explicit profile ceilings4563402752 bytes for16 units and536870912
+for one. These profile limits do not change the driver's production default.
+Additional retained ledger capacity is10/20/40/80MiB at1/4/8/12 in16-unit runs,
+and5MiB in the single-unit runs. This is reported separately from charged buffers;
+it must not be confused with a complete allocator/RSS cap or an allocation count.
+
+Scheduling finding: while unstarted frontend units remain, observed unoccupied
+outer-slot time totals only0.17-5.69ms lane-time across these16-unit samples.
+This is an UPPER BOUND on idle capacity: nested work can legitimately occupy the
+same lanes. Same-thread ready-frontend refill maxima are0.006-1.349ms; the1.349ms
+outlier is larger/8, whose total outer vacancy is only3.535ms. No measured large
+avoidable ready-queue barrier warrants changing frontend_units_step, WorkPool or
+CompilerWork. Their source audit confirms immediate backend-first refill and
+ordered acceptance, with no all-frontend join required for backend dispatch.
+The previous one-shot wake sender/drain/publication contracts remain untouched.
+
+Actionable remaining limit: single4096 improves only1.18x at12. Its sole backend
+kernel takes2.906s of4.917s (about59%), after2.011s frontend. The graph currently
+makes one backend query per complete unit: there is no second ready backend task
+for the outer scheduler to dispatch. Improving that case needs measured per-body
+backend preparation/partitioning with explicit LLVM context ownership and ordered
+publication, not another outer pool or spin loop. Multi-unit work also exhibits
+CPU inflation (small17.42->33.36/44.27s at8/12; larger27.60->42.62/58.80s).
+Per-unit grammar construction, budget-gate contention, memory/SMT costs and eager
+nested pool creation are candidates for phase-level attribution, NOT isolated
+causes established by these aggregate spans. B1 owns grammar reuse; semantic and
+interpreter owners retain their scope. Do not remove joins protecting stages or
+change diagnostic source order based on queue width alone.
+
+Focused regressions: unit-admission passes canonical equality/cancellation/shared
+ceilings with90194ns nested-release refill; backend-overlap-calibrated passes exact
+objects/distinct live threads; legacy frontend-only profile3/4/0 passes real overlap
+and its known result. Logs build/b2_scaling_{admission,backend_overlap,legacy_profile}.log
+and b2_scaling_exported_{small,large,single}_w*_{warmup,sample}.log include full spans.
+All owned jobs drained. Sanitizers, full scaling/bootstrap/browser/generation and
+hosted deployment remain pending ROOT's integrated milestone. No todo edits,
+new agent/session/goal, inbox polling or publication-lease wait.
 B2's nested-lane wake implementation931115b1 arrived during publication
 reconciliation. It changes the shared budget/pool layout, so its additional
 integration is validated separately rather than relabeling the previous binaries.
@@ -82256,6 +82372,84 @@ dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
 oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
 or broad matrix; the committed receipts and earlier remaining-gap list retain
 their precise scopes. Normal push includes both complete histories and journals.
+## 2026-11-23 L2 known-work and capture admission closure
+
+Bounded continuation after84e919eb, CLI PID21628, main only. Initial required
+pull was current; surviving WSL23336 belonged to L1's separate cache. The first
+successful work audited actual known-work/source-proof/capture producers and
+caller contracts against type-values, computed-type-arguments and the threading
+handoff. No goal, agents, inbox loop, todo edit or hosted deployment.
+
+Implemented checked kind/component/job/vector/query admission in
+semantic_known_work, known inference's proof/input/snapshot consumers, capture
+metadata and source-binding proof metadata. Component lists now use the existing
+world-owned kind index; no redundant archetype plan allocation just to copy it.
+Completed prefixes return without allocating a new dispatch vector. Admission
+records the first typed cause and cancels partial graph work before retry can
+observe it. Joined waves retain each settled terminal receipt; a subsequent graph
+failure cannot replace an earlier worker cause. Worker contexts and private
+outputs retire after joining. Required/optional evaluation policy, declaration
+and frame identity, mutation/escape proofs, lazy executed branches and existing
+interpreter execution remain unchanged. No recursive dependency completion or
+separate evaluator was added.
+
+Source proofs reserve every declaration payload first, validate extension writes,
+finish their exact proof ticket, then publish facts. Default partial components
+have no query and are hidden from consumers. Capture inputs publish only after
+the capture ticket finishes; optional known producers on the same declaration
+are preserved. Nullable initializer admission uses sem_declaration_state_result
+and a checked sem_expression_add_result with the existing compatibility wrapper.
+Direct guards in semantic_statements and semantic_lowering_work stop/discard an
+unadmitted capture wave. ROOT execution/constructor/type-value guards, A1 lifecycle
+frontiers and A2 stage hold/publish transitions were not edited by this lane.
+
+Validation used the existing dependency-aware native target set (towerc,
+tower-lr-work-tests,tower-storage-tests), parallel2, WSL Orchestral-Revng Linux
+x64, affinity4-7, 4GiB virtual-memory ceiling, one runtime at a time. New existing
+storage fixtures cover source/capture admission, joined proof publication and
+pre-dispatch denial at widths4/8. Serial allocator sweeps derive actual call
+counts; physical Capacity, Busy and exhausted IDs retain exact causes and offset,
+query identity/no readiness, no replay or replacement of first error, and complete
+buffer/world/budget retirement. Worker lexical scratch is outside fault injection.
+Existing query-smoke covers source-proof suspension, aliases/writes/escapes,
+lazy dependencies, source-order publication failures and serial/threaded staging.
+
+Failures retained under L2/logs/semantic_admission_known_capture0..2: first two
+build attempts exposed missing opaque entity declarations and an incompatible
+void* versus existing u8* return declaration in the storage fixture. Production
+semantic objects built. Attempt2 passed storage, then query-smoke rejected an
+unconditional cancellation that replaced already-settled Failed receipts with
+Cancelled. Removed that redundant cancellation; admission/graph failure still
+cancels, while joined peers retain exact outcomes. These failed attempts are not
+passes. Final known_capture3/session18203 passed build, full storage, query-smoke,
+empty stderr and frozen-source checks. Build30.02wall/23.37CPU seconds/774200KiB;
+storage.28/.22/97928; query.21/.23/75116. All owned jobs drained.
+
+Minimal checked comparison18792 reused immutable constructor/evaluation compiler
+1a50488772b586ba6e2f951fab03d2467e8718ef1cbe13a7658358ba9a9de508;
+after e40934490e5d4bf365a473e08d34ed254d9c846ab5b75f61d6de03e5d1aa80f2.
+The same executable path, frozen baseline resource tree and unchanged constructor
+fixture (bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071)
+were used with --interpret --jobs1/4, one alternating pair per worker count.
+All four exact0 outputs, empty stderr and source/input/resource hashes passed.
+Wall/CPU seconds/peakRSS KiB: serial1.45/1.45/180160 ->1.45/1.43/179872;
+parallel1.25/1.53/199400 ->1.26/1.54/199368. The +.01s parallel wall/CPU is
+reported, not called speedup or neutrality. n1 process samples are a small
+regression screen, not scaling evidence; retained baseline predates the later
+ROOT/A1/A2 integration, so this comparison is not causal attribution to L2 alone.
+Raw manifests, times and environment remain under L2/known_capture_pair* and logs.
+
+Remaining exact admission gaps: semantic_known_kernel/semantic_source_binding_kernel
+lexical name/table/traversal/candidate/mutation scratch remains assertion-based;
+sem_capture_clone_range and ordinary control/aggregate projection/cloned-alias
+synthesis retain legacy allocation paths. Non-constructor declaration compatibility
+callers and other body/lowering preparation producers retain assertions. Capture
+range stage leases and stage ownership belong to A2; lifecycle orchestration to
+A1; executable admission and immediate constructor/type-value guards to ROOT.
+These are pending, not passed. Full sanitizer/thread stress/scaling, canonical
+bootstrap/browser/generation and hosted release verification remain ROOT's
+integrated milestone. Normal main integration/push follows this coherent batch;
+merged-input evidence is recorded separately without relabeling this measurement.
 Normal push5ed0c54 was rejected because another lane published first. Complete
 84e919e merged cleanly as67a18814; no Fast production or ownership-test file
 changed from908515e. The affected five-action provider rebuild17322 and all
@@ -82517,6 +82711,19 @@ Markdown diff/links and unchanged todo hash. One documentation patch initially
 failed its context match and made no changes; the corrected scoped patch applied.
 Normal main commit/reconcile/push identity is recorded in D2 status. No deployment
 claim, new agent/session/goal, polling or broad matrix.
+Publication receipt: measured/profile implementation commit9dd90fc1. A transient
+DNS pull failure recovered on the next normal attempt; ff-only then correctly
+refused divergence. Merge2e5cafc1 preserves all published/local histories and
+journal entries, incorporating origin68f89640's checked stage/admission and grammar
+observer changes. Coherent17-action dependency rebuild passed. B2's Tower profile
+is byte-identical to9dd90fc1. Representative merged small16 workers1/8 preserve
+both exact hashes and known results (18.117/4.987s, actual outer peaks1/8);
+single4096 workers12 likewise preserves its hashes (4.886s). These are merged
+acceptance observations, not replacements for the frozen table above. Nested
+admission/cancellation/canonical regression passes with91600ns refill, and
+backend-overlap-calibrated passes exact objects/distinct live threads. Logs
+b2_scaling_merged_{build,small_w1,small_w8,single,admission,overlap}.log. All owned
+jobs drained. Normal main push follows; final remote receipt is in B2/status.md.
 A1 push retry1: publication advanced to B1's68f89640 grammar observer/world
 metadata and symbol-policy changes. Merge34efb4f9 preserves both full histories.
 The16-action affected dependency build passed; all46 focused trials, query/
@@ -82540,6 +82747,17 @@ three permitted retries after the initial concurrent-main rejection. Remaining
 diagnostic/output and package-encoding storage plus ROOT integrated release
 checks are pending; no deployment or broader validation is claimed.
 
+First normal push encountered remote advance13c8652b. Merge4df041ef preserves
+its L1 Fast-storage changes and both journals. Only evaluation regeneration and
+two relinks were needed. Final merged small16/8 and single4096/12 profiles pass
+known staged/loop results and preserve canonical/object hashes exactly; actual
+outer peaks8/1 and shared ceilings8/12 remain checked. Admission/cancellation
+regression passes with74458ns refill; backend-overlap-calibrated passes exact
+objects/distinct live threads. Logs b2_scaling_fast_merge_{build,small,single,
+admission,overlap}.log. Frozen scaling table and untouched cases retain their
+original source identity. B2 profile source remains9dd90fc1; no production
+scheduling changes or broader acceptance claims. All owned children drained;
+retrying normal main push, then ending this bounded task.
 A1 push retry2: concurrent L1 Fast-storage publication13c8652b merged asb235f2f4.
 Seven affected build actions pass; all46 focused cases and query-smoke pass,
 jobs1/4 CLI results and canonical bytes match the original checked outputs,
@@ -82549,6 +82767,14 @@ Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
 
+Second push advanceb9f2c443 added A1 staging frontiers. Mergefecd8ef2 preserves
+both journals/README additions. Eight-action dependency rebuild and the final
+small16/8, single4096/12 known-result/canonical/object checks pass, retaining the
+same frozen hashes. Admission/cancellation and exact-object backend overlap also
+pass. Logs b2_scaling_frontier_merge_{build,small,single,admission,overlap}.log.
+The profile remains byte-identical to9dd90fc1; no broadened matrix or relabeled
+scaling evidence. All owned jobs drained. Retry normal main push within the
+user's bounded remote-advance policy; final receipt stays in B2/status.md.
 ### ROOT integrated positive ownership sanitizers on5c5a (2026-11-23)
 
 Frozen source5c5a308c85f4c39b0fcbcec2a341194042d34ac7, whose runtime is
@@ -82632,3 +82858,16 @@ providers are unchanged by this integration. Exact census is now1141: ten additi
 to b042, with explicit owners and separate producer/D1-adoption evidence in the
 handoff. Current merged source/profile/platform acceptance remains ROOT's gate;
 older phase timings are no longer described as matching the new final frozen union.
+Merged completion: implementation5230b5d7 preserved alongside complete incoming
+b83eeca7 history in6929004f, with both journals and no source conflicts. ROOT's
+immediate sem_ok guards after executable/capture begin in constructor/type-value
+consumers are present; its checked executable metadata and A1's executed-stage
+frontier are integrated, not remaining L2 implementation. L1 Fast storage and
+parser providers changed, so one affected dependency rebuild was necessary.
+known_capture_merged0/session72833 passed20 actions, storage/query-smoke and
+constructor1/4 exact0 outputs, empty stderr and frozen-source checks. Build
+86.25wall/128.16CPU seconds/779460KiB; storage.29/.23/99612; query.20/.23/75556.
+Owned jobs drained. Earlier timing receipts keep their measured compiler identity;
+no repeated profiling or broad gates. The remaining scratch/synthesis and legacy
+caller admissions above remain pending; stage leases stay A2-owned. Normal main
+push follows this receipt; final lane status records the verified remote commit.

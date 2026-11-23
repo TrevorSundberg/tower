@@ -1507,15 +1507,23 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
 // instantiated signatures. All nodes are registered before discovery dispatch;
 // every dependency is sealed before the caller may suspend/demand it.
 fn sem_expression_add(c: SemanticContext*, node: void*, expected_type: FoundationType*, lexical: SemanticBodyScope*, mode: SemanticExpressionMode): SemanticDeclaration* {
-    var result = sem_declaration_state(c, node);
-    sem_require(result.query == 0);
+    var result = sem_expression_add_result(c, node, expected_type, lexical, mode);
+    sem_require(result != null);
+    return result;
+}
+
+fn sem_expression_add_result(c: SemanticContext*, node: void*, expected_type: FoundationType*, lexical: SemanticBodyScope*, mode: SemanticExpressionMode): SemanticDeclaration* {
+    if !sem_ok(c) { return null; }
+    var result = sem_declaration_state_result(c, node);
+    if result == null { return null; }
+    if result.query != 0 { sem_type_resource(c, node, WorkBudgetError.Invalid); return null; }
     result.expression = true;
     result.expression_mode = mode;
     result.expected_type = expected_type;
     result.scope = lexical.scope;
     result.current = lexical.current;
     result.lexical = *lexical;
-    sem_declaration_add(c, node);
+    if !sem_declaration_add_result(c, node) { return null; }
     return result;
 }
 
