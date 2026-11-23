@@ -1009,3 +1009,10 @@ assigned phase/test change. Typed generic registry/clone consumers, D1 restricte
 host overlap diagnosis, later integrated inputs, D2 exact provider policy, public
 bootstrap/browser/generation and hosted publication remain open. Supported native
 address/thread checks do not supply source-language UBSan/browser coverage.
+
+The journal now corrects prior2e3 instrument worker metadata: legacy core/functions
+use the host-capacity ceiling16, not a guaranteed four-worker limit. Actual use
+was not inferred from that ceiling, the exclusive runs still passed, and explicit
+frontend/query/CLI controls retain their scopes. Current late-editor cases have
+explicit caller limits at most6. This is metadata correction only; no new runtime
+behavior or performance change, so additional measurements are inapplicable.

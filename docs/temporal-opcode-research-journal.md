@@ -75579,3 +75579,19 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+### L2 correction to earlier instrumentation worker metadata (2026-11-23)
+
+L1's actual-source audit identifies a limit-description error in the earlier
+2e3d scratch instrument milestone: the legacy `tower-execution-tests core` and
+`functions` commands do not receive a worker argument. Their host-world constructor
+uses `compiler_world_create/work_thread_capacity`, which reported a ceiling16
+on this WSL host, not the blanket runtime4 previously recorded for the recipe.
+The runs were exclusive to this host and all outcomes remain unchanged. A ceiling
+is not evidence of16 active workers. Explicit frontend/query/CLI budget1/4 cases
+retain their original controls; exact archived commands and results are preserved.
+This is an evidence correction, not a new runtime pass or a reason to repeat
+unchanged tests. The current late-inspection editor selection separately uses
+explicit batch budgets1/6/4/6 and direct worlds1/4, so its maximum6 budget is
+established by those actual callers. Future aggregate recipes must distinguish
+requested per-case budgets from legacy host-capacity admission.
