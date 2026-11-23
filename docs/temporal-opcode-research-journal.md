@@ -82185,3 +82185,15 @@ producer and four immediate caller guards; no syntax/bootstrap adoption occurs.
 Remaining execution-kernel synthesis assertions and other worker caller closures
 are not claimed solved. A2 owns remaining stage callers, L2 known/capture
 admission, and ROOT final integrated sanitizer/bootstrap/browser/deployment gates.
+
+B1 merged receipt: production f2f12e5b and published5c5a308c were preserved in
+00d3f856 with no conflicts. Incoming stage/budget/frontend/semantic changes
+required22 dependency actions:38.82wall/117.25CPU seconds/770712KiB. Merged
+parser/live grammar/cache/lexical checks passed .31wall/.24CPU/63156KiB;
+ordinary cold request passed1.05/1.00/165596, same185/155/159 counts and
+976byte canonical hash. Merged symbol fixture and selected checker rebuilt;
+all three refreshed native nm consumer reports pass. No broad tests or performance
+pairs repeated; previous timing retains its frozen pre-merge source identity.
+Session30917 drained0; container only init. Logs and current hashes are
+build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
+only; no runtime profiling applies to those edits. Normal main push follows.
