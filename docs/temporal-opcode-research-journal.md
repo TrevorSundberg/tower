@@ -84325,7 +84325,7 @@ therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
 
-### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
+### 2026-11-23 ï¿½ L1 counted interpreter text and package ownership (implementation, validation in progress)
 
 Bounded follow-up starts at published36ad337 after the required fast-forward pull,
 with no surviving L1 jobs. PID8356 performed the first successful caller/layout
@@ -84368,7 +84368,7 @@ caught an accidental internal/declaration offset substitution; corrected to the
 established declaration mapping. Its focused rerun and shared-Wasm validation are
 pending at this entry. No failed attempt is represented as a pass.
 
-### L1 interpreter/output/package storage gate — focused completion receipt
+### L1 interpreter/output/package storage gate ï¿½ focused completion receipt
 
 The final layout keeps Fast's existing hot offsets and appends only its frozen
 provider target. Native `core` passes on that layout, including156 graph/Fast
@@ -87263,3 +87263,112 @@ rejected transport patch are unchanged. A patch-helper read rejected preexisting
 non-UTF8 journal bytes; this append preserves those bytes without normalization.
 Final diff/todo/bootstrap checks pass; normal main push only, with the verified
 published hash recorded in D2 status. ROOT owns deployment.
+
+### A1 qualified alias completion repair (2026-11-23)
+
+Source base31e16e9e preserves the published body batch5e816467. Prior jobs were
+fully drained, then the user-authorized Docker cpuset changed from0-11 to12-23,
+retaining24GiB, before this baseline. Codex thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7,
+PID34828. Earlier CPU0-11 receipts are unchanged. Only A1 clone/cache used.
+
+Root cause: sem_editor_capture deliberately records "Editor resolution boundary"
+to stop checking at the cursor. sem_editor_symbol then called sem_namespace;
+14ce70f7 added the correct general sem_ok guard after sem_identifier, so the
+intentional boundary now made that late lookup return null. This predates
+5b4a587b's module/inspection admission changes: its parent contains the same
+guard and capture ordering. This conclusion uses blame/source history plus the
+following current-source reproduction, not an unrun historical binary claim.
+
+Native baseline ae410c21e48f0e48a78e9841e9722b50ce2ea6c7ae79f55ec0bbcc79b25204ea,
+linked to preserved production provider5c14cac2, reproduces BOTH cases at workers1/4:
+`helpers.he` returns namespace `helpers`; `left.an` returns an empty list.
+Both checks exit1 with raw JSON retained in a1_alias_before_checks_j*.log/time.
+The original ide_completion_checks assertion and ROOT candidate check are unchanged.
+
+Fix: identify the exact cursor span and resolve its actual module owner before
+installing the editor boundary; keep an already captured continuation unchanged.
+Real ordinary/resource failures still stop namespace resolution. No spelling
+special case, filesystem collapse, alternate AST, parser/span change or shared
+scratch rewrite. The module handle remains borrowed from the query's retained
+world-owned registry until ordinary disposal. completion_analyze remains the
+browser32-bit ABI; completion_analyze_target uses the same producer for explicit
+32/64-bit native queries, including first-error retention before width validation.
+
+The new registered completion_alias_checks.tower exercises both exact qualified
+cases, unqualified imports, same-spelling alias, void-call argument filtering,
+distinct nominal Point modules, incomplete-source recovery, real world Capacity
+denial, terminal retry (including an invalid later target width), a fresh query
+after denial, stable repeated entity/component counts and zero final byte/lane/
+reservation owners. Runs at widths4/8 and workers1/4. Existing Tower IDE fixture
+also gains ROOT's exact answer query. Native/provider builds use the verified
+public768a0cdf bootstrap, --jobs1, x86_64-pc-linux-gnu; no private override.
+Initial fixture builds caught missing direct imports, the entity_release return
+signature and required explicit opaque-pointer conversions; all failed logs
+remain under A1/cache/a1_alias_baseline_build*.log. No success fallback added.
+
+Small healthy alias-offering sample uses identical two mounted source capabilities
+and `import tower; import lib.helper as helpers; hel`, checked as exactly helpers.
+CPU12-23/24GiB, Linux x64 Docker/LLVM19 on KinmenA, fresh process/warm files,
+n=1 per worker/compiler. Baseline is preserved above; final matched after sample
+uses final fixture7c5b18c8. Full query tests separately cover the previously failing
+qualified output. Shared-host load and nearby SDK extraction are uncontrolled.
+
+| Sample | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Before /1 worker |1.94|1.76|197464|
+| Before /4 workers |1.74|2.01|215668|
+| After /1 worker |1.81|1.62|197616|
+| After /4 workers |1.59|1.83|213344|
+
+No material memory/wall regression appears in this small startup/import sample;
+no isolated speedup, scaling or race-freedom claim. Allocation counts are not
+exposed here; production world-budget and entity/component retirement checks
+supply the narrower retention evidence. No broad body/type/instrumentation matrix.
+
+Portable build uses documented SDK34.0 setup with its pinned archive checksum,
+verified public bootstrap and one fresh /cache/a1_alias_browser CMake target
+(TOWER_BROWSER=ON,TOWER_IDE_TESTS=ON,--parallel4/--jobs1). Initial build44.34s
+wall/86.52s CPU/1090868KiB peakRSS, artifact5f1e6d6e8dc7f0ab0f19369d3e32c2a2aa6741d877254b8ffc5b738651c2b846.
+Unchanged `node playground/scripts/test-ide.mjs ARTIFACT` passes ALL completion
+sections, including both aliases and temporary-query lifetime checks. It then
+traps in ide_hover_generic_checks.tower:99, pointer-store/array-dereference hover,
+exit1 after23.19s wall/21.80s CPU/208404KiB peakRSS. This is NOT a full IDE pass.
+
+Named diagnostic relink uses the existing Tower linker's --debug-names option.
+Removing only its name section gives byte-identical initial Wasm. An initial
+no-strip relink emitted no names; --strip-all comparison also removed unrelated
+custom metadata, so that comparison failed and was not used as evidence.
+Mapped stack: abort -> sem_array_intern -> sem_type -> generic_info_type ->
+generic_info_walk -> sem_generic_inspect. sem_array_intern:653 requires a null
+entity_stage and nonzero length; generic_info_type:166 installs its inspection
+stage before sem_type. The fixture has i32[4]. This identifies a separate staged
+array-interner boundary for ROOT/L2, distinct from A2's syntax_reader_span crash.
+No type/generic/parser ownership changes or relaxed assertion were made.
+
+Final native/portable affected-provider rebuild and exact Node rerun follow the
+small first-error retry guard. Frozen input manifest SHA256
+ea1e6c759fe38370f68a97065e775a7f294be74ba2d0ead9738f348d2d9c752c;
+logs/scripts/artifacts /cache/a1_alias_*. ROOT owns the separate hover repair,
+full edited generations, sanitizer/platform and hosted release acceptance.
+
+Final A1 alias receipt: native focused tests both PASS (21.12s/17.94s,39.10s total),
+including the invalid-target retry preserving the prior Capacity cause. Fixture
+7c5b18c8f553687da2a46447002f738b084ce849fe57903c0012f5287c8317b4;
+compiler924413cf4dcd191e3818f552bad9cbdb7243a97af3800e8b89f5cf3ebb2c2834.
+Only the changed provider and consumer rebuilt (24.40s wall/21.45s CPU,
+1060068KiB peakRSS); existing full-body/platform receipts were not rerun.
+Portable affected-provider rebuild/relink24.82s wall/18.90s CPU/1091772KiB,
+final Wasm dc3f94919858e8969b0fd1f448ace6a54dc34590b9ba23ff537117481e65ced9.
+The exact final Node IDE runner again passes ALL completion sections and exits1
+at the same subsequent hover/sem_array_intern stack. Final input hash check passes.
+This publishes the repaired shared alias producer and exact native/browser
+completion proof; full Node IDE acceptance remains blocked on ROOT/L2's separate
+staged array inspection repair. D2 can reuse these source/artifact identities.
+
+An additional small ordinary-runtime comparison uses the Tower sources retained
+in /cache/a1_alias_runtime: aliased imports hide unqualified answer(). Public
+bootstrap and final compiler both exit1 with byte-identical diagnostics at3:7
+("Unknown function 'answer'") for jobs1/4. Qualified left.answer() executes20 at
+both counts. Final healthy sample rows above use the final native binary and
+identical baseline input capabilities; intermediate sample logs remain preserved.
+All build/test jobs drained before commit/reconciliation. No deployment claimed.
