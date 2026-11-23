@@ -92835,3 +92835,15 @@ runnerfab9827ef127bbe57648918525b95c9aac8fd81229979ee11045cb0b33762837.
 External L1 alias_fields_receipt.json and logs/alias_fields_merged retain exact
 inputs, results and original failures. All owned jobs drained, todo unchanged;
 ROOT portable/LLVM/shared artifact adoption remains pending after publication.
+A1 fallback publication reconciliation: ba9b0ab1 merged complete b8d65c37 as
+c2ce733c48269e7894c197f9599bd0914ae14ee8 after ordinary ff-only divergence.
+Both histories/journal entries preserved; own producer/tests unchanged. Incoming
+semantic body/declaration/generic changes required one affected dependency refresh:
+4 actions,34.10wall/24.85CPU seconds,1069636KiB peak. All3 focused backend/session
+CTests pass on merged inputs (1.40s). Merged workers1/4 reconstruction remains
+byte-identical to the checked prior canonical, with zero final bytes/grants/lanes;
+independent execution evidence is reused for those identical bytes. Response runner
+76b061be483d4bd99a9ab5d82f2b8239ec0c40ec9efbf6744b37b49848b6e654, source runner
+397004e45fcb5240c6be5f503f81a31c219c0721d3292761963717125c616868. Earlier paired
+performance keeps its c93ddaab boundary; no merged speed claim. All jobs drained;
+normal source push follows, ROOT release/instrumentation remains separate.
