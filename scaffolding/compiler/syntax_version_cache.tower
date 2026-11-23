@@ -10,12 +10,19 @@ import .library.vector;
 import .library.work_budget_types;
 import grammar_observer;
 
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
+extern fn parser_structure_cache_copy(target: ParserStructureCache*, source: ParserStructureCache*): bool;
+
 export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
     frontend_cache_dispose(&value.index);
     foreach(var & version in &value.versions) {
         syntax_version_release(*version);
     }
     vector_dispose(&value.versions);
+    parser_structure_cache_dispose(&value.structures);
+    frontend_revision_release(value.bedrock);
+    value.bedrock = null;
 }
 
 // Clone recency and pins together; allocation failure preserves the destination.
@@ -26,13 +33,15 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
     var prepared: SyntaxVersionCache = default;
     defer syntax_version_cache_dispose(&prepared);
     if !vector_reserve(&prepared.versions, source.versions.length) ||
-    !frontend_cache_copy(&prepared.index, &source.index) {
+    !frontend_cache_copy(&prepared.index, &source.index) ||
+    !parser_structure_cache_copy(&prepared.structures, &source.structures) {
         return false;
     }
     for(var i: usize = 0; i < source.versions.length; ++i) {
         prepared.versions.data[i] = syntax_version_retain(source.versions.data[i]);
     }
     prepared.versions.length = source.versions.length;
+    prepared.bedrock = frontend_revision_retain(source.bedrock);
     syntax_version_cache_dispose(target);
     copy(target, &prepared, sizeof(SyntaxVersionCache));
     prepared = default;
@@ -53,6 +62,12 @@ export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, defini
     if kind is null {
         return null;
     }
+    var budget = compiler_world_work_budget(world);
+    if value.structures.world != world || value.structures.budget != budget || value.bedrock != bedrock {
+        syntax_version_cache_dispose(value);
+        value.bedrock = frontend_revision_retain(bedrock);
+        value.structures = {world: world, budget: budget, limit: FrontendCacheLimit, ..default};
+    }
     grammar_observe(world, GrammarPhase.Lookup, true, definitions.rules.length, definitions.tokens.length);
     var slot = frontend_cache_find(&value.index, definitions.rules.data, definitions.rules.length,
     definitions.tokens.data, definitions.tokens.length, kind);
@@ -62,7 +77,7 @@ export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, defini
         return syntax_version_retain(value.versions.data[slot]);
     }
     grammar_observe(world, GrammarPhase.Build, true, definitions.rules.length, definitions.tokens.length);
-    var version = syntax_version_build(world, definitions, bedrock, diagnostic);
+    var version = syntax_version_build_reusing(world, definitions, bedrock, diagnostic, &value.structures);
     grammar_observe(world, GrammarPhase.Build, false, definitions.rules.length, definitions.tokens.length);
     if version is null {
         return null;

@@ -41,6 +41,7 @@ struct LRUnresolved {
 
 struct LRGrammar {
     storage: WorkBuffer;
+    references: usize;
     budget: WorkBudget*;
     resource_error: WorkBudgetError;
     // Names and capture strings share this immutable grammar lifetime. The
@@ -245,6 +246,8 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
     if value == null {
         return;
     }
+    value.references--;
+    if value.references != 0 { return; }
     work_vector_dispose(&value.names);
     work_vector_dispose(&value.buckets);
     work_buffer_dispose(&value.rule_storage);
@@ -255,6 +258,13 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
     work_arena_dispose(&value.snapshots);
     var storage = value.storage;
     work_buffer_dispose(&storage);
+}
+
+// Coordinator-only pins for frozen structural keys. Never resolve/finish a
+// grammar after publishing it into a shared parser structure.
+export fn lr_grammar_retain(value: LRGrammar*): LRGrammar* {
+    if value != null { value.references++; }
+    return value;
 }
 
 fn lr_grammar_payload(node: void*, kind: void*): void* {
@@ -439,7 +449,7 @@ export fn lr_grammar_create_result(root: void*, rule_kind: void*, reference_kind
     *error = work_buffer_resize(&storage, budget, sizeof(LRGrammar), 0);
     if *error != WorkBudgetError.None { return null; }
     var value = bits(LRGrammar*, storage.data);
-    *value = {storage: storage, budget: budget, ..default};
+    *value = {storage: storage, references: 1, budget: budget, ..default};
     var chunk_bytes = sizeof(WorkArenaChunk) + WorkBufferInitialElements * sizeof(LRGrammarName);
     if !work_arena_init(&value.snapshots, budget, chunk_bytes) {
         *error = WorkBudgetError.Invalid;

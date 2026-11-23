@@ -963,6 +963,27 @@ frontend are separate execution paths; packaging this reactor does not make ever
 compiler phase parallel. Switching compiler generations retires the old frontend's
 nested workers. Cancellation terminates its owning worker and nested workers.
 
+For a focused current-source shared-Wasm check without LLVM reactors or UI
+packaging, build `tower-browser` and `tower-work-tests` in that threads profile,
+then run from the repository root:
+
+```sh
+node playground/scripts/test-shared-compiler.mjs \
+  build/browser-wasi-threads/tower.wasm \
+  build/browser-wasi-threads/tower-work-tests.wasm build/shared-browser.json
+```
+
+This requires the installed Playwright Chromium browser. The local test server
+supplies isolation headers; unsupported shared memory is a failure. Existing
+Tower fixtures check four-worker overlap, budget/world ownership, query waits,
+cancellation and stale tickets. Three Tower language fixtures compare graph/Fast
+output and complete canonical Foundation at one/four workers. The report records
+artifact/resource hashes, browser identity, worker startup/termination, phase
+timings and monotonic Wasm memory capacity. Capacity is not process RSS; cold
+initialization and the extra parallel-only fixtures prevent interpreting total
+trial times as a scaling benchmark. Hosted service-worker isolation, other
+browsers and the release matrix remain separate checks.
+
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
 checksum in the manifest, preserving the custom domain on future publications.

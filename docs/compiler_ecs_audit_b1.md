@@ -2291,3 +2291,17 @@ Focused live grammar/cache/lexical checks and native policy reports pass; n1
 serial/parallel control preserves canonical output, adds16 retained bytes/world,
 and establishes no speedup bound. Full evidence/remaining limits are in the
 journal and build/ecs_b1/cache_iteration. ROOT retains integrated release gates.
+
+Implemented successor to the68f89640 prerequisite: session-owned immutable
+ParserStructure reuse now separates numeric LR runtime/context columns from
+per-version userdata, grammar labels/captures, emission/replacements/provenance.
+World/budget/Bedrock scope and exact ordered LR inputs/profile govern reuse;
+imports and every declaration still resolve and activate before structural lookup.
+Reference-counted grammar/structure pins and existing budgeted work buffers/vectors
+survive either table/cache destruction order. Focused scope/override/import/error/
+cancellation/parse-after-retirement checks pass. Cold159->123 actual LR builds,
+36 exact reuses; preinstalled startup84->60. Normal serial/parallel canonical
+results match. Cold whole process1.03->1.02s n1, with.85s LR time remaining:
+this removes duplicate construction but does not solve the dominant distinct
+large revisions or historical300s timeout. Contract and full measurements in
+parser.md and journal; ROOT release gates remain pending.
