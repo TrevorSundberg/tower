@@ -94344,3 +94344,16 @@ Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
 
 L1 lifecycle receipt56cfc85f reconciliation: normal merge1b7ba13c1d362d42ce5097475e48452a27d12dfd preserves all incoming history through ea606d32. Incoming A1 alias-publication repairb78d606b, semantic_execution_work, admission/alias tests and exact-output CMake gates are explicitly excluded from frozen3211cb1e acceptance. No matrix restart, later-binary relabel or production edits. Requested42/42 lifecycle and dependency checkpoint remains complete at its exact recorded inputs; joined later compiler acceptance remains separate.
+
+T9 publication reconciliation: complete-history merge9127d12842fe129409f88803ae4e3c86437ffdc7
+preserves publishede932b546 without losing either journal. Read the only later
+production deltas:125efb11 adds coordinator sem_module_declaration using existing
+declaration/initializer query producers and routes module-local CoreDeclare through
+it. Its owner records44 focused configurations/query/module-loop checks at27fcab01;
+those remain separate acceptance, as do the exact-output gate and frozen lifecycle
+receipts. Backend/library/source-probe bytes remain identical. This evidence-only
+turn retains f0485e83 as its exact native T9 boundary and ROOT25dddd04 source
+match; later module declaration semantics are explicitly excluded from these
+four-request measurements. No extra compiler build, broad rerun or prior-binary
+relabel. Complete published histories, unchanged todo and all raw outputs remain;
+owned jobs are drained. Normal main push, ROOT owns current-Wasm/final adoption.
