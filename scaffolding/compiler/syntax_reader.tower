@@ -9,10 +9,12 @@ import syntax_types;
 import syntax_validation;
 import grammar_attributes;
 import .library.vector;
+import .library.work_budget_types;
 
 // Interpret declaration parse trees on their existing shared entities.
 // Temporary native registration supplies component kinds; all reading is Tower.
 extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
 
@@ -26,6 +28,7 @@ struct SyntaxReader {
     detail: u8*;
     detail_length: usize;
     suffix: u8*;
+    resource_error: WorkBudgetError;
 }
 
 fn syntax_reader_fail(reader: SyntaxReader*, message: u8*): bool {
@@ -48,6 +51,7 @@ fn syntax_reader_ok(reader: SyntaxReader*, ok: bool): bool {
     if ok {
         return true;
     }
+    if reader.resource_error == WorkBudgetError.None { reader.resource_error = WorkBudgetError.Memory; }
     return syntax_reader_fail(reader, "Unable to allocate grammar declaration");
 }
 
@@ -81,6 +85,7 @@ fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
         }
     }
     if !ok {
+        if reader.resource_error == WorkBudgetError.None { reader.resource_error = WorkBudgetError.Memory; }
         vector_dispose(error);
     }
     return false;
@@ -126,11 +131,16 @@ fn syntax_reader_attach(reader: SyntaxReader*, node: void*, kind: u32): SyntaxNo
     var component = entity_component_get(node, reader.syntax_kind);
     var fresh = component == null;
     if fresh {
-        component = entity_component_add(node, reader.syntax_kind);
+        var error = WorkBudgetError.None;
+        component = entity_component_add_result(node, reader.syntax_kind, &error);
+        if error != WorkBudgetError.None && reader.resource_error == WorkBudgetError.None {
+            reader.resource_error = error;
+        }
     }
     var value = bits(SyntaxNode*, entity_component_data(component));
     var missing = value == null;
     if missing {
+        if reader.resource_error == WorkBudgetError.None { reader.resource_error = WorkBudgetError.Invalid; }
         syntax_reader_fail(reader, "Unable to allocate grammar declaration");
         return null;
     }
@@ -787,9 +797,16 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
 }
 
 export fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: vector(u8)*): bool {
+    var resource_error = WorkBudgetError.None;
+    return syntax_read_rule_result(node, source, match_kind, syntax_kind, error, &resource_error);
+}
+
+export fn syntax_read_rule_result(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: vector(u8)*, resource_error: WorkBudgetError*): bool {
     var reader: SyntaxReader = { source: source, match_kind: match_kind, syntax_kind: syntax_kind, ..default };
     syntax_reader_rule(&reader, node);
-    return syntax_reader_finish(&reader, error);
+    var ready = syntax_reader_finish(&reader, error);
+    *resource_error = reader.resource_error;
+    return ready;
 }
 
 fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool {
@@ -863,7 +880,14 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
 }
 
 export fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: vector(u8)*): bool {
+    var resource_error = WorkBudgetError.None;
+    return syntax_read_token_result(node, source, match_kind, syntax_kind, skipped, error, &resource_error);
+}
+
+export fn syntax_read_token_result(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: vector(u8)*, resource_error: WorkBudgetError*): bool {
     var reader: SyntaxReader = { source: source, match_kind: match_kind, syntax_kind: syntax_kind, ..default };
     syntax_reader_token(&reader, node, skipped);
-    return syntax_reader_finish(&reader, error);
+    var ready = syntax_reader_finish(&reader, error);
+    *resource_error = reader.resource_error;
+    return ready;
 }
