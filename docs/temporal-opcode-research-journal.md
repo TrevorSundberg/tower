@@ -85737,3 +85737,19 @@ This bounded check does not diagnose that separate compiler-generation delta;
 ROOT/B2 retain complete-generation identity acceptance. Original exact reference
 comparison remains valid for3415d9c8. All owned jobs drained, todo unchanged;
 normal main push follows this receipt, with no pin/deployment change.
+
+L1 final complete-history merge: B1 e3fc576 integrated as78d22d11428f795e93a02f9caaf0c068fec70b7e.
+Only storage_main selector conflict required resolution; both scratch and
+diagnostic-faults remain. B1's descriptor/index ownership and all other production
+hunks are unchanged. Changed layouts rebuilt through existing dependencies:
+native48.86wall/76.68CPU seconds/825592KiB; denial0.01wall/51524KiB;
+core12.96/14.58/339568; query0.24/0.27/86192; shared30.08/37.76/874944.
+All actual exit0, source manifest7298d229ba94b1206e7aace5ec2f860d9a7b9710aa9686b80dd3dc8305b79547
+identical before/after. Node package5/5 zero skips,4.102wall/6.359CPU/
+280428544bytes peak, actualexit0. Matched original controls remain original-input
+evidence; B1's own performance receipts retain their source identity.
+Final towerc SHA25617ccbadc058876228c852b406f1411581c4c6a843bafa3ecfebb9726ebf9e9f4;
+shared-Wasm38d7c19815b7ee7baee71e8567e1b4ece2466fb227dae1f2f9cceec7f5b5eb59.
+External L1/diagnostic_origin_receipt.json links complete hashes, logs, preserved
+failures, original storage commits, limits and the verified publication commit.
+All owned jobs drained, todo unchanged; this entry changes no tested runtime input.
