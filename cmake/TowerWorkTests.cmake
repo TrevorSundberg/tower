@@ -150,5 +150,13 @@ if(TARGET towerc)
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     set_tests_properties(tower-generic-cast-inference-${workers} PROPERTIES
       PASS_REGULAR_EXPRESSION "42")
+    add_test(NAME tower-generic-pointer-alias-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_pointer_alias.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(tower-generic-pointer-alias-${workers} PROPERTIES
+      PASS_REGULAR_EXPRESSION "true")
   endforeach()
 endif()
