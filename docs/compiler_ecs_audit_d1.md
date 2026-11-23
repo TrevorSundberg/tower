@@ -2664,3 +2664,126 @@ worker stress is separate from admission-only cases. Original query-smoke134,
 newer565 source acceptance, unsupported source UBSan/external LLVM coverage and
 final integrated release remain explicit. The fixed-four caller audit above is a
 future affinity-profile requirement; no worker-count oracle was weakened.
+
+### Prospective function/scratch/grant/foreign union — reviewed565cd436e
+
+Verified complete ROOT bundle8d838127, sole60741 prerequisite. The incoming tree
+has1117 Tower files and528 assigned paths, including the unchanged12 examples
+under scaffolding/examples. The first inventory filter omitted that directory;
+adding its actual prefix restores the correct count. Both new files and all six
+changed assigned Tower bodies/deltas below were read. Production review here is
+limited to the contracts needed by these fixtures; ROOT/owners retain their full
+production audits. This source is not yet accepted by D1 runtime evidence.
+
+| Assigned path | Substantive ownership, scheduling and coverage disposition |
+| --- | --- |
+| scaffolding/tests/entity_node_profile.tower | New180-line Tower measurement keeps eight canonical flat/tree subtrees and publication order invariant across requested1/2/4/8 workers. Private staged nodes are authoritative; raw pointer arrays are derived check indexes. Explicit synchronized budget reserves caller/extra lanes before batch dispatch; queued stages hold references before the final input view closes. It checks IDs, ordered parents/children, references, no unexpected components, complete discard/drain and final-zero grants. Reports real interval concurrency, create/join versus serial publication/release time, CPU/RSS and charged/retained ledger fields. Descriptor byte product and ledger subtotal are not total allocator footprint or packed payload evidence; raw check indexes remain outside ledger. Requested workers must match actual pool count, so future affinity-limited runs must choose supported inputs. New measurement is owner evidence preparation, not a default passing test or claimed node-allocation fix. |
+| scaffolding/tests/foreign_name_profile.tower | New56-line serial measurement links one public opaque-result fixture against frozen before/after providers, without copying private ForeignName layout. It validates ordinary and complex Itanium names byte-for-byte, checks checked decimal iteration input, tracks successful allocation-call delta and returned-owner peak buffers, closes each result and requires baseline retention. Wall/CPU/RSS come from existing process_profile. Peak returned-owner buffers exclude temporary allocation peaks; no useful worker scaling or thread instrumentation claim follows from this single-owner allocator. |
+| scaffolding/tests/foreign_tool_checks.tower | Adds12 exact ABI-output cases with every physical fault prefix derived from the successful input's allocation count: ordinary/wrapped names, substitutions, templates, operators, callbacks, arrays, member pointers, constructors and alias-rich LLVM names. Denial must expose no partial symbol and release every owner, then a successful retry must reproduce the expected bytes. Two malformed/profile cases preserve a static first diagnostic cause even if prefix/suffix presentation allocation fails. Existing foreign_names oracles independently check expected bytes. This is serial fault coverage; the imported tool keeps its existing binder-selected main and providers. |
+| scaffolding/tests/generic_pump_publication.tower | Adds four empty/ready scratch cases across widths4/8 after real world, pool and query admission. Exhausting the actual remaining ledger must deny the first ready-batch buffer with exact Capacity before any clone dispatch; an empty pump requires no grant. Taken tickets cancel, workers/queries drain, entities/components/body children remain unchanged, releasing pressure does not replay the failed request, and teardown returns all grants. Existing completed-copy/Busy publication cases remain. The measured ledger is the same world-owned budget; no separate scheduler or result authority is introduced. |
+| scaffolding/tests/interpreter_call_query.tower | Adds five function-reference scenarios per width: successful growth, runtime initial/growth Capacity denial after exactly7 or7/8 output, and staged initial/growth denial without unsupported output effects. A preliminary completed invocation measures actual retained capacity before the immutable test graph is extended. It validates declaration ordinals, empty intervening slots, exact physical grant/header charge, unchanged pointer/extent/reservation on denial, offset73, no replay after pressure release and final world/private-owner cleanup. The new cases use a conversion statement around the function reference; ROOT explicitly reports direct-return failure publication as a remaining L1 concern, not covered by these cases. Collision/maximum-index Invalid branches and physical function-index Memory are not new direct oracles here. Only the existing query-smoke path reaches call_query_tests after clone overlap; current resource-only instrumented receipts do not cover this incoming change. |
+| scaffolding/tests/work_budget.tower | New borrowed-reservation validation checks exact None/Stale/Invalid without modifying receipt, ledger counters/capacities/free list/generation/revision or prior Busy diagnostic. Wrong owner/revision/slot/generation/lanes/bytes/inactive, released/reused slots and reinitialized ledger are rejected. A live byte-only grant validates; an empty non-live grant does not. It deliberately does not manufacture an execution lane or pin lifetime. Existing seeded8192-operation reference model now derives count and budget limits from actual arrays/ledger fields. |
+| scaffolding/tests/work_budget_allocation.tower | With a live receipt and the serial allocator denying its next allocation, validation must return None without advancing allocation-call count. Existing real growth-denial rollback/retry checks remain. This isolates validation's allocation-free contract and does not sanitize concurrent ledger use. |
+| scaffolding/tests/work_budget_shared.tower | Workers borrow their own immutable parent receipt and repeatedly validate it and each live extra grant while the synchronized ledger may grow; released copies must become Stale. Four actual threads retain the existing gate/join checks. Array-derived participant count and named workload sizes replace duplicated extents; snapshots compare real ledger limits. Parents remain alive through join and release only afterward. This remains a deliberate four-thread scenario; D2's future affinity correction requires a separately recorded >=4-allowed-CPU profile, not a false two-lane pass. |
+
+The relevant new contracts are world-budgeted function-index and generic batch
+work_vectors, non-mutating synchronized receipt validation without lifetime
+extension, and sticky foreign-name failure independent of diagnostic allocation.
+Generic source-window rescan relies on clone publication changing descendants,
+not function entries or body demand. Raw foreign records/strings are still
+per-result owners; these tests do not establish a whole compiler memory limit.
+ROOT labels565 a source union with remaining producer/return/publication work.
+Current341/213 runtime receipts stay separate. Profiling this audit text is
+inapplicable; owner measurements and new joined validation must retain their
+actual source identities.
+
+The prospective565 review is now adopted through full-history merge af22cfbc1,
+after all213c jobs drained and their complete341 evidence was committed/exported.
+Current coverage is528/528 assigned paths of1117 tracked Tower files. D1's capture
+registration and all prior generic targets survive the merge; production compiler,
+library, host, backend and bootstrap bytes exactly match565. New IMState, generic
+scratch, borrowed validation and foreign failure inputs require coherent new
+validation; the successful213c receipts are not relabeled as covering them.
+
+### Direct return, proof publication, containment and forest review (2026-11-23)
+
+Reviewed incoming complete bffbd3f7046984c2bcc71f28bda1b7682e723cf2, then
+d3a87129547c7004df4ddb920046d60712526ad8, before adoption and with no D1 build
+running. The current_typed_forest roster contains533 assigned paths of1122
+tracked Tower files; five new fixtures supplement the prior528 reviewed paths.
+The following are substantive delta reviews, retaining earlier full-file audits.
+
+| Assigned path | Reviewed source and ownership/storage/scheduling conclusion | Evidence, gaps and disposition |
+| --- | --- | --- |
+| scaffolding/tests/interpreter_call_query.tower | bff: four staged modes replace two, adding first/growth function-reference return denial at both target widths. Return nodes reuse the actual function binding; entry result type follows that reference. Real work-vector reservation pressure must preserve original storage/generation and leave context.returned false; resumed terminal invocation cannot replay. Existing runtime output and cleanup checks remain. | L1 reproduced before134 and after14 cases plus query/core/functions/units/type checks. The ix_ok return guard is reviewed. Query-smoke reaches this after the still-open D1 clone overlap oracle; resource-smoke is insufficient. Physical function-table Memory, duplicate-index and overflow cases remain separate coverage gaps. Keep the fixture; no mechanical rewrite. |
+| scaffolding/tests/semantic_source_proof_admission_checks.tower | bff: world/context and a separate finite query ledger live through joins/disposal. Six selectors across widths4/8 and budgets1/4 isolate healthy proof, query/edge/ready-growth Capacity, cancellation and prior Memory receipt. Warm-up uses actual graph capacities; consumer count derives from ready capacity. Scan/proof tickets, exact root offset83 versus prior37, cancelled dependents, repeated request stability and final zero grants are checked. | A1 before query/edge/finish134 and after24 cases/native/address/thread receipts are recorded; prior Memory is injected receipt coverage, not physical ENOMEM. Root-only proof does not establish useful overlap. Ordinary exported main can reuse the production semantic provider once. Durable D1 registration is pending. |
+| scaffolding/tests/semantic_aggregate_admission_checks.tower | bff: own world/context/generic owner, Foundation aggregate/callback entities and actual lowering. Four selectors check healthy one-time ABI rewrite, prior failure, cancellation and real lowering failure before ordered signature publication. Parameter/result identity and zero running work survive repeated entry, then world disposal. | A1 before negative cases1 and after16 cases/native/address/thread passed; ordinary control-smoke supplies runtime/comptime callback and canonical/reparse reference. Full semantic imports mean this fixture REPLACES the semantic provider when linked. Four-worker budget with one eligible job is not overlap evidence. Durable D1 registration pending. |
+| scaffolding/tests/world_constructor.tower | bff: serial transport guard precedes allocator instrumentation. Bounded world and actual component kind test null owners/Invalid, pinned structural Busy, next physical allocation Memory, measured remaining-byte Capacity, unchanged component counts, same-owner retry and existing payload lookup under a pin. Final buffer/ledger/owner counts return to baseline. | ROOT native exact-result tests and bff combined allocations/query/real-unit instrumentation passed on their documented host. Fault sweep remains serial, and no claim that all type kinds/foreign-owner combinations or payload mutation are covered. Keep existing allocations-runner registration. |
+| scaffolding/tests/parser_table_budget.tower | bff/d3: three actual shift/empty-reduction component-page denials plus two prewarmed match cases distinguish component from forest pressure. A separate forest ledger owns descriptor/child/traversal indexes while leaves remain world entities. Actual growth is discovered under bounded128 attempts; output spans, old reservations, capture precedence, attached-node lifetime and final buffer cleanup are checked through Capacity/Memory and retry. Raw wrappers mirror only the existing opaque ABI. | B1 native/reference/parser/address/thread/WASI receipts retain their source identities. The first missing entity_create declaration compile failure and ineffective no-work target are preserved. Initial traversal denial is tested; arbitrary partial-attachment rollback and typed entity_attach error propagation are not established. Current bool attachment fallback remains explicitly open. Existing frontend registration reaches these tests. |
+| scaffolding/tests/entity_attach_leases.tower | d3: owns one store and explicit external retains. A stage lease on the old parent must block moving its child; a lease on a replaced named child must block replacement. Parent/order/reference state is checked before discard and final store teardown. Before-only cleanup repairs forbidden mutation/stranded retain while retaining failed assertions. | A2 before four assertions/exit1, after native/scoped sanitizer and serial WASI pass. No actual worker dispatch or universal mutation safety claim. Adjacent replace_child/take_last_child remain separate owner work. Ordinary library fixture, portable serial transport, no extra lifecycle provider. Registration pending. |
+| scaffolding/tests/entity_mutation_results.tower | d3: serial physical-fault fixture owns local stores/stages, validates null/foreign/self/overflow, old-parent pin, named reorder/replacement and reference exhaustion. Moving an existing parent hold at maximum counter transfers ownership. Stage creation rejects foreign/peer-private parents; reference queue validates whole input before append, ignores nulls and preserves aliases. A measured successful allocation count bounds each Attach/NamedStage/Queue fault sweep. Payload owning fields publish only after queue admission; idempotent hold precedes finalizers and final-zero checks. | Exact typed outcomes and rollback are supported owner evidence; global fault allocator is explicitly serial. Manual maximum counters/lengths are restored before teardown. Hold exhaustion itself remains unresolved and is not simulated as passed. Uses existing fault-runtime binding, ordinary exported main; registration pending. |
+| scaffolding/tests/entity_containment_profile.tower | d3: two local roots and a derived raw node index observe four reverse-order transfers over1024/65536 authoritative entities. Root/slot extents use actual types/counts. Phase excludes creation/check/release while whole-process metrics include them. Final canonical child order, identity, two references and store disposal are checked; retained child arrays/store descriptor are reported separately from raw node ownership. | Linux x64 clock/rusage ABI and serial portable transport are explicit. A2 three-way before/typed-only/tail-check measurements identify quadratic last-child search; no compiler-wide gain is inferred. Four even transfers define the expected original order. Manual profile target only; no timing threshold or implicit default invocation. |
+
+The matching production producer deltas were read to verify fixture contracts:
+world component initialization/error forwarding, semantic proof finish/disposal,
+aggregate publication guard, interpreter return health, affected-parent leases,
+private staged create/reference receipts and budgeted forest storage. This is
+consumer/fixture review, not a replacement for those owners' production audits.
+No extra authoritative AST, registry, scheduler or alias guarantee is introduced.
+Raw staged node payloads remain uncharged; an index ledger is not packed storage.
+Documentation-only review changes no executable, so new runtime profiling is
+inapplicable. Owner measurements and the next actual D1 coherent checks stay
+distinct from adoption and from final public-bootstrap/browser/release acceptance.
+
+### Linux affinity fixture handoff review (2026-11-23)
+
+Complete D2 cbe00ff22d98edcf33c3a92b40e8a1d33d0f71cb and its176MiB receipt
+verify against the announced hashes. The real/fault source hashes exactly match
+the previously reviewed drafts; the profile guard and process fixture were read
+in full. Four new assigned files bring the prospective joined count to537/1126.
+
+| Assigned path | World/storage/scheduling/ownership review and disposition |
+| --- | --- |
+| scaffolding/tests/work_linux_affinity.tower | Actual libc CPU-count reference checks current-thread capacity, two derived job slots and child-only affinity restriction/restoration. Parent observes its unchanged mask while children wait; stack job/signal/pool owners survive every join, including partial submission cleanup. Fixed128-byte real-test mask is the explicit glibc fixture boundary; production grows beyond it, tested separately. Before1/after0 and restricted/unrestricted scoped sanitizer evidence retained. Register ordinary library object with existing guest runtime and worker-entry export; no overlap claim from capacity alone. |
+| scaffolding/tests/work_linux_affinity_faults.tower | Ordinary SOURCE entry initializes the single borrowed stack-state pointer. Three GNU wrappers observe actual production transport and buffer allocation/free; only one heap buffer is live. Sparse high IDs, zero/full/clamped masks,64 seeded libc bit-count references, OS error, growth/physical failure/retry and pool denial check exact results and final zero bytes. Actual412 allocation attempts/544 peak underlying bytes. Bounds derive from native words/type/array. Serial injection is not thread safety evidence; overflow is reviewed rather than forced through enormous allocation. Existing SOURCE/no-bindings helper must explicitly emit object; preserve its actual duplicate-main failure before correction. |
+| scaffolding/tests/work_linux_capacity_profile.tower | Reuses shared driver_unsigned_limit for positive capacity/rounds and actual usize bound. Timed loop checks every current-thread answer; pool setup/one dispatched checked result follows timing and drains through defer. Output records measured count and actual slots; no useful-overlap claim. Manual expected-capacity argument is necessary, so no hardcoded host-capacity CTest. Linux clock ABI/host-only profile remains explicit. |
+| scaffolding/tests/work_linux_capacity_arguments.tower | Existing Tower process transport executes the actual profile, waits/reaps each child and checks exact status2 for eight invalid strings in each position plus one valid control. Array bounds derive from sizeof; no shell or duplicate parser. Covers signs/space/junk/zero/overflow/decimal input. Owner before accepted +1 fails1; final native plus instrumented parent/17 children per mode pass. Keep manual PROFILE_PATH/ACTUAL_CAPACITY invocation, with no invented universal capacity. |
+| scaffolding/tests/work_signal_observe.tower | Existing try/wait signal ownership/oracles unchanged. Coordinated host.memory import resolves the demonstrated new compiler-buffer extern link failure after transport migration. Both modes and actual scoped address/thread runs pass; sanitizer_race_probe was not edited without a demonstrated need. Existing target retained. |
+
+The transport snapshot is not an OS CPU lease and does not resize already-open
+pools or model CPU-time quota. Its stack-first native-word probe grows through
+compiler_buffer APIs, counts real allowed bits and returns0 on unavailable/error.
+No global cache, invented noalias or second scheduler. D2's per-query microcost
+improves, but pinned serial compiler wall medians still rise3.2%/2.2%; two useful
+metadata workers overlap yet lose to serial in the final measured workload.
+All fixed-four tests retain their deliberate oracle and need four allowed CPUs.
+D1 original Cancel4 failure remains independent. Current union runtime/release
+acceptance is pending; documentation review itself needs no runtime profiling.
+
+The complete d3+cbe history is now adopted as fa15ea45c; exact current roster is
+537/537 assigned of1126. D1's new generic targets preserve the Tower fixture
+bodies and ordinary provider ownership. Source-proof/aggregate use the existing
+compiler composition, with aggregate replacing only the semantic implementation.
+The self-contained mutation fixture declares its existing serial transport via
+the existing target property; deferred fault-runtime binding honors it, avoiding
+a second provider. Other fault targets retain their explicit portable object.
+
+Native evidence at fa15: four public leaves plus both affinity leaves pass,
+canonical42-action build passes, manual40 proof/aggregate cases and four standalone
+fixtures each pass three processes. Actual missing SOURCE object mode reproduces
+duplicate-main/exit1. The explicit object correction produces the same object
+bytes as the direct reference and the same412/544/0 fault result. Final registered
+targets use existing ordered LLVM symbol bindings for the fault boundaries;
+the public native linker has no GNU --wrap support. Five ordinary fixture objects
+are byte-identical, all registered runtimes match before output, and14 CTests pass.
+Lease/mutation/real-affinity executables also match completely; the two semantic
+executables have different object ordering, so no full-image identity is claimed.
+D2 independently reviewed the exact four CMake drafts with no source blocker.
+
+The first after build passed12 actions, then an OS comparison script used the
+wrong generated mutation-object name and exited2 before its runtimes. Original
+logs/script remain; after drain, correcting only that filename yielded a no-work
+build and successful checks. Runtime wall/CPU/RSS samples and limitations are in
+the journal. Newly joined scoped instrumentation and current full-query/release
+gates remain pending; incoming ROOT metadata/child-owner fixtures will require
+coherent revalidation. No existing failed Cancel4 oracle was weakened or relabeled.

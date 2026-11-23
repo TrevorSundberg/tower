@@ -108,8 +108,9 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
 }
 
 export fn syntax_origin_copy_result(world: CompilerWorld*, source: Entity*, destination: Entity*): WorkBudgetError {
-    if world == null || source == null || destination == null
-        || source.store != world.store || destination.store != world.store { return WorkBudgetError.Invalid; }
+    if source == null || destination == null || source.store != destination.store { return WorkBudgetError.Invalid; }
+    if world == null { return compiler_node_world(source) == null ? WorkBudgetError.None : WorkBudgetError.Invalid; }
+    if source.store != world.store { return WorkBudgetError.Invalid; }
     if source == destination { return WorkBudgetError.None; }
     if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var prior = syntax_origin_get(world, source);

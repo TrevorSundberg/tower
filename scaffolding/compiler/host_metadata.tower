@@ -143,9 +143,10 @@ export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): vo
 // Callers discard an incomplete destination on failure. Successful component
 // admission may remain cached; the result is private to this copy operation.
 export fn compiler_node_copy_metadata_result(source: Entity*, destination: Entity*): WorkBudgetError {
+    if source == null || destination == null || source.store != destination.store { return WorkBudgetError.Invalid; }
     var world = compiler_node_world(source);
-    if world == null || destination == null || destination.store != world.store { return WorkBudgetError.Invalid; }
-    if source == destination { return WorkBudgetError.None; }
+    // Standalone entity cloning has no compiler metadata to copy.
+    if world == null || source == destination { return WorkBudgetError.None; }
     if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var span = sem_match(source);
     if span != null {

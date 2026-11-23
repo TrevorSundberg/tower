@@ -34,6 +34,8 @@ extern fn parse_forest_attach(forest: void*, parent: void*, first: usize): bool;
 extern fn entity_child_count(node: void*): usize;
 extern fn entity_create(store: void*): void*;
 extern fn tower_node_get_child_member(node: void*, name: u8*): void*;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn lr_completion_create(parser: void*): void*;
@@ -134,6 +136,22 @@ fn parser_forest_budget_test(): void {
     tower_test_buffer_fail_after(frontend_world_unlimited());
     utility_check(!attached && parse_forest_resource_error(forest) == WorkBudgetError.Memory
         && entity_child_count(parent) == 0, "Traversal allocation failure preserves ownership");
+    var view = entity_view_open(parent);
+    utility_check(view != null, "Pin the forest attachment owner");
+    utility_check(!parse_forest_attach(forest, parent, span.first)
+        && parse_forest_resource_error(forest) == WorkBudgetError.Busy && entity_child_count(parent) == 0,
+        "Forest attachment retains exact Busy without transferring the leaf");
+    entity_view_close(view);
+    utility_check(!parse_forest_attach(forest, node, span.first)
+        && parse_forest_resource_error(forest) == WorkBudgetError.Invalid && entity_child_count(parent) == 0,
+        "Self attachment retains exact Invalid and the original forest ownership");
+    // The Busy attempt allocated traversal storage. This denial now reaches the
+    // real entity relationship allocation, without a guessed allocation index.
+    tower_test_buffer_fail_after(0);
+    attached = parse_forest_attach(forest, parent, span.first);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(!attached && parse_forest_resource_error(forest) == WorkBudgetError.Memory
+        && entity_child_count(parent) == 0, "Attachment allocation denial retains exact Memory before retry");
     utility_check(parse_forest_attach(forest, parent, span.first)
         && parse_forest_resource_error(forest) == WorkBudgetError.None
         && entity_child_count(parent) == 1 && tower_node_get_child_member(parent, "outer") == node,

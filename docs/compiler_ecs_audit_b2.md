@@ -746,3 +746,12 @@ RSS -0.62 to+0.11%. Exact logs and limitations are in the journal. L2 owns actua
 generic clone consumer adoption. Raw labels/splice budgeting, entity hold exhaustion,
 module startup propagation and standalone linker budgets remain open. This closes
 the producer prerequisite, not the full compiler or final publication milestone.
+
+L2's independent review found dba's serial metadata result rejected the supported
+bare-store clone boundary. A new actual clone regression aborts134 before the fix;
+serial same-store/no-world copies now preserve the metadata-free no-op. Distinct
+copied identities/names/counts and complete ownership cleanup pass natively and
+under final address/thread allocation checks. Staged world requirements and null/
+cross-store Invalid results remain. The journal records the initial fixture type
+error, failing runtime, correction, combined child-lease profiles and final exact
+source receipts; the earlier dba pass did not cover this missing case.

@@ -74,8 +74,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_world compiler_world_bind_budget compiler_world_work_budget", symbol, length) { return true; }
         // The configured interpreter unit also owns the upstream staged-call
         // continuation fixture; its world and Foundation builders are Tower.
-        if bootstrap_symbol_in("compiler_world_create_workers compiler_world_dispose compiler_world_store entity_component_add entity_create entity_register entity_release puts sem_attach sem_create tower_node_create", symbol, length) { return true; }
-        if bootstrap_symbol_in("format_dispose format_unsigned foundation_execution_item foundation_execution_reference strcmp", symbol, length) { return true; }
+        if bootstrap_symbol_in("compiler_world_create_result compiler_world_create_workers compiler_world_dispose compiler_world_store entity_component_add entity_create entity_register entity_release puts sem_attach sem_create tower_node_create", symbol, length) { return true; }
+        if bootstrap_symbol_in("format_dispose format_unsigned foundation_execution_item foundation_execution_reference strcmp strlen", symbol, length) { return true; }
         return bootstrap_symbol_in("abort tower_allocate tower_trap im_append im_fail im_foreign im_has_foreign im_missing_foreign", symbol, length)
             || bootstrap_symbol_in("im_pointer_bytes im_root sem_get semantic_alignment semantic_mask semantic_signed semantic_size", symbol, length)
             || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width semantic_type_equal sem_require", symbol, length);
@@ -106,7 +106,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         // Source emitters consume the same checked Foundation through explicit
         // read-only queries; their code no longer expands the semantics unit.
         if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_size semantic_width", symbol, length) { return true; }
-        return bootstrap_symbol_in("parse_forest_create parse_forest_destroy tower_utf8_validate syntax_scan_highlight", symbol, length)
+        return bootstrap_symbol_in("parse_forest_create parse_forest_create_result parse_forest_resource_error parse_forest_destroy tower_utf8_validate syntax_scan_highlight", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_begin syntax_replacement_capture syntax_replacement_attempt syntax_replacement_diagnostic", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_offset syntax_replacement_select syntax_replacement_commit entity_id entity_replace_child", symbol, length)
             || bootstrap_symbol_in("entity_take_last_child entity_child_name syntax_expansion_history syntax_expansion_previous syntax_expansion_trace", symbol, length)
