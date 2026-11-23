@@ -30,6 +30,8 @@ fn sem_attributes_check(c: SemanticContext*): void {
     var surface = c.surface_expressions;
     c.current = c.program.root;
     c.scope = null;
+    // Attribute construction owns its staged lowering, including on early exit.
+    defer { c.current = previous; c.scope = scope; c.surface_expressions = surface; }
     foreach(var wrapper in c.attribute_sources) {
         var declaration = sem_child(sem_member(wrapper, "declaration"), 0);
         var target = sem_get(declaration);
@@ -58,18 +60,14 @@ fn sem_attributes_check(c: SemanticContext*): void {
         }
         if !sem_ok(c) { break; }
     }
-    c.current = previous;
-    c.scope = scope;
-    // Attribute construction is lowered in its own staged producer. It must
-    // not request a second lowering of an already-canonical Foundation program.
-    c.surface_expressions = surface;
 }
 
 // Canonical metadata literals reconstruct the same typed value using ordinary
 // staged execution. This reader only binds/checks fields; it computes no values.
 fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: FoundationType*): void* {
     var type = sem_type(c, sem_member(node, "type"));
-    var value = sem_node(c, node, SurfaceInitializer);
+    var value = sem_node_result(c, node, SurfaceInitializer);
+    if value == null { return default; }
     value.type = *type;
     if !semantic_aggregate(type) {
         sem_fail(c, node, "metadata requires a struct or array type");
@@ -86,7 +84,8 @@ fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: Foundat
     if fields.length != count { sem_fail(c, node, "Metadata must supply every field exactly once"); return node; }
     for(var index: usize = 0; index < fields.length && sem_ok(c); index++) {
         var entry = fields.data[index];
-        var assignment = sem_node(c, entry, KAssign);
+        var assignment = sem_node_result(c, entry, KAssign);
+        if assignment == null { return default; }
         var array = type.scalar == SArray;
         var name_node = sem_member(entry, array ? "index" : "name");
         if name_node == null { sem_fail(c, entry, "Metadata field kind does not match its aggregate type"); break; }

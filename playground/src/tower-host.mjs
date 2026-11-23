@@ -136,7 +136,8 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     bytecode(handle, {optimizationProfile=0}={}) {
       const size = exports.tw_exec_bytecode_options(handle,optimizationProfile);
       if (!size) throw new Error(string(exports.tw_last_error()));
-      return new Uint8Array(exports.memory.buffer, exports.tw_exec_bytecode_data(), size).slice();
+      try { return new Uint8Array(exports.memory.buffer, exports.tw_exec_bytecode_data(), size).slice(); }
+      finally { exports.tw_exec_bytecode_release?.(); }
     },
     preparePackage(handle, {optimizationProfile=0}={}) {
       // Older editable compiler generations retain the original validated load.
@@ -151,6 +152,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
         return {bytecode,handle:canonical};
       } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
+      finally { exports.tw_exec_bytecode_release?.(); }
     },
     prepareFoundationPackage(source, {pointerBytes=4,optimizationProfile=0}={}) {
       // Older editable generations keep their existing checked round trip.
@@ -167,6 +169,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
         return {bytecode,handle:canonical};
       } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
+      finally { exports.tw_exec_bytecode_release?.(); }
     },
     loadBytecode(bytes) {
       if (!(bytes instanceof Uint8Array) || bytes.length > 256 * 1024 * 1024) throw new Error('Invalid .towerbc input');

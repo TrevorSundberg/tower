@@ -756,7 +756,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         return null;
     }
     var f = bits(FMState*, storage.data);
-    *f = { budget: m.budget, storage: storage, ..default };
+    *f = { budget: m.budget, pointer_bytes: im_pointer_bytes(m), storage: storage, ..default };
     var published = false;
     defer { if !published { fast_interpreter_dispose(f); } }
     fm_function(f, im_root(m));

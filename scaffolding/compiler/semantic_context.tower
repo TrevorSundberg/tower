@@ -212,6 +212,7 @@ extern fn entity_create_related_result(node: void*, error: WorkBudgetError*): vo
 extern fn entity_stage_open(anchor: void*): void*;
 extern fn entity_stage_lease(stage: void*, node: void*): bool;
 extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn entity_stage_create_result(stage: void*, parent: void*, error: WorkBudgetError*): void*;
 extern fn entity_stage_publish(stage: void*): bool;
 extern fn entity_stage_hold_result(stage: void*): WorkBudgetError;
 extern fn entity_stage_publish_result(stage: void*): WorkBudgetError;

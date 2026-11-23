@@ -599,7 +599,7 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
     if frame.kind == SemanticBodyBlockKind.Match {
         if sem_control_match_advance(c, &frame.match_state, flow) {
             var state = &frame.match_state;
-            sem_require(sem_block_begin(c, state.body, state.depth + convert(u32, state.index) + 1, &frame.cursor));
+            sem_block_begin(c, state.body, state.depth + convert(u32, state.index) + 1, &frame.cursor);
             return;
         }
         flow = frame.match_state.flow;
@@ -617,7 +617,7 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
             frame.kind = SemanticBodyBlockKind.IfElse;
             frame.flow = flow;
             var depth = frame.cursor.depth;
-            sem_require(sem_block_begin(c, other, depth, &frame.cursor));
+            sem_block_begin(c, other, depth, &frame.cursor);
             return;
         }
         flow = sem_if_finish(c, subject, flow, FlowNext);
@@ -681,12 +681,16 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
     }
     if branch {
         frame.kind = SemanticBodyBlockKind.IfThen;
-        sem_require(sem_if_begin_value(c, node, result.prepared_value));
+        if !sem_if_begin_value(c, node, result.prepared_value) {
+            result.blocks.length--;
+            return true;
+        }
         body = sem_get(node).body;
     } else {
         if looping {
             frame.kind = SemanticBodyBlockKind.Loop;
-            var value = sem_node(c, node, KLoop);
+            var value = sem_node_result(c, node, KLoop);
+            if value == null { result.blocks.length--; return true; }
             value.body = sem_member(node, "body");
             body = value.body;
             c.loops++;
@@ -726,7 +730,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
         body = sem_member(node, "body");
         if !deferred_block { c.loops++; }
     }
-    sem_require(sem_block_begin(c, body, depth, &frame.cursor));
+    sem_block_begin(c, body, depth, &frame.cursor);
     return true;
 }
 
@@ -1016,7 +1020,7 @@ fn sem_body_for_finish(c: SemanticContext*, batch: SemanticBodyWork**, count: us
             if update {
                 c.surface_expressions = true;
                 result.declaration_loop.update = sem_control_node(c, result.declaration_header, SurfaceDiscard);
-                sem_get(result.declaration_loop.update).value = expression.value;
+                if result.declaration_loop.update != null { sem_get(result.declaration_loop.update).value = expression.value; }
             } else { result.declaration_loop.condition = expression.value; }
         }
         sem_body_save(c, &result.lexical);

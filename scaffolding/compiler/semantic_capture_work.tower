@@ -154,6 +154,7 @@ fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void 
     var function = sem_evaluation_function(c, evaluation);
     if !sem_ok(c) { return; }
     var body = sem_control_node(c, function, KBlock);
+    if body == null { return; }
     sem_get(function).body = body;
     var previous = c.current;
     var preserve = c.preserve_clone_storage;
@@ -187,6 +188,7 @@ fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void 
     }
     if !sem_ok(c) { return; }
     var returned = sem_control_node(c, body, KReturn);
+    if returned == null { return; }
     sem_get(returned).value = value;
     sem_lift_append(c, body, returned);
     if !sem_ok(c) { return; }

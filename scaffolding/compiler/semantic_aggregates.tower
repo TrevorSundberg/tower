@@ -31,6 +31,7 @@ fn sem_aggregate_signature(c: SemanticContext*, subject: void*): SemanticAggrega
 fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: FoundationType*): void* {
     if !sem_ok(c) { return default; }
     var parameter = sem_control_node(c, subject, KParameter);
+    if parameter == null { return default; }
     var value = sem_get(parameter);
     if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, type);
@@ -59,8 +60,9 @@ fn sem_aggregate_function_type(c: SemanticContext*, type: FoundationType*): void
     }
     sem_aggregate_function_type(c, &signature.element);
     if semantic_aggregate(&signature.element) {
-        var parameter = sem_create(type.record);
-        var value = sem_attach(parameter, KParameter);
+        var parameter = sem_control_node(c, type.record, KParameter);
+        if parameter == null { return; }
+        var value = sem_get(parameter);
         value.type = signature.element;
         value.type.pointers++;
         if !sem_push_checked(c, &signature.parameters, parameter) { return; }
@@ -94,6 +96,7 @@ fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
     sem_set_type(&metadata.result_type, &function.type);
     if !sem_ok(c) { return; }
     var prelude = sem_control_node(c, subject, KBlock);
+    if prelude == null { return; }
     for(var j: usize = 0; j < function.parameters.length; j++) {
         var original = function.parameters.data[j];
         var parameter = sem_get(original);
@@ -106,6 +109,7 @@ fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
         parameter.kind = KDeclare;
         if !sem_ok(c) { return; }
         var load = sem_control_node(c, original, KLoad);
+        if load == null { return; }
         sem_set_type(&sem_get(load).type, &parameter.type);
         sem_get(load).value = sem_control_read(c, load, incoming);
         parameter.value = load;
@@ -127,6 +131,7 @@ fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
 fn sem_aggregate_local(c: SemanticContext*, block: void*, type: FoundationType*): void* {
     if !sem_ok(c) { return default; }
     var local = sem_control_node(c, block, KDeclare);
+    if local == null { return default; }
     var value = sem_get(local);
     if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, type);
@@ -141,6 +146,7 @@ fn sem_aggregate_local(c: SemanticContext*, block: void*, type: FoundationType*)
 fn sem_aggregate_load(c: SemanticContext*, block: void*, pointer: void*, type: FoundationType*): void* {
     if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KLoad);
+    if place == null { return default; }
     sem_get(place).value = pointer;
     sem_set_type(&sem_get(place).type, type);
     return place;
@@ -149,6 +155,7 @@ fn sem_aggregate_load(c: SemanticContext*, block: void*, pointer: void*, type: F
 fn sem_aggregate_field(c: SemanticContext*, block: void*, pointer: void*, field: void*): void* {
     if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KField);
+    if place == null { return default; }
     var value = sem_get(place);
     var declaration = sem_get(field);
     value.left = pointer;
@@ -163,11 +170,13 @@ fn sem_aggregate_field(c: SemanticContext*, block: void*, pointer: void*, field:
 fn sem_aggregate_element(c: SemanticContext*, block: void*, pointer: void*, index: void*, type: FoundationType*): void* {
     if !sem_ok(c) { return default; }
     var cast = sem_control_node(c, block, KBits);
+    if cast == null { return default; }
     sem_get(cast).value = pointer;
     sem_set_type(&sem_get(cast).type, type);
     sem_get(cast).type.pointers++;
     if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KIndex);
+    if place == null { return default; }
     sem_get(place).left = sem_lift_snapshot(c, block, cast);
     sem_get(place).right = index;
     sem_get(place).indirect = true;
@@ -204,8 +213,10 @@ fn sem_aggregate_transfer(c: SemanticContext*, block: void*, destination: void*,
     var index = sem_control_local(c, block, sem_surface_constant(c, block, integer, 0));
     if !sem_ok(c) { return; }
     var loop_node = sem_control_node(c, block, KLoop);
+    if loop_node == null { return; }
     if !sem_ok(c) { return; }
     var body = sem_control_node(c, loop_node, KBlock);
+    if body == null { return; }
     sem_get(loop_node).body = body;
     sem_lift_append(c, block, loop_node);
     if !sem_ok(c) { return; }
@@ -215,6 +226,7 @@ fn sem_aggregate_transfer(c: SemanticContext*, block: void*, destination: void*,
         sem_surface_constant(c, body, integer, convert(u64, record.length)), sem_type_new(c, SBool, 0, null));
     if !sem_ok(c) { return; }
     var yes = sem_control_node(c, body, KBlock);
+    if yes == null { return; }
     if !sem_ok(c) { return; }
     sem_lift_append(c, yes, sem_control_node(c, yes, KBreak));
     sem_control_branch(c, body, stop, yes);
@@ -280,6 +292,7 @@ fn sem_aggregate_value(c: SemanticContext*, block: void*, n: void*): void* {
         var condition = sem_lift_value(c, block, value.value);
         if !sem_ok(c) { return default; }
         var yes = sem_control_node(c, block, KBlock);
+        if yes == null { return default; }
         var no = sem_control_branch(c, block, condition, yes);
         if !sem_ok(c) { return default; }
         sem_aggregate_copy(c, yes, result, sem_lift_value(c, yes, value.left));

@@ -199,6 +199,8 @@ fn execution_fast_storage_tests(request: DriverRequest*): void {
         for(var allowed: u64 = 0; allowed < admissions; allowed++) {
             var trial: ExecutionSession = default;
             fast_storage_open(&trial, root, width);
+            execution_check(work_vector_reserve(&trial.error, &budget, strlen("Cannot allocate interpreter execution cache") + 1),
+                "Pre-admit counted failure presentation before exhausting cache tickets");
             var saved_frames = trial.machine.frames.data;
             var saved_tasks = trial.machine.task_count;
             before = fast_storage_snapshot(&budget);
@@ -246,6 +248,8 @@ fn execution_fast_storage_tests(request: DriverRequest*): void {
                 f.registers.capacity = storage.capacity / sizeof(u64);
                 f.registers.reservation = storage.reservation;
             }
+            execution_check(work_vector_reserve(&trial.error, &budget, strlen("Cannot allocate Fast interpreter call frames") + 1),
+                "Pre-admit runtime failure presentation");
             var frames = f.frames.length;
             var stack = trial.machine.stack;
             var base = f.register_base;
