@@ -94383,3 +94383,12 @@ match; later module declaration semantics are explicitly excluded from these
 four-request measurements. No extra compiler build, broad rerun or prior-binary
 relabel. Complete published histories, unchanged todo and all raw outputs remain;
 owned jobs are drained. Normal main push, ROOT owns current-Wasm/final adoption.
+
+D1 three-fix publication reconciliation: required ff-only pull refused divergence;
+normal merge preserved complete7e54b96a history. All14 reviewed source/contract
+blobs and the audit text are unchanged. Incoming125efb11 module-body declaration
+queries alter adjacent semantic_declarations/statements and add their own fixtures;
+they and later lifecycle/T9 execution receipts are preserved outsideea606d32, not
+silently source-reviewed or runtime-adopted here. No repeated checks beyond git
+identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
+push follows; this closes the requested independent review only.
