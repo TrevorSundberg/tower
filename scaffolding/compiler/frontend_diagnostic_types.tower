@@ -1,5 +1,6 @@
 import tower;
 import .library.vector;
+import .library.work_vector_types;
 
 struct FrontendRulePosition {
     production: usize;
@@ -18,5 +19,5 @@ struct FrontendExpectation {
     id: u32;
     insertion: bool;
     completes: bool;
-    contexts: vector(FrontendRulePosition);
+    contexts: work_vector(FrontendRulePosition);
 }

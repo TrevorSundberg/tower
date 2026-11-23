@@ -6,6 +6,9 @@ import parser_state;
 import syntax_reader;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_vector_types;
 import parser_markers;
 
 // A stream has one writer. Buffered input transfers one owned entity reference.
@@ -13,6 +16,8 @@ import parser_markers;
 struct ParserStream {
     kind: ParserInputService;
     error: vector(u8);
+    error_owner: WorkReservation;
+    error_work: bool;
     resource_error: WorkBudgetError;
     buffered: bool;
     buffered_node: void*;
@@ -20,6 +25,8 @@ struct ParserStream {
     buffered_start: usize;
     buffered_length: usize;
     buffered_error: vector(u8);
+    buffered_error_owner: WorkReservation;
+    buffered_error_work: bool;
 }
 
 struct ParserUtf8Stream {
@@ -118,6 +125,22 @@ export fn parser_stream_resource_fail(stream: ParserStream*, error: WorkBudgetEr
 }
 
 export fn parser_stream_set_error(stream: ParserStream*, error: u8*): void {
+    if stream.error_work {
+        var length: usize = 0;
+        while error[length] != 0 { length++; }
+        if length == 0 { parser_state_clear(&stream.error); return; }
+        var bytes = length + 1;
+        if bytes == 0 { parser_stream_resource_fail(stream, WorkBudgetError.Invalid); return; }
+        var replacement: WorkBuffer = default;
+        var result = work_buffer_resize(&replacement, stream.error_owner.owner, bytes, 0);
+        if result != WorkBudgetError.None { parser_stream_resource_fail(stream, result); return; }
+        copy(replacement.data, error, bytes);
+        parser_stream_error_dispose(&stream.error, &stream.error_owner, &stream.error_work);
+        stream.error = {data: replacement.data, length: length, capacity: replacement.capacity};
+        stream.error_owner = replacement.reservation;
+        stream.error_work = true;
+        return;
+    }
     if !parser_state_try_assign(&stream.error, error) {
         parser_stream_resource_fail(stream, WorkBudgetError.Memory);
     }
@@ -138,8 +161,8 @@ export fn parser_stream_dispose(stream: ParserStream*): void {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
         vector_dispose(&data.source);
     }
-    vector_dispose(&stream.error);
-    vector_dispose(&stream.buffered_error);
+    parser_stream_error_dispose(&stream.error, &stream.error_owner, &stream.error_work);
+    parser_stream_error_dispose(&stream.buffered_error, &stream.buffered_error_owner, &stream.buffered_error_work);
     compiler_buffer_free(bits(void*, stream));
 }
 
@@ -189,9 +212,13 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         *id = stream.buffered_id;
         *start = stream.buffered_start;
         *length = stream.buffered_length;
-        vector_dispose(&stream.error);
+        parser_stream_error_dispose(&stream.error, &stream.error_owner, &stream.error_work);
         copy(&stream.error, &stream.buffered_error, sizeof(vector(u8)));
         fill(&stream.buffered_error, 0, sizeof(vector(u8)));
+        stream.error_owner = stream.buffered_error_owner;
+        stream.buffered_error_owner = default;
+        stream.error_work = stream.buffered_error_work;
+        stream.buffered_error_work = false;
         *node = stream.buffered_node;
         stream.buffered_node = null;
         return true;
@@ -268,14 +295,36 @@ export fn parser_stream_return(stream: ParserStream*, node: void**, id: u32, sta
     stream.buffered_id = id;
     stream.buffered_start = start;
     stream.buffered_length = length;
-    vector_dispose(&stream.buffered_error);
+    parser_stream_error_dispose(&stream.buffered_error, &stream.buffered_error_owner, &stream.buffered_error_work);
     copy(&stream.buffered_error, error, sizeof(vector(u8)));
     *error = default;
     parser_state_clear(&stream.error);
 }
 
-// These are the syntax owner's existing functions, mechanically exposed by name.
-// Their request-local cursor/highlights remain outside the immutable table.
+// Compatibility callers still transfer ordinary vectors. Requests transfer the
+// same byte view plus its receipt; the stream owns it after the request closes.
+export fn parser_stream_return_owned(stream: ParserStream*, node: void**, id: u32, start: usize,
+    length: usize, error: work_vector(u8)*): void {
+    var view = init(vector(u8)) {data: error.data, length: error.length, capacity: error.capacity};
+    parser_stream_return(stream, node, id, start, length, &view);
+    stream.buffered_error_owner = error.reservation;
+    stream.buffered_error_work = true;
+    *error = default;
+}
+
+fn parser_stream_error_dispose(text: vector(u8)*, owner: WorkReservation*, work: bool*): void {
+    // Standalone work buffers still use compiler_buffer_free with no ledger.
+    // Legacy vectors use Tower free; an inactive receipt cannot distinguish them.
+    if *work {
+        var buffer = init(WorkBuffer) {data: text.data, capacity: text.capacity, reservation: *owner};
+        work_buffer_dispose(&buffer);
+    } else { vector_dispose(text); }
+    *text = default;
+    *owner = default;
+    *work = false;
+}
+
+// These syntax services keep request-local cursor/highlights outside the table.
 extern fn syntax_parser_read(stream: ParserStream*, data: void*, id: u32*, start: usize*, length: usize*): void*;
 
 extern fn syntax_parser_template_read(stream: ParserStream*, data: void*, id: u32*, start: usize*, length: usize*): void*;

@@ -9,6 +9,7 @@ import syntax_emission_lexical;
 import syntax_revision;
 import syntax_session_types;
 import syntax_version_presentation;
+import .library.work_budget_types;
 
 extern fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void;
 extern fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8*;
@@ -17,8 +18,17 @@ extern fn compiler_buffer_free(memory: void*): void;
 // The caller receives the existing host-text allocation and releases it with
 // compiler_buffer_free. Grammar/candidate views remain pinned until formatting ends.
 export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool): u8* {
-    var diagnostic = parser_recognizer_diagnostic(recognizer,
-        repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value));
+    var error = WorkBudgetError.None;
+    var text = syntax_session_diagnostic_result(value, recognizer, repairs, &error);
+    if value.resource_error == WorkBudgetError.None { value.resource_error = error; }
+    return text;
+}
+
+export fn syntax_session_diagnostic_result(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool,
+    error: WorkBudgetError*): u8* {
+    var diagnostic = parser_recognizer_diagnostic_result(recognizer,
+        repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value), error);
+    if diagnostic == null { return null; }
     defer parser_diagnostic_destroy(diagnostic);
     // Cached tables retain their original declarations. Locations follow the
     // current source revision, including edits that only move comments.
@@ -26,6 +36,7 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
         value.pins.grammar ?. rules.data, value.pins.grammar ?. rules.length ?? 0,
         null, 0, value.pins.version.kinds.syntax);
     defer frontend_revision_release(definitions);
+    if definitions == null { *error = WorkBudgetError.Memory; return null; }
     var emission = bits(SyntaxEmission*, value.pins.version.emission);
     var input: SyntaxDiagnosticInput = {
         source: value.source, size: value.source_length, cursor: value.cursor,
@@ -45,5 +56,7 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
     }
     var description = syntax_version_description(value.pins.version, definitions, output.production, output.multiple);
     defer compiler_buffer_free(bits(void*, description));
-    return syntax_diagnostic_text_finish(&output, description ?? "");
+    var text = syntax_diagnostic_text_finish(&output, description ?? "");
+    if text == null { *error = WorkBudgetError.Memory; }
+    return text;
 }

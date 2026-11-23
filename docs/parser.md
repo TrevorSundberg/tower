@@ -522,9 +522,37 @@ prefix constructors preserve `Capacity` versus `Memory` through their existing
 result APIs. Failure releases the partial descriptor, forest and LR control;
 the input stream is still borrowed and unconsumed. Destroy requests before the
 runtime/world budget. The descriptor's receipt is copied out before freeing the
-object that contains it. Diagnostic byte vectors still cross the stream ownership
-boundary and remain outside this accounting; this is not complete request storage
-coverage.
+object that contains it. Request error and lookahead text use `work_vector(u8)`
+with this same budget. `parser_stream_return_owned` moves the lookahead bytes,
+allocator identity and reservation to the stream without allocating. The stream
+keeps them valid after request destruction and uses their owning allocator for
+replacement and disposal. The existing `parser_stream_return` still accepts
+ordinary Tower vectors. An inactive reservation does not identify an allocator:
+standalone work buffers still require `compiler_buffer_free`, not Tower `free`.
+
+`parser_recognizer_diagnostic_result(request, reader, source, error)` requires an
+error output and borrows the reader source only during the call. It returns an
+owned diagnostic with `None`, or null with the first exact `WorkBudgetError`;
+allocation failure never exposes a partly populated option list. The old pointer
+API remains a wrapper, with the same public `ParserDiagnostic` view layout.
+Its private owner, options, labels, frontend probe and context arrays use shared
+budgeted storage. LR probes already borrow that budget. Ordinary operation-quota
+exhaustion remains a diagnostic with `complete=false`, not a resource failure.
+
+Successful construction drops all live LR runtime borrows. Numeric contexts and
+formatted labels belong to the returned diagnostic and remain valid after the
+recognizer, stream, table and world close. The caller's explicit `WorkBudget`
+must outlive the diagnostic; its live receipts prevent budget disposal until
+`parser_diagnostic_destroy`. Failure cleans partial ownership without changing
+the recognizer's original syntax message, position or retry state.
+
+`syntax_session_diagnostic_result` carries the typed failure into template
+construction. The existing session wrapper preserves the session's first cause;
+ordinary syntax callers use the original recognizer message if diagnostic
+construction fails. Label name allocation failure no longer becomes a successful
+numeric fallback; legitimately unnamed tokens keep that fallback. Shared formatter
+scratch, syntax descriptions and final host-text formatting retain their existing
+allocation contracts. This is not a migration of every parser/formatter buffer.
 
 ### Checked grammar construction
 

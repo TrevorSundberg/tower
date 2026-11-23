@@ -15,7 +15,7 @@ import .library.work_graph;
 
 // Source signature metadata stays on the function entity. The executable
 // signature uses only ordinary Foundation pointer parameters and void returns.
-// All signature publication finishes before any lowering worker reads it.
+// A lowering worker reads its own metadata after that function's preparation.
 struct SemanticAggregateSignature {
     result_type: FoundationType;
     result_parameter: void*;
@@ -74,7 +74,8 @@ fn sem_aggregate_needed(subject: void*): bool {
 }
 
 // One function and its source parameter payloads belong exclusively to this
-// staged job. No call consumer runs until all rewritten signatures are published.
+// staged job. Its lowering consumer waits for the published prelude; unrelated
+// functions can lower concurrently from their already-checked call types.
 fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
     var function = sem_get(subject);
     var returns = semantic_aggregate(&function.type);

@@ -5,20 +5,33 @@ import lr_analysis;
 import lr_parser;
 import lr_runtime;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_buffer;
+import parser_markers;
+
+var FrontendDiagnosticCandidates: usize = 64;
+var FrontendDiagnosticSteps: usize = 8192;
+var FrontendDiagnosticFrames: usize = 4096;
+var FrontendDiagnosticLookahead: usize = 3;
 
 // Error-only bounded lookahead correction. This pull protocol borrows numeric
 // LR frames; it never copies parse trees or rewinds the real source stream.
 struct FrontendDiagnostic {
+    storage: WorkBuffer;
+    owner: WorkBudget*;
     runtime: LRRuntime*;
     budget: LRProbeBudget;
     original: LRProbe*;
     stack: LRProbe*;
     continuation: LRProbe*;
-    candidates: u32[64];
+    candidates: u32[FrontendDiagnosticCandidates];
     count: usize;
     index: usize;
     current: FrontendExpectation;
-    options: vector(FrontendExpectation);
+    options: work_vector(FrontendExpectation);
     phase: u32;
     accepted: u32;
     state: usize;
@@ -40,22 +53,31 @@ export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
     lr_probe_destroy(d.original);
     lr_probe_destroy(d.stack);
     lr_probe_destroy(d.continuation);
-    vector_dispose(&d.current.contexts);
+    work_vector_dispose(&d.current.contexts);
     foreach(var & option in &d.options) {
-        vector_dispose(&(*option).contexts);
+        work_vector_dispose(&(*option).contexts);
     }
-    vector_dispose(&d.options);
-    free(d);
+    work_vector_dispose(&d.options);
+    var storage = d.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn frontend_diagnostic_create(parser: LRParser*, prefix: bool,
 reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnostic* {
-    var d = alloc(FrontendDiagnostic, 1);
-    var missing = d == null;
-    if missing {
-        return null;
-    }
-    *d = default;
+    var error = WorkBudgetError.None;
+    return frontend_diagnostic_create_result(parser, prefix, reader, bad_input, lookahead, offset, &error);
+}
+
+export fn frontend_diagnostic_create_result(parser: LRParser*, prefix: bool,
+    reader: bool, bad_input: bool, lookahead: u32, offset: usize, error: WorkBudgetError*): FrontendDiagnostic* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if parser == null || parser.runtime == null { return null; }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, parser.runtime.budget, sizeof(FrontendDiagnostic), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var d = bits(FrontendDiagnostic*, storage.data);
+    *d = {storage: storage, owner: parser.runtime.budget, ..default};
     d.runtime = parser.runtime;
     d.prefix = prefix;
     d.reader = reader;
@@ -63,11 +85,11 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
     d.lookahead = lookahead;
     d.offset = offset;
     d.complete = true;
-    d.budget.remaining = 8192;
+    d.budget.remaining = FrontendDiagnosticSteps;
     d.budget.complete = true;
     var count = lr_parser_frame_count(parser);
     var invalid = count == 0;
-    if count > 4096 {
+    if count > FrontendDiagnosticFrames {
         invalid = true;
     }
     if invalid {
@@ -75,19 +97,19 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
         return d;
     }
     d.original = lr_probe_create(parser, &d.budget);
-    missing = d.original == null;
-    if missing {
-        d.complete = false;
-        d.done = true;
-        return d;
+    if d.original == null {
+        *error = d.budget.resource_error;
+        frontend_diagnostic_destroy(d);
+        return null;
     }
     var frames = lr_probe_frames(d.original);
     var last = count -1;
     var state = frames[last].state;
     var actions = lr_runtime_actions(d.runtime, state);
     d.count = lr_runtime_action_count(d.runtime, state);
-    if d.count > 64 {
-        d.count = 64;
+    var capacity = sizeof(decltype(d.candidates)) / sizeof(u32);
+    if d.count > capacity {
+        d.count = capacity;
         d.complete = false;
     }
     // Runtime rows are already sorted by first terminal ID. No extra sort or
@@ -177,7 +199,9 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
                     var context: FrontendRulePosition;
                     context.production = item.production;
                     context.term = item.term;
-                    if !lr_append(FrontendRulePosition, &d.current.contexts, &context) {
+                    var error = work_vector_push_result(&d.current.contexts, d.owner, context);
+                    if error != WorkBudgetError.None {
+                        lr_probe_failure(&d.budget, error);
                         d.complete = false;
                         d.done = true;
                         return;
@@ -210,6 +234,7 @@ export fn frontend_diagnostic_feed(d: FrontendDiagnostic*, valid: bool, position
 // lookahead. Hosts only supply borrowed data and input, not repair decisions.
 export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
     loop {
+        if d.budget.resource_error != WorkBudgetError.None { d.done = true; }
         if d.done {
             return 0;
         }
@@ -271,7 +296,7 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
             }
         }
         if d.phase == 3 {
-            var more = d.ahead < 3;
+            var more = d.ahead < FrontendDiagnosticLookahead;
             if !d.current.insertion {
                 more = false;
             }
@@ -298,12 +323,15 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
                 }
                 lr_probe_destroy(end);
             }
-            if !lr_append(FrontendExpectation, &d.options, &d.current) {
+            if d.budget.resource_error != WorkBudgetError.None { d.done = true; return 0; }
+            var error = work_vector_push_result(&d.options, d.owner, d.current);
+            if error != WorkBudgetError.None {
+                lr_probe_failure(&d.budget, error);
                 d.complete = false;
                 d.done = true;
                 return 0;
             }
-            fill(&d.current, 0, sizeof(FrontendExpectation));
+            d.current = default;
             lr_probe_destroy(d.stack);
             lr_probe_destroy(d.continuation);
             d.stack = null;
@@ -334,4 +362,8 @@ export fn frontend_diagnostic_complete(d: FrontendDiagnostic*): bool {
         return d.budget.complete;
     }
     return false;
+}
+
+export fn frontend_diagnostic_resource_error(d: FrontendDiagnostic*): WorkBudgetError {
+    return d.budget.resource_error;
 }
