@@ -91234,3 +91234,15 @@ The fixed checklist now records both source boundaries and separate selectors;
 no failed result, filtered LLVM assertion or native generation became a pass.
 ROOT's incoming35b93404 native generation/import policy evidence stays separate.
 No tests run or owner sources edited; all D1 edits remain documentation only.
+
+D2 T9 publication reconciliation: scoped receipt04d72cc9 merged complete
+published84146755 after required ff-only pull reported normal divergence.
+Both journal histories preserved. Exact host/reactor manifests and selected
+fixtures/language/platform imports remain unchanged; reuse all three checked
+runs. Registered-source differences are incoming backend session/source_session,
+backend_source_native, test README/bootstrap-symbol fixture and policy inputs;
+none is imported by these three programs or baked into the frozen eac pair.
+Their new native reconstruction/error work retains its own owner evidence and
+needs joined-artifact adoption; no old reactor relabeled current. Raw mismatch
+list/status preserved beside the original resource manifest. No tests repeated,
+all jobs drained, todo unchanged; normal source push follows, ROOT owns release.
