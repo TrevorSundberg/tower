@@ -11,6 +11,7 @@ import .library.entity_types;
 import .library.entity_stage;
 import syntax_provenance;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
 
@@ -136,37 +137,52 @@ export fn compiler_name_equal(left: Entity*, right: Entity*): bool {
 }
 
 export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void {
-    if source == destination {
-        return;
-    }
+    compiler_entity_require(compiler_node_copy_metadata_result(source, destination) == WorkBudgetError.None);
+}
+
+// Callers discard an incomplete destination on failure. Successful component
+// admission may remain cached; the result is private to this copy operation.
+export fn compiler_node_copy_metadata_result(source: Entity*, destination: Entity*): WorkBudgetError {
+    var world = compiler_node_world(source);
+    if world == null || destination == null || destination.store != world.store { return WorkBudgetError.Invalid; }
+    if source == destination { return WorkBudgetError.None; }
+    if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var span = sem_match(source);
     if span != null {
-        var target = parser_match_create(destination);
+        var error = WorkBudgetError.None;
+        var target = bits(ParserMatchData*, compiler_world_component_result(world, destination, CompilerParserMatch, &error));
+        if target == null { return error; }
+        if !node_match_set_label(target, parser_match_get_label(span)) { return WorkBudgetError.Memory; }
         target.id = span.id;
         target.start = span.start;
         target.length = span.length;
         target.rule = span.rule;
-        parser_match_set_label(target, parser_match_get_label(span));
     }
-    syntax_copy_origin(source, destination);
+    return syntax_origin_copy_result(world, source, destination);
 }
 
 
 // Fallible worker copy into a new staged syntax node. The source guarantees its
 // component types already exist in this explicit world; no registration occurs.
 export fn compiler_node_copy_metadata_staged(source: Entity*, destination: Entity*, stage: EntityStage*): bool {
+    return compiler_node_copy_metadata_staged_result(source, destination, stage) == WorkBudgetError.None;
+}
+
+export fn compiler_node_copy_metadata_staged_result(source: Entity*, destination: Entity*, stage: EntityStage*): WorkBudgetError {
     var world = compiler_node_world(source);
-    if world == null || destination == null || destination.store != world.store
-        || destination.stage != bits(void*, stage) || destination.id != 0 { return false; }
+    if world == null || destination == null || stage == null || stage.anchor == null
+        || stage.anchor.store != world.store || destination.store != world.store
+        || destination.stage != bits(void*, stage) || destination.id != 0 { return WorkBudgetError.Invalid; }
     var span = sem_match(source);
     if span != null {
-        var target = bits(ParserMatchData*, compiler_world_component(world, destination, CompilerParserMatch));
-        if target == null { return false; }
+        var error = WorkBudgetError.None;
+        var target = bits(ParserMatchData*, compiler_world_component_result(world, destination, CompilerParserMatch, &error));
+        if target == null { return error; }
+        if !node_match_set_label(target, parser_match_get_label(span)) { return WorkBudgetError.Memory; }
         target.id = span.id;
         target.start = span.start;
         target.length = span.length;
         target.rule = span.rule;
-        if !node_match_set_label(target, parser_match_get_label(span)) { return false; }
     }
-    return syntax_origin_copy_staged(world, source, destination, stage);
+    return syntax_origin_copy_staged_result(world, source, destination, stage);
 }
