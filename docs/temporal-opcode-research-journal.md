@@ -80867,3 +80867,122 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+
+### L1 bounded Fast execution storage batch on afca69b (implementation, checks pending)
+
+The direct request extends the published e2ace4c ownership work only to Fast
+cache/execution arrays. Clean ff-only pull reached afca69b; no owned child
+survived. Baseline7196 completed its dependency-aware native compiler/execution/
+unit-profile build and core/functions/constructor gates. Selected comparable
+binaries/resources remain in l1_fast_storage_before; logs in L1/logs/fast_storage_before.
+
+The draft charges the private FMState descriptor through WorkBuffer and all15
+ordinary arrays through work_vector, including lexical loop-break scratch and
+runtime frames/registers. Existing TypeObjectIndex ownership is retained. First
+build errors stop emission/patching and discard the whole derived cache before
+execution; runtime call admission reserves both owners before publishing stack,
+frame or callee effects. Optional nine-array shrink reallocations are removed;
+bounded geometric capacity is retained and measured, not assumed free. Fast
+bytecode words, arithmetic/effect order and the ordinary graph authority remain.
+
+ABI audit: FMState/FMFunction/FMFrame layout moves into fast_interpreter_types
+for its one real direct consumer bytecode_package and focused ownership tests.
+Interpreter units (native/check/browser) compose Fast and encoder coherently.
+Driver, execution_session, IDE and foreign boundaries use opaque void* handles;
+no IMState/IMFrame/IMContext layout or external function signature changes.
+Package cache bytes encode lengths/contents, never FMState layout/capacity.
+The existing package differential therefore remains required after rebuilding.
+The compiler project/resource collector follows input/import lists; no native
+seed or parallel value model is added. Browser/portable rebuilds remain ROOT's
+pending integrated milestone, not validated by the native compilation.
+
+Focused tests derive every array's physical charge and all cache-admission
+positions from actual receipts, sweep reservation exhaustion through partial
+cache cleanup, retain graph input on failure, and isolate runtime frame/register
+Capacity after real argument effects. They check normal/cancelled/failed cleanup
+and no replay at both widths. The earlier zero-allowance Fast type test now
+correctly expects the newly charged descriptor to fail first; the sweep retains
+coverage of the actual later type-index producer. Diagnostic/output/package
+byte allocation remains outside this batch. Current draft tests are not passes.
+
+AFTER72522 drained1: production Fast/encoder object and CLI linked; the new test
+unit lacked direct execution_session import for its compatibility extern
+semantic_initialize. No runtime gate ran. Added direct execution_session and
+driver_request imports, matching adjacent ownership fixtures; dependency build
+resumes only the changed test closure, retaining the failed build log.
+
+
+AFTER42358 built and stopped at the new composite owner/type assertion. Split
+its assertions; reachability fixtures show an unused local type is intentionally
+not a runtime value. Use the existing proven type-returning-call shape instead.
+The failure-only numeric debug print in46542 required absent tower_print and
+failed link before runtime; removed it, retaining granular checks and logs.
+Runtime fixture now releases only the empty returned-frame cache and uses the
+shared resize primitive to retain exact live caller registers before pressure,
+so earlier argument calls cannot hide either intended admission site.
+
+
+AFTER84423 passes separate exact retained-byte/owner/type-value assertions and
+stops at its positive output oracle: boolean output is true, not numeric1.
+Corrected the independent expected text and added the same ordinary graph
+reference control; no production change or relaxed ownership assertion.
+
+
+AFTER1514 completes core/functions/constructor gates including exact array
+accounting, all observed cache admissions, both runtime denials and cancellation.
+Minimal pair39806 passes all8 outputs/canonicals/identity checks. Its large Fast
+execute sample increased376.709->398.838ms (+5.87%); serial units also varied
++5.29% although that path does not execute Fast. Retain both costs. Inspection
+found avoidable owner revalidation on every already-admitted call; the final
+hot path reserves/checks only growth, retaining overflow and exact failure rules.
+The added allocation-measurement formatter in7725 lacked the required direct
+bytes_interface import and stopped at test compilation; production CLI linked.
+Added that existing boundary import after drain. No broad matrix was started.
+
+
+Final native69770 passes core/functions/constructor on the production growth-only
+call path. A final focused fixture2697 adds valid unreachable label/jump entities
+and a lexical break to the same checked Foundation function, retaining the
+independent graph/Fast output. Its24 observed cache admissions include the five
+transient label/jump/local/escape/break paths; each denial is checked at both
+widths. Core passes again. Physical retained cache accounting is4232 bytes in12
+owners including the1480-byte descriptor and compiler allocation headers; scratch
+owners have retired. Ordinary completion, cancellation, all48 partial-cache
+failures, both runtime frame/register Capacity cases per width, and final world
+closure return exactly to their preceding ledger baselines. Shared buffer Memory
+handling is reused; this batch does not add a physical allocator-fault or race
+instrumentation claim. Earlier fixture failures remain in their separate logs.
+
+Measurement: Linux x64 WSL Orchestral-Revng, public-pin optimized native build,
+16 logical host CPUs, same actual executable/resource path for each pair,
+fresh processes, warm filesystem without an explicit warmup, n1 per variant.
+Fast CLI uses --jobs1 --no-optimize --interpret-fast and a17-argument function,
+1000/100000 calls, with staged136 and independent totals8627500/85012750000.
+Initial8-process pair39806 retained the unfavorable +5.87% large execution cost;
+that motivated the growth-only hot path. Final four checked Fast samples56130:
+small wall1.77->1.74s/CPU1.73->1.75/RSS180492->180476KiB,
+execute4.398->4.352ms; large wall2.13->2.23/CPU2.10->2.21/
+RSS180604->180632, execute374.274->379.060ms (+1.28%),
+prepare3.771->3.497ms. Large compile time1610.228->1704.202ms accounts for most
+of the end-to-end increase. These single samples establish neither neutrality
+nor a speedup; no unfavorable sample was discarded.
+
+The integration control in39806 compiles four units with explicit budgets1/4:
+serial wall5.67->5.97s/CPU5.67->5.95/RSS211628->211588KiB;
+four-worker wall2.14->2.01/CPU7.90->7.58/RSS560648->561424.
+Measured outer peaks1/4 and exact canonical17697577322696030917 agree throughout.
+Retained bytes20201787 serial/20190659 parallel and entity/component counts
+64320/73352 are unchanged. This is compiler-unit overlap, not parallel execution
+of one ordered Fast invocation. That control does not execute the changed Fast
+call branch and is reused rather than repeated after its localized optimization.
+Both paired runs pass source/binary/resource identities and all checked outputs.
+Raw logs/scripts remain in L1/logs/fast_storage_*; no large sweep/archive was made.
+
+Remaining storage scope: interpreter/session diagnostic and output presentation,
+IMTypeConstruction.error, and bytecode/package encoding buffers retain their
+existing allocation policies. This change claims physical ownership only for
+Fast's descriptor, fifteen arrays, lexical break scratch and its already-owned
+type index. It does not migrate all compiler allocations. Supported instruments,
+full scaling, portable/bootstrap/browser/generation and hosted publication remain
+ROOT's pending integrated milestone. L1 will preserve complete published history,
+validate any affected merge, and push only main for this bounded task.

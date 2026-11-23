@@ -1,0 +1,83 @@
+import tower;
+import interpreter_types;
+import foundation_types;
+import type_object_index_types;
+import .library.work_vector_types;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+
+// Private derived cache layout shared by its encoder and focused ownership tests.
+var FMDirectCall: usize = 15;
+var FMIndirectCall: usize = 25;
+var FMWideInstruction: usize = 255;
+
+struct FMFunction {
+    node: void*;
+    entry: usize;
+    registers: usize;
+    frame_size: usize;
+    parameters: usize;
+    parameter_count: usize;
+    external: bool;
+    pinned: usize;
+}
+
+struct FMParameter {
+    offset: usize;
+    size: usize;
+    register_slot: usize;
+}
+
+struct FMConversion {
+    from: FoundationType*;
+    to: FoundationType*;
+}
+
+struct FMSource {
+    pc: usize;
+    offset: usize;
+}
+
+struct FMFrame {
+    pc: usize;
+    base: usize;
+    registers: usize;
+    result: usize;
+    count: usize;
+}
+
+struct FMState {
+    words: work_vector(u32);
+    constants: work_vector(u64);
+    type_values: TypeObjectIndex;
+    budget: WorkBudget*;
+    storage: WorkBuffer;
+    error: WorkBudgetError;
+    error_offset: usize;
+    error_message: u8*;
+    functions: work_vector(FMFunction);
+    function_indices: work_vector(usize);
+    parameters: work_vector(FMParameter);
+    types: work_vector(FoundationType*);
+    conversions: work_vector(FMConversion);
+    strings: work_vector(void*);
+    sources: work_vector(FMSource);
+    registers: work_vector(u64);
+    frames: work_vector(FMFrame);
+    labels: work_vector(IMEntry);
+    jumps: work_vector(IMEntry);
+    locals: work_vector(IMEntry);
+    escaped: work_vector(u64);
+    pinned: usize;
+    next_register: usize;
+    max_register: usize;
+    pc: usize;
+    base: usize;
+    register_base: usize;
+    register_count: usize;
+    current_offset: usize;
+    instructions: usize;
+    wide_instructions: usize;
+    preserve_error_offset: bool;
+}
+
