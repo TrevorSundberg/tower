@@ -93213,3 +93213,116 @@ path remains unsuccessful until the retained execution blocker is resolved; the
 specific original native LLVM-to-Foundation compile/recheck request now passes.
 All jobs drained, todo hashb927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9
 unchanged. Final ROOT release and other fixtures remain separate owner gates.
+## 2026-11-23 ROOT - joined b8 reactors and current progress boundary
+
+Frozen build source b8d65c37d9dd4ef691d700d0d0a52c81e01b593a joins L1 numeric-only forwarding and three alias/inference repairs with A2 malformed-call validation. Public768 bootstrap, no private override; Linux x64 WSL Orchestral-Revng, CPU8-15, four build jobs and one compiler job. Existing root_release_joined.sh completed all three phases with status0 and identical before/after input manifests: portable35.47wall/32.96CPU/1099644KiB peak, LLVM/cross64.49/78.04/1100616, shared32.86/30.69/1099232. GNU peak is per process/child, not aggregate. Logs have no warning/error diagnostics. All owned jobs drained before ROOT advanced main. This freeze excludes later A1 response fallback, A2 executable-batch budget, B1 grammar reuse, L1 loop work, L2 reconstruction and B2 browser draft.
+
+Retained32 hashed outputs in external ROOT_browser_inputs_b8d65c37/files.json. Portable42fc1cf42ac296d3f17ae0300848a59d71e942d565fd8e75e4214c0b45e149b9; LLVM1c1b72fb9d0080d850ddd067476e6f8aeec1181ef06aac67cf4b2626b98b9c76; cross5bd9fb046f911d6afded5f6e0a183907df0ff962adbe5defa2056d805d3a83cd; shared d2e7a2ae4bcfba916b684321b56aca96c2b2385c976523ece7b3f09899785e7c; work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c. Matching shared pair transferred and remotely rehashed for A1; portable/LLVM pair likewise for D2. Old active snapshots were preserved.
+
+ROOT's unchanged strict Windows browser check passes on this shared pair: Node21.7.3, Chromium159.0.8154.6, Playwright1.65.1, mounted host source08d209fa6f357ba4c220f1e39673de0e7aef1151. Whole5832.899ms; pool4/compiler1/compiler4 work307.675/1409.078/3089.008ms, actual closes5/2/5, zero remaining targets and full canonical/output equality. CPU/RSS were not captured for this browser check. Resource JSON SHA b9e53f34b0b5a61f3a5413d9cde807696076d92e02009b030ae75dbbfd4c8cd6. Exact logs/report/metrics are in that snapshot. This is not a Linux retirement pass, full Node matrix, new generation, sanitizer or hosted-runtime claim.
+
+At the latest live status poll A1 reports its complete b8 Node T5 matrix passed at1/2/4/8 workers, and D2 reports all seven malformed overrides plus reuse control and all three prior alias/type-body residues passed in both portable/LLVM modes. Their final source-bound receipts remain independently owned; ROOT has not yet adopted their raw results here. B1 published54f3baab/05edbfb3 and its unchanged units gate now passes: checked Capacity cause survives emission_child, scoped immutable grammar reuse improves small/large serial medians .500->.445s/.635->.600s and four-unit workers4 1.4429->1.1389s, with exact objects/output and roughly86KiB additional retention/world. Four-worker CLI remains slower than serial. These are B1's frozen measurements, not b8 build results.
+
+D1's frozen L2 source review540f501c found arbitrary high-byte constant arrays cannot be raw UTF-8 Foundation strings. L2 has acknowledged the finding in its active task and is repairing the producer with existing counted operations; no duplicate worker was created. L2's large native compile/recheck improvement remains draft and reconstructed execution/byte correctness/Wasm fit are not yet accepted. B2's page-owned worker candidate remains excluded until startup/trap/cancel/stale-generation controls pass. Final joined source adoption, useful-core coverage, generations/public pin, supported instrumentation and hosted runtime remain open; the prior service-rejected instrumentation operation is not retried.
+
+ROOT reassigned finished B1 and D1 in their existing UUIDs to matched scaling and independent grammar-reuse review, using the existing visible launchers; both live processes verified. Six other contexts remained active at the poll, including A1/D2 publishing their results. No extra context or idle-goal loop. Protected todo SHA8C39608BCE025104ED1FE00CCC131F8EE242EB142E8CE5AB50E1B223CC473DBC unchanged. This ROOT documentation-only change adds no runtime implementation; additional runtime profiling is inapplicable. Publication reuses the verified gh-pages runtime and preserves its build-source identity; no newly tested reactor is relabeled as deployed.
+### D2 b8d65c37 reactor adoption: malformed grammar and alias residues (2026-11-23)
+
+Frozen mounted main08d209fa6f357ba4c220f1e39673de0e7aef1151, clean after prescribed
+pull; no test/fixture/host/producer changes. ROOT supplied matching public768-built
+sourceb8d65c37d9dd4ef691d700d0d0a52c81e01b593a pair, with ROOT's successful build/
+source checks. Independently verified supplied and fresh own copies before/after:
+portable42fc1cf42ac296d3f17ae0300848a59d71e942d565fd8e75e4214c0b45e149b9,
+LLVM1c1b72fb9d0080d850ddd067476e6f8aeec1181ef06aac67cf4b2626b98b9c76.
+Old eac/47433acf/default files preserved; eager default read exists but loader
+actually selects explicit new overrides. Later backend/session/executable-work
+sources mounted at08d are outside these imported fixture closures and are not
+inside the b8 reactor. No compiler build, later L2/A1/A2/B1 adoption or release claim.
+
+Exactly three fresh finite Node processes, one at a time: execution.test selects
+healthy grammar reuse and malformed override parent+all seven children; portable
+and LLVM compiletime selectors each select only decltype_type_fields, inference_
+alias_invalid and the parameterized256-field-chain registration. Anchored patterns
+and exact expected/completed names saved/compared. PASS: execution9/9TAP entries
+(two top registrations, eight leaves including the reuse control), portable3/3,
+LLVM3/3. Thus eight top registrations/fourteen leaf cases, not fifteen independent
+semantic cases. Zero failures/skips/cancellations/timeouts/unstarted selections.
+No43/45case file aggregate, T1 templates or lifecycle matrix repeated.
+
+Actual unchanged assertions now pass:
+- All seven CoreIf/CoreAssign/CoreCallStatement/CoreAddress/CoreLoad/CoreCall/
+  CoreFunction malformed overrides return source errors with0steps, no throw,
+  required Missing foundation tree|missing capture diagnostic. The prior
+  CoreCallStatement Invalid semantic resource request failure is closed for
+  these b8 browser-target reactor inputs, not merely adopted from native proof.
+- Editing the executable example completes before/after reset; inspected
+  grammarBuilds=0 and grammarCacheHits>=1 retain the original reuse control.
+- decltype_type_fields: Graph source32/64 outputs0; Fast canonical32/64 outputs0
+  with canonical identity. LLVM registration prepares checked Graph32 canonical,
+  executes both original and matching canonical via actual LLVM-emitted wasm32:
+  both done/output0/empty error/no truncation. c93 target-width fix unchanged.
+- Existing Tower stress_fields producer uses StressFieldDepth=256; generated
+  program passes Graph/Fast at32/64 and actual LLVM wasm32 output0. Its original
+  registration does not add a separate LLVM canonical roundtrip; none is claimed.
+- inference_alias_invalid: Graph and LLVM each at32/64 return error and match the
+  unchanged required phrase `Cannot infer type argument 'T'; pass explicit type arguments`.
+  No earlier unsupported-type-body message or alternative error was accepted.
+Earlier eac/47433acf failure receipts remain historical; this is new execution
+on b8 with exact current fixtures, not relabeling old checks or all type semantics.
+
+Host: Deck AMD Custom APU0932/Linux x64, Docker tower-d2-ecs image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+CPU0,2/8GiB memory+swap, Node22.23.5, concurrency1; warm files/fresh reactor process,
+n1/group. Command uses `env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=.../reactors/tower.wasm TOWER_TEST_LLVM_WASM=.../reactors/tower-llvm.wasm TOWER_TEST_PHASES=1 TOWER_TEST_ARTIFACTS=.../llvm_artifacts /usr/bin/time -v -o GROUP.time timeout --foreground --signal=KILL 180s node --test --experimental-test-isolation=none --test-concurrency=1 --test-name-pattern=PATTERN playground/tests/FILE.test.mjs`.
+Full absolute command/pattern files under build/d2_ecs/adopt_b8d65c37_08d209fa.
+Execution:3.50wall/4.31CPU(3.97user+.34system)s,195572KiB peakRSS; portable:
+3.69/4.55(4.23+.32)s,209476KiB; LLVM:5.62/7.29(6.84+.45)s,361576KiB. All exit0/
+0swaps. Validation costs only: documentation-only change needs no before/after
+runtime optimization comparison; CPU>wall does not establish Tower worker overlap.
+
+Exact test hashes: execution820ed005ce175de5329e5b7f166c0a4427e39aa82b356d7dc66efb99146762d9;
+compiletime9d6abf4592c3b57f5b3fe091aaeb073644d238fb1ae01e30e7dfdf580a0fdb1b.
+Host manifestb09c138d687256c973efbf77095ad844b373035193f540c01aa4d9c87eb8ed69;
+mounted Tower resources6218c00c8c9a8f29f3edc1d9f6bd2e6cc576dfd6bcf59a9d5a9a1ab36e67d171;
+focused fixtures/language43fe29d83b494fbf8aafd8d55a6590d5796d19432f1fe25f7de9665303898b7f;
+results manifest ae58ec40b0d25bacb34a0c60993e41f402ebf1b7e6ef809fffc4b6ce9f8069e5.
+All SHA manifests checked after runs. Phase logs retain actual decltype source/
+canonical input, emitted Wasm and done/output0 JSON; all expected/completed names,
+TAP/time/status/resources/host/artifact receipts preserved in that own log root.
+No GUI/browser-retirement, hosted, sanitizer, generation or native OS execution
+claim. All owned jobs drained; successful atomic lock acquisition preceded owner
+write, lock released,127GiB disk/about10GiB RAM available, todo unchanged.
+
+D2 b8 adoption publication reconciliation: scoped37d90240 merged complete
+published05edbfb3 as e0dece97 after prescribed ff-only pull detected divergence.
+Both journal histories preserved. All host/test/focused-language/reactor/results
+hashes match. Nine mounted-resource deltas are the incoming six parser/compiler
+providers, bootstrap_symbols tool/check and parser_structure_reuse fixture;
+none is imported/executed by these selectors or compiled into the frozen b8 pair.
+Their failed old-manifest comparisons remain recorded, explicitly excluded once
+from this receipt. No new parser performance/ABI acceptance inferred. Syntax/diff
+checks pass; no repeated tests or release/deployment claim. Normal main push.
+### 2026-11-23 A1: complete Node T5 adoption on ROOT shared b8d65c37
+
+The unchanged compiler-threads.test.mjs runs ONCE and passes3/3, exit0,
+no skips/cancellations/timeouts/unstarted cases. Pool128 cycles and injected
+worker trap pass; the entire original compiler matrix completes workers1/2/4/8,
+widths4/8 and Graph/Fast, including the formerly blocking inference_alias_invalid.
+Exact source/artifact/host boundaries, commands, phase counts, timings and remaining
+release limits are in [node_threads_b8d65c37.md](node_threads_b8d65c37.md).
+ROOT compilerd2e7a2ae/work6411c389 verified before/after; executable sourceb8d65c37,
+mounted main08d209fa. Newer backend fallback/executable producers are excluded.
+No compiler rebuild or fixture/transport/assertion/deadline change. Both eager
+paths were absent; installed exact supplied pair with absolute overrides.
+GNUtime110.75wall/179.07CPU seconds,420932KiB RSS, n1; acceptance cost only.
+23 worker creations/termination requests/actual end events, natural process exit,
+no surviving child. All1169 Tower/46 host/test/artifact checksums revalidate.
+CPU12-23/24GiB own container/cache; same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7,
+actual Codex PID14996. Disk340487884800B before/340461453312B after, todo unchanged.
+Logs C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_b8d65c37. This is scoped
+Node T5 closure, not B2 browser retirement, newer compiler acceptance or ROOT
+release/sanitizer/generation evidence. Normal complete-history publication follows.
+A1 T5 publication reconciliation:46638558 merged complete05edbfb3 as06263a68,
+without conflicts/history loss. New grammar ownership/cause, parser fixture and
+symbol-policy sources are excluded from the frozen b8d executable/08d mounted
+receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
+compiler build or relabeled current-source validation. All jobs remain drained.
