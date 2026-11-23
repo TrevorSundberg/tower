@@ -730,49 +730,45 @@ export fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): Work
 }
 
 export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entity*): bool {
-    if parent.stage != null || (replacement != null && replacement.stage != null) { return false; }
-    var pinned = parent.store.views != 0;
-    if pinned {
-        return false;
-    }
-    var invalid = index >= parent.child_count;
-    if invalid {
-        return false;
-    }
-    invalid = replacement.parent != null;
-    if invalid {
-        return false;
-    }
-    invalid = replacement == parent;
-    if invalid {
-        return false;
-    }
-    invalid = replacement.store != parent.store;
-    if invalid {
-        return false;
-    }
+    return entity_replace_child_result(parent, index, replacement) == WorkBudgetError.None;
+}
+
+export fn entity_replace_child_result(parent: Entity*, index: usize, replacement: Entity*): WorkBudgetError {
+    if parent == null || replacement == null || index >= parent.child_count
+        || replacement.parent != null || replacement == parent
+        || replacement.store != parent.store { return WorkBudgetError.Invalid; }
     var previous = parent.children[index].entity;
+    if parent.stage != null || replacement.stage != null || previous.stage != null
+        || parent.store.views != 0 { return WorkBudgetError.Busy; }
+    if replacement.references == ~convert(usize, 0) { return WorkBudgetError.Exhausted; }
     entity_retain(replacement);
     replacement.parent = parent;
     parent.children[index].entity = replacement;
     previous.parent = null;
     entity_release(previous);
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn entity_take_last_child(parent: Entity*): Entity* {
-    if parent.stage != null { return null; }
-    var pinned = parent.store.views != 0;
-    if pinned {
-        return null;
-    }
-    if parent.child_count == 0 {
-        return null;
-    }
+    var error: WorkBudgetError;
+    return entity_take_last_child_result(parent, &error);
+}
+
+// Transfer the parent's existing reference; no allocation or retain is needed.
+// None with a null result means a valid, empty parent.
+export fn entity_take_last_child_result(parent: Entity*, error: WorkBudgetError*): Entity* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if parent == null { return null; }
+    *error = WorkBudgetError.Busy;
+    if parent.stage != null || parent.store.views != 0 { return null; }
+    if parent.child_count == 0 { *error = WorkBudgetError.None; return null; }
+    var child = parent.children[parent.child_count - 1].entity;
+    if child.stage != null { return null; }
     parent.child_count--;
-    var child = parent.children[parent.child_count].entity;
     free(parent.children[parent.child_count].name);
     child.parent = null;
+    *error = WorkBudgetError.None;
     return child;
 }
 

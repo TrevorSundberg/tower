@@ -135,6 +135,9 @@ function(tower_runtime_object name input triple)
   endif()
   if(NOT bindings)
     # No foreign rewrites remain: emit the Tower object directly.
+    if(NOT source_mode)
+      set(source_mode --emit object)
+    endif()
     set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
     add_custom_command(OUTPUT "${object}"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"

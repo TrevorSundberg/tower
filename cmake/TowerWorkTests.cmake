@@ -28,6 +28,15 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       set(fixture_mode)
       if(unit STREQUAL "work_dispatch_result")
         set(fixture_mode SOURCE __wrap_work_signal_open work_signal_open)
+      elseif(unit STREQUAL "work_linux_affinity_faults")
+        # Bind the serial fault boundary using the existing Tower LLVM tool;
+        # the public native linker deliberately does not accept GNU --wrap.
+        set(fixture_mode SOURCE
+          compiler_buffer_allocate __real_compiler_buffer_allocate
+          compiler_buffer_free __real_compiler_buffer_free
+          __wrap_compiler_buffer_allocate compiler_buffer_allocate
+          __wrap_compiler_buffer_free compiler_buffer_free
+          __wrap_sched_getaffinity sched_getaffinity)
       endif()
       tower_runtime_object(${target}
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${work_triple}" ${fixture_mode})
@@ -40,11 +49,13 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         list(APPEND fixture_objects "${entity-create-provider_OBJECT}" "${host_memory_OBJECT}")
       elseif(unit STREQUAL "work_dispatch_result")
         list(APPEND fixture_objects "${work-dispatch-transport_OBJECT}" "${host_work_dispatch_OBJECT}")
+      elseif(unit STREQUAL "work_linux_affinity_faults")
+        list(APPEND fixture_objects "${host_work_linux_OBJECT}")
       endif()
       add_executable(${target} ${fixture_objects} "${work_runtime}")
       set_target_properties(${target} PROPERTIES LINKER_LANGUAGE C)
       target_link_libraries(${target} PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
-      if(unit MATCHES "^(work_budget_shared|work_kernel_|work_(buffer|arena)_(shared|profile)$|entity_(stage_concurrent|component_budget)$|work_(dispatch_result|schedule_budget)$)")
+      if(unit MATCHES "^(work_budget_shared|work_kernel_|work_(buffer|arena)_(shared|profile)$|entity_(stage_concurrent|component_budget)$|work_(dispatch_result|schedule_budget)$|work_linux_affinity$)")
         target_link_options(${target} PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
       endif()
       if(unit STREQUAL "work_kernel_admission")
@@ -67,7 +78,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set_tests_properties(${target} PROPERTIES TIMEOUT 30)
       endif()
     endfunction()
-    foreach(unit IN ITEMS work_ready work_budget work_budget_shared work_kernel_admission tool_output_identity work_signal_observe entity_stage_concurrent entity_stage_result entity_page_reuse entity_stage_reentrant work_buffer work_buffer_shared work_arena work_arena_shared work_arena_linkage work_dispatch_result work_constructor_budget work_schedule_budget entity_component_budget entity_component_layout)
+    foreach(unit IN ITEMS work_ready work_budget work_budget_shared work_kernel_admission tool_output_identity work_signal_observe work_linux_affinity work_linux_affinity_faults entity_stage_concurrent entity_stage_result entity_page_reuse entity_stage_reentrant entity_attach_leases work_buffer work_buffer_shared work_arena work_arena_shared work_arena_linkage work_dispatch_result work_constructor_budget work_schedule_budget entity_component_budget entity_component_layout)
       tower_work_fixture(${unit} OFF)
     endforeach()
     # Linux x64 clock/rusage microbenchmarks check their outputs but have no

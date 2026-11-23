@@ -1,4 +1,5 @@
 import tower;
+import .library.work_pool;
 export fn work_thread_retention(): bool { return true; }
 
 // Explicit Linux glibc x86_64/AArch64 ABI: pthread_t is one native word;
@@ -14,11 +15,41 @@ extern fn sem_trywait(signal: void*): i32;
 extern fn __errno_location(): i32*;
 
 export fn work_thread_available(): bool { return true; }
-extern fn get_nprocs(): i32;
+extern fn sched_getaffinity(pid: i32, bytes: usize, mask: usize*): i32;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
+extern fn compiler_buffer_free(pointer: void*): void;
+var LinuxAffinitySizeError: i32 = 22;
+
 export fn work_thread_capacity(): usize {
-    var count = get_nprocs();
-    if count < 1 { return 1; }
-    return convert(usize, count > 256 ? 256 : count);
+    // glibc/Linux masks are arrays of unsigned long on both supported ABIs.
+    // Query this thread each time: workers inherit affinity, but may change it.
+    // One word is only the allocation-free first probe, never a CPU-ID limit.
+    var local: usize = 0;
+    var mask = &local;
+    var bytes = sizeof(decltype(local));
+    defer { if mask != &local { compiler_buffer_free(bits(void*, mask)); } }
+    loop {
+        fill(mask, 0, bytes);
+        if sched_getaffinity(0, bytes, mask) == 0 {
+            var count: usize = 0;
+            for (var i: usize = 0; i < bytes / sizeof(usize); i++) {
+                var word = mask[i];
+                while word != 0 {
+                    count++;
+                    if count == WorkPoolMaximumCapacity { return count; }
+                    word &= word - 1;
+                }
+            }
+            return count;
+        }
+        // Zero denies admission through the existing pool/world contracts.
+        // Never substitute the number of online CPUs on an unavailable query.
+        if *__errno_location() != LinuxAffinitySizeError || bytes > ~convert(usize, 0) / 2 { return 0; }
+        if mask != &local { compiler_buffer_free(bits(void*, mask)); }
+        bytes *= 2;
+        mask = bits(usize*, compiler_buffer_allocate(bytes));
+        if mask == null { return 0; }
+    }
 }
 
 export fn work_thread_open(argument: void*): void* {

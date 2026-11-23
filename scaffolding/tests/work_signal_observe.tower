@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .host.work_linux;
 
 extern fn strcmp(left: u8*, right: u8*): i32;

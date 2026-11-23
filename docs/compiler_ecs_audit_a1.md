@@ -1712,3 +1712,56 @@ allocator fault injection substitutes for these real worker runs. Full-control
 TSan timeout, source UBSan/systemLLVM/browser coverage, graph/entity allocation
 closure and integrated release/publication remain explicit gaps. Last disk
 free349245087744bytes. No sibling cache edits, todo changes or publication lease.
+
+## Capture continuation transition review on d60fc743 successor
+
+The full scoped census is62 files, including the new fixture below. This updates
+the prior capture-work row; older baseline findings remain historical evidence.
+
+| Path | Reviewed source and ownership/storage findings | Evidence and disposition |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_capture_work.tower` | Entire current file reviewed at d60fc743 plus this delta. Stable declaration-owned proof/expression/evaluation/lowering records retain continuations; no new storage layout or scheduler. Coordinator checks take/observe/suspend/finish failures through the existing allocation-free cancellation/receipt contract. Before-ticket failures belong to the phase/root; after-ticket failures belong to the binding. Structural invariant assertions remain distinct from recoverable graph operations. | Corrected20-case fixture passes; admission16/source-proof24/registered12/query/control/capture-policy pass. Failed-finish propagation cancels dependent consumers; repeated pumps do not replay metadata or overwrite receipts. Initial Take pressure hypothesis was invalid and is withdrawn. Entity/component creation assertions remain open; no universal allocation-failure coverage. |
+| `scaffolding/tests/semantic_capture_continuation_checks.tower` | Entire new file reviewed. Own world/context and bounded graph ledger; real source-proof producer, actual retained buffer capacities and explicit pointer-width/worker samples. No mock scheduler or duplicate semantic implementation. Exact pressure reservations are released before context/world/ledger disposal. | Five modes x widths4/8 x workers1/4 =20 cases, zero retained graph grants after disposal. Healthy repeat-wait and four distinct graph transition failures pass. Single eligible producer is policy coverage, not useful overlap. Durable generic registration routed to D1; current joined sanitizers pending ROOT565 IMState coherence rebuild. |
+
+The journal's "checked capture continuation graph transitions" entry records
+invalid probes, corrected before/after identities, exact commands/environment,
+measurements and still-open acceptance gates. Source review and focused passing
+cases do not close lifecycle scheduling, typed entity allocation, final clean
+bootstrap/browser/generation, independent review or hosted publication. Fixed-path
+performance control awaits a fresh A2 grant; no obsolete sanitizer rerun is used
+as acceptance of the incoming layout union.
+
+Capture fixed-path32+canonical/reparse/resource control now PASS on immutable
+376fa7da/769c489e (commit2872820b delta). Journal table records all wall/CPU/RSS
+medians, including small/4 control's +0.02s/+0.03s and the lack of a neutrality or
+speedup claim. Complete ROOT565 joined0362eb08 without conflicts; its changed
+IMState has not yet received this lane's coherent runtime acceptance. Durable
+pool-budget registration is reused for the next92-case milestone. This does not
+resolve the remaining unchecked executable/flow/body/declaration graph paths.
+
+ROOT565/capture287 joined0362 native92focused+12caller/query/resource/control/
+capture-policy/type now PASS (type223.91s, no timeout increase). These are coherent
+IMState providers rebuilt through the public bootstrap. The next ROOTbff/A2dfcef
+history union is queued after drain; this lane intentionally avoids an obsolete
+premerge sanitizer matrix. Typed entity producers are available, but checked
+semantic callers and failure cleanup remain implementation work, not an inferred
+pass from new API signatures. Journal records exact identities, timings and gaps.
+
+## Capture milestone on complete union60159efc
+
+The source review of capture_work and its new continuation fixture remains the
+2872820b delta; complete ROOTd3/A2dfcef histories are now joined. Native92focused
+(including durable capture/pool targets)+12caller/query/resource/units/control/
+capture-policy/type/parser/grammar-resource PASS. Current ASan+LSan92/12/query/
+resource and ten92-case/query repetitions PASS. TSan is still running; independent
+ROOT/D1 review and new20-case registration remain pending. Exact source/build,
+profiling limits, artifact hashes and unrun next executable probe are in the
+journal's union60159 entry. These receipts do not close unconverted typed entity/
+metadata callers or the full integrated release gates. No A1 publication lease.
+
+Current60159 TSan also PASS:92focused+12caller/query/resource24 and ten92-case/
+query stress repetitions, no report, session5992 drained/container reaped.
+Together with native/ASan/LSan this completes the bounded capture-transition
+validation milestone. It does not complete the full lane, independent review,
+unsupported/full-control instrumentation, or clean-bootstrap/browser/generation/
+publication gates. ROOTdba metadata-result history remains a subsequent input.
