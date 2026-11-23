@@ -45,6 +45,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
+    context.current = result.evaluation.subject;
     context.editor = null;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
@@ -53,28 +54,25 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     context.control_names = null;
     context.count = 0;
     context.node_limit -= result.context.count;
-    vector_init(&context.allocations);
-    vector_init(&context.lists);
+    sem_scratch_private(&context, result.context);
     vector_init(&context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(&program.error);
     context.control_prefix = sem_cat(&context, result.cloning ? "control clone " : "control stage ",
         sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
+    if sem_ok(&context) {
     if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
     else {
         sem_evaluation_prepare(&context, result.evaluation);
         if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation, result.require_relocatable); }
     }
+    }
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
     result.resource = program.resource;
-    stack_dispose(&context.scan);
-    vector_dispose(&context.token_text);
-    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
-    vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
-    vector_dispose(&context.allocations);
+    sem_scan_dispose(&context);
+    sem_scratch_dispose(&context.scratch);
 }
 
 export fn sem_evaluation_prepare_all(c: SemanticContext*): void {
@@ -147,6 +145,7 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
     var kind = sem_evaluation_work_register(c, cloning);
     if kind == null || !sem_ok(c) { return; }
     sem_control_names(c);
+    if !sem_ok(c) { return; }
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
     if c.workers.count == 0 && !sem_workers_open(c) { return; }
     var batch: vector(SemanticEvaluationWork*) = default;

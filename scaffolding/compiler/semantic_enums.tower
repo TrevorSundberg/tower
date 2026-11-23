@@ -36,6 +36,7 @@ fn sem_enum_representation(c: SemanticContext*, n: void*): void {
 
 fn sem_enum_fields(c: SemanticContext*, n: void*): void {
     var state = sem_state(c, c.fields_done, n);
+    if !sem_ok(c) { return; }
     if state.number != 0 {
         return;
     }
@@ -44,9 +45,12 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
     state.number = 1;
     var type = sem_get(n);
     var members = sem_collect(c, sem_member(n, "fields"), "CoreEnumMember");
+    if !sem_ok(c) { return; }
     var names = sem_table(c);
+    if !sem_ok(c) { return; }
     state.value = bits(void*, names);
     var values = sem_table(c);
+    if !sem_ok(c) { return; }
     var mask = semantic_mask(&type.element);
     var maximum = mask;
     if semantic_signed(&type.element) {
@@ -64,6 +68,7 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
         }
         var member = members.data[i];
         var name = sem_identifier(c, sem_member(member, "name"));
+        if !sem_ok(c) { return; }
         var initial = sem_member(member, "value");
         if initial != null {
             var literal = sem_operand(c, initial, &type.element);
@@ -83,16 +88,17 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
             return;
         }
         var key = sem_decimal(c, next);
+        if !sem_ok(c) { return; }
         if !sem_put(c, values, key, member) {
             sem_fail(c, member, "Duplicate enum discriminant");
             return;
         }
         var value = sem_node(c, member, KOperand);
-        sem_set_name(value, name);
+        if !sem_set_name(c, value, name) { return; }
         sem_set_type(&value.type, &type.type);
         value.constant = true;
         value.bits = next;
-        sem_push(&type.items, member);
+        if !sem_push_checked(c, &type.items, member) { return; }
         overflow = next == maximum;
         next++;
         next = next & mask;
@@ -112,6 +118,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     }
     var identifier = sem_name_node(base);
     var name = sem_identifier(c, identifier);
+    if !sem_ok(c) { return default; }
     // Most member accesses are ordinary fields. Reject those before walking
     // lexical scopes; only a matching enum type needs the shadowing check.
     var definition = sem_resolve(c, c.types, base, name);
@@ -141,8 +148,10 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
         return true;
     }
     var member_name = sem_identifier(c, field);
+    if !sem_ok(c) { return default; }
     // Reuse the per-definition derived member index; payloads remain on entities.
     var state = sem_state(c, c.fields_done, type.type.record);
+    if !sem_ok(c) { return default; }
     var names = bits(SemanticTable*, state.value);
     var member = sem_lookup_table(names, member_name);
     if member == null {

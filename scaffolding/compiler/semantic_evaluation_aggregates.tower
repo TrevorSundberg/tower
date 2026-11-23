@@ -46,7 +46,8 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
         assignment.type = *element;
         assignment.binding = field;
         assignment.index = index;
-        if field != null { sem_set_name(assignment, sem_name(sem_get(field))); }
+        if field != null { sem_set_name(c, assignment, sem_name(sem_get(field))); }
+        if !sem_ok(c) { return; }
         if semantic_aggregate(element) {
             assignment.value = sem_control_node(c, entry, SurfaceInitializer);
             sem_evaluation_aggregate(c, result, assignment.value, element, projection_index);
@@ -61,7 +62,7 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
             dependency.subject = leaf;
             dependency.source = result.ready;
         }
-        sem_push(&value.items, entry);
+        if !sem_push_checked(c, &value.items, entry) { return; }
     }
     c.surface_expressions = true;
 }
@@ -71,16 +72,19 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
 // of the staged query, never a public Foundation constant or a guest lifetime rule.
 fn sem_evaluation_aggregate_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
     var function = sem_evaluation_function(c, result);
+    if !sem_ok(c) { return; }
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
     var previous = c.current;
     c.current = function;
+    defer { c.current = previous; }
     var local = sem_aggregate_local(c, definition.body, &result.aggregate_type);
     sem_lift_initialization(c, definition.body, local, result.expression);
+    if !sem_ok(c) { return; }
     var returned = sem_control_node(c, definition.body, KReturn);
-    sem_get(returned).value = sem_get(sem_lift_target(c, definition.body, local)).value;
-    sem_lift_append(definition.body, returned);
-    c.current = previous;
+    sem_get(returned).value = sem_lift_address(c, definition.body, local);
+    if !sem_ok(c) { return; }
+    sem_lift_append(c, definition.body, returned);
 }
 
 fn sem_evaluation_aggregate_publish(c: SemanticContext*, result: SemanticEvaluation*): void {

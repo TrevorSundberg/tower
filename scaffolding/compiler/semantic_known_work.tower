@@ -85,12 +85,12 @@ fn sem_known_needed(c: SemanticContext*): bool {
     return false;
 }
 
-fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
+fn sem_known_write(c: SemanticContext*, result: SemanticKnownWork*, place: void*): void {
     while place != null {
         var value = sem_get(place);
         if value == null { return; }
         if value.kind == KOperand {
-            if value.binding != null { sem_push(&result.mutations, value.binding); }
+            if value.binding != null { sem_push_checked(c, &result.mutations, value.binding); }
             return;
         }
         if (value.kind != KField && value.kind != KIndex) || value.indirect { return; }
@@ -101,6 +101,23 @@ fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
 fn semantic_known_kernel(result: SemanticKnownWork*): void {
     if result.action == SemanticKnownAction.Bind { semantic_source_binding_kernel(result); return; }
     if result.action == SemanticKnownAction.Publish { semantic_known_publish_kernel(result); return; }
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
+    var program = *context.program;
+    context.program = &program;
+    context.current = result.subject;
+    program.error = default;
+    sem_scratch_private(&context, result.context);
+    context.query_reads = &result.query_reads;
+    defer {
+        if result.resource_error == WorkBudgetError.None && program.resource.error != WorkBudgetError.None {
+            result.resource_error = program.resource.error;
+            result.resource_offset = program.resource.offset;
+        }
+        vector_dispose(&program.error);
+        sem_scan_dispose(&context);
+        sem_scratch_dispose(&context.scratch);
+    }
     if result.action == SemanticKnownAction.Inputs {
         var pending: vector(void*) = default;
         defer vector_dispose(&pending);
@@ -108,60 +125,59 @@ fn semantic_known_kernel(result: SemanticKnownWork*): void {
         foreach(var &candidate in &result.candidates) {
             var binding = sem_known_binding(result.context, candidate.subject);
             if binding != null && binding.immutable && binding.ordered
-                && sem_known_inputs(result.context, sem_get(candidate.subject).value, &pending) {
+                && sem_known_inputs(&context, sem_get(candidate.subject).value, &pending) {
                 result.candidates.data[selected++] = *candidate;
             }
         }
         result.candidates.length = selected;
         return;
     }
-    var context: SemanticContext;
-    sem_context_snapshot(&context, result.context);
-    context.allocations = default;
-    context.lists = default;
-    context.query_reads = &result.query_reads;
     var pending = sem_list(&context);
     var seen = sem_table(&context);
-    sem_push(pending, result.root);
-    for(var at: usize = 0; at < pending.length; at++) {
+    if !sem_ok(&context) { return; }
+    sem_push_checked(&context, pending, result.root);
+    for(var at: usize = 0; at < pending.length && sem_ok(&context); at++) {
         var subject = pending.data[at];
         if subject == null { continue; }
         var visit = sem_state(&context, seen, subject);
+        if visit == null { return; }
         if visit.number != 0 { continue; }
         visit.number = 1;
         var value = sem_get(subject);
         if value == null { continue; }
-        sem_known_edges(pending, value);
+        sem_known_edges(&context, pending, value);
         if result.action == SemanticKnownAction.Scan {
             if result.owner != null ? sem_known_candidate(subject) : sem_known_binding(&context, subject) != null {
                 var candidate: SemanticKnownCandidate = default;
                 candidate.subject = subject;
                 candidate.ordinal = at;
-                sem_require(vector_push(&result.candidates, candidate));
+                if !vector_push(&result.candidates, candidate) {
+                    sem_scratch_error(&context, subject, WorkBudgetError.Memory);
+                    return;
+                }
             }
-            if value.kind == KAddress { sem_known_write(result, value.value); }
+            if value.kind == KAddress { sem_known_write(&context, result, value.value); }
             if value.kind == KAssign || value.kind == SurfaceAssign || value.kind == SurfaceModify
                 || value.kind == SurfaceDefaultStore || value.kind == SurfaceInitializerStore {
-                sem_known_write(result, value.target);
+                sem_known_write(&context, result, value.target);
             }
         }
         if result.action == SemanticKnownAction.Order {
             if value.kind == KOperand && !value.constant {
                 var binding = sem_known_binding(&context, value.binding);
                 if binding != null && binding.owner == null && binding.ordinal >= result.source_ordinal {
-                    sem_push(&result.mutations, value.binding);
+                    sem_push_checked(&context, &result.mutations, value.binding);
                 }
             }
             if value.kind == KCall && value.binding != null {
-                sem_query_input(&context, value.binding, convert(u32, SemanticQuery.Body));
-                sem_push(pending, sem_get(value.binding).body);
+                if !sem_query_input_checked(&context, value.binding, convert(u32, SemanticQuery.Body)) {
+                    sem_scratch_error(&context, subject, WorkBudgetError.Memory);
+                    return;
+                }
+                sem_push_checked(&context, pending, sem_get(value.binding).body);
             }
         }
     }
-    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
-    vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
-    vector_dispose(&context.allocations);
 }
 
 fn sem_known_storage_publish(result: SemanticKnownWork*): void {
@@ -200,6 +216,8 @@ fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, 
     *result = default;
     result.context = c;
     result.subject = subject;
+    var operation = sem_get(subject);
+    result.resource_offset = operation == null ? sem_offset(c, subject) : operation.start;
     result.root = root;
     result.owner = owner;
     result.ordinal = ordinal;
@@ -354,6 +372,8 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     if failed != null {
         var error = dispatch_error == WorkBudgetError.None ? failed.resource_error : dispatch_error;
         sem_known_work_error(c, failed.subject, error, dispatch_error == WorkBudgetError.None);
+        c.program.resource.offset = failed.resource_offset;
+        c.program.error_offset = failed.resource_offset;
         // Every dispatched ticket is already settled above. Retain those exact
         // terminal receipts; sem_ok prevents any later frontier from replaying.
         return SemanticPumpResult.Failed;

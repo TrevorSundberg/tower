@@ -37,8 +37,7 @@ export fn semantic_lowering_kernel(result: SemanticLowering*): void {
     context.control_names = null;
     context.count = 0;
     context.node_limit -= result.context.count;
-    vector_init(void*, &context.allocations);
-    vector_init(void*, &context.lists);
+    sem_scratch_private(&context, result.context);
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
@@ -55,14 +54,8 @@ export fn semantic_lowering_kernel(result: SemanticLowering*): void {
     result.error = program.error;
     result.error_offset = program.error_offset;
     result.resource = program.resource;
-    stack_dispose(void*, &context.scan);
-    vector_dispose(u8, &context.token_text);
-    for(var i: usize = 0; i < context.lists.length; ++i) {
-        vector_dispose(void*, bits(vector(void*)*, context.lists.data[i]));
-    }
-    vector_dispose(void*, &context.lists);
-    for(var i: usize = 0; i < context.allocations.length; ++i) { compiler_buffer_free(context.allocations.data[i]); }
-    vector_dispose(void*, &context.allocations);
+    sem_scan_dispose(&context);
+    sem_scratch_dispose(&context.scratch);
 }
 
 fn sem_lower_parallel(c: SemanticContext*): void {

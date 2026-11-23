@@ -64,6 +64,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
             return n;
         }
         var name = sem_identifier(c, sem_member(n, "field"));
+        if !sem_ok(c) { return default; }
         var value = sem_node(c, n, KOperand);
         value.binding = sem_owned(c.globals, module, name);
         if value.binding != null {
@@ -115,6 +116,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         }
         var step35 = sem_get(value.left);
         var parent: FoundationType* = sem_type_copy(c, &step35.type);
+        if !sem_ok(c) { return default; }
         var step37 = parent.pointers != 0;
         value.indirect = step37;
         if parent.pointers != 0 {
@@ -141,6 +143,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         }
         if sem_literal(c, index) {
             expected_type = sem_type_new(c, SUSize, 0, null);
+            if !sem_ok(c) { return default; }
         }
         var step46 = sem_operand(c, index, expected_type);
         value.right = step46;
@@ -181,7 +184,8 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         return n;
     }
     var step66 = sem_identifier(c, step65);
-    sem_set_name(value, step66);
+    if !sem_ok(c) { return default; }
+    if !sem_set_name(c, value, step66) { return default; }
     var step67 = parent.pointers == 1;
     value.indirect = step67;
     if parent.scalar != SStruct || parent.pointers > 1 {
@@ -202,7 +206,9 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     if value.binding == null {
         var step82 = sem_name(value);
         var step84 = sem_cat(c, sem_cat(c, "Unknown field '", step82), "' in '");
+        if !sem_ok(c) { return default; }
         var step87 = sem_cat(c, sem_name(sem_get(parent.record)), "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, sem_cat(c, step84, step87));
         return n;
     }
@@ -378,6 +384,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     if sem_literal(c, n) {
         var text = sem_tokens(c, n);
+        if !sem_ok(c) { return default; }
         var nominal = expected_type != null;
         nominal &&= expected_type.pointers == 0;
         nominal &&= semantic_enum(expected_type);
@@ -388,6 +395,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
         value.constant = true;
         if sem_equal(text, "true") || sem_equal(text, "false") {
             var step55 = sem_type_new(c, SBool, 0, null);
+            if !sem_ok(c) { return default; }
             sem_set_type(&value.type, step55);
             var step56 = sem_equal(text, "true");
             var step57 = convert(u64, step56);
@@ -398,6 +406,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                     sem_set_type(&value.type, expected_type);
                 } else {
                     var step60 = sem_type_new(c, SVoid, 1, null);
+                    if !sem_ok(c) { return default; }
                     sem_set_type(&value.type, step60);
                 }
                 value.bits = 0;
@@ -408,6 +417,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                 if text[0] == 39 || text[0] == 34 {
                     value.kind = KString;
                     var step66 = sem_type_new(c, SU8, 1, null);
+                    if !sem_ok(c) { return default; }
                     sem_set_type(&value.type, step66);
                     var i: usize = 1;
                     var length: usize = sem_length(text);
@@ -439,6 +449,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                         sem_set_type(&value.type, expected_type);
                     } else {
                         var step80 = sem_type_new(c, sem_float_literal(c, n) ? SF64 : SI32, 0, null);
+                        if !sem_ok(c) { return default; }
                         sem_set_type(&value.type, step80);
                     }
                     if semantic_float(&value.type) {
@@ -495,6 +506,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                     if number > limit || negative && !signed && number != 0 {
                         var step104 = sem_type_name(c, &value.type);
                         var step105 = sem_cat(c, "Integer literal out of range for ", step104);
+                        if !sem_ok(c) { return default; }
                         sem_fail(c, n, step105);
                     }
                     if negative {
@@ -511,10 +523,14 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
     if expected_type != null && !semantic_type_equal(&value.type, expected_type) {
         var step113 = sem_type_name(c, expected_type);
         var step114 = sem_cat(c, "Expected ", step113);
+        if !sem_ok(c) { return default; }
         var step115 = sem_cat(c, step114, ", got ");
+        if !sem_ok(c) { return default; }
         var step116 = sem_type_name(c, &value.type);
         var step117 = sem_cat(c, step116, "; use an explicit conversion");
+        if !sem_ok(c) { return default; }
         var step118 = sem_cat(c, step115, step117);
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step118);
     }
     return n;
@@ -533,6 +549,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     }
     var value: FoundationNode* = sem_node(c, n, kind);
     var step2 = sem_type_new(c, SVoid, 0, null);
+    if !sem_ok(c) { return default; }
     sem_set_type(&value.type, step2);
     // Observe the argument at the editor hole even when later arguments have
     // not been written. Resolution still uses the ordinary type/value helpers.
@@ -562,6 +579,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                     }
                     if size_argument {
                         expected_type = sem_type_new(c, SUSize, 0, null);
+                        if !sem_ok(c) { return default; }
                     }
                     if kind == KFree {
                         c.editor.require_pointer = true;
@@ -577,6 +595,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         }
                         if index == 1 {
                             expected_type = sem_type_new(c, SU8, 0, null);
+                            if !sem_ok(c) { return default; }
                         }
                     }
                     if kind == KReallocate {
@@ -588,8 +607,10 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                     if kind == KTrap {
                         if index == 0 {
                             expected_type = sem_type_new(c, SU8, 1, null);
+                            if !sem_ok(c) { return default; }
                         } else {
                             expected_type = sem_type_new(c, SU32, 0, null);
+                            if !sem_ok(c) { return default; }
                         }
                     }
                     sem_operand(c, argument, expected_type);
@@ -602,23 +623,31 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     if args.length != count {
         var step5 = semantic_builtin_name(kind);
         var step7 = sem_cat(c, sem_cat(c, "Wrong argument count for '", step5), "': expected ");
+        if !sem_ok(c) { return default; }
         var step9 = sem_decimal(c, convert(u64, count));
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, sem_cat(c, step7, step9));
         return n;
     }
     var step11 = sem_type_new(c, SUSize, 0, null);
+    if !sem_ok(c) { return default; }
     if kind == KTypeReference {
-        value.type = *sem_type_new(c, SType, 0, null);
-        value.element = *sem_type(c, args.data[0]);
+        value.type = sem_type_value(c, SType, 0, null);
+        var element = sem_type(c, args.data[0]);
+        if !sem_ok(c) { return null; }
+        value.element = *element;
         return n;
     }
     if kind == KTrap {
         value.left = sem_operand(c, args.data[0], sem_type_new(c, SU8, 1, null));
+        if !sem_ok(c) { return default; }
         value.right = sem_operand(c, args.data[1], sem_type_new(c, SU32, 0, null));
+        if !sem_ok(c) { return default; }
         return n;
     }
     var size: FoundationType* = step11;
     var byte: FoundationType* = sem_type_new(c, SU8, 0, null);
+    if !sem_ok(c) { return default; }
     if kind == KPrint {
         var step14 = sem_operand(c, args.data[0], null);
         value.value = step14;
@@ -695,9 +724,11 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         var literal_type: FoundationType* = null;
                         if kind == KBits && semantic_float(&value.type) && sem_literal(c, args.data[1]) && !sem_float_literal(c, args.data[1]) {
                             var text = sem_tokens(c, args.data[1]);
+                            if !sem_ok(c) { return default; }
                             var negative = text[0] == FloatDecimalMinus;
                             var integer = value.type.scalar == SF32 ? (negative ? SI32 : SU32) : (negative ? SI64 : SU64);
                             literal_type = sem_type_new(c, integer, 0, null);
+                            if !sem_ok(c) { return default; }
                         }
                         var step59 = sem_operand(c, args.data[1], literal_type);
                         value.value = step59;
@@ -770,6 +801,7 @@ fn sem_call_arguments(c: SemanticContext*, definition: void*, use: void*, args: 
         if !generic_type_parameter(c.generics, definition, i) { runtime++; }
     }
     var arguments = sem_list(c);
+    if !sem_ok(c) { return default; }
     if args.length == count {
         for(var i: usize = 0; i < count && sem_ok(c); i++) {
             if generic_type_parameter(c.generics, definition, i) {
@@ -777,15 +809,16 @@ fn sem_call_arguments(c: SemanticContext*, definition: void*, use: void*, args: 
                 if !sem_ok(c) { return arguments; }
                 var entity = sem_type_entity(c, type, args.data[i]);
                 if entity == null { return arguments; }
-                sem_push(arguments, entity);
-            } else { sem_push(values, args.data[i]); }
+                if !sem_push_checked(c, arguments, entity) { return default; }
+            } else { sem_push_checked(c, values, args.data[i]); }
         }
     } else {
         if args.length == runtime {
-            foreach(var argument in args) { sem_push(values, argument); }
+            foreach(var argument in args) { sem_push_checked(c, values, argument); }
             arguments = sem_infer_arguments(c, definition, use, values);
         } else {
             var name = sem_identifier(c, sem_member(use, "name"));
+            if !sem_ok(c) { return default; }
             sem_fail(c, use, sem_cat(c, "Wrong argument count for template '", sem_cat(c, name, "'")));
         }
     }
@@ -802,7 +835,9 @@ fn sem_call_instance(c: SemanticContext*, definition: void*, use: void*, argumen
     if !sem_generic_ok(c, use) || instance == null {
         return null;
     }
-    sem_state(c, c.source_bases, instance).number = sem_source_base(c, definition);
+    var scratch_entry10 = sem_state(c, c.source_bases, instance);
+    if scratch_entry10 == null { return default; }
+    scratch_entry10.number = sem_source_base(c, definition);
     return instance;
 }
 
@@ -814,7 +849,7 @@ fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, a
         if !sem_ok(c) {
             return null;
         }
-        sem_push(&c.generated, instance);
+        if !sem_push_checked(c, &c.generated, instance) { return default; }
     } else {
         // A different body may have registered this signature and retained a
         // failed receipt. Its nominal identity is not a completed signature.
@@ -840,7 +875,7 @@ fn sem_prepare_signature(c: SemanticContext*, definition: void*, use: void*, arg
         if !sem_ok(c) { return null; }
         sem_parameters(c, instance, definition);
         if !sem_ok(c) { return null; }
-        sem_push(&c.generated, instance);
+        if !sem_push_checked(c, &c.generated, instance) { return default; }
         sem_declaration_add(c, instance);
         foreach(var parameter in &sem_get(instance).parameters) { sem_declaration_add(c, parameter); }
     }
@@ -852,11 +887,14 @@ fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*):
     if prepared != null { return prepared; }
     var name = sem_member(use, "name");
     var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
+    if !sem_ok(c) { return default; }
     sem_require(definition != null && c.declaration_subjects != null);
     var values = sem_list(c);
+    if !sem_ok(c) { return default; }
     var args = sem_collect(c, sem_member(use, "args"), sem_is(use, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
+    if !sem_ok(c) { return null; }
     if arguments == null { arguments = sem_call_arguments(c, definition, use, args, values); }
-    else { foreach(var argument in args) { sem_push(values, argument); } }
+    else { foreach(var argument in args) { sem_push_checked(c, values, argument); } }
     if !sem_ok(c) { return null; }
     var registrations = c.declaration_jobs.length;
     var instance = sem_prepare_signature(c, definition, use, arguments);
@@ -887,8 +925,10 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     }
     var step3 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step3);
+    if !sem_ok(c) { return default; }
     var step5 = sem_member(n, "args");
     var args: vector(void*)* = sem_collect(c, step5, sem_is(n, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
+    if !sem_ok(c) { return default; }
     if sem_call_uses_value(c, step3) {
         return sem_indirect_call(c, n, step3, args);
     }
@@ -904,7 +944,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
             return n;
         }
         var value = sem_node(c, n, KTypeReference);
-        value.type = *sem_type_new(c, SType, 0, null);
+        value.type = sem_type_value(c, SType, 0, null);
         value.element = *type;
         return n;
     }
@@ -912,6 +952,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     if definition != null {
         var prepared = sem_prepared_call(c, n);
         var values = sem_list(c);
+        if !sem_ok(c) { return default; }
         var instance: void* = null;
         if prepared != null {
             instance = prepared.instance;
@@ -932,7 +973,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         sem_query_input(c, instance, convert(u32, SemanticQuery.Declaration));
         sem_set_type(&value.type, &callee.type);
         for(var i: usize = 0; i < values.length && sem_ok(c); i++) {
-            sem_push(&value.items, sem_operand(c, values.data[i], &sem_get(callee.parameters.data[i]).type));
+            if !sem_push_checked(c, &value.items, sem_operand(c, values.data[i], &sem_get(callee.parameters.data[i]).type)) { return default; }
         }
         return n;
     }
@@ -941,7 +982,9 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     value.binding = step49;
     if value.binding == null {
         var step51 = sem_cat(c, "Unknown function '", name);
+        if !sem_ok(c) { return default; }
         var step52 = sem_cat(c, step51, "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step52);
         return n;
     }
@@ -956,7 +999,9 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     }
     if step54 {
         var step55 = sem_cat(c, "Wrong argument count for '", name);
+        if !sem_ok(c) { return default; }
         var step56 = sem_cat(c, step55, "'");
+        if !sem_ok(c) { return default; }
         sem_fail(c, n, step56);
         return n;
     }
@@ -964,12 +1009,13 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     for(; i < args.length; i++) {
         var step59 = sem_get(callee.parameters.data[i]);
         var step60 = sem_operand(c, args.data[i], &step59.type);
-        sem_push(&value.items, step60);
+        if !sem_push_checked(c, &value.items, step60) { return default; }
     }
     return n;
 }
 
 fn sem_indirect_call(c: SemanticContext*, n: void*, callee: void*, args: vector(void*)*): void* {
+    if !sem_ok(c) { return null; }
     var target = sem_operand(c, callee, null);
     if !sem_ok(c) { return n; }
     var type = &sem_get(target).type;
@@ -986,7 +1032,7 @@ fn sem_indirect_call(c: SemanticContext*, n: void*, callee: void*, args: vector(
         return n;
     }
     for(var i: usize = 0; i < args.length && sem_ok(c); i++) {
-        sem_push(&call.items, sem_operand(c, args.data[i], &sem_get(signature.parameters.data[i]).type));
+        if !sem_push_checked(c, &call.items, sem_operand(c, args.data[i], &sem_get(signature.parameters.data[i]).type)) { return default; }
     }
     return n;
 }
@@ -1014,6 +1060,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             }
             var value: FoundationNode* = sem_node(c, n, KBinary);
             var op: u8* = sem_tokens(c, sem_member(n, "op"));
+            if !sem_ok(c) { return default; }
             var found: bool = false;
             for(var i: u32 = 0; i <= 13; i++) {
                 if sem_equal(op, semantic_operator(i)) {
@@ -1026,6 +1073,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 sem_fail(c, n, "Unknown foundation binary operation");
             }
             var input: FoundationType* = sem_type_new(c, SI32, 0, null);
+            if !sem_ok(c) { return default; }
             if expected_type != null {
                 input = expected_type;
             }
@@ -1070,6 +1118,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 right_type = null;
                 if sem_literal(c, right) {
                     right_type = sem_type_new(c, SUSize, 0, null);
+                    if !sem_ok(c) { return default; }
                 }
             }
             var step66 = sem_operand(c, right, right_type);
@@ -1079,6 +1128,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             }
             if comparison {
                 var step69 = sem_type_new(c, SBool, 0, null);
+                if !sem_ok(c) { return default; }
                 sem_set_type(&value.type, step69);
             } else {
                 sem_set_type(&value.type, input);
@@ -1093,6 +1143,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                     sem_fail(c, n, "A pointer offset must be an integer");
                 }
                 var element: FoundationType* = sem_type_copy(c, input);
+                if !sem_ok(c) { return default; }
                 element.pointers--;
                 if !semantic_aggregate(element) && semantic_size(element) == 0 {
                     sem_fail(c, n, "Cannot offset a void pointer");
@@ -1104,6 +1155,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             }
         } else {
             var step82 = sem_cat(c, "Unsupported foundation expression '", kind);
+            if !sem_ok(c) { return default; }
             sem_fail(c, n, sem_cat(c, step82, "'"));
             return null;
         }
@@ -1116,6 +1168,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
     if expected_type != null && !semantic_type_equal(&value.type, expected_type) {
         var step91 = sem_type_name(c, expected_type);
         var step93 = sem_cat(c, sem_cat(c, "Expected ", step91), ", got ");
+        if !sem_ok(c) { return default; }
         var step94 = sem_type_name(c, &value.type);
         sem_fail(c, n, sem_cat(c, step93, step94));
     }

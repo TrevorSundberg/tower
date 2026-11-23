@@ -111,7 +111,7 @@ fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, st
     if !sem_ok(c) { return; }
     var pending: vector(void*) = default;
     defer vector_dispose(&pending);
-    sem_push(&pending, block);
+    if !sem_push_checked(c, &pending, block) { return; }
     while pending.length != 0 {
         var node = pending.data[--pending.length];
         var value = sem_get(node);
@@ -125,7 +125,7 @@ fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, st
             // payload too before a worker can record its initializer range.
             sem_require(entity_stage_lease(stage, node));
         }
-        sem_known_edges(&pending, value);
+        sem_known_edges(c, &pending, value);
     }
 }
 
@@ -149,19 +149,24 @@ fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void 
     var evaluation = sem_evaluation_get(c, output);
     if evaluation == null { sem_type_resource(c, result.subject, WorkBudgetError.Invalid); return; }
     var function = sem_evaluation_function(c, evaluation);
+    if !sem_ok(c) { return; }
     var body = sem_control_node(c, function, KBlock);
     sem_get(function).body = body;
     var previous = c.current;
     var preserve = c.preserve_clone_storage;
     c.current = function;
     c.preserve_clone_storage = false;
+    defer { c.current = previous; c.preserve_clone_storage = preserve; }
     var clones = sem_table(c);
+    if !sem_ok(c) { return; }
     var nodes = sem_list(c);
+    if !sem_ok(c) { return; }
     var source = sem_get(result.block);
     sem_require(result.begin < result.end && result.end <= source.items.length);
     for(var at = result.begin; at < result.end; at++) {
-        sem_lift_append(body, sem_defer_clone(c, body, source.items.data[at], clones, nodes));
+        sem_lift_append(c, body, sem_defer_clone(c, body, source.items.data[at], clones, nodes));
     }
+    if !sem_ok(c) { return; }
     foreach(var node in nodes) {
         var value = sem_get(node);
         if value.kind == KDeclare { value.global = false; }
@@ -172,12 +177,16 @@ fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void 
     var declaration = sem_find(clones, null, result.subject);
     sem_require(declaration != null && declaration.value != null);
     var value = sem_control_read(c, body, declaration.value);
-    if evaluation.aggregate { value = sem_get(sem_lift_target(c, body, value)).value; }
+    if evaluation.aggregate {
+        var target = sem_lift_target(c, body, value);
+        if !sem_ok(c) { return; }
+        value = sem_get(target).value;
+    }
+    if !sem_ok(c) { return; }
     var returned = sem_control_node(c, body, KReturn);
     sem_get(returned).value = value;
-    sem_lift_append(body, returned);
-    c.preserve_clone_storage = preserve;
-    c.current = previous;
+    sem_lift_append(c, body, returned);
+    if !sem_ok(c) { return; }
     evaluation.expression = null;
     result.evaluation = evaluation;
 }
@@ -285,7 +294,9 @@ export fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         var output = sem_evaluation_node(c, subject);
         if output == null { return SemanticPumpResult.Failed; }
         var clones = sem_table(c);
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         var nodes = sem_list(c);
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         var expression = sem_defer_clone(c, output, value, clones, nodes);
         var previous = c.integer_arguments;
         c.integer_arguments = true;

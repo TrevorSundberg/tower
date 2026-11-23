@@ -50,31 +50,36 @@ fn sem_evaluation_dependency(c: SemanticContext*, node: void*): IMDependency* {
 // literal results linked to the original producer instead of copying its zero
 // placeholder as if it were a completed compile-time value.
 fn sem_evaluation_clone(c: SemanticContext*, original: void*, clone: void*): void {
+    if !sem_ok(c) { return; }
     var dependency = sem_evaluation_dependency(c, original);
     if dependency == null { return; }
     var result = sem_evaluation_get(c, dependency.subject);
-    sem_require(result != null);
+    if result == null { sem_scratch_error(c, original, WorkBudgetError.Invalid); return; }
     var alias: SemanticEvaluationAlias = default;
     alias.producer = dependency.subject;
     alias.original = original;
     alias.clone = clone;
-    if c.evaluation_aliases != null {
-        sem_require(vector_push(c.evaluation_aliases, alias));
-    } else { sem_require(vector_push(&result.aliases, alias)); }
-    var link = bits(IMDependency*, entity_component_data(entity_component_add(clone, c.evaluation_ready)));
-    sem_require(link != null);
+    var aliases = c.evaluation_aliases == null ? &result.aliases : c.evaluation_aliases;
+    if aliases.length == ~convert(usize, 0) || !vector_reserve(aliases, aliases.length + 1) {
+        sem_scratch_error(c, original, WorkBudgetError.Memory); return;
+    }
+    var error: WorkBudgetError;
+    var link = bits(IMDependency*, entity_component_data(entity_component_add_result(clone, c.evaluation_ready, &error)));
+    if link == null { sem_scratch_error(c, original, error); return; }
     fill(link, 0, sizeof(IMDependency));
     link.subject = clone;
     link.source = dependency;
+    aliases.data[aliases.length++] = alias;
 }
 
 // Workers never append to another producer's alias vector. Publish these links
 // only after every stage in the wave has released its component leases.
 fn sem_evaluation_aliases(c: SemanticContext*, aliases: vector(SemanticEvaluationAlias)*): void {
+    if !sem_ok(c) { aliases.length = 0; return; }
     foreach(var &alias in aliases) {
         var result = sem_evaluation_get(c, alias.producer);
-        sem_require(result != null);
-        sem_require(vector_push(&result.aliases, *alias));
+        if result == null { sem_scratch_error(c, alias.original, WorkBudgetError.Invalid); break; }
+        if !vector_push(&result.aliases, *alias) { sem_scratch_error(c, alias.original, WorkBudgetError.Memory); break; }
     }
     aliases.length = 0;
 }
@@ -299,6 +304,7 @@ export fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: v
     var literal = n;
     if input.type.pointers == 0 && semantic_enum(&input.type) {
         var underlying = sem_type_copy(c, &input.type);
+        if !sem_ok(c) { return default; }
         underlying.record = null;
         literal = sem_surface_constant(c, n, underlying, 0);
         value.kind = KConvert;
@@ -360,7 +366,9 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
     var previous = c.current;
     c.current = function;
     var clones = sem_table(c);
+    if !sem_ok(c) { return; }
     var nodes = sem_list(c);
+    if !sem_ok(c) { return; }
     result.expression = sem_defer_clone(c, function, result.expression, clones, nodes);
     foreach(var node in nodes) {
         var value = sem_get(node);
@@ -383,7 +391,7 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
     definition.body = sem_control_node(c, function, KBlock);
     var returned = sem_control_node(c, definition.body, KReturn);
     sem_get(returned).value = result.expression;
-    sem_push(&sem_get(definition.body).items, returned);
+    if !sem_push_checked(c, &sem_get(definition.body).items, returned) { return; }
     var previous = c.current;
     c.current = function;
     sem_lift_block(c, definition.body);
@@ -392,7 +400,7 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
 
 // The preparation worker owns its executable function and invocation storage.
 // Initialize the ordinary interpreter there; dispatch only resumes that state.
-fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, require_relocatable: bool): void {
+export fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, require_relocatable: bool): void {
     sem_require(!result.started);
     interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
     result.invocation.context.dependency_kind = c.evaluation_ready;
@@ -414,9 +422,9 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, requir
 fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
     var cycle: vector(usize);
     vector_init(usize, &cycle);
+    defer vector_dispose(&cycle);
     var found = work_cycle(&c.queries, id, &cycle);
     if !found {
-        vector_dispose(&cycle);
         sem_fail(c, work_task(&c.queries, id).subject, "Compile-time dependency is waiting for an unfinished compiler query");
         return;
     }
@@ -425,10 +433,11 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
     while index < cycle.length {
         var task = work_task(&c.queries, cycle.data[index]);
         text = sem_cat(c, text, index == 0 ? ": " : " -> ");
+        if !sem_ok(c) { return; }
         text = sem_cat(c, text, sem_decimal(c, convert(u64, sem_get(task.subject).start)));
+        if !sem_ok(c) { return; }
         index++;
     }
-    vector_dispose(usize, &cycle);
     sem_fail(c, work_task(&c.queries, id).subject, text);
 }
 

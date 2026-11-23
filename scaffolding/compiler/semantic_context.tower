@@ -46,16 +46,18 @@ extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*)
 
 // Capture the descriptor once at the existing frozen-input boundary. The
 // destination is private; graph, pool and shared payload ownership stay borrowed.
-// Keep one ordinary fieldwise copy here rather than expanding it in every
-// worker/coordinator caller. Each worker still replaces its private scratch.
+// Keep one descriptor copy here, but never copy ownership of scratch storage.
+// Frozen lexical lists remain explicit borrows through the source context;
+// allocations made by this snapshot belong to its own private scratch owner.
 export fn sem_context_snapshot(destination: SemanticContext*, source: SemanticContext*): void {
     *destination = *source;
+    sem_scratch_private(destination, source);
 }
 
 // Each dispatched work component owns this read log. Only the coordinator
 // updates the dependency graph, after joining readers of its immutable indexes.
 fn sem_query_read(c: SemanticContext*, query: usize): void {
-    sem_require(sem_query_read_checked(c, query));
+    if !sem_query_read_checked(c, query) { sem_scratch_error(c, c.current, WorkBudgetError.Memory); }
 }
 
 fn sem_query_read_checked(c: SemanticContext*, query: usize): bool {
@@ -68,7 +70,7 @@ fn sem_query_read_checked(c: SemanticContext*, query: usize): bool {
 }
 
 fn sem_query_input(c: SemanticContext*, subject: void*, query: u32): void {
-    sem_require(sem_query_input_checked(c, subject, query));
+    if !sem_query_input_checked(c, subject, query) { sem_scratch_error(c, subject, WorkBudgetError.Memory); }
 }
 
 export fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u32): bool {
@@ -78,7 +80,7 @@ export fn sem_query_input_checked(c: SemanticContext*, subject: void*, query: u3
 }
 
 fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): void {
-    sem_require(sem_query_observe_checked(c, ticket, reads));
+    if !sem_query_observe_checked(c, ticket, reads) { sem_scratch_error(c, c.current, sem_query_error(c)); }
 }
 
 fn sem_query_observe_checked(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): bool {

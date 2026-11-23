@@ -61,9 +61,11 @@ fn sem_bodies_begin(c: SemanticContext*): SemanticBodyPipeline* {
     state.kind = sem_create(c.program.root);
     sem_require(entity_register(state.kind, sizeof(SemanticBodyWork), alignof(SemanticBodyWork), 0));
     sem_control_names(c);
+    if !sem_ok(c) { return state; }
     c.body_demands = sem_create(c.program.root);
     sem_require(entity_register(c.body_demands, sizeof(SemanticBodyDemand), alignof(SemanticBodyDemand), 0));
     c.body_seen = sem_table(c);
+    if !sem_ok(c) { return state; }
     sem_evaluation_begin(c);
     return state;
 }
@@ -86,7 +88,7 @@ fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): vo
     var pending: vector(void*);
     vector_init(&pending);
     defer vector_dispose(&pending);
-    sem_push(&pending, root);
+    if !sem_push_checked(c, &pending, root) { return; }
     while pending.length != 0 {
         pending.length--;
         var node = pending.data[pending.length];
@@ -99,23 +101,24 @@ fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): vo
             continue;
         }
         var seen = sem_state(c, c.body_seen, node);
+        if !sem_ok(c) { return; }
         if seen.number != 0 {
             continue;
         }
         seen.number = 1;
         if (value.kind == KCall || value.kind == KFunctionReference) && value.binding != null {
-            sem_push(calls, node);
+            if !sem_push_checked(c, calls, node) { return; }
         }
         // Traverse owned canonical operation edges, never syntax children or
         // binding/type back-references. Unevaluated decltype calls are absent.
-        sem_push(&pending, value.left);
-        sem_push(&pending, value.right);
-        sem_push(&pending, value.value);
-        sem_push(&pending, value.target);
-        sem_push(&pending, value.body);
-        sem_push(&pending, value.otherwise);
+        if !sem_push_checked(c, &pending, value.left) { return; }
+        if !sem_push_checked(c, &pending, value.right) { return; }
+        if !sem_push_checked(c, &pending, value.value) { return; }
+        if !sem_push_checked(c, &pending, value.target) { return; }
+        if !sem_push_checked(c, &pending, value.body) { return; }
+        if !sem_push_checked(c, &pending, value.otherwise) { return; }
         foreach(var item in &value.items) {
-            sem_push(&pending, item);
+            if !sem_push_checked(c, &pending, item) { return; }
         }
     }
 }
@@ -254,8 +257,7 @@ struct SemanticBodyWork {
     for_part: SemanticForPart;
     boundaries: vector(SemanticBodyBoundary);
     blocks: vector(SemanticBodyBlock);
-    allocations: vector(void*);
-    lists: vector(void*);
+    scratch: SemanticScratch;
     cursor: SemanticBlockCursor;
     lexical: SemanticBodyScope;
 }
@@ -280,7 +282,8 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*, names: SemanticTable*)
         return false;
     }
     var pending = sem_list(c);
-    sem_push(pending, n);
+    if !sem_ok(c) { return default; }
+    if !sem_push_checked(c, pending, n) { return default; }
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
         if sem_body_type_name(c, node, names) { return true; }
@@ -292,7 +295,7 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*, names: SemanticTable*)
             return true;
         }
         for(var j: usize = 0; j < sem_child_count(node); j++) {
-            sem_push(pending, sem_child(node, j));
+            if !sem_push_checked(c, pending, sem_child(node, j)) { return default; }
         }
     }
     return false;
@@ -302,7 +305,7 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*, names: SemanticTable*)
 // admits immutable inputs; it does not check/retry operands to discover effects.
 fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*, names: SemanticTable*): bool {
     var first = nodes.length;
-    sem_push(nodes, source);
+    if !sem_push_checked(c, nodes, source) { return default; }
     for(var i = first; i < nodes.length; i++) {
         var node = nodes.data[i];
         if node == null {
@@ -344,6 +347,7 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*, name
             if sem_type_identity_call(c, node) { return false; }
             var name = sem_member(node, "name");
             var text = sem_identifier(c, name);
+            if !sem_ok(c) { return default; }
             var builtin = semantic_builtin_kind(text);
             if builtin == 0 && !sem_type_representation_name(text) {
                 if sem_resolve(c, c.templates, name, text) != null
@@ -353,6 +357,7 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*, name
             } else {
                 if semantic_builtin_type_argument(builtin, 0) {
                     var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+                    if !sem_ok(c) { return default; }
                     if args.length != 0 && sem_body_type_structure(c, args.data[0], names) {
                         return false;
                     }
@@ -397,16 +402,17 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     // the actual scope and proves immutable staged availability. This also
     // handles a local metatype binding shadowing a module type name.
     var names = sem_table(c);
-    sem_push(&pending, result.subject);
+    if !sem_ok(c) { return; }
+    if !sem_push_checked(c, &pending, result.subject) { return; }
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
         if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") {
             sem_put(c, names, sem_identifier(c, sem_member(node, "name")), node);
         }
-        for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(&pending, sem_child(node, j)); }
+        for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push_checked(c, &pending, sem_child(node, j)); }
     }
     pending.length = 0;
-    sem_push(&pending, body);
+    if !sem_push_checked(c, &pending, body) { return; }
     while pending.length != 0 {
         var source = pending.data[--pending.length];
         var node = sem_is(source, "Statement") ? sem_unwrap(source): source;
@@ -415,13 +421,14 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
             for(var i = sem_child_count(node); i != 0;) {
                 var child = sem_child(node, --i);
                 if sem_is(child, "Statement") {
-                    sem_push(&pending, child);
+                    if !sem_push_checked(c, &pending, child) { return; }
                 }
             }
         } else {
             scan.length = 0;
             if sem_is(node, "TowerMatch") {
                 var arms = sem_collect(c, sem_member(node, "arms"), "TowerMatchArm");
+                if !sem_ok(c) { return; }
                 var fallback = sem_member(sem_member(node, "fallback"), "body");
                 var resumable = sem_is(fallback, "CoreBlock");
                 foreach(var arm in arms) {
@@ -439,21 +446,21 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 if !sem_body_tree(c, sem_member(node, "value"), &scan, names) {
                     sem_body_boundary(result, source, true);
                 }
-                sem_push(&pending, fallback);
+                if !sem_push_checked(c, &pending, fallback) { return; }
                 for(var i = arms.length; i != 0;) {
-                    sem_push(&pending, sem_member(arms.data[--i], "body"));
+                    if !sem_push_checked(c, &pending, sem_member(arms.data[--i], "body")) { return; }
                 }
                 continue;
             }
             if sem_is(node, "TowerDefer") && sem_is(sem_member(node, "body"), "CoreBlock") {
-                sem_push(&pending, sem_member(node, "body"));
+                if !sem_push_checked(c, &pending, sem_member(node, "body")) { return; }
                 continue;
             }
             if sem_is(node, "TowerForeach") && sem_is(sem_member(node, "body"), "CoreBlock") {
                 // The implicit protocol may construct generic signatures even
                 // when its written source is an ordinary typed local.
                 sem_body_boundary(result, source, true);
-                sem_push(&pending, sem_member(node, "body"));
+                if !sem_push_checked(c, &pending, sem_member(node, "body")) { return; }
                 continue;
             }
             // Header construction precedes either branch, but does not check
@@ -465,9 +472,9 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 }
                 var other = sem_member(node, "otherwise");
                 if other != null {
-                    sem_push(&pending, other);
+                    if !sem_push_checked(c, &pending, other) { return; }
                 }
-                sem_push(&pending, sem_member(node, "body"));
+                if !sem_push_checked(c, &pending, sem_member(node, "body")) { return; }
                 continue;
             }
             var while_loop = sem_is(node, "TowerWhile");
@@ -484,11 +491,11 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 if !ready {
                     sem_body_boundary(result, source, true);
                 }
-                sem_push(&pending, sem_member(node, "body"));
+                if !sem_push_checked(c, &pending, sem_member(node, "body")) { return; }
                 continue;
             }
             if sem_is(node, "CoreLoop") && sem_is(sem_member(node, "body"), "CoreBlock") {
-                sem_push(&pending, sem_member(node, "body"));
+                if !sem_push_checked(c, &pending, sem_member(node, "body")) { return; }
                 continue;
             }
             scan.length = 0;
@@ -497,12 +504,12 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
             }
         }
     }
-    sem_push(&result.nodes, result.subject);
-    sem_push(&result.nodes, body);
+    if !sem_push_checked(c, &result.nodes, result.subject) { return; }
+    if !sem_push_checked(c, &result.nodes, body) { return; }
     for(var i: usize = 1; i < result.nodes.length; i++) {
         var node = result.nodes.data[i];
         for(var j: usize = 0; j < sem_child_count(node); j++) {
-            sem_push(&result.nodes, sem_child(node, j));
+            if !sem_push_checked(c, &result.nodes, sem_child(node, j)) { return; }
         }
     }
 }
@@ -515,8 +522,7 @@ fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
     var program = *context.program;
     context.program = &program;
     context.editor = null;
-    context.allocations = default;
-    context.lists = default;
+    sem_scratch_private(&context, result.context);
     context.token_text = default;
     context.scan = default;
     context.query_reads = &result.query_reads;
@@ -525,12 +531,8 @@ fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
     result.error = program.error;
     result.error_offset = program.error_offset;
     result.resource = program.resource;
-    stack_dispose(&context.scan);
-    vector_dispose(&context.token_text);
-    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
-    vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
-    vector_dispose(&context.allocations);
+    sem_scan_dispose(&context);
+    sem_scratch_dispose(&context.scratch);
 }
 
 fn sem_body_sources_request(c: SemanticContext*, result: SemanticBodyWork*): usize {
@@ -849,6 +851,7 @@ fn sem_body_scope_begin(c: SemanticContext*, ordinal: usize): void {
     c.control_reserved = c.control_names;
     c.control_names = null;
     c.control_prefix = sem_cat(c, "control check ", sem_cat(c, sem_decimal(c, convert(u64, ordinal)), "."));
+    if !sem_ok(c) { return; }
     c.deferred = null;
     c.deferring = 0;
     c.defer_bindings = null;
@@ -952,6 +955,7 @@ fn sem_body_for_start(c: SemanticContext*, batch: SemanticBodyWork**, count: usi
         }
         var discarded = initial || update;
         var expected_type = discarded ? null : sem_type_new(c, SBool, 0, null);
+        if !sem_ok(c) { return; }
         var mode = discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Operand;
         result.initialization = sem_expression_add(c, source, expected_type, &result.lexical, mode);
         if !initial {
@@ -1435,6 +1439,7 @@ fn sem_body_initializers_start(c: SemanticContext*, batch: SemanticBodyWork**, c
             result.expression_header = header;
             var source = sem_member(header, condition ? "condition" : (matching ? "value" : "source"));
             var expected_type = condition ? sem_type_new(c, SBool, 0, null) : null;
+            if !sem_ok(c) { return; }
             var mode = branch || iteration ? SemanticExpressionMode.Operand : SemanticExpressionMode.Value;
             result.initialization = sem_expression_add(c, source, expected_type, &result.lexical, mode);
             initializers++;
@@ -1595,8 +1600,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     context.count = 0;
     context.node_limit = result.context.count < context.node_limit
     ? context.node_limit - result.context.count: 0;
-    vector_init(void*, &context.allocations);
-    vector_init(void*, &context.lists);
+    sem_scratch_private(&context, result.context);
     vector_init(void*, &context.inferring);
     vector_init(void*, &context.type_arguments);
     vector_init(void*, &context.constant_arguments);
@@ -1612,10 +1616,12 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
         sem_body_restore(&context, &result.lexical);
     } else {
         sem_body_scope_begin(&context, result.ordinal);
-        sem_require(sem_function_begin(&context, result.subject, &result.cursor));
-        result.resumed = true;
+        if sem_ok(&context) {
+            result.resumed = sem_function_begin(&context, result.subject, &result.cursor);
+            if !result.resumed && sem_ok(&context) { sem_scratch_error(&context, result.subject, WorkBudgetError.Invalid); }
+        }
     }
-    sem_body_run(&context, result);
+    if sem_ok(&context) { sem_body_run(&context, result); }
     result.done = !sem_ok(&context) ||(result.blocks.length == 0 && result.cursor.next == sem_child_count(result.cursor.subject));
     if result.done {
         // Error unwinding restores lexical scope ownership without emitting
@@ -1623,7 +1629,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
         while result.blocks.length != 0 {
             sem_body_close_block(&context, result);
         }
-        sem_function_finish(&context, result.subject, &result.cursor);
+        if result.resumed { sem_function_finish(&context, result.subject, &result.cursor); }
         fill(&result.lexical, 0, sizeof(SemanticBodyScope));
     } else {
         sem_body_save(&context, &result.lexical);
@@ -1637,7 +1643,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     result.has_defer = context.has_defer;
     if result.done && context.defer_order != null {
         for(var i: usize = 0; i < context.defer_order.length; i++) {
-            sem_push(&result.captures, context.defer_order.data[i]);
+            sem_push_checked(&context, &result.captures, context.defer_order.data[i]);
         }
     }
     copy(&result.error, &program.error, sizeof(vector(u8)));
@@ -1651,25 +1657,15 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     // Transfer ownership to the coordinator; never free scratch still borrowed
     // by the continuation, and never append to shared allocation lists here.
     if !result.done || (context.editor != null && context.editor.found) {
-        copy(&result.allocations, &context.allocations, sizeof(vector(void*)));
-        copy(&result.lists, &context.lists, sizeof(vector(void*)));
-        vector_init(&context.allocations);
-        vector_init(&context.lists);
+        result.scratch = context.scratch;
+        context.scratch = default;
     }
-    stack_dispose(void*, &context.scan);
-    vector_dispose(u8, &context.token_text);
+    sem_scan_dispose(&context);
     vector_dispose(void*, &context.inferring);
     vector_dispose(void*, &context.type_arguments);
     vector_dispose(void*, &context.constant_arguments);
     vector_dispose(void*, &context.generated);
-    for(var i: usize = 0; i < context.lists.length; i++) {
-        vector_dispose(void*, bits(vector(void*)*, context.lists.data[i]));
-    }
-    vector_dispose(void*, &context.lists);
-    for(var i: usize = 0; i < context.allocations.length; i++) {
-        compiler_buffer_free(context.allocations.data[i]);
-    }
-    vector_dispose(void*, &context.allocations);
+    sem_scratch_dispose(&context.scratch);
 }
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
@@ -1695,8 +1691,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     vector_dispose(&result.nodes);
     vector_dispose(&result.boundaries);
     vector_dispose(&result.blocks);
-    vector_dispose(&result.allocations);
-    vector_dispose(&result.lists);
+    sem_scratch_dispose(&result.scratch);
     vector_dispose(&result.calls);
     vector_dispose(&result.evaluations);
     vector_dispose(&result.captures);
@@ -1766,38 +1761,35 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
         result.done = true;
     }
     sem_editor_publish(c, &result.editor);
-    foreach(var allocation in &result.allocations) {
-        sem_push(&c.allocations, allocation);
-    }
-    foreach(var list in &result.lists) {
-        sem_push(&c.lists, list);
-    }
-    vector_dispose(&result.allocations);
-    vector_dispose(&result.lists);
+    sem_scratch_append(c, &result.scratch);
     c.count += result.count;
     c.surface_expressions ||= result.surface;
     c.has_defer ||= result.has_defer;
     for(var j: usize = 0; j < result.captures.length && sem_ok(c); j++) {
         if c.defer_bindings == null {
             c.defer_bindings = sem_table(c);
+            if !sem_ok(c) { break; }
             c.defer_order = sem_list(c);
+            if !sem_ok(c) { break; }
         }
         var captured = result.captures.data[j];
         var entry = sem_state(c, c.defer_bindings, captured);
+        if !sem_ok(c) { break; }
         if entry.value == null {
             entry.value = captured;
-            sem_push(c.defer_order, captured);
+            sem_push_checked(c, c.defer_order, captured);
         }
     }
     for(var j: usize = 0; j < result.evaluations.length; j++) {
         var evaluation = bits(SemanticEvaluation*, result.evaluations.data[j]);
-        sem_push(&c.evaluation_jobs, bits(void*, evaluation));
+        sem_push_checked(c, &c.evaluation_jobs, bits(void*, evaluation));
         if sem_ok(c) { sem_evaluation_request(c, evaluation); }
     }
     if sem_ok(c) && result.flow_dependencies.length != 0 {
         sem_flow_request(c, result.subject, &result.flow_dependencies);
     }
     vector_dispose(&result.evaluations);
+    if !sem_ok(c) { sem_body_hold_error(c, result); result.done = true; }
     if c.count > c.node_limit && result.resource.error == WorkBudgetError.None && result.error.length == 0 {
         sem_fail(c, result.subject, "Foundation component memory budget exceeded");
         sem_body_hold_error(c, result);
@@ -2201,6 +2193,7 @@ fn sem_body_failure(c: SemanticContext*, subject: void*): bool {
 fn sem_body_request(c: SemanticContext*, subject: void*): SemanticBodyWork* {
     if !sem_ok(c) || !work_ok(&c.queries) { return null; }
     var state = sem_bodies_begin(c);
+    if !sem_ok(c) { return null; }
     var result = sem_body_work(c, subject, state.kind);
     if work_find(&c.queries, subject, BodyQuery, 0) != 0 { return result; }
     result.subject = subject;
