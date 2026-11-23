@@ -85840,3 +85840,83 @@ candidate now compiles the exact frozen A1 provider at jobs1, exit0,
 23.577945s wall/18.684996s CPU/1047416KiB peak. Parallel equality, healthy
 paired measurements and complete package receipts follow separately; this
 successful invocation uses no debugger argument substitution or bootstrap override.
+
+A2 final capacity checks on source a0e0cdcd182dfd31de3bd883f648c0bd30c123d6:
+the exact A1 provider succeeds at workers1/4 with identical object SHA256
+`d0c1c8aef58042d3da09dfe08bff11cecb5eaadf9b4e0f2ddd6c4f1977956970`.
+Workers4 cost20.358123s wall/19.318382s CPU/1085604KiB peak; workers1 cost
+is above. Frozen input archive SHA256
+`708e860cb61038ed36844a624cb3b434b0677977df8bf08e6654e21b709a37dc`.
+The original complete A1 history remains separate and unpublished by A2.
+
+Healthy matched profile: same frozen A1 parser provider path, target, library
+flags and resource files; ROOT b5 versus the merged candidate, alternating
+before/after, two fresh processes per compiler/workers1/4, warm filesystem.
+Windows11 Pro10.0.26200, Ryzen AI MAX+39516C/32T, Docker Linux x64 LLVM19.1.1,
+CPU12-23/24GiB. Tower ecs_process_profile records child wall/CPU/maxRSS/status;
+no competing A2 build ran during samples. Means below, peak is maximum of two:
+
+| Compiler | Workers | Wall s | CPU s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| ROOT b5 | 1 | 18.421135 | 13.878552 | 745884 |
+| Candidate | 1 | 19.141056 | 14.580435 | 934280 |
+| ROOT b5 | 4 | 16.876620 | 14.761932 | 774908 |
+| Candidate | 4 | 17.130313 | 15.546795 | 964988 |
+
+All eight processes exit0. Each compiler's four outputs are byte-identical;
+reference object SHAa82c5bcbbb325cb8247e957db95e4fc57f77d742225849ffc99759755fbec1ce,
+candidate SHA3a727896bf85161208e42063c4776599dc71a43528fc6d23bcf7f6d5345244d6.
+Cross-version byte comparison is1 (preserved), while defined symbol names match.
+B1 already records a generation difference after L2 admission integration; this
+profile does not claim cross-version object identity or diagnose ROOT's separate
+complete-generation gate. Serial wall is+3.9%, peak RSS+25.3%; workers4 wall+1.5%.
+The reference predates the merged scratch/admission/output ownership changes,
+so these are compiler-version costs, not an isolated cost of the default constant.
+B1's completed compiler profile independently has a comparable RSS increase.
+The initial stalled version's180s/614668KiB is an incomplete lower-bound sample,
+not a memory improvement. No new allocation-retention claim or universal scaling
+claim follows from these small compiler process samples; focused cleanup tests
+require zero final grants. Existing storage sanitizer evidence remains unchanged.
+
+A2 complete successor receipt: existing Tower package_bootstrap and verify_compiler
+were built through the unchanged public pin, without modifying either tool.
+Initial packaging failed1 because this independent clone's LLVM submodule is
+unpopulated and the expected llvm/LICENSE.TXT is absent. The public pin and
+verified ROOT b5 package carry the identical license SHA256
+`8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee`.
+An owned copy was mounted read-only at the expected input path for packaging;
+no repository/submodule or compiler source was changed. Publication into the
+Windows bind mount then failed1. The same packager succeeded when its staging
+and atomic new-directory publication used container-local /tmp; that complete
+output was copied to the owned cache and verified after relocation. The precise
+failed syscall errno was not captured, so filesystem accommodation is recorded
+as observed recovery rather than an asserted errno. Both failed receipts remain.
+
+Complete archive:
+`C:/Sandbox/build/codex_ecs_20261122/A2/cache/capacity_release/A2_semantic_capacity_successor.tgz`
+SHA256 `fb898fb4f63735c52df6095a1b26d2f8bb1924edcaec74b38003131e679fbe01`.
+Extracted package: capacity_release/successor, executable linux-x64/towerc
+SHA256 `a0ffc67c9a8e4f8371a828d798bf0a6a1aa826d74519195231df956611a50852`.
+Provenance development.json SHA256
+`f74f72b03f1459bcc9015cb2f09a1336d02d40826cdaf2aae855e95e6d0e342f` records
+source_base_revision a0e0cdcd182dfd31de3bd883f648c0bd30c123d6, complete actual
+source-file/resource hashes, public predecessor9653f818..., build command,
+LLVM19.1.1 and dynamic dependencies. Policy source SHA256
+`48e303582174edc356416ed838ed5e46ae6c5bb0de28421daaf2140ae977efad` exactly
+matches the compiled input. Every package SHA256SUMS entry passes; packaged
+executable equals the tested native candidate byte-for-byte. Relocated Tower
+verify_compiler development mode passes interpretation/diagnostics, three equal
+fresh object emissions, separate-library linking and repeated wanted execution.
+Its actual checks.txt, arguments and separate logs are under
+capacity_release/package_development_verification; process0,8.767028s wall/
+9.019221s CPU/217512KiB. package_native.status is0, final_package.sha256 also
+matches an independent host archive hash. Earlier package failures are not passes.
+
+This repairs the measured capacity blocker with a bounded policy and a complete
+verified development successor. ROOT must still publish/adopt its pin and run
+current integrated complete-generation, instrumentation, browser and release
+acceptance. Cross-version generation identity above remains pending, not passed.
+The candidate requires its recorded development-host dynamic dependencies; no
+portable/restricted-host or universal race-freedom claim is made. The accepted
+unchanged storage sanitizer receipt c13c2631 remains reusable. All A2 jobs drained;
+no Pages deployment or other owner's unpublished source adoption was performed.
