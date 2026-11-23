@@ -4,6 +4,17 @@ import parser_nodes;
 import parser_types;
 import syntax_types;
 import .library.vector;
+import .library.work_budget_types;
+
+var RegexNestingLimit: usize = 64;
+var RegexScalarDigits: usize = 6;
+var RegexEscapePrefixBytes: usize = 2;
+var RegexUnicodePrefixBytes: usize = 3;
+var RegexUnicodeSuffixBytes: usize = 1;
+var RegexAutomatonStateLimit: u32 = 1;
+var RegexAutomatonAllocation: u32 = 2;
+var RegexAutomatonComplexity: u32 = 3;
+var RegexAutomatonNullable: u32 = 4;
 
 // Read the ordinary parser entities and lower their regex semantics into a
 // disposable automaton. Work stacks hold borrowed entities, never another AST.
@@ -37,9 +48,11 @@ struct RegexVisit {
 
 struct RegexLowering {
     source: u8*;
+    source_length: usize;
     match_type: void*;
     automaton: Automaton*;
     error: u8*;
+    resource_error: WorkBudgetError;
     cursor: usize;
     visits: vector(RegexVisit);
     values: vector(RegexFragment);
@@ -55,9 +68,17 @@ fn regex_none(): usize {
 }
 
 fn regex_match(context: RegexLowering*, node: void*): ParserMatchData* {
+    if node == null {
+        regex_resource_fail(context, WorkBudgetError.Invalid, "Missing token pattern parse node");
+        return null;
+    }
     var component = entity_component_get(node, context.match_type);
-    var data = entity_component_data(component);
-    return bits(ParserMatchData*, data);
+    var data = bits(ParserMatchData*, entity_component_data(component));
+    if data == null || data.start > context.source_length || data.length > context.source_length - data.start {
+        regex_resource_fail(context, WorkBudgetError.Invalid, "Invalid token pattern source span");
+        return null;
+    }
+    return data;
 }
 
 fn regex_member(node: void*, name: u8*): void* {
@@ -70,6 +91,7 @@ fn regex_named(context: RegexLowering*, node: void*, name: u8*): bool {
         return false;
     }
     var `match` = regex_match(context, node);
+    if `match` == null { return false; }
     var label = node_text_get(&`match`.label);
     var i: usize = 0;
     loop {
@@ -89,9 +111,16 @@ fn regex_fail(context: RegexLowering*, message: u8*): void {
     }
 }
 
+fn regex_resource_fail(context: RegexLowering*, error: WorkBudgetError, message: u8*): void {
+    if context.error == null {
+        context.resource_error = error;
+        context.error = message;
+    }
+}
+
 fn regex_allocation(context: RegexLowering*, ok: bool): void {
     if !ok {
-        regex_fail(context, "Unable to allocate regex lowering work");
+        regex_resource_fail(context, WorkBudgetError.Memory, "Unable to allocate regex lowering work");
     }
 }
 
@@ -186,18 +215,30 @@ fn regex_state(context: RegexLowering*, kind: u32, out: i32, other: i32, negated
 }
 
 fn regex_range(context: RegexLowering*, index: i32, first: u32, last: u32): void {
+    // A rejected NFA state already has a semantic limit diagnostic. The range
+    // API also rejects negative indexes; that rejection is not an allocation.
+    if index < 0 { return; }
     var ok = automaton_range(context.automaton, index, first, last);
     regex_allocation(context, ok);
 }
 
 fn regex_scalar(context: RegexLowering*, node: void*): u32 {
     var `match` = regex_match(context, node);
+    if `match` == null { return 0; }
+    if `match`.length == 0 {
+        regex_resource_fail(context, WorkBudgetError.Invalid, "Empty token pattern scalar span");
+        return 0;
+    }
     context.cursor = `match`.start;
     var text = context.source + `match`.start;
     if !(text[0] == 92) {
         var result: u32;
         tower_utf8_decode(text, `match`.length, &result);
         return result;
+    }
+    if `match`.length < RegexEscapePrefixBytes {
+        regex_resource_fail(context, WorkBudgetError.Invalid, "Incomplete token pattern escape span");
+        return 0;
     }
     var escape = text[1];
     var selected = escape == 110;
@@ -219,11 +260,15 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
             return convert(u32, escape);
         }
     }
-    var first: usize = 2;
+    var first = RegexEscapePrefixBytes;
     var end = `match`.length;
     if unicode {
-        first = 3;
-        end--;
+        first = RegexUnicodePrefixBytes;
+        if end <= first {
+            regex_fail(context, "Invalid Unicode scalar escape");
+            return 0;
+        }
+        end -= RegexUnicodeSuffixBytes;
     }
     var count = end -first;
     var invalid = count == 0;
@@ -231,7 +276,7 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
         regex_fail(context, "Invalid Unicode scalar escape");
         return 0;
     }
-    invalid = count > 6;
+    invalid = count > RegexScalarDigits;
     if invalid {
         regex_fail(context, "Invalid Unicode scalar escape");
         return 0;
@@ -321,6 +366,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
         var after = i + 1;
         if after < context.characters.length {
             var dash = regex_match(context, context.characters.data[i]);
+            if dash == null { return; }
             var plain = dash.length == 1;
             if plain {
                 plain = context.source[dash.start] == 45;
@@ -381,8 +427,9 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
         var depth = visit.depth;
         var finish = visit.finish;
         var `match` = regex_match(context, node);
+        if `match` == null { return; }
         context.cursor = `match`.start;
-        if depth > 64 {
+        if depth > RegexNestingLimit {
             regex_fail(context, "Token pattern nesting exceeds 64");
             return;
         }
@@ -475,6 +522,7 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
                     if repeat {
                         regex_pop(context, &result);
                         var suffix = regex_match(context, regex_member(node, "suffix"));
+                        if suffix == null { return; }
                         var nonempty = result.start >= 0;
                         var suffixed = suffix.length != 0;
                         if nonempty {
@@ -515,18 +563,46 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
 }
 
 export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table: LexerTable*, error_offset: usize*): u8* {
+    // The legacy interface's source extent is the complete parse-root span.
+    // It may contain NUL bytes, so a C-string length cannot recover this count.
+    var span: ParserMatchData* = null;
+    if root != null && match_type != null {
+        span = bits(ParserMatchData*, entity_component_data(entity_component_get(root, match_type)));
+    }
+    var length: usize = 0;
+    if span != null && span.length <= ~convert(usize, 0) - span.start { length = span.start + span.length; }
+    var resource_error = WorkBudgetError.None;
+    return regex_compile_tree_result(root, source, length, match_type, table, error_offset, &resource_error);
+}
+
+export fn regex_compile_tree_result(root: void*, source: u8*, source_length: usize, match_type: void*,
+table: LexerTable*, error_offset: usize*, resource_error: WorkBudgetError*): u8* {
+    if resource_error == null { return "Missing token pattern resource result"; }
+    *resource_error = WorkBudgetError.Invalid;
+    if error_offset == null { return "Missing token pattern error offset"; }
+    *error_offset = 0;
+    if root == null || match_type == null || table == null || (source == null && source_length != 0) {
+        return "Invalid token pattern lowering input";
+    }
+    if table.accepting.length != 0 || table.transitions.length != 0 {
+        return "Token pattern output table is not empty";
+    }
+    *resource_error = WorkBudgetError.None;
     var context = alloc(RegexLowering, 1);
     var failed = context == null;
     if failed {
+        *resource_error = WorkBudgetError.Memory;
         return "Unable to allocate regex lowering work";
     }
     defer free(context);
     *context = default;
     context.source = source;
+    context.source_length = source_length;
     context.match_type = match_type;
     context.automaton = automaton_create(1114112);
     failed = context.automaton == null;
     if failed {
+        *resource_error = WorkBudgetError.Memory;
         return "Unable to allocate token automaton";
     }
     var result: RegexFragment;
@@ -549,8 +625,8 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
                 if valid_accept {
                     var accepting = convert(usize, accept);
                     var status = automaton_compile(context.automaton, result.start, accepting, table, true);
-                    var too_large = status == 3;
-                    var nullable = status == 4;
+                    var too_large = status == RegexAutomatonComplexity;
+                    var nullable = status == RegexAutomatonNullable;
                     var failure = status != 0;
                     if too_large {
                         regex_fail(context, "Token pattern exceeds DFA complexity limit");
@@ -561,7 +637,15 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
                         }
                         else {
                             if failure {
-                                regex_fail(context, "Unable to allocate token automaton");
+                                if status == RegexAutomatonAllocation {
+                                    regex_resource_fail(context, WorkBudgetError.Memory, "Unable to allocate token automaton");
+                                } else {
+                                    if status == RegexAutomatonStateLimit {
+                                        regex_fail(context, "Token pattern exceeds 512 NFA states");
+                                    } else {
+                                        regex_resource_fail(context, WorkBudgetError.Invalid, "Invalid token automaton result");
+                                    }
+                                }
                             }
                         }
                     }
@@ -570,6 +654,7 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
         }
     }
     *error_offset = context.cursor;
+    *resource_error = context.resource_error;
     var error = context.error;
     vector_dispose(&context.visits);
     vector_dispose(&context.values);
