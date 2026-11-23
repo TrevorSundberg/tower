@@ -17,6 +17,19 @@ fn symbol_case(unit: BootstrapUnit, windows: bool, text: u8*, bad: u8*): void {
     symbol_target_case(unit, windows ? "x86_64-pc-windows-msvc" : "x86_64-unknown-linux-gnu", text, bad);
 }
 
+// Target spellings exercise the existing portable policy, not target execution.
+fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: u8*, suffixed: u8*): void {
+    symbol_target_case(unit, "x86_64-unknown-linux-gnu", name, null);
+    symbol_target_case(unit, "x86_64-pc-windows-msvc", name, null);
+    symbol_target_case(unit, "wasm32-unknown-unknown", name, null);
+    symbol_target_case(unit, "aarch64-apple-macos11", name, null);
+    var length = strlen(name);
+    utility_check(length != 0 && !bootstrap_symbol_allowed(unit, false, false, name, length - 1), "truncated admission symbol");
+    symbol_target_case(unit, "x86_64-unknown-linux-gnu", suffixed, suffixed);
+    symbol_target_case(wrong_unit, "x86_64-unknown-linux-gnu", name, name);
+    symbol_target_case(BootstrapUnit.Entities, "x86_64-unknown-linux-gnu", name, name);
+}
+
 export fn main(): i32 {
     symbol_case(BootstrapUnit.Utf8, false, "\n \t\r\n", null);
     symbol_case(BootstrapUnit.Utf8, false, "         U memcpy\n", "memcpy");
@@ -95,7 +108,7 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Interpreter, false, " U compiler_world_create_result_extra\n", "compiler_world_create_result_extra");
     symbol_case(BootstrapUnit.Interpreter, false, " U strle\n", "strle");
     symbol_case(BootstrapUnit.Interpreter, false, " U strlen_extra\n", "strlen_extra");
-    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_world_create_result\n", "compiler_world_create_result");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U compiler_world_create_result\n", null);
     symbol_case(BootstrapUnit.Utf8, false, " U strlen\n", "strlen");
     // Check-only allocator hooks are not production bootstrap dependencies.
     symbol_case(BootstrapUnit.Interpreter, false, " U tower_test_buffer_count\n", "tower_test_buffer_count");
@@ -131,7 +144,7 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U entity_attach_result_extra\n", "entity_attach_result_extra");
     symbol_case(BootstrapUnit.Entities, false, " U entity_attach_result\n", "entity_attach_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U entity_attach_result\n", "entity_attach_result");
-    symbol_case(BootstrapUnit.Semantics, false, " U entity_attach_result\n", "entity_attach_result");
+    symbol_case(BootstrapUnit.Semantics, false, " U entity_attach_result\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
     symbol_case(BootstrapUnit.Semantics, false,
@@ -168,6 +181,21 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Entities, false, " U generic_instantiate_deferred_result\n", "generic_instantiate_deferred_result");
     symbol_case(BootstrapUnit.ParserNodes, false, " U generic_instantiate_deferred_result\n", "generic_instantiate_deferred_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U generic_instantiate_deferred_result\n", "generic_instantiate_deferred_result");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_world_component_result", "compiler_world_component_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_attach_result", "entity_attach_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_component_add_result", "entity_component_add_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_create_related_result", "entity_create_related_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_create_result", "entity_create_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "frontend_module_root_world_size_result", "frontend_module_root_world_size_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "compiler_world_create_result", "compiler_world_create_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "frontend_units_close", "frontend_units_close_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "frontend_units_create_bounded_result", "frontend_units_create_bounded_result_extra");
+    symbol_target_case(BootstrapUnit.Semantics, "aarch64-apple-macos11", " U _frontend_module_root_world_size_result\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, true, " U __frontend_units_create_bounded_result\n", null);
+    // These are imports of the separate frontend-units object, not Semantics.
+    symbol_case(BootstrapUnit.Semantics, false, " U frontend_modules_create_result\n", "frontend_modules_create_result");
+    symbol_case(BootstrapUnit.Semantics, false, " U frontend_modules_bind_world_result\n", "frontend_modules_bind_world_result");
+    symbol_case(BootstrapUnit.Semantics, false, " U module_new_result\n", "module_new_result");
     var empty: BootstrapSymbol = default; var rejected: BootstrapSymbol = default;
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_type_equal\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U interpreter_function_result\n U ix_load\n", null);
