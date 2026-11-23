@@ -874,7 +874,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
     backend_observe(b, phase, true);
     defer backend_observe(b, phase, false);
     b.source_root = root;
-    var failed = b.error.length != 0;
+    var failed = backend_failed(b);
     if failed {
         return false;
     }
@@ -1096,7 +1096,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         i++;
     }
-    failed = b.error.length != 0;
+    failed = backend_failed(b);
     if failed {
         return false;
     }

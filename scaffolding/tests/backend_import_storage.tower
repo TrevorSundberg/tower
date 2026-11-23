@@ -1,0 +1,165 @@
+import tower;
+import storage_api;
+import utility_checks;
+import generic_clone_fixture;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn backend_import_fixture_open(root: void*): void*;
+extern fn backend_import_fixture_failure(backend: void*, offset: usize): void;
+extern fn backend_import_fixture_unsupported(backend: void*): void;
+extern fn backend_import_foundation(backend: void*, root: void*): bool;
+extern fn backend_resource_error(backend: void*): WorkBudgetError;
+extern fn backend_error(backend: void*): u8*;
+extern fn backend_error_offset(backend: void*): usize;
+extern fn backend_close(backend: void*): void;
+
+var BackendAdmissionBytes: usize = 4194304;
+var BackendAdmissionOffset: usize = 73;
+
+fn backend_import_storage_trial(allowed: usize, wanted: WorkBudgetError, prior: bool, attached: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, BackendAdmissionBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Backend bounded world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var output = entity_create(store);
+    var backend = backend_import_fixture_open(root);
+    utility_check(root != null && output != null && backend != null, "Backend import fixture ownership");
+    var previous: FoundationNode* = null;
+    if attached {
+        previous = sem_attach(output, 0);
+        previous.start = BackendAdmissionOffset;
+        utility_check(storage_assign(&previous.comments, "// previous output\n", strlen("// previous output\n")), "Existing output sentinel");
+    }
+    if prior { backend_import_fixture_failure(backend, BackendAdmissionOffset); }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var source_comments = sem_get(root).comments.data;
+    var occupied: WorkReservation = default;
+    var view: void* = null;
+    if wanted == WorkBudgetError.Capacity {
+        var snapshot: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &snapshot)
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied) == WorkBudgetError.None,
+            "Exact backend physical capacity pressure");
+    }
+    if wanted == WorkBudgetError.Busy { view = entity_view_open(root); utility_check(view != null, "Backend pinned input"); }
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var accepted = backend_import_foundation(backend, output);
+    tower_test_buffer_fail_after(unlimited);
+    var calls = tower_test_buffer_allocations() - before;
+    utility_check(accepted == (!prior && wanted == WorkBudgetError.None)
+        && backend_resource_error(backend) == wanted, "Backend exact typed admission result");
+    if !accepted {
+        utility_check(backend_error(backend)[0] != 0, "Denied backend cannot report empty success");
+        utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && entity_child_count(output) == 0 && sem_get(output) == previous,
+            "Failed import publishes no entities/components or partial output");
+        if previous != null { utility_check(previous.start == BackendAdmissionOffset
+            && strcmp(previous.comments.data, "// previous output\n") == 0, "Failure preserves prior root payload"); }
+        if view != null { entity_view_close(view); view = null; }
+        if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release backend pressure"); }
+        var retry_calls = tower_test_buffer_allocations();
+        utility_check(!backend_import_foundation(backend, output) && tower_test_buffer_allocations() == retry_calls
+            && backend_resource_error(backend) == wanted && entity_store_count(store) == nodes,
+            "Terminal import retry allocates/mutates nothing after pressure clears");
+        if prior { utility_check(calls == 0 && backend_error_offset(backend) == BackendAdmissionOffset
+            && strcmp(backend_error(backend), "Earlier backend diagnostic") == 0, "Earlier backend message and offset win"); }
+    } else {
+        utility_check(sem_get(output) != null && sem_get(output).items.length != 0
+            && sem_get(output).comments.length == strlen("// reconstruction admission\n")
+            && utility_equal(sem_get(output).comments.data, "// reconstruction admission\n", sem_get(output).comments.length),
+            "Complete canonical output retains counted comments");
+        puts("Backend healthy reconstruction allocations / peak bytes / retained bytes:");
+        generic_clone_number(calls); generic_clone_number(budget.peak_bytes); generic_clone_number(budget.used_bytes);
+        fflush(null);
+    }
+    utility_check(sem_get(root).comments.data == source_comments
+        && strcmp(source_comments, "// reconstruction admission\n") == 0, "Reconstruction never consumes input comments");
+    backend_close(backend);
+    entity_release(output);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world), "Backend import world cleanup");
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Backend grants, private associations, entities and buffers all drain");
+    return calls;
+}
+
+fn backend_import_storage_tests(): void {
+    var unlimited = ~convert(usize, 0);
+    var roots: bool[2]; roots[0] = false; roots[1] = true;
+    for(var index: usize = 0; index < sizeof(decltype(roots)) / sizeof(bool); index++) {
+        var attached = roots[index];
+        var calls = backend_import_storage_trial(unlimited, WorkBudgetError.None, false, attached);
+        utility_check(calls != 0, "Backend sweep derives actual healthy allocation boundaries");
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            backend_import_storage_trial(allowed, WorkBudgetError.Memory, false, attached);
+        }
+        backend_import_storage_trial(unlimited, WorkBudgetError.Capacity, false, attached);
+        backend_import_storage_trial(unlimited, WorkBudgetError.Busy, false, attached);
+        backend_import_storage_trial(0, WorkBudgetError.None, true, attached);
+    }
+    var diagnostic_calls = backend_import_diagnostic_trial(unlimited);
+    for(var allowed: usize = 0; allowed < diagnostic_calls; allowed++) { backend_import_diagnostic_trial(allowed); }
+    puts("Backend reconstruction admission and terminal cleanup passed.");
+}
+
+// The ordinary unsupported-type diagnostic must survive; denial of its text
+// still leaves a typed terminal failure, with no diagnostic allocation on retry.
+fn backend_import_diagnostic_trial(allowed: usize): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, BackendAdmissionBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Backend diagnostic world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var output = entity_create(store);
+    var backend = backend_import_fixture_open(root);
+    utility_check(backend != null && output != null, "Backend unsupported fixture");
+    backend_import_fixture_unsupported(backend);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var accepted = backend_import_foundation(backend, output);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    var error = backend_resource_error(backend);
+    utility_check(!accepted && error == (allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory)
+        && backend_error(backend)[0] != 0, "Unsupported LLVM type remains an ordinary error or exact denied allocation");
+    if allowed == unlimited {
+        utility_check(strcmp(backend_error(backend), "LLVM return path requires a supported scalar type") == 0,
+            "Unsupported scalar diagnostic is not suppressed");
+        puts("Backend unsupported diagnostic allocation boundaries:"); generic_clone_number(calls);
+    }
+    utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components
+        && sem_get(output) == null && entity_child_count(output) == 0, "Diagnostic failure discards private reconstruction");
+    var retry_calls = tower_test_buffer_allocations();
+    utility_check(!backend_import_foundation(backend, output) && tower_test_buffer_allocations() == retry_calls
+        && backend_resource_error(backend) == error, "Diagnostic retry preserves first failure without allocation");
+    backend_close(backend); entity_release(output); entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Unsupported reconstruction releases all ownership");
+    return calls;
+}

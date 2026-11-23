@@ -51,6 +51,19 @@ retain their original Foundation types. Unsupported LLVM types, intrinsics,
 atomic/volatile operations and dynamic allocas are diagnosed. This is not a
 general importer for arbitrary externally supplied LLVM modules.
 
+Reconstruction borrows its source graph and requires an independently owned
+output root in the same compiler world. It leases that root and builds through
+the shared entity stage; only successful publication replaces the root payload.
+Failure discards private entities and temporary associations, preserves the
+existing output and source, and is terminal for that Backend. A fresh Backend can
+retry. `backend_resource_error` retains Memory/Capacity/Busy without allocating a
+diagnostic; `backend_error` supplies static text when needed. Temporary import
+vectors use the explicit world budget, while canonical Foundation payload vectors
+keep their existing checked vector/destructor ownership. LLVM's own allocations
+and legacy null-budget worlds are not covered by that ledger. The focused native
+`tower-storage-tests RESOURCE_ROOT backend-import` selector sweeps real allocation
+boundaries, root replacement, pins, capacity, first errors and complete teardown.
+
 Original graph execution stays available as the reference/debug path. The
 internal foundation/cache encoder also remains necessary for portable package
 loading and differential checks. Loading `.towerbc` needs no LLVM or executable

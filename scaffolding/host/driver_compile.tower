@@ -44,7 +44,7 @@ struct DriverCompilation {
     preserve_foundation: bool;
 }
 
-extern fn type_object_program(root: void*): bool;
+extern fn type_object_program_result(root: void*, budget: WorkBudget*, contains: bool*): WorkBudgetError;
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
 extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
@@ -167,7 +167,13 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
         entity_release(root);
         return false;
     }
-    state.preserve_foundation = type_object_program(program.root);
+    error = type_object_program_result(program.root, compiler_world_work_budget(state.request.world), &state.preserve_foundation);
+    if error != WorkBudgetError.None {
+        driver_error("", sem_resource_message(error));
+        semantic_program_dispose(&imported);
+        entity_release(root);
+        return false;
+    }
     var ok = state.preserve_foundation || backend_import_foundation(state.backend, root);
     if ok {
         ok = driver_compile_format(state, state.preserve_foundation ? program.root : root, &state.generated);

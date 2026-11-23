@@ -9,15 +9,20 @@ import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
 import .library.float_bits;
 
 var LLVMFloatingNegateOpcode: u32 = 66;
 
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
-    var copies: vector(BackendAssociation);
-    vector_init(&copies);
+    if backend_failed(c.backend) { return; }
+    var copies: work_vector(BackendAssociation) = default;
+    defer work_vector_dispose(&copies);
     var instruction = LLVMGetFirstInstruction(to);
     loop {
+        if backend_failed(c.backend) { return; }
         var done = instruction == null;
         if done {
             break;
@@ -29,6 +34,7 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
         var count = LLVMCountIncoming(instruction);
         var i: u32 = 0;
         loop {
+            if backend_failed(c.backend) { return; }
             done = i == count;
             if done {
                 break;
@@ -37,8 +43,8 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
                 var value = bi_value(c, LLVMGetIncomingValue(instruction, i));
                 var snapshot = bi_decl(c, bi_scalar(c, LLVMTypeOf(instruction)));
                 bi_assign(c, bi_ref(c, snapshot), value);
-                var destination = backend_find(&c.values, instruction);
-                backend_require(c.backend, backend_associate(&copies, destination, snapshot));
+                var destination = bi_find(&c.values, instruction);
+                bi_associate(c, &copies, destination, snapshot);
                 break;
             }
             i++;
@@ -46,23 +52,29 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
         instruction = LLVMGetNextInstruction(instruction);
     }
     foreach(var & pair in &copies) {
+        if backend_failed(c.backend) { return; }
         bi_assign(c, bi_ref(c, pair.entity), bi_ref(c, pair.value));
     }
-    vector_dispose(&copies);
-    var target = backend_find(&c.blocks, to);
-    var label = sem_get(target);
+    var target = bi_find(&c.blocks, to);
+    var label = bi_get(c, target);
+    if label == null { return; }
     var entity = bi_node(c, 32, 3);
-    var jump = sem_get(entity);
-    backend_text(&jump.name, label.name.data);
+    var jump = bi_get(c, entity);
+    if jump == null { return; }
+    backend_require(c.backend, backend_text(&jump.name, label.name.data));
     jump.binding = target;
     bi_append(c, c.block, entity);
 }
 
 fn bi_print(c: BackendImport*, value: void*, code: u32): void {
+    if backend_failed(c.backend) { return; }
     if code == SF32 || code == SF64 {
         value = bi_float_unpack(c, value, code);
         var printed = bi_node(c, KPrint, SVoid);
-        sem_get(printed).value = value;
+        var print_node = bi_get(c, printed);
+        if print_node == null { return; }
+        if print_node == null { return; }
+        print_node.value = value;
         bi_append(c, c.block, printed);
         return;
     }
@@ -75,23 +87,30 @@ fn bi_print(c: BackendImport*, value: void*, code: u32): void {
         if unsigned != code { value = bi_cast(c, value, code, true); }
     }
     var entity = bi_node(c, KPrint, SVoid);
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return; }
     n.value = value;
     bi_append(c, c.block, entity);
 }
 
 fn bi_float_unpack(c: BackendImport*, value: void*, scalar: u32): void* {
+    if backend_failed(c.backend) { return null; }
     value = bi_cast(c, value, scalar == SF32 ? SU32 : SU64, false);
     return bi_cast(c, value, scalar, true);
 }
 
 fn bi_float_pack(c: BackendImport*, value: void*): void* {
-    var type = &sem_get(value).type;
+    if backend_failed(c.backend) { return null; }
+    var node = bi_get(c, value);
+    if node == null { return null; }
+    if node == null { return null; }
+    var type = &node.type;
     if semantic_float(type) { value = bi_cast(c, value, type.scalar == SF32 ? SU32 : SU64, true); }
     return bi_cast(c, value, SU64, false);
 }
 
 fn bi_float_parameter(c: BackendImport*, instruction: void*, index: u32): u32 {
+    if backend_failed(c.backend) { return 0; }
     var argument = LLVMGetOperand(instruction, index);
     if LLVMGetValueKind(argument) != LLVMConstantIntegerValueKind {
         backend_fail(c.backend, "Floating runtime descriptor must be constant");
@@ -101,6 +120,7 @@ fn bi_float_parameter(c: BackendImport*, instruction: void*, index: u32): u32 {
 }
 
 fn bi_float_type(c: BackendImport*, width: u32): u32 {
+    if backend_failed(c.backend) { return 0; }
     if width == Float32Width { return SF32; }
     if width == Float64Width { return SF64; }
     backend_fail(c.backend, "Unsupported floating runtime width");
@@ -108,6 +128,7 @@ fn bi_float_type(c: BackendImport*, width: u32): u32 {
 }
 
 fn bi_float_integer_type(c: BackendImport*, width: u32, signed: bool): u32 {
+    if backend_failed(c.backend) { return 0; }
     if width == IntegerByteWidth { return signed ? SI8 : SU8; }
     if width == IntegerShortWidth { return signed ? SI16 : SU16; }
     if width == Float32Width { return signed ? SI32 : SU32; }
@@ -117,6 +138,7 @@ fn bi_float_integer_type(c: BackendImport*, width: u32, signed: bool): u32 {
 }
 
 fn bi_float_call(c: BackendImport*, instruction: void*, name: u8*): void* {
+    if backend_failed(c.backend) { return null; }
     var input = bi_value(c, LLVMGetOperand(instruction, 0));
     if backend_equal(name, "tower_strict_float_binary") {
         var op = bi_float_parameter(c, instruction, 2);
@@ -154,6 +176,7 @@ fn bi_float_call(c: BackendImport*, instruction: void*, name: u8*): void* {
 }
 
 fn bi_call(c: BackendImport*, instruction: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var callee = LLVMGetCalledValue(instruction);
     var length: usize = 0;
     var name = LLVMGetValueName2(callee, &length);
@@ -167,13 +190,15 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         else {
             code = bi_value(c, code);
             for(var i: u32 = 0; i != 9; i++) {
+                if backend_failed(c.backend) { return null; }
                 if i != 4 {
                     var test = bi_binary(c, 8, code, bi_const(c, 1, convert(u64, i)), 2);
                     var outer = c.block;
-                    var branch = sem_get(bi_if(c, test));
+                    defer { c.block = outer; }
+                    var branch = bi_get(c, bi_if(c, test));
+                    if branch == null { return null; }
                     c.block = branch.body;
                     bi_print(c, value, i);
-                    c.block = outer;
                 }
             }
         }
@@ -181,7 +206,8 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
     }
     if backend_equal(name, "tower_trap") {
         var entity = bi_node(c, 33, 3);
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         n.left = bi_value(c, LLVMGetOperand(instruction, 0));
         n.right = bi_cast(c, bi_value(c, LLVMGetOperand(instruction, 1)), 1, false);
         bi_append(c, c.block, entity);
@@ -206,7 +232,8 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
             kind = 28;
         }
         var entity = bi_node(c, kind, BackendImportPointer);
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         var offset: u32 = 0;
         n.element.scalar = 5;
         n.element.pointer_bytes = c.backend.pointer_bytes;
@@ -233,13 +260,14 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         overflow = bi_binary(c, 5, overflow, nonzero_size, 2);
         var result = bi_decl(c, BackendImportPointer);
         var outer = c.block;
-        var branch = sem_get(bi_if(c, overflow));
+        defer { c.block = outer; }
+        var branch = bi_get(c, bi_if(c, overflow));
+        if branch == null { return null; }
         c.block = branch.body;
         bi_assign(c, bi_ref(c, result), bi_const(c, BackendImportPointer, 0));
         c.block = branch.otherwise;
         n.right = product;
         bi_assign(c, bi_ref(c, result), entity);
-        c.block = outer;
         return bi_ref(c, result);
     }
     var copy = backend_prefix(name, "llvm.memcpy.");
@@ -257,7 +285,8 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
             kind = 30;
         }
         var entity = bi_node(c, kind, 3);
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         n.left = bi_value(c, LLVMGetOperand(instruction, 0));
         n.right = bi_value(c, LLVMGetOperand(instruction, 1));
         n.value = bi_cast(c, bi_value(c, LLVMGetOperand(instruction, 2)), 8, false);
@@ -294,9 +323,11 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         // also cover non-power-of-two LLVM widths without out-of-range shifts.
         var group: u32 = 1;
         while group < width {
+            if backend_failed(c.backend) { return null; }
             var mask: u64 = 0;
             var bit: u64 = 1;
             for(var position: u32 = 0; position < width; position++) {
+                if backend_failed(c.backend) { return null; }
                 var part = position / group;
                 part = part % 2;
                 var low = part == 0;
@@ -405,7 +436,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         var condition = bi_compare(c, predicate, a, b, type);
         return bi_select(c, condition, a, b, bi_scalar(c, type));
     }
-    var binding = backend_find(&c.values, callee);
+    var binding = bi_find(&c.values, callee);
     var direct = binding != null && sem_get(binding).kind == KFunction;
     if !direct && LLVMGetValueKind(callee) == LLVMFunctionValueKind {
         backend_fail(c.backend, "Unsupported LLVM intrinsic or indirect call: ");
@@ -413,23 +444,32 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         return null;
     }
     var entity = bi_node(c, KCall, bi_scalar(c, LLVMTypeOf(instruction)));
-    var n = sem_get(entity);
+    var n = bi_get(c, entity);
+    if n == null { return null; }
     var function: FoundationNode* = null;
     if direct {
         n.binding = binding;
-        function = sem_get(binding);
+        function = bi_get(c, binding);
+        if function == null { return null; }
         n.type = function.type;
     } else {
         var type = bi_llvm_function_type(c, LLVMGetCalledFunctionType(instruction));
-        function = sem_get(type.record);
+        if type == null { return null; }
+        function = bi_get(c, type.record);
+        if function == null { return null; }
         n.value = bi_cast_type(c, bi_value(c, callee), type);
         n.type = function.element;
     }
     var count = LLVMGetNumArgOperands(instruction);
+    if convert(usize, count) != function.parameters.length {
+        backend_fail(c.backend, "LLVM call argument count differs from its Foundation signature"); return null;
+    }
     var i: u32 = 0;
     for(; i != count; i++) {
+        if backend_failed(c.backend) { return null; }
         var value = bi_value(c, LLVMGetOperand(instruction, i));
-        var parameter = sem_get(function.parameters.data[convert(usize, i)]);
+        var parameter = bi_get(c, function.parameters.data[convert(usize, i)]);
+        if parameter == null { return null; }
         value = bi_cast_type(c, value, &parameter.type);
         backend_require(c.backend, vector_push(&n.items, value));
     }
@@ -441,16 +481,19 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
 }
 
 fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
+    if backend_failed(c.backend) { return null; }
     var op = LLVMGetInstructionOpcode(instruction);
     var type = LLVMTypeOf(instruction);
     var scalar = bi_scalar(c, type);
     var selected = op == 1;
     if selected {
         var entity = bi_node(c, 18, 3);
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         if LLVMGetNumOperands(instruction) != 0 {
             n.value = bi_value(c, LLVMGetOperand(instruction, 0));
-            var function = sem_get(c.function);
+            var function = bi_get(c, c.function);
+            if function == null { return null; }
             n.value = bi_cast_type(c, n.value, &function.type);
         }
         bi_append(c, c.block, entity);
@@ -461,12 +504,13 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
         if LLVMGetNumSuccessors(instruction) == 2 {
             var condition = bi_value(c, LLVMGetCondition(instruction));
             var outer = c.block;
-            var branch = sem_get(bi_if(c, condition));
+            defer { c.block = outer; }
+            var branch = bi_get(c, bi_if(c, condition));
+            if branch == null { return null; }
             c.block = branch.body;
             bi_edge(c, block, LLVMGetSuccessor(instruction, 0));
             c.block = branch.otherwise;
             bi_edge(c, block, LLVMGetSuccessor(instruction, 1));
-            c.block = outer;
         } else {
             bi_edge(c, block, LLVMGetSuccessor(instruction, 0));
         }
@@ -477,10 +521,12 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
         // A defined Tower execution reaches unreachable only after an explicit
         // trap. Retain a deterministic diagnostic for corrupted/undefined input.
         var entity = bi_node(c, 33, 3);
-        var n = sem_get(entity);
+        var n = bi_get(c, entity);
+        if n == null { return null; }
         var message = bi_node(c, KString, BackendImportPointer);
-        var text = sem_get(message);
-        backend_text(&text.name, "Reached unreachable LLVM block");
+        var text = bi_get(c, message);
+        if text == null { return null; }
+        backend_require(c.backend, backend_text(&text.name, "Reached unreachable LLVM block"));
         n.left = message;
         n.right = bi_const(c, 1, 0);
         bi_append(c, c.block, entity);
