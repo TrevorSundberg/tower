@@ -93194,6 +93194,58 @@ Freeze ba52a932731a099b10bd16b60c16cd6af35fbf12/tree d0e478c22f1307701e7fbb15cbe
 Production onlysemantic_types: sem_shape(name) before typebindingregistration, shared narrow baretypename check at sem_type/sem_type_call before prepared/newtypeconsumption. Base-qualified and other typealternatives/editor path stayunchanged. Final32casewidth/workerconfigs pass exactnormaldiagnostics/resourceNone, originalmappedcoordinates, priorvalid42, customleave/let/ptr optionalcapturecontrols42, siblingfailednopublication beforecancel, preservedfirsterror/deterministicoffset, earlycancellationdrain and zeroledgerworldteardown. Sameexisting CLI plus mainall registration. Finalfixture25.580wall/40.809CPU/436576KiB; query-smoke4.245/5.835/407728pass. Smallestfixture baseline build then one productiondependencybuild24.737/18.762/1073484KiB; later fixture-only8.861s refresh adds explicit pre-cancel assertion/registration. No fullsuite/Node/buildmatrix/instrumentation.
 
 Pairedn3plain8body/import/staging profile,workers1/4, exactsource/import/canonical/reference42andzeroownership: wallmedian-0.76%/-0.55%,CPU-0.97%/-0.55%,medianRSS-160/-364KiB; ledgerpeaks108204099/108153811Bunchanged, metadata10485760Bseparate. Smallnoise-scale comparison, no speedup/overlap claim; fourworkers stillslower. 79fixture+368profileactualinputs verified. Fullauditselection/hash/commands/limits in docs/compiler_malformed_shapes_ba52a932.md and A2/cache/logs/malformed_shapes_ba52a932. Onlytwo demonstrated repairs accepted, not arbitrarygrammarsafety; ROOTjoinedreactor/integrated/serviceblockedgates remainpending. All3oldstashes/todo preserved, jobsdrained. Documentation recording adds no runtimeprofiling claim.
+### B2 page-owned lifetime candidate prerequisite fixed (2026-11-23)
+
+Base mainba52a932 after required pull; own container idle, cache924GiB free,
+CPU12-23/quota12/24GiB. Restored exact80daea98 rejected candidate and preserved
+all08d209fa failures. No new ownership design, compiler rebuild or D2trace edits.
+Frozen f167 compiler8e7e3d63/work6411/resourceJSON67561156/Chromium159 executable
+24eb unchanged. Relevant before/after boundaries instrumented before one failing
+control repeat. All4initialports arrive5874.675-5877.770ms within epoch1795470275
+before ANY adapter import completes5883.005-5890.235; handler stillnull. No
+portattach/initialize/ready/guestentry occurs. Lost early bootstrap proven;
+45sdiagnosticguard failure retained, not a drain pass or native-race attribution.
+
+Small prerequisite repair: compiler-failure-worker statically imports its
+ordinary handler before browser messages; same wasi_thread_start injected trap.
+After trace shows4portattach/init/ready, real guestentries, actual injected
+errors/shared publication and coordinator error return. Temporary production
+instrumentation removed. Fixed adapterSHA5bda6fe5c03b1e371ad06d607d31e3b89371161d2e08357ed8abeaea328e0230.
+Production group/worker/callers EXACTLY match retained three strict candidate
+trials; helperSHA356a8ca9ace1aa6458cffab748be424ce5cee630c32ae9df99ab9c823bcc0bc5,
+worker97fb8ea39d4f74ba10f3fb2624a1eb6a560871f68736bb3898c453db72427774,
+transportd912cd1e3b44114d55f9e5e74a43d8e8a572f9030ef39332aa197c1a21ddcb2d.
+Therefore retain original3normal5/2/5close/zeroCDP/canonical/output/query/budget
+passes and4completed controls; no passing matrix repeated/relabelled.
+
+Final focused controls3/3PASS: real sharedtrap error+failedstate; partialstartup
+ack from actual child holding initialization port, heldCount1/readyCount0; and
+generation retirement after coordinator actually posts an oldreply that never
+reaches retiredcaller. Each observes5actualcloses/zeroCDPtargets under unchanged
+30sdeadline/capacity. Generation case exercises production default factory.
+Partialgate is OS-message readiness, no sleep/fakeguestwork. Pageowned native
+Workers communicate via directports; no extra pool/Tower scheduling changes.
+Actual app/language browser caller creation uses same group hook; separateLLVM
+compiler-unitpool unchanged. Originalfailedcandidate now has required gates.
+
+Costs(waitedchildCPU/RSS): before45.066398s/1.518551s/202916KiB FAIL; instrumented
+fixedtrap2.487863/1.453777/202108 PASS; final3controls2.938851/1.858478/205184 PASS.
+Existing Node trap test only1/1PASS0skips,0.274434/0.243517/100240; four created
+Nodeworkers/fourend-events, expectederror unchanged, no NodeT5alias matrixrerun.
+No retainedallocation/race/sanitizer claim; browserWasmcapacities keep prior
+matchedvalues. Sevenbrowserentrypoints bundle with installed nativeWindows
+esbuild after Linux attempt fails wrong-platform installedwin32package. Failure
+retained; no npm install. Windowsaffinity12-23 set before stdin startgate,
+GOMAXPROCS4; bundle validation only, not fullUI/runtimepackaging.
+
+All evidence: C:/Sandbox/build/codex_ecs_20261122/B2/page_worker_repair_ba52a932
+and matching/cache; before/aftertrace sources, failedlogs, finalpatch/providers,
+commands/reports/manifests, Nodeend-events and bundle logs. Receipt
+ docs/browser_page_worker_repair_ba52a932.md and README contract updated. Original
+08d209fa/ROOT failures and three normal receipts remain intact. Current-source
+successor/hosted/platform/fullrelease acceptance stays ROOT-owned; no runtime or
+Pages deployment. All B2jobs drained; coherent browsertransport/testfix ready
+for normal source publication.
 Publication reconciliation for the reconstruction amplification batch:
 implementation `d16c8f6e` merged complete published05edbfb3 as
 `820b66b9930e1c269af14f4427c2a1660cd239f3`; both journal histories are preserved.
@@ -93612,3 +93664,11 @@ Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
 
 A2 publication's third retry preserves docs-only902f7c4d after the third normal push raced again. All448 final executed input entries match182f5652; evidence is reused without another build. Complete histories remain intact, all jobs are drained, and ROOT retains runtime publication. This is the final bounded normal push retry.
 A2 bounded task BLOCKED on publication only. Initial normal push plus all three permitted retries were rejected (fetch first) by concurrent main advancement. Last rejected head615de273bb596c9f476de74c5ebca7e541d556ed; subsequent read-only remote main7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2 is not adopted or validated. Implementationee91c300 and complete merged history through902f7c4d remain committed; actual runtime validation stays182f5652. All32 selected shape configurations/query/canonical-recovery checks pass, source input hashes match their exact receipts. The two fixes are not claimed published/deployed. Stop at the requested retry limit with clean source, preserved three stashes/todo and no owned jobs. A future normal integration/push must preserve these commits and assess only new affected inputs; no new task, goal or polling is started.
+B2 page-worker prerequisite publication reconciliation: implementation5aff643a
+merged complete902f7c4d history asc5fafc64 after required ff-only pull refused
+divergence. Both journal histories preserved. All playground files and scoped
+receipt byte-identical to tested implementation;10touchedmodule syntax checks
+and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
+incoming grammar/module/reconstruction producers and separately publishedb8
+NodeT5 acceptance retained but excluded from this browser milestone. No repeat
+browser matrix, compiler build or deployment; owned jobs remain drained.

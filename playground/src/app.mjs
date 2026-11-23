@@ -18,6 +18,7 @@ import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler
 import { towerCompletion } from './completion.mjs';
 import { paint, highlighting, towerDecorations } from './tower-highlights.mjs';
 import { prepareCompilerIsolation } from './compiler-isolation.mjs';
+import { createCompilerWorker } from './compiler-worker-group.mjs';
 
 await prepareCompilerIsolation();
 
@@ -54,7 +55,7 @@ function rebuildCompiler() {
   compilerBuildSnapshot = JSON.stringify(project.files);
   $('cancel-compiler-build').disabled = false;
   $('compiler-build-status').textContent = 'Loading compiler build…';
-  const worker = compilerBuildWorker = new Worker(new URL('./compiler-build-worker.js',import.meta.url),{type:'module'});
+  const worker = compilerBuildWorker = createCompilerWorker(new URL('./compiler-build-worker.js',import.meta.url),{type:'module'});
   const fail = message => { if (id !== compilerBuildId) return; cancelCompilerBuild('Build failed: '+message); };
   worker.onerror = event => { event.preventDefault(); fail(event.message || 'Compiler build worker stopped'); };
   worker.onmessage = ({data}) => {
@@ -80,7 +81,7 @@ class Engine {
   request(method, source) {
     if (this.pending) this.stop();
     if (!this.worker) {
-      this.worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+      this.worker = createCompilerWorker(new URL('./worker.js', import.meta.url), { type: 'module' });
       this.worker.onerror = event => { event.preventDefault(); this.stop(event.message || 'Tower worker stopped'); };
       this.worker.onmessage = ({ data }) => {
         const pending = this.pending;
@@ -159,7 +160,7 @@ function cancelState() { $('cancel-execution').disabled = !busy && !isExecuting(
 function warmSelectedTargets() {
   for (const backend of ['llvm','native']) {
     if (!(backend === 'llvm' ? selectedTargets.wasm : selectedNativeKeys().length) || idleExecutionWorkers.has(backend) || runners[backend]?.worker) continue;
-    const worker = new Worker(new URL(backend === 'llvm' ? './execution-worker.js' : './target-worker.js',import.meta.url),{type:'module'});
+    const worker = createCompilerWorker(new URL(backend === 'llvm' ? './execution-worker.js' : './target-worker.js',import.meta.url),{type:'module'});
     idleExecutionWorkers.set(backend,worker);
     const started = performance.now();
     const discard = () => {
@@ -201,7 +202,7 @@ function renderLLVM() {
 }
 function compileNative(id,text) {
   const keys = buildKeys();
-  const worker = idleExecutionWorkers.get('native') ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
+  const worker = idleExecutionWorkers.get('native') ?? createCompilerWorker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete('native');
   const runner = runners.native = {id,worker,keys,timings:{},failure:null,completed:new Set()};
   for (const key of keys) setPhase(key,'Loading…');
@@ -421,7 +422,7 @@ function execute() {
     }
   };
   for (const backend of backends) {
-    const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
+    const worker = idleExecutionWorkers.get(backend) ?? createCompilerWorker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
     const runner = runners[backend] = { id, worker, output: '', timings: {} };
     setPhase(backend,'Loading…');

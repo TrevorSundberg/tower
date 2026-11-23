@@ -1,5 +1,6 @@
 import {TowerWASI} from './wasi-host.mjs';
 import {compilerWorkerError, compilerHeap} from './compiler-threads.mjs';
+import {compilerThreadPort} from './compiler-worker-group.mjs';
 
 let instance, status, failures, heap, slot, callback;
 const unsupported = () => { throw new Error('Compiler kernel attempted a coordinator-only host operation'); };
@@ -47,7 +48,13 @@ async function message(data, post) {
 }
 
 if (typeof self !== 'undefined') {
-  self.onmessage = ({data}) => message(data, data => self.postMessage(data));
+  self.onmessage = ({data}) => {
+    const port = compilerThreadPort(data);
+    if (port) {
+      port.onmessage = ({data}) => message(data, data => port.postMessage(data));
+      port.start();
+    } else message(data, data => self.postMessage(data));
+  };
 } else {
   const nodeThreads = 'node:worker_threads';
   const {parentPort} = await import(nodeThreads);
