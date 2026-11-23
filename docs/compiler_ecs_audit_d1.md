@@ -2376,3 +2376,71 @@ four observed ParserNodes-only names, explicit positive/near-name/wrong-unit
 cases, no speculative export allowance. Its production directories byte-match838;
 full history is queued after this source freeze. New A1/L2/L1 inputs are not covered
 by these results. Final clean bootstrap/browser/generation/release remains open.
+
+### Complete world/query join — reviewed2412f872 (ROOT35127448)
+
+Verified complete D27fb/A10beeb/L2f035/ROOT351 bundles and owner journals, including
+failed experiments and pending coverage. Source merges preserve all histories,
+D1's two stage registrations/README, receipt selector and typed24phase assertions.
+Resolved only two older D1 fixture hunks in favor of their current checks and the
+shared Stale/Exhausted message conflict in favor of A1's newer implementation.
+No independently invented producer/provider or layout. Current census is520/520
+direct paths (508test/editor/playground+12examples),1108 tracked Tower files.
+
+| Assigned path | Substantive new review and disposition |
+| --- | --- |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Complete D2 exact four-name ParserNodes-only result policy includes positive, prefix/suffix and wrong-unit rejection. No broad export permission. Independent source/receipt review completed; D2 native/WASI policies and serial instrumented checker are exact-source evidence, not wholecompiler instrumentation. |
+| scaffolding/tests/semantic_query_failure_checks.tower | New234-line A1 fixture uses private Evaluate probes and real generic/interpreter producers. Gates both successfully prepared invocations, proves constructor/function suspension and completed peer, fills actual task capacity and prewarms the existing-key hash index before pressure. Three modes x32/64bits x1/4workers check Capacity, drained pool/tickets, no peer publication, repeated terminal pump without node/component growth and exact final ledger retirement. Declaration mode exercises failed empty-batch admission. Earlier fixture abort reached the wrong hash-growth phase; corrected owner before/after evidence retained. Minimal durable production-composition target authorized; no body rewrite/new scheduler. |
+| scaffolding/tests/type_execution_receipts.tower | Three added cases derive graph pressure from live task/ready capacities. Registration failure leaves owning evaluation ticket running; terminal failure proves producer reached Succeeded before consumer-enqueue denial and forbids ready/result publication. Success control runs same queue pressure, sticky first receipt survives text clearing, and graph owner drains before final grants release. Existing stale revision/profile/dispatch, changed sequence/operand, unrelated dependency and cancellation cases remain. Existing query runner calls these; no additional target needed. |
+| scaffolding/tests/world_constructor.tower | New73-line serial fixture calls opaque production exports, importing only shared entity types rather than a duplicate world provider/layout. Measured successful constructor bytes/allocation calls bound exact-capacity, one-byte-short and every physical denial. Requires world/store same ledger, active descriptor grants, no execution lanes, occupied output unchanged and zero partial/final ownership. Existing allocations selector registers it via frontend_units_allocation. |
+| scaffolding/tests/frontend_units_allocation.tower | Adds that constructor call and derives successful compilation allowance from checked same-source reference peak plus replacement input. Prefix bound uses named actual two-snapshot contract; keeps old source through either failed replacement allocation and verifies complete retirement. No broad cap raise or removed failure assertion. |
+| scaffolding/tests/frontend_units_memory.tower | Fresh reference independently executes answer42 and records constructor/live peak. Explicit input spans and four-word header oracle remain separate. Original finite import denial and new peak-minus-one semantic denial require Capacity/no output; latter is known FAIL134 (Memory) in owner and A1 repro, retained as release gate. Exact replacement high-water, old input release, NUL offsets and cleanup remain. This is neither a passing whole-unit suite nor acceptance of arbitrary Memory fallback. |
+| scaffolding/tests/backend_units.tower | Under joined publication boundaries, stable borrowed CompilerWork anchor exposes real component/page grants, counting each physical allocation once. Exact equations distinguish released backend target/objects/pages from retained frontend components and measured graph growth. Actual type-size-derived pool slot/header admission preserves setup retry. No loose inequality replaces release equality, no second world layout/export. Owner real-overlap backend suite passes; matching new D1 union not yet run. |
+| scaffolding/tests/editor_world.tower | Synthetic first-cause Capacity receipt then Memory after text clearing tests output suppression with allocation denied, static error presentation, no new buffers and independent fresh-query recovery. Explicitly consumer evidence, separate from physical producer denial. Existing inspection entry calls it. |
+| scaffolding/tests/ide.tower | Existing IDE export invokes both actual pointer widths. Injected fixed receipt forbids execution progress/fast path, artifacts, Foundation/package publication and new handles; exact first cause/offset survives, rejected private session retires and fresh compile recovers. Bounds derive actual width array. This is browser transport consumer coverage; matching reactor remains pending, not substituted by native source compile. |
+
+Read full corresponding producer/consumer changes. World descriptors/store and
+outer CompilerWork/pool now bind budgets before allocation; legacy postconstructor
+binder remains selected-buffer-only and cannot prove all memory charged. Static
+borrowed fallback strings are distinct from owned output bytes. L2's current
+generic stage/view/publish fallback still guesses Memory; typed-result follow-up
+is pending. A1 ordinary nested pool/graph budgets and L1 cache remain separate
+owner work. New union has no runtime acceptance yet. No full type/bootstrap/
+browser/generation or publication claim; documentation adds no runtime cost.
+
+Prospective regex delta reviewed atdce8b719/490d488e, fetched only during the2412
+instrumentation freeze: no new path or census change. tests/regex.tower retains its
+independent ordinary Tower oracle and seeded cases, derives each failure prefix
+from successful lowering allocation count, and requires exact Memory plus scratch/
+output retirement. Pinned input graph canonical bytes remain unchanged. Counted
+embedded-NUL success, truncated span Invalid, populated output Invalid with old
+acceptance retained, and ordinary nullable/reversed-range/Unicode rejection None
+are distinct assertions; same-length source substitutions preserve parse spans.
+tests/frontend_main.tower adds only the owner-authorized regex selector, reusing
+existing import/default call to make the actual oracle reachable in supported
+native instrumentation. No second harness or provider. Producer spans are counted;
+legacy wrapper derives full root extent including NUL. Negative state rejection
+retains semantic failure rather than inventing Memory. Owner native/address/thread
+and n2 profiles apply to its earlier29source; currentROOT351/WASI remain pending.
+No runtime claim follows from this read-only review or metadata fetch.
+
+The joined2412 query-failure target is now durably registered through the existing
+production provider composition, with one ordinary exported main and real worker
+entry. Its unchanged twelve cases pass three native processes per selector, then
+three address/leak and three thread-instrumented processes per selector. Exact
+manual-before stdout, object identity, unique providers and three CTest entries
+pass. D2 independently reviewed the registration. Current query-smoke also passes
+three runs in each instrumented mode with real clone overlap; new world-constructor
+checks pass in the serial allocations selector in native/address/thread modes.
+These are scoped current2412 results. The known failing peak-minus-one units case,
+newerROOT302 sources, source UBSan/external LLVM, browser/generation and integrated
+publication remain outside this evidence. Detailed timing/retention and failure
+logs are retained in the journal and query_failure_before/after receipt.
+
+Follow-up review of scaffolding/tests/driver_measure_cases.tower at2412 confirms
+the emitted memory kernel repeats element count4096 and byte extent16384 beside
+its fixed u32 recurrence. D2 has narrow authorization to derive byte length from
+one count and sizeof(u32), and use that count for indexing, preserving the workload
+and independently checked outputs. Iteration/sample constants are deliberate
+measurement policy and remain unchanged. This is pending implementation/evidence,
+not a new passing fixture or an audit census change.
