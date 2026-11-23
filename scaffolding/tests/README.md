@@ -394,6 +394,13 @@ expected files; validate/extract it with a standard ZIP reader, then compare the
 directories byte for byte. Both build as library objects linked with the existing
 `guest-host-library.o`, with no zlib dependency. The journal's in-house archive
 entry records the Docker/WSL commands, codec scope and compression tradeoff.
+The DEFLATE suite also checks a specified lookahead token sequence against the
+greedy-match regression. `gzip_checks.tower DIRECTORY [PAYLOAD]` now uses the
+existing Linux process/capture boundary and `/usr/bin/gzip` for Tower-owned byte
+comparisons, seeded mixed inputs, truncation/corruption rejection and recovery.
+`deflate_profile.tower INPUT OUTPUT` measures the shared encoder on an immutable
+file (10,000 tiny, 100 small or one large compression), prints input/output bytes,
+retained output capacity and repetition count, then checks buffer disposal.
 
 `tool_process_checks.tower` validates the Linux tool runner with exact child
 arguments, empty strings, ordinary exits, signals, exec/redirection failures,
