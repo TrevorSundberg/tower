@@ -67,6 +67,13 @@ also record joined entity/component/budget counts and reconstructed text. Width
 is 4 or 8 bytes; workers are 1 or 4. Denial is serial only; healthy worker samples
 use the production allocator. The 24 GiB ledger covers the explicit world and
 checked buffers, not LLVM's allocator, legacy vectors or whole-process RSS.
+The optional `census` mode records joined core-kind live payload/page capacity,
+retained parse-rule leaves/wrappers, LLVM function/block/instruction counts and
+Linux peak RSS. Its private histogram is released at each observation. It is a
+diagnostic cost, not an overlap or browser-memory claim. The source tests include
+bound primitive spelling with lexical shadowing and nominal return reconstruction;
+`backend_import_constants` checks exact escaped string bytes/terminator and enum
+results. Import admission trials include actual interior-NUL byte initializers.
 
 The native-only `backend_execution_roots` case reads its Tower fixture from
 this directory and requires the independent output `45\n2\n` before comparing

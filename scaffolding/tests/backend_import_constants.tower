@@ -1,5 +1,8 @@
 import tower;
 
+enum ImportStatus: u32 { Ready = 7 }
+export fn import_status(): ImportStatus { return ImportStatus.Ready; }
+
 // LLVM's untyped integer constants must regain their width in Foundation text.
 // Repeated uses in different blocks/functions cannot share a branch-local value.
 fn choose(flag: bool): u64 {
@@ -58,6 +61,15 @@ fn check(): i32 {
     if wrong {
         return 6;
     }
+    // Retained public nominal signatures cross LLVM scalar locals explicitly.
+    if convert(u32, import_status()) != 7 { return 7; }
+    // Global LLVM strings include their terminator. Reconstruction must keep
+    // counted copy/fill order and escaped bytes, without a raw source NUL.
+    var text = "a\n'\\z";
+    if text[0] != 97 || text[1] != 10 || text[2] != 39
+        || text[3] != 92 || text[4] != 122 || text[5] != 0 { return 8; }
+    var utf8 = "é";
+    if utf8[0] != 195 || utf8[1] != 169 || utf8[2] != 0 { return 9; }
     return 0;
 }
 

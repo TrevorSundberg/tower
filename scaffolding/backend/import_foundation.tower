@@ -247,6 +247,12 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
             }
         }
     }
+    // Retained source signatures can return a nominal enum while the LLVM
+    // destination has its scalar representation. Preserve that ABI boundary
+    // explicitly, just as for arguments and returns.
+    var original = bi_get(c, destination);
+    if original == null { return; }
+    value = bi_cast_type(c, value, &original.type);
     bi_assign(c, bi_ref(c, destination), value);
 }
 
