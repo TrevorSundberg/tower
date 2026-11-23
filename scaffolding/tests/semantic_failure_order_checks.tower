@@ -1,0 +1,205 @@
+import tower;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.compiler_kernel;
+import .compiler.interpreter_context_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+
+enum FailureOrderMode: u32 { Reversed, Deferred, EarlierSuccess, Isolated }
+var FailureOrderBudgetBytes: usize = 65536;
+var FailureOrderBudgetRevision: u64 = 93;
+
+fn failure_order_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn failure_order_stage(c: SemanticContext*, offset: usize, fail: bool, requested: bool, gate: usize): SemanticEvaluation* {
+    var subject = sem_create(c.program.root);
+    var value = sem_attach(subject, KOperand);
+    value.type.scalar = SI32;
+    value.type.pointer_bytes = c.program.pointer_bytes;
+    value.constant = true;
+    value.start = offset;
+    var input = sem_create(c.program.root);
+    var literal = sem_attach(input, KOperand);
+    literal.type = value.type;
+    literal.constant = true;
+    literal.bits = 42;
+    if fail {
+        var zero = sem_create(c.program.root);
+        var denominator = sem_attach(zero, KOperand);
+        denominator.type = value.type;
+        denominator.constant = true;
+        var division = sem_create(c.program.root);
+        var operation = sem_attach(division, KBinary);
+        operation.type = value.type;
+        operation.op = ODiv;
+        operation.left = input;
+        operation.right = zero;
+        input = division;
+    }
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+    *result = default;
+    result.subject = subject;
+    result.owner = c.program.root;
+    result.literal = subject;
+    result.expression = input;
+    result.requested = requested;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+    *result.ready = default;
+    result.ready.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_push(&c.evaluation_jobs, bits(void*, result));
+    var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.Evaluation), 0);
+    sem_require(query != 0 && (gate == 0 || work_depend(&c.queries, query, gate)));
+    sem_evaluation_request(c, result);
+    return result;
+}
+
+fn failure_order_gate(c: SemanticContext*): usize {
+    var owner = sem_create(c.program.root);
+    var query = work_request(&c.queries, owner, convert(u32, SemanticQuery.Body), 0);
+    sem_require(query != 0 && work_seal(&c.queries, query));
+    return query;
+}
+
+fn failure_order_release(c: SemanticContext*, gate: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, gate));
+    sem_require(work_finish(&c.queries, &ticket, true));
+}
+
+fn failure_order_trial(width: u32, workers: usize, mode: FailureOrderMode, resource: bool): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var signal = work_signal_open();
+    sem_require(signal != null);
+    defer work_signal_close(signal);
+    work_signal_post(signal);
+    sem_require(work_budget_init(&budget, workers, FailureOrderBudgetBytes, FailureOrderBudgetRevision)
+        && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    sem_evaluation_begin(&context);
+    var first_gate = failure_order_gate(&context);
+    var second_gate = failure_order_gate(&context);
+    var unused = failure_order_stage(&context, 97, true, false, 0);
+    var first = failure_order_stage(&context, 83, mode != FailureOrderMode.EarlierSuccess, true, first_gate);
+    var second = failure_order_stage(&context, 11, true, true, second_gate);
+    var occupied: WorkReservation = default;
+    if resource {
+        // Valid startup requests fit the total but cannot fit beside this owner.
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot));
+        sem_require(work_budget_reserve_result(&budget, 0, 0,
+            FailureOrderBudgetBytes - snapshot.used_bytes - 1, &occupied) == WorkBudgetError.None);
+    }
+    context.declaration_isolated = mode == FailureOrderMode.Isolated;
+    failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
+        && first.started && second.started && !unused.started && program.error.length == 0
+        && program.resource.error == WorkBudgetError.None && context.workers.running == 0,
+        "Preparation retains independent stages while execution gates remain pending", &failures);
+    var first_query = work_find(&context.queries, first.subject, convert(u32, SemanticQuery.Evaluation), 0);
+    var second_query = work_find(&context.queries, second.subject, convert(u32, SemanticQuery.Evaluation), 0);
+    failure_order_release(&context, second_gate);
+    if mode == FailureOrderMode.Reversed {
+        failure_order_release(&context, first_gate);
+    } else {
+        failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Progress
+            && second.ready.ready && second.ready.failed && !first.ready.ready
+            && program.error.length == 0 && program.resource.error == WorkBudgetError.None,
+            "Later ready failure cannot publish ahead of an earlier pending source owner", &failures);
+        var dispatch = work_task(&context.queries, second_query).dispatch;
+        for(var repeat: usize = 0; repeat < 3; repeat++) {
+            failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
+                && work_task(&context.queries, second_query).dispatch == dispatch
+                && program.error.length == 0 && program.resource.error == WorkBudgetError.None,
+                "Repeated waits retain a later failure without replay or premature publication", &failures);
+        }
+        failure_order_release(&context, first_gate);
+    }
+    sem_evaluation_pump(&context);
+    if mode == FailureOrderMode.Isolated {
+        failure_order_check(program.error.length == 0 && program.resource.error == WorkBudgetError.None,
+            "Isolated failures remain on their producers for owning declaration selection", &failures);
+        context.declaration_isolated = false;
+        sem_evaluation_pump(&context);
+    }
+    var selected_offset: usize = mode == FailureOrderMode.EarlierSuccess ? 11 : 83;
+    failure_order_check(program.error.length != 0 && program.error_offset == selected_offset
+        && program.resource.error == (resource ? WorkBudgetError.Capacity : WorkBudgetError.None)
+        && (!resource || program.resource.offset == selected_offset),
+        "Canonical owner order selects the paired failure independent of numeric offsets and readiness", &failures);
+    failure_order_check(first.ready.ready && second.ready.ready && second.ready.failed
+        && first.ready.failed == (mode != FailureOrderMode.EarlierSuccess)
+        && work_task(&context.queries, first_query).state == (mode == FailureOrderMode.EarlierSuccess ? WorkState.Succeeded : WorkState.Failed)
+        && work_task(&context.queries, second_query).state == WorkState.Failed
+        && (mode != FailureOrderMode.EarlierSuccess || sem_get(first.subject).bits == 42),
+        "Joined peers keep their own outcomes before source-ordered diagnostic publication", &failures);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var first_dispatch = work_task(&context.queries, first_query).dispatch;
+    var second_dispatch = work_task(&context.queries, second_query).dispatch;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        failure_order_check(sem_evaluation_pump(&context) == SemanticPumpResult.Failed
+            && work_task(&context.queries, first_query).dispatch == first_dispatch
+            && work_task(&context.queries, second_query).dispatch == second_dispatch
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Selected failure rejects retries without duplicated effects or metadata", &failures);
+    }
+    failure_order_check(!unused.started && unused.function == null && context.workers.running == 0
+        && first.invocation.state.memory.data == null && second.invocation.state.memory.data == null,
+        "Executed failures drain storage and leave undemanded stages untouched", &failures);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    failure_order_check(compiler_world_dispose(world), "Ordered failure releases its input world", &failures);
+    if resource { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); }
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    failure_order_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
+        && work_budget_dispose(&budget), "Ordered failure retires every budget owner", &failures);
+    return failures;
+}
+
+export fn main(): i32 {
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += failure_order_trial(width, workers, FailureOrderMode.Reversed, false);
+            failures += failure_order_trial(width, workers, FailureOrderMode.Deferred, false);
+            failures += failure_order_trial(width, workers, FailureOrderMode.EarlierSuccess, false);
+            failures += failure_order_trial(width, workers, FailureOrderMode.Isolated, false);
+            failures += failure_order_trial(width, workers, FailureOrderMode.Reversed, true);
+            failures += failure_order_trial(width, workers, FailureOrderMode.Deferred, true);
+            failures += failure_order_trial(width, workers, FailureOrderMode.Isolated, true);
+        }
+    }
+    if failures == 0 { puts("Semantic failures retain canonical owner order across ready frontiers."); }
+    return failures == 0 ? 0 : 1;
+}

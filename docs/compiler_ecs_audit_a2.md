@@ -1441,3 +1441,44 @@ The first WASI entry rewrite targeted a no-main provider and failed; corrected
 OS composition targets the client only. Journal preserves exact logs/identities.
 Newer A1/L1/D1 changes, complete browser/compiler-generation instrumentation and
 publication remain outside this receipt. No further implementation changed.
+
+### Stable-page physical ownership follow-up (b63fda1 plus A2 draft, 2026-11-23)
+
+Reviewed complete changed paths and their callers; unchanged rows above retain
+original reviewed identities. The 35 library plus two kernel production files
+remain covered; new focused tests below extend the disclosed inventory.
+
+| Path relative to scaffolding | Ownership/locality conclusion, evidence and disposition |
+| --- | --- |
+| library/entity_types.tower | Page adds an owning WorkBuffer; oversized component prefix owns its receipt. EntityComponent/Store/Stage layouts stay unchanged. Stable sparse handles/payloads and derived table columns remain distinct from packed payload storage. Native page/prefix sizes152/120B, wasm32 sizes96/80B checked through real execution. |
+| library/entities.tower | Complete allocation/free, add/result, component reserve and table prepare/reserve paths reviewed. Pre-allocation physical grants, caller-private exact errors, self-header receipt copied before free, last-live reclamation, pending-table rollback and stage pool detach preserved. No shared store error write. Three smallest/public aggregate gates, existing lifetime/table/stage checks, concurrent normal+ASan/TSan and serial failure sweeps pass. Node/index/table/stage physical allocations remain a gap; store budget must be supplied before allocation. |
+| library/entity_api.tower | New required-private-result declaration matches sole entities provider. Legacy wrapper remains. No duplicated body/provider or new transport. Parser observer and B2 world constructor adoption await their owners; source patch is review-only until profiles/checkpoint. |
+| library/compiler_work.tower | Constructor consumes exact component result and closes partial plan before returning actual error. Ordered identities, private graph/access ownership and stale/cancel contracts unchanged. Physical component-page charges now join descriptor/graph/slot grants. Meaningful metadata before/after wallCPU/RSS/real-overlap profiles pending; no neutral-cost claim. |
+| tests/entity_locality.tower | Observer changes from malloc_usable_size(page) to compiler_buffer_allocation_size(actual receipt.capacity), since page no longer equals raw malloc base. Immutable before observer reports comparable old raw requested bytes. Reference sums, stable addresses and sparse survivor workload unchanged. Physical request bytes are not RSS/usable bytes; timings pending. |
+| tests/work_constructor_budget.tower | Actual page bytes derived from an unbounded one-unit plan; exact Invalid for request larger than total ledger and Capacity for a fitting request exceeding available bytes. Retains old failure thresholds and adds fitting-page/failing-graph boundary. First wrong expectation and diagnostic retained, corrected fixture passes. |
+| tests/entity_component_budget.tower | Entire new fixture reviewed: private first page before barrier, actual2/4 workers, cancellation/second-page Capacity, 48 trials, shared gate, separate pools/receipts, pre-view-close reference holds, postjoin publication/discard and coordinator finalizers. Shared-release ordering race in initial test fixed and failures retained. Case array bounds derived; stress count named. Current normal+3ASan/LSan+3TSan pass,168 fixture+47 production-runtime functions instrumented. |
+| tests/entity_component_faults.tower | Entire new serial fault sweep reviewed: pooled/oversized and published/staged modes derive from actual choices array; named bounded retry limit. Memory denial preserves prior value/address/membership and grants; retry and publication retry preserve receipt; ending allocator/ledger counts zero. Current pass uses serial runtime intentionally, not concurrency evidence. |
+| tests/entity_component_layout.tower | Entire new portable test reviewed. Native and wasm32 run identical typed code, checking actual stride/backpointer/alignment, receipt totals, oversized denial/retry, pinned existing lookup and last-live/free cleanup. Payload length comes from registered type; all target sizes use sizeof. Native page4295/oversized37023 physical bytes; wasm32 page2683/oversized36963; all assertions and ending0 pass. No threaded browser claim. |
+| tests/parser_benchmark.tower (B1) | Observer reread, no edit. Existing page raw-size formula omits compiler header; individual formula omits new WorkBuffer prefix too. Proposed owner change reads actual page/prefix receipt.capacity via compiler_buffer_allocation_size, preserving layout/live-owner assertions. Await B1 review/adoption; current numbers cannot be relabeled exact post-change physical bytes. |
+| tests/parser_retention_observer.tower (B1) | Entire observer reread, no edit. Joined private enumeration/overflow and live-owner checks remain sound; page byte result needs actual receipt+compiler header. Individual components are deliberately excluded. Do not confuse bound-per-live-component with low fragmentation. |
+| host/work_dispatch.tower / host/work_portable.tower / cmake/TowerWorkHost.cmake / cmake/TowerCompilerUtilities.cmake (B2/D1) | Current selected source serial failure-allocator composition has no work_thread_entry and must suppress final linker callback export via TOWER_SERIAL_WORK_TRANSPORT. Native composition imports the sole dispatch provider. Historical separate-pool API serial-provider patch is retired. Correct contract sent to coordinator after newer B2 link message; no owner files changed. Actual local frontend serial parser passes; newer remote failure still needs its exact inputs. |
+
+Recovered full native page closure and refreshed focused receipts are detailed
+in the journal. ASan/TSan evidence uses production allocator/transport; UBSan and
+universal race freedom are not established. Source hashes were rechecked after
+resume before adding the portable fixture; production remains identical to that
+passed closure. Global A1/L1/D1 ABI union, final clean public bootstrap/browser/
+generation/publication and full lane acceptance remain open. No publication lease.
+
+Page checkpoint profile disposition:136first-window plus120extended metadata
+and32whole-compiler executions all check outputs. Native page requests add104B
+per page; large survivor retention remains5970944B for32768B useful payload.
+Nine-pair accounted8worker wall9.847->10.772ms (+9.4%) reproduces, four workers
+are useful1.64x and eight are not. Earlier plain-four regression reverses on
+more samples, so no blanket cost attribution. Full small-Tower serial+2.6%,
+large-Foundation serial matches; four-worker Foundation loses versus serial for
+both versions. All canonical outputs/reparse agree exactly. Journal records
+wall/CPU/RSS/physical grants/retained metadata, environment/inputs/sample counts
+and limitations. Common budget free-slot scanning/contention remains a measured
+follow-up candidate; per-wait attribution is not yet collected. This checkpoint
+is reviewable ownership progress, not full A2 acceptance or publication readiness.

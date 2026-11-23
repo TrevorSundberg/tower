@@ -1,5 +1,6 @@
 import tower;
 import .library.vector;
+import .library.work_budget_types;
 
 struct SemanticModules {
     root: void*;
@@ -13,6 +14,10 @@ struct FrontendSource {
     length: usize;
 }
 
+// A fixed receipt survives optional diagnostic recovery. The owning pipeline
+// selects source order; clearing presentation text never clears this failure.
+struct SemanticResourceFailure { error: WorkBudgetError; offset: usize; }
+
 struct SemanticProgram {
     pointer_bytes: u32;
     root: void*;
@@ -21,4 +26,5 @@ struct SemanticProgram {
     error: vector(u8);
     error_offset: usize;
     modules: SemanticModules*;
+    resource: SemanticResourceFailure;
 }

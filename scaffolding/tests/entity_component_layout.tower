@@ -1,0 +1,80 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+var ComponentLayoutBudgetBytes: usize = 1048576;
+var ComponentLayoutLargeBytes: usize = 32768;
+var ComponentLayoutAlignment: usize = 4096;
+
+fn component_layout_check(ok: bool): void {
+    if !ok { trap("Component allocation target layout regression", 0); }
+}
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Component layout fixture has no lifecycle payloads", 0);
+}
+
+// Run unchanged on native and wasm32. All receipts and offsets use this
+// target's actual types; no x64 header size is embedded in the reference.
+export fn main(argc: i32, argv: u8**): i32 {
+    var budget: WorkBudget = default;
+    component_layout_check(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    component_layout_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var store_bytes = budget.used_bytes;
+    var owner = entity_create(store);
+    var other = entity_create(store);
+    var type = entity_create(store);
+    var large_type = entity_create(store);
+    component_layout_check(owner != null && other != null && type != null && large_type != null
+        && entity_register(type, sizeof(u64), alignof(u64), 0)
+        && entity_register(large_type, ComponentLayoutLargeBytes, ComponentLayoutAlignment, 0));
+    var error = WorkBudgetError.Invalid;
+    var first = entity_component_add_result(owner, type, &error);
+    component_layout_check(first != null && error == WorkBudgetError.None && first.page != null);
+    *bits(u64*, first.data) = 1234567;
+    var second = entity_component_add_result(other, type, &error);
+    component_layout_check(second != null && error == WorkBudgetError.None
+        && second.page == first.page && first.page.live == 2
+        && second.data == first.data + first.page.stride
+        && bits(usize, first.data) % alignof(u64) == 0
+        && entity_component_from_data(first.data) == first
+        && entity_component_from_data(second.data) == second);
+    var page_bytes = compiler_buffer_allocation_size(first.page.allocation.capacity);
+    component_layout_check(budget.used_bytes == store_bytes + page_bytes);
+    var block: WorkReservation = default;
+    component_layout_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - 1, &block));
+    component_layout_check(entity_component_add_result(owner, large_type, &error) == null
+        && error == WorkBudgetError.Capacity && owner.component_count == 1);
+    component_layout_check(work_budget_release(&budget, &block));
+    var large = entity_component_add_result(owner, large_type, &error);
+    component_layout_check(large != null && error == WorkBudgetError.None && large.page == null
+        && bits(usize, large.data) % large_type.data_alignment == 0
+        && entity_component_from_data(large.data) == large);
+    fill(large.data, 91, large_type.data_size);
+    var allocation = bits(EntityComponentAllocation*, large.allocation);
+    var large_bytes = compiler_buffer_allocation_size(allocation.allocation.capacity);
+    component_layout_check(&allocation.component == large && budget.live == 3
+        && budget.used_bytes == store_bytes + page_bytes + large_bytes
+        && large.data[large_type.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
+    var view = entity_view_open(owner);
+    component_layout_check(view != null && entity_component_add_result(owner, type, &error) == first
+        && error == WorkBudgetError.None);
+    entity_view_close(view);
+    print(sizeof(usize)); print(sizeof(WorkBuffer)); print(sizeof(EntityComponentPage));
+    print(sizeof(EntityComponentAllocation)); print(page_bytes); print(large_bytes);
+    component_layout_check(entity_component_remove(owner, type)
+        && budget.used_bytes == store_bytes + page_bytes + large_bytes);
+    component_layout_check(entity_component_remove(other, type)
+        && budget.used_bytes == store_bytes + large_bytes);
+    component_layout_check(entity_component_remove(owner, large_type) && budget.used_bytes == store_bytes);
+    entity_release(owner); entity_release(other); entity_release(type); entity_release(large_type);
+    component_layout_check(store.entity_count == 0 && store.component_count == 0
+        && entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget));
+    print(0);
+    return 0;
+}

@@ -1,0 +1,255 @@
+import tower;
+import .compiler.type_object_index_api;
+import .compiler.type_object_index_types;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.format_api;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.vector;
+import storage_api;
+import utility_checks;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
+
+var TypeObjectStorageBytes: usize = 65536;
+enum TypeIndexOutcome: u32 { Success, CapacityStart, CapacityGrow, MemoryStart, MemoryGrow, WrongOwner }
+
+fn type_object_storage_number(value: usize): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var formatter: FormatEngine = {result: &text, ..default};
+    format_unsigned(&formatter, convert(u64, value));
+    utility_check(!text.failed && vector_push(&text.text, 0), "Type storage measurement text");
+    puts(text.text.data);
+}
+
+fn type_object_budget_close(budget: WorkBudget*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(budget, &snapshot) && snapshot.live == 0
+        && snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && work_budget_dispose(budget),
+        "Type storage releases every byte and lane grant");
+}
+
+fn type_object_storage_query(type: FoundationType*, root: void*, budget: WorkBudget*, answer: bool*): WorkBudgetError {
+    if type != null { return type_object_abi_safe_result(type, budget, answer); }
+    return type_object_program_result(root, budget, answer);
+}
+
+fn type_object_query_failures(type: FoundationType*, root: void*, wanted: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, 1), "Type query baseline budget");
+    var allocations = tower_test_buffer_allocations();
+    var answer = !wanted;
+    utility_check(type_object_storage_query(type, root, &budget, &answer) == WorkBudgetError.None && answer == wanted,
+        "Type query independent baseline answer");
+    allocations = tower_test_buffer_allocations() - allocations;
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.peak_bytes != 0 && allocations != 0,
+        "Type query measures real traversal scratch");
+    puts(type != null ? "Type ABI traversal: allocator calls, peak charged bytes"
+        : "Type reachability traversal: allocator calls, peak charged bytes");
+    type_object_storage_number(allocations);
+    type_object_storage_number(snapshot.peak_bytes);
+    type_object_budget_close(&budget);
+    // Disposal retains the session revision so stale receipts cannot revive.
+    utility_check(work_budget_init(&budget, 1, snapshot.peak_bytes - 1, budget.revision + 1),
+        "Type query measured capacity boundary");
+    utility_check(type_object_storage_query(type, root, &budget, &answer) == WorkBudgetError.Capacity,
+        "Type query fails below its measured physical peak without a semantic answer");
+    type_object_budget_close(&budget);
+    // Every actual allocator prefix is denied with a fresh ledger. This serial
+    // fault transport exercises rollback; it provides no threaded race evidence.
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, budget.revision + 1), "Type query fault budget");
+        tower_test_buffer_fail_after(failure);
+        var error = type_object_storage_query(type, root, &budget, &answer);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(error == WorkBudgetError.Memory, "Every type query allocation failure is explicit");
+        type_object_budget_close(&budget);
+        utility_check(tower_test_buffer_count() == buffers, "Type query failure retires all scratch");
+    }
+}
+
+fn type_object_index_trial(width: u32, outcome: TypeIndexOutcome): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, 1)
+        && work_budget_init(&other, 1, TypeObjectStorageBytes, 2), "Type index budgets");
+    var index: TypeObjectIndex = default;
+    var type: FoundationType = {scalar: SI32, pointer_bytes: width, ..default};
+    var fresh = outcome == TypeIndexOutcome.CapacityStart || outcome == TypeIndexOutcome.MemoryStart;
+    if !fresh {
+        utility_check(type_object_index_intern(&index, &budget, &type) == 1, "Type index begins at one");
+        utility_check(index.values.capacity <= convert(usize, FoundationPointerDepthLimit),
+            "Fixture fills the measured initial capacity with valid distinct pointer types");
+        for(var i: usize = 1; i < index.values.capacity; i++) {
+            type.pointers = convert(u32, i);
+            utility_check(type_object_index_intern(&index, &budget, &type) == convert(u64, i) + 1,
+                "Type index preserves distinct descriptor order");
+        }
+        type.pointers = 0;
+        utility_check(type_object_index_intern(&index, &budget, &type) == 1,
+            "Type index reuses semantic descriptor identity");
+        type.pointers = convert(u32, index.values.length);
+        if outcome == TypeIndexOutcome.WrongOwner { type.pointers = 0; }
+    }
+    var data = index.values.data;
+    var count = index.values.length;
+    var capacity = index.values.capacity;
+    var occupied: WorkReservation = default;
+    if outcome == TypeIndexOutcome.CapacityStart || outcome == TypeIndexOutcome.CapacityGrow {
+        var snapshot: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &snapshot)
+            && work_budget_reserve(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied),
+            "Type index denial occupies the exact remaining allowance");
+    }
+    var memory = outcome == TypeIndexOutcome.MemoryStart || outcome == TypeIndexOutcome.MemoryGrow;
+    if memory { tower_test_buffer_fail_after(0); }
+    var result = type_object_index_intern(&index, outcome == TypeIndexOutcome.WrongOwner ? &other : &budget, &type);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if outcome == TypeIndexOutcome.Success {
+        utility_check(result == convert(u64, count) + 1 && index.error == WorkBudgetError.None
+            && index.values.length == count + 1 && index.values.capacity > capacity,
+            "Type index grows and publishes one complete descriptor");
+    } else {
+        var wanted = memory ? WorkBudgetError.Memory
+            : outcome == TypeIndexOutcome.WrongOwner ? WorkBudgetError.Invalid : WorkBudgetError.Capacity;
+        utility_check(result == 0 && index.error == wanted && index.values.data == data
+            && index.values.length == count && index.values.capacity == capacity,
+            "Denied type index growth preserves the old physical owner and exact first error");
+        var allocations = tower_test_buffer_allocations();
+        utility_check(type_object_index_intern(&index, &budget, &type) == 0 && index.error == wanted
+            && tower_test_buffer_allocations() == allocations,
+            "A failed type index cannot retry or overwrite its first error");
+    }
+    for(var i: usize = 0; i < count; i++) {
+        utility_check(index.values.data[i].scalar == SI32 && index.values.data[i].pointers == convert(u32, i)
+            && index.values.data[i].pointer_bytes == width && index.values.data[i].record == null,
+            "Type index keeps every earlier descriptor intact");
+    }
+    if occupied.owner != null { utility_check(work_budget_release(&budget, &occupied), "Type index denial release"); }
+    type_object_index_dispose(&index);
+    utility_check(index.values.data == null && index.values.length == 0 && index.values.capacity == 0
+        && index.error == WorkBudgetError.None, "Type index disposal resets the owner");
+    type_object_budget_close(&budget);
+    type_object_budget_close(&other);
+    utility_check(tower_test_buffer_count() == buffers, "Type index failure leaves no allocation behind");
+}
+
+// This uses real world-owned Foundation entities, including a self-referential
+// nominal record. The expected ABI answers follow the actual field types.
+fn type_object_storage_graph(width: u32): void {
+    var buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Type storage world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    utility_check(root != null, "Type storage root");
+    var safe = sem_create(root);
+    var safe_node = sem_attach(safe, KType);
+    safe_node.type = {scalar: SStruct, record: safe, pointer_bytes: width, ..default};
+    var link = sem_create(safe);
+    var link_node = sem_attach(link, KFieldDeclaration);
+    link_node.type = safe_node.type;
+    link_node.type.pointers = 1;
+    utility_check(vector_push(&safe_node.items, link), "Recursive ABI fixture field");
+    var twin = sem_create(root);
+    var twin_node = sem_attach(twin, KType);
+    twin_node.type = {scalar: SStruct, record: twin, pointer_bytes: width, ..default};
+    var twin_link = sem_create(twin);
+    var twin_link_node = sem_attach(twin_link, KFieldDeclaration);
+    twin_link_node.type = twin_node.type;
+    twin_link_node.type.pointers = 1;
+    utility_check(vector_push(&twin_node.items, twin_link), "Identical-shape nominal ABI fixture");
+    var unsafe = sem_create(root);
+    var unsafe_node = sem_attach(unsafe, KType);
+    unsafe_node.type = {scalar: SStruct, record: unsafe, pointer_bytes: width, ..default};
+    var hidden = sem_create(unsafe);
+    var hidden_node = sem_attach(hidden, KFieldDeclaration);
+    hidden_node.type = {scalar: SType, pointer_bytes: width, ..default};
+    utility_check(vector_push(&unsafe_node.items, hidden), "Metatype ABI fixture field");
+    var reference = sem_create(root);
+    var reference_node = sem_attach(reference, KTypeReference);
+    reference_node.type = hidden_node.type;
+    reference_node.element = {scalar: SI32, pointer_bytes: width, ..default};
+    var program = sem_create(root);
+    var program_node = sem_attach(program, KProgram);
+    var function = sem_create(program);
+    var function_node = sem_attach(function, KFunction);
+    function_node.type = {scalar: SVoid, pointer_bytes: width, ..default};
+    function_node.exported = true;
+    var body = sem_create(function);
+    var body_node = sem_attach(body, KBlock);
+    function_node.body = body;
+    var recursive = sem_create(body);
+    var recursive_node = sem_attach(recursive, KCall);
+    recursive_node.type = function_node.type;
+    recursive_node.binding = function;
+    utility_check(vector_push(&program_node.items, function) && vector_push(&body_node.items, recursive),
+        "Recursive function uses the canonical declaration and bound call relationship");
+    var entities = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, TypeObjectStorageBytes, 1), "Type graph budget");
+    var answer = false;
+    utility_check(type_object_abi_safe_result(&safe_node.type, &budget, &answer) == WorkBudgetError.None && answer,
+        "Recursive ordinary record has a safe ABI");
+    utility_check(type_object_abi_safe_result(&unsafe_node.type, &budget, &answer) == WorkBudgetError.None && !answer,
+        "Nested metatype is a semantic rejection, not a resource failure");
+    utility_check(type_object_program_result(reference, &budget, &answer) == WorkBudgetError.None && answer,
+        "Runtime type-reference node preserves its canonical program");
+    utility_check(type_object_program_result(safe, &budget, &answer) == WorkBudgetError.None && !answer,
+        "Ordinary nominal metadata alone does not become a runtime type value");
+    utility_check(type_object_program_result(program, &budget, &answer) == WorkBudgetError.None && !answer,
+        "Recursive scalar function terminates through the disposable visited index");
+    var index: TypeObjectIndex = default;
+    utility_check(type_object_index_intern(&index, &budget, &safe_node.type) == 1
+        && type_object_index_intern(&index, &budget, &twin_node.type) == 2
+        && type_object_index_intern(&index, &budget, &unsafe_node.type) == 3
+        && type_object_index_intern(&index, &budget, &safe_node.type) == 1,
+        "Identical-shape nominal entities retain distinct identity in the disposable index");
+    type_object_index_dispose(&index);
+    var snapshot: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+        && work_budget_reserve(&budget, 0, 0, snapshot.bytes, &occupied), "Type traversal exact denial boundary");
+    utility_check(type_object_abi_safe_result(&safe_node.type, &budget, &answer) == WorkBudgetError.Capacity
+        && type_object_program_result(reference, &budget, &answer) == WorkBudgetError.Capacity,
+        "Type traversal budget denial is distinct from either semantic answer");
+    utility_check(work_budget_release(&budget, &occupied), "Type traversal denial release");
+    type_object_budget_close(&budget);
+
+    type_object_query_failures(&safe_node.type, null, true);
+    type_object_query_failures(null, program, false);
+    utility_check(entity_store_count(store) == entities && entity_store_component_count(store) == components,
+        "Type traversals never mutate or retain canonical entities");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Type graph and all traversal scratch retire completely");
+}
+
+fn type_object_storage_tests(): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        puts("Type storage target pointer bytes");
+        type_object_storage_number(convert(usize, width));
+        type_object_index_trial(width, TypeIndexOutcome.Success);
+        type_object_index_trial(width, TypeIndexOutcome.CapacityStart);
+        type_object_index_trial(width, TypeIndexOutcome.CapacityGrow);
+        type_object_index_trial(width, TypeIndexOutcome.MemoryStart);
+        type_object_index_trial(width, TypeIndexOutcome.MemoryGrow);
+        type_object_index_trial(width, TypeIndexOutcome.WrongOwner);
+        type_object_storage_graph(width);
+    }
+}

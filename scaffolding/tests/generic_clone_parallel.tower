@@ -2,6 +2,9 @@ import tower;
 import .compiler.compiler_kernel;
 import .compiler.generic_body_types;
 import .compiler.semantic_work_ids;
+import .compiler.format_api;
+import .compiler.format_types;
+import .library.vector;
 import .library.work_pool;
 import .library.work_graph;
 import .library.work_budget;
@@ -25,8 +28,10 @@ extern fn pthread_self(): usize;
 enum CloneTrial: u32 { Publish, Cancel, FailedPeer }
 var CloneTrialBudgetBytes: usize = 262144;
 var CloneTrialWidth: usize = 256;
+var CloneTrialMaximumWidth: usize = 1536;
 var CloneTrialDepth: usize = 8;
 var CloneTrialJobs: usize = 4;
+var CloneTrialTargetNanoseconds: u64 = 2000000;
 
 struct CloneParallelJob {
     kernel: CompilerKernel;
@@ -48,6 +53,34 @@ fn clone_parallel_clock(): u64 {
     return convert(u64, time.seconds) * 1000000000 + convert(u64, time.nanoseconds);
 }
 
+fn clone_parallel_number(f: FormatEngine*, name: u8*, value: u64): void {
+    format_text(f, name);
+    format_unsigned(f, value);
+}
+
+fn clone_parallel_report(workers: usize, outcome: CloneTrial, width: usize, jobs: CloneParallelJob*, peak: usize, overlap: bool): void {
+    for(var i: usize = 0; i < workers; i++) {
+        var text: FormatResult = default;
+        defer format_dispose(&text);
+        var f: FormatEngine = {result: &text, ..default};
+        var job = &jobs[i];
+        clone_parallel_number(&f, "Clone interval workers=", convert(u64, workers));
+        clone_parallel_number(&f, " outcome=", convert(u64, outcome));
+        clone_parallel_number(&f, " width=", convert(u64, width));
+        clone_parallel_number(&f, " depth=", convert(u64, CloneTrialDepth));
+        clone_parallel_number(&f, " job=", convert(u64, i));
+        clone_parallel_number(&f, " thread=", convert(u64, job.thread));
+        clone_parallel_number(&f, " nodes=", convert(u64, job.request.copied));
+        clone_parallel_number(&f, " start_ns=", job.started);
+        clone_parallel_number(&f, " stop_ns=", job.stopped);
+        clone_parallel_number(&f, " duration_ns=", job.stopped - job.started);
+        clone_parallel_number(&f, " peak_bytes=", convert(u64, peak));
+        clone_parallel_number(&f, " overlap=", overlap ? 1 : 0);
+        utility_check(!text.failed && vector_push(&text.text, 0), "Clone interval diagnostic formatting");
+        puts(text.text.data);
+    }
+}
+
 // The barrier surrounds only admission. Timed intervals cover the actual
 // production clone kernel, excluding the barrier; every result remains private.
 fn clone_parallel_execute(payload: void*): void {
@@ -65,7 +98,7 @@ fn clone_parallel_execute(payload: void*): void {
     job.stopped = clone_parallel_clock();
 }
 
-fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial): void {
+fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial, width: usize): u64 {
     var gate = work_signal_open();
     var release = work_signal_open();
     var ledger_gate = work_signal_open();
@@ -83,17 +116,17 @@ fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial): void {
     utility_check(work_budget_reserve(&budget, 1, 1, 0, &outer)
         && work_budget_reserve(&budget, 0, workers - 1, 0, &extra), "Clone reserves caller and extra lanes before dispatch");
     var fixture: GenericCloneFixture = default;
-    generic_clone_fixture_open(&fixture, CloneTrialWidth, CloneTrialDepth, workers, &budget);
+    generic_clone_fixture_open(&fixture, width, CloneTrialDepth, workers, &budget);
     var graph: WorkGraph = default;
     work_init(&graph, 1, 1);
     defer work_dispose(&graph);
     var pool: WorkPool = default;
     utility_check(work_pool_open_kernel(&pool, workers, clone_parallel_execute), "Clone production pool opens");
-    var jobs: CloneParallelJob[4];
-    var pointers: CloneParallelJob*[4];
+    var jobs: CloneParallelJob[CloneTrialJobs];
+    var pointers: CloneParallelJob*[CloneTrialJobs];
     var arrived: usize = 0;
     var domain = convert(u64, SemanticWorkDomain.Compiler);
-    var count = CloneTrialWidth * CloneTrialDepth;
+    var count = width * CloneTrialDepth;
     for(var i: usize = 0; i < workers; i++) {
         var job = &jobs[i];
         *job = { gate: gate, release: release, arrived: &arrived, participants: workers, ..default };
@@ -145,9 +178,6 @@ fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial): void {
             utility_check(!work_finish(&graph, &job.ticket, true), "Finished clone ticket cannot publish twice");
         }
     }
-    if workers > 1 && outcome != CloneTrial.FailedPeer {
-        utility_check(overlap, "Production clone kernel intervals overlap on distinct native threads");
-    }
     if outcome == CloneTrial.Cancel {
         utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
             "Cancelled clone stages publish no entities or payloads");
@@ -167,16 +197,42 @@ fn generic_clone_parallel_trial(workers: usize, outcome: CloneTrial): void {
     generic_clone_fixture_close(&fixture);
     utility_check(work_budget_snapshot(&budget, &released) && released.live == 0 && released.used_lanes == 0
         && released.used_bytes == 0 && work_budget_dispose(&budget), "Clone world and workers release the shared ledger");
-    puts("Generic clone native trial: workers, outcome, peak physical bytes");
-    generic_clone_number(workers); generic_clone_number(convert(usize, outcome)); generic_clone_number(released.peak_bytes);
+    clone_parallel_report(workers, outcome, width, &jobs[0], released.peak_bytes, overlap);
+    if workers > 1 && outcome != CloneTrial.FailedPeer {
+        utility_check(overlap, "FAILED: production clone kernel intervals did not overlap on distinct native threads");
+    }
+    return jobs[0].stopped - jobs[0].started;
 }
 
 fn generic_clone_parallel_tests(): void {
     utility_check(work_thread_available() && work_thread_capacity() >= 2, "Clone overlap requires at least two native lanes");
-    generic_clone_parallel_trial(1, CloneTrial.Publish);
-    generic_clone_parallel_trial(2, CloneTrial.Publish);
+    // Calibrate real, fully checked clone work before concurrent admission. Use
+    // the faster of two serial samples so a cold allocation or descheduling is
+    // less likely to select an undersized body. The finite workload cap keeps
+    // four requests plus their headers below the normal expansion allowance.
+    // This heuristic never replaces the required measured overlap below.
+    var width = CloneTrialWidth;
+    var duration: u64 = 0;
+    loop {
+        duration = generic_clone_parallel_trial(1, CloneTrial.Publish, width);
+        var repeated = generic_clone_parallel_trial(1, CloneTrial.Publish, width);
+        if repeated < duration { duration = repeated; }
+        if duration >= CloneTrialTargetNanoseconds || width == CloneTrialMaximumWidth { break; }
+        width *= 2;
+        if width > CloneTrialMaximumWidth { width = CloneTrialMaximumWidth; }
+    }
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var f: FormatEngine = {result: &text, ..default};
+    clone_parallel_number(&f, "Clone calibration selected_width=", convert(u64, width));
+    clone_parallel_number(&f, " fastest_serial_ns=", duration);
+    clone_parallel_number(&f, " target_ns=", CloneTrialTargetNanoseconds);
+    clone_parallel_number(&f, " maximum_width=", convert(u64, CloneTrialMaximumWidth));
+    utility_check(!text.failed && vector_push(&text.text, 0), "Clone calibration diagnostic formatting");
+    puts(text.text.data);
+    generic_clone_parallel_trial(2, CloneTrial.Publish, width);
     var workers = work_thread_capacity() < CloneTrialJobs ? work_thread_capacity() : CloneTrialJobs;
-    generic_clone_parallel_trial(workers, CloneTrial.Publish);
-    generic_clone_parallel_trial(workers, CloneTrial.Cancel);
-    generic_clone_parallel_trial(workers, CloneTrial.FailedPeer);
+    generic_clone_parallel_trial(workers, CloneTrial.Publish, width);
+    generic_clone_parallel_trial(workers, CloneTrial.Cancel, width);
+    generic_clone_parallel_trial(workers, CloneTrial.FailedPeer, width);
 }

@@ -1,0 +1,105 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.foundation_tags;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.vector;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+
+fn receipt_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn receipt_trial(reserve: bool, alias: bool): u32 {
+    var failures: u32 = 0;
+    var program: SemanticProgram = default;
+    var context: SemanticContext = default;
+    context.program = &program;
+    var message: vector(u8) = default;
+    var text = "First resource producer";
+    var length: usize = 0;
+    while text[length] != 0 { length++; }
+    sem_require(vector_reserve(&message, length + 1));
+    for(var i: usize = 0; i <= length; i++) { message.data[i] = text[i]; }
+    message.length = length;
+    defer vector_dispose(&message);
+    if reserve { sem_require(vector_reserve(&program.error, length + 1)); }
+    defer vector_dispose(&program.error);
+    receipt_check(!sem_restore_resource(&context, WorkBudgetError.None, &message, 83)
+        && program.resource.error == WorkBudgetError.None && program.error.length == 0,
+        "Ordinary source errors do not invent a resource failure", &failures);
+    var source = &message;
+    if alias {
+        for(var i: usize = 0; i <= length; i++) { program.error.data[i] = message.data[i]; }
+        program.error.length = length;
+        source = &program.error;
+    }
+    var capacity = program.error.capacity;
+    var data = program.error.data;
+    receipt_check(sem_restore_resource(&context, WorkBudgetError.Capacity, source, 83)
+        && program.resource.error == WorkBudgetError.Capacity && program.resource.offset == 83
+        && program.error_offset == 83 && program.error.capacity == capacity && program.error.data == data,
+        "Receipt publication retains source identity without allocating diagnostic storage", &failures);
+    receipt_check(reserve ? program.error.length == length && sem_equal(program.error.data, text)
+        : program.error.length == 0, "Reserved text and text-free failure both preserve the fatal receipt", &failures);
+    sem_restore_resource(&context, WorkBudgetError.Memory, &message, 11);
+    receipt_check(program.resource.error == WorkBudgetError.Capacity && program.resource.offset == 83
+        && program.error_offset == 83, "Caller source order wins over a later numerically smaller offset", &failures);
+    program.error.length = 0;
+    sem_restore_resource(&context, WorkBudgetError.Memory, &message, 11);
+    receipt_check(program.resource.error == WorkBudgetError.Capacity && program.error.length == 0
+        && program.resource.offset == 83 && sem_equal(sem_resource_message(program.resource.error), "Semantic memory budget exceeded"),
+        "Recovery cannot attach another producer's message to the first resource receipt", &failures);
+    return failures;
+}
+
+fn capture_cancel_trial(width: u32): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(1);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var declaration = sem_create(root);
+    sem_attach(declaration, KDeclare).start = 17;
+    var query = sem_capture_request(&context, declaration);
+    receipt_check(sem_capture_pump(&context) == SemanticPumpResult.Complete
+        && program.resource.error == WorkBudgetError.None && work_ok(&context.queries),
+        "An undemanded capture is neither a resource failure nor a cycle", &failures);
+    sem_require(query != 0 && work_demand(&context.queries, query));
+    work_cancel(&context.queries);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    for(var i: usize = 0; i < 3; i++) {
+        receipt_check(sem_capture_pump(&context) == SemanticPumpResult.Failed,
+            "A cancelled demanded capture fails instead of waiting forever", &failures);
+    }
+    receipt_check(context.queries.running == 0 && context.workers.running == 0
+        && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+        && program.resource.error == WorkBudgetError.None,
+        "Cancelled entry cannot replay capture effects or invent a resource denial", &failures);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    receipt_check(compiler_world_dispose(world), "Cancelled capture releases its owning world", &failures);
+    return failures;
+}
+
+export fn main(): i32 {
+    var failures = receipt_trial(false, false) + receipt_trial(true, false) + receipt_trial(true, true);
+    failures += capture_cancel_trial(4) + capture_cancel_trial(8);
+    if failures == 0 { puts("Semantic resource receipts and cancelled capture entries retain their ownership."); }
+    return failures == 0 ? 0 : 1;
+}

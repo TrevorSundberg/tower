@@ -291,24 +291,25 @@ export fn entity_component_get(owner: Entity*, type: Entity*): EntityComponent* 
 }
 
 // Reserve helpers keep indexes separate from component payloads.
-fn entity_reserve_components(data: EntityComponent***, capacity: usize*, count: usize): bool {
+fn entity_reserve_components(data: EntityComponent***, capacity: usize*, count: usize): WorkBudgetError {
     if count < *capacity {
-        return true;
+        return WorkBudgetError.None;
     }
     var next = *capacity *2;
-    if next < *capacity {
-        return false;
+    if count > *capacity || next < *capacity {
+        return WorkBudgetError.Invalid;
     }
     if next < 4 {
         next = 4;
     }
+    if next > ~convert(usize, 0) / sizeof(EntityComponent*) { return WorkBudgetError.Invalid; }
     var memory = realloc(EntityComponent*, *data, next);
     if memory == null {
-        return false;
+        return WorkBudgetError.Memory;
     }
     *data = memory;
     *capacity = next;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn entity_component_page_detach(page: EntityComponentPage*): void {
@@ -327,7 +328,8 @@ fn entity_component_pool_detach(pool: EntityComponentPool*): void {
     while pool.first != null { entity_component_page_detach(pool.first); }
 }
 
-fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
+fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetError*): EntityComponent* {
+    *error = WorkBudgetError.Invalid;
     var alignment = type.data_alignment;
     var pointer_size = sizeof(EntityComponent*);
     if alignment < pointer_size { alignment = pointer_size; }
@@ -353,15 +355,17 @@ fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
             // capacity*slot is bounded by the page byte policy. Header/alignment
             // overhead is also bounded here because at least two slots fit.
             bytes = sizeof(EntityComponentPage) + capacity * slot + pointer_size + mask;
-            var allocation = alloc(u8, bytes);
-            if allocation == null { return null; }
-            page = bits(EntityComponentPage*, allocation);
-            fill(page, 0, sizeof(EntityComponentPage));
+            var allocation: WorkBuffer = default;
+            *error = work_buffer_resize(&allocation, owner.store.budget, bytes, 0);
+            if *error != WorkBudgetError.None { return null; }
+            page = bits(EntityComponentPage*, allocation.data);
+            *page = default;
+            page.allocation = allocation; // Transfer this physical grant to the page.
             page.pool = pool;
             page.type_id = type.id;
             page.capacity = capacity;
             page.stride = stride;
-            page.components = bits(EntityComponent*, allocation + sizeof(EntityComponentPage));
+            page.components = bits(EntityComponent*, allocation.data + sizeof(EntityComponentPage));
             var start = bits(usize, page.components + capacity) + pointer_size;
             page.data = bits(u8*, (start + mask) & ~mask);
             page.next = pool.first;
@@ -378,13 +382,17 @@ fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
     } else {
         // Large or highly aligned payloads preserve the individually allocated
         // path; never reserve multiple large objects just to fill a page.
-        if bytes + mask > maximum - sizeof(EntityComponent) { return null; }
-        var allocation = alloc(u8, bytes + mask + sizeof(EntityComponent));
-        if allocation == null { return null; }
-        component = bits(EntityComponent*, allocation);
-        var start = bits(usize, allocation + sizeof(EntityComponent)) + pointer_size;
+        if bytes + mask > maximum - sizeof(EntityComponentAllocation) { return null; }
+        var allocation: WorkBuffer = default;
+        *error = work_buffer_resize(&allocation, owner.store.budget,
+            bytes + mask + sizeof(EntityComponentAllocation), 0);
+        if *error != WorkBudgetError.None { return null; }
+        var owned = bits(EntityComponentAllocation*, allocation.data);
+        owned.allocation = allocation;
+        component = &owned.component;
+        var start = bits(usize, allocation.data + sizeof(EntityComponentAllocation)) + pointer_size;
         data = bits(u8*, (start + mask) & ~mask);
-        component.allocation = allocation;
+        component.allocation = allocation.data;
         component.page = null;
     }
     var back = bits(EntityComponent**, data);
@@ -393,6 +401,7 @@ fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
     component.owner = owner;
     component.type = type;
     component.data = data;
+    *error = WorkBudgetError.None;
     return component;
 }
 
@@ -400,22 +409,39 @@ fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
 // Active partial pages unlink before their last component frees the allocation.
 fn entity_component_free(component: EntityComponent*): void {
     var page = component.page;
-    if page == null { free(component.allocation); return; }
+    if page == null {
+        var allocation = bits(EntityComponentAllocation*, component.allocation).allocation;
+        work_buffer_dispose(&allocation);
+        return;
+    }
     page.live--;
     if page.live == 0 {
         entity_component_page_detach(page);
-        free(page);
+        var allocation = page.allocation;
+        work_buffer_dispose(&allocation);
     }
 }
 
 export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* {
+    var error: WorkBudgetError;
+    return entity_component_add_result(owner, type, &error);
+}
+
+// A private stage owns its own mutation. Published owners require an unpinned
+// store and coordinator access. The receipt never writes shared store state.
+export fn entity_component_add_result(owner: Entity*, type: Entity*, error: WorkBudgetError*): EntityComponent* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if owner == null || type == null { return null; }
     var present = entity_component_get(owner, type);
     if present != null {
+        *error = WorkBudgetError.None;
         return present;
     }
     var staged = owner.stage != null;
     var pinned = owner.store.views != 0 && !staged;
     if pinned {
+        *error = WorkBudgetError.Busy;
         return null;
     }
     if owner.store != type.store {
@@ -425,17 +451,15 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     if unregistered {
         return null;
     }
-    var ok = entity_reserve_components(&owner.components, &owner.component_capacity, owner.component_count);
-    if !staged {
-        ok &&= entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
+    *error = entity_reserve_components(&owner.components, &owner.component_capacity, owner.component_count);
+    if *error == WorkBudgetError.None && !staged {
+        *error = entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
     }
-    var reserve_failed = !ok;
-    if reserve_failed {
-        return null;
-    }
-    var component = entity_component_allocate(owner, type);
+    if *error != WorkBudgetError.None { return null; }
+    var component = entity_component_allocate(owner, type, error);
     if component == null { return null; }
-    if !staged && !entity_table_prepare(owner, type, null) {
+    if !staged { *error = entity_table_prepare_result(owner, type, null); }
+    if *error != WorkBudgetError.None {
         entity_component_free(component);
         return null;
     }
@@ -802,14 +826,14 @@ fn entity_table_prune(table: EntityTable*): void {
     free(table);
 }
 
-fn entity_table_reserve(table: EntityTable*, count: usize): bool {
-    if count <= table.capacity { return true; }
+fn entity_table_reserve(table: EntityTable*, count: usize): WorkBudgetError {
+    if count <= table.capacity { return WorkBudgetError.None; }
     var maximum = ~convert(usize, 0);
-    if table.arity == maximum { return false; }
+    if table.arity == maximum { return WorkBudgetError.Invalid; }
     var columns = table.arity + 1;
-    if columns > maximum / sizeof(void*) { return false; }
+    if columns > maximum / sizeof(void*) { return WorkBudgetError.Invalid; }
     var stride = columns * sizeof(void*);
-    if count > maximum / stride { return false; }
+    if count > maximum / stride { return WorkBudgetError.Invalid; }
     var capacity = table.capacity;
     if capacity < 4 { capacity = 4; }
     while capacity < count {
@@ -818,7 +842,7 @@ fn entity_table_reserve(table: EntityTable*, count: usize): bool {
     }
     if capacity > maximum / stride { capacity = count; }
     var memory = alloc(u8, capacity * stride);
-    if memory == null { return false; }
+    if memory == null { return WorkBudgetError.Memory; }
     var rows = bits(Entity**, memory);
     var data = bits(EntityComponent**, rows + capacity);
     if table.length != 0 {
@@ -832,7 +856,7 @@ fn entity_table_reserve(table: EntityTable*, count: usize): bool {
     table.rows = rows;
     table.columns = data;
     table.capacity = capacity;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn entity_table_matches(table: EntityTable*, owner: Entity*, added: Entity*, removed: Entity*): bool {
@@ -847,11 +871,19 @@ fn entity_table_matches(table: EntityTable*, owner: Entity*, added: Entity*, rem
 // Reserve a destination without changing published rows or canonical membership.
 // Pending reservations protect empty destination tables throughout a stage batch.
 fn entity_table_prepare(owner: Entity*, added: Entity*, removed: Entity*): bool {
+    return entity_table_prepare_result(owner, added, removed) == WorkBudgetError.None;
+}
+
+fn entity_table_prepare_result(owner: Entity*, added: Entity*, removed: Entity*): WorkBudgetError {
     var count = owner.component_count;
+    var maximum = ~convert(usize, 0);
+    if (added != null && count == maximum) || (removed != null && count == 0) {
+        return WorkBudgetError.Invalid;
+    }
     if added != null { count++; }
     if removed != null { count--; }
-    if count == 0 { owner.pending_table = null; return true; }
-    if count > ~convert(usize, 0) / sizeof(usize) { return false; }
+    if count == 0 { owner.pending_table = null; return WorkBudgetError.None; }
+    if count > maximum / sizeof(usize) { return WorkBudgetError.Invalid; }
     var hash: usize = 0;
     for(var i: usize = 0; i < owner.component_count; i++) {
         var type = owner.components[i].type;
@@ -867,10 +899,10 @@ fn entity_table_prepare(owner: Entity*, added: Entity*, removed: Entity*): bool 
     }
     if table == null {
         table = alloc(EntityTable, 1);
-        if table == null { return false; }
+        if table == null { return WorkBudgetError.Memory; }
         *table = default;
         table.types = alloc(usize, count);
-        if table.types == null { free(table); return false; }
+        if table.types == null { free(table); return WorkBudgetError.Memory; }
         table.store = store;
         table.hash = hash;
         table.arity = count;
@@ -892,15 +924,18 @@ fn entity_table_prepare(owner: Entity*, added: Entity*, removed: Entity*): bool 
         table.next = store.tables[bucket];
         store.tables[bucket] = table;
     }
-    var maximum = ~convert(usize, 0);
-    if table.pending == maximum || table.length > maximum - table.pending - 1
-        || !entity_table_reserve(table, table.length + table.pending + 1) {
+    if table.pending == maximum || table.length > maximum - table.pending - 1 {
         entity_table_prune(table);
-        return false;
+        return WorkBudgetError.Invalid;
+    }
+    var result = entity_table_reserve(table, table.length + table.pending + 1);
+    if result != WorkBudgetError.None {
+        entity_table_prune(table);
+        return result;
     }
     table.pending++;
     owner.pending_table = table;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn entity_table_unprepare(owner: Entity*): void {
