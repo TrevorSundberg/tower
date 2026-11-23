@@ -75401,3 +75401,181 @@ receipt. A2 holds, adjacent containment leases, B1 editor memory follow-up and
 ROOT typed metadata/provenance and linker consumers remain explicit work.
 The next metadata work will retain wrappers and propagate per-call producers;
 no signature-only consumer migration or global last-error state is proposed.
+
+### L2 actual late inspection phase: baseline and implementation (2026-11-23)
+
+After both2e3d instrument runs drained and ff23b88 was committed, reviewed and
+merged complete ROOTd3a871 as1c4085b25084877fad6252d49924b34b648a85b1. This adds
+actual typed attachment/staged creation/reference and component results, A1
+proof/signature guards and B1 tree results. Own generic scratch source remains
+unchanged. Endpoint comparisons avoid Git's multiple-merge-base triple-dot
+ambiguity. Pull/diff/strict UTF8/connectivity checks pass; transient pack-index
+warnings remain recorded. Earlier2e3d instruments do not validate this new union.
+Metadata/provenance results are still ROOT drafts and are not consumed yet.
+
+ROOT explicitly transferred the existing language_query inspection phase and
+existing generic_inspection_budget fixture to L2. Before adopting the extraction,
+BEFORE88700 froze clean1c4085. The published predecessor compiles the small Tower
+profile wrapper in4.21s wall/3.54s CPU/213892KiB. A coherent28-step native rebuild
+passes105.40s/163.23s/750040KiB, then existing editor tests pass14.47s/23.58s/
+1011864KiB. The wrapper link passes .05s/.04s/73508KiB. Source/input/final process
+checks are0; no behavior defect is inferred from this passing baseline.
+
+The profile wrapper delegates to existing editor_units_trial with explicit1/4
+budgets and preserves its checked normalized document fields. It adds no editor
+implementation. The same object will be reused before/after, keeping the new
+late-failure tests out of timed workloads. Link transport reuses the observed LR
+runner compiler objects and published link entry. The complete before package
+is /root/.cache/tower/l2_late_inspection_native/before, with full hash manifest.
+Compiler42ea08b04a89011f3269a87840c38d9af66fb63da166bff41e035b7751b707ac,
+LRdd716812f5cdad623f2a75e5d4c0368c7b5aec8764ff9324e327dcd2f04c242c,
+profile9d18ebf58acdb211b493a768e6e0c1f96312ef15e9572ff7b517826af28deea5.
+The shared host was released after actual drain; these are gate costs, not a
+before/after performance result. No process or source input remains in use.
+
+Now implemented, UNVALIDATED: language_document_inspect extracts the existing
+clear/sem_generic_inspect/result block in its existing provider, reusing
+completion_semantic_failed. The document-world path calls that phase; no second
+classifier, provider, query lifecycle or component layout is introduced. The
+fixture keeps a fully parsed/checked/inspected query alive, exhausts the selected
+ledger, and calls the real phase. It requires exact Capacity, source-derived
+expression offset, null info/output and no running work. It releases pressure
+BEFORE clearing ordinary diagnostic text/re-entering; unchanged entity/component
+counts then prove no replay despite available memory. Existing independent
+recovery and zero-final-owner checks remain at both target widths and1/4 budgets.
+Unexpected results print the actual typed receipts/offset rather than hiding a
+subphase assumption. The legacy binder deliberately isolates selected scratch
+from physical entity-page admission. Actual first failing producer/offset still
+needs runtime evidence. Matching after gate, fixed-path paired costs and affected
+current instruments remain pending; full release acceptance is not claimed.
+Late-inspection first AFTER attempt36544 drained with exit1, frozen-source and
+profile-input checks0. The production semantic object compiled in29.55s wall,
+23.19s CPU,749796KiB peakRSS and the compiler linked. The LR fixture compile
+rejected pointer subtraction at generic_inspection_budget:47; this is a test
+syntax error, before any runtime validation. Replaced it with the existing
+bits(usize,address) subtraction used by bytes_oracle and compiler utilities,
+still deriving the expected offset from the input string. No oracle was relaxed.
+The failed logs/source manifest remain under late_inspection_after_; corrected
+attempt45029 uses late_inspection_after_retry1_ names and unchanged production
+and timed workload. Runtime and profile acceptance remain pending.
+
+Corrected AFTER45029 drained0, with frozen source/input checks0 and empty editor
+stderr. The coherent LR rebuild took10.38s wall/7.86s CPU/310744KiB peakRSS;
+editor regression took14.68s wall/23.79s CPU/907356KiB. The fixture passes both
+4/8-byte targets and workers1/4: the first denied inspection expression clone
+records exact Capacity at the source-derived start of `1 + 2`, clears generic
+info, suppresses the previous successful output, and has no running queries or
+workers. Releasing pressure before clearing diagnostic text does not revive the
+phase or change entity/component counts. Existing cached-query denial, fresh
+recovery and final zero-reservation/world cleanup also pass. Inspection's first
+literal has the expression's start; this does not assert that a binary operation
+ran before its operands. Source review confirms generic_expression_check asks
+compiler_clone_tree_result for budgeted frames before allocating that clone.
+
+Native compiler651960a4eb3fd389d05632196adc444867d4fe7a2f037c98e19faec3f0c1f8a2,
+LRdb79de397debce5a43e8dc8a3b14699194c4b88c7c8571f2598240d9001d124d, and profile
+0e6d89dd0837257df5a0ba6d708641d4f23a524d36ec25c98e9305d201cd9fdd are retained with
+complete resources in /root/.cache/tower/l2_late_inspection_native/after, manifest
+L2/late_inspection_after_retry1_package.sha256. The wrapper object is unchanged
+and all after executables differ from before. These expanded-suite validation
+costs are not the before/after performance comparison. The fixed-path16-process
+recipe uses the unchanged editor_units_trial wrapper and this exact manifest;
+quiet profiling and current affected native instrumentation remain pending.
+
+Quiet profile12252 completed all16 processes and every canonical output/package/
+resource identity check0, one warmup plus three alternating retained pairs at
+requested budgets1/4. All runs use the same actual profile executable and resource
+path under /root/.cache/tower/l2_late_inspection_profile_fixed; copies/hash checks
+are outside timing. Linux6.18.33.2 WSL2 x64, glibc2.39, Release LLVM19 native link,
+public bootstrap9653f818, allocator environment overrides unset; fresh processes
+with warm filesystem caches, no cold-cache claim. Exactly the two intended Tower
+sources differ between source manifests. The existing three-unit workload has
+one compilation and two inspections; budget4 is not evidence of four active units.
+
+Retained medians before -> after (wall seconds / CPU seconds / peakRSS KiB):
+
+| Requested budget | Before | After |
+| --- | --- | --- |
+| 1 | 3.11 / 3.11 / 215416 | 3.22 / 3.19 / 215428 |
+| 4 | 1.58 / 3.87 / 381360 | 1.60 / 3.91 / 379580 |
+
+Small positive median costs remain: budget1 wall+3.54%, CPU+2.57%; budget4
+wall+1.27%, CPU+1.03%. This is not measured neutrality or an optimization claim.
+Serial-request wall ranges2.92-3.16 before and2.93-3.64 after; all observations,
+including the3.64s after sample, remain retained. RSS changes+12/-1780KiB do not
+show excessive growth in this workload. The production delta extracts an existing
+call path, adding a precheck and result-null check, with no new persistent fields
+or allocations; these samples do not isolate a causal cost for those checks.
+The regression separately checks zero selected reservations on teardown; the
+profile does not instrument every raw allocator or claim all-memory accounting.
+
+Two requested-budget1 samples report total CPU above wall (3.11/2.92 before,
+3.19/2.93 after). Existing source passes budget1 into the shared ledger, outer
+pool and each unit world, but CPU/wall alone does not prove single-thread behavior.
+A bounded OS thread-creation trace is planned outside timed samples to distinguish
+extra threads from measurement/accounting effects; no new cause is asserted.
+No repeated-until-favorable profile is scheduled. Affected ASan/LSan/TSan editor
+checks and full integrated publication remain open.
+
+The separate requested-budget1 OS diagnosis is complete. `strace` is absent, so
+existing GDB15.1 was used with libthread_db enabled and syscall catchpoints for
+clone/clone3, outside all timed samples. First invocation failed its wrapper argc
+check because `run` redirection replaced the arguments; logs retain SIGABRT and
+the subsequent missing-exitcode error. Corrected31271 passed explicit resource
+path and budget1 in `run`, with distinct retry1 logs. Both immutable before/after
+profiles exited normally, stderr was empty, canonical output matched12252, and
+neither trace observed a clone/clone3 boundary or new user thread. This controlled
+observation does not reproduce unintended concurrency in the serial-request path.
+The earlier CPU/wall discrepancy remains unassigned measurement/accounting
+uncertainty, not proof of oversubscription or grounds to replace those samples.
+
+Affected ADDRESS18648 now passes on exactly the native AFTER source manifest.
+Public-pin semantic rebuild58.16s wall/48.78s CPU/750080KiB, coherent15-step LR
+build79.53/137.25/682136, and complete editor suite128.21/222.53/1178500 all exit0.
+Actual four instrumented IR units and the language_document_inspect definition
+were checked, all source hashes remained unchanged, and editor stderr is empty.
+Address/LeakSanitizer ran with detect_leaks=1, halt_on_error=1, exitcode66. Runner
+c94d236fca8f6e92f6d076455f34fcd534192332134e06642a24a94223a43220 is identified in
+its binary manifest. This validates the late fixture and existing mixed-editor
+failure/cancellation behavior; it is not a whole newer-union sanitizer claim.
+THREAD73196 follows the same frozen source, still pending at this entry.
+
+Time-service history was also inspected and retained as
+late_inspection_profile_time_service.log: initial synchronization12:04:32UTC
+precedes profile start12:04:34, and no further synchronization event is logged
+before shutdown12:05:42. The two CPU-above-wall samples ended12:04:56/12:04:59.
+This log does not establish a clock/accounting cause; that limitation remains
+explicit, and no timed samples or unfavorable results were replaced.
+
+THREAD73196 completed0 with source hashes0, empty editor stderr and the same
+source manifest as native AFTER/address. Semantic instrumented rebuild took
+41.30s wall/31.90s CPU/749836KiB; coherent15-step LR build55.90/87.63/682404;
+editor suite318.36/546.19/1445640. Actual LR main, semantics, entities and evaluation
+IR hashes/sanitizer symbols and the new exported phase definition are recorded.
+TSAN_OPTIONS=halt_on_error=1:exitcode=66; runner
+736ea918393d3d546509833ea61102e9b93d2f32b284b97a1a5acf2e2b1f9968. These costs
+are validation overhead, not before/after performance samples. Peak native
+instrumented memory stayed below1.4GiB on the15.7GiB WSL host; no sanitizer finding
+or failed allocation occurred in these suites. Passing observations do not prove
+race freedom for all schedules.
+
+Both instrumented runners, actual four IR units per mode, instrumenter/object
+manifest/CMake cache and complete resource trees were copied and hash-checked
+into /root/.cache/tower/l2_late_inspection_instruments_1c4085 after drain. Manifest
+L2/late_inspection_instrument_snapshot.sha256 includes the exact source manifests.
+The190-file raw receipt L2/L2_late_inspection_1c4085_receipt.tgz has SHA256
+`d402b904b2f1d088b76f44a7fa94f4fc8c2a81d27443bbf6dd12586440f1bd46`;
+it preserves baseline88700, failed36544, corrected45029, quiet12252, address18648,
+thread73196, failed/ corrected debugger controls, recipes, inputs, all raw timing/
+output/error files and package/instrument manifests. No failed attempt is relabeled.
+
+This closes the assigned existing-provider inspection extraction and actual late
+resource-failure regression at this frozen source. No syntax feature, shared
+layout or allocator policy changed. Source-language UBSan and browser
+instrumentation are not implemented by the supported address/thread recipes;
+prebuilt foreign libraries are not whole-source sanitized. D2 must reconcile the
+new exact language_document_inspect export in provider policy at integration.
+Later metadata/child APIs and L1 maps have been verified read-only but are not
+covered by these results. The full type/generic resource caller migration,
+restricted-host clone overlap investigation, clean integrated public bootstrap,
+browser/generation and atomic hosted publication remain open under ROOT's lease.
