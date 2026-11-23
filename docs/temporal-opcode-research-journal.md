@@ -69467,6 +69467,115 @@ fields still omit the three coordinated L2 caller guards, and its component-add
 result API is not the pending stage/view/publication result contract. Fetch
 reported transient pack-index-unavailable warnings despite returning0; preserve
 those diagnostics and verify repository connectivity before final publication.
+### D2 current depfile source closure and exact compiler execution (2026-11-23)
+
+D1 independently reviewed7fb8 exact policy and verified matching production
+compiler/library/backend/host source. Its current838 runtime32receipt/24resource/
+query/parser/grammar and stage normal/fault/concurrent checks pass, including
+supported address/thread runs. Its executable32864 differs because the shared
+semantics interface also links a changed query fixture object; this does not make
+D2c691 an executed binary. D2 read the minimal two-list stage registration patch
+1b6ef69e; no duplicate provider or source issue found. No repeated broad matrix.
+
+After D1 release, atomic D2 slot09:13:49, source7fb8 frozen, same public9653/
+Docker4be584fb/LLVM19/CPUs0,2/jobs1/nooverride. Existing compiler_project_units
+public compile15.10wall/14.65CPU/324560KiB+link and native no-opguard.69s pass.
+Exactc691 known_bindings --interpret --target wasm32-unknown-unknown --jobs1/2
+both print0, checked against its existing failure counter. Times2.34/3.57wall,
+2.30/3.94CPU,182956/190668KiB, one sample each; correctness, not speedup/overlap.
+Session21009 then fails1 requesting CMake INTERFACE targettower-compiler-entities.
+Originalgroup1/run_initial.sh/providerlogs retained. All children drained; actual
+Ninja -t targets identifies entities.o/evaluation.o custom commands. Corrected
+only OS invocation and resumed pending work(session20766), without rerunning
+successful compiler/fixture checks or mutating frozen source.
+
+Current provider objects10.15wall/9.93CPU/323436KiB. Export from actual depfiles
+.02/.01/2364; TypeIndex API/types exact source present. Native export recompile
+entities16.26/15.65/323320 and evaluation14.10/13.62/323264 BOTH byte-identical to
+current originals. Fresh original/exported WASI evaluation8.47/8.38/320420 and
+9.57/9.29/319988 produce identical complete objects and pass current exact policy.
+No manual source manifest, second type registry/provider or alternate interchange.
+This is Tower compiler-source export proof, not a new Foundation-roundtrip claim
+or fullreactor package/retention profile. All swaps0; sourcehashpass and children
+drained before09:17:19UTC release/D1 handoff.
+
+Complete21MiB package_7fb8_receipt.tar SHA
+ d4323c5bc529f3dd14a63d7ca41c2bb78c8abe8ce3b228c8ac626bc17b7a180d
+contains fullsourcearchive, originalobjects/depfiles, exportedclosure, normal
+products, commands/rawtimes/failure1/resume0 and completec691+50resources. No
+runtime code changed; documentation-only new profiling is inapplicable. Full
+final browser/assets/cleanbootstrap/generation/instrumentation/publication remain.
+
+Further current tool ownership review identifies an explicit remaining budget
+boundary: link_wasi and wasm_link_audit call wasm_link_init/world_open, whose
+entity_store_create uses null/unbounded budget; work_init and linker pool open
+also lack a shared budget. Guest memory and worker/grain limits do not bound host
+allocations/outer+nested lanes. Mapped owners/drain remain correct. Routed exact
+chain/owned callers in status for B2's complete constructor/budget contract before
+D2 adoption; no speculative cap/globalstate/second API. Page accounting and race
+clearance are not reported as closing this gap.
+### D1 current declaration/stage union and durable registration (2026-11-23)
+
+Audited ROOT556 and complete B1 declaration3992, committed reviewb92e046c and
+merged fullhistory cleanly as838001266414a8555a57e8b22499db84e934024e. Apparent
+journal deletions in the merge move retained historical B1 receipts; source
+history and both owner entries remain. Todo unchanged. Root routed test-only
+cache-aware phase patch3d9608c0 toL1; newcache ABI has not been adopted here.
+
+After D2 actual09:02 drain, acquired atomic lock; hostcontroller2944614,
+container81186/session33374 started09:06:15UTC. The handoff's manually typed09:08
+label was incorrect, explicitly corrected in both lane records; raw timestamps
+are retained. SteamDeck14.8GiB, Docker4be584fb, cpus0,2, LLVM19.1.1, publicbootstrap
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+Release/jobs1/native x86_64-pc-linux-gnu, no override. Existing vendor cache warm;
+each test sample starts a fresh process, no OS cache flush. Source closure frozen.
+
+Smallest entity_stage_result leaf5.08wall/5.02CPU and fault leaf4.03/3.97 pass;
+manual3each with existing production or serialfault runtimes pass. Canonical
+compiler/LR/frontend23affected steps pass211.25wall/206.39CPU/740972KiB RSS.
+Compiler32864c4b547ba96a5e4f7570115fa760ed8fed14ad30d1acaf7a3d951559227d
+plus all50 adjacent resources copied/hashrecorded. LRbf1e35e5357d9cccbd2e70f4a80bae0cf482944246756c43cc73a6b3e31eddee
+and frontendda753742ffbbb55d39fad838d95ac65443e83d26696d692509027352cb348dbf
+pass receipt32, exact24startup/growth, query-smoke, parser and grammar-resource.
+Query.19wall/.19CPU/60600KiB; parser.05/.04/53288; grammar2.93/2.90/52048.
+These are correctness timings, not paired production performance claims. All
+source hashes and empty stderr verified; owner clone overlap remains actual.
+
+After complete drain, add only two existing normal/fault factory list members
+and README. No fixture body, allocator, production, provider or syntax change.
+Patch1b6ef69e20e3e71b1d376024f6e42628f9be9d3163431d6510f719db270d5d49
+sent for independent source review. Native6steps15.53wall/15.20CPU/237092KiB;
+new registered fixtures3each exactly match manualbeforestdout and unique
+main/tower_allocate/compiler_buffer_allocate/free definitions. Both CTest cases
+pass. Before/after n3 per fixture allwall/CPU below.01s; normalRSS1472/1600/1600
+before and1600each after, fault1600each before and1596/1600/1600after. No speed or
+allocation-retention improvement claimed at that timer resolution. Existing
+oracles verify exact final buffer/ledger retirement and rollback; registration
+itself adds no runtime storage or scheduling algorithm.
+
+Session50458 supported address/thread each9steps29.99wall/29.29CPU/231844KiB
+and22.42/21.83/231864. Eachmode3runs ofeachnewfixture pass, exactnormalstdout,
+emptyerrors, actualfixture/provider IR+objects/accesshooks saved. Also run existing
+real worker stage_concurrent3native/3address/3thread with unchangedbarriers,
+publish/discard/partial-admission/cancel and finalizer assertions;57792finalizations
+per run. Firstaddress.66wall/.82CPU/92184KiB; firstthread.46/.48/36000KiB. Runtime
+metrics and allsamples saved, not worker scaling/profitability claims. Fault
+allocator staysserial. ASanLSan enabled, TSan halt_on_error; no sourceUBSan,
+externalLLVM or universalrace-freedom claim. All measuredchildren report0swaps;
+preexisting hostswap5.8GiB is not presented as hostno-swap evidence.
+
+Sessions33374/2465/50458 all0, sourcehashes unchanged; both owncontainers only
+init/sleep before releasing ownemptylock09:12 toD2. No closure mutation during
+builds. Logs/artifacts build/d1_ecs/stage_registration_before and_after. Future
+StageFaultLimit96 measured-count improvement routed A2; no competingbodyedit.
+D2 complete7fb bundle52233a49 and receiptff9a5d3f independently hashverified,
+exacttwoTower policy changes/journal reviewed. Initial guessedparentpath lookup
+failed; located actualD2subdirectory and fetchedcorrectly, no source mutation or
+failed build hidden. Production directories exactlymatch838; current runtime
+receipt therefore has matching production source, not identical binary identity.
+A1/L2completecandidates fetched/read-only, newcache/pumps/callers remain unadopted.
+Final currentcombined sanitizer/bootstrap/browser/generation/leasedatomicrelease
+remain open; this boundedregistration milestone does not complete D1 goal.
 ### 2026-11-23 ROOT: exact parser provider boundary reconciled
 
 Merged reviewed complete D2 7fb8a6c239d6e4e882ba53c77f900eb65fa8f56b,
@@ -70834,3 +70943,59 @@ the4096-element recurrence, iteration/sample constants and expected outputs.
 Predecessor compile and equivalent generated-source/object/output/profile checks
 are required; no implementation or passing result is claimed yet. D1 will not
 make a competing edit. This is a narrow generic-harness ownership handoff.
+### D2 resumed world/query and counted-regex source integration
+
+Same thread01a2046a-45eb-7452-8fb0-6d924bb320a6, actual CLI2918222 and launcher
+2918189, unchanged gpt-6-astra/xhigh/default tier. Active goal remains incomplete.
+Guarded pull --rebase=merges --autostash --ff-only reported Already up to date;
+no surviving D2 child beyond container init/sleep. D1 owns the host heavy slot,
+so this phase performs source/receipt review and preparation only. Disk135GiB
+free/RAM9.8GiB available/preexisting swap5.8GiB; no cleanup or other cache access.
+
+Verified ROOT_world_query_join.bundle84a4fdc4, sole60741, and merged complete351
+as edf0b2cf after reviewing all new production consumer deltas and relevant tests.
+Verified B1_main_regex_result.bundleaf8973d8, sole60741, reviewed exact490d/dce8
+regex implementation, fault/count/oracle tests, authorized existing selector and
+owner profile/instrumentation journal, then merged complete history as8db1499e.
+Both merges preserve newer D1 stage216 registration, all own72d package records,
+exact tool policies and todo hash. No source conflict or unrelated edit. Historical
+multiple-merge-base diff warning was avoided for the review by inspecting the two
+actual new nonmerge commits; no foreign patch/provider body was copied.
+
+The current world constructor prebinds the synchronized unit budget before world/
+store/pool ownership. Fixed resource receipts gate completion/CLI/IDE/package/
+source-service publication; borrowed static diagnostics survive allocation failure.
+A1 joined callers drain peers after failed producer registration. L2 retains the
+shared query/ordinary interpreter model and owner ticket checks, but typed stage/
+view/publication followup remains absent and cannot be called accepted. The new
+regex counted result retains the legacy wrapper, exact input extent, semantic
+versus resource distinction and independent oracle. Existing production callers
+still use the wrapper. Exact observed imports, not export availability, will decide
+whether D2 bootstrap policy needs changes after the coherent build.
+
+Read newer ROOT09:23 tracing from coordinator's D1 inbox: the required peak-minus-
+one failure originates in B1 replacement preparation before semantic_compile,
+Memory3/offset3436. This supersedes earlier "late semantic" phase attribution;
+Capacity expectation and failed logs remain unchanged. No redundant known-red
+full units matrix will run just to rediscover this owner bug. Separate linker tool
+budget gap remains: WasmLinkWorld is not the newly bounded CompilerWorld.
+
+Independent source review sent to D1 for exact query registrationc98d06d0: existing
+backend main is removed once, one exported-main fixture object and existing real
+providers, actual work_thread_entry export, three selectors; no SOURCE wrapper,
+allocator override or duplicate provider. Runtime evidence remains D1's actual
+current frozen result, not a D2 rerun. The sent review's future09:34 timestamp was
+corrected immediately to before the actual clock receipt09:31:21; conclusions and
+run counts did not change. A read of a guessed old run.sh path failed because the
+actual scripts are run_native/run_policy; rg located them, with no mutation/run.
+
+Prepared but UNRUN own next group build/d2_ecs/policy_8db1499e: full source archive
+f73728e8e38cb26059115c3bea93f9844f0d7d5732bbcb093e49608349797f3e, source hash
+manifest, unchanged accepted checker66496c86 and public bootstrap9653f818. Planned
+smallest world/regex leaves then canonical Docker native/jobs1/nooverride and
+actual seven native provider reports; WASI checks follow observed imports. Same
+cpus0,2/cache/container contract. Existing c691+50resource package and its7fb8
+byte-identical export receipt remain frozen, separate from this unbuilt union.
+This documentation changes no runtime path; profiling is inapplicable to the text.
+Final current public bootstrap/native/browser/generation, measured performance,
+supported memory/thread instrumentation and atomic leased publication remain open.
