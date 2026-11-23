@@ -93786,6 +93786,23 @@ incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
 L1 staged-capture publication receipt: implementation `3bc0a726f9ceac55d91c8e98d4376f0559ad20e2`; normal complete-history merge `2a5477be1f08106322c4ecf52beeecc9fdf7583a` preserves A2 required-type capture guards and B2 browser ownership changes. The required ff-only pull refused divergence without altering history. Changed native dependencies rebuilt once:36.05wall/37.68CPU/1074436KiB. Focused merged32/64 workers1/4 capture positives, identical prior canonical text, canonical Fast, all9 exact error/offset/terminal-owner cases and query-smoke including incoming shape checks PASS. Native SHA256 `0e168ccddbf99873f4e221e05eb023a1e667ca5f85e318b0f68d0fcccef40c05`, semantics `c131e34c69a6a8346c4fceb1ad3f8435678baff8e4d82b903a8b66c6e563309f`, runner `92be7e49fa9ba174377c7297ad489c0af117e9d24423657292b02157626bde2b`. Source manifests stayed frozen. The prior matched cost applies to isolated L1 inputs, not incoming owner changes. All owned jobs drained; the exact mutable-header defect is closed, unrelated body-local alias annotation and ROOT portable/hosted adoption remain pending. Normal main publication follows; no browser/deployment claim.
+### 2026-11-23 D1: original twelve-row ledger reconciliation at7890ebd7
+
+Required pull froze7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2; exact root/compiler/
+library trees recorded in handoff and D1 audit. Same original12 requirements,
+historical3ea/c20 rows preserved. Reconciled b8 builds versus Windows/A1 fullT5/
+D2 actual alias-malformed execution, B1 grammar/uniform evidence, L1 loop receipts,
+L2 published amplification/byte correction and pending void* execution. B2's
+repair is now published with exact matching host bytes and scoped f167 controls;
+current-successor adoption remains separate. No final-release claim or percentage.
+Finite delta92 Tower/3CMake:73 exact independent source-review matches;19 Tower/
+2contracts mapped to owner receipts and explicitly pending full independent
+final-source review. Actual shared registrations/negative gap checked; no new
+census or implementation. Source map in D1 audit; evidence
+build/d1_ecs/ledger_7890ebd7. Unpushed fixes excluded; nativeRSS is not guest capacity.
+No tests/builds/profiles/sanitizer or rejected-operation retry; docs-only profiling
+inapplicable. Same D1 UUID, PID3169473; disk127GiB/RAM9.8GiB available, no owned
+jobs/heavy lock, todo unchanged. ROOT owns final-source/generation/pin/hosted gates.
 Final source adoption: merge460d5e12200c26f342942e44fdc0478f939990b8
 preserves A2's required type-name/binding capture guards (ee91c300) and B2's
 browser worker-group repair through published78d675c4. Browser behavior stays
@@ -93807,3 +93824,11 @@ Owned jobs drained, no new runtime deployment; remaining Wasm/other-input limits
 are unchanged. Normal source publication follows with all prior histories intact.
 
 L1 final reconciliation preserved L2's pointer-return repair74ccfb00 as merge `4bbde387421c78c90542f968a9e69532d7d7e2ca`. Capture/query/compiler sources are identical to validated2a5477be. CLI Fast does consume LLVM reconstruction, so only its changed backend leaf was rebuilt (10.90wall/8.20CPU/486972KiB); the existing canonical capture controls still print0 through Fast at32/64 bits. Final native SHA256 `4835472aba256980e4719cdda87956e8495cb8d97129f91219b5d6b211f5d2e2`; semantics remains c131e34c. No unrelated backend corpus or unchanged capture matrix was repeated. Exact source/binary boundary and logs are in `header_capture_receipt.json` / `logs/header_capture_backend_adoption`; owned jobs drained, normal publication pending.
+D1 ledger publication reconciliation: receipt1da28a69 merged complete74ccfb00
+following required ff-only divergence. Later L2 pointer-return importer/fixtures
+and A2 malformed type/capture guards, shared runners and their execution receipts
+are preserved but excluded from frozen7890ebd7. No new census/source adoption or
+runtime rerun; fixed pending entries do not deny the presence of later repairs.
+Own finite audit remains unchanged; historical handoff ledger bytes preserved
+apart from the explicit historical heading. Diff checks pass, todo unchanged;
+normal source push follows. ROOT retains final integrated acceptance.

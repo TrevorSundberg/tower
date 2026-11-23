@@ -4924,3 +4924,70 @@ and remains L2/ROOT-owned. No runtime reproduction, compiler build, instrumentat
 or performance run was needed for this source-only receipt; documentation-only
 profiling is inapplicable. Final repaired importer/ joined-artifact execution
 remains a separate acceptance action, not passed by these26 dispositions.
+
+### 2026-11-23 D1: ledger source adoption at 7890ebd7
+
+Frozen published main7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2,
+treee4a87a290cc5fa3a206fb4181a6998c603c99801,
+compiler1d0ab1dbb7dabd8fc61b9238342bf30da3d3e45e,
+library62350befa8df3e261fd184a23a64e6bb7263204a. The handoff now has one
+[current ledger with the same twelve requirements](compiler_ecs_threading_handoff.md#current-fixed-completion-ledger--published-7890ebd7-2026-11-23);
+the3ea/c20 ledgers and all earlier receipts remain historical, not rewritten.
+
+Finite inventory: git diff3ea43517..7890ebd7 has92 authored Tower paths,
+no retired path or packaged Tower change. Three CMake contracts also changed.
+This is delta membership, not a new repository census or automatic semantic
+approval. Exact path/blob evidence: build/d1_ecs/ledger_7890ebd7/
+{delta_paths,frozen_blobs,tower_delta,exact_reviews,owner_only_pending}.txt.
+
+| Exact independent source-review reuse | Current identity/disposition |
+| --- | --- |
+| [A1's42-path map](compiler_source_delta_9caa921c.md),9caa921c |33 Tower blobs unchanged. Its nine later-changed paths are backend/session; compiler/generics, semantic_constructor_work, semantic_declarations; tests/backend_source_native, bootstrap_symbols_checks, lr_work_main, nominal_wrapper_checks; tools/bootstrap_symbols. Later groups handle these; they are not silently inherited. |
+| D1 numeric-wrapper review26a7f784/5caffe04,22e15d5b |15 of16 Tower blobs match: generics, semantic_body_work, semantic_constructor_work; nominal_wrapper_checks; all four numeric_wrapper positive/provider/check files and seven numeric_wrapper negatives. Shared lr_work_main and TowerWorkTests have later registrations, mapped below. |
+| D1 grammar review9d1ece24/d55d1c0d,05edbfb3 |All9 Tower blobs match, including frontend_compilation, five syntax providers, parser_structure_reuse and both symbol-policy files. The unchanged64MiB Capacity-negative gate is preserved. |
+| [D2 alias review](compiler_alias_inference_audit_b8d65c37.md),b8/e6be70d5 |Five Tower blobs match: semantic_call_inference, semantic_declarations, alias_type_query_checks, alias_type_query_controls, semantic_invalid/alias_condition_scalar. Later semantic_statements/lr_work_main/TowerWorkTests are excluded from that review. |
+| [A1 executable-budget review](compiler_executable_budget_review_a1.md),e6be70d5 |Both semantic_execution_work and semantic_executable_admission_checks plus TowerWorkPolicyTests match exactly. The adjacent alias-publication readiness defect remains visible in the current pump; its proposed regressions are not executed tests. |
+| D1 L2 draft review540f501c, copied2130 manifest |Nine exact published matches: backend/import_bindings and import_foundation; compiler/format, format_foundation, format_grammar, format_source, format_types, parser_presentation; tests/backend_source. Exact copied SHA256 comparison permits reuse of those source findings, not the changed byte-run producer or owner runtime claims. |
+
+The73 Tower paths in those groups are disjoint at this delta boundary. D1's
+902f7c4d26-predicate review is supplementary consumer evidence, not another
+whole-file approval. The following **19 Tower paths and two CMake contracts**
+have published owner implementation/test receipts but no matching complete
+independent final-source review identified here. They are the finite pending
+review set, not missing functionality or failed owner tests. Paths below are
+under scaffolding/ unless prefixed with cmake/.
+
+| Pending final-source review / owner | Exact paths, publication match and acceptance evidence |
+| --- | --- |
+| A1 backend fallback, ROOT adoption | backend/session.tower; tests/backend_clock_native.tower, tests/backend_response_checks.tower, tests/backend_response_native.tower; cmake/TowerBackendSourceTests.cmake. All match ba9b0ab1. Published journal describes allocation-free typed cause/offset fallback and extracted real clock; focused response/denial/healthy reconstruction receipts survive c2ce733c. Actual CMake provider imports backend_response_native and registers tower-backend-response, timeout30; source-worlds/recheck retain180. Older A1 delta review explicitly did not prove this then-missing fallback. |
+| L2 final byte/census composition, ROOT adoption | backend/import_module.tower; tests/backend_import_constants.tower, tests/backend_import_fixture.tower, tests/backend_import_storage.tower, tests/backend_source_native.tower. All match340989cf. Three differ from D1's12-file draft and two fixture/storage files were outside it. Actual producer now uses ASCII-only counted copy and exact-byte fill; owner tests contain65/0/128/255/0/67 and UTF-8 byte controls. Journal d16c8f6e/1a9c3296/340989cf records4/4 focused checks, exact full compile/recheck output and zero ownership, but full execution still fails. Draft R1 is repaired at source/owner-test scope; final independent composition and L2's separately owned void* repair/actual guest fit remain pending. |
+| B2 uniform profile / B1 measurement | tests/frontend_units_profile.tower, exact f0b8916c. [B1 uniform receipt](compiler_uniform_reuse_3ad7d5f0.md) binds profile SHA3fa3430d and executablef092a2aa to30 checked runs. This closes measured workload evidence, not a new independent full-file review or newer-compiler timing. |
+| A2 malformed call fixture | tests/malformed_call_checks.tower, exact19eab83a. Native owner checks and D2 actual b8 malformed/reuse execution are published; final source fixture review remains distinct. Shared production guards are covered by D2's composed semantic_declarations/statements context, with statements' later loop delta below. |
+| L1 loop headers and shared registrations | compiler/semantic_control.tower, compiler/semantic_statements.tower; tests/lr_work_main.tower, tests/module_loop_queries.tower, tests/module_loop_query_checks.tower, tests/semantic_invalid/module_for_condition_scalar.tower, tests/semantic_invalid/module_loop_query_cycle.tower, tests/semantic_invalid/module_loop_update_capture.tower; cmake/TowerWorkTests.cmake. All match c2af6e0f. Actual module-loop-queries selector, control-smoke call and workers1/4 positive CTests exist. Journal a2e3c7a0 reports native32/64 Graph/Fast/canonical/exact-negative/terminal ownership; df24d9fd adopts changed formatter outputs. Mutable loop-header capture and body-local forwarded annotation remain separate live defects. |
+
+Registration discrepancy retained from D2: alias_condition_scalar has a manual
+native2:4 rejection receipt but is absent from the current explicit alias/loop
+runner and CMake lists inspected here. The loop negative provider covers
+while_type, module_for_condition_scalar, module_loop_update_capture and
+module_loop_query_cycle; these do not register the missing if-condition fixture.
+The positive CTest regex0 remains a substring check; preserve independent exact
+Tower/Graph/Fast output evidence. No registration was edited during this task.
+
+Runtime reconciliation: ROOT's b8 builds are distinct from A1 T5 and Windows
+browser execution; D2145b93db supplies actual portable/LLVM alias and malformed
+adoption. Published B2 repair5aff643a/7890ebd7 supersedes the stale unpublished
+status: helper/thread-adapter/transport/fault-adapter hashes exactly match its
+receipt, which combines unchanged strict runs with newly passing trap/startup/
+generation controls on **f167**, not current compiler sources. Hosted isolation
+and successor adoption remain open. Public bootstrap paths are unchanged since3ea;
+no new payload scan, hosted verification or instrumented operation is claimed.
+
+Live owner-reported work excluded at this freeze: A1 failed alias-publication
+readiness, A2 malformed type shapes and forwarded body-local annotation, L1
+mutable loop-header capture, L2 lost void* reconstructed result/full execution/
+actual Wasm fit/remaining large fixtures, B1 admission/scaling and ROOT/B2 final
+successor browser adoption. Native3.16GiB RSS is not a wasm32 linear-memory
+measurement. Current generations, public pin, atomic hosted release and
+service-rejected instrumentation remain OPEN; no rejected operation was retried.
+Documentation-only profiling is inapplicable. No build/test/profile rerun,
+implementation change or new audit loop.
