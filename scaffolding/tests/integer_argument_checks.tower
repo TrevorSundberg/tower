@@ -1,0 +1,78 @@
+import tower;
+import frontend_units;
+import body_runs;
+import .library.vector;
+
+extern fn frontend_units_error_offset(batch: void*): usize;
+
+fn integer_argument_failure(root: u8*, bedrock: u8*, foundation: u8*, source: u8*,
+    wanted: u8*, width: u32, workers: usize, expected_offset: usize*): void {
+    var batch = frontend_units_create(1, workers, width, 81, 23, bedrock, foundation, root);
+    units_check(batch != null, "Unary integer argument batch");
+    defer frontend_units_close(batch);
+    units_check(units_source(batch, 1, root, "/integer_argument_failure.tower", source, strlen(source)), "Unary integer argument input");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    if strcmp(error, wanted) != 0 { puts(error); }
+    units_check(frontend_units_failed(batch) == 1 && strcmp(error, wanted) == 0
+        && frontend_units_program(batch, 1) == null, "Unary argument exact failure without publication");
+    var offset = frontend_units_error_offset(batch);
+    if workers == 1 { *expected_offset = offset; }
+    units_check(offset == *expected_offset && frontend_units_step(batch, false)
+        && strcmp(frontend_units_error(batch), wanted) == 0, "Unary argument deterministic first error");
+}
+
+fn integer_argument_checks(root: u8*, mode: u8*): i32 {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    defer vector_dispose(&source); defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    if strcmp(mode, "reproduce") == 0 {
+        // D1's exact ordinary source is read-only. Preserve the failed native
+        // baseline with a normal nonzero exit after closing its batch.
+        units_read(root, "/tests/type_numeric_negation.tower", &source);
+        var batch = frontend_units_create(1, 1, 4, 81, 23, bedrock.data, foundation.data, root);
+        units_check(batch != null, "Numeric negation reproduction batch");
+        defer frontend_units_close(batch);
+        units_check(units_source(batch, 1, root, "/type_numeric_negation.tower", source.data, source.length), "Numeric negation reproduction input");
+        while !frontend_units_step(batch, true) {}
+        if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); return 1; }
+        puts("Exact numeric negation source compiles");
+        return 0;
+    }
+    units_check(strcmp(mode, "all") == 0, "Numeric argument selector");
+    units_read(root, "/tests/integer_argument_unary.tower", &source);
+    var computed: vector(u8) = default;
+    defer vector_dispose(&computed);
+    units_read(root, "/tests/computed_type_arguments.tower", &computed);
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        var canonical: vector(u8) = default;
+        var existing: vector(u8) = default;
+        defer vector_dispose(&existing); defer vector_dispose(&canonical);
+        var negative_offset: usize = 0; var mutable_offset: usize = 0; var minimum_offset: usize = 0;
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            body_runs_trial_output(source.data, workers, width, bedrock.data, foundation.data, root, &canonical, "8\n2\n0\n");
+            body_runs_trial(computed.data, workers, width, bedrock.data, foundation.data, root, &existing);
+            integer_argument_failure(root, bedrock.data, foundation.data,
+                "import tower;fn buffer(T:type,n:usize):type{struct R{data:T[n];}return R;}var v:buffer(i32,-1);print(123);",
+                "Array length must be between 1 and 1,048,576\nInstantiated by buffer(i32,-1) at line 1, column 81.",
+                width, workers, &negative_offset);
+            integer_argument_failure(root, bedrock.data, foundation.data,
+                "import tower;fn f():void{var n:usize=2;var a:u8[-(-n)];n++;}f();print(123);",
+                "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer",
+                width, workers, &mutable_offset);
+            integer_argument_failure(root, bedrock.data, foundation.data,
+                "import tower;fn typed(n:i8):type{return i8;}var v:typed(-129);print(123);",
+                "Integer literal out of range for i8", width, workers, &minimum_offset);
+        }
+        units_check(vector_push(&canonical, 0), "Unary canonical terminator");
+        canonical.length--;
+        var roundtrip: vector(u8) = default;
+        defer vector_dispose(&roundtrip);
+        body_runs_trial_output(canonical.data, 4, width, bedrock.data, foundation.data, root, &roundtrip, "8\n2\n0\n");
+    }
+    puts("Unary numeric arguments: ordinary interpretation, captures, bounds, contextual widths and canonical results pass");
+    return 0;
+}

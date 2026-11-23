@@ -35,7 +35,12 @@ fn sem_type_value_node(node: void*): void* {
 
 fn sem_type_value_simple(c: SemanticContext*, node: void*): bool {
     node = sem_type_value_node(node);
-    return generic_lookup(c.generics, node, node) != null || sem_literal(c, node);
+    // Literal-shaped unary minus still checks to an ordinary operation, not a
+    // ready constant. Keep sem_literal's contextual/signed-minimum meaning for
+    // expression checking, but demand IntegerArgument for remaining operators.
+    // Transparent/group nodes have already been unwrapped above.
+    return generic_lookup(c.generics, node, node) != null
+        || !(sem_is(node, "TowerExpression") || sem_is(node, "TowerComma")) && sem_literal(c, node);
 }
 
 fn sem_type_value_prepared(c: SemanticContext*, node: void*): void* {
