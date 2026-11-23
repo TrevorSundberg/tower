@@ -190,3 +190,15 @@ The third push encountered docs-only902f7c4d. Its complete audit/performance
 history is retained; all448 final executed input hashes still match182f5652.
 No further runtime rebuild is needed. The next normal push is the third retry
 of the initial push; no forced ref or runtime asset replacement is used.
+## Publication blocker
+
+The initial normal push and all three allowed retries were rejected with
+`main -> main (fetch first)` as other lanes advanced main. The last rejected
+local head was615de273bb596c9f476de74c5ebca7e541d556ed; a read-only remote check
+then reported7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2. The task stops at the
+requested retry limit. Implementationee91c300, all merged history through902f7c4d,
+and the tested182f5652 runtime boundary remain committed in this clone.
+Later remote source7890ebd7 has not been fetched/reviewed/validated here.
+No fix is claimed published or deployed. Remaining action is a coordinated
+normal main integration/push preserving these commits, with checks only for any
+new affected inputs. No owned jobs remain; all stashes and todo are preserved.
