@@ -96159,3 +96159,21 @@ unstarted after policy rejection, with no retry. ROOT final release remains open
 D2 final integration preserves complete68345ada after routine ff-only refusal;
 both reviewed blobs and actual source/caller closure are unchanged. No runtime
 rerun or adoption of unrelated incoming static-app receipts; normal push follows.
+
+
+### 2026-11-23 D2: independent review of D1 i1 overflow reconstruction
+
+Freeze5fc00c8597760ac9c21613cbd78063ddf9f4236d; reviewed158624c7/1e428ede
+against e637ba38. No scoped defect found in i1 AND/false handling, unchanged
+wider formula, distinct extract SSA ownership, canonical/error/cleanup oracles
+or existing storage registration. Six exact blobs/dispositions and immediate
+contract map are recorded in docs/compiler_ecs_audit_d2.md; this finite peer gap
+closes without production edits. Runtime parameters reach import because the
+fixture verifies without O2; no claim of post-O2 or LLVM machine execution.
+D1's12 failing→passing i1 cases,48 wider passes and8 rejection controls remain
+attributed at their tested inputs. Registered check7.91wall/7.65CPU/127068KiB;
+full before/after and executable identity stay in the linked receipt/raw logs.
+No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
+New-path fault injection and unavailable large-request benchmark are not inferred
+from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
+integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
