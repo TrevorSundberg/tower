@@ -19,6 +19,7 @@ import parser_state;
 import parser_stream;
 import parser_table_types;
 import syntax_emission;
+import syntax_baselines;
 import syntax_emission_lexical;
 import syntax_expansion;
 import syntax_expansion_types;
@@ -98,7 +99,8 @@ fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): 
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
-    var version = syntax_version_cached(&value.cache, value.inputs.world, candidate, value.pins.bedrock, &diagnostic);
+    var version = syntax_version_cached_reusing(&value.cache, value.inputs.world, candidate, value.pins.bedrock,
+        &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
     syntax_session_resource_fail(value, diagnostic.resource_error);
     defer syntax_version_release(version);
     value.error_offset = diagnostic.offset;

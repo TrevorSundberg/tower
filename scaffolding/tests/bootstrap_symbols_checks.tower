@@ -227,6 +227,7 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_create_related_result", "entity_create_related_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_create_result", "entity_create_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "frontend_module_root_world_size_result", "frontend_module_root_world_size_result_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "syntax_world_structures_clear", "syntax_world_structures_clear_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "compiler_world_create_result", "compiler_world_create_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "frontend_units_close", "frontend_units_close_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "frontend_units_create_bounded_result", "frontend_units_create_bounded_result_extra");

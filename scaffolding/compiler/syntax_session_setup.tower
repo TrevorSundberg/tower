@@ -86,7 +86,8 @@ export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): voi
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
-    var version = syntax_version_cached(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock, &diagnostic);
+    var version = syntax_version_cached_reusing(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock,
+        &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
     syntax_session_resource_fail(value, diagnostic.resource_error);
     // cached transfers one owned reference; replace the session's old owner.
     syntax_session_pin_version(&value.pins.version, version);
