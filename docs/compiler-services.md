@@ -429,3 +429,33 @@ or retaining the replacement; overflow reports `Exhausted`. Taking a child check
 that child's lease and transfers the parent's existing reference without retaining
 or allocating. A null result with `None` means an empty valid parent. Existing
 bool/pointer wrappers remain; callers needing an exact cause use the result APIs.
+
+### Interpreter text and package owners
+
+Interpreter diagnostics/output, including the reached type-constructor diagnostic,
+use checked `work_vector(u8)` storage bound to the invocation/session world budget
+before execution. Appending admits the entire replacement (including the NUL
+presentation byte) before changing the counted value. A denied append sets the
+first `IMState.storage_error`, fails immediately and preserves prior output;
+returning capacity does not resume effects. Diagnostic allocation is optional:
+failed state and the first offset survive an empty diagnostic. Constructor failure
+moves its counted owner/grant to the invocation without allocating another copy.
+Runtime driver/IDE and invocation callbacks use the same text operations.
+
+`execution_package_encode` and `bytecode_encode` return `WorkBudgetError` and take
+initialized `work_vector(u8)` output owners. The old output remains live while a
+complete replacement is admitted and survives every failed request. Encoding
+checks bounds, envelope/checksum, the Fast cache's frozen target, profile and
+encoded cache before publication. Canonical reconstruction remains the ordinary
+Foundation formatter/checker; loading verifies that graph against the cache.
+Package transfers include the physical budget grant. Keep its ledger/world alive
+until consumers drain and dispose the owner. The browser transport copies bytes
+before `tw_exec_bytecode_release`; failed replacement preserves the last owner.
+
+Null-ledger standalone callers remain explicitly unbounded. This contract does
+not account for all semantic/formatter presentation scratch, foreign diagnostic
+formatting, host JSON/transport buffers, legacy IDE descriptors, allocator-private
+overhead or VM/RSS. The semantic counted-error consumer reports allocation failure
+without asserting, but its separate presentation vector remains outside this
+ledger. Integrated physical allocator faults, sanitizers and release coverage are
+separate ROOT-owned gates, not implied by these focused checks.

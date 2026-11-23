@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import ide_types;
 import ide_api;
 import ide_state;
@@ -85,10 +86,6 @@ export fn tw_exec_strip_comments(handle: u32): void {
 }
 
 fn ide_package_reset(): void {
-    var state = ide_state();
-    bytecode_free(state.bytecode);
-    state.bytecode = null;
-    state.bytecode_size = 0;
     ide_static_error("");
 }
 
@@ -103,36 +100,18 @@ fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32
         ide_execution_close(canonical);
         return null;
     }
-    var failed = canonical.error.length != 0;
-    if failed {
-        ide_error(ide_result(&canonical.error));
-    }
-    else {
-        if ide_execution_fast(canonical) {
-            state.bytecode = bytecode_encode(canonical.fast, source, length, convert(usize, width), profile, &state.bytecode_size);
-        }
-        failed = state.bytecode == null;
-        if failed {
-            ide_error("Cannot allocate .towerbc package");
-        }
-    }
-    if !failed {
-        var invalid = bytecode_validate(state.bytecode, state.bytecode_size);
-        if invalid != 0 {
-            ide_error(bytecode_error(invalid));
-            failed = true;
-        } else {
-            if !bytecode_matches(canonical.fast, state.bytecode) {
-                ide_error(bytecode_error(convert(u32, IdePackageError.CacheMismatch)));
-                failed = true;
-            }
-        }
-    }
-    if failed {
+    var result = canonical.machine.storage_error;
+    if canonical.machine.failed || !ide_execution_fast(canonical) {
+        result = canonical.machine.storage_error;
+        ide_static_error(result == WorkBudgetError.None ? "Cannot prepare .towerbc execution cache" : sem_resource_message(result));
+        if canonical.error.length != 0 { ide_error(canonical.error.data); }
         ide_execution_close(canonical);
-        bytecode_free(state.bytecode);
-        state.bytecode = null;
-        state.bytecode_size = 0;
+        return null;
+    }
+    result = bytecode_encode(canonical.fast, source, length, convert(usize, width), profile, &state.bytecode);
+    if result != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(result));
+        ide_execution_close(canonical);
         return null;
     }
     return canonical;
@@ -185,7 +164,12 @@ export fn tw_exec_prepare_package(handle: u32, profile: u32): u32 {
 }
 
 export fn tw_exec_bytecode_size(): usize {
-    return ide_state().bytecode_size;
+    return ide_state().bytecode.length;
+}
+
+// The transport copies the complete package before retiring this VM-owned grant.
+export fn tw_exec_bytecode_release(): void {
+    work_vector_dispose(&ide_state().bytecode);
 }
 
 export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
@@ -193,7 +177,7 @@ export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
     if canonical == null { return 0; }
     ide_execution_close(canonical);
     var state = ide_state();
-    return state.bytecode_size;
+    return state.bytecode.length;
 }
 
 export fn tw_exec_bytecode(handle: u32): usize {
@@ -202,7 +186,7 @@ export fn tw_exec_bytecode(handle: u32): usize {
 
 export fn tw_exec_bytecode_data(): u8* {
     var state = ide_state();
-    return state.bytecode;
+    return state.bytecode.data;
 }
 
 export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
@@ -231,16 +215,18 @@ export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
         ide_execution_close(session);
         return 0;
     }
-    rejected = session.error.length != 0;
+    rejected = session.machine.failed;
     if rejected {
-        ide_error(ide_result(&session.error));
+        if session.error.length != 0 { ide_error(session.error.data); }
+        else { ide_static_error(sem_resource_message(session.machine.storage_error)); }
         ide_execution_close(session);
         return 0;
     }
     var ready = ide_execution_fast(session);
     ready &&= bytecode_matches(session.fast, data);
     if !ready {
-        ide_error(bytecode_error(convert(u32, IdePackageError.CacheMismatch)));
+        if session.machine.storage_error != WorkBudgetError.None { ide_static_error(sem_resource_message(session.machine.storage_error)); }
+        else { ide_error(bytecode_error(convert(u32, IdePackageError.CacheMismatch))); }
         ide_execution_close(session);
         return 0;
     }

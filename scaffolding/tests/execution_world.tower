@@ -64,7 +64,7 @@ fn execution_input_normalization_trial(width: u32, foreign_modules: void*): void
     execution_check(!execution_session_compile_sources_world(&session, world, &sources[0], count, width, foreign_modules)
         && session.program.resource.error == WorkBudgetError.Capacity && session.program.resource.offset == 0
         && session.machine.failed && session.machine.done && session.machine.steps == 0 && !session.started
-        && session.output.length == 0 && execution_text(&session.error, sem_resource_message(WorkBudgetError.Capacity)),
+        && session.output.length == 0 && session.error.length == 0 && session.machine.storage_error == WorkBudgetError.Capacity,
         "Empty input descriptor admission preserves exact failure before frontend work");
     execution_check(sources[0].data == null && sources[0].length == 0 && sources[1].data == source,
         "Input normalization never changes caller descriptors");
@@ -83,8 +83,8 @@ fn execution_input_normalization_trial(width: u32, foreign_modules: void*): void
         && session.machine.failed && session.machine.done && session.machine.steps == 0 && !session.started
         && execution_text(&session.error, sem_resource_message(WorkBudgetError.Invalid)),
         "Admitted empty input preserves the exact foreign-world rejection");
-    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes
-        && released.live == baseline.live, "Frontend failure releases normalized input descriptors");
+    execution_check(work_budget_snapshot(&budget, &released) && released.used_bytes == baseline.used_bytes + session.error.reservation.bytes
+        && released.live == baseline.live + (session.error.reservation.active ? 1 : 0), "Frontend failure releases normalized input descriptors");
     execution_session_close(&session);
     execution_session_close(&warm);
     execution_check(compiler_world_dispose(world), "Input fixture world drains");
@@ -192,11 +192,11 @@ fn execution_world_tests(request: DriverRequest*): void {
     execution_run(&fast, 7, 1000000);
     execution_same(&graph, &fast);
     execution_check(execution_text(&graph.output, "42\n") && !graph.machine.failed, "world compiletime/decltype result");
-    var package: ByteBuffer = default;
-    var error: ByteBuffer = default;
-    defer bytes_dispose(&package);
-    defer bytes_dispose(&error);
-    execution_check(execution_package_encode(&graph.program, first_modules, 1, &package, &error), "explicit world canonical package");
+    var package: work_vector(u8) = default;
+    var error: work_vector(u8) = default;
+    defer work_vector_dispose(&package);
+    defer work_vector_dispose(&error);
+    execution_check(execution_package_encode(&graph.program, first_modules, 1, &package, &error) == WorkBudgetError.None, "explicit world canonical package");
     var restored: ExecutionSession = default;
     execution_check(execution_package_load(&restored, package.data, package.length, second_modules), "package reconstructs in another world");
     execution_check(compiler_node_world(restored.program.root) == second, "package reconstruction world");
@@ -214,6 +214,8 @@ fn execution_world_tests(request: DriverRequest*): void {
         "foreign compiler environment preserves its exact resource diagnostic");
     execution_session_close(&failed);
     execution_close_checked(&graph);
+    work_vector_dispose(&package);
+    work_vector_dispose(&error);
     frontend_modules_destroy(first_modules);
     execution_check(frontend_world_clear(first) && compiler_world_dispose(first), "first execution world drains");
     execution_compile(&fast, source, 8, second_modules);

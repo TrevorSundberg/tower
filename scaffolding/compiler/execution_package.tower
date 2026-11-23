@@ -1,4 +1,7 @@
 import tower;
+import .library.work_text;
+import .library.work_vector;
+import .library.work_vector_types;
 import component_kinds;
 import execution_session;
 import semantic_program_types;
@@ -7,6 +10,7 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import .library.work_budget_types;
 
+extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_node_type(node: void*, kind: u32): void*;
 
 extern fn format_entity(out: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
@@ -21,17 +25,17 @@ extern fn bytecode_source_size(data: u8*): usize;
 
 extern fn bytecode_pointer_bytes(data: u8*): usize;
 
-extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, length: usize*): u8*;
+extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, output: work_vector(u8)*): WorkBudgetError;
 
 extern fn bytecode_matches(fast: void*, data: u8*): bool;
 
-extern fn bytecode_free(data: u8*): void;
 
 // The caller installs the canonical bundled grammar before reconstruction.
 // Envelope validation precedes every section read; the cache is verified against
 // a newly checked Foundation graph before it can execute.
 fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, modules: void*): bool {
     execution_session_close(execution);
+    execution.machine.budget = compiler_world_work_budget(frontend_modules_world(modules) ?? compiler_host_world());
     var invalid = bytecode_validate(data, size);
     if invalid != 0 {
         execution_session_fail(execution, bytecode_error(invalid), 0);
@@ -45,13 +49,7 @@ fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, 
             return false;
         }
     }
-    var text: ByteBuffer = default;
-    if !bytes_assign_text(&text, source, length) {
-        execution_session_fail(execution, "Unable to allocate .towerbc Foundation source", 0);
-        return false;
-    }
-    var ok = execution_session_compile(execution, text.data, text.length, convert(u32, bytecode_pointer_bytes(data)), modules);
-    bytes_dispose(&text);
+    var ok = execution_session_compile(execution, source, length, convert(u32, bytecode_pointer_bytes(data)), modules);
     if !ok {
         return false;
     }
@@ -64,48 +62,43 @@ fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, 
 
 // Serialize the canonical reconstruction, never the original parse provenance
 // or a host-address-dependent cache. The temporary session owns all resources.
-fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: u32, output: ByteBuffer*, error: ByteBuffer*): bool {
-    output.length = 0;
+fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: u32, output: work_vector(u8)*, error: work_vector(u8)*): WorkBudgetError {
+    if program == null || program.root == null || output == null || error == null || output == error {
+        return WorkBudgetError.Invalid;
+    }
     error.length = 0;
+    var world = compiler_node_world(program.root);
+    var budget = compiler_world_work_budget(world);
     if program.resource.error != WorkBudgetError.None || program.error.length != 0 {
         var text = program.error.length != 0 ? program.error.data : sem_resource_message(program.resource.error);
         var length = program.error.length != 0 ? program.error.length : strlen(text);
-        // A false result and empty output survive diagnostic allocation failure.
-        bytes_assign_text(error, text, length);
-        return false;
+        work_text_write(error, budget, text, length, false);
+        return program.resource.error == WorkBudgetError.None ? WorkBudgetError.Invalid : program.resource.error;
     }
     var formatted: FormatResult = default;
+    defer format_dispose(&formatted);
     format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax), null,
-    compiler_node_type(program.root, CompilerParserMatch));
+        compiler_node_type(program.root, CompilerParserMatch));
     var canonical: ExecutionSession = default;
-    var ok = !formatted.failed;
-    if !ok {
+    defer execution_session_close(&canonical);
+    canonical.machine.budget = budget;
+    if formatted.failed {
+        canonical.machine.storage_error = WorkBudgetError.Memory;
         execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0);
+    } else {
+        var source: FrontendSource = { data: formatted.text.data, length: formatted.text.length };
+        execution_session_compile_sources_world(&canonical, world, &source, 1, program.pointer_bytes, modules);
     }
-    ok &&= execution_session_compile(&canonical, formatted.text.data, formatted.text.length, program.pointer_bytes, modules);
-    if ok {
-        ok = execution_session_fast(&canonical);
-        if !ok {
-            execution_session_fail(&canonical, "Unable to allocate interpreter cache", 0);
-        }
+    if !canonical.machine.failed && execution_session_fast(&canonical) {
+        var result = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length,
+            convert(usize, program.pointer_bytes), profile, output);
+        if result == WorkBudgetError.None { return result; }
+        canonical.machine.storage_error = result;
+        execution_session_fail(&canonical, "Cannot encode .towerbc package", 0);
     }
-    if ok {
-        var size: usize = 0;
-        var data = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length, convert(usize, program.pointer_bytes), profile, &size);
-        ok = data != null;
-        if ok {
-            ok = bytes_append(output, data, size);
-            bytecode_free(data);
-        }
-        if !ok {
-            execution_session_fail(&canonical, "Cannot allocate .towerbc package", 0);
-        }
-    }
-    if !ok {
-        output.length = 0;
-        bytes_assign_text(error, canonical.error.data, canonical.error.length);
-    }
-    execution_session_close(&canonical);
-    format_dispose(&formatted);
-    return ok;
+    var result = canonical.machine.storage_error;
+    if result == WorkBudgetError.None { result = WorkBudgetError.Invalid; }
+    // Transfer counted presentation and its grant even when no capacity remains.
+    work_vector_move(error, &canonical.error);
+    return result;
 }

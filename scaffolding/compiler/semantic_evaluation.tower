@@ -88,15 +88,24 @@ export fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvalu
 
 // Retain an early stage failure on its producer, so independent body checking
 // can select diagnostics in source order after joining all continuations.
-fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, offset: usize): void {
+fn sem_evaluation_fail_counted(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, length: usize, offset: usize): void {
     if result.error.length == 0 {
-        var length: usize = 0;
-        while message[length] != 0 { length++; }
-        sem_require(vector_reserve(&result.error, length + 1));
-        copy(result.error.data, message, length + 1);
+        result.error_offset = offset;
+        if length == ~convert(usize, 0) || !vector_reserve(&result.error, length + 1) {
+            if result.resource_error == WorkBudgetError.None { result.resource_error = WorkBudgetError.Memory; }
+            return;
+        }
+        copy(result.error.data, message, length);
+        result.error.data[length] = 0;
         result.error.length = length;
         result.error_offset = offset;
     }
+}
+
+fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, offset: usize): void {
+    var length: usize = 0;
+    while message[length] != 0 { length++; }
+    sem_evaluation_fail_counted(c, result, message, length, offset);
 }
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
@@ -132,7 +141,11 @@ fn sem_evaluation_failed(c: SemanticContext*, result: SemanticEvaluation*): bool
         result.resource_error = invocation.state.storage_error;
     }
     if result.inferred && result.resource_error == WorkBudgetError.None { return true; }
-    var message = invocation.context.error.data;
+    if invocation.context.error.length != 0 {
+        sem_evaluation_fail_counted(c, result, invocation.context.error.data, invocation.context.error.length, sem_get(result.subject).start);
+        return false;
+    }
+    var message: u8* = null;
     if result.resource_error != WorkBudgetError.None {
         message = "Compile-time evaluation storage reservation failed";
         if result.resource_error == WorkBudgetError.Capacity {

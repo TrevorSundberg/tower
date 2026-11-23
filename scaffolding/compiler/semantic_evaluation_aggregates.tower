@@ -92,12 +92,12 @@ fn sem_evaluation_aggregate_publish(c: SemanticContext*, result: SemanticEvaluat
         if leaf.subject == null { continue; }
         var value = sem_get(leaf.subject);
         var bits_value = ix_load(&execution, invocation.context.result + convert(u64, leaf.byte_offset), &value.type, value.start);
-        if invocation.state.failed { sem_fail(c, result.subject, invocation.context.error.data); return; }
+        if invocation.state.failed { sem_evaluation_failed(c, result); return; }
         if value.type.pointers != 0 && bits_value != 0 {
             sem_fail(c, result.subject, "Compile-time aggregate contains a non-relocatable raw pointer");
             return;
         }
         sem_evaluation_value(leaf.subject, invocation, bits_value);
-        if invocation.state.failed { sem_fail(c, result.subject, invocation.context.error.data); return; }
+        if invocation.state.failed { sem_evaluation_failed(c, result); return; }
     }
 }

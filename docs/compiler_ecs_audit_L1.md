@@ -647,3 +647,23 @@ execution_world assertions to upstream's exact Invalid/offset0 contract, merged
 Fast CLI1/4-worker-request controls, with frozen input hashes. Shared semantic
 producers remain untouched by L1. All final release/instrumentation gaps above
 remain explicit; this is the bounded main-only Fast storage completion.
+
+### Counted interpreter/output/package follow-up
+
+The remaining scoped L1 owners are now checked: IMContext error/output,
+IMTypeConstruction diagnostic, ExecutionSession/IdeExecution text and complete
+package results. Counts and WorkReservation move together; failure retains typed
+cause/first offset without diagnostic allocation, preserves admitted output/old
+packages and stops effect replay. Canonical Foundation remains authoritative;
+Fast retains the actual provider target for encoder admission. CLI, invocation,
+semantic counted consumers and shared-Wasm/browser transport layouts are coherent.
+The browser copies before releasing the package grant; explicit null-ledger legacy
+owners remain unbounded. General semantic/formatter/host presentation buffers and
+physical allocator-fault/integrated release checks remain outside this batch.
+
+Focused native core/constructor/encoder/query and shared-Wasm5/5 package checks
+pass. Exact failures, source/artifact hashes, before/after wall/CPU/RSS and remaining
+Fast timing cost are in the journal's completion receipt. In particular the final
+isolated large-loop sample is8.0% slower; moving the target field to the tail avoids
+shifting existing hot fields but does not establish zero overhead. ROOT owns final
+sanitizers/scaling/publication; B2 owns generation identity. No deployment claim.

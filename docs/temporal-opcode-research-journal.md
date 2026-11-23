@@ -83967,3 +83967,116 @@ linked binary/runtime hashes remain identical; the four focused run receipts
 therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
+
+### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
+
+Bounded follow-up starts at published36ad337 after the required fast-forward pull,
+with no surviving L1 jobs. PID8356 performed the first successful caller/layout
+audit; external status records subsequent build shells. The public bootstrap and
+existing l1_ecs_native/l1_shared_wasm caches remain canonical. Baseline native
+closure is preserved in /root/.cache/tower/l1_output_storage_before; exact source
+and binary hashes and all build failures are in external L1/logs/output_storage_*.
+No generation-identity investigation, pin update or hosted deployment is included.
+
+IMContext, constructor diagnostics and runtime ExecutionSession/IdeExecution text
+now use checked work_vector owners. Shared counted text writes admit complete
+payload plus terminator transactionally, use explicit state/world budgets, retain
+the first typed failure even without presentation storage, and stop later effects.
+Constructor failure transfers its counted owner/grant into the invocation; the
+semantic consumer accepts a count and retains the existing declaration location.
+SemanticEvaluation's separate presentation vector remains outside this accounting
+scope, but its direct copy now reports Memory instead of asserting on failure.
+
+The encoder admits one complete package owner, validates envelope/target/profile/
+cache, and transfers the grant only on success. The caller's previous owner stays
+live during replacement admission and survives failure. Removed the package-load
+source copy and encoded-package copy. Canonical reconstruction uses the source
+program's world. Fast's private descriptor retains its actual provider target;
+KProgram.type has no authoritative pointer width. CLI, IDE, native/check and
+shared-Wasm providers import the same layouts. The browser transport retires the
+package grant after copying; older exports retain their explicit legacy behavior.
+
+Preserved experiments: initial encoder compile lacked a direct im_node import;
+the new fixture then lacked work_buffer's declaration, followed by a duplicate
+im_memory_size export from importing the full context provider into a linked test.
+Those fixture/import failures are retained. The new generic comparison helper
+returned false under the public predecessor although raw memcmp, addresses,
+lengths and counters agreed; use concrete typed/explicit counted test helpers,
+without changing language implementation or adopting a private bootstrap.
+An initial target check incorrectly used the program node's unset type width;
+the private Fast descriptor now snapshots the real ABI width and tests crossed
+valid widths. Native core/constructor/encoder checks pass, including both-width
+output/package ownership and all24 Fast admission sites. Query failure ordering
+caught an accidental internal/declaration offset substitution; corrected to the
+established declaration mapping. Its focused rerun and shared-Wasm validation are
+pending at this entry. No failed attempt is represented as a pass.
+
+### L1 interpreter/output/package storage gate — focused completion receipt
+
+The final layout keeps Fast's existing hot offsets and appends only its frozen
+provider target. Native `core` passes on that layout, including156 graph/Fast
+trials, both-width output/diagnostic capacity and first-error/no-replay checks,
+constructor counted-owner transfer,24 Fast admission sites, package replacement,
+snapshot survival, canonical round trips and complete grant retirement. Earlier
+constructor and encoder-rejection selectors pass. The final `query-smoke` receipt
+is actual exit0/status0: serial/threaded32/64 staging, failure order, dependency
+continuations, cancelled ownership and exact resource-denial phases. Its observer
+now recognizes a typed failure without requiring an unbudgeted diagnostic string.
+The earlier query-final PASS status was premature and is explicitly corrected in
+external status; its error/core dump remains preserved.
+
+The supported shared-Wasm target builds with the public bootstrap, existing WASI
+SDK34 and threads toolchain. Existing Tower package fixture enabled; the existing
+Node bytecode file passes5/5 with0 skips. It covers independent prepared sessions,
+both-width identical re-encoding/execution, bounds/version/checksum/cache rejection
+and custom grammar snapshots. The old Tower fixture lacked `import tower`; fixed
+that input rather than weakening file admission. Transport uses Node21.7.3 shared
+memory with4 worker slots; these package checks make no overlap or browser-isolation
+claim. Native four-unit controls do observe4 distinct overlapping workers.
+No browser matrix, generation comparison, sanitizer campaign or deployment ran.
+
+Canonical frozen baseline:36ad337, public bootstrap SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+WSL Orchestral-Revng/Linux x64, Release, max2 build jobs/inner1. All failed logs,
+source manifests and timings remain under external L1/logs/output_storage_*.
+Native baseline build104.13wall/150.29CPU/787020KiB peak; first shared closure
+66.23wall/94.41CPU/835176KiB. Later builds compile only changed dependencies.
+The resource comparison initially stopped because work_text.tower was added;
+the checked retry verifies every prior resource hash and uses the same frozen
+predecessor share and language resources for both measured executables. The new
+helper is compiled into the runtime and is not imported by these input fixtures.
+
+Matched n1 samples, wall seconds / CPU seconds / peak RSS KiB (before ? after):
+
+| Checked workload | Before | After |
+| --- | --- | --- |
+| Fast small, jobs1 | 1.88 / 1.79 / 179960 | 1.86 / 1.85 / 180276 |
+| Fast large, jobs1 (initial layout) | 2.25 / 2.23 / 180072 | 2.25 / 2.24 / 180260 |
+| Canonical package,65720 identical bytes | 1.96 / 1.95 / 191324 | 2.06 / 2.05 / 191000 |
+| Four units, worker budget1 | 5.69 / 5.69 / 210416 | 6.05 / 6.06 / 210416 |
+| Four units, worker budget4 | 1.92 / 7.24 / 566448 | 2.02 / 7.52 / 557560 |
+
+Unit canonical hash17697577322696030917 is identical across versions/budgets;
+observed outer peak1/4 with distinct worker identities and checked outputs.
+Four-worker retained bytes20193059?20193379, declared peak263968759?264315416.
+These graph-staging controls do not use the subsequently relocated Fast field.
+Package SHA256ea628ea73ce4c511fceea2c26f73bc654ed9ec6ae05cb8ccd3342792bcef09a9.
+
+The isolated large Fast loop regressed372.46?422.87ms initially; a reversed pair
+377.74?454.60ms confirmed concern. Moving the new field to the descriptor tail
+preserves existing hot offsets. Final reversed pair362.44?391.60ms (+8.0%), whole
+process2.15?2.31wall,2.12?2.19CPU,180200?179968KiB. This is limited sampling,
+not a zero-overhead or stable scaling claim; the residual measured regression is
+retained as a limitation rather than hidden by end-to-end compilation noise.
+Final shared package check4.566wall/7.25CPU/272261120bytes peak working set,
+actual process exit0. Final artifacts: native towerc
+2a8ada71ad2b66ff3cd773e8b6c3950e7eb4f1c8cd8755d866db7f6f07309b19;
+shared Wasm4cefe01f957d7fe558ac1c49f3cb7bfa18f1847706c8d32eab254a0d7984aff6.
+
+Remaining storage limits: uncharged semantic/formatter presentation scratch,
+foreign diagnostic formatting and host JSON/transport/legacy IDE descriptors;
+explicit null-ledger callers; allocator-private overhead/RSS. The new owners
+charge compiler allocation headers and replacement coexistence, not those heaps.
+Physical allocator-fault and final integrated instrumentation/platform/release
+coverage remain pending with ROOT. Generation identity remains B2-owned. All
+owned jobs drain before reconciliation; todo.txt remains unchanged.

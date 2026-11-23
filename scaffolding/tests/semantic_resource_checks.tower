@@ -48,21 +48,22 @@ fn resource_probe_execute(payload: void*): void {
     var original: CompilerKernel = {kind: CompilerKernelKind.Evaluate, payload: bits(void*, invocation)};
     work_kernel_execute(bits(void*, &original));
     var state = &invocation.state;
-    if !state.failed || state.storage_error != WorkBudgetError.Capacity
-        || invocation.context.error.data == null { return; }
+    if !state.failed || state.storage_error != WorkBudgetError.Capacity { return; }
+    // Denial may leave no presentation owner; the typed cause and exact live
+    // continuation still identify which required allocation was rejected.
     if probe.growth {
         probe.observed = state.steps != 0 && state.frames.length == 1
             && state.frames.data[0].function == probe.entry && state.memory.data != null
-            && sem_equal(invocation.context.error.data, "Cannot grow strict evaluation stack");
+            && (invocation.context.error.length == 0 || sem_equal(invocation.context.error.data, "Cannot grow strict evaluation stack"));
         if !probe.observed {
             puts("Nested-growth denial before the expected stack request:");
-            puts(invocation.context.error.data);
+            puts(invocation.context.error.data ?? "No diagnostic allowance");
         }
     } else {
         probe.observed = state.steps == 0 && state.frames.length == 0 && state.memory.data == null
             && state.node_cache.data == null && state.node_cache.length == 0
             && state.node_cache.capacity == 0 && !state.node_cache.reservation.active
-            && sem_equal(invocation.context.error.data, "Cannot allocate interpreter node cache");
+            && (invocation.context.error.length == 0 || sem_equal(invocation.context.error.data, "Cannot allocate interpreter node cache"));
     }
 }
 

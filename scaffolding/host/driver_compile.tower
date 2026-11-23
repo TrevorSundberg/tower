@@ -1,4 +1,6 @@
 import tower;
+import .library.work_vector;
+import .library.work_vector_types;
 import .backend.linker_wasi;
 import .compiler.syntax_version_types;
 import .compiler.frontend_revision_types;
@@ -257,7 +259,17 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
         ok = driver_install_grammar(state.request, true, SyntaxFoundationBaseline);
         var profile = state.packaged ? state.profile : convert(u32, state.preserve_foundation
             ? ExecutionProfile.Canonical : options.optimize ? ExecutionProfile.Optimized : ExecutionProfile.Normalized);
-        ok &&= execution_package_encode(program, driver_request_modules(state.request), profile, &text, &error);
+        var package: work_vector(u8) = default;
+        var diagnostic: work_vector(u8) = default;
+        defer work_vector_dispose(&package);
+        defer work_vector_dispose(&diagnostic);
+        if !ok { return 1; }
+        var result = execution_package_encode(program, driver_request_modules(state.request), profile, &package, &diagnostic);
+        if result != WorkBudgetError.None {
+            driver_error("", diagnostic.length != 0 ? diagnostic.data : sem_resource_message(result));
+            return 1;
+        }
+        return driver_write_file(output, package.data, package.length) ? 0 : 1;
     } else {
         if driver_same(emit, "foundation") {
             ok = driver_compile_format(state, program.root, &text);

@@ -1469,3 +1469,16 @@ stride/back-reference overhead; archetype columns contain component pointers,
 not packed payloads. No hardware counters, parallel mutation, finite whole-world
 cap acceptance or compiler-wide speedup are claimed. See the D2 layout journal
 receipt and audit for measured source identity and limits.
+
+The execution `core` selector includes `execution_output_storage.tower`: counted
+first-error/output admission, no replay after capacity returns, graph/Fast parity,
+producer teardown with a retained package snapshot, transactional replacement and
+complete world/grant retirement at both target widths. `type-construction` covers
+counted constructor-diagnostic transfer without a second allocation; `query-smoke`
+observes typed capacity failures even when diagnostic storage is unavailable.
+
+For the changed Wasm/host boundary, enable `TOWER_IDE_PACKAGE_TESTS=ON`, build only
+`tower-browser`, and run `TOWER_TEST_WASM=/absolute/path/tower.wasm node --test
+playground/tests/bytecode.test.mjs`. The file closes its host transport and uses the
+selected artifact without requiring an unrelated default browser build. This is
+package coverage, not the browser concurrency or integrated release matrix.

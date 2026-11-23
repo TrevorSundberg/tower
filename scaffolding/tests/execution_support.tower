@@ -1,6 +1,7 @@
 import tower;
 import .library.bytes_interface;
 import .library.bytes_types;
+import .library.work_vector_types;
 
 import .compiler.format_types;
 import .compiler.foundation_types;
@@ -64,11 +65,19 @@ fn execution_check(ok: bool, message: u8*): void {
     }
 }
 
-fn execution_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
+fn execution_bytes_equal(left: u8*, left_count: usize, right: u8*, right_count: usize): bool {
+    return left_count == right_count && (left_count == 0 || memcmp(left, right, left_count) == 0);
+}
+
+fn execution_buffer_text(text: ByteBuffer*, wanted: u8*): bool {
+    return execution_bytes_equal(text.data, text.length, wanted, strlen(wanted));
+}
+
+fn execution_equal(left: work_vector(u8)*, right: work_vector(u8)*): bool {
     return left.length == right.length &&(left.length == 0 || memcmp(left.data, right.data, left.length) == 0);
 }
 
-fn execution_text(text: ByteBuffer*, wanted: u8*): bool {
+fn execution_text(text: work_vector(u8)*, wanted: u8*): bool {
     return text.length == strlen(wanted) &&(text.length == 0 || memcmp(text.data, wanted, text.length) == 0);
 }
 
@@ -92,12 +101,10 @@ fn execution_run(session: ExecutionSession*, budget: usize, limit: usize): void 
 fn execution_same(graph: ExecutionSession*, fast: ExecutionSession*): void {
     execution_check(graph.machine.done == fast.machine.done, "completion agrees");
     if !execution_equal(&graph.output, &fast.output) {
-        execution_check(host_text_terminate(&graph.output) && host_text_terminate(&fast.output)
-            && host_text_terminate(&graph.error) && host_text_terminate(&fast.error), "engine mismatch diagnostic storage");
-        execution_error("Graph output:", graph.output.data);
-        execution_error("Fast output:", fast.output.data);
-        execution_error("Graph error:", graph.error.data);
-        execution_error("Fast error:", fast.error.data);
+        execution_error("Graph output:", graph.output.data ?? "");
+        execution_error("Fast output:", fast.output.data ?? "");
+        execution_error("Graph error:", graph.error.data ?? "");
+        execution_error("Fast error:", fast.error.data ?? "");
     }
     execution_check(execution_equal(&graph.output, &fast.output), "output agrees");
     execution_check(execution_equal(&graph.error, &fast.error), "exact diagnostic agrees");

@@ -68,7 +68,8 @@ fn input_query_owned_bytes(invocation: IMInvocation*): usize {
         + invocation.state.type_values.values.reservation.bytes + invocation.state.node_cache.reservation.bytes
         + invocation.state.function_values.reservation.bytes + invocation.state.allocations.reservation.bytes
         + invocation.state.free_blocks.reservation.bytes + invocation.state.strings.reservation.bytes
-        + invocation.state.sequenced.reservation.bytes;
+        + invocation.state.sequenced.reservation.bytes + invocation.context.error.reservation.bytes
+        + invocation.context.output.reservation.bytes + invocation.context.type_construction.error.reservation.bytes;
     for(var i: usize = 0; i < frames.capacity; i++) {
         bytes += frames.data[i].tasks.reservation.bytes + frames.data[i].values.reservation.bytes
             + frames.data[i].addresses.reservation.bytes;
@@ -503,8 +504,8 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
                 && a.context.output.length == 0 && !a.context.returned
                 && input_query_owned_bytes(&a) == allowed,
                 "Denied startup retains its typed error and exactly the permitted private owners", &failures);
-            call_query_check(a.context.error.data != null && strcmp(a.context.error.data, startup[attempt].message) == 0,
-                "Startup denial identifies the actual failed buffer", &failures);
+            call_query_check(a.context.error.data == null && a.context.error.length == 0,
+                "Exhausted startup retains typed failure without uncharged diagnostic storage", &failures);
             if attempt == 0 {
                 call_query_check(a.state.node_cache.data == null,
                     "Exhausted startup budget cannot retain a hidden node cache", &failures);
@@ -664,8 +665,7 @@ fn function_query_tests(width: u32): u32 {
             call_query_check(invocation.state.done && invocation.state.failed
                 && invocation.state.storage_error == WorkBudgetError.Capacity
                 && invocation.state.error_offset == FunctionQueryOffset
-                && invocation.context.error.data != null
-                && strcmp(invocation.context.error.data, "Cannot allocate interpreter function storage") == 0
+                && invocation.context.error.data == null && invocation.context.error.length == 0
                 && strcmp(invocation.context.output.data, preceding_output) == 0
                 && invocation.state.function_values.data == original
                 && invocation.state.function_values.length == length
@@ -743,8 +743,7 @@ fn function_query_tests(width: u32): u32 {
         call_query_check(invocation.state.done && invocation.state.failed
             && invocation.state.storage_error == WorkBudgetError.Capacity
             && invocation.state.error_offset == FunctionQueryOffset
-            && invocation.context.error.data != null
-            && strcmp(invocation.context.error.data, "Cannot allocate interpreter function storage") == 0
+            && invocation.context.error.data == null && invocation.context.error.length == 0
             && invocation.context.output.length == 0
             && invocation.state.function_values.data == original
             && invocation.state.function_values.length == growing
@@ -891,7 +890,7 @@ fn map_query_tests(width: u32): u32 {
         interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
         call_query_check(invocation.state.done && invocation.state.failed
             && invocation.state.storage_error == WorkBudgetError.Capacity && invocation.state.error_offset == MapQueryOffset
-            && invocation.context.error.data != null && strcmp(invocation.context.error.data, selected.message) == 0
+            && invocation.context.error.data == null && invocation.context.error.length == 0
             && !invocation.context.returned && invocation.context.output.length == strlen(selected.preceding)
             && (invocation.context.output.length == 0 || strcmp(invocation.context.output.data, selected.preceding) == 0),
             selected.message, &failures);
@@ -1062,8 +1061,7 @@ fn wide_query_tests(width: u32): u32 {
         copy(&effect, invocation.state.memory.data + base, sizeof(i32));
         call_query_check(invocation.state.done && invocation.state.failed && !invocation.context.returned
             && invocation.state.storage_error == WorkBudgetError.Capacity && invocation.state.error_offset == WideQueryOffset
-            && invocation.context.error.data != null
-            && strcmp(invocation.context.error.data, "Cannot allocate interpreter call arguments") == 0
+            && invocation.context.error.data == null && invocation.context.error.length == 0
             && invocation.state.frame_count == selected.frames && invocation.state.stack == stack && effect == before_effect,
             "Wide call denial preserves effects and skips callee entry", &failures);
         function_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Wide call pressure releases");
