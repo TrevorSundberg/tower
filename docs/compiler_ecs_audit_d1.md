@@ -4663,3 +4663,102 @@ Joined browser/backend/generation/instrumentation adoption remains ROOT's work;
 the three later alias/type-body repairs remain outside this freeze. No concrete
 new defect or duplicate implementation is handed to L1. Exact changed/caller
 blob manifests: `build/d1_ecs/numeric_review_22e15d5b/`.
+
+## Unpublished L2 reconstruction draft review, snapshot 2130 (2026-11-23)
+
+This is source review of **unpublished draft data**, not adoption or a build.
+ROOT's `ROOT_l2_source_review_2130` manifest freezes UTC
+`2026-11-23T21:30:29.4611350Z`, published base
+`779de775b227f7f9bba1bcaa35cc420a4e7f0bb7`. Archive SHA256
+`0405e5479f92b734c124dfdfe81c0f2e3097eb4fbf9746e5d395bef74649455f` and manifest
+SHA256 `b422e2014d8b8836900e3d88b9018891440cc2def2062af60e8e4ca40fec93ca`
+verified, along with all twelve copied file hashes and lengths. Compared these
+copies with `git show` of that base; later L2 edits are excluded. Local evidence:
+`build/d1_ecs/l2_review_2130/{snapshot.sha256,draft.diff,base/}`. No draft source
+was installed into the working compiler/import closure.
+
+**R1 — concrete byte/text boundary defect; L2/ROOT adoption blocker.** In the
+copied `backend/import_module.tower:bi_initializer` (lines21–50), every nonzero
+byte run becomes `KString`. For an i8 constant array `[65,0,128,255,0]`, this emits
+a string payload containing raw `80 ff` hex. `compiler/format.tower:format_escape`
+escapes delimiters, slash and selected whitespace, but writes those high bytes
+unchanged. The result is not UTF-8 Foundation source: the existing
+`lexer_table.tower:lex_table_match` stops when `tower_utf8_decode` returns0, and
+`syntax_scan.tower:scan_after_skip` marks an unmatched token invalid. Independently,
+`playground/src/llvm-host.mjs:string` uses UTF-8 TextDecoder, which cannot preserve
+those isolated bytes if such text reaches the host. This is a source-confirmed
+failure of the arbitrary-byte case, **not an executed draft reproduction**;
+no observed full frontend diagnostic/offset or browser result is claimed.
+
+The LLVM API precondition is satisfied but insufficient for text encoding:
+`LLVMIsConstantString` recognizes i8 arrays, not UTF-8 or absence of interior NULs;
+`LLVMGetAsString` returns the counted raw array, including trailing NULs.
+Verified against LLVM19.1 [C API implementation](https://github.com/llvm/llvm-project/blob/llvmorg-19.1.0/llvm/lib/IR/Core.cpp#L1517)
+and [ConstantDataSequential contract](https://github.com/llvm/llvm-project/blob/llvmorg-19.1.0/llvm/include/llvm/IR/Constants.h).
+The existing zero-run fill correctly avoids source NULs; it does not repair
+non-UTF-8 nonzero runs. Small proposed **Tower** regression: in the existing
+backend import test provider, construct the five-byte payload above using the
+already declared `LLVMConstStringInContext` with count derived from the array
+type and `no_null=1`; import it through the existing stage, format/reparse and
+execute, requiring all five exact bytes and untouched surrounding sentinels.
+This directly controls the constant-data-array input instead of depending on an
+optimizer to synthesize it. The minimal implementation boundary is the byte-run
+producer: preserve unsupported text bytes with existing numeric store/fill
+operations (or another proved existing byte-preserving path), without changing
+Unicode values, accepting malformed text or introducing a new bytecode format.
+No concurrent repair or unrun regression was added by D1.
+
+All paths in the table are under `scaffolding/`. SHA256 values name the copied
+draft bytes, not final published inputs.
+
+| Path / SHA256 | Source review finding |
+| --- | --- |
+| `backend/import_bindings.tower` — `18f945ff9842e20ff8631bd857b7dc159d21633e3f23d2e519bf223d2da2bbc9` | Three existing LLVM foreign APIs have pointer/LLVMBool/size_t shapes matching the Tower declarations. The ConstantDataArray guard precedes the sequential-array predicate and raw-string accessor. This verifies source preconditions, not link/export availability on a new reactor. |
+| `backend/import_foundation.tower` — `b484d0c565270ac4e12c14a15f7667451ffec938dc2cf3322180c425dc8eb833` | `bi_result` keeps the exact-type final-temporary reuse path; otherwise it casts to the predeclared LLVM destination's full Foundation type before assignment. `bi_call` retains public nominal signatures; its older scalar cast can return an enum unchanged when scalar/pointer tags match. The new `bi_cast_type` uses nominal-aware equality, preserves target pointer metadata, and materializes a bits conversion when required. It reads the existing call-result temporary, so it does not repeat the call. Boolean handling remains the existing conversion policy; arguments and returns already use this helper. Allocation failure reaches the shared backend failure/stage discard path. |
+| `backend/import_module.tower` — `c62beaa247cc7153bff781c865648a2f0efdf50ceb7ca277e9e38b7aed9880c1` | Counted zero/nonzero partitions cover each input byte once; each operation uses address+start and end-start, excluding the KString buffer's added terminator. Global startup order is retained before tower_main. Other aggregate element widths and zero aggregates retain the old recursive path. R1 prevents accepting arbitrary-byte correctness. |
+| `compiler/format_types.tower` — `03b9c7db94fa9dd370d983448bcbfa75c8e6f90c7369670a693b92533c235ee1` | Adds borrowed program scope/prefix to the existing formatter context, with no global registry or owned graph. Caller initialization and synchronous owner lifetime are required. |
+| `compiler/format.tower` — `cb6fe291dc39db1a93e92741ba37f87a946e0c695bd9193230f454ad7e2d5ee3` | `format_entity` now defaults the entire engine, including scope/prefix. Existing string escaping explains R1; no escape policy changed in this draft file. Checked output errors remain caller-visible. |
+| `compiler/format_foundation.tower` — `be9b15d81d74ecba5a4670f764d4eded0c44ecba9dac36da73f1d0ac0ef7d942` | Postfix stars use the already supported CoreType grammar, preserving base/function/array/nominal structure and pointer depth under the same target profile. Binding reuse requires no nominal record, a prior global KType with zero pointer depth and matching scalar; it emits that declaration's actual escaped output name plus the requested stars. Prefix advances only after each declaration, avoiding self/forward reuse. Type-valued parameters disable reuse for the function header/body; local KType or type-valued KDeclare disables it for the whole block, restored on exit. No concrete binding defect found in the inspected valid-program paths. |
+| `compiler/format_grammar.tower` — `1f492e959cc970cd032e06d05d0b2761673060589b3a769845321d2a34d10eef` | Child alternative probe and grammar preview explicitly default the extended engine; child output retains existing checked parent-budget/error propagation. These fragments have no borrowed program alias scope. |
+| `compiler/format_source.tower` — `b6f89943bdf0f39e3fd1c7d63e7c039a32af9de1ad59284a0f33d42bbf2144ad` | Source/trivia formatter defaults its engine; no token, comment order, span or source-name policy changes. |
+| `compiler/parser_presentation.tower` — `c0ef314839ab90de6f63ae8ddf781b16582defe7d8406195d385131f3eba5277` | Parser edge presentation explicitly defaults the new fields; existing immediate result/engine reset remains. No parser or grammar identity change. |
+| `tests/backend_import_constants.tower` — `f0ebe6bd41259a385ad4e93c308a8c206130b436625215ee82f091009bfab11e` | Adds exported nominal enum result7 and ASCII newline/quote/backslash/z bytes plus trailing0. Existing integer-width and pointer assertions remain. Does not test embedded0, isolated128/255 or exact copy bounds; R1's proposed provider case is missing. |
+| `tests/backend_source.tower` — `5ef6d8b410376243dafad84874e2b5def5762e7a13e3d082a49ce35fe98dda03` | Type-value preservation checks now require an emitted u8 binding, reuse in type_value, and explicit32-bit wide declaration under a local u32 type-value shadow. Added nominal-result case requires profile2 and explicit bits(u32,...). These compile/recheck/text assertions are not execution of returned code; exact behavioral output is covered only when the separately registered constants fixture runs. No new parameter/global-shadow or mixed pointer-shape fixture here. |
+| `tests/backend_source_native.tower` — `cdae630d776d732ee55eb67943d0adb085deb04de9321316d1b68babd3921a40` | Optional census reuses the synchronous phase observer, explicit world/budget and LLVM module. Histogram capacity derives from observed parse IDs; borrowed labels live through the joined observation and work-vector storage is disposed. Linux rusage is whole-process peak, not live-world bytes. Census itself allocates/prints and is separate from production timing; parse-ID rows are not a globally unique cross-version rule identity. Explicit option validation keeps deny-recheck serial and distinct. Existing rollback/retry/final-zero-owner checks remain. |
+
+Immediate contracts inspected at the published base: Foundation CoreType postfix
+grammar; `semantic_types` type-binding classification; `semantic_modules` unique
+global output names; `semantic_constructor_work` type-valued binding precedence;
+`semantic_support` nominal/width equality; importer calls, offsets, text allocation
+and staged publication; source-session transactional recheck; formatter entry
+points and byte lexer/host transport. Ordinary scalar values do not shadow the
+type namespace in these paths. Global type/value declarations receive distinct
+output names; locals/parameters retain lexical names and are covered by the new
+conservative guards. Record-bearing types never use scalar alias substitution.
+Pointer bytes remain supplied by the compilation profile; spelling alone does
+not make a64-bit graph valid under a32-bit target.
+
+Ownership conclusion: LLVM byte storage is borrowed only during synchronous
+initialization; nonzero data is copied into a stage-owned Foundation node before
+LLVM teardown. The importer checks backend failure and discards its private
+stage/association vectors on failure; destination payload replacement happens
+only after successful stage publication. Source-session recheck keeps prior
+canonical output until the candidate succeeds. No new worker/shared mutation or
+allocator lifetime is introduced; this is source inspection, not failure-injection
+or race evidence.
+
+Registration: the existing `backend_source_tests_runtime` invokes both changed
+service checks through native `tower-backend-source-worlds` and the existing
+browser export; `tower-backend-source-recheck` retains its denial input and180s
+bound. `semantic-port.test.mjs` already registers backend_import_constants for
+Graph/Fast32/64, canonical and LLVM behavior. None was executed in this review.
+
+Acceptance remains **pending L2 final source/ROOT adoption**, including R1's
+repair and focused regression, exact final copied-versus-published delta,
+formatter shadow/target/round-trip evidence, enum call-result execution and
+source-specific failure cleanup. ROOT reports native17.32s/3.16GiB versus the
+prior153s/10.6GiB failed request; the snapshot contains source, not authenticated
+runtime receipts, so those are attributed progress only. Wasm2GiB fit, joined
+reactors/generations, instrumentation and hosted release are unproved here.
+No build/test/runtime repeat; documentation-only performance profiling is
+inapplicable. Existing full-audit history and earlier acceptance scopes stand.

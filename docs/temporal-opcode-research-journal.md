@@ -92622,6 +92622,36 @@ acquired. Local manifests build/d1_ecs/numeric_review_22e15d5b/. Deck PID3155813
 127GiB disk free,9.8GiB available RAM. Documentation-only profiling inapplicable.
 No production/test/todo edits, browser artifact adoption, sanitizer or generation
 claim. Later alias work is excluded; ROOT retains joined-release validation.
+
+### 2026-11-23 D1 — unpublished L2 reconstruction snapshot review
+
+Reviewed only ROOT_l2_source_review_2130's12Tower files against manifest published
+base779de775b227f7f9bba1bcaa35cc420a4e7f0bb7, UTC2026-11-23T21:30:29.4611350Z.
+Archive0405e5479f92b734c124dfdfe81c0f2e3097eb4fbf9746e5d395bef74649455f,
+manifestb422e2014d8b8836900e3d88b9018891440cc2def2062af60e8e4ca40fec93ca and all
+copied hashes/lengths verified. Used git show/base diff, whole changed methods,
+tests/registrations and immediate formatter/import/lexer/session consumers;
+no active L2 file copied into this clone's compiler closure. Full path/hash map
+and source conclusions are appended to compiler_ecs_audit_d1.md.
+
+R1 for ROOT/L2: bi_initializer's new arbitrary nonzero-run KString path emits
+isolated128/255 as raw source bytes. LLVM19.1 ConstantDataSequential isString
+checks i8 array shape, not UTF-8; Core.cpp's counted getAsString includes all NULs.
+The existing formatter escapes no such high bytes; the byte lexer cannot match
+that malformed UTF-8 string, and the browser decoder cannot preserve it either.
+This is a concrete source-level encoding defect, not an executed draft failure.
+Proposed smallest Tower provider test feeds counted[65,0,128,255,0] through the
+existing LLVM constant/import/format/recheck path with exact byte/sentinel checks.
+Current added fixture covers only ASCII escapes/trailingNUL. No repair overlaps
+L2; exact producer and proposed regression sent through D1 status.
+
+No concrete additional defect found in inspected postfix-pointer, prior type
+binding, nominal-result cast or stage-cleanup paths; missing lexical/byte boundary
+execution remains explicit. Owner native17.32s/3.16GiB progress is not release or
+Wasm2GiB acceptance. No runtime repeat/build/sanitizer; docs-only profiling is
+inapplicable. Deck PID3160007,127GiB disk free/9.9GiB available RAM; no owned jobs
+or heavy lock, D2's slot untouched, todo unchanged. Local evidence under
+build/d1_ecs/l2_review_2130/. Final-source adoption remains L2/ROOT work.
 D2 trace publication reconciliation: scoped5a3ead88 merged full publishedfcaad5a6
 after required ff-only pull detected divergence. Both histories retained. Final
 diagnostic/strict/coordinator/boundary and browser hashes match; Node syntax/diff
