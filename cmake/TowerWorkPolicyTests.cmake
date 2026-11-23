@@ -131,6 +131,24 @@ function(tower_lr_work_policy_test)
       set_tests_properties(tower-semantic-capture-continuation-${mode} PROPERTIES TIMEOUT 60)
     endforeach()
 
+    # These declaration-only fixtures call the single production semantic
+    # provider in ${libraries}; they do not import/redefine that implementation.
+    set(staging_targets)
+    foreach(suite IN ITEMS flow lifecycle_frontier staging_frontier)
+      string(REPLACE "_" "-" name "semantic-${suite}")
+      tower_runtime_object(${name}-checks
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_checks.tower" "${triple}")
+      add_executable(tower-${name}-tests ${sources} "${${name}-checks_OBJECT}")
+      set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE CXX)
+      target_link_libraries(tower-${name}-tests PRIVATE ${libraries})
+      target_link_options(tower-${name}-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+      add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
+      set_tests_properties(tower-${name}-tests PROPERTIES TIMEOUT 60)
+      list(APPEND staging_targets tower-${name}-tests)
+    endforeach()
+    add_custom_target(tower-semantic-staging-smoke
+      DEPENDS towerc tower-lr-work-tests ${staging_targets})
+
     foreach(suite IN ITEMS source_proof aggregate executable)
       string(REPLACE "_" "-" name "semantic-${suite}-admission")
       tower_runtime_object(${name}

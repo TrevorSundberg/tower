@@ -81459,3 +81459,88 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+
+## 2026-11-23 A1 executed-stage/lowering frontier (bounded milestone)
+
+Implemented against main189e392714503255f620d91dae5b325ac443093a with the public
+9653f818 Linux x64 predecessor, LLVM19.1.1, Windows11/Docker native container
+`tower-a1-environment` (CPU0-11,24GiB; six build actions, compiler jobs1).
+Same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, Codex PID11056. Initial pull
+fast-forwarded; no surviving owned build. Prior edits/stashes/logs/todo preserved.
+
+The previous driver drained every lowering query before requesting late stage
+execution. `semantic_phase_work.tower` now records two root-owned WorkGraph
+joins without another function registry/context layout: signature publication
+waits for AggregatePrepare/KnownSnapshot; full canonical lowering also waits for
+every registered Lowering producer. Explicit EvaluationPrepare depends on the
+signature join and its lexical owner's lowering. Already prepared/suspended
+Evaluation tickets observe or suspend on those same prerequisites. Inferred
+execution retains the full lowering join because it can call canonical function
+bodies directly. Explicit calls retain ROOT's lazy executable snapshot requests;
+only reached reads/calls demand producers. No eager branch dependency scan.
+
+The lifecycle services one existing mixed lowering frontier, joins and publishes,
+then services ready evaluation and its existing dependency pumps before returning
+to more lowering. This removes the blanket lowering-before-explicit-evaluation
+barrier: the new fixture completes a stage while the last ordinary lowering task
+is still Ready, with function count derived from SemanticPreparationWindow. It
+also completes independent and nested dependent stages while unrelated lowering
+waits, retains an explicit stage behind its own owner, and holds inferred stages
+behind the canonical join. Evaluation diagnostics stay private until lowering's
+phase/source priority settles. Repeated waits preserve invocation steps, memory,
+frames and component count; terminal calls retain no running tickets/workers.
+No evaluation/lowering kernels execute simultaneously: joined windows remain
+necessary for shared aliases, ABI records and canonical payload publication.
+Existing worker/buffer ceilings and fast serial transport are reused.
+
+Durable CMake registration now includes semantic_flow_checks (26 trials),
+semantic_lifecycle_frontier_checks (10 trials, including two real mixed
+signature/lowering semaphore rendezvous), and semantic_staging_frontier_checks
+(10 trials at budgets1/4: ready backlog, lazy division-by-zero branch, nested
+suspension/local state, own-owner/inferred gates, lowering-vs-evaluation error
+priority, cancellation, repeated terminal calls and world cleanup). These link
+the production semantic provider once. One dependency-aware target builds the
+compiler, LR harness and all three fixtures: tower-semantic-staging-smoke.
+
+Validation: all three CTests pass; added ready-backlog cases pass; query-smoke,
+control-smoke and LR's real overlap/canonical equivalence pass. Before/after
+workers1/4 comptime_aggregates canonical bytes are identical, SHA256
+f2b3811c6cae66312b88eaec5301aa7516da2f872338ea97da3d6d297154f030;
+canonical reparse/interpret prints0. comptime_flow also prints0 before/after at
+both worker settings. Compiler after SHA256
+d69125b65c9137aff109638d41cec24bd0c9a3e31459ff77a38889e5c3d9fa72;
+saved baseline6e28f250cb91bd754d7668a4e2dfdf2d1b96109f8f8a323b247a96c8b84dd305
+remains `/cache/a1_staging_189e_before_towerc`.
+
+Small equivalent-input measurement, warm filesystem/fresh process,n1 per side
+and worker setting, native x64 `comptime_flow.tower --interpret --jobs N` with
+explicit checked-in Bedrock/Foundation resources, wall/CPU/peakRSS KiB:
+
+| workers | before | after |
+| --- | --- | --- |
+|1|1.34s /1.13s /178268|1.15s /1.08s /179856|
+|4|1.01s /1.16s /195976|1.03s /1.19s /195200|
+
+These noisy samples establish no speedup/scaling claim. Jobs1 RSS rose1588KiB;
+jobs4 wall rose.02s. No material memory regression is established at n1.
+Query-smoke's bound-world buffers retained16256/540288 bytes, peaks16352/605472
+for its two aggregate input cases; no new whole-compiler allocation counter was
+added. Task count and invocation storage remain stable across the focused waits.
+Logs, exact shell transport commands, timings and canonical files are preserved
+under A1/cache/a1_staging_*. First fixture compile lacked SurfaceSelect's import;
+adding its implementation import then correctly failed duplicate semantic_type_equal
+at link. Replaced that fixture branch with canonical KIf operations and kept
+production-only providers. Both failures drained and logs remain. A shell regex
+quoting error was fixed with an OS transport file, without counting it passed.
+
+Remaining barriers: sem_run/foreign signatures/defer hygiene and known proof+
+snapshot precede this frontier; global callback ABI publication precedes explicit
+stages; canonical inference waits for full lowering. Attributes, known-value
+publication, module initializer validation and late flow remain ordered after all
+stages because they consume final values/effects/control. Phase windows still
+join before cross-phase mutation; no new simultaneous lower/evaluate dispatcher.
+The ordinary function set is frozen by sem_run; private executable snapshots do
+not extend it. Structural allocation/registration assertions, queued-stage hold
+and executable admission changes remain their owners' work. No sanitizer,
+bootstrap/browser/generation or hosted release matrix was run: ROOT's integrated
+milestone retains those pending gates. No gh-pages/runtime deployment claimed.

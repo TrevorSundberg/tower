@@ -1297,3 +1297,24 @@ cmake --build build/native --parallel 1 --target tower-semantic-capture-continua
 ctest --test-dir build/native --output-on-failure \
   -R '^tower-semantic-(capture-continuation|executable-admission)-'
 ```
+
+The late lifecycle scheduling fixtures use the single production semantic provider:
+
+```sh
+cmake --build build/native --parallel 6 --target tower-semantic-staging-smoke
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-(flow|lifecycle-frontier|staging-frontier)-tests$'
+build/native/tower-lr-work-tests scaffolding query-smoke
+build/native/tower-lr-work-tests scaffolding control-smoke
+```
+
+The flow fixture checks idempotent admission, deterministic errors, waits,
+cancellation and graph failures. The lifecycle fixture includes actual mixed
+signature/lowering rendezvous. The staging fixture verifies explicit stages
+finish before unrelated waiting **and ready** lowering, lexical-owner and
+canonical-inference prerequisites, executed-only lazy dependencies, retained
+suspended interpreter state and diagnostic priority. Its function count follows
+the production window size. All cover budgets1/4 and teardown; budget variants
+alone do not prove concurrent execution. Lowering/evaluation windows still join
+before cross-phase publication. Integrated sanitizers/platform checks remain
+separate release gates.

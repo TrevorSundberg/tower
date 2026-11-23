@@ -10,6 +10,7 @@ import semantic_capture_work;
 import semantic_control;
 import semantic_support;
 import semantic_work_ids;
+import semantic_phase_work;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -126,6 +127,7 @@ export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void
         sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read));
         sem_require(work_access(&c.queries, id, domain,
             convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        if !cloning && !sem_phase_evaluation_depend(c, evaluation, id) { return *kind; }
         sem_require(work_seal(&c.queries, id));
         if cloning { sem_require(work_demand(&c.queries, id)); }
     }
