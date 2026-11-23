@@ -1,0 +1,27 @@
+import tower;
+import compiler_kernel;
+import semantic_context_types;
+import semantic_program_types;
+import .library.vector;
+import .library.work_graph;
+
+enum SemanticLoweringPhase: u32 { Signature, Expression, Count }
+
+// One world-owned result per function and transformation. The context is a
+// frozen borrowed descriptor only during a joined dispatch; errors survive waits.
+struct SemanticLowering {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    subject: void*;
+    block: void*;
+    stage: void*;
+    ordinal: usize;
+    count: usize;
+    error: vector(u8);
+    error_offset: usize;
+    resource: SemanticResourceFailure;
+    query_reads: vector(usize);
+    signature: bool;
+    evaluation_aliases: vector(SemanticEvaluationAlias);
+}
