@@ -124,6 +124,14 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U entity_view_open_resul\n", "entity_view_open_resul");
     symbol_case(BootstrapUnit.ParserNodes, false, " U entity_view_open_result_extra\n", "entity_view_open_result_extra");
     symbol_case(BootstrapUnit.Utf8, false, " U entity_view_open_result\n", "entity_view_open_result");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_attach_result\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, true, " U entity_attach_result\n", null);
+    symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-wasi", " U entity_attach_result\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_attach_resul\n", "entity_attach_resul");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_attach_result_extra\n", "entity_attach_result_extra");
+    symbol_case(BootstrapUnit.Entities, false, " U entity_attach_result\n", "entity_attach_result");
+    symbol_case(BootstrapUnit.Interpreter, false, " U entity_attach_result\n", "entity_attach_result");
+    symbol_case(BootstrapUnit.Semantics, false, " U entity_attach_result\n", "entity_attach_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
     symbol_case(BootstrapUnit.Semantics, false,
@@ -146,6 +154,14 @@ export fn main(): i32 {
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm64-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __table_base\n", null);
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __indirect_function_table\n", null);
+    symbol_target_case(BootstrapUnit.Entities, "wasm64-unknown-unknown", " U __indirect_function_table\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U __indirect_function_table\n", "__indirect_function_table");
+    symbol_case(BootstrapUnit.Entities, true, " U __indirect_function_table\n", "__indirect_function_table");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __indirect_function_tabl\n", "__indirect_function_tabl");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __indirect_function_table_extra\n", "__indirect_function_table_extra");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __table_base\n", "__table_base");
+    symbol_target_case(BootstrapUnit.Host, "wasm32-unknown-wasi", " U __indirect_function_table\n", "__indirect_function_table");
     symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi", " U __indirect_function_table\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U __indirect_function_table\n", "__indirect_function_table");
     symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi", " U __table_base\n", "__table_base");

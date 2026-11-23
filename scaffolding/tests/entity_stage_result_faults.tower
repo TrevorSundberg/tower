@@ -47,6 +47,39 @@ fn stage_fault_open(): void {
     stage_fault_check(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
 }
 
+fn stage_fault_lease(failure: usize, allocations: usize*): bool {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var node = entity_create(store);
+    var stage = entity_stage_open(root);
+    stage_fault_check(store != null && root != null && node != null && stage != null);
+    var live = tower_test_buffer_count();
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var result = entity_stage_lease_result(stage, node);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - before;
+    var succeeded = result == WorkBudgetError.None;
+    if !succeeded {
+        stage_fault_check(result == WorkBudgetError.Memory && node.stage == null && node.storage == null
+            && stage.leases.data == null && stage.leases.length == 0 && stage.leases.capacity == 0
+            && tower_test_buffer_count() == live);
+        result = entity_stage_lease_result(stage, node);
+    }
+    stage_fault_check(result == WorkBudgetError.None && stage.leases.length == 1);
+    before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(0);
+    stage_fault_check(entity_stage_lease_result(stage, node) == WorkBudgetError.None
+        && entity_stage_lease(stage, node) && tower_test_buffer_allocations() == before);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    entity_stage_discard(stage);
+    stage_fault_check(node.stage == null && node.storage == null);
+    entity_release(node); entity_release(root);
+    stage_fault_check(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+    return succeeded;
+}
+
 fn stage_fault_payload(stage: EntityStage*, node: Entity*, type: Entity*, target: Entity*): EntityComponent* {
     var component = entity_component_add(node, type);
     stage_fault_check(component != null);
@@ -121,8 +154,13 @@ fn stage_fault_publish(failure: usize, allocations: usize*): bool {
 export fn main(argc: i32, argv: u8**): i32 {
     stage_fault_open();
     var allocations: usize = 0;
-    stage_fault_check(stage_fault_publish(~convert(usize, 0), &allocations) && allocations != 0);
+    stage_fault_check(stage_fault_lease(~convert(usize, 0), &allocations) && allocations != 0);
     var observed: usize = 0;
+    for(var failure: usize = 0; failure < allocations; failure++) {
+        stage_fault_check(!stage_fault_lease(failure, &observed));
+    }
+    stage_fault_check(stage_fault_lease(allocations, &observed) && observed == allocations);
+    stage_fault_check(stage_fault_publish(~convert(usize, 0), &allocations) && allocations != 0);
     for(var failure: usize = 0; failure < allocations; failure++) {
         stage_fault_check(!stage_fault_publish(failure, &observed));
     }
