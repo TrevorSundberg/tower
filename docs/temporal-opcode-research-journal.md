@@ -59855,3 +59855,139 @@ D2 review, not yet an accepted native/WASI provider. Constructor/page/payload
 accounting, checked dispatch and interpreter frame/task ownership remain active
 owner work. Final clean bootstrap/browser builds, scaling, sanitizers and atomic
 main/Pages publication are still required.
+
+### B2 constructor ownership draft on the complete clone union
+
+Preserved all histories through merges296b601(root3915),5afb419(rootabbdb64),
+and d67977b(root6b8355). The last includes L2's complete public-clone Memory
+follow-up, actual CloneFrame layout and independent serial fixtures, plus D1's
+module-cache target/resource registration and exact D2 symbol policy.
+Constructor edits were stashed and restored without conflict; L2 changes now
+come from their owner history. None of these source merges alone establishes
+runtime acceptance or a published compiler.
+
+Applied A2 constructorfe458ae8, excluding only identical already-integrated
+WorkBuffer/Vector growth hunks. B2's draft compiler_world_create_result reserves
+the world descriptor through WorkBuffer, then constructs its EntityStore on the
+same immutable ledger before publishing the output. Failure retires partial
+owners; nonempty output and invalid worker/gate policy are rejected unchanged.
+Production frontend coordinator, outer pool and per-unit worlds use these
+budgeted constructors. Standalone backend slots use the batch's actual ledger;
+streaming continues to share the frontend pool. World disposal preflights the
+store's existing retained-page refusal condition before releasing types/pool.
+A future store active-stage condition must join this preflight too.
+
+The fresh-world binder remains an explicitly incomplete legacy fixture boundary:
+it cannot retroactively charge already allocated descriptors. Parser cached/
+local pools and inner semantic graph/pool adoption are separate B1/A1 ownership
+tasks. Batch descriptors with embedded ledgers, ledger bootstrap metadata,
+entity pages/payloads and foreign LLVM/OS allocations are not claimed covered.
+
+New tests/world_constructor.tower uses the actual World/EntityStore sizes and
+allocation-size contract: exact two-owner grants, one-byte-short denial, every
+serial constructor allocation failure, unchanged output, retry, invalid policy,
+and zero final grants/physical buffers. It joins the existing frontend-world
+suite; no new generic runner. An ignored Tower entry also prepares focused
+serial invocation with the existing compiler-work constructor failure sweep.
+The first fixture compile rejected reserved identifier expected; changed only
+that parameter to wanted, preserving the failure log. Public-pin retry passed
+2.973577816wall/2.756599CPU/245688KiB. World leaf passed
+2.850071366/2.643915/242240; compiler-work2.817427755/2.611046/259300;
+frontend-units3.168042001/3.020676/259624; backend-units
+5.102678460/5.087969/349860. Revised source-memory fixture passed
+2.839775197/2.685059/224924. These are compiler admission checks, not runtime
+acceptance of the newly combined layouts.
+
+Source-memory tests measure the completed constructor baseline separately from
+independently expected input payload/header bytes, preserving exact cap-minus-one,
+replacement peak/live counts and denial cleanup. Standalone backend's exact
+admission cap now includes one real WorkSlot plus its header. Serial snapshot
+failure indices derive from the named source-buffer count.
+
+For an equivalent cost baseline, saved tracked edits in
+build/b2_constructor_draft.patch SHAcdcda252, moved the new fixture to an owned
+ignored save path, and reversed only the verified draft. Clean d67977b rebuilt
+all consumers in75steps56.463712722wall/207.951311CPU/844428KiB.
+Baseline module-cache tests passed.051448126/.047940/54936; query smoke passed
+.086294791/.089184/61320, including current typed resource checks and clone
+overlap. Frozen before executables: units f38b0efb, cache49941c6c,
+backend/LR137a3a20. Draft and new fixture were restored only after those children
+drained. The full after build is now active; no new ABI runtime pass yet.
+Logs use build/b2_constructor_* and b2_world_constructor_*.
+
+### B2 public constructor admission failures and inspection follow-up
+
+The frozen constructor after-build on d67977b failed (35 scheduled steps,
+23.533119220 wall seconds, 54.856073 CPU seconds, 821016 KiB peak RSS).
+The owned syntax host declared compiler_buffer_allocate/free using u8*, while
+A2's shared boundary uses void*. Corrected both declarations and explicit casts;
+first retry exposed a missing free cast, preserved that failure, then the leaf
+passed 2.561402743/2.332387/217656. The parser aggregate still exceeded the public
+predecessor's 65536 expansion nodes at compiler_kernel_dispatch_admitted in
+lr_work.tower:467; semantics exhausted the Foundation component budget at
+semantic_values.tower:522. Locations identify exhaustion, not isolated causes.
+No new-layout executable was run. No limit or bootstrap override was introduced.
+
+Root/A2 approved moving the unused compiler_work import from host_entities to
+its existing units/entities provider. The targeted three-object retry passed
+syntax-host but reproduced both aggregate failures:12.720080441 wall seconds,
+23.708757 CPU seconds,817644 KiB peak RSS. Logs are
+build/b2_constructor_after_build.log, b2_constructor_syntax_host_retry.log and
+b2_constructor_provider_retry.log. All processes drained before restoring source.
+A2 owns the shared public-admissible WorkGraph/WorkPool API reduction; B2 will
+adopt its exact handoff rather than redesign shared ownership independently.
+
+To address L2's independent inspection failure without mixing constructor ABIs,
+preserved all current constructor source edits in the reverse-checked
+build/b2_constructor_pending_full.patch SHA86605cc1d879defd0dd810d39d18502483245bf476e247215e27663a0b6c45a2,
+including the host declaration fix and provider move. The new world fixture is
+preserved in build/b2_world_constructor_fixture_pending.tower. Reversed only
+those verified edits; production inputs again equal d67977b. A dependent native
+rebuild uses freshly materialized git-apply inputs, not stale copied mtimes.
+The constructor work remains pending and must be restored/adapted after A2's
+admission fix. This is a reversible validation boundary, not acceptance.
+
+L2 reproduced a budget-denied document query returning nonnull entries[] with
+complete:false. Recovery and cleanup passed before its deliberate assertion
+failed. Inspection confirms completion_parse collapses a typed ModuleGraph
+resource failure to a syntax-success boolean and continues constructing a partial
+semantic module view. language_document_world later clears diagnostics. The
+existing late generic_info-null guard cannot catch this earlier path. Proposed
+fix preserves the graph's WorkBudgetError through completion and rejects that
+infrastructure failure before semantic reconstruction; ordinary incomplete syntax
+still uses recovery. L2 owns the independent regression, B2 owns this production
+propagation. At this point that fix is not implemented or validated.
+
+Implemented the four-file typed module/completion propagation. ModuleGraph keeps
+its first typed resource cause even when an ordinary diagnostic already exists.
+The public frontend_module_resource_error getter exposes that cause without
+matching strings. CompletionQuery retains it before session destruction; parse
+failure releases collected roots and the session before semantic reconstruction.
+Active and recovery-probe failures stop recovery; offers/symbol enumeration stop,
+and completion_end returns an explicit error response. Document inspection
+releases the query and returns null. completion_resource_error exposes the latch.
+This does not yet classify B1's new parser-session allocation failures; requested
+an owned typed accessor there. It does not claim every compiler allocation has a
+fallible query path.
+
+The three production leaves passed with the public pin: modules15.043125202 wall/
+14.474223 CPU/625236 KiB; completion19.934788333/19.145167/844196;
+query19.191718531/18.461384/842164. Added a malformed-function inspection oracle
+that preserves the preceding declaration at both widths; its leaf passed
+3.363549497/3.085638/244076. Existing cached-clone denial tests now assert the
+public typed getter instead of inspecting the private field.
+
+The complete affected seven-target native rebuild passed21.783945395 wall/
+49.612177 CPU/843160 KiB. Editor tests including the new recovery oracle passed
+12.209325693/11.518558/280276; module-cache tests passed
+.049315597/.046678/55432; query-smoke passed.077426451/.078069/61580.
+Logs build/b2_inspection_*. These are functional, nonquiet observations, not
+performance equivalence: the prior editor receipt lacks the new recovery case.
+Matching frozen benchmark inputs and final instrumentation remain required.
+
+L2's independently authored generic_inspection_budget fixture SHA8178ff55 arrived
+after these checks. Its exact bundle3cb65c66 has only new fixture/hook/docs above
+root6b; own timeline history remains newer. The fixture checks a successful generic
+document, explicit full budget occupancy, rejected query, cache recovery, and zero
+final grants for widths4/8 and worker limits1/4. It has not yet run against this
+fix; source checkpoint and independent fixture integration are the next step.

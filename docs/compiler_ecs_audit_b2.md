@@ -554,3 +554,14 @@ the parallel fixture; serial allocator cases and final current instrumentation
 retain their separate receipts. No claim that clone-frame grants account for
 entity payloads or constructor storage. L2 node/attach allocation follow-up and
 A2 constructor/world/frontend/backend wiring remain open.
+### Typed editor resource propagation follow-up
+
+Reviewed completion.tower, completion_types.tower, frontend_modules.tower and
+language_query.tower for the independent partial-inspection failure. The module
+resource cause now survives its owning session; completion retains a typed error
+and stops recovery/publication before constructing partial semantic views. Ordinary
+incomplete syntax remains inspectable, verified at both pointer widths. The public
+module getter is covered by actual cache-denial checks. This does not close new
+parser-session allocation classification or all query scratch accounting.
+Current seven-target public build, editor recovery, module-cache and query smoke
+pass; independent L2 document-denial fixture and final instrumentation pending.

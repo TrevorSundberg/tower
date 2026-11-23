@@ -14,6 +14,7 @@ import semantic_statements;
 import semantic_support;
 import semantic_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.
@@ -23,6 +24,7 @@ extern fn syntax_completion_create(source: u8*, mode: u32): void*;
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
 
 extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn frontend_module_resource_error(module: void*): WorkBudgetError;
 
 extern fn compiler_world_store(world: void*): void*;
 
@@ -54,6 +56,19 @@ export fn completion_from(q: CompletionQuery*): usize {
     return q.from;
 }
 
+export fn completion_resource_error(q: CompletionQuery*): WorkBudgetError {
+    return q.resource_error;
+}
+
+// A failed imported snapshot is infrastructure failure, not recoverable syntax.
+// Latch its typed cause while the session still owns the module graph.
+fn completion_session_failed(q: CompletionQuery*, session: void*): bool {
+    if q.resource_error == WorkBudgetError.None {
+        q.resource_error = frontend_module_resource_error(syntax_completion_module(session));
+    }
+    return q.resource_error != WorkBudgetError.None;
+}
+
 fn completion_attach(q: CompletionQuery*, root: void*, base: usize): void {
     var node = sem_child(root, 0);
     if sem_is(node, "Statement") {
@@ -67,6 +82,7 @@ fn completion_attach(q: CompletionQuery*, root: void*, base: usize): void {
 }
 
 fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): bool {
+    if q.resource_error != WorkBudgetError.None { return false; }
     var first_root = q.roots.length;
     var base = q.input.length;
     var length = sem_length(source);
@@ -115,6 +131,12 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var error = syntax_get_error(session);
     var clean = error[0] == 0;
     var parsed_module = syntax_completion_module(session);
+    if completion_session_failed(q, session) {
+        foreach(var & entry in &entries) { entity_release(*entry); }
+        vector_dispose(&entries);
+        syntax_destroy(session);
+        return false;
+    }
     if parsed_module != null {
         // Recovery sees only the declarations from this file's actual imports.
         sem_module_graph(&q.program, parsed_module);
@@ -201,6 +223,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         return;
     }
     q.active = active;
+    if completion_session_failed(q, active) { return; }
     if q.hidden {
         return;
     }
@@ -262,6 +285,10 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     semantic_initialize(&q.program, root, 4);
     q.semantic = true;
     var valid = completion_parse(q, text.data, mode, false);
+    if q.resource_error != WorkBudgetError.None {
+        vector_dispose(&text);
+        return;
+    }
     // Prefer the actual suffix, so later operands and declarations participate
     // in resolution. Fall back to a bounded LR continuation for incomplete edits.
     if !valid {
@@ -283,8 +310,13 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
             }
             entity_release(root);
         }
+        if completion_session_failed(q, probe) {
+            syntax_destroy(probe);
+            vector_dispose(&text);
+            return;
+        }
         var suffix = syntax_completion_close(probe, semantic_scalar_name(SVoid));
-        if suffix == null {
+        if completion_session_failed(q, probe) || suffix == null {
             syntax_destroy(probe);
             vector_dispose(&text);
             return;
@@ -301,6 +333,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         completion_parse(q, q.recovered.data, mode, true);
     }
     vector_dispose(&text);
+    if q.resource_error != WorkBudgetError.None { return; }
     var i: usize = 0;
     sem_require(host_text_terminate(&q.input));
     var c = &q.context;
@@ -579,6 +612,7 @@ fn completion_fold(byte: u8): u8 {
 }
 
 export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8*, category: u32): void {
+    if q.resource_error != WorkBudgetError.None { return; }
     if q.hidden {
         return;
     }
@@ -884,6 +918,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
 }
 
 export fn completion_symbols(q: CompletionQuery*): void {
+    if q.resource_error != WorkBudgetError.None { return; }
     if !q.editor.found {
         return;
     }
@@ -1063,6 +1098,9 @@ export fn completion_symbols(q: CompletionQuery*): void {
 }
 
 export fn completion_end(q: CompletionQuery*): u8* {
+    if q.resource_error != WorkBudgetError.None {
+        return "{\"error\":\"Completion query failed to acquire compiler resources\"}";
+    }
     completion_text(&q.output, "]}");
     sem_require(host_text_terminate(&q.output));
     return q.output.data;

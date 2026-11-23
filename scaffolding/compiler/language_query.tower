@@ -21,6 +21,7 @@ import semantic_generic_info;
 import syntax_tags;
 import syntax_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Language-service inspection shares completion's source/module ownership,
 // ordinary semantic checking, and the real syntax/Foundation ECS components.
@@ -422,6 +423,10 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     semantic_initialize(&q.program, root, pointer_bytes);
     q.semantic = true;
     var complete = completion_parse(q, q.source, mode, false);
+    if q.resource_error != WorkBudgetError.None {
+        completion_dispose(q);
+        return null;
+    }
     sem_require(host_text_terminate(&q.input));
     var c = &q.context;
     sem_context_init(c, &q.program);
