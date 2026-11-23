@@ -62953,3 +62953,38 @@ GNUtime's centisecond wall granularity masking the small six-case groups, while
 the process wrapper still records CPU and peak RSS. Same report code belongs to
 before/after variants; no overlap/throughput claim follows from configured worker
 width. Still unexecuted while D2 owns the slot.
+
+### D1 reviews the incoming shared semantic receipt without changing frozen inputs
+
+On source421e9353, D1 read A1 contract4ff9 and its superseding V2b255ff12
+completely; V2 git apply --check succeeds but neither interface was applied.
+The complete producer/consumer handoff is still required. This is source review,
+not evidence that current empty diagnostics represent a resource failure.
+V2 retains a fixed typed error/offset independently of presentation storage.
+Its restore helper captures an exact self-alias before clearing destination
+length, copies only into sufficient existing capacity, and latches the first
+chosen receipt without allocation. Ordinary restoration remains gated by sem_ok.
+The graph classifier is valid after an actual failed operation; healthy waiting
+or an empty take must not be reclassified as failure. Owners must join workers
+before ordered selection and use private worker programs/result components.
+
+Prospective D1 assertions after full integration: resource_checks must retain
+Capacity/offset11 after selection, distinguish isolated pending selection, and
+verify that clearing ordinary text does not clear the receipt. Valid compilation
+checks in format_suite, entity_registry and frontend_units_memory should also
+require the shared receipt to be None; source-bounds ordinary-invalid diagnostics
+must remain ordinary errors with exact offsets. A1 owns its publication/query
+fixtures and L2 owns type receipt assertions; findings were routed through D1
+status without competing edits. execution_graph is a historical supplemental
+field/edge hash, not canonical Foundation or grounds to rebaseline its oracles.
+
+D1 also reread current production preparation/start/pump and interpreter call
+ordering against the new phase fixture: the gate blocks Evaluation while ordinary
+preparation reaches a live owning entry frame, and strict nested memory resize
+precedes nested-frame push. The callback delegates production execution and
+observes the actual diagnostic before coordinator disposal. These observations
+support the intended oracle but do not replace the pending runtime experiment.
+No production/test source changed during this review. Performance measurements
+are inapplicable to this documentation-only addition; current fixture measurements
+remain pending the D2-owned heavy slot. Both D1 containers have only idle sleep
+processes. No publication request, lease or release claim.

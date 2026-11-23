@@ -2119,3 +2119,15 @@ patchv3SHA98356f8a0db694c3567625c811151e7968e8b988043f917f9f685421ac0e80fc
 is implemented but UNCOMPILED/UNRUN while D2 owns the host slot. Atomic D1 lock
 attempt returned1 before execution and preserved D2's live lock. Measurement,
 current instrumentation and final release gates remain open.
+
+### Shared semantic receipt review at421e9353 (prospective adoption)
+
+A1 V2b255ff12 supersedes4ff9; checked applicability only, not adopted. Existing
+format_suite/entity_registry/frontend_units_memory valid-source gates currently
+check ordinary error text. Once the full producer ABI lands, also require the
+shared typed receipt to be None; retain source-bound malformed-input offsets and
+ordinary-error classification. D1 resource fixture will need typed selection and
+text-clearing persistence assertions after owner integration. A1 publication/query
+and L2 type-receipt fixtures remain with those owners. Historical execution_graph
+hashes remain supplemental evidence; no blind oracle rebasing is proposed.
+Source review cannot establish a new runtime pass or a current miscompile.
