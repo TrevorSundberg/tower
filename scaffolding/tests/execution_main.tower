@@ -35,6 +35,7 @@ import narrow_checks;
 import function_checks;
 import integer_negation_checks;
 import body_runs;
+import module_body_type_checks;
 import editor_observations;
 
 extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
@@ -45,7 +46,9 @@ extern fn syntax_attribute_tests(): void;
 export fn main(argc: i32, argv: u8**): i32 {
     execution_check(argc == 2 || argc == 3, "resource root and optional focused suite argument");
     var suite: u8* = argc == 3 ? argv[2] : "all";
+    if strcmp(suite, "body-type-reproduce") == 0 || strcmp(suite, "body-type-queries") == 0 { return module_body_type_checks(argv[1], suite); }
     var all = strcmp(suite, "all") == 0;
+    if all { execution_check(module_body_type_checks(argv[1], "body-type-queries") == 0, "Module body type queries"); }
     var known = strcmp(suite, "known") == 0;
     var floating = strcmp(suite, "floating") == 0;
     var narrow = strcmp(suite, "narrow") == 0;
