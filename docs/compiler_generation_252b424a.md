@@ -133,4 +133,11 @@ The earlier public-predecessor/successor object mismatch remains historical
 **FAILED**, as recorded in [the prior receipt](compiler_generation_identity.md).
 This complete current fixed point is separate evidence, not a semantic-only waiver.
 Public pin/Pages, later-source acceptance and integrated instrumentation remain
-ROOT-owned pending gates. No later L2/A1 code is included in this receipt.
+ROOT-owned. No later L2/A1 code is included in this receipt.
+
+After the frozen run, documentation reconciliation preserved incoming histories
+through ROOT's `2013ad28` publication (merge `accde9b0`). That pin identifies
+source252b424a and exactly matches the generation3 executable and resource
+checksum hashes above. Its complete checksum verification passes. ROOT performed
+the adoption; this task did not replace the pin. Later-source acceptance, Pages
+verification and integrated instrumentation remain outside this bounded proof.

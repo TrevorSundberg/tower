@@ -86625,3 +86625,12 @@ All logs/objects/host/inputs/compiler hashes: /cache/root_reference_f72179d2,
 copied to ROOT_reference_f72179d2 in coordination storage. Original shell
 readback quoting failed without changing results; raw receipt copy then passed.
 No new source implementation was measured or runtime release claimed here.
+
+B2 documentation reconciliation after the frozen proof: commit7c66be3c records
+only the journal and exact receipt. Requested ff-only pull found an advance;
+normal mergeaccde9b0 preserves complete incoming L2 history and ROOT pin2013ad28.
+The tested receipt is unchanged in scope: source252b424a only. ROOT's new pin
+identifies252b424a, matches fixed-point executable768a0cdf and resource checksum
+bd4639d8 exactly, and all checked-in payload checksums pass. ROOT performed that
+publication; B2 did not adopt/change the pin. No new generation or later-source
+acceptance is claimed from this documentation merge.
