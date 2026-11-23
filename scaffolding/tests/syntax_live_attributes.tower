@@ -9,13 +9,10 @@ import utility_checks;
 
 extern fn syntax_kind_name(kind: u32): u8*;
 
-// Bootstrap-compatible activation: the predecessor still reads these ordinary
-// grammar declarations. Attribute syntax is exercised only by the successor.
-fn attribute_grammar_prefix(): u8* {
-    return "parse GrammarDeclaration = $attributes:Attributes 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $precedence:GrammarPrecedence $replacement:GrammarReplacement ';';parse GrammarTokenDeclaration = $attributes:Attributes 'token' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';parse GrammarSkipDeclaration = $attributes:Attributes 'skip' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';";
-}
-
-var AttributeGrammarDeclarations: usize = 3;
+// Import the complete ordinary declaration grammar, including its precedence
+// dependencies. Each test still begins from the immutable declaration seed.
+fn attribute_grammar_prefix(): u8* { return "import bedrock;"; }
+var AttributeGrammarDeclarations: usize = 1;
 
 fn attribute_grammar_reject(source: u8*, diagnostic: u8*): void {
     var text: ByteBuffer = default;
