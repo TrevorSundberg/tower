@@ -2861,7 +2861,7 @@ closure. Prospective roster is539 assigned of1128; current checkout remains538.
 | Assigned path | Reviewed identity, substantive conclusion and disposition |
 | --- | --- |
 | scaffolding/tests/semantic_capture_continuation_checks.tower | New153-line fixture at34aa. One world/context owns actual capture and source-proof producers, with a separate borrowed local budget kept alive through context disposal. Healthy checks a legitimate wait, not completed initializer execution. Take exhausts dispatch; suspend/observe occupy actual edge capacity; finish derives consumer pressure from actual scratch capacity. Exact Invalid/Capacity, phase/declaration offsets, terminal cancellation, no live tickets/workers, repeated-call node/component/task stability and zero final grants are checked across widths4/8 and budgets1/4. These graph-only variants do not prove overlap. Ordinary production semantic provider/exported main and five selectors require no SOURCE/binding or alternate implementation. External registration draft28ffaa75 independently reviewed by D2; runtime/adoption pending. |
-| scaffolding/tests/parser_table_budget.tower |34aa adds real forest attachment Busy under a pinned view, Invalid for self attachment and physical Memory after traversal storage is already prepared. Assertions preserve leaf ownership and parent emptiness before retry. Matching parse_tree now stores entity_attach_result's exact cause before transfer; the previous bool fallback gap is addressed by the producer. Serial fault injection remains separate from actual concurrency evidence. Existing frontend allocations registration suffices. |
+| scaffolding/tests/parser_table_budget.tower |34aa adds real forest attachment Busy under a pinned view, Invalid for self attachment and physical Memory after traversal storage is already prepared. Assertions preserve leaf ownership and parent emptiness before retry. Matching parse_tree now stores entity_attach_result's exact cause before transfer; the previous bool fallback gap is addressed by the producer. Serial fault injection remains separate from actual concurrency evidence. Existing frontend parser/default registration reaches these cases; allocations returns through a different fixture and does not cover them. |
 | scaffolding/tests/world_constructor.tower |34aa replaces the copied literal name extent5 with strcmp against the actual null-terminated name, preserving the bare-store clone oracle. No competing D1 fixture edit. The prior ed7 native/ASan build still contains the earlier source and is not relabeled as validating this change. |
 | scaffolding/tests/entity_mutation_results.tower |c944 adds live reference-queue slice reuse with and without growth. Array-derived pairs and actual queue capacity bound setup; spare/partially live slices are rejected before reads, and growth denial preserves data/length/capacity. Success installs owning payload fields only after admission; every queued pointer/order is checked before two idempotent holds, discard and exact reference/buffer baseline restoration. Successful measured allocation calls bound the physical fault sweep. Matching producer keeps a live-slice index across vector reserve, rebinds after growth and rejects unaligned/spare input. No extra allocation or noalias promise; raw external pointer validity remains a caller contract. Existing serial mutation registration suffices. |
 | scaffolding/tests/generic_inspection_budget.tower |c944 keeps a successfully parsed/checked document alive before occupying its remaining budget and calling the actual new single-owner inspection phase. Exact Capacity and source-derived expression offset, null result after failure, no live workers/tickets, and no replay after diagnostics are cleared are asserted. World node/component counts guard against hidden second work. Context/document lifetime encloses the pressure grant and cleanup. The legacy world binder charges selected scratch rather than physical pages, explicitly retained as a limitation. Existing LR editor selector owns this fixture; no speculative import-policy permission or new scheduler is needed. |
@@ -2886,3 +2886,109 @@ transport. Actual43 linked objects/instrumented IR and20 required access-hook
 checks are retained. This supports the ed7 scope only: prospective c944 fixtures
 and current thread/whole-release acceptance are still pending. No race probe was
 changed or re-executed after ROOT's directive.
+
+After actual12:53:23 job drain and host-slot release, full D294bc and ROOTc944
+histories are adopted as f41b7ef546c526cc2aecae3b22b8fd8a1be970ff. The reviewed
+roster is now539/539 of1128. Two README conflicts moved existing paragraphs;
+resolution preserves all content and equals ROOT's complete README. Production
+and build inputs match c944 exactly. The ed7 receipt remains separately scoped.
+The capture registration is still only an independently reviewed external draft:
+its direct public-leaf/manual-link baseline must run before the CMake edit.
+
+### Prospective exact Wasm Entities table policy review
+
+D2 draft00682b68124d4d5fd2becf32b76ee62201b6006de88e8d60cfd7465ef091ba5b
+changes the already assigned bootstrap_symbols_checks.tower at c801's source.
+Read the actual nm/readobj reports for object307d9371, the narrow tool predicate
+and existing WorkBudget enter/leave callers. The object declares an undefined
+TABLE __indirect_function_table and real table-number relocations; reserve/release
+contain the typed gate calls. The new exact Wasm Entities permission is a target
+ABI table dependency, not permission for an external implementation.
+
+The fixture adds two Wasm policy positives and six negatives: both native modes,
+wrong unit, truncated/suffixed spelling and table_base. Full-string matching and
+existing underscore normalization are unchanged; no native/table_base/inspection
+provider permission is added. Actual artifact evidence is32-bit; wasm64 is policy
+coverage only. Source review finds no blocker. D2 owns before/after and supported
+instrumentation plus unfinished package checks; no D1 runtime/adoption claim is
+made from this draft. No world/storage/scheduler or test-buffer ownership changes.
+
+### Complete executable, LR and interpreter-map join review
+
+Reviewed complete ROOT2252b88911802ef3db2e96750d9195d09c6c1f90 (verified bundle
+3ae22ed0, sole60741 prerequisite), relative to adopted c944. Nine assigned test
+paths change; the executable fixture is new. Production changes remain with
+ROOT/B1/L1. Existing ordinary providers and public predecessor suffice; no syntax,
+second scheduler, alternate graph or fixture-policy rewrite is proposed by D1.
+
+| Assigned path | Substantive review at2252, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/execution_suite.tower | Adds budgeted guest heap trials at both target widths. Actual map capacities and a real growth probe determine admission pressure, including successful first-map growth followed by second-map denial. Null guest allocation/reallocation must preserve live byte patterns, logical cursor and entries; admitted private capacity may remain owned. Free/coalescing under exhausted budget performs no metadata allocation, reuse preserves addresses, and world/session teardown releases grants. The original100 blocks remain fixture data while bounds derive from the array. Raw Foundation allocation semantics are retained. Existing core selector; incoming owner native/address/thread evidence, merged D1 execution pending. |
+| scaffolding/tests/interpreter_call_query.tower | Counts reservations for all six maps and every actual frame; real graph execution locates sequencing, local-address, returned-value and string failure boundaries. Exact preceding output, Capacity at91, nonreturn, terminal no-replay and final grants are checked. A successful real probe derives unrelated cache capacity before pressure; no fabricated entries or guessed map size. Existing runtime/staged case matrices use typed array lengths. Invocation/frame ownership stays explicit. Existing functions/query callers, graph-only pressure cases do not establish overlap. |
+| scaffolding/tests/interpreter_storage.tower | Six ordinary Tower setter wrappers keep the before/after oracle compatible with the changed bool ABI. Trials check failed-growth pointer/length/capacity/reservation identity, sorted existing entries, exact compiler-buffer charges, allocation-free existing-key updates, retry and sticky first cause. Each state/frame owns its work_vector; cleanup is idempotent with zero baseline grants. Serial fault transport remains separate from concurrency validation. |
+| scaffolding/tests/lr_analysis_api.tower | Declares exact WorkBudgetError constructor/compute/propagation/state/LALR result APIs while preserving existing pointer/bool wrappers. This fixture ABI adds no storage or scheduling authority. Consumers below exercise exact causes instead of collapsing them into Memory. |
+| scaffolding/tests/lr_analysis_failures.tower | Array-derived counts, missing arrays, overflow/slices, invalid owners and valid empty productions cover constructor boundaries. FIRST ignores an invalid reference after an untaken terminal; LR closure subsequently reaching it reports Invalid. Actual physical denials distinguish Memory and support same-object retries; propagation endpoint/seed/self-cycle cases retain the independent fixed-point oracle. Final buffer baseline is checked; serial physical faults are not threaded allocator instrumentation. |
+| scaffolding/tests/lr_budget.tower | Measures actual pool storage with the shared worker capacity and denies one byte short, checks exact Capacity and no stranded grants, then retries. Retained world-owned pool storage is warmed and charged separately from temporary parser work. Shared outer reservation survives world disposal until its own release; final world/pool grant baselines avoid double disposal. No assumed slot size or total-process memory claim. |
+| scaffolding/tests/lr_work.tower | Uses actual remaining-budget pressure and typed worker causes across FIRST/state/LALR. Busy lease and Capacity paths preserve cleanup and permit retry; serial/threaded canonical results remain compared. Large grammar extents, nonterminal boundary and wide-state count derive from actual arrays. Requested lane count alone is not overlap evidence; owning graph quiescence and stable world lifetime remain prerequisites. |
+| scaffolding/tests/semantic_executable_admission_checks.tower | New238-line fixture imports production semantic services itself, requiring exactly one provider in its generic target. Eight selectors across widths4/8 and budgets1/4 cover healthy, request/edge/access, take/partial-take, observe and finish. Real body/lowering producers precede pressure; actual task/edge/access/scratch capacity sets denial. Exact subject17/root83 causes, unpublished ready input, discarded partial stages, cancelled consumers without dispatch, repeated terminal counts/receipts and zero final grants are asserted. Producer now admits graph/access before metadata and finishes before publishing readiness. Graph-only budget variants do not prove concurrency. Dedicated generic registration and matched direct baseline pending. |
+| scaffolding/tests/semantic_resource_checks.tower | Steps the ordinary invocation to its actual queued nested KCall before pressure, preparing unrelated sequencing work without consuming the intended8KiB frame. Retains the16KiB shared budget, exact stack-growth message/offset, both peers, effect order and cleanup. No cap enlargement or alternative error oracle. Extra observed diagnostics appear only on unexpected failure. Existing24 resource cases and query caller retained. |
+
+The IMState/IMFrame layouts change: all consumers must rebuild through actual
+depfiles. L1's preserved stale-layout139 and subsequent coherent passes explain
+why a no-work build cannot establish this ABI closure. Sorted maps are contiguous
+work_vectors, owned by the invocation/frame, not additional semantic IR. Heap
+admission reserves tracking and future free intervals before guest mutation;
+partial admission retains owned capacity without committing guest ranges.
+
+ROOT's executable32/capture20, matched32-process profile and supported156-case
+per-mode receipts cover its2c454 source, not the combined2252. L1 reports real
+outer peak4 and source-specific address/thread checks; its large graph and serial
+unit costs remain explicit. B1 reports exact LR causes, retained pool/graph budget,
+independent parser and public WASI checks at68fa. None establishes this new union
+or final publication. D1 will validate the merged providers and both registrations
+at the next owned slot. The stopped negative probe remains unchanged/unexecuted.
+
+D2 independently identified the parser-table audit selector error above: parser
+(or default) reaches parser_failure_tests; allocations returns earlier. Corrected
+the statement, preserving earlier receipts and not adding an unnecessary matrix.
+Documentation review itself has no runtime performance delta.
+
+### Durable capture/executable registration on the complete2252 union
+
+Complete D28cb and ROOT2252 histories merge cleanly as2ff9c7ff7. Current roster
+is540/540 assigned of1129, with only the executable fixture newly added. D2's
+reviewed exact Wasm Entities policy is adopted; it changes no compiler layout.
+D1 changes only cmake/TowerWorkPolicyTests.cmake and the test README: five ordinary
+capture-continuation cases and eight executable cases. Executable shares the
+existing aggregate provider composition, excluding only the implementation it
+already imports and retaining frontend/query providers. D2 independently reviews
+exact wholefile832d3ea4 against both fixtures and finds no blocker.
+
+Both public9653 leaves compile first, then20 native actions rebuild the current
+IM layout consumers. The first OS wrapper fails1 before runtime because it
+incorrectly expects public sem_executables_pump; actual nm identifies exactly one
+private tower.fn.sem_executables_pump. Preserve the original failure, drain, and
+correct the OS observation only. Continuation62959 passes39 direct processes;
+registered29295 passes39 matching processes plus all13 CTests. Both leaf objects
+are byte-identical, all provider hashes unchanged, outputs/errors identical and
+source freezes verified. No compiler or fixture assertion is changed.
+
+All selector samples retain GNU wall/CPU/RSS, hashes and allocation/grant cleanup
+oracles. At the same installed executable paths, n3 fresh-process warm-filesystem
+medians for capture healthy are .02/.02/50288 before and .03/.03/50504 after
+(seconds wall/CPU, KiB RSS); executable healthy .03/.02/50688 -> .03/.03/50744;
+partial take .02/.02/50716 -> .02/.01/50756. These tiny quantized runs do not show
+a causal speedup or neutrality. They validate generic registration without added
+storage. Each selector checks widths4/8 and budgets1/4; these are graph-pressure
+cases, not real overlap measurements. Current real overlap/instrumentation is the
+next separate frozen milestone. Host SteamDeck Linux x64, Docker/LLVM19.1.1,
+Release/public pin, builds and these graph checks CPU0,2/jobs1. Logs retain all
+39 samples per side, not only these representative rows.
+
+The current compiler is2219891064b1d0bd8a95790e477b4baf0bebc13dcaf49eb7ed56b27b4ae96d1a
+with50 complete resources. Two fixture providers are registered through existing
+Tower object/build tools; no new test language, scheduler, native seed or adapter.
+D1 releases its lock only after both containers are init-only, allowing D2's
+short actual ParserNodes policy gate before the new instrumentation freeze.
+Standalone negative-control, old restricted-host overlap, current broad native,
+clean bootstrap/browser/generation and leased hosted publication remain open.
