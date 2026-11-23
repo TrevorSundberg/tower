@@ -1,0 +1,154 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn puts(text: u8*): i32;
+
+enum PublishPressure: u32 { None, Startup, Arena, Growth, Mixed }
+
+fn publish_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn publish_items(block: void*, count: usize, width: u32): void {
+    var value = sem_get(block);
+    sem_require(vector_push(&value.items, null));
+    for(var i: usize = 0; i < count; i++) {
+        var node = sem_create(block);
+        var literal = sem_attach(node, KOperand);
+        literal.type.scalar = SI32;
+        literal.type.pointer_bytes = width;
+        literal.constant = true;
+        literal.bits = convert(u64, i + 1);
+        sem_require(vector_push(&value.items, node));
+    }
+}
+
+fn publish_trial(width: u32, workers: usize, pressure: PublishPressure): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open();
+    sem_require(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    sem_require(work_budget_init(&budget, workers, 1048576, 71)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var occupied: WorkReservation = default;
+    if pressure != PublishPressure.None {
+        var available: usize = pressure == PublishPressure.Startup ? 1
+            : pressure == PublishPressure.Arena ? 512 : 8192;
+        sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - available, &occupied) == WorkBudgetError.None);
+    }
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    // An empty known-binding set is valid after every candidate is rejected.
+    // Canonical container compaction still has real private output to publish.
+    context.known_bindings = sem_create(root);
+    var blocks: void*[3];
+    var counts: usize[3];
+    for(var index: usize = 0; index < 3; index++) {
+        var function = index == 0 ? root : sem_create(root);
+        var value = index == 0 ? sem_get(root) : sem_attach(function, KFunction);
+        value.type.pointer_bytes = width;
+        value.start = index == 0 ? 11 : index == 1 ? 29 : 47;
+        var block = function;
+        if index != 0 {
+            block = sem_create(function);
+            sem_attach(block, KBlock);
+            value.body = block;
+            sem_require(vector_push(&program.functions, function));
+        }
+        blocks[index] = block;
+        counts[index] = pressure == PublishPressure.Growth
+            || (pressure == PublishPressure.Mixed && index == 1) ? 512 : 8;
+        publish_items(block, counts[index], width);
+    }
+    sem_known_publish(&context);
+    publish_check(context.workers.running == 0 && context.queries.running == 0,
+        "Publication failure drains every reserved peer and ticket", &failures);
+    var success = pressure == PublishPressure.None;
+    publish_check(success ? program.error.length == 0
+        : program.error.length != 0 && program.error_offset == (pressure == PublishPressure.Mixed ? 29 : 11),
+        "Publication selects the first source-ordered resource failure", &failures);
+    for(var index: usize = 0; index < 3; index++) {
+        var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
+        var succeeded = success || (pressure == PublishPressure.Mixed && index != 1);
+        publish_check(query != 0 && work_task(&context.queries, query).state
+            == (succeeded ? WorkState.Succeeded : WorkState.Failed),
+            "Every publication ticket records its own result after joining", &failures);
+        var items = &sem_get(blocks[index]).items;
+        publish_check(items.length == counts[index] + (success ? 0 : 1),
+            "Any failed peer suppresses all canonical storage replacement", &failures);
+        if !success { publish_check(items.data[0] == null, "Earlier successful output remains private on peer failure", &failures); }
+        for(var i: usize = 0; i < counts[index]; i++) {
+            var node = items.data[i + (success ? 0 : 1)];
+            publish_check(node != null && sem_get(node).bits == convert(u64, i + 1),
+                "Compaction preserves source order and literal values", &failures);
+        }
+    }
+    if !success {
+        var count = context.queries.tasks.length;
+        var dispatch: u64[3];
+        for(var index: usize = 0; index < 3; index++) {
+            var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
+            dispatch[index] = work_task(&context.queries, query).dispatch;
+        }
+        sem_known_publish(&context);
+        publish_check(context.queries.tasks.length == count,
+            "Repeated failed publication cannot replay work", &failures);
+        for(var index: usize = 0; index < 3; index++) {
+            var query = work_find(&context.queries, program.functions.data[index], convert(u32, SemanticQuery.KnownPublish), 0);
+            publish_check(work_task(&context.queries, query).dispatch == dispatch[index],
+                "Repeated failed publication keeps each dispatch identity", &failures);
+        }
+    }
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    publish_check(snapshot.used_bytes == occupied.bytes && snapshot.used_lanes == 0
+        && snapshot.live == (occupied.active ? 1 : 0),
+        "Joined publication retires every private scratch receipt", &failures);
+    work_pool_close(&context.workers);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    publish_check(compiler_world_dispose(world), "Publication world cleanup succeeds", &failures);
+    if occupied.active { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); }
+    publish_check(work_budget_dispose(&budget), "Publication leaves no retained budget owner", &failures);
+    return failures;
+}
+
+export fn semantic_publish_tests(): u32 {
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            for(var mode: u32 = 0; mode < convert(u32, PublishPressure.Mixed); mode++) {
+                failures += publish_trial(width, workers, convert(PublishPressure, mode));
+            }
+        }
+        // A serial mixed wave deterministically succeeds before and after its
+        // failing middle peer. The concurrent cases above force every peer to
+        // fail, so diagnostics do not depend on allocator admission order.
+        failures += publish_trial(width, 1, PublishPressure.Mixed);
+    }
+    if failures == 0 { puts("Semantic publication: checked scratch, joined failures and atomic storage output pass."); }
+    return failures;
+}

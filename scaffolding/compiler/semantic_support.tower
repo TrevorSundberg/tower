@@ -11,7 +11,7 @@ import semantic_modules;
 import .library.stack;
 import .library.vector;
 import .library.float_text;
-import .library.work_arena;
+import .library.work_arena_api;
 import .library.work_arena_types;
 import .library.work_budget_types;
 

@@ -17,7 +17,7 @@ import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
-import .library.work_arena;
+import .library.work_arena_api;
 
 
 extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
