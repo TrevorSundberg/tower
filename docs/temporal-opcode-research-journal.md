@@ -83263,3 +83263,17 @@ Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
 container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
 This receipt is documentation-only; no additional runtime measurements apply.
 Normal main push follows; historical timeout and ROOT release gates stay pending.
+
+Publication integration: preserved complete5b05d6bb history in ca9d06a5 without
+conflicts, including B1 parser-structure reuse, D1 imported-dependency fixtures and
+ROOT browser receipts. The type-staging selector and semantic known/capture inputs
+are unchanged by this merge; parser/provider inputs changed. Focused merged
+check64940 rebuilt14 dependency actions and passed lifecycle5 (nominal alias),
+24 (module capture),41 (local aggregate capture), each at widths4/8 and workers1/4
+with serial canonical reparses, plus the constructor protocol at both widths.
+Empty stderr, process0/source0 and complete worker drain; raw receipts are
+L2/type_checkpoint_merged0* and logs. Build68.23wall/100.66CPU seconds/780000KiB.
+This is focused integration evidence, not a repeated full matrix or a relabeling
+of the full b959ad59 acceptance. No production fix or new profile was needed.
+Normal main push includes both histories and journals; final lane status records
+the verified published commit. ROOT retains overall publication ownership.
