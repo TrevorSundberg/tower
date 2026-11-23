@@ -3080,20 +3080,27 @@ Review keys (implementation and owner tests alone are not independent review):
   final owner execution fd8f8dac/e70b8b68. Full two files and registration/callers
   read; their underlying A2 producer review is R2, not superseded.
 - **G:** B1 gate05780abb through6019450c/7eaec245; [owner receipt](compiler_budget_gate_70e77b60.md).
-  **Independent final review pending L1.** Source deltas/receipt inspected to
-  identify the admission, ABI and lifetime boundaries, not to replace that review.
+  L1's independent review **d7635e9c/d21fb20d** arrived during publication;
+  [66-path source/caller review](entity_budget_gate_review_6019450c.md) at6019450c
+  covers the14 changed gate paths. All match a06. It traces nonrecursive callbacks,
+  lock ordering, foreign ABI and drain-before-close; this is not a new runtime test.
 - **S:** B2 inline storagef9565c46 through4a8694da/68a0b8bf;
-  [owner receipt](entity_inline_component_70e77b60.md). **Independent final review
-  pending L1.** Entity layout and fixture census deltas inspected; two old full
-  fault matrices still fail, independently of focused inline success.
-- **U:** L2 overflowa5ffb99d/3bc5f626 at a06. **Independent review pending D1.**
-  D1's9e481050 was an explicit prerequisite-blocked review at cabc2062, before
-  these helpers/fixtures were available; publication does not convert it into
-  approval. Producer and fresh-call deltas inspected here to locate this gap.
+  [owner receipt](entity_inline_component_70e77b60.md). Same **L1 d7635e9c** review
+  covers the7 a06 paths, which match6019450c. It verifies stable inline ownership,
+  fallible promotion/rollback and page/heap census, and corrects the receipt's
+  derived alignment to16 (measured tables unchanged). Later repaired full-fault
+  fixtures have their own boundary below; old failures remain recorded.
+- **U:** L2 overflowa5ffb99d/3bc5f626 at a06. D1 **833657a1/8ff77438** now independently
+  reviews all8 final files in the [published overflow review](compiler_ecs_audit_d1.md#published-unsigned-multiply-overflow-review--2026-11-23).
+  This resolves9e481050's earlier missing-publication prerequisite, not its
+  historical result. It finds an admitted i1 bool-OGt recheck defect in
+  `bi_multiply_overflow` (expected integer-operands diagnostic), source-confirmed
+  and unexecuted. u32/u64 owner execution does not cover this edge; L2 owns repair.
 - **C:** D2 C fixture separation31bd0359, published70e77b60. Final fixture and
   selected driver callers/registration reread here; **self-review**, not independent
-  adoption. No later matching peer review identified. ROOT peer adoption remains
-  explicit; U separately applies to the later addition in the same C case list.
+  adoption. D1 U now reviews the final C registration, including preservation of
+  the direct subset. No matching peer review was identified for the new direct
+  fixture and `driver_differentials`; ROOT peer adoption of those two remains open.
 
 Every path below is relative to `scaffolding/`. The notes describe the changed
 ownership/storage/scheduling contract or fixture role, not another filename-only
@@ -3112,7 +3119,7 @@ inventory. Pending review keys remain pending even where owner checks pass.
 | `host/work_macos.tower` | G | Unfair-lock transport; independent review and actual macOS runtime coverage absent. |
 | `host/work_portable.tower` | G | Unsupported gate open/failure boundary stays explicit; not a fake portable mutex. |
 | `host/work_wasi.tower` | G | One-permit semaphore-backed gate retains checked wait failure; no browser runtime adoption inferred. |
-| `host/work_windows.tower` | G | SRW lock pointer-word storage; Windows actual-runtime acceptance is A1's pending gate. |
+| `host/work_windows.tower` | G | SRW lock pointer-word storage; later A1 Windows x64 runtime receipt607f9ce9 uses this unchanged provider. |
 | `library/entities.tower` | S | First pointer in descriptor; checked private promotion to heap; reclaim must distinguish inline ownership. |
 | `library/entity_stage.tower` | S | Staged construction/discard uses same inline ownership; cancellation retains already-grown capacity. |
 | `library/entity_types.tower` | S | Stable Entity descriptor gains one pointer; ABI consumers require coherent rebuild. |
@@ -3125,7 +3132,7 @@ inventory. Pending review keys remain pending even where owner checks pass.
 | `tests/backend_unsigned_overflow.tower` | U | Ordinary product32/64 boundary fixture preserves outputs; constant-folded top-level results alone were insufficient. |
 | `tests/backend_unsigned_overflow_calls.tower` | U | Fresh imported caller retains12 actual calls into unchanged reconstructed module; no second optimizer/reference model. |
 | `tests/backend_void_returns_direct.tower` | C | Direct void*/void** null/alias/effect subset has no function-value/indirect-call requirement. |
-| `tests/driver_c_cases.tower` | C + U | Positive C list uses direct subset; later overflow registration is a separate pending D1 delta. |
+| `tests/driver_c_cases.tower` | C + U | D1 U reviews the final list: supported direct subset retained, overflow registration is not imported-path execution. |
 | `tests/driver_differentials.tower` | C | Complete callback fixture remains native LLVM execution with interpreted reference and exact0 output. |
 | `tests/entity_accounting.tower` | S | Census must count inline bytes within descriptor, not a second component-index allocation. |
 | `tests/entity_component_faults.tower` | S | Adds focused inline promotion denial/retry; original full fault failure is retained, not replaced. |
@@ -3198,24 +3205,44 @@ against `0\n`, then compares both raw/optimized native execution. The C list ret
 all other selections and adds only the supported direct subset in place of the
 callback fixture; the later U registration is separate. D2's70e77b60 receipt retains
 the original intentional C function-value diagnostic,16 direct C comparisons and
-both full LLVM comparisons. No C-emitter capability was extended. A peer must
-still adopt these three final authored files; this reread cannot supply that role.
+both full LLVM comparisons. No C-emitter capability was extended. D1's new U
+review covers the final registration; the direct fixture and differential driver
+still need peer adoption. This author's reread cannot supply that role.
 
 ### Remaining source and execution boundaries
 
-G's14 paths and S's7 paths await L1 review; U's7 backend/fixture paths plus the
-mixed C registration await D1 review. D1's earlier prerequisite receipt remains
-honest. C's three authored paths and P require a matching peer receipt rather than
-an owner-test substitute. No other changed authored Tower path is unaccounted for.
+G/S/U now have the exact independent reviews above, including U's open i1 defect.
+C's direct fixture/differential driver and P lack matching peer receipts. All43
+frozen authored paths are accounted for; owner tests do not fill those three gaps.
 The unchanged current capture helper/controls and browser error transport were
 compared with their reviewed receipt freezes; no implementation adoption by name
 alone. The CMake byte selectors were independently read here; prior exact-output
 CTest/alias-negative changes retain D1's ea606d32 review.
 
-Current25 heavy failures remain distinct: entity_pages typed Memory at LLVM
-compile; entity_views optimized scalar-return failure after the unoptimized path
-passed, with later modes/generic registry unstarted. Native overflow success is
-not new-pair Wasm success. B2's two old full fault matrices, current combined
-scaling, supported instrumentation, generations/public pin/current UI and atomic
-hosted release remain open as the [twelve-row ledger](compiler_ecs_threading_handoff.md)
-states. No broad source cleanup, build, new runtime assertion or performance claim.
+Publication merge `d9e7e5c7` preserves complete e637ba38 and this audit. It introduces
+seven explicitly **post-a06 fixture** paths; these are not silently covered by the
+43-path source freeze or L1's earlier review:
+
+- B2 `tests/entity_component_faults.tower`, `tests/entity_stage_result_faults.tower`,
+  `tests/entity_fault_accounting.tower`: owner2f4361f6/a18d584e now passes both full
+  modes using reachable physical-allocation conservation, not an arbitrary byte
+  tolerance. [Receipt](entity_fault_accounting_6019450c.md) preserves both baseline
+  failures and exact causes. Independent final fixture review not identified.
+- A1 `tests/work_budget_shared.tower`, `tests/work_gate_windows.tower`,
+  `tests/work_pool_windows.tower`, `tests/work_thread_windows.tower`, plus
+  `cmake/TowerWorkTests.cmake`: owner607f9ce9/4d5baa5a actual Windows gate1/4,
+  full pool/negative and plain Linux checks pass with unchanged providers.
+  [Receipt](windows_budget_gate_cabc2062.md); independent final fixture/registration
+  review not identified. No Tower producer is newly adopted through these tests.
+
+ROOT b520e436 now records source-checked a06 portable/LLVM-cross/shared build exits0;
+execution adoption remains pending. B1 05daa172/bcd854aa supplies the actual joined
+1/4/8/12 study (matching frontend/library/host source at a06), rather than multiplying
+isolated gains. Four-worker multi-unit frontend speedup2.11x contrasts with best
+single-unit1.063x; parsing/ordered work remains dominant. Current25 heavy failures
+stay distinct: entity_pages typed Memory; entity_views optimized scalar-return
+failure after unoptimized passes, with later modes/generic registry unstarted.
+Native overflow success is not new-pair Wasm success. The i1 implementation defect,
+finite peer gaps, supported instrumentation, generations/public pin/current UI and
+atomic release remain open in the [ledger](compiler_ecs_threading_handoff.md).
+No broad source cleanup, build, new runtime assertion or performance claim by D2.

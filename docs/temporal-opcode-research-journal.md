@@ -95739,3 +95739,22 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+D2 ledger publication reconciliation: the required ff-only pull fetched e637ba38
+and refused ordinary divergence; complete history merged at d9e7e5c7, preserving
+both journal streams. New receipts arrived during review, so the final CURRENT
+ledger adopts their exact boundaries instead of leaving newly closed checks stale:
+L1 d7635e9c independently reviews all21 gate/inline paths (6019450c blobs match
+a06); D1 833657a1 reviews all8 overflow files at a06 and identifies the admitted
+i1 bool-OGt/Foundation recheck defect for L2, source-confirmed but unexecuted.
+A1 actual Windows gate607f9ce9, B2 full fault correction2f4361f6/a18d584e,
+B1 joined performance05daa172/bcd854aa and ROOT a06 buildb520e436 are adopted
+as attributed receipts, not D2 reruns. The new pair's execution remains pending.
+The two original fault failures remain failed historical results; their corrected
+fixture conservation checks are a separate passing source boundary. Seven later
+B2/A1 fixture paths plus CMake are named outside the43-path freeze, with peer
+review still missing. D2 direct-C fixture/differential driver/packager also lack
+matching peer review; D1's new review covers the C registration. No producer edit.
+One documentation patch context failed before applying and was corrected; no
+partial production change or runtime was involved. Revalidated map/tail/links and
+diff after reconciliation. Historical tail and todo remain byte-identical.
