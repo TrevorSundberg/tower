@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 import component_kinds;
 import format_types;
 import frontend_cache;
@@ -88,6 +89,7 @@ fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): 
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, candidate, value.pins.bedrock, &diagnostic);
+    value.resource_error = diagnostic.resource_error;
     defer syntax_version_release(version);
     value.error_offset = diagnostic.offset;
     if version is null {
@@ -186,11 +188,13 @@ fn syntax_session_finish(value: SyntaxSession*): void {
         defer syntax_version_diagnostic_dispose(&diagnostic);
         diagnostic.offset = value.error_offset;
         syntax_version_bedrock(value.pins.grammar, compiler_world_type(value.inputs.world, CompilerSyntax), &diagnostic);
+        value.resource_error = diagnostic.resource_error;
         syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
         value.error_offset = diagnostic.offset;
         syntax_version_diagnostic_dispose(&diagnostic);
         if value.error.length == 0 {
             var version = syntax_version_build(value.inputs.world, null, value.pins.grammar, &diagnostic);
+            value.resource_error = diagnostic.resource_error;
             defer syntax_version_release(version);
             syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
             value.error_offset = diagnostic.offset;
@@ -218,9 +222,18 @@ export fn syntax_next(opaque: void*): void* {
     defer { if root is not null { entity_release(root); } }
     {
         var stream = parser_stream_create(sizeof(SyntaxSession*), ParserInputService.Syntax);
+        if stream is null {
+            value.resource_error = WorkBudgetError.Memory;
+            value.error_offset = start;
+            return syntax_session_fail(value, "Unable to allocate parser input stream");
+        }
         defer parser_stream_destroy(stream);
         *bits(SyntaxSession**, parser_stream_get_userdata(stream)) = value;
-        var recognizer = parser_recognizer_create_prefix(bits(ParserHostTable*, value.pins.version.table), stream);
+        var recognizer = parser_recognizer_create_prefix_result(bits(ParserHostTable*, value.pins.version.table), stream, &value.resource_error);
+        if recognizer is null {
+            value.error_offset = start;
+            return syntax_session_fail(value, "Unable to allocate parser control within its memory budget");
+        }
         defer parser_recognizer_destroy(recognizer);
         value.recognizer = bits(void*, recognizer);
         if value.completing { parser_recognizer_capture_completion(recognizer); }
@@ -231,6 +244,11 @@ export fn syntax_next(opaque: void*): void* {
             root = next;
         }
         value.recognizer = null;
+        value.resource_error = parser_recognizer_resource_error(recognizer);
+        if value.resource_error != WorkBudgetError.None {
+            value.error_offset = start;
+            return syntax_session_fail(value, "Unable to allocate parser tree within its memory budget");
+        }
         if root is null {
             if value.completing {
                 syntax_session_completion(value, parser_recognizer_take_completion(recognizer));

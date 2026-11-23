@@ -7,6 +7,7 @@ import syntax_version;
 import syntax_version_build;
 import syntax_version_types;
 import .library.vector;
+import .library.work_budget_types;
 
 export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
     frontend_cache_dispose(&value.index);
@@ -40,6 +41,7 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
 // Returns an owning pin. A successful uncached build remains usable if either
 // slot storage or snapshot publication fails; no cache entry can lack its owner.
 export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    diagnostic.resource_error = WorkBudgetError.None;
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
     if definitions is null {

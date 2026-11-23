@@ -1715,3 +1715,171 @@ and source-specific native/ASan/TSan/WASI receipts remain qualified in its journ
 D2 joined provider and grammar performance, current instrumentation and final
 artifact validation are pending. No further runtime measurement is attributed to
 these audit paragraphs themselves.
+
+The provider rows above now have exact406d native link/runtime evidence: six
+compiler/test executables each contain one kernel,49-resource package membership
+matches source, and ten full query repetitions include22 Publish/24 resource
+cases. Initial query134 remains an unresolved workers2 clone-overlap assertion
+before Publish. Type-errors, arena linkage, parser/allocation/storage/module,
+production units and backend overlap pass separately. Do not equate those
+successful executions with resolving the initial failure or final release.
+
+At the subsequent D2 policy change, bootstrap_symbols and its existing Tower
+regression retain borrowed allocation-free spans and exact per-unit/platform
+membership. Actual native/WASI owner exports justify24 additions; check-only
+allocator hooks remain rejected. Seven native components plus three native/two
+WASI production entry reports and all policy regressions pass;11-definition
+ASan/LSan passes. Misapplied check-profile validation and earlier missing-WASI
+imports remain recorded failures, not passes. New policy changes no scheduler,
+world/payload ownership, supported target or source language. Common compiler
+before/after profiles and final merged instrumentation/browser/generation remain
+separate gates.
+
+### Joined grammar/Publish measurements and exported units (2026-11-23)
+
+Compared immutable6b8355b compiler509facfd/48 resources with406d1709
+compiler1a9476d0/49 resources. The difference includes B1 grammar accounting,
+A2 arena linkage and A1 Publish scratch; it does not isolate the five import
+lines or one owner's algorithm. Same public predecessor9653, Docker base4be584fb,
+SteamDeck x64, CPUs0/2, Release, explicit --jobs1/2, --emit object, --timings,
+complete adjacent resources. Bedrock/Foundation/syntax/types/Tower/vector bytes
+match. Inputs are frozen16/1000-function reference programs plus unchanged
+known_bindings/body_continuation fixtures. Link separately using public9653 and
+common runtimec4dec12e; every executable matches15/999/0/0. Warm filesystem,
+fresh processes, one warmup and three alternating measured pairs; not OS-cold.
+All64 compile/link/output runs, repeated objects, cross-version objects and
+serial/parallel objects pass. Phase logs and full GNUtime metrics are preserved
+under build/d2_ecs/publish_profiles_406d; interval02:34:24–02:38:04UTC.
+
+Medians below are wall/CPU seconds and peak RSS KiB; each column's median is
+computed independently. Keep the ranges/raw files because three samples show
+substantial timing variance.
+
+| Input | Jobs | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | ---: | --- | --- |
+| small16 | 1 | 2.10 / 2.08 /184944 | 2.23 /2.20 /184120 |
+| small16 | 2 | 3.54 /4.05 /196456 | 3.61 /4.11 /194948 |
+| large1000 | 1 | 2.40 /2.37 /212912 | 2.45 /2.42 /210564 |
+| large1000 | 2 | 3.54 /4.15 /225640 | 4.00 /4.39 /224340 |
+| known_bindings | 1 | 2.13 /2.11 /186420 | 3.63 /3.53 /185032 |
+| known_bindings | 2 | 3.49 /4.00 /197000 | 3.59 /4.08 /195116 |
+| body_continuation | 1 | 2.37 /2.33 /198884 | 2.38 /2.35 /197664 |
+| body_continuation | 2 | 3.53 /4.04 /210400 | 3.66 /4.18 /207888 |
+
+Investigated apparent known-value regression instead of reporting the median
+alone. Before serial known spans2.10–5.86s, after2.39–4.58s; the slow before
+sample spends5.600s in parse/check versus1.878s in its fast sample, with CPU
+5.67 versus2.07s, zero major faults/swaps and nearly identical minor faults/RSS.
+Other serial inputs also have large CPU-time outliers. Powersave governor was
+unchanged; an idle snapshot showed CPU0 at1.55GHz and CPU2 at3.50GHz. This suggests
+host placement/frequency sensitivity but does not establish a sole cause.
+
+A bounded follow-up pins both versions to CPU2, same immutable inputs/resources,
+explicit jobs1, one warmup plus five alternating pairs. All24 new objects match
+the already executed/checked references. No compiler rebuild, new oracle or
+system frequency setting. Known medians become2.09/2.07s/186556KiB before and
+2.15/2.13s/185072KiB after (wall ranges2.08–2.12 and2.11–2.17). Large becomes
+2.40/2.38s/212968KiB versus2.45/2.42s/210576KiB (2.37–2.45 and2.41–2.47).
+The apparent70% known slowdown is not reproduced; residual joint-source cost is
+about2–3%, not zero. RSS falls about1.5/2.3MiB; no excessive memory growth is seen
+on these inputs. Separate successful query fixtures check joined scratch/grant
+retirement, but CLI RSS is not a complete allocation/retention census.
+
+Two workers remain unprofitable on these modest single-unit workloads. The
+three-sample large/two-worker median rises about13%; variability and the shared
+source delta prevent sole attribution. Native production-unit/backend checks
+separately establish real distinct-thread overlap; they do not turn this CLI
+matrix into a useful scaling result. Earlier independent C-like reference inputs
+and Clang19.1.1/GCC13.3.0 receipts remain unchanged, with their exact semantics,
+flags, builtin-type/grammar and optimization differences. No cross-language
+superiority, new C timing, per-worker idle/critical-path or all-core claim.
+
+The newly merged D1 ledger target builds/runs through its existing serial fault
+profile. The existing compiler_project_units fixture exports actual entities and
+evaluation depfile closures. New semantic_known_publish and work_arena_api bytes
+match source; recompiled exported entities/evaluation native objects and
+exported evaluation WASI object match all three actual original objects exactly.
+No new manifest/tool logic. Logs: provider_package_134b. Browser entry mappings
+remain deliberately browser-specific; native interpreter objects were not
+misrepresented as browser build recipes. This is source-closure/object evidence,
+not complete reactor linking or a final generation/hosted release.
+
+Reviewed D1's8f46c466 backend observer/calibrated selector after all D2 processes
+drained, then merged as c734364b. The test uses checked monotonic nanoseconds,
+private trace buffers, one already-required serial frontend baseline and a
+frozen max30s/baseline frontend wait; backend acknowledgement stays30s. Ordinary
+selector/default workload and object/distinct-thread oracle remain. Its new
+runtime/instrumentation belongs to the current D1/B2/L1 receipt; the preserved
+406d binary and normal16.26s backend result do not validate new test code.
+
+The authorized future WorkPool serial-provider patchcdb2c027 changes only the
+existing generated serial entry to import work_dispatch plus portable transport.
+It remains an external draft pending the complete A2 API/constructor closure.
+Separate multi-object test clients need declarations, while same-object combined
+imports deduplicate normally. Exporting default-kernel pool wrappers can create
+an unwanted work_kernel_execute dependency for unrelated serial fixtures; this
+concrete link hazard was routed to A2/root. No dummy callback or alternate pool
+was added. Final current instrumentation, clone-overlap correction, portable/
+browser/generation and leased atomic publication remain open.
+
+### Work API proposal: standalone provider review (2026-11-23)
+
+Reviewed against clean `99a3bb44`, with no D2 build active and D1 holding the
+shared heavy-process slot. A2's review patch SHA256
+`dbe38d884fb84885904039573c8231b9baf4d25d1dc0a63b54e349a596061441`
+applies cleanly but remains **unadopted**: its public aggregate semantics build
+still fails the predecessor's component limit. The separate import-only patch
+is `4627da948ed7236785007f104a51be7c5b3aa1e186ec561f3079efe109a8abdc`.
+This section records source findings, not compiled or measured acceptance.
+
+| Reviewed path or boundary | Storage/world/scheduling/ownership conclusion and disposition |
+| --- | --- |
+| `library/work_graph.tower`, new `work_graph_api.tower`, `work_graph_types.tower`, `work_view_types.tower` | The complete proposed graph delta retains a coordinator-owned derived index and revision/profile/dispatch tickets. Nine physical `WorkBuffer` owners back distinct nominal borrowed views; ordinary `vector` cannot dispose those views. `work_cycle` still returns a caller-owned ordinary vector. All 27 API declarations match exported operations, including `work_fail`. `units/entities` supplies the implementation in compiler artifacts; standalone clients need their own explicit provider. No new semantic authority, worker-safe mutation or alias promise is established. |
+| `library/work_pool.tower`, new `work_pool_api.tower`, `work_pool_types.tower` | The complete proposed pool delta preserves nominal slots through ordinary aliases and exports both named-entry wait/complete operations. Slot storage is budgeted after host-capacity clamping; close drains before disposing it. Busy batch entry does not acquire another caller's outstanding work. However, exported default-opening wrappers reference `work_kernel_execute` from the shared provider even for callback-only or transport-only clients. Actual final link closure is required. |
+| `host/work_dispatch.tower`, `cmake/TowerWorkHost.cmake` | Existing native/serial/WASI provider selection is retained. The approved serial import adds dispatch beside portable transport in the existing object, preventing native archive extraction. It also exposes the unresolved default-callback requirement. No new transport, object or dummy callback is proposed. |
+| `tools/link_wasi.tower`, `cmake/TowerRuntime.cmake` | This tool compiles one standalone object and links only its guest runtime. It imports `library.entities`, not the compiler's entity unit. After the proposed backend graph API swaps, its graph calls have no implementation provider. One explicit `library.work_graph` import in this existing tool is the scoped proposed correction; pool dispatch and its existing default callback already belong to this closure. |
+| `tests/work_pool.tower`, `tests/target_once.tower`, `cmake/TowerWorkTests.cmake` | Their separately linked dispatch object requires API-only clients; A2's mechanical edits do that. Shared/profile fixtures importing implementation plus dispatch in one Tower import closure do not create the same separate-object duplication. True standalone graph fixtures retain implementation imports and add their nominal types and memory boundary. |
+| `tests/work_buffer_faults.tower`, `tests/work_arena_faults.tower`, `tests/work_budget_allocation.tower`, `cmake/TowerWorkPolicyTests.cmake` | All three link the serial object explicitly and define no kernel callback. Thus the proposed exported default wrappers introduce a concrete dependency risk in existing supported fixtures. Routed to A2/root for wrapper placement and actual symbol/link checks; no fabricated kernel was added. Their single-owner allocation checks remain distinct from concurrency sanitization. |
+| `tests/wasm_link_reader.tower`, `wasm_link_job_checks.tower`, `wasm_link_reader_native.tower`, `wasm_link_reader_wasi.tower`, `wasm_link_reader_threads.tower` | All reach backend graph API clients through the reader's ordinary import closure and need an explicit graph provider. The job fixture still imports the pool implementation; native adds dispatch and an existing default callback, portable WASI has neither dispatch nor default callback, shared-Wasm adds dispatch but no default callback. Preserve callback-only semantics and exact native/WASI link contracts; fixture-owner changes are pending. |
+
+The literal-boundary caller review reads the current `semantic_support` literal
+classification and the full numeric literal body in `semantic_values`, alongside
+the floating-point contract. A1 owns the proposed helper; D2 will only route an
+accepted exact helper through the same five existing interpreter/evaluation
+providers. Keep borrowed token lifetime, signed-minimum integer spelling, direct
+f32/f64 rounding, signed zero, and exact Invalid/Overflow/DigitLimit diagnostics.
+`FloatParseStatus` must retain its one nominal definition in `float_text`.
+
+Existing independent checks are available: `float_text` has exact rounding/
+subnormal/signed-zero/malformed oracles and 512 seeded round trips;
+`floating_checks` compares ordinary and fast interpreters, canonical Foundation,
+verified packages, 32/64-bit targets, worker outputs and rejected conversions.
+The execution runner already selects `floating`, `floating-oracle`, `narrow` and
+`negation`. `float_reference` generates independent hardware LLVM arithmetic
+checks; that is an arithmetic oracle, not an independent decimal-parser oracle.
+Reuse these after the exact candidate and provider closure pass, plus the frozen
+small/large compilation profiles. No runtime change was made during this review,
+so new performance or sanitizer measurements are inapplicable to this documentation.
+
+The later A2 v2 patch
+`3833050c5cdadc33978a84926e6843ea1f42ea05d44f1e2209d9a239bc8586d4`
+supersedes the default-callback defect above: four convenience wrappers now live
+in the client API and the provider exports callback-taking `work_pool_open_impl`.
+Its complete delta was reviewed and apply-checked. It also changes the reader job
+fixture to API-only imports, so portable WASI now needs an explicit pool provider
+as well as the graph provider; native/shared-Wasm already import dispatch. Actual
+links remain pending. Native resource globbing, complete bootstrap share-tree
+collection and compiler-project source/depfile collection already include new
+library modules; verify final packaged bytes rather than adding another manifest.
+
+A1's later snapshot proposal `04589f9c` replaces 16 existing context copies with
+one ordinary fieldwise helper in the existing semantics provider. This preserves
+borrowed graph/pool ownership and each caller's private scratch replacement. Root
+selected this capacity experiment over the literal split: no numeric/provider
+imports were added. Its patch context includes newer checked dispatch and is not
+universally applicable to root0c. D2 awaits the selected minimal passing owner
+closure before provider compilation; the isolated v2 source archive is inactive,
+not adopted main or a successful compiler build. A selected snapshot helper would
+add an exact `sem_context_snapshot` import to separate Publish providers, subject
+to actual object checks. New arithmetic-error consistency findings in graph growth
+were routed to A2; no huge allocation or fabricated invalid payload test was run.

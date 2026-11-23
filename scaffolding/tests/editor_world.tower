@@ -78,6 +78,13 @@ fn editor_world_entry(output: u8*, source: u8*, spelling: u8*, detail_text: u8*)
 }
 
 fn editor_world_inspection(world: void*, environment: void*, width: u32): void {
+    var incomplete: u8* = "import tower; fn preserved(): i32 { return 7; } fn unfinished(";
+    var recovered = language_document_world(world, environment, incomplete, strlen(incomplete), 0, width);
+    units_check(recovered != null, "Incomplete syntax remains inspectable without resource failure");
+    defer completion_dispose(recovered);
+    var partial = language_document_result(recovered);
+    units_check(strstr(partial, "\"complete\":false") != null && strstr(partial, "preserved") != null,
+        "Incomplete inspection retains the preceding declaration");
     var source: u8* = "import foundation; fn unsigned_integer(width: address_type()): type { return integer_type(width, 0); } fn narrow(width: address_type()): type { return unsigned_integer(width); }";
     var query = language_document_world(world, environment, source, strlen(source), 0, width);
     units_check(query is not null, "Type constructor inspection query");
