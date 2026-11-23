@@ -39,20 +39,46 @@ struct WorldInvocation {
     invocation: IMInvocation;
 }
 
+struct SemanticWorldTrial {
+    worlds: void*[2];
+    roots: void*[2];
+    views: void*[2];
+    jobs: WorldInvocation*[4];
+    pool: WorkPool;
+}
+
+fn semantic_world_release(trial: SemanticWorldTrial*): bool {
+    // Admission failure can leave completed but unreceived jobs in the pool.
+    // Join every owned job before releasing its invocation, view or world.
+    work_pool_close(&trial.pool);
+    for(var index: usize = 0; index < 4; index++) {
+        if trial.jobs[index] != null { interpreter_invocation_dispose(&trial.jobs[index].invocation); }
+    }
+    var released = true;
+    for(var index: usize = 0; index < 2; index++) {
+        if trial.views[index] != null { entity_view_close(trial.views[index]); }
+        if trial.roots[index] != null { entity_release(trial.roots[index]); }
+        if trial.worlds[index] != null && !compiler_world_dispose(trial.worlds[index]) { released = false; }
+    }
+    return released;
+}
+
 // Production accessors and kernels must follow each node's store. These four
 // jobs share a worker pool but borrow two independent worlds with unrelated
 // Foundation/parser component identities. No ambient world is switched.
-export fn semantic_world_tests(width: u32): u32 {
-    var worlds: void*[2];
-    var roots: void*[2];
-    var views: void*[2];
-    var jobs: WorldInvocation*[4];
+fn semantic_world_trial(trial: SemanticWorldTrial*, width: u32, capacity: usize, receive: bool): u32 {
+    var worlds = &trial.worlds[0];
+    var roots = &trial.roots[0];
+    var views = &trial.views[0];
+    var jobs = &trial.jobs[0];
     var failures: u32 = 0;
     var index: usize = 0;
     while index < 2 {
-        failures += evaluation_query_tests(width, index + 1);
+        if receive { failures += evaluation_query_tests(width, index + 1); }
         worlds[index] = compiler_world_create_workers(index + 1);
+        if worlds[index] == null { return 99; }
         roots[index] = entity_create(compiler_world_store(worlds[index]));
+        if roots[index] == null { return 99; }
         var policy: SemanticContext = default;
         var policy_program: SemanticProgram = default;
         policy_program.root = roots[index];
@@ -85,6 +111,7 @@ export fn semantic_world_tests(width: u32): u32 {
             literal.bits = convert(u64, index * 10 + item + 1);
             if !vector_push(void*, &body.items, returned) { return 98; }
             var job = bits(WorldInvocation*, entity_component_data(entity_component_add(function, kind)));
+            if job == null { return 99; }
             fill(job, 0, sizeof(WorldInvocation));
             job.kernel.kind = CompilerKernelKind.Evaluate;
             job.kernel.payload = bits(void*, &job.invocation);
@@ -96,33 +123,41 @@ export fn semantic_world_tests(width: u32): u32 {
         if views[index] == null { return 97; }
         index++;
     }
-    var pool: WorkPool;
-    if !work_pool_open(&pool, 4) { return 96; }
+    var pool = &trial.pool;
+    if !work_pool_open(pool, capacity) { return 96; }
     index = 0;
     while index < 4 {
-        if !work_pool_submit(&pool, bits(void*, &jobs[index].kernel)) { return 95; }
+        if !work_pool_submit(pool, bits(void*, &jobs[index].kernel)) { return 95; }
         // A requested width is bounded by the transport. Drain a full pool
         // before submitting another job, including one/two-lane hosts.
-        if pool.running == pool.count { work_pool_receive(&pool, true); }
+        if receive && pool.running == pool.count { work_pool_receive(pool, true); }
         index++;
     }
-    while pool.running != 0 { work_pool_receive(&pool, true); }
-    work_pool_close(&pool);
+    while pool.running != 0 { work_pool_receive(pool, true); }
+    work_pool_close(pool);
     index = 0;
     while index < 4 {
         var invocation = &jobs[index].invocation;
         var wanted = convert(u64, index / 2 * 10 + index % 2 + 1);
         if invocation.state.failed || !invocation.state.done || invocation.context.result != wanted { failures++; }
-        interpreter_invocation_dispose(invocation);
         index++;
     }
-    index = 0;
-    while index < 2 {
-        entity_view_close(views[index]);
-        entity_release(roots[index]);
-        if !compiler_world_dispose(worlds[index]) { failures++; }
-        index++;
-    }
+    return failures;
+}
+
+fn semantic_world_run(width: u32, capacity: usize, receive: bool): u32 {
+    var trial: SemanticWorldTrial = default;
+    var result = semantic_world_trial(&trial, width, capacity, receive);
+    if !semantic_world_release(&trial) { result++; }
+    return result;
+}
+
+export fn semantic_world_tests(width: u32): u32 {
+    var failures = semantic_world_run(width, 4, true);
+    // Full slots reject another admission even if a callback has already
+    // finished. Exercise the real failure return with outstanding receipts.
+    if semantic_world_run(width, 1, false) != 95 { failures++; }
+    if semantic_world_run(width, 3, false) != 95 { failures++; }
     return failures;
 }
 
@@ -132,21 +167,75 @@ extern fn entity_query_at(kind: void*, index: usize): void*;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
 
+struct SemanticStageTrial {
+    world: void*;
+    root: void*;
+    view: void*;
+    stages: void*[6];
+}
+
+fn world_stage_open(trial: SemanticStageTrial*): void* {
+    for(var index: usize = 0; index < 6; index++) {
+        if trial.stages[index] == null {
+            trial.stages[index] = entity_stage_open(trial.root);
+            return trial.stages[index];
+        }
+    }
+    return null;
+}
+
+fn world_stage_forget(trial: SemanticStageTrial*, stage: void*): void {
+    for(var index: usize = 0; index < 6; index++) {
+        if trial.stages[index] == stage { trial.stages[index] = null; }
+    }
+}
+
+fn world_stage_publish(trial: SemanticStageTrial*, stage: void*): bool {
+    if !entity_stage_publish(stage) { return false; }
+    world_stage_forget(trial, stage);
+    return true;
+}
+
+fn world_stage_discard(trial: SemanticStageTrial*, stage: void*): void {
+    entity_stage_discard(stage);
+    world_stage_forget(trial, stage);
+}
+
+fn world_stage_view_close(trial: SemanticStageTrial*): void {
+    if trial.view != null { entity_view_close(trial.view); trial.view = null; }
+}
+
+fn semantic_stage_release(trial: SemanticStageTrial*): bool {
+    world_stage_view_close(trial);
+    for(var index: usize = 6; index != 0;) {
+        var stage = trial.stages[--index];
+        if stage != null { entity_stage_discard(stage); }
+    }
+    if trial.root != null { entity_release(trial.root); }
+    return trial.world == null || compiler_world_dispose(trial.world);
+}
+
 // Staging must preserve borrowed component-query ranges and containment until
 // publication, then transfer the same payloads without changing their addresses.
-export fn semantic_stage_tests(): u32 {
+fn semantic_stage_trial(trial: SemanticStageTrial*, cancel: bool): u32 {
     var world = compiler_world_create();
+    trial.world = world;
+    if world == null { return 99; }
     var store = compiler_world_store(world);
     var root = entity_create(store);
+    trial.root = root;
+    if root == null { return 99; }
     sem_attach(root, KProgram);
     var parent = sem_create(root);
     var kind = compiler_node_type(root, CompilerFoundation);
     var count = entity_query_count(kind);
     var entities = entity_store_count(store);
     var components = entity_store_component_count(store);
-    var first = entity_stage_open(root);
-    var second = entity_stage_open(root);
+    var first = world_stage_open(trial);
+    var second = world_stage_open(trial);
     var view = entity_view_open(root);
+    trial.view = view;
+    if first == null || second == null || view == null { return 99; }
     var a = entity_stage_create(first, parent);
     var a_child = entity_stage_create(first, a);
     var b = entity_stage_create(second, parent);
@@ -154,49 +243,66 @@ export fn semantic_stage_tests(): u32 {
     data.bits = 17;
     sem_attach(a_child, KBlock);
     sem_attach(b, KOperand).bits = 23;
+    if cancel { return 98; }
     var failures: u32 = 0;
     if entity_stage_create(second, a) != null { failures++; }
     if entity_child_count(parent) != 0 || entity_child_count(a) != 0 { failures++; }
     if entity_query_count(kind) != count { failures++; }
     if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
-    if entity_stage_publish(first) { return 90; }
-    entity_view_close(view);
-    if !entity_stage_publish(first) { return 91; }
+    if world_stage_publish(trial, first) { return 90; }
+    world_stage_view_close(trial);
+    if !world_stage_publish(trial, first) { return 91; }
     if bits(void*, sem_get(a)) != bits(void*, data) || data.bits != 17 { failures++; }
     if entity_child_at(parent, 0) != a || entity_child_at(a, 0) != a_child { failures++; }
     if entity_query_count(kind) != count + 2 { failures++; }
     if entity_component_data(entity_query_at(kind, count)) != bits(void*, data) { failures++; }
-    if !entity_stage_publish(second) { return 92; }
+    if !world_stage_publish(trial, second) { return 92; }
     if entity_child_at(parent, 1) != b || sem_get(b).bits != 23 { failures++; }
     if entity_store_count(store) != entities + 3 || entity_store_component_count(store) != components + 3 { failures++; }
     // Existing source nodes can receive worker-owned semantic attachments under
     // an exclusive lease, without invalidating frozen typed query ranges.
-    var leased = entity_stage_open(root);
-    var competing = entity_stage_open(root);
+    var leased = world_stage_open(trial);
+    var competing = world_stage_open(trial);
+    if leased == null || competing == null { return 99; }
     if !entity_stage_lease(leased, parent) || entity_stage_lease(competing, parent) { return 94; }
     view = entity_view_open(root);
+    trial.view = view;
+    if view == null { return 99; }
     if entity_stage_lease(competing, root) { failures++; }
     var attached = sem_attach(parent, KOperand);
     attached.bits = 31;
     if entity_query_count(kind) != count + 3 || entity_store_component_count(store) != components + 3 { failures++; }
-    entity_view_close(view);
-    if !entity_stage_publish(leased) { return 95; }
+    world_stage_view_close(trial);
+    if !world_stage_publish(trial, leased) { return 95; }
     if sem_get(parent) != attached || attached.bits != 31 || entity_query_count(kind) != count + 4 { failures++; }
-    entity_stage_discard(competing);
-    var discarded = entity_stage_open(root);
+    world_stage_discard(trial, competing);
+    var discarded = world_stage_open(trial);
+    if discarded == null { return 99; }
     var unused = entity_stage_create(discarded, parent);
     var value = sem_attach(unused, KOperand);
     // The ordinary Foundation finalizer must release private vector storage.
     if !vector_push(u8, &value.name, 120) { return 93; }
-    entity_stage_discard(discarded);
+    world_stage_discard(trial, discarded);
     if entity_query_count(kind) != count + 4 || entity_child_count(parent) != 2 { failures++; }
-    var rollback = entity_stage_open(root);
+    var rollback = world_stage_open(trial);
+    if rollback == null { return 99; }
     var extra = sem_create(root);
     if !entity_stage_lease(rollback, extra) { return 96; }
     sem_attach(extra, KOperand);
-    entity_stage_discard(rollback);
+    world_stage_discard(trial, rollback);
     if sem_get(extra) != null || entity_query_count(kind) != count + 4 { failures++; }
-    entity_release(root);
-    if !compiler_world_dispose(world) { failures++; }
+    return failures;
+}
+
+fn semantic_stage_run(cancel: bool): u32 {
+    var trial: SemanticStageTrial = default;
+    var result = semantic_stage_trial(&trial, cancel);
+    if !semantic_stage_release(&trial) { result++; }
+    return result;
+}
+
+export fn semantic_stage_tests(): u32 {
+    var failures = semantic_stage_run(false);
+    if semantic_stage_run(true) != 98 { failures++; }
     return failures;
 }

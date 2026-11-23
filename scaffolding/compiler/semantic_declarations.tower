@@ -1152,7 +1152,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_dispose(void*, &context.lists);
     index = 0;
     while index < context.allocations.length {
-        free(context.allocations.data[index]);
+        compiler_buffer_free(context.allocations.data[index]);
         index++;
     }
     vector_dispose(void*, &context.allocations);
