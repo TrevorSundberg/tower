@@ -91357,3 +91357,17 @@ Their new native reconstruction/error work retains its own owner evidence and
 needs joined-artifact adoption; no old reactor relabeled current. Raw mismatch
 list/status preserved beside the original resource manifest. No tests repeated,
 all jobs drained, todo unchanged; normal source push follows, ROOT owns release.
+
+A1 five-file reconciliation: commit61b2bd96 merged complete published779de775
+as775a6577 after the required ff-only pull refused routine divergence. No conflict,
+no history discarded. Incoming backend/session and source_session repairs are
+not inside the supplied eac binaries, and none of these fixture roots imports
+those compiler backend modules. Other incoming resource changes are unrelated
+backend-native/bootstrap-symbol tests/tools. Both reactors, five selected files,
+comment generator, fixture loader and host adapters still match their frozen
+SHA manifests. Actual imported libraries/types/memory/UTF-8/generic registry and
+stress providers are unchanged; no unrelated test rerun or compiler rebuild.
+Merged full resource manifest a982acd0b4e60f46bde097739256a68cc8412f02567f60432a8d7cdbbe49a002
+is retained separately from the measured resource identity, not relabeled as a
+new full runtime acceptance. L2 residual inputs/responses remain actionable for
+its newer backend producer; no new reactor was available or adopted here.
