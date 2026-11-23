@@ -93561,3 +93561,14 @@ and registration bytes remain unchanged. Incoming backend reconstruction,
 formatter and module-loop query sources/tests are excluded from the e6be70d5
 review freeze; their owners retain validation responsibility. Documentation and
 source-identity checks passed; no build or runtime rerun was needed or claimed.
+
+D2 alias review reconciliation: audit commit ff253aac; prescribed ff-only pull
+fetched344139e9 and refused divergence. Complete-history merge
+ a391753c1eb448f967b1a383f0b49ca2add9ac40 preserves both journal entries and all
+published work. Upstream includes the separately excluded L1 loop-header batch.
+The frozen nine-file manifest now reports exactly three nonmatching paths:
+semantic_statements.tower, lr_work_main.tower and TowerWorkTests.cmake; six match.
+Retained exit1/log at alias_review_b8d65c37/merged_sources_check.log; this is a
+source-boundary exclusion, not a passing current-main comparison. Audit stays at
+b8/e6be review identity; newer headers, registration and backend/formatter inputs
+remain outside this review. No changing-source build or runtime test launched.

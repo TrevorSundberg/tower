@@ -138,3 +138,12 @@ sanitizer or concurrency measurement was run. Runtime before/after profiling is
 inapplicable to this documentation-only change. Requested workers do not prove
 overlap. ROOT owns later joined-source, sanitizer and release acceptance; L1
 owns the excluded loop-header/capture follow-up.
+
+Publication reconciliation: merge `a391753c1eb448f967b1a383f0b49ca2add9ac40`
+retains complete upstream `344139e9` history. That advance includes L1's later
+loop-header batch. Three scoped paths now differ from b8: `semantic_statements`,
+`lr_work_main` and `TowerWorkTests.cmake`; the other six still match the recorded
+SHA manifest. The expected three nonmatching checks are retained in
+`merged_sources_check.log` (exit 1). This audit remains at b8 and does not adopt,
+reject or runtime-validate the newly merged headers/registrations or unrelated
+backend/formatter changes. No additional tests were run on the advancing sources.
