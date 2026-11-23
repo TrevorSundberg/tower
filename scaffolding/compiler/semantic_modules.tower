@@ -479,10 +479,20 @@ fn sem_editor_symbol(c: SemanticContext*, node: void*, kind: u32): bool {
     if qualified {
         target = field;
     }
+    // Resolve the owning module before capture installs its intentional editor
+    // boundary diagnostic. Ordinary namespace resolution must keep rejecting
+    // real semantic/resource failures, including denied identifier storage.
+    if !sem_editor_contains(c, target) { return false; }
+    var span = sem_match(target);
+    if span.start != c.editor.offset || span.length != c.editor.length { return false; }
+    if c.editor.found { return true; }
+    if !sem_ok(c) { return false; }
+    var module = sem_namespace(c, name);
+    if !sem_ok(c) { return false; }
     var captured = sem_editor_capture(c, target, kind, null);
     if captured {
         c.editor.node = node;
-        c.editor.module = sem_namespace(c, name);
+        c.editor.module = module;
     }
     return captured;
 }
