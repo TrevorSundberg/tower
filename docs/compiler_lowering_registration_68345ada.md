@@ -61,8 +61,8 @@ remain ROOT-owned; no8-worker expansion, importer edit or deployment.
 Raw binaries, patches, immutable resources, commands, full outputs, every time/log
 and source manifests: `C:/Sandbox/build/codex_ecs_20261122/L2/lowering_prepare_68345ada`.
 
-Publication: implementation `b3caffd3`, complete-history merge `ab68f799` adopts
-`b4bd9980`. Incoming changes are browser abort handling/fixtures and peer receipts;
+Publication: implementation `b3caffd3`, complete-history merge `c164429e` adopts
+`26f99a40`. Incoming changes are browser abort handling, shared codec and peer receipts;
 all selected native providers, callers, registrations and resources are unchanged.
-Reuse the exact checked binary and evidence; new browser fixtures are excluded,
+Reuse the exact checked binary and evidence; unimported codec/browser fixtures are excluded,
 not relabeled tested. Original and frozen-input hashes reverify; owned work drained.
