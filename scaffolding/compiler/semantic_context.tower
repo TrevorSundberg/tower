@@ -317,18 +317,22 @@ export fn sem_require(ok: bool): void {
     }
 }
 
+extern fn generic_begin_result(root: void*, error: WorkBudgetError*): void*;
 extern fn generic_begin(root: void*): void*;
 
 extern fn generic_error(context: void*): u8*;
 
+extern fn generic_register_result(context: void*, definition: void*, error: WorkBudgetError*): u32;
 extern fn generic_register(context: void*, definition: void*): u32;
 
 extern fn generic_parameter_count(context: void*, definition: void*): usize;
 
 extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
 
+extern fn generic_instantiate_result(context: void*, definition: void*, use: void*, arguments: void**, count: usize, error: WorkBudgetError*): void*;
 extern fn generic_instantiate(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
 
+extern fn generic_instantiate_deferred_result(context: void*, definition: void*, use: void*, arguments: void**, count: usize, error: WorkBudgetError*): void*;
 extern fn generic_instantiate_deferred(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
 
 extern fn generic_lookup(context: void*, node: void*, name: void*): void*;

@@ -19,6 +19,7 @@ import semantic_declarations;
 import semantic_constructor_work;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 import .library.float_text;
 
 // Semantic compiler over shared Foundation components.
@@ -788,7 +789,12 @@ fn sem_call_arguments(c: SemanticContext*, definition: void*, use: void*, args: 
 }
 
 fn sem_call_instance(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
-    var instance = generic_instantiate(c.generics, definition, use, arguments.data, arguments.length);
+    var resource_error = WorkBudgetError.None;
+    var instance = generic_instantiate_result(c.generics, definition, use, arguments.data, arguments.length, &resource_error);
+    if resource_error != WorkBudgetError.None {
+        sem_resource_record(c.program, resource_error, sem_offset(c, use));
+        return null;
+    }
     if !sem_generic_ok(c, use) || instance == null {
         return null;
     }

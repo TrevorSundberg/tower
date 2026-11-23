@@ -3,7 +3,9 @@ import .compiler.generic_body_types;
 import .compiler.parser_types;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.entity_types;
 import generic_clone_fixture;
+import generic_result_storage;
 import storage_api;
 import utility_checks;
 
@@ -22,6 +24,99 @@ extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 
 var GenericCloneBudgetBytes: usize = 131072;
+var GenericClonePageBudgetBytes: usize = 1048576;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+
+fn generic_clone_admission_trial(exhausted: bool): void {
+    var buffers = tower_test_buffer_count();
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 1, 1, 1, null);
+    var store = bits(EntityStore*, fixture.store);
+    var next = store.next_id;
+    var nodes = store.entity_count;
+    var components = store.component_count;
+    var view = exhausted ? null : entity_view_open(fixture.root);
+    if exhausted { store.next_id = ~convert(usize, 0); }
+    var copied: usize = ~convert(usize, 0);
+    var error = WorkBudgetError.None;
+    var clone = compiler_clone_tree_result(fixture.body, fixture.width * fixture.depth + 1, &copied, &error);
+    store.next_id = next;
+    if view != null { entity_view_close(view); }
+    var wanted = exhausted ? WorkBudgetError.Exhausted : WorkBudgetError.Busy;
+    if clone != null || copied != 0 || error != wanted {
+        puts("Clone admission receipt: actual error, wanted error, copied");
+        generic_clone_number(convert(usize, error)); generic_clone_number(convert(usize, wanted));
+        generic_clone_number(copied);
+    }
+    utility_check(clone == null && copied == 0 && error == wanted,
+        "Public clone preserves exact structural admission failure");
+    utility_check(store.entity_count == nodes && store.component_count == components,
+        "Denied clone creates no partial nodes or components");
+    clone = compiler_clone_tree_result(fixture.body, fixture.width * fixture.depth + 1, &copied, &error);
+    utility_check(clone != null && error == WorkBudgetError.None, "Clone admission recovers after denial drains");
+    entity_release(clone);
+    copied = ~convert(usize, 0);
+    utility_check(compiler_clone_tree_result(null, 1, &copied, &error) == null
+        && copied == 0 && error == WorkBudgetError.Invalid, "Clone rejects a missing source with an exact receipt");
+    generic_clone_fixture_close(&fixture);
+    utility_check(tower_test_buffer_count() == buffers, "Clone admission retires all buffers");
+}
+
+fn generic_clone_page_capacity(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericClonePageBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Generic clone constructs a physically bounded world");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_world(&fixture, 2, 2, world);
+    var instance = generic_clone_fixture_instance(&fixture);
+    var destination = generic_clone_fixture_body(instance);
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    for(var attempt: usize = 0; attempt < 2; attempt++) {
+        var stage = entity_stage_open(fixture.root);
+        var view = entity_view_open(fixture.root);
+        utility_check(stage != null && view != null, "Generic page trial prepares its stage and view");
+        var pressure: WorkReservation = default;
+        if attempt == 0 {
+            var snapshot: WorkBudgetSnapshot = default;
+            var frames = compiler_buffer_allocation_size(CloneInitialFrames * sizeof(CloneFrame));
+            utility_check(work_budget_snapshot(&budget, &snapshot)
+                && snapshot.bytes - snapshot.used_bytes >= frames
+                && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes - frames, &pressure)
+                    == WorkBudgetError.None, "Generic page denial leaves exactly its initial clone frames");
+        }
+        var request: GenericBodyCopy = {context: fixture.context, node: instance, stage: stage,
+            limit: fixture.width * fixture.depth, budget: &budget, ..default};
+        compiler_generic_body_kernel(bits(void*, &request));
+        entity_stage_hold(stage);
+        entity_view_close(view);
+        if attempt == 0 {
+            utility_check(!request.success && request.copied == 0 && request.storage_error == WorkBudgetError.Capacity,
+                "Generic body preserves metadata page Capacity after scratch admission");
+            entity_stage_discard(stage);
+            utility_check(entity_child_count(destination) == 0 && entity_store_count(fixture.store) == nodes
+                && entity_store_component_count(fixture.store) == components,
+                "Failed metadata cloning publishes no partial body or retained components");
+            utility_check(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None,
+                "Release exact generic metadata page pressure");
+        } else {
+            utility_check(request.success && request.copied == request.limit
+                && request.storage_error == WorkBudgetError.None && entity_stage_publish(stage),
+                "Generic body recovers with a fresh stage after metadata Capacity");
+            generic_body_complete(fixture.context, instance, request.copied);
+            generic_clone_fixture_check(&fixture, instance);
+        }
+    }
+    generic_clone_fixture_close(&fixture);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Generic page failure and recovery release every owner and physical grant");
+}
 
 enum CloneTreeOutcome: u32 { Success, NodeLimit, CapacityStart, CapacityGrow, Memory, MemoryNode }
 
@@ -78,7 +173,7 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
             : memory_failure ? WorkBudgetError.Memory : WorkBudgetError.Capacity;
         var matched = clone == null && copied == expected_count && error == expected_error;
         if !matched {
-            puts("Public clone failure receipt: copied, expected copied, error, expected error");
+            puts("Public clone failure receipt: copied, wanted copied, error, wanted error");
             generic_clone_number(copied); generic_clone_number(expected_count);
             generic_clone_number(convert(usize, error)); generic_clone_number(convert(usize, expected_error));
         }
@@ -138,7 +233,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
         var error = fail_allocation ? WorkBudgetError.Memory : deny_growth ? WorkBudgetError.Capacity : WorkBudgetError.None;
         var matched = !request.success && request.copied == copied && request.storage_error == error;
         if !matched {
-            puts("Staged clone failure receipt: fault index, copied, expected copied, error, expected error");
+            puts("Staged clone failure receipt: fault index, copied, wanted copied, error, wanted error");
             generic_clone_number(failure_index); generic_clone_number(request.copied); generic_clone_number(copied);
             generic_clone_number(convert(usize, request.storage_error)); generic_clone_number(convert(usize, error));
         }
@@ -171,6 +266,9 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
 }
 
 fn generic_clone_storage_tests(): void {
+    generic_clone_admission_trial(false);
+    generic_clone_admission_trial(true);
+    generic_clone_page_capacity();
     generic_clone_tree_trial(256, 1, CloneTreeOutcome.Success);
     generic_clone_tree_trial(1, 600, CloneTreeOutcome.Success);
     generic_clone_tree_trial(16, 2, CloneTreeOutcome.NodeLimit);
@@ -191,4 +289,5 @@ fn generic_clone_storage_tests(): void {
     for(var failure: usize = 0; failure <= 4; failure++) {
         generic_clone_storage_trial(16, 2, failure, false, true, false);
     }
+    generic_result_storage_tests();
 }

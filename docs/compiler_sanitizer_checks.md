@@ -156,6 +156,18 @@ Tower units for a whole compiler claim, including helpers and generated runtime.
 
 ## Sensitivity and observed results
 
+**Current campaign limitation (2026-11-23):** the negative race-control recipe
+below is historical. After the buffer-provider changes, D1 reported that its
+unchanged probe at `a0e789324` compiled but the documented link exited1 on
+`compiler_buffer_allocate`, `compiler_buffer_free` and
+`compiler_buffer_allocation_size`. No probe execution followed that failed link.
+The coordinator subsequently directed that this probe remain unchanged and
+unexecuted during the current campaign. D2 has not independently rerun it.
+The earlier sensitivity receipts below retain their original inputs; positive
+address/thread checks on newer compiler inputs do not close this control gap.
+Supported positive Tower-object instrumentation remains available through the
+shared build entry above. Source-language UBSan remains unsupported.
+
 Use the fixture commands above with `sanitizer_memory_probe.tower` in address
 mode. Expected result: exit1 and **AddressSanitizer: heap-buffer-overflow**, a
 one-byte write immediately after an eight-byte heap allocation. Use
