@@ -3,8 +3,11 @@
 Current counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
 execution and package boundaries even when presentation text is absent. Public
 leaves, coherent rebuild and six native gates pass, including first-error/replay
-and canonical-package regressions at both pointer widths. Current paired
-performance and supported instrumentation are pending; frontend producer
+and canonical-package regressions at both pointer widths. Corrected4511ed9 adds
+32 checked CLI measurements;32 frontend observations reuse the identical binary.
+Five address/leak and five thread gates pass with actual four-unit overlap4 and
+matching canonical output. Small-process peak RSS grows about4MiB and frontend
+median wall time about1-2%; those costs remain explicit. Frontend producer
 integration, remaining allocation owners and final release gates stay open.
 Independent ROOT review rejected e3's assumption that frontend diagnostics are
 NUL-terminated. Both valid counted-buffer regressions reproduce that failure on

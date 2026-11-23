@@ -1482,3 +1482,39 @@ wall/CPU/RSS/physical grants/retained metadata, environment/inputs/sample counts
 and limitations. Common budget free-slot scanning/contention remains a measured
 follow-up candidate; per-wait attribution is not yet collected. This checkpoint
 is reviewable ownership progress, not full A2 acceptance or publication readiness.
+
+A2 source-review correction,08:03Z: the page profile's speculative free-slot-scan
+wording above is withdrawn. Current work_budget_reserve_locked pops free_slot
+and work_budget_release_locked pushes entry.next in O(1); there is no linear
+free-slot search. This is already present in the before/after profile source.
+Additional page grants, shared-gate calls, ledger retention and measured8worker
+regression are real; their wait-time attribution remains unmeasured. No bogus
+scan optimization was implemented. This correction changes documentation only,
+so runtime profiling is inapplicable. The preceding exact measurements remain.
+
+### Typed stage/view results, reviewed9776cd0f plus A2 draft (2026-11-23)
+
+| Path relative to scaffolding | Per-file review and disposition |
+| --- | --- |
+| library/entities.tower | Complete view acquisition path reviewed. Required private error reports Invalid null/staged anchor, Busy store reclamation, Exhausted view counter, Memory allocation; success publishes view count only after allocation. Wrapper preserves ordinary behavior. View still pins lifetime, never proves disjoint mutation. Public unit/native/WASI tests pass; no new storage layout/allocation. |
+| library/entity_api.tower | One exact declaration added for view_open_result using existing defining types. Matches sole entities provider; no extra implementation or provider. Separate ABI remains typed. |
+| library/entity_stage.tower | Entire module reread. Open result rejects invalid anchors before allocation, protects reference counter, and now rejects reclaiming store after a demonstrated finalizer admission defect. Publish result preserves reserve-before-commit, exact typed preparation errors, failed-table rollback and explicit reference holds. Names/counter/byte checks distinguish Invalid/Exhausted/Memory; existing pinned publication is Busy. Discard ownership and ordinary create/lease/reference bool APIs remain unchanged and still require valid caller preconditions. Stage descriptors/nodes/names/count indexes remain unbudgeted; no whole-world cap claim. Removed unused internal init only after whole-source caller search found no outside callers. |
+| tests/entity_stage_result.tower | Entire new normal fixture reviewed. Exact error results, private result independence, finite counters, invalid staged anchor, pinned failure without holds, hold-before-view-close, duplicate names, ID retry and stable payloads. Real finalizer test first reproduces owning stage admission into reclaiming world, then passes Busy guard. Normal+3ASan/LSan+3TSan and actual wasm32 portable execution pass. Serial test alone is not concurrency evidence. |
+| tests/entity_stage_result_faults.tower | Entire new single-owner fault sweep reviewed. Actual stage/view allocation denial, mixed staged-new and leased-published payloads, table rollback, unchanged IDs/addresses/receipts/holds, retry and final allocation/ledger zero. Bounded named failure limit. Initial tower_print link failure corrected to existing puts boundary; no runtime provider changed. Normal serial fault run passes. |
+| tests/entity_stage_faults.tower | Existing aggregate fixture preserved byte-for-byte from9776 after prebuild filename collision. New test moved to distinct result_faults path before execution; original assertions retained. Current existing tower-storage passes1/1, exercising this original fault oracle through its real compiler provider. |
+| tests/entity_stage_concurrent.tower | Unchanged fixture reviewed for output/exit contract: prints finalizer count/CPU/RSS, not one0; every ownership failure traps nonzero. New provider runs normal plus3ASan/LSan+3TSan,224 fixture and47 production-runtime functions instrumented, real2/4 workers and production allocation. Wrong shell output expectation was preserved/repaired without changing assertions. |
+
+Current public entities/parser/semantics units, canonical native compiler,
+query/units/editor/parser/storage and portable wasm32 pass on this draft.
+Runtime profile and ROOT75 merged-ABI validation remain pending; no publication
+lease or full-lane acceptance. WorkBudget's existing O(1) free list is explicitly
+retained; speculative linear-scan wording above was withdrawn after source check.
+
+Typed-result profile disposition: matched52runs/canonical/reparse pass;9-pair
+real-stage stress wall105.786->105.875ms/CPU102.246->102.749ms/RSS1640->1656KiB,
+identical57792finalizers and per-trial zero ownership. Whole compiler3-pair
+changes are approximately1%, with small Tower modest4worker benefit and large
+Foundation4worker loss in both versions. No speedup, universal race freedom or
+zero-cost claim. Exact inputs/binaries/flags/worker counts and unsupported coverage
+are in the journal. This completes the focused typed-result checkpoint only;
+ROOT75 ABI integration, bounded churn/refill and full lane release remain open.
