@@ -12,6 +12,8 @@ import semantic_defer;
 import semantic_support;
 import semantic_expression_lowering;
 import semantic_lowering_work;
+import semantic_aggregates;
+import semantic_work_ids;
 import semantic_layout;
 import semantic_evaluation;
 import semantic_flow;
@@ -122,6 +124,28 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     // representation tags do not create ambient language names.
 }
 
+// The checking/hygiene/known-snapshot boundary is still required. Inside this
+// transformation frontier, per-function dependency edges replace the blanket
+// aggregate-preparation drain. Each pump joins before coordinator publication.
+export fn sem_lifecycle_lowering_pump(c: SemanticContext*): SemanticPumpResult {
+    var state = sem_lower_pipeline_pump(c);
+    if state != SemanticPumpResult.Complete { return state; }
+    // Callback type records are shared and mutate only at this successful join.
+    // Lowering uses checked call operand/result types, not these ABI records.
+    foreach(var type in &c.type_arguments) { sem_aggregate_function_type(c, &sem_get(type).type); }
+    return SemanticPumpResult.Complete;
+}
+
+fn sem_lifecycle_lowering(c: SemanticContext*): void {
+    var state = sem_lifecycle_lowering_pump(c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(c); }
+    if state != SemanticPumpResult.Waiting { return; }
+    // Earlier body/proof producers have drained at this lifecycle boundary.
+    // A standalone pump may wait; only this owning caller diagnoses quiescence.
+    sem_lower_finish(c, true);
+    sem_lower_finish(c, false);
+}
+
 export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void {
     if program.resource.error != WorkBudgetError.None || program.error.length != 0 { return; }
     var context: SemanticContext;
@@ -144,7 +168,7 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_foreign_signatures(c);
     sem_defer_hygiene(c);
     sem_known_infer(c);
-    sem_lower_expressions(c);
+    sem_lifecycle_lowering(c);
     sem_evaluations(c);
     sem_attributes_publish(c);
     sem_known_publish(c);

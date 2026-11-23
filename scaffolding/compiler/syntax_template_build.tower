@@ -40,6 +40,8 @@ extern fn syntax_session_progress(value: SyntaxSession*): void;
 extern fn syntax_session_pin_revision(destination: FrontendRevision**, source: FrontendRevision*): void;
 extern fn syntax_session_pin_version(destination: SyntaxVersion**, source: SyntaxVersion*): void;
 extern fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: void*, repairs: bool): u8*;
+extern fn syntax_session_diagnostic_result(value: SyntaxSession*, recognizer: void*, repairs: bool, error: WorkBudgetError*): u8*;
+extern fn parser_recognizer_get_error(recognizer: void*): u8*;
 extern fn syntax_emission_wrapper(value: void*, name: u8*): u8*;
 extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
 extern fn syntax_emission_repetition_count(value: void*): usize;
@@ -181,8 +183,11 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     if root is null {
         replacement.error_offset = replacement.start + session.error_offset;
         // Typed holes cannot safely use ordinary token insertion repairs.
-        var error = syntax_session_diagnostic(session, recognizer, false);
+        var error = syntax_session_diagnostic_result(session, recognizer, false, &resource_error);
         defer compiler_buffer_free(bits(void*, error));
+        if resource_error != WorkBudgetError.None {
+            return template_build_resource(owner, resource_error, parser_recognizer_get_error(recognizer));
+        }
         return template_build_error(owner, error);
     }
     var body = entity_child_at(root, 0);
