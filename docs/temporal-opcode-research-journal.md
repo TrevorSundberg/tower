@@ -76246,6 +76246,41 @@ profile processes are retained with exact binary/resource hashes. Source, pin an
 todo hashes were independently rechecked unchanged. Current independent parser/
 public-pin WASI job48223 is running; actual IDE and final receipt follow.
 
+ROOT's complete c9442c6e queue/late-inspection bundle was verified/fetched and
+reviewed read-only. entity_stage references rebases an alias only when it names a
+valid live queue slice, rejecting spare/misaligned/overrun input before reserve;
+there is no new allocation or layout. L2's actual language_document_inspect phase
+rejects retained semantic failure before replay, and its fixture denies the real
+inspection producer after a successful document. The complete history is queued
+for the next unstarted coherence boundary, not copied into current68fa artifacts.
+
+Current68fa portable milestone now passed: job48223 independent parser build
+19.68s/17.92CPU/769564KiB; actual lr-analysis oracle.22s/6156KiB. This includes
+ordered grammar/tree lifetime and allocation failures, closure/state/runtime/
+control/reference comparisons, precedence and150 reproducible random grammar/
+propagation trials. Public checked-in bootstrap9653/SDK34 WASI build21.74s/
+28.57CPU/811092KiB passed without a private compiler override. Reactor SHA256
+cfcf1ffb44a65cd65056dbee7e0b7b29e56ebf9a3442ceb031d14fd9d66881e8.
+Actual IDE job72640 passed26.341924s; complete UTF8 log includes its own timer
+and exit0. Both jobs drained; the normal container contains only its idle init.
+
+The full current native, matched24-profile, address/leak/thread and portable
+evidence closes this LR result/pool/graph change only. Archive construction30450
+is now running, copying source, frozen profile inputs, logs (including failures),
+current native/address/thread binaries/configuration/instrumentation manifests and
+WASI. Stale sanitizer storage binaries are deliberately not included as current
+coverage; native storage is current. This evidence documentation changes no
+runtime input and needs no separate performance comparison. Fullfrontend's
+recorded300s/124 failure, remaining raw parser/grammar/request/lexer allocations,
+clean joined bootstrap/generation, browser publication and hosted verification
+remain open. No publication lease, push, source adoption or new context occurred.
+
+B1 receipt30450 actually drained0. Archive
+B1_pool_graph_receipts_68fa00d9.tgz SHA256
+2ac1def2307573cb928f944d282423849e26167a85bf5cf409580b683030d21b
+contains the exact current artifacts and all24 profile records. No owned job,
+quiet watcher or hold remains. Evidence commit follows without runtime changes;
+complete ROOTc944 adoption and new grammar work have not begun.
 All current source remainsac65 for artifact identity. This evidence-only documentation adds no runtime input or performance delta; measurements apply to the recorded code and binaries. No new ParserNodes import is introduced by calling entity_attach_result inside the Entities unit. D2 still owns the two previous forest imports. ROOTdba metadata bundleef383e94 was verified/fetched and its host_metadata/syntax_provenance changes reviewed read-only; its destination-discard/hold-before-unpin contract must be honored by future owned consumers, and no half producer signature was copied. The union is not adopted until this milestone's receipt jobs drain. Full frontend300s failure, earlier LR/pool/graph storage, remaining raw request/lexer/metadata allocations, final clean bootstrap/generation and atomic hosted publication remain open. No publication lease/push; originalsession/PID33768 and todo unchanged.
 After ed68ac121 review commit and no-op pull, complete ROOTd3 merges cleanly as
 c93a56ac5667ffa2ec0b7ba96bafd91663f5a797. Production compiler/library/host/backend/
@@ -77387,26 +77422,13 @@ rejects retained semantic failure before replay, and its fixture denies the real
 inspection producer after a successful document. The complete history is queued
 for the next unstarted coherence boundary, not copied into current68fa artifacts.
 
-Current68fa portable milestone now passed: job48223 independent parser build
-19.68s/17.92CPU/769564KiB; actual lr-analysis oracle.22s/6156KiB. This includes
-ordered grammar/tree lifetime and allocation failures, closure/state/runtime/
-control/reference comparisons, precedence and150 reproducible random grammar/
-propagation trials. Public checked-in bootstrap9653/SDK34 WASI build21.74s/
-28.57CPU/811092KiB passed without a private compiler override. Reactor SHA256
-cfcf1ffb44a65cd65056dbee7e0b7b29e56ebf9a3442ceb031d14fd9d66881e8.
-Actual IDE job72640 passed26.341924s; complete UTF8 log includes its own timer
-and exit0. Both jobs drained; the normal container contains only its idle init.
+### B1 checked grammar construction after complete c944 adoption
 
-The full current native, matched24-profile, address/leak/thread and portable
-evidence closes this LR result/pool/graph change only. Archive construction30450
-is now running, copying source, frozen profile inputs, logs (including failures),
-current native/address/thread binaries/configuration/instrumentation manifests and
-WASI. Stale sanitizer storage binaries are deliberately not included as current
-coverage; native storage is current. This evidence documentation changes no
-runtime input and needs no separate performance comparison. Fullfrontend's
-recorded300s/124 failure, remaining raw parser/grammar/request/lexer allocations,
-clean joined bootstrap/generation, browser publication and hosted verification
-remain open. No publication lease, push, source adoption or new context occurred.
+ROOT12:40:39 approved the shared GrammarBuilder field and producer ownership;
+ROOT retains downstream pattern/module consumers. After every68fa job and receipt
+drained, complete c944 merged clean as81c26d441a82125919287096be9552fad84b44e6,
+treea9475d375dd31e10fb5542633c2ce12b8a07a063. UTF8 parent journal comparison found
+zero missing nonblank lines from78cb andc944. No half-feature/layout adoption.
 
 B1 receipt30450 actually drained0. Archive
 B1_pool_graph_receipts_68fa00d9.tgz SHA256
@@ -77527,3 +77549,152 @@ is preserved, not relabeled as a runtime pass. D1 independently reviewed exact
 existing tests are not claimed. ROOT will batch the executable admission/hold/
 publication closure next and integrate native-tested owner batches without
 waiting for redundant per-helper instrument campaigns.
+Coherent native baseline62833 drained0: entities14.10s/325804KiB, dependent
+build22.84s/794964KiB, fullunits21.59s/802996KiB, LR1.82s/115480KiB,
+parser.04s/54156KiB, query.23s/87800KiB, grammar-resource1.28s/52888KiB,
+editor10.64s/923384KiB, storage.24s/99268KiB, runtimefaults.02s/50764KiB,
+resourcephases.03s/51944KiB. These establish coherence, not a quiet timing claim.
+Frozen /cache/parser_memory_profile/grammar_builder_81c26d44 before units
+1dea675e0650fae865fc2a3fb20076192a73dd7b87003fb6960075f22645e54f,
+editor10abab916b1dd5aa1dc03da1b0244bf70881e2dc13ab021b3b3862296d715547,
+resources.tar140c7e486a660c61e91030a300c9859081a9cce48c3cb186b5d2c0375585ce69.
+
+Current implementation adds GrammarBuilder's sticky first WorkBudgetError, checked
+init/finish and regex constructor, while preserving old entry points. All actual
+node/component/attach causes propagate; successful finalization transfers the
+root, failed finalization releases the partial document. Counted text storage
+rejects overflow before reserve. Checked string append validates the byte span,
+distinguishes malformed UTF8 from Memory and rolls logical length back on decode
+failure; the prior bool silently accepted the valid prefix. Capacity can still
+be retained after failure. Names remain NUL-terminated inputs and pass their actual
+count to storage. Raw text vectors are not claimed physically charged. Regex's
+ASCII mask derives fill bytes/bounds from the actual array; named ASCII/scalar
+limits define language data. No new grammar or unpublished syntax was used.
+
+The new owned grammar_builder_results fixture calls real production exports and
+measures actual allocation count for its failure sweep. It checks exact allocation
+Memory, pinned Busy, null/unregistered Invalid, physical component/entity Capacity,
+first-cause stickiness, complete cleanup and retry, plus malformed/count-overflow
+UTF8. parser_failures registers this owned fixture without generic harness changes.
+
+Production smallest ParserNodes passed. Job18388 then failed the fixture compile
+at grammar_builder_results:27 (missing grammar_builder_rule declaration); its
+24.23s/797488KiB failure log remains grammar_builder_native_missing_declaration.log.
+The next7.69s smallest fixture compile found missing strlen; its log remains
+ grammar_builder_fixture_missing_strlen.log. Both failures actually drained before
+prototype fixes; no runtime check was claimed. Direct opaque declarations were
+completed together; production was unchanged. Current retry21801 passes the new
+parser runtime and continues native LR/query/fullunits/editor/storage. Current
+source is frozen, final profile/instrumentation/publicWASI still pending. ROOT's
+consumer remains untouched until the complete producer history is handed off.
+B1 grammar native retry21801 ACTUALLY drained0. Production leaf18.30s/771996KiB;
+corrected fixture9.38s/461792KiB and dependent build7.56s/340504KiB passed.
+Parser/new exact construction/UTF8 fixtures.04s/54224KiB; independent regex300
+patterns/500 arbitrary-byte patterns and failure cases.04s/51608KiB; LR1.77s/
+123324KiB, query.23s/87960KiB, grammar-resource1.27s/53216KiB,
+fullunits21.28s/804000KiB, editor10.53s/870192KiB and storage.25s/98996KiB.
+No native runtime failure occurred. These suite times are coherence evidence;
+new fixtures change parser test work and are not equivalent-input benchmarks.
+Current complete producer source is ready to commit; paired performance,
+supported instrumentation and independent parser/publicWASI/IDE remain pending.
+B1 ea1b current ASan/LSan74293 actually drained0. Coherent c944/grammar build
+90.95s/194.22CPU/796820KiB; parser/new construction and counted-UTF8 cases.28s/
+149184KiB, regex300/500 cases.22s/132844KiB, query.72s/307232KiB,
+actual3unit4lane9.603s internal/30.742CPU/1100688KiB, peak3,
+canonical1173729914654460811 and retained15152976. No reports. This is scoped
+current grammar/parser/regex/query coverage; previous68fa LR sanitizer receipts
+retain that source identity. Fresh fixed-path20 quiet request is ready after
+actual ROOT KinmenB thread-package drain, not started on an inferred grant.
+
+Incoming complete2252b889 was hash-verified/fetched and reviewed read-only:
+ROOT's shared sem_query_check preserves graph failure/provenance, executable
+admission reserves query/access before publishing payloads, partial undispatched
+stages are discarded before cancellation and joined results become ready only
+after successful finish. L1's six IMEntry maps use work_vector with first-cause
+storage errors; heap admission reserves live-allocation/free-interval tracking
+before guest mutation, keeping valid frees allocation-free. IMFrame/IMState
+layout changes require coherent depfile rebuilds after adoption. None of these
+incoming changes is in the frozenea1b binaries or current measurements.
+
+Next owned read-only audit: parser_state already has complete constructor result
+boundaries and a runtime.budget, but ParserRequest's descriptor and error vectors
+still use raw storage. A descriptor WorkBuffer can use that existing budget
+without a new public API; lookahead error ownership crosses parser_stream_return
+as vector(u8), so diagnostic vector conversion must coordinate both sides rather
+than copying incompatible owners. Streams also retain explicit unbound input
+boundaries. No next-step code is adopted during current validation. The historical
+fullfrontend300s/124 timeout still lacks a measured phase diagnosis; source size
+or the broad semantic lifecycle matrix alone does not establish its cause.
+Currentea1b TSan23306 actually drained0: coherent build60.51s/134.94CPU/
+795820KiB; parser.348s, regex.287s, query1.277s, two actual3unit4lane
+25.186/25.128s internal,80.941/80.875CPU,1417552/1435076KiB. Both see peak3,
+canonical1173729914654460811 and retained15152976; no reports. The ephemeral
+container was removed, normal container has only idle init. Supported current
+grammar address/leak/thread coverage is complete; independent parser/public
+WASI/IDE and matched performance remain pending, not inferred from this pass.
+
+Scheduling history: the first quiet20 request stayed queued through ROOT's
+thread-package work; ROOT's actual drain before13:04 was reported at13:13:13.
+B1 had announced and started untimed TSan at13:13:07, so the grant crossed that
+message. It was explicitly returned unused, with no profile child ever launched.
+No build/test was interrupted and no contaminated timing was accepted. After
+actual23306 drain B1 requested a fresh grant for the same immutable20-process
+comparison. This is coordination evidence, not a failed or completed profile.
+B1 grammar fixed-path20 job97445 actually drained0 under renewed13:16:58 grant.
+All process and output checks pass. ROOT now explicitly assigns B1 primary KinmenB
+compute/profile ownership for this milestone and subsequent owned work: ROOT
+requests a B1 slot before any further KinmenB work. Existing CPU0-11/24GiB and
+one-heavy-job limits remain; this is not a publication lease. Own profiles/builds
+never overlap, and the single profile grant was released after verified drain.
+
+Frozen81c26 before hashes above; ea1b after units
+a0c46ae2fcb7563bc620940a1c1a8c1cef9977fe332069756cbd22cba5be57ed,
+editordc8df0d2e37b44d2fb19aa3cbb1e0b5f165a0caed119e2eee0ae5926f8713a07,
+patchc96415c5ff304dbd3943502f30428f384b5a7dc347b167d892232a8dfca83727.
+Same executable installation paths/cwd, immutable81c26 resources140c7e48,
+Linux x64/public pin/LLVM19.1.1, warm caches,3units, bodies0/4096, workers1/4,
+two alternating pairs and editor. Copies/cmp/hash ran outside measured children.
+
+| Case | Mean wall ms before -> after | Mean CPU ms before -> after | Mean peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| Small,1 |3417.353 ->3421.525|3212.152 ->3221.289|197568 ->197470|
+| Large,1 |4648.210 ->4695.703|4448.980 ->4494.008|679594 ->679170|
+| Small,4 |1359.960 ->1349.380|4039.628 ->4002.670|457404 ->460904|
+| Large,4 |2418.823 ->2456.795|5662.378 ->5645.344|939470 ->937536|
+
+Wall changes +0.12/+1.02/-0.78/+1.57%, CPU +0.28/+1.01/-0.91/-0.30%.
+These mixed n2 observations establish neither neutrality nor a precise speedup.
+Actual outer peaks1/3 and lane ceilings1/4; canonical1173729914654460811/
+4242261087906147675, entities48240/646269 and components55014/792327 all match.
+Retained bytes are identical in each pair: small15161394/15153034 and large
+289310083/289301723 serial/parallel. Ledger storage5242880/20971520 is unchanged;
+small-parallel reserved peaks vary with phase overlap, not retained ownership.
+Editor before wall10.91/10.83s, CPU16.80/16.73s, RSS963524/898064KiB;
+after10.94/10.94s,16.85/16.85s,981016/868332KiB. Mean RSS930794 ->924674KiB
+has broad overlapping ranges and supports no memory improvement claim. No new
+adverse retained-memory signal justifies another editor-only rerun. Current
+independent parser/publicWASI61311 runs next on unchangedea1b; actual IDE follows.
+B1 ea1b independent/public portable validation completed:61311 parser build
+34.84s/80.49CPU/796580KiB, lr-analysis reference/tree/allocation/150-grammar oracle
+.22s/6028KiB PASS; checked-in Linux9653 pin/SDK34 WASI40.72s/72.41CPU/870656KiB
+PASS without private bootstrap override. Reactoreff2508fc80abe91cb581eca8fb48fed87eb00e1e20329becaa06ad56a9abff5.
+Actual IDE23197 passed26.7086166s with complete UTF8 log/timer/exit0. Both jobs
+actually drained. Source, public pin and todoe97d were rechecked unchanged.
+Receipt62295 now packages the exact source, baseline/after artifacts and resources,
+all20 profile records, current native/address/thread configurations/manifests/
+binaries and failure logs plusWASI. No next compiler history is adopted during it.
+
+This closes the narrow grammar-construction producer implementation after receipt
+packaging, not ROOT's downstream consumer or full ECS/threading acceptance.
+Incoming2252 source and changed interpreter layouts remain their own identities
+until a coherent merged rebuild. No standalone UBSan/system LLVM/libc/browser
+instrumentation claim; no universal race proof or final clean release claim.
+Evidence-only documentation introduces no runtime input/performance delta.
+No publication lease/push; fullfrontend300s failure, raw request/lexer/analysis
+storage, final clean/bootstrap/generation/hosted gates remain open.
+Receipt62295 actually drained0. B1_grammar_constructor_receipts_ea1b2141.tgz
+SHA256ca942aa754cf4789720d781031a11371504186752957873af3a335f8ce00aa0d
+contains currentea1b evidence and frozen81c26 inputs. All owned jobs have exited;
+no profile hold or watcher remains. B1 primary KinmenB compute ownership continues
+under ROOT's13:16:58 coordination grant. Evidence commit follows; source has not
+yet adopted2252 or begun the next request-storage change.
