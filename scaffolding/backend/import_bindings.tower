@@ -28,6 +28,9 @@ extern fn LLVMGetFirstGlobal(module: void*): void*;
 extern fn LLVMGetNextGlobal(global: void*): void*;
 
 extern fn LLVMGetInitializer(global: void*): void*;
+extern fn LLVMIsAConstantDataArray(value: void*): void*;
+extern fn LLVMIsConstantString(value: void*): i32;
+extern fn LLVMGetAsString(value: void*, length: usize*): u8*;
 
 extern fn LLVMGetFirstBasicBlock(function: void*): void*;
 

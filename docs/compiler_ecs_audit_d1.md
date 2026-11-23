@@ -4762,3 +4762,165 @@ runtime receipts, so those are attributed progress only. Wasm2GiB fit, joined
 reactors/generations, instrumentation and hosted release are unproved here.
 No build/test/runtime repeat; documentation-only performance profiling is
 inapplicable. Existing full-audit history and earlier acceptance scopes stand.
+
+### 2026-11-23 D1: published scoped grammar structure reuse review
+
+Independent source review of implementation
+`54f3baab74db1c792632804160d0e0c1946173bd` against parent
+`7e46f0250a790023130b05292759716eb31ce133`, frozen at merged
+`05edbfb3b9c0b7db81c69a210a7ed425ae947f91`. All nine changed Tower blobs
+are identical at implementation, B1's validated merge `75c15ee7`, and this
+freeze. The checkout was pulled to `3ad7d5f0`; later work is not adopted here.
+Read the changed methods and immediate cache/table/version/session, world,
+worker and test consumers. **No new concrete defect found in this scope.**
+This is source review, not D1 execution or authentication of B1's external logs.
+
+Paths below are relative to `scaffolding/`; Git blob IDs identify the exact
+reviewed contents, not just the last authoring commit.
+
+| Path / blob | Substantive finding |
+| --- | --- |
+| `compiler/frontend_compilation.tower` / `05b43c94dfedc463b8dbe219d0df9cb8ce248e85` | Clears the world's surplus structural index after the synchronous parsing loop, including normal failed-parse exits, before semantic checking. Module/session versions still own their tables. It neither publishes grammar globally nor changes ordered module/root attachment. |
+| `compiler/syntax_baselines.tower` / `272a5b4fe57a4633cb1aa3ac282d33872135c406` | Optional owner is a checked WorkBuffer charged to the explicit world's budget. Pinned worlds cannot construct it. Seed pointer or budget mismatch retires cache pins and the old retained seed before reset. Clear detaches the owner first, disposes pins, then frees a copied storage descriptor; baseline teardown invokes it before releasing seed/document ownership. |
+| `compiler/syntax_emission.tower` / `28144a3630c83793384f291cecdb42a2a6bf9cdd` | `emission_child` records the actual `entity_attach_result` cause before dropping the local child reference. `syntax_emit_inherit_result` propagates that cause before partial emission destruction. This preserves Capacity instead of substituting the old Memory fallback; other boolean attach callers/declaration remain. |
+| `compiler/syntax_session_next.tower` / `3ea6872cb727eac70c63ba6797270e5e06e585b4` | Install passes the owning world/seed's optional structural cache. Failed construction retains the prior version/revision and checked cause. `syntax_next` closes its recognizer/stream scope before import or declaration activation; candidate pins are released on both outcomes. Local overrides still create/install immutable revisions after the declaration boundary. |
+| `compiler/syntax_session_setup.tower` / `a8a158eaa3e1298cc6a9006f07c4d12e9c705588` | Reset uses the same explicit world/Bedrock scope, retaining module-world checks and first resource-cause latching. The seed, session grammar, source/progress and resulting version ownership stay separate; there is no ambient Foundation/Tower activation. |
+| `compiler/syntax_version_cache.tower` / `98bca71bb153461b12f94a813f424de30460baaf` | Original entry point delegates with no external cache. The new entry point retains exact full-version lookup/reset and uses the supplied cache only during a miss's synchronous construction. It stores no borrowed external cache pointer. Optional index/snapshot denial returns a usable uncached version; required table failure still returns null with its diagnostic. |
+| `tests/parser_structure_reuse.tower` / `7e94c445acc9019a752d99d82d4b0cceec59484d` | Added cases distinguish same-world independent session versions sharing LR runtime from two worlds sharing one budget but never runtime. They check seed-identity invalidation, optional metadata denial/retry, live version pins after index clear, and zero final bytes/grants. Existing capture isolation, changed terminal/precedence/mode/specialization, required Capacity, unresolved grammar, cancellation/retry and imported override/reset cases remain. |
+| `tests/bootstrap_symbols_checks.tower` / `9623d74305f48dca726696b7b29bbc1062b2fc0b` | New exact symbol is tested through the actual policy for four target spellings, with truncated/suffixed names and wrong ParserNodes/Entities units rejected. Existing negative unexpected-import cases remain; target spelling tests are not execution on those targets. Standalone exported main imports the real tool. |
+| `tools/bootstrap_symbols.tower` / `c38c315e4441338ab3425cb5fba52475c7c2db25` | Only Semantics gains exact `syntax_world_structures_clear` admission. It is a Tower-defined cross-object extern, provided by the Parser unit's parser_frontend -> frontend_world/syntax_session -> syntax_baselines closure, not newly foreign-owned runtime logic. Exact length/token matching remains; no prefix allowance. |
+
+Immediate ownership/identity trace: `parser_structure_same` compares ordered
+production owner/begin/count/precedence/associativity, symbol ranges/nonterminals,
+and ordered names. Reuse additionally requires the same world, budget, parser
+mode and specialization. The shared object owns numeric LR grammar/runtime/state
+storage; each table retains its own grammar entities, userdata, captures and
+emission/lexicon/replacement metadata. No second authoritative syntax tree is
+introduced. Seed identity resets this bounded derived index even for equivalent
+seed contents. A cache hit does not bypass the version's remaining construction.
+
+`parser_structure_publish` takes a table pin before optional cache insertion;
+failure to grow that index leaves the table usable. Eviction/clear releases only
+cache pins. `parser_table_clear_runtime` and `syntax_version_release` release the
+table's pin before its remaining grammar/source ownership. `compiler_world_bind_budget`
+forbids rebinding a populated world, so the new owner cannot silently outlive or
+switch its allocation ledger. `frontend_world_clear` rejects busy/pinned worlds,
+closes the pool, then clears syntax before other baselines; final world disposal
+refuses remaining frontend owners/views/entities. The caller must keep the budget
+alive until those releases complete.
+
+Join trace: `lr_first_work` reserves graph tickets/access, opens its input view,
+calls `compiler_kernel_dispatch_admitted_result`, then closes the view and selects
+failure in frontier order. The underlying `work_pool_batch_result` defers draining
+all admitted peers on success or partial submission failure while its descriptor
+is alive. Table construction is synchronous and clears its construction-only
+cache borrow on exit. Cache pins/refcounts remain coordinator-owned, not atomic
+general-purpose sharing. These inspected callers justify the new post-parse
+clear; they do not prove arbitrary concurrent cache mutation safe.
+
+Registration and limits: `frontend_main`'s explicit `structure-reuse` selector
+calls this provider; `tower-frontend-structure-reuse` retains timeout60 and
+`native;focused` labels. The provider also invokes `frontend_session_world_tests`.
+The new live-version check after world-index clear checks retained runtime
+pointers; the older owner test actually parses after cache/table retirement.
+Its cancellation case cancels before the first recognizer step, not mid-dispatch
+concurrency stress. Required OS allocation failure is not newly injected here.
+`tests/frontend_units_memory.tower` is byte-unchanged from the implementation's
+parent: `import_allowance = 67108864` still requires the exact Capacity diagnostic,
+no output and no cancellation. Passing that gate means correct finite-budget
+denial, not successful compilation within64MiB.
+
+Evidence attribution: [B1's grammar-cause receipt](compiler_grammar_cause_7e46f025.md)
+records the original wrong Memory cause, restored transitive attach declaration,
+wrong-cwd grammar invocation and corrected checks. It reports merged full units
+13.41wall/22.79CPU seconds/815948KiB RSS, exact small/large object/execution outputs
+15/999 and strict import checks at `75c15ee7`. Its paired parent/candidate timings
+remain at their own frozen inputs: e.g. large serial CLI .635 -> .600s and
+four-unit workers4 1.4429 -> 1.1389s. Four-worker CLI still trails serial; metadata
+retention and the 205.08 -> 213.83ms observer regression remain disclosed.
+Those external raw logs were not available for independent authentication here.
+No D1 build, test, runtime/profile or sanitizer repeat; documentation-only
+profiling is inapplicable. Final joined-source bootstrap, browser/generation,
+source-specific instrumentation and hosted adoption remain ROOT's separate gate.
+No production edits, race-proof claim, census expansion or new implementation
+assignment results from this bounded review.
+
+### 2026-11-23 D1: finite void-scalar consumer review
+
+Freeze: published `d55d1c0d8c16d0485aaaed17432f1eb1c9d9be84`, clean required
+pull, same D1 thread. Reviewed **26 predicate lines in16 compiler files** and
+immediate consumers. `interpreter_abi:75` contains two scalar comparisons on one
+line. Searched both comparison directions for `SVoid` and numeric tag3, then
+cross-checked all SVoid uses and scalar/3 occurrences in `scaffolding/compiler`
+and `scaffolding/library`. `foundation_tags:59` confirms `SVoid = 3`; no numeric3
+predicate or additional library match occurs in this scope. Constructor/tag
+assignments are not counted as comparisons. Exact search and16 blob IDs are
+retained in `build/d1_ecs/void_review_d55d1c0d/{predicates,site_blobs}.txt`.
+
+**No additional concrete void-pointer classification defect found.** ROOT's
+`backend/import_instructions.tower:bi_call` finding and L2's active repair/tests
+remain outside this audit; nothing here closes that importer gate. No producer,
+fixture or expectation changed. These are source dispositions, not new runtime
+passes, a claim about every type consumer, or proof against unrelated ABI bugs.
+
+All paths in the table are under `scaffolding/compiler/`; line numbers refer to
+the fixed commit. Each row records the actual guard or intentional classification
+and its immediate use, rather than approving a filename.
+
+| Site / method | Disposition and caller evidence |
+| --- | --- |
+| `completion.tower:896`, `completion_semantic_node` | Earlier nested `pointers == 0` guards the void test. `completion_table` offers pointer-returning functions in value-required contexts; exact expected-type/pointer filters remain independent. |
+| `completion.tower:976`, `completion_templates` | `is_void` is ANDed with zero pointer depth before excluding a resolved generic result. `completion_symbols` uses the ordinary type resolver; unknown result annotations are not guessed. |
+| `c_emitter.tower:250`, `ce_type` | Prior nonzero-pointer branch emits pointer storage and returns. `ce_abi_type`/signature/local declaration therefore never spell void-pointer results as C void. All raw pointer depths use the backend's existing byte-pointer representation. |
+| `c_emitter.tower:339`, `ce_value_kind` | KCall returns true for nonzero pointer depth before comparing scalar. `ce_body` declares a temporary and `ce_prepare` assigns the call result; true void emits only the effectful call. `ce_statement` returns the prepared operand when present. |
+| `interpreter_abi.tower:75`, `im_call_type_equal` | Exact type equality succeeds first; pointer or SFunction classification then returns compatibility only for two pointer classes of equal target width. Only remaining nonpointer/nonfunction mismatches reach either SVoid rejection. `im_function_signature` applies this to runtime indirect return and parameter types; staged serialization instead requests exact source equality. |
+| `language_components.tower:29`, `language_function_description` | `no_result` is ANDed with zero pointer depth. `language_declaration_description`/component presentation does not describe a pointer result as absent. This is UI metadata, not executable ABI policy. |
+| `semantic_definitions.tower:29`, `semantic_scalar_name` | Deliberately accepts a scalar tag, not a complete value type. `sem_type_name` and `format_type` append the retained pointer depth after choosing nominal/function/base spelling. Returning the base word void is correct. |
+| `semantic_evaluation.tower:340`, `sem_evaluation_expression_impl` | Deliberate rejection of all raw-pointer staged results OR void, after the unevaluated return. `sem_comptime`, capture and type-value callers need relocatable results; this must not become a zero-pointer-only rejection. Runtime pointer calls and unevaluated type queries are different paths. Typed zero placeholder cannot escape the failed/pending query as a successful result. |
+| `semantic_expression_lowering.tower:567`, `sem_lift_value` | SurfaceSelect's no-result branch requires scalar void AND zero pointer depth. Pointer selections use the result-producing lowering path; branches retain lazy evaluation. Called by initializer/return/statement lifting. |
+| `semantic_expression_lowering.tower:729`, `sem_lift_value` | `discarded` starts with zero pointer depth before ANDing void. After call/aggregate argument preparation, pointer values take `sem_lift_snapshot`; true void is appended for its effect without a value temporary. |
+| `semantic_expressions.tower:106`, `sem_default` | Rejects only depth-zero void; pointer default retains its type and zero bits. `sem_operand_impl` and initializer handling use this same path, including destination rules for aggregates and separate metatype rejection. |
+| `semantic_expressions.tower:701`, `sem_surface` | Tests the result after decrementing a checked nonzero pointer depth. Loading void* would produce no value and is rejected; loading void** produces void* and survives. This is intentionally a pointee check. |
+| `semantic_flow.tower:146`, `sem_flow_missing` | Nonzero pointer depth OR nonvoid scalar requires a result. Late flow failure selection also includes lowered aggregate result-parameter signatures. Pointer functions cannot silently fall through as void. |
+| `semantic_iteration.tower:179`, `sem_iteration_state` | Requires element callback to return a pointer to an actual element: exactly one pointer to void is invalid, but a void** element address points to a stored void* value. Called by body preparation and iteration-storage preparation. |
+| `semantic_iteration.tower:180`, `sem_iteration_state` | Checks the state type after validating/decrementing the protocol's single state-pointer layer. Rejects zero-sized void state, not every pointer-valued element; begin/end and next results are separately compared with exact void/bool types. |
+| `semantic_statements.tower:579`, `sem_return_source` | Zero pointer depth AND void enforces no return operand. Body-query admission and immediate `sem_return_statement` share it; void*/deeper pointer functions instead require an operand and check it against the full result type. |
+| `semantic_statements.tower:803`, `sem_function_finish` | Pointer depth OR nonvoid scalar plus fallthrough produces missing-return error. Body continuation calls it; delayed flow dependencies retain the later flow check rather than treating pointers as void. |
+| `semantic_support.tower:217`, `semantic_size` | Pointer/SUSize/SFunction width returns before aggregate, metatype and void branches. Layout/interpreter/C consumers get the selected target pointer bytes for void* and void**, zero only for true void. |
+| `semantic_type_execution.tower:247`, `sem_type_execution_pump` | Array construction rejects only zero-depth void after descriptor/target/extent checks. Pointer construction separately increments depth. The coordinator query pump preserves input record/width and performs aggregate layout waiting before interning; arrays of pointers remain legal. |
+| `semantic_types.tower:506`, `sem_type_call` | `function(Result, Parameters...)` rejects only a depth-zero void parameter. It retains the full return/parameter types in the signature. `sem_type_impl` dispatches the type call; pointer parameters and pointer returns remain legal. |
+| `semantic_types.tower:643`, `sem_array_length_value` | Rejects void elements only at depth zero. Type-call/postfix-array and declaration-query callers share the length/type validation; pointer elements keep their actual target size. |
+| `semantic_types.tower:900`, `sem_type_fields` | Rejects a true void field after ordinary type resolution; pointer fields remain. Immediate and resumable declaration checking invoke the same field producer before layout. |
+| `semantic_types.tower:1146`, `sem_declaration_type` | `step42` first requires zero pointer depth; only then evaluates void. Ordinary variables/parameters reject void while type aliases retain their separate allowance. Parameter setup and declaration pumps consume this result; inferred pointer type keeps target pointer bytes. |
+| `semantic_values.tower:329`, `sem_operand_leaf` | After `sem_call`, rejects a void call as an operand only at zero pointer depth. Direct, generic and indirect calls preserve the whole result type; pointer return operands remain usable. |
+| `semantic_values.tower:756`, `sem_builtin` | convert/bits rejects a void destination only at zero depth, alongside separate aggregate rejection. Source goes through `sem_operand`, which already rejects a void call as a value. Pointer bits casts retain width/function/float restrictions; ordinary convert still rejects pointer reinterpretation intentionally. |
+| `type_primitives.tower:35`, `type_primitive_spelling` | Scalar-constructor spelling intentionally yields `empty_type()`. `format_type` appends the complete pointer suffix; this is not a test for a valueless expression. |
+
+Cross-path checks: `sem_call` copies the direct/generic declaration's full type;
+`sem_indirect_call` copies the signature element after checking an actual
+SFunction value. Neither reduces a result to its scalar. Graph interpreter
+`ix_call` saves the registered foreign result and `ix_return` saves ordinary
+returns; the function-reference path uses the checked ABI above. Fast interpreter
+FMCheckFunction uses the same signature predicate. Staged function results use
+`interpreter_function_result(... exact=true)`, preserving nominal/source
+signature identity instead of accepting the runtime representation-cast rule.
+`semantic_type_equal` compares depth, scalar and nominal record (or structural
+function signature), plus target width for pointers/functions/usize.
+
+Formatter base spelling keeps nominal records and function signatures separate,
+then emits all pointer stars; scalar aliases do not substitute record-bearing
+types. C output is a distinct supported subset: it explicitly rejects function
+values/indirect calls, rather than silently accepting or dropping their results.
+Its generated `sizeof(void*)` check enforces the requested pointer width.
+The byte-pointer C representation does not claim to preserve Tower source
+nominality; ordinary checking precedes it. These observations do not certify
+native ABI interoperability on unexecuted targets.
+
+Contracts read: function-values runtime ABI versus exact staged relocation,
+Foundation raw memory/extern-result rules, and type-value staging constraints.
+No additional concrete supported trigger was found, so no speculative regression
+or producer handoff was invented. Existing importer failure evidence is preserved
+and remains L2/ROOT-owned. No runtime reproduction, compiler build, instrumentation
+or performance run was needed for this source-only receipt; documentation-only
+profiling is inapplicable. Final repaired importer/ joined-artifact execution
+remains a separate acceptance action, not passed by these26 dispositions.

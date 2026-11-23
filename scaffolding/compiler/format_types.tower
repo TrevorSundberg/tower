@@ -47,4 +47,7 @@ struct FormatEngine {
     substitutions: FormatSubstitution*;
     dependent_subject: void*;
     dependent_annotation: void*;
+    // Borrowed, already emitted program declarations; never an ambient type map.
+    type_scope: void*;
+    type_prefix: usize;
 }

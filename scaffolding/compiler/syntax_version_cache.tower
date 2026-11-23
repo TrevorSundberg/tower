@@ -51,6 +51,12 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
 // Returns an owning pin. A successful uncached build remains usable if either
 // slot storage or snapshot publication fails; no cache entry can lack its owner.
 export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    return syntax_version_cached_reusing(value, world, definitions, bedrock, diagnostic, null);
+}
+
+// Explicit optional scope: old callers retain their session-cache lifetime.
+export fn syntax_version_cached_reusing(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*,
+    bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*, structures: ParserStructureCache*): SyntaxVersion* {
     diagnostic.resource_error = WorkBudgetError.None;
     if diagnostic.text_storage.data != null { syntax_version_diagnostic_dispose(diagnostic); }
     diagnostic.text.length = 0;
@@ -78,7 +84,7 @@ export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, defini
         return syntax_version_retain(value.versions.data[slot]);
     }
     grammar_observe(world, GrammarPhase.Build, true, definitions.rules.length, definitions.tokens.length);
-    var version = syntax_version_build_reusing(world, definitions, bedrock, diagnostic, &value.structures);
+    var version = syntax_version_build_reusing(world, definitions, bedrock, diagnostic, structures ?? &value.structures);
     grammar_observe(world, GrammarPhase.Build, false, definitions.rules.length, definitions.tokens.length);
     if version is null {
         return null;

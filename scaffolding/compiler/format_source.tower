@@ -501,7 +501,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
 
 export fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
 comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*, match_kind: void*): void {
-    var engine: FormatEngine;
+    var engine: FormatEngine = default;
     engine.source_names = false;
     var f = &engine;
     f.result = result;

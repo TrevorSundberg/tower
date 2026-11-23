@@ -19,6 +19,10 @@ extern fn parser_structure_cache_copy(target: ParserStructureCache*, source: Par
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+extern fn syntax_world_structures(world: void*, bedrock: FrontendRevision*): ParserStructureCache*;
+extern fn syntax_world_structures_clear(world: void*): void;
+extern fn syntax_version_cached_reusing(cache: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*,
+    bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*, structures: ParserStructureCache*): SyntaxVersion*;
 
 fn structure_open(kinds: FrontendKinds*, cache: ParserStructureCache*, text: u8*, capture: u8*,
     mode: ParserReadMode, precedence: u32): ParserHostTable* {
@@ -123,25 +127,52 @@ fn structure_owner_cases(world: void*, budget: WorkBudget*): void {
 }
 
 fn structure_scope_cases(): void {
-    var world = compiler_world_create_workers(1);
-    var other = compiler_world_create_workers(1);
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Session reuse explicit budget");
+    var world: void* = null;
+    var other: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None
+        && compiler_world_create_result(1, &budget, &other) == WorkBudgetError.None, "Independent session reuse worlds");
     var bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
     var other_bedrock = syntax_world_revision(other, SyntaxSeedBaseline);
     var revision = syntax_revision_create(null, 0, null, 0);
     var replaced = syntax_revision_create(bedrock.rules.data, bedrock.rules.length, bedrock.tokens.data, bedrock.tokens.length);
     var cache: SyntaxVersionCache = default;
     var diagnostic: SyntaxVersionDiagnostic = default;
-    var first = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+    var reservation: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &reservation);
+    utility_check(syntax_world_structures(world, bedrock) == null, "Denied optional shared index publishes no owner");
+    utility_check(work_budget_release_result(&budget, &reservation) == WorkBudgetError.None, "Shared index metadata retry budget");
+    var structures = syntax_world_structures(world, bedrock);
+    utility_check(structures != null, "Shared index metadata retry succeeds");
+    var first = syntax_version_cached_reusing(&cache, world, revision, bedrock, &diagnostic, structures);
     utility_check(first != null, "Version cache initial scope");
     var same = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
     utility_check(same == first, "Unchanged full version keeps existing cache hit");
     syntax_version_release(same);
-    var changed = syntax_version_cached(&cache, world, revision, replaced, &diagnostic);
+    var second: SyntaxVersionCache = default;
+    var next = syntax_version_cached_reusing(&second, world, revision, bedrock, &diagnostic, structures);
+    utility_check(next != null && next != first
+        && bits(ParserHostTable*, next.table).runtime == bits(ParserHostTable*, first.table).runtime,
+        "Independent sessions reuse only immutable LR structure in their owning world");
+    syntax_version_cache_dispose(&second);
+    syntax_version_release(next);
+    var changed = syntax_version_cached_reusing(&cache, world, revision, replaced, &diagnostic,
+        syntax_world_structures(world, replaced));
     utility_check(changed != null && changed != first && cache.bedrock == replaced,
         "Different Bedrock revision invalidates whole-version and structural scope");
-    var foreign = syntax_version_cached(&cache, other, revision, other_bedrock, &diagnostic);
+    utility_check(bits(ParserHostTable*, changed.table).runtime != bits(ParserHostTable*, first.table).runtime,
+        "Replacement seed cannot reuse the retired world's structural scope");
+    var foreign = syntax_version_cached_reusing(&cache, other, revision, other_bedrock, &diagnostic,
+        syntax_world_structures(other, other_bedrock));
     utility_check(foreign != null && foreign != changed && cache.structures.world == other,
         "Independent world cannot reuse previous world structures");
+    utility_check(bits(ParserHostTable*, foreign.table).runtime != bits(ParserHostTable*, changed.table).runtime,
+        "Even equivalent independent worlds own separate immutable LR plans");
+    syntax_world_structures_clear(world);
+    syntax_world_structures_clear(other);
+    utility_check(bits(ParserHostTable*, first.table).runtime != null && bits(ParserHostTable*, foreign.table).runtime != null,
+        "End of parsing drops surplus index pins without invalidating live versions");
     syntax_version_cache_dispose(&cache);
     syntax_version_release(first);
     syntax_version_release(changed);
@@ -153,6 +184,8 @@ fn structure_scope_cases(): void {
     frontend_revision_release(other_bedrock);
     utility_check(frontend_world_clear(world) && compiler_world_dispose(world)
         && frontend_world_clear(other) && compiler_world_dispose(other), "Version scope owners release completely");
+    utility_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget),
+        "Session reuse releases every grant after both world owners close");
 }
 
 fn parser_structure_reuse_tests(): void {

@@ -1,0 +1,70 @@
+import tower;
+
+fn box(T: type): type { struct Item { value: T; } return Item; }
+fn forwarded(T: type): type { return box(T); }
+var failures: i32 = 0;
+var trace: u64 = 0;
+fn mark(tag: u64): void { trace = trace * 10 + tag; }
+fn start(): i32 { mark(1); return 0; }
+fn test(value: i32): bool { mark(2); return value < 3; }
+fn advance(value: i32*, width: usize): void {
+    if width != sizeof(i32) { failures++; }
+    mark(4);
+    *value += convert(i32, width / sizeof(i32));
+}
+
+// The update sees the header's i32 binding, including after continue, despite
+// same-named bindings outside the loop and inside a nested body scope.
+var i: u64 = 91;
+var sum: i32 = 0;
+for (var i: i32 = start(); test(i) && sizeof(forwarded(decltype(i))) == sizeof(i32);
+     advance(&i, comptime(sizeof(forwarded(decltype(i)))))) {
+    mark(3);
+    { var i: u16 = 99; if i != 99 { failures++; } }
+    if i == 1 { continue; }
+    sum += i;
+}
+var module_trace = trace;
+if i != 91 || sum != 2 || module_trace != 12342342342 { failures++; }
+
+// An ordinary function loop is an independent ordering reference. Its already
+// prepared body operands must keep working through the same control consumer.
+fn reference(): i32 {
+    var sum: i32 = 0;
+    for (var i: i32 = start(); test(i); advance(&i, sizeof(i32))) {
+        mark(3);
+        if i == 1 { continue; }
+        sum += i;
+    }
+    return sum;
+}
+trace = 0;
+if reference() != sum || trace != module_trace { failures++; }
+trace = 0;
+for (var stopped: i32 = start(); test(stopped) && sizeof(forwarded(i32)) == sizeof(i32);
+     advance(&stopped, sizeof(forwarded(decltype(stopped))))) { break; }
+if trace != 12 { failures++; }
+
+var mutable: i32 = 9;
+fn allowed(): bool { if false { return mutable == 0; } return true; }
+var checks: i32 = 0;
+fn while_test(value: i32): bool { checks++; return value < 3; }
+var count: i32 = 0;
+var while_sum: i32 = 0;
+while while_test(count) && sizeof(forwarded(i32)) == sizeof(i32) && comptime(allowed()) {
+    count++;
+    if count == 2 { continue; }
+    while_sum += count;
+}
+mutable++;
+if count != 3 || checks != 4 || while_sum != 4 { failures++; }
+while default { failures++; break; }
+for (; default;) { failures++; break; }
+
+var pointer_width_checks: i32 = 0;
+for (var address: usize = 0; address < 1 && sizeof(forwarded(decltype(address))) == sizeof(usize)
+     && type_value(forwarded(decltype(address))) == type_value(box(decltype(address))); address++) {
+    pointer_width_checks++;
+}
+if pointer_width_checks != 1 { failures++; }
+print(failures);

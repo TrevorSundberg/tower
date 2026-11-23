@@ -21,6 +21,7 @@ extern fn entity_create_related_result(node: void*, error: WorkBudgetError*): vo
 extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 extern fn entity_create_related(node: void*): void*;
 
+extern fn entity_attach_result(child: void*, parent: void*, name: u8*): WorkBudgetError;
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 
 struct SyntaxEmissionEntry {
@@ -379,9 +380,12 @@ fn emission_child(value: SyntaxEmission*, parent: void*, kind: void*, payload: u
         return null;
     }
     node_payload_init(payload, data);
-    var ok = entity_attach(node, parent, null);
+    error = entity_attach_result(node, parent, null);
     entity_release(node);
-    if !ok {
+    if error != WorkBudgetError.None {
+        // The boolean wrapper loses Capacity and leaves the allocation fallback
+        // as Memory. Preserve the checked producer's first cause before cleanup.
+        value.resource_error = error;
         value.failed = true;
         return null;
     }
