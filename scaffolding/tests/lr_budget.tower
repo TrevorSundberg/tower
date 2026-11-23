@@ -19,8 +19,6 @@ extern fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool;
 extern fn lr_first_work_trial(root: void*, mode: usize): bool;
 extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
     symbols: LRSymbol*, length: usize, names: usize): bool;
-extern fn lr_runtime_create_owned(states: void*, budget: WorkBudget*): void*;
-extern fn lr_runtime_create_work(states: void*, anchor: void*, count: usize): void*;
 
 // Use a measured retained lower bound to force denial inside runtime creation,
 // including worker-produced rows. Joined failure must restore the original
@@ -44,8 +42,10 @@ fn lr_runtime_memory_budget(root: void*, budget: WorkBudget*): bool {
     if !lr_states_lalr(states, false) { return false; }
     var before: WorkBudgetSnapshot = default;
     if !work_budget_snapshot(budget, &before) { return false; }
-    var value = lr_runtime_create_owned(states, budget);
-    if value == null { return false; }
+    var error = WorkBudgetError.None;
+    if lr_runtime_create_owned_result(null, budget, &error) != null || error != WorkBudgetError.Invalid { return false; }
+    var value = lr_runtime_create_owned_result(states, budget, &error);
+    if value == null || error != WorkBudgetError.None { return false; }
     var retained: WorkBudgetSnapshot = default;
     var measured = work_budget_snapshot(budget, &retained);
     lr_runtime_destroy(value);
@@ -61,16 +61,20 @@ fn lr_runtime_memory_budget(root: void*, budget: WorkBudget*): bool {
     }
     var width: usize = 2;
     if width > lr_states_count(states) { width = lr_states_count(states); }
-    value = lr_runtime_create_work(states, root, width);
-    var denied = value == null;
+    value = lr_runtime_create_owned_result(states, budget, &error);
+    var denied = value == null && error == WorkBudgetError.Capacity;
+    lr_runtime_destroy(value);
+    if !denied { return false; }
+    value = lr_runtime_create_work_result(states, root, width, &error);
+    denied = value == null && error == WorkBudgetError.Capacity;
     lr_runtime_destroy(value);
     var after: WorkBudgetSnapshot = default;
     if !denied || !work_budget_snapshot(budget, &after)
         || after.used_bytes != before.used_bytes + competing.bytes
         || after.used_lanes != before.used_lanes || after.live != before.live + 1 { return false; }
     if work_budget_release_result(budget, &competing) != WorkBudgetError.None { return false; }
-    value = lr_runtime_create_work(states, root, width);
-    if value == null { return false; }
+    value = lr_runtime_create_work_result(states, root, width, &error);
+    if value == null || error != WorkBudgetError.None { return false; }
     var conflict: LRConflict = default;
     var valid = !lr_runtime_conflict(value, &conflict) && lr_runtime_row_count(value) != 0;
     lr_runtime_destroy(value);

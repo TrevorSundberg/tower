@@ -1201,6 +1201,11 @@ export fn ix_init(m: IMExecution*): void {
     }
     var root = ix_root(m);
     m.state.budget = compiler_world_work_budget(compiler_node_world(root));
+    if !im_node_cache_init(m.state) {
+        ix_fail(m, "Cannot allocate interpreter node cache", 0);
+        m.state.done = true;
+        return;
+    }
     var n = im_cached_node(m.state, root);
     var base = m.state.stack;
     var size = im_align(n.frame_size);
@@ -1738,7 +1743,7 @@ export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*
         ix_fail(&execution, "Invalid evaluation function or target", 0);
         return false;
     }
-    var definition = im_cached_node(&invocation.state, function);
+    var definition = im_node(function);
     if convert(usize, definition.type.pointer_bytes) != pointer_bytes {
         ix_fail(&execution, "Evaluation target differs from the checked function target", definition.start);
         return false;

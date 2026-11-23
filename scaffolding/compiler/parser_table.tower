@@ -218,7 +218,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     ok &&= parser_table_contexts(table, analysis, states);
     if ok {
         table.error = "Unable to allocate LR runtime tables";
-        table.runtime = lr_runtime_create_parallel(states, table.match_kind);
+        table.runtime = lr_runtime_create_parallel_result(states, table.match_kind, &table.resource_error);
         ok = table.runtime != null;
     }
     if ok {
@@ -235,7 +235,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);
     if !ok {
-        // Legacy FIRST/state/runtime constructors expose only success/failure.
+        // Legacy FIRST/state constructors expose only success/failure.
         // Preserve a precise buffer error when available; their remaining
         // construction failures have the existing memory-failure contract.
         if table.resource_error == WorkBudgetError.None { table.resource_error = WorkBudgetError.Memory; }
