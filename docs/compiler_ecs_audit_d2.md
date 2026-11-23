@@ -2917,3 +2917,31 @@ plus320B separate ledger metadata. This measures requested owner storage, not
 allocator usable size/hidden replacement peaks or process-wide retained memory.
 Native profile and exact repeat pass; finite-cap failure stays an open A2 gate.
 Final instrumentation/platform/bootstrap/browser release remains ROOT-owned.
+
+### Bounded layout extension: full fixture review (2026-11-23)
+
+Reviewed complete `scaffolding/tests/entity_locality.tower`, including preserved
+legacy functions, at base published `3bee18e2371465aa9718ca4ba5cbb2aa18cb850a`
+plus fixture SHA256
+`4d27a7c1b03fe651ccc41d1cb0a701dabccf08742b569bad871e66cb0ddaa18c`.
+This exact source identity is the D1 adoption boundary; production entities and
+types remain A2-owned and unchanged. The journal's D2 bounded layout receipt
+records exact producer/compiler/binary identities and all paired measurements.
+
+| Path | Ownership/storage/scheduling review and disposition |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` | One explicit store/ledger, normal allocator, no workers/global counters. Kinds derived from that store; stack owner/address arrays borrow its entities. Both lookup and planned column traversal read the same primary payloads. Pinned views own immutable query plans and close before structural churn. Plan columns are component pointers, not packed SoA; full pages are counted through unique live component.page references rather than incomplete free-slot links. Scratch WorkBuffer is private, unbudgeted and reported separately; no second authoritative payload/index escapes. Counts/bounds derive from arrays, page/type sizes and actual capacities; fixture density periods and warm-round count define input policy. Full-file reviewed cleanup, CLI failure, deterministic sum arithmetic, page retention, free-slot refill and stable survivor addresses. Four counterbalanced serial runs pass; raw whole-world cap and parallel access acceptance are not asserted. Legacy default snapshot experiment retained without claiming a new run. |
+| `cmake/TowerWorkTests.cmake` (one registration) | Adds existing `tower_work_fixture(entity_locality ON layout mixed direct)`, normal runtime, excluded from default build; shares dependency-aware compilation and optional measurement target. No helper/harness policy changed. |
+| `scaffolding/tests/README.md` | Documents commands, first-pass/warm distinction, mixed membership versus storage trait, count/byte scope and missing counters; no unrun gate promoted to passed. |
+
+Known sum33,550,336 full/refilled and508,096 fragmented matches both paths.
+Homogeneous32pages retain186848B while live payload shrinks65536→1024B;
+mixed50pages retain291950B while live payload shrinks102400→37888B. Refills
+restore occupancy with zero new page grants and unchanged survivor addresses.
+Measured world+plan storage680984B homogeneous,786654–808222B mixed, exceeds
+charged buffers189080/294182B; ledger metadata2560B is separate. Complete cleanup
+passes. Planned scans avoid per-owner type search; fragmented comparisons also
+avoid2016 nonmatching candidates. Warm full scans256rounds cost8.868–10.105ms
+direct versus2.072–3.326ms planned across the two populations; these small serial
+numbers do not predict compiler throughput or hardware misses. Production choice
+requires compiler workload/lifetime evidence, not a blanket dense-storage mandate.
