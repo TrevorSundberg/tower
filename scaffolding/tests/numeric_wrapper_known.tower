@@ -1,0 +1,57 @@
+import tower;
+import numeric_wrapper_module as numeric;
+import nominal_wrapper_module as types;
+
+fn check(ok: bool): void { if !ok { trap("Numeric-only nominal forwarding", 0); } }
+fn next(state: usize*): usize { *state += 1; return *state; }
+fn extent(): usize {
+    var state: usize = 0;
+    var first = next(&state);
+    var second = next(&state);
+    check(first == 1 && second == 2 && state == 2);
+    return second;
+}
+var a: types.buffer(i32, 2);
+var b: types.buffer(i32, 3);
+var direct: numeric.direct(2)* = &a;
+var forwarded: numeric.forwarded(extent())* = &a;
+var nested: numeric.nested(2)* = &b;
+var generic: numeric.generic(2)* = &a;
+a.data[1] = 42;
+b.data[2] = 7;
+check(direct == forwarded && generic == direct && nested.data[2] == 7);
+check(type_value(numeric.direct(2)) == type_value(numeric.forwarded(2)));
+check(type_value(numeric.direct(2)) != type_value(numeric.direct(3)));
+check(sizeof(numeric.bytes(sizeof(usize))) == sizeof(usize));
+// Preparing a captured type must not reorder ordinary module initialization.
+fn read_later(): usize { return later; }
+var forced: numeric.direct(later);
+var earlier: usize = read_later();
+var later: usize = 2;
+check(earlier == 0 && sizeof(decltype(forced)) == sizeof(i32) * 2);
+fn local(): bool {
+    var direct: i32 = 9;
+    var count: usize = 2;
+    var value: numeric.forwarded(count);
+    value.data[1] = direct;
+    return value.data[1] == 9;
+}
+check(local());
+// Ordinary type values and a callback retain the effectful callable path.
+var effects: i32 = 0;
+fn ordinary(count: usize): type { effects++; if count == 2 { return i32; } return u8; }
+fn ordinary_forward(count: usize): type { return ordinary(count); }
+fn runtime(count: usize): bool {
+    var callback = ordinary_forward;
+    return callback(count) == type_value(i32);
+}
+check(runtime(2) && effects == 1);
+var mutable: usize = 3;
+fn selected(take: bool): type {
+    if take { return type_value(types.buffer(i32, 2)); }
+    return array_type(i32, mutable);
+}
+var chosen: selected(true)* = &a;
+mutable++;
+check(chosen == &a);
+print(forwarded.data[1]);

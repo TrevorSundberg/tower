@@ -1,0 +1,9 @@
+import tower;
+import nominal_wrapper_module as types;
+
+var Extent: type = usize;
+fn direct(count: Extent): type { return types.buffer(i32, count); }
+fn forwarded(count: Extent): type { return direct(count); }
+fn nested(count: Extent): type { return forwarded(count + 1); }
+fn generic(count: Extent): type { return types.wrapped(i32, count); }
+fn bytes(count: Extent): type { return types.buffer(u8, count); }
