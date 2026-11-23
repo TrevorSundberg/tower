@@ -99,7 +99,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         return 0;
     }
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|dependency-units|backend|backend-overlap|backend-overlap-calibrated|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|resource-smoke|receipt-smoke|lifecycle FIRST [LAST]]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|dependency-units|backend|backend-overlap|backend-overlap-calibrated|unit-admission|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|resource-smoke|receipt-smoke|lifecycle FIRST [LAST]]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
@@ -111,6 +111,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var backend = strcmp(suite, "backend") == 0;
     var backend_overlap = strcmp(suite, "backend-overlap") == 0;
     var backend_overlap_calibrated = strcmp(suite, "backend-overlap-calibrated") == 0;
+    var admission = strcmp(suite, "unit-admission") == 0;
     var editor = strcmp(suite, "editor") == 0;
     var bodies = strcmp(suite, "bodies") == 0;
     var smoke = strcmp(suite, "body-smoke") == 0;
@@ -121,7 +122,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var queries = strcmp(suite, "query-smoke") == 0;
     var resources = strcmp(suite, "resource-smoke") == 0;
     var receipts = strcmp(suite, "receipt-smoke") == 0;
-    if !all && !lr && !units && !dependency_units && !backend && !backend_overlap && !backend_overlap_calibrated && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries && !resources && !receipts {
+    if !all && !lr && !units && !dependency_units && !backend && !backend_overlap && !backend_overlap_calibrated && !admission && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries && !resources && !receipts {
         puts("Unknown worker test suite");
         return 1;
     }
@@ -160,6 +161,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if all || backend { backend_units_tests(argv[1]); }
     if backend_overlap { backend_units_overlap_tests(argv[1]); }
     if backend_overlap_calibrated { backend_units_overlap_calibrated_tests(argv[1]); }
+    if all || admission { backend_units_admission_tests(argv[1]); }
     if all || editor { editor_units_tests(argv[1]); generic_inspection_budget_tests(argv[1]); }
     if all || bodies { body_runs_tests(argv[1]); }
     if smoke { body_runs_smoke(argv[1]); }
