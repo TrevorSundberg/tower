@@ -1,0 +1,91 @@
+import tower;
+import work_budget_shared;
+import work_thread_windows;
+import .library.work_pool;
+import .library.work_gate;
+
+extern fn GetEnvironmentVariableA(name: u8*, output: u8*, capacity: u32): u32;
+
+var WindowsGateCycles: usize = 8;
+var WindowsGateRounds: usize = 2048;
+var WindowsSignalPermits: usize = 3;
+
+struct WindowsGateJob {
+    gate: void*;
+    entered: void*;
+    release: void*;
+    counter: usize*;
+    thread: usize;
+    cancel: bool;
+}
+
+fn windows_gate_increment(payload: void*): void {
+    var job = bits(WindowsGateJob*, payload);
+    job.thread = pthread_self();
+    if job.entered != null {
+        work_signal_post(job.entered);
+        work_signal_wait(job.release);
+    }
+    if job.cancel { return; }
+    for(var round: usize = 0; round < WindowsGateRounds; round++) {
+        work_gate_enter(job.gate);
+        (*job.counter)++;
+        work_gate_leave(job.gate);
+    }
+}
+
+fn windows_gate_counter(parallel: bool, cancel: bool): void {
+    var gate = work_gate_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    if gate == null || entered == null || release == null { trap("Windows gate admission", 0); }
+    defer work_gate_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    // Accumulate permits before consumption: a binary lock cannot pass this.
+    for(var i: usize = 0; i < WindowsSignalPermits; i++) { work_signal_post(entered); }
+    for(var i: usize = 0; i < WindowsSignalPermits; i++) {
+        if !work_signal_try(entered) { trap("Windows signal lost a permit", 0); }
+    }
+    if work_signal_try(entered) { trap("Windows signal duplicated a permit", 0); }
+    var jobs: WindowsGateJob[4] = default;
+    var count = parallel ? sizeof(decltype(jobs)) / sizeof(WindowsGateJob) : convert(usize, 1);
+    var pool: WorkPool = default;
+    if !work_pool_open_kernel(&pool, count, windows_gate_increment)
+        || pool.count != count || pool.threaded != parallel { trap("Windows gate pool admission", 0); }
+    defer work_pool_close(&pool);
+    defer { for(var i: usize = 0; i < pool.running; i++) { work_signal_post(release); } }
+    var counter: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        jobs[i] = init(WindowsGateJob) {gate: gate, entered: parallel ? entered : null,
+            release: release, counter: &counter, thread: 0, cancel: false};
+        if !work_pool_submit(&pool, bits(void*, &jobs[i])) { trap("Windows gate submit", 0); }
+    }
+    if parallel {
+        for(var i: usize = 0; i < count; i++) { work_signal_wait(entered); }
+        if work_pool_receive(&pool, false) != null { trap("Windows gate overlap barrier", 0); }
+        // Cancel after every worker has borrowed its gate/job, before the
+        // counting release handoff. Join them before that owner can be freed.
+        if cancel { for(var i: usize = 0; i < count; i++) { jobs[i].cancel = true; } }
+        for(var i: usize = 0; i < count; i++) { work_signal_post(release); }
+    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    if counter != (cancel ? convert(usize, 0) : count * WindowsGateRounds) { trap("Windows gate counter conservation", 0); }
+    for(var i: usize = 0; i < count; i++) {
+        if parallel && jobs[i].thread == pthread_self() { trap("Windows gate needs native workers", 0); }
+        for(var j: usize = 0; j < i; j++) {
+            if jobs[i].thread == jobs[j].thread { trap("Windows gate workers must overlap", 0); }
+        }
+    }
+}
+
+var mode: u8[2] = default;
+var length = GetEnvironmentVariableA("TOWER_GATE_WORKERS", &mode[0], convert(u32, sizeof(decltype(mode))));
+if length != 1 || (mode[0] != 49 && mode[0] != 52) { trap("Set TOWER_GATE_WORKERS to 1 or 4", 0); }
+var parallel = mode[0] == 52;
+for(var cycle: usize = 0; cycle < WindowsGateCycles; cycle++) {
+    windows_gate_counter(parallel, false);
+    if parallel { budget_shared(); windows_gate_counter(true, true); }
+    budget_gate_reuse();
+}
+print(0);

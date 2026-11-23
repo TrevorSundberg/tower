@@ -1,0 +1,8 @@
+import tower;
+import .host.work_windows;
+
+extern fn GetCurrentThreadId(): u32;
+
+// Existing pool/budget fixtures use this opaque integer identity boundary.
+// On Windows return the actual native thread ID, not a simulated POSIX thread.
+export fn pthread_self(): usize { return convert(usize, GetCurrentThreadId()); }
