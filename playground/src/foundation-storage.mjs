@@ -33,6 +33,8 @@ function upgradeLegacyFoundation(bundled, saved, bedrock) {
     else kept.push(line);
   }
   if (!removed) return saved;
+  // This bundled version imports its grammar; overrides must follow imports.
+  const split = /^import foundation_syntax;$/m.test(bundled);
   const body = lines.slice(index).join('\n');
   if (!body.trim()) {
     // The old lexer-only module predates the unified Foundation file. Upgrade
@@ -40,10 +42,10 @@ function upgradeLegacyFoundation(bundled, saved, bedrock) {
     const edits = kept.filter(line => line.trim() !== legacyNumber).join('\n').trim();
     if (!edits) return bundled;
     const at = bundled.indexOf('\nparse ');
-    if (at < 0) return saved;
+    if (at < 0) return split ? bundled + '\n' + edits + '\n' : saved;
     return bundled.slice(0, at) + '\n' + edits + '\n' + bundled.slice(at);
   }
-  const currentHeader = normalized(bundled).split('\n').slice(0, 2).join('\n');
+  const currentHeader = split ? bundled : normalized(bundled).split('\n').slice(0, 2).join('\n');
   return currentHeader + '\n' + kept.join('\n') + '\n' + body;
 }
 
