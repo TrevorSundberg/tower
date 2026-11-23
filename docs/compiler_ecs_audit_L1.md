@@ -1,5 +1,15 @@
 # L1 execution ownership audit
 
+Current function-reference follow-up on ROOT76d297c passes its two public leaves,
+coherent native rebuild, five suites and64 paired same-installation-path samples.
+Four production paths now charge the declaration-ordinal table through the world
+budget and retain exact failure before publishing a reference. Ten new runtime
+and staged admission cases preserve prior effects, table contents and physical
+receipts, then prove terminal failure after allowance returns. Small graph CLI
+wall costs about2% in these samples; parallel unit medians vary and RSS remains
+stable. Retained bytes rise1344 per measured world. Current address/thread checks
+are still pending; this is implemented/native evidence, not release acceptance.
+
 Latest completed ownership checkpoint: source4befc5e/evidence7dc1b7d admits the
 node cache through the invocation's world budget before executable lookup.
 Native storage, core, corrected exact-phase query and remaining gates pass with
@@ -462,3 +472,35 @@ same-real-path control supersedes attribution from the earlier timing pairs. Gra
 maps, function indexes, Fast arrays and diagnostic/
 opaque owners remain open; type indexes and counted receipt consumers are
 implemented with their source-specific evidence above.
+
+### Function-reference table follow-up on ROOT76d297c
+
+`interpreter_types.tower`, `interpreter_abi.tower`, `interpreter_storage.tower`
+and the KFunctionReference handler in `interpreter.tower` now use checked
+work_vector ownership. Function ordinals and borrowed declaration identities
+remain the existing execution index. Overflow/collision rejects Invalid; actual
+allocation denial preserves its first typed result and original table, while
+the evaluator reports the invoking expression's offset. Disposal releases the
+same physical grant. Fast conversion begins before graph steps, so it has no
+live graph function table to transfer. No syntax or representation change.
+
+The existing interpreter_call_query fixture derives its growth boundary from a
+successful real table, freezes those function identities before execution, and
+tests runtime effect order separately from strict staged evaluation. The actual
+before implementation fails four admission and four sticky-failure assertions
+at32-bit width, then the harness aborts134;64-bit before cases are not reached.
+Corrected implementation passes all ten cases across both widths, exact receipt
+identity/physical-byte assertions, core/function/canonical/worker tests and full
+units/type-construction. Earlier reserved-name and strict-print fixture failures
+are preserved separately and do not count as implementation evidence.
+
+Paired64 uses one actual executable/resource path with copies outside timing,
+fixed before/after binaries and input hashes, small/large callback loops, and
+unit/body workloads at1/4 workers. All outputs and canonical hashes agree.
+Graph wall1.49->1.52/1.71->1.74s and Fastlarge1.94->1.96s retain small costs;
+four-unit wall2.10->2.18s has overlapping sample ranges and unchanged CPU median.
+All four-unit parallel runs observe four real overlapping outer callbacks.
+Body reserved width4 alone is not evidence of four concurrent body workers.
+The journal preserves complete timing/RSS/retention data and limitations.
+Current supported instrumentation, independent source review, graph maps,
+Fast arrays, diagnostics/opaque owners and integrated release gates remain open.

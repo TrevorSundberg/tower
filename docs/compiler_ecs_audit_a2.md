@@ -6,10 +6,13 @@ Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
 A2 review checkpoint `a125c03e` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
-`01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
+`01a2046f-fec2-7c71-be46-cad28f9ac147`, current resumed Codex PID 38380.
 
 The production library is `scaffolding/library`, with 25 baseline files plus
-the new `work_budget.tower` and routed `work_budget_types.tower` (27 current files). Scope also
+the new `work_budget.tower` and routed `work_budget_types.tower` (27 at that checkpoint).
+The ec8a904f census has35 current library files; later per-file receipts cover
+the added buffer/vector/arena/view modules. Retired graph/pool API experiments
+below are historical and are absent from this current census. Scope also
 includes both compiler kernel files, component kinds, entity requirements,
 world/worker policy, and the entities/shared-check units. Imported semantic
 kernels remain A1/L2 ownership; frontend units and host transports remain B2
@@ -1577,3 +1580,58 @@ and eight remain unprofitable. Retain the churn retention fix with this explicit
 synthetic scheduling tradeoff. No per-lock contention cause or universal neutral
 cost is claimed. Checked end-to-end compiler wall medians varied -2.9% to+1.2%.
 Journal records all120 follow-up runs, quiet grant, CPU/RSS and source identities.
+### 2026-11-23 A2 continued audit at ec8a904f
+
+| Path | Review, evidence and disposition |
+| --- | --- |
+| library/work_budget.tower | Re-reviewed the complete shared receipt ledger before B2 parent admission. Existing release compares live slot generation/revision/owner/lanes/bytes under the gate; copied active fields alone cannot validate borrowing. Proposed non-mutating validation extracts those checks, preserving release transaction semantics and private concurrent errors. Parent lifetime remains caller-owned; validation is not a pin. Focused draft validation underway. |
+| tests/entity_node_profile.tower | New file discovered/owned in scope: real production allocator and shared WorkPool create canonical stable nodes in private stages, then coordinator holds references, closes view, publishes ordered source IDs/children and frees all nodes. Raw check arrays carry explicit count. Eight initial flat/tree small/large 1/4-worker checks pass; four-worker tree intervals overlap. It separates node descriptor bytes from charged ledger subtotal, publication and reclamation. No new node allocator or packed payload claim; isolated baseline and supported instrumentation pending. |
+| tests/work_budget.tower | Re-read full fixture: deterministic reference admission, capacity/exhaustion, stale slot/session and optional empty/byte-only grants. Draft adds non-mutating borrowed validation including forged fields, changed revision and slot reuse; bounds now derive from actual receipt array/ledger limits. Smallest updated normal test passes; final coverage pending. |
+| tests/work_budget_shared.tower | Re-read full real four-thread handoff: immutable parent grants live through join, per-worker physical allocation/readback/free and shared synchronized ledger churn. Draft validates parent/live extra/released copy during real overlap; job-array-derived loops and named workload limits replace repeated bounds. Updated normal test passes, current sanitizer pending. Original observer is frozen separately for equivalent before/after release-path profiles. |
+| tests/work_budget_allocation.tower | Existing serial fault allocator fixture receives one focused no-allocation validation oracle. First standalone link omitted required existing host_memory/tower_work_serial providers and failed before execution; exact generated CMake link composition located, retry pending. No generic harness edit. This fixture is not concurrent instrumentation. |
+
+Merged77c3 source passed12 owned durable CTests and public/native/query/resource/
+receipt/control/editor/parser/grammar-resource checks, but required units retained
+the original B1 capacity-kind failure. ROOT76d now includes an owner repair, not
+yet adopted here during this bounded own milestone. Earlier failed binary/source
+and logs remain preserved. Complete receipt and identities are in the journal.
+
+#### Selected borrowed-grant checkpoint at ec8a904f plus A2 changes
+
+The reviewed final work_budget source is1a2453379d6274e3f4e66043f299a480654932c04686e568b1b46a72760bb9f1.
+The complete internal-entry caller search finds only this module's gated validation
+and release transactions. Public validation never returns an entry pointer or
+changes diagnostics/accounting/ownership. The receipt is immutable; the ledger
+may grow under its gate. A caller must already own an executing parent lane and
+retain its grant until nested joins/publication. Byte-only validation is not a lane.
+
+All updated receipt/reference, real four-worker parent/slot churn, serial actual
+allocation denial and derived-bound fixtures pass. Final selected candidate has
+18 fresh supported ASan/LSan/TSan executions with the production allocator/runtime,
+canonical native/query/resource/receipt and3durable CTests, plus actual wasm32
+serial validation. The final regenerated comment-only fixture matches its checked
+binary exactly; failed longer-comment provenance comparisons remain in logs.
+
+Four-variant nine-pair comparison rejected the redundant-store/repeated-lookup
+version: selected internal ledger overhead+0.49%/+1.61%, unchanged320/640B retained
+metadata. Large metadata four-worker useful speedup1.55x, eight unprofitable;
+small metadata stays faster serial. Final fixed-path32 compiler outputs/canonical/
+reparse pass with wall-0.05% to-1.03%, CPU-1.14% to+0.56%. These are scoped samples,
+not universal neutrality or race freedom. Detailed CPU/RSS/grants/retention/source
+identities and every failure are in the journal and preserved scripts/logs.
+
+New entity_node_profile.tower is fully reviewed: fixed eight canonical subtrees,
+private stages, existing batch refill, explicit shared lane grants, hold-before-view
+close, source-ordered publication, failure joins/discard, stable ordered identity
+checks and complete cleanup. Both sizes and1/4/8 workers pass paired normal runs;
+large four-worker tree passes current supported instrumentation. Its14-field Linux
+measurement separates descriptor subtotal from ledger charges and process RSS.
+Baseline four-worker creation improves but end-to-end speedup is modest; eight
+workers lose. No node-page implementation or full heap-accounting claim follows.
+
+Root's new reference-hold exhaustion finding is an OPEN ownership disposition:
+entity_retain is unchecked and stage discard depends on acquiring queued references
+before finalizers. Simply returning Exhausted cannot safely finalize unowned fields.
+Typed references_result is a separate producer prerequisite with preserved ignored
+null entries; durable failed-hold ownership still needs design and evidence. This
+supersedes any inference that the earlier stage lifetime tests cover counter limits.

@@ -36,8 +36,12 @@ fn budget_allocation_trial(): void {
     var entries = budget.entries.data;
     var generation = budget.generation;
     var buffers = tower_test_buffer_count();
+    var validation_calls = tower_test_buffer_allocations();
     var rejected = init(WorkReservation) {revision: 7, slot: 3, generation: 9, lanes: 77, bytes: 99, ..default};
     tower_test_buffer_fail_after(0);
+    utility_check(work_budget_validate_result(&budget, &receipts[0]) == WorkBudgetError.None
+        && tower_test_buffer_allocations() == validation_calls,
+        "Borrowed receipt validation allocates nothing even when allocation is denied");
     utility_check(work_budget_reserve_result(&budget, 1, 1, 1, &rejected) == WorkBudgetError.Memory,
         "Growing a full ledger reports allocation failure");
     utility_check(rejected.owner == null && !rejected.active && rejected.revision == 7

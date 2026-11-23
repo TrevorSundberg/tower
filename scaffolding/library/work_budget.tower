@@ -159,21 +159,38 @@ fn work_budget_release_result(budget: WorkBudget*, receipt: WorkReservation*): W
     return budget.error;
 }
 
-// Internal: release validation and accounting are one locked transaction.
-fn work_budget_release_locked(budget: WorkBudget*, receipt: WorkReservation*): bool {
-    if budget == null { return false; }
+// Borrow a live receipt without changing it, accounting, or serial diagnostics.
+// Keep receipt immutable and both owners alive through nested joins/publication.
+// The synchronized ledger may grow. Validation does not pin or extend lifetime.
+// Byte-only grants are valid too; an executing parent additionally needs lanes.
+fn work_budget_validate_result(budget: WorkBudget*, receipt: WorkReservation*): WorkBudgetError {
+    if budget == null { return WorkBudgetError.Invalid; }
+    if budget.gate != null { budget.enter(budget.gate); }
+    defer { if budget.gate != null { budget.leave(budget.gate); } }
+    return work_budget_entry_locked(budget, receipt) != null ? WorkBudgetError.None : WorkBudgetError.Stale;
+}
+
+// Internal: the caller owns the coordinator/gate for the complete transaction.
+// The returned entry is borrowed only within that transaction, never across growth.
+fn work_budget_entry_locked(budget: WorkBudget*, receipt: WorkReservation*): WorkBudgetEntry* {
     if !budget.initialized || receipt == null || !receipt.active || receipt.owner != budget
         || receipt.revision != budget.revision || receipt.slot == 0
         || receipt.slot > budget.entries.length {
-        budget.error = WorkBudgetError.Stale;
-        return false;
+        return null;
     }
     var entry = &budget.entries.data[receipt.slot - 1];
     if !entry.active || entry.generation != receipt.generation
         || entry.lanes != receipt.lanes || entry.bytes != receipt.bytes {
-        budget.error = WorkBudgetError.Stale;
-        return false;
+        return null;
     }
+    return entry;
+}
+
+// Internal: release validation and accounting are one locked transaction.
+fn work_budget_release_locked(budget: WorkBudget*, receipt: WorkReservation*): bool {
+    if budget == null { return false; }
+    var entry = work_budget_entry_locked(budget, receipt);
+    if entry == null { budget.error = WorkBudgetError.Stale; return false; }
     budget.used_lanes -= entry.lanes;
     budget.used_bytes -= entry.bytes;
     budget.live--;
