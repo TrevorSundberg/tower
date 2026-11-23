@@ -81786,3 +81786,15 @@ output/cancellation cleanup. Final compiler SHA256:
 Logs remain /cache/root_budget_join_a093; all owned processes drained. This
 documentation receipt changes no runtime path. Final milestone gates remain
 pending; source publication is not a browser/runtime deployment receipt.
+
+Post-commit integration:2cf4154a merged complete publishedbaf2a5a0 as728380d1,
+including ROOT executable stages, A1 lifecycle/lowering, parser admission and
+budget/pool wake changes. No owned admission hunk conflicted or changed. Because
+shared provider types changed, merged37152 rebuilt29 dependency actions in the
+same native cache:118.66wall/185.65CPU seconds/768740KiB. Full storage
+(.30/.24/98644), query-smoke(.23/.25/74696) and constructor --jobs1/4 exact0
+oracles all passed, empty stderr and final source0. All owned jobs drained before
+release. The earlier four-process comparison retains its3912f25b+batch identity;
+it is not relabeled as timing for merged scheduler/lifecycle changes. This final
+receipt is documentation only, so it requires no new runtime measurement.
+Normal main push follows; no deployment or deferred release-gate pass is claimed.
