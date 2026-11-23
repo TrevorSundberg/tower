@@ -93817,3 +93817,84 @@ runtime rerun; fixed pending entries do not deny the presence of later repairs.
 Own finite audit remains unchanged; historical handoff ledger bytes preserved
 apart from the explicit historical heading. Diff checks pass, todo unchanged;
 normal source push follows. ROOT retains final integrated acceptance.
+
+### 2026-11-23 L2: remaining exact T2 and full T3 native reconstruction acceptance
+
+Frozen published main c2c9705808051723925c37f7fd352e55e62a8a2b,
+tree3eac804e2e26f674b2367114b73a9a827613c934. Same L2 clone/main, CLI PID4676,
+Orchestral-Revng Linux x64/LLVM19, CPU4-7, one heavy process, synchronized normal
+allocator and unchanged explicit24GiB world ledger. No owned process survived
+startup. Required pull changed only documentation; every input in the accepted
+74ccfb00 final_source.sha256 still matches. Reuse the exact native CLI
+SHAe4ed3006a994f9824af6a1e04320a83bd399050647a788ff9b5d689f61644697 and source-session
+runner SHAe00aab7245bf3d02338ebf5422fc3684157477e13ba0993e5fd324c2b303a338.
+No build, production edit, new fixture/framework or cap change was needed.
+
+Retrieved B1's exact retained files from KinmenB
+`C:/Sandbox/build/codex_ecs_20261122/B1/semantic_port_bcd0e3ab/CASE/artifacts/CASE_32_canonical.tower`;
+remote SHA256 and copied lengths/hashes agree:
+- entity_tables1157063B:1c9cc8087885c10fc399dcff199c4083d5194a7227fff8c56e4974a62a8b5d6b.
+- work_graph437566B:2442e0cdddf9a16c9b580dc9194b76aaad9c70262998b29a60b06e8ad0d7a48e.
+- work_resume446684B:c52f2afb7e1323705c2a3447019f0a71b6e360d8a564eaf391a69bfcd93d4a05.
+D2's exact full canonical was available at Deck
+`/home/deck/tower_coord_ecs_20261122/D2/struct_reconstruction_f7e_578437af/full_input.tower`:
+138853B/SHA2f4602e298b100c6e93dc47798a515c118d12cf42e53da330a7faa88167c2601.
+Its registered `LLVM matches interpreter: struct values` source is the actual
+4152B scaffolding/tests/struct_values.tower, unchanged SHA2ce1c260ebe11faeb2dc7524f1e0f239208caf8afc629962b800200e7052f285.
+This is neither the small reconstruction control nor structs.test.mjs, and no
+current regenerated canonical substitutes for the retained D2 request.
+
+Serial sequence for each: execute retained original canonical; invoke existing
+backend source-session runner INPUT OUTPUT 4 1 (BackendSourceImport |
+BackendSourceUnoptimized, optimizationProfile2); independently compile/interpret
+the complete emitted Foundation at wasm32/jobs1; compare exact output to the
+original and the registered known0 newline. Each phase has the existing180s
+TERM/10s kill guard; none hits it. All four pass status0, output0 newline, empty
+stderr, successful recheck and no backend resource error. The original full
+struct Tower source also executes0 independently. No output truncation, export
+removal, handwritten emitted text, optimized substitution or skipped validation.
+
+| Exact case | Reconstructed bytes / SHA256 | Serial reconstruction wall/CPU s / peak KiB | Reconstructed execution wall/CPU s / peak KiB |
+| --- | --- | --- | --- |
+| entity_tables | 4859829 / ca4aee46ee00e2e5d12653927f65231f444b2b63e056902000d0b7eb12c8deed | 17.78/17.44 /3466012 | 24.12/24.15 /3338764 |
+| work_graph | 1444278 / dd127f7943ef8969b41a30656c571a5c35f7f54d35b7c2c42ff2ff7a4f2fb930 | 4.74/4.71 /1088180 | 28.30/28.20 /1085340 |
+| work_resume | 1628991 /65ade572a97a34b2a70a350b2279f7145f5b25b43843bbd680dfefd6bddba487 | 4.99/4.90 /1228856 | 4.54/4.57 /1210108 |
+| full struct_values | 826172 /fc16d06bb0d2fb0cebf1494617b0728c191c5b1876357c69b4e847922edd49b1 | 2.76/2.72 /651768 | 2.81/2.76 /654184 |
+
+n1 fresh processes/warm filesystem; CPU=user+system from GNU time. Original
+canonical execution costs in that order:5.09/5.02/943072;2.41/2.32/422920;
+1.17/1.14/422688;.48/.42/210120 (wall/CPU s/peakKiB). Original struct source
+.75/.61/186228. These are validation costs on different representations, not
+before/after implementation speedups. In particular work_graph's reconstructed
+execution remains materially more expensive than its original; no optimization
+or universal scaling claim is made.
+
+All source-session runs finish final_bytes=0/grants=0/lanes=0, then dispose their
+world/store and budget ledger successfully. Serial charged peaks by case are
+3133348068/940156966/1089316132/533641209B; ledger retained capacity before its
+successful final disposal335544320/83886080/83886080/41943040B respectively.
+This is explicit service ownership evidence, not an invented whole-process
+allocation census. Original guest fixtures retain their ordinary checks for
+table publication/rollback, graph tickets/dependencies/failures and continuation
+reset/order; exact output0 is the original reference contract.
+
+Only largest successful input/output entity_tables adds workers4: reconstruction
+17.27wall/21.38CPU s/3488324KiB; full execution25.51/28.93/3309588. Byte-identical
+4859829B Foundation and exact0 output; final bytes/grants/lanes0, peak charged
+3133347292B. Execution is slower than serial in this sample; worker count and CPU
+usage are not distinct-thread overlap or race-freedom proof. The earlier exact
+entity_pages1/4 acceptance, small healthy control, supported32/64 pointer/enum/
+arbitrary-byte and denial/prior-output/retry receipts remain reused on identical
+producer/provider hashes. No reason to rerun those unchanged matrices.
+
+All inputs, hashes, original/reference/emitted outputs, raw phase logs, GNU times
+and bounded OS transport scripts remain at
+`C:/Sandbox/build/codex_ecs_20261122/L2/remaining_reconstruction_c2c97058`.
+No execution failure was encountered in this native slice. Historical B1 eac and
+D2 f7 Wasm failures/timeouts remain preserved as those artifacts' evidence;
+this receipt does not run their reactors or retroactively change their outcomes.
+Native peak RSS around3.3GiB is not guest linear-memory fit. Current Wasm2GiB
+acceptance, new ROOT reactors, T9 remaining framework cases, final generations
+and hosted publication are still pending their owners. No browser/reactor,
+sanitizer/service retry, agent/context/goal or idle polling. All owned jobs drained;
+todo unchanged, no source-method changes, publication follows normally.
