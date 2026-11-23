@@ -96083,6 +96083,21 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+### 2026-11-23 B1: Foundation private-stage page slack
+
+Frozen1e428ede, native public768/LLVM19 CPU0-11/24GiB, exact ROOT972596B
+request403fdc6b and4709291B output452132b9. One four-row Foundation policy
+uses existing immutable per-kind registration; no Entity layout/ParserMatch or
+semantic method changes. Census proves sparse private-stage origin; page bytes
+513224220->235866539, peak charged2743902878->2466545197, ledger unchanged.
+All16 paired n2 serial/four large/small outputs and zero-owner checks pass;
+large serial wall10.695->10.985s (+2.7%), four9.445->9.250s; RSS~4.2% lower.
+Retain explicit memory tradeoff, not speedup: pages4.07x/live grants3.62% higher.
+Six focused storage/concurrent/Capacity-retry CTests, grammar-resource/world
+Memory/registration checks and unchanged strict entities symbol policy pass.
+[Concise receipt](compiler_foundation_pages_1e428ede.md) retains source/binary
+hashes, original transport assertion failure, raw paths and exact limits.
+No optimized/browser/generation/sanitizer or deployment claim; ROOT owns release.
 ### 2026-11-23 D1: seeded cross-unit dependency/cancellation differential
 
 At1e428ede, added one Tower fixture through existing frontend-unit/ordinary
@@ -96314,6 +96329,7 @@ No production change, so before/after profiling inapplicable; no T9/rebuild/back
 sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
 
+B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
 A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
 
 B2 child-index integration: c12c2189 preserved by complete-history merge1dcb396f
