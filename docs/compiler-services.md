@@ -385,12 +385,14 @@ changes are required.
 pointer/bool compatibility wrappers remain. A valid physical buffer larger than
 its configured allowance returns `Capacity`, while malformed/overflowing sizes
 remain `Invalid`. Flow uses its existing instance index and checked view/scratch
-admission, preserving the original receipt before dispatch. The entity census compares actual physical
-owners with charged live bytes and the strict cap fixture requires real denial.
+admission, preserving the original receipt before dispatch. The entity census
+compares actual physical owners with charged live bytes and the strict cap
+fixture requires real denial.
 Ledger backing metadata is separately reported, not charged recursively to
-itself. Client-owned allocations reachable through component pointers (including
-provenance splice vectors), foreign LLVM heaps and allocator internals are not
-automatically covered. This is an explicit ownership budget, not a process RSS
+itself. Client-owned allocations reachable through component pointers need their
+own producer receipts; the entity library cannot account for arbitrary pointers.
+Foreign LLVM heaps and allocator internals are outside this ownership budget.
+This is an explicit ownership budget, not a process RSS
 cap or a claim that all compiler allocations are charged.
 
 Metadata copying exposes per-call `WorkBudgetError` results through
@@ -403,9 +405,9 @@ pinned mutation; staged copies require a new private destination in the supplied
 stage and world. Serial same-store copies without a compiler world preserve the
 metadata-free no-op used by standalone entity cloning. Callers discard an
 incomplete destination on failure: this is
-not transactional replacement of an existing payload. Parser labels and splice
-arrays still use ordinary vectors, so their physical allocation failures report
-`Memory`; this does not claim those buffers are charged to the world budget.
+not transactional replacement of an existing payload. Provenance rule and splice
+vectors now use their producer's world-budgeted work vectors, including staged
+copy scratch; admission preserves `Capacity` versus physical allocation `Memory`.
 Staged history fields remain borrowed after queue admission. The producer uses
 `entity_stage_references_cancellable_result(stage, nodes, count, cancel, context)`
 to register stable private cancellation metadata before installing those fields.
@@ -424,8 +426,8 @@ Legacy `entity_stage_references[_result]` callers retain their existing behavior
 but without cancellation metadata discard must first acquire their ownership;
 failure leaves the stage intact and returns its exact error. The void hold/discard
 wrappers trap on error instead of wrapping counters or finalizing unowned fields.
-Production provenance uses the cancellable protocol. Its private vectors remain
-ordinary allocations, not a new claim of world-budget accounting.
+Production provenance uses the cancellable protocol and releases its charged
+private vectors through ordinary payload finalizers.
 
 Joined body, declaration/discovery, evaluation-preparation and lowering waves
 use `sem_stage_wave`. Its shared `compiler_kernel_stages_result` boundary consumes

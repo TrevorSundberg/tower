@@ -84845,8 +84845,20 @@ No traversal/workload or production layout change was made during integration.
 
 `entity_accounting_merged_final.log` exits0: the affected locality target rebuilt,
 strict cap again passed, mixed/direct layout passed exact sums/census/reuse/final
-zero, and merged query-smoke, resource-smoke and lifecycle14–16 passed at widths4/8
+zero, and merged query-smoke, resource-smoke and lifecycle14ï¿½16 passed at widths4/8
 and workers1/4. Earlier entity checks remain valid because their input closure
 was unchanged by the fixture-only follow-up. All owned jobs are drained. Original
 before/after performance evidence is retained without attributing it to incoming
 LR/backend/semantic optimizations. Broad integrated gates remain pending ROOT.
+
+Final A2 input reconciliation fetched `c20dc56a` and preserved all complete
+published merges. Accounting implementation is now `fccb9131`, layout receipt
+`66ab5683`. Incoming B1 provenance producers independently budget rule/splice
+vectors and copy scratch, so current service documentation no longer lists those
+as uncharged; arbitrary client pointers still require producer-owned receipts.
+No entity/stage production input changed in that pull. The affected LR target
+rebuilt in 25 dependency steps; merged query/resource smoke and lifecycle14â€“16
+(widths4/8, workers1/4) pass, exit0 in `entity_accounting_final_input.log`.
+Reuse unchanged entity cap/census/concurrent/layout checks from the prior merged
+receipt. Final whitespace check also passes after removing two introduced CR
+endings. All A2 jobs are drained; normal main push follows without deployment.
