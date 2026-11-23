@@ -197,7 +197,6 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
                     evaluation.error = result.error;
                     result.error = default;
                 }
-                if !c.declaration_isolated { sem_evaluation_failure(c, evaluation); }
             } else {
                 if result.error.length != 0 && sem_ok(c) {
                     sem_evaluation_fail(c, result.evaluation, result.error.data, result.error_offset);

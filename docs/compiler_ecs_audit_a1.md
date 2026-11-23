@@ -935,3 +935,64 @@ order. A focused before-failure fixture and actual D1 phase receipt are still
 needed; this paragraph is design/source evidence, not an implementation pass.
 L2's historical constructor proposal already exists with the stronger fourth
 WorkTicket* parameter; no new helper/opcode or constructor edit is needed.
+
+### A1 canonical evaluation failure frontier (2026-11-23, implementation checkpoint)
+
+Reviewed base7e4bb885 joins ROOT72a218 provider history after the receipt profile.
+No semantic ABI changed in that merge. Its ten affected native actions passed
+40.56wall/27.25user/2.53sys/429280KiB. New own fixture
+scaffolding/tests/semantic_failure_order_checks.tower compiles with the public
+predecessor. Draft compile failures (missing enum base, reserved local name,
+inferred i32 offset) remain as unit1-3 logs; unit4 is the successful object.
+
+That unchanged fixture object fails against the actual merged production
+provider (exit1, .03wall/.01CPU/50792KiB), reproducing premature diagnostics from
+later ready stages, blocked earlier continuations and isolated unmask selection.
+After the two-file production fix, all28 cases pass (.03wall/.02CPU/51276KiB).
+The fixed public semantic_evaluation leaf passes16.32wall/11.79user/.86sys/
+680972KiB; the coherent five-action native compiler/LR/execution/frontend
+refresh passes21.92/15.06/1.18/738160KiB. Before compiler SHA6b1810dd7d38899385b04b4e2d7e91b62405c28b1e9e5e891e0ac02e323b7fd6,
+after6d74458011cb0cde914086d96e21ba79e3b070b088533f1e776531aab75c7ef5.
+Matched performance, existing query/control/type and current instrumentation
+are pending at this checkpoint, not silently inherited from an older source.
+
+Full updated per-file audit (56 assigned semantic paths, plus the historical
+retired literal row retained in this document):
+- scaffolding/compiler/semantic_evaluation.tower: retain ordinary/resource
+  errors on stable world-owned producer components. A coordinator-only scan of
+  the existing evaluation_jobs owner-publication index selects failed dependency
+  receipts after joins, skipping undemanded/succeeded producers and deferring
+  behind the earliest demanded pending producer. No offset sort or added cursor,
+  scheduler, context layout or authoritative graph. Quiescent finalization uses
+  the same owner order and checks failed dependencies before inferred fallback.
+  Ready dispatch, access reservations, suspension and peer result publication
+  stay unchanged. The additional scan uses the existing hash work_find index;
+  its cost still requires the matched measurements.
+- scaffolding/compiler/semantic_evaluation_work.tower: preparation keeps its
+  error/typed receipt on the evaluation component instead of publishing it in
+  readiness order. Stages still join and publish before receipt handling. Other
+  graph/transport assertion-to-typed-failure migrations remain open.
+- scaffolding/tests/semantic_failure_order_checks.tower: full new file reviewed.
+  Real Foundation division-by-zero and bound-budget startup denial execute via
+  ordinary interpreter/CompilerWork/WorkPool. Separate Body-query gates are
+  owned by this fixture, sealed before evaluation registration and retired by
+  the joined coordinator; they never replace the scheduler/evaluator. Source
+  order83 then11 deliberately differs from numeric order. At widths4/8 and
+  workers1/4, reversed gates, separate frontiers/repeated waits, earlier success,
+  isolated selection, undemanded earlier work and resource receipts cover28
+  trials. Dispatch/entity/component counts reject replay; invocation storage,
+  world cleanup and exact zero byte/lane/live grants cover retained ownership.
+  Diagnostic observers run after joins. Budget capacity/revision are named
+  fixture inputs, available pressure derives from the actual snapshot. Current
+  sanitizer and durable D1 runner registration remain pending.
+
+ROOT's D1 phase artifact was located at the supplied parent path and verified:
+D1_resource_phase_current.tower SHA1f1f2f29334e478f47b041ce148c7a59554ad8a8e0f8ec4c9fdb2589ff38a223,
+probe_v4 patch0851e3e1fea6344958fafa70555e1a31082e6d8a695912c41a7b6a2fcea97eae.
+Source review confirms its workers observe the actual startup/growth failure
+before invocation disposal and its gate completion can reverse readiness.
+ROOT reports independent required/inferred immediate failures selecting29 while
+receipts retain11/29; isolated selects11. That is D1's receipt, not a locally
+rerun successor claim. It remains owner-controlled; no competing harness edit.
+L2 constructor request failure paths need the same owning selection discipline,
+and the complete shared-budget/transport/cancellation acceptance remains open.
