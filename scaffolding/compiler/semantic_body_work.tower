@@ -95,8 +95,18 @@ export fn sem_bodies_admitted(c: SemanticContext*): usize {
 
 // A signature can exist for an unevaluated query without demanding its body.
 fn sem_body_needed(c: SemanticContext*, subject: void*): bool {
-    return generic_origin(c.generics, subject) == null
-    || entity_component_get(subject, c.body_demands) != null;
+    if entity_component_get(subject, c.body_demands) != null { return true; }
+    if generic_origin(c.generics, subject) != null { return false; }
+    var function = sem_get(subject);
+    if function.external || function.exported || function.type.scalar != SType
+        || function.type.pointers != 0 || function.parameters.length == 0 { return true; }
+    foreach(var parameter in &function.parameters) {
+        if !semantic_integer(&sem_get(parameter).type) { return true; }
+    }
+    // A proven nominal forwarding body needs bound arguments. Known type uses
+    // own their canonical clone; runtime calls/references still demand the
+    // original body above and retain its ordinary effects and diagnostics.
+    return sem_constructor_wrapper_definition(c, subject) == null;
 }
 
 // Collect only canonical call references. Workers own the traversal scratch;
@@ -189,15 +199,20 @@ fn sem_body_prune(c: SemanticContext*): void {
         count++;
     }
     c.program.functions.length = count;
-    count = 0;
-    foreach(var subject in &c.generated) {
+    sem_body_prune_items(c, &c.generated);
+    sem_body_prune_items(c, &sem_get(c.program.root).items);
+}
+
+fn sem_body_prune_items(c: SemanticContext*, items: vector(void*)*): void {
+    var count: usize = 0;
+    foreach(var subject in items) {
         if sem_get(subject).kind == KFunction && !sem_body_needed(c, subject) {
             continue;
         }
-        c.generated.data[count] = subject;
+        items.data[count] = subject;
         count++;
     }
-    c.generated.length = count;
+    items.length = count;
 }
 
 enum SemanticBodyBlockKind: u32 {
