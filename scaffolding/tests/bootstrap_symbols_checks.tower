@@ -31,6 +31,24 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_allocate_result", "syntax_session_allocate_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_nodes_equal_result", "syntax_nodes_equal_result_extra");
+    symbol_case(BootstrapUnit.TemplateBuild, false, " U tower_trap\n", null);
+    symbol_case(BootstrapUnit.TemplateBuild, false, " U tower_trap_extra\n", "tower_trap_extra");
+    // Actual native nm consumers for the checked presentation/provenance batch.
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "syntax_expansion_trace_result", "syntax_expansion_trace_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "syntax_expansion_origin_result", "syntax_expansion_origin_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "syntax_expansion_copy_origin_result", "syntax_expansion_copy_origin_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "format_same_tree_result", "format_same_tree_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "format_syntax_description", "format_syntax_description_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "format_syntax_origin", "format_syntax_origin_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "parser_table_finish_buffer_result", "parser_table_finish_buffer_result_extra");
+    symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserFormat, "parser_table_finish_buffer_result", "parser_table_finish_buffer_result_extra");
+    symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_diagnostic_buffer_result", "syntax_session_diagnostic_buffer_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_parser_describe_into", "syntax_parser_describe_into_extra");
+    symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_parser_token_name_into", "syntax_parser_token_name_into_extra");
+    symbol_case(BootstrapUnit.ParserFormat, false, " U compiler_buffer_alignment\n", null);
+    symbol_case(BootstrapUnit.ParserFormat, false, " U compiler_buffer_alignment_extra\n", "compiler_buffer_alignment_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_stage_lease_result", "entity_stage_lease_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "parser_structure_cache_copy", "parser_structure_cache_copy_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "parser_structure_cache_dispose", "parser_structure_cache_dispose_extra");

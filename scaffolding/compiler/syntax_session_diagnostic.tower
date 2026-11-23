@@ -1,4 +1,9 @@
 import tower;
+import format_types;
+import format_api;
+import format_storage;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import format_diagnostic_types;
 import frontend_cache;
 import frontend_revision_types;
@@ -7,6 +12,7 @@ import parser_state;
 import syntax_emission;
 import syntax_emission_lexical;
 import syntax_revision;
+import syntax_reader;
 import syntax_session_types;
 import syntax_version_presentation;
 import .library.work_budget_types;
@@ -26,17 +32,42 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
 
 export fn syntax_session_diagnostic_result(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool,
     error: WorkBudgetError*): u8* {
+    // Compatibility boundary: raw host text cannot carry a WorkReservation.
+    // Compiler callers use buffer_result and transfer its receipt instead.
+    var text: WorkBuffer = default;
+    defer work_buffer_dispose(&text);
+    var previous_offset = value.error_offset;
+    var previous_insertion = value.error_insertion;
+    *error = syntax_session_diagnostic_buffer_result(value, recognizer, repairs, &text);
+    if *error != WorkBudgetError.None { return null; }
+    var size = syntax_text_length(text.data) + 1;
+    var legacy = bits(u8*, compiler_buffer_allocate(size));
+    if legacy == null {
+        value.error_offset = previous_offset;
+        value.error_insertion = previous_insertion;
+        *error = WorkBudgetError.Memory; return null;
+    }
+    copy(legacy, text.data, size);
+    return legacy;
+}
+
+extern fn compiler_buffer_allocate(bytes: usize): void*;
+
+export fn syntax_session_diagnostic_buffer_result(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool,
+    text: WorkBuffer*): WorkBudgetError {
+    if value == null || recognizer == null || text == null { return WorkBudgetError.Invalid; }
+    var error = WorkBudgetError.None;
     var diagnostic = parser_recognizer_diagnostic_result(recognizer,
-        repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value), error);
-    if diagnostic == null { return null; }
+        repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value), &error);
+    if diagnostic == null { return error; }
     defer parser_diagnostic_destroy(diagnostic);
     // Cached tables retain their original declarations. Locations follow the
     // current source revision, including edits that only move comments.
-    var definitions = syntax_revision_overlay(value.pins.bedrock,
+    var definitions = syntax_revision_overlay_result(value.pins.bedrock,
         value.pins.grammar ?. rules.data, value.pins.grammar ?. rules.length ?? 0,
-        null, 0, value.pins.version.kinds.syntax);
+        null, 0, value.pins.version.kinds.syntax, &error);
     defer frontend_revision_release(definitions);
-    if definitions == null { *error = WorkBudgetError.Memory; return null; }
+    if definitions == null { return error; }
     var emission = bits(SyntaxEmission*, value.pins.version.emission);
     var input: SyntaxDiagnosticInput = {
         source: value.source, size: value.source_length, cursor: value.cursor,
@@ -46,17 +77,29 @@ export fn syntax_session_diagnostic_result(value: SyntaxSession*, recognizer: Pa
         literals: syntax_emission_literal_ids(emission), literal_count: syntax_emission_literal_count(emission),
         productions: syntax_emission_productions(emission), production_count: syntax_emission_production_count(emission),
         repairs: repairs, complete: diagnostic.complete, at_start: diagnostic.at_start,
-        statements: syntax_revision_rule(definitions, "Statement", 9) is not null
+        statements: syntax_revision_rule(definitions, "Statement", syntax_text_length("Statement")) is not null
     };
     var output: SyntaxDiagnosticText = default;
+    format_storage_begin(&output.result, recognizer.runtime.budget);
+    defer format_dispose(&output.result);
     format_syntax_diagnostic(&input, &output);
+    if output.result.failed { return format_storage_error(&output.result); }
+    var description: FormatResult = default;
+    format_storage_begin(&description, recognizer.runtime.budget);
+    defer format_dispose(&description);
+    syntax_version_description_into(value.pins.version, definitions, output.production, output.multiple, &description);
+    if description.failed { return format_storage_error(&description); }
+    if description.text.length != 0 {
+        var f: FormatEngine = {result: &output.result, ..default};
+        format_text(&f, "\nIn rule ");
+        format_bytes(&f, &description.text);
+        format_char(&f, 46);
+    }
+    error = format_storage_finish(&output.result, text);
+    if error != WorkBudgetError.None { return error; }
     if output.insertion {
         value.error_offset = diagnostic.insertion_offset;
         value.error_insertion = true;
     }
-    var description = syntax_version_description(value.pins.version, definitions, output.production, output.multiple);
-    defer compiler_buffer_free(bits(void*, description));
-    var text = syntax_diagnostic_text_finish(&output, description ?? "");
-    if text == null { *error = WorkBudgetError.Memory; }
-    return text;
+    return WorkBudgetError.None;
 }

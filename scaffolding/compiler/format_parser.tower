@@ -1,4 +1,7 @@
 import tower;
+import format_storage;
+import .library.work_vector;
+import .library.work_vector_types;
 import format_types;
 import .library.vector;
 import format_api;
@@ -36,12 +39,15 @@ fn format_parser_no_rule(): usize {
     return invalid;
 }
 
-fn format_tree_push(pending: vector(FormatTreeEntry)*, node: void*, depth: usize, member: u8*): bool {
+fn format_tree_push(result: FormatResult*, pending: work_vector(FormatTreeEntry)*, node: void*, depth: usize, member: u8*): bool {
     var needed = pending.length + 1;
     if needed == 0 {
+        format_storage_fail(result, WorkBudgetError.Invalid);
         return false;
     }
-    var ok = vector_reserve(pending, needed);
+    var error = work_vector_reserve_result(pending, result.budget, needed);
+    format_storage_fail(result, error);
+    var ok = error == WorkBudgetError.None;
     if ok {
         var entry = &pending.data[pending.length];
         entry.node = node;
@@ -67,9 +73,9 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
     if parent != null {
         member = entity_child_name(parent, entity_child_index(parent, root));
     }
-    var pending: vector(FormatTreeEntry);
-    vector_init(&pending);
-    var ok = format_tree_push(&pending, root, 0, member);
+    var pending: work_vector(FormatTreeEntry);
+    work_vector_init(&pending);
+    var ok = format_tree_push(result, &pending, root, 0, member);
     if !ok {
         result.failed = true;
     }
@@ -126,14 +132,14 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         var next_depth = depth + 1;
         while count != 0 {
             count--;
-            ok = format_tree_push(&pending, entity_child_at(node, count), next_depth, entity_child_name(node, count));
+            ok = format_tree_push(result, &pending, entity_child_at(node, count), next_depth, entity_child_name(node, count));
             if !ok {
                 result.failed = true;
                 break;
             }
         }
     }
-    vector_dispose(&pending);
+    work_vector_dispose(&pending);
 }
 
 enum ParserScalar: u32 {

@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
 import .compiler.semantic_query_api;
@@ -251,8 +252,8 @@ fn generic_pump_hold_trial(width: u32): void {
     entity_retain(previous_owner);
     origin.expansion = trace;
     entity_retain(trace_owner);
-    utility_check(vector_push(&origin.splices, trace) && vector_push(&origin.splices, null)
-        && vector_push(&origin.splices, trace), "Provenance hold aliased splice storage");
+    utility_check(work_vector_push(&origin.splices, &budget, trace) && work_vector_push(&origin.splices, &budget, null)
+        && work_vector_push(&origin.splices, &budget, trace), "Provenance hold aliased splice storage");
     foreach(var splice in &origin.splices) { if splice != null { entity_retain(trace_owner); } }
     var owner = bits(Entity*, trace_owner);
     var references = owner.references;

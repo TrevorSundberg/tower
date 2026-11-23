@@ -1,4 +1,8 @@
 import tower;
+import format_storage;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 import format_grammar;
 import format_types;
 import format;
@@ -100,10 +104,12 @@ fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
     return format_symbolic(source, `match`.start, end);
 }
 
-fn format_token_push(f: FormatEngine*, tokens: vector(FormatToken)*, start: usize, end: usize,
+fn format_token_push(f: FormatEngine*, tokens: work_vector(FormatToken)*, start: usize, end: usize,
 comment: bool, pointer: bool, unary: bool, call: bool): void {
     var needed = tokens.length + 1;
-    if vector_reserve(tokens, needed) {
+    var error = needed == 0 ? WorkBudgetError.Invalid : work_vector_reserve_result(tokens, f.result.budget, needed);
+    format_storage_fail(f.result, error);
+    if !f.result.failed {
         var t = &tokens.data[tokens.length];
         t.start = start;
         t.end = end;
@@ -119,7 +125,7 @@ comment: bool, pointer: bool, unary: bool, call: bool): void {
     }
 }
 
-fn format_tokens(f: FormatEngine*, entity: void*, source: u8*, tokens: vector(FormatToken)*,
+fn format_tokens(f: FormatEngine*, entity: void*, source: u8*, tokens: work_vector(FormatToken)*,
 pointer: bool, unary: bool, call: bool): void {
     var `match` = format_match(f, entity);
     if `match` == null {
@@ -226,7 +232,7 @@ fn format_token_swap(a: FormatToken*, b: FormatToken*): void {
     copy(b, &temporary, sizeof(FormatToken));
 }
 
-fn format_sift(tokens: vector(FormatToken)*, root: usize, end: usize): void {
+fn format_sift(tokens: work_vector(FormatToken)*, root: usize, end: usize): void {
     loop {
         var child = root *2;
         child++;
@@ -247,7 +253,7 @@ fn format_sift(tokens: vector(FormatToken)*, root: usize, end: usize): void {
     }
 }
 
-fn format_sort(tokens: vector(FormatToken)*): void {
+fn format_sort(tokens: work_vector(FormatToken)*): void {
     // Parser leaves are already ordered in the usual no-comment case.
     var next: usize = 1;
     loop {
@@ -299,8 +305,8 @@ fn format_token_is(source: u8*, entry: FormatToken*, text: u8*): bool {
 
 fn format_source_statement(f: FormatEngine*, entity: void*, source: u8*, from: usize, end: usize,
 comments: FormatComment*, comment_count: usize, ordered: bool): void {
-    var tokens: vector(FormatToken);
-    vector_init(&tokens);
+    var tokens: work_vector(FormatToken);
+    work_vector_init(&tokens);
     format_tokens(f, entity, source, &tokens, false, false, false);
     var i: usize = 0;
     if ordered {
@@ -490,7 +496,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         i++;
     }
     format_newline(f, false);
-    vector_dispose(&tokens);
+    work_vector_dispose(&tokens);
 }
 
 export fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,

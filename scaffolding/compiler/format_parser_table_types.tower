@@ -2,6 +2,7 @@ import format_types;
 import tower;
 import .library.vector;
 import parser_table_types;
+import .library.work_vector_types;
 
 enum ParserFormatKind: u32 {
     Scalar, Range, Item, Rule, Grammar, State, Tables, Edge, Conflict,
@@ -29,9 +30,10 @@ struct ParserFormatFrame {
 }
 
 struct ParserFormat {
+    storage: WorkBuffer;
     result: FormatResult;
     table: ParserHostTable*;
-    frames: vector(ParserFormatFrame);
+    frames: work_vector(ParserFormatFrame);
     need: ParserFormatNeed;
     index: usize;
     names: bool;

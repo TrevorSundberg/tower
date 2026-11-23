@@ -1,4 +1,6 @@
 import tower;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import parser_table;
 import lr_api;
 import parser_markers;
@@ -6,6 +8,7 @@ import parser_table_types;
 import format_parser_table_types;
 import .library.work_budget_types;
 
+extern fn parser_presentation_buffer_result(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize, budget: WorkBudget*, output: WorkBuffer*): WorkBudgetError;
 extern fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): u8*;
 
 extern fn parser_trace_table(table: ParserHostTable*, kind: ParserFormatKind): void;
@@ -71,18 +74,39 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
 }
 
 export fn parser_table_finish_result(table: ParserHostTable*, error: u8**, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable* {
+    var message: WorkBuffer = default;
+    defer work_buffer_dispose(&message);
+    var result = parser_table_finish_buffer_result(table, &message, specialize, resource_error);
+    if error != null {
+        *error = message.data == null ? null : parser_copy_text(message.data);
+        if message.data != null && *error == null && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; }
+    }
+    return result;
+}
+
+fn parser_copy_buffer(source: u8*, budget: WorkBudget*, output: WorkBuffer*): WorkBudgetError {
+    if source == null { return WorkBudgetError.Invalid; }
+    var length: usize = 0;
+    while source[length] != 0 { length++; }
+    var bytes = length + 1;
+    if bytes == 0 { return WorkBudgetError.Invalid; }
+    var error = work_buffer_resize(output, budget, bytes, 0);
+    if error == WorkBudgetError.None { copy(output.data, source, bytes); }
+    return error;
+}
+
+export fn parser_table_finish_buffer_result(table: ParserHostTable*, error: WorkBuffer*, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable* {
     *resource_error = table == null ? WorkBudgetError.Invalid : table.resource_error;
     var output = error != null;
-    if output {
-        *error = null;
-    }
     if table == null {
         return null;
     }
-    var message: u8* = null;
+    var message: WorkBuffer = default;
+    defer work_buffer_dispose(&message);
+    var presentation_error = WorkBudgetError.None;
     var failed = table.error != null;
     if failed {
-        message = parser_copy_text(table.error);
+        presentation_error = parser_copy_buffer(table.error, table.budget, &message);
     }
     if !failed {
         var count = lr_grammar_missing_count(table.grammar);
@@ -100,7 +124,7 @@ export fn parser_table_finish_result(table: ParserHostTable*, error: u8**, speci
                 _ => {}
             }
             if !lr_grammar_resolve(table.grammar, index, id) {
-                message = parser_presentation_text(table, ParserFormatKind.Missing, index, 0);
+                presentation_error = parser_presentation_buffer_result(table, ParserFormatKind.Missing, index, 0, table.budget, &message);
                 failed = true;
                 break;
             }
@@ -112,26 +136,26 @@ export fn parser_table_finish_result(table: ParserHostTable*, error: u8**, speci
             parser_trace_table(table, ParserFormatKind.Grammar);
         }
         if parser_table_build(table, specialize) {
-            message = parser_presentation_text(table, ParserFormatKind.Conflict, 0, 0);
-            failed = message == null;
-            failed ||= message[0] != 0;
+            presentation_error = parser_presentation_buffer_result(table, ParserFormatKind.Conflict, 0, 0, table.budget, &message);
+            failed = presentation_error != WorkBudgetError.None;
+            failed ||= message.data[0] != 0;
         } else {
-            message = parser_copy_text(table.error);
+            presentation_error = parser_copy_buffer(table.error, table.budget, &message);
             failed = true;
         }
     }
     if failed {
         *resource_error = table.resource_error;
-        if message == null && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; }
+        if *resource_error == WorkBudgetError.None { *resource_error = presentation_error; }
         if output {
-            *error = message;
+            work_buffer_move(error, &message);
         } else {
-            compiler_buffer_free(bits(void*, message));
+            work_buffer_dispose(&message);
         }
         parser_table_destroy(table);
         return null;
     }
-    compiler_buffer_free(bits(void*, message));
+    work_buffer_dispose(&message);
     if table.trace {
         parser_trace_table(table, ParserFormatKind.Tables);
     }

@@ -52,6 +52,7 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
 // slot storage or snapshot publication fails; no cache entry can lack its owner.
 export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
     diagnostic.resource_error = WorkBudgetError.None;
+    if diagnostic.text_storage.data != null { syntax_version_diagnostic_dispose(diagnostic); }
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
     if definitions is null {

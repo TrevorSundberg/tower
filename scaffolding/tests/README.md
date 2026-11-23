@@ -1574,3 +1574,21 @@ startup. These counters must not be used during real overlap; the separate nativ
 resource hashes for alternating timing pairs; requested lanes or passing oracle
 checks do not measure speedup. See the D2 LR iteration journal receipt for the
 measured optimization, rejected experiment and remaining cold frontend cost.
+
+The B1 checked provenance/presentation selector uses the production native target:
+
+```sh
+cmake --build build/native --target tower-frontend-tests --parallel 6
+(cd scaffolding && ../build/native/tower-frontend-tests . presentation-budget)
+```
+
+It covers splice denial/copy retry, cancelled staged reference ownership, first
+formatter failure, late real-session diagnostic allocation failure with unchanged
+source/insertion positions, deterministic diagnostic retry, source formatting,
+regex resource errors, and detached text after world teardown. The measured last
+required diagnostic allocation drives the late-failure case; no allocation index
+is guessed. Printed production peaks exclude deliberately exhaustive reservations.
+Every owned receipt is gone before ledger teardown. Run `parser` for immediate
+request/admission callers and `grammar-equivalence` for canonical live grammar and
+replacement coverage. These focused checks do not replace integrated sanitizers,
+bootstrap, browser or release verification.
