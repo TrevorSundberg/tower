@@ -95227,3 +95227,29 @@ D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
 remain unchanged after merge; existing evidence is reused without another run.
+
+T8 repair publication reconciliation: implementationa5ffb99d, complete-history
+merge327e98e6ca1e74e288bd9d4868e26b574bb6ab03 preserves publishedc9501c05,
+including B2 inline component index f9565c46 and every incoming owner receipt.
+Resolved the sole C-driver registration overlap by retaining the corrected
+backend_void_returns_direct and adding backend_unsigned_overflow. Both journal
+histories/README additions survive. Reviewed changed entities/entity_stage/types
+and related test registration; no mixed old/new Entity ABI. One dependency-aware
+13-action native refresh65.07wall/92.87CPU/1073852KiB rebuilt affected providers;
+merged service501ab661/CLIbcc1fccf (full hashes in merged_binaries.sha256).
+
+Merged source-worlds/recheck/storage-import plus actual counted-byte and two
+negative-oracle controls6/6 PASS3.05s; expected failures use their existing
+WILL_FAIL contract, not swallowed errors. Exact saved608636B request workers1/4
+again reconstructs952885B SHA200738b5 byte-identical to premerge and executes0
+with empty stderr. Boundary fixture32/64 also byte-identical/execution0. Every
+source session final bytes/grants/lanes0, world/ledger closes. Merged compile1/4
+wall/CPU/peakKiB3.03/2.94/531688 and2.33/2.82/540680; execution2.01/1.97/542288
+and1.80/2.08/543960. Large charged peaks414060633/414059857B reflect B2's incoming
+storage change; not attributed to the overflow repair or relabeled as Wasm fit.
+Merged source manifest verifies after drain. Earlier before/after and immutable
+Wasm identities remain fixed. Incoming browser coordinator/T4/T5/T6/T7/fullstruct
+receipts are retained with their own boundaries, not rerun/claimed here. ROOT
+still must adopt this new backend into reactors and rerun unchanged T8 first
+selector before the unstarted generic-registry case. No new reactor, broad matrix,
+sanitizer, deployment or other-owner method change. All jobs drained; normal push.
