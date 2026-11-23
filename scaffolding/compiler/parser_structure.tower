@@ -1,0 +1,117 @@
+import tower;
+import parser_table_types;
+import lr_api;
+import .library.work_buffer;
+import .library.work_vector;
+import .library.work_vector_types;
+
+extern fn compiler_node_world(node: void*): void*;
+
+fn parser_structure_release(value: ParserStructure*): void {
+    if value == null { return; }
+    value.references--;
+    if value.references != 0 { return; }
+    lr_runtime_destroy(value.runtime);
+    foreach(var & state in &value.states) { work_vector_dispose(&state.contexts); }
+    work_vector_dispose(&value.states);
+    lr_grammar_destroy(value.grammar);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
+}
+
+export fn parser_structure_cache_dispose(cache: ParserStructureCache*): void {
+    foreach(var entry in &cache.entries) { parser_structure_release(entry); }
+    work_vector_dispose(&cache.entries);
+    *cache = default;
+}
+
+// Formatting forks keep private indexes and share only frozen, pinned payloads.
+export fn parser_structure_cache_copy(target: ParserStructureCache*, source: ParserStructureCache*): bool {
+    if target == source { return true; }
+    var prepared: ParserStructureCache = {world: source.world, budget: source.budget, limit: source.limit, ..default};
+    if work_vector_reserve_result(&prepared.entries, source.budget, source.entries.length) != WorkBudgetError.None { return false; }
+    foreach(var entry in &source.entries) {
+        entry.references++;
+        prepared.entries.data[prepared.entries.length++] = entry;
+    }
+    parser_structure_cache_dispose(target);
+    *target = prepared;
+    return true;
+}
+
+// Compare every input consumed by analysis/states/LALR/runtime construction,
+// field by field (no padding/hash equivalence). Names and their order determine
+// diagnostic indexes and stable conflict resolution. Capture/source metadata is
+// deliberately not shared: each table retains its freshly emitted grammar.
+fn parser_structure_same(left: void*, right: void*): bool {
+    var rules = lr_grammar_rule_count(left);
+    var symbols = lr_grammar_symbol_count(left);
+    var names = lr_grammar_name_count(left);
+    if rules != lr_grammar_rule_count(right) || symbols != lr_grammar_symbol_count(right)
+        || names != lr_grammar_name_count(right) { return false; }
+    var a = lr_grammar_rule_data(left);
+    var b = lr_grammar_rule_data(right);
+    for(var i: usize = 0; i < rules; i++) {
+        if a[i].owner != b[i].owner || a[i].begin != b[i].begin || a[i].count != b[i].count
+            || a[i].precedence != b[i].precedence || a[i].associativity != b[i].associativity { return false; }
+    }
+    var x = lr_grammar_symbol_data(left);
+    var y = lr_grammar_symbol_data(right);
+    for(var i: usize = 0; i < symbols; i++) {
+        if x[i].nonterminal != y[i].nonterminal || x[i].first != y[i].first || x[i].last != y[i].last { return false; }
+    }
+    for(var i: usize = 0; i < names; i++) {
+        if lr_grammar_name_order(left, i) != lr_grammar_name_order(right, i) { return false; }
+        var first = lr_grammar_name(left, i);
+        var second = lr_grammar_name(right, i);
+        var at: usize = 0;
+        while first[at] == second[at] && first[at] != 0 { at++; }
+        if first[at] != second[at] { return false; }
+    }
+    return true;
+}
+
+fn parser_structure_reuse(table: ParserHostTable*, specialize: bool): bool {
+    var cache = table.reuse;
+    if cache == null || cache.world != compiler_node_world(table.match_kind)
+        || cache.budget != table.budget { return false; }
+    foreach(var entry in &cache.entries) {
+        if entry.mode != table.mode || entry.specialize != specialize
+            || !parser_structure_same(entry.grammar, table.grammar) { continue; }
+        entry.references++;
+        table.structure = entry;
+        table.runtime = entry.runtime;
+        table.states = entry.states; // read-only alias; only structure releases it
+        table.built = true;
+        table.reuse = null;
+        lr_grammar_detach(table.grammar);
+        return true;
+    }
+    return false;
+}
+
+// Optional index publication follows successful construction. Cache pressure
+// must not turn a usable table into a failure (same contract as version slots).
+fn parser_structure_publish(table: ParserHostTable*, specialize: bool): void {
+    var cache = table.reuse;
+    table.reuse = null;
+    if cache == null || cache.limit == 0 || cache.world != compiler_node_world(table.match_kind)
+        || cache.budget != table.budget { return; }
+    var conflict: LRConflict = default;
+    if lr_runtime_conflict(table.runtime, &conflict) { return; }
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, table.budget, sizeof(ParserStructure), 0) != WorkBudgetError.None { return; }
+    var entry = bits(ParserStructure*, storage.data);
+    *entry = {storage: storage, references: 1, grammar: lr_grammar_retain(table.grammar),
+        runtime: table.runtime, states: table.states, mode: table.mode, specialize: specialize};
+    table.structure = entry;
+    // Table aliases keep one pin even when the optional index cannot grow.
+    if cache.entries.length < cache.limit {
+        if work_vector_push_result(&cache.entries, cache.budget, entry) != WorkBudgetError.None { return; }
+    } else {
+        parser_structure_release(cache.entries.data[0]);
+        for(var i: usize = 1; i < cache.entries.length; i++) { cache.entries.data[i - 1] = cache.entries.data[i]; }
+        cache.entries.data[cache.entries.length - 1] = entry;
+    }
+    entry.references++;
+}

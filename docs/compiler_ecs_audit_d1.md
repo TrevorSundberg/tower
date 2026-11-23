@@ -3135,3 +3135,68 @@ context creation, rather than reaching a second failure. Its healthy ID-boundary
 oracle remains. These additions are reached by the same default storage caller;
 no D1 fixture/harness change is needed. This merged source review finds no blocker;
 L2's recorded runtime checks retain their own identities and were not rerun here.
+
+### Dependency-unit integration coverage (base53d631572)
+
+The existing `frontend_units.tower::units_trial` checks three exclusive worlds,
+forward ordinary `comptime` helpers, `decltype`/generic types, known42–44 and
+serial/worker canonical bytes; `units_failure` checks earliest unit selection.
+`body_runs.tower::body_runs_trial_output` executes the ordinary program entry and
+compares canonical output within one unit, with continuation/error-order cases.
+`evaluation_query_checks.tower` tests executed stage demand, unused producers,
+exactly-once preparation, body/declaration handoff and cycle diagnosis only at
+quiescence. `decltype_lazy_body.tower` leaves an invalid generic body dormant.
+These are complementary existing cases, not a new runtime receipt. None of these
+source cases combines imported ordinary helpers, a forward staged read and an
+untaken potential cycle across multiple concurrently compiling units.
+
+| Path | Reviewed delta, ownership and disposition |
+| --- | --- |
+| scaffolding/tests/compiler_dependency_units.tower | New combined fixture uses the existing bounded unit API and four world-private imported-file snapshots configured before dispatch. Ordinary helper calls compute a type and known values; imported generic decltype leaves an invalid body dormant, and root bodies demand a later local helper. Independent expected answers42–45 use the existing interpreter. Untaken imported self-dependency must compile; taking it in unit2 must select that cycle before unit3's missing-name error. Serial/4-worker canonical Foundation bytes and complete selected diagnostic/offset are compared. Observer slots are ordinal-private and read only after join; timestamp intersection on distinct threads asserts actual overlap without inserting a barrier. Batch closure precedes observer/source destruction. Array extents derive from data; 4worker/2GiB limits are explicit test policies. No compiler graph, scheduler, parser or interpreter is duplicated. |
+| scaffolding/tests/lr_work_main.tower | Imports the fixture and adds focused dependency-units selection, also reached by existing units/all callers. Existing CTest tower-native-units therefore owns durable registration without a new manifest/target. Requires four available native lanes and reports failure rather than silently treating unsupported overlap as passed. |
+
+The batch exercises dependency execution inside each unit and overlapping units;
+it does not establish simultaneous nested body work while all outer lanes are
+occupied, shared semantic entities across units, comprehensive cancellation or
+race freedom. Virtual imported files use the production module source API; this
+is not filesystem watcher/invalidation coverage. B2's production unit/refill
+implementation is untouched. Runtime/compiler behavior is unchanged by this
+regression; measured fixture cost is acceptance overhead, not a compiler speedup.
+Focused execution/build receipt follows in the journal. Broad instruments,
+bootstrap/browser/generation and hosted validation remain ROOT-owned and pending.
+
+The focused53d631572+D1 run passes known answers, canonical/diagnostic comparisons
+and observed four-thread/peak4 overlap, with a serial peak1 control. Whole process
+22.64wall/36.80CPU/729004KiB; query-smoke .37s/71588KiB also passes. Source hashes
+verify. The journal preserves fixture compile corrections and exact scope; no
+old native/type timeout or deferred instrument gate is relabeled as passed.
+
+Final source484c05eff integrates newer parser diagnostics and lifecycle/layout/
+lowering. The affected9-action rebuild and both focused cases pass again:
+dependency-units20.70wall/34.69CPU/772796KiB, query-smoke .30s/71800KiB, zero swaps.
+Success still observes four distinct threads/peak4, and the true-cycle variant
+keeps exact error bytes/offset/order. Identical logical import names with different
+private snapshots exercise environment isolation. Frozen source checks pass;
+fixture commit65ff524 adds no production code. Final broad/platform/release gates
+remain explicitly outside this bounded acceptance batch.
+
+Push-race integration fae0dfa adds B2's WorkBudget/WorkPool wake layout and checked
+executable admission. Both test selectors survive the caller merge. All24 affected
+build actions and the same focused dependency/query checks pass on that ABI;
+unit-admission also passes after the selector conflict. New fixture case counts
+now derive from the actual bool input array. Final dependency cost24.02wall/
+38.11CPU/870988KiB, zero swaps; actual four-thread/peak4 overlap and exact output/
+error parity remain checked. Source manifest verifies; this is bounded acceptance,
+not complete scheduler/race/release coverage or an attributed performance change.
+
+Final retry source62aa28e includes checked queued stages and constructor/evaluation
+admission. Unchanged D1 fixture/caller pass after the15-action affected rebuild:
+dependency-units20.49wall/34.65CPU/810140KiB, query-smoke .22s, unit-admission13.59s.
+All source hashes verify, stderr is empty, and zero swaps are recorded. Exact
+answers/canonical/errors and actual four-thread/peak4 overlap remain checked.
+
+Last allowed retry source84b7719 integrates the executed-stage frontier and Fast
+storage changes. Seven affected actions and the same three focused gates pass;
+dependency-units20.90wall/35.28CPU/788128KiB, zero swaps. Known answers, canonical/
+diagnostic parity and observed four-thread/peak4 overlap remain checked. Source
+hashes match; no broader Fast/platform/race acceptance is inferred.
