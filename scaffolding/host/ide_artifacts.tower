@@ -12,6 +12,7 @@ import .library.vector;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.format_types;
+import .compiler.format_storage;
 import .compiler.component_kinds;
 import .library.work_budget_types;
 
@@ -30,6 +31,7 @@ fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
     present &&= session.program.error.length == 0;
     present &&= session.program.resource.error == WorkBudgetError.None;
     if present {
+        format_storage_begin(formatted, session.machine.budget);
         format_entity(formatted, session.program.root, compiler_node_type(session.program.root, CompilerSyntax),
             null, compiler_node_type(session.program.root, CompilerParserMatch));
     }
@@ -134,7 +136,7 @@ fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
     ide_program_format(session, &formatted);
     defer format_dispose(&formatted);
     if formatted.failed {
-        ide_error("Cannot format .towerbc Foundation source");
+        ide_static_error(sem_resource_message(format_storage_error(&formatted)));
         return null;
     }
     return ide_prepare_package_text(formatted.text.data, formatted.text.length, session.program.pointer_bytes, profile);

@@ -448,12 +448,17 @@ complete replacement is admitted and survives every failed request. Encoding
 checks bounds, envelope/checksum, the Fast cache's frozen target, profile and
 encoded cache before publication. Canonical reconstruction remains the ordinary
 Foundation formatter/checker; loading verifies that graph against the cache.
+Package canonical formatting and IDE program formatting bind B1's checked
+`FormatResult` storage to the session/world ledger. A formatter denial retains
+its typed cause and leaves the caller's previous package intact, even when no
+diagnostic allocation fits.
 Package transfers include the physical budget grant. Keep its ledger/world alive
 until consumers drain and dispose the owner. The browser transport copies bytes
 before `tw_exec_bytecode_release`; failed replacement preserves the last owner.
 
 Null-ledger standalone callers remain explicitly unbounded. This contract does
-not account for all semantic/formatter presentation scratch, foreign diagnostic
+not account for untouched semantic presentation vectors, legacy unchecked
+formatter callers, foreign diagnostic
 formatting, host JSON/transport buffers, legacy IDE descriptors, allocator-private
 overhead or VM/RSS. The semantic counted-error consumer reports allocation failure
 without asserting, but its separate presentation vector remains outside this

@@ -116,6 +116,12 @@ fn execution_output_storage_tests(request: DriverRequest*): void {
         var before = fast_storage_snapshot(&budget);
         var occupied: WorkReservation = default;
         output_storage_fill(&budget, &occupied);
+        var diagnostic: work_vector(u8) = default;
+        execution_check(execution_package_encode(&anchor.program, modules, 0, &package, &diagnostic)
+            == WorkBudgetError.Capacity && package.data == saved.data && package.length == saved.length
+            && diagnostic.data == null,
+            "Canonical formatter denial preserves the old package and typed cause without diagnostic allocation");
+        work_vector_dispose(&diagnostic);
         execution_check(bytecode_encode(anchor.fast, source, strlen(source), convert(usize, width), 0, &package)
             == WorkBudgetError.Capacity && package.data == saved.data && package.length == saved.length
             && package.reservation.generation == saved.reservation.generation && bytecode_validate(package.data, package.length) == 0,

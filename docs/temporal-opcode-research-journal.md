@@ -84859,3 +84859,34 @@ comparison. Original frozen paired evidence remains valid for4bc51044.
 All owned jobs drained, git diff checks clean, todo unchanged. Normal main push
 follows this documentation receipt; ROOT sanitizer/bootstrap/browser/deployment
 gates and the historical timeout remain pending. No runtime deployment claimed.
+
+L1 checked-presentation integration: complete published B1 c20dc56 merged as
+382f6977fd71. Its FormatResult layout and checked-storage API are direct package
+producer dependencies. Package canonical formatting and IDE program formatting
+now bind that owner to the existing world/session ledger and propagate the typed
+format_storage_error. The added full-budget regression preserves the caller's
+previous package and returns Capacity without requiring diagnostic allocation.
+This supersedes the earlier blanket formatter-presentation gap for these callers;
+untouched semantic vectors, legacy unchecked formatter callers, foreign formatting,
+host JSON/transport and legacy IDE descriptors remain outside this batch.
+
+Frozen merged inputs passed one dependency-aware native target build (86.23wall/
+128.25CPU seconds/799212KiB), existing core (15.34/17.24/317988) and query-smoke
+(0.20/0.21/71168), actual exit0. Smallest shared-Wasm target passed
+69.90wall/95.08CPU/849376KiB. Existing Node21.7.3 package file passed5/5,
+zero skips,5.560wall/8.797CPU/272220160bytes peak, actualexit0. These package
+transport checks use four shared-memory worker slots; they do not establish
+browser isolation or real overlap. Original matched native1/4-worker evidence
+and residual8.0% isolated Fast-loop sample remain scoped to their original inputs.
+No new profiling sweep or sanitizer/browser/release campaign ran.
+
+Current towerc SHA256 b47489970e2c748eaec630989a88a2ccebfc4f57bfa57d54048cffe392887660;
+shared-Wasm fd2b351b68b3b541232db280c5453eb8a16a303638d41bd690b4336ae6ff9376.
+Full artifact/source hashes and exact successful logs are retained in external
+L1/logs/output_storage_presentation_merge and
+L1/logs/output_storage_wasm_package_presentation. The concise updated receipt
+is L1/output_storage_presentation_receipt.json; the earlier receipt is preserved.
+Owned jobs drained. ROOT retains final instrumentation/release/deployment and B2
+the generation identity investigation. No pin, hosted deployment or portable
+release claimed. All earlier failed logs and todo remain unchanged.
+Frozen source manifest SHA256 f2027c8598591ae68734b2844fb667e961ec9cb1761d44a4e06ab8001eb29352.

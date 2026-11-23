@@ -6,6 +6,7 @@ import component_kinds;
 import execution_session;
 import semantic_program_types;
 import format_types;
+import format_storage;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.work_budget_types;
@@ -77,13 +78,14 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
     }
     var formatted: FormatResult = default;
     defer format_dispose(&formatted);
+    format_storage_begin(&formatted, budget);
     format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax), null,
         compiler_node_type(program.root, CompilerParserMatch));
     var canonical: ExecutionSession = default;
     defer execution_session_close(&canonical);
     canonical.machine.budget = budget;
     if formatted.failed {
-        canonical.machine.storage_error = WorkBudgetError.Memory;
+        canonical.machine.storage_error = format_storage_error(&formatted);
         execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0);
     } else {
         var source: FrontendSource = { data: formatted.text.data, length: formatted.text.length };
