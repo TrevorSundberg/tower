@@ -4844,3 +4844,83 @@ profiling is inapplicable. Final joined-source bootstrap, browser/generation,
 source-specific instrumentation and hosted adoption remain ROOT's separate gate.
 No production edits, race-proof claim, census expansion or new implementation
 assignment results from this bounded review.
+
+### 2026-11-23 D1: finite void-scalar consumer review
+
+Freeze: published `d55d1c0d8c16d0485aaaed17432f1eb1c9d9be84`, clean required
+pull, same D1 thread. Reviewed **26 predicate lines in16 compiler files** and
+immediate consumers. `interpreter_abi:75` contains two scalar comparisons on one
+line. Searched both comparison directions for `SVoid` and numeric tag3, then
+cross-checked all SVoid uses and scalar/3 occurrences in `scaffolding/compiler`
+and `scaffolding/library`. `foundation_tags:59` confirms `SVoid = 3`; no numeric3
+predicate or additional library match occurs in this scope. Constructor/tag
+assignments are not counted as comparisons. Exact search and16 blob IDs are
+retained in `build/d1_ecs/void_review_d55d1c0d/{predicates,site_blobs}.txt`.
+
+**No additional concrete void-pointer classification defect found.** ROOT's
+`backend/import_instructions.tower:bi_call` finding and L2's active repair/tests
+remain outside this audit; nothing here closes that importer gate. No producer,
+fixture or expectation changed. These are source dispositions, not new runtime
+passes, a claim about every type consumer, or proof against unrelated ABI bugs.
+
+All paths in the table are under `scaffolding/compiler/`; line numbers refer to
+the fixed commit. Each row records the actual guard or intentional classification
+and its immediate use, rather than approving a filename.
+
+| Site / method | Disposition and caller evidence |
+| --- | --- |
+| `completion.tower:896`, `completion_semantic_node` | Earlier nested `pointers == 0` guards the void test. `completion_table` offers pointer-returning functions in value-required contexts; exact expected-type/pointer filters remain independent. |
+| `completion.tower:976`, `completion_templates` | `is_void` is ANDed with zero pointer depth before excluding a resolved generic result. `completion_symbols` uses the ordinary type resolver; unknown result annotations are not guessed. |
+| `c_emitter.tower:250`, `ce_type` | Prior nonzero-pointer branch emits pointer storage and returns. `ce_abi_type`/signature/local declaration therefore never spell void-pointer results as C void. All raw pointer depths use the backend's existing byte-pointer representation. |
+| `c_emitter.tower:339`, `ce_value_kind` | KCall returns true for nonzero pointer depth before comparing scalar. `ce_body` declares a temporary and `ce_prepare` assigns the call result; true void emits only the effectful call. `ce_statement` returns the prepared operand when present. |
+| `interpreter_abi.tower:75`, `im_call_type_equal` | Exact type equality succeeds first; pointer or SFunction classification then returns compatibility only for two pointer classes of equal target width. Only remaining nonpointer/nonfunction mismatches reach either SVoid rejection. `im_function_signature` applies this to runtime indirect return and parameter types; staged serialization instead requests exact source equality. |
+| `language_components.tower:29`, `language_function_description` | `no_result` is ANDed with zero pointer depth. `language_declaration_description`/component presentation does not describe a pointer result as absent. This is UI metadata, not executable ABI policy. |
+| `semantic_definitions.tower:29`, `semantic_scalar_name` | Deliberately accepts a scalar tag, not a complete value type. `sem_type_name` and `format_type` append the retained pointer depth after choosing nominal/function/base spelling. Returning the base word void is correct. |
+| `semantic_evaluation.tower:340`, `sem_evaluation_expression_impl` | Deliberate rejection of all raw-pointer staged results OR void, after the unevaluated return. `sem_comptime`, capture and type-value callers need relocatable results; this must not become a zero-pointer-only rejection. Runtime pointer calls and unevaluated type queries are different paths. Typed zero placeholder cannot escape the failed/pending query as a successful result. |
+| `semantic_expression_lowering.tower:567`, `sem_lift_value` | SurfaceSelect's no-result branch requires scalar void AND zero pointer depth. Pointer selections use the result-producing lowering path; branches retain lazy evaluation. Called by initializer/return/statement lifting. |
+| `semantic_expression_lowering.tower:729`, `sem_lift_value` | `discarded` starts with zero pointer depth before ANDing void. After call/aggregate argument preparation, pointer values take `sem_lift_snapshot`; true void is appended for its effect without a value temporary. |
+| `semantic_expressions.tower:106`, `sem_default` | Rejects only depth-zero void; pointer default retains its type and zero bits. `sem_operand_impl` and initializer handling use this same path, including destination rules for aggregates and separate metatype rejection. |
+| `semantic_expressions.tower:701`, `sem_surface` | Tests the result after decrementing a checked nonzero pointer depth. Loading void* would produce no value and is rejected; loading void** produces void* and survives. This is intentionally a pointee check. |
+| `semantic_flow.tower:146`, `sem_flow_missing` | Nonzero pointer depth OR nonvoid scalar requires a result. Late flow failure selection also includes lowered aggregate result-parameter signatures. Pointer functions cannot silently fall through as void. |
+| `semantic_iteration.tower:179`, `sem_iteration_state` | Requires element callback to return a pointer to an actual element: exactly one pointer to void is invalid, but a void** element address points to a stored void* value. Called by body preparation and iteration-storage preparation. |
+| `semantic_iteration.tower:180`, `sem_iteration_state` | Checks the state type after validating/decrementing the protocol's single state-pointer layer. Rejects zero-sized void state, not every pointer-valued element; begin/end and next results are separately compared with exact void/bool types. |
+| `semantic_statements.tower:579`, `sem_return_source` | Zero pointer depth AND void enforces no return operand. Body-query admission and immediate `sem_return_statement` share it; void*/deeper pointer functions instead require an operand and check it against the full result type. |
+| `semantic_statements.tower:803`, `sem_function_finish` | Pointer depth OR nonvoid scalar plus fallthrough produces missing-return error. Body continuation calls it; delayed flow dependencies retain the later flow check rather than treating pointers as void. |
+| `semantic_support.tower:217`, `semantic_size` | Pointer/SUSize/SFunction width returns before aggregate, metatype and void branches. Layout/interpreter/C consumers get the selected target pointer bytes for void* and void**, zero only for true void. |
+| `semantic_type_execution.tower:247`, `sem_type_execution_pump` | Array construction rejects only zero-depth void after descriptor/target/extent checks. Pointer construction separately increments depth. The coordinator query pump preserves input record/width and performs aggregate layout waiting before interning; arrays of pointers remain legal. |
+| `semantic_types.tower:506`, `sem_type_call` | `function(Result, Parameters...)` rejects only a depth-zero void parameter. It retains the full return/parameter types in the signature. `sem_type_impl` dispatches the type call; pointer parameters and pointer returns remain legal. |
+| `semantic_types.tower:643`, `sem_array_length_value` | Rejects void elements only at depth zero. Type-call/postfix-array and declaration-query callers share the length/type validation; pointer elements keep their actual target size. |
+| `semantic_types.tower:900`, `sem_type_fields` | Rejects a true void field after ordinary type resolution; pointer fields remain. Immediate and resumable declaration checking invoke the same field producer before layout. |
+| `semantic_types.tower:1146`, `sem_declaration_type` | `step42` first requires zero pointer depth; only then evaluates void. Ordinary variables/parameters reject void while type aliases retain their separate allowance. Parameter setup and declaration pumps consume this result; inferred pointer type keeps target pointer bytes. |
+| `semantic_values.tower:329`, `sem_operand_leaf` | After `sem_call`, rejects a void call as an operand only at zero pointer depth. Direct, generic and indirect calls preserve the whole result type; pointer return operands remain usable. |
+| `semantic_values.tower:756`, `sem_builtin` | convert/bits rejects a void destination only at zero depth, alongside separate aggregate rejection. Source goes through `sem_operand`, which already rejects a void call as a value. Pointer bits casts retain width/function/float restrictions; ordinary convert still rejects pointer reinterpretation intentionally. |
+| `type_primitives.tower:35`, `type_primitive_spelling` | Scalar-constructor spelling intentionally yields `empty_type()`. `format_type` appends the complete pointer suffix; this is not a test for a valueless expression. |
+
+Cross-path checks: `sem_call` copies the direct/generic declaration's full type;
+`sem_indirect_call` copies the signature element after checking an actual
+SFunction value. Neither reduces a result to its scalar. Graph interpreter
+`ix_call` saves the registered foreign result and `ix_return` saves ordinary
+returns; the function-reference path uses the checked ABI above. Fast interpreter
+FMCheckFunction uses the same signature predicate. Staged function results use
+`interpreter_function_result(... exact=true)`, preserving nominal/source
+signature identity instead of accepting the runtime representation-cast rule.
+`semantic_type_equal` compares depth, scalar and nominal record (or structural
+function signature), plus target width for pointers/functions/usize.
+
+Formatter base spelling keeps nominal records and function signatures separate,
+then emits all pointer stars; scalar aliases do not substitute record-bearing
+types. C output is a distinct supported subset: it explicitly rejects function
+values/indirect calls, rather than silently accepting or dropping their results.
+Its generated `sizeof(void*)` check enforces the requested pointer width.
+The byte-pointer C representation does not claim to preserve Tower source
+nominality; ordinary checking precedes it. These observations do not certify
+native ABI interoperability on unexecuted targets.
+
+Contracts read: function-values runtime ABI versus exact staged relocation,
+Foundation raw memory/extern-result rules, and type-value staging constraints.
+No additional concrete supported trigger was found, so no speculative regression
+or producer handoff was invented. Existing importer failure evidence is preserved
+and remains L2/ROOT-owned. No runtime reproduction, compiler build, instrumentation
+or performance run was needed for this source-only receipt; documentation-only
+profiling is inapplicable. Final repaired importer/ joined-artifact execution
+remains a separate acceptance action, not passed by these26 dispositions.
