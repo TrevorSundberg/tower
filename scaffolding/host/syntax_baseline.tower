@@ -11,8 +11,8 @@ extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_pinned(world: void*): bool;
-extern fn compiler_buffer_allocate(size: usize): u8*;
-extern fn compiler_buffer_free(data: u8*): void;
+extern fn compiler_buffer_allocate(size: usize): void*;
+extern fn compiler_buffer_free(data: void*): void;
 extern fn entity_create(store: void*): void*;
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 extern fn entity_member_index(owner: void*, name: u8*): usize;
@@ -97,7 +97,7 @@ export fn syntax_host_set(world: void*, source: u8*, length: usize, foundation: 
     if !valid {
         diagnostic.fallback = foundation ? "Bootstrap must be at most 64 KiB without NUL bytes" : "Bedrock must be at most 64 KiB without NUL bytes";
     } else {
-        var text = compiler_buffer_allocate(length + 1);
+        var text = bits(u8*, compiler_buffer_allocate(length + 1));
         if text is null { diagnostic.fallback = "Unable to allocate grammar input"; }
         else {
             copy(text, source, length);
