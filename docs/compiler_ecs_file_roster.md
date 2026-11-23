@@ -1354,3 +1354,12 @@ locality/layout/ledger measurement implementations, B1 the LR/retention sources;
 D1 reviewed every complete body and the seven modified existing fixtures.
 Current total1,080 tracked /497 direct D1 paths; all have substantive review,
 without transferring owner implementation scope or claiming merged execution.
+
+### Root grammar checkpoint86e7ec98
+
+Added scaffolding/library/work_arena_api.tower (A2 implementation) and
+scaffolding/tests/work_arena_linkage.tower (A2 specific fixture/D1 full audit).
+D1 reviewed all39 linkage lines plus the complete113-line parser_table_budget
+successor and preserved prior fixture intent. Inventory1,082 total /498 direct,
+all current direct paths substantively reviewed. Runtime remains source-specific;
+new registration and latest merged validation are pending.

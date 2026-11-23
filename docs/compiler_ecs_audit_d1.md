@@ -1877,3 +1877,21 @@ not a compiler speedup or permission to skip changed-input checks. New clone
 production in6b means the old0e full42 receipt cannot serve final current release
 acceptance. Smallest public entry compilation, focused new mode and equivalent
 existing-entry measurements await the next D1 heavy slot; current change unrun.
+
+### Grammar ownership union86e7ec98
+
+Verified root bundled8a450a6, sole60741 prerequisite, and merged without conflict
+after all D1 jobs drained. Two new tracked Tower files make1,082 total; one is
+D1-direct, bringing substantive current review to498/498. New library arena API
+remains A2 implementation ownership. This source is locally unbuilt.
+
+| Path / source86e7ec98 | Review and disposition |
+| --- | --- |
+| scaffolding/tests/work_arena_linkage.tower /39lines | Separate client imports declaration-only API and host memory, requiring exactly one provider object for six exported arena functions. Exercises actual256/64alignment, initialized payloads, Capacity denial preserving output, same-budget append transfer, source retirement, two-chunk/payload/retained snapshot and finalzero grants. Uses the current documented physical header contract; no borrowed slice survives arena disposal. A2 standalone normal/ASan/TSan evidence is retained at its source. Generic reproducible target is proposed to manifest owners, not implemented or locally executed yet. |
+| scaffolding/tests/parser_table_budget.tower /113lines | Existing tests now parameterize Sequence and Closure grammar shapes. After actual setup, reserve all remaining bytes to reject the table, then admit only its descriptor to reject grammar. Observe successful retained grammar size and deny one byte below it, require null unpublished grammar/error, exact partial cleanup and retry. Existing build-growth denial, unchanged owner reuse, direct-buffer accounting lower bound and final allocator/world/ledger baseline remain. The descriptor-only baseline failed before B1's fix; B1 normal/instrumented owner evidence does not validate D1's newer clone union. |
+
+Supporting caller review confirms frontend_table uses existing rule/symbol/name
+getters without changing order or first nonnull anchor; lr_tree uses generated
+rule metadata through the same API. Grammar names/captures and buffers now share
+explicit lifetime-bound physical owners, with public APIs and one arena provider.
+These are B1/A2 production conclusions, not extra D1 primary-file audit credit.
