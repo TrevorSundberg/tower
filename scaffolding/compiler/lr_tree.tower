@@ -37,6 +37,7 @@ extern fn parse_forest_join(forest: void*, result: ParserForestSpan*, first: usi
 extern fn parse_forest_attach(forest: void*, parent: void*, first: usize): bool;
 
 extern fn parse_forest_take(forest: void*, index: usize): void*;
+extern fn parse_forest_resource_error(forest: void*): WorkBudgetError;
 
 fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
     if node == null {
@@ -113,6 +114,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
     var nodes: ParserForestSpan;
     var ok = parse_forest_leaf(forest, node, &nodes);
     if !ok {
+        parser.storage_error = parse_forest_resource_error(forest);
         if !supplied {
             entity_release(node);
         }
@@ -128,6 +130,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
         var capture = lr_grammar_capture(grammar, symbol);
         ok = parse_forest_join(forest, &joined, nodes.first, nodes.last, capture);
         if !ok {
+            parser.storage_error = parse_forest_resource_error(forest);
             return 0;
         }
         copy(&nodes, &joined, sizeof(ParserForestSpan));
@@ -164,6 +167,7 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
             var capture = lr_grammar_capture(grammar, symbol);
             var ok = parse_forest_join(forest, &children, frame.first, frame.last, capture);
             if !ok {
+                parser.storage_error = parse_forest_resource_error(forest);
                 return false;
             }
         }
@@ -190,7 +194,10 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         data.start = step.start;
         data.length = step.end - step.start;
         var ok = node_match_set_label(data, lr_grammar_name(grammar, rule.owner));
-        ok &&= parse_forest_attach(forest, node, children.first);
+        if ok {
+            ok = parse_forest_attach(forest, node, children.first);
+            if !ok { parser.storage_error = parse_forest_resource_error(forest); }
+        }
         if !ok {
             entity_release(node);
             return false;
@@ -206,6 +213,7 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         }
         ok = parse_forest_leaf(forest, node, &children);
         if !ok {
+            parser.storage_error = parse_forest_resource_error(forest);
             entity_release(node);
             return false;
         }
