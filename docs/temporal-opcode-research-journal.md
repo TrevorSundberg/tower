@@ -65746,3 +65746,82 @@ Full7path v2 patch0344e37480657067da5eaa71ba8af6f5debb22502541ab809d1dd8ad5b2edf
 changes only the inactive-receipt test expectation relative to reviewed b318.
 All L1 children drained and primary released to L2's requested bounded current
 publication-before check; performance/current instrumentation remain pending.
+
+L1 node-cache continuation: native80542 drains0 with the three previously unrun
+checks, using exactly coherent66013 binaries and equal source manifests:
+type-construction 1.44wall/1.67CPU/189160KiB, editor13.71wall/22.79CPU/860392KiB,
+calibrated backend overlap10.43wall/14.12CPU/528720KiB. Together with prior core2,
+only the old shared resource-phase query remains unresolved at this checkpoint.
+No claim of full native acceptance precedes its owner correction.
+
+Quiet53534 completes all64 processes: one warmup and three balanced before/after
+samples for each graph/Fast small/large CLI and body/unit worker1/4 configuration.
+Linux x64 WSL Orchestral-Revng, public-pin Release/O1 native build, identical
+resources at l1_resources_node_cache_eafc5c9, explicit target x86_64-unknown-linux-gnu,
+CLI --jobs1 --no-optimize and exact output5000/500000. Before is complete eaf
+compilerf705be48/profilef95419ec; after77 compilerfcc34a3/profilec84becc7. Inputs,
+resources and executable hashes stay fixed; no sibling WSL work overlaps.
+Process medians (wall seconds / CPU seconds / peak RSS KiB), excluding warmup:
+
+| Workload | Before | After |
+| --- | --- | --- |
+| Graph small | 1.54 / 1.52 / 177128 | 1.55 / 1.55 / 179884 |
+| Graph large | 1.75 / 1.73 / 179980 | 1.74 / 1.74 / 180468 |
+| Fast small | 1.62 / 1.62 / 176612 | 1.59 / 1.61 / 180436 |
+| Fast large | 1.70 / 1.70 / 180508 | 1.72 / 1.74 / 180956 |
+| Four units, one worker | 6.12 / 6.02 / 211936 | 6.08 / 6.11 / 211872 |
+| Four units, four workers | 2.17 / 8.09 / 569452 | 2.14 / 7.97 / 561308 |
+| 256 bodies, one worker | 1.61 / 1.59 / 186416 | 1.61 / 1.60 / 186384 |
+| 256 bodies, four workers | 1.38 / 1.74 / 209200 | 1.39 / 1.75 / 209132 |
+
+All32 frontend observations preserve canonical unit17697577322696030917 and
+body12683198132697182263; actual outer peak is4 for four-worker units and1 for
+bodies, whose shared budget records four reserved lanes. Retention is unchanged
+within each worker configuration: units7573877(j1)/7561557(j4), bodies1917834(j1)/
+1914754(j4). Ledger storage is5242880 per world,20971520 for four parallel units.
+Unit parallel charged peaks vary with actual overlap; they are not RSS.
+
+Costs remain visible despite similar end-to-end medians. Graph execution medians
+3.675->5.780ms small and215.889->228.263ms large; Fast small prepare1.142->2.687ms,
+execute0.734->0.706ms; Fast large prepare2.764->3.225ms, execute71.787->72.246ms.
+Small CLI RSS increases2756KiB graph/3824KiB Fast, versus488/448KiB large. Native
+object inspection shows cached-node lookup shrinks0xc2->0x55 bytes after removing
+lazy allocation, but the derived runtime mask needs additional shifts/load versus
+the predecessor's folded constant. ix_init grows0x469->0x5fb; ix_step shrinks
+0x18b5->0x16a2, Fast step remains0xad4 bytes. These facts do not establish causal
+attribution: address placement and the existing four-MiB non-strict guest buffer's
+residency may also matter. Do not claim neutral memory/performance or a speedup.
+Raw timings, actual outputs, symbol/disassembly files and freezes are retained in
+L1/logs/node_cache_profiles and node_cache_*_hot_paths_v2.log. The first inspection
+requested the unmangled private lookup name and warned it was absent; the corrected
+request uses tower.fn.im_cached_node. No compiler/test rerun was hidden by that
+read-only inspection correction.
+
+After53534 actually drains, apply D1's authoritative TEST-ONLY
+D1_phase_node_cache_77a.patch3d9608c09c429247add0a5b3be783a51ccb026be70d625f162c728180c13de7e.
+It preserves the24-case matrix, explicit cache startup error and absent owner,
+successful gated entry/cache owner before pressure, exact nested growth, typed
+source-ordered receipts and measured remaining capacity. Same16384 total and8192
+nested frame; no arbitrary cap raise or broad diagnostic OR. L1's parallel external
+proposal was not applied. D1 source review is not runtime coverage: the smallest
+fixture, coherent affected rebuild/query, and current instrumented milestone are
+still pending. New ROOT556 production remains queued so these before/after
+measurements retain exact eaf-to-node-cache attribution.
+
+Exact D1 phase67577 drains0: smallest public fixture passes, six-step affected
+rebuild passes, query-smoke passes all current width/worker/required/inferred/
+isolated startup-cache and gated nested-growth cases at the original16KiB budget.
+No weakened phase assertion or raised allowance. The source manifests before,
+after build and after query are equal. Unchanged storage3/core2/remaining3 receipts
+are retained rather than repeated solely for this shared test correction.
+
+The affected query-checks object is linked into all five native executables:
+although production sources are unchanged, their hashes change on this fixture
+relink. The64-profile observations above belong to77's pre-fixture fcc34a3/c84becc7
+binaries, not the new relink. Current allocator controls must identify the new
+executables and include matched default-policy runs; do not call the old profiles
+current-binary evidence. Planned bounded control compares default libc policy
+with MALLOC_MMAP_THRESHOLD_=131072 for small graph/Fast, the identical eaf baseline
+and new D1-relinked after, one warmup plus two balanced pairs. It tests an allocator
+placement/residency hypothesis without changing Tower production or restoring a
+hardcoded lookup mask. Its results and current instrumentation remain pending.
