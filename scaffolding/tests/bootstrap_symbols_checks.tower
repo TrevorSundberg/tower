@@ -101,8 +101,20 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U work_signal_open\n U parser_table_finish\n", null);
     symbol_case(BootstrapUnit.ParserNodes, false, " U work_unknown\n", "work_unknown");
     symbol_case(BootstrapUnit.ParserNodes, false, " U LLVMContextCreate\n", "LLVMContextCreate");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_view_open_result\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_view_open_resul\n", "entity_view_open_resul");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_view_open_result_extra\n", "entity_view_open_result_extra");
+    symbol_case(BootstrapUnit.Utf8, false, " U entity_view_open_result\n", "entity_view_open_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
+    symbol_case(BootstrapUnit.Semantics, false,
+        " U entity_stage_open_result\n U entity_stage_publish_result\n U entity_view_open_result\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U entity_stage_open_result_extra\n", "entity_stage_open_result_extra");
+    symbol_case(BootstrapUnit.Semantics, false, " U entity_stage_publish_resul\n", "entity_stage_publish_resul");
+    symbol_case(BootstrapUnit.Semantics, false, " U entity_view_open_result_extra\n", "entity_view_open_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U entity_stage_open_result\n", "entity_stage_open_result");
+    symbol_case(BootstrapUnit.Interpreter, false, " U entity_stage_publish_result\n", "entity_stage_publish_result");
+    symbol_case(BootstrapUnit.Host, false, " U entity_view_open_result\n", "entity_view_open_result");
     symbol_case(BootstrapUnit.Semantics, false, " U generic_error_clear\n", null);
     symbol_case(BootstrapUnit.ParserNodes, false, " U generic_error_clear\n", "generic_error_clear");
     var empty: BootstrapSymbol = default; var rejected: BootstrapSymbol = default;
