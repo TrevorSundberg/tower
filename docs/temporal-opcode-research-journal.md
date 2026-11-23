@@ -52031,3 +52031,54 @@ are reviewed separately, not folded into this frozen runtime claim.
 ### D2 checkpoint joined — 2026-11-23 01:10:21 UTC
 
 Merged verified D2 `1dd7d96b6e39c8865a61051199dfbf323d3966d1` into the L1/B2 integration. Reviewed overlapping conflicts and retained the newer typed failure and derived snapshot-count changes; retained D2's buffer runtime/serial-fault registrations, valid profile arguments, production measurement registrations and their documentation. All nonconflicting source and journal changes were preserved. The first staging whitespace check on the previous merge caught an extra appended journal newline; removed only that new EOF blank line, then the check passed before commit. These merge checks establish source consistency, not runtime acceptance. Remaining owner checkpoints, matched semantic failure propagation and final combined validation/publication are still pending.
+### B2 backend target buffer physical ownership
+
+BackendUnits.target previously retained a separate payload-only reservation and
+an exact manually allocated string. It now owns WorkBuffer, charging the NUL
+payload plus the real compiler allocation header before allocation, and retiring
+the buffer before releasing its grant. Removed the duplicated receipt and
+unused logical length. No LLVM allocator policy changed. Exact cap-minus-one
+rejection/exact-cap admission and output-denial cleanup tests use the independent
+four-word header oracle already shared with frontend snapshots. Streaming tests
+still require exact target/object grant release against the joined frontend
+baseline. No whole-backend-memory claim: indexes/LLVM/outer descriptors remain
+separate pending scope.
+
+Public smallest backend unit PASS4.065713470wall/4.435086CPU/334892KiB;
+fixture2.520055684/2.739519/239696. Native5-step refresh7.004912937/12.016747/407068.
+Full production backend suite PASS47.528880262/68.224662/1300792, including real
+frontend/LLVM overlap, shared caps, byte-identical objects, deterministic errors,
+cancellation and failed-output reclamation. Logs build/b2_target_buffer_{build,runtime}.log.
+
+Matched frozen production profiles use the same freshly recompiled2e4 entry
+object bd2ca02b, same resources/other compiler source, native transport/allocator,
+3 units,0/4096 bodies, workers1/4, two alternating pairs per cell. Complete before
+executable ccc9a49f1166a430a015cc9451cd05a4d379d479df26c643aa312433a394c729;
+after f97e7ca3ee430e4474dff6aff763abca350442441a1cee0fef15d8805f987d93.
+Host KinmenB Ryzen AI MAX+395, Linux Docker12CPU cpuset12-23/24GiB, LLVM19.1.1,
+public predecessor default optimized object, fresh processes/warm filesystem.
+No source/build mutation during16 samples. B1 quiet grant01:05:30.644Z, released
+01:06:54.439Z within90seconds; exact start recorded external status. Every4-lane
+sample observed3 outer workers/4 reserved lanes. Canonical hashes, entity/component
+counts and1440 emitted object bytes match each pair; target charge increases
+exactly32bytes. Timed profile excludes subsequent reference formatting/execution
+but checks independent answer42 and object envelopes. It is not native execution
+of every object. Whole-process observations are also retained in the raw logs.
+
+| Bodies | Workers | Median wall before / after s | CPU before / after s | RSS before / after KiB |
+| ---: | ---: | ---: | ---: | ---: |
+|0|1|3.221815869 /3.251369667|3.1118705 /3.1402045|199094 /199112|
+|0|4|1.167553422 /1.160563968|3.636096 /3.6485385|446096 /448072|
+|4096|1|4.386508147 /4.358968580|4.2769015 /4.246836|672342 /672066|
+|4096|4|2.066699617 /2.063391239|5.1276025 /5.1067215|915470 /913920|
+
+Two samples per variant do not establish the observed sub1% timing differences
+as regressions or improvements. Real parallel latency remains useful with higher
+CPU/RSS. Current retained small/large bytes1423829/1770879 exclude ledger metadata,
+other unadopted buffers and foreign heap. Raw16logs build/b2_target_*_*.log,
+CSV b2_target_profile_samples.csv. Initial PowerShell receipt parser assumed a
+single PSCustomObject had Count; it rejected the first valid JSON record before
+analysis. Corrected analysis collects an explicit array, then verifies all16
+records and pairs. Runtime jobs had already drained0 and quiet hold was released;
+this was an analysis-tool error, not a compiler test failure. Complete current
+compiler sanitizer/constructor/store/packed ownership milestone remains pending.
