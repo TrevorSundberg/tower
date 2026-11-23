@@ -81438,3 +81438,13 @@ bootstrap-symbol policy/fixture update. Complete-history merge preserved both
 journal entries. No compiler/library/runtime or A1 fixture input changed from the
 validated7f6ca880 merge; reuse its checks and frozen timing receipts. No repeated
 runtime build or broad matrix. Retrying normal main push within the user's bound.
+
+First scheduling-batch push met a remote advance. Fetched cc2d4e6a and merged as
+bc378610 without dropping either journal; incoming A1 lifecycle changes required
+only Semantics regeneration and relinking the focused worker target. B2 Tower
+sources remain byte-identical to dbce8d7f. Final merged unit-admission passes
+(66991ns refill,6.548s wall/7.905s CPU/476828KiB RSS), including canonical equality,
+shared ceilings and cancellation. Final backend-overlap-calibrated again passes
+exact objects and distinct live threads. Logs b2_admission_push_merge_{build,test,
+backend}.log. Reuse unchanged startup/ordered-failure and cost evidence above;
+no rerun of unrelated matrices. All owned jobs drained; retrying normal main push.
