@@ -91,7 +91,8 @@ struct EntityComponent {
     page: EntityComponentPage*;
 }
 
-// Stable payload columns and dense entity rows keyed by an exact type signature.
+// Dense entity rows and component-pointer columns for an exact type signature.
+// Payloads remain in their stable allocations; this index does not pack them.
 struct EntityTable {
     store: EntityStore*;
     next: EntityTable*;

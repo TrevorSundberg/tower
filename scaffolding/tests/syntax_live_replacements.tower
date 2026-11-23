@@ -12,7 +12,7 @@ fn live_seed_tests(): void {
     var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
     {
         var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
-        var source = "parse __number = Number;parse `document(0)` = __number;parse Statement = 'assignment' GrammarAssignment ';' | `document(0)` ';';assignment =;assignment |=;42;";
+        var source = "parse __number = AttributeInteger;parse `document(0)` = __number;parse Statement = 'assignment' GrammarAssignment ';' | `document(0)` ';';assignment =;assignment |=;42;";
         var session = live_open(source); defer syntax_destroy(bits(void*, session)); live_declarations(session, 6); live_end(session);
         var whitespace: usize = 0;
         for (var index: usize = 0; index < session.pins.grammar.tokens.length; ++index) {
@@ -94,7 +94,7 @@ fn live_replacement_tests(): void {
     bad[1] = "parse Expression |= 'bad' '(' $value:Expression ')' => replace { $value; };";
     bad[2] = "parse Expression |= 'bad' => replace { 1 ";
     bad[3] = "parse Expression |= 'bad' '(' $value:Expression ')' => replace { 1 };bad(unknown);";
-    for (var index: usize = 0; index < 4; ++index) {
+    for (var index: usize = 0; index < sizeof(decltype(bad)) / sizeof(u8*); ++index) {
         var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source); live_join(&source, live_base(), bad[index], "");
         var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_declarations(session, 3);
         if index == 3 {
