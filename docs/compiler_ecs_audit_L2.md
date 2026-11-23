@@ -692,3 +692,23 @@ overlap, cancellation, exact allocation failures and all new interpreter storage
 cases. Frame sizes/peaks and783/2434 allocator counts remain unchanged. The
 journal preserves exact hashes and distinguishes these focused checks from
 unfinished frontend failure propagation, full profiles and release acceptance.
+
+## Current caller integration at6b8355b
+
+The complete coordinator history now includes all owned018d production files and
+B2's matching transactional cache/query consumers, plus D2's exact clone-result
+import policy. The current owned-file table remains exhaustive; no new production
+type/generic path was added by this join. Its draft/pending labels above describe
+the historical checkpoint. Current public-clone storage, parser and query-smoke
+checks pass on compiler7ba14c94 with the matched failure ABI and actual frame size.
+The source-bound types and constructor contracts remain unchanged by this join.
+
+New generic_inspection_budget.tower is a public-service negative in the existing
+editor selector. It proves a remaining resource error is masked as a nonnull
+empty partial query after successful setup; releasing the reservation restores
+the same cached document, and complete cleanup passes before the rejection
+assertion. B2 owns propagation through the caller. Only width4/worker1 reached
+this failure; do not claim late generic-inspection denial or the remaining matrix.
+The original test-import linkage failure, corrected thin ABI, exact current
+hashes, timing/RSS and failed status are preserved in the journal. Final complete
+source instrumentation and public pin/deployment acceptance remain open.
