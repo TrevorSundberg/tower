@@ -92860,6 +92860,36 @@ acquired. Local manifests build/d1_ecs/numeric_review_22e15d5b/. Deck PID3155813
 127GiB disk free,9.8GiB available RAM. Documentation-only profiling inapplicable.
 No production/test/todo edits, browser artifact adoption, sanitizer or generation
 claim. Later alias work is excluded; ROOT retains joined-release validation.
+
+### 2026-11-23 D1 — unpublished L2 reconstruction snapshot review
+
+Reviewed only ROOT_l2_source_review_2130's12Tower files against manifest published
+base779de775b227f7f9bba1bcaa35cc420a4e7f0bb7, UTC2026-11-23T21:30:29.4611350Z.
+Archive0405e5479f92b734c124dfdfe81c0f2e3097eb4fbf9746e5d395bef74649455f,
+manifestb422e2014d8b8836900e3d88b9018891440cc2def2062af60e8e4ca40fec93ca and all
+copied hashes/lengths verified. Used git show/base diff, whole changed methods,
+tests/registrations and immediate formatter/import/lexer/session consumers;
+no active L2 file copied into this clone's compiler closure. Full path/hash map
+and source conclusions are appended to compiler_ecs_audit_d1.md.
+
+R1 for ROOT/L2: bi_initializer's new arbitrary nonzero-run KString path emits
+isolated128/255 as raw source bytes. LLVM19.1 ConstantDataSequential isString
+checks i8 array shape, not UTF-8; Core.cpp's counted getAsString includes all NULs.
+The existing formatter escapes no such high bytes; the byte lexer cannot match
+that malformed UTF-8 string, and the browser decoder cannot preserve it either.
+This is a concrete source-level encoding defect, not an executed draft failure.
+Proposed smallest Tower provider test feeds counted[65,0,128,255,0] through the
+existing LLVM constant/import/format/recheck path with exact byte/sentinel checks.
+Current added fixture covers only ASCII escapes/trailingNUL. No repair overlaps
+L2; exact producer and proposed regression sent through D1 status.
+
+No concrete additional defect found in inspected postfix-pointer, prior type
+binding, nominal-result cast or stage-cleanup paths; missing lexical/byte boundary
+execution remains explicit. Owner native17.32s/3.16GiB progress is not release or
+Wasm2GiB acceptance. No runtime repeat/build/sanitizer; docs-only profiling is
+inapplicable. Deck PID3160007,127GiB disk free/9.9GiB available RAM; no owned jobs
+or heavy lock, D2's slot untouched, todo unchanged. Local evidence under
+build/d1_ecs/l2_review_2130/. Final-source adoption remains L2/ROOT work.
 D2 trace publication reconciliation: scoped5a3ead88 merged full publishedfcaad5a6
 after required ff-only pull detected divergence. Both histories retained. Final
 diagnostic/strict/coordinator/boundary and browser hashes match; Node syntax/diff
@@ -92878,6 +92908,52 @@ Documentation-only result; no runtime patch/policy adoption, new rebuild or
 passing-test repeat. Original error remains precise evidence for its frozen
 candidate, not a claim that the rejected patch was tested on later main.
 
+### B1 exact grammar Capacity prerequisite and same plan reuse (2026-11-23)
+
+Frozen7e46f0250a790023130b05292759716eb31ce133/treef6397fa6fdc217412742ed7e625dc3acf7938a73,
+public768 ordinary bootstrap, own KinmenB CPU0-11/24GiB,115GiB disk, jobs drained.
+Reapplied exact rejectedpatch527b62b3a7fb0183466b208bc52558b3cc9eddbf3fb8dcfd59e7f8dfb75d76e0;
+no other optimization. Sparse Tower caller trace puts Memory in imported tower.tower
+at5685, before semantics at root import13. Checked emission_child attachment returns
+Capacity1 while SyntaxEmission fallback remains Memory3: the boolean entity_attach
+wrapper discarded entity_attach_result's cause. That is the first incorrect
+conversion, owned by B1 grammar construction, not a guessed parser/backend fault.
+Fix records the checked attachment error, retaining the old boolean declaration
+for other callers. Actual Memory stays Memory; no cap/assertion/mapping change.
+
+Same refined world-owned structural cache now adopted: existing exact ordered
+numeric LR key/mode/specialization; world/budget/Bedrock scope; version entities,
+metadata and ordered grammar activation remain private. Explicit session opt-in,
+old cache API preserved, checked optional owner admission/no half publication,
+surplus pins released after parsing joins and at world teardown. No cross-world
+pointers, scheduler change, parser-tree/importer/backend edit or new cache format.
+
+Uninstrumented FULL units PASS13.74wall/23.46CPU/783156KiB: original64MiB allowance
+fixture exactCapacity, peak-minus-one/retry, cancellation/drain, failed publication,
+canonical independent worlds, executed dependencies and ordered failures complete.
+Structure/version/seed/profile/world/denial/zero-grant checks, grammar-resource
+fault injection and grammar-equivalence/overrides pass. Prior unchanged150-grammar
+oracle/nativeLR evidence reused. Actual nm newSemantics import syntax_world_structures_clear
+added exactly; strict policy and existing truncated/suffixed/wrong-owner negatives pass.
+
+Matched serialn2 smallwall.500->.445s CPU.425->.375 RSS185782->187306KiB;
+largewall.635->.600 CPU.565->.530 RSS238004->230716. Jobs4 controls small.55->.50,
+large.68->.64; still slower than serial. All12objects exact, all12executions15/999.
+Existing4world default16-body profile n2:1worker1.7349->1.5225s,4workers1.4429->1.1389s;
+all8 canonical/known results exact, lanes-after-join0, retained+352512bytes total.
+Not B2 uniform12-unit/backend scaling. Cold/installed tables123/183 ->115/116;
+allocations2144125/2562398 ->2067635/2222326; retained1893528 ->1965224/1981656,
+peaks58035248 ->58721312/58737744, metadata5242880, zero-grant teardown.
+Single instrumented installed table interval205.08->213.83ms regresses/noisy;
+preserved, no table-count-only speedup claim. Prior C.04/.09s controls unchanged.
+
+Evidence build/ecs_b1/cache/grammar_cause_7e46; receipt docs/compiler_grammar_cause_7e46f025.md.
+Finalcompiler771bb0e964501a1f7096f9e606247255f291231bb6ddf03504440f595bede1e5;
+sourcepatch3559ae5a3de2926368844d036f6ef2615078a25b0d49f09232313365aea7bb51.
+Original first-cause failure, missing legacy extern build, old symbol rejection
+and incorrect-cwd grammar check remain in logs; corrected exact setup only.
+No trace hooks in measured binaries. No new generations/Node/browser/sanitizers,
+public pin or deployment; prior rejected and nativegeneration boundaries intact.
 ### D2 actual optional-trace success and exclusive-output acceptance (2026-11-23)
 
 Frozen published7e46f0250a790023130b05292759716eb31ce133, same D2 thread/PID3157620.
@@ -92965,6 +93041,15 @@ execution and remain separately owned/unadopted. Syntax/diff checks pass; no
 repeated browser run or source-identity relabel. Normal main publication only.
 
 A2 finalpushrace reconciliation: merged published260562f4 into284019bc preserving A1backendfallback/D2browserdiagnostic histories. All509 executedinputhash entries plusbootstrap/direct3files unchanged; session.tower is outside these imported providers, so reuse478353f9 focusedruntime evidence without morebuilds. Backend/browser owner receipts stayseparate. Firstpushnonfastforward preserved; secondnormalpush follows. No activejobs/instrumentation.
+B1 publication reconciliation:54f3baab merged completea2bd2987 as75c15ee747c94a564cdf07255079710ef09365ab,
+treecdf6cccb6cc7140895e2f0470e10f2143d455c41, after required ff-only divergence.
+Incoming A2 semantic admission/L1 aliases/L2 backend inputs triggered one affected
+dependency build; B1 scope unchanged. FULL merged units PASS13.41wall/22.79CPU/
+815948KiB, original Capacity gate and all cancellation/dependency assertions intact.
+Merged small/large objects/executions exact15/999; nm strict Semantics/ParserNodes
+policies pass. Source manifests stable; compiler141a2b5a5cae4030d090678dda334412d17ebbfe34693243c3b71f9d20d804ae.
+These checks do not relabel paired7e46 timings. All jobs drained, todo/public768
+unchanged; no generation/pin/hosted publication. Complete history and prior receipts preserved.
 B2 page-worker rejection reconciliation: receipt82f20518 merged completea2bd2987
 history as18b441f3 after required ff-only pull refused divergence. Both journals
 preserved; six restored candidate paths still match pre-experiment023955e1,
