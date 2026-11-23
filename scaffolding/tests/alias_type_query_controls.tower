@@ -1,0 +1,23 @@
+import tower;
+
+fn alias(T: type): type { var value: i32 = 1; return T; }
+fn read(T: type, value: alias(T)): T { return value; }
+fn box(T: type): type { struct Item { value: T; } return Item; }
+fn forwarded(T: type): type { return box(T); }
+var actual: i32 = 7;
+var failures: i32 = 0;
+if read(i32, actual) != 7 { failures++; }
+var value: box(i64);
+var same: forwarded(i64)* = &value;
+if same != &value || type_value(forwarded(i64)) != type_value(box(i64)) { failures++; }
+var effects: i32 = 0;
+fn condition(): bool { effects++; return true; }
+if condition() && sizeof(forwarded(i64)) == sizeof(i64) {
+    var local: i32 = 2;
+    if sizeof(forwarded(decltype(local))) != sizeof(i32) { failures++; }
+    if alignof(forwarded(i64)) != alignof(i64) { failures++; }
+} else { failures++; }
+if false && condition() { failures++; }
+if default { trap("Contextual bool default must be false", 0); }
+if effects != 1 { failures++; }
+print(failures);

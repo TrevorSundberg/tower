@@ -92304,3 +92304,85 @@ absent from lr-work-main-unbound.ll.d. Reused those exact scoped results without
 rebuilding identical leaves or running another matrix. No claim validates the
 new profile tool or ROOT's separate frozen portable bundle. All jobs drained,
 prior failures retained, todo unchanged; normal publication follows.
+### 2026-11-23 L1 — original alias/type-body acceptance gates
+
+Reproduced all three unchanged D1/761aa5b5 gates on published numeric-only
+successor22e15d5b8e459cd63417234cf2b8198a85dc283d, native9cc9ec7b, before edits.
+Required pull was up to date; owned jobs drained. decltype_type_fields fails
+Unknown type constructor 'alias' at48:35; existing stress_fields generator's
+256-chain fails identically at272:35. inference_alias_invalid fails at5:11 with
+the straight-return constructor capability diagnostic instead of the required
+inference message. Preserved exact source and failure exits; none were stale
+artifact assumptions. ROOT's clone/cache/frozen portable build was untouched.
+
+Trace narrows the positive cause beyond the reported outer.inner suspicion:
+those declaration/field producers resolve, but the final module-level if calls
+sizeof(alias(u64)) through immediate sem_operand, bypassing the expression query
+frontier. Functions and ordinary module call statements already used the shared
+preparation path. sem_if_begin_value now prepares only unprepared coordinator
+module conditions through sem_module_expression, passing its expected bool into
+sem_expression_add. Existing identity, field/layout and alias execution queries
+suspend/resume normally; the checked condition is consumed once. Worker-prepared
+conditions keep their existing continuation; lexical current/scope restoration
+belongs to the existing module-expression helper. Both actual callers were
+updated coherently; this private helper has no public ABI/layout change.
+
+The negative cause is separate: sem_infer_match invoked the straight-return
+syntax reader and treated its 'ordinary body not invertible' result as a semantic
+failure. It now leaves that constraint unresolved. sem_infer_finish reports the
+missing T at the actual call; explicit arguments still demand/check/execute the
+alias body, including its local statement. No alias name registry, evaluator,
+recursive completion, removed local, altered original or relaxed expectation.
+A2 capture checks, A1 backend fallback, L2 formatter and B1 grammar cache untouched.
+
+Exact originals retained: short8b2cf17a518ae80ec6294b703301756310abd744829af2e112a521d5b7185b72;
+stress entryfaf41ec1d23390efb38dc6e0eb1ae39e9805f523083d6373b7d735a5c3912acc;
+stress_sources bba0710135bc3615240fec55bf997ecf788c06e91d1e4eaf3e9ea294708618c8;
+generated256 inputd9857d0167c9105cc8a2c19e58683215564bb46b6068c047117813b040f7caa9;
+inference7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9.
+At32/64 and workers1/4 both originals print0. Their canonical text matches between
+worker settings, independently reparses idempotently and runs through Graph/Fast
+with0. New small alias_type_query_controls prints0 under the same checks: healthy
+explicit read(i32,actual) retains the alias local, pointer/type-value identity,
+nested lexical module conditions, sizeof/alignof readiness, exactly-one condition
+effect, untaken effect and contextual bool default. Scalar condition rejection
+is unchanged from predecessor, including exact diagnostic and2:4 position.
+
+The original inference gate now reports exactly "Cannot infer type argument 'T';
+pass explicit type arguments" at first-call source byte146, line5,column11.
+New alias-type-queries native selector reads the actual fixture, derives that
+position from its bytes, checks mapped source and stable combined semantic offset
+at both widths/workers, no partial program, and terminal diagnostic retention.
+Four native CTest registrations pass. Reused existing lifecycle selector5–10
+(nominal alias, type operand, untaken invalid helper, recursive pointer nominal,
+default, and real recursive-by-value failure) at32/64 workers1/4, plus query-smoke.
+No128-pool-cycle rerun, full types/browser/generation/sanitizer matrix or release
+claim. ROOT must adopt the published producer in future joined artifacts.
+
+One dependency-aware semantics refresh34.32wall/26.98CPU/1074916KiB; test-runner
+only refresh15.75/9.26/432148, checked-in public bootstrap, no private override
+or duplicate public leaf. GNU time-v validation costs (wall/CPU/peakKiB): four
+registrations2.78/2.59/185408; exact inference2.44/2.34/218504; selected lifecycle
+5–10 16.30/15.56/229940; query-smoke .25/.28/86688. Environment WSL
+Orchestral-Revng Ubuntu24.04/LLVM19 Release, Ryzen9 5900HX, CPU0–3,24GiB process
+address ceiling (actual WSL15GiB physical), disk923GiB WSL/111GiB C free initially.
+
+Adjacent healthy before/after samples, wasm64, same frozen fixtures/resources,
+checked0 and identical before/after canonical bytes, warm caches/fresh processes,
+n1 per setting; these exercise module conditions that already passed:
+
+| Fixture / workers | Wall s before → after | CPU s before → after | Peak RSS KiB before → after |
+| --- | --- | --- | --- |
+| decltype_headers /1 | .73 → .62 | .58 → .57 |181416 →181932 |
+| decltype_headers /4 | .77 → .73 | .70 → .68 |184980 →185320 |
+| decltype_layout /1 | .65 → .66 | .57 → .59 |185644 →185952 |
+| decltype_layout /4 | .78 → .82 | .74 → .79 |189144 →189424 |
+
+No scaling/speedup or observed-overlap claim; small samples show mixed timing
+changes and280–516KiB higher process peak. All manifests match before/after checks.
+Compiler05d1b6afa519954904ef93448f007375bd4edbabffe0e045abaa6f0e7ec279a9;
+semantics24c6ad2c77319fd1d0d176191caed566a9f3a2b0cc8f958d4822e8705348c5de;
+runner8226bfada169531a570f3e32e6a0eacf1d1d918541e9a28a8c24670f58110aa3.
+Exact commands, original failures, generated source, timings and hashes are in
+external L1 alias_fields_receipt.json and logs/alias_fields_*. All owned jobs
+completed; no new unsupported type capability or publication outcome is implied.
