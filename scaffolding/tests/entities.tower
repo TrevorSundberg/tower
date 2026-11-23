@@ -1,6 +1,7 @@
 import .library.entities;
 import .library.entity_types;
 import tower;
+import .host.memory;
 
 // Compose after entities.tower; the host supplies the optional lifecycle bridge.
 var world = entity_store_create();
