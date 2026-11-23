@@ -540,3 +540,27 @@ defined-order controls remain under owner review. No zero-initialization policy,
 oracle weakening or final known-suite acceptance follows. The journal preserves
 all failed comparisons and exact checked evidence. Updated ownership sanitizers,
 public-bootstrap closure and leased publication remain outstanding.
+
+## Profile attribution and private-storage follow-up
+
+Exact old/current predicate machine-instruction sequences match after relocation
+address normalization. An isolated former wrapper compiled against current shared
+layouts and linked against the exact same production object closure does not
+reproduce the earlier22% standalone penalty: whole-wall medians4.35/4.36s and
+1000-function query medians3.537/3.456ms. An object-order-only control also fails
+to support the proposed alignment fix. Preserve the original measured difference
+and substantial variability; no code-padding, algorithm rewrite or generalized
+speedup claim follows. The journal contains all controlled identities and limits.
+
+The fully initialized order/effect control independently prints1,1,7 through graph,
+optimized/no-opt normalized fast and native paths at the recorded widths/workers.
+The raw uninitialized case remains outside portable defined-result comparison;
+strict compile-time before-initialization rejection remains mandatory.
+
+L1 query measurement741b passes independently with exact compilerd1cda8ec/LR5312e6e6
+artifact identity. Small8-byte and large65536-byte layouts retain bounded private
+frame snapshots, preserve captured scalar bytes and release every
+measured owned vector. Counts are per-invocation capacities, not whole-heap or
+concurrency proof. Proposed physical budget owners in shared semantic/interpreter
+layouts still require joint API validation, coherent build and final instrumentation.
+No new production type/generic code is introduced by these harness follow-ups.

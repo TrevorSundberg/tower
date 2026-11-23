@@ -47741,3 +47741,95 @@ Owned sessions98779/6009 finish zero, initial90387 and diagnostic45560 finish wi
 their recorded nonzero comparison outcomes, and all are drained before the host
 slot returns to L1. Final ordinary known gates, matched profile attribution,
 updated ownership instrumentation and public bootstrap/deployment remain open.
+
+### L2 controlled type-profile attribution and defined initialization-order checks
+
+Root's corrected contract explicitly supersedes the earlier portable0,7,7
+requirement. L1 independently traces the raw case through LLVM: the early load
+reads an undef-initialized global, and optimized IR already contains three prints
+of7 before Foundation import or packed execution. No fast-interpreter production
+edit is justified. Preserve those investigated nonzero comparison receipts.
+L2's separate fully initialized source uses state=0, a single runtime increment,
+earlier=read(), then later=7; it prints earlier,state,comptime(later). Its independent
+oracle1,1,7 passes graph, optimized normalized-fast and no-opt normalized-fast at
+widths4/8 and workers1/4, plus two native Linux executables at workers1/4. All14
+outputs are byte-compared. Transport23.44s wall/22.54s CPU; source and commands are
+L2/known_later_initialized_order.tower and known_initialized_transport.sh, raw logs
+known_initialized_*. This is native evidence, not a fresh browser release claim.
+
+L1's three balanced profile pairs compare saved6b32 executiona9592e63 against
+current standalone da7f7076 and reproduce about22% higher1000-function query time.
+Do not dismiss that measured observation. Inspect the exact old and current
+predicate disassembly: all610 instructions match in sequence after removing only
+instruction addresses and symbolized branch/call relocation addresses. The
+predicate lives in the shared interpreter object, rather than the entry wrapper.
+There is no type_objects/foundation-tags/types/vector source change in this harness
+migration. Changed code placement is a hypothesis, not a performance explanation.
+
+The next controlled experiment restores only exact f6 execution_main87d84846 and
+helper05a442e in an isolated copy of current resources. Public-pin compilation
+uses the current shared layouts (verified depfile), yielding wrapper object847e8b9a.
+Link old-wrapper executablec151e106 and current standaloneda7f7076 against the SAME
+current production objects, libraries and object order. Run one warmup pair and
+three balanced retained pairs on the identical frozen resource root. Every sample
+passes independent output, canonical preservation and zero entity/component
+retention; counts remain19851/41929/110377. Object hashes match before and after.
+
+| Same current production closure | Whole wall s, three retained runs | CPU s | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Former execution selector wrapper | 4.19,5.42,4.35 | 4.69,5.31,4.83 | 216504,214032,215268 |
+| Standalone wrapper | 4.27,4.55,4.36 | 4.78,5.03,5.02 | 215124,215000,208984 |
+
+Whole-wall medians are4.35/4.36s. The nine1000-function batch medians are
+905476319/884711605ns per256 queries, approximately3.537/3.456ms per query.
+This control does not reproduce a22% penalty from the standalone entry alone;
+within-run variation is substantial and retained in the raw data. It does not
+invalidate L1's earlier before/after library snapshot measurement.
+
+A second controlled link changes only object order, moving the unchanged
+interpreter object first while retaining the exact standalone wrapper. Its
+hot linear-search loop moves from48mod64 to16mod64. All eight warmup/retained
+processes pass the same assertions. Nine-batch medians are878153739ns in the normal
+layout and937583939ns in the alternate layout, about6.8% slower in the latter.
+Thus cache-line placement is not an established fix. No production padding,
+link-order change or blind traversal rewrite follows. Broader constructed-data
+layout/library effects and environmental variation remain unisolated; final
+single-query/end-to-end claims must preserve that limitation. The known quadratic
+visited-function scan remains a measured cost rather than a newly claimed scalable
+algorithm. Source/object hashes, disassembly, commands, outputs and timings are
+in L2/logs/profile_wrapper_* and profile_layout_*. All three executables and the
+isolated source closure are preserved in own l2_profile_wrapper_20261123 and
+l2_profile_layout_20261123 caches. No other worker cache is used.
+
+### L2 independent bounded aggregate-storage measurement receipt
+
+After all profile and initialized-order jobs drain, review and apply L1 test-only
+patch741b6cb4 afterd982. It extends the existing query fixture from8-byte to also
+65536-byte valid padded layouts, samples live private snapshots and retained
+vector capacity, checks bounded growth and complete disposal, and preserves
+strict scalar/copy/fill and frame/cancellation assertions. Shared formatting
+reports numbers; there is no new platform ABI or runner. This is a measurement of
+per-invocation vector capacity, not total allocation count, RSS budgeting or proof
+of actual concurrent overlap.
+
+Public-pin smallest query unit passes2.24s wall/2.07s CPU/186688KiB; normal compiler
+rebuild9.36/4.96/300036 and LR rebuild4.70/3.78/263176 pass. Independently built
+compiler d1cda8ec712a095027e10dc29adc2e36fa49f336b607b65bc700b4000d0a96bc and
+LR5312e6e6ff7592225aa917085b3a275294fbee3b3e98c9d47c77227f1682d2b6 match L1.
+Three query-smoke processes each pass at0.06s wall/0.06s CPU, peak59380/59188/59320KiB.
+Both widths report two live small snapshots totaling32 aligned bytes, target and
+initialization capacities128 each, and metadata256 bytes. Large values peak at
+131072 live bytes, target/initialization capacities131136 each, metadata256 bytes.
+Five capacity changes are observed in either case; completed, retained and cancelled
+invocations release their vectors. Source hashes match throughout. Logs are
+L2/logs/input_storage_measurement_*. All owned jobs drain before releasing the host.
+
+A1's four sem_allocate ownership-list and L1's three retained interpreter-buffer
+migrations remain proposals requiring the jointly validated A2/B2 physical-buffer
+API and coherent shared-layout rebuild. L2 has explicitly agreed to the scoped
+layout direction and recorded lifetime/type-relocation conditions in external
+scratch_layout_agreement.md. No shared budget, global owner, byte-offset mirror
+or second type graph is introduced here. Final integrated ASan is assigned L2,
+TSan L1; neither old sanitizer evidence nor these normal measurements establish
+acceptance of those future layouts. Public pin, complete merged release checks,
+publication lease and hosted verification remain required.
