@@ -76,18 +76,21 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
     sources[2] = "import tower; fn id(T:type,x:T):T{return x;} fn box(T:type):type{return T;} fn answer():i32 { var value:box(i32); var x:decltype(id(44))=comptime(later()); value=id(x); return value; } fn later():i32{return 44;}";
     units_check(frontend_units_program(batch, 1) is null, "unpublished unit result");
     units_check(!frontend_units_source(batch, 0, "unit.tower", sources[0], strlen(sources[0])), "invalid unit ordinal");
+    var input_bytes = units_memory_resource_bytes(bedrock, foundation, root);
     for(var i: usize = 1; i <= 3; i++) {
         var size = strlen(sources[i - 1]);
         var snapshot = alloc(u8, size);
         units_check(snapshot is not null, "caller snapshot");
         copy(snapshot, sources[i - 1], size);
         units_check(frontend_units_source(batch, i, "unit.tower", snapshot, size), "unit source");
+        input_bytes += units_memory_input_bytes("unit.tower", size);
         fill(snapshot, 0, size);
         free(snapshot);
     }
     var invalid: u8[3];
     invalid[0] = 97; invalid[1] = 0; invalid[2] = 98;
     units_check(!frontend_units_source(batch, 1, "unit.tower", &invalid[0], 3), "NUL input rejected");
+    units_check(frontend_units_input_bytes(batch) == input_bytes, "Exact configured input subtotal");
     var done = frontend_units_step(batch, false);
     units_check(!frontend_units_source(batch, 1, "unit.tower", sources[0], strlen(sources[0])), "active unit immutable");
     while !done { done = frontend_units_step(batch, true); }
@@ -127,7 +130,9 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
     var snapshot: WorkBudgetSnapshot;
     units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
         && snapshot.used_lanes == 0 && snapshot.peak_lanes <= budget
-        && snapshot.used_bytes != 0 && snapshot.live == 4, "joined units retain only input bytes");
+        && frontend_units_input_bytes(batch) == input_bytes && snapshot.used_bytes >= input_bytes
+        && snapshot.live >= 9 && snapshot.peak_bytes <= snapshot.bytes,
+        "Joined units retain exact inputs alongside other bounded world owners");
 }
 
 fn units_failure(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
@@ -166,13 +171,17 @@ fn units_cancellation(bedrock: u8*, foundation: u8*, root: u8*): void {
         units_check(batch is not null, "cancel batch create");
         var source: u8* = "import tower; fn answer():i32{return 42;}";
         for(var i: usize = 1; i <= 4; i++) { units_check(frontend_units_source(batch, i, "cancel.tower", source, strlen(source)), "cancel source"); }
+        var input_bytes = units_memory_resource_bytes(bedrock, foundation, root)
+            + 4 * units_memory_input_bytes("cancel.tower", strlen(source));
+        units_check(frontend_units_input_bytes(batch) == input_bytes, "Exact cancellation input subtotal");
         if active != 0 { frontend_units_step(batch, false); }
         frontend_units_cancel(batch);
         units_check(frontend_units_cancelled(batch) && frontend_units_step(batch, false), "cancel joins workers");
         units_check(frontend_units_program(batch, 1) is null, "cancel rejects publication");
         var snapshot: WorkBudgetSnapshot;
         units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
-            && snapshot.used_lanes == 0 && snapshot.used_bytes != 0 && snapshot.live == 5,
+            && snapshot.used_lanes == 0 && frontend_units_input_bytes(batch) == input_bytes
+            && snapshot.used_bytes >= input_bytes && snapshot.live >= 11 && snapshot.peak_bytes <= snapshot.bytes,
             "cancel drains execution but retains inputs");
         frontend_units_close(batch);
     }

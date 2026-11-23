@@ -2,6 +2,7 @@ import tower;
 import interpreter_types;
 import foundation_types;
 import .library.vector;
+import .library.work_vector_types;
 
 // One reached constructor retains evaluated operands until the coordinator
 // publishes a descriptor. Owner and sequence distinguish recursion/loop visits;
@@ -37,7 +38,7 @@ struct IMValueStorage { producer: void*; address: usize; bytes: usize; frame: us
 
 // An invocation context belongs to its evaluation request, which may be a
 // shared compiler entity. No ambient world, host address table or TLS lookup is
-// needed. The existing IMState ABI remains unchanged for retained host clients.
+// needed. Host clients share these Tower layouts and rebuild with the engines.
 struct IMContext {
     root: void*;
     pointer_bytes: usize;
@@ -47,7 +48,7 @@ struct IMContext {
     returned: bool;
     strict: bool;
     fuel: u64;
-    initialized: vector(u8);
+    initialized: work_vector(u8);
     dependency_kind: void*;
     value_inputs: void*;
     require_relocatable: bool;
@@ -62,7 +63,7 @@ struct IMContext {
     construct_types: bool;
     waiting_type: bool;
     type_construction: IMTypeConstruction;
-    input_storage: vector(IMValueStorage);
+    input_storage: work_vector(IMValueStorage);
 }
 
 // Shared query metadata; the evaluator reads readiness, while only the

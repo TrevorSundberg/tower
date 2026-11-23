@@ -1,0 +1,80 @@
+import tower;
+import frontend_world;
+import frontend_table_owner;
+import utility_checks;
+import .compiler.parser_table_types;
+import .compiler.grammar_types;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+
+// The direct table/context owners are only part of parser memory. Keep their
+// exact receipts separate from any other world/LR buffers sharing this ledger.
+fn parser_table_direct_bytes(table: ParserHostTable*): usize {
+    var bytes = table.storage.reservation.bytes + table.states.reservation.bytes;
+    foreach(var &state in &table.states) { bytes += state.contexts.reservation.bytes; }
+    return bytes;
+}
+
+fn parser_table_budget_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Parser table memory ledger");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null && compiler_world_bind_budget(world, &budget), "Parser table explicit world budget");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Parser table world-owned kinds");
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Parser table initial memory snapshot");
+
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+        == WorkBudgetError.None, "Occupy remaining parser memory without worker lanes");
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table == null, "Parser table denies allocation before publishing an owner");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release competing parser memory reservation");
+
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && table.budget == &budget
+        && table.storage.reservation.bytes == compiler_buffer_allocation_size(sizeof(ParserHostTable)),
+        "Parser table charges its actual physical object and allocator header");
+    var opened: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &opened), "Parser table retained object snapshot");
+    utility_check(work_budget_reserve_result(&budget, 0, 0, opened.bytes - opened.used_bytes, &occupied)
+        == WorkBudgetError.None, "Deny parser table construction growth");
+    utility_check(!parser_table_build(table, false) && table.error != null
+        && table.runtime == null && table.states.data == null,
+        "Denied parser growth retains grammar and retires partial runtime/context owners");
+    var failed: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &failed)
+        && failed.used_bytes == opened.used_bytes + occupied.bytes,
+        "Failed parser construction leaves only original and competing byte owners");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release parser growth blocker");
+
+    utility_check(parser_table_build(table, false), "Parser table retries after byte capacity becomes available");
+    var retained: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &retained)
+        && retained.used_bytes > opened.used_bytes && retained.used_lanes == before.used_lanes
+        && retained.used_bytes - before.used_bytes >= parser_table_direct_bytes(table),
+        "Table and context buffers remain charged after construction returns");
+    var states = table.states.data;
+    utility_check(parser_table_build(table, false) && table.states.data == states,
+        "Already built parser table preserves retained storage");
+    var reused: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &reused) && reused.used_bytes == retained.used_bytes
+        && reused.live == retained.live, "Parser table reuse does not acquire duplicate byte owners");
+    parser_table_destroy(table);
+    utility_check(work_budget_snapshot(&budget, &reused) && reused.used_bytes == before.used_bytes
+        && reused.live == before.live, "Parser table retirement returns every retained byte grant");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world), "Parser table budget world teardown");
+    utility_check(work_budget_snapshot(&budget, &reused) && reused.used_bytes == 0 && reused.live == 0
+        && work_budget_dispose(&budget), "Parser table ledger outlives and releases all physical owners");
+    utility_check(tower_test_buffer_count() == buffers, "Parser table budget checks retain no allocator buffers");
+}

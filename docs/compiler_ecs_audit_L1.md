@@ -238,7 +238,7 @@ Smallest predecessor units pass; full coherent native/runtime evidence is pendin
 The journal records exact source handoffs, measurements, failed experiments and
 remaining publication/instrumentation/performance requirements.
 
-### CURRENT remaining scope after coherent596e validation
+### CURRENT remaining scope after interpreter buffer validation
 
 The path census is **34/34 reviewed production/unit/host-boundary Tower files**:
 30 compiler/unit paths in the inventory above, its three named host boundaries,
@@ -249,9 +249,14 @@ files (`tests/interpreter_call_query.tower`, `tests/aggregate_capture_inputs.tow
 have complete source review; D1's ordinary fixture registration and the new
 whole-empty/exact-diagnostic edges now pass. Other lanes retain ownership/audit of their broader library/parser/
 backend/semantic families; this count does not claim those families were audited
-in full by L1. Current source is main923dead plus the test-only bounded-storage
-measurement; exact build manifests identify compiler d1cda8ec and LR5312e6e6.
-Production source matches the prior596e2cb0 checkpoint. Older per-row comments are historical.
+in full by L1. Current source is mainb3ffb231 plus reviewed shared-buffer,
+interpreter, parser and frontend ownership changes. Isolated interpreter cc8ad2ad
+passes query/aggregate/types; joint1f37dee4 passes query and production units.
+The backend retained-owner assertion failed and its owner correction is newly
+applied, awaiting rerun. Exact manifests and failures are in the journal.
+Four shared library buffer/type modules were also read completely in coordination
+with A2; this does not enlarge L1's assigned compiler-file census. Older per-row
+comments are historical.
 
 | Boundary or requirement | Current disposition and concrete remaining work |
 | --- | --- |
@@ -264,6 +269,8 @@ Production source matches the prior596e2cb0 checkpoint. Older per-row comments a
 | Serial cost and normalized packages: `execution_package.tower`, `bytecode_package.tower`; A2 `entity_stage_prepare/publish` | Original30s emission/load gate now passes on596e after reviewed452cfa58:11.52s wall/11.58s CPU/275720KiB emit,5.20s/5.23s/205932KiB load. Same source and adjacent resources; profile2, exact output,118962-byte canonical6f257 and178846-byte package retained. Earlier6b32 timeout124 remains a failed before measurement, not a completed comparable timing. Current query/aggregate/storage and three real-worker stage stress runs pass. Final matched repeated serial/parallel performance, allocation/locality and instrumented ownership evidence remain. |
 | Native/browser cache and source emitters: `fast_interpreter_create/step`, `execution_package_load`, `c_emitter`, `roku_emitter` | Earlier core/session/envelope/source-rejection/root-preservation checks pass. New ownership still needs final current graph/cache/package/type/known matrix and browser differential/cancellation receipts. Raw runtime type construction unsupported by the packed cache must retain the explicit checked fallback/capability contract. Physical Roku-device execution is unavailable here; source/reference tests cannot be presented as hardware validation. |
 | Portable measurement and packaging | Coordinated D1/L2 standalone Linux x64 target and exact L1 shared-selector removal compile/link/run successfully. The normal Tower execution wrapper has no undefined getrusage; only the opt-in profile imports it. Same checked16/256/1000-function workload and zero-retention/canonical assertions pass. Final clean portable/browser runner coverage remains; Linux symbol inspection alone is not a cross-host build. |
+| Physical interpreter buffer ownership: `IMState.memory`, `IMContext.initialized/input_storage` | Implemented through shared work_vector receipts, borrowing the immutable root-world budget. Small/64KiB query cases pass bound and standalone modes, exact ledger sums, denied growth preserving old bytes/receipt, suspended/root retention and zero grants after disposal. Two invocations retain1216/525248 physical bytes; measured peaks1312/590848 include allocator headers and replacement overlap. Paired d1c/cc8 effects and aggregate programs at1/4 workers show no material regression. Shared type-only imports fix the measured predecessor component-budget failure without raising limits. Other frame/task/map/cache/type-reference/diagnostic vectors and opaque allocations remain outside this slice; it is not whole-heap accounting. Final independent/current instrumentation and joined ownership closure remain. |
+| Required/optional staging and cache attribution | Exact same Foundation root executes raw0,7,7 through graph and direct packed cache at32/64 bits. LLVM-normalized CLI7,7,7 is attributable to optimizing an undefined early read, not a demonstrated engine defect. Fully initialized effect source yields1,1,7 across direct graph/cache/canonical and independent CLI/native controls. Original raw-source admission and exact demanded-earlier rejection remain. D1's shared known-binding oracle integration is still pending; no full-known pass is claimed. |
 | Final source/bootstrap/browser/publication | No new syntax requires private adoption. Incremental public-pin builds pass; final clean documented Linux x64 build from the merged source, complete executable/resources/provenance and generation/browser matrix remain unrun. Keep actual source/build commits reachable from main, preserve concurrent publication receipts, obtain the named coordinator lease, atomically push main+gh-pages and verify served manifest/assets/behavior. No lease or hosted acceptance exists yet. |
 
 The34-file census is closed for reading; release acceptance remains open in the

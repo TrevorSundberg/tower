@@ -19,14 +19,35 @@ fn compiler_memory_guard(): usize {
 // This private allocation header is unrelated to Foundation pointer semantics.
 // Null owner uses the ordinary compiler runtime, including its explicit serial
 // fault-injection profile. Legacy host instrumentation stays single-owner.
-export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, diagnostic: bool): void* {
+fn compiler_node_allocation_size(size: usize, diagnostic: bool): usize {
     var word = sizeof(usize);
     var overhead = word * (diagnostic ? 5 : 4);
     var maximum = ~convert(usize, 0);
-    if size > maximum - overhead - word { return null; }
+    if size > maximum - overhead - word { return 0; }
     var payload = size == 0 ? 1 : size;
     if diagnostic { payload = (payload + word - 1) / word * word; }
-    var bytes = payload + overhead;
+    return payload + overhead;
+}
+
+// Exact bytes requested from the underlying allocator, including the header
+// and the one-byte payload for an empty buffer. Zero means unsupported size.
+// This preserves the allocator's existing conservative overflow admission.
+export fn compiler_buffer_allocation_size(size: usize): usize {
+    return compiler_node_allocation_size(size, false);
+}
+
+// Conservative guarantee of the supported native and WASI libc allocators.
+// The four-word header preserves this alignment. Larger alignment requires a
+// separate allocation contract; this is not a query for platform max_align_t.
+export fn compiler_buffer_alignment(): usize {
+    return sizeof(usize) * 2;
+}
+
+export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, diagnostic: bool): void* {
+    var bytes = compiler_node_allocation_size(size, diagnostic);
+    if bytes == 0 { return null; }
+    var word = sizeof(usize);
+    var payload = bytes - word * (diagnostic ? 5 : 4);
     var allocation = state is null ? bits(void*, alloc(u8, bytes)) : compiler_host_reallocate(null, bytes);
     if allocation is null { return null; }
     var header = bits(usize*, allocation);

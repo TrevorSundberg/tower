@@ -4,7 +4,9 @@ import grammar_types;
 import lr_api;
 import lr_types;
 import frontend_diagnostic_types;
-import .library.vector;
+import .library.work_buffer;
+import .library.work_budget_types;
+import .library.work_vector;
 import parser_markers;
 
 extern fn lr_states_lalr_parallel(states: void*, constructs: bool, anchor: void*): bool;
@@ -13,8 +15,9 @@ extern fn lr_analysis_compute_parallel(analysis: void*, anchor: void*): bool;
 
 extern fn entity_child_count(root: void*): usize;
 
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_buffer_allocate(size: usize): void*;
-
 extern fn compiler_buffer_free(memory: void*): void;
 
 extern fn abort(): void;
@@ -39,9 +42,9 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
     lr_runtime_destroy(table.runtime);
     table.runtime = null;
     foreach(var & state in &table.states) {
-        vector_dispose(&(*state).contexts);
+        work_vector_dispose(&state.contexts);
     }
-    vector_dispose(&table.states);
+    work_vector_dispose(&table.states);
     table.built = false;
 }
 
@@ -51,18 +54,22 @@ export fn parser_table_destroy(table: ParserHostTable*): void {
     }
     parser_table_clear_runtime(table);
     lr_grammar_destroy(table.grammar);
-    compiler_buffer_free(bits(void*, table));
+    // The descriptor must survive retirement of the object containing it.
+    var storage = table.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Input entities/kinds are borrowed for construction. LRGrammar owns immutable
 // name/capture snapshots; successful build releases its source-node indexes.
 export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
-    var table = bits(ParserHostTable*, compiler_buffer_allocate(sizeof(ParserHostTable)));
-    var missing = table == null;
-    if missing {
-        return null;
-    }
-    fill(table, 0, sizeof(ParserHostTable));
+    var anchor = root != null ? root : kinds.`match`;
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, budget, sizeof(ParserHostTable), 0) != WorkBudgetError.None { return null; }
+    var table = bits(ParserHostTable*, storage.data);
+    *table = default;
+    table.storage = storage;
+    table.budget = budget;
     table.userdata = userdata;
     table.presentation = presentation;
     table.match_kind = kinds.`match`;
@@ -74,7 +81,7 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
         return table;
     }
     table.grammar = lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
-    missing = table.grammar == null;
+    var missing = table.grammar == null;
     if missing {
         table.error = "Unable to allocate grammar indexes";
     }
@@ -98,7 +105,7 @@ export fn parser_table_open_host(root: void*, userdata: void*, presentation: Par
 
 fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*): bool {
     var count = lr_states_count(states);
-    var ok = vector_reserve(&table.states, count);
+    var ok = work_vector_reserve(&table.states, table.budget, count);
     if !ok {
         return false;
     }
@@ -115,7 +122,7 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var items = lr_states_items(states, index);
         var values = lr_items_data(items);
         var size = lr_items_count(items);
-        ok = vector_reserve(&state.contexts, size);
+        ok = work_vector_reserve(&state.contexts, table.budget, size);
         if !ok {
             return false;
         }
