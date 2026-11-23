@@ -80481,3 +80481,14 @@ Commands/logs: a1_flow_merged_build.log, a1_flow_merged_checks.sh,
 a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
 still match ROOT's three committed entity-stage files exactly. Final publication
 for this bounded task is normal main push only; gh-pages remains ROOT-owned.
+
+Post-commit integration: admission commit1525e54ff7e3db635e8f6f263e659ec8a71fa439
+was merged with newer origina2ffdedb (complete L1 counted-diagnostic/ownership and
+ROOT flow changes) asaa01512c6476ab1d7eeb6f242c0465b5275814eb. No admission producer
+changed in that merge. Directly affected merged check70452/merged0 passed the
+12-step coherent build46.75wall/73.97CPU/755120KiB, storage .29/.24/99240 and
+query-smoke .20/.22/74624, with empty runtime stderr and source manifest0. The
+small earlier comparison retains its own3ff source identity; it is not relabeled
+as timing evidence for the later interpreter/flow changes. This receipt update is
+documentation only and needs no new runtime measurement. Normal main push follows;
+ROOT retains all final integrated release and deployment ownership.
