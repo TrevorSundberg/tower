@@ -32,3 +32,10 @@ add_test(NAME tower-backend-source-worlds COMMAND tower-backend-source-tests
   "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" "${source_runtime}")
 set_tests_properties(tower-backend-source-worlds PROPERTIES WORKING_DIRECTORY "${source_workdir}"
   TIMEOUT 180 LABELS "native;backend;focused")
+add_test(NAME tower-backend-source-recheck COMMAND tower-backend-source-tests
+  "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+  "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" "${source_runtime}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/struct_reconstruction_small.tower"
+  "${source_workdir}/denied_recheck.tower" 4 1 deny-recheck)
+set_tests_properties(tower-backend-source-recheck PROPERTIES WORKING_DIRECTORY "${source_workdir}"
+  TIMEOUT 180 LABELS "native;backend;focused")

@@ -6,10 +6,17 @@ import {loadTower, loadLLVM, executeWasm, generatedSource} from './compiler-fixt
 const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
 const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, foundation);
 after(() => tower.close());
-const llvm = await loadLLVM(await readFile('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+// Capability selections are separate tests, never a skipped LLVM assertion
+// counted as portable acceptance. Ordinary unfiltered runs still require both.
+let llvm;
+async function llvmHost() {
+ return llvm ??= await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined :
+  await readFile('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+}
 const stress = {};
-for (const name of ['annotated', 'annotated_operators', 'inferred', 'inferred_operators', 'generic_inferred', 'generic_explicit', 'type_fields'])
- stress[name] = await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
+async function stressSource(name) {
+ return stress[name] ??= await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
+}
 
 function execute(source, pointerBytes, fast) {
  const handle = tower.compile(source, {pointerBytes});
@@ -24,7 +31,7 @@ function execute(source, pointerBytes, fast) {
  } finally { tower.destroyExecution(handle); }
 }
 
-test('signature-only generic queries do not clone unused body descendants', async () => {
+test('signature-only generic queries do not clone unused body descendants (portable)', async () => {
  const source = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
  for (const width of [4, 8]) {
   const canonical = execute(source, width, false);
@@ -32,12 +39,16 @@ test('signature-only generic queries do not clone unused body descendants', asyn
   assert.equal(execute(source, width, true), canonical);
   assert.equal(execute(canonical, width, true), canonical);
  }
+});
+test('signature-only generic queries do not clone unused body descendants (LLVM)', async () => {
+ const source = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
+ const llvm = await llvmHost();
  const compiled = llvm.compile(source);
  assert.equal(compiled.status, 'compiled', compiled.error);
  assert.equal((await executeWasm(compiled)).output, '0\n');
 });
 
-test('demanded generic body copies retain the node budget and reject execution', async () => {
+test('demanded generic body copies retain the node budget and reject execution (portable)', async () => {
  const source = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
  for (const width of [4, 8]) {
   const handle = tower.compile(source, {pointerBytes:width});
@@ -48,15 +59,18 @@ test('demanded generic body copies retain the node budget and reject execution',
    assert.equal(result.output, '');
   } finally { tower.destroyExecution(handle); }
  }
+});
+test('demanded generic body copies retain the node budget and reject execution (LLVM)', async () => {
+ const source = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
+ const llvm = await llvmHost();
  const compiled = llvm.compile(source);
  assert.equal(compiled.status, 'error');
  assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
 });
 
 for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow', 'comptime_capture_values']) {
- test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
+ test(`${name} preserves types and behavior through Foundation and interpreters (portable)`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
-  llvm.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
   let canonical;
   for (const width of [4, 8]) {
@@ -66,6 +80,14 @@ for (const name of ['decltype', 'decltype_expressions', 'declaration_continuatio
     assert.doesNotMatch(canonical, /missing_body_value|fn `unused\(/);
    }
   }
+ });
+ test(`${name} preserves types and behavior through Foundation and LLVM (LLVM)`, async () => {
+  const llvm = await llvmHost();
+  tower.configureModules({entry: `.tower/tests/${name}.tower`});
+  llvm.configureModules({entry: `.tower/tests/${name}.tower`});
+  const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
+  // Independently selectable: retain the original checked 64-bit canonical input.
+  const canonical = execute(source, 8, false);
   for (const input of [source, canonical]) {
    const result = llvm.compile(input);
    assert.equal(result.status, 'compiled', result.error);
@@ -100,7 +122,7 @@ for (const [name, message] of [
  ['declaration_index_cycle', /initializer dependency cycle first -> second -> first/],
  ['declaration_index_type', /An index must be an integer/],
 ]) {
- test(`${name} reports its stage dependency or execution error`, async () => {
+ test(`${name} reports its stage dependency or execution error (portable)`, async () => {
   const source = await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`, 'utf8');
   for (const width of [4, 8]) {
    const handle = tower.compile(source, {pointerBytes: width});
@@ -113,6 +135,12 @@ for (const [name, message] of [
      assert.doesNotMatch(result.error, /Instantiated by invalid[(]1[)]/);
     }
    } finally { tower.destroyExecution(handle); }
+  }
+ });
+ test(`${name} reports its stage dependency or execution error (LLVM)`, async () => {
+  const source = await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`, 'utf8');
+  const llvm = await llvmHost();
+  for (const width of [4, 8]) {
    const compiled = llvm.compile(source, {target:width === 4 ? 'wasm32-unknown-unknown' : 'wasm64-unknown-unknown'});
    assert.equal(compiled.status, 'error');
    assert.match(compiled.error, message);
@@ -124,9 +152,9 @@ for (const [name, message] of [
  });
 }
 
-test('forward declaration queries resolve long annotated and inferred chains without recursive inference', () => {
+test('forward declaration queries resolve long annotated and inferred chains without recursive inference (portable)', async () => {
  for (const name of ['annotated', 'inferred', 'annotated_operators', 'inferred_operators']) {
-  const handle = tower.compile(stress[name]);
+  const handle = tower.compile(await stressSource(name));
   try {
    // Check type resolution/serialization without executing forward reads of
    // uninitialized runtime storage in the inference-only variant.
@@ -137,9 +165,9 @@ test('forward declaration queries resolve long annotated and inferred chains wit
  }
 });
 
-test('inferred generic call arguments retain forward declaration dependencies and cycle diagnostics', async () => {
+test('inferred generic call arguments retain forward declaration dependencies and cycle diagnostics (portable)', async () => {
  for (const name of ['generic_inferred', 'generic_explicit']) {
-  const handle = tower.compile(stress[name]);
+  const handle = tower.compile(await stressSource(name));
   try {
    // Only resolve the declarations; executing these forward initializers would
    // read runtime storage before its source-ordered initialization.
@@ -156,9 +184,13 @@ test('inferred generic call arguments retain forward declaration dependencies an
  } finally { tower.destroyExecution(handle); }
 });
 
-test('parameterized fields await long forward type chains without recursive checking', async () => {
- const source = stress.type_fields;
+test('parameterized fields await long forward type chains without recursive checking (portable)', async () => {
+ const source = await stressSource('type_fields');
  for (const width of [4,8]) for (const fast of [false,true]) execute(source, width, fast);
+});
+test('parameterized fields await long forward type chains without recursive checking (LLVM)', async () => {
+ const source = await stressSource('type_fields');
+ const llvm = await llvmHost();
  const compiled = llvm.compile(source);
  assert.equal(compiled.status,'compiled',compiled.error);
  assert.equal((await executeWasm(compiled)).output,'0\n');

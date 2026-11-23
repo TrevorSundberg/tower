@@ -1,11 +1,67 @@
 import tower;
 import backend_source;
+import .backend.source_session;
+import .backend.session;
 import utility_checks;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .compiler.syntax_version_types;
+import .compiler.grammar_types;
+import .compiler.semantic_program_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
 
 extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+extern fn driver_write_file(path: u8*, data: u8*, length: usize): bool;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn fflush(stream: void*): i32;
+extern fn printf(format: u8*, phase: usize, entering: usize, entities: usize,
+    components: usize, bytes: usize, grants: usize, lanes: usize): i32;
+
+struct ReconstructionProbe {
+    world: void*; budget: WorkBudget*; source: BackendSource*; output: u8*;
+    parses: usize; deny: bool; occupied: WorkReservation;
+}
+
+fn reconstruction_observe(payload: void*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
+    if phase != GrammarPhase.FrontendParse && phase != GrammarPhase.SemanticDispose { return; }
+    var probe = bits(ReconstructionProbe*, payload);
+    var store = bits(EntityStore*, compiler_world_store(probe.world));
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(probe.budget, &snapshot), "Reconstruction joined budget");
+    if phase == GrammarPhase.FrontendParse && entering {
+        probe.parses++;
+        if probe.parses == 2 && probe.deny {
+            // A real second frontend request, after import/format have joined.
+            utility_check(snapshot.used_lanes == 0 && work_budget_reserve_result(probe.budget,
+                0, 0, snapshot.bytes - snapshot.used_bytes, &probe.occupied) == WorkBudgetError.None,
+                "Recheck physical admission pressure");
+            utility_check(driver_write_file(probe.output, probe.source.foundation.data,
+                probe.source.foundation.length), "Preserve pre-recheck public output");
+        }
+    }
+    printf("phase=%zu entering=%zu entities=%zu components=%zu bytes=%zu grants=%zu lanes=%zu\n",
+        convert(usize, phase), entering ? 1 : 0, store.entity_count, store.component_count,
+        snapshot.used_bytes, snapshot.live, snapshot.used_lanes);
+    fflush(null);
+    if phase == GrammarPhase.FrontendParse && !entering && probe.occupied.active {
+        utility_check(work_budget_release_result(probe.budget, &probe.occupied) == WorkBudgetError.None,
+            "Recheck pressure released after join");
+    }
+}
+
+// Read-only debugger entry uses the actual Tower layout, not guessed offsets.
+export fn backend_reconstruction_error(payload: void*): usize {
+    var program = bits(SemanticProgram*, payload);
+    printf("frontend_resource=%zu offset=%zu functions=%zu types=%zu diagnostic_bytes=%zu reserved=%zu reserved=%zu\n",
+        convert(usize, program.resource.error), program.resource.offset, program.functions.length,
+        program.types.length, program.error.length, 0, 0);
+    fflush(null);
+    return convert(usize, program.resource.error);
+}
 
 struct BackendTestClock { seconds: i64; nanoseconds: i64; }
 extern fn clock_gettime(clock: i32, value: BackendTestClock*): i32;
@@ -25,7 +81,38 @@ export fn __wasi_clock_time_get(clock: u32, precision: u64, out: u64*): u32 {
 
 export fn main(argc: i32, argv: u8**): i32 {
     var required_arguments: i32 = 4;
-    utility_check(argc == required_arguments, "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT");
+    var reconstruction = argc == 8 || argc == 9;
+    var denial = argc == 9;
+    utility_check(argc == required_arguments || reconstruction,
+        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck]]");
+    var workers: usize = 1;
+    var width: u32 = 4;
+    if reconstruction {
+        utility_check(strcmp(argv[6], "4") == 0 || strcmp(argv[6], "8") == 0, "Reconstruction target width");
+        utility_check(strcmp(argv[7], "1") == 0 || strcmp(argv[7], "4") == 0, "Reconstruction workers");
+        width = strcmp(argv[6], "4") == 0 ? 4 : 8;
+        workers = strcmp(argv[7], "1") == 0 ? 1 : 4;
+        utility_check(!denial || (workers == 1 && strcmp(argv[8], "deny-recheck") == 0), "Serial recheck denial transport");
+    }
+    var budget: WorkBudget = default;
+    var gate: void* = null;
+    if reconstruction {
+        gate = work_signal_open(); utility_check(gate != null, "Reconstruction budget gate"); work_signal_post(gate);
+        var bytes: usize = convert(usize, 24) * 1024 * 1024 * 1024;
+        utility_check(work_budget_init(&budget, workers, bytes, 1)
+            && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Reconstruction bounded budget");
+    }
+    defer {
+        if reconstruction {
+            var final: WorkBudgetSnapshot = default;
+            utility_check(work_budget_snapshot(&budget, &final) && final.live == 0
+                && final.used_bytes == 0 && final.used_lanes == 0, "Reconstruction final zero owners");
+            printf("final_bytes=%zu grants=%zu lanes=%zu peak_bytes=%zu ledger_bytes=%zu reserved=%zu reserved=%zu\n",
+                final.used_bytes, final.live, final.used_lanes, final.peak_bytes, final.retained, 0, 0);
+            utility_check(work_budget_dispose(&budget), "Reconstruction ledger disposal");
+            work_signal_close(gate);
+        }
+    }
     var bedrock: ByteBuffer = default;
     var foundation: ByteBuffer = default;
     var runtime: ByteBuffer = default;
@@ -33,7 +120,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     utility_check(driver_read_file(argv[1], &bedrock) && driver_read_file(argv[2], &foundation)
         && driver_read_file(argv[3], &runtime), "Read exact backend source test inputs");
     var fixture: BackendWorldFixture = default;
-    fixture.world = compiler_world_create_workers(1);
+    if reconstruction {
+        utility_check(compiler_world_create_result(workers, &budget, &fixture.world) == WorkBudgetError.None,
+            "Fully accounted reconstruction world");
+    } else { fixture.world = compiler_world_create_workers(workers); }
     fixture.modules = frontend_modules_create();
     defer utility_check(backend_world_close(&fixture), "Source session fixture ownership drains");
     utility_check(fixture.world != null && fixture.modules != null, "Source session explicit world");
@@ -44,6 +134,51 @@ export fn main(argc: i32, argv: u8**): i32 {
     defer syntax_version_diagnostic_dispose(&diagnostic);
     utility_check(syntax_baseline_install(fixture.world, fixture.modules, bedrock.data, false, &diagnostic)
         && syntax_baseline_install(fixture.world, fixture.modules, foundation.data, true, &diagnostic), "Source session baselines");
+    if reconstruction {
+        var input: ByteBuffer = default;
+        defer bytes_dispose(&input);
+        utility_check(driver_read_file(argv[4], &input), "Read frozen reconstruction input");
+        fixture.source = backend_source_create(runtime.data, runtime.length);
+        utility_check(fixture.source != null && backend_session_set_target(fixture.source.backend,
+            width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown"), "Reconstruction source target");
+        var saved: ByteBuffer = default;
+        defer bytes_dispose(&saved);
+        var healthy = "import foundation;fn answer():i32{return 42;}print(answer());";
+        if denial {
+            var first = backend_source_compile_world(fixture.source, fixture.world, healthy, strlen(healthy),
+                BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+            utility_check(backend_source_test_has(first, "\"status\":\"compiled\"")
+                && bytes_append(&saved, fixture.source.foundation.data, fixture.source.foundation.length), "Prior valid canonical owner");
+        }
+        var probe: ReconstructionProbe = {world: fixture.world, budget: &budget, source: fixture.source,
+            output: argv[5], deny: denial, ..default};
+        compiler_world_grammar(fixture.world).observer = {context: bits(void*, &probe), event: reconstruction_observe};
+        defer compiler_world_grammar(fixture.world).observer = default;
+        var result = backend_source_compile_world(fixture.source, fixture.world, input.data, input.length,
+            BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+        puts(result);
+        printf("input_bytes=%zu output_bytes=%zu backend_resource=%zu backend_offset=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+            input.length, fixture.source.foundation.length, convert(usize, fixture.source.backend.backend.resource_error),
+            fixture.source.backend.backend.error_offset, 0, 0, 0);
+        if denial {
+            var passed = probe.parses == 2 && !probe.occupied.active
+                && fixture.source.backend.backend.resource_error == WorkBudgetError.Capacity
+                && backend_source_test_has(result, "\"resourceError\":\"Capacity\"")
+                && saved.length == fixture.source.foundation.length
+                && utility_equal(saved.data, fixture.source.foundation.data, saved.length);
+            probe.deny = false;
+            var retry = backend_source_compile_world(fixture.source, fixture.world, healthy, strlen(healthy),
+                BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+            puts(retry);
+            passed &&= backend_source_test_has(retry, "\"status\":\"compiled\"")
+                && saved.length == fixture.source.foundation.length
+                && utility_equal(saved.data, fixture.source.foundation.data, saved.length);
+            puts(passed ? "Recheck typed denial / rollback / fresh canonical retry passed" : "Recheck denial contract failed");
+            return passed ? 0 : 1;
+        }
+        utility_check(driver_write_file(argv[5], fixture.source.foundation.data, fixture.source.foundation.length), "Save exact reconstructed output");
+        return backend_source_test_has(result, "\"status\":\"compiled\"") ? 0 : 1;
+    }
     var result = backend_source_tests_runtime(fixture.modules, runtime.data, runtime.length);
     if result != 0 { return result; }
     result = backend_source_world_tests_runtime(bedrock.data, foundation.data, runtime.data, runtime.length);
