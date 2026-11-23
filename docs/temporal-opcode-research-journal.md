@@ -89836,3 +89836,12 @@ sanitizer or hosted release claim. All active owned test jobs drained; todo hash
 `e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327`
 unchanged. ROOT retains the two composition failures, missing linking prerequisites
 and semantic-port's15 incomplete case receipts for final acceptance.
+
+B1 closure-capacity publication reconciliation: the required ff-only pull refused
+normal divergence; complete-history merge f00bbdf215fb9186620b3fce079e310d9fd73c1c preserves published62d9bbd4
+without conflicts. All compiler/library/backend/language/bootstrap providers are
+identical to frozen e7558fa8. Incoming browser/test/CMake/receipt changes retain
+their owners' evidence; the frozen runners do not claim those new tests passed.
+The change against published main is receipt/journal only. Reused unchanged
+compiler/oracle evidence, checked the merged diff and preserved all source/log
+boundaries; no unrelated rebuild or repeat matrix. Normal push follows.

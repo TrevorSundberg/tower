@@ -133,3 +133,9 @@ SHA256 identities:
 - Small object: `cdc5a6ec0f2b12f1f7a622f45a27859e374558867df97470c8120cd81ddfb407`.
 - Large object: `ae9e824d75213b15baa1811f9ec4db04a2f044cce25746d291b888c7952f4e08`.
 - Current frozen production-unit object: `c8831519174e410abf5116ebb6b25610696e11644bd8283ef1a15194b659fd56`.
+
+Publication reconciliation preserves complete published `62d9bbd4` history.
+Compiler/library/backend/language/bootstrap inputs remain identical to this
+freeze. Incoming browser, tests and CMake changes keep their independent receipts;
+the frozen test binaries do not validate newly added tests. This publication
+contains only the negative-result receipt/journal and reuses unchanged evidence.
