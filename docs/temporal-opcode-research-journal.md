@@ -94980,3 +94980,12 @@ measured complete resource snapshot remains3a0b5e41, not later merged main.
 All four tests, loader, host files, reactors and their language/compiler/library
 providers remain byte-unchanged; their hashes were checked again. No unaffected
 runtime check was repeated and no later resource change was silently relabeled.
+
+
+A second push race joined30e60c94's browser retirement-error transport. Its
+compiler-worker-group.mjs error handlers and strict shared-browser script are
+also outside this receipt's3a0b5e41 host snapshot. Source inspection confirms the
+changed createCompilerWorker page-owned path is not invoked by these ordinary
+Node fixtures (compilerThreads takes the non-shared module return or Node worker
+factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
+hosts, compilerThreads and Tower providers still match the measured freeze.
