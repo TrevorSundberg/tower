@@ -82295,3 +82295,18 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+Second normal push also raced published work. Complete68f8964 merged cleanly as
+62aa28e3160a1fd6363dd565ed1b8773a634a0d9; D1 fixture/caller are unchanged.
+Checked queued-stage ownership, constructor/evaluation admission and grammar
+observer layout changed the closure, so15 affected target actions rebuilt in
+153.70wall/149.55CPU/779528KiB. Same focused gates pass on this frozen input:
+dependency-units20.49wall/34.65CPU/810140KiB; query-smoke .22/.24/65048;
+unit-admission13.59/16.40/476820. All exit0 with empty stderr and zero swaps.
+Successful compilation intervals9.332038/3.156181s retain known42–45, canonical
+parity, observed threads1/4 and peak1/4; cycle controls preserve exact ordered
+error bytes/offset. Nested admission wakes in57001ns and cancellation drains.
+Full source manifest verifies; runner8166fff10179bac831a1abeeac6078fbd9c2cbbb3eb21d8cadf95e70caf89cf1.
+No scope expansion or broad matrix; the repeated focused checks were required
+by actual compiler changes. Jobs drained, affinity restored and own lock released.
+Third normal push follows under the bounded retry rule; its receipt is in status.

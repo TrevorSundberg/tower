@@ -3188,3 +3188,9 @@ now derive from the actual bool input array. Final dependency cost24.02wall/
 38.11CPU/870988KiB, zero swaps; actual four-thread/peak4 overlap and exact output/
 error parity remain checked. Source manifest verifies; this is bounded acceptance,
 not complete scheduler/race/release coverage or an attributed performance change.
+
+Final retry source62aa28e includes checked queued stages and constructor/evaluation
+admission. Unchanged D1 fixture/caller pass after the15-action affected rebuild:
+dependency-units20.49wall/34.65CPU/810140KiB, query-smoke .22s, unit-admission13.59s.
+All source hashes verify, stderr is empty, and zero swaps are recorded. Exact
+answers/canonical/errors and actual four-thread/peak4 overlap remain checked.
