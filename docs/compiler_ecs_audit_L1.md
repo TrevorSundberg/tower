@@ -9,8 +9,12 @@ profile processes preserve outputs and canonical hashes. Large call-heavy runs
 cost about 2-3% end to end; separate phase timing shows about 7.5% execution cost.
 Two slow process exits outside compilation did not recur in twelve Linux-local
 output controls; their original measurements remain recorded, cause unproven.
-Current instrumentation and integrated publication remain pending. Preserve older
-evidence below as historical; see the journal for source identities and limits.
+Current e68 thread instrumentation passes three query runs, two four-unit runs
+with actual outer overlap and identical canonical hashes, and full aggregate
+execution. The latter finishes in533.78s within its unchanged600s bound. This
+does not cover later merged sources, native UBSan or foreign libraries. Integrated
+memory instrumentation/bootstrap/browser/publication remain pending. Preserve
+older evidence below as historical; see the journal for identities and limits.
 
 This is an in-progress audit of `6282238779034442e0578d76b921ca117df819f1`,
 begun on 2026-11-22. It is not an acceptance or publication receipt. Paths below
@@ -308,3 +312,19 @@ final joined instrumentation and performance/allocation coverage, while L2
 independently validates the newest portable harness. Historical helper/readiness/aggregate bugs are not restated as
 unimplemented capabilities. No deliberate invalid-memory/race sensitivity probe
 will be repeated; supported valid-program instrumentation remains required.
+
+### Remaining execution allocation scope after e68e2b2
+
+The preceding rows retain their historical snapshot identities. Current memory,
+initialization/input, frame and task owners have shared physical receipts; native
+seven-suite and exact rollback/reuse checks pass. Frame/task cost and source-specific
+instrumentation limits are recorded in the latest journal entry.
+
+Remaining work is concrete: graph value/address/heap/string/sequencing maps,
+node/function/type indexes, fast-cache arrays and diagnostic/opaque owners still
+have separate allocation boundaries. L2's proposed TypeObjectIndex is the next
+shared dependency; its resource result must survive graph/fast consumers and
+optional semantic queries. No API draft is credited as implemented. Incoming
+resource-growth tests must prove they reach the nested allocation after the newly
+charged entry owners. Current supported instrumentation, merged source rebuilds,
+public-bootstrap/generation/browser closure and leased publication remain open.
