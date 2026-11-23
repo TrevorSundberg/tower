@@ -81669,3 +81669,26 @@ worker overlap. Logs b2_admission_parser_merge_{build,test,units,modules,backend
 B2 implementation remains dbce8d7f unchanged; no retiming of the isolated cost
 sample. All owned children drained; normal push retry follows. Broad gates and
 hosted deployment stay pending ROOT, with exact module-provider handoff above.
+Final scoped integration receipts before normal main publication: source816ff583
+joined A1 lifecycle frontier74afc0d0 and D2 symbol policy; source43ecc98d then
+joined B1 diagnostic ownership189e3927. Both frozen builds pass all36 executable
+admission trials, query-smoke including actual clone overlap, and comptime_flow
+jobs1/4 exact output/empty stderr. Their source manifests verify unchanged.
+The lifecycle incremental build took23.29wall/36.20CPU seconds,767700KiB peak;
+the parser join took19.92wall/24.41CPU seconds,715876KiB. Final compiler SHA256
+bfdd33e91b498df69d5a588bedab69fd904c96795d56c952a3d85fdf3d7a4b94.
+Logs remain in /cache/root_executable_lifecycle_816ff and
+/cache/root_executable_parser_43ecc. All owned jobs drained. Complete validated
+source histories remain ancestors of main; none was replaced by an isolated ABI
+copy. This receipt is documentation only and adds no runtime performance change.
+The earlier before/after data retain their original source identities.
+
+Normal source push publishes this coherent batch. Runtime gh-pages deployment
+and the final supported sanitizer/bootstrap/browser/scaling acceptance remain
+pending while the separately assigned implementation batches finish; no current
+runtime publication or100% completion is claimed. A1 continues ready evaluation
+frontiers, A2 checked queued provenance, B1 measured grammar/cache iteration cost
+and its own symbol boundary closure, B2 nested budget wake/refill, L1 interpreter
+storage, L2 constructor/evaluation admission, D1 cross-file staging integration,
+and D2 the existing independent C-reference cost comparison. No extra contexts
+were spawned, and completed windows were replaced in their existing sessions.
