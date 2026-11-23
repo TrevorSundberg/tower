@@ -67904,3 +67904,66 @@ Ready to commit this complete producer/consumer/test slice and export full main
 history (root75 plus prior B1 checkpoints), not signatures alone. Publication is
 still unleased; earlier fullfrontend300s timeout remains open. No push or hosted
 verification claimed. Documentation-only evidence additions have no runtime cost.
+
+### D1 current declaration/stage union and durable registration (2026-11-23)
+
+Audited ROOT556 and complete B1 declaration3992, committed reviewb92e046c and
+merged fullhistory cleanly as838001266414a8555a57e8b22499db84e934024e. Apparent
+journal deletions in the merge move retained historical B1 receipts; source
+history and both owner entries remain. Todo unchanged. Root routed test-only
+cache-aware phase patch3d9608c0 toL1; newcache ABI has not been adopted here.
+
+After D2 actual09:02 drain, acquired atomic lock; hostcontroller2944614,
+container81186/session33374 started09:06:15UTC. The handoff's manually typed09:08
+label was incorrect, explicitly corrected in both lane records; raw timestamps
+are retained. SteamDeck14.8GiB, Docker4be584fb, cpus0,2, LLVM19.1.1, publicbootstrap
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+Release/jobs1/native x86_64-pc-linux-gnu, no override. Existing vendor cache warm;
+each test sample starts a fresh process, no OS cache flush. Source closure frozen.
+
+Smallest entity_stage_result leaf5.08wall/5.02CPU and fault leaf4.03/3.97 pass;
+manual3each with existing production or serialfault runtimes pass. Canonical
+compiler/LR/frontend23affected steps pass211.25wall/206.39CPU/740972KiB RSS.
+Compiler32864c4b547ba96a5e4f7570115fa760ed8fed14ad30d1acaf7a3d951559227d
+plus all50 adjacent resources copied/hashrecorded. LRbf1e35e5357d9cccbd2e70f4a80bae0cf482944246756c43cc73a6b3e31eddee
+and frontendda753742ffbbb55d39fad838d95ac65443e83d26696d692509027352cb348dbf
+pass receipt32, exact24startup/growth, query-smoke, parser and grammar-resource.
+Query.19wall/.19CPU/60600KiB; parser.05/.04/53288; grammar2.93/2.90/52048.
+These are correctness timings, not paired production performance claims. All
+source hashes and empty stderr verified; owner clone overlap remains actual.
+
+After complete drain, add only two existing normal/fault factory list members
+and README. No fixture body, allocator, production, provider or syntax change.
+Patch1b6ef69e20e3e71b1d376024f6e42628f9be9d3163431d6510f719db270d5d49
+sent for independent source review. Native6steps15.53wall/15.20CPU/237092KiB;
+new registered fixtures3each exactly match manualbeforestdout and unique
+main/tower_allocate/compiler_buffer_allocate/free definitions. Both CTest cases
+pass. Before/after n3 per fixture allwall/CPU below.01s; normalRSS1472/1600/1600
+before and1600each after, fault1600each before and1596/1600/1600after. No speed or
+allocation-retention improvement claimed at that timer resolution. Existing
+oracles verify exact final buffer/ledger retirement and rollback; registration
+itself adds no runtime storage or scheduling algorithm.
+
+Session50458 supported address/thread each9steps29.99wall/29.29CPU/231844KiB
+and22.42/21.83/231864. Eachmode3runs ofeachnewfixture pass, exactnormalstdout,
+emptyerrors, actualfixture/provider IR+objects/accesshooks saved. Also run existing
+real worker stage_concurrent3native/3address/3thread with unchangedbarriers,
+publish/discard/partial-admission/cancel and finalizer assertions;57792finalizations
+per run. Firstaddress.66wall/.82CPU/92184KiB; firstthread.46/.48/36000KiB. Runtime
+metrics and allsamples saved, not worker scaling/profitability claims. Fault
+allocator staysserial. ASanLSan enabled, TSan halt_on_error; no sourceUBSan,
+externalLLVM or universalrace-freedom claim. All measuredchildren report0swaps;
+preexisting hostswap5.8GiB is not presented as hostno-swap evidence.
+
+Sessions33374/2465/50458 all0, sourcehashes unchanged; both owncontainers only
+init/sleep before releasing ownemptylock09:12 toD2. No closure mutation during
+builds. Logs/artifacts build/d1_ecs/stage_registration_before and_after. Future
+StageFaultLimit96 measured-count improvement routed A2; no competingbodyedit.
+D2 complete7fb bundle52233a49 and receiptff9a5d3f independently hashverified,
+exacttwoTower policy changes/journal reviewed. Initial guessedparentpath lookup
+failed; located actualD2subdirectory and fetchedcorrectly, no source mutation or
+failed build hidden. Production directories exactlymatch838; current runtime
+receipt therefore has matching production source, not identical binary identity.
+A1/L2completecandidates fetched/read-only, newcache/pumps/callers remain unadopted.
+Final currentcombined sanitizer/bootstrap/browser/generation/leasedatomicrelease
+remain open; this boundedregistration milestone does not complete D1 goal.

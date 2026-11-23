@@ -2344,3 +2344,35 @@ owner gaps; no whole-world memory-cap or universal race-freedom assertion. The
 owner's bounded n6 editor RSS investigation retains its original n2 increase and
 does not establish a regression or improvement. Documentation-only review has no
 runtime change to profile.
+
+### Durable stage/view fixture registration — frozen83800126
+
+No new Tower paths or fixture body changes;518/518 direct paths remain reviewed.
+`entity_stage_result.tower` now enters the existing normal fixture factory and
+`entity_stage_result_faults.tower` the existing serial fault factory. Their full
+entities/stage/memory imports supply one provider each, without the separate
+entity-create provider. The existing `entity_stage_concurrent.tower` supplies
+actual worker cancellation/publication coverage; serial failure-prefix execution
+is not called threaded coverage. README records exact targets and distinctions.
+
+Independent public9653 leaves and manual3each passed before registration. After
+registration, native3each, two named CTest cases, address3each and thread3each pass
+with exact baseline stdout and one main/allocator/provider definition. Actual
+fixture/provider instrumented IR+objects and access hooks are saved. Separate
+unchanged worker-stage fixture passes native3/address3/thread3, each retaining its
+barrier/ownership/lifetime assertions and57792 finalizations. This supports the
+checked executions, not universal race freedom or source UBSan/externalLLVM.
+
+The current stage fault fixture's guessed StageFaultLimit96 remains an owner
+follow-up: derive its sweep from a measured successful publication allocation
+count, preserving rollback/retry assertions. Routed A2 via status; registration
+does not silently change that specific owner fixture. Earlier constructor/schedule
+array-bound proposals likewise await owner disposition.
+
+Current838 merged native compiler/LR/frontend public build and receipt32,
+resource24, query-smoke, parser and grammar-resource pass locally, distinct from
+older28-case receipts. D2 exact7fb parser symbol policy was independently read:
+four observed ParserNodes-only names, explicit positive/near-name/wrong-unit
+cases, no speculative export allowance. Its production directories byte-match838;
+full history is queued after this source freeze. New A1/L2/L1 inputs are not covered
+by these results. Final clean bootstrap/browser/generation/release remains open.
