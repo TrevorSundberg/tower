@@ -27,7 +27,7 @@ if(policy_triple MATCHES "^x86_64-.*linux")
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower" "${policy_triple}")
   # Buffer/arena fixtures import host.memory; the ledger fixture links the
   # existing memory object. All use the single-owner fault allocator/transport.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults)
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults entity_mutation_results)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
@@ -41,7 +41,13 @@ if(policy_triple MATCHES "^x86_64-.*linux")
     add_executable(tower-${name}-tests
       "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")
     set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE C)
-    target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
+    target_link_libraries(tower-${name}-tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+    if(unit STREQUAL "entity_mutation_results")
+      # This self-contained fixture already imports the portable transport.
+      set_target_properties(tower-${name}-tests PROPERTIES TOWER_SERIAL_WORK_TRANSPORT TRUE)
+    else()
+      target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial)
+    endif()
     add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
     set_tests_properties(tower-${name}-tests PROPERTIES TIMEOUT 30)
   endforeach()
@@ -112,6 +118,32 @@ function(tower_lr_work_policy_test)
     foreach(mode IN ITEMS healthy cancelled capacity failed)
       add_test(NAME tower-semantic-capture-admission-${mode} COMMAND tower-semantic-capture-admission-tests ${mode})
       set_tests_properties(tower-semantic-capture-admission-${mode} PROPERTIES TIMEOUT 60)
+    endforeach()
+
+    foreach(suite IN ITEMS source_proof aggregate)
+      string(REPLACE "_" "-" name "semantic-${suite}-admission")
+      tower_runtime_object(${name}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_admission_checks.tower" "${triple}")
+      set(admission_sources ${sources})
+      set(admission_libraries ${libraries})
+      set(modes healthy failed cancelled query edge finish)
+      if(suite STREQUAL "aggregate")
+        # The fixture imports the production semantic implementation itself.
+        # Retain its other service objects and link each provider exactly once.
+        get_target_property(semantic_sources tower-compiler-semantics INTERFACE_SOURCES)
+        list(REMOVE_ITEM semantic_sources "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.o")
+        list(APPEND admission_sources ${semantic_sources})
+        list(REMOVE_ITEM admission_libraries tower-compiler-semantics)
+        set(modes healthy failed cancelled lowering)
+      endif()
+      add_executable(tower-${name}-tests ${admission_sources} "${${name}_OBJECT}")
+      set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE CXX)
+      target_link_libraries(tower-${name}-tests PRIVATE ${admission_libraries})
+      target_link_options(tower-${name}-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+      foreach(mode IN LISTS modes)
+        add_test(NAME tower-${name}-${mode} COMMAND tower-${name}-tests ${mode})
+        set_tests_properties(tower-${name}-${mode} PROPERTIES TIMEOUT 60)
+      endforeach()
     endforeach()
 
     tower_runtime_object(semantic-pool-budget-checks

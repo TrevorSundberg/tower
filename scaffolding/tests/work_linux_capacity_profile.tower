@@ -1,0 +1,44 @@
+import tower;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+import .host.driver_options;
+import .library.work_pool;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+
+fn capacity_profile_check(ok: bool): void {
+    if !ok { trap("Linux capacity profile mismatch", 0); }
+}
+fn capacity_profile_time(): i64 {
+    var stamp: i64[2];
+    capacity_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+export fn work_kernel_execute(payload: void*): void { *bits(usize*, payload) += 1; }
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { return 2; }
+    var capacity = driver_unsigned_limit(argv[1], WorkPoolMaximumCapacity);
+    var rounds = driver_unsigned_limit(argv[2], ~convert(usize, 0));
+    if capacity == 0 || rounds == 0 { return 2; }
+    capacity_profile_check(work_thread_capacity() == capacity);
+    var start = capacity_profile_time();
+    for (var i: usize = 0; i < rounds; i++) {
+        capacity_profile_check(work_thread_capacity() == capacity);
+    }
+    print(capacity_profile_time() - start);
+    print(rounds);
+    print(capacity);
+    // Observe actual slots and a checked dispatch, never label this as overlap.
+    var pool: WorkPool = default;
+    capacity_profile_check(work_pool_open(&pool, WorkPoolMaximumCapacity));
+    defer work_pool_close(&pool);
+    capacity_profile_check(pool.count == capacity);
+    var result: usize = 0;
+    capacity_profile_check(work_pool_submit(&pool, bits(void*, &result)));
+    capacity_profile_check(work_pool_receive(&pool, true) == bits(void*, &result));
+    capacity_profile_check(result == 1 && pool.running == 0);
+    print(pool.count);
+    return 0;
+}

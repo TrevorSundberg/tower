@@ -1,6 +1,9 @@
 import tower;
 import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.syntax_types;
 import .library.entity_types;
+import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
 import utility_checks;
@@ -13,6 +16,7 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn work_thread_available(): bool;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 struct WorldConstructorSample { bytes: usize; allocations: usize; }
 
@@ -55,7 +59,9 @@ fn world_constructor_trial(cap: usize, allowed: usize, wanted: WorkBudgetError):
 
 export fn world_constructor_tests(): void {
     utility_check(!work_thread_available(), "World constructor allocation faults require serial transport");
+    world_bare_clone();
     world_component_results();
+    world_metadata_results();
     var unlimited = ~convert(usize, 0);
     // Use the actual successful constructor footprint, not a copied world layout
     // or an imported second implementation in this linked consumer fixture.
@@ -72,6 +78,158 @@ export fn world_constructor_tests(): void {
     utility_check(compiler_world_create_result(1, &uninitialized, &empty) == WorkBudgetError.Invalid
         && compiler_world_create_result(0, null, &empty) == WorkBudgetError.Invalid && empty == null,
         "Invalid world policies fail before construction");
+}
+
+extern fn compiler_node_copy_metadata_result(source: void*, destination: void*): WorkBudgetError;
+extern fn compiler_node_copy_metadata_staged_result(source: void*, destination: void*, stage: void*): WorkBudgetError;
+extern fn compiler_world_get(world: void*, owner: void*, kind: u32): void*;
+extern fn node_match_set_label(value: ParserMatchData*, data: u8*): bool;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_references(node: void*): usize;
+extern fn entity_store_create(): void*;
+extern fn entity_store_dispose(store: void*): bool;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, error: WorkBudgetError*): void*;
+extern fn syntax_origin_copy_result(world: void*, source: void*, destination: void*): WorkBudgetError;
+
+fn world_bare_clone(): void {
+    var buffers = tower_test_buffer_count();
+    var store = entity_store_create();
+    var other = entity_store_create();
+    var source = entity_create(store);
+    var child = entity_create(store);
+    var destination = entity_create(store);
+    var foreign = entity_create(other);
+    utility_check(source != null && child != null && destination != null && foreign != null
+        && entity_attach(child, source, "leaf"), "Bare-store clone prepares ordinary containment");
+    entity_release(child);
+    var original = bits(Entity*, source);
+    var count = original.child_count + 1;
+    var copied: usize = 0;
+    var error = WorkBudgetError.Memory;
+    var clone = compiler_clone_tree_result(source, count, &copied, &error);
+    var tree = bits(Entity*, clone);
+    utility_check(clone != null && error == WorkBudgetError.None && copied == count
+        && clone != source && tree.store == original.store && tree.child_count == original.child_count
+        && tree.children[0].entity != bits(Entity*, child) && tree.children[0].entity.parent == tree
+        && tree.component_count == 0 && tree.children[0].entity.component_count == 0
+        && strcmp(tree.children[0].name, "leaf") == 0,
+        "Bare-store cloning preserves ordered names without requiring compiler metadata");
+    utility_check(compiler_node_copy_metadata_result(source, destination) == WorkBudgetError.None
+        && syntax_origin_copy_result(null, source, destination) == WorkBudgetError.None
+        && compiler_node_copy_metadata_result(source, foreign) == WorkBudgetError.Invalid
+        && syntax_origin_copy_result(null, source, foreign) == WorkBudgetError.Invalid,
+        "Metadata-free serial copies are no-ops only within their actual store");
+    entity_release(clone); entity_release(source); entity_release(destination); entity_release(foreign);
+    utility_check(entity_store_dispose(store) && entity_store_dispose(other)
+        && tower_test_buffer_count() == buffers, "Bare-store clone retires all original and copied owners");
+}
+
+// Ordinary allocation denial is serial. Successful staged copies queue immutable
+// history and acquire ownership only after join, before the source view closes.
+fn world_metadata_trial(staged: bool, allowed: usize, pressure: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, WorldComponentBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Metadata fixture constructs its bounded world");
+    var store = compiler_world_store(world);
+    var source = entity_create(store);
+    var trace_owner = entity_create(store);
+    var error = WorkBudgetError.None;
+    var span = bits(ParserMatchData*, compiler_world_component_result(world, source, CompilerParserMatch, &error));
+    var prior = bits(SyntaxOrigin*, compiler_world_component_result(world, source, CompilerSyntaxOrigin, &error));
+    var trace = bits(SyntaxExpansion*, compiler_world_component_result(world, trace_owner, CompilerSyntaxExpansion, &error));
+    utility_check(source != null && trace_owner != null && span != null && prior != null && trace != null
+        && node_match_set_label(span, "metadata_copy") && vector_push(&prior.splices, trace),
+        "Metadata fixture prepares real parser and provenance components");
+    span.id = 7; span.start = 11; span.length = 13; span.rule = 17;
+    prior.template_start = 19; prior.template_end = 23; prior.generated = true;
+    prior.expansion = trace;
+    entity_retain(trace_owner);
+    entity_retain(trace_owner);
+    var references = entity_references(trace_owner);
+    var stage = staged ? entity_stage_open(source) : null;
+    var destination = staged ? entity_stage_create(stage, source) : entity_create(store);
+    utility_check(destination != null, "Metadata fixture prepares its destination before denial");
+    utility_check(compiler_node_copy_metadata_result(null, destination) == WorkBudgetError.Invalid
+        && compiler_node_copy_metadata_staged_result(source, destination, null) == WorkBudgetError.Invalid,
+        "Metadata copy rejects invalid owners and stages");
+    var view = entity_view_open(source);
+    utility_check(view != null && compiler_node_copy_metadata_result(source, destination) == WorkBudgetError.Busy,
+        "Serial metadata copy refuses pinned or leased payload mutation");
+    if !staged { entity_view_close(view); view = null; }
+    var occupied: WorkReservation = default;
+    if pressure {
+        var snapshot: WorkBudgetSnapshot = default;
+        utility_check(staged && work_budget_snapshot(&budget, &snapshot)
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied)
+                == WorkBudgetError.None, "Metadata fixture occupies its actual remaining byte grant");
+    }
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    error = staged ? compiler_node_copy_metadata_staged_result(source, destination, stage)
+        : compiler_node_copy_metadata_result(source, destination);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    var wanted = pressure ? WorkBudgetError.Capacity : (allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory);
+    utility_check(error == wanted, "Metadata copy preserves its actual allocation or budget cause");
+    if pressure {
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+            "Metadata fixture releases budget pressure");
+        error = compiler_node_copy_metadata_staged_result(source, destination, stage);
+        utility_check(error == WorkBudgetError.None, "Metadata copy retries after budget pressure drains");
+    }
+    if error == WorkBudgetError.None {
+        var copied = bits(ParserMatchData*, compiler_world_get(world, destination, CompilerParserMatch));
+        var origin = bits(SyntaxOrigin*, compiler_world_get(world, destination, CompilerSyntaxOrigin));
+        utility_check(copied != null && copied.id == span.id && copied.start == span.start
+            && copied.length == span.length && copied.rule == span.rule
+            && copied.label.length == span.label.length && copied.label.data != span.label.data
+            && origin != null && origin.template_start == prior.template_start
+            && origin.template_end == prior.template_end && origin.generated == prior.generated
+            && origin.expansion == trace && origin.splices.length == prior.splices.length
+            && origin.splices.data != prior.splices.data && origin.splices.data[0] == trace,
+            "Metadata copy preserves parser data and independently owns provenance storage");
+        for(var i: usize = 0; i <= span.label.length; i++) {
+            utility_check(copied.label.data[i] == span.label.data[i], "Metadata label copies exact bytes and terminator");
+        }
+        utility_check(entity_references(trace_owner) == references + (staged ? 0 : 2),
+            "Only serial copying directly retains shared provenance");
+    }
+    if staged {
+        entity_stage_hold(stage);
+        entity_view_close(view);
+        entity_stage_discard(stage);
+    } else { entity_release(destination); }
+    utility_check(entity_references(trace_owner) == references, "Discarded metadata releases exactly its owned history");
+    entity_release(source);
+    utility_check(entity_references(trace_owner) == 1, "Source metadata releases both history references");
+    entity_release(trace_owner);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(compiler_world_dispose(world) && work_budget_snapshot(&budget, &final)
+        && final.live == 0 && final.used_bytes == 0 && final.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Metadata fixture retires all components, stage storage and grants");
+    return calls;
+}
+
+fn world_metadata_results(): void {
+    var unlimited = ~convert(usize, 0);
+    for(var mode: usize = 0; mode < 2; mode++) {
+        var staged = mode != 0;
+        var calls = world_metadata_trial(staged, unlimited, false);
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            world_metadata_trial(staged, allowed, false);
+        }
+    }
+    world_metadata_trial(true, unlimited, true);
 }
 
 // Component admission preserves the physical store's failure cause before

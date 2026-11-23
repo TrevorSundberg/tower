@@ -52,7 +52,9 @@ the per-call entity result in the request's existing LR control error field.
 Recognizer forests charge their descriptor, child index and traversal stack to
 the runtime world's budget. Their per-call result preserves allocation denials
 through shifts/reductions; the legacy standalone forest constructor uses no ledger.
-Early grammar phases, entity attachment and some candidate allocation outcomes
+Forest attachment also preserves the entity producer's structural admission and
+allocation results before transferring the leaf, including `Busy` and `Invalid`.
+Early grammar phases, other entity attachment callers and some candidate allocation outcomes
 still need complete propagation; the getters do not establish coverage of every
 allocation path.
 
@@ -305,3 +307,28 @@ not Foundation pointer metadata. The legacy `tower_memory_*` counter measures
 its explicit single-owner allocation clients, not all compiler allocations;
 production workers do not access it. Fault-injection tests use the serial runtime
 and check exact buffer cleanup separately from real worker-overlap tests.
+
+Metadata copying exposes per-call `WorkBudgetError` results through
+`compiler_node_copy_metadata_result` and
+`compiler_node_copy_metadata_staged_result`; provenance uses the matching
+`syntax_origin_copy_result` and `syntax_origin_copy_staged_result` functions.
+The existing void/bool wrappers remain. Component admission and staged reference
+queuing preserve their producer's exact result. Serial copies reject leased or
+pinned mutation; staged copies require a new private destination in the supplied
+stage and world. Serial same-store copies without a compiler world preserve the
+metadata-free no-op used by standalone entity cloning. Callers discard an
+incomplete destination on failure: this is
+not transactional replacement of an existing payload. Parser labels and splice
+arrays still use ordinary vectors, so their physical allocation failures report
+`Memory`; this does not claim those buffers are charged to the world budget.
+Staged history fields become owning only after queuing succeeds, with the usual
+coordinator hold-before-unpin contract. Reference-counter exhaustion remains a
+separate entity-stage contract gap.
+
+Ordered containment also offers `entity_replace_child_result(parent, index,
+replacement)` and `entity_take_last_child_result(parent, error)`. Replacement
+checks all affected leases, including the displaced child, before changing links
+or retaining the replacement; overflow reports `Exhausted`. Taking a child checks
+that child's lease and transfers the parent's existing reference without retaining
+or allocating. A null result with `None` means an empty valid parent. Existing
+bool/pointer wrappers remain; callers needing an exact cause use the result APIs.
