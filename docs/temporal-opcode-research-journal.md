@@ -84325,7 +84325,7 @@ therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
 
-### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
+### 2026-11-23 ï¿½ L1 counted interpreter text and package ownership (implementation, validation in progress)
 
 Bounded follow-up starts at published36ad337 after the required fast-forward pull,
 with no surviving L1 jobs. PID8356 performed the first successful caller/layout
@@ -84368,7 +84368,7 @@ caught an accidental internal/declaration offset substitution; corrected to the
 established declaration mapping. Its focused rerun and shared-Wasm validation are
 pending at this entry. No failed attempt is represented as a pass.
 
-### L1 interpreter/output/package storage gate — focused completion receipt
+### L1 interpreter/output/package storage gate ï¿½ focused completion receipt
 
 The final layout keeps Fast's existing hot offsets and appends only its frozen
 provider target. Native `core` passes on that layout, including156 graph/Fast
@@ -87238,3 +87238,21 @@ documentation; the full frozen scaffolding/build/bootstrap SHA256 list still
 matches and compiler3285cd9d is unchanged. Existing merged runtime evidence is
 reused, not rerun or relabeled for changed code. Normal main publication follows;
 ROOT retains gh-pages and final integrated runtime verification.
+
+B1 integration receipt: implementation46167039 merged complete published
+3e6b5814 history as9c55f7f1 after required ff-only pull reported divergence.
+No conflicts. Incoming A1 body admission and ROOT public bootstrap768a0cdf were
+preserved; B1 did not edit the pin. The public-bootstrap dependency build
+completed63 affected actions in the same native cache. Merged lr-order,
+structure-reuse, grammar-equivalence, parser and native lr all pass. Current
+compiler9062931990478758e0991de071ca23eae7293fefab491d77b0f5dca29e7177f8
+preserves both frozen object identities at workers1/4 and all four exact15/999
+linked executions. Single merged sanity samples (not replacement paired gains):
+small1 .60wall/.52CPU/185888KiB; small4 .69/.74/188772; large1 .74/.66/238660;
+large4 .83/.90/239940. Canonical/retention/peak/zero-teardown contracts unchanged;
+allocation calls2323145 include incoming provider changes. Original n3 evidence
+retains6767cd30 identity. All jobs drained and todo.txt hash unchanged. One
+post-merge shell quoting setup failed before execution; merged_check.sh then
+completed with status0. The journal's appended trailing CR was corrected; scoped
+diff whitespace check passes. Normal push/remote verification follows, with no
+new runtime change or broad matrix. ROOT final integrated gates remain pending.
