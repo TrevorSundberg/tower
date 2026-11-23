@@ -46,27 +46,69 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.exposeFunction('phaseProgress', name => console.log(name));
+  let workers, retirementDeadline;
+  page.on('worker', worker => {
+    const entry = {url:worker.url(), closed:false};
+    entry.finished = new Promise(resolve => worker.once('close', () => { entry.closed = true; resolve(); }));
+    workers.push(entry);
+  });
+  const waitClosed = async entries => {
+    let timer;
+    try {
+      await Promise.race([Promise.all(entries.map(worker => worker.finished)), new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Observed browser workers did not terminate')),
+          Math.max(0, retirementDeadline-performance.now()));
+      })]);
+    } finally { clearTimeout(timer); }
+  };
+  await page.exposeFunction('joinBrowserChildren', async capacity => {
+    // One unchanged 30s budget covers child retirement, coordinator termination
+    // and both independent browser observations; no extra waiting allowance.
+    retirementDeadline = performance.now()+30000;
+    const children = workers.filter(worker => worker.url.endsWith('/src/compiler-thread-worker.mjs'));
+    assert.equal(children.length, capacity, 'Observe every actual nested worker');
+    const start = performance.now();
+    await waitClosed(children);
+    return performance.now()-start;
+  });
   const cdp = await context.newCDPSession(page);
   const {targetInfo} = await cdp.send('Target.getTargetInfo');
   for (const trial of [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {
+    workers = [];
     const start = performance.now();
     const receipt = await page.evaluate(data => new Promise((resolve, reject) => {
       const worker = new Worker('/playground/tests/shared_compiler_worker.mjs', {type:'module'});
       const timer = setTimeout(() => { worker.terminate(); reject(new Error('Selected browser compiler trial exceeded 180 seconds')); }, 180000);
       const finish = action => { clearTimeout(timer); worker.terminate(); action(); };
+      let result, started = false;
       worker.onerror = event => finish(() => reject(new Error(event.message)));
       worker.onmessage = ({data:message}) => {
+        if (message.probe === 'start') { started = true; worker.postMessage(data); return; }
+        if (message.probe === 'retire') {
+          result.coordinatorProbes = ['start', 'retire'];
+          finish(() => resolve(result)); return;
+        }
         if (message.progress) { window.phaseProgress(message.progress); return; }
         if (message.error) finish(() => reject(new Error(JSON.stringify(message))));
-        else finish(() => resolve(message.result));
+        else if (started && message.result) {
+          result = message.result;
+          // terminate() requests shutdown; it is not a join. Keep the
+          // coordinator's event loop alive until the browser reports each child
+          // closed, then probe that loop before its single owner terminates it.
+          window.joinBrowserChildren(data.capacity).then(milliseconds => {
+            result.childCloseMilliseconds = milliseconds;
+            worker.postMessage({probe:'retire'});
+          },
+            error => finish(() => reject(error)));
+        }
       };
-      worker.postMessage(data);
+      worker.postMessage({probe:'start'});
     }), {...trial, files, builtins, fixtures});
     receipt.wallMilliseconds = performance.now()-start;
     // Retain canonical hashes in evidence, but compare the full text first.
     report.trials.push(receipt);
     let remaining;
-    const closing = performance.now(), deadline = closing+30000;
+    const closing = performance.now(), deadline = retirementDeadline;
     do {
       remaining = (await cdp.send('Target.getTargets')).targetInfos.filter(target =>
         target.browserContextId === targetInfo.browserContextId && target.type === 'worker');
@@ -76,6 +118,12 @@ try {
     receipt.remainingWorkerTargets = remaining;
     assert.equal(remaining.length, 0, 'Closing the coordinator must terminate every nested browser worker: '+JSON.stringify(remaining));
     receipt.browserWorkersAfterClose = remaining.length;
+    assert.equal(workers.length, trial.capacity+1, 'Coordinator and nested worker observations');
+    // Target destruction and Playwright's close notification use separate CDP
+    // sessions; either event may reach Node first. Require both observations.
+    await waitClosed(workers);
+    assert.ok(workers.every(worker => worker.closed), 'Every observed worker emitted close');
+    receipt.browserWorkersClosed = workers.length;
   }
   const serial = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 1);
   const parallel = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 4);

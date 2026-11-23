@@ -87996,6 +87996,144 @@ is inapplicable. All normal/shared/LLVM/cross outputs remain their prior frozen
 b0 artifacts until affected providers are rebuilt. Documentation publication
 reuses the current verified Pages runtime and cannot claim the new compiler
 has deployed. The original todo.txt bytes remain unchanged.
+### D2 shared-browser coordinator retirement repair — 2026-11-23
+
+Bounded continuation of31e16e9e; no Tower production/provider logic changed.
+Read/reviewed the complete shared test script and worker, compiler-threads,
+compiler-thread-worker, tower-host close, compiler-runtime generation replacement,
+and the language-service cancellation boundary. The fixture counted nested
+`terminate()` requests as closure, then called both `self.close()` and page-side
+`Worker.terminate()` before browser child retirement completed. The page/context
+stayed open. The original strict CDP check was not an invalid outer-target filter.
+
+Preserved frozen2013 frontend/work binaries (SHA631030b7/a1f9a66e; full hashes in
+prior receipt and frozen_artifacts.sha256). Original unchanged pool reproduction
+again failed: outer debugger evaluation settled neither success nor context-close
+within the bounded1s observation; all child evaluations rejected closed. Another
+exact original run failed after compiler1 with only the outer CDP target after
+30015ms, while independent host ps snapshots retained two sleeping DedicatedWorker
+threads (rendererPID3107413, TIDs3107456/3107457). This is not evidence of only a
+retained metadata object. One original instrumented timing run passed; the race
+is nondeterministic. The old handler/reference-release experiment remains failed.
+Removing self.close alone passed pool/compiler1 but failed compiler4 retirement;
+that insufficient candidate and every failure remain in the receipt directory.
+
+Repair is confined to the browser transport fixture: finish Tower cleanup before
+sending its reply; keep the coordinator event loop alive; observe all expected
+nested Playwright close notifications; exchange an independent retire probe;
+then the page alone terminates the coordinator. A start probe establishes the
+same live message path before work. All existing Tower assertions and complete
+canonical comparisons remain unchanged. Require both zero CDP worker targets in
+the original live context and close notifications for every observed worker,
+including the outer coordinator. The30s retirement/180s trial limits are unchanged.
+A first added synchronous close-flag assertion raced CDP target removal against
+Playwright's separate-session notification; its failed join_confirm receipt is
+retained. The final observer awaits that notification instead of assuming event
+ordering. No target is ignored, page/context closed to obtain green, GC forced,
+production scheduler duplicated, or compiler diagnostic weakened.
+
+Chromium159.0.8154.6 WorkerThread Terminate/DidProcessTask/ChildThreadTerminated
+and PerformShutdown implementations provide the relevant shutdown ordering
+contract: https://chromium.googlesource.com/chromium/src/+/refs/tags/159.0.8154.6/third_party/blink/renderer/core/workers/worker_thread.cc .
+The precise internal Chromium race is an inference, not a claimed engine fix.
+The demonstrated defect is this fixture's competing/asynchronous shutdown paths;
+production generation replacement keeps its coordinator alive, and production
+cancellation has a single parent owner. Their broader UI/hosted acceptance is
+not established by these selected fixtures.
+
+Independent OS confirmation used a preserved diagnostic copy of the existing
+script: after all three trials, leave page/context/browser open, exchange an
+active-page MessageChannel message, then inspect actual container OS threads.
+It observed zero DedicatedWorker threads in49.17ms. An earlier immediate snapshot
+still had one retiring thread even after both browser observations; this is why
+CDP removal alone was not called an instantaneous OS join. The diagnostic copy
+has a2s failure bound, no sleep/forced GC, and returned0. Linux ps probing is kept
+in the receipt, not imposed on the portable test. Raw status plus report errors
+were inspected; a successful probe is not inferred from elapsed silence.
+
+Frozen2013 validation costs: first full repaired run14.44wall/3.46 waited-child
+CPU seconds/204224KiB max waited-child RSS; independent OS run21.14/2.71/205416.
+These are cold browser launches, shared local disk cache, one sample each, not
+matched compiler optimization or aggregate browser-tree CPU/RSS claims. Compiler
+and allocator are unchanged by the repair; no runtime speedup is claimed. The
+three trials preserve four-thread rendezvous/allocation/cancellation/stale-ticket
+checks, query/body resume/cycle/cancel/resource paths, stage/LR/world checks and
+all three Tower fixtures' graph/Fast outputs0 plus complete canonical equality
+at1/4 workers. Actual nested spawns24/0/781; observed closes5/2/5 including outer.
+The OS-confirmation run's wasm capacity ends17170432/98500608/107741184bytes;
+capacity is not retained allocation or RSS. All noisy receipts remain preserved.
+
+Current-source adoption then froze published7ebb80d5527848d62acedcb289ecbe7ab9c205e9
+plus this transport delta. It includes A1's body admission batch, B1 LR changes,
+L2 known-scan cleanup and D1 diagnostic imports, but no A1 alias-completion repair.
+Actual old depfiles identified only ParserNodes and Semantics in both profiles.
+Using the documented public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138
+(no override; build-bootstrap.sh verified it), each existing cache performed
+exactly two provider compiles and one frontend link. Work fixture and every other
+object remained byte-identical; frozen2013 binaries were copied before rebuilding.
+This is affected-source cached adoption, not another clean bootstrap/release claim.
+
+Environment: Steam Deck AMD Custom APU0932; tower-d2-ecs image4be584fb,
+CPU set0,2 (two physical cores),8GiB cgroup, build/compiler jobs1, Release,
+WASI SDK34/Clang23.1.0, native LLVM19.1.1, Node22.23.5, Playwright1.65.1,
+Chromium159.0.8154.6. Normal/shared IDE_TESTS=ON; LLVM/cross OFF; shared WORK_TESTS=ON.
+Link helper's existing --threads=4 remains its recorded configuration, not a
+claim that every build subcomponent is serial. One D2 heavy job at a time;
+128GiB disk free and9.4GiB host RAM available after checks. Source checksums match.
+
+| Selected command/check | Result | wall / waited-child CPU seconds | max waited-child RSS KiB |
+| --- | --- | ---: | ---: |
+| cmake --build build/browser-wasi --parallel1 --target tower-browser | PASS3 actions |83.92 /72.52|1080932|
+| cmake --build build/browser-wasi-threads --parallel1 --target tower-browser tower-work-tests | PASS3 actions; work fixture unchanged |65.68 /63.61|1081748|
+| test-shared-compiler.mjs current artifacts | PASS all3 trials |19.18 /3.83|204412|
+| final script, one shared30s retirement deadline | PASS all3 trials |16.43 /2.91|205716|
+| test-ide.mjs normal frontend | FAIL known alias case |14.51 /13.78|198916|
+| Node selected diagnostics/hover/completion-queries/language-service/diagnostic-delay | PASS27, fail0, skip0 |2.92 /2.89|134936|
+
+The final transport deadline is shared across nested closure, coordinator
+termination and both browser observations, not three consecutive30s allowances.
+Final trial pool/compiler1/compiler4: spawns24/0/781, observed closes5/2/5,
+zero remaining targets each; child retirement0.50/2.21/5.00ms, outer CDP
+retirement4.05/2.76/29.68ms. Wasm capacities end33947648/90112000/101908480B.
+The frozen work fixture still proves actual four-thread rendezvous, not queue
+width; compiler4 also executes real nested spawns. Unequal phase selection/cold
+loads and two admitted cores make these costs unsuitable as a scaling comparison.
+Full Foundation strings compared equal before hashing; fixture hashes remain
+unchanged. Outputs are exactly `0\n`; canonical SHA256 by lazy-body/generic-headers/
+comptime-flow:20f353844fddba637e6565548fe5d623e1cf2fbc1d2b012d1b1683e38a961249,
+215ad938f0ba63e56a01ded4e83e0db24a46e86aa9bbc5624511dfa3b5ab4cc3,
+9cc979aea89a442fff2c818179169bbdb9abacdfc477f35ab567e5e67e102a15.
+
+Current normal frontend SHA3da65cbd0795a9e2522acc0a16b95f0bcd5a35043baede41e5adcff75d91aca4;
+shared19e52cf02802b6c3761c485d96c4da14ecec3b5cc188345349cef4d724a49cde;
+worka1f9a66e310478ff2e27b650f865c2896f3cbafb92e1bfb96186f9435d4ca3b0.
+Semantics object both profiles:f6575296ac0aabac25b1cd0b7514c09f98c21983e193d962b485d8c3371f968b;
+ParserNodes normal:d441cdd1611d723b355560f92c27ac0f1df4b61f041fc499712619a9c1434e0d;
+shared:31d7cb9d639ce8404a37aeb1505ad6cf936f89de9edf0efd31686130316acdc0.
+Provider manifestSHA4b4ddfdc69aaab409771c653b05e6821141a0375f3163628289981afc1449646;
+final source manifestSHAaa9ab4af90a4d9a38b4d32effc98ae37dccd3e18385525ecf4101bcd25fd49be;
+mounted resourceSHAaf806dea48525a09c5409ee320d73a2eecb047c74d8dd0f89a090d953b56dc1c.
+
+D1 adoption/full-file review: test-shared-compiler.mjs SHA
+bc41120de240a53d4fe695f5cf89348fb96af3f393175b9163bc9814e4eef548;
+shared_compiler_worker.mjs SHA415a38883bb85f08f0220d91ca211e6b68e5d912ae095c0b4e858a48719cdb0d.
+These own only browser messages, page/worker handles, finite timers and observed
+retirement; no ECS payload/query policy, compiler state or allocator is duplicated.
+Tower fixture ownership, exact outputs and original final zero-target assertion
+remain intact. The test releases timers and the browser/server on failure too.
+
+Remaining prerequisite: normal ide_tests still aborts at unchanged
+ide_completion_checks.tower:50, helpers.he expects helper, receives helpers.
+A1 owns that repair and the independent candidate left.an/answer gate. IDE cases
+after that abort remain unrun; no candidate/generation/hosted gate is promoted to
+pass. Selected body/query/canonical tests above passed current providers; full
+native body-admission/sanitizer/generation and final hosted release remain ROOT's
+work. No sanitizer or LLVM/cross build ran, no deployed-runtime claim. All jobs
+drained and D2 heavy lock released. Reproduction, commands, statuses, source and
+artifact manifests, phase data, originals and rejected candidates are preserved
+in build/d2_ecs/browser_retirement (including frozen_2013); selected receipts are
+copied to the external D2/browser_retirement_7ebb directory. This scoped repair
+and current-source evidence are ready for normal main publication.
 Publication reconciliation: complete public7ebb80d5 merged as9e1662d2f0df4269507c8ddafc334655c2e0c1e9,
 including B1 LR, L2 known-scan, A2 source-comment and L1 backend repairs.
 The two preexisting non-UTF8 journal bytes were restored exactly from31e16e9e
@@ -88032,6 +88170,24 @@ passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e9730
 Owned container is idle. Normal main push/remote verification follows; ROOT's
 broader integrated publication gates remain pending.
 
+Publication reconciliation: fa65b305 committed the repair; required ff-only pull
+found B1 f7e764ab. Complete normal merge0d27e9fbaa50830c7434e53c204909d2dfea108e
+preserved both histories without conflict. Only ParserNodes' actual depfiles
+changed. Rebuilt that provider plus frontend link in each profile (2 actions):
+normal41.57wall/39.74CPU/940732KiB, shared47.51/45.68/965256. Semantics and work
+objects remained unchanged. B1's own merged native LR/oracle/error checks are
+retained at their documented scope; no duplicate native suite ran here.
+Merged strict browser all3 PASS15.91wall/2.51 waited-child CPU/204452KiB; closes5/2/5,
+spawns24/0/781, zero targets, unchanged exact outputs/canonical hashes versus7ebb.
+Merged selected Node checks PASS27/fail0/skip0,3.71wall/4.29CPU/137196KiB.
+Source manifest78040f47095111d58b95be5d84e75d1dc922e41c3cf24589ac9a5f4f86cd8034
+matches before/after; provider manifest23c4f5b8e52903cfb55c09716aa51029769392c4ad4aa1351fc28c352f440be2.
+Merged normal wasm69e9d7df2c43773164f9871355b4755776cd561957548e771e95b9544f403bf5;
+shared6d7bdaac10b23bf04c2809f686d1be875f17bc3d45b5f1ed462ad1dd32a0c501;
+work SHA remainsa1f9a66e. A1 alias fix is still absent; the IDE failure receipt
+remains precisely7ebb rather than relabeled after B1's merge. Final transport
+hashes unchanged. All processes drained, own lock released; normal source push
+follows. No gh-pages or hosted runtime publication by D2.
 Normal push raced B1's253af949 LR range-union change. Merged complete f7e764ab
 history asfad0531493806f5dd4383846a783095ef95f9cae; no alias-code conflict.
 Dependency builds rebuilt only the changed parser provider and relinked consumers.
@@ -88044,12 +88200,51 @@ later pointer/array hover boundary. Logs a1_alias_push_retry_* retain final
 frozen input hashes, timings, diagnostic and exit; all jobs drained. Earlier
 measurements retain their exact source identities. Normal push retry follows.
 
+A1 adoption arrived during that final pull: merged complete8a0b9cf2 history as
+984dc4d75ad49da9ab008f828595ea53d3c96c52, preserving published alias5fdb4827.
+This supersedes the preceding *pending alias repair* statement, not its failed
+historical receipt. Actual depfiles require only Semantics+IDE; one3-action
+compile/compile/link per profile passed (normal45.46wall/44.12CPU/1080204KiB;
+shared55.25/51.14/1080240). ParserNodes and work stayed unchanged. Final frozen
+source manifest4ae41385808a01cb38f2005848e95b63f097ba8ada11ce2ef723f82312ece86e
+matched; provider manifeste333ac1ce7b93206ff1f327880818d41d9b36058910865c31eac1d8fd2cb420f.
+Normal wasma3559c7fbd6b21beafea73190bb8bf77025b60290e2ce626bbb3ecaeb2bd7404
+is byte-identical to A1's independently published final portable receipt.
+Shared9158d62ff1e4026a52d0ca87edc33d12534ad49aaeea37cbdf3ffaa2348743e5;
+work remainsa1f9a66e. Public pin, SDK, transport hashes and settings are unchanged.
+
+Final984dc4d7 shared all3 PASS15.95wall/3.08 waited-child CPU/201368KiB:
+closes5/2/5, spawns24/0/781, zero targets, child retirement0.20/0.10/3.83ms,
+outer CDP1.88/1.14/1.17ms. Capacities33947648/90636288/97976320B; all checked
+outputs and canonical hashes still exactly equal the preceding receipts.
+Selected Node27 PASS,0fail/0skip,3.33wall/3.97CPU/137188KiB. Exact normal IDE
+now passes every completion section, including helpers.he/helper and left.an/answer,
+then FAILS21.40wall/21.35CPU/205048KiB at ide_hover_generic_checks.tower:99,
+"pointer stores retain element types and reject array dereference". Same binary
+and stack as A1's mapped receipt: generic_resolved_type installs its inspection
+stage before sem_type, while semantic_types.tower:653 sem_array_intern requires
+no entity_stage. This remaining staged-array inspection contract belongs to
+ROOT/L2; no assertion was relaxed and no later IDE/session/generation check is
+claimed passed. No extra named relink, native suite or sanitizer was needed.
+Raw alias_* receipts and final source/provider/artifact identities are copied
+beside the earlier failures. Jobs drained, own heavy lock released, todo hash
+still e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+This closes D2's transport retirement batch; ROOT retains final hosted release.
 Publication reconciliation: committed full milestone/fix48d791a8, then required ff-only pull found141ef1e4. Complete-history merge603fa60a preserves A1 qualified completion5fdb4827, B1 range-union253af949 and B2 dependency input factoring/scaling selector. No conflicts or owner-method rewrites. The default dependency input string and1/4 settings are identical; later scaling variants are not run here. Full language acceptance remains frozen48d791a8, not relabeled as a full test of these newer providers.
 
 Affected adoption only: integrated_language_merge0 built frontend/native/alias targets8 actions,58.19wall/81.83CPU/1057956KiB, source frozen. lr-order exited0 (.27wall/.26CPU) and passed closure/state/runtime/control plus150 randomized grammar/propagation comparisons. Its existing fixture intentionally writes suffix index charged_bytes=408 and item graph ledger_live=408 peak=1048576 to stderr before teardown; the initial orchestration's empty-stderr predicate therefore exited1. Preserved that wrapper1/source0 and the actual successful test/time/counter receipt. Verified both lines at their producer, then continued ONLY unrun selections under merge0_remaining, without repeating LR or rebuilding. Remaining process/source0, stderr empty: query-smoke .41wall/.40CPU/104424KiB; dependency-units7.17/14.01/750924; alias1 13.23/8.86/185628; alias4 14.79/13.25/189992. All exact canonical/error/known-output/actual-overlap and alias byte/lane retirement checks passed. Sessions15584/39826 drained. Later alias and LR source adoption is focused evidence; complete browser/hover/generation/release gates remain with their owners.
 
 No remaining blocker in the frozen functional milestone or affected merged checks. No additional full matrices/profiling/instrumentation runs, no deployment, no new goal/context/agent. This follow-up only records evidence; compiler inputs unchanged since merged validation and no new runtime performance measurement is needed. Existing complete histories, failed logs, accepted prior receipts and immutable baselines preserved; todo hash remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Normal main push follows.
 B2 worker-grain reconciliation: implementation52895b4f, complete-history mergee292754d32a313bb9b527a8b6751967630a4c375 preserves3a7f4b39 including B1 range union and other ownership fixes. No scheduling-file conflict; no ROOT interface change requested. Nine affected native actions PASS, then LR/pool/budget, unit-admission/cancel, dependency-units and independent150-trial oracle PASS. Merged1000-body1/4 canonical/source bytes and known42 agree;44 propagation waves still show four simultaneous kernels. Separate changed-source wall0.759/0.814 is not the frozen paired performance claim. Saved merged logs/artifacts; all owned jobs drained. Normal publication follows, with old generation/source receipts intact.
+Final publication-only reconciliation merged public3a7f4b39 as
+0e84312d45a3bf5a27e0c0a3a38a602ea669f805. Incoming A2 metadata/provenance48d791a8
+is later than the984dc4d7 validation freeze; actual depfiles identify only
+Entities in each browser profile. Transport, alias producer, public pin and
+selected fixture sources are unchanged and the complete histories are preserved.
+The984dc4d7 runtime checks above are not relabeled as tests of that later Entities
+provider. ROOT's next integrated adoption must rebuild Entities+link normal/shared
+and validate its affected metadata/lifetime cases; D2 does not extend this bounded
+retirement repair into another owner's acceptance matrix. No process/lock remains.
 D1 publication reconciliation: scoped implementationfc3f52da; required ff-only
 pull found3a7f4b39, so normal mergefc3e0101 preserves complete history. All saved
 Node/fixture/artifact hashes still match. Nine later Tower blobs and one added
