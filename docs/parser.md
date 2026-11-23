@@ -657,6 +657,18 @@ unchanged. The `lr-order` fixture compares exact states, transitions and actions
 against the independent eager-closure oracle, including nullable recursive cores
 and references back to the start production, plus checked allocation failures.
 
+After FIRST/nullable converges, each `LRAnalysis` publishes an immutable derived
+index of production suffix ranges and nullability. Bases belong to productions,
+so overlapping borrowed symbol spans retain their distinct ends. Closure copies
+the exact sorted ranges and adds incoming lookahead only for nullable suffixes;
+propagation/end markers and overlapping range identities are preserved. Invalid
+unreached suffixes retain a deferred error instead of failing FIRST early.
+The index and flat ranges use checked work buffers charged to the parser world's
+budget (explicit null budget for standalone analysis). Failed construction
+publishes nothing and permits retry; workers borrow the completed index, and the
+analysis retires it after their joins. Repeated completion reuses the same owner.
+This is neither a cross-world cache nor a cap on the remaining raw LR storage.
+
 ### Checked provenance and presentation ownership
 
 `SyntaxExpansion.rule` and `SyntaxOrigin.splices` own checked work vectors charged

@@ -1566,6 +1566,7 @@ closures, state/action identities and parser error/probe behavior.
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-frontend-tests tower-lr-work-tests
 cd scaffolding
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-order
+"$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" lr-suffix
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" grammar-equivalence
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" structure-reuse
 "$TOWER_NATIVE_BUILD/tower-frontend-tests" "$PWD" parser
@@ -1583,6 +1584,16 @@ up the Bedrock/Foundation baseline before the measured source phases. Observer
 Lookup/Build/Table times are nested, not additive. Whole-process time also includes
 startup, resource reads, canonical formatting, checked interpretation and cleanup;
 no backend/link output is timed here.
+
+`lr-suffix` times 2,000 production closure calls against a precomputed independent
+oracle, with 32 incoming lookaheads including propagation/end markers. It checks
+every ordered output item outside the timed closure interval. `lr-order` also
+covers nullable/nonnullable recursive suffixes, overlapping ranges and production
+spans, deferred invalid tails, finite-budget denial/retry and allocation cleanup.
+Use the same frozen executable/resources for comparisons; pin serial samples to
+one admitted CPU if core migration dominates noise. Preserve the unpinned results
+and record the affinity change. This caller microbenchmark does not measure full
+compiler latency or native worker overlap.
 
 The iteration fixture requires its existing serial instrumentation transport,
 binds a 256MiB ledger before the first entity, reports charged live/peak bytes,
