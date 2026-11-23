@@ -67135,7 +67135,6 @@ Full final four-path consumer patchfac2742091115a23eafaab911ad030aca64d9901b3c9e
 supersedes afb3. Thirty-two CLI processes will measure corrected before/after;
 supported current instrumentation remains next, not yet passed.
 
-### A2 stable component page grants and private errors, 2026-11-23 (draft checkpoint)
 A2 source-review correction,08:03Z: the page profile's speculative free-slot-scan
 wording above is withdrawn. Current work_budget_reserve_locked pops free_slot
 and work_budget_release_locked pushes entry.next in O(1); there is no linear
@@ -69916,3 +69915,242 @@ previous nonempty line. The first quadratic comparison was stopped and replaced
 with a bounded hash-set membership check. No build or publication ran in root.
 Replacement LR runtime Capacity classification, graph-budget admission and final
 portable/sanitizer/performance/publication gates remain open. todo.txt is untouched.
+Allocator diagnostic72630 completes12/12 editor processes, exact output oracle
+and both immutable package hash checks. Host glibc2.39 reports inherited
+MALLOC_ARENA_MAX and GLIBC_TUNABLES both unset. Three retained balanced pairs per
+policy use the same944 resources and before944/after25651 binaries; hashing warms
+input/binary pages before fresh processes. Explicit default unsets arena policy;
+the control sets MALLOC_ARENA_MAX=1. Both unset GLIBC_TUNABLES, with a preflight
+requiring it originally empty. No compiler policy, binary or source was changed.
+The [glibc2.39 allocation contract](https://sourceware.org/glibc/manual/2.39/html_node/Memory-Allocation-Tunables.html)
+documents the arena-count control and its environment alias. This is a host
+allocator experiment, not a semantic fallback or replacement memory test.
+
+| Allocator policy | Median wall seconds before/after | Median CPU seconds before/after | Median peak RSS KiB before/after |
+| --- | --- | --- | --- |
+| Explicit default | 13.95 / 13.82 | 23.26 / 23.16 | 924100 / 979420 |
+| One arena | 19.16 / 19.23 | 31.82 / 31.87 | 415572 / 411948 |
+
+Default RSS ranges870440..933476 before and881012..1027824 after; one-arena ranges
+408844..417484 and407992..417388. The default median increase55320KiB(6.0%) repeats
+the earlier direction, while the one-arena comparison differs by less than1% and
+is slower for both variants. This establishes allocator-policy sensitivity. It
+does not establish which allocation/lifetime caused the difference or prove leak
+absence. Keep the default costs, unchanged shipped policy, and separate current
+merged sanitizer requirements. No further noisy default reruns are justified
+without a new hypothesis. Primary slot released after actualdrain, before analysis.
+
+The measured source is committed f0353b3dc357b6467eb9bc44dc3a95a7cdc411de, complete
+bundle6bf035b4f0046da259eafaa840bf3df90fdcfb2fceaee148db4517b28ea70c6c with sole
+published60741 prerequisite. Postcommit pull and connectivity fsck pass. ROOT75
+was then merged as31b46df; the only conflict retained A1's Stale/Exhausted messages.
+A2's complete03671b typed view/stage/publication provider, bundlec8827a4c, is merged
+asdbb0f706 with all owner history; the owned fixture draft was saved/restored via
+stash5035f951, not discarded. These source unions remain unvalidated.
+
+The next owned fixture uses the existing GenericCloneFixture, actual generic
+registration/executor and production kernel. A serial observation callback proves
+one actual dispatch. An independent legal caller pin makes joined publication
+Busy; the instance must stay empty/pending, store counts unchanged, first receipt
+sticky and teardown ledger zero. Unpinned32/64 controls require the real cloned
+provenance. Two existing producer functions gain exports from the single semantic
+provider, while the test's component pointer stays opaque. The existing generic
+clone query hook registers it. Current consumer still labels failed publication
+Memory, so the new Busy oracle is an intended before-fix failure, not passed
+coverage. Wait for the host slot, record the actual failure, then consume A2's
+per-call results and run the corrected coherent gates. A1 owns the remaining
+failed-request/body/declaration callers; no copied competing implementation.
+
+First publication-fixture attempt10154 fails at the public leaf before any native
+rebuild/runtime: Unknown function utility_check at line38,4.30wall/3.56CPU/192400KiB.
+The fixture directly imported GenericCloneFixture but omitted utility_checks;
+private function visibility is not transitive. Added the direct existing import
+after actualdrain. The original failure/source0 logs remain intact, primary slot
+released, corrected retry uses distinct generic_publication_before_retry logs.
+No Busy misclassification runtime has yet been observed by this new fixture.
+
+Retry80249 fails at the public leaf before native build/runtime because the
+mutable observer counter is a top-level executable statement, forbidden in a
+library source (line25,4.62wall/3.75CPU/202696KiB, source0). Removed that observer
+entirely instead of adding host state or changing language semantics. The exact
+existing SemanticGenericBodyWork declaration now lives in the owned declaration
+module semantic_generic_body_types.tower, shared by provider and fixture; field
+order/layout is unchanged and GenericBodyCopy's low-level transport is untouched.
+The test reads joined request.success/copied/stage directly through that type,
+requiring the real clone count derived from fixture dimensions and a retired
+stage before checking publication. The default production pool callback is used.
+This supersedes the earlier global observation proposal; no guessed offsets,
+duplicate component definition or new scheduler. Retry2 remains unrun.
+
+## 2026-11-23 — L2 complete caller/provider convergence before publication regression
+
+Same L2 session/PID12136, gpt-6-astra/xhigh/default tier. Complete ROOT556
+and A1 caller0beeb histories now merge at eec97f62f87ffe7c559efbba393212c014231d09.
+The sole A1 conflict was an obsolete LR main variant removing D1's newer fixed
+receipt declaration/selector/calls; retained those registrations. Four incoming
+Markdown CR lines were normalized. The six-path owned fixture/evidence draft was
+restored once from stash9ba010; no unmerged files remain. Fast pull and diff check
+pass. todo.txt SHA256 remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9.
+
+Reviewed A1's actual four caller changes: failed generic registration now stops
+body/executable discovery; declaration failure is checked independently of the
+progress boolean; evaluation cleanup only completes valid owned tickets and
+retires every joined invocation before cancelling failed work. Its twelve-case
+fixture has owner receipts, but is not yet registered in this merged LR runner;
+durable registration and current combined instrumentation remain D1/A1 work.
+Prior25651 runtime evidence does not validate this newer source union.
+
+ROOT's existing SOURCE object mode also permits a coordinator-owned observer
+counter. The chosen fixture instead reads request.success/copied/stage on the
+actual registered SemanticGenericBodyWork component after the production join.
+Its declaration moved unchanged to a shared header; no extra state or ABI field
+was introduced. Two exact existing semantic exports need D2 policy review.
+
+A source-only after proposal in the external L2 lane consumes A2's exact
+stage-open/view-open error out parameters and stage-publish result. Failed stages
+remain owned until the existing wave defer discards them; successful publication
+clears the freed stage before marking the generic body complete. It is not yet
+adopted: the current before fixture must first reach its actual Busy assertion.
+Both prior fixture failures occurred during public compilation, before runtime,
+and cannot establish that defect. L1 owns quiet profiles; no L2 WSL launches or
+probes occur during that reservation. Documentation/source review has no new
+runtime measurement; all prior frozen paired evidence remains source-specific.
+
+### Actual pinned-publication failure and typed consumer adoption
+
+Before20888 uses eec97f6 plus the unchanged-layout shared receipt fixture. Public
+fixture compilation passes (4.73s wall,3.95s CPU,215292KiB RSS). The coherent
+22-action native compiler/LR build passes (171.81s wall,137.64s CPU,736212KiB RSS).
+Query-smoke passes D1 fixed receipts/source-order gates and the unpinned control,
+then aborts at the pinned-publication Busy assertion. The earlier assertion has
+already required actual request.success, exact width*depth copied nodes, retired
+stage and zero running pool/graph jobs. Source hashes match. The preserved inner
+exit is134/SIG6, while Windows WSL reports wrapper1; time's trailing Exit status0
+under signal termination is not a passing test. Query cost:0.19s wall,0.03s CPU,
+50484KiB RSS. The first width's Busy trial aborts; later trials did not run.
+
+The complete before binary/resource package is retained at
+/root/.cache/tower/l2_generic_stage_before_eec with generic_stage_before_package.sha256.
+Its first snapshot command96662 unnecessarily ran WSL git diff across submodules;
+inspection found git status scanning there, not a surviving compiler/test. Both
+owned Git children were terminated and the snapshot wrapper drained1. A scoped
+native-Windows Git delta and snapshot-finish command pass0; the partial delta is
+preserved as source_delta_incomplete.patch. No runtime check was rerun or hidden.
+The host slot was released after all owned work drained.
+
+After that drain, the owned consumer now calls entity_stage_open_result,
+entity_view_open_result and entity_stage_publish_result. Each exact error flows
+through the existing fixed semantic receipt. A rejected publish retains its stage
+for wave cleanup; a successful publish clears the freed stage before completing
+the generic instance. Existing hold-before-close, join, grant release and graph
+cancellation order remain. This implementation awaits matching after validation;
+no current source acceptance or speed claim follows from the before failure.
+
+First after attempt is rejected as corrected-source evidence: Ninja reported no
+work and the query repeated SIG6/134. Both compiler6242578c and LR44a30b5d hashes
+are exactly the before binaries. Copy-Item had preserved the prepared proposal's
+mtime, which preceded the before build outputs. The process drained and all
+source hashes matched; there was no new compile. Corrected the changed source's
+mtime after drain without changing bytes. Distinct after_retry transport now also
+rejects an unchanged compiler/LR hash pair before any query run. Original after
+logs remain intact. The next bounded restart needs its own host grant; no passing
+result is inferred from a source diff or a no-work build.
+
+Corrected after52036 passes: existing public-pin semantic object rebuilt first
+(29.29s wall,22.94s CPU,746480KiB RSS), then reused in two native relinks
+(0.94s wall,0.18s CPU,73832KiB). Compiler SHA256
+39a1929c4b4e0cd9b562d76db8298a326534e58bcb74aa6f8ef604736eabe4a0;
+LR SHA2569c04e94b483d8a9570ff26cb3c5c2b4990856087ffbfd6e353daebb0f4cdb4f1.
+The new changed-binary guard passes, eliminating the previous stale-mtime result.
+Query-smoke passes (0.20s wall,0.23s CPU,74488KiB), process0/source0.
+The exact same fixture now passes Busy and success at both target widths with
+actual copied receipts, no published failure output, sticky error and zero final
+ledger ownership. Existing clone calibration selects width1024/depth8 with faster
+serial2.759ms, and records distinct-thread overlap for2/4 workers, cancellation
+and failed-peer trials. Peak charged clone-frame bytes416/832/1664 for1/2/4
+successful kernels; failed peer peak1248. These are scoped correctness/ownership
+and overlap observations, not isolated quiet scaling or whole-world peak memory.
+Shared fixed receipt/source-order/publication and32/64-bit query gates also pass.
+
+All jobs drained and the subordinate grant closed before L1's next thread build.
+Prepared quiet32 compares this exact consumer against the complete immutable
+beforeeec package on identical constructor/generic inputs/resources, workers1/4,
+one discarded warmup plus three alternating pairs. It is not yet run. Final
+current instruments, late-inspection phase, coherent public package and leased
+atomic deployment remain open; no old checks are relabeled for this source.
+
+### Quiet typed-publication comparison26993
+
+All32 fresh CLI processes and exact output comparisons pass; final immutable
+package, source and input hashes pass. Source bytes equal committed d65c110
+(native52036). Before compiler6242578c/LR44a30b5d and after39a1929c/LR9c04e94b
+use the identical beforeeec runtime resources and explicit Bedrock/Foundation,
+ordinary --interpret --timings, jobs1/4. Host: same WSL Linux6.18.33.2 x64,
+glibc2.39-0ubuntu8.12, Ryzen5900HX8 cores/16 threads. Arena, mmap threshold and
+GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06–09:32:55UTC; one
+warmup per combination discarded, then three alternating before/after pairs.
+No cold-cache or isolated-kernel speed claim. Constructor input3846 bytes has
+SHA256bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071
+and expected0. The generated generic input4613 bytes has SHA256
+c7348160a58a5dfd987a8a96a705e6ddb92f3d7586d42448928f94fb5087e41f,
+expected lines28,36,504,504,73. Both exact input files are retained.
+
+Medians of three retained samples (CPU=user+system, RSS KiB):
+
+| Workload / jobs | Wall before ? after, s | CPU before ? after, s | RSS before ? after, KiB |
+| --- | --- | --- | --- |
+| Constructor /1 |1.55 ?1.50|1.53 ?1.50|179908 ?180376|
+| Constructor /4 |1.30 ?1.26|1.59 ?1.57|198932 ?199048|
+| Generic /1 |1.54 ?1.59|1.53 ?1.56|184808 ?184920|
+| Generic /4 |1.31 ?1.30|1.62 ?1.61|206300 ?206548|
+
+The generic one-worker median increases3.2% wall/2.0% CPU; it is not recorded as
+neutral or faster. Retained wall ranges are1.52–1.55s before and1.53–1.64s after.
+CLI phase review locates most of that difference in compilation: median1388.413
+?1444.867ms (ranges1376.975–1412.658 and1381.404–1478.624). These three samples
+do not establish a persistent cause; no additional identical rerun is justified
+solely to obtain a better result. Other configurations vary in the opposite
+direction; the four-worker generic median is close. All median RSS increases are
+under0.3%. This narrow comparison does not erase the earlier measured editor
+RSS+6% on the larger resource-ABI union, whose allocator sensitivity is recorded
+above. Final integrated performance remains source-specific acceptance work.
+
+These timings complement52036's actual distinct-thread clone intervals and zero
+final budget ownership. They do not measure whole-world physical allocation,
+prove nested overlap from requested jobs alone, or replace current sanitizers.
+Publication error classification adds no new owned buffer; the reachable failure
+and success paths check the actual ledger cleanup. No C-like cross-toolchain
+comparison is claimed for these staged type/generic contracts.
+
+Raw logs, scripts, frozen manifests, exact two workloads, earlier failed leaves,
+stale-mtime failure, before/after native receipts and profiling are archived as
+L2_typed_publication_d65_receipt.tgz (170 files,343198 bytes), SHA256
+692e274ebc76f0185133382c4489cd0432bef5700840b0af944d2b219a8439f4.
+Complete source bundle L2_complete_d65c110_typed_publication.bundle SHA256
+c06c302a6776890f810a36b6a3866692e72fec14578e88e33a08d87a16a2e542
+requires only published60741. This documentation update changes no runtime
+inputs; no separate runtime/memory rerun applies to the prose itself.
+
+### 2026-11-23T09:38:26.8266346Z ROOT: typed generic-stage publication integration
+
+Reviewed complete L2 99123604 history (production d65c110), bundle SHA256
+2369383a3ddc5e9ff2096dd078c4b9a0d18a8fb5603ed5971faf292b022e8f27.
+The existing generic work component declaration is shared without a layout change.
+Stage/view opening and publication retain their exact typed error. Successful
+publication clears the stage before marking the generic ready; failure uses the
+existing drain/discard owner. A real second input pin exercises legal Busy and
+unchanged instance state, with successful unpinned clones and zero final receipts.
+
+Owner corrected-source query passes after preserving the stale-mtime failed
+build. All32 matched profile outputs/hashes pass. Three-pair median wall changes
+are constructor1/4:1.55/1.30 to1.50/1.26 seconds, generic1/4:1.54/1.31 to1.59/1.30;
+RSS changes are below0.3%. The generic serial +3.2% remains visible; no broad
+speedup or sanitizer closure is claimed. Receipt692e274e retains all raw samples.
+
+Only merge conflict was A1 audit EOF versus its newer appended pool evidence;
+retained the complete newer A1 file, with no incoming unique prose discarded.
+A1 pool production remains intact. Root identified a fixture integration follow-up:
+its explicit unbudgeted pool open should use sem_workers_open on this union.
+L2 was directed to preserve all Busy/copy/cleanup oracles while checking actual
+pool budget ownership. Current union instrumentation and provider-policy checks
+remain pending. No publication or root runtime pass; todo.txt remains untouched.

@@ -1,0 +1,14 @@
+import tower;
+import compiler_kernel;
+import generic_body_types;
+import .library.work_graph;
+
+// One instance-owned work component. The coordinator registers and retires it;
+// workers write only their request. Consumers inspect the receipt after joins.
+struct SemanticGenericBodyWork {
+    query: usize;
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    request: GenericBodyCopy;
+    error: u8*;
+}
