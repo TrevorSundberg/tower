@@ -85876,3 +85876,29 @@ shared-Wasm38d7c19815b7ee7baee71e8567e1b4ece2466fb227dae1f2f9cceec7f5b5eb59.
 External L1/diagnostic_origin_receipt.json links complete hashes, logs, preserved
 failures, original storage commits, limits and the verified publication commit.
 All owned jobs drained, todo unchanged; this entry changes no tested runtime input.
+
+Publication integration: implementation f626ed9e; requested ff-only pull fetched
+a241935e and correctly refused divergence. Normal merge f6d1f167 preserves both
+complete histories and all journal entries without conflicts. Incoming B1 scratch
+lookup, L2 checked node admission and L1 diagnostics/storage were not duplicated.
+Dependency-aware incremental rebuild PASS; merged backend API, backend-ir,
+backend_execution_roots native differential and exact optimized object comparison
+against the preserved before compiler PASS. Premerge IR-only interpreter controls
+also passed both optimization choices (45 then 2); no new interpreter policy.
+
+Merged 4096 integration samples: workers1 wall3.0395s/CPU3.0032s/RSS835724KiB,
+workers8 wall2.7143s/CPU4.1639s/RSS857972KiB; emission172.515/175.769ms.
+Both retain canonical9448338333252003545/object11650509263964549553. These are
+integration checks after B1's scratch recovery, NOT a matched speedup attributed
+to B2. Earlier frozen paired measurements remain the backend policy evidence.
+Merged compiler SHA256240e6fb9d7b769c05c54a44a2e3234e984a859c69639215e82dd94664e1a0750;
+profile58e3d8b0dc99420182cde89570967508bd3f09d882a121b31a24e2741935272a.
+Optimized object hashes (unchanged before/after policy): native
+408034f2890fa8916e6dcd9f956ea81330b0bb2a6306ef88a9880d776fe75600, ARM64
+efb08dea33cc09eaf6122090c3e0a4e00bc2eed24c3b0944b9c3e0083bed2f6a.
+Public-compiler wasm32 backend_wasi checked IR SHA256
+d748f3665a5e20075193b861a87ae3d79a7de2c4b40ebd848632c4dac8a71eca.
+Full release instrumentation, browser execution, whole-generation acceptance and
+public pin/Pages remain ROOT-owned pending gates; none are claimed by this task.
+The incoming journal contains non-UTF8 bytes; this ASCII receipt was appended
+without decoding or rewriting existing entries after apply_patch rejected them.
