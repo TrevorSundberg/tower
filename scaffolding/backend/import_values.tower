@@ -7,6 +7,8 @@ import .compiler.foundation_tags;
 import .library.float_bits;
 
 var LLVMConstantFloatValueKind: u32 = 19;
+var LLVMPointerTypeKind: u32 = 12;
+var LLVMFirstOrderedIntegerPredicate: u32 = 34;
 
 fn bi_pow2(width: u32): u64 {
     var result: u64 = 1;
@@ -265,6 +267,13 @@ fn bi_select(c: BackendImport*, condition: void*, yes: void*, no: void*, scalar:
 
 fn bi_compare(c: BackendImport*, predicate: u32, a: void*, b: void*, type: void*): void* {
     if backend_failed(c.backend) { return null; }
+    // LLVM can fold target-address integer comparisons into ptr icmp. Restore
+    // explicit integer operands; Foundation only admits pointer equality.
+    if LLVMGetTypeKind(type) == LLVMPointerTypeKind && predicate >= LLVMFirstOrderedIntegerPredicate {
+        a = bi_cast(c, a, SUSize, true);
+        b = bi_cast(c, b, SUSize, true);
+        type = c.backend.size_type;
+    }
     var op: u32 = 8;
     if predicate >= 38 {
         if LLVMGetIntTypeWidth(type) == 32 {
