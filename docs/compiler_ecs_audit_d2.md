@@ -3031,3 +3031,19 @@ only modestly faster with increased CPU, not final all-core acceptance. No ABI
 export additions, persistent cache, cross-world sharing, hardware-counter claim
 or universal race-freedom claim. Full integrated sanitizers/platform/bootstrap/
 browser/generation/deployment remain ROOT's pending milestone.
+
+### Distribution packaging follow-up, 2026-11-23
+
+Full-file review at6019450c plus this scoped change:
+`scaffolding/tools/package_playground_assets.tower` SHA256
+0578e9bc479e7aaf67d5dd1172364403d6d39a5fff14cfa629100f332e2b9e34.
+Private ByteBuffers/file traversal remain serial tool-owned; gzip must publish
+before removing either raw backend staging file, all errors propagate, buffers
+release via defer, checksum manifest remains last. No world/payload/scheduling
+contract changed. The OS-boundary fixture `playground/tests/build-packaging.test.mjs`
+SHA256 bc992af0c42cd5a7cb6f8de3d95db01303125408ac4e62a9fef58d9e6ccad850
+was read completely; adds raw-absence and real fetchBytes decompression checks,
+retaining synthetic-only data and all required-input/hash/lifetime assertions.
+[Exact size/caller/measurement evidence](compiler_distribution_size_25dddd04.md)
+records failing old-tool regression and passing final gate; ROOT hosted adoption
+remains outside this review. No new Tower inventory path.
