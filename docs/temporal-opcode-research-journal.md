@@ -74225,3 +74225,21 @@ open; no A2 publication lease exists. No todo or another owner's production edit
 ### 2026-11-23T10:45:31.0103565Z ROOT: Integrate checked borrowed scheduling reservations
 
 Reviewed complete A2 ddefda0e, bundlec91fea22. Shared validate_result checks exact owner/revision/slot/generation/lanes/bytes under the existing gate without changing receipts, diagnostics or counters; release reuses the internal entry validation within its locked transaction. No pointer escapes the transaction. Native, malformed/stale/no-allocation cases, real four-worker churn,18 supported sanitizer invocations and actual WASI pass on owner's source. Selected ledger microcosts remain+0.49%/+1.61%; final fixed-path32 compiler outputs/canonical/reparse pass. Borrowers still require an executing parent lane and caller-owned immutable receipt/ledger lifetime through joins and publication: validation neither pins nor admits work. The eight-stage node observer checks stable identities and real intervals; it does not implement charged node pages. Typed staged create/attach/references producers and reference-counter ownership remain open. Root review passes, with combined runtime/release acceptance still pending and todo untouched.
+
+After audit commit4f09ed896 and guarded no-op pull, complete ROOT565 merges cleanly
+as af22cfbc1067f637302011b8c0bde5b374c1d281. All histories and D1's newer capture
+CMake/README remain. Production compiler/library/host/backend/bootstrap match
+565 exactly; todoSHAe97d67a6 and strict UTF-8 journal checks pass. Current assigned
+coverage is528/528 of1117 Tower paths. No D1 build was live during this merge.
+D2 owns the next host slot for its authorized affinity baseline/implementation;
+D1 will validate changed inputs at the next coherent boundary, preserving the
+old successful213c milestone and original failed clone-overlap receipt separately.
+No new source is claimed runtime-accepted or published from this merge alone.
+
+For L1/ROOT follow-up, the incoming function-reference cases exercise conversion
+statements with real initial/growth denial; they do not yet directly exercise
+same-ordinal/different-declaration Invalid, maximum-index overflow, physical
+function-table Memory denial or direct-return publication. These are coverage
+observations, not newly reproduced failures or D1 production ownership. Existing
+query-smoke reaches those interpreter cases only after clone overlap; resource-
+smoke alone cannot validate them. Preserve that distinction in next-run evidence.

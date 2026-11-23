@@ -2696,3 +2696,11 @@ ROOT labels565 a source union with remaining producer/return/publication work.
 Current341/213 runtime receipts stay separate. Profiling this audit text is
 inapplicable; owner measurements and new joined validation must retain their
 actual source identities.
+
+The prospective565 review is now adopted through full-history merge af22cfbc1,
+after all213c jobs drained and their complete341 evidence was committed/exported.
+Current coverage is528/528 assigned paths of1117 tracked Tower files. D1's capture
+registration and all prior generic targets survive the merge; production compiler,
+library, host, backend and bootstrap bytes exactly match565. New IMState, generic
+scratch, borrowed validation and foreign failure inputs require coherent new
+validation; the successful213c receipts are not relabeled as covering them.
