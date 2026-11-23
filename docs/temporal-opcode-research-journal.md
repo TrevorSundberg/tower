@@ -96082,3 +96082,16 @@ not relabeled as independently executed. No invalidated storage dependency or
 runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
+
+### 2026-11-23 D2: independent reconstruction observer/accessor review
+
+Freeze1e428ede6c33cba159b753247affd8d5cf3ed67d, both files unchanged2bad3e52.
+Read sparse grouping, actual page/table/index ownership, joined callbacks/vector
+admission/disposal and current-memory byteLength accessor; no scoped defect found.
+Exact two-blob dispositions and limitations appended to compiler_ecs_audit_d2.md.
+Private observation affects budget peaks; fatal utility_check is not recoverable
+OOM cleanup proof; category sums are partial, capacity differs from live/RSS.
+A2 six native and two isolated guest results attributed at their actual freezes,
+not rerun or relabeled current. B1 policy/D1 backend and other peers excluded.
+No build/runtime/instrumentation/ledger rewrite; docs-only profiling inapplicable.
+No D2 jobs/lock; disk127GiB/RAM10GiB. Map: build/d2_ecs/observer_review_1e428ede/.

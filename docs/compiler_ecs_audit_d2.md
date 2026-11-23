@@ -3301,3 +3301,40 @@ Owner default wall/CPU ms / peak KiB: component .877308/0-reported/1384; stage1.
 Plain Linux shared-budget exit0: .00wall/.01CPU s/1652KiB. The accidental instrumented-cache build was **BUILD ONLY**, never executed; no instrumentation acceptance or retry here.
 Full artifact hashes/raw logs remain in those receipts: B2 `entity_faults_6019450c`, A1 `cache/a1_windows_gate`; local source map `build/d2_ecs/peer_fault_windows_6e8001fd/{paths,blobs}.txt`.
 No code/runtime/build/profile change; documentation-only profiling inapplicable. D1 heavy slot untouched; twelve-row ledger unchanged. Remaining peer gaps: D2 direct-C fixture/differential driver/packager and A2 later native census/LLVM capacity accessor; no other gate is closed by this review.
+
+## Independent reconstruction observer review — 1e428ede (2026-11-23)
+
+Freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d`; both changed files remain exactly2bad3e52/6649bbe1.
+**No defect found in the scoped changes; these two peer-review gaps are closed.** Read full files, changed callers and allocation/observer contracts; no production edit or runtime rerun.
+
+| Reviewed path | Exact Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/tests/backend_source_native.tower` | `5d149aeda17fca3fde6430f1539583c35011af27` | Sparse-ID histogram, joined physical categories and owner teardown reviewed against actual Entity/WorkBuffer/WorkBudget producers. |
+| `playground/src/llvm-host.mjs` | `dd311be9833e6c819e9907c65787be16ee861ecd` | New read-only accessor resolves this instance's current exported memory.buffer.byteLength on each call; no cached pre-growth buffer or allocator/limit change. |
+
+Histogram lookup scans actual groups, not numeric ID space. After a new group successfully pushes, the old length is a valid new index; the row pointer is acquired after possible relocation, never retained across pushes.
+IDs, including4294967294, stay u32 data; maximum is reporting only. Checked vector growth rejects overflow/admission failure before dereference; total group counts must equal all ParserMatch instances.
+Labels/child roles are borrowed only during the synchronous joined callback; the preinstalled baseline owns the ParserMatch kind until world teardown. Lookup uses type_existing, never creates component kinds.
+Each nonempty entity belongs to one archetype row. Its heap component/child/instance index is counted once; inline component storage is skipped before attempting an EntityBufferAllocation header read.
+Table rows and component columns share one allocation rooted at table.rows; the observer counts that full capacity/header once, not columns again. Both store owned-page lists include full and partial pages, independently of available-slot lists.
+Page ownership transfers unlink the old list; component payload and descriptor/name pools are separate. Per-kind page reports filter stable type IDs and are an alternative breakdown, not additional bytes to add to pool totals.
+Logical count*data_size, label capacities and entity_count*sizeof(Entity) are not physical allocations. Oversized standalone blocks, unindexed kind indexes, other scratch/owners and foreign heaps are not fully censused.
+The category-sum <= live-budget assertion is a consistency bound, not by itself proof of disjointness or completeness; the actual owner layout above supplies disjointness. instance_indexes=0 does not assert absence of all type indexes.
+Compiler allocator headers are included via compiler_buffer_allocation_size; allocator-private overhead/RSS are excluded. Ledger metadata is separately reported, not double charged as payload/page bytes.
+
+Only FrontendParse/SemanticDispose boundaries inspect the world, after synchronous worker stages join; worker-kernel callbacks return without touching this census. No payload, table, page link or ownership reference is modified.
+Private histogram work_vector charges the supplied budget and frees via defer after each callback; its temporary allocations can affect peak/ledger retention. Optional observation is not allocation-free or timing-neutral.
+The old+new growth contract retains the previous vector on failure. A failed utility_check prints and aborts: it cannot continue into an invalid index, but this is **not recoverable observer OOM cleanup evidence**.
+Normal returns and ordinary compiler-error returns clear the observer before releasing its stack context; source/session/modules/world close before final zero bytes/grants/lanes, ledger disposal and gate close.
+The separate deny-recheck mode holds/releases its explicit reservation and preserves prior output; census and denial modes are exclusive. No new fault-injection coverage is inferred from the six successful census/plain runs.
+
+The JS accessor performs no grow/allocate and returns only current linear capacity, not live bytes, a sampled peak, configured maximum, remaining allocatable space or process RSS. It does not authorize increasing the2GiB ceiling.
+Current semantic-port phase logging uses distinct llvmCapacityBytes, rss and maxRssKiB fields; the loader owns the instance through its closure. The accessor is transport, not a second allocator/census implementation.
+
+Attributed [A2 receipt](entity_pages_wasm_storage_a06ec4b1.md): native executable `0c8bdbb65f4979be4932dc5e3f291a34ac87235f1495c8a95073ff66a1c89d2a`, mounted a18d584e plus observer, public768; **six native exits0**, resource0/final owners0, unchanged small/large outputs across workers1/4 and census/plain.
+Large plain1 versus census1 wall/CPU s/peak KiB:10.801937/10.698070/2933020 versus11.198066/11.099400/2934484. Sparse groups173/168 small and161 large,12288B vector capacity; original guard exit134 and compile/metadata failures remain recorded.
+Exact965691B guest input SHA`fadb0568535010d954cafde4ce9559e5636829c81e181be66b14e27f187b08d5` returns native-identical4675795B on compiled a06 LLVM `8acbaf08545d0ce972f2de7db2a89fcfc7ef434f95f775feca06dde759107697`.
+Isolated25→a06: exits1→0, command wall172.1796941→132.5450749s, cumulative CPU at response238.765→195.452s, peak RSS at response2028912→1862976KiB, capacity2147483648→1978990592B. Response counters are not final exit metrics; failed-versus-successful requests are not a throughput speedup.
+These native/guest freezes predate later backend work; this review does not relabel them as execution of1e428ede. No new full differential, runtime, sanitizer, bootstrap or hosted claim.
+Raw A2 paths remain `cache/logs/entity_pages_{25dddd04_4354581c,a06ec4b1_a18d584e}` under its receipt root; local exact map `build/d2_ecs/observer_review_1e428ede/blobs.txt`.
+Documentation-only profiling is inapplicable. Twelve-row ledger unchanged; B1 page-policy work excluded. C split peer review remains B2's assignment, packager A1's; this closes no unrelated acceptance gate.
