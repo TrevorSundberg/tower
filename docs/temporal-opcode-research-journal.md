@@ -62593,3 +62593,197 @@ node scaffolding/tests/host-wasi.mjs A2/cache/entity_create_result.wasi.wasm,
 logs/entity_create_wasi_run.log. All owned processes are reaped. This documents
 validation of existing code; runtime profiling of this evidence-only append is
 inapplicable. Full A2 scope and integrated release remain active and incomplete.
+
+### A2 stable component page grants and private errors, 2026-11-23 (draft checkpoint)
+
+Base b63fda151106d10a4b187ac7d30df93ee417a6a9; only the four owned
+library paths entities/entity_types/entity_api/compiler_work change production.
+The proposed API was recorded in A2 status before implementation/adoption.
+EntityComponentPage now owns one WorkBuffer receipt reserved before allocation.
+Oversized components use an EntityComponentAllocation prefix with the same
+receipt. Free copies that receipt out before freeing its containing page/prefix.
+Stable component/payload addresses, world identities and stage pool detachment
+are unchanged. Publication transfers the existing receipt without reallocating.
+Last-live-component disposal releases its grant; sparse retention is unchanged.
+No EntityStore/EntityStage/EntityComponent layout change, moved payload, shared
+worker error latch or noalias claim. The page layout itself does change.
+
+entity_component_add_result(owner,type,error*) overwrites a required private
+WorkBudgetError. Null arguments/unregistered or wrong-world kinds are Invalid;
+published pinned mutation is Busy; existing components still succeed while
+pinned. Raw pointer-index/table failures remain Memory. Page WorkBuffer failures
+retain exact Capacity/Stale/Invalid/Memory rather than guessed Memory. Internal
+reserve/table helpers propagate arithmetic Invalid separately, preserve rollback
+and prune failed empty destination tables. CompilerWork construction consumes
+the actual result and closes partial ownership before returning it. Nodes,
+indexes/names/tables and stage metadata remain physically unbudgeted. B2's
+world constructor/binder is still required: the current binder only sets
+world.work_budget, leaving store.budget null. Thus this implementation covers
+explicitly budgeted stores/CompilerWork, not every ordinary compiler world.
+
+The locality observer now reports exact requested physical allocation bytes,
+including compiler-buffer header, rather than libc usable bytes. Its immutable
+b63 baseline copy computes the corresponding old raw requested bytes; all
+workload and reference assertions remain identical. B1 parser observers need
+owner-coordinated receipt-size updates for pages AND oversized allocation prefix;
+no foreign observer was changed. Requested bytes, allocator usable bytes and
+RSS are different metrics. Packed payload storage remains unimplemented.
+
+Focused validation (public predecessor9653f818, clang19 -O1, Linux x64 Docker
+on Windows11 KinmenA, CPU12-23/24GiB, jobs1; all logs in A2/cache/logs):
+entity_pages_first compiled three smallest library units (1.420/1.809/2.106s)
+and passed existing pages/tables/stage ownership. The constructor fixture then
+failed: limit3336 expected Capacity but actual Invalid. Diagnosis confirmed the
+new complete physical page exceeds the entire old tiny ledger, which is Invalid
+by the unchanged WorkBudget contract. The fixture derives actual page size from
+an unbounded one-unit probe, retains those denial bounds with exact errors and
+adds a fitting-page limit that fails subsequent graph growth with Capacity.
+Corrected constructor passes; original failure/diagnostic logs are retained.
+
+New entity_component_budget tests exact serial result/no-mutation/address and
+alignment rules, last-live page accounting, oversized payloads, pinned existing
+lookup and a shared store-error sentinel. Its 48 concurrent trials are eight
+rounds of 2/4 actual workers and publish/cancel/second-page-capacity denial.
+Every worker allocates its first private page and queues a reference before a
+barrier. All queued holds are acquired before the last input view closes;
+publication or discard happens after joins. Finalizers run on the coordinator;
+all grants/counts return to zero. Production allocator/transport are used.
+
+Preserved fixture failures: reserved identifier `expected` failed parsing and
+was renamed; first ASan run hit a real test synchronization assertion after a
+normal pass. A loop set one cancellation flag then posted a shared semaphore,
+which could wake another worker before its flag was set (4 lanes/Cancel/job2,
+65 rows instead of1). The fix sets ALL flags before ANY post. Diagnostic abort
+did not reach cleanup; do not call that failure drained. Backtrace/value logs
+entity_pages_address_diagnostic and its v2 preserve the evidence. Corrected v3
+normal plus3ASan/LSan+3TSan pass, with168 fixture and47 production-runtime
+functions instrumented. Existing concurrent-stage normal plus3ASan+3TSan also
+pass (222 fixture functions). No serial fault allocator in either threaded test.
+The independent entity_component_faults serial sweep covers pooled/oversized,
+published/staged allocation failures, stable prior address/value/membership,
+exact Memory, publication retry, zero receipts/raw allocation count. It passes
+and does not constitute race instrumentation. UBSan remains unsupported here;
+these passes do not prove universal race freedom.
+
+Frozen page closure completed2026-11-23T04:03:53.982Z, recovered after the same
+session resumed (PID38380) at07:36Z. No surviving A2 jobs; both persistent host
+containers were idle. Source checksum recheck passes after resume. Actual public
+entities/parser_work/semantics_checks pass5.162/19.629/20.654s. Canonical native
+build uses checked-in public bootstrap/no override, existing vendor artifacts:
+53 compiler targets91.325wall/119.920user/9.939sys seconds;9 test targets17.622s.
+Query0.110s, units18.574s, editor10.666s, parser0.041s, storage0.303s pass; storage
+1/1 zero skips. Logs entity_pages_closure, entity_pages_query-smoke/units/editor/
+parser/storage and source SHA manifests preserve exact inputs. Compiler SHA
+7cb59af88e431c40ba317ec2c8d6ac59d7da594ddbb2608c3a5a79f92e9dc772.
+This does not validate pending ROOT72a218/new semantic ABI or final release.
+
+Before profile binaries: locality d6c7bea5304e7912e75a6aac915babbdf9e59d0d316c137a050825650b671a0b,
+CompilerWork128a051929ba4515e716b987a86178ee2e65ec038e4e2bde3c81e1665f221cd6.
+After: localitya6f259100caf91607b286fb819b0a2e2a242f4ff4071dcffec2e14c6bc11ad43,
+CompilerWork83674b59fdf4ba358437fd2f921c9961644c1805adbfe516204d8f58125b33dd.
+Paired profile runtime results and current portable validation are still pending;
+no speedup/regression conclusion yet. Full lane storage/scheduling and integrated
+bootstrap/browser/generation/publication acceptance remain open. Latest local
+coordination files end04:00Z; later user-mentioned D1/B2 messages were requested
+again rather than inferred/ACKed without their actual contents. Ordinary Git
+ff-only rebase pull succeeded0.585s without the unavailable DNS workaround.
+
+A2 resume focused extension, 07:43-07:47Z: the new portable
+entity_component_layout fixture compiles/runs on native and actual wasm32
+Node21.7.3 TowerWASI host. It derives sizes/offsets from target types and tests
+pooled adjacency/backpointers, 4096-byte oversized alignment, exact physical
+receipts, capacity denial/retry, pinned existing lookup and last-live cleanup.
+Native usize/WorkBuffer/page/prefix sizes8/72/152/120, requested page4295B and
+oversized37023B; wasm32 sizes4/56/96/80, requested2683B/36963B. These use a u64
+pooled payload and32768-byte oversized payload, not locality's32-byte records.
+Wasm moduleb3c49a6df8a09cf4e3d8a85dd3a18f90d462b55c749cde7a0a9978269c172633,
+portable output ends0. No browser thread claim. Its SDK target-triple override
+warning is preserved. Updated budget/fault case loops derive bounds from actual
+arrays and name stress/fault semantic limits. Three native fixtures and refreshed
+3ASan/LSan+3TSan executions pass; production unchanged, so full compiler gates
+were reused. Script/log entity_pages_resume_checks, all frozen hashes checked.
+New binaries layouta16a2a0a, budget44bee782, faults28d57835; full hashes in log.
+
+Fresh A1 quiet grant bounded the first paired profile to
+07:47:18.717974989-07:47:22.244150850Z, released immediately. One warmup plus
+three alternating pairs;136 checked processes:8 locality +128 CompilerWork.
+Same public9653 compiler, clang19-O1, Linuxx64 CPU12-23/24GiB, production allocator,
+fresh processes/warm host caches. Equivalent1024/65536-row locality inputs and
+eight64/4096-unit work plans; all ordinal/sum/ownership/ending-grant checks pass.
+
+Locality requested native bytes increased exactly104B per page: large1024pages
+5864448->5970944B (+1.82%). One-survivor-per-page retains all those bytes for
+32768B live payload before AND after. This is a measured fragmentation gap.
+Small creation550.593->534.914us; large9.472122->10.110579ms (+6.7%). Process
+wall median174->175ms; CPU129->130ms; peakRSS26872->26920KiB. Unchanged traversal
+paths vary in either direction; do not attribute their timings as optimization.
+
+| Large4096 units x8, accounted | Before wallms / CPUms / RSSKiB | After wallms / CPUms / RSSKiB |
+| --- | --- | --- |
+| 1 worker | 9.022526 /9.021 /4132 | 8.536226 /8.541 /4132 |
+| 2 workers | 6.390288 /12.156 /6604 | 6.374380 /12.432 /6772 |
+| 4 workers | 5.353562 /17.069 /11084 | 5.381596 /17.768 /11408 |
+| 8 workers | 8.220643 /34.923 /16712 | 8.996951 /35.954 /17256 |
+
+Large actual overlap1/2/4/8 confirmed. Four workers remain useful (after1.59x
+serial), eight are unprofitable. Small64-unit serial119.178->120.110us; added
+workers lose on this metadata workload (eight-worker measured overlap6).
+Physical grant generations617->1129 reflect512 newly charged pages across8plans.
+Serial peak charged bytes1642016->1949664; eight-worker peak7696064->10143918.
+Ledger entry capacity retained until budget disposal640->5120B serial and
+2560->40960B eight-worker; final live grants/used bytes are zero, then ledger
+disposal releases this metadata. Peak concurrent receipt counts vary by overlap.
+Plain four-worker median5.399501->6.159056ms is a14% regression in this short
+window; accounted eight-worker9.4% also merits investigation. Nine-pair targeted
+metadata sampling plus checked small/large whole-compiler profiles are prepared;
+no neutral overhead or speedup claim follows from three pairs.
+
+A2 regression investigation completed in a second fresh A1 quiet window,
+07:56:21.727839712-07:56:57.628669085Z (released07:56:58). All120metadata
+executions (warmup+9 alternating pairs, large1/4/8workers, plain/accounted),
+32full-compiler executions and canonical equality/roundtrip checks pass.
+Logs entity_pages_investigation, entity_pages_extended_medians and individual
+work_pages_extended/entity_pages_compile receipts. No builds during timing.
+
+| Large accounted,9 samples | Before wallms / CPUms / RSSKiB | After wallms / CPUms / RSSKiB |
+| --- | --- | --- |
+| 1 worker | 9.696788 /9.702 /4140 | 8.967170 /8.972 /4120 |
+| 4 workers | 5.771944 /17.966 /10824 | 5.479037 /18.475 /11740 |
+| 8 workers | 9.847207 /40.474 /17000 | 10.772453 /40.948 /17612 |
+
+The eight-worker accounted9.4% regression reproduces; four workers remain useful
+(after1.64x serial), eight do not. The earlier plain-four14% regression does NOT
+reproduce:9-pair5.705541->5.526213ms, CPU17.801->17.145ms, RSS10784->10644KiB.
+Serial plain9.845853->9.807474ms is nearly unchanged. Extra512 page grants and
+corresponding releases per eight-plan trial increase shared ledger traffic;
+ledger entries retain40,960B at8workers versus2,560B before, then dispose fully.
+The existing budget free-slot scan and synchronization are candidate contention
+costs, not measured per-wait attribution. Do not claim universal speedup/neutral
+cost. Investigate that common ledger path separately rather than bypass grants,
+invent noalias or select eight lanes just because the queue is wide.
+
+Whole-compiler comparison uses immutable b63 scaffolding resources with explicit
+--foundation/--bedrock, --target wasm32-unknown-unknown --interpret --timings,
+--jobs1/4, production allocator, CPU12-23/24GiB; warmup+3alternating pairs each.
+Small input is an ordinary Tower function returning42 (eaabee51); large input is
+the existing canonical Foundation signed-numeric reference (6f2571a1), with its
+exact expected output. These are different grammar workloads, so small/large
+absolute timings are not a source-size scaling claim. Before executable7e835d62,
+after7cb59af8; the existing Tower/Linux process wrapper b77d1f75 records wall,
+childCPU, peakRSS, faults, switches and nonzero status. No rewritten host logic.
+
+| Whole compiler,3 samples | Before wall / CPU seconds / RSSKiB | After wall / CPU seconds / RSSKiB |
+| --- | --- | --- |
+| Small Tower,1 worker | 1.177426 /1.097358 /179332 | 1.207897 /1.128402 /178732 |
+| Small Tower,4 workers | 1.070024 /1.223754 /195880 | 1.064646 /1.222146 /195304 |
+| Large Foundation,1 worker | .596562 /.535483 /207364 | .596649 /.537191 /207340 |
+| Large Foundation,4 workers | .769786 /.741989 /208348 | .772257 /.745668 /209484 |
+
+Small serial+2.6% remains a bounded regression in this window; large serial
+matches and four-worker large is slower than serial for both versions. Neither
+queue width nor these results establishes profitable use of all cores. All four
+canonical outputs and the original are byte-identical6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5;
+ordinary reparse/reexecution returns the reference output. Final page checkpoint
+therefore retains explicit overhead/fragmentation limits alongside improved
+physical ownership and exact errors. ROOT requested typed stage/view/publication
+results next; proposal is in status, no implementation/caller adoption yet.
