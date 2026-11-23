@@ -94998,3 +94998,68 @@ factory). No adoption of that browser remedy is claimed. Selected tests, ordinar
 hosts, compilerThreads and Tower providers still match the measured freeze.
 
 B2 publication reconciliation: storage implementation f9565c46 preserved through280429f6 with origin0fe314ef; no producer overlap with B1. Incoming counted-byte backend fixture changes rebuild only native backend/check binding and relink profile f170b5f2; original measured after53186f76 retained. Merged16w1/4096w4 outputs/canonical/cleanup and inline transition/fault checks PASS. Browser/test histories retained, excluded from frozen performance evidence. No deployment; ROOT retains final integration. See the receipt's reconciliation section.
+## 2026-11-23 L1 — T6/T7 acceptance of immutable25dddd04 reactors
+
+Complete unchanged compiler-workers8/8 then cross-compilation7/7 PASS, actual
+Node exits0, no skips/cancellations/unstarted coverage. All32 bundle sizes/hashes
+verified before install and after; own ignored build defaults had no predecessors.
+ROOT snapshot untouched. Compiledsource25dddd0420258bc5174a3039293c447fd60ef367 is
+separate from mountedhost/tests0fe314efe1b8d740a1be3fa829124e92d2cf1f6c and excludes
+A2's later125efb11. No compiler/reactor/test-source edits or build. Historical
+b797/c95/eac evidence is not reused as this run. Both complete files ran in fresh
+Node22.23.5 Windows processes, concurrency1/TAP, CPU0-3,300s outer guards, phases
+and fresh artifact directories; no generic artifact overrides.
+
+Original worker object/publication/overlap/world/dependency/cancel/first-error/
+vectorization assertions passed. Six cross targets retain repeat-byte/link/object
+checks, Wasm reference execution and recoverable linker/invalid-target diagnostics.
+All1332 mounted input hashes remain identical;88 checked phase/object/IR/cross
+outputs preserved. No production defect or owner overlap arose. T6 costs26.990wall,
+83.063 observedtreeCPU,684600KiB Nodechildpeak; T7 3.489/8.734/346544. Child CPU is
+82.891/8.641s; parent-only metrics are not substituted. Sampled aggregate working
+sets are lower bounds; phase JSON is a separate scope. No throughput claim.
+
+First T6 had8/8 passing assertions but the OS receipt wrapper failed metric
+summation before preserving Node exit; exact logs/artifacts/error retained, T7
+unstarted then. Corrected only receipt summation/early exit persistence and repeated
+T6 once, capturing exit0; T7 ran once. No hidden failed check or compiler retry.
+Detailed source/hash/command/cost/scope receipt: docs/compiler_workers_cross_25dddd04.md;
+external L1/logs/t6_t7_25dddd04. Jobs drained, todo unchanged; committing and normal
+main reconciliation. ROOT retains deployment/full release ownership.
+## 2026-11-23 A1: joined25 Node T5 adoption
+
+The complete unchanged compiler-threads.test.mjs runs once: PASS3/3, exit0,
+no skips/cancellations/timeouts/unstarted cases.128 pool lifecycles, real injected
+worker trap and full1/2/4/8 matrix finish with original30/10/120s deadlines and
+unused180s outer guard. Exact identities/command/coverage/limits in
+[node_threads_25dddd04.md](node_threads_25dddd04.md). No production/fixture edit,
+compiler build or browser rerun. Previous b8 eager files and receipts preserved.
+
+Supplied compiled25 compiler671fb95d...fc402a/work6411c389...4e32c verified before
+installation and after execution; both absolute overrides and eager paths match.
+Mounted host/resources0fe314efe1b8d740a1be3fa829124e92d2cf1f6c, tree5f01ec03,
+remain separate from compiled providers and newer browser transport. A2new125efb11
+and in-flight B1/B2 producers excluded from compiled25 acceptance. All1186 Tower,
+47 host,3 selected test/helper and2 artifact checksum checks pass after the run.
+
+Phase evidence:128 pool completions; capacities1/2/4/8;272 dependency executions,
+16 worker/16 generic/16 imported executions,80 negative cases,8 world checks and
+all window/iteration/LR/closure controls.23 created/terminated/actual-end worker
+IDs match exactly. Natural Node exit and idle-only Docker inventory prove this
+run drained; requested lane counts/terminate calls alone do not. No browser or
+universal race-freedom inference. No expected error or known output diluted.
+
+GNUtime116.80wall/180.84CPU(47.51user+133.33system)s/518316KiB peakRSS, zero swaps.
+TAP pool5.295210s/trap.161854s/matrix111.190725s; matrix stays below120s with8.81s
+margin. One fresh process tree/hash-warmed files, phase/debug overhead included;
+CPU covers waited descendants, RSS is process high-water, not aggregate memory
+or live guest owners. Acceptance cost only, not speedup versus different b8 inputs.
+KinmenA/WSL2 Linux6.18.54.1, Node22.23.5, CPU12-23/24GiB own container/cache.
+Same UUID01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, Codex PID34720; all owned work
+exited. Raw source/environment/logs/phase counts/timing/artifacts/process evidence:
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
+before/339077795840B after, todo unchanged. Normal source-bound documentation
+publication follows; ROOT retains later-provider builds/generations/hosted release.
+
+
+L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
