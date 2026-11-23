@@ -93720,6 +93720,19 @@ formatter and module-loop query sources/tests are excluded from the e6be70d5
 review freeze; their owners retain validation responsibility. Documentation and
 source-identity checks passed; no build or runtime rerun was needed or claimed.
 
+### 2026-11-23 L1 — module lexical identity in staged capture proofs
+
+Bounded follow-up to published fa7917c5. Required pull advanced to344139e9e712ee90980d6d9faa3614e6127397da with documentation only; owned jobs were drained, C111GiB free. CPU0-3, Orchestral-Revng Ubuntu24.04/LLVM19 Release, existing public-bootstrap native cache,24GiB process address ceiling. The saved native16d8981ad9e249fe216ea161d0a0796999814a22d9c5599c47b6a5bd75be7ba2 accepted the exact external loop with `--emit foundation`, producing update `+0`. No potentially infinite runtime interpretation was performed. The committed `semantic_invalid/module_header_capture_update.tower` is byte-identical to that original, SHA2568a70dfa5386c69c8bed09562091be92767669962cd723623d9ac2861218cc00c. All checks have finite OS timeout guards and preserve their exit/logs.
+
+**Cause and repair.** Executed staged reads suspend through CaptureInput and SourceBindingProof. The source scan already opened block/for lexical scopes and registered declaration candidates, but only called `sem_source_bind` when job.owner was a function. Module lexical locals therefore never entered their private scope's table. Update/body writes or escapes missed the header declaration, or resolved to a same-named global; the actual declaration could publish immutable=true. The shared scan now binds a CoreDeclare whenever its owner is a function OR its scope has a lexical parent. Module-top declarations still use qualified global resolution. Candidate identity, module/function frame owner, ordinal, query keys, publication and invalidation are unchanged. The existing capture pump now sees the correct declaration's immutable=false and reports the original binding at3:6. No new evaluator, layout/ABI, runtime execution, name/offset registry or eager dependency was added. Scratch tables remain private and use existing checked ownership.
+
+**Evidence.** One dependency-aware native/runner build passed:37.40wall/42.92CPU seconds,1072364KiB peakRSS. The exact source now exits1 at3:6 with `Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer`, without an output artifact. Existing `module-loop-queries` now checks9 failures at32/64 bits and workers1/4: original bool/cycle/module-binding cases plus exact header update, body write, update escape, module-block write and shadowed-header captures. It derives precise positions from each original declaration, checks identical raw offsets/first diagnostics across profiles/workers, no partial program, no terminal retry allocation or active lanes, then closes worlds/budgets with existing zero-owner assertions. Cost20.93wall/19.84CPU/233496KiB. Query-smoke passes, including source-proof suspension/resumption, failed producer, cancellation, invalidation, worker draining and world release;4.61wall/5.39CPU/411936KiB.
+
+`module_header_capture_controls.tower` prints0 at32/64 bits and workers1/4: immutable known header/block captures, module versus function shadow identity, later writes to inner shadows, mutable header decltype/sizeof and lazy untaken staged calls. Canonical text is worker-identical, independently Graph/Fast executable and idempotent. Existing module_loop_queries passes unchanged at all four settings. The repaired case is never executed as a runtime negative. No broad type/frontend/browser/generation/sanitizer matrix or new framework ran.
+
+**Matched healthy cost.** Frozen `header_capture_healthy.tower` exercises immutable module header/block capture through the actual shared proof and prints10; before/after canonical text is identical. Two adjacent wasm64 samples per1/4 workers: serial wall .67/.66 -> .68/.61s, CPU .60/.58 -> .62/.55s, RSS182200/182364 ->182540/182552KiB. Four-worker wall .68/.68 -> .62/.61s, CPU .63/.63 -> .60/.59s, RSS185372/185412 ->185616/185912KiB. Small samples show no material regression; RSS delta+188..500KiB. No speedup/overlap/scaling claim.
+
+Candidate native SHA2561f180c9afa28c67399dc33c696d526d5e752d46a7a8bb76c7da2775182f412d1; semantics d2a0486a44e9d90594cfdef25c1c96e91b409d64590e95c23dd9e5dd834c4243; runner bf2d6583519c0578712d93e85252f2a94fd33422a2403412135376f7c5a7ce1f. Frozen source manifests match. Commands, complete hashes, earlier accepted output and metrics remain under `C:\Sandbox\build\codex_ecs_20261122\L1\logs\header_capture_*`; receipt `header_capture_receipt.json`. The earlier independent module loop-body alias-annotation limit remains pending and unchanged; this staged-capture defect is fixed, subject to main reconciliation/publication. ROOT owns portable/hosted adoption. Todo unchanged.
 D2 alias review reconciliation: audit commit ff253aac; prescribed ff-only pull
 fetched344139e9 and refused divergence. Complete-history merge
  a391753c1eb448f967b1a383f0b49ca2add9ac40 preserves both journal entries and all
@@ -93762,6 +93775,95 @@ methods are unchanged. New control/loop query behavior, fixtures and concurrent
 owner reviews are preserved, excluded from the d55d1c0d source-only conclusion.
 Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
 
+
+### A1 joined executable alias-publication repair (2026-11-23)
+
+Base902f7c4dcbd924090e7f706260f67e4b812da7cb, same thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7/PID14596. Implemented the344139e9
+review finding in semantic_execution_work only: validate tickets before alias
+side effects, skip aliases of failed worker results, preserve coordinator failure
+without clearing it, and defer every ready input until all joined aliases pass.
+Existing stage holds/leases and terminal cleanup remain the owners; no replay,
+new scheduler, independent type evaluator or shared evaluation-producer edit.
+
+The real admission fixture's new alias selector reproduces first/later Invalid
+at offsets17/29, then tests valid cloned alias identity and fresh-context recovery
+in the same explicit world. Existing signature-Capacity assertions now include a
+secondary bad alias; its original worker cause wins. The existing stage-pressure
+fixture also covers ninth-entry batch growth denial, with grants/counts and
+terminal retry/fresh-context cleanup. Before: alias24 and signature8 failed
+assertions, both exits1. After: all17 registered selectors/68 width-worker
+configurations, query-smoke and lifecycle0 pass. Exact commands, code/binary
+hashes, original fixture compile failures and receipt are appended to
+ docs/compiler_executable_budget_review_a1.md; logs A1/cache/logs/alias_publication_902f7c4d.
+
+Matched healthy n1 each variant/workers1/4, CPU12-23/24GiB, public bootstrap
+768a0cdf/no override. Process wall/CPU/RSS before->after:1worker .46/.40/177312KiB
+->.45/.39/178160;4workers .52/.51/180352 ->.54/.50/180304. Same input/reference42/
+canonical hash13963953848021265584/11412bytes and identical retained metrics;
+ledger peaks107430664/107378560B, zero final live bytes/grants. No speedup claim.
+Candidate5-action build34.68wall/41.80CPU/1093896KiB; admission .62/.32/51808,
+query3.56/4.49/412360, lifecycle1.95/1.81/223300; all exit0 and jobs drained.
+Memory allocator denial and new mid-pump stale injection remain unrun; no broad
+instrumentation/browser/generation adoption. All source/publication history and
+todo preserved; ROOT owns final integrated release. No service-rejected operation
+was run or rerouted.
+### B1 held LR preparation admission trial rejected, frozen902f7c4d (2026-11-23)
+
+Bounded implementation attempted and restored; no production optimization ships.
+Required pull902f7c4dcbd924090e7f706260f67e4b812da7cb/treeae1a4b18, CPU0-11/24GiB,
+owned jobs drained,113GiBfree. Preserved prior3ad7 profiler/input identity. Since
+published L1/L2 sources changed, currentbaseline dependency build16actions
+38.25wall/85.18CPU/1073680KiB preceded patch; public768, no private override.
+Only lr_work.tower and two existing LR tests changed. Candidate5actions21.82/
+22.46/926712. No scheduler, new allocator, cache or LR algorithm.
+
+Candidate holds existing checked ParserAdmission from preparation selection
+through synchronous solve/action dispatch and ordered cleanup; helpers borrow
+without double reservation, old closure/test wrappers retain phase-local grants.
+No extras selects existing owned serial preparation. Capacity/Memory remain typed.
+New shared-budget fixture covers full/exhausted/partial outer grants, held lanes,
+exact state/action equality, continued admittedwaves and restored accounting.
+PASS nativeLR/lifetime, fullunits originalfiniteCapacity/retry/errororder/cancel,
+150grammar/range/propagation oracle, grammar-equivalence and resourcefailures.
+All24 paired/control samples and4 separate observers pass known42/42,
+exact samecurrent source/canonical bytes and zero lanes/grants aftercleanup.
+
+Rejected n2 throughput: small1 .4193->.4178s, small12 .5056->.4963s;
+uniform12x256 serial6.4153->6.5684s (noisy rawbefore6.5517/6.2790 vs after
+7.4000/5.7367), workers4 4.4384->4.4437s unchanged, workers12
+4.9389->5.2243s (+5.8%, both pairs regress) CPU40.1303->42.9696s.
+Large1x4096 n1 serial2.6308->2.2405 not credited to unchanged serialpath;
+workers12 1.9797->2.0758 (+4.9%). Retention equal, memorybounded; fullraw
+wall/CPU/RSS/chargedpeaks/reference outputs retained. No second tuning round.
+
+Critical attribution correction to prior614da574: lr_states_lalr_owned_result
+ALSO calls lr_states_propagation_items_result for safe grammars. LookaheadGraph
+events cover only parallelwrapper. Thus852->0 events with noextras does NOT
+remove underlying graphs; it omits worker setup/parallel scratch only. Existing
+serialalgorithm still needs shared derivedgraph. Beforemulti12 graphphase1.344s
+CPU is not demonstrated removable work. GrammarbuildCPU23.056->23.016s essentially
+unchanged, still1404tables. Availablelane control keeps71graphphases,39propagation/
+67actionwaves, actualLRpeak4/3 andsemantic12; multiouter12 andrefill budgets pass.
+No starvationproof. Candidate regression checks validate receipt/wrapperselection,
+not actualgraphabsence; no misleading eventcount adoption. Priorreceipt appended
+with explicit correction, historical measurements unchanged. Residual repeated
+common graph/version/table cost and CPUamplification remains; no newalgorithm
+or hardware/lock cause guessed.
+
+PatchSHA53f3884e6d81559c7d2786ae98d2763c53ba4134d09a9fe22452bc764b079fe1,
+allcandidate sources/binaries retained. Restored full original source manifest,
+refreshedtimestamps then dependency5actions21.96/22.66/922296. Allthree original
+902baseline binaries cmp exact; profiler07b0bea2f57f6f62b01e6eac042bf0c4e607e5cd33c4c755c71314d4e6b6094c.
+RestoredLR1.78/2.30/118328 andFULLunits13.66/23.18/829972 pass. No discarded
+failure, cap/assertion weakening or uncommitted productionedit. Nativecache now
+holds restored providers and binaries, not stale candidate objects.
+
+Receipt docs/compiler_lr_admission_902f7c4d.md; fullraw
+build/ecs_b1/cache/lr_admission_902f; handoff
+C:/Sandbox/build/codex_ecs_20261122/B1/lr_admission_902f7c4d. No generation,
+reactor, sanitizer or fullmatrix. ROOT owns finalrelease. Publish finite
+negative receipt/correction with completehistory, thenSTOP.
 A2 publication's third retry preserves docs-only902f7c4d after the third normal push raced again. All448 final executed input entries match182f5652; evidence is reused without another build. Complete histories remain intact, all jobs are drained, and ROOT retains runtime publication. This is the final bounded normal push retry.
 A2 bounded task BLOCKED on publication only. Initial normal push plus all three permitted retries were rejected (fetch first) by concurrent main advancement. Last rejected head615de273bb596c9f476de74c5ebca7e541d556ed; subsequent read-only remote main7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2 is not adopted or validated. Implementationee91c300 and complete merged history through902f7c4d remain committed; actual runtime validation stays182f5652. All32 selected shape configurations/query/canonical-recovery checks pass, source input hashes match their exact receipts. The two fixes are not claimed published/deployed. Stop at the requested retry limit with clean source, preserved three stashes/todo and no owned jobs. A future normal integration/push must preserve these commits and assess only new affected inputs; no new task, goal or polling is started.
 B2 page-worker prerequisite publication reconciliation: implementation5aff643a
@@ -93772,6 +93874,65 @@ and four providerSHA checks pass. Frozenf167/resource67561156 evidence reused;
 incoming grammar/module/reconstruction producers and separately publishedb8
 NodeT5 acceptance retained but excluded from this browser milestone. No repeat
 browser matrix, compiler build or deployment; owned jobs remain drained.
+ROOT A2 publication recovery: the source fixee91c300 and all A2 merge history
+were preserved through78d675c441 and atomically pushed with unchanged Pages.
+The final merge brings only browser/docs; native executed inputs remain those
+already checked by A2. SSH DNS and unavailable Credential Manager session
+failures are retained, not mislabeled as successful pushes. A verified
+ee025e52dcb00a29ff17b526673f2ec0f84722c3a67e11669789630e99f5cb6b Git bundle
+transferred the commits to ROOT's already authenticated normal checkout.
+See compiler_malformed_shapes_ba52a932.md recovery appendix. No runtime rebuild
+or performance comparison is needed for this documentation/transport recovery.
+B2's published7890ebd7 browser ownership repair is now assigned actual b8
+strict/static-application adoption; all32 b8 artifacts were copied and remotely
+rehashed on KinmenB (168164918B). The existing eight UUIDs remain the only workers.
+### B2 b8 browser adoption, frozen host78d675c4 (2026-11-23)
+
+Required pull fast-forwarded7890ebd7 to78d675c441cabba99f05276656717e53d01ead6f;
+owned container idle, CPU12-23/quota12/24GiB, cache924GiB/host113GiB free.
+Verified all32 ROOT_browser_inputs_b8d65c37 entries by size/SHA before installing;
+compiler source remainsb8d65c37d9dd4ef691d700d0d0a52c81e01b593a/public768.
+Frozen current host/fixtures/resources separately; no compiler source adoption,
+reactor build, ownership redesign or D2diagnostic edits. Exact production and
+control bytes match7890ebd7; unchanged6411workfixture permits seven-control
+receipt reuse without a fault campaign.
+
+Three fresh Linux Chromium159 strict normal runs PASS with unchanged assertions
+and30sretirement:5/2/5actualcloses,zeroCDPtargets,fullcanonical/GraphFast/output/
+query/budget checks. SharedcompilerSHAd2e7a2ae4bcfba916b684321b56aca96c2b2385c976523ece7b3f09899785e7c;
+resourceJSONa2e1902e21edc9d3046d4949485060297e2b038e90f3c059bec06f89323aac18.
+Wall6.534888/6.289145/6.254412s; waitedchildCPU2.028553/1.933816/1.905027s;
+peakRSS206128/215664/206816KiB. Compiler4close27.335/27.343/27.134ms.
+These different initializations/extra parallelfixture work are not scaling data.
+
+Preserved prior dist and replaced only ignored inputs with the checked32artifact
+set, retaining originals. Existing Windows build.mjs/nativeesbuild and existing
+WSL Tower package_playground_assets override package the actual app; no toolbuild.
+Missing local libc++license copied from C:/Sandbox/tower's cached LLVM source,
+SHA539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b.
+PackagerSHAec920939bc0a0a97485cf6213a78de487cffaa04873b0707f792a604d4d6493b.
+CPUaffinity12-23 before Node gate; GOMAXPROCS4; WSLtaskset12-23/24GiBvirtualbound.
+Build16.850564s wall,NodeCPU.265625s; NodepeakworkingSet unavailable/null,
+not claimed measured. Towerpackager14.040751s/5.867843sCPU/111744KiBRSS.
+All101manifest assets verified; capabilities LLVM/cross/threads true;
+manifestSHAfd79fc4b26fd5e73781b17304a14dc64035af37218b45b46c5532dcab00427de.
+Only existing compiler-threads browser spec now running desktop/mobile with one
+worker,original deadlines and finite540saggregate; no hosteddeployment.
+B2 static adoption completed: existing compiler-threads.spec.mjs desktop/mobile
+4PASS/0skips/0failures/0flaky, unchanged assertions/deadlines,oneworker. Actual
+service-worker isolation/sharedloading/multipleworkers/42decltype-comptime/reload
+and blocked-isolation portablefallback pass in both projects. Process28.482123s
+wall/14.817796s waitedchildCPU/401212KiBRSS; testduration24.909623s. All owned jobs
+drained. Frozen host/resource manifests match working inputs;101distasset hashes
+checked. No production/test logic changed, no newfailure or speculative fix.
+Receipt docs/browser_adoption_b8_78d675c4.md; full tested dist, source, manifests,
+prioroutputs and logs retained in B2/browser_adoption_b8_78d675c4 and owncache.
+Package manifestfd79fc4b26fd5e73781b17304a14dc64035af37218b45b46c5532dcab00427de;
+staticreportfb58274ec73e1a158ca95558b7a9b55fa24f15916d21756ba2b0a83fb7563eee.
+This closes scoped b8 UIadoption; ROOT owns later-source generation/runtime and
+hostedrelease. Earlier f167 failures retained; no broadmatrix,compilerrebuild or
+Pagesdeployment. Normal evidence publication follows.
+L1 staged-capture publication receipt: implementation `3bc0a726f9ceac55d91c8e98d4376f0559ad20e2`; normal complete-history merge `2a5477be1f08106322c4ecf52beeecc9fdf7583a` preserves A2 required-type capture guards and B2 browser ownership changes. The required ff-only pull refused divergence without altering history. Changed native dependencies rebuilt once:36.05wall/37.68CPU/1074436KiB. Focused merged32/64 workers1/4 capture positives, identical prior canonical text, canonical Fast, all9 exact error/offset/terminal-owner cases and query-smoke including incoming shape checks PASS. Native SHA256 `0e168ccddbf99873f4e221e05eb023a1e667ca5f85e318b0f68d0fcccef40c05`, semantics `c131e34c69a6a8346c4fceb1ad3f8435678baff8e4d82b903a8b66c6e563309f`, runner `92be7e49fa9ba174377c7297ad489c0af117e9d24423657292b02157626bde2b`. Source manifests stayed frozen. The prior matched cost applies to isolated L1 inputs, not incoming owner changes. All owned jobs drained; the exact mutable-header defect is closed, unrelated body-local alias annotation and ROOT portable/hosted adoption remain pending. Normal main publication follows; no browser/deployment claim.
 ### 2026-11-23 D1: original twelve-row ledger reconciliation at7890ebd7
 
 Required pull froze7890ebd7f3a0e1d2acbd70ee72c4629eef347ec2; exact root/compiler/
@@ -93809,6 +93970,7 @@ or alter binaries; the native file hashes above were independently recomputed.
 Owned jobs drained, no new runtime deployment; remaining Wasm/other-input limits
 are unchanged. Normal source publication follows with all prior histories intact.
 
+L1 final reconciliation preserved L2's pointer-return repair74ccfb00 as merge `4bbde387421c78c90542f968a9e69532d7d7e2ca`. Capture/query/compiler sources are identical to validated2a5477be. CLI Fast does consume LLVM reconstruction, so only its changed backend leaf was rebuilt (10.90wall/8.20CPU/486972KiB); the existing canonical capture controls still print0 through Fast at32/64 bits. Final native SHA256 `4835472aba256980e4719cdda87956e8495cb8d97129f91219b5d6b211f5d2e2`; semantics remains c131e34c. No unrelated backend corpus or unchanged capture matrix was repeated. Exact source/binary boundary and logs are in `header_capture_receipt.json` / `logs/header_capture_backend_adoption`; owned jobs drained, normal publication pending.
 D1 ledger publication reconciliation: receipt1da28a69 merged complete74ccfb00
 following required ff-only divergence. Later L2 pointer-return importer/fixtures
 and A2 malformed type/capture guards, shared runners and their execution receipts
@@ -93898,3 +94060,30 @@ acceptance, new ROOT reactors, T9 remaining framework cases, final generations
 and hosted publication are still pending their owners. No browser/reactor,
 sanitizer/service retry, agent/context/goal or idle polling. All owned jobs drained;
 todo unchanged, no source-method changes, publication follows normally.
+B1 LR-admission rejection publication reconciliation: b34ce13b merged complete
+published c2c97058 at22ae1076cb57fb014a847a859cbf7896a3d893ac, no conflicts or
+history loss after required ff-only divergence. Incoming B2 browser/A2 malformed
+shapes/L2 void-return inputs are excluded from frozen902 before/candidate/restored
+measurements. B1 restored trial source blobs and all3 baseline binaries unchanged;
+receipt/correction intact, diff --check passes. No later-source rebuild/relabel,
+no candidate adoption. Full raw failed-performance evidence preserved; normal
+push thenSTOP, ROOT retains finalrelease.
+B2 b8UI publication reconciliation: receiptf9869995 merged completecd3aefa2
+history ascd50f06d after required ff-only divergence; both journals preserved.
+All browser host/fixture/script bytes remain unchanged, frozenresource snapshot
+hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
+receipts without new tests. Incoming L1header-capture/L2void-pointer producers
+and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
+acceptance. No source/package relabel or runtime deployment; normalpush follows.
+
+A1 alias repair reconciliation: b78d606b merged complete1e60c511 as
+c98d64f2f6e567e6ec0f780bf7bf8a7952cce7f0 with no conflicts. Changed shared
+semantic/backend inputs justified one7-action rebuild50.89wall/54.09CPU/
+1090448KiB. All17admission/query-smoke/lifecycle0 pass again; merged worker1/4
+healthy samples .46/.39s/178068KiB and .52/.51/180912 match the prior exact
+reference/canonical/retention metrics and zero teardown. Separate merged source
+and binary identities are appended to the same receipt; original matched
+comparison remains attached to902f7c4d. All processes exit0/drained, no broad
+matrix or private bootstrap adoption, todo/history preserved; normal push follows.
+
+A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
