@@ -171,3 +171,12 @@ It retains warmups, all16 profile JSON/exit-code/live-thread logs, generated
 sources/canonical/object artifacts, reference SHA256 manifest, compiler/profile
 executables, tool/topology identities and every focused build/failure/pass log.
 Linux originals remain `/cache/b2_util_*`. No package or public pin was changed.
+
+Publication reconciliation preserved incoming histories through `ce4f7240` in
+merge `48ff2499df991c43e9b40f2a9b06b5c49ef72cfa`. Its affected native closure
+rebuilt in8 actions. Unit-admission, backend-ir, dependency-units and calibrated
+backend overlap pass on that merge. A small16-unit/32-body dependency control
+at1/8 workers produces identical complete source/canonical/optimized objects;
+the merged native object returns42/42. These are focused integration checks,
+not a rerun or relabeling of the frozen scaling samples above. Logs are prefixed
+`b2_util_merged_`; broader later-source acceptance remains ROOT-owned.
