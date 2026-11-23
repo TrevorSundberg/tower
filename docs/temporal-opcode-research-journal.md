@@ -93775,6 +93775,39 @@ methods are unchanged. New control/loop query behavior, fixtures and concurrent
 owner reviews are preserved, excluded from the d55d1c0d source-only conclusion.
 Merged diff --check passes; no runtime rebuild/repeat. Normal main push follows.
 
+
+### A1 joined executable alias-publication repair (2026-11-23)
+
+Base902f7c4dcbd924090e7f706260f67e4b812da7cb, same thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7/PID14596. Implemented the344139e9
+review finding in semantic_execution_work only: validate tickets before alias
+side effects, skip aliases of failed worker results, preserve coordinator failure
+without clearing it, and defer every ready input until all joined aliases pass.
+Existing stage holds/leases and terminal cleanup remain the owners; no replay,
+new scheduler, independent type evaluator or shared evaluation-producer edit.
+
+The real admission fixture's new alias selector reproduces first/later Invalid
+at offsets17/29, then tests valid cloned alias identity and fresh-context recovery
+in the same explicit world. Existing signature-Capacity assertions now include a
+secondary bad alias; its original worker cause wins. The existing stage-pressure
+fixture also covers ninth-entry batch growth denial, with grants/counts and
+terminal retry/fresh-context cleanup. Before: alias24 and signature8 failed
+assertions, both exits1. After: all17 registered selectors/68 width-worker
+configurations, query-smoke and lifecycle0 pass. Exact commands, code/binary
+hashes, original fixture compile failures and receipt are appended to
+ docs/compiler_executable_budget_review_a1.md; logs A1/cache/logs/alias_publication_902f7c4d.
+
+Matched healthy n1 each variant/workers1/4, CPU12-23/24GiB, public bootstrap
+768a0cdf/no override. Process wall/CPU/RSS before->after:1worker .46/.40/177312KiB
+->.45/.39/178160;4workers .52/.51/180352 ->.54/.50/180304. Same input/reference42/
+canonical hash13963953848021265584/11412bytes and identical retained metrics;
+ledger peaks107430664/107378560B, zero final live bytes/grants. No speedup claim.
+Candidate5-action build34.68wall/41.80CPU/1093896KiB; admission .62/.32/51808,
+query3.56/4.49/412360, lifecycle1.95/1.81/223300; all exit0 and jobs drained.
+Memory allocator denial and new mid-pump stale injection remain unrun; no broad
+instrumentation/browser/generation adoption. All source/publication history and
+todo preserved; ROOT owns final integrated release. No service-rejected operation
+was run or rerouted.
 ### B1 held LR preparation admission trial rejected, frozen902f7c4d (2026-11-23)
 
 Bounded implementation attempted and restored; no production optimization ships.
@@ -93902,6 +93935,18 @@ semantics8efbabe2749c1864a370ff9c13c70e42724be8093efbb900f19294958f58416d.
 Original failed logs preserved; all owned jobs drained and heavy lock released.
 127GiB disk/9.7GiB RAM available; todo unchanged. ROOT owns later source adoption,
 portable/browser/sanitizer/release gates; those were not run or claimed here.
+ROOT A2 publication recovery: the source fixee91c300 and all A2 merge history
+were preserved through78d675c441 and atomically pushed with unchanged Pages.
+The final merge brings only browser/docs; native executed inputs remain those
+already checked by A2. SSH DNS and unavailable Credential Manager session
+failures are retained, not mislabeled as successful pushes. A verified
+ee025e52dcb00a29ff17b526673f2ec0f84722c3a67e11669789630e99f5cb6b Git bundle
+transferred the commits to ROOT's already authenticated normal checkout.
+See compiler_malformed_shapes_ba52a932.md recovery appendix. No runtime rebuild
+or performance comparison is needed for this documentation/transport recovery.
+B2's published7890ebd7 browser ownership repair is now assigned actual b8
+strict/static-application adoption; all32 b8 artifacts were copied and remotely
+rehashed on KinmenB (168164918B). The existing eight UUIDs remain the only workers.
 ### B2 b8 browser adoption, frozen host78d675c4 (2026-11-23)
 
 Required pull fast-forwarded7890ebd7 to78d675c441cabba99f05276656717e53d01ead6f;
@@ -94040,3 +94085,15 @@ Compiler1a450186111373b79ee8af8c563a1ed38f6cac7bd037ab57bf32cd402d337d24;
 runner0a689450eac0a1fb9b76e7a8281bc6690010631c5a81a3c4f1cc2100b8e38a6c.
 Exact joined_* logs preserve this source boundary separately. Jobs drained,
 heavy lock released; normal publication retry, no force push or deployment.
+
+A1 alias repair reconciliation: b78d606b merged complete1e60c511 as
+c98d64f2f6e567e6ec0f780bf7bf8a7952cce7f0 with no conflicts. Changed shared
+semantic/backend inputs justified one7-action rebuild50.89wall/54.09CPU/
+1090448KiB. All17admission/query-smoke/lifecycle0 pass again; merged worker1/4
+healthy samples .46/.39s/178068KiB and .52/.51/180912 match the prior exact
+reference/canonical/retention metrics and zero teardown. Separate merged source
+and binary identities are appended to the same receipt; original matched
+comparison remains attached to902f7c4d. All processes exit0/drained, no broad
+matrix or private bootstrap adoption, todo/history preserved; normal push follows.
+
+A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
