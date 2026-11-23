@@ -1,0 +1,25 @@
+import tower;
+import backend_unsigned_overflow;
+
+// Compile this caller after reconstructing the imported module. LLVM must not
+// fold these boundary calls while producing that module's Foundation text.
+fn check_reconstructed(): u32 {
+    var maximum32: u32 = 0; maximum32--;
+    var maximum64: u64 = 0; maximum64--;
+    var a: u32 = 19;
+    if product32(0, maximum32, &a) || a != 0 { return 1; }
+    if product32(maximum32, 0, &a) || a != 0 { return 2; }
+    if product32(maximum32, 1, &a) || a != maximum32 { return 3; }
+    if !product32(maximum32, 2, &a) || a != maximum32 - 1 { return 4; }
+    if !product32(65536, 65536, &a) || a != 0 { return 5; }
+    if product32(65535, 65537, &a) || a != maximum32 { return 6; }
+    var b: u64 = 19;
+    if product64(0, maximum64, &b) || b != 0 { return 7; }
+    if product64(maximum64, 0, &b) || b != 0 { return 8; }
+    if product64(maximum64, 1, &b) || b != maximum64 { return 9; }
+    if !product64(maximum64, 2, &b) || b != maximum64 - 1 { return 10; }
+    if !product64(4294967296, 4294967296, &b) || b != 0 { return 11; }
+    if product64(4294967295, 4294967297, &b) || b != maximum64 { return 12; }
+    return 0;
+}
+print(check_reconstructed());

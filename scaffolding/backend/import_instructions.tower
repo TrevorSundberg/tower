@@ -15,6 +15,59 @@ import .library.work_budget_types;
 import .library.float_bits;
 
 var LLVMFloatingNegateOpcode: u32 = 66;
+var LLVMOverflowProductIndex: u32 = 0;
+var LLVMOverflowFlagIndex: u32 = 1;
+var LLVMOverflowExtractDepth: u32 = 1;
+
+fn bi_multiply_overflow_call(instruction: void*): bool {
+    if LLVMIsACallInst(instruction) == null { return false; }
+    var function = LLVMGetCalledValue(instruction);
+    if LLVMGetValueKind(function) != LLVMFunctionValueKind { return false; }
+    var length: usize = 0;
+    return backend_prefix(LLVMGetValueName2(function, &length), "llvm.umul.with.overflow.");
+}
+
+// LLVM folds ordinary unsigned size guards to a {product, overflow} result.
+// Materialize its scalar users once at the call's position. These are the same
+// predeclared Foundation locals as other SSA results, not a second aggregate IR.
+fn bi_multiply_overflow(c: BackendImport*, instruction: void*): void {
+    if backend_failed(c.backend) { return; }
+    var left = LLVMGetOperand(instruction, 0);
+    var type = LLVMTypeOf(left);
+    if LLVMGetTypeKind(type) != 8 || LLVMGetIntTypeWidth(type) > 64 {
+        backend_fail(c.backend, "Unsigned multiplication overflow requires a scalar integer up to 64 bits");
+        return;
+    }
+    var scalar = bi_scalar(c, type);
+    var a = bi_value(c, left);
+    var b = bi_value(c, LLVMGetOperand(instruction, 1));
+    var product = bi_mask(c, bi_binary(c, OMul, a, b, scalar), type);
+    var nonzero = bi_binary(c, ONe, a, bi_const(c, scalar, 0), SBool);
+    // Select a nonzero divisor before evaluating the division. Zero operands
+    // have a defined product/flag and must never introduce a division trap.
+    var divisor = bi_select(c, nonzero, a, bi_const(c, scalar, 1), scalar);
+    var maximum = bi_const(c, scalar, bi_pow2(LLVMGetIntTypeWidth(type)) - 1);
+    var limit = bi_binary(c, ODiv, maximum, divisor, scalar);
+    var overflow = bi_binary(c, OAnd, nonzero, bi_binary(c, OGt, b, limit, SBool), SBool);
+    var use = LLVMGetFirstUse(instruction);
+    while use != null {
+        if backend_failed(c.backend) { return; }
+        var extraction = LLVMGetUser(use);
+        if LLVMIsAExtractValueInst(extraction) == null || LLVMGetNumIndices(extraction) != LLVMOverflowExtractDepth {
+            backend_fail(c.backend, "Unsigned multiplication overflow requires scalar extractvalue consumers");
+            return;
+        }
+        var index = LLVMGetIndices(extraction)[0];
+        if index > LLVMOverflowFlagIndex {
+            backend_fail(c.backend, "Invalid unsigned multiplication overflow result index");
+            return;
+        }
+        var local = bi_find(&c.values, extraction);
+        if local == null { backend_resource_fail(c.backend, WorkBudgetError.Invalid); return; }
+        bi_assign(c, bi_ref(c, local), index == LLVMOverflowProductIndex ? product : overflow);
+        use = LLVMGetNextUse(use);
+    }
+}
 
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
     if backend_failed(c.backend) { return; }
@@ -485,6 +538,10 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
 
 fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     if backend_failed(c.backend) { return null; }
+    if bi_multiply_overflow_call(instruction) { bi_multiply_overflow(c, instruction); return null; }
+    if LLVMIsAExtractValueInst(instruction) != null && bi_multiply_overflow_call(LLVMGetOperand(instruction, 0)) {
+        return null; // Its local was assigned once at the intrinsic call.
+    }
     var op = LLVMGetInstructionOpcode(instruction);
     var type = LLVMTypeOf(instruction);
     var scalar = bi_scalar(c, type);

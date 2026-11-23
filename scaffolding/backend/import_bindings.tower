@@ -49,6 +49,13 @@ extern fn LLVMGetValueKind(value: void*): u32;
 extern fn LLVMGetOperand(value: void*, index: u32): void*;
 
 extern fn LLVMGetNumOperands(value: void*): i32;
+extern fn LLVMIsACallInst(value: void*): void*;
+extern fn LLVMIsAExtractValueInst(value: void*): void*;
+extern fn LLVMGetFirstUse(value: void*): void*;
+extern fn LLVMGetNextUse(use: void*): void*;
+extern fn LLVMGetUser(use: void*): void*;
+extern fn LLVMGetNumIndices(instruction: void*): u32;
+extern fn LLVMGetIndices(instruction: void*): u32*;
 
 extern fn LLVMCountParams(function: void*): u32;
 
