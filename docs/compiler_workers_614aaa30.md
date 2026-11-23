@@ -139,3 +139,9 @@ files, backend tests and documentation retain their independent owner evidence.
 No affected input changed, so no worker case or compiler generation was repeated.
 Original manifests, logs and default-file backups remain intact. Main's merged
 compiler source is not relabeled as the source of these supplied reactors.
+
+The first normal push encountered concurrent publication. Complete `9caa921c`
+was then merged as `5ff0c1f3`; all 54 host/fixture and three artifact hashes again
+match, and Node syntax validation passes. Incoming nominal-wrapper compiler
+repairs and other owners' Node fixtures do not alter this test's consumed inputs
+or frozen reactors. Their acceptance remains separate; no generation freeze moved.

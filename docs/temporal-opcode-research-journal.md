@@ -91727,3 +91727,8 @@ Receipt docs/compiler_workers_614aaa30.md and coordinator handoff preserve the
 original setup failure, exact objects/IR, timings, manifests and old defaults.
 No general speedup or newer-compiler/hosted-release claim; ROOT owns adoption.
 A2 six-file reconciliation: scoped commit73caf3fd merged complete published fdf4ffa7 as4ac85095e2031817307d2041daa3b2e6aa4dc7f7/tree2669072c685014177efc376d6b1138474964fad8. Required ff-only pull detected divergence; normal merge preserved histories, no conflicts. All final transport hashes match;1138/1144 mounted Tower blobs match. Six changed blobs are backend/session, backend/source_session, backend_source_native fixture, bootstrap_symbols_checks fixture, comment_functions stress entry and bootstrap_symbols tool, outside these tests' imported closures. Unchanged fixture/library/host inputs and frozen eac executable pair retain the recorded results; new backend implementation is not validated by old LLVM. Exact residual remains open, no new runtime/sanitizer claim. No active jobs; exact-path receipt update and normal main push follow.
+B1 final worker reconciliation: first normal push encountered concurrent main;
+complete9caa921c merged as5ff0c1f3, retaining both histories. All54 host/fixture
+and3 artifact hashes still match; Node syntax passes. Incoming nominal-wrapper
+compiler fixes and other Node fixtures remain outside these frozen eac inputs.
+No tests repeated or reactor/generation identity relabeled; normal push follows.
