@@ -1726,3 +1726,34 @@ The existing `allocations` frontend selector checks metadata copies from the
 first published entity (ID zero), exact Memory/Capacity causes and staged cleanup.
 Owned cloning distinguishes published stage leases from new private nodes by
 their actual lease membership. Numeric ID zero alone is not a private-node test.
+
+### Real compiler component occupancy (ordinary allocator)
+
+The optional `tower-frontend-storage-profile` target links the production compiler
+closure and allocator; it is excluded from the default build. Configure the normal
+native work-test cache, then build only this target:
+
+```sh
+cmake --build build --target tower-frontend-storage-profile --parallel 2
+build/tower-frontend-storage-profile scaffolding 8 1 observe
+build/tower-frontend-storage-profile scaffolding 512 4 plain
+```
+
+Arguments are resource root, independent body count (1..4096), worker budget
+(1 or4), and `observe`/`plain`. Both modes compile the same imported generic,
+`decltype`/`comptime` input, execute reference answers, report comparable canonical
+checksums and dispose to zero byte/lane grants. `plain` skips all storage walks.
+The census runs at coordinator joins, never through a worker/global allocator hook.
+It is not a fault-injection or sanitizer entry point.
+
+CSV `kind` fields: phase, compiler-kind label (or dynamic), local entity ID,
+payload size, live count, live payload bytes, page count, reserved slots, live
+page slots, physical page bytes, strided slot bytes, one-live-slot pages,
+<=25%-occupied pages, individual allocations, individual bytes, instance-index
+bytes. `used` rows report phase/label/ID/ever-used slots in remaining pages;
+`metric` rows give phase/key/value totals and separately identify observer and
+ledger metadata. Core and dynamic component counts are checked against the store.
+Payload pages, descriptor pages and dense pointer indexes must not be added to
+logical payload twice. Raw vectors/foreign allocations and RSS remain separate.
+See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md)
+for exact identities, limits, phase retention and the bounded page-policy proposal.

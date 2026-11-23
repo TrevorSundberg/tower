@@ -88547,3 +88547,81 @@ exactly12 current ledger rows, byte-identical historical ledger suffix and
 whitespace. One metadata-read helper used a .NET API unavailable in Windows
 PowerShell; corrected to supported ProcessStartInfo.Arguments without executing
 runtime code. No source/test/WIP/todo edit or sanitizer retry. Named stash retained.
+
+### 2026-11-23 A2: real compiler phase/kind occupancy at9d9329db
+
+Finite ordinary-allocator task, distinct from the service-rejected sanitizer gate.
+Required pull fast-forwarded to9d9329db3606cbe74c544271ad4b9bb1912a0eec, no owned
+child/container running; named stash37894097 and older logs/todo preserved. Read
+prior localityd5b65afe, world/entity/page/index contracts, frontend module/program
+lifetime and existing profiles. Added only frontend_storage_profile.tower and one
+entry in the existing production-profile CMake loop. B2 frontend_units_profile,
+compiler/backend/scheduler/storage policy and other owners' methods unchanged.
+
+The optional census uses current store-owned pages and published instance/table
+indexes at coordinator boundaries: baseline install, compile+context cleanup,
+program release, module retirement, grammar clear, world teardown. All component
+counts reconcile; kind page/live counts reconcile to the store; views/pending
+reservations/running workers/lanes are checked. Observer vector is private (up to
+512B), disabled before any scan in plain mode. It reports live payload, reserved
+slots, used-slot high water, physical page bytes, descriptor pools, pointer-column
+and instance indexes, separately counted ledger metadata and unclassified remaining
+world grants. Raw vectors/foreign/libc/stack/RSS are not reclassified as payload.
+
+Host KinmenA Ryzen AI MAX+395, Win11/WSL2 Linux6.18.54.1, LLVM19.1.1,
+network-none Docker CPU0-11/24GiB, own native cache, Ninja2/compiler1. Public
+compiler768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138.
+All commands/statuses/logs in A2/cache/logs/compiler_occupancy_9d9329db. First
+wrapper launch exited1/errno13 on relative cmake before compilation; corrected
+to absolute /usr/bin/cmake. Dependency target built providers, then profile failed
+on missing direct vector import (66.376wall/105.526CPU/1062880KiB). After drain,
+added explicit ordinary imports; only profile object/link rebuilt3.860/2.411s/
+257736KiB. Initial12 ordinary processes passed. Added used-slot reporting to
+separate underfilled pages from survivor holes, rebuilding only leaf+link4.442/
+2.782s/283188KiB, then8 final cases passed. No failure erased or expected denial
+weakened. The first static factory lookup used an unmangled name and warned;
+actual object symbol tower.fn.sem_declaration_state_result confirmed0x390-byte
+registration, matching ordinary sizeof(SemanticDeclaration)=912.
+
+Workload:8/512 independent bodies plus shared existing imported generic helper,
+executed comptime/decltype dependencies and untaken generic body. Reference answer
+and body_0(36) are42; serial/four-worker/observer/plain source and canonical
+FNV64/length receipts agree, not a cryptographic byte-equality claim. Final binary
+7b754ecf7cc4a8be61892964e45f9b10244ed0cf7607940d9430a2204c67a6d5, profile source
+40189226fec3ce006cbfc80e24debde894e75e10d034f02c2d804298ac2933d3. Expanded actual
+custom-command depfiles (Ninja explicit inputs alone were insufficient) plus
+source/build/tool identities and24 actual link objects recorded. Existing generated
+legacy-storage/LLVM registry boundaries lack individual .o.d files; actual objects,
+explicit source paths and existing build commands retained, not a fabricated check.
+
+Large joined world:111285 components/91361 entities; live payload18704040B,
+payload pages37913492B, descriptor pages27247369B, table rows/columns4776960B,
+kind indexes2424032B, other ledger21463720B; total93825573B, peak184234758B.
+ParserMatch68474/68608slots99.80%; Foundation32029/44160slots72.53%, used==live;
+SemanticDeclaration2096/9264slots22.63%, used==live,579pages/9101301B for1911552B
+payload.512 declaration pages <=25% full. Across all kinds only20 one-live-slot
+pages retain236300B (0.252% of world), not material compiler-wide183x sparse
+survivors. Actual remaining holes1191 versus21439 never-used slots. The main
+opportunity is private-stage allocation granularity, not unsafe address compaction.
+
+After program release19111986B; module retirement9045178B; cache clear2322390B
+(mostly2311096B empty kind indexes); world disposal0live bytes/grants/lanes.
+Separate20971520B ledger metadata lives until budget disposal. All final lifetime
+checks pass. Small/large final plain n1 whole-process wall/CPU/RSS:8/1=.515782/
+.456137s/177040KiB,8/4=.579540/.572524/179648;512/1=.678341/.620960/255596,
+512/4=.724463/.788995/257524. Earlier n2 pairs remain separate comparable samples.
+Four workers are slower on this short grammar-heavy workload; no fresh kernel
+interval/idle attribution or speedup claimed. B2 owns that separate measurement.
+
+Decision/evidence and full tables in docs/compiler_ecs_occupancy_9d9329db.md.
+Retain stable pages/dense pointer indexes on these inputs. Proposal only: compare
+16 versus4 slots for stage-owned declaration pages using existing common owner
+policy, same source/live identities, held stable addresses and exact cleanup/errors.
+Static page estimate15719->4103B, about5.95MB on512 current sparse pages before
+extra fuller-stream grants/headers; not measured savings. Declaration cleanup clears
+scratch but retains attached records; earlier removal needs last-consumer proof.
+Largest Foundation payload would add11MB as a full copied snapshot, with no measured
+scan reuse to pay for it. No production policy change or packed/noalias claim.
+README and original locality receipt link this finite follow-up. Sanitizer WIP/gate
+remain untouched/open; ROOT owns integrated instrumentation/browser/generation and
+release. No new goal/context/agent, no publication lease or hosted deployment.
