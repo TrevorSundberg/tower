@@ -2122,3 +2122,39 @@ This integration/review does not add executable logic; new performance testing
 of the documentation is inapplicable, and source-union runtime acceptance remains
 open. Complete prior source/tool/compiler receipts are archived as220MiB
 policy_72a_receipt.tar464fdf04; no newer source identity is assigned to them.
+
+### Independent owner cancellation repair and registration review (2026-11-23)
+
+The earlier unresolved linker race is now independently reproduced and cleared
+for its exact fixture. This does not close unrelated resource/publication work.
+Source is97d934a6 (complete ROOT75 plus D2 changes), before archive5a183f1e,
+after ONLY ROOT-authorized B2 patch5d8b5a62. Both sides use the final native
+reader's single host.memory provider; previous separate-provider receipts remain
+historical. No competing backend implementation was introduced.
+
+| Supplemental reviewed path | Ownership, evidence and disposition |
+| --- | --- |
+| `backend/wasm_link_jobs.tower`,97d934a6 + B2 patch5d8b5a62 | Workers borrow the entire shared linker owner when making private snapshots. Cancellation must join before graph lease cancellation and shared error publication. The owner adds that drain; unconditional deferred drain/view close remains. Original shared inputs, private job errors/output ranges and source-order selection are unchanged. Matched current before firstTSan66 versus after normal3/address3/thread10 passes; no universal alias/race guarantee. |
+| `tests/wasm_link_reader_native.tower`,a6ba2e9e | Same one-provider entry on both sides; unchanged shared reader exercises a real two-worker barrier, canonical bytes, pinned close rejection, error order with requested1/2/4 workers and cancellation1/2. Every normal and successful instrumented stdout matches. Two host CPUs do not establish useful four-core scaling. |
+| `cmake/TowerRuntime.cmake`, D1 draftcb7943f5 on2c1eec38 | Necessary build boundary only: consumes explicit SOURCE before symbol bindings in sanitizer IR, direct object and bound optimized IR; default library mode and remaining binding order remain. No second runner/compiler/provider. D2 read the full patch and caller scopes; no source issue found. D1 reports actual native/address/thread checks; direct unbound SOURCE branch remains unrun. No D2 manifest edit. |
+| `cmake/TowerWorkTests.cmake`, `TowerWorkPolicyTests.cmake`, same D1 draft | Existing outer scope supplies real renamed transport/dispatch objects to deferred policy registration. Receipt/order bodies join existing LR providers; mutable dispatch fixtures use ordinary-source initialization and exact runtime_bind names. Existing body assertions remain. Source review is separate from D1's runtime receipt and final coherent integration. |
+
+SteamDeck Linux x64, Docker4be584fb, public9653, LLVM19.1.1, cpus0/2, jobs1,
+normal O1 objects, warm filesystem/fresh processes. Before public IR17.55wall/
+17.28CPU/518604KiB; after16.69/16.44/519648, one build each. Native3 runtime
+is below.01s wall/CPU both sides, RSS2052–2064 versus2124–2128KiB. These samples
+cannot establish a throughput change or meaningful allocation/retention delta.
+After address3: .05–.08wall/.04–.07CPU/39468–41324KiB; thread10:
+.04–.08wall/.03–.07CPU/31420–33780KiB. All measured swaps0. Before failed
+TSan is not completed-throughput evidence; its exact status66/reportc8f1fbb9
+remains preserved without retries. The symbolizer's missing `[stack]` filename
+message does not invalidate the explicit conflicting function stacks.
+
+Actual709 emitted definitions,341 ASan access/memory hooks and1871 TSan access
+hooks, matching instrumented guest runtime and one allocator provider verified.
+LSan enabled. Lifecycle assertions check drained views and preserved output;
+there is no full heap-allocation census, source UBSan/system-library coverage or
+per-worker idle attribution. All owned children drained before08:41:50UTC release.
+Complete paired sources/IR/objects/binaries/logs/script are exported as
+D2/linker_race_75_receipt.tar9f5bf0be (118MiB). Frozen hashes pass. Final whole
+compiler/public-bootstrap/browser/generation and leased publication remain open.

@@ -65786,3 +65786,73 @@ CMake mode work under explicit ROOT08:18 authorization; D2 technical review is
 already incorporated, no duplicate approval request. No active D2 job, new agent,
 publication request or lease. Final current race/sanitizer/public-bootstrap/
 browser/generation and atomic hosted publication gates remain open.
+
+### D2 independently reproduces and validates B2 cancellation drain (2026-11-23)
+
+ROOT handed off exact B2_wasm_cancel_drain.patch5d8b5a62 after independently
+reading D2's original TSan report. D2 source-reviewed/applied only those three
+lines to97d934a6 after all jobs drained. Workers shallow-copy the whole shared
+WasmLink, including error fields; cancellation previously wrote the shared error
+before function-scope deferred draining. The owner correction joins before both
+work_cancel and wasm_link_fail. Existing deferred cleanup, view lifetime and
+source-order failure selection remain. No suppression, competing implementation,
+new scheduler or speculative noalias was introduced.
+
+Waited for D1's current native/address/thread registration group and acquired the
+shared slot only after explicit release. Complete current75-before source archive
+5a183f1e has the same final one-provider native entry as after; owner patch is the
+only source delta. Docker4be584fb, public bootstrap9653, LLVM19.1.1, SteamDeck
+cpus0/2, compilerjobs1; warm filesystem/fresh processes, no private override.
+OS invocation script build/d2_ecs/linker_race_75/run.sh runs the existing unchanged
+Tower reader oracle. Commands are docker exec -e HOME=/tmp/tower-home tower-d2-ecs
+bash /home/deck/tower-agent-2/build/d2_ecs/linker_race_75/run.sh before|after,
+sequentially. Session82674/controller2935880 before;42132/2936142 after.
+
+Before normal3 passes, FIRST TSan fails66 again: main wasm_link_fail write versus
+wasm_link_job_execute read, BuildId1594a9d40ba959143c62dcde939dcf7d7bbe8dc0,
+full stderr SHA c8f1fbb99b8333f8240609584e83ef7fac7ffb64f0201ae163b47f9df7698f4f.
+No retry. llvm-symbolizer cannot open the `[stack]` pseudo filename; actual
+function offsets and conflicting stacks remain usable. All children drained,
+then unchanged after-source hashes checked before starting the paired run.
+After normal3, ASan/LSan3 and TSan10 ALL pass with empty stderr. Actual two-worker
+barrier, canonical output, invalid pinned close, error order at requested1/2/4
+workers and cancellation1/2 execute. Every normal and successful instrumented
+stdout matches.709 definitions,341ASan access/memory hooks,1871TSan access hooks,
+matching guest runtime and exactlyone compiler_buffer_free verified. These counts
+are instrument coverage evidence, not a source UBSan/foreign library or universal
+race-freedom claim. Production allocator remains; no serial fault substitution.
+
+| Paired observation | Before | After |
+| --- | --- | --- |
+| Public IR,1 sample wall/CPU seconds/peakRSSKiB |17.55/17.28/518604|16.69/16.44/519648|
+| Normal runtime,3 each |wall/CPU below.01s; RSS2052–2064KiB|wall/CPU below.01s; RSS2124–2128KiB|
+| Address runtime |not repeated; previous72a composition3pass retained|3pass,.05–.08wall/.04–.07CPU/39468–41324KiB|
+| Thread runtime |first fails66,.11wall/.05CPU/32084KiB|10pass,.04–.08wall/.03–.07CPU/31420–33780KiB|
+
+All measured swaps0. Native timing resolution and single build samples cannot
+support a speedup/regression claim. Failed TSan is not completed throughput.
+View/output assertions and LSan check scoped lifecycle; RSS does not measure
+retained/live allocations, and no full allocation census or per-worker idle
+attribution was added. Exact cancellation correctness is the acceptance improvement.
+After terminal completion, sourcehashes/pass statuses/output bytes checked,
+Docker showed only init/sleep; saved lock receipt and released08:41:50UTC.
+D1 handoff initially rounded the minute to08:42; appended exact timestamp correction.
+
+Full paired receipt D2/linker_race_75_receipt.tar SHA
+9f5bf0be709e3945631c60513c9d47b04c89c832aa744ea7de102a12868de28e
+(118MiB) contains before source archive, exact B2 patch, source/product hashes,
+raw commands/times/status/stdout/stderr, LLVM, binaries/objects and guest providers.
+Original72a race/failure receipts remain unchanged. Full owner history and later
+B2 consumer/A2 stage/L2 publication source union still need integration; this
+scoped success is not clean public-bootstrap/browser/generation/release acceptance.
+
+During D1's slot, reviewed its concrete six-file registration draftcb7943f5 and
+actual helper/caller scopes. SOURCE is consumed consistently in all three build
+paths and never forwarded as a symbol; default library mode and remaining binding
+order remain. Deferred policy registration can access the existing renamed real
+transport/dispatch objects. Receipt/order bodies are unchanged. D1's actual
+normal/address/thread results are independent evidence; direct no-binding SOURCE
+branch remains unrun. No D2 CMake mutation. A later root handoff requests exact
+sem_generic_body_request/sem_generic_copies_execute policy reconciliation only
+when L2's complete publication fixture/provider source arrives; no blanket or
+premature allowance has been added.
