@@ -62,14 +62,18 @@ fn generic_clone_child(store: void*, parent: void*, label: u8*, role: u8*, start
 // Actual registry/header APIs; only the fixture's syntax is synthetic.
 fn generic_clone_fixture_open(fixture: GenericCloneFixture*, width: usize, depth: usize,
     workers: usize, budget: WorkBudget*): void {
-    *fixture = default;
-    fixture.width = width;
-    fixture.depth = depth;
-    fixture.world = compiler_world_create_workers(workers);
-    utility_check(fixture.world != null, "Clone fixture world");
+    var world = compiler_world_create_workers(workers);
+    utility_check(world != null, "Clone fixture world");
     if budget != null {
-        utility_check(compiler_world_bind_budget(fixture.world, budget), "Clone world freezes its physical budget");
+        utility_check(compiler_world_bind_budget(world, budget), "Clone world freezes its physical budget");
     }
+    generic_clone_fixture_world(fixture, width, depth, world);
+}
+
+// Takes ownership of an already constructed world, including a world whose
+// entity/component pages were bound to a byte ledger at construction.
+fn generic_clone_fixture_world(fixture: GenericCloneFixture*, width: usize, depth: usize, world: void*): void {
+    *fixture = {world: world, width: width, depth: depth, ..default};
     fixture.store = compiler_world_store(fixture.world);
     fixture.root = entity_create(fixture.store);
     utility_check(fixture.root != null, "Clone fixture root");

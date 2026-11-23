@@ -12,6 +12,7 @@ import .library.work_vector_types;
 import .library.work_budget_types;
 
 // Compiler transformations and metadata over the shared entity store.
+var GenericParameterDepthLimit: usize = 128;
 
 fn compiler_node_count(node: Entity*): usize {
     if node == null {
@@ -29,12 +30,12 @@ fn compiler_node_member(node: Entity*, role: u8*): Entity* {
 }
 
 fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node: Entity*, depth: usize): void {
-    if depth > 128 {
+    if depth > GenericParameterDepthLimit {
         context.error = "Template parameter nesting exceeds 128";
         return;
     }
     if compiler_node_label(node, "CoreParameter") {
-        if template.count == 64 {
+        if template.count == sizeof(decltype(template.parameters)) / sizeof(Entity*) {
             context.error = "A template supports at most 64 parameters";
             return;
         }
@@ -58,9 +59,25 @@ fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node
 }
 
 export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
-    var temporary: GenericTemplate;
+    var error = WorkBudgetError.None;
+    var result = generic_register_result(context, definition, &error);
+    compiler_entity_require(error == WorkBudgetError.None);
+    return result;
+}
+
+export fn generic_register_result(context: GenericContext*, definition: Entity*, error: WorkBudgetError*): u32 {
+    var ordinary = convert(u32, GenericKind.Ordinary);
+    if error == null { return ordinary; }
+    *error = WorkBudgetError.Invalid;
+    if context == null || context.root == null || definition == null
+        || definition.store != context.root.store { return ordinary; }
+    if context.root.stage != null || definition.stage != null || definition.store.views != 0 {
+        *error = WorkBudgetError.Busy;
+        return ordinary;
+    }
+    *error = WorkBudgetError.None;
+    var temporary: GenericTemplate = default;
     var template = &temporary;
-    fill(template, 0, sizeof(GenericTemplate));
     var params = compiler_node_member(definition, "params");
     generic_parameters(context, template, params, 0);
     var result = compiler_node_member(definition, "type");
@@ -84,8 +101,9 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
         }
     }
     if template.kind != GenericKind.Ordinary {
-        var data = generic_component_add(definition, context.template_type);
-        copy(data, template, sizeof(GenericTemplate));
+        var data = bits(GenericTemplate*, generic_component_add_result(definition, context.template_type, error));
+        if data == null { return ordinary; }
+        *data = *template;
     }
     return convert(u32, template.kind);
 }
@@ -113,18 +131,23 @@ struct CloneStack {
     error: WorkBudgetError;
 }
 
-fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*): Entity* {
-    var result = stage == null ? entity_create(source.store) : entity_stage_create_named(stage, parent, name);
+fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, error: WorkBudgetError*): Entity* {
+    var result = stage == null ? entity_create_result(source.store, error)
+        : entity_stage_create_named_result(stage, parent, name, error);
     if result == null {
         return null;
     }
     if stage == null {
-        compiler_node_copy_metadata(source, result);
+        *error = compiler_node_copy_metadata_result(source, result);
     } else {
-        if !compiler_node_copy_metadata_staged(source, result, stage) { return null; }
+        *error = compiler_node_copy_metadata_staged_result(source, result, stage);
+    }
+    if *error != WorkBudgetError.None {
+        if stage == null { entity_release(result); }
+        return null;
     }
     if context != null {
-        var component = entity_component_add(result, context.origin_type);
+        var component = entity_component_add_result(result, context.origin_type, error);
         if component == null {
             if stage == null { entity_release(result); }
             return null;
@@ -148,10 +171,9 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
     if scratch.error != WorkBudgetError.None {
         return null;
     }
-    var result = compiler_clone_node(source, context, use, stage, parent, name);
+    var result = compiler_clone_node(source, context, use, stage, parent, name, &scratch.error);
     var failed = result == null;
     if failed {
-        scratch.error = WorkBudgetError.Memory;
         return null;
     }
     *remaining = *remaining - 1;
@@ -180,17 +202,16 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         }
         var child = entity_child_at(frame.source, frame.next);
         var role = entity_child_name(frame.source, frame.next);
-        var copy = compiler_clone_node(child, context, use, stage, frame.destination, role);
+        var copy = compiler_clone_node(child, context, use, stage, frame.destination, role, &scratch.error);
         failed = copy == null;
         if failed {
-            scratch.error = WorkBudgetError.Memory;
             break;
         }
         *remaining = *remaining - 1;
         if stage == null {
-            var attached = entity_attach(copy, frame.destination, role);
+            scratch.error = entity_attach_result(copy, frame.destination, role);
             entity_release(copy);
-            if !attached { scratch.error = WorkBudgetError.Memory; failed = true; break; }
+            if scratch.error != WorkBudgetError.None { failed = true; break; }
         }
         frame.next++;
         frames.data[frames.length] = init(CloneFrame) { source: child, destination: copy, next: 0 };
@@ -212,6 +233,10 @@ export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): En
 // Capacity and allocation failure are distinct from the caller's node quota.
 // Sources outside a compiler world retain the explicit standalone boundary.
 export fn compiler_clone_tree_result(source: Entity*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): Entity* {
+    if copied != null { *copied = 0; }
+    if storage_error == null { return null; }
+    *storage_error = WorkBudgetError.Invalid;
+    if source == null || copied == null { return null; }
     var remaining = limit;
     var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(source)), ..default };
     defer work_vector_dispose(&scratch.frames);
@@ -222,19 +247,38 @@ export fn compiler_clone_tree_result(source: Entity*, limit: usize, copied: usiz
 }
 
 export fn generic_instantiate(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
-    return generic_instantiate_body(context, definition, use, arguments, count, false);
+    var error = WorkBudgetError.None;
+    return generic_instantiate_result(context, definition, use, arguments, count, &error);
+}
+
+export fn generic_instantiate_result(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize, error: WorkBudgetError*): Entity* {
+    return generic_instantiate_body(context, definition, use, arguments, count, false, error);
 }
 
 // Query preparation reserves canonical instance identity and its header only.
 // The shared body-copy receipt must publish before a type-result consumer reads
 // the constructor body. Existing eager adapters keep their ordinary behavior.
 export fn generic_instantiate_deferred(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
-    return generic_instantiate_body(context, definition, use, arguments, count, true);
+    var error = WorkBudgetError.None;
+    return generic_instantiate_deferred_result(context, definition, use, arguments, count, &error);
 }
 
-fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize, defer_type_body: bool): Entity* {
+export fn generic_instantiate_deferred_result(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize, error: WorkBudgetError*): Entity* {
+    return generic_instantiate_body(context, definition, use, arguments, count, true, error);
+}
+
+// Resource admission has a per-call receipt. Ordinary argument/expansion limits
+// still use the existing diagnostic and can return null with no resource error.
+fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize, defer_type_body: bool, error: WorkBudgetError*): Entity* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if context == null || context.root == null || definition == null
+        || definition.store != context.root.store || use != null && use.store != context.root.store { return null; }
+    if context.root.stage != null || definition.stage != null { *error = WorkBudgetError.Busy; return null; }
     var data = compiler_component_get(definition, context.template_type);
     var template = bits(GenericTemplate*, data);
+    if template == null { return null; }
+    *error = WorkBudgetError.None;
     var needed = template.type_count;
     if template.kind == GenericKind.TypeConstructor {
         needed = template.count;
@@ -243,6 +287,7 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
         context.error = "Wrong number of compile-time arguments";
         return null;
     }
+    if count != 0 && arguments == null { *error = WorkBudgetError.Invalid; return null; }
     var current = context.first;
     while current != null {
         var same = current.definition == definition;
@@ -280,23 +325,25 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     var copied = before -remaining;
     context.copied = context.copied + copied;
     if node == null {
+        *error = scratch.error;
         context.error = scratch.error != WorkBudgetError.None
             ? "Cannot allocate template clone storage within its memory budget"
             : "Template expansion exceeds 65536 nodes or could not allocate its work stack";
         return null;
     }
-    data = generic_component_add(node, context.instance_type);
+    data = generic_component_add_result(node, context.instance_type, error);
+    if data == null {
+        entity_release(node);
+        context.error = "Cannot allocate template instance storage within its memory budget";
+        return null;
+    }
     var instance = bits(GenericInstance*, data);
-    fill(instance, 0, sizeof(GenericInstance));
-    instance.definition = definition;
-    instance.use = use;
-    instance.node = node;
-    instance.body_source = body_source;
-    instance.count = count;
+    *instance = {definition: definition, use: use, node: node, body_source: body_source, count: count, ..default};
     for(var i: usize = 0; i < count; i++) {
         instance.arguments[i] = arguments[i];
     }
-    if !entity_attach(node, context.root, null) {
+    *error = entity_attach_result(node, context.root, null);
+    if *error != WorkBudgetError.None {
         entity_release(node);
         context.error = "Unable to attach template instance";
         return null;

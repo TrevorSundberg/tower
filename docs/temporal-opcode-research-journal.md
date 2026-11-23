@@ -77137,3 +77137,148 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+### 2026-11-23 L2: generic per-call result closure, frozen 000a960 baseline (in progress)
+
+Implementation ownership: ROOT explicitly assigned L2 the four generic result
+producers and exact lifecycle/completion/language/type/value/constructor consumers
+at 12:31 UTC. The approved contract uses required per-call WorkBudgetError output,
+retains compatibility wrappers and the existing GenericContext layout, and records
+consumer failures immediately in SemanticProgram.resource. ROOT owns the early
+semantic_context query helper and all entity/stage producers. No new error graph,
+context field, language feature, or publication permission is implied.
+
+At the clean, unstarted boundary, full ROOT34aa was already merged as b20a9d3;
+full ROOTc944 (bundle SHA2567b28e024f583969fc05e4be69e8bb2f6b85b7079a61ee0ec4042caf5e435ab09,
+sole60741 prerequisite) then merged as 000a960331409a1b62ec71e6522d00850268b444.
+This retains the completed8c inspection milestone and482 worker-metadata correction.
+The ROOT queue slice repair was reviewed at the endpoint; transient fetch pack-index
+warnings remain in tool output, while postmerge pull/diff/connectivity checks pass.
+The later L1 map91875 bundle was received during the freeze and was not adopted.
+
+BEFORE54161 actually drained with process/source/input/package checks all zero.
+Public bootstrap path came from the documented build-bootstrap.sh without a private
+override; existing Release/Linux x64 cache and explicit two build jobs were used.
+Immutable compiler, LR runner, serial allocator runner and complete runtime resources
+are in /root/.cache/tower/l2_generic_results_native/before, identified by
+L2/generic_results_before_package.sha256. All compiler Tower/build inputs and the
+unchanged constructor/generic profile inputs have explicit before/final hashes.
+Native14-step build: 51.78s wall, 75.68s CPU, 740524KiB peak RSS. Query-smoke:
+0.21/.24/75028; type-smoke: 294.13/315.91/279636; full storage: .30/.24/99444
+(seconds/seconds/KiB). All three runtime stderr files are empty. Query uses its
+explicit worker cases; type-smoke includes lifecycle plus serial/worker canonical
+and error checks, and storage requires the production single-owner fault host.
+These are baseline validation measurements, not a before/after performance claim.
+The host had 923GiB available in WSL, 118GiB on C, 15.7GiB WSL memory with about
+14GiB free before compilation. No sibling heavy process overlapped this slot.
+
+Two OS setup mistakes are retained, not relabeled as passes: an inline WSL
+resource probe failed PowerShell/bash quoting, before any measurement. The recipe
+records disk/memory itself. Its initial git-status check recursively scanned
+submodules; owned Git children391/386 were terminated after an independent clean
+Windows checkout check. Because the shell used a command substitution inside test,
+that failed check did not stop the script; it is NOT a successful Linux clean check.
+The subsequent explicit source/input manifests and final verification passed, and
+no compiler source changed. Future recipes must capture a Git command's status
+before testing its output and avoid irrelevant recursive submodule scans.
+
+Only regression fixtures are currently adopted after baseline drain: shared
+fixture setup accepts an already constructed owned world; storage tests require
+exact Busy/Exhausted/Invalid from public cloning, and physical metadata-page
+Capacity after the actual initial clone scratch grant succeeds. The page test uses
+a fresh stage, hold-before-unpin, discard, unchanged counts, a fresh successful
+retry and final zero storage/grants. These tests are not compiled or passed yet.
+The next bounded slot must establish the original producer failure before adoption.
+
+External Tower drafts hold the four producers and all assigned consumers. Review
+preserves the internal generic_component_add helper because generic_body_budget
+imports it, and retains legacy declaration-only APIs used by existing tests. Ordinary
+generic diagnostic behavior is unchanged. Draft allocation sweeps derive their
+bounds from an actual successful operation; they cover real registry/template/
+instance storage and recovery, not a synthetic allocator substitute. Drafts are
+uncompiled, so no implementation acceptance is claimed. Exact consumer injection,
+matched serial/parallel costs, affected supported instruments, later coherent
+integration, public bootstrap/browser/generation and hosted publication remain open.
+The full goal remains active and no publication lease was granted.
+The new before-regression is now evidence: first20100 stopped at the smallest
+fixture compile because `expected` is a grammar keyword, before any runtime.
+After drain, only that local name/diagnostic wording changed to `wanted`.
+Retry49597 compiled the public-bootstrap fixture and coherent two-step storage
+runner, then the actual pinned-store clone produced Memory(3), wanted Busy(5),
+copied0. The assertion aborted with signal6/status134; wrapper exit1 and source
+manifest0 are retained. GNU time printed an Exit status0 field beside its signal
+line; this does not change the real nonzero process result. The regression binary
+is /root/.cache/tower/l2_generic_results_native/regression_before_retry1.
+Later assertions were not reached and are not before-passes.
+
+After actual drain, the approved producer/consumer delta was adopted on000a960.
+The registry constructs all kinds before publishing its context component, typed
+clone admission preserves node/metadata/component/attachment causes, and semantic
+consumers immediately record the existing first-cause receipt. Ordinary diagnostic
+semantics, compatibility entry points, context ABI and parameter limits remain.
+The parameter bound derives from its actual array type; semantic limits are named.
+Re-registration rejects a pinned store because it writes even an existing payload.
+
+The new serial storage fixture is deliberately separate from threaded claims. It
+sweeps each real operation's measured allocation count, tests physical page Capacity,
+checks independent retry and cached identity, and distinguishes eager/deferred type
+constructor bodies. A lifecycle test measures the actual context/registry entity
+ID demand, then exhausts IDs inside generic_begin as invoked by semantic_compile_budget.
+It covers each partial-registry step, pointer widths4/8 and an earlier retained
+resource cause, and requires complete world/buffer cleanup. It adds no test hook or
+new semantic export. Current source is uncompiled pending the next AFTER grant;
+no part of this implementation or fixture is a passed result yet.
+Native AFTER validation is now complete on the exact approved delta. Public
+production entity and semantic objects passed first (7.22/6.08/294752 and
+29.63/23.16/740916 wall/CPU seconds/peak KiB). Initial71612 failed later while
+compiling the test harness: importing the broad semantic_query_api conflicted with
+storage's existing entity_component_data return declaration. After drain, the
+fixture imported only its five needed lifecycle declarations. Retry1/25882 then
+caught two EntityStore* arguments at an opaque void* boundary; explicit casts fixed
+only those test calls after drain. No production change was needed for either.
+
+Retry2/78253 built coherent binaries, passed all preceding clone/admission/page/
+allocation-sweep assertions, then exposed a wrong fixture assumption: context setup
+creates zero entities, not a positive number. sem_table uses sem_allocate, while
+actual generic registry setup creates four entities. The corrected test retains
+both measured counts and requires nonzero registry demand only. All failed logs,
+source manifests and the retry2 immutable package are preserved; unreached tests
+are not reclassified as passes.
+
+Corrected retry3/98257 passed the full serial storage suite, query-smoke, type-smoke
+and editor with empty runtime stderr; process/source/input/package checks all zero.
+Storage .26/.23/99532, query .18/.23/74472, type293.98/315.78/262968,
+editor14.22/23.13/850088 (wall/CPU seconds/peak KiB). The final storage rebuild took
+9.80/7.52/307684. Storage now covers exact Busy/Exhausted/Invalid, physical metadata
+page Capacity after initial scratch admission, allocator failure at each measured
+operation allocation, eager/deferred body contracts, retry and allocation-free
+cached identity. The actual lifecycle covers four registry ID denial boundaries,
+each target pointer width4/8 and with/without a prior typed receipt; all selected
+buffers/world owners retire. It remains a serial allocator fixture, not a threaded
+allocator sanitizer. Query includes actual clone overlap/cancellation and existing
+32/64-bit staging; type includes canonical reconstruction and failures/cycles;
+editor includes the existing late-inspection and parallel-unit controls.
+
+Immutable packages: /root/.cache/tower/l2_generic_results_native/before and /after.
+Compiler SHA256 before f8e781e961e1f7a6caf00ba9b35b990195ec3eeaa0dfc96b720c6524a2289b3b,
+after e42ee4ef9c585ebae9ab6bd522a4dd622308236c5487e844fca873f33f9a7243.
+LR runner before15a3988b633c0e52782ee838e463fe47092966faaf9a49cfc11131354377034a,
+after818100c425706c595b01afc8d6c6c27af9da29d8c006c70b63ed09ab1e9f5911.
+Storage runner before3bd66da6b33d52b50ac23ecfc462b2d45ab319b232ff434c5d18b6447b0e5e48,
+afterc880fa13f243873193671fb920448f23b7b6f919c6c571a9ec28b21c9e5fd42b.
+Package and source/input manifests are preserved with the exact recipes and logs
+in116-file L2/L2_generic_results_000a_native_receipt.tgz, SHA256
+bc16dbd26dc0e441e25faaf6c5e7d144cbf8be127257f4376c37179c2dff2fa8.
+Validation timings are single runs, with additional regression work in storage;
+they are not matched speedup/neutrality claims. Same-path32 constructor/generic
+pairs, supported instruments and complete later ROOT2252 ABI integration remain
+pending. No compiler-only cache artifact establishes public bootstrap closure.
+
+Independent continuation ownership is unchanged: PID12136/parent9356, original
+01a2046b-afe5-7441-85f3-9aaab990b850, gpt-6-astra/xhigh/default verified from the
+surviving CLI command; no new session or worker was created. The host was released
+after actual drain. L1's proposed next diagnostic migration has narrowly approved
+sem_type_execution_error ownership: preserve its first receipt and source offset,
+use the request's actual invocation ledger, and use counted failure propagation
+instead of ix_construct_type's redundant termination allocation. This is a future
+proposal, absent from this frozen code and not validation evidence for it.
