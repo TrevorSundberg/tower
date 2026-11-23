@@ -60002,3 +60002,65 @@ one separate provider in existing fixture recipe). The resolved resource helper
 SHA14e0d6db matches D1. Default/all/type-smoke behavior and every owner assertion
 remain intact. These source additions require their own public smallest/native
 build and runtime; no new pass is inferred from D1's earlier lifecycle42 receipt.
+
+### D2 joined Publish runtime and exact import policy (2026-11-23)
+
+Frozen406d1709 public smallest semantic_known_bindings and semantic_publish_checks
+pass, then canonical native6steps89.99wall/88.01CPU/793164KiB and11 focused steps
+38.58/37.86/365080 pass. Compiler1a9476d01b8b84e18f9c6c837c4cc8a4a100d2181e291eb643fc9359d0995f39.
+All six linked compiler/test executables have exactly one Publish kernel; the
+separate arena fixture has exactly six arena exports and no second provider.
+Fresh package has49 resources, exact Tower-file set and byte comparisons pass.
+Complete package and immutable input manifests: publish_profiles_406d.
+
+The first query-smoke exits134 at generic_clone_parallel.tower:149: the workers2
+Publish trial has no measured kernel interval overlap. The diagnostic printed
+by utility_check is a FAILURE, not the success receipt I initially mistook it
+for. Only the workers1 trial completed; A1's Publish fixture had not run. Preserve
+query-smoke stdout/stderr/time and runtime.status134 in publish_join_406d1709.
+GNU time's trailing Exit status0 does not override its signal6 and wrapper134.
+Exact affected object hashes and source manifest are exported with the failure
+in D2/publish_join_406d_failure.tar (bb62661075ab995989d3fb09f918d5d61f5f1e46f9a1b8d88cc75fa7f0cce20a).
+Source/object mtimes confirm rebuilt parser/semantics/query/entities/interpreter/
+evaluation/LR entry; this is not evidence of the separately reported stale-copy
+build problem. L2 owns clone interval diagnosis; no assertion was dropped or
+moved across the admission barrier.
+
+A same-binary gdb run completed normally, followed by ten bounded ordinary query
+repetitions, all passing the original clone matrix,18 Publish pressure cases,
+four cancellation cases and24 resource cases. Those executions stand separately;
+they do not erase the initial intermittent failure. Gdb command itself returned1
+because info-registers ran after normal inferior exit; its complete log is kept.
+Docker lacked a debugger, so the existing Ubuntu gdb15.1 package was installed:
+ten new debugger dependencies, zero upgrades. Compiler/LLVM/libc unchanged. No
+unsafe memory/race probe or source mutation. All children drained before edits.
+
+The separate remaining group passes type-errors93.18wall/100.56CPU/251372KiB,
+arena linkage, parser, serial allocations4.37s/170488KiB, storage and full module
+transactions, production units and backend exact-object/distinct-worker overlap.
+Type-errors covers the unchanged post-lifecycle branch; it is not full current
+42-case type-smoke. Exact per-command timings and outputs remain in the same
+log directory. Whole current compiler sanitizers, final browser/generation and
+release remain open; the clone-overlap assertion remains unresolved.
+
+The exact production bootstrap import policy now admits22 observed native
+cross-unit dependencies (four Entities, six ParserNodes, six Interpreter, six
+Semantics), plus Interpreter's WASM-only indirect table and the configured
+browser/check fixture's existing tower_node_create boundary. Definitions were
+verified in current entities/host/semantics/interpreter objects. No wildcard.
+First follow-up correctly exposed the two missing WASI/profile imports; logs
+retain exit1. A second group mistakenly applied the production policy to the
+allocator-check entry: tower_test_buffer_count/fail_next correctly reject. Those
+hooks remain forbidden production imports, now with explicit Tower regressions;
+no unsupported check-only profile was silently broadened into production.
+
+Final regression and12 supported actual reports pass: seven current native
+components, three native production interpreter/evaluation entries, two WASI
+entries. Wrong units, prefixes/suffixes, native indirect table, Interpreter
+WASM table_base and check-only hooks still reject. Scoped ASan/LSan instruments
+all11 checker definitions through the canonical original-IR/tool/plain-Clang
+pipeline and passes. The serial guest transport is not claimed as whole compiler
+or threaded instrumentation. Tool compilation and sub-centisecond verifier
+runs retain wall/CPU/RSS in publish_symbols_406d; allocation-free borrowed spans
+and dispatch remain unchanged, so no verifier throughput improvement is claimed.
+No redundant verifier rebuild after the final test-only negative additions.

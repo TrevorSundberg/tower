@@ -1715,3 +1715,22 @@ and source-specific native/ASan/TSan/WASI receipts remain qualified in its journ
 D2 joined provider and grammar performance, current instrumentation and final
 artifact validation are pending. No further runtime measurement is attributed to
 these audit paragraphs themselves.
+
+The provider rows above now have exact406d native link/runtime evidence: six
+compiler/test executables each contain one kernel,49-resource package membership
+matches source, and ten full query repetitions include22 Publish/24 resource
+cases. Initial query134 remains an unresolved workers2 clone-overlap assertion
+before Publish. Type-errors, arena linkage, parser/allocation/storage/module,
+production units and backend overlap pass separately. Do not equate those
+successful executions with resolving the initial failure or final release.
+
+At the subsequent D2 policy change, bootstrap_symbols and its existing Tower
+regression retain borrowed allocation-free spans and exact per-unit/platform
+membership. Actual native/WASI owner exports justify24 additions; check-only
+allocator hooks remain rejected. Seven native components plus three native/two
+WASI production entry reports and all policy regressions pass;11-definition
+ASan/LSan passes. Misapplied check-profile validation and earlier missing-WASI
+imports remain recorded failures, not passes. New policy changes no scheduler,
+world/payload ownership, supported target or source language. Common compiler
+before/after profiles and final merged instrumentation/browser/generation remain
+separate gates.
