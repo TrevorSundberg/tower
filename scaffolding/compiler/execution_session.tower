@@ -6,6 +6,8 @@ import format_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
 // One request owns its checked Foundation entities, derived execution cache and
 // guest storage. The module environment is borrowed only during compilation.
@@ -21,8 +23,10 @@ struct ExecutionSession {
 
 extern fn compiler_host_world(): void*;
 extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn frontend_modules_world(modules: void*): void*;
 extern fn entity_create(store: void*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_release(node: void*): usize;
 
@@ -30,6 +34,8 @@ extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
 
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
+
+extern fn frontend_source_nul(source: u8*, length: usize): usize;
 
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
@@ -94,6 +100,13 @@ fn execution_session_program_failed(execution: ExecutionSession*): bool {
     return true;
 }
 
+fn execution_session_resource_fail(execution: ExecutionSession*, error: WorkBudgetError): void {
+    if execution.program.resource.error == WorkBudgetError.None {
+        execution.program.resource = { error: error, offset: 0 };
+    }
+    execution_session_program_failed(execution);
+}
+
 fn execution_session_compile_sources(execution: ExecutionSession*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
     // Compatibility callers may supply an unbound environment. A bound one
     // selects its own world; no process-wide current-world switch is needed.
@@ -103,55 +116,53 @@ fn execution_session_compile_sources(execution: ExecutionSession*, sources: Fron
 
 fn execution_session_compile_sources_world(execution: ExecutionSession*, world: void*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
     execution_session_close(execution);
-    var root = world is null ? null : entity_create(compiler_world_store(world));
+    var root_error: WorkBudgetError;
+    var root = entity_create_result(world == null ? null : compiler_world_store(world), &root_error);
     if root is null {
-        execution_session_fail(execution, "Unable to allocate compiler root", 0);
-        execution.machine.done = true;
+        execution_session_resource_fail(execution, root_error);
         return false;
     }
     semantic_initialize(&execution.program, root, width);
-    // The remaining frontend boundary reads NUL-terminated source. Preserve the
-    // request's explicit bounds even for formatter buffers and package sections.
-    var inputs = alloc(FrontendSource, count);
-    var snapshots = alloc(ByteBuffer, count);
-    if count != 0 &&(inputs == null || snapshots == null) {
-        free(inputs);
-        free(snapshots);
-        execution_session_fail(execution, "Unable to allocate compiler input storage", 0);
-        execution.machine.done = true;
+    // Preflight every counted span before creating any frontend module. The
+    // synchronous frontend owns its SyntaxSource copies; these inputs stay
+    // borrowed and immutable only until that call returns.
+    if (count != 0 && sources == null) || count > ~convert(usize, 0) / sizeof(FrontendSource) {
+        execution_session_resource_fail(execution, WorkBudgetError.Invalid);
         return false;
     }
-    fill(snapshots, 0, count *sizeof(ByteBuffer));
-    var copied = true;
+    var empty = false;
     for(var i: usize = 0; i < count; i++) {
-        if !bytes_assign_text(&snapshots[i], sources[i].data, sources[i].length) {
-            copied = false;
-            break;
+        var input = &sources[i];
+        if input.length == ~convert(usize, 0) || (input.length != 0 && input.data == null) {
+            execution_session_resource_fail(execution, WorkBudgetError.Invalid);
+            return false;
         }
-        for(var at: usize = 0; at < snapshots[i].length; at++) {
-            if snapshots[i].data[at] == 0 {
-                execution_session_fail(execution, "NUL in compiler source", at);
-                copied = false;
-                break;
-            }
+        empty ||= input.data == null;
+        var nul = frontend_source_nul(input.data, input.length);
+        if nul != input.length {
+            execution_session_fail(execution, "NUL in compiler source", nul);
+            return false;
         }
-        if !copied { break; }
-        inputs[i].data = snapshots[i].data;
-        inputs[i].length = snapshots[i].length;
     }
-    if copied {
-        frontend_compile_sources(&execution.program, inputs, count, modules);
+    // Preserve the session's null-plus-zero-length input compatibility without
+    // copying ordinary nonempty text or changing the caller's descriptors.
+    var normalized: work_vector(FrontendSource) = default;
+    defer work_vector_dispose(&normalized);
+    var inputs = sources;
+    if empty {
+        var error = work_vector_reserve_result(&normalized, compiler_world_work_budget(world), count);
+        if error != WorkBudgetError.None {
+            execution_session_resource_fail(execution, error);
+            return false;
+        }
+        for(var i: usize = 0; i < count; i++) {
+            normalized.data[i] = sources[i];
+            if normalized.data[i].data == null { normalized.data[i].data = ""; }
+        }
+        normalized.length = count;
+        inputs = normalized.data;
     }
-    for(var i: usize = 0; i < count; i++) {
-        bytes_dispose(&snapshots[i]);
-    }
-    free(snapshots);
-    free(inputs);
-    if !copied {
-        execution_session_fail(execution, "Unable to allocate compiler input storage", 0);
-        execution.machine.done = true;
-        return false;
-    }
+    frontend_compile_sources(&execution.program, inputs, count, modules);
     if execution_session_program_failed(execution) { return false; }
     execution.machine.stack = 16;
     execution.machine.heap = 4194304;
