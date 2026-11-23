@@ -92207,3 +92207,98 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+### 2026-11-23 A1: allocation-free backend response retains first cause/offset
+
+Implemented against published c93ddaabdd961c4be27d825ae4e3bf59575ec303.
+The original response-denial control exits134 at the independent exact JSON
+assertion: fallback omitted errorOffset and collapsed Invalid/Stale/Exhausted.
+Preserved the executable, source identity, logs and exit. Normal backend responses
+and matched healthy reconstruction were captured before changing production.
+
+Only production file backend/session.tower changes. The existing session factory
+reserves a bounded tail in the SAME allocation, sized from all actual fallback
+prefixes plus the target usize bit count and closing/NUL bytes. Descriptor layout,
+public signatures and result keys remain unchanged. All actual owners (source
+session and tests) use that factory; no externally sized/stack session producer
+exists. The tail follows the session's lifetime and is freed by its existing close.
+No second allocation, global buffer or new error framework. Reporting copies only
+static valid JSON prefixes, writes the unsigned offset without allocation, then
+publishes the complete NUL-terminated response. Existing Memory/Capacity/Busy
+messages stay unchanged; all six typed categories now retain resourceError.
+The original backend.error_offset outranks a later caller's offset. Without a
+backend/typed receipt the provided ordinary-error offset is retained. Response
+failure never overwrites the original backend receipt.
+
+Consumers reviewed: backend_source_error/import/compile and successful candidate
+commit, host/llvm_worker result lifetime, and llvm-host.mjs JSON.parse/moduleDiagnostic.
+The existing response_fallback marker still prevents candidate Foundation
+publication; prior source.foundation ownership is untouched. No source_session,
+shared formatter, semantic type, parser, or reconstruction producer was edited.
+Numeric JSON and current transport shape are unchanged; native full-usize text
+is tested, not a new JavaScript arbitrary-precision API.
+
+New Tower backend_response_checks/native tests use the existing serial instrumented
+allocator through typed callbacks. Registered CTest tower-backend-response reuses
+the production session provider/native LLVM libraries. The existing Linux test
+clock transport was extracted unchanged to backend_clock_native for both native
+fixtures, rather than adding a fake clock or attaching test instrumentation to
+normal source-session execution. No generic storage-runner change remains.
+
+Checks: real first/partial response-growth denials for Capacity=1, Invalid=2,
+Memory=3, Stale=4, Busy=5 and Exhausted=6; offsets0,73,4294967295 and native
+usize maximum18446744073709551615. Independent complete expected JSON strings
+include closing brace/NUL; not the production formatting helper as oracle.
+Repeated failure and failed success-response serialization preserve first cause
+and owning offset, including a prior ordinary failure. Fresh response denial
+records Memory only if first. Seventy-five response-denial points plus initial
+session allocation denial pass. Every response-denial assertion checks exact
+allocation-call count: no fallback allocation after denial. Independent sessions
+retain their own result, healthy escaped-error/success responses recover, and
+final instrumented buffers are0->0. Native reserved tail is169B; no additional
+allocation count. These are serial fault tests, not threaded instrumentation.
+
+Three focused CTests pass: backend-response, backend-source-worlds and
+backend-source-recheck (1.44s total). The latter preserves a real prior valid
+Foundation result through frontend Capacity and checks retry/zero ownership.
+After extra first-error/creation tests, only the changed response selector was
+rebuilt/rerun; it passes0.02s. Final one-million healthy-response control is
+0.02wall/0.01CPU seconds,50760KiB RSS; denial control0.02/<0.01/50576. The earlier
+stack-based setup microprofile is retained but is NOT a matched factory-lifetime
+comparison. No performance claim is inferred from sub-clock-resolution numbers.
+
+Matched healthy production control uses the SAME518B struct_reconstruction_small
+input, wasm32 target, unoptimized LLVM Foundation, exact public grammars/runtime,
+production allocator and real source-session/world. Fresh processes, warmed file
+cache, n1 each, KinmenA Windows11/Docker Linux x64 LLVM19 Release, CPU12-23/24GiB.
+Wall/CPU seconds and peakRSSKiB before -> after:
+
+| Workers | Before | After |
+| --- | --- | --- |
+|1|.98/.90/264076|.94/.87/265000|
+|4|1.37/1.49/284456|1.38/1.50/283324|
+
+All four outputs are byte-identical126234B, SHAcb88d45ee1fa1a403e8811055a153a1ada6d17cb80ed8e2c40be62d0ad603654.
+Independent public-bootstrap interpretation with wasm32 target prints exact0.
+World peak charged bytes remain202885396/202881652 (workers1/4), and final
+bytes/grants/lanes are0 in every run. The existing ledger excludes raw session
+and LLVM allocation; instrumented buffer cleanup above covers the response owner.
+No material observed regression or speedup/scaling claim from these n1 controls.
+
+Public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+no override. Dependency-aware provider/source targets compiled and linked. Final
+response runner45bd129554b594cdc9b182e34273d706f3f742c04b9fa9c2b796780edc742be4;
+source runner8fe8601aeb23747c7cb9115036df0f1fbedf95d92a1dfa90581d1e8d92ed7e08;
+production file036919cfc78a127979a24d662f3ab11f65252aec7963de37c89838503ba780b5.
+Commands, timing, exact outputs, failures and hashes are preserved in
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/backend_response_c93d and adjacent
+backend_response_*.sh transport scripts. Setup failures (array literal syntax,
+opaque-handle import conflict, missing direct import, native clock link) remain
+logged. The first inline comptime-buffer design was rejected by public bootstrap's
+string-read capability; the final factory sizing uses ordinary runtime code,
+without private compiler adoption or a capacity increase.
+
+Same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, actual Codex PID14544; initial
+free disk340714508288B, no interrupted jobs. All jobs now drained; todo unchanged.
+No browser/reactor, full compiler/generation, sanitizer or hosted run is claimed.
+Those remain ROOT's integrated milestone; L2's large reconstruction limit is
+unchanged. Normal complete-history reconciliation/push follows.
