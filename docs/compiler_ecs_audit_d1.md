@@ -4525,3 +4525,8 @@ TAP/status/time and artifact/host/resource/fixture manifests. All names matched;
 no source or expectation changes. Documentation-only runtime profiling is
 inapplicable; costs above measure adoption, not compiler speedup or scaling.
 Jobs drained and owned heavy lock released before reconciliation/publication.
+
+Merge2d8a96fe leaves selected test/host/artifact and executed import hashes intact.
+The sole resource delta, tests/frontend_units_profile.tower, is an unexecuted
+native profiling fixture; its recorded mismatch does not relabel the earlier
+full registry as rerun. Scoped4P/6F evidence reused, no further selection.

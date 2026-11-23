@@ -92065,3 +92065,13 @@ SHA3fa3430df1c23811837197288e5a5bc58660267175c81c5b70514238cea4d779
 unchanged; diff checks pass. Incoming nominal-wrapper/backend reconstruction/
 Node/test work is excluded once from frozen56c892c1 evidence. No rebuilt or
 relabeled artifacts, repeated matrix, or deployment claim; owned jobs idle.
+
+Joined-pair adoption reconciliation: required ff-only pull refused divergence;
+normal merge2d8a96fe9d4849a1b1e3dfd3cba84b4748f9e653 preserves c39efca5 and
+published1210dc21. All selected Node/host/artifact hashes still match. Exactly one
+existing resource differs: tests/frontend_units_profile.tower, the separate native
+uniform-workload profiler, registered but never imported/executed by these cases.
+Preserve its mismatch log and original registry identity; selected language and
+fixture closure unchanged. Reuse the4passes/6failures without rerunning; incoming
+ROOT build/shared/core receipts retain their own sources and do not erase the
+three unresolved alias/type-body cases. No D2 body-continuation change arrived.
