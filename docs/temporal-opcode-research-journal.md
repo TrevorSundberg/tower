@@ -60535,3 +60535,23 @@ it passes apply-check and remains unadopted. The first handwritten hunk had an
 incorrect count and failed parsing at line11. Preserved that draft, corrected
 only the counts and reran with fail-fast shell handling; the initial shell's
 later zero exit is not evidence that its failed apply-check passed.
+
+Follow-up: A2 v2 patch3833050c5c moves all four default-opening wrappers into
+client API and exports the callback-taking implementation. Complete v1/v2 delta
+review and apply-check pass; this resolves the source coupling reported above,
+subject to real final links. The API-only portable-WASI reader still needs pool
+and graph providers; native/shared-Wasm already own dispatch. Resource/package
+collection already traverses these new library paths, so no hardcoded manifest
+change is needed. Additional graph arithmetic overflow branches still carry only
+legacy errors; reported to A2 without constructing impossible max-length payloads.
+
+Prepared an isolated source archive under build/d2_ecs/work_api_v2_review from
+own6a4105e4 plus exact383305 patch, with archive/patch/file hashes. No alternate
+clone, worktree, private bootstrap, build or main adoption. Root's subsequent
+02:56 instruction selects the ordinary semantic-context snapshot experiment and
+one owner comparison to choose the minimal passing boundary. Therefore D2 holds
+the v2-only build plan pending that result. Complete04589f snapshot patch reviewed:
+16 original copy sites, fresh typed destination, same evaluation timing/private
+scratch replacement; existing semantics owns the export. No literal-provider
+imports are needed. Exact known_work patch context differs from root0c's older
+dispatch and must be reconciled without importing unvalidated surrounding changes.

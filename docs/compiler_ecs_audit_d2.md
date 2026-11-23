@@ -1860,3 +1860,26 @@ checks; that is an arithmetic oracle, not an independent decimal-parser oracle.
 Reuse these after the exact candidate and provider closure pass, plus the frozen
 small/large compilation profiles. No runtime change was made during this review,
 so new performance or sanitizer measurements are inapplicable to this documentation.
+
+The later A2 v2 patch
+`3833050c5cdadc33978a84926e6843ea1f42ea05d44f1e2209d9a239bc8586d4`
+supersedes the default-callback defect above: four convenience wrappers now live
+in the client API and the provider exports callback-taking `work_pool_open_impl`.
+Its complete delta was reviewed and apply-checked. It also changes the reader job
+fixture to API-only imports, so portable WASI now needs an explicit pool provider
+as well as the graph provider; native/shared-Wasm already import dispatch. Actual
+links remain pending. Native resource globbing, complete bootstrap share-tree
+collection and compiler-project source/depfile collection already include new
+library modules; verify final packaged bytes rather than adding another manifest.
+
+A1's later snapshot proposal `04589f9c` replaces 16 existing context copies with
+one ordinary fieldwise helper in the existing semantics provider. This preserves
+borrowed graph/pool ownership and each caller's private scratch replacement. Root
+selected this capacity experiment over the literal split: no numeric/provider
+imports were added. Its patch context includes newer checked dispatch and is not
+universally applicable to root0c. D2 awaits the selected minimal passing owner
+closure before provider compilation; the isolated v2 source archive is inactive,
+not adopted main or a successful compiler build. A selected snapshot helper would
+add an exact `sem_context_snapshot` import to separate Publish providers, subject
+to actual object checks. New arithmetic-error consistency findings in graph growth
+were routed to A2; no huge allocation or fabricated invalid payload test was run.
