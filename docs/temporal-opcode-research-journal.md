@@ -77024,3 +77024,27 @@ older package scripts and compiler identities remain historical receipts. ROOT
 still owns linker-world budgets/hold/alias work; current native/WASI/package,
 final instrumentation, clean public bootstrap/browser/generation and leased
 atomic hosted release remain open.
+
+D2 independent source review of ROOT's queue-alias draft: exact stage hash
+ d75ab17702b546bbdb8210d56bdd34456888a9c6044284e3f71abfea22526412 and fixture
+0b92be42490c75d289f54800bc84aa10635774c8494ea7abfee5e81d0c5c18a4 verified
+against34aa. Reviewed vector_reserve, queue validation, hold/publish/discard and
+payload finalizers. No blocker found for live self-slices: save index before
+reserve, validate alignment/live-prefix extent before reading, then rebase after
+success. Append begins beyond the old live prefix; allocation failure preserves
+base/length/capacity. The existing vector invariant bounds capacity*sizeof.
+Fixture ownership is assigned only after queue success, denied payloads remain
+zero, pressure/failure counts derive from actual storage/allocation calls, and
+double hold plus finalizer cleanup preserves the original references. No draft
+adoption, unsafe-old-path execution or runtime claim; hold-counter exhaustion and
+raw storage budgeting remain separate. Detailed outbound review is in external
+D2/queue_alias_review.md for ROOT routing; no local ROOT inbox is supplied.
+
+Updated compiler_sanitizer_checks with D1's reported current negative-control
+link failure and ROOT's directive to leave that probe unchanged/unexecuted.
+The original a0e789324 compile succeeded, documented link failed1 on three
+compiler_buffer providers, and this is not a TSan finding or a passing control.
+D2 did not independently run that probe. Earlier historical sensitivity and new
+positive instrumentation retain distinct input identities. This documentation
+clarification changes no runtime behavior and needs no new profile; D1's current
+positive ed7 instrumentation remains in progress under the sole heavy lock.
