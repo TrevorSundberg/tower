@@ -96273,6 +96273,22 @@ bound to1e428ede; unrelated codec/browser changes are not independently adopted.
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
 
+## 2026-11-23 A1: independent abort capability peer review
+Reviewed9f37944356/b4bd9980 against1e428ede at freezeae5d34b2;11 scoped
+blobs unchanged. No concrete defect found. Forty-byte typed import/export
+descriptor enforces() -> void at Wasm linking; Graph/Fast forwards serialized
+returnType to the shared validator before invoking. Explicit provider precedence,
+unknown rejection, first failure/effect stop, staged capability denial and guest
+finally/handle cleanup remain. No new interpreter, permissive fallback or registry.
+[Short peer receipt](abort_host_peer_review_a1.md) maps exact blobs/all6fixtures
+and actual A2 controls/T9/profile logs; those runs remain attributed, not repeated.
+An extra ordinary enum-named-void Tower control rejects on32/64 Graph/Fast with
+empty output; initial missing-Foundation transport setup failure retained.
+No confirmed nominal-name bypass. A2 still owns the separate spelling assertion;
+host-instance lifetime/zero-owner limits and absent override/OOM controls explicit.
+Docs-only: no runtime build, performance comparison, instrumentation or release.
+Raw A1/abort_review_ae5d34b2 contains input/output/counters/hash map; owned work
+drained, todo unchanged; normal commit/reconcile/push follows.
 ## A2 platform canonical binding oracle closure (2026-11-23)
 
 The stale fourth platform assertion expected recursively expanded integer_type
@@ -96296,3 +96312,4 @@ sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
 
 B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
+A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
