@@ -94497,3 +94497,34 @@ CMake registrations and other-owner audits are preserved but excluded from this
 review. No new audit pass or runtime invocation. Todo hash unchanged; container
 has only its idle sleep process, no owned jobs; disk339441037312B free. Diff checks
 pass, ROOT retains deployment and the stated stale-error follow-up.
+
+### 2026-11-23 D1: independent module-local declaration query review
+
+Freeze0ffba950ae4b7e583531f5eb88aa608c6c2bb380/tree71c6bd706f5f277f3c180b6032bc7e11f5a17cfb,
+compilerb90a997e29d4d30547a026b5b5d1481bf6a41579/library62350befa8df3e261fd184a23a64e6bb7263204a.
+Same D1 thread01a2046a-4644-7ab1-a0ae-abd80210f013, PID3179907. Required pull
+fast-forwarded documentation only. Reviewed125efb11/e932b546 two producers and
+four fixtures/registration files with bind/type/storage/finish, lexical save/
+restore, declaration discovery/admission/pump/report, body continuations and
+execution-session consumers. Six blobs remain exactly125efb11; D1 audit records
+them, local manifest build/d1_ecs/module_declaration_review_0ffba950/.
+
+No new concrete defect. The nonglobal-root/no-frontier/no-stage/no-query-read
+guard confines the new pump to the coordinator; identity remains entity-based.
+Type/layout completion and once-only frame storage precede explicit initializer
+admission; an edge binds that initializer to its declaration, and finish reuses
+its checked value. Shared joins/leases/scratch ownership and quiescent reporting
+remain intact. Read actual44 session scope (28 positives,16 negatives), all/default
+registration and owner27fcab01 adopted44/query/header evidence. These are owner-run
+receipts, not D1 executions or race proof. Coverage limits: effects counted in an
+assignment rather than the new declaration initializer; taking one's own address
+in an effectful initializer is not tested. Negative line/column are printed;
+exact text and stable per-width engine/worker offsets, not independent mapped
+locations, are asserted. Audit proposes only a small future Tower control; no
+fixture/expectation was changed. Historical candidate type-smoke/performance and
+merged-source checks retain distinct identities.
+
+No production edit/build/runtime/profile/sanitizer/hosted operation; docs-only
+profiling inapplicable. D2 active heavy lock untouched; no owned child job,
+disk127GiB/RAM8.8GiB at startup, todo preserved. Later B1/B2/browser work excluded;
+normal commit/history reconciliation/push closes only this finite source review.
