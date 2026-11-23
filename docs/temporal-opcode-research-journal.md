@@ -91450,3 +91450,68 @@ The cross main/language closure remains unchanged. Preserve that mismatch log;
 reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
+
+### D1 finite43 LLVM-only compiletime acceptance (2026-11-23)
+
+Frozen clean mainc95b04a2d841ff7fb951b51e77319ee4fd1acb25; test source SHA
+b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d unchanged
+from D2's split. Reviewed actual registrations/callers:2single+16positive+
+24negative+1generated=43 LLVM registrations;45portable registrations excluded.
+Lazy stressSource is called only for type_fields by this selection. Positive
+LLVM handlers intentionally retain their Graph64 canonical-input preparation;
+that is not a rerun of the separate portable registrations. Expected and actual
+completed names compare exactly; no cutoff or unstarted registration.
+
+After D2 drained/released its two-case slot, acquired shared heavy.lock atomically.
+One fresh Docker Node22.23.5 process, Steam Deck AMD Custom APU0932/Linux x64,
+CPU0,2,8GiB memory+swap boundary, concurrency1, warm filesystem/fresh Wasm,n1:
+`env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_bcd0e3ab/portable.wasm TOWER_TEST_LLVM_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_bcd0e3ab/llvm.wasm /usr/bin/time -v -o selection.time timeout -k 5s 180s node --test --experimental-test-isolation=none --test-concurrency=1 --test-name-pattern='\(LLVM\)$' playground/tests/compiletime.test.mjs`.
+Result39pass/4fail/0skip/0cancel/0timeout; exit1 preserved.16.25wall/21.14CPU
+(20.22user+0.92system) seconds,476656KiB peakRSS,0swaps. No passing rerun.
+Group results: signature/budget2/2; source+canonical positives14/16;
+negative diagnostics23/24; generated field chain0/1. Filtered45 are not passes.
+
+Both supplied/own reactor copies verified before/after: eac16533 portable
+SHA df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99 and LLVM
+87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472. Old default
+files remain untouched and do not execute. Current mounted resource manifest
+SHA a982acd0b4e60f46bde097739256a68cc8412f02567f60432a8d7cdbbe49a002;
+Node/host manifest47ecb2738c670cc2bf8155f5c8c958bd5ce2e494e5cabb7c27ea7c758c628ae1.
+The eac executables predate later L1 wrapper/type-body and A2 unary repairs;
+current resources do not turn those bytes into a current compiler.
+
+Exact failed phases and remaining ownership:
+- decltype_type_fields: existing SHA8b2cf17a518ae80ec6294b703301756310abd744829af2e112a521d5b7185b72,
+  Graph64 canonical setup at compiletime.test.mjs:90 fails Unknown type constructor
+  'alias'. Neither LLVM input executes. Same ordinary alias/outer-field trigger
+  as D2; L1/ROOT final wrapper/type-constructor adoption, no changed expectation.
+- inference_alias_invalid: SHA7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9,
+  LLVM wasm32 returns Type constructors currently support a struct and return;
+  general compile-time execution is not implemented. Required diagnostic remains
+  Cannot infer type argument 'T'; pass explicit type arguments. wasm64 assertion
+  is unstarted. L1/ROOT type-body admission with L2 inference ownership retained.
+- parameterized fields: existing tests/stress/type_fields.tower producer and
+  stress_fields emit the256-chain input, then LLVM wasm32 fails Unknown type
+  constructor 'alias'. No generated executable runs. Same known alias boundary;
+  no duplicate producer/reproducer needed or capability workaround applied.
+- body_continuation: SHA6369f2d9aab1bfa2f3efb6496a247b487adbd5c155a51f9f9efff23ae3689fed,
+  Graph64 setup outputs0; compilation then succeeds but actual emitted Wasm
+  prints1 instead of0 at line94. The handler loops over original and64-bit
+  canonical source with default wasm32; TAP does not name which iteration failed.
+  Remaining iteration coverage is therefore unresolved. Source includes pointer
+  layout checks in query_type_layout/query_statement_layout; this cross-width
+  setup is observable, but neither that hypothesis nor a production root cause
+  is proved here. ROOT owns exact input/target isolation before producer routing.
+  A1's passing same-target LLVM/package body gate remains separately valid; no
+  resource/capacity error or blanket body regression is inferred from this result.
+
+All assertions, inputs and producer sources unchanged. Evidence under
+build/d1_ecs/compiletime_llvm_c95b04a2: command, expected/completed/passed/failed
+name lists, selection.log/time/status, artifact/host/resource manifests and checks.
+TAP SHA533dd5bc4f464616c98e10866916618e0ab227b95d1b8ffa393d3bbfb66a0052.
+No new semantic logic, test repair, compiler build or broader matrix; runtime
+performance profiling is inapplicable to this documentation-only change. Recorded
+cost is validation, not scaling or production speedup. All owned jobs drained,
+lock released, disk128GiB/RAM9.8GiB available; todo and prior logs preserved.
+ROOT retains final joined-artifact adoption and release; four exact gates remain
+failed rather than treating completed registrations as passed acceptance.
