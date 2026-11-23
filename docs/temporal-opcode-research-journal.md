@@ -86634,3 +86634,26 @@ identifies252b424a, matches fixed-point executable768a0cdf and resource checksum
 bd4639d8 exactly, and all checked-in payload checksums pass. ROOT performed that
 publication; B2 did not adopt/change the pin. No new generation or later-source
 acceptance is claimed from this documentation merge.
+
+ROOT canonical adoption PASS after public pin2013ad28ce. KinmenA normal clone
+was pulled to that exact published commit, tracked compiler/build inputs frozen,
+and /cache/root_public_capacity_2013 was created fresh. With
+TOWER_BOOTSTRAP_COMPILER unset, documented build-native.sh selected
+/work/bootstrap/linux-x64/towerc, compiler jobs1/build jobs4, CPU24-31/24GiB.
+All52 actions passed45.83wall/124.90CPU seconds/1016164KiB child peak RSS;
+relocated development checks passed7.41wall/9.04CPU/217384KiB. Compiler
+feed7d647835c9c305487b38faa783f19d120c2528baeebc1b2e2f45af1b8e8b.
+Source manifests match before/after; cache CMake explicitly names the public pin.
+Evidence /cache/root_public_capacity_2013_receipt/status0 and complete local
+coordination copy ROOT_public_capacity_2013_receipt. All ROOT jobs drained.
+This validates clean public adoption including published L2 module admission;
+it is not generations2/3 for later-source inputs or final threaded acceptance.
+
+Atomic publication2013ad28ce preserved Pages6f142bef15f58380831ed344ab5eac5c4b3c2840.
+Fresh hosted raw manifest SHA256eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c
+and Git blobc0c17f4ac2b3ef7747e044c91022c72842dd35ed match that Pages ref exactly.
+No new runtime deployment or full browser/UI acceptance is claimed. Current
+receipt-only follow-up changes no executable input; additional runtime profiling
+is inapplicable. User explicitly corrected coordination: maintain all eight
+existing bounded sessions with useful assignments and replace completed tasks
+promptly. All eight were relaunched/verified; no extra context was created.
