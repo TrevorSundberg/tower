@@ -93361,3 +93361,23 @@ and excluded from this fixed05edbfb3 review. The nine reviewed Tower blobs,
 unchanged64MiB test and D1 audit text still match exactly; merged diff --check
 passes. No build/runtime repeat or newer-source adoption claim. Normal source
 push follows; ROOT retains final artifact/release ownership.
+
+### 2026-11-23 D1: finite void-scalar consumer source audit
+
+Freeze d55d1c0d8c16d0485aaaed17432f1eb1c9d9be84. Read all26 matching predicate
+lines across16 compiler files plus immediate type/call/formatter/interpreter/
+completion consumers. Cross-check found no extra numeric-tag3 or relevant library
+predicate. [Per-site D1 receipt](compiler_ecs_audit_d1.md#2026-11-23-d1-finite-void-scalar-consumer-review)
+records prior pointer guards, intentional pointee checks and scalar-only spelling.
+No additional concrete defect found: void-pointer direct/indirect results retain
+full type/target width; runtime ABI compatibility is separate from exact staged
+function-reference identity. Raw-pointer comptime-result rejection is deliberate
+relocatability policy. C emitter handles pointer call temporaries but explicitly
+rejects indirect/function-value output. No blanket guard edits, new fixtures or
+producer changes; L2's backend/import_instructions bi_call repair remains separate.
+Evidence build/d1_ecs/void_review_d55d1c0d/{predicates,site_blobs}.txt, fixed git
+source/line references, caller reads and diff --check. Source-only conclusions;
+no runtime/build/profiling/instrumentation repeat, documentation-only profiling
+inapplicable. Same thread01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3167263,
+Deck127GiB free/9.9GiB available at start. No owned jobs/heavy lock or changed
+compiler inputs; todo preserved. ROOT/L2 retain importer and final artifact gates.
