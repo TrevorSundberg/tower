@@ -431,6 +431,15 @@ Finish table construction before sharing it. Requests do not mutate table
 caches or reference counts. Node materialization still requires exclusive access
 to its entity store; independent worker units use independent worlds.
 
+The request's temporary forest binds `runtime.budget` before allocating its
+descriptor, child index or traversal stack. Keep that ledger alive until request
+destruction. `parse_forest_create_result` reports constructor denial directly;
+`parse_forest_resource_error` reports the last leaf/join/attach allocation result.
+The recognizer preserves those causes through its existing resource-error channel.
+Entity attachment still has a separate boolean failure contract; a `None` forest
+allocation result does not make a failed attachment successful. The legacy
+`parse_forest_create` remains an explicit standalone constructor without a ledger.
+
 UTF-8 and layered recognizer streams work through `parser_recognizer_step`.
 External producers use `ParserInputService.Empty`, supply one token with
 `parser_stream_return`, and call `parser_recognizer_poll`. A poll with

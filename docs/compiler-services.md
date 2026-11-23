@@ -49,7 +49,10 @@ null. Ordinary incomplete syntax still permits partial inspection. Typed coverag
 currently includes supported table construction, LR control storage, and entity
 or match-component creation during tree shifts/reductions. Tree creation retains
 the per-call entity result in the request's existing LR control error field.
-Early grammar phases, raw forest/attachment and some candidate allocation outcomes
+Recognizer forests charge their descriptor, child index and traversal stack to
+the runtime world's budget. Their per-call result preserves allocation denials
+through shifts/reductions; the legacy standalone forest constructor uses no ledger.
+Early grammar phases, entity attachment and some candidate allocation outcomes
 still need complete propagation; the getters do not establish coverage of every
 allocation path.
 
