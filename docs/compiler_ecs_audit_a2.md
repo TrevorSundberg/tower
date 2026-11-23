@@ -2063,3 +2063,257 @@ receipts arrived after the freeze: ROOT must adopt their exact inputs and limits
 not infer acceptance from their filenames or this merge. The twelve-row ledger
 continues to describe 3a7f4b39. No runtime test, historical source review or
 sanitizer claim was silently advanced to43fc7510.
+
+## L2 finite later-source adoption at 3ea43517 (2026-11-23)
+
+Frozen published main **3ea435174a3529aabbeeea8544aa640653214bb3**; root tree
+`1648e0fc9ae12bd778612a7ccb07fb942f7bd497`, compiler
+`609b9513b3919c7d3116e37a8099179c72aea06c`, library
+`25701c2535dc418f32b6c575a1ff6d9bbc384a67`, scaffolding
+`f8e3f36b980029f8d3afa36d348b04ada810257f`, CMake
+`0f975c0848ebbc34b78c36dd9d1d188b826ee092`, playground
+`a0d6022f801d9ed93a6c5bf831cba5a105e605a1`.
+
+Adopt the preceding **3a7f4b39** A2 review and D1's **6767cd30** full/finite
+reviews only for unchanged blobs. `git diff --name-status 3a7f4b39..3ea43517 --
+'*.tower'` identifies **39 authored paths and no packaged Tower changes**.
+All changed hunks/new files below were read with their immediate producer/caller
+and registration boundaries. This replaces the prior hash-only pending appendix
+for these inputs; it is not another repository census or future-source approval.
+No compiler, test, profile, browser, generation or instrumentation operation ran.
+Only Git, source/receipt reads and package identity checks were used. Runtime
+profiling is inapplicable to documentation changes. CLI PID3460; no owned job
+survived the clean pull. The existing twelve acceptance rows remain the ledger.
+
+### Complete authored delta and consumer map
+
+Paths below are relative to `scaffolding/`, except the explicitly qualified
+playground path. Exact blobs resolve at the full freeze above. Evidence labels
+refer to the owner receipts immediately below, not tests performed by this audit.
+
+| Changed authored path | Read producer/caller/registration and disposition |
+| --- | --- |
+| `compiler/compiler_kernel.tower` | Adds terminal Count without renumbering kernel tags. Profile arrays derive their extent from it; dispatch authority unchanged. B. |
+| `compiler/frontend_compilation.tower` | World observer brackets source parse/module assembly before semantic compilation; no new source owner or scheduler. B/L. |
+| `compiler/grammar_types.tower` | Extends optional GrammarObserver with pool/LR/semantic phases and explicit private-ordinal callback contract. Readers distinguish nested inclusive phases. B. |
+| `compiler/lr_work.tower` | Propagation grain64->512 actual ready destinations; narrow work keeps the existing serial fallback. Private action/propagation tasks copy observer/ordinal; coordinator brackets graph/solve/actions and joins before publication. Existing budgets/tickets/errors preserved. B. |
+| `compiler/parser_workers.tower` | Pool lease open/close observation preserves cached pool reuse, Busy checks and drain-before-close. B. |
+| `compiler/semantic_body_work.tower` | Only phase observations around existing body inputs/discovery/waves/preparation and declaration/query/layout pumps. A1 admission/continuations remain intact; no replay/scheduling rewrite. B/L. |
+| `compiler/semantic_context.tower` | sem_observe resolves the owning world; sem_workers_open binds optional pool callbacks. Admission/stage observations surround existing checked grants/publication; callbacks do not confer lanes or mutate shared payload. B/L. |
+| `compiler/semantic_generic_info.tower` | Binding-only stage publishes/releases annotation leases before concrete type-query preparation. Existing declaration discovery/execution supplies construction/layout; failed query receipts gate retries. A new annotation stage leases owners only after join; private kind is returned only after all phases succeed. Dependent types stay symbolic; array interner assertion retained. A. |
+| `compiler/semantic_lifecycle.tower` | Observes root, known, lowering/query/publication/finish/disposal phases without changing their order or lifecycle policy. B/L. |
+| `compiler/semantic_statements.tower` | Moves root expression preparation from outer sem_run iteration to lexical sem_statement, covering deferred/nested calls. Guards root ownership, absent stage/query collector/declaration subjects, depth and label/jump exclusions; existing sem_module_expression query result is consumed once. L. |
+| `compiler/units/backend_wasi_checks.tower` | Imports the new browser wrapper, preserving public backend-source test export names; does not manufacture native runtime evidence. F. |
+| `library/work_pool.tower` | Optional frozen borrowed observer on pool/batch; work_batch_run supplies distinct ordinals. Serial and threaded paths bracket jobs; deferred join runs before batch-exit callback even on partial failure. No second scheduler. B. |
+| `tests/backend_source.tower` | Shared assertions accept explicit runtime pointer/count; world/session setup and link/type checks use that input. Close tolerates the fixture already being cleared by explicit retirement before defer. F. |
+| `tests/backend_source_browser.tower` | Existing browser exports pass backend_worker_runtime and its actual size into the shared assertions. F. |
+| `tests/backend_source_native.tower` | Linux file/monotonic-clock boundary loads exact Bedrock/Foundation/runtime object; explicit world/module owner installs baselines and calls both shared suites, propagating nonzero results. F. |
+| `tests/declaration_call_checks.tower` | Real imported ambiguous function is rejected by mandatory discovery before nominal-call scan mutation; no impossible failed-context mock. Widths4/8, workers1/4, exact diagnostic/offset, allocation-free terminal retry, fresh known42 and canonical agreement. L. |
+| `tests/frontend_storage_profile.tower` | Optional post-join coordinator census includes registered kinds plus dynamic kinds from actual archetype columns; checks complete physical/live totals, page owners and zero lanes. Real stage declaration pages become visible. Fresh bounded world compiles dependency helpers, checks42/42, then retires program/modules/cache/world to zero live grants. Standalone profile target, not an automatic acceptance suite. C. |
+| `tests/frontend_units_profile.tower` | Per-world/private ordinal slots collect actual thread/CPU intervals after synchronous joins, dynamic semantic slot count, kernel peaks, union/lane time and collector cost. Existing source/canonical/interpreter controls remain; optional grammar selector is observation, not requested-worker concurrency evidence. B/L. |
+| `tests/generic_inspection_types_checks.tower` | Public document/hover consumers check concrete and dependent annotations, array identity/layout, optional invalid extent, lazy helper, repeat retention, real budget denial/retry and prior diagnostic offset. CMake workers1/4 checks include widths4/8 and zero world/budget owners. A. |
+| `tests/generic_pointer_alias.tower` | Uses supported pointer_type/type_value expressions; structural T* inference remains, representation-call inversion is not promised. Tests explicit/inferred argument effects/order, nominal inequality and target pointer size. CTest tower-generic-pointer-alias-1/4 and Node generic-inference consume it. P. |
+| `tests/generic_stack_module.tower` | Small real imported stack/default/inferred deferred disposal, output42; Node generic-inference reads this file. L/P. |
+| `tests/ide.tower` | No-package resource fixture explicitly releases its preceding successful snapshot before its baseline. Denial preserves Capacity/offset/handles; fresh package recovery prints42 and retires its owned snapshot. Code73 was a fixture precondition defect, not lost transactional output. A. |
+| `tests/ide_package_checks.tower` | Prior successful snapshot remains byte/pointer/size/handle/node/allocation stable through Capacity then Memory and terminal retries; fresh Foundation reconstruction recovers. Both widths/repetitions and final package capacity/grant/handles checked by existing package export/Node runner. A. |
+| `tests/imported_alias_checks.tower` | Existing body oracle checks exact effects/output and canonical reconstruction at32/64-bit workers1/4; real nominal mismatch wins before later error, no partial result, terminal retry adds no owner. Four source controls plus errors total28 trials. L. |
+| `tests/imported_alias_containers.tower` | Complete vector/stack/queue imported control, explicit/inferred pushes and deferred disposal; exact ten-line output. L. |
+| `tests/imported_alias_controls.tower` | Vector reference, direct/explicit/inferred stack disposal and nested defer; touch is evaluated once at cleanup, effects0 then1. L. |
+| `tests/imported_alias_left.tower` | Module-local stack alias to vector and disposer output31; imported only by scope/error controls. L. |
+| `tests/imported_alias_minimal.tower` | Reduced real imported inferred stack-dispose/defer source, output7. L. |
+| `tests/imported_alias_right.tower` | Distinct same-named nominal constructor/disposer output32; must not unify with left by spelling. L. |
+| `tests/imported_alias_scopes.tower` | Qualified left/right type identities and deferred explicit/inferred calls preserve reverse cleanup output0/32/31. L. |
+| `tests/inference_bindings.tower` | Imports actual example and observes/writes inferred stores, so canonical binding checks do not assume unused known declarations survive. Node inference test reads this source. D. |
+| `tests/interpreter_invocation.tower` | Hand-built parameter and uninitialized local now register in function.locals with matching index; failed vector growth releases root and fails. Production interpreter unchanged; Node interpreter-invocation export tests now reach intended frame/strict-read cases. R. |
+| `tests/lr_work.tower` | Propagation oracle derives cyclic graph count from seeded lanes; small case asserts serial fallback, wide case crosses actual grain. Exact distinct overlapping ranges, empty cycle and joined revision checks preserved. Native LR runner calls both. B. |
+| `tests/lr_work_main.tower` | Registers declaration-calls and bare/named imported-alias selectors; type-smoke includes alias set. Existing query-smoke reaches evaluation_query_tests/resource checks, so ROOT's fixture change required L2 merged query adoption. L/R. |
+| `tests/semantic_resource_checks.tower` | Portable host binds actual capacity1 and no nonexistent signal; native retains synchronized requested lanes. Same startup/nested-frame inferred/required denials, first-cause/no-replay/no-publication/zero-grant assertions. R. |
+| `tests/storage_main.tower` | Serial-only declaration-calls selector checks buffer-count equality after failure/fresh compile; preserves existing single-owner fault-transport guard. L. |
+| `tests/stress_sources.tower` | LLVM function generator now explicitly imports Foundation before generated Foundation declarations. Existing stress/llvm_functions entry consumes it; syntax/capability repair, not semantic weakening. D. |
+| `tests/work_dispatch_result.tower` | Existing failure/retry fixture adds per-job enter/exit counters, projected payload identity, batch count/lane bounds and callback-after-drain checks; registered work_dispatch_result executable. B. |
+| `playground/tests/fixtures/numeric_token.tower` | Ordinary custom number token loaded by precedence/replacements Node fixtures. No compiler scanner special case; Bedrock alone does not supply a numeric token. D. |
+
+### Owner evidence and registration boundaries
+
+**A — alias, hover, IDE.** A1 qualified alias141ef1e4 adopts5fdb4827; hover64450fc1
+replaces the concrete inspection-stage construction trap. CMake
+TowerWorkPolicyTests registers generic-inspection-types-1/4; original hover fixture
+and type/interner guards remain. Earlier portable hover success still ended at
+package code73. Fixture repair523f29ad, through94ddfa7a, then passes the **full**
+unchanged IDE runner (12.42wall/11.05CPU s,225940KiB) and bytecode5/5. Retained
+snapshot diagnosis and zero owned package resources are in the A1 journal. No
+later change to these three authored files exists through this freeze. This
+closes those scoped failures, not the separately in-progress large direct-package
+path or its full LLVM gate. Preliminary24.52s/1.35GiB versus duplicate54.69s/2GiB
+failure is owner progress, not full acceptance.
+
+**B — grain/observer.** Published52895b4f raises grain without changing grammar
+semantics; f16cde13 adds optional observers and registered dispatch ownership
+checks. See [grain](compiler_worker_grain_d5b65afe.md) and
+[within-unit attribution](compiler_within_unit_e0e3530b.md), including merged
+query/admission and4096-body canonical adoption. Actual four-thread intervals
+are stronger than requested counts, but small units still favor serial and
+large within-unit throughput is only about1.07x in that owner's partition.
+
+**C — physical occupancy.** A2 [real occupancy](compiler_ecs_occupancy_9d9329db.md)
+adopts through578437af:28 ordinary processes across distinct source/observer
+boundaries, zero final grants; declaration pages22.63% occupied,9101301 physical
+bytes versus1911552 live payload bytes. This replaces the old *measurement still
+missing* action. Stable payloads remain justified; packed payloads are not.
+Four-slot policy experiment is in progress, absent from this freeze. Do not
+reinterpret28 processes as28 identical statistical samples or a sanitizer pass.
+
+**L — language/dependencies.** L2's [current native receipt](native_dependency_acceptance_e7558fa8.md)
+is published in this freeze: full48d791a8 remains its original complete milestone;
+96cd1eda/1a5241cb closes actual module deferred alias failure with28 controls;
+2f0220bd/284e2faa adopts query/dependency/capture/admission after observer changes.
+Multi-unit peak4/four distinct threads, known42/43/44/45, canonical and ordered
+errors match. Joined lanes0; retained input/output byte grants retire at close.
+The suspected nominal-call append write was ruled out by real discovery/capacity
+invariants (bfb47510/22167104), so no speculative production rewrite shipped.
+
+**F/P — backend and pointer contract.** TowerBackend includes
+TowerBackendSourceTests: Linux native target passes explicit runtime object to
+shared Tower assertions; browser backend_wasi_checks imports browser wrapper.
+L1 bb8a79ea records actual native backend-source-worlds success; browser consumer
+compilation alone is not execution. Pointer fixture056cc17e/5b9194e4 corrects
+unsupported type-expression syntax while preserving structural inference and
+nominal/effect checks. Separate ordinary zero-argument/wrapper type-composition
+failures remain L1 in-progress; no repair exists in this reviewed delta.
+
+**D — Node and browser boundary.** D1 audit sections atd5b65afe/e0e3530b/cc21bb4e
+map explicit imports, source paths, canonical liveness and numeric grammar to
+actual Node consumers. D2 fa65b305 fixes nested browser retirement in host test
+transport; final984dc4d7 has three actual browser trials and27 selected Node
+checks passing, zero remaining targets, equal full canonical strings before
+hashing. That closes the old retirement failure at984, not current shared
+reactor adoption (now B2). D2's llvm-host diagnostic localization and explicit
+LLVM stress input preserve transport provenance; remaining struct/LLVM resource
+and D1 remaining Node failures are in progress, not accepted by this source map.
+
+**R — ROOT fixture and release identities.** eac16533 fixes only invocation and
+portable capacity fixtures. Direct Node3/3 and native24 resource cases/query pass
+before/after578437af adoption. L2's merged query rerun is .38wall/.37CPU s,
+104448KiB; its source and output hashes are preserved. Separate full eac normal/
+LLVM/cross build has status0/phase complete in
+`/root/.cache/tower/root_release_eac16533`; source manifest SHA256
+`38893a111e0b9b99072abf52e2069ad0effa134305ce0dc0fb4d274af458462d`, artifact
+manifest `35ebfd9d48cfde52864cadd9a87536faeee0b19b44eca2ccf209853c14095fb1`.
+Compiler/library/host blobs are unchanged from eac to this freeze; source-wide
+fixture/package identity is not silently advanced. Recorded artifacts:
+
+- portable `df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99`;
+- LLVM `87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472`;
+- cross `e860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1`;
+- project `420d6de1421f4c3c7ae2efe40ed235537860b61168c13f4dea72e8b7c1b875d9`.
+
+No new runtime was deployed. These build artifacts supersede the journal's earlier
+pending-build statement only; they do not supersede its missing runtime gates.
+
+### Packaged copies, historical generation and release gates
+
+Bootstrap tree `b3d2a442c193fa307d6d336c516c43fae0f7d5aa` is byte-unchanged from
+A2's3a freeze. All53 actual files match `bootstrap/development.json` (manifest
+SHA256 `919a4571aa274c3687f770ee9f013c587795d14ab09ea4b683f212e34ea77738`).
+Every one of its42 Tower payload blobs equals its recorded
+`252b424ab770a0b334f31fa68eede1f1584a5acc:scaffolding/<suffix>` source.
+Prior20 live/14 retired package entries keep their A2/D1 dispositions; no deleted
+split-type stub was reintroduced. Public2013ad28 executable remains768a0cdf.
+Only packaged `library/work_pool.tower` differs from today's authored counterpart:
+package `9761377dd29f93c9e2347492470088d981e14969` versus authored
+`1babe23c8e2eef994f890e2ccd1ecb5dcf35d920` (optional observer ABI). The old resource
+is valid predecessor provenance, not a current compiler provider. No partial ABI
+copy, package repin or blanket current-runtime claim follows from hash equality.
+
+[B1's full f7 generation](compiler_generation_f7e764ab.md), publication12722151,
+compares34 actual binaries plus four configure probes and53 package payloads;
+complete generation2/3 match, original source/manifests retained. It did not repin
+the public bootstrap. ROOT9d9329db then passed portable/LLVM/cross builds and
+**two actual edited browser generations**, recorded0c4ac94a/cc21bb4e: generation1
+110.248s and generation2 94.796s, each three complete reactor outputs equal, edited
+semantic diagnostic and candidate checks passed. Old b0 failures remain historical;
+these are successful later boundaries, not final generations of this freeze.
+
+Hosted Pages6f142bef still serves old build98ade8cc; manifest
+`eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c`, ROOT's recorded
+verification20:02:20UTC with reachable source/build. This audit performs no fresh
+hosted check. Current normal/shared/LLVM/cross runtime acceptance, complete final
+packs/generations and atomic reachable-source hosted publication remain ROOT's
+release gate; current shared adoption is B2's owned slice.
+
+B1 [frontier](compiler_serial_remaining_12722151.md) and
+[range bitmap](lr_range_membership_415a54e9.md), and B2
+[lowering capacity path](compiler_lowering_cost_7facb35f.md) were measured,
+**rejected and restored**. Bitmap small serial.49->.53s and large.66->.68s;
+lowering large gains4.4%/1.2% did not establish small neutrality or serial lowering
+improvement (small medians+1.7%/+1.3%). No candidate ships here. Real overlap and
+multi-unit gains do not establish universal within-unit full-core use or the
+original strong-serial/useful-core goal. Preserve unsupported platform limits,
+service-blocked **OPEN** compiler instrumentation, source-language UBSan limits
+and original failed receipts. No retry/reconstruction of that rejected operation.
+Generated compiler-project copies retain the earlier
+[b0 provider/recipe map](compiler_release_artifact_review_b0.md):
+compiler_project_files collects authored trees/preludes and selected depfile
+imports; generated units wrappers name those providers, and compiler_project_memory/
+compiler_support preserve explicit ABI/archive support. Those Tower tools have no
+later authored delta here. Current eac project420d and source/artifact manifests
+above identify the new recorded build; the old b0 aggregate/support hashes are
+not relabeled as eac physical-member validation. Actual9d edited builds are their
+own executed recipe evidence. Final current support-member/pack/hosted validation
+remains ROOT's gate; no raw directory glob or stale support inventory is adopted.
+### Publication reconciliation after the reviewed freeze
+
+Review commit5a4c575e then required ff-only pull encountered normal divergence.
+Full-history mergec90330ef24bfd21817cbc026d5c8019939bdbb53 preserves published
+**0d789444** and both journals without conflict. Incoming root tree
+`2b5c283ee3e6b74928247d41e186460b73e3ab01`, compiler
+`aea0136350d6a15fd3c753ebb1c8c1b3c14421c1`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a` are **outside** the3ea reviewed freeze.
+This is an explicit exclusion/owner-receipt reconciliation, not a second full
+source review or a silent advancement of the twelve rows.
+
+A2f4e42223/0d789444 now publishes the previously in-progress four-slot policy;
+its [separate receipt](compiler_ecs_declaration_pages_5b9194e4.md) reports5947392B
+saved in the512-body case, preserved outputs/owners and scoped checks. Those ten
+changed implementation/fixture blobs below require their own final-source
+integration; the3ea occupancy measurement is not their acceptance. D1
+9b0ba0bb/2b2bef71 adds two ordinary type-composition reproductions, browser input
+repairs and its scoped87pass/3fail/1skip receipt. Composition/linking and15
+incomplete semantic-port cases remain open; no old reactor is called current.
+B1e1e25e26/bcd0e3ab ships only the additional
+[rejected closure scratch trial](lr_closure_scratch_e7558fa8.md), restored binaries
+and negative performance evidence. ROOT87fb9545 publishes the eac artifact
+refresh already mapped above; no new runtime deployment. Public bootstrap tree
+is unchanged. Later browser transport/test changes keep D1/D2's receipts, not
+new L2 execution.
+
+Exact excluded Tower blobs (`scaffolding/` prefix; absent means newly authored):
+
+| Path | Reviewed3ea blob | Incoming0d blob | Owner |
+| --- | --- | --- | --- |
+| `compiler/semantic_context.tower` | `7e6ac339f219` | `7c32904716a0` | A2 declaration pages |
+| `compiler/semantic_declarations.tower` | `944dad9177a0` | `db2c3e09c5ff` | A2 declaration pages |
+| `library/entities.tower` | `5f9d3a3fa32f` | `94fdb2a69eea` | A2 declaration pages |
+| `library/entity_api.tower` | `fc72af00b269` | `ef8e09411874` | A2 declaration pages |
+| `library/entity_types.tower` | `7076d1d1f3e2` | `c50532b26f8c` | A2 declaration pages |
+| `tests/entity_component_budget.tower` | `14455998e191` | `dc9105ea832a` | A2 declaration pages |
+| `tests/entity_component_layout.tower` | `11abd6ae4a83` | `4744bf972860` | A2 declaration pages |
+| `tests/entity_page_reuse.tower` | `502caf33f09a` | `b38bb24c522b` | A2 declaration pages |
+| `tests/entity_stage_concurrent.tower` | `ed20b2e78ecb` | `fd6f01a72228` | A2 declaration pages |
+| `tests/frontend_storage_profile.tower` | `c9aa6a83ba86` | `408893749941` | A2 declaration pages |
+| `tests/type_identity_composition.tower` | `absent` | `6717ec21e379` | D1 / L1 semantic follow-up |
+| `tests/type_numeric_composition.tower` | `absent` | `e22d3f821ac7` | D1 / L1 semantic follow-up |
+
+A second publication race merged **b90b6f4e4144bb934838fd6a1b6eb211b36932b1**
+through74ee73ed, preserving D1's7f936c33 supplied-artifact receipt. Additional
+excluded authored paths are `tests/type_numeric_known.tower`,
+`tests/semantic_invalid/type_numeric_mutable.tower` and
+`tests/type_numeric_negation.tower` (all new; exact blobs at b90). D1's existing
+Node template caller registers them; there is no claimed native registration.
+The first two controls pass its supplied-eac checks; valid negation still fails,
+along with the separately owned compositions. Its final focused8pass/4fail,
+zero-skip receipt and formerly missing link/generic-stack/pointer gate successes
+are adopted as **owner evidence only**, not a new L2 source/runtime acceptance.
+The root source freeze remains3ea; current template/negation, semantic-port and
+release gates remain open. No compiler/library/provider changed in this second
+merge, no package/pin/deployment changed, and no tests were rerun by this audit.

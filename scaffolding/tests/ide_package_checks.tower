@@ -1,4 +1,5 @@
 import tower;
+import ide_package_profile;
 import .host.ide_api;
 import .host.ide_text;
 import .host.ide_state;
@@ -124,6 +125,12 @@ export fn ide_package_tests(): u32 {
         for (var width = narrow; width <= wide; width *= 2) {
             var result = package_check_width(width);
             if result != PackageCheck.Passed { return convert(u32, result); }
+            if repeat == 0 {
+                var source = "import foundation; print(42);";
+                var wanted = "42\n";
+                if ide_package_source_check(source, ide_length(source), width, BaselinePackageProfile,
+                    wanted, ide_length(wanted)) != 0 { return convert(u32, PackageCheck.Recovery); }
+            }
         }
         var invalid = "import tower; var value: i32 = missing;";
         var handle = tw_exec_create_target(invalid, ide_length(invalid), narrow);

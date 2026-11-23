@@ -94,8 +94,13 @@ for (const [name, source, expected, failure, canonicalProfile] of cases) test(`L
       phase(`LLVM Foundation ${optimize}`);
       const optimized=llvm.compile(formatted.source,{emit:'foundation',optimize});
       assert.equal(optimized.status,'compiled',optimized.error);
-      phase(`LLVM Foundation ${optimize} guest compile`);
-      const guest=tower.compile(optimized.foundation);
+      // LLVM has already formatted Foundation. Use the production package
+      // entry point to check those exact bytes and create fresh guest storage.
+      // Keeping a compiled guest while snapshotting it reconstructs a second
+      // large graph unnecessarily and can exhaust the reactor's memory ceiling.
+      phase(`LLVM Foundation ${optimize} package prepare`);
+      const prepared=tower.prepareFoundationPackage(optimized.foundation,{optimizationProfile:optimized.optimizationProfile});
+      const guest=prepared.handle;
       try {
         phase(`LLVM Foundation ${optimize} Fast select`);
         tower.useFast(guest);
@@ -109,10 +114,26 @@ for (const [name, source, expected, failure, canonicalProfile] of cases) test(`L
         state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
         for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
         assert.equal(text,output,`LLVM bytecode ${optimize} output`);
-        phase(`LLVM Foundation ${optimize} package`);
-        const packageBytes=tower.bytecode(guest,{optimizationProfile:optimized.optimizationProfile});
+        phase(`LLVM Foundation ${optimize} package bytes`);
+        const packageBytes=prepared.bytecode;
         assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),canonicalProfile??(optimize?1:2));
       } finally {tower.destroyExecution(guest);}
+      // Independent envelope/cache verification still reconstructs the package,
+      // after releasing the previous guest rather than retaining both graphs.
+      phase(`LLVM Foundation ${optimize} package load`);
+      const restored=tower.loadBytecode(prepared.bytecode);
+      try {
+        phase(`LLVM Foundation ${optimize} loaded execute`);
+        let state,text='';
+        for (let i = 0; i < executionBatches; ++i) {
+          state=tower.execute(restored,batchSteps);text+=state.output;
+          if (state.status !== 'executing') break;
+        }
+        assert.notEqual(state.status, 'executing', `loaded LLVM bytecode ${optimize} exceeded the Graph execution budget`);
+        state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
+        for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`loaded LLVM bytecode ${optimize} ${key}`);
+        assert.equal(text,output,`loaded LLVM bytecode ${optimize} output`);
+      } finally {tower.destroyExecution(restored);}
     }
     phase('canonical roundtrip');
     const roundtrip = tower.compileFoundation(formatted.source);
