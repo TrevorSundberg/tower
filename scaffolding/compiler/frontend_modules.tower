@@ -19,11 +19,14 @@ import syntax_types;
 import syntax_validation;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
 // Imports retain source, declaration and ordinary parse entities in one graph.
 // Grammar views below are derived indexes over those entities, never another IR.
 extern fn compiler_host_world(): void*;
 extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn compiler_world_component(world: void*, entity: void*, kind: u32): void*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
@@ -1171,12 +1174,14 @@ export fn frontend_module_finish(module: FrontendModule*): void {
 // Semantic declarations may depend on one another across files. A cyclic
 // component may not publish grammar updates or ordered initialization effects:
 // there is no dependency-first order for those operations inside a cycle.
-fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
-    var pending: vector(FrontendModule*);
-    var seen: vector(FrontendModule*);
-    vector_init(&pending);
-    vector_init(&seen);
-    module_require(vector_push(&pending, start));
+fn module_reaches_result(start: FrontendModule*, target: FrontendModule*, error: WorkBudgetError*): bool {
+    var pending: work_vector(FrontendModule*) = default;
+    var seen: work_vector(FrontendModule*) = default;
+    defer work_vector_dispose(&pending);
+    defer work_vector_dispose(&seen);
+    var budget = compiler_world_work_budget(start.graph.world);
+    *error = work_vector_push_result(&pending, budget, start);
+    if *error != WorkBudgetError.None { return false; }
     var found = false;
     while pending.length != 0 {
         pending.length--;
@@ -1192,7 +1197,8 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
         if duplicate {
             continue;
         }
-        module_require(vector_push(&seen, current));
+        *error = work_vector_push_result(&seen, budget, current);
+        if *error != WorkBudgetError.None { return false; }
         i = 0;
         for(; i < current.dependencies.length; i++) {
             var dependency = current.dependencies.data[i];
@@ -1201,14 +1207,13 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
                 found = true;
                 break;
             }
-            module_require(vector_push(&pending, dependency));
+            *error = work_vector_push_result(&pending, budget, dependency);
+            if *error != WorkBudgetError.None { return false; }
         }
         if found {
             break;
         }
     }
-    vector_dispose(&pending);
-    vector_dispose(&seen);
     return found;
 }
 
@@ -1220,7 +1225,12 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
     for(; i < graph.entities.length; i++) {
         var current = module_node(graph, graph.entities.data[i]);
         if current.state == ModuleLoaded {
-            if module_reaches(current, current) {
+            var error: WorkBudgetError;
+            var cyclic = module_reaches_result(current, current, &error);
+            if error != WorkBudgetError.None {
+                module_clone_fail(graph, error, "Cannot admit import cycle traversal"); return;
+            }
+            if cyclic {
                 var invalid = current.declarations.length != 0;
                 invalid ||= current.roots.length == 0;
                 foreach(var & root in &current.roots) {
@@ -1258,8 +1268,11 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
     }
 }
 
-export fn frontend_module_cyclic(module: FrontendModule*): bool {
-    return module.graph.cycles && module_reaches(module, module);
+export fn frontend_module_cyclic_result(module: FrontendModule*, error: WorkBudgetError*): bool {
+    if error == null { return false; }
+    *error = module == null ? WorkBudgetError.Invalid : module.graph.resource_error;
+    if *error != WorkBudgetError.None || !module.graph.cycles { return false; }
+    return module_reaches_result(module, module, error);
 }
 
 export fn frontend_module_comment(module: FrontendModule*, first: usize, last: usize): void {

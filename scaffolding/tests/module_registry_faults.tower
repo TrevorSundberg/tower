@@ -1,0 +1,208 @@
+import tower;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.completion_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.vector;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn sem_context_init(context: SemanticContext*, program: SemanticProgram*): void;
+extern fn sem_context_dispose(context: SemanticContext*): void;
+extern fn sem_state(context: SemanticContext*, table: SemanticTable*, node: void*): SemanticEntry*;
+extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_modules_begin(program: SemanticProgram*, base: usize): SemanticModules*;
+extern fn sem_module_scope(program: SemanticProgram*, module: void*, base: usize): void*;
+extern fn sem_module_record(program: SemanticProgram*, module: void*, base: usize): bool;
+extern fn frontend_module_root_world_size_result(world: void*, source: u8*, length: usize, environment: void*, error: WorkBudgetError*): void*;
+extern fn frontend_module_record(module: void*, root: void*, declaration: bool): void;
+extern fn frontend_module_destroy(module: void*): void;
+extern fn language_document_inspect(query: CompletionQuery*, checked: bool): bool;
+extern fn sem_generic_inspect(context: SemanticContext*, checked: bool, truncated: bool*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn compiler_clone_tree_owned_result(source: void*, limit: usize, copied: usize*, error: WorkBudgetError*, owner: void*): void*;
+
+enum RegistryAdmissionOperation: u32 { Begin, Scope, Record, Inspect, Count }
+var RegistryAdmissionBytes: usize = 1048576;
+var RegistryAdmissionBase: usize = 73;
+
+fn registry_admission_call(operation: RegistryAdmissionOperation, q: CompletionQuery*, module: void*): bool {
+    if operation == RegistryAdmissionOperation.Begin { return sem_modules_begin(&q.program, RegistryAdmissionBase) != null; }
+    if operation == RegistryAdmissionOperation.Scope { return sem_module_scope(&q.program, module, RegistryAdmissionBase) != null; }
+    if operation == RegistryAdmissionOperation.Record { return sem_module_record(&q.program, module, RegistryAdmissionBase); }
+    return language_document_inspect(q, false);
+}
+
+// These are ordinary module/generic registries and their direct query consumer.
+// Only syntax fixture construction precedes injection; no test-only producer.
+fn registry_admission_trial(operation: RegistryAdmissionOperation, allowed: usize, wanted: WorkBudgetError, prior: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, RegistryAdmissionBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Registry physically bounded world");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_world(&fixture, 0, 0, world);
+    var q: CompletionQuery = {world: world, semantic: true, ..default};
+    semantic_initialize(&q.program, fixture.root, 8);
+    sem_get(fixture.root).start = RegistryAdmissionBase;
+    sem_context_init(&q.context, &q.program);
+    q.context.generics = fixture.context;
+    sem_state(&q.context, q.context.source_bases, fixture.root).number = RegistryAdmissionBase;
+    utility_check(vector_push(&q.context.template_nodes, fixture.definition), "Registry template declaration identity");
+    var error: WorkBudgetError;
+    var module = frontend_module_root_world_size_result(world, "", 0, null, &error);
+    utility_check(module != null && error == WorkBudgetError.None, "Ordinary module registry fixture");
+    frontend_module_record(module, fixture.definition, false);
+    if operation == RegistryAdmissionOperation.Scope || operation == RegistryAdmissionOperation.Record {
+        utility_check(sem_modules_begin(&q.program, RegistryAdmissionBase) != null, "Registry prerequisites precede injection");
+    }
+    if operation == RegistryAdmissionOperation.Record {
+        utility_check(sem_module_scope(&q.program, module, RegistryAdmissionBase) != null, "Complete module scope before link denial");
+    }
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var children = entity_child_count(fixture.root);
+    var occupied: WorkReservation = default;
+    var view: void* = null;
+    if wanted == WorkBudgetError.Capacity {
+        var snapshot: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &snapshot)
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied) == WorkBudgetError.None,
+            "Registry exact physical capacity pressure");
+    }
+    if wanted == WorkBudgetError.Busy { view = entity_view_open(fixture.root); utility_check(view != null, "Registry lifetime pin"); }
+    if prior {
+        utility_check(storage_assign(&q.program.error, "x", 1), "Prior registry diagnostic");
+        q.program.error_offset = RegistryAdmissionBase;
+        sem_resource_record(&q.program, WorkBudgetError.Exhausted, RegistryAdmissionBase);
+    }
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var accepted = registry_admission_call(operation, &q, module);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if accepted != (wanted == WorkBudgetError.None) || q.program.resource.error != wanted {
+        puts("Registry receipt operation/allowed/accepted/error/wanted");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+        generic_clone_number(accepted ? 1 : 0); generic_clone_number(convert(usize, q.program.resource.error));
+        generic_clone_number(convert(usize, wanted));
+    }
+    utility_check(accepted == (wanted == WorkBudgetError.None) && q.program.resource.error == wanted,
+        "Module/inspection preserves exact first typed admission cause");
+    if wanted != WorkBudgetError.None {
+        utility_check(q.program.resource.offset == RegistryAdmissionBase, "Registry denial retains canonical source offset");
+        utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components
+            && entity_child_count(fixture.root) == children, "Failed registry admission retires partial kinds, scope and staged annotations");
+        if operation == RegistryAdmissionOperation.Begin { utility_check(q.program.modules == null, "No partial module owner publication"); }
+        if operation == RegistryAdmissionOperation.Inspect { utility_check(q.generic_info == null, "No partial inspection publication"); }
+        if view != null { entity_view_close(view); view = null; }
+        if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release registry pressure"); }
+        var retry_calls = tower_test_buffer_allocations();
+        utility_check(!registry_admission_call(operation, &q, module) && tower_test_buffer_allocations() == retry_calls
+            && q.program.resource.error == wanted && q.program.resource.offset == RegistryAdmissionBase
+            && entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
+            "Terminal retry allocates/mutates nothing after denial is removed");
+        if prior { utility_check(q.program.error.length == 1 && q.program.error.data[0] == 120
+            && q.program.error_offset == RegistryAdmissionBase && calls == 0, "Prior diagnostic and resource survive without allocation"); }
+    }
+    sem_context_dispose(&q.context);
+    semantic_program_dispose(&q.program);
+    frontend_module_destroy(module);
+    generic_clone_fixture_close(&fixture);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Registry trials release every kind, component, stage, buffer and budget grant");
+    return calls;
+}
+
+fn module_registry_fault_tests(): void {
+    registry_owned_clone();
+    registry_prior_diagnostic();
+    var unlimited = ~convert(usize, 0);
+    for(var tag = convert(u32, RegistryAdmissionOperation.Begin); tag < convert(u32, RegistryAdmissionOperation.Count); tag++) {
+        var operation = convert(RegistryAdmissionOperation, tag);
+        var calls = registry_admission_trial(operation, unlimited, WorkBudgetError.None, false);
+        utility_check(calls != 0, "Registry denial sweep derives real allocation demand");
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            registry_admission_trial(operation, allowed, WorkBudgetError.Memory, false);
+        }
+        registry_admission_trial(operation, unlimited, WorkBudgetError.Capacity, false);
+        registry_admission_trial(operation, unlimited, WorkBudgetError.Busy, false);
+        registry_admission_trial(operation, 0, WorkBudgetError.Exhausted, true);
+    }
+    puts("Module and inspection registry admission faults passed.");
+}
+
+fn registry_owned_clone(): void {
+    var buffers = tower_test_buffer_count();
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 1, 1, 1, null);
+    var owner = entity_stage_open(fixture.root);
+    var foreign = entity_stage_open(fixture.root);
+    utility_check(owner != null && foreign != null
+        && entity_stage_lease_result(owner, fixture.definition) == WorkBudgetError.None,
+        "Inspection owns its published syntax lease");
+    var limit = entity_store_count(fixture.store);
+    var copied: usize = 0;
+    var error: WorkBudgetError;
+    utility_check(compiler_clone_tree_owned_result(fixture.definition, limit, &copied, &error, null) == null
+        && error == WorkBudgetError.Busy, "Legacy clone cannot bypass a source lease");
+    utility_check(compiler_clone_tree_owned_result(fixture.definition, limit, &copied, &error, foreign) == null
+        && error == WorkBudgetError.Busy, "Inspection rejects a foreign lease");
+    var view = entity_view_open(fixture.root);
+    utility_check(view != null && compiler_clone_tree_owned_result(fixture.definition, limit, &copied, &error, owner) == null
+        && error == WorkBudgetError.Busy, "Owned clone still honors a pinned store");
+    entity_view_close(view);
+    tower_test_buffer_fail_after(0);
+    var denied = compiler_clone_tree_owned_result(fixture.definition, limit, &copied, &error, owner);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(denied == null && error == WorkBudgetError.Memory, "Owned clone preserves physical allocator failure");
+    var clone = compiler_clone_tree_owned_result(fixture.definition, limit, &copied, &error, owner);
+    utility_check(clone != null && error == WorkBudgetError.None && copied != 0
+        && entity_child_count(clone) == entity_child_count(fixture.definition), "Owned inspection clones ordinary metadata and ordered children");
+    entity_release(clone);
+    entity_stage_discard(foreign);
+    entity_stage_discard(owner);
+    generic_clone_fixture_close(&fixture);
+    utility_check(tower_test_buffer_count() == buffers, "Owned metadata clones release every resource");
+}
+
+fn registry_prior_diagnostic(): void {
+    var buffers = tower_test_buffer_count();
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 0, 0, 1, null);
+    var q: CompletionQuery = {world: fixture.world, semantic: true, ..default};
+    semantic_initialize(&q.program, fixture.root, 8);
+    sem_context_init(&q.context, &q.program);
+    q.context.generics = fixture.context;
+    utility_check(vector_push(&q.context.template_nodes, fixture.definition)
+        && storage_assign(&q.program.error, "prior", 5), "Prior diagnostic setup");
+    q.program.error_offset = RegistryAdmissionBase;
+    var calls = tower_test_buffer_allocations();
+    var truncated = true;
+    utility_check(sem_modules_begin(&q.program, 0) == null
+        && sem_generic_inspect(&q.context, false, &truncated) == null && truncated
+        && tower_test_buffer_allocations() == calls && q.program.resource.error == WorkBudgetError.None,
+        "Ordinary producer failure is terminal without new allocation or fabricated resource error");
+    utility_check(language_document_inspect(&q, false) && q.generic_info != null
+        && q.program.error.length == 5 && q.program.error.data[0] == 112
+        && q.program.error_offset == RegistryAdmissionBase && q.program.resource.error == WorkBudgetError.None,
+        "Optional editor inspection preserves the document's earlier diagnostic");
+    sem_context_dispose(&q.context);
+    semantic_program_dispose(&q.program);
+    generic_clone_fixture_close(&fixture);
+    utility_check(tower_test_buffer_count() == buffers, "Prior-error inspection releases ownership");
+}

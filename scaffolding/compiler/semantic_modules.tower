@@ -23,7 +23,7 @@ struct SemanticModuleLink {
 }
 
 extern fn frontend_module_name(module: void*): u8*;
-extern fn frontend_module_cyclic(module: void*): bool;
+extern fn frontend_module_cyclic_result(module: void*, error: WorkBudgetError*): bool;
 
 extern fn frontend_module_import_count(module: void*): usize;
 
@@ -35,64 +35,83 @@ extern fn frontend_module_alias(module: void*, index: usize): u8*;
 
 extern fn entity_child_name(node: void*, index: usize): u8*;
 
-fn sem_module_kind(parent: void*, size: usize, alignment: usize): void* {
-    var kind = sem_create(parent);
-    sem_require(entity_register(kind, size, alignment, 0));
-    return kind;
+fn sem_module_ok(program: SemanticProgram*): bool {
+    return program.resource.error == WorkBudgetError.None && program.error.length == 0;
 }
 
-fn sem_modules_begin(program: SemanticProgram*): SemanticModules* {
-    if program.modules != null {
-        return program.modules;
+fn sem_module_error(program: SemanticProgram*, error: WorkBudgetError, offset: usize): bool {
+    if sem_module_ok(program) {
+        sem_resource_record(program, error, offset);
+        program.error_offset = offset;
     }
-    var registry = entity_create_related(program.root);
-    sem_require(entity_register(registry, sizeof(SemanticModules), alignof(SemanticModules), 0));
-    var component = entity_component_add(program.root, registry);
-    var modules = bits(SemanticModules*, entity_component_data(component));
-    var present = modules != null;
-    sem_require(present);
-    fill(modules, 0, sizeof(SemanticModules));
-    modules.root = registry;
-    modules.owner_kind = sem_module_kind(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink));
-    modules.import_kind = sem_module_kind(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink));
-    modules.scopes = sem_create(registry);
+    return false;
+}
+
+fn sem_module_offset(node: void*, base: usize): usize {
+    var span = sem_match(node);
+    return span == null ? base : base + span.start;
+}
+
+export fn sem_modules_begin(program: SemanticProgram*, base: usize): SemanticModules* {
+    if !sem_module_ok(program) { return null; }
+    if program.modules != null { return program.modules; }
+    var error: WorkBudgetError;
+    var registry = entity_create_related_result(program.root, &error);
+    if registry == null { sem_module_error(program, error, base); return null; }
+    // No root component retains this registry until all its children exist.
+    // Releasing the local owner therefore also retires every partial child.
+    defer entity_release(registry);
+    if !entity_register(registry, sizeof(SemanticModules), alignof(SemanticModules), 0) {
+        sem_module_error(program, WorkBudgetError.Invalid, base); return null;
+    }
+    var owner = sem_kind_result(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink), &error);
+    var imports = owner == null ? null : sem_kind_result(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink), &error);
+    var scopes = imports == null ? null : sem_create_result(registry, &error);
+    if scopes == null { sem_module_error(program, error, base); return null; }
+    var modules = bits(SemanticModules*, entity_component_data(entity_component_add_result(program.root, registry, &error)));
+    if modules == null { sem_module_error(program, error, base); return null; }
+    *modules = { root: registry, owner_kind: owner, import_kind: imports, scopes: scopes };
     program.modules = modules;
-    entity_release(registry);
     return modules;
 }
 
-fn sem_module_scope(program: SemanticProgram*, module: void*): void* {
-    var registry = sem_modules_begin(program);
+export fn sem_module_scope(program: SemanticProgram*, module: void*, base: usize): void* {
+    if !sem_module_ok(program) { return null; }
+    var registry = sem_modules_begin(program, base);
+    if registry == null { return null; }
     var path = frontend_module_name(module);
     var scope = sem_member(registry.scopes, path);
-    var missing = scope == null;
-    if missing {
-        scope = entity_create_related(registry.scopes);
-        sem_require(entity_attach(scope, registry.scopes, path));
-        entity_release(scope);
-    }
+    if scope != null { return scope; }
+    var error: WorkBudgetError;
+    var cyclic = frontend_module_cyclic_result(module, &error);
+    if error != WorkBudgetError.None { sem_module_error(program, error, base); return null; }
+    scope = entity_create_related_result(registry.scopes, &error);
+    if scope == null { sem_module_error(program, error, base); return null; }
+    defer entity_release(scope);
+    var link = bits(SemanticModuleLink*, entity_component_data(entity_component_add_result(scope, registry.owner_kind, &error)));
+    if link == null { sem_module_error(program, error, base); return null; }
+    *link = { module: scope, base: base, cyclic: cyclic };
+    error = entity_attach_result(scope, registry.scopes, path);
+    if error != WorkBudgetError.None { sem_module_error(program, error, base); return null; }
     return scope;
 }
 
-fn sem_module_link(node: void*, kind: void*, scope: void*): void {
-    var component = entity_component_add(node, kind);
-    var link = bits(SemanticModuleLink*, entity_component_data(component));
-    var present = link != null;
-    sem_require(present);
-    link.module = scope;
-    link.base = 0;
-    link.cyclic = false;
+fn sem_module_link(program: SemanticProgram*, node: void*, kind: void*, scope: void*, base: usize): bool {
+    if !sem_module_ok(program) { return false; }
+    var error: WorkBudgetError;
+    var link = bits(SemanticModuleLink*, entity_component_data(entity_component_add_result(node, kind, &error)));
+    if link == null { return sem_module_error(program, error, sem_module_offset(node, base)); }
+    *link = { module: scope, ..default };
+    return true;
 }
 
-fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): void {
-    var scope = sem_module_scope(program, module);
-    sem_module_link(scope, program.modules.owner_kind, scope);
-    var component = entity_component_get(scope, program.modules.owner_kind);
-    var link = bits(SemanticModuleLink*, entity_component_data(component));
+export fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): bool {
+    var scope = sem_module_scope(program, module, base);
+    if scope == null { return false; }
+    var link = bits(SemanticModuleLink*, entity_component_data(entity_component_get(scope, program.modules.owner_kind)));
     link.base = base;
-    link.cyclic = frontend_module_cyclic(module);
+    return true;
 }
-
 // Parsing defers ordinary variable initialization in cycles to the same semantic
 // proof used everywhere else. Metadata-bearing fixed bindings retain their
 // declarations; their proved values have no initialization-order dependency.
@@ -115,47 +134,44 @@ fn sem_module_initializers(c: SemanticContext*): void {
     }
 }
 
-fn sem_module_record(program: SemanticProgram*, module: void*): void {
-    var registry = sem_modules_begin(program);
-    var scope = sem_module_scope(program, module);
+export fn sem_module_record(program: SemanticProgram*, module: void*, base: usize): bool {
+    var scope = sem_module_scope(program, module, base);
+    if scope == null { return false; }
+    var registry = program.modules;
     var count = frontend_module_roots(module);
-    var i: usize = 0;
-    for(; i < count; i++) {
-        sem_module_link(frontend_module_tree(module, i), registry.owner_kind, scope);
+    for(var i: usize = 0; i < count; i++) {
+        if !sem_module_link(program, frontend_module_tree(module, i), registry.owner_kind, scope, base) { return false; }
     }
     count = frontend_module_import_count(module);
-    i = 0;
-    for(; i < count; i++) {
+    for(var i: usize = 0; i < count; i++) {
         var declaration = frontend_module_import_at(module, i);
-        // Recovered editor parses may contribute a second source snapshot.
-        // Each actual declaration keeps its own components and source spans.
-        if entity_component_get(declaration, registry.import_kind) == null {
-            var dependency = frontend_module_dependency_at(module, i);
-            var target = sem_module_scope(program, dependency);
-            var alias = frontend_module_alias(module, i);
-            // Inspection retains the source wrapper too. Move the complete
-            // tree so its children, roles and hover spans stay intact.
-            var tree = sem_parent(declaration);
-            if tree == null {
-                tree = declaration;
-            }
-            sem_require(entity_attach(tree, scope, alias));
-            sem_module_link(tree, registry.import_kind, target);
-            sem_module_link(declaration, registry.import_kind, target);
-            sem_module_link(declaration, registry.owner_kind, scope);
-        }
+        // Recovered snapshots retain their actual source entities and spans.
+        if entity_component_get(declaration, registry.import_kind) != null { continue; }
+        var dependency = frontend_module_dependency_at(module, i);
+        var target = sem_module_scope(program, dependency, 0);
+        if target == null { return false; }
+        var alias = frontend_module_alias(module, i);
+        var tree = sem_parent(declaration) ?? declaration;
+        // All metadata must exist before moving the ordered/named source tree.
+        // A denial keeps the previous containment and the fatal program receipt.
+        if !sem_module_link(program, tree, registry.import_kind, target, base)
+            || !sem_module_link(program, declaration, registry.import_kind, target, base)
+            || !sem_module_link(program, declaration, registry.owner_kind, scope, base) { return false; }
+        var error = entity_attach_result(tree, scope, alias);
+        if error != WorkBudgetError.None { return sem_module_error(program, error, sem_module_offset(declaration, base)); }
     }
+    return true;
 }
 
-fn sem_module_graph(program: SemanticProgram*, module: void*): void {
-    sem_module_record(program, module);
+fn sem_module_graph(program: SemanticProgram*, module: void*, base: usize): bool {
+    if !sem_module_record(program, module, base) { return false; }
     var count = frontend_module_count(module);
     for(var i: usize = 0; i < count; i++) {
         var dependency = frontend_module_at(module, i);
-        sem_module_record(program, dependency);
+        if !sem_module_record(program, dependency, dependency == module ? base : 0) { return false; }
     }
+    return true;
 }
-
 fn sem_owner(c: SemanticContext*, node: void*): void* {
     var registry = c.program.modules;
     if registry == null {
