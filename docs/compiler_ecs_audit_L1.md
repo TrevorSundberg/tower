@@ -438,7 +438,10 @@ allowance denying the newly charged cache at startup. D1's exact-phase fixture
 update now passes the exact startup-cache/gated-growth query on the original 16KiB budget.
 The other three native gates and64 frozen process profiles also pass their output
 oracles. Recorded graph/setup/RSS regressions keep performance acceptance open;
-allocator controls and current instrumentation are pending. Graph
+allocator controls now show a reversal under a fixed mmap threshold, supporting
+an allocation/page-residency contribution without erasing default costs. Current
+4bef address/leak5 and thread5 gates pass with exact source/IR identities. The
+fixed constructor-extent lookup proposal is unimplemented/unmeasured. Graph
 maps, function indexes, Fast arrays and diagnostic/
 opaque owners remain open; type indexes and counted receipt consumers are
 implemented with their source-specific evidence above.

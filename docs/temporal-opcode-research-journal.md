@@ -65825,3 +65825,97 @@ with MALLOC_MMAP_THRESHOLD_=131072 for small graph/Fast, the identical eaf basel
 and new D1-relinked after, one warmup plus two balanced pairs. It tests an allocator
 placement/residency hypothesis without changing Tower production or restoring a
 hardcoded lookup mask. Its results and current instrumentation remain pending.
+
+Allocator control78008 drains0, all24 reference outputs5000 and source/binary/
+resource freezes pass. Exact current afterCLIe9cd87caccd91e4c16b0ccae9c5d4bc953db8bc5f09b069e87316d1891359e77;
+beforef705be48 unchanged. Two measured samples after one warmup, balanced before/
+after order, same small graph/Fast programs and flags. These are allocator-policy
+controls, not a new broad performance or scaling claim. Native67577 six-step build
+cost6.31wall/4.45CPU/239748KiB and exact query0.31wall/0.23CPU/73640KiB.
+
+| Policy / path | Before RSS KiB | After RSS KiB | Before measured phase ms | After measured phase ms |
+| --- | --- | --- | --- | --- |
+| Default / graph | 177020,177092 | 179920,180004 | execute3.692,3.289 | execute4.719,5.233 |
+| Default / Fast | 176576,177360 | 180240,180376 | prepare1.153,1.196 | prepare3.469,2.853 |
+| Fixed128KiB mmap threshold / graph | 180180,180252 | 176004,175948 | execute6.042,6.147 | execute3.496,3.693 |
+| Fixed128KiB mmap threshold / Fast | 180548,180580 | 176688,176132 | prepare3.545,2.671 | prepare1.161,1.233 |
+
+Default graph minor faults35216/35217->36409/36412; fixed threshold36185/36182->
+35149/35152. Fast behaves similarly. Reversal under the sole
+MALLOC_MMAP_THRESHOLD_=131072 setting supports allocation placement and page
+residency as contributors to the small-program setup/RSS delta, consistent with
+the existing four-MiB non-strict guest buffer. It does not show a leak, establish
+the entire larger-graph slowdown's cause, justify changing the production allocator
+policy, or erase default-policy costs. The actual derived-length lookup and
+first-failure ownership behavior remain unchanged. Performance acceptance stays
+open pending this scope's final review; no extra unchanged full matrix is implied.
+
+After these controls drain, current4bef address build completes27steps,
+119.42wall/199.72CPU/738340KiB. Prior451 address cache and complete current native
+package are archived before rebuilding. Actual generated IR references and hashes
+are checked; five valid-program runtime gates are still running at this entry.
+L2 receives a separate bounded one-compiler AFTER check grant during runtime;
+thread build waits for both actual drains. New ROOT351 world/query union is
+verified/fetched only, not merged into this frozen milestone.
+
+Address42451 actually drains0: all five current4bef gates pass with empty stderr:
+full core55.49wall/77.27CPU/902288KiB; query repeats0.88/0.84/0.87wall;
+four units20.63wall/80.63CPU/1256164KiB, actual outer4, canonical
+17697577322696030917, retained7561557/ledger20971520/charged peak234811181.
+These instrumented timings are execution receipts, not comparable performance
+samples; the separately bounded L2 compiler check overlaps part of runtime.
+Generated interpreter IR specifically contains __asan_report_load1, hash
+8e61a5c9613f3cabede36a5344e1f1c5b6c8ad5ed1c436bc4bba13eb89774c60,
+objectfba810fc385836a1f527f2d92f8821077f389b1d4de9bc763b0f3bf111659eb6.
+The supplementary hash receipt names the interpreter explicitly; the original
+instrument script already verified LR/execution/evaluation/profile. Thread script
+now checks all five units. Native/address source manifests match, including the
+D1 phase fixture. LR3720622d, executiond2843be7, profile56463f58 binaries retained.
+Supported address/leak coverage passes; this does not claim full foreign LLVM or
+unsupported Tower UBSan instrumentation.
+
+After L2's real rebuilt52036 check drains, current4bef thread milestone starts.
+Its earlier stale-mtime no-work134 result stays a failed stale-binary check; no
+source acceptance was inferred from it. No L1 sources or compiler closure change
+during either instrumented milestone. New ROOT351 is fetched for read-only source
+review, including world creation/disposal, IDE/CLI resource consumers, frontend
+unit/import propagation and type/evaluation query failure paths; it remains
+unmerged and has the coordinator's separately known semantic Capacity/Memory
+failure. None of the current receipts claims validation of that newer union.
+
+Read-only lookup census finds exactly one active-length writer: im_node_cache_init
+sets InterpreterNodeCacheEntries, with no resize until normal/Fast disposal.
+A subsequent two-path proposal derives the hot mask from that same constructor
+input and checks the constructed positive power-of-two length/capacity invariant
+in the existing successful storage fixture. This is still a proposal, not adopted
+or measured: L1_node_cache_fixed_extent_proposal.patch9eac93fa059cd1a950f61e5901b02f97ca3245b1b4b54a9a6db6d0e65c7b2d21.
+It retains a single extent definition, no duplicated255 or new ABI/layout. The
+motivation is the measured dynamic-mask instruction cost, not an assertion that
+smaller assembly guarantees faster execution. Current4bef native package is
+already archived as the complete comparison baseline; any follow-up requires
+actual matched-output measurements before adoption/acceptance.
+
+Thread92808 actually drains0: all five gates pass, every stderr empty. Build27
+steps81.55wall/128.69CPU/737940KiB; full core129.64wall/172.90CPU/717916KiB;
+query repeats1.77/1.78/1.82wall; four units47.10wall/183.90CPU/1903576KiB,
+actual outer4/canonical17697577322696030917, retained7561557, ledger20971520,
+charged peak234354749. Generated changed interpreter IR hash
+255f36a37895c2d3b56de956cac1e072e5b7831e5cafa8d40fa3332c77ab3001
+is included in actual instrumentation verification alongside LR/execution/
+evaluation/profile. Current LR e0fda0e6, executionad971db8, profileb1af23de.
+Native/address/thread before/after/final compiler-source manifests match exactly;
+documentation edits do not relabel production identity4bef. These passing runs
+support the exercised ownership paths, not universal race freedom or unsupported
+foreign LLVM/UBSan coverage.
+
+Raw milestone archive L1_node_cache_4bef_receipt.tgz SHA256
+9bf19220d7f4e62351c2f67782a12f086cf1d48844171fab1b575203dd068802
+retains baseline, actual before failure, standalone link/oracle failures and their
+corrections, native/phase results, original64 plus24 allocator controls, generated
+IR/source/binary receipts and current address/thread logs. Prepared future
+extent scripts are included as transport provenance only: the proposal has not
+been applied or executed. Complete current native comparison package remains
+l1_node_cache_native_milestone. All owned/subordinate jobs have drained; L2's
+queued quiet32 profiles get the next host slot. Full ROOT351 production adoption,
+cache performance follow-up, remaining map/function/Fast ownership and integrated
+public-bootstrap/browser/generation/publication acceptance remain open.
