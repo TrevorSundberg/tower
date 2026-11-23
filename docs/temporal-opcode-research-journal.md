@@ -96239,3 +96239,20 @@ integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
+
+## 2026-11-23 A1: independent abort capability peer review
+Reviewed9f37944356/b4bd9980 against1e428ede at freezeae5d34b2;11 scoped
+blobs unchanged. No concrete defect found. Forty-byte typed import/export
+descriptor enforces() -> void at Wasm linking; Graph/Fast forwards serialized
+returnType to the shared validator before invoking. Explicit provider precedence,
+unknown rejection, first failure/effect stop, staged capability denial and guest
+finally/handle cleanup remain. No new interpreter, permissive fallback or registry.
+[Short peer receipt](abort_host_peer_review_a1.md) maps exact blobs/all6fixtures
+and actual A2 controls/T9/profile logs; those runs remain attributed, not repeated.
+An extra ordinary enum-named-void Tower control rejects on32/64 Graph/Fast with
+empty output; initial missing-Foundation transport setup failure retained.
+No confirmed nominal-name bypass. A2 still owns the separate spelling assertion;
+host-instance lifetime/zero-owner limits and absent override/OOM controls explicit.
+Docs-only: no runtime build, performance comparison, instrumentation or release.
+Raw A1/abort_review_ae5d34b2 contains input/output/counters/hash map; owned work
+drained, todo unchanged; normal commit/reconcile/push follows.
