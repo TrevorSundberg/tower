@@ -178,7 +178,10 @@ export fn compiler_dependency_units_tests(root: u8*): void {
     defer vector_dispose(&bedrock);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
-    for(var mode: usize = 0; mode < 2; mode++) {
+    var cycle_cases: bool[2];
+    cycle_cases[0] = false; cycle_cases[1] = true;
+    var case_count = sizeof(decltype(cycle_cases)) / sizeof(bool);
+    for(var mode: usize = 0; mode < case_count; mode++) {
         var serial: vector(u8) = default;
         var parallel: vector(u8) = default;
         var serial_error: vector(u8) = default;
@@ -187,8 +190,8 @@ export fn compiler_dependency_units_tests(root: u8*): void {
         defer vector_dispose(&serial_error);
         defer vector_dispose(&parallel);
         defer vector_dispose(&serial);
-        var first = dependency_units_trial(root, bedrock.data, foundation.data, 1, mode != 0, &serial, &serial_error);
-        var second = dependency_units_trial(root, bedrock.data, foundation.data, DependencyUnitWorkers, mode != 0, &parallel, &parallel_error);
+        var first = dependency_units_trial(root, bedrock.data, foundation.data, 1, cycle_cases[mode], &serial, &serial_error);
+        var second = dependency_units_trial(root, bedrock.data, foundation.data, DependencyUnitWorkers, cycle_cases[mode], &parallel, &parallel_error);
         units_check(first == second && serial.length == parallel.length && serial_error.length == parallel_error.length,
             "Dependency serial/parallel canonical and diagnostic extents");
         for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "Dependency canonical bytes agree"); }

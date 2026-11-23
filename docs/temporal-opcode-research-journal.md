@@ -81787,3 +81787,23 @@ pending a coherent dependency rebuild. D2 owns heavy.lock for its active bounded
 reference profile; D1's acquisition failed without starting a competing process.
 One handoff request is recorded. Earlier passing receipts retain their sources;
 no stale binary was run or relabeled as current acceptance.
+
+Final ABI integration is now checked. D2 drained and released the slot; D1's
+24-action jobs1 target refresh passed226.00wall/220.34CPU/762220KiB. After drain,
+final review replaced the two-case literal loop bound with an actual bool-input
+array and sizeof-derived count; inputs/oracles are unchanged. Its two-action
+fixture/link rebuild passed17.54wall/16.90CPU/321756KiB. No production edit.
+On fae0dfa/d6b92ae plus that count correction, dependency-units passes24.02wall/
+38.11CPU/870988KiB, zero swaps. Success compile intervals13.108018/3.214366s
+again observe1/4 distinct threads and1/4 peak overlap. Known42–45, canonical bytes,
+cycle/error text, offsets and unit ordering all pass. Query-smoke .31wall/.33CPU/
+70432KiB and conflict-affected unit-admission14.12wall/16.96CPU/482568KiB pass;
+its nested release wakes ready outer work in63471ns and cancellation drains.
+All three stderr files are empty and the complete Tower/build manifest verifies.
+Final runner63a6d28e5a7ebe95c3004130a62749a7d471c4d0c182572eb16141ea26fd5779.
+Single-sample serial time/RSS vary across these changed producer identities;
+there is no isolated performance attribution or neutrality claim. RSS remains
+below1GiB, with ample Deck memory available; physical ledger peaks are separately
+reported in the logs. Host affinity restored0,2, own jobs drained and lock released.
+Only this fixture, its existing caller and D1 audit/journal are authored changes;
+normal push retry follows. Full instruments/platform/deployment remain ROOT-owned.

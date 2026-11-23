@@ -3179,3 +3179,12 @@ keeps exact error bytes/offset/order. Identical logical import names with differ
 private snapshots exercise environment isolation. Frozen source checks pass;
 fixture commit65ff524 adds no production code. Final broad/platform/release gates
 remain explicitly outside this bounded acceptance batch.
+
+Push-race integration fae0dfa adds B2's WorkBudget/WorkPool wake layout and checked
+executable admission. Both test selectors survive the caller merge. All24 affected
+build actions and the same focused dependency/query checks pass on that ABI;
+unit-admission also passes after the selector conflict. New fixture case counts
+now derive from the actual bool input array. Final dependency cost24.02wall/
+38.11CPU/870988KiB, zero swaps; actual four-thread/peak4 overlap and exact output/
+error parity remain checked. Source manifest verifies; this is bounded acceptance,
+not complete scheduler/race/release coverage or an attributed performance change.
