@@ -85051,3 +85051,36 @@ receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+L1 final integration blocker (not a pass): required main reconciliation merged
+complete e116e96 (A2 physical ownership and L2 semantic scratch) as b9d84d3ae278.
+Native selected targets compiled, and the new counted output/transactional package
+fixtures plus both-width Fast ownership fixtures passed. Existing core then
+failed its unchanged duplicate-parameter diagnostic oracle for:
+`import tower; fn f(a: i32, a: i32): void {}`.
+Expected offset is entry19137 + import14 + duplicate13 =19164. Actual session
+location is19151. A focused diagnostic-only test reporter distinguishes the
+receipts: program.error_offset19164, resource Memory(3) at19151, while the counted
+message remains `Invalid or duplicate function parameter`. The second focused
+run reproduced this exactly; both actual exit1 logs are preserved. No expectation
+was weakened and no semantic producer was modified.
+
+The incoming sem_declaration_add_result caller still reports Memory when
+sem_push_checked returns false, although that new checked helper also returns
+false for an already-failed semantic context. This is a concrete candidate for
+the late resource receipt, not a proven allocation failure or a reason to hide
+it at the L1 execution consumer. L2 owns that producer/caller policy. The L1
+consumer faithfully exposes the retained typed receipt; changing its precedence
+would mask the producer integration defect. Preserve both owners' complete
+history and stop at this prerequisite rather than expanding into semantic work.
+
+Merged core is FAILED. Merged query/shared-Wasm/package execution is PENDING:
+the dependency script stopped at core. Earlier dcb5181 source-input core/query,
+shared-Wasm compilation and Node package5/5 successes remain valid only for
+those frozen inputs. The reporter change only prints existing error fields on a
+failed oracle; no runtime performance comparison applies to that diagnostic aid.
+Current logs: external L1/logs/output_storage_ownership_merge and
+L1/logs/output_storage_merged_error_receipt. Concise final failed receipt is
+L1/output_storage_blocked_receipt.json. All owned jobs drained, todo unchanged.
+Implementation f2ae81f3c31b and B1 caller integration dcb51813c7c are committed;
+normal push is withheld because the required merged core gate fails. No deployment,
+release, generation or sanitizer completion claimed. ROOT/B2 gates remain pending.
