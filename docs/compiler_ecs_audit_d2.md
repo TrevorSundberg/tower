@@ -1234,3 +1234,88 @@ Bounded trace follow-up323ae806 subsequently supersedes the pending-loop entry:
 the serial fixture now uses measured successful allocation count, asserts every
 failure prefix and mandatory terminal success, and preserves teardown. D2
 source review complete; independent public-pin/native/ASan checks still open.
+
+### D2 independent stage/trace/aggregate checkpoint at 1461866
+
+Reviewed source14618665557d4091eed710bdda488811c1c07c5c, scaffolding tree
+8fb09e71ab7809cf34568a6ea19fa408fff25cbe. The40primary tooling/benchmark
+paths remain unchanged since their earlier receipts. This checkpoint updates
+evidence, not the final completion classification. Public pin9653f818 was used
+without private override in the isolated Deck Docker image4be584fb, LLVM19.1.1,
+one build job/compiler job. Smallest changed units compile. Incremental native
+6steps32.08wall/31.28CPU/292080KiB and focused10steps46.28/45.27/350876 pass.
+Compiler598fabeddbac910bf529fcc6ff25272fa73b64c422c2117f118fba50037fb3c5
+and complete resources are preserved in build/d2_ecs/native_package_1461866.
+Of42resources,41match prior9ca exactly and entity_stage matches its new tracked
+source. This is not a new clean-public or portable-release result.
+
+Independent query-smoke passes32/64 serial/threaded (.20wall/.19CPU/59432KiB),
+including corrected nested capture lifetime and exact immutable store/copy/fill
+diagnostics. Bounded parser selector passes (.07/.06/51336); it separates real
+valid trace from serial allocation-failure instrumentation. Aggregate-stages
+passes53.54/60.06/338784, including whole-empty zero-projection capture and
+global/local/nested/type/function/null cases, both engines32/64, canonical and
+workers1/2/4/8. entity_tables standalone reports0. Three actual concurrent
+stage runs each complete160trials and57792finalizers, retaining reserved access,
+stable payload/table identity and publish/discard/cancel cleanup assertions.
+Tool inode identity passes. These update the stage/trace/aggregate rows above;
+current ASan/TSan, full42 and final release remain required.
+
+Matched immutable package9ca/compiler489761dd versus146/compiler598fabed:
+16/1000-function reference inputs and staged workers/window inputs, native
+x86_64-unknown-linux-gnu, CPUs0,2, jobs1/2, fresh processes/warm filesystem,
+one warmup plus three retained alternating-order samples. All64expected
+outputs and repeated/cross-version/worker object identities pass. All16canonical
+outputs agree per input; eight canonical reparses execute expected results.
+Detailed samples/ranges and failures are in the journal and
+build/d2_ecs/stage_publication_1461866. Two workers do not give useful speedup
+on any measured current workload. Large serial's initial noisy+13% median was
+investigated on CPU2 alone: one warmup plus five retained alternating pairs,
+before/current medians2.43/2.36wall,2.40/2.34CPU,202324/202284KiB; all12objects
+and expected999 executions match. No reproducible regression established;
+no isolated general speedup claim. Powersave remains enabled, observed CPU2
+frequency3.480–3.501GHz, zero child swaps; no affinity/frequency global change.
+
+#### Incoming retained-buffer measurement and packaging review
+
+Incoming measurement snapshot set is now20/20, separately from local40primary
+and45bootstrap provenance. Reviewed all six API/test files in archive
+71d28d31728d6792aeb65b2287bd4d86ce855cd46de610c56b65ac81f71ccc70 plus B2
+memory helper07e634dd992246a171af426b7e26edf640fd71d5257cfa889277605300935df4;
+these are source-only reviews, not local adoption/runtime acceptance.
+
+| Path and reviewed SHA256 | Storage/world/scheduling/ownership and disposition |
+| --- | --- |
+| scaffolding/tests/work_buffer_profile.tower;16821eb3ee099d55e9f20904ede53fa8ee5521117ab2fc4927be6a8846e2ed6f | Explicit shared budget, WorkPool and worker-private buffers; real barrier/overlap measurement; baseline/budget modes alternate4/8KiB8192replacements, verify byte53/checksum and allocations8192+workers. Reports wall/CPU/RSS, retained payload, charged peak and ledger capacity. Timed region excludes pool/budget setup and postjoin checking/free. Byte-only grants isolate buffer accounting, not total nested lane budget; allocator-private overhead/RSS are not charged byte limits. Main requires baseline\|budget and worker arguments; D1 generic no-arg measure target cannot invoke it unchanged. Source accepted for owner joint testing; runtime/fault/performance and current successor deltas pending. |
+| scaffolding/library/work_buffer.tower;ccc61ca8f363618fbdf55a71fb5f01442140bc8ab2f716017fc5371d53ce2412 | Physical buffer owns its reservation; replacement reserves full old+new overlap before allocation/copy; denial preserves prior owner, disposal frees before receipt release. Budget lifetime explicit; null budget is standalone contract. Move/swap transfer complete owner, ordinary copies are not ownership. No global/TLS substitute or authoritative graph. New owner followups must be reviewed before adoption. |
+| scaffolding/library/work_vector.tower;7e95b16105e2158da458bc033dcbde2982ecd38f802be42d75c5fafd00f50c43 | Distinct typed vector preserves header/receipt, checks overflow/alignment, borrows transactional descriptor across resize. Ordinary vector free/realloc is invalid for this storage; borrowed iteration requires stable owner. Full source read; owner initialization/pop/push-result followups remain new snapshots, not silently included in v2 review. |
+| scaffolding/tests/work_buffer.tower;e08c4c2f548e5b0731d46578776b6b3dc1c35946dc55c63c91d0132cedc9ca5 | Normal/denied/wrong-owner/overflow/growth/transfer/stale-receipt paths, exact retained bytes, typed257-element sum32896. Explicit disposal, no scheduler substitute; runtime pending A2/D1. |
+| scaffolding/tests/work_buffer_shared.tower;8d5f8a5aa39b3e62692dd98e9e2be793d277a428a3da0ca33390376ec655bd15 | Four real workers/barrier with disjoint private owners and shared synchronized ledger; cancellation/denied growth keep storage charged after join until coordinator disposal. Joins do not retire reservations; no serial allocator hook in overlap. Runtime/current instrumentation pending. |
+| scaffolding/tests/work_buffer_faults.tower;d2f6c72977ab76017e8d9fd406b0a0555957c36d6b12d6a950c345a7f98d53a0 | Serial injected ledger-growth/physical-allocation failures, transactional rollback and exact live allocation balance. This tests allocator failure ownership, not races. Must use existing serial/instrumented/trap composition without duplicate host_memory. |
+
+Packaging caller audit at146: native CMakeLists85–93 CONFIGURE_DEPENDS globs
+all library/*.tower; build-native copies its whole share directory. Browser
+build.mjs33–41 lists/sorts all library files and builtins entries; Tower
+compiler_project_sources recursively includes library with sorted names;
+bootstrap_collect recursively hashes/packages adjacent share. Thus two new
+top-level library resources require no hardcoded list edit. Existing runtime
+host memory unit must supply both new size/alignment exports; source presence
+alone does not prove linked/public resource closure. D1 registration and A2
+joint runtime must verify exact helpers, then final native/browser/packages
+must contain byte-identical new resources and preserve complete provenance.
+Existing pin is immutable. Copying into an old populated share may preserve
+stale removed resources; final package verification must compare exact sets,
+as earlier type-consolidation receipts require. No speculative cleanup change.
+
+#### Corrected raw initialization contract
+
+The later journal/coordinator correction supersedes the earlier portable0,7,7
+proposal: Foundation325–326 explicitly excludes raw uninitialized reads from
+defined portable results;365–367 preserves source initialization order, and
+struct-values-and-bindings28 permits raw uninitialized storage. Graph0 versus
+LLVM-normalized7 for earlier=read(later) is investigated excluded-input evidence,
+not a demonstrated compiler bug. No D2 production zero-initialization fix or
+known-order v1/v2 adoption occurred. Preserve compile admission of the original,
+strict demanded comptime(earlier) rejection, and use initialized state0 with
+exactly-once read increment for portable1,1,7 output checks. D1 owns that test
+update. Stronghold's future initialization policy is not imposed here.

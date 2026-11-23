@@ -48939,3 +48939,141 @@ drains. Broader full42 still incomplete after D1's180s outer timeout; a case/ran
 progress handoff is being prepared in shared existing runners, not a timeout
 waiver. Original signed32 package child30s gate independently passes all4variants
 on D1 current86bf,209.26wall/204.42CPU/287224KiB; not a full backend release.
+
+#### D2 stage/trace/aggregate independent checkpoint, 2026-11-23
+
+Frozen source14618665557d4091eed710bdda488811c1c07c5c, scaffolding
+8fb09e71ab7809cf34568a6ea19fa408fff25cbe, public bootstrap9653f818 unchanged.
+Own isolated Docker tower-d2-ecs/image4be584fb, LLVM/Clang19.1.1/GCC13.3,
+CPUs0,2, native x86_64-unknown-linux-gnu, compiler/build jobs1, no private
+bootstrap override. D2 held the one Deck heavy lock; D1 idle during measurement.
+Source/import closure remained frozen and final source hashes pass. All jobs
+drained before releasing the lock at00:18:52UTC; no sibling cache touched.
+Disk139GiB free, available RAM9.8GiB, preexisting host swap6.2GiB, every measured
+child swaps0. CPU powersave is unchanged; no suspend interval crosses these
+samples. Logs and exact commands are in build/d2_ecs/stage_publication_1461866.
+
+Smallest units entity_stage, parser_integration, parser_presentation,
+parser_trace_failures, interpreter_call_query and entity_stage_concurrent
+compile with the public predecessor. Initial entity_tables invocation wrongly
+used --library and rejected top-level executable statements; raw group exit1
+and diagnostics are retained. Correct standalone compile succeeds. Canonical
+build-native.sh with TOWER_NATIVE_BUILD pointing only to D2 native-coherent-f13c8f6,
+TOWER_BUILD_JOBS=1 and -DTOWER_COMPILER_JOBS=1, work/backend/execution tests ON:
+6native steps32.08wall/31.28CPU/292080KiB,10focused steps46.28/45.27/350876 pass.
+The subsequent old-resource equality comparison correctly returns1: exactly
+entity_stage changed. Separate comparison checks41unchanged/1intended resource
+and byte identity to tracked entity_stage. Original build_remainder.status1
+is preserved, not relabeled as0. Current complete compiler/package598fabed
+and42resources are preserved in native_package_1461866; prior9ca489761dd
+package remains immutable. This is incremental build evidence, not final clean
+bootstrap or portable release.
+
+Standalone linking mistakes also remain as separate failures: unsupported
+-pthread, then guest-library runtime with undefined main, then freestanding
+runtime-linux-x64.ll duplicating _start. The existing hosted runtime recipe is
+the correct boundary: clang19 --target=x86_64-unknown-linux-gnu -O2 -ffreestanding
+-fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all -c
+runtime-host-linux-x64.ll; towerc --jobs1 --link-executable program.o
+host_runtime.o. Corrected hosted group exits0; no added compiler/backend fix.
+entity_tables executes exact0. Three real concurrent stage runs each complete
+160trials/57792finalizers, covering reserved disjoint payload ranges, stable
+table/pointer identity, publish/discard/cancel and finalizers. Query-smoke
+.20wall/.19CPU/59432KiB passes32/64serial/threaded, including ef014 nested capture
+lifetime and d982 exact immutable store/copy/fill diagnostics. Parser selector
+.07/.06/51336 passes valid tracing and bounded323 serial fault sweep. Tool inode
+identity passes. Aggregate-stages53.54/60.06/338784 passes25e+d982 global/local/
+nested/type/function/null/whole-empty zero-projection inputs and prior positive/
+negative cases, both engines32/64, canonical/workers1/2/4/8. Current source ASan/
+TSan and full42 are not run here; serial fault sweep is not race sanitization.
+
+Paired before9ca489761dd/current146598fabed complete packages compile immutable
+reference_inputs small16/large1000 and staged workers/window inputs. Expected
+15/999 and16/260 outputs are checked through the same hosted runtime.
+Explicit native target, common tracked bedrock/foundation, jobs1/2, CPUs0,2;
+one warmup plus three retained samples, fresh process/warm filesystem,
+alternating version order. All64 outputs, repeated/worker/cross-version object
+byte comparisons pass. Sixteen canonical outputs agree per input; eight
+canonical reparses execute expected results. Source/input/runtime/package
+hashes checked before/after. No source changes during timing.
+
+| Input/version/jobs | Median wall seconds (range) | Median CPU seconds | Median peak KiB |
+| --- | ---: | ---: | ---: |
+| small/before/1 | 3.11 (3.09–3.51) | 3.04 | 175568 |
+| small/current/1 | 2.96 (2.07–4.85) | 2.88 | 175504 |
+| small/before/2 | 3.19 (3.18–3.31) | 3.81 | 187512 |
+| small/current/2 | 3.10 (3.05–3.48) | 3.68 | 187912 |
+| large/before/1 | 2.44 (2.42–3.96) | 2.41 | 202220 |
+| large/current/1 | 2.76 (2.66–3.65) | 2.72 | 202200 |
+| large/before/2 | 3.97 (3.50–4.10) | 4.59 | 214328 |
+| large/current/2 | 3.89 (3.71–4.17) | 4.25 | 214324 |
+| workers/before/1 | 2.17 (2.17–6.21) | 2.15 | 177840 |
+| workers/current/1 | 2.11 (2.10–2.13) | 2.09 | 178064 |
+| workers/before/2 | 3.50 (3.47–3.64) | 4.14 | 190592 |
+| workers/current/2 | 3.59 (3.12–3.62) | 3.95 | 190260 |
+| window/before/1 | 3.21 (2.32–6.18) | 3.14 | 197940 |
+| window/current/1 | 2.80 (2.36–3.36) | 2.75 | 197864 |
+| window/before/2 | 4.05 (3.82–4.13) | 4.69 | 210928 |
+| window/current/2 | 3.77 (3.45–3.85) | 4.23 | 211152 |
+
+Initial large serial median+13% prompted a bounded investigation, not selection
+of a favorable result: same packages/input/runtime, taskset CPU2 only, jobs1,
+one warmup+five retained alternating pairs. Before wall samples2.43,2.42,2.37,
+2.53,2.56; current2.39,2.36,2.34,2.36,2.46. Medians before/current wall2.43/2.36,
+CPU2.40/2.34, peak202324/202284KiB; all12 object/output checks pass. Recorded
+CPU2 before/after frequencies3.480–3.501GHz, child swaps0, host memory PSI0.
+Earlier noisy slowdown is not reproduced with fixed affinity. This does not
+prove an isolated stage speedup or general performance invariance. Two workers
+are slower than one on every current workload and use about12–13MiB more RSS;
+CPU/wall overlap is not useful scaling. CLI parse+check remains a combined
+phase, without invented idle/lock breakdown or current snapshot allocation
+census. Representative import/frontend profile and A1 ready-work improvement
+remain needed. Prior independent C comparison is unchanged evidence with its
+original semantic/toolchain caveats, not rerun or attributed to this compiler.
+
+Read all six source files in A2 work_buffer v2 archive71d28d31 and B2 allocator
+helper07e634dd, exact per-file hashes/dispositions added to D2 audit. Incoming
+measurement snapshot count20/20 now includes work_buffer_profile16821eb3.
+Full replacement overlap is charged before allocation, disposal frees before
+receipt release, move/swap transfer complete owners, and ordinary vector
+deallocation cannot erase the distinct work_vector receipt/header. Shared
+four-worker tests retain charged buffers after joining until coordinator
+disposal; serial faults cover rollback separately. Profile8192replacement count,
+checksum, byte53, real overlap, retained payload/charged peak/ledger capacity
+are checked in source; timed region excludes setup and postjoin cleanup.
+Byte-only grants isolate storage accounting, not whole nested lane completion,
+and private allocator overhead/RSS remain outside byte ledger. No local API
+adoption/runtime acceptance; A2 successors still require exact new hashes.
+D1 registration must supply baseline|budget workers, since no-argument generic
+measure target is invalid for this main. API joint runtime/instrumentation/
+performance precedes compiler caller adoption.
+
+Resource audit uses existing CMake native library glob, browser sorted readdir,
+Tower compiler_project_sources library tree and bootstrap_collect share tree.
+New work_buffer/work_vector need no hardcoded manifest edit. Both allocator
+exports must nevertheless be linked into the actual runtime, and final package
+resource sets/hashes checked; source discovery alone proves no executable
+closure. build-native copies into an existing share and can retain removed
+files, so exact final set validation remains required (same type-consolidation
+contract), not an unsolicited broad cleanup. No manifest/source changes made
+for this audit.
+
+Correction to the previous known-order proposal: read Foundation325–326 and
+365–367 plus struct-values-and-bindings28. Raw forward uninitialized reads have
+no portable defined result; CLI --fast LLVM normalization can choose a different
+result. Root withdrew its categorical fast/backend defect and portable0,7,7
+directive. Preserve all mismatches/failure logs as excluded-raw-input evidence.
+No D2 production zero-initialization fix or known-order v1/v2 adoption occurred.
+Original compile-admission positive and strict demanded comptime(earlier)
+before-initialization negative stay. D1 replaces portable comparison with fully
+initialized state0/read increment, exact1,1,7 across engines/canonical/workers.
+Graph-specific raw EarlyRead/CaptureReuse observations are scoped, not portable
+backend guarantees. Stronghold future safety is not imposed on raw Foundation.
+
+These audit/journal additions change no runtime code, so further performance
+sampling for the documentation itself is inapplicable. Goal remains active;
+no publication requested/lease held. Current full42/body, valid current-source
+ASan/TSan/stress, final clean public/bootstrap/generation/browser/threaded
+validation and coherent atomic publication/hosted verification remain required.
+Root owns final immutable artifact assembly; D2 does not duplicate vendor
+builds or treat dependency reuse as independent test credit.
