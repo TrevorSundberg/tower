@@ -1,0 +1,6 @@
+import tower;
+fn known(value: i32): i32 { return value; }
+fn advance(value: i32*): void { (*value)++; }
+for (var index: i32 = 0; index < 2; advance(&index)) {
+    print(comptime(known(index)));
+}
