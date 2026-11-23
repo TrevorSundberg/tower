@@ -1,0 +1,29 @@
+import tower;
+import vector;
+
+// Borrowed typed storage metadata. The physical owner maintains data/capacity
+// after successful growth and outlives every view. This is deliberately a
+// distinct type: ordinary vector free/realloc cannot retire its owner's buffer.
+// Iteration freezes the view and owner structurally; it promises no noalias.
+fn work_view(T: type): type {
+    struct Result { data: T*; length: usize; capacity: usize; }
+    return Result;
+}
+
+fn work_view_iterate_begin(T: type, source: work_view(T)*, state: vector_iteration(T)*): void {
+    state.data = source.data;
+    state.length = source.length;
+    state.index = 0;
+}
+
+fn work_view_iterate_next(T: type, source: work_view(T)*, state: vector_iteration(T)*): bool {
+    if state.index == state.length { return false; }
+    state.index++;
+    return true;
+}
+
+fn work_view_iterate_element(T: type, source: work_view(T)*, state: vector_iteration(T)*): T* {
+    return &state.data[state.index - 1];
+}
+
+fn work_view_iterate_end(T: type, source: work_view(T)*, state: vector_iteration(T)*): void {}

@@ -1,4 +1,5 @@
 import tower;
+import .host.memory;
 import .compiler.compiler_kernel;
 import .library.work_pool;
 import .host.work_linux;

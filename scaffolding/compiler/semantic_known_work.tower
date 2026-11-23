@@ -80,7 +80,8 @@ fn semantic_known_kernel(result: SemanticKnownWork*): void {
         result.candidates.length = selected;
         return;
     }
-    var context = *result.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
     context.allocations = default;
     context.lists = default;
     context.query_reads = &result.query_reads;
@@ -249,7 +250,8 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     }
     // Reserve tickets before freezing input. Join every reader before releasing
     // the view or publishing graph observations; the component owns its output.
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     foreach(var result in &batch) { result.context = &context; }
     if query_kind == SemanticQuery.KnownPublish {
         sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
