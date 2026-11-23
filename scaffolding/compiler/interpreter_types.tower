@@ -5,6 +5,8 @@ import .library.work_budget_types;
 import foundation_types;
 import type_object_index_types;
 
+var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
+
 // Execution storage only; entity keys refer to the existing foundation nodes.
 // Ordered map entries and task arrays are derived execution indexes, not IR.
 struct IMEntry {
