@@ -40,6 +40,14 @@ The live producer actions above are excluded until published and adopted at an
 explicit boundary. This freeze does not chase later merges. Older ledger text
 below preserves what was known then; its “current” wording is historical.
 
+Publication reconciliation merged complete `74ccfb00` after the required ff-only
+pull refused divergence. Later L2 pointer-result importer/source/void-return
+fixtures and A2 semantic_types/malformed-capture guards, runner/C-provider
+registrations and their new execution receipts are preserved **outside7890ebd7**.
+Consult those owner receipts for their post-freeze results; the fixed open rows
+above are not a claim that newer repairs are absent. No second inventory or
+runtime adoption was performed to publish this documentation.
+
 ## Historical fixed completion ledger - published 3ea43517 (2026-11-23)
 
 Frozen published source **`3ea435174a3529aabbeeea8544aa640653214bb3`**; root tree
