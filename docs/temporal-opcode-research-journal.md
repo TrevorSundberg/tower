@@ -85037,3 +85037,12 @@ receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+D2 publication reconciliation: documentation commit4ca91ea6 merged complete
+publishede116e966 as59c53dc1 after the required ff-only pull refused divergence.
+Both journal histories are intact. Incoming A1/A2 work changes raw entity storage
+and semantic body/context/lifecycle/statements (among other semantic consumers).
+Consequently the retained memory and semantic source audit above remain explicitly
+1906-runtime/c20-review evidence, not measurements of this newer union. Reviewed
+LR helpers, the chosen suffix candidate, profile source and five language resources
+remain unchanged. Saved executable/evidence hashes, documentation diff checks and
+todo preservation pass; no broad rebuild or relabeled performance acceptance.
