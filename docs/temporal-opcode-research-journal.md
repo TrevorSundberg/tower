@@ -81932,3 +81932,54 @@ dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
 oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
 or broad matrix; the committed receipts and earlier remaining-gap list retain
 their precise scopes. Normal push includes both complete histories and journals.
+### ROOT executable startup and checked ownership transfer (2026-11-23)
+
+Implemented against published84e919eb, including complete A2 queued provenance
+and L2 checked semantic-node providers. Executable kind/component admission now
+uses checked shared entity creation and component APIs. Failure retains the
+canonical request owner position, cancels pending queries and exposes no runnable
+executable input. The synthetic block reuses L2's sem_node_result; its resource
+position is attributed to the owning function because the generated block has no
+source token. Constructor and integer-type callers stop immediately after failed
+executable/capture admission. Successfully allocated partial metadata stays
+world-owned for ordinary disposal; no parallel AST or allocator is introduced.
+
+The joined executable pump consumes entity_stage_hold_result before closing its
+input view. Its lexical cleanup now discards private stages before the last input
+view closes, including ownership-transfer failure; dispatch failure retains
+priority if both fail. A2's shared discard protocol cancels only unheld borrowed
+fields. Executable clones currently do not themselves enqueue SyntaxOrigin
+borrows; the new error path preserves the shared contract without claiming that
+the executable fixture independently injects every provenance failure.
+
+Before production edits, new startup and metadata pinned-view cases both abort134
+on the previous implementation; the healthy control passes. Afterward all11
+selectors at32/64-bit widths and requested workers1/4 (44 trials) pass, including
+exact Busy/owner position, no published entity/component, cancelled queries,
+terminal replay and world cleanup. CMake registers both new selectors. Query
+smoke passes its real clone-overlap, lazy staging and A2 provenance-exhaustion
+cases. All before/after comptime_flow executions print exact0 with empty stderr.
+
+Performance baseline rebuilt from84e919eb after both providers landed, separate
+from the older failure reproduction. Same actual executable/resource paths,
+Linux x64 Release public bootstrap, ROOT tower-c-validation CPUs24-31/24GiB,
+six build actions/one compiler lane, warm filesystem and fresh process, n1:
+comptime jobs1 wall/CPU/RSS1.12/1.10/179364KiB ->1.08/1.06/179232;
+jobs4 .95/1.17/195344 ->.98/1.19/197616. These small concurrent-host samples
+show no excessive memory signal and do not establish speedup or a regression
+bound. New admission calls do not add retained storage; fixture node/component
+counts and teardown check ownership. The affected9-action build passed in
+24.64wall/54.33CPU seconds with777252KiB peak RSS. Frozen source manifest verifies.
+
+Baseline compiler SHA256:
+581aa374aa9ccb4886407bf79ac13828debcea419119d075e37a1060afaefedf.
+Candidate compiler SHA256:
+c32d5517befb9445cf32df99776af9fdfb255bb25a092340e35c025b7aa3e28f.
+Logs/scripts are /cache/root_executable_storage_before,
+root_executable_storage_integrated_before and root_executable_storage_after,
+with OS wrappers in build/codex_ecs_20261122. Original aborts remain failures,
+not passing old-code tests. Runtime source changes are scoped to the executable
+producer and four immediate caller guards; no syntax/bootstrap adoption occurs.
+Remaining execution-kernel synthesis assertions and other worker caller closures
+are not claimed solved. A2 owns remaining stage callers, L2 known/capture
+admission, and ROOT final integrated sanitizer/bootstrap/browser/deployment gates.
