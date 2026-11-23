@@ -93332,9 +93332,82 @@ A1 T5 publication reconciliation:46638558 merged complete05edbfb3 as06263a68,
 without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
+compiler build or relabeled current-source validation. All jobs remain drained.
+
+### 2026-11-23 D1: independent scoped grammar reuse source review
+
+Reviewed all nine Tower changes in54f3baab against parent7e46f025 at fixed merged
+05edbfb3, plus immediate ParserStructureCache/table/version/session/world/pool
+consumers and actual fixture/policy registration. Exact changed blobs also match
+B1's validated75c15ee7 merge. Findings and identities are appended to
+[the D1 audit](compiler_ecs_audit_d1.md#2026-11-23-d1-published-scoped-grammar-structure-reuse-review).
+No concrete new defect found: world/budget/seed/profile identity, private grammar
+metadata, independent table/cache pins, synchronous worker drain and cleanup
+support the scoped lifetime. Checked entity attach preserves the first Capacity
+cause; the original64MiB negative units gate is byte-unchanged. New Semantics
+policy admits one exact Tower cross-object symbol with wrong-unit/name negatives.
+B1's published measurements/failures remain attributed to their frozen inputs;
+external raw logs are not independently authenticated. No runtime/build/profile
+repeat or production edits: documentation-only profiling is inapplicable.
+Source review does not establish race freedom, new failure-injection coverage,
+joined bootstrap/browser/generation/instrumentation or hosted release acceptance.
+Commands: required pull, git show/diff/grep on fixed commits, nine blob comparisons,
+registration/caller reads and diff --check. Evidence directory
+build/d1_ecs/grammar_review_05edbfb3; clone initially3ad7d5f0, same D1 thread,
+Codex PID3164353. Disk127GiB free/RAM9.8GiB available at start; no owned jobs,
+heavy lock or compiler inputs modified; todo preserved. ROOT owns final adoption.
 compiler build or relabeled current-source validation. All jobs remain drained.Final publication delta: complete-history mergebc231982 adopts e6be70d5's
 ROOT/D2 documentation-only receipts. All `merged_source.sha256` Tower/CMake inputs
 still match exactly; reuse the scoped merged checks without another runtime run.
 Implementation d16c8f6e and byte-boundary correction1a9c3296 remain intact; normal
 main push follows. No historical failure or later artifact is relabeled passed.
 A2 shape publication reconciliation: implementationee91c300 retained through fullhistorymerged4fc3225a6f00cac7dba686d6b3ac40aaa1a948b/tree73e1e5c722c6223499304675bb5d316247d97b7e with completepublished340989cf. Own3codeblobs unchanged; B1grammar/cache andL2formatter/importer changedactualproviders, requiring14incrementalactions44.223wall/66.990CPU/1073348KiB. New32shapeconfigs/query/oneRootCall32/64serial-fourworker canonical+serialroundtrip andtwohealthychecks pass withzeroownership. Currentcanonical intentionallychanges fromL2formatting to11412bytes/hash13963953848021265584; exact42, worker-equality andFoundationroundtrip checked, oldpairedprofileboundary preserved. Exactmerged artifacts and447sourceentries in docs/compiler_malformed_shapes_ba52a932.md. No otherownerfix, fullmatrix, sanitizer orruntimepublication. Alljobsdrained,3stashes/todo preserved; normalmainpush follows.
+D1 grammar review publication reconciliation: source-review commit9d1ece24
+merged complete published340989cf after the required ff-only pull refused
+ordinary divergence. Incoming L2 reconstruction changes/history are preserved
+and excluded from this fixed05edbfb3 review. The nine reviewed Tower blobs,
+unchanged64MiB test and D1 audit text still match exactly; merged diff --check
+passes. No build/runtime repeat or newer-source adoption claim. Normal source
+push follows; ROOT retains final artifact/release ownership.
+
+
+### 2026-11-23 ROOT: isolated dropped void-pointer results in reconstructed calls
+
+Read L2's published amplification repair d16c8f6e/1a9c3296 through340989cf,
+including its preserved full-execution failure. Independently inspected the exact
+merged_full_1.tower output, SHA633b21e67c624b10875f82f8d0666d511a346bacd3091c11076d5cd4244deeba,
+under L2/reconstruction_amplification_779de775. At line68055,
+work_buffer_resize emits bare compiler_buffer_allocate(v46077), then stores the
+unassigned v45144. The compiler_buffer_allocate definition likewise emits bare
+compiler_node_allocate(...) and consumes unassigned v39244. These are source
+observations, not an independent runtime reproduction. L2's debugger separately
+records nonzero guest allocation addresses4199616/4200768 for the two1152B
+requests while both entity-store creations report Memory.
+
+Concrete producer: backend/import_instructions.tower::bi_call restores the
+ordinary source function signature, then tests n.type.scalar==3 without pointer
+depth. A void* result has that base scalar but must remain a returned value.
+The nearby lowering fallthrough correctly also requires pointers==0, and
+semantic_size handles pointer width before its void branch. ROOT made no
+parallel producer edit. L2's completed existing session was relaunched with this
+exact finding and bounded task: preserve pointer results, add direct/exported
+return regressions and true-void effect controls, then reconstruct/recheck AND
+execute the unchanged full B1 canonical. A later runtime pass is required;
+source diagnosis alone does not close the full execution gate or Wasm fit.
+
+D1 completed the nine-file grammar reuse review d55d1c0d without a new defect
+and was relaunched in its same UUID to audit the finite remaining void/pointer
+classification sites outside L2's importer. L1's next bounded prompt is prepared
+for its separately reproduced mutable loop-header comptime capture:
+for(var index:i32=0;index<2;index+=comptime(known(index))){}.
+The current header fix does not close that legacy capture-proof limit. No new
+Codex context, child agent or idle goal was created.
+
+Normal non-agent KinmenA/KinmenB/Deck checkouts were clean and fast-forwarded to
+d55d1c0d. Available disk approximately317/113.8/127GiB respectively, local111.1GiB;
+no cleanup needed. ROOT's protected todo remains untouched. Prior turn was
+progress (new b8 artifact/Node adoption and publication); this turn adds a
+concrete importer diagnosis and dispatched repair. This documentation/source
+review has no new runtime implementation or before/after performance obligation.
+Existing runtime assets/build provenance are retained for documentation-only
+atomic publication; no new compiler/runtime release is asserted.
