@@ -48490,3 +48490,74 @@ its runtime assertion is not yet claimed passing. The shared helper-growth
 draftae819 is reviewed but remains unapplied pending A2's library-owner review.
 Final joined runtime, supported instrumentation, public bootstrap/browser and
 coordinated atomic publication remain open.
+
+### L1 joined resource-error runtime receipt
+
+A1's three-file patch 76e1a971fc5b23f327924d014bdc59a784474e7f567cf087fc7563375e15da4c
+is integrated after L1 bad3 on b8dfc67. The coordinator retains the typed error
+beyond invocation disposal, permits optional fallback only when that error is
+None, selects static non-null resource diagnostics, reserves their short buffers
+before dispatch and fails the corresponding work tickets. Both startup and later
+interpreter failures reach the joined classification path; declaration-isolated
+selection restores the retained producer receipt. Source review found no new
+owner/lifetime defect; this does not prove race freedom.
+
+The complete 62-step public-pin compiler/LR/execution/frontend build passes with
+frozen source manifests and copied resources equal: 121.58s wall, 193.85s CPU,
+791380KiB peak RSS. Compiler SHA256 is
+452f2fc0a562e1e9d9d2c29dcf8cffc2a178592632b56c3b130f2bb887ac85c0;
+LR 082b2787300ec76dd4f76a8938db05b8d2e24f682719a208b71265dc3bcb4fbd;
+execution c1d2e9953dab4d2c67c8a80b728bede4009fc79c1ddd3d7fc1f8de54d64ec51a;
+frontend aab976f9cda97d2ac4ec17efa7a1908ac5261f94197093710b7b46b33e0617b4.
+The post-commit pull restored mtimes, so this is a full dependent rebuild rather
+than a comparison with the previous 17-step incremental build cost.
+
+The unchanged A1 standalone resource fixture efde967a, with only the existing
+Linux host import closure added, links current production objects. Local source
+d415baf9 and executable 3442a1c2 are recorded with full hashes in
+semantic_resource_binaries.sha256. Three runs pass all 12 combinations of target
+width 4/8, requested workers 1/4, required/inferred/isolated diagnostics and two
+producer peers. They check source offset 11, failed tickets, no result publication,
+no replay, joined workers and final zero grants. Each run takes 0.01s wall;
+peak RSS is 51804/51748/51788KiB. Those requested worker counts do not independently prove
+overlap. The production unit/backend controls below supply separate real-worker
+evidence. The fixture's production objects hash identically before/after.
+
+All focused suites pass on that exact compiler closure. Wall/CPU seconds and
+peak RSS KiB are: query 0.16/0.08/59964; units 23.25/37.08/678356;
+backend-overlap 9.67/13.22/498044; serial snapshot allocations 1.43/1.43/162352;
+serial parser 0.04/0.01/52044; known 57.06/66.75/382400;
+aggregate-stages 20.70/24.84/306388; types 54.74/64.04/436752;
+narrow 23.03/26.92/322612; negation 1.32/1.63/193824. Query includes exact typed
+first-buffer and second-buffer startup denials, partial-owner release and prior
+aggregate lifetime/immutable-write checks. Backend correction 93b now has joined
+runtime evidence after the earlier 134 failure. The original failed logs remain.
+The known suite now validates the defined initialization-order oracle; the raw
+early read remains compile-admission-only, with strict required-stage rejection.
+
+Session 67425 drained with exit 0 before L1 released the host to L2's requested clone checks.
+Matched 1f37-to-452f performance samples are prepared and await the next exclusive
+slot. The current source is not the final eight-worker union, and current ordinary
+passes do not replace its instrumentation, public bootstrap/browser or publication
+gates. The complete committed L1 checkpoint exported for union assembly is
+L1_complete_b8dfc67_from_60741.bundle, SHA256
+b32caae54135a0abd1d1554cde20eeb82fd1eb0c12c7eb7b5aaa405013cb595e;
+it requires only published 60741. The A1 three-file hook is a subsequent explicit
+source delta until the next checkpoint. No source push or publication lease.
+
+The paired resource-error profile then completed with exit 0 in session 54770:
+one warmup plus three balanced retained pairs for each workload/worker count,
+32 total runs, identical explicit resource/input bytes and unchanged executable
+hashes. Every independently expected output passes. Saved compiler 1f37 versus
+current 452f medians (wall/CPU seconds, peak RSS KiB) are: effects/jobs1
+1.43/1.44/174748 to 1.40/1.42/170496; effects/jobs4 1.19/1.51/193192 to
+1.17/1.49/192416; aggregate/jobs1 1.41/1.43/171328 to 1.44/1.46/171168;
+aggregate/jobs4 1.21/1.52/194232 to 1.18/1.50/194020. Serial aggregate wall
+samples are 1.41/1.41/1.41 before and 1.45/1.39/1.44 after, retaining the roughly
+2% median increase rather than hiding it. Other small changes do not establish
+a general speedup, and these two inputs do not measure all compiler workloads.
+No large timing or RSS regression appears here. Physical buffer retention remains
+separately covered by exact grant assertions; process RSS is not that ledger.
+Raw storage_error_profile_* logs preserve all samples, including warmups.
+All jobs drained before host release; no concurrent sibling compilation ran
+during the comparison. Final union/instrumentation/release work remains open.

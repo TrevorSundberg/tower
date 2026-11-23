@@ -35,6 +35,7 @@ extern fn entity_view_close(view: void*): void;
 
 var EvaluationQuery: u32 = convert(u32, SemanticQuery.Evaluation);
 var EvaluationFuel: u64 = 1000000;
+var EvaluationResourceDiagnosticBytes: usize = 128;
 
 
 fn sem_evaluation_dependency(c: SemanticContext*, node: void*): IMDependency* {
@@ -99,6 +100,36 @@ fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
     return result != null && sem_restore_error(c, &result.error, result.error_offset);
+}
+
+// Unsupported optional staging may keep its runtime initializer. Exhausting
+// physical storage is a compilation failure, including when its interpreter
+// state is disposed before the owning declaration selects a diagnostic.
+fn sem_evaluation_failed(c: SemanticContext*, result: SemanticEvaluation*): bool {
+    var invocation = &result.invocation;
+    if result.resource_error == WorkBudgetError.None {
+        result.resource_error = invocation.state.storage_error;
+    }
+    if result.inferred && result.resource_error == WorkBudgetError.None { return true; }
+    var message = invocation.context.error.data;
+    if result.resource_error != WorkBudgetError.None {
+        message = "Compile-time evaluation storage reservation failed";
+        if result.resource_error == WorkBudgetError.Capacity {
+            message = "Compile-time evaluation memory budget exceeded";
+        } else {
+            if result.resource_error == WorkBudgetError.Memory {
+                message = "Cannot allocate compile-time evaluation storage";
+            } else {
+                if result.resource_error == WorkBudgetError.Invalid {
+                    message = "Invalid compile-time evaluation storage request";
+                }
+            }
+        }
+    } else {
+        if message == null || message[0] == 0 { message = "Compile-time evaluation failed"; }
+    }
+    sem_evaluation_fail(c, result, message, sem_get(result.subject).start);
+    return false;
 }
 
 export fn sem_evaluation_begin(c: SemanticContext*): void {
@@ -373,11 +404,11 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         while index < count {
             var result = batch.data[index];
             var invocation = &result.invocation;
-            if invocation.state.failed {
+            if invocation.state.failed || invocation.state.storage_error != WorkBudgetError.None {
                 result.ready.failed = true;
                 result.ready.ready = true;
-                if !result.inferred { sem_evaluation_fail(c, result, invocation.context.error.data, sem_get(result.subject).start); }
-                sem_require(work_finish(&c.queries, &result.ticket, result.inferred));
+                var optional = sem_evaluation_failed(c, result);
+                sem_require(work_finish(&c.queries, &result.ticket, optional));
                 interpreter_invocation_dispose(invocation);
             } else {
                 if invocation.state.done {
@@ -386,10 +417,12 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                         sem_evaluation_value(result.subject, invocation, invocation.context.result);
                         sem_evaluation_value(result.literal, invocation, invocation.context.result);
                     }
-                    if invocation.state.failed && !result.inferred {
-                        sem_evaluation_fail(c, result, invocation.context.error.data, sem_get(result.subject).start);
+                    var success = true;
+                    if invocation.state.failed || invocation.state.storage_error != WorkBudgetError.None {
+                        success = sem_evaluation_failed(c, result);
                     }
                     foreach(var &alias in &result.aliases) {
+                        if invocation.state.failed || !success { break; }
                         var original = sem_get(alias.original);
                         if original.constant || original.kind == KFunctionReference || original.kind == KTypeReference {
                             var target = sem_get(alias.clone);
@@ -400,9 +433,9 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                             target.constant = original.constant;
                         }
                     }
-                    result.ready.failed = invocation.state.failed || !sem_ok(c);
+                    result.ready.failed = invocation.state.failed || !success || !sem_ok(c);
                     result.ready.ready = true;
-                    sem_require(work_finish(&c.queries, &result.ticket, sem_ok(c) && (result.inferred || !invocation.state.failed)));
+                    sem_require(work_finish(&c.queries, &result.ticket, sem_ok(c) && success));
                     interpreter_invocation_dispose(invocation);
                 } else {
                     var waiting = invocation.context.waiting;
@@ -439,7 +472,7 @@ fn sem_evaluation_finish(c: SemanticContext*): void {
         var task = work_task(&c.queries, index + 1);
         if task.query == EvaluationQuery && task.demanded && task.state != WorkState.Succeeded {
             var result = sem_evaluation_get(c, task.subject);
-            if result != null && result.inferred {
+            if result != null && result.inferred && result.resource_error == WorkBudgetError.None {
                 result.ready.failed = true;
                 result.ready.ready = true;
             } else {

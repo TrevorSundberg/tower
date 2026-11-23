@@ -7,14 +7,19 @@ existing coverage identified by reading; fresh results are recorded separately.
 
 ## Contracts and sources
 
-The 83832b0 checkpoint contains the three physical interpreter buffer owners and
-typed storage-failure receipt. The receipt's smallest units pass; the matching
-A1 semantic coordinator hook remains pending, so this is not full runtime
-acceptance. Subsequent source integration adds D1's defined initialization-order
-oracle, numeric fixture imports and serial snapshot selector/root wrapper, plus
-A2's two arena modules and explicit nominal imports. Five smallest public-pin
-units pass with frozen inputs. Startup denial now also covers the second buffer
-and its partial owner; that extra query unit compiles but has not run yet.
+The current coherent snapshot is b8dfc67 plus A1's exact resource-error hook
+76e1a971. Compiler 452f2fc0 passes independent resource failure checks three times
+and query, units, backend overlap, serial snapshot/parser, known bindings,
+aggregate stages, types, narrow integers and negation. The query now covers both
+startup buffers and partial-owner cleanup. All source hashes remain frozen;
+earlier failed receipts remain historical evidence. Resource tests check two
+peers and drain at requested worker counts 1/4; actual overlap is established
+separately by the production unit/backend controls. Paired 1f37-to-452f measurements
+preserve every output and show small timing changes: serial effects 1.43 to 1.40s,
+serial aggregates 1.41 to 1.44s, four-worker cases 1.19/1.21 to 1.17/1.18s.
+No large regression appears in these two workloads; the serial aggregate cost
+and all samples remain recorded. Final joined instrumentation/public bootstrap/
+browser/publication remain open.
 
 Read the compiler services and ECS/threading handoff with the journal's newer
 type-value continuation. Production helper readiness uses `IMFunctionInput`;
