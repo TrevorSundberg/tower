@@ -61653,3 +61653,44 @@ no new contexts, window changes or relaunches occurred. User todo.txt remains
 unstaged and unchanged. Final combined validation, useful scaling, remaining
 storage/ownership work, bootstrap/browser generations and atomic publication are
 open. No new runtime, main or Pages publication is claimed.
+
+### D2 inspection join and selected allocator-provider audit (2026-11-23)
+
+At actual03:21:24 UTC, clean main0c3876e800261600d69a34f60e392306bfc9912a
+contains complete coordinator97 history and preserves D2b09 documentation. Guarded
+pull is current; diff checks establish compiler/host/library/backend/CMake identity
+with B2e4d3967b and unchanged todo/audit through the merge. The joined runner and
+symbol policy have not been rebuilt here. Earlier406d compiler, native/WASI,
+profiles and instrumentation receipts remain evidence for their exact source.
+D1 owns the Deck heavy slot for calibrated clone native/address/thread validation;
+D2 has no running build and does not claim that owner's unfinished checks passed.
+
+Read the selected8e4e2d import changes against actual native, serial and shared-Wasm
+registration rather than assuming every standalone fixture needs the same import.
+A2's observed work_named aggregate duplicate-provider failure has a second concrete
+source counterpart: TowerWorkPolicyTests explicitly links both work_instrumented
+and host/memory objects, so importing host.memory inside that fixture duplicates
+its exports. Routed removal of that unnecessary import through D2status for A2.
+Conversely, target_once's native target links no compiler-memory provider: its
+existing target/registry/transport objects and guest runtime cannot supply the
+new WorkPool buffer calls. Routed one explicit host.memory source import there.
+No cross-owner source or shared manifest was edited; these are source/link-recipe
+findings, not newly executed failed or passing links. work_pool/work_order share
+one import closure; entity_store's static archive needs actual extraction checking
+before alleging duplication. The withdrawn graph/pool API and literal experiments
+remain withdrawn; no obsolete provider correction was adopted.
+
+Clarified the L2 clone-calibration review: workers/stages/world/budget retire before
+its final overlap assertion, while graph/signal function defers need normal return.
+A fatal assertion therefore cannot establish all-handle cleanup. Original D2query134
+and D1's independent reproduction stay in the history. Remaining owner closure,
+new symbol policy from actual objects, complete public-bootstrap/browser/generation,
+applicable instrumentation and leased atomic publication remain open.
+
+This checkpoint changes documentation only; runtime timing, RSS and sanitizer
+remeasurement are inapplicable. Current disk138GiB free, RAM9.2GiB available,
+preexisting host swap7.3GiB; no generated artifacts were removed. Several read-only
+searches used nonexistent guessed filenames or returned no matches, and early
+combined output truncated; corrected reads used discovered paths and bounded output.
+Those inspection failures were not validation passes. A status patch with incomplete
+line context failed without writing; the corrected exact-context patch succeeded.

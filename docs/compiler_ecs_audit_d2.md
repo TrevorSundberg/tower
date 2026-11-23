@@ -1908,6 +1908,29 @@ without merging its other source dependencies. The finite serial calibration use
 the faster of two fresh trials, caps width at1536, and freezes the chosen workload
 before concurrent trials. Production intervals still exclude the admission
 barrier; exact nodes/output, distinct threads, overlap and cleanup remain required.
-Diagnostics precede the explicit failure assertion after cleanup. D1 owns current
+Diagnostics precede the explicit failure assertion after worker/stage/world/budget
+retirement. Function-scope graph/signal defers require normal return; a fatal
+assertion does not establish that those remaining handles were retired. D1 owns current
 independent native/instrumented validation; original D2 exit134 remains historical
 failure evidence, not erased by calibration or the owner's three passing runs.
+
+At `0c3876e8`, D2 joins the complete ROOT97 typed parser/inspection checkpoint.
+Compiler, host, library, backend and CMake trees exactly match B2 `e4d3967b`;
+the joined test runner and symbol policy still need validation on these inputs.
+Earlier 406d measurements and provider receipts retain their original identities.
+No owned build was running during the merge, and `todo.txt` is unchanged.
+
+The selected A2 patch `8e4e2d` adds allocator imports after changing graph/pool
+storage. Caller audit against `0c3876e8` found these additional link contracts:
+
+| Path and existing target | Provider/ownership conclusion and disposition |
+| --- | --- |
+| `tests/work_named.tower`, LR/backend aggregate | Added `host.memory` duplicates the compiler allocator already in the aggregate. A2 observed the link failure and is removing this import. Keep one allocator implementation and the existing private worker slots. |
+| `tests/work_instrumented.tower`, `TowerWorkPolicyTests.cmake` | Registration explicitly links separately compiled fixture **and** `host/memory` objects. The proposed import therefore adds a second provider. Routed to A2 to remove it, retaining serial fault allocation and exact cleanup assertions. This source finding is not a newly executed link failure or race check. |
+| `tests/target_once.tower`, `TowerWorkTests.cmake` | Its changed pool needs `compiler_buffer_*`, but the target links only the fixture, target-once boundary/state, work transport/dispatch and guest runtime. The guest runtime contains no compiler-buffer provider. Routed one explicit `host.memory` import in this existing standalone fixture; no new object or scheduler is needed. Actual selected link remains unrun. |
+| `tests/work_pool.tower`, `tests/work_order.tower` | Their proposed allocator imports share a single Tower compilation closure, so they do not create the separate-object duplication above. Existing native and shared-Wasm compositions still require actual checks. |
+| `tests/entity_store.tower`, `TowerParserServiceTests.cmake` | Proposed direct provider coexists with a static compiler-memory archive, whose unused members need not be extracted. Do not call this a duplicate failure from filename membership alone; verify the actual selected link and allocator profile. |
+
+This review changes documentation only; new runtime performance/memory or sanitizer
+measurements are inapplicable. Corrected complete owner source, actual symbols,
+native/WASI links and final coherent release validation remain required.
