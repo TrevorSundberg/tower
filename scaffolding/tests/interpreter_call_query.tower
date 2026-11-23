@@ -18,7 +18,9 @@ extern fn sem_get(node: void*): FoundationNode*;
 extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn ix_write(execution: IMExecution*, address: u64, value: u64, type: FoundationType*, offset: usize): void;
 extern fn puts(message: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn abort(): void;
 
 var CallQueryFuel: u64 = 10000;
@@ -182,5 +184,157 @@ export fn call_query_tests(width: u32): u32 {
     interpreter_invocation_dispose(&invocation);
     entity_release(root);
     call_query_check(compiler_world_dispose(world), "Suspended call inputs release their world", &failures);
+    return failures + input_query_tests(width);
+}
+
+// Published aggregate projections are values, not a producer frame. Two
+// interleaved consumers must own independent copies with lexical frame lifetime.
+fn input_query_tests(width: u32): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(1);
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var inputs = sem_create(root);
+    call_query_require(entity_register(inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+    var record = call_query_node(root, width, KType);
+    sem_get(record).size = 8;
+    sem_get(record).alignment = 4;
+    var aggregate: FoundationType = { scalar: SStruct, record: record, pointer_bytes: width, ..default };
+    var first = call_query_node(root, width, KOperand);
+    sem_get(first).constant = true;
+    sem_get(first).bits = 7;
+    var second = call_query_node(root, width, KOperand);
+    sem_get(second).constant = true;
+    sem_get(second).bits = 8;
+    var projections: IMValueProjection[2];
+    projections[0] = { subject: first, type: sem_get(first).type, ..default };
+    projections[1] = { subject: second, type: sem_get(second).type, byte_offset: 4, ..default };
+    var bindings: void*[2];
+    for(var i: usize = 0; i < 2; i++) {
+        bindings[i] = call_query_node(root, width, KDeclare);
+        sem_get(bindings[i]).type = aggregate;
+        sem_get(bindings[i]).global = true;
+        var producer = call_query_node(root, width, KOperand);
+        sem_get(producer).type = aggregate;
+        sem_get(producer).constant = true;
+        var input = bits(IMValueInput*, entity_component_data(entity_component_add(bindings[i], inputs)));
+        *input = { producer: producer, projections: &projections[0], projection_count: 2, aggregate: true, ..default };
+    }
+    var entry = call_query_node(root, width, KFunction);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    sem_get(entry).frame_size = 16;
+    var local = call_query_node(root, width, KDeclare);
+    var field = call_query_node(root, width, KField);
+    sem_get(field).left = call_query_read(root, width, bindings[0]);
+    sem_get(local).value = field;
+    call_query_push(&sem_get(entry).locals, local);
+    call_query_push(&sem_get(body).items, local);
+    var nested = call_query_node(root, width, KFunction);
+    var nested_body = call_query_node(root, width, KBlock);
+    sem_get(nested).body = nested_body;
+    sem_get(nested).frame_size = 16;
+    var nested_field = call_query_node(root, width, KField);
+    sem_get(nested_field).left = call_query_read(root, width, bindings[1]);
+    sem_get(nested_field).byte_offset = 4;
+    var nested_local = call_query_node(root, width, KDeclare);
+    sem_get(nested_local).value = nested_field;
+    call_query_push(&sem_get(nested).locals, nested_local);
+    call_query_push(&sem_get(nested_body).items, nested_local);
+    var nested_return = call_query_node(root, width, KReturn);
+    sem_get(nested_return).value = call_query_read(root, width, nested_local);
+    call_query_push(&sem_get(nested_body).items, nested_return);
+    var call = call_query_node(root, width, KCall);
+    sem_get(call).binding = nested;
+    var sum = call_query_node(root, width, KBinary);
+    sem_get(sum).op = OAdd;
+    sem_get(sum).left = call_query_read(root, width, local);
+    sem_get(sum).right = call;
+    var returned = call_query_node(root, width, KReturn);
+    sem_get(returned).value = sum;
+    call_query_push(&sem_get(body).items, returned);
+    var a: IMInvocation = default;
+    var b: IMInvocation = default;
+    call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    call_query_require(interpreter_invocation_init(&b, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    a.context.value_inputs = inputs;
+    b.context.value_inputs = inputs;
+    a.context.type_arguments = true;
+    b.context.type_arguments = true;
+    b.context.retain_result_storage = true;
+    var nested_copies = false;
+    var caller_survives = false;
+    while !a.state.done || !b.state.done {
+        if !a.state.done { interpreter_invocation_step(&a, 1); }
+        if !b.state.done { interpreter_invocation_step(&b, 3); }
+        if a.state.frame_count == 2 && a.context.input_storage.length == 2 { nested_copies = true; }
+        if nested_copies && a.state.frame_count == 1 && a.context.input_storage.length == 1 { caller_survives = true; }
+    }
+    call_query_check(!a.state.failed && !b.state.failed && a.context.result == 15 && b.context.result == 15,
+        "Interleaved aggregate inputs use published scalar projections", &failures);
+    call_query_check(nested_copies && caller_survives && a.context.input_storage.length == 0
+        && b.context.input_storage.length == 1 && a.state.memory.data != b.state.memory.data,
+        "Nested return drops only callee snapshots and retained root keeps private storage", &failures);
+    interpreter_invocation_dispose(&a);
+    interpreter_invocation_dispose(&b);
+
+    // Stopping a live invocation releases its private copy without publishing
+    // effects or retaining the borrowed graph. Reuse the same frame depth next.
+    for(var attempt: usize = 0; attempt < 3; attempt++) {
+        call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+        a.context.value_inputs = inputs;
+        a.context.type_arguments = true;
+        while a.context.input_storage.length == 0 && !a.state.done && !a.state.failed {
+            interpreter_invocation_step(&a, 1);
+        }
+        call_query_check(!a.state.failed && a.context.input_storage.length == 1,
+            "A reached input owns a snapshot before suspension or disposal", &failures);
+        if attempt == 1 && a.context.input_storage.length == 1 {
+            var execution: IMExecution = { state: &a.state, context: &a.context };
+            var address = convert(u64, a.context.input_storage.data[0].address);
+            ix_write(&execution, address, 99, &sem_get(first).type, 0);
+            call_query_check(a.state.failed && a.context.error.length != 0
+                && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0
+                && a.state.memory.data[convert(usize, address)] == 7,
+                "A strict store diagnoses immutable input without changing its bytes", &failures);
+        }
+        interpreter_invocation_dispose(&a);
+        call_query_check(a.context.input_storage.data == null && a.context.initialized.data == null
+            && a.state.memory.data == null, "Disposal releases all input snapshot storage", &failures);
+    }
+    // The ordinary byte-copy and fill instructions use the same immutable
+    // storage contract as scalar stores, including a copy back onto itself.
+    var address = call_query_node(root, width, KAddress);
+    sem_get(address).value = call_query_read(root, width, bindings[0]);
+    sem_get(address).type = aggregate;
+    sem_get(address).type.pointers = 1;
+    var count = call_query_node(root, width, KOperand);
+    sem_get(count).constant = true;
+    sem_get(count).bits = 8;
+    var memory = call_query_node(root, width, KFill);
+    sem_get(memory).left = address;
+    sem_get(memory).value = count;
+    sem_get(body).items.length = 1;
+    call_query_push(&sem_get(body).items, memory);
+    for(var mode: usize = 0; mode < 2; mode++) {
+        sem_get(memory).kind = mode == 0 ? KFill : KCopy;
+        sem_get(memory).right = mode == 0 ? first : address;
+        call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+        a.context.value_inputs = inputs;
+        a.context.type_arguments = true;
+        interpreter_invocation_step(&a, convert(usize, CallQueryFuel));
+        call_query_check(a.state.failed && a.context.input_storage.length == 1
+            && a.context.error.length != 0
+            && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0,
+            "Copy and fill reject writes to immutable input storage", &failures);
+        if a.context.input_storage.length == 1 {
+            var at = a.context.input_storage.data[0].address;
+            call_query_check(a.state.memory.data[at] == 7 && a.state.memory.data[at + 4] == 8,
+                "Rejected memory operations preserve every captured field", &failures);
+        }
+        interpreter_invocation_dispose(&a);
+    }
+    entity_release(root);
+    call_query_check(compiler_world_dispose(world), "Aggregate input consumers release their world", &failures);
     return failures;
 }

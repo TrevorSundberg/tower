@@ -118,6 +118,7 @@ fn entity_stage_prepare(stage: EntityStage*): bool {
         if added > ~convert(usize, 0) - components { return false; }
         components += added;
     }
+    if count == 0 && components == 0 { return true; }
     if components > ~convert(usize, 0) - store.component_count { return false; }
     if components > ~convert(usize, 0) - count { return false; }
     var entries = components + count;
@@ -173,7 +174,12 @@ fn entity_stage_prepare(stage: EntityStage*): bool {
         success = entity_table_prepare(stage.nodes.data[i].node, null, null);
     }
     for(var i: usize = 0; success && i < stage.leases.length; i++) {
-        success = entity_table_prepare(stage.leases.data[i].node, null, null);
+        var lease = &stage.leases.data[i];
+        // Staged component lists only append. Payload-only leases retain their
+        // published membership and need no destination row reservation.
+        if lease.node.component_count != lease.components {
+            success = entity_table_prepare(lease.node, null, null);
+        }
     }
     if !success {
         foreach(var &entry in &stage.nodes) { entity_table_unprepare(entry.node); }
@@ -217,8 +223,10 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
         var lease = &stage.leases.data[i];
         lease.node.stage = null;
         lease.node.storage = null;
-        entity_stage_components(lease.node, lease.components);
-        entity_table_publish(lease.node);
+        if lease.node.component_count != lease.components {
+            entity_stage_components(lease.node, lease.components);
+            entity_table_publish(lease.node);
+        }
     }
     vector_dispose(EntityStageNode, &stage.nodes);
     vector_dispose(Entity*, &stage.references);

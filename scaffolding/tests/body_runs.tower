@@ -350,7 +350,11 @@ fn body_runs_type_smoke(root: u8*): void {
     body_runs_smoke_select(root, BodySmokeKind.Types);
 }
 
-enum BodySmokeKind: u32 { All, Types, Control }
+enum BodySmokeKind: u32 { All, Types, Control, CapturePolicy }
+
+fn body_runs_capture_policy(root: u8*): void {
+    body_runs_smoke_select(root, BodySmokeKind.CapturePolicy);
+}
 
 fn body_runs_control_smoke(root: u8*): void {
     body_runs_smoke_select(root, BodySmokeKind.Control);
@@ -414,6 +418,11 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
     defer vector_dispose(&bedrock);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    if kind == BodySmokeKind.CapturePolicy {
+        semantic_capture_policy_checks(root, bedrock.data, foundation.data);
+        puts("Capture policy: executed and untaken dependencies, effects and relocatable values passed.");
+        return;
+    }
     units_read(root, "/tests/body_continuation.tower", &source);
     if kind != BodySmokeKind.Control { semantic_lifecycle_checks(root, bedrock.data, foundation.data); }
     body_runs_trial(source.data, 1, 8, bedrock.data, foundation.data, root, &canonical);

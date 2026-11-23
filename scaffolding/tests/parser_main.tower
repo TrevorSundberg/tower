@@ -6,6 +6,7 @@ import .compiler.grammar_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 import parser_fixture_setup;
+import parser_trace_failures;
 import syntax_emission_entry;
 import storage_api;
 import utility_checks;
@@ -136,6 +137,7 @@ fn parser_main(argc: i32, argv: u8**): i32 {
     status = host_support_tests(); if status != 0 { parser_main_failure("Tower transport test failed: ", convert(i64, status)); return 1; }
     status = interpreter_storage_tests(); if status != 0 { parser_main_failure("Tower interpreter storage test failed: ", convert(i64, status)); return 1; }
     if host_only { puts("Tower host and interpreter storage tests passed."); return 0; }
+    parser_trace_failure_tests();
     tower_tests(); parser_tests(); syntax_tests(); formatter_tests("."); compiler_storage_tests(); regex_tests(); syntax_lexer_tests(); syntax_nodes_tests(); syntax_reader_tests(); syntax_validation_tests();
     var emission: SyntaxEmissionInput; fill(&emission, 0, sizeof(SyntaxEmissionInput));
     emission.root = syntax_native_bedrock(); emission.syntax_kind = syntax_component_type(); emission.rule_kind = parser_rule_get_type();

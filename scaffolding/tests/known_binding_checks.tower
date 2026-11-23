@@ -67,8 +67,8 @@ fn known_binding_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var value=1;var pointer=&value;print(comptime(value));", "cannot capture runtime storage");
     struct_value_reject(modules, "import tower;var value=1;fn change():void{value=2;}print(comptime(value));", "cannot capture runtime storage");
     struct_value_reject(modules, "import tower;var count=0;fn effect():i32{count++;return 4;}var fixed=effect();print(comptime(fixed));", "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer");
-    struct_value_reject(modules, "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));", "Compile-time input failed");
-    struct_value_reject(modules, "import tower;fn equal():bool{var a=1;var b=2;return &a == &b;}var fixed=equal();print(comptime(fixed));", "Compile-time input failed");
+    struct_value_reject(modules, "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
+    struct_value_reject(modules, "import tower;fn equal():bool{var a=1;var b=2;return &a == &b;}var fixed=equal();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
     struct_value_reject(modules, "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", "cannot capture runtime storage");
     struct_value_reject(modules, "import tower;var a:i32=comptime(b);var b:i32=a;print(a);", "dependency cycle");
     struct_value_reject(modules, "import tower;fn taken(value:i32):i32{return comptime(true?value:42);}print(taken(9));", "cannot capture runtime storage");
