@@ -1694,3 +1694,35 @@ cover growth denial, ordering, repeated hold and full finalizer cleanup. Current
 native, supported address/leak/thread and compiler32 measurements pass; the
 journal preserves exact scope and costs. Hold exhaustion, raw node accounting
 and the earlier node9-pair control remain open.
+
+## Bounded queued-stage ownership receipt, 2026-11-23
+
+Reviewed `53d63157` plus this checked ownership batch. This supersedes the
+hold-exhaustion gap above, not unrelated accounting or integrated release gaps.
+ROOT explicitly granted the provenance producer and immediate stage callers.
+
+| Path under `scaffolding/` | Source review and disposition |
+| --- | --- |
+| `library/entity_stage.tower` | Worker-private cancellation records point to stable payloads. Coordinator hold is allocation-free and atomic for the pending suffix, including duplicate targets; failed increments roll back without reclaiming pinned zero-count inputs. Publication reserves component-type and queued ownership together. Discard cancels only unheld borrows before normal finalizers. Legacy queues fail intact when holds cannot be acquired. Empty/already-held discard skips cancellation scans. |
+| `compiler/syntax_provenance.tower` | The only production reference-queue writer now registers cancellation before installing expansion/splice fields. Cancellation clears borrowed pointers, preserving source history and leaving owned splice buffers to the existing finalizer. No global registry, new graph or payload-address relocation. |
+| `compiler/semantic_generic_body_work.tower` | Joins before checked holds. On failure, discards every peer while the view still lives, clears stage pointers, then closes the view and propagates the exact receipt. Earlier held peers release normally; later unheld peers cancel. |
+| `tests/entity_stage_result.tower` | Covers cumulative exhaustion, zero-count rollback under a view, held-prefix preservation, retry idempotence, aliased queue input, safe legacy failure/retry, combined type/queued overflow and exact finalizer counts. Optional cost-sample mode retains the original ordinary workload and payload/state layouts. |
+| `tests/entity_stage_concurrent.tower` | Existing real-thread fixture adopts cancellable payload admission; unchanged simultaneous-entry/join, cancellation, failed-peer, name-collision and partial-admission oracles check coordinator finalization and complete store/budget teardown. |
+| `tests/generic_pump_publication.tower` | Real SyntaxOrigin/trace payloads with repeated/null splices exercise producer-to-pump Exhausted cleanup at target widths 4/8. Source references/history remain unchanged; private stages, vectors and world grants retire. |
+| `tools/bootstrap_symbols.tower`, `tests/bootstrap_symbols_checks.tower` | Minimal immediate API closure: add only the exact `entity_stage_hold_result` semantic import and its existing allowlist regression. No broader manifest or policy change. |
+
+Production call-site audit also covers `compiler/semantic_body_work.tower`,
+`compiler/semantic_declarations.tower`, `compiler/semantic_evaluation_work.tower`,
+`compiler/semantic_lowering_work.tower` and declarations in
+`compiler/semantic_context.tower`: these existing publication paths do not call
+the reference-queue producer themselves. The staged metadata path is
+`host_metadata` -> `syntax_provenance`, called by the generic clone kernel and
+settled by the updated generic-body pump. They retain compatibility publication
+wrappers; this is not a general admission/error-propagation rewrite.
+`compiler/semantic_execution_work.tower` remains ROOT's checked-hold adoption;
+join/hold-or-discard must precede its last view close. ROOT's executable fixture
+was not edited. Existing test-only legacy queue callers remain supported.
+
+The journal records focused checks, measured costs and preserved build errors.
+Current supported sanitizer/full-scaling/bootstrap/browser/release evidence is
+pending ROOT's integrated milestone, not implied by these normal native tests.
