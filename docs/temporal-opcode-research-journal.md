@@ -81969,3 +81969,12 @@ not relabeled for the merged scheduler. ROOT's incoming execution pump now holds
 before view close using the void wrapper; checked-result failure adoption remains
 ROOT's explicitly assigned follow-up. All owned jobs drained before commit/push;
 final deployment remains ROOT-owned.
+
+Final publication join: complete A2 stage-owner commit0aee8b0 merged cleanly as
+f188295d; L1 Fast sources are unchanged and A2's protocol was not edited by L1.
+Dependency-aware four-action provider rebuild45038 and core/functions/constructor
+plus exact Fast CLI jobs1/4 all pass, stderr empty, source manifests identical
+SHA2566544ec7318afb5bb5463704cff44fe66508dc134e48f530ba088c45a6f662364. Logs: L1/logs/fast_storage_stage_merge.
+No repeated performance or instrument/platform matrix; earlier comparable
+measurements keep their original source scope. This documentation receipt does
+not change runtime inputs. All children drained; normal main publication follows.
