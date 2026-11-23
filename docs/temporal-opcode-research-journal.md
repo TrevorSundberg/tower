@@ -90959,3 +90959,15 @@ library/language and public predecessor inputs are unchanged; the focused
 fixture and all9 frozen nm closures pass again on merged policy. Source snapshot,
 allbuilds, archives and hashes retain their original measured boundary. No
 unnecessary second generation/matrix; ROOT must choose later-source adoption.
+
+D1 final publication delta: merge614aaa30 additionally received D2's f7fa33c3 /
+45db5aa9 portable dependency-language receipt, not new L2 implementation. Its
+current compiletime/forward source hashes match the recorded inputs. Adopted
+42/45 portable compiletime passes, three exact alias/inference failures and43
+unstarted LLVM registrations; three forward grammar passes plus unchanged E7
+initialization adoption. This reduces original files with no later Node closure
+from twelve to eleven, with compiletime failures explicitly ROOT/L1/L2 owned.
+The fixed checklist now records both source boundaries and separate selectors;
+no failed result, filtered LLVM assertion or native generation became a pass.
+ROOT's incoming35b93404 native generation/import policy evidence stays separate.
+No tests run or owner sources edited; all D1 edits remain documentation only.
