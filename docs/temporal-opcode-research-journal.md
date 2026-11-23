@@ -94267,3 +94267,50 @@ Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
 
 L1 lifecycle receipt56cfc85f reconciliation: normal merge1b7ba13c1d362d42ce5097475e48452a27d12dfd preserves all incoming history through ea606d32. Incoming A1 alias-publication repairb78d606b, semantic_execution_work, admission/alias tests and exact-output CMake gates are explicitly excluded from frozen3211cb1e acceptance. No matrix restart, later-binary relabel or production edits. Requested42/42 lifecycle and dependency checkpoint remains complete at its exact recorded inputs; joined later compiler acceptance remains separate.
+
+## 2026-11-23 L1 — executed counted LLVM initializer reconstruction
+
+Implemented test coverage on published e932b54673930a8651261f79ace9da7583c318d8;
+production importer/formatter/interpreter code is unchanged. The existing LLVM
+fixture retains its original admission module and callback/phi result42. An
+opt-in execution variant adds reads of the exact ConstantDataArray65,0,128,255,0,67
+(dontNullTerminate=1), plus0,0,128,128,255,255,0,0. Each counted copy targets a fully
+initialized buffer with91/93 guards installed first; every payload byte and both
+guards are printed. The independent literal oracle includes all19 lines. Guard
+coverage concerns those destination ranges; it is not a general overflow proof.
+
+The new existing-storage selector formats through shared Foundation, destroys the
+LLVM/import world, snapshots text into a fresh frontend, frees formatting grants,
+then parses/checks/executes at explicit32/64-bit profiles. No importer logic is
+replicated. Wrong-byte129 and wrong-guard94 controls first assert correct output,
+then return1 only after interpreter/frontend teardown and buffer-baseline checks.
+They are registered WILL_FAIL; assertion crashes still fail CTest. Original
+backend-import failure/retained-output/first-error checks were not weakened.
+
+VALIDATED: the one dependency-aware tower-storage-tests build passed, then all4
+selected CTests passed: backend-import, backend-import-bytes, and both wrong-oracle
+controls. Six fresh parse/execution trials cover both widths across the3 byte
+selectors. Original admission observed407/406 healthy allocation boundaries,
+330300 peak/270389 retained budget bytes; all813 denied reconstruction boundaries,
+24 diagnostic boundaries, Capacity/Busy, earlier-error, terminal retry and final
+zero-grant checks passed. Fresh import budget bytes/lanes/live grants reach0 before
+recheck; frontend close enforces joined work/world/budget disposal, and final
+instrumented buffer count returns to baseline. No native test failure or importer
+bug was exposed. No parallel, optimized LLVM execution, browser or sanitizer claim.
+
+Environment: WSL Orchestral-Revng Ubuntu24.04 Linux x64, LLVM19.1.1, CMake3.28.3,
+Release existing /root/.cache/tower/l1_ecs_native, public bootstrap768a0cdf,
+CPU0-3,24GiB address ceiling, existing single-owner storage host. Build40.53s wall,
+48.72s CPU,1075312KiB peak RSS; four checks1.95s wall,1.61s CPU,176420KiB peak RSS.
+These are validation costs; unchanged production needs no throughput comparison.
+Exact runner SHA256 ae19632ade6df1c9c2b98482e93244ea57b15d57c09bf00a292b9b5b7b48bbcb;
+Tower/CMake input-manifest SHA25661baedbddfc0baefb0bbc4b81d9926dec9dfff1d85588ec2f241d23ce60b155e.
+Full source/provider/bootstrap/resource provenance, commands, timing and CTest
+logs are external in L1/logs/counted_bytes_build, counted_bytes_checks and
+counted_bytes_receipt.json. A receipt-only lookup of nonexistent manifest.json
+exited1, corrected to actual development.json/SHA256SUMS; native results unchanged.
+A slow WSL git status child of diff --check was stopped/drained; native Windows
+Git diff --check passed. No rebuild/repeated suite followed documentation edits.
+ROOT retains final integrated/platform publication; prior lifecycle3211cb1e and
+other owner receipts retain their separate frozen identities. Jobs drained;
+committing scoped test/registration/docs, then required main reconciliation.
