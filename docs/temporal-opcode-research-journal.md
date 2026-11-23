@@ -94814,3 +94814,12 @@ Tower blobs and the audit text remain unchanged. Incoming D2 C/LLVM fixture
 split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba950;
 no source/runtime adoption of those unrelated changes is claimed. Diff checks
 pass; no owned test/build or lock, todo unchanged. Normal main push follows.
+
+A1 retired-error publication reconciliation: implementation f2c35cb8 merged
+complete4354581c asae2ceeb9f5d78eedc76efe7f779d8142a0f94caf without conflicts.
+All playground sources/fixtures and selected Tower language/prelude inputs match
+the validated batch; merged syntax/diff checks pass. Incoming backend-void/driver
+fixture additions are outside these executed controls and preserved. They change
+the all-files resource inventory, so frozen3e355d9e measurements are not relabeled
+as that later inventory. No transport dependency changed or rerun needed. Full
+history, raw failures, receipts and todo preserved; normal main push, no deployment.
