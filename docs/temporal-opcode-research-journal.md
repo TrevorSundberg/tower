@@ -95482,3 +95482,42 @@ missing complete implementation history, not an independent approval. Incoming
 changes are documentation only; backend/compiler/library/host/CMake blobs match
 the validated gate adoption exactly. No runtime rerun. Todo SHA remainsb927852f,
 all owned jobs drained, source checks reused by identity; retry normal main push.
+
+### 2026-11-23 D2: fixed twelve-requirement ledger at a06ec4b1
+
+Same thread01a2046a-45eb-7452-8fb0-6d924bb320a6, PID3193414, main-only clone.
+Compiler/library/backend freezea06ec4b1f9f44419882477bc1a55b6ed39e2200b;
+packaging6b74889b is a separate accepted boundary. Replaced only the handoff's
+CURRENT ledger; historical tail SHA256270007c83c0de4661a943345ae27ce82f4107d710a3b71b17ed7841388d5c95a
+is byte-identical. Same12 requirements, no percentage or replacement milestone.
+
+Used prior full audits/D1 finite1e60 base, scoped receipt searches and actual
+producer/caller diffs. Exact43 authored Tower deltas plus packager are mapped in
+compiler_ecs_audit_d2.md, with D1 matching final-source reviews distinguished from
+owner tests. Independently read L1 counted-byte/provider/storage selectors/CMake:
+fresh-world Foundation execution, counted high/NUL bytes and guards, independent
+wrong-oracle exit controls with cleanup, original storage coverage retained.
+Read D1 module-body final oracle deltas: marker-derived diagnostic positions,
+self-address initializer/exactly-once effects, widths/workers/canonical and cleanup.
+No new source defect found in those scoped reads. D2 C split and packaging rereads
+remain self-reviews; no invented independent peer approval.
+
+Ledger closes stale source claims for alias readiness/negative registration,
+mutable headers, module-body forwarding, pointer results, executed raw bytes and
+C/LLVM fixture separation. It records current25 T4 four/T5 three with23 actual
+ends/T6 eight/T7 seven/T8 fifteen plus full struct within their exact receipts;
+full struct's null wrapper exit field remains a limitation. Native receipts stay
+native. Actual25 entity_pages Memory failure and optimized entity_views scalar
+failure/later unstarted modes are not hidden by native overflow repair. New a06
+reactors/adoption, combined scaling, L1 gate/storage and D1 overflow reviews,
+Windows gate execution, B2 two old full fault matrices, supported instrumentation,
+final generations/pin/UI/atomic hosted release remain open. Rejected operation
+not retried. Concrete remaining peer paths are named; no whole-repository rerun.
+
+Validation: derived43-path set equals mapped set; all12 rows retained; local
+Markdown targets/receipt ancestor commits exist; compared reused reviewed blobs,
+bootstrap paths and browser error transport with cited boundaries; git diff --check
+passes. Raw inventory/blobs/tail checks in build/d2_ecs/ledger_a06ec4b1/.
+No build/test/profile/network-hosted verification; docs-only runtime profiling
+inapplicable. No owned jobs, no heavy lock acquired, idle D2 container preserved;
+initial free disk127GiB/availableRAM9.7GiB, todo unchanged SHAe97d67a6.
