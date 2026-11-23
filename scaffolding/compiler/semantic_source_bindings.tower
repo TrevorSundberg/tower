@@ -123,7 +123,10 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
         return;
     }
     if sem_is(node, "CoreDeclare") {
-        if job.owner != null { sem_source_bind(c, node); }
+        // The module frame also owns lexical block/loop locals. Bind those
+        // identities before scanning their uses, just as in a function body.
+        // Top-level declarations retain module-qualified global resolution.
+        if job.owner != null || c.scope.parent != null { sem_source_bind(c, node); }
         if !sem_ok(c) { return; }
         var candidate: SemanticKnownCandidate = { subject: node, ordinal: job.source_ordinal++ };
         if !vector_push(&job.candidates, candidate) { sem_scratch_error(c, node, WorkBudgetError.Memory); return; }
