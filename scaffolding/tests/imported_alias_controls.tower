@@ -1,0 +1,21 @@
+import tower;
+import library.vector;
+import library.stack;
+var reference: vector(i32) = default;
+var inferred: stack(i32) = default;
+var explicit: stack(i32) = default;
+var direct: stack(i32) = default;
+stack_dispose(&direct);
+var effects: i32 = 0;
+fn touch(value: stack(i32)*): stack(i32)* { effects++; return value; }
+{
+    defer vector_dispose(&reference);
+    defer stack_dispose(i32, &explicit);
+    defer { stack_dispose(touch(&inferred)); }
+    print(vector_push(&reference, 42));
+    print(stack_push(i32, &explicit, 42));
+    print(stack_push(&inferred, 42));
+    print(reference.data[0] == explicit.data[0] && explicit.data[0] == inferred.data[0]);
+    print(effects);
+}
+print(effects);
