@@ -91156,3 +91156,73 @@ The fixed checklist now records both source boundaries and separate selectors;
 no failed result, filtered LLVM assertion or native generation became a pass.
 ROOT's incoming35b93404 native generation/import policy evidence stays separate.
 No tests run or owner sources edited; all D1 edits remain documentation only.
+
+### D1 T7 supplied cross-target execution closure (2026-11-23)
+
+Frozen main84146755f49035aae60a983d6db2a682a3051201; current host/module resources
+are separate from supplied eac16533ad7169988c53af934ece62e083b39bad compiler bytes.
+Archive SHA3ae60fc20303f8b91b8398e3eda0dd6c2939c60bdb4a6c03e5c207fec1c452a1,
+cross SHAe860e9c59717800e416d4dc0eeeda5938be24049c7dd55a05d5efbcd3af561d1.
+Verified archive and all eight selected files against ROOT's files.json, then
+copied cross plus seven targets into D1 build defaults. No previous files existed
+at those destinations; preservation directory retained, old f7/9d/eac portable/
+LLVM copies untouched. No artifact build or support regeneration.
+
+Read current cross-compilation transport, targets/targetInputs, compiler-fixtures
+and LLVM host, actual cross_target_program.tower, module/Foundation contracts and
+backend target/link error producers. Every file starts from Bedrock; the main
+Tower fixture already imports tower. Baseline six target groups actually compile
+and repeat-link that fixture, then fail at the unimported export-function object
+source. Recovery's print snippet fails language admission, so its expected
+/Link failed/ assertion correctly fails. All original failed logs remain intact.
+
+Only five existing source strings gain `import foundation;`: exported library,
+external caller, missing-runtime linker negative, successful recovery and unknown
+target. This retains basic Foundation syntax; no ambient language reinstatement,
+new semantic logic, regex relaxation, output change or producer patch. Final
+seven groups each pass1/1, zero skips/timeouts/cancellations. In particular recovery
+now reaches a Link failed result from actual native linking with omitted runtime
+inputs, then successfully compiles, then rejects the unknown triple. Six profiles
+retain exact executable magic, repeated byte equality, library format/no main,
+linked object, allocation ABI and disassembly assertions. Both Wasm outputs execute:
+5/84/42/4/41/42 and42. PE/ELF/Mach-O output is not native execution on those hosts.
+
+Environment: Steam Deck AMD Custom APU0932, Linux x64, Docker tower-d1-ecs,
+Node22.23.5, CPU0,2,8GiB memory/swap cap, one fresh process at a time, warm filesystem
+and fresh reactor instances, n1 before and after per case. Serial compiler reactor;
+Node/V8 CPU overlap is not compiler-lane scaling. Each command from repository root:
+`env -u TOWER_TEST_LLVM_WASM -u TOWER_TEST_WASM -u TOWER_INTERPRETER_ONLY
+/usr/bin/time -v -o CASE.time timeout -k 5s 120s node --test
+--experimental-test-isolation=none --test-concurrency=1 --test-name-pattern='^NAME$'
+playground/tests/cross-compilation.test.mjs`. Exact names in commands.txt. Each TAP
+selects one case, with zero filtered/skipped cases counted as passes. No redundant
+full-file aggregate: the seven independent after runs cover all seven registrations.
+
+| Group | Baseline wall/CPU seconds; peak KiB (failed) | Repaired wall/CPU seconds; peak KiB (passed) |
+| --- | --- | --- |
+| WebAssembly | 5.03/6.98;318108 | 4.95/6.79;312828 |
+| Windows x64 | 4.29/5.94;328404 | 3.85/5.73;331584 |
+| Linux x64 | 4.11/5.85;331152 | 3.39/5.34;331160 |
+| Linux ARM64 | 4.64/6.49;364900 | 4.09/6.09;378928 |
+| macOS x64 | 3.86/5.64;328616 | 3.71/5.46;324704 |
+| macOS ARM64 | 4.14/6.15;377112 | 3.96/6.11;379228 |
+| Link failure/recovery/unknown target | 1.22/1.59;258156 | 1.35/1.83;270124 |
+
+All recorded swaps0. Final summed wall/CPU25.30/37.35s; peak is the maximum
+individual process, not summed live memory. These are validation costs, not
+comparable successful production before/after profiles: the original fixtures
+stopped early. Fixture input correction changes no production performance policy.
+No scaling claim, new compiler build, full Node/LLVM, generation or sanitizer run.
+
+Receipts: build/d1_ecs/cross_84146755/{before_*,after_*,commands.txt,
+supplied.sha256,resources.sha256,before_inputs.sha256,after_inputs.sha256,
+outputs.sha256}. Resource manifest digest909e5bcce4fd169ec7a2eb3ed141a223b7b61ce21da3c3de68690a52844d1d1c;
+final Node/host digestc3afb6e4eb1dacfcbd716a18b0e3371ec8f763e1f25c758fbf6ef99b1d16d263.
+Main fixture SHA50f874d358cecf47f18b829f2a7a085f792978725ba4e85c7d670703193028c9,
+and Bedrock/Foundation/Foundation syntax/Tower bytes still equal eac; the complete
+mounted registry is recorded separately. Final test SHA
+dbd4fefbe7c3610e8b87d8999617884a2c7ed656f4003f065f7a367ee47f31d4.
+Artifact/resource verification passes after execution; no owned live children,
+heavy lock released,128GiB disk available. Old PID1-owned defunct container nodes
+are unchanged nonreaders, not active test jobs. No new defect/owner handoff arose.
+T7 is scoped closed; ROOT retains final joined-source/artifact adoption/release.
