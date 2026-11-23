@@ -11,6 +11,7 @@ import syntax_types;
 import syntax_validation;
 import syntax_view;
 import .library.vector;
+import .library.work_budget_types;
 
 // Retained, immutable indexes over shared declaration entities. Construction and
 // publication belong to the session coordinator. Readers borrow views only while
@@ -68,6 +69,13 @@ fn syntax_revision_token(tokens: void**, count: usize, name: u8*, length: usize,
 // even if allocation fails at any point. No temporary vector owns entities.
 export fn syntax_revision_overlay(base: FrontendRevision*, rules: SyntaxRuleView*, count: usize,
 tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
+    var error = WorkBudgetError.None;
+    return syntax_revision_overlay_result(base, rules, count, tokens, token_count, kind, &error);
+}
+
+export fn syntax_revision_overlay_result(base: FrontendRevision*, rules: SyntaxRuleView*, count: usize,
+tokens: void**, token_count: usize, kind: void*, error: WorkBudgetError*): FrontendRevision* {
+    *error = WorkBudgetError.None;
     if count == 0 && token_count == 0 && base is not null {
         return frontend_revision_retain(base);
     }
@@ -80,6 +88,7 @@ tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
     var total = before + count;
     var total_tokens = before_tokens + token_count;
     var ok = total >= before && total_tokens >= before_tokens;
+    if !ok { *error = WorkBudgetError.Invalid; return null; }
     ok &&= vector_reserve(&selected, total);
     ok &&= vector_reserve(&lexical, total_tokens);
     if ok {
@@ -120,6 +129,7 @@ tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
     }
     vector_dispose(&selected);
     vector_dispose(&lexical);
+    if revision is null { *error = WorkBudgetError.Memory; }
     return revision;
 }
 
@@ -174,6 +184,13 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
 }
 
 export fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): FrontendRevision* {
+    var error = WorkBudgetError.None;
+    return syntax_revision_ready_result(base, waiting, &error);
+}
+
+export fn syntax_revision_ready_result(base: FrontendRevision*, waiting: void**, error: WorkBudgetError*): FrontendRevision* {
+    *error = WorkBudgetError.None;
+    if base is null { *error = WorkBudgetError.Invalid; return null; }
     var count: usize = 0;
     for(var i: usize = 0; i < base.rules.length; ++i) {
         if waiting[i] is null {
@@ -196,6 +213,7 @@ export fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): Front
         result = frontend_revision_create(rules.data, count, base.tokens.data, base.tokens.length);
     }
     vector_dispose(&rules);
+    if result is null { *error = WorkBudgetError.Memory; }
     return result;
 }
 

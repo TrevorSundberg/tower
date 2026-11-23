@@ -1,5 +1,6 @@
 import syntax_template_types;
 import tower;
+import .library.work_budget_types;
 import component_kinds;
 import frontend_modules;
 import lr_parser;
@@ -81,9 +82,15 @@ id: u32*, start: usize*, length: usize*): void* {
     *id = result.id;
     *start = result.start + input.base;
     *length = result.length;
-    if result.error is not null {
-        parser_stream_set_error(stream, result.error);
+    if result.resource_error != WorkBudgetError.None {
+        if value.resource_error == WorkBudgetError.None { value.resource_error = result.resource_error; }
+        parser_stream_resource_fail(stream, result.resource_error);
         *id = convert(u32, SyntaxTokenId.End);
+    } else {
+        if result.error is not null {
+            parser_stream_set_error(stream, result.error);
+            *id = convert(u32, SyntaxTokenId.End);
+        }
     }
     return node;
 }
@@ -150,7 +157,7 @@ export fn syntax_session_lexemes(value: SyntaxSession*, output: SyntaxHighlights
 export fn syntax_capture_comments(opaque: void*, module: FrontendModule*): void {
     var value = bits(SyntaxSession*, opaque);
     foreach(var & row in &value.highlights.items) {
-        if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", 7) == 0 {
+        if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", syntax_text_length("comment")) == 0 {
             frontend_module_comment(module, row.start, row.end);
         }
     }
@@ -182,37 +189,51 @@ export fn syntax_completion_module(opaque: void*): void* {
     return bits(SyntaxSession*, opaque).inputs.module;
 }
 
+fn syntax_completion_failed(value: SyntaxSession*): bool {
+    if value.resource_error == WorkBudgetError.None && value.completion is not null {
+        value.resource_error = lr_completion_resource_error(bits(LRCompletion*, value.completion));
+    }
+    return value.resource_error != WorkBudgetError.None;
+}
+
 export fn syntax_completion_identifier(opaque: void*, text: u8*): bool {
     var value = bits(SyntaxSession*, opaque);
+    if value.resource_error != WorkBudgetError.None { return false; }
     var name = convert(u32, SyntaxTokenId.Name);
-    return syntax_completion_token(value, text) == name && lr_completion_accepts(bits(LRCompletion*, value.completion), name);
+    var accepted = syntax_completion_token(value, text) == name && lr_completion_accepts(bits(LRCompletion*, value.completion), name);
+    return !syntax_completion_failed(value) && accepted;
 }
 
 export fn syntax_completion_accepts(opaque: void*, text: u8*, literal: bool): bool {
     var value = bits(SyntaxSession*, opaque);
-    if value.completion is null {
+    if value.completion is null || value.resource_error != WorkBudgetError.None {
         return false;
     }
     var id = literal ? syntax_emission_literal(bits(SyntaxEmission*, value.pins.completion_version.emission), text): syntax_completion_token(value, text);
     if literal && id == convert(u32, SyntaxTokenId.End) {
         return false;
     }
-    return lr_completion_accepts(bits(LRCompletion*, value.completion), id);
+    var accepted = lr_completion_accepts(bits(LRCompletion*, value.completion), id);
+    return !syntax_completion_failed(value) && accepted;
 }
 
 export fn syntax_completion_callable(opaque: void*): bool {
     var value = bits(SyntaxSession*, opaque);
-    if value.completion is null {
+    if value.completion is null || value.resource_error != WorkBudgetError.None {
         return false;
     }
     var id = syntax_emission_literal(bits(SyntaxEmission*, value.pins.completion_version.emission), "(");
-    return id != convert(u32, SyntaxTokenId.End) && lr_completion_follows(bits(LRCompletion*, value.completion), convert(u32, SyntaxTokenId.Name), id);
+    var accepted = id != convert(u32, SyntaxTokenId.End) && lr_completion_follows(bits(LRCompletion*, value.completion), convert(u32, SyntaxTokenId.Name), id);
+    return !syntax_completion_failed(value) && accepted;
 }
 
 export fn syntax_completion_close(opaque: void*, type_name: u8*): u8* {
     var value = bits(SyntaxSession*, opaque);
-    if value.completion is null {
+    if value.completion is null || value.resource_error != WorkBudgetError.None {
         return null;
     }
-    return syntax_session_suffix(value, syntax_emission_completion_close(bits(SyntaxEmission*, value.pins.completion_version.emission), bits(LRCompletion*, value.completion), type_name));
+    var error = WorkBudgetError.None;
+    var text = syntax_emission_completion_close_result(bits(SyntaxEmission*, value.pins.completion_version.emission), bits(LRCompletion*, value.completion), type_name, &error);
+    if value.resource_error == WorkBudgetError.None { value.resource_error = error; }
+    return syntax_session_suffix(value, text);
 }

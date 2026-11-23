@@ -11,6 +11,7 @@ import syntax_lexer;
 import syntax_reader;
 import syntax_template;
 import .library.vector;
+import .library.work_budget_types;
 
 // Session token traversal uses the same data-driven lexer for declarations,
 // ordinary code, diagnostic lookahead and typed replacement captures.
@@ -39,6 +40,7 @@ struct SyntaxScanResult {
     length: usize;
     checks: usize;
     error: u8*;
+    resource_error: WorkBudgetError;
     message: vector(u8);
 }
 
@@ -175,6 +177,7 @@ fn scan_unknown(result: SyntaxScanResult*, name: vector(u8)*): void {
         }
     }
     if !ok {
+        result.resource_error = WorkBudgetError.Memory;
         result.error = "Unable to allocate replacement capture diagnostic";
     }
 }
@@ -213,7 +216,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
     var present = result.id != 4294967294;
     present &&= result.error == null;
     if present {
-        node = entity_create_related(input.context);
+        node = entity_create_related_result(input.context, &result.resource_error);
         ok = node != null;
         if ok {
             var component = entity_component_add(node, input.match_kind);
@@ -245,6 +248,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
             entity_release(node);
         }
         node = null;
+        if result.resource_error == WorkBudgetError.None { result.resource_error = WorkBudgetError.Memory; }
         result.error = "Unable to allocate source token";
     }
     return node;

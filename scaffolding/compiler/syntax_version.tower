@@ -10,33 +10,48 @@ import syntax_replacement_owner;
 import syntax_version_types;
 import frontend_revision_types;
 import component_kinds;
+import .library.work_budget_types;
 
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn entity_create(store: void*): void*;
+extern fn compiler_world_type_result(world: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 extern fn parser_table_destroy(table: void*): void;
 
 export fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion* {
+    var error = WorkBudgetError.None;
+    return syntax_version_create_result(world, grammar, bedrock, &error);
+}
+
+export fn syntax_version_create_result(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*, error: WorkBudgetError*): SyntaxVersion* {
+    *error = WorkBudgetError.Invalid;
+    if world is null { return null; }
+    *error = WorkBudgetError.Memory;
     var value = alloc(SyntaxVersion, 1);
     if value is null { return null; }
     *value = default;
-    value.rules = entity_create(compiler_world_store(world));
+    value.rules = entity_create_result(compiler_world_store(world), error);
     if value.rules is null { free(value); return null; }
     value.references = 1;
-    value.kinds.rule = compiler_world_type(world, CompilerParserRule);
-    value.kinds.reference = compiler_world_type(world, CompilerParserReference);
-    value.kinds.string = compiler_world_type(world, CompilerParserString);
-    value.kinds.range = compiler_world_type(world, CompilerParserRange);
-    value.kinds.`match` = compiler_world_type(world, CompilerParserMatch);
-    value.kinds.syntax = compiler_world_type(world, CompilerSyntax);
-    if value.kinds.rule is null || value.kinds.reference is null || value.kinds.string is null ||
-        value.kinds.range is null || value.kinds.`match` is null || value.kinds.syntax is null {
-        syntax_version_release(value);
-        return null;
-    }
+    var completed = false;
+    defer { if !completed { syntax_version_release(value); } }
+    value.kinds.rule = compiler_world_type_result(world, CompilerParserRule, error);
+    if value.kinds.rule is null { return null; }
+    value.kinds.reference = compiler_world_type_result(world, CompilerParserReference, error);
+    if value.kinds.reference is null { return null; }
+    value.kinds.string = compiler_world_type_result(world, CompilerParserString, error);
+    if value.kinds.string is null { return null; }
+    value.kinds.range = compiler_world_type_result(world, CompilerParserRange, error);
+    if value.kinds.range is null { return null; }
+    value.kinds.`match` = compiler_world_type_result(world, CompilerParserMatch, error);
+    if value.kinds.`match` is null { return null; }
+    value.kinds.syntax = compiler_world_type_result(world, CompilerSyntax, error);
+    if value.kinds.syntax is null { return null; }
     value.grammar = frontend_revision_retain(grammar);
     value.bedrock = frontend_revision_retain(bedrock);
     value.replacement_error_offset = lr_none();
+    completed = true;
     return value;
 }
 

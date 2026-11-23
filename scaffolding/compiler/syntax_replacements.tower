@@ -7,6 +7,7 @@ import syntax_reader;
 import syntax_types;
 import syntax_validation;
 import .library.vector;
+import .library.work_budget_types;
 
 // Validate replacements when their rules become reachable from Statement.
 // Nearest unit-rule ancestors provide inferred destinations; ordinary parsing
@@ -18,6 +19,7 @@ struct SyntaxReplacementPlan {
     host: void*;
     error: vector(u8);
     offset: usize;
+    resource_error: WorkBudgetError;
 }
 
 extern fn syntax_replacement_begin(host: void*, name: u8*, sequence: void*, start: usize, end: usize): void;
@@ -27,6 +29,7 @@ extern fn syntax_replacement_capture(host: void*, name: u8*, source: void*): voi
 // 1 success, 2 parser-table conflict, 0 other failure. The candidate owns its
 // tree; selecting/committing transfers it within the revision storage facade.
 extern fn syntax_replacement_attempt(host: void*, category: u8*): u32;
+extern fn syntax_replacement_resource_error(host: void*): WorkBudgetError;
 
 extern fn syntax_replacement_diagnostic(host: void*): u8*;
 
@@ -347,6 +350,8 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 return false;
             }
             var status = syntax_replacement_attempt(state.plan.host, state.plan.rules[category].name);
+            state.plan.resource_error = syntax_replacement_resource_error(state.plan.host);
+            if state.plan.resource_error != WorkBudgetError.None { return false; }
             if status == 1 {
                 if selected {
                     replacement_text(state, "Ambiguous replacement destination for ");
@@ -462,6 +467,7 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
 }
 
 export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
+    plan.resource_error = WorkBudgetError.None;
     var state: ReplacementPlanState = default;
     state.plan = plan;
     state.allocated = true;
@@ -474,6 +480,7 @@ export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
     vector_dispose(&state.tried);
     vector_dispose(&state.original);
     if !state.allocated {
+        plan.resource_error = WorkBudgetError.Memory;
         vector_dispose(&plan.error);
     }
     return ok;

@@ -46,17 +46,20 @@ export fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8* {
 fn syntax_version_validate(definitions: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*, pending: SyntaxPendingRevision**): FrontendRevision* {
     *pending = null;
     diagnostic.fallback = "Unable to allocate grammar revision";
-    if definitions is null { return null; }
+    if definitions is null { diagnostic.resource_error = WorkBudgetError.Invalid; return null; }
     diagnostic.fallback = "Unable to allocate grammar validation";
     var waiting: vector(void*);
     vector_init(&waiting);
     defer vector_dispose(&waiting);
-    if !vector_reserve(&waiting, definitions.rules.length) { return null; }
+    if !vector_reserve(&waiting, definitions.rules.length) {
+        diagnostic.resource_error = WorkBudgetError.Memory;
+        return null;
+    }
     fill(waiting.data, 0, definitions.rules.length * sizeof(void*));
-    if !syntax_validate(definitions.rules.data, definitions.rules.length, definitions.tokens.data,
-        definitions.tokens.length, kind, &diagnostic.text, &diagnostic.offset, waiting.data) { return null; }
-    if !syntax_pending_create(definitions.rules.data, definitions.rules.length, waiting.data, kind, pending) { return null; }
-    var ready = syntax_revision_ready(definitions, waiting.data);
+    if !syntax_validate_result(definitions.rules.data, definitions.rules.length, definitions.tokens.data,
+        definitions.tokens.length, kind, &diagnostic.text, &diagnostic.offset, waiting.data, &diagnostic.resource_error) { return null; }
+    if !syntax_pending_create_result(definitions.rules.data, definitions.rules.length, waiting.data, kind, pending, &diagnostic.resource_error) { return null; }
+    var ready = syntax_revision_ready_result(definitions, waiting.data, &diagnostic.resource_error);
     if ready is null {
         syntax_pending_destroy(*pending);
         *pending = null;
@@ -65,6 +68,12 @@ fn syntax_version_validate(definitions: FrontendRevision*, kind: void*, diagnost
 }
 
 export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: SyntaxEmission*): bool {
+    var error = WorkBudgetError.None;
+    return syntax_version_seed_result(value, definitions, category, parent, &error);
+}
+
+export fn syntax_version_seed_result(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: SyntaxEmission*, error: WorkBudgetError*): bool {
+    *error = WorkBudgetError.Memory;
     var reserved: vector(u8*);
     vector_init(&reserved);
     defer vector_dispose(&reserved);
@@ -79,26 +88,33 @@ export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevisi
         root: value.rules, syntax_kind: value.kinds.syntax, rule_kind: value.kinds.rule,
         reference_kind: value.kinds.reference, string_kind: value.kinds.string, range_kind: value.kinds.range, ..default
     };
-    value.emission = bits(void*, syntax_emit_inherit(&input, parent));
+    value.emission = bits(void*, syntax_emit_inherit_result(&input, parent, error));
     return value.emission is not null;
 }
 
 export fn syntax_version_lexicon(value: SyntaxVersion*): bool {
-    value.lexicon = bits(void*, syntax_emission_lexicon(bits(SyntaxEmission*, value.emission)));
+    var error = WorkBudgetError.None;
+    return syntax_version_lexicon_result(value, &error);
+}
+
+export fn syntax_version_lexicon_result(value: SyntaxVersion*, error: WorkBudgetError*): bool {
+    value.lexicon = bits(void*, syntax_emission_lexicon_result(bits(SyntaxEmission*, value.emission), error));
     return value.lexicon is not null;
 }
 
 fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionDiagnostic*): bool {
     diagnostic.fallback = "Unable to allocate replacement preparation storage";
     var owner = syntax_replacement_owner_create(bits(void*, value), bits(SyntaxEmission*, value.emission), value.kinds.syntax, value.kinds.`match`);
-    if owner is null { return false; }
+    if owner is null { diagnostic.resource_error = WorkBudgetError.Memory; return false; }
     value.replacements = bits(void*, owner);
     var plan: SyntaxReplacementPlan = {
         rules: value.grammar.rules.data, count: value.grammar.rules.length,
         kind: value.kinds.syntax, host: bits(void*, owner), offset: lr_none(), ..default
     };
     defer syntax_replacements_dispose(&plan);
-    if syntax_replacements_prepare(&plan) && syntax_replacement_freeze(owner) { return true; }
+    var ready = syntax_replacements_prepare(&plan);
+    diagnostic.resource_error = plan.resource_error;
+    if ready && syntax_replacement_freeze_result(owner, &diagnostic.resource_error) { return true; }
     value.replacement_error_offset = plan.offset;
     if plan.offset != lr_none() { diagnostic.offset = plan.offset; }
     vector_move(&diagnostic.text, &plan.error);
@@ -109,10 +125,10 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     diagnostic.resource_error = WorkBudgetError.None;
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
-    var kind = compiler_world_type(world, CompilerSyntax);
+    var kind = compiler_world_type_result(world, CompilerSyntax, &diagnostic.resource_error);
     if kind is null { return null; }
-    var definitions = syntax_revision_overlay(bedrock, source ?. rules.data, source ?. rules.length ?? 0,
-        source ?. tokens.data, source ?. tokens.length ?? 0, kind);
+    var definitions = syntax_revision_overlay_result(bedrock, source ?. rules.data, source ?. rules.length ?? 0,
+        source ?. tokens.data, source ?. tokens.length ?? 0, kind, &diagnostic.resource_error);
     if definitions is null { return null; }
     defer frontend_revision_release(definitions);
     var pending: SyntaxPendingRevision*;
@@ -121,13 +137,13 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     defer frontend_revision_release(ready);
     defer syntax_pending_destroy(pending);
     diagnostic.fallback = "Unable to allocate grammar construction";
-    var value = syntax_version_create(world, ready, bedrock);
+    var value = syntax_version_create_result(world, ready, bedrock, &diagnostic.resource_error);
     if value is null { return null; }
     var published = false;
     defer { if !published { syntax_version_release(value); } }
     value.pending = bits(void*, pending);
     pending = null;
-    if !syntax_version_seed(value, ready, null, null) { return null; }
+    if !syntax_version_seed_result(value, ready, null, null, &diagnostic.resource_error) { return null; }
     diagnostic.fallback = "Unable to build grammar";
     var error: u8* = null;
     defer compiler_buffer_free(bits(void*, error));
@@ -141,7 +157,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
         return null;
     }
     diagnostic.fallback = "Unable to allocate lexical indexes";
-    if !syntax_version_lexicon(value) || !syntax_version_replacements(value, diagnostic) { return null; }
+    if !syntax_version_lexicon_result(value, &diagnostic.resource_error) || !syntax_version_replacements(value, diagnostic) { return null; }
     diagnostic.fallback = "";
     published = true;
     return value;
