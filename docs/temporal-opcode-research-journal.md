@@ -87723,3 +87723,51 @@ performance sample or relabeling of the n3 ce4f7240 comparison. Source checks
 passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
 Owned container is idle. Normal main push/remote verification follows; ROOT's
 broader integrated publication gates remain pending.
+
+### B1 complete native generation candidate at frozen f7e764ab (2026-11-23)
+
+Bounded release prerequisite completed on own KinmenB tower_ecs_b1, CPU0-11,
+24GiB, LLVM19.1.1, outer jobs6/compiler jobs1. Previous jobs drained; required
+pull clean/current. Frozen source f7e764ab0807376025700b2a3176c6f6130e34a8,
+tree b0bbfdf8a68f2ad10b3bede4b10c71d7d83c6149 includes accepted body/backend,
+KnownScan and both LR improvements. Public768a predecessor built generation1
+with TOWER_BOOTSTRAP_COMPILER unset in a fresh documented native cache. Complete
+verified predecessor packages built generations2/3 at the identical successor
+path; full generation2 build/objects/depfiles preserved before CMake clean.
+All52 target actions completed per generation. All34 compiler/runtime/helper
+binaries plus4 configure probes and all53 package payloads plus SHA256SUMS match
+byte-for-byte across2/3. No normalization or selected-object waiver. All three
+source manifests have identical1173 source hashes and no source patch; actual
+predecessor/command metadata remains unchanged. Compiler SHA256 for all three:
+a01cd156ecfa382cbb9ae5740f771c384f9dfb62b2e141ca24125449f26b5674.
+
+Existing Tower package/verification tools only. Relocated archive with spaces,
+checksums, executable0755, declared resources/license and development verifier
+PASS; expected restricted missing-Clang control PASS, standalone release remains
+UNPASSED. Exact nine native symbol policies PASS on actual gen3 nm reports.
+Build wall/CPU/peakKiB: gen1 44.77/143.75/1061276, gen2 34.92/90.72/1060636,
+gen3 33.53/95.88/1059996. Single candidate jobs1 small/large observations:
+.45/.44/186884 and .60/.58/238692; original object bytes and execution15/999 exact.
+Original paired range-union performance and allocation receipts remain unchanged.
+GNU time peak is child peak, not concurrent summed RSS. No new speedup claim.
+
+Failures retained: post-gen1 evidence command invalid-C recovered via absolute
+sha256sum/Ninja; Windows bind-mount atomic package publication failed, Linux
+package then archive transport succeeded. Fixture runtime-link warning failed
+its diagnostic gate; original log/object retained, only link control repeated
+with runtime-declared x86_64-unknown-linux-gnu target, no diagnostics, exact outputs.
+No compiler-generation warning/error or byte-comparison failure occurred.
+
+Full receipt docs/compiler_generation_f7e764ab.md; raw builds/logs/depfiles
+/cache/b1_generation_f7e764ab. Complete packages and handoff evidence delivered
+C:\Sandbox\build\codex_ecs_20261122\B1\current_generation_f7e764ab.
+Archive generation3.tar.gz SHA256
+7ee019b4a35faf1182744620d348e75fed691c50349be5db0ca4d7e5b74efde7;
+original gen3 development.json SHA256
+ffbd4fbea2e66d7f22a806fc532c916e744f08e60b0e3c1518d39fb704f9ee7d;
+complete gen2/3 SHA256SUMS SHA256
+4adde1c84f7f407eb11c7bd4af09ff5270370b33f6a6bbabc512e5352180ebc9.
+Transfer hash and archive roundtrip checked. Source/report publication follows.
+No public pin/hosted deployment, new agents, broad matrix or todo changes.
+Later A1/L2 IDE/metadata fixes explicitly outside freeze; ROOT owns adoption,
+composition and final integrated gates. This native fixed point is not their pass.
