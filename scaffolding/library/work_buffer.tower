@@ -30,6 +30,9 @@ fn work_buffer_resize(buffer: WorkBuffer*, budget: WorkBudget*, bytes: usize, pr
     if bytes == 0 { work_buffer_dispose(buffer); return WorkBudgetError.None; }
     var allocated = compiler_buffer_allocation_size(bytes);
     if allocated == 0 { return WorkBudgetError.Invalid; }
+    // A representable physical buffer larger than the configured cap is a
+    // capacity denial, not a malformed execution-lane reservation.
+    if budget != null && budget.initialized && allocated > budget.bytes { return WorkBudgetError.Capacity; }
     var next: WorkBuffer = default;
     if budget != null {
         var result = work_budget_reserve_result(budget, 0, 0, allocated, &next.reservation);

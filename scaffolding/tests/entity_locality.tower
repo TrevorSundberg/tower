@@ -159,7 +159,9 @@ fn locality_case(count: usize): void {
 
 // Bounded normal-allocator layout profile. Density describes component presence,
 // not a different storage trait: all three kinds use the same stable page pool.
-var LayoutBudgetBytes: usize = 1048576;
+// This measurement includes descriptor/index receipts as well as payload pages.
+// Strict finite-cap denial is checked separately by entity_accounting.tower.
+var LayoutBudgetBytes: usize = 2097152;
 var LayoutWarmRounds: usize = 256;
 var LayoutDensePeriod: usize = 2;
 var LayoutSparsePeriod: usize = 16;
@@ -180,15 +182,37 @@ fn layout_fill(component: EntityComponent*, index: usize): void {
     *bits(LocalityValue*, component.data) = init(LocalityValue) {
         a: value, b: value * 3 + 1, c: value * 5 + 2, d: value * 7 + 3};
 }
-struct LayoutStorage { bytes: usize; allocations: usize; }
+fn layout_component(owner: Entity*, kind: Entity*): EntityComponent* {
+    var error: WorkBudgetError;
+    var component = entity_component_add_result(owner, kind, &error);
+    if component == null {
+        layout_label("Layout component admission failed; WorkBudgetError:"); print(convert(u32, error));
+        trap("Layout profile admission failed", 0);
+    }
+    return component;
+}
+struct LayoutStorage { bytes: usize; allocations: usize; physical: usize; }
+fn layout_owned(T: type, sample: LayoutStorage*, data: T*): void {
+    if data == null { return; }
+    var block = entity_component_from_data(bits(u8*, data));
+    if block.page != null { return; } // Count the physical pool page once below.
+    sample.physical += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block.allocation).allocation.capacity);
+    sample.allocations++;
+}
+fn layout_buffer(T: type, sample: LayoutStorage*, data: T*): void {
+    if data == null { return; }
+    var header = bits(EntityBufferAllocation*, bits(u8*, data) - sizeof(EntityBufferAllocation));
+    sample.physical += compiler_buffer_allocation_size(header.allocation.capacity);
+    sample.allocations++;
+}
 fn layout_node(sample: LayoutStorage*, node: Entity*): void {
     // This workload has no child names/relationships or private stages.
     locality_check(node.child_capacity == 0 && node.stage == null);
     sample.bytes += sizeof(Entity)
         + (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
-    sample.allocations++;
-    if node.component_capacity != 0 { sample.allocations++; }
-    if node.instance_capacity != 0 { sample.allocations++; }
+    layout_owned(sample, node);
+    layout_buffer(sample, node.components);
+    layout_buffer(sample, node.instances);
 }
 fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,
     owners: Entity**, count: usize, view: EntityView*): usize {
@@ -227,30 +251,42 @@ fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,
         while table != null {
             raw.bytes += sizeof(EntityTable) + table.arity * sizeof(usize)
                 + table.capacity * (sizeof(Entity*) + table.arity * sizeof(EntityComponent*));
-            raw.allocations++;
-            if table.arity != 0 { raw.allocations++; }
-            if table.capacity != 0 { raw.allocations++; }
+            layout_owned(&raw, table);
+            layout_owned(&raw, table.types);
+            layout_buffer(&raw, table.rows);
             table = table.next;
         }
     }
     var query = view.queries;
     var plan_bytes = sizeof(EntityView);
-    var plan_allocations: usize = 1;
+    layout_owned(&raw, view);
     while query != null {
         plan_bytes += sizeof(EntityTableQuery) + query.arity * sizeof(usize)
             + query.count * (sizeof(EntityTableMatch) + query.arity * sizeof(usize));
-        plan_allocations++;
-        if query.arity != 0 { plan_allocations++; }
-        if query.count != 0 { plan_allocations += 2; }
+        layout_owned(&raw, query);
+        layout_owned(&raw, query.types);
+        layout_owned(&raw, query.matches);
+        layout_owned(&raw, query.columns);
         query = query.next;
     }
     var snapshot: WorkBudgetSnapshot;
     locality_check(work_budget_snapshot(store.budget, &snapshot));
     var buffers = compiler_buffer_allocation_size(store.allocation.capacity) + page_bytes;
+    var allocation_count = page_count + 1 + raw.allocations;
+    var owned = store.buffers.owned;
+    while owned != null {
+        buffers += compiler_buffer_allocation_size(owned.allocation.capacity);
+        allocation_count++;
+        owned = owned.owned_next;
+    }
+    // Logical raw/plan columns are included in the physical owners, not added
+    // again. Headers and pool slack count; the private census scratch does not.
+    var physical = buffers + raw.physical;
+    locality_check(physical == snapshot.used_bytes);
     layout_label("storage: pages,slots,live,payload_bytes,page_bytes,strided_slot_bytes,raw_world_bytes,plan_bytes,world_and_plan_bytes,live_allocation_owners,ledger_live,ledger_peak,ledger_metadata,census_scratch_bytes");
     print(page_count); print(slots); print(live); print(payload); print(page_bytes); print(stride_bytes);
-    print(raw.bytes); print(plan_bytes); print(buffers + raw.bytes + plan_bytes);
-    print(page_count + 1 + raw.allocations + plan_allocations);
+    print(raw.bytes); print(plan_bytes); print(physical);
+    print(allocation_count);
     print(snapshot.used_bytes); print(snapshot.peak_bytes); print(snapshot.retained);
     print(compiler_buffer_allocation_size(scratch.capacity));
     return page_bytes;
@@ -332,13 +368,17 @@ fn layout_case(mixed: bool, columns_first: bool): void {
     }
     var reference: u64 = 0;
     for(var i: usize = 0; i < count; i++) {
-        owners[i] = entity_create(store);
+        var error: WorkBudgetError;
+        owners[i] = entity_create_result(store, &error);
+        if owners[i] == null {
+            layout_label("Layout entity admission failed; WorkBudgetError:"); print(convert(u32, error));
+        }
         locality_check(owners[i] != null);
-        var component = entity_component_add(owners[i], kinds[0]);
+        var component = layout_component(owners[i], kinds[0]);
         layout_fill(component, i); addresses[i] = component.data;
         reference += convert(u64, i) * 16 + 6;
-        if mixed && i % LayoutDensePeriod == 0 { layout_fill(entity_component_add(owners[i], kinds[1]), i); }
-        if mixed && i % LayoutSparsePeriod == 0 { layout_fill(entity_component_add(owners[i], kinds[2]), i); }
+        if mixed && i % LayoutDensePeriod == 0 { layout_fill(layout_component(owners[i], kinds[1]), i); }
+        if mixed && i % LayoutSparsePeriod == 0 { layout_fill(layout_component(owners[i], kinds[2]), i); }
     }
     layout_elapsed("create: wall_ns,cpu_us,process_peak_rss_kib", start, &before[0]);
     layout_label(mixed ? "mixed/full" : "homogeneous/full");
@@ -359,17 +399,19 @@ fn layout_case(mixed: bool, columns_first: bool): void {
     layout_label("fragmented");
     locality_check(layout_scan(store, &kinds[0], kind_count, &owners[0], count,
         sparse_reference, columns_first) == page_bytes);
-    var grants = budget.generation;
+    var payload_pages = store.storage.owned;
     locality_check(getrusage(0, &before[0]) == 0);
     start = locality_time();
     for(var i: usize = 0; i < count; i++) {
         var component = entity_component_get(owners[i], kinds[0]);
         if component != null { locality_check(component.data == addresses[i]); }
-        else { layout_fill(entity_component_add(owners[i], kinds[0]), i); }
+        else { layout_fill(layout_component(owners[i], kinds[0]), i); }
     }
     layout_elapsed("refill: wall_ns,cpu_us,process_peak_rss_kib", start, &before[0]);
-    layout_label("refilled; new_page_grants=0; survivor_addresses_stable");
-    locality_check(budget.generation == grants);
+    layout_label("refilled; new_payload_pages=0; survivor_addresses_stable");
+    // Recreated archetype indexes now legitimately acquire their own grants.
+    // Refill only adds payloads: a new page would change this owned-list head.
+    locality_check(store.storage.owned == payload_pages);
     locality_check(layout_scan(store, &kinds[0], kind_count, &owners[0], count,
         reference, columns_first) == page_bytes);
     for(var i: usize = 0; i < count; i++) { entity_release(owners[i]); }

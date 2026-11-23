@@ -194,6 +194,7 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     if sem_is(node, "CoreCall") {
         var callee = sem_member(node, "name");
         var representation = sem_type_representation_name(sem_identifier(c, callee));
+        if !sem_ok(a.context) { return; }
         declaration = generic_info_add(a, node, node, representation ? GenericInfoKind.PrimitiveType : GenericInfoKind.Call);
         // Attach the callable meaning to the callee, not its argument leaves.
         // Argument traversal below can independently bind parameters and literals.
@@ -221,6 +222,7 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     }
     if reference != null {
         var text = sem_identifier(c, reference);
+        if !sem_ok(a.context) { return; }
         var binding: void* = null;
         if type_name {
             binding = generic_info_lookup(types, text);
@@ -247,7 +249,9 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     }
     if sem_is(node, "CoreBlock") {
         values = sem_scope(c, values);
+        if !sem_ok(a.context) { return; }
         types = sem_scope(c, types);
+        if !sem_ok(a.context) { return; }
     }
     for(var i: usize = 0; i < sem_child_count(node) && c.program.resource.error == WorkBudgetError.None; i++) {
         var child = sem_child(node, i);
@@ -283,14 +287,18 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
         var definition = c.template_nodes.data[i];
         a.definition = definition;
         a.constructor = sem_equal(sem_tokens(c, sem_member(definition, "type")), "type");
+        if !sem_ok(c) { return default; }
         var kind = GenericInfoKind.Function;
         if a.constructor {
             kind = GenericInfoKind.Constructor;
         }
         generic_info_add(&a, definition, definition, kind);
         var values = sem_scope(c, null);
+        if !sem_ok(c) { return default; }
         var types = sem_scope(c, null);
+        if !sem_ok(c) { return default; }
         var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+        if !sem_ok(c) { return default; }
         var p: usize = 0;
         for(; p < parameters.length; p++) {
             var parameter = parameters.data[p];

@@ -31,6 +31,8 @@ fn buffer_retention(): void {
     buffer_check(input.reservation.generation == receipt.generation && budget.used_bytes == 64 + header);
     buffer_check(work_buffer_resize(&input, &other, 64, 64) == WorkBudgetError.Invalid);
     buffer_check(work_buffer_resize(&input, &budget, ~convert(usize, 0), 64) == WorkBudgetError.Invalid);
+    buffer_check(work_buffer_resize(&input, &budget, budget.bytes, 64) == WorkBudgetError.Capacity
+        && input.data == original && input.reservation.generation == receipt.generation);
     buffer_check(work_buffer_resize(&output, &budget, 64, 0) == WorkBudgetError.None);
     fill(output.data, 29, output.capacity);
     buffer_check(work_budget_release(&budget, &outer));

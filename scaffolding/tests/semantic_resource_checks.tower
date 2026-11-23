@@ -19,19 +19,26 @@ extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
 extern fn puts(text: u8*): i32;
 
-var ResourceBudgetBytes: usize = 16384;
+// Finite fixture limit includes the newly charged semantic preparation scratch.
+var ResourceBudgetBytes: usize = 65536;
 var ResourceGrowthFrameBytes: usize = 8192;
 var ResourceEntryGateQuery: u32 = 1000;
 var ResourceFinishValuePhase: usize = 4;
 
 struct ResourceProbe {
     invocation: IMInvocation*;
+    context: SemanticContext*;
+    evaluation: SemanticEvaluation*;
+    restart: bool;
     entry: void*;
     growth: bool;
     observed: bool;
 }
+
+extern fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, require_relocatable: bool): void;
 
 fn resource_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
@@ -44,6 +51,11 @@ fn resource_probe_execute(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
     if kernel.kind != CompilerKernelKind.Evaluate { work_kernel_execute(payload); return; }
     var probe = bits(ResourceProbe*, kernel.payload);
+    if probe.restart {
+        probe.restart = false;
+        probe.evaluation.started = false;
+        sem_evaluation_start(probe.context, probe.evaluation, !probe.evaluation.inferred);
+    }
     var invocation = probe.invocation;
     var original: CompilerKernel = {kind: CompilerKernelKind.Evaluate, payload: bits(void*, invocation)};
     work_kernel_execute(bits(void*, &original));
@@ -193,31 +205,41 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
             && work_take_task(&context.queries, &ticket, proof));
         sem_require(work_finish(&context.queries, &ticket, true));
     }
-    var prerequisite: usize = 0;
-    if growth {
-        prerequisite = work_request(&context.queries, root, ResourceEntryGateQuery, 0);
-        sem_require(prerequisite != 0 && work_seal(&context.queries, prerequisite));
-    }
+    var prerequisite = work_request(&context.queries, root, ResourceEntryGateQuery, 0);
+    sem_require(prerequisite != 0 && work_seal(&context.queries, prerequisite));
     var first = resource_stage(&context, 11, inferred, growth, prerequisite);
     var second = resource_stage(&context, 29, inferred, growth, prerequisite);
-    var first_probe: ResourceProbe = {invocation: &first.invocation, growth: growth, ..default};
-    var second_probe: ResourceProbe = {invocation: &second.invocation, growth: growth, ..default};
+    var first_probe: ResourceProbe = {invocation: &first.invocation, context: &context, evaluation: first, growth: growth, ..default};
+    var second_probe: ResourceProbe = {invocation: &second.invocation, context: &context, evaluation: second, growth: growth, ..default};
     first.kernel.payload = bits(void*, &first_probe);
     second.kernel.payload = bits(void*, &second_probe);
     // Constructors and pool storage succeed before either denial phase. Both
     // stack-owned probes remain alive through pool drain and world retirement.
     sem_require(work_pool_open_kernel_budget(&context.workers, workers, resource_probe_execute, &budget));
     context.declaration_isolated = isolated;
-    if growth {
+    {
         var prepared = sem_evaluation_pump(&context);
         resource_check(prepared == SemanticPumpResult.Waiting && context.workers.running == 0
             && program.error.length == 0 && program.resource.error == WorkBudgetError.None
             && resource_entry_ready(first) && resource_entry_ready(second),
-            "Nested-growth setup did not prepare both owning entry frames before pressure", &failures);
+            "Resource setup prepares both owned entry frames before phase-specific pressure", &failures);
         first_probe.entry = first.function;
         second_probe.entry = second.function;
+        if growth {
         resource_check(resource_nested_call_ready(first) && resource_nested_call_ready(second),
             "Nested-growth pressure starts at both real queued calls after entry sequencing", &failures);
+        } else {
+            // Preparation now has its own real scratch grants. Retire the
+            // checked, unexecuted invocations, then call the production startup
+            // producer on each private worker under denial. No statement or
+            // effect has run; this isolates startup from preparation admission.
+            interpreter_invocation_dispose(&first.invocation);
+            interpreter_invocation_dispose(&second.invocation);
+            // Keep the completed preparation receipt valid until dispatch;
+            // the private probe resets startup immediately before re-admission.
+            first_probe.restart = true;
+            second_probe.restart = true;
+        }
         var ticket: WorkTicket = default;
         sem_require(work_take_task(&context.queries, &ticket, prerequisite)
             && work_finish(&context.queries, &ticket, true));

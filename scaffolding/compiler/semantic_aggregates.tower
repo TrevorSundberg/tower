@@ -22,15 +22,17 @@ struct SemanticAggregateSignature {
 }
 
 fn sem_aggregate_signature(c: SemanticContext*, subject: void*): SemanticAggregateSignature* {
+    if !sem_ok(c) { return default; }
     if c.aggregate_signatures == null { return null; }
     sem_query_input(c, subject, convert(u32, SemanticQuery.AggregatePrepare));
     return bits(SemanticAggregateSignature*, entity_component_data(entity_component_get(subject, c.aggregate_signatures)));
 }
 
 fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: FoundationType*): void* {
+    if !sem_ok(c) { return default; }
     var parameter = sem_control_node(c, subject, KParameter);
     var value = sem_get(parameter);
-    sem_set_name(value, sem_control_name(c));
+    if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, type);
     value.type.pointers++;
     sem_add_local(c, parameter);
@@ -38,6 +40,7 @@ fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: Foundation
 }
 
 fn sem_aggregate_prepare(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
     sem_lower_transform(c, true);
     if !sem_ok(c) || !work_ok(&c.queries) { return; }
     // Publish executable callback signatures at the same barrier as function
@@ -46,6 +49,7 @@ fn sem_aggregate_prepare(c: SemanticContext*): void {
 }
 
 fn sem_aggregate_function_type(c: SemanticContext*, type: FoundationType*): void {
+    if !sem_ok(c) { return; }
     if type.scalar != SFunction { return; }
     var signature = sem_get(type.record);
     foreach(var parameter in &signature.parameters) {
@@ -59,7 +63,7 @@ fn sem_aggregate_function_type(c: SemanticContext*, type: FoundationType*): void
         var value = sem_attach(parameter, KParameter);
         value.type = signature.element;
         value.type.pointers++;
-        sem_push(&signature.parameters, parameter);
+        if !sem_push_checked(c, &signature.parameters, parameter) { return; }
         sem_set_type(&signature.element, sem_type_new(c, SVoid, 0, null));
     }
 }
@@ -77,6 +81,7 @@ fn sem_aggregate_needed(subject: void*): bool {
 // staged job. Its lowering consumer waits for the published prelude; unrelated
 // functions can lower concurrently from their already-checked call types.
 fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
+    if !sem_ok(c) { return; }
     var function = sem_get(subject);
     var returns = semantic_aggregate(&function.type);
     if returns && function.parameters.length == FoundationParameterLimit {
@@ -84,49 +89,57 @@ fn sem_aggregate_function(c: SemanticContext*, subject: void*): void {
         return;
     }
     var metadata = sem_aggregate_signature(c, subject);
+    if !sem_ok(c) { return; }
     sem_require(metadata != null);
     sem_set_type(&metadata.result_type, &function.type);
+    if !sem_ok(c) { return; }
     var prelude = sem_control_node(c, subject, KBlock);
     for(var j: usize = 0; j < function.parameters.length; j++) {
         var original = function.parameters.data[j];
         var parameter = sem_get(original);
         if !semantic_aggregate(&parameter.type) { continue; }
         var incoming = sem_aggregate_parameter(c, subject, &parameter.type);
+        if !sem_ok(c) { return; }
         function.parameters.data[j] = incoming;
         // Retain the source binding as an independent local, never a borrow
         // of the caller's storage. Its existing frame slot remains valid.
         parameter.kind = KDeclare;
+        if !sem_ok(c) { return; }
         var load = sem_control_node(c, original, KLoad);
         sem_set_type(&sem_get(load).type, &parameter.type);
         sem_get(load).value = sem_control_read(c, load, incoming);
         parameter.value = load;
-        sem_push(&sem_get(prelude).items, original);
-        sem_push(&sem_get(prelude).locals, original);
+        if !sem_push_checked(c, &sem_get(prelude).items, original) { return; }
+        if !sem_push_checked(c, &sem_get(prelude).locals, original) { return; }
     }
     if returns {
         metadata.result_parameter = sem_aggregate_parameter(c, subject, &function.type);
-        sem_push(&function.parameters, metadata.result_parameter);
+        if !sem_ok(c) { return; }
+        if !sem_push_checked(c, &function.parameters, metadata.result_parameter) { return; }
         sem_set_type(&function.type, sem_type_new(c, SVoid, 0, null));
     }
     if function.body != null {
-        sem_push(&sem_get(prelude).items, function.body);
+        if !sem_push_checked(c, &sem_get(prelude).items, function.body) { return; }
         function.body = prelude;
     }
 }
 
 fn sem_aggregate_local(c: SemanticContext*, block: void*, type: FoundationType*): void* {
+    if !sem_ok(c) { return default; }
     var local = sem_control_node(c, block, KDeclare);
     var value = sem_get(local);
-    sem_set_name(value, sem_control_name(c));
+    if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, type);
     sem_add_local(c, local);
-    if block != c.current { sem_push(&sem_get(block).locals, local); }
+    if block != c.current { sem_push_checked(c, &sem_get(block).locals, local); }
     value.global = block == c.program.root;
-    sem_lift_append(block, local);
+    sem_lift_append(c, block, local);
+    if !sem_ok(c) { return default; }
     return sem_control_read(c, block, local);
 }
 
 fn sem_aggregate_load(c: SemanticContext*, block: void*, pointer: void*, type: FoundationType*): void* {
+    if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KLoad);
     sem_get(place).value = pointer;
     sem_set_type(&sem_get(place).type, type);
@@ -134,6 +147,7 @@ fn sem_aggregate_load(c: SemanticContext*, block: void*, pointer: void*, type: F
 }
 
 fn sem_aggregate_field(c: SemanticContext*, block: void*, pointer: void*, field: void*): void* {
+    if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KField);
     var value = sem_get(place);
     var declaration = sem_get(field);
@@ -142,21 +156,23 @@ fn sem_aggregate_field(c: SemanticContext*, block: void*, pointer: void*, field:
     value.binding = field;
     value.byte_offset = declaration.byte_offset;
     sem_set_type(&value.type, &declaration.type);
-    sem_set_name(value, sem_name(declaration));
-    return sem_get(sem_lift_target(c, block, place)).value;
+    if !sem_set_name(c, value, sem_name(declaration)) { return default; }
+    return sem_lift_address(c, block, place);
 }
 
 fn sem_aggregate_element(c: SemanticContext*, block: void*, pointer: void*, index: void*, type: FoundationType*): void* {
+    if !sem_ok(c) { return default; }
     var cast = sem_control_node(c, block, KBits);
     sem_get(cast).value = pointer;
     sem_set_type(&sem_get(cast).type, type);
     sem_get(cast).type.pointers++;
+    if !sem_ok(c) { return default; }
     var place = sem_control_node(c, block, KIndex);
     sem_get(place).left = sem_lift_snapshot(c, block, cast);
     sem_get(place).right = index;
     sem_get(place).indirect = true;
     sem_set_type(&sem_get(place).type, type);
-    return sem_get(sem_lift_target(c, block, place)).value;
+    return sem_lift_address(c, block, place);
 }
 
 // Copy field values, not padding or pointed-to storage. The caller supplies an
@@ -164,86 +180,120 @@ fn sem_aggregate_element(c: SemanticContext*, block: void*, pointer: void*, inde
 // fields use ordinary counted loops rather than expanding one node per element.
 // Ordinary loads/stores also work under the strict compile-time interpreter.
 fn sem_aggregate_transfer(c: SemanticContext*, block: void*, destination: void*, source: void*, type: FoundationType*): void {
+    if !sem_ok(c) { return; }
     if !semantic_aggregate(type) {
         var loaded = sem_lift_snapshot(c, block, sem_aggregate_load(c, block, source, type));
+        if !sem_ok(c) { return; }
         sem_lift_store(c, block, sem_aggregate_load(c, block, destination, type), loaded);
+        if !sem_ok(c) { return; }
         return;
     }
     var record = sem_get(type.record);
     if type.scalar == SStruct {
         foreach(var field in &record.items) {
             var to = sem_aggregate_field(c, block, destination, field);
+            if !sem_ok(c) { return; }
             var from = sem_aggregate_field(c, block, source, field);
+            if !sem_ok(c) { return; }
             sem_aggregate_transfer(c, block, to, from, &sem_get(field).type);
         }
         return;
     }
     var integer = sem_type_new(c, SUSize, 0, null);
+    if !sem_ok(c) { return; }
     var index = sem_control_local(c, block, sem_surface_constant(c, block, integer, 0));
+    if !sem_ok(c) { return; }
     var loop_node = sem_control_node(c, block, KLoop);
+    if !sem_ok(c) { return; }
     var body = sem_control_node(c, loop_node, KBlock);
     sem_get(loop_node).body = body;
-    sem_lift_append(block, loop_node);
+    sem_lift_append(c, block, loop_node);
+    if !sem_ok(c) { return; }
     var current = sem_control_read(c, body, index);
+    if !sem_ok(c) { return; }
     var stop = sem_lift_binary(c, body, OEq, current,
         sem_surface_constant(c, body, integer, convert(u64, record.length)), sem_type_new(c, SBool, 0, null));
+    if !sem_ok(c) { return; }
     var yes = sem_control_node(c, body, KBlock);
-    sem_lift_append(yes, sem_control_node(c, yes, KBreak));
+    if !sem_ok(c) { return; }
+    sem_lift_append(c, yes, sem_control_node(c, yes, KBreak));
     sem_control_branch(c, body, stop, yes);
+    if !sem_ok(c) { return; }
     var to = sem_aggregate_element(c, body, destination, current, &record.element);
+    if !sem_ok(c) { return; }
     var from = sem_aggregate_element(c, body, source, current, &record.element);
+    if !sem_ok(c) { return; }
     sem_aggregate_transfer(c, body, to, from, &record.element);
     var next = sem_lift_binary(c, body, OAdd, current, sem_surface_constant(c, body, integer, 1), integer);
+    if !sem_ok(c) { return; }
     sem_lift_store(c, body, sem_control_read(c, body, index), next);
+    if !sem_ok(c) { return; }
 }
 
 fn sem_aggregate_copy(c: SemanticContext*, block: void*, target: void*, source: void*): void {
+    if !sem_ok(c) { return; }
     var to = sem_lift_target(c, block, target);
+    if !sem_ok(c) { return; }
     var from = sem_lift_target(c, block, source);
+    if !sem_ok(c) { return; }
     sem_aggregate_transfer(c, block, sem_get(to).value, sem_get(from).value, &sem_get(to).type);
 }
 
 fn sem_aggregate_arguments(c: SemanticContext*, block: void*, call: void*): void {
+    if !sem_ok(c) { return; }
     var value = sem_get(call);
     foreach(var &argument in &value.items) {
         var aggregate = semantic_aggregate(&sem_get(*argument).type);
         *argument = sem_lift_value(c, block, *argument);
-        if aggregate { *argument = sem_get(sem_lift_target(c, block, *argument)).value; }
+        if !sem_ok(c) { return; }
+        if aggregate { *argument = sem_lift_address(c, block, *argument); }
+        if !sem_ok(c) { return; }
     }
 }
 
 fn sem_aggregate_value(c: SemanticContext*, block: void*, n: void*): void* {
+    if !sem_ok(c) { return default; }
     var value = sem_get(n);
     var type = sem_type_copy(c, &value.type);
+    if !sem_ok(c) { return default; }
     if value.kind == SurfaceComma {
         sem_lift_value(c, block, value.left);
-        return sem_lift_result(n, sem_lift_value(c, block, value.right));
+        if !sem_ok(c) { return default; }
+        return sem_lift_result(c, n, sem_lift_value(c, block, value.right));
     }
     if value.kind == SurfaceAssign {
         var target = sem_lift_target(c, block, value.target);
+        if !sem_ok(c) { return default; }
         var source = sem_lift_value(c, block, value.value);
+        if !sem_ok(c) { return default; }
         sem_aggregate_copy(c, block, target, source);
-        return sem_lift_result(n, source);
+        return sem_lift_result(c, n, source);
     }
     var result = sem_aggregate_local(c, block, type);
+    if !sem_ok(c) { return default; }
     if value.kind == SurfaceDefault || value.kind == SurfaceInitializer {
         sem_lift_initialization(c, block, result, n);
+        if !sem_ok(c) { return default; }
         return result;
     }
     if value.kind == SurfaceSelect {
         var condition = sem_lift_value(c, block, value.value);
+        if !sem_ok(c) { return default; }
         var yes = sem_control_node(c, block, KBlock);
         var no = sem_control_branch(c, block, condition, yes);
+        if !sem_ok(c) { return default; }
         sem_aggregate_copy(c, yes, result, sem_lift_value(c, yes, value.left));
         sem_aggregate_copy(c, no, result, sem_lift_value(c, no, value.right));
-        return sem_lift_result(n, result);
+        return sem_lift_result(c, n, result);
     }
     if value.kind == KCall {
         value.value = sem_lift_value(c, block, value.value);
+        if !sem_ok(c) { return default; }
         sem_aggregate_arguments(c, block, n);
-        sem_push(&value.items, sem_get(sem_lift_target(c, block, result)).value);
+        if !sem_push_checked(c, &value.items, sem_lift_address(c, block, result)) { return default; }
         sem_set_type(&value.type, sem_type_new(c, SVoid, 0, null));
-        sem_lift_append(block, n);
+        sem_lift_append(c, block, n);
+        if !sem_ok(c) { return default; }
         return result;
     }
     sem_aggregate_copy(c, block, result, sem_lift_place(c, block, n));

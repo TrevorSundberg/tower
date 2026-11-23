@@ -21,12 +21,14 @@ var ControlBlockNestingLimit: u32 = 128;
 
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
-fn sem_control_names(c: SemanticContext*): void {
+export fn sem_control_names(c: SemanticContext*): void {
     var missing = c.control_names == null;
     if missing {
         c.control_names = sem_table(c);
+        if !sem_ok(c) { return; }
         var pending = sem_list(c);
-        sem_push(pending, c.program.root);
+        if !sem_ok(c) { return; }
+        if !sem_push_checked(c, pending, c.program.root) { return; }
         loop {
             var done = pending.length == 0;
             if done {
@@ -42,6 +44,7 @@ fn sem_control_names(c: SemanticContext*): void {
                 // Including other terminals is conservative and also supports
                 // local Identifier overrides without duplicating terminal rules.
                 var name = sem_text(c, terminal.label.data, terminal.label.length);
+                if !sem_ok(c) { return; }
                 sem_decode_identifier(name);
                 sem_put(c, c.control_names, name, node);
             } else {
@@ -52,7 +55,7 @@ fn sem_control_names(c: SemanticContext*): void {
                     if done {
                         break;
                     }
-                    sem_push(pending, sem_child(node, i));
+                    if !sem_push_checked(c, pending, sem_child(node, i)) { return; }
                     i++;
                 }
             }
@@ -63,16 +66,19 @@ fn sem_control_names(c: SemanticContext*): void {
 fn sem_control_name(c: SemanticContext*): u8* {
     if c.control_reserved == null {
         sem_control_names(c);
+        if !sem_ok(c) { return null; }
     }
     else {
         if c.control_names == null {
             c.control_names = sem_table(c);
+            if !sem_ok(c) { return default; }
         }
     }
     var prefix = c.control_prefix == null ? "control value ": c.control_prefix;
     var index = c.control_names.count;
     loop {
         var name = sem_cat(c, prefix, sem_decimal(c, convert(u64, index)));
+        if !sem_ok(c) { return default; }
         var exists = sem_lookup_table(c.control_names, name) != null;
         if !exists && c.control_reserved != null {
             exists = sem_lookup_table(c.control_reserved, name) != null;
@@ -92,7 +98,8 @@ fn sem_control_node(c: SemanticContext*, parent: void*, kind: u32): void* {
     return entity;
 }
 
-fn sem_control_read(c: SemanticContext*, parent: void*, local: void*): void* {
+export fn sem_control_read(c: SemanticContext*, parent: void*, local: void*): void* {
+    if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, parent, KOperand);
     var value = sem_get(entity);
     value.binding = local;
@@ -102,6 +109,7 @@ fn sem_control_read(c: SemanticContext*, parent: void*, local: void*): void* {
 }
 
 fn sem_control_literal(c: SemanticContext*, parent: void*, bit: u64): void* {
+    if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, parent, KOperand);
     var value = sem_get(entity);
     sem_set_type(&value.type, sem_type_new(c, SBool, 0, null));
@@ -110,7 +118,8 @@ fn sem_control_literal(c: SemanticContext*, parent: void*, bit: u64): void* {
     return entity;
 }
 
-fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
+export fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
+    if !sem_ok(c) { return null; }
     var initializer = sem_get(initial);
     var explicit_source = initializer.kind == KBits ||
         initializer.kind == KConvert && initializer.type.pointers == 0 && semantic_enum(&initializer.type);
@@ -121,38 +130,41 @@ fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
             // Foundation, including magnitudes that cannot default to i32.
             var source = sem_control_local(c, block, initializer.value);
             initializer.value = sem_control_read(c, initial, source);
+            if !sem_ok(c) { return null; }
         }
     }
     var entity = sem_control_node(c, block, KDeclare);
     var value = sem_get(entity);
-    sem_set_name(value, sem_control_name(c));
+    if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, &initializer.type);
     value.value = initial;
     sem_add_local(c, entity);
     var owner = sem_get(block);
     if block != c.current {
-        sem_push(&owner.locals, entity);
+        if !sem_push_checked(c, &owner.locals, entity) { return default; }
     }
     var global = block == c.program.root;
     if global {
         value.global = true;
     }
-    sem_push(&owner.items, entity);
+    if !sem_push_checked(c, &owner.items, entity) { return default; }
     return entity;
 }
 
 fn sem_control_branch(c: SemanticContext*, block: void*, condition: void*, body: void*): void* {
+    if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, block, KIf);
     var value = sem_get(entity);
     value.value = condition;
     value.body = body;
     value.otherwise = sem_control_node(c, entity, KBlock);
     var owner = sem_get(block);
-    sem_push(&owner.items, entity);
+    if !sem_push_checked(c, &owner.items, entity) { return default; }
     return value.otherwise;
 }
 
 fn sem_control_equal(c: SemanticContext*, block: void*, subject: void*, pattern: void*): void* {
+    if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, block, KBinary);
     var value = sem_get(entity);
     value.op = OEq;
@@ -179,12 +191,14 @@ struct SemanticMatchCursor {
 }
 
 fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool {
+    if !sem_ok(c) { return false; }
     if state.index == state.arms.length {
         state.body = sem_member(state.fallback, "body");
         return true;
     }
     var arm = state.arms.data[state.index];
     var choices = sem_collect(c, sem_member(arm, "patterns"), "TowerMatchLiteral");
+    if !sem_ok(c) { return default; }
     if choices.length == 0 {
         sem_fail(c, arm, "A match arm needs a literal pattern");
         return false;
@@ -195,6 +209,7 @@ fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool
     var selected: void* = null;
     if multiple {
         selected = sem_control_local(c, block, sem_control_literal(c, block, 0));
+        if !sem_ok(c) { return false; }
     }
     var condition: void* = null;
     for(var j: usize = 0; j < choices.length; j++) {
@@ -217,21 +232,22 @@ fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool
                 return false;
             }
         }
-        sem_push(state.patterns, pattern);
+        if !sem_push_checked(c, state.patterns, pattern) { return default; }
         condition = sem_control_equal(c, block, state.subject, pattern);
+        if !sem_ok(c) { return false; }
         if multiple {
             var hit = sem_control_node(c, block, KBlock);
             var store = sem_control_node(c, hit, KAssign);
             var assignment = sem_get(store);
             assignment.target = sem_control_read(c, store, selected);
             assignment.value = sem_control_literal(c, store, 1);
-            sem_push(&sem_get(hit).items, store);
+            if !sem_push_checked(c, &sem_get(hit).items, store) { return default; }
             sem_control_branch(c, block, condition, hit);
         }
     }
     state.condition = multiple ? sem_control_read(c, block, selected) : condition;
     state.body = sem_member(arm, "body");
-    return true;
+    return sem_ok(c);
 }
 
 fn sem_control_match_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticMatchCursor*): bool {
@@ -257,6 +273,7 @@ fn sem_control_match_value(c: SemanticContext*, n: void*, depth: u32, state: Sem
         return false;
     }
     var arms = sem_collect(c, sem_member(n, "arms"), "TowerMatchArm");
+    if !sem_ok(c) { return default; }
     if arms.length > MatchArmLimit {
         sem_fail(c, n, "match supports at most 128 arms");
         return false;
@@ -274,6 +291,7 @@ fn sem_control_match_value(c: SemanticContext*, n: void*, depth: u32, state: Sem
     sem_node(c, n, KBlock);
     state.arms = arms;
     state.patterns = sem_list(c);
+    if !sem_ok(c) { return default; }
     state.subject = sem_control_local(c, n, initial);
     state.fallback = fallback;
     state.block = n;
@@ -284,7 +302,7 @@ fn sem_control_match_value(c: SemanticContext*, n: void*, depth: u32, state: Sem
 fn sem_control_match_advance(c: SemanticContext*, state: SemanticMatchCursor*, flow: u32): bool {
     state.flow |= flow;
     if state.index == state.arms.length {
-        sem_push(&sem_get(state.block).items, state.body);
+        sem_push_checked(c, &sem_get(state.block).items, state.body);
         return false;
     }
     if !sem_ok(c) {
@@ -348,19 +366,21 @@ fn sem_control_while_value(c: SemanticContext*, n: void*, state: SemanticLoopCur
     state.condition = condition;
     state.block = block;
     state.guard = guard;
-    return true;
+    return sem_ok(c);
 }
 
 fn sem_control_while_finish(c: SemanticContext*, n: void*, state: SemanticLoopCursor*, flow: u32): u32 {
+    if !sem_ok(c) { return FlowStop; }
     var condition = state.condition;
     var known = sem_get(condition);
     var block = state.block;
     var guard = state.guard;
     var body = sem_member(n, "body");
     var otherwise = sem_control_branch(c, block, guard, body);
+    if !sem_ok(c) { return FlowStop; }
     var stop = sem_control_node(c, otherwise, KBreak);
     var failure = sem_get(otherwise);
-    sem_push(&failure.items, stop);
+    sem_push_checked(c, &failure.items, stop);
     var result = flow &FlowReturn;
     if sem_flow_known(c, condition) {
         var never = known.bits == 0;
@@ -401,7 +421,9 @@ fn sem_control_for_scope(c: SemanticContext*, n: void*, depth: u32, state: Seman
     }
     sem_node(c, n, KBlock);
     state.saved = c.scope;
-    c.scope = sem_scope(c, state.saved);
+    var scope = sem_scope(c, state.saved);
+    if !sem_ok(c) { return default; }
+    c.scope = scope;
     state.initial_flow = FlowNext;
     return true;
 }
@@ -411,19 +433,21 @@ fn sem_control_for_accept(c: SemanticContext*, n: void*, initial: void*, flow: u
     // exactly as ordinary block statements do.
     var jump = sem_control_call(c, initial, "jump");
     if jump != null { initial = jump; }
-    sem_push(&sem_get(n).items, initial);
+    sem_push_checked(c, &sem_get(n).items, initial);
     state.initial_flow = flow;
 }
 
 // A header declaration may finish through its ordinary dependency query before
 // checking the condition/update. Its loop scope and bound local are retained.
 fn sem_control_for_tail(c: SemanticContext*, n: void*, state: SemanticLoopCursor*): void {
+    if !sem_ok(c) { return; }
     var condition_syntax = sem_member(n, "condition");
     var condition: void* = null;
     if sem_child_count(condition_syntax) == 0 {
         condition = sem_control_literal(c, n, 1);
     } else {
         condition = sem_operand(c, sem_child(condition_syntax, 0), sem_type_new(c, SBool, 0, null));
+        if !sem_ok(c) { return; }
     }
     var step_syntax = sem_member(n, "step");
     var update: void* = null;
@@ -466,24 +490,27 @@ fn sem_control_for_finish(c: SemanticContext*, n: void*, state: SemanticLoopCurs
     var repeats = flow &FlowContinue;
     if update != null && repeats != 0 {
         var first = sem_control_local(c, n, sem_control_literal(c, n, 1));
+        if !sem_ok(c) { return FlowStop; }
         var start = sem_control_node(c, block, KBlock);
         var store = sem_control_node(c, start, KAssign);
         sem_get(store).target = sem_control_read(c, store, first);
         sem_get(store).value = sem_control_literal(c, store, 0);
-        sem_push(&sem_get(start).items, store);
+        sem_push_checked(c, &sem_get(start).items, store);
         var next = sem_control_branch(c, block, sem_control_read(c, block, first), start);
-        sem_push(&sem_get(next).items, update);
+        if !sem_ok(c) { return FlowStop; }
+        sem_push_checked(c, &sem_get(next).items, update);
     }
-    sem_push(&value.items, loop_node);
+    sem_push_checked(c, &value.items, loop_node);
     var known = sem_get(condition);
     var guard = condition;
     if !known.constant {
         guard = sem_control_read(c, block, sem_control_local(c, block, condition));
     }
     var otherwise = sem_control_branch(c, block, guard, body);
-    sem_push(&sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak));
+    if !sem_ok(c) { return FlowStop; }
+    sem_push_checked(c, &sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak));
     if update != null && repeats == 0 {
-        sem_push(&sem_get(block).items, update);
+        sem_push_checked(c, &sem_get(block).items, update);
     }
     if(initial_flow &FlowNext) == 0 {
         return initial_flow;
