@@ -16,6 +16,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         const {name, args, types, pointerBytes, returnType} = JSON.parse(string(request));
         const context = {
           pointerBytes,
+          returnType,
           memory: () => new Uint8Array(exports.memory.buffer, exports.tw_exec_memory(handle), exports.tw_exec_memory_size(handle)),
           allocate: size => exports.tw_exec_allocate(handle, size),
           free: pointer => exports.tw_exec_deallocate(handle, Number(pointer)),
