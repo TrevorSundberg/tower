@@ -96086,6 +96086,21 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+### 2026-11-23 B1: Foundation private-stage page slack
+
+Frozen1e428ede, native public768/LLVM19 CPU0-11/24GiB, exact ROOT972596B
+request403fdc6b and4709291B output452132b9. One four-row Foundation policy
+uses existing immutable per-kind registration; no Entity layout/ParserMatch or
+semantic method changes. Census proves sparse private-stage origin; page bytes
+513224220->235866539, peak charged2743902878->2466545197, ledger unchanged.
+All16 paired n2 serial/four large/small outputs and zero-owner checks pass;
+large serial wall10.695->10.985s (+2.7%), four9.445->9.250s; RSS~4.2% lower.
+Retain explicit memory tradeoff, not speedup: pages4.07x/live grants3.62% higher.
+Six focused storage/concurrent/Capacity-retry CTests, grammar-resource/world
+Memory/registration checks and unchanged strict entities symbol policy pass.
+[Concise receipt](compiler_foundation_pages_1e428ede.md) retains source/binary
+hashes, original transport assertion failure, raw paths and exact limits.
+No optimized/browser/generation/sanitizer or deployment claim; ROOT owns release.
 ### 2026-11-23 D1: seeded cross-unit dependency/cancellation differential
 
 At1e428ede, added one Tower fixture through existing frontend-unit/ordinary
@@ -96261,6 +96276,22 @@ bound to1e428ede; unrelated codec/browser changes are not independently adopted.
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
 
+## 2026-11-23 A1: independent abort capability peer review
+Reviewed9f37944356/b4bd9980 against1e428ede at freezeae5d34b2;11 scoped
+blobs unchanged. No concrete defect found. Forty-byte typed import/export
+descriptor enforces() -> void at Wasm linking; Graph/Fast forwards serialized
+returnType to the shared validator before invoking. Explicit provider precedence,
+unknown rejection, first failure/effect stop, staged capability denial and guest
+finally/handle cleanup remain. No new interpreter, permissive fallback or registry.
+[Short peer receipt](abort_host_peer_review_a1.md) maps exact blobs/all6fixtures
+and actual A2 controls/T9/profile logs; those runs remain attributed, not repeated.
+An extra ordinary enum-named-void Tower control rejects on32/64 Graph/Fast with
+empty output; initial missing-Foundation transport setup failure retained.
+No confirmed nominal-name bypass. A2 still owns the separate spelling assertion;
+host-instance lifetime/zero-owner limits and absent override/OOM controls explicit.
+Docs-only: no runtime build, performance comparison, instrumentation or release.
+Raw A1/abort_review_ae5d34b2 contains input/output/counters/hash map; owned work
+drained, todo unchanged; normal commit/reconcile/push follows.
 ## A2 platform canonical binding oracle closure (2026-11-23)
 
 The stale fourth platform assertion expected recursively expanded integer_type
@@ -96284,3 +96315,5 @@ sanitizer/release run. L1's separate optimization error remains outside scope.
 Owned jobs drained, three old stashes/todo preserved; final integration in status.
 
 L1 final pointer-import integration: implementation015aa9ed preserved through complete-history mergee480b8bee15c4323f93ab711d887704c7e1bcb59 with publishede330a2c9 after required ff-only pull refused divergence. D1 overflow and L2 lowering changes adopted in one seven-action native refresh. Eight focused CTests, exactlarge32 import1/4, reduced32/64 reconstructed and large source/reconstructed directGraph/Fast1/4, backend-ir all PASS; corrected Foundation57d66511/LLVMd33c3ca2 unchanged and finalownerszero. Merged build38.66wall/57.85CPU/1075420KiB; CTests5.99/5.49/192156. Original matched measurements retain6e boundary; final mergedhashes/logs in the receipt, no broad reruns or deployment. Second LLVM normalization remains a separate recorded ROOT/L2 limitation; no claim of its acceptance. Ownedjobs drained; todo unchanged; normalpush follows.
+B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
+A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
