@@ -69051,3 +69051,82 @@ profiles retain exact outputs/canonical identities/retention; small wall changes
 Joined supported sanitizers and current IDE reactor remain pending. Root union
 not built while other local lanes own their slots. Diff check passes. Final clean
 bootstrap/browser/generation/scaling/memory/race/publication work stays open.
+### B2 coherent world/query union validation (2026-11-23)
+
+Adopted complete ROOT35127448 by fast-forward after all owned inputs drained.
+The verified bundle84a4fdc4 retains B2's complete13f58 history, B1 declaration3992,
+A1 semantic callers, L2 resource pumps and A2 typed stage results. No old binary
+receipt is relabeled for this union. The coordinator's original regex quiet slot
+actually ended09:14:07; B2's later09:14:14 grant was unused, and no duplicate
+watcher/profile ran. Same thread/PID9528; main only, todo unchanged, no publication
+lease. The initial status/build transport attempt failed PowerShell variable-colon
+parsing before starting work; its corrected retry is the actual build receipt.
+
+Canonical public Linux x64 pin, existing Docker12CPU/24GiB cache, no private
+bootstrap override: native22-step affected build passes34.621018967wall seconds,
+126.799764CPU seconds,791240KiB peak RSS. Query smoke passes.223988928/.245284/
+88152; production editor10.842732078/17.309143/1017292; calibrated backend overlap
+8.158328341/10.461953/529452. The last test independently checks exact objects and
+observes distinct frontend/backend worker threads. These are correctness-run
+measurements with sibling work permitted, not quiet before/after speedup evidence.
+
+The matching78-step address-instrumented closure builds successfully in
+88.595279021/284.792913/745808. Runtime checks are pending at this entry. Generated
+Tower and its selected runtime objects use the existing LLVM19 address pass;
+external LLVM/libc coverage and unsupported undefined-behavior instrumentation
+must not be inferred. The required semantic measured-peak-minus-one Capacity
+regression remains red and is independently reproduced by A1. It is not included
+among passing scoped tests. B1 will run the existing new IdeResourceCheck in its
+next coherent public reactor, preserving that later source identity.
+
+Further read-only foreign audit: backend_text_append silently drops allocation
+failure, so plain and wrapped foreign_symbol results can publish incomplete names.
+foreign_fail can lose its own error allocation; foreign_copy and foreign_node can
+lose ownership after vector insertion failure, and clone consumers can dereference
+null. These are source findings, not yet successful fault-reproduction receipts.
+Reuse the existing serial foreign_tool_checks entry and its actual runtime binder;
+the initially proposed new frontend selector was withdrawn after caller review.
+Retain independent pinned foreign-symbol expected bytes and derive denial bounds
+from successful allocation counts. Do not classify a broad mangler audit as closed
+by a late output-append test. Current source remains frozen for sanitizer execution.
+
+Phase correction from A1's actual debugger trace: the measured-peak-minus-one
+Capacity regression fails in frontend_compile_sources BEFORE semantic_compile.
+The parser session reports Memory and replacement-preparation storage text; the
+module graph has no typed cause. Earlier B2 wording that attributed this later
+peak to a semantic producer was an inference from the final receipt and was
+incorrect. Preserve the negative oracle and historical failed logs; B1 now owns
+localizing the exact replacement producer. No semantic weakening or shared-file
+patch follows from this corrected attribution. Coordinator authorization for a
+new foreign selector is unnecessary after finding the existing owned tool fixture.
+D2 also identified unbounded standalone linker world/graph/pool construction in
+Wasm, ELF and PE; an explicit shared-budget contract, including legacy null and
+outer/nested admission, remains required. Output guest limits do not bound host
+linker storage. No claim that the cancellation repair closed that accounting gap.
+
+ROOT351 scoped instrumentation completed with every launched child drained.
+ASan/LSan (wall seconds / CPU seconds / peak RSS KiB): constructor plus serial
+allocation19.045820232/18.961458/791856; serial editor103.829731594/103.040369/945964;
+production editor82.564435944/135.489329/1184720; backend API.071854068/.062275/103040;
+calibrated distinct-thread backend overlap62.241384622/83.291345/1060684. Exact
+objects and cleanup oracles remain unchanged. No race coverage is inferred from
+the deliberately serial fault allocator.
+
+Matching71-step TSan build passes51.672332606/183.856581/790192. Docker's known
+pre-main personality restriction requires the established Ubuntu WSL path with
+cpuset12-23, matched binary hashes and TSAN_OPTIONS=halt_on_error=1. Actual query
+smoke1.251500503/1.254871/141920, production editor211.465607978/364.249535/1459788,
+backend API.108875994/.086515/103240 and calibrated overlap150.300629867/201.987925/
+1256732 all pass. Editor finished within its240second bound; no timeout was hidden.
+The overlap selector checks actual distinct threads and exact objects. TSan covers
+the generated Tower/runtime closure, not upstream LLVM/libc internals, and passing
+samples are not proof of universal race freedom. No supported Tower UBSan pass is
+configured. Current IDE reactor, complete byte accounting, parser Capacity repair,
+clean generation/publication and hosted verification remain open.
+
+During the runtime freeze only the independent foreign_tool_checks fixture was
+extended; neither binary nor loaded language-resource inputs changed. Its first
+compile/reproduction is still pending. Complete B1 regex historydce8b719 bundle
+hashaf8973d8 is verified/fetched but not yet merged; none of these351 receipts
+validate that later union. All performance comparisons remain the earlier quiet
+constructor/import experiments with their exact source identities.
