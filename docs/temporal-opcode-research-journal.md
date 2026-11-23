@@ -95707,3 +95707,5 @@ compiler/library/host context unchanged. New packaging/fault fixtures and owner
 receipts remain outside this finite review; no source census or runtime rerun.
 R1 remains an unexecuted source-confirmed i1 recheck defect for ROOT/L2. Diff
 checks pass, todo unchanged, no owned job/lock; normal main push follows.
+
+B2 a06 shared adoption reconciliation: e71956ab preserved through e563167f with upstream e637ba38. LaterWindows/nativefixture additions alterallfilesresources, explicitlyexcluded fromfrozena18/1190files JSON9467a903; no testedsource relabel.146host/script/test hashes andbothinstalledsharedartifacts stillmatch; selectedproductionclosure unchanged. CompleteNode3/browsernormal3/ownership9 passingevidence reused withoutrepeat. No build/productionedit/deployment. Ownedjobsdrained; normalpush follows.

@@ -145,3 +145,13 @@ prior bundle, frozen source archive, hashes verified again after all runs, impor
 inventory, exact wrappers/commands, Node phases/worker IDs, TAP log, both browser
 JSON reports and boundary/error events. ROOT's original supplied directory remains
 unchanged; no hosted runtime publication was performed.
+
+Publication reconciliation: receipt `e71956ab` is preserved through complete-history
+merge `e563167f984a3041d80d423c5705c16045a20989` with published `e637ba38`.
+Incoming Windows/native gate fixtures and their documentation are excluded from
+this frozen resource snapshot; they change the all-files resource inventory and
+are not relabeled as tested a18 inputs. Browser/Node host files, selected test
+transport, compiler/host/library producers and installed Wasm remain unchanged;
+all146 host hashes and artifact hashes verify again after merging. The successful
+frozen evidence is reused without another matrix or browser trial. Jobs remain
+drained; ROOT retains later-source/static/publication acceptance.
