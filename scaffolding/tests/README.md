@@ -1066,6 +1066,9 @@ It uses the serial fault allocator; it does not test production worker overlap.
 The same parser selector checks forest descriptor, child-index and traversal
 storage: exact Capacity/Memory results, observed growth boundaries, preserved
 receipts and entity ownership, then successful retries and final cleanup.
+Attachment trials also require exact Busy for pinned owners, Invalid for self
+attachment, and Memory from a real relationship allocation denial after the
+traversal stack has been prepared, preserving the leaf through every retry.
 Prewarmed match storage exercises forest growth through ordinary and specialized
 recognizers without duplicating a vector's capacity policy.
 
@@ -1211,6 +1214,16 @@ compares copied parser/provenance data, and checks reference and byte ownership
 after discarding partial destinations. This selector requires serial allocator
 transport; real parallelism is tested separately by query and unit-overlap runs.
 
+`entity_attach_leases.tower` includes replacement/removal of leased children.
+`entity_mutation_results.tower` additionally checks exact invalid, pinned/leased,
+retain-overflow, empty-parent and successful ownership-transfer results. Valid
+replacement/removal must succeed with the next allocation denied and leave the
+allocation count unchanged. `entity_child_transfer_profile.tower` measures the
+same valid replace/take/reattach sequence for small/large iteration counts, checks
+ordered identity/reference counts and final disposal, and is a measurement tool
+rather than a default test. Shared containment publication is serial; this
+microbenchmark does not claim worker scaling or total-heap accounting.
+
 Source-proof admission and ordered callback-signature publication have focused
 production-provider targets:
 
@@ -1248,13 +1261,3 @@ It uses ordinary source initialization; native `SOURCE` objects explicitly selec
 object emission. The manual capacity profile and argument oracle require the
 actual allowed capacity and are not default tests. Tests that deliberately require
 four physical worker slots need at least four allowed CPUs; preserve those oracles.
-
-`entity_attach_leases.tower` includes replacement/removal of leased children.
-`entity_mutation_results.tower` additionally checks exact invalid, pinned/leased,
-retain-overflow, empty-parent and successful ownership-transfer results. Valid
-replacement/removal must succeed with the next allocation denied and leave the
-allocation count unchanged. `entity_child_transfer_profile.tower` measures the
-same valid replace/take/reattach sequence for small/large iteration counts, checks
-ordered identity/reference counts and final disposal, and is a measurement tool
-rather than a default test. Shared containment publication is serial; this
-microbenchmark does not claim worker scaling or total-heap accounting.
