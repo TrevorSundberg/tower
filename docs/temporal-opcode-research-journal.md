@@ -47985,3 +47985,44 @@ imported work_vector file; remove only that blank line before committing. This
 is a whitespace-only difference from the tested raw source hash, not a new
 allocator algorithm or a relabeled exact-build receipt. Final clean merged builds
 will establish the release source identity; all measured pre-trim hashes remain.
+
+### L2 real clone-worker transport and cancellation receipt
+
+Extract fixture syntax construction, production generic registry/header calls,
+number formatting and exact ordered metadata/definition-use checks into
+ tests/generic_clone_fixture.tower. Both serial storage and the new
+ generic_clone_parallel.tower use that single fixture. The existing native
+lr_work_main adds only one import and one call under all/query-smoke; registration
+is announced through D1/root coordination. No new runner or compiler API is added.
+
+Native tests use the actual compiler_generic_body_kernel through the existing
+work_pool_open_kernel and compiler_kernel_dispatch_admitted. One world owns all
+instances, an immutable synchronized budget, graph tickets with the production
+layout/type-index reads and per-instance writes, private stages and an input view.
+A barrier requires distinct native execution threads. Monotonic intervals around
+the actual kernel exclude the barrier and must overlap for parallel success and
+cancellation cases. Joining precedes stage_hold for every stage, view closure,
+ordered publication/discard, and finally ticket completion/lane release. Cases
+cover1/2/4 lanes, cancellation of all outputs and a failed node-limit peer beside
+successful jobs. Completed/cancelled tickets cannot publish again; discarded
+stages preserve node/component counts and every world/byte/lane owner is released.
+
+All three smallest public-pin test units initially compile, but composed LR link
+fails because the isolated runner does not include CLI driver_clock. Drain39955
+and preserve clone_parallel_missing_clock_*; reuse the runner's existing
+backend_units UnitStreamTime/clock_gettime nominal ABI instead of adding a new
+clock export or duplicate foreign record. The production native runner already
+uses that POSIX boundary; this test does not add it to portable execution.
+
+Corrected build and three serial-storage/native-query pairs pass. Query processes
+are each0.08s wall/0.08s CPU, RSS61056/62260/60352KiB. Native clone physical peaks
+are416/832/1664 bytes at1/2/4 lanes,1664 for four-lane cancellation and1248 with one
+failed peer. These are transient frame grants, not total cloned entity storage.
+Distinct-thread/interval assertions establish real overlap, not speedup or race
+freedom for all schedules. Serial wide/deep kernel allocation counts remain
+783/2434 after the fixture extraction, with all original failure checks intact.
+Compiler SHA37db021e remains exactly unchanged; new storage78189232 and LR06c147f6
+reflect test-only changes. Source hashes match through session18374 drained0.
+The complete type/paired profile receipt therefore remains applicable to the
+unchanged compiler. Final supported instrumentation of these new concurrency
+checks and public synchronous clone denial propagation remain outstanding.

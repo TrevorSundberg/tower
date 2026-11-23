@@ -615,3 +615,14 @@ explicitly outside the first cap pending fallible module-cache propagation;
 root requires closing this before acceptance. Real clone-worker overlap/cancel,
 merged resource-error handling, supported compiler instrumentation and leased
 public-bootstrap/deployment closure remain active work.
+
+The added generic_clone_fixture.tower owns only synthetic input construction and
+shared exact provenance checks around real production APIs. generic_clone_parallel
+uses one explicit world, frozen shared byte/lane ledger, private stages and real
+production allocator/worker transport. Three runs confirm distinct native threads
+with overlapping kernel intervals,1/2/4lane results, all-output cancellation,
+failed-peer cleanup, stale-ticket rejection and zero final grants. The extracted
+serial fixture preserves783/2434 allocation counts and denial assertions. The
+compiler hash remains37db021e; these test additions need final instrumented stress,
+not another relabeled compiler-performance claim. Their native POSIX clock uses
+the existing runner's nominal ABI; no portable execution dependency is added.

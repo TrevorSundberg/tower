@@ -1,22 +1,11 @@
 import tower;
 import .compiler.generic_body_types;
-import .compiler.format_api;
-import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
+import generic_clone_fixture;
 import storage_api;
 import utility_checks;
 
-extern fn compiler_world_create_workers(limit: usize): void*;
-extern fn compiler_world_store(world: void*): void*;
-extern fn compiler_world_dispose(world: void*): bool;
-extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
-extern fn entity_create(store: void*): void*;
-extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
-extern fn entity_release(node: void*): usize;
-extern fn entity_child_count(node: void*): usize;
-extern fn entity_child_at(node: void*, index: usize): void*;
-extern fn entity_member_index(node: void*, name: u8*): usize;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
 extern fn entity_view_open(anchor: void*): void*;
@@ -25,15 +14,7 @@ extern fn entity_stage_open(anchor: void*): void*;
 extern fn entity_stage_hold(stage: void*): void;
 extern fn entity_stage_publish(stage: void*): bool;
 extern fn entity_stage_discard(stage: void*): void;
-extern fn generic_begin(root: void*): void*;
-extern fn generic_register(context: void*, definition: void*): u32;
-extern fn generic_parameter_count(context: void*, definition: void*): usize;
-extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
-extern fn generic_instantiate_deferred(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
-extern fn generic_body_pending(context: void*, node: void*): bool;
 extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
-extern fn generic_origin(context: void*, node: void*): void*;
-extern fn generic_definition(context: void*, node: void*): void*;
 extern fn compiler_generic_body_kernel(payload: void*): void;
 
 var GenericCloneBudgetBytes: usize = 131072;
@@ -41,69 +22,27 @@ var GenericCloneInitialFrames: usize = 16;
 var GenericCloneFrameWords: usize = 3;
 var GenericCloneHeaderWords: usize = 4;
 
-fn generic_clone_number(value: usize): void {
-    var text: FormatResult = default;
-    defer format_dispose(&text);
-    var formatter: FormatEngine = { result: &text, ..default };
-    format_unsigned(&formatter, convert(u64, value));
-    utility_check(!text.failed && vector_push(&text.text, 0), "Clone measurement text");
-    puts(text.text.data);
-}
-
-fn generic_clone_child(store: void*, parent: void*, label: u8*, role: u8*, start: usize): void* {
-    var child = entity_create(store);
-    utility_check(child != null, "Clone fixture child allocation");
-    var span = parser_match_create(child);
-    span.start = start;
-    span.length = 1;
-    utility_check(node_match_set_label(span, label) && entity_attach(child, parent, role), "Clone fixture named child");
-    entity_release(child);
-    return child;
-}
-
 // The production registry and deferred-header API create the actual instance.
 // Only fixture syntax is synthetic; no second clone implementation is compared.
 fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool, short_limit: bool,
     budgeted: bool, deny_growth: bool): void {
     var buffers = tower_test_buffer_count();
     var budget: WorkBudget = default;
-    var world = compiler_world_create_workers(1);
-    utility_check(world != null, "Clone fixture world");
     if budgeted {
-        utility_check(work_budget_init(&budget, 1, GenericCloneBudgetBytes, 1)
-            && compiler_world_bind_budget(world, &budget), "Clone world freezes its physical budget");
+        utility_check(work_budget_init(&budget, 1, GenericCloneBudgetBytes, 1), "Clone fixture byte budget");
     }
-    var store = compiler_world_store(world);
-    var root = entity_create(store);
-    utility_check(root != null, "Clone fixture root");
-    var context = generic_begin(root);
-    var definition = generic_clone_child(store, root, "CoreFunction", null, 0);
-    var parameters = generic_clone_child(store, definition, "Parameters", "params", 0);
-    var parameter = generic_clone_child(store, parameters, "CoreParameter", null, 0);
-    var annotation = generic_clone_child(store, parameter, "type", "type", 0);
-    parser_match_create(annotation).rule = ~convert(usize, 0);
-    var body = generic_clone_child(store, definition, "CoreBlock", "body", 0);
-    for(var branch: usize = 0; branch < width; branch++) {
-        var cursor = body;
-        for(var level: usize = 0; level < depth; level++) {
-            cursor = generic_clone_child(store, cursor, "CloneLeaf", level == 0 ? null : "next", branch * depth + level + 1);
-        }
-    }
-    generic_register(context, definition);
-    utility_check(generic_parameter_count(context, definition) == 1 && generic_type_parameter(context, definition, 0),
-        "Clone fixture ordinary generic parameter");
-    var argument = generic_clone_child(store, root, "Argument", null, 0);
-    var instance = generic_instantiate_deferred(context, definition, definition, &argument, 1);
-    utility_check(instance != null && generic_body_pending(context, instance), "Clone fixture deferred instance");
-    var destination = entity_child_at(instance, entity_member_index(instance, "body"));
-    utility_check(destination != null && entity_child_count(destination) == 0, "Deferred header leaves body empty");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, width, depth, 1, budgeted ? &budget : null);
+    var store = fixture.store;
+    var instance = generic_clone_fixture_instance(&fixture);
+    var destination = generic_clone_fixture_body(instance);
     var nodes = entity_store_count(store);
     var components = entity_store_component_count(store);
-    var stage = entity_stage_open(root);
-    var view = entity_view_open(root);
+    var stage = entity_stage_open(fixture.root);
+    var view = entity_view_open(fixture.root);
     utility_check(stage != null && view != null, "Clone fixture stage and input view");
     var count = width * depth;
-    var request: GenericBodyCopy = { context: context, node: instance, stage: stage,
+    var request: GenericBodyCopy = { context: fixture.context, node: instance, stage: stage,
         limit: short_limit ? count - 1 : count, budget: budgeted ? &budget : null, ..default };
     var occupied: WorkReservation = default;
     if deny_growth {
@@ -129,24 +68,8 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
     } else {
         utility_check(request.success && request.copied == count && request.storage_error == WorkBudgetError.None
             && entity_stage_publish(stage), "Clone success publishes exact node count");
-        generic_body_complete(context, instance, request.copied);
-        utility_check(!generic_body_pending(context, instance) && entity_child_count(destination) == width, "Clone publication marks instance ready");
-        for(var branch: usize = 0; branch < width; branch++) {
-            var cursor = entity_child_at(destination, branch);
-            var source = entity_child_at(body, branch);
-            for(var level: usize = 0; level < depth; level++) {
-                utility_check(cursor != null, "Cloned branch retains full depth");
-                var span = parser_match_create(cursor);
-                utility_check(span.start == branch * depth + level + 1 && strcmp(span.label.data, "CloneLeaf") == 0,
-                    "Cloned branch preserves ordered metadata");
-                utility_check(generic_origin(context, cursor) == definition && generic_definition(context, cursor) == source,
-                    "Cloned branch preserves exact declaration and use provenance");
-                if level + 1 < depth {
-                    cursor = entity_child_at(cursor, entity_member_index(cursor, "next"));
-                    source = entity_child_at(source, entity_member_index(source, "next"));
-                }
-            }
-        }
+        generic_body_complete(fixture.context, instance, request.copied);
+        generic_clone_fixture_check(&fixture, instance);
         puts("Generic clone: width, depth, copied nodes, serial allocator calls during kernel");
         generic_clone_number(width); generic_clone_number(depth);
         generic_clone_number(request.copied); generic_clone_number(allocations);
@@ -160,8 +83,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
         puts("Generic clone physical budget: peak bytes including replacement overlap");
         generic_clone_number(released.peak_bytes);
     }
-    entity_release(root);
-    utility_check(compiler_world_dispose(world), "Clone fixture world teardown");
+    generic_clone_fixture_close(&fixture);
     if budgeted { utility_check(work_budget_dispose(&budget), "Clone budget outlives the world"); }
     utility_check(tower_test_buffer_count() == buffers, "Clone fixture releases all allocations");
 }
