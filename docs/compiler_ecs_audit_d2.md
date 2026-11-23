@@ -1734,3 +1734,90 @@ imports remain recorded failures, not passes. New policy changes no scheduler,
 world/payload ownership, supported target or source language. Common compiler
 before/after profiles and final merged instrumentation/browser/generation remain
 separate gates.
+
+### Joined grammar/Publish measurements and exported units (2026-11-23)
+
+Compared immutable6b8355b compiler509facfd/48 resources with406d1709
+compiler1a9476d0/49 resources. The difference includes B1 grammar accounting,
+A2 arena linkage and A1 Publish scratch; it does not isolate the five import
+lines or one owner's algorithm. Same public predecessor9653, Docker base4be584fb,
+SteamDeck x64, CPUs0/2, Release, explicit --jobs1/2, --emit object, --timings,
+complete adjacent resources. Bedrock/Foundation/syntax/types/Tower/vector bytes
+match. Inputs are frozen16/1000-function reference programs plus unchanged
+known_bindings/body_continuation fixtures. Link separately using public9653 and
+common runtimec4dec12e; every executable matches15/999/0/0. Warm filesystem,
+fresh processes, one warmup and three alternating measured pairs; not OS-cold.
+All64 compile/link/output runs, repeated objects, cross-version objects and
+serial/parallel objects pass. Phase logs and full GNUtime metrics are preserved
+under build/d2_ecs/publish_profiles_406d; interval02:34:24–02:38:04UTC.
+
+Medians below are wall/CPU seconds and peak RSS KiB; each column's median is
+computed independently. Keep the ranges/raw files because three samples show
+substantial timing variance.
+
+| Input | Jobs | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | ---: | --- | --- |
+| small16 | 1 | 2.10 / 2.08 /184944 | 2.23 /2.20 /184120 |
+| small16 | 2 | 3.54 /4.05 /196456 | 3.61 /4.11 /194948 |
+| large1000 | 1 | 2.40 /2.37 /212912 | 2.45 /2.42 /210564 |
+| large1000 | 2 | 3.54 /4.15 /225640 | 4.00 /4.39 /224340 |
+| known_bindings | 1 | 2.13 /2.11 /186420 | 3.63 /3.53 /185032 |
+| known_bindings | 2 | 3.49 /4.00 /197000 | 3.59 /4.08 /195116 |
+| body_continuation | 1 | 2.37 /2.33 /198884 | 2.38 /2.35 /197664 |
+| body_continuation | 2 | 3.53 /4.04 /210400 | 3.66 /4.18 /207888 |
+
+Investigated apparent known-value regression instead of reporting the median
+alone. Before serial known spans2.10–5.86s, after2.39–4.58s; the slow before
+sample spends5.600s in parse/check versus1.878s in its fast sample, with CPU
+5.67 versus2.07s, zero major faults/swaps and nearly identical minor faults/RSS.
+Other serial inputs also have large CPU-time outliers. Powersave governor was
+unchanged; an idle snapshot showed CPU0 at1.55GHz and CPU2 at3.50GHz. This suggests
+host placement/frequency sensitivity but does not establish a sole cause.
+
+A bounded follow-up pins both versions to CPU2, same immutable inputs/resources,
+explicit jobs1, one warmup plus five alternating pairs. All24 new objects match
+the already executed/checked references. No compiler rebuild, new oracle or
+system frequency setting. Known medians become2.09/2.07s/186556KiB before and
+2.15/2.13s/185072KiB after (wall ranges2.08–2.12 and2.11–2.17). Large becomes
+2.40/2.38s/212968KiB versus2.45/2.42s/210576KiB (2.37–2.45 and2.41–2.47).
+The apparent70% known slowdown is not reproduced; residual joint-source cost is
+about2–3%, not zero. RSS falls about1.5/2.3MiB; no excessive memory growth is seen
+on these inputs. Separate successful query fixtures check joined scratch/grant
+retirement, but CLI RSS is not a complete allocation/retention census.
+
+Two workers remain unprofitable on these modest single-unit workloads. The
+three-sample large/two-worker median rises about13%; variability and the shared
+source delta prevent sole attribution. Native production-unit/backend checks
+separately establish real distinct-thread overlap; they do not turn this CLI
+matrix into a useful scaling result. Earlier independent C-like reference inputs
+and Clang19.1.1/GCC13.3.0 receipts remain unchanged, with their exact semantics,
+flags, builtin-type/grammar and optimization differences. No cross-language
+superiority, new C timing, per-worker idle/critical-path or all-core claim.
+
+The newly merged D1 ledger target builds/runs through its existing serial fault
+profile. The existing compiler_project_units fixture exports actual entities and
+evaluation depfile closures. New semantic_known_publish and work_arena_api bytes
+match source; recompiled exported entities/evaluation native objects and
+exported evaluation WASI object match all three actual original objects exactly.
+No new manifest/tool logic. Logs: provider_package_134b. Browser entry mappings
+remain deliberately browser-specific; native interpreter objects were not
+misrepresented as browser build recipes. This is source-closure/object evidence,
+not complete reactor linking or a final generation/hosted release.
+
+Reviewed D1's8f46c466 backend observer/calibrated selector after all D2 processes
+drained, then merged as c734364b. The test uses checked monotonic nanoseconds,
+private trace buffers, one already-required serial frontend baseline and a
+frozen max30s/baseline frontend wait; backend acknowledgement stays30s. Ordinary
+selector/default workload and object/distinct-thread oracle remain. Its new
+runtime/instrumentation belongs to the current D1/B2/L1 receipt; the preserved
+406d binary and normal16.26s backend result do not validate new test code.
+
+The authorized future WorkPool serial-provider patchcdb2c027 changes only the
+existing generated serial entry to import work_dispatch plus portable transport.
+It remains an external draft pending the complete A2 API/constructor closure.
+Separate multi-object test clients need declarations, while same-object combined
+imports deduplicate normally. Exporting default-kernel pool wrappers can create
+an unwanted work_kernel_execute dependency for unrelated serial fixtures; this
+concrete link hazard was routed to A2/root. No dummy callback or alternate pool
+was added. Final current instrumentation, clone-overlap correction, portable/
+browser/generation and leased atomic publication remain open.

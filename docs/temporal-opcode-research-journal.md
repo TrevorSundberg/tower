@@ -60435,3 +60435,55 @@ only its native leaf so far. Await B2 ordinary runtime before any instrumented
 use per root. Upcoming normal/calibrated receipts must identify source and bound;
 previous normal TSan timeout134 remains failed. Hook/runtime measurements and
 final coherent sanitizer/browser/generation/publication evidence remain open.
+
+### D2 fixed-input performance, source closure and slot handoff (2026-11-23)
+
+Completed64 checked before6b509fac/after406d1a9476 CLI runs on frozen small16,
+large1000, known_bindings and body_continuation inputs: one warmup plus three
+alternating pairs, jobs1/2 on Deck CPUs0/2. All outputs15/999/0/0, repeated,
+cross-version and serial/parallel object bytes match. Complete49-resource after
+package matches the expected Tower-file set and source bytes. Wall/CPU/RSS table,
+commands/host/flags, exact resources and limitations are in the D2 audit and
+publish_profiles_406d logs. Reference C/toolchain inputs remain unchanged; no
+new C measurement or universal speed claim. Two workers are still slower here.
+
+Serial known median2.13->3.63s was investigated: both versions have large real
+CPU/parse outliers with unchanged memory/fault counts and zero child swaps.
+Powersave/placement was a plausible sensitivity, not a proven cause. An unchanged
+CPU2-only follow-up, warmup+five pairs, produces24 byte-identical objects; known
+medianwall2.09->2.15s, CPU2.07->2.13, RSS186556->185072KiB; large2.40->2.45,
+CPU2.38->2.42, RSS212968->210576. Thus the apparent70% known slowdown does not
+reproduce under fixed affinity; residual2–3% joint grammar/Publish change remains,
+not a neutrality claim. Keep original samples and two-worker large median+13%
+uncertainty. No compiler/world mutation, power setting change or parallel build
+occurred during measurements. CLI RSS is distinct from all physical allocations.
+
+Current406d remaining runtime also passes units46.80wall/64.19CPU/756164KiB and
+backend16.26/22.35/523608 with exact objects/distinct workers. Initial query134
+is still the unresolved clone interval assertion. Successful later query/Pub22/
+resource24 cases do not erase it. All compiler builds use public9653 and no private
+override. The late policy change passes regression/12 actual production import
+reports and11-definition ASan. Its check-only allocator imports remain rejected.
+
+Merged root0c as134b after checking only D1 ledger registration/docs differed
+from406d; production compiler bytes unchanged. Built the new ledger target and
+ran it successfully. Existing compiler_project_units exports actual entities/
+evaluation source closures, including exact new helper/API files. Independent
+native entities/evaluation and WASI evaluation objects all match their original
+build bytes; logs provider_package_134b. This is not a full browser generation.
+
+Every owned child drained, Docker showed only init/sleep, and D2 released the
+heavy lock normally to D1 at the actual external release receipt. Preserved
+406d LR binarybe56164e and raw normal backend receipt in D2/lr_406d_baseline for
+D1's equivalent caller comparison. Disk138GiB free/RAM9.2GiB available, existing
+host swap6.9GiB; measured children zero swaps. No generated cleanup was needed.
+
+After drain, reviewed/fetched D1 bundle9bb3ecd2 and merged8f46c466 as c734364b,
+preserving own policy and all history. New observer/calibrated test runtime is
+pending D1's current checks, not relabeled406d evidence. Prepared root-authorized
+external WorkPool serial-provider patchcdb2c027 (one existing CMake entry import),
+not adopted before matched A2 API/constructor source. Routed callback dependency
+and separate-provider hazards; no competing implementation. Goal remains active:
+whole current sanitizer/stress, clone-overlap correction, further checked owner
+allocation/dispatch work, clean final public/native/browser/generation and leased
+atomic source/Pages publication with hosted verification are not complete.
