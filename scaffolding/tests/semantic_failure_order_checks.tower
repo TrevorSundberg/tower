@@ -187,10 +187,54 @@ fn failure_order_trial(width: u32, workers: usize, mode: FailureOrderMode, resou
     return failures;
 }
 
+fn failure_order_clone_trial(width: u32, workers: usize): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    sem_evaluation_begin(&context);
+    var proof = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownProof), 0);
+    var ticket: WorkTicket = default;
+    sem_require(work_seal(&context.queries, proof) && work_demand(&context.queries, proof)
+        && work_take_task(&context.queries, &ticket, proof) && work_finish(&context.queries, &ticket, true));
+    var first = failure_order_stage(&context, 83, false, false, 0);
+    var second = failure_order_stage(&context, 11, false, false, 0);
+    foreach(var job in &context.evaluation_jobs) {
+        var result = bits(SemanticEvaluation*, job);
+        result.inferred = true;
+        var clone = work_request(&context.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
+        sem_require(clone != 0 && work_depend(&context.queries, clone, proof));
+    }
+    // This is an ordinary compiler component limit. Clone allocation remains
+    // valid, but the first generated Foundation node exceeds the input limit.
+    context.node_limit = context.count;
+    sem_evaluation_clone_all(&context);
+    failure_order_check(first.error.length != 0 && second.error.length != 0
+        && program.error.length != 0 && program.error_offset == first.error_offset
+        && sem_equal(program.error.data, first.error.data) && program.resource.error == WorkBudgetError.None,
+        "Direct clone owner selects retained failure before attempting its snapshot ticket", &failures);
+    failure_order_check(context.workers.running == 0 && !first.started && !second.started,
+        "Failed cloning joins all stage owners without starting evaluation", &failures);
+    var count = context.count;
+    sem_evaluation_clone_all(&context);
+    failure_order_check(context.count == count, "Repeated failed clone ownership cannot replay generated nodes", &failures);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    failure_order_check(compiler_world_dispose(world), "Failed clone frontier retires its generated stage ownership", &failures);
+    return failures;
+}
+
 export fn main(): i32 {
     var failures: u32 = 0;
     for(var width: u32 = 4; width <= 8; width += 4) {
         for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += failure_order_clone_trial(width, workers);
             failures += failure_order_trial(width, workers, FailureOrderMode.Reversed, false);
             failures += failure_order_trial(width, workers, FailureOrderMode.Deferred, false);
             failures += failure_order_trial(width, workers, FailureOrderMode.EarlierSuccess, false);

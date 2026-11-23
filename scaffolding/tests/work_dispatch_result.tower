@@ -4,8 +4,8 @@ import .library.work_pool;
 import .library.work_budget_types;
 import .host.memory;
 
-// Linux test composition links the ordinary transport as a separate object
-// with --wrap=work_signal_open. Only the coordinator opens signals. The fault
+// Linux test composition binds this wrapper and the separate ordinary transport
+// through runtime_bind. Only the coordinator opens signals. The fault
 // affects one host semaphore request; allocation and all workers stay real.
 extern fn __real_work_signal_open(): void*;
 var DispatchFailSignal: bool;

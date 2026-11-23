@@ -13,6 +13,8 @@ import .compiler.lr_parser;
 import .compiler.lr_tree;
 import .compiler.parser_stream;
 import .library.vector;
+import .library.work_budget_types;
+import utility_checks;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
@@ -30,9 +32,9 @@ fn parser_test_streams(): usize {
     bytes[5] = 143;
     bytes[6] = 176;
     var begin = &bytes[0];
-    var end = begin + 7;
+    var end = begin + sizeof(decltype(bytes));
     var stream = parser_stream_utf8_create(begin, end);
-    fill(begin, 120, 7);
+    fill(begin, 120, sizeof(decltype(bytes)));
     var id: u32 = 0;
     var start: usize = 0;
     var length: usize = 0;
@@ -74,7 +76,10 @@ fn parser_test_streams(): usize {
     if stream is null { return 800; }
     parser_stream_read(stream, &id, &start, &length);
     ok &&= id == ParserStreamEnd;
-    ok &&= format_name_is(&stream.error, "Unable to allocate UTF-8 stream source");
+    ok &&= parser_stream_resource_error(stream) == WorkBudgetError.Memory;
+    ok &&= parser_stream_get_error(stream)[0] != 0;
+    parser_stream_read(stream, &id, &start, &length);
+    ok &&= id == ParserStreamEnd && parser_stream_resource_error(stream) == WorkBudgetError.Memory;
     parser_stream_destroy(stream);
     // Invalid/truncated input remains stable EOF, matching the existing decoder.
     bytes[0] = 240;
@@ -89,6 +94,39 @@ fn parser_test_streams(): usize {
         return 0;
     }
     return 800;
+}
+
+fn parser_test_stream_resource(table: FrontendTable*): void {
+    var buffers = tower_test_buffer_count();
+    var input = parser_stream_utf8_null_terminated_create("ab");
+    var request = parser_request_create(table.runtime, null, input, false, false);
+    var outer = parser_stream_recognizer_create(bits(void*, request));
+    utility_check(input is not null && request is not null && outer is not null, "Resource forwarding fixture");
+    parser_stream_resource_fail(input, WorkBudgetError.Capacity);
+    parser_stream_resource_fail(input, WorkBudgetError.Memory);
+    var id: u32;
+    var start: usize;
+    var length: usize;
+    tower_test_buffer_fail_after(0);
+    var node = parser_stream_read(outer, &id, &start, &length);
+    tower_test_buffer_fail_after(lr_none());
+    utility_check(node is null && id == ParserStreamEnd && request.complete
+        && parser_recognizer_resource_error(request) == WorkBudgetError.Capacity
+        && parser_stream_resource_error(outer) == WorkBudgetError.Capacity,
+        "Nested streams retain first producer cause without diagnostic allocation");
+    utility_check(parser_stream_get_error(outer)[0] != 0 && parser_recognizer_get_error(bits(void*, request))[0] != 0,
+        "Denied stream and recognizer provide fixed diagnostics");
+    parser_stream_destroy(outer);
+    parser_recognizer_destroy(request);
+    parser_stream_destroy(input);
+    input = parser_stream_create(0, ParserInputService.Empty);
+    tower_test_buffer_fail_after(0);
+    parser_stream_set_error(input, "ordinary diagnostic");
+    tower_test_buffer_fail_after(lr_none());
+    utility_check(parser_stream_resource_error(input) == WorkBudgetError.Memory,
+        "Diagnostic copy denial is a typed resource error");
+    parser_stream_destroy(input);
+    utility_check(tower_test_buffer_count() == buffers, "Forwarded stream failure releases all storage");
 }
 
 fn parser_test_request(table: FrontendTable*, kinds: FrontendKinds*): usize {
@@ -201,6 +239,7 @@ fn parser_state_tests(kinds: FrontendKinds*): usize {
     if !ok {
         abort();
     }
+    parser_test_stream_resource(&table);
     result = parser_test_request(&table, kinds);
     failed = result != 0;
     if !failed {

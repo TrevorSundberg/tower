@@ -3,6 +3,8 @@ import compiler_buffer_owner;
 import compiler_work_owner;
 import frontend_world;
 import frontend_session_world;
+import frontend_syntax_version;
+import frontend_template_build;
 import frontend_units_allocation;
 import backend_execution_index;
 import editor_world;
@@ -35,6 +37,12 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     if argc == 3 && strcmp(argv[2], "editor") == 0 {
         editor_world_tests(argv[1]);
+        return 0;
+    }
+    if argc == 3 && strcmp(argv[2], "grammar-resource") == 0 {
+        frontend_syntax_version_tests();
+        frontend_syntax_construction_tests();
+        frontend_template_build_tests();
         return 0;
     }
     if argc == 3 && strcmp(argv[2], "parser") == 0 {
