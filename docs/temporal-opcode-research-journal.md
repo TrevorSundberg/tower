@@ -82297,3 +82297,12 @@ pairs repeated; previous timing retains its frozen pre-merge source identity.
 Session30917 drained0; container only init. Logs and current hashes are
 build/ecs_b1/cache_iteration/merged_*. Final receipt/audit changes are documentation
 only; no runtime profiling applies to those edits. Normal main push follows.
+
+A1 push retry1: publication advanced to B1's68f89640 grammar observer/world
+metadata and symbol-policy changes. Merge34efb4f9 preserves both full histories.
+The16-action affected dependency build passed; all46 focused trials, query/
+control smoke, LR overlap and both worker settings' exact execution/canonical/
+roundtrip checks pass again. Final compiler SHA256
+eedacb33b30ba50f1940f2cbc3a6866d248e40c773f55bf83907bb5a008087ef.
+Logs A1/cache/a1_staging_retry1_*, sessions3352/55673 reaped0. Frozen earlier
+profiles reused only for their original inputs. No broad or release matrix run.
