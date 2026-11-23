@@ -31,6 +31,7 @@ fn generic_step(a: GenericAnalysis*, depth: usize): bool {
 
 fn generic_view(a: GenericAnalysis*, annotation: void*, bindings: GenericBinding*): GenericInfo* {
     var result = bits(GenericInfo*, sem_allocate(a.context, sizeof(GenericInfo)));
+    if !sem_ok(a.context) { return default; }
     fill(result, 0, sizeof(GenericInfo));
     result.kind = GenericInfoKind.TypeExpression;
     result.annotation = annotation;
@@ -212,6 +213,7 @@ fn generic_primitive(a: GenericAnalysis*, node: void*): void* {
     }
     var name = sem_member(node, "name");
     var found = sem_resolve(a.context, a.context.types, name, sem_identifier(a.context, name));
+    if !sem_ok(a.context) { return default; }
     a.context.program.error.length = 0;
     if a.context.program.resource.error != WorkBudgetError.None { return null; }
     var value = sem_get(found);
@@ -239,6 +241,7 @@ fn generic_record_result(a: GenericAnalysis*, definition: void*): void* {
     }
     meaning.shape_state = GenericShapeState.Unknown;
     var statements = sem_collect(a.context, sem_member(definition, "body"), "Statement");
+    if !sem_ok(a.context) { return default; }
     var record: void* = null;
     var i: usize = 0;
     for(; i < statements.length; i++) {
@@ -283,6 +286,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
         return null;
     }
     var view = generic_view(a, source.annotation, source.bindings);
+    if view == null { return null; }
     generic_normalize(a, view, depth);
     var node = view.annotation;
     // Member access permits exactly one pointer indirection, as sem_location does.
@@ -306,6 +310,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
     }
     if sem_child_count(node) > 1 {
         var definition = sem_resolve(a.context, a.context.type_functions, name, sem_identifier(a.context, name));
+        if !sem_ok(a.context) { return default; }
         a.context.program.error.length = 0;
         if a.context.program.resource.error != WorkBudgetError.None { return null; }
         if definition == null {
@@ -316,13 +321,16 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
             return null;
         }
         var parameters = sem_collect(a.context, sem_member(definition, "params"), "CoreParameter");
+        if !sem_ok(a.context) { return default; }
         var arguments = sem_collect(a.context, sem_member(node, "args"), "CoreTypeArgument");
+        if !sem_ok(a.context) { return default; }
         if parameters.length != arguments.length {
             return null;
         }
         var bindings: GenericBinding* = null;
         for(var i: usize = 0; i < parameters.length; i++) {
             var binding = bits(GenericBinding*, sem_allocate(a.context, sizeof(GenericBinding)));
+            if !sem_ok(a.context) { return default; }
             binding.parameter = parameters.data[i];
             binding.argument = arguments.data[i];
             binding.bindings = view.bindings;
@@ -338,6 +346,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
         }
     }
     var record = sem_resolve(a.context, a.context.types, name, sem_identifier(a.context, name));
+    if !sem_ok(a.context) { return default; }
     a.context.program.error.length = 0;
     if a.context.program.resource.error != WorkBudgetError.None { return null; }
     if sem_is(record, "CoreStruct") {
@@ -353,7 +362,9 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
         return;
     }
     var name = sem_identifier(a.context, sem_member(node, "field"));
+    if !sem_ok(a.context) { return; }
     var fields = sem_collect(a.context, sem_member(record.annotation, "fields"), "CoreField");
+    if !sem_ok(a.context) { return; }
     var field: void* = null;
     foreach(var candidate in fields) {
         if sem_equal(name, sem_identifier(a.context, sem_member(candidate, "name"))) {
@@ -380,6 +391,7 @@ fn generic_element(a: GenericAnalysis*, node: void*, info: GenericInfo*, source:
         return;
     }
     var view = generic_view(a, source.annotation, source.bindings);
+    if view == null { return; }
     generic_normalize(a, view, depth);
     var indexing = info.kind == GenericInfoKind.Index;
     if sem_is(view.annotation, "CoreType") {
@@ -402,6 +414,7 @@ fn generic_element(a: GenericAnalysis*, node: void*, info: GenericInfo*, source:
     }
     var resolved = sem_get(source.resolved);
     var type = sem_type_copy(a.context, &resolved.type);
+    if !sem_ok(a.context) { return; }
     if type.pointers != 0 {
         type.pointers--;
     } else {
@@ -675,6 +688,7 @@ fn generic_format_substitutions(a: GenericAnalysis*, node: void*, bindings: Gene
     }
     if binding != null {
         var result = bits(FormatSubstitution*, sem_allocate(a.context, sizeof(FormatSubstitution)));
+        if !sem_ok(a.context) { return default; }
         result.node = node;
         result.replacement = binding.argument;
         result.nested = generic_format_substitutions(a, binding.argument, binding.bindings, next);

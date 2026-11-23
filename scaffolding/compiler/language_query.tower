@@ -460,6 +460,11 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     var i: usize = 0;
     for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);
+        if entry == null {
+            completion_semantic_failed(q);
+            completion_dispose(q);
+            return null;
+        }
         entry.number = q.bases.data[i];
     }
     var checked = mode == 0;

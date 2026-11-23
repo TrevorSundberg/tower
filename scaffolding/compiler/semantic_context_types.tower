@@ -5,6 +5,8 @@ import .library.work_graph;
 import .library.work_pool;
 import .library.stack;
 import .library.vector;
+import .library.work_arena_types;
+import .library.work_buffer_types;
 
 // Semantic results live on FoundationNode components. Compilation-local lists
 // and scratch below are derived indexes, never another semantic graph.
@@ -19,6 +21,20 @@ struct SemanticTable {
     entries: SemanticEntry**;
     capacity: usize;
     count: usize;
+}
+
+// Private scratch owns both stable slices and resizable list buffers. The
+// descriptor is itself an arena slice, so registering ownership cannot fail.
+struct SemanticScratchList {
+    value: vector(void*);
+    storage: WorkBuffer;
+    next: SemanticScratchList*;
+}
+
+struct SemanticScratch {
+    arena: WorkArena;
+    first: SemanticScratchList*;
+    last: SemanticScratchList*;
 }
 
 struct SemanticScope {
@@ -154,12 +170,14 @@ struct SemanticContext {
     generated: vector(void*);
     template_nodes: vector(void*);
     inferring: vector(void*);
-    allocations: vector(void*);
-    lists: vector(void*);
+    scratch: SemanticScratch;
+    scratch_parent: SemanticContext*;
     // Non-reentrant tree scans reuse scratch storage. Results remain owned by
-    // allocations/lists; no caller receives a pointer into either scratch buffer.
+    // scratch; no caller receives a pointer into either scan buffer.
     scan: stack(void*);
     token_text: vector(u8);
+    scan_storage: WorkBuffer;
+    token_storage: WorkBuffer;
     surface_expressions: bool;
     deferred: void*;
     deferring: usize;

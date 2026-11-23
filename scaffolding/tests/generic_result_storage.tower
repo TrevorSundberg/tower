@@ -14,6 +14,8 @@ import .library.work_budget_types;
 import .library.work_graph;
 import .library.vector;
 import .library.entity_types;
+import .library.work_arena_api;
+import .library.work_arena_types;
 import generic_clone_fixture;
 import storage_api;
 import utility_checks;
@@ -53,10 +55,23 @@ extern fn entity_component_add(node: void*, kind: void*): void*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): u8*;
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+extern fn sem_allocate(context: SemanticContext*, bytes: usize): u8*;
+extern fn sem_list(context: SemanticContext*): vector(void*)*;
+extern fn sem_table(context: SemanticContext*): SemanticTable*;
+extern fn sem_state(context: SemanticContext*, table: SemanticTable*, node: void*): SemanticEntry*;
+extern fn sem_push_checked(context: SemanticContext*, list: vector(void*)*, node: void*): bool;
+extern fn sem_find(table: SemanticTable*, text: u8*, node: void*): SemanticEntry*;
+extern fn sem_defer_clone(context: SemanticContext*, parent: void*, original: void*, clones: SemanticTable*, nodes: vector(void*)*): void*;
+extern fn sem_defer_exit(context: SemanticContext*, node: void*, flow: u32): u32;
+extern fn sem_control_local(context: SemanticContext*, block: void*, initial: void*): void*;
+extern fn sem_control_read(context: SemanticContext*, parent: void*, local: void*): void*;
+extern fn sem_lift_value(context: SemanticContext*, block: void*, node: void*): void*;
+extern fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, node: void*, output: SemanticEntry**): WorkBudgetError;
 
 enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
 enum SemanticAdmissionOperation: u32 { Constructor, Begin, Expression, Prepare, Clone, Count }
 enum KnownAdmissionOperation: u32 { Source, Capture, Publish, Count, Dispatch }
+enum ScratchAdmissionOperation: u32 { Initialize, List, Table, Entry, Push, Clone, Count }
 var GenericResultBudgetBytes: usize = 1048576;
 var GenericResultOrdinaryKind: u32 = 0;
 
@@ -167,6 +182,15 @@ fn generic_result_storage_trial(operation: GenericResultOperation, allowed: usiz
 
 fn generic_result_storage_tests(): void {
     var unlimited = ~convert(usize, 0);
+    for(var tag = convert(u32, ScratchAdmissionOperation.Initialize); tag < convert(u32, ScratchAdmissionOperation.Count); tag++) {
+        var operation = convert(ScratchAdmissionOperation, tag);
+        var calls = semantic_scratch_storage_trial(operation, unlimited, false);
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            semantic_scratch_storage_trial(operation, allowed, false);
+        }
+        semantic_scratch_storage_trial(operation, unlimited, true);
+    }
+    semantic_scratch_table_atomicity();
     var create_calls = semantic_create_storage_trial(unlimited);
     for(var allowed: usize = 0; allowed < create_calls; allowed++) {
         semantic_create_storage_trial(allowed);
@@ -202,12 +226,8 @@ fn generic_result_storage_tests(): void {
         for(var tag = convert(u32, SemanticAdmissionOperation.Constructor); tag < convert(u32, SemanticAdmissionOperation.Count); tag++) {
             var operation = convert(SemanticAdmissionOperation, tag);
             var calls = semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.None);
-            // Constructor name resolution still uses legacy semantic scratch;
-            // its structural denials below do not claim a full scratch sweep.
-            if operation != SemanticAdmissionOperation.Constructor {
-                for(var allowed: usize = 0; allowed < calls; allowed++) {
-                    semantic_admission_storage_trial(width, operation, allowed, WorkBudgetError.Memory);
-                }
+            for(var allowed: usize = 0; allowed < calls; allowed++) {
+                semantic_admission_storage_trial(width, operation, allowed, WorkBudgetError.Memory);
             }
             semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.Capacity);
             semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.Busy);
@@ -432,6 +452,12 @@ fn semantic_admission_storage_trial(width: u32, operation: SemanticAdmissionOper
             }
         }
     } else {
+        if program.resource.offset != 73 || constructor != null || kind != null || value.bits != 0 {
+            puts("Failed semantic admission operation, allowed, offset, constructor, kind, value");
+            generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+            generic_clone_number(program.resource.offset); generic_clone_number(bits(usize, constructor));
+            generic_clone_number(bits(usize, kind)); generic_clone_number(convert(usize, value.bits));
+        }
         utility_check(program.resource.offset == 73 && constructor == null && kind == null
             && value.bits == 0, "Admission failure cannot publish a constructor or evaluated value");
         if operation == SemanticAdmissionOperation.Begin {
@@ -753,4 +779,143 @@ fn generic_result_admission_tests(): void {
     }
     generic_clone_fixture_close(&fixture);
     utility_check(tower_test_buffer_count() == buffers, "Generic admission trials release all buffers");
+}
+
+// Injection remains on the serial storage transport. Every trial executes the
+// production scratch/clone producer, then retries under its retained failure.
+fn semantic_scratch_storage_trial(operation: ScratchAdmissionOperation, allowed: usize, pressure: bool): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Scratch bounded world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, 8);
+    var error: WorkBudgetError;
+    sem_attach_result(root, KProgram, &error).start = 73;
+    var context: SemanticContext = default;
+    var list: vector(void*)* = null;
+    var table: SemanticTable* = null;
+    var original: void* = null;
+    if operation != ScratchAdmissionOperation.Initialize {
+        sem_context_init(&context, &program);
+        list = sem_list(&context);
+        table = sem_table(&context);
+        utility_check(list != null && table != null, "Scratch trial admits its initial owners");
+        utility_check(sem_push_checked(&context, list, root), "Scratch initial list value");
+        var entry = sem_state(&context, table, root);
+        utility_check(entry != null, "Scratch initial table entry");
+        entry.value = root;
+        if operation == ScratchAdmissionOperation.Push {
+            while list.length < list.capacity { utility_check(sem_push_checked(&context, list, root), "Scratch fill admitted capacity"); }
+        }
+        if operation == ScratchAdmissionOperation.Clone {
+            original = sem_create_result(root, &error);
+            var source = sem_attach_result(original, KBlock, &error);
+            source.start = 73;
+            utility_check(vector_push(&source.name, convert(u8, 120))
+                && vector_push(&source.comments, convert(u8, 121)), "Clone owns original text");
+            var child = sem_create_result(original, &error);
+            var value = sem_attach_result(child, KOperand, &error);
+            value.start = source.start;
+            value.constant = true;
+            value.bits = 42;
+            utility_check(vector_push(&source.items, child), "Clone owns its original operation list");
+        }
+        // Exhaust the actual remaining arena slice, not an assumed chunk size.
+        var tail = context.scratch.arena.last;
+        var remaining = tail.storage.capacity - tail.used;
+        var padding: u8* = null;
+        if remaining != 0 {
+            utility_check(work_arena_allocate_result(&context.scratch.arena, remaining, 1, &padding) == WorkBudgetError.None,
+                "Scratch denial starts at the next physical arena grant");
+        }
+    }
+    var previous_list = list == null ? default(vector(void*)) : *list;
+    var previous_table = table == null ? default(SemanticTable) : *table;
+    var occupied: WorkReservation = default;
+    if pressure {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &occupied)
+            == WorkBudgetError.None, "Scratch capacity pressure");
+    }
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var output: void* = null;
+    if operation == ScratchAdmissionOperation.Initialize { sem_context_init(&context, &program); }
+    if operation == ScratchAdmissionOperation.List { output = bits(void*, sem_list(&context)); }
+    if operation == ScratchAdmissionOperation.Table { output = bits(void*, sem_table(&context)); }
+    if operation == ScratchAdmissionOperation.Entry { output = bits(void*, sem_state(&context, table, null)); }
+    if operation == ScratchAdmissionOperation.Push { if sem_push_checked(&context, list, null) { output = root; } }
+    if operation == ScratchAdmissionOperation.Clone { output = sem_defer_clone(&context, root, original, table, list); }
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    var wanted = pressure ? WorkBudgetError.Capacity : allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory;
+    if program.resource.error != wanted {
+        puts("Scratch operation, allowed, actual, wanted");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+        generic_clone_number(convert(usize, program.resource.error)); generic_clone_number(convert(usize, wanted));
+    }
+    utility_check(program.resource.error == wanted, "Scratch preserves exact physical failure");
+    if wanted != WorkBudgetError.None {
+        if output != null || program.resource.offset != 73 {
+            puts("Scratch failed-result operation, allowed, output, offset");
+            generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+            generic_clone_number(bits(usize, output)); generic_clone_number(program.resource.offset);
+        }
+        utility_check(output == null && program.resource.offset == 73, "Scratch failure has no successful output and retains source position");
+        if operation == ScratchAdmissionOperation.Push {
+            utility_check(list.data == previous_list.data && list.length == previous_list.length
+                && list.capacity == previous_list.capacity, "Denied list growth preserves its previous owner");
+        }
+        if operation == ScratchAdmissionOperation.Entry {
+            utility_check(table.entries == previous_table.entries && table.capacity == previous_table.capacity
+                && table.count == previous_table.count && sem_find(table, null, root).value == root,
+                "Denied insertion preserves the published table and values");
+        }
+        var before = tower_test_buffer_allocations();
+        tower_test_buffer_fail_after(0);
+        utility_check(sem_list(&context) == null && sem_table(&context) == null
+            && sem_allocate(&context, sizeof(SemanticEntry)) == null
+            && sem_state(&context, table, root) == null
+            && sem_defer_clone(&context, root, original, table, list) == null
+            && sem_control_local(&context, root, null) == null
+            && sem_control_read(&context, root, null) == null
+            && sem_lift_value(&context, root, root) == null
+            && sem_defer_exit(&context, root, 0) == 0
+            && tower_test_buffer_allocations() == before && program.resource.error == wanted
+            && program.resource.offset == 73, "Terminal scratch retries allocate nothing and publish nothing");
+        tower_test_buffer_fail_after(unlimited);
+    } else { utility_check(operation == ScratchAdmissionOperation.Initialize || output != null, "Healthy scratch producer publishes a result"); }
+    if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Scratch pressure release"); }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Scratch descriptors, failed registrations, clone payloads and all grants retire");
+    return calls;
+}
+
+fn semantic_scratch_table_atomicity(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1), "Table transaction budget");
+    var arena: WorkArena = default;
+    utility_check(work_arena_init(&arena, &budget, sizeof(WorkArenaChunk) + sizeof(SemanticEntry) + alignof(SemanticEntry)),
+        "Table transaction uses an actual entry-sized arena chunk");
+    var table: SemanticTable = default;
+    var sentinel: SemanticEntry = default;
+    var output = &sentinel;
+    // The bucket allocation succeeds, then the distinct entry allocation fails.
+    tower_test_buffer_fail_after(1);
+    var error = sem_entry_arena(&arena, &table, "key", null, &output);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(error == WorkBudgetError.Memory && table.entries == null && table.count == 0
+        && table.capacity == 0 && output == &sentinel, "Table admits buckets and entry before committing either descriptor");
+    work_arena_dispose(&arena);
+    utility_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == buffers, "Unpublished table storage remains accounted and retires");
 }

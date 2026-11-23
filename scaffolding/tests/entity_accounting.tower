@@ -39,33 +39,58 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
 fn accounting_cancel(context: void*): void {
     bits(AccountingValue*, context).borrowed = null;
 }
+fn accounting_owned(T: type, data: T*): usize {
+    if data == null { return 0; }
+    var block = entity_component_from_data(bits(u8*, data));
+    if block.page != null { return 0; } // Counted once through its physical pool.
+    return compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block.allocation).allocation.capacity);
+}
+fn accounting_buffer(T: type, data: T*): usize {
+    if data == null { return 0; }
+    var header = bits(EntityBufferAllocation*, bits(u8*, data) - sizeof(EntityBufferAllocation));
+    return compiler_buffer_allocation_size(header.allocation.capacity);
+}
 fn accounting_node(sample: AccountingSample*, node: Entity*): void {
     if node == null { return; }
+    sample.buffers += accounting_owned(node) + accounting_buffer(node.children)
+        + accounting_buffer(node.components) + accounting_buffer(node.instances);
+    for(var i: usize = 0; i < node.component_count; i++) {
+        var component = node.components[i];
+        if component.page == null {
+            sample.buffers += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, component.allocation).allocation.capacity);
+        }
+    }
     sample.nodes += sizeof(Entity);
     sample.children += node.child_capacity * sizeof(EntityChild);
     for(var i: usize = 0; i < node.child_count; i++) {
-        if node.children[i].name != null { sample.children += strlen(node.children[i].name) + 1; }
+        if node.children[i].name != null {
+            sample.children += strlen(node.children[i].name) + 1;
+            sample.buffers += accounting_owned(node.children[i].name);
+        }
     }
     sample.indexes += (node.component_capacity + node.instance_capacity) * sizeof(EntityComponent*);
 }
 fn accounting_pages(pool: EntityComponentPool*): usize {
     var bytes: usize = 0;
-    var page = pool.first;
+    var page = pool.owned;
     while page != null {
         bytes += compiler_buffer_allocation_size(page.allocation.capacity);
-        page = page.next;
+        page = page.owned_next;
     }
     return bytes;
 }
 
 // Ownership census of this bounded normal-allocator workload. Tables store rows
 // and columns in one allocation. Query match.columns borrows query.columns.
-// This is requested storage, not malloc usable size or RSS. No allocator wrapper,
+// Payload categories below are included in physical pages/buffers, not added a
+// second time. Both full and partial pages have explicit owners. This is
+// requested physical storage, not malloc usable size or RSS. No allocator wrapper,
 // failure injection, global counter, worker or second authoritative graph exists.
 fn accounting_sample(label: u8*, store: EntityStore*, root: Entity*, kind: Entity*,
     nodes: Entity**, count: usize, stage: EntityStage*, view: EntityView*, peaks: AccountingPeaks*): void {
     var sample: AccountingSample = default;
-    sample.buffers = compiler_buffer_allocation_size(store.allocation.capacity) + accounting_pages(&store.storage);
+    sample.buffers = compiler_buffer_allocation_size(store.allocation.capacity)
+        + accounting_pages(&store.storage) + accounting_pages(&store.buffers);
     accounting_node(&sample, root);
     accounting_node(&sample, kind);
     for(var i: usize = 0; i < count; i++) { accounting_node(&sample, nodes[i]); }
@@ -73,15 +98,19 @@ fn accounting_sample(label: u8*, store: EntityStore*, root: Entity*, kind: Entit
     for(var i: usize = 0; i < buckets; i++) {
         var table = store.tables[i];
         while table != null {
+            sample.buffers += accounting_owned(table) + accounting_owned(table.types) + accounting_buffer(table.rows);
             sample.tables += sizeof(EntityTable) + table.arity * sizeof(usize)
                 + table.capacity * (sizeof(Entity*) + table.arity * sizeof(EntityComponent*));
             table = table.next;
         }
     }
     if view != null {
+        sample.buffers += accounting_owned(view);
         sample.queries = sizeof(EntityView);
         var query = view.queries;
         while query != null {
+            sample.buffers += accounting_owned(query) + accounting_owned(query.types)
+                + accounting_owned(query.matches) + accounting_owned(query.columns);
             sample.queries += sizeof(EntityTableQuery) + query.arity * sizeof(usize)
                 + query.count * (sizeof(EntityTableMatch) + query.arity * sizeof(usize));
             query = query.next;
@@ -92,16 +121,22 @@ fn accounting_sample(label: u8*, store: EntityStore*, root: Entity*, kind: Entit
             + stage.references.capacity * sizeof(Entity*)
             + stage.cancellations.capacity * sizeof(EntityStageCancellation)
             + stage.leases.capacity * sizeof(EntityStageLease);
-        sample.buffers += accounting_pages(&stage.storage);
+        sample.buffers += accounting_owned(stage) + accounting_pages(&stage.storage) + accounting_pages(&stage.buffers);
+        if stage.nodes.data != null { sample.buffers += compiler_buffer_allocation_size(stage.nodes.capacity * sizeof(EntityStageNode)); }
+        if stage.references.data != null { sample.buffers += compiler_buffer_allocation_size(stage.references.capacity * sizeof(Entity*)); }
+        if stage.cancellations.data != null { sample.buffers += compiler_buffer_allocation_size(stage.cancellations.capacity * sizeof(EntityStageCancellation)); }
+        if stage.leases.data != null { sample.buffers += compiler_buffer_allocation_size(stage.leases.capacity * sizeof(EntityStageLease)); }
         foreach(var &entry in &stage.nodes) {
             accounting_node(&sample, entry.node);
-            if entry.name != null { sample.stages += strlen(entry.name) + 1; }
+            if entry.name != null {
+                sample.stages += strlen(entry.name) + 1;
+                sample.buffers += accounting_owned(entry.name);
+            }
         }
     }
     var snapshot: WorkBudgetSnapshot;
     accounting_check(work_budget_snapshot(store.budget, &snapshot), "Accounting snapshot failed");
-    var raw = sample.nodes + sample.children + sample.indexes + sample.tables + sample.queries + sample.stages;
-    var retained = sample.buffers + raw;
+    var retained = sample.buffers;
     if sample.buffers > peaks.buffers { peaks.buffers = sample.buffers; }
     if retained > peaks.retained { peaks.retained = retained; }
     accounting_label(label);
@@ -111,6 +146,7 @@ fn accounting_sample(label: u8*, store: EntityStore*, root: Entity*, kind: Entit
     // Excludes ledger metadata, printed separately. The signed delta also makes
     // a future overcharge visible rather than silently wrapping an unsigned sum.
     print(convert(i64, retained) - convert(i64, snapshot.used_bytes));
+    accounting_check(retained == snapshot.used_bytes, "Physical entity ownership omitted from budget");
 }
 fn accounting_query(root: Entity*, kind: Entity*, count: usize, wanted: u64): EntityView* {
     var view = entity_view_open(root);
@@ -209,9 +245,8 @@ fn accounting_profile(): void {
     print(peaks.buffers); print(peaks.retained);
 }
 
-// Desired whole-store admission gate, intentionally separate from the passing
-// ownership/profile oracle. Current raw Entity allocation bypasses this cap.
-// No WILL_FAIL/skip conversion: eventual producer correction must return Capacity.
+// Whole-store admission gate, independent of the physical ownership census.
+// No WILL_FAIL/skip conversion: exhausted admission must return Capacity.
 fn accounting_cap(): i32 {
     var calibration: WorkBudget = default;
     accounting_check(work_budget_init(&calibration, 1, AccountingBudgetBytes, 1), "Cap calibration failed");
@@ -242,8 +277,153 @@ fn accounting_cap(): i32 {
     accounting_label("PASS: exhausted store budget rejected entity creation without publication");
     return 0;
 }
+fn accounting_stop(budget: WorkBudget*, grant: WorkReservation*): void {
+    accounting_check(work_budget_reserve_result(budget, 0, 0, budget.bytes - budget.used_bytes, grant)
+        == WorkBudgetError.None, "Finite-cap owner reservation failed");
+}
+
+fn accounting_denials(): void {
+    var budget: WorkBudget = default;
+    accounting_check(work_budget_init(&budget, 1, AccountingBudgetBytes, 1), "Denial budget");
+    var store: EntityStore* = null;
+    accounting_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Denial store");
+    var state: AccountingState = default;
+    accounting_check(entity_store_set_context(store, bits(void*, &state)), "Denial lifecycle context");
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    var child = entity_create(store);
+    accounting_check(root != null && kind != null && child != null
+        && entity_register(kind, sizeof(AccountingValue), alignof(AccountingValue), AccountingLifecycle), "Denial roots");
+    var grant: WorkReservation = default;
+    accounting_stop(&budget, &grant);
+    var error: WorkBudgetError;
+    accounting_check(entity_attach_result(child, root, null) == WorkBudgetError.Capacity
+        && child.parent == null && child.references == 1 && root.child_count == 0, "Child growth rollback");
+    accounting_check(entity_component_add_result(child, kind, &error) == null && error == WorkBudgetError.Capacity
+        && child.component_count == 0 && kind.instance_count == 0, "Component index denial");
+    accounting_check(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Capacity
+        && root.references == 1, "Stage descriptor denial");
+    accounting_check(entity_view_open_result(root, &error) == null && error == WorkBudgetError.Capacity
+        && store.views == 0, "View descriptor denial");
+    var nodes: Entity*[64] = default;
+    var count: usize = 0;
+    var denied = false;
+    while count < sizeof(decltype(nodes)) / sizeof(Entity*) {
+        var identity = store.next_id;
+        var live = store.entity_count;
+        var node = entity_create_result(store, &error);
+        if node == null {
+            accounting_check(error == WorkBudgetError.Capacity && store.next_id == identity
+                && store.entity_count == live, "Pooled descriptor growth rollback");
+            denied = true;
+            break;
+        }
+        nodes[count++] = node;
+    }
+    accounting_check(denied && count != 0, "Descriptor page must fill without uncharged growth");
+    var reuse = nodes[--count];
+    entity_release(reuse);
+    var reused = entity_create_result(store, &error);
+    accounting_check(reused == reuse && error == WorkBudgetError.None, "Charged slot reuse under finite cap");
+    entity_release(reused);
+    for(var i: usize = 0; i < count; i++) { entity_release(nodes[i]); }
+    accounting_check(work_budget_release(&budget, &grant), "Release descriptor cap");
+    accounting_check(entity_reserve_components(store.budget, &child.components, &child.component_capacity,
+        child.component_count) == WorkBudgetError.None, "Warm component pointer index");
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_component_add_result(child, kind, &error) == null && error == WorkBudgetError.Capacity
+        && child.component_count == 0 && kind.instances == null && kind.instance_count == 0, "Instance index rollback");
+    accounting_check(entity_table_prepare_result(child, kind, null) == WorkBudgetError.Capacity
+        && child.pending_table == null && child.table == null, "Archetype admission rollback");
+    accounting_check(work_budget_release(&budget, &grant), "Release index cap");
+    accounting_check(entity_attach(child, root, null) && entity_attach(child, null, null), "Warm child index");
+    var stage = entity_stage_open(root);
+    accounting_check(stage != null, "Warm stage owner");
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_attach_result(child, root, "named") == WorkBudgetError.Capacity
+        && child.parent == null && child.references == 1 && root.child_count == 0, "Name growth rollback");
+    accounting_check(entity_stage_lease_result(stage, child) == WorkBudgetError.Capacity
+        && child.stage == null && stage.leases.length == 0, "Lease growth rollback");
+    accounting_check(entity_stage_create_result(stage, root, &error) == null && error == WorkBudgetError.Capacity
+        && stage.nodes.length == 0, "Private node index rollback");
+    var references: Entity*[1]; references[0] = root;
+    var borrowed: AccountingValue = default;
+    accounting_check(entity_stage_references_cancellable_result(stage, &references[0],
+        sizeof(decltype(references)) / sizeof(Entity*), accounting_cancel, bits(void*, &borrowed)) == WorkBudgetError.Capacity
+        && stage.references.length == 0 && stage.cancellations.length == 0 && root.references == 2,
+        "Reference/cancellation growth rollback");
+    accounting_check(work_budget_release(&budget, &grant), "Release private cap");
+    var staged = entity_stage_create(stage, root);
+    accounting_check(staged != null, "Retry private node");
+    var component = entity_component_add(staged, kind);
+    accounting_check(component != null, "Retry private component");
+    var value = bits(AccountingValue*, component.data);
+    *value = default;
+    accounting_check(entity_stage_references_cancellable_result(stage, &references[0],
+        sizeof(decltype(references)) / sizeof(Entity*), accounting_cancel, bits(void*, value)) == WorkBudgetError.None,
+        "Retry reference queue");
+    value.borrowed = root;
+    var view = entity_view_open(root);
+    accounting_check(view != null && entity_stage_hold_result(stage) == WorkBudgetError.None, "Pinned checked hold");
+    entity_view_close(view);
+    var identity = store.next_id;
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_stage_publish_result(stage) == WorkBudgetError.Capacity
+        && stage.nodes.length == 1 && staged.stage == bits(void*, stage)
+        && store.next_id == identity && root.child_count == 0 && kind.instance_count == 0, "Publication admission rollback");
+    accounting_check(entity_stage_discard_result(stage) == WorkBudgetError.None
+        && root.references == 1 && state.finalized == 1, "Held cancellation under exhausted cap");
+    accounting_check(work_budget_release(&budget, &grant), "Release publication cap");
+    component = entity_component_add(child, kind);
+    accounting_check(component != null, "Published component retry");
+    *bits(AccountingValue*, component.data) = default;
+    var other_kind = entity_create(store);
+    accounting_check(other_kind != null && entity_register(other_kind, sizeof(usize), alignof(usize), 0)
+        && entity_component_add(child, other_kind) != null, "Removal destination setup");
+    var membership = child.table;
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_component_remove_result(child, kind) == WorkBudgetError.Capacity
+        && child.table == membership && child.component_count == 2 && kind.instance_count == 1
+        && state.finalized == 1, "Component removal preserves membership on destination denial");
+    accounting_check(work_budget_release(&budget, &grant), "Release removal cap");
+    var table = child.table;
+    var rows = table.rows;
+    var columns = table.columns;
+    var capacity = table.capacity;
+    var terms: Entity*[1]; terms[0] = kind;
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_table_reserve(table, capacity + 1) == WorkBudgetError.Capacity
+        && table.rows == rows && table.columns == columns && table.capacity == capacity && table.length == 1,
+        "Combined table replacement rollback");
+    accounting_check(work_budget_release(&budget, &grant), "Release table cap");
+    view = entity_view_open(root);
+    accounting_check(view != null, "Query view retry");
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_view_tables_result(view, &terms[0], sizeof(decltype(terms)) / sizeof(Entity*), &error) == null
+        && error == WorkBudgetError.Capacity && view.queries == null && store.views == 1, "Query plan rollback");
+    accounting_check(work_budget_release(&budget, &grant), "Release query cap");
+    var query = entity_view_tables_result(view, &terms[0], sizeof(decltype(terms)) / sizeof(Entity*), &error);
+    accounting_check(query != null && error == WorkBudgetError.None && query.length == 1, "Query retry");
+    accounting_stop(&budget, &grant);
+    accounting_check(entity_view_tables_result(view, &terms[0], sizeof(decltype(terms)) / sizeof(Entity*), &error) == query
+        && error == WorkBudgetError.None, "Cached query reuses charged storage");
+    entity_release(child); // Descriptor/index grants remain pinned until close.
+    accounting_check(store.deferred == child && child.references == 0, "Deferred physical owner");
+    entity_view_close(view);
+    accounting_check(state.finalized == 2 && store.deferred == null, "Deferred finalizer retirement");
+    accounting_check(work_budget_release(&budget, &grant), "Release final cap");
+    entity_release(kind); entity_release(other_kind); entity_release(root);
+    accounting_check(entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget), "All finite-cap owners and grants retire");
+    accounting_label("PASS: create/attach/index/query/stage cap rollback, reuse, pinned cancellation and final zero");
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
     if argc == 2 && strcmp(argv[1], "profile") == 0 { accounting_profile(); return 0; }
-    if argc == 2 && strcmp(argv[1], "cap") == 0 { return accounting_cap(); }
+    if argc == 2 && strcmp(argv[1], "cap") == 0 {
+        var status = accounting_cap();
+        if status != 0 { return status; }
+        accounting_denials(); return 0;
+    }
     accounting_label("usage: entity_accounting profile|cap"); return 2;
 }

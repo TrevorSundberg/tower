@@ -9,6 +9,9 @@ import semantic_statements;
 import semantic_support;
 import semantic_types;
 import .library.vector;
+import .library.work_budget_types;
+
+extern fn entity_stage_create_result(stage: void*, parent: void*, error: WorkBudgetError*): void*;
 
 // Compilation-local scope analysis. Programs retain only ordinary Foundation
 // blocks and operations; this list is neither a runtime stack nor a public IR.
@@ -19,22 +22,26 @@ struct SemanticDeferred {
     flow: u32;
 }
 
-fn sem_defer_copy_text(destination: vector(u8)*, source: vector(u8)*): void {
-    *destination = default;
+fn sem_defer_copy_text(c: SemanticContext*, subject: void*, destination: vector(u8)*, source: vector(u8)*): bool {
     if source.length == 0 {
-        return;
+        return true;
     }
-    sem_require(vector_reserve(destination, source.length + 1));
+    if !vector_reserve(destination, source.length + 1) {
+        sem_scratch_error(c, subject, WorkBudgetError.Memory);
+        return false;
+    }
     copy(destination.data, source.data, source.length);
     destination.data[source.length] = 0;
     destination.length = source.length;
+    return true;
 }
 
-fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: SemanticTable*, to: vector(void*)*): void* {
+export fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: SemanticTable*, to: vector(void*)*): void* {
     if original == null || !sem_ok(c) {
         return null;
     }
     var found = sem_state(c, clones, original);
+    if !sem_ok(c) { return default; }
     if found.value != null {
         return found.value;
     }
@@ -43,20 +50,33 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
         sem_fail(c, original, "Deferred cleanup has an unchecked operation");
         return null;
     }
-    var entity = sem_control_node(c, parent, source.kind);
-    var value = sem_get(entity);
-    found.value = entity;
-    sem_push(to, entity);
+    var error: WorkBudgetError;
+    var entity = c.entity_stage == null ? sem_create_result(parent, &error)
+        : entity_stage_create_result(c.entity_stage, parent, &error);
+    if entity == null { sem_scratch_error(c, original, error); return null; }
+    var value = sem_node_result(c, entity, source.kind);
+    if value == null {
+        // The private clone has no source match of its own. Retain the exact
+        // producer cause, with the original operation's declaration position.
+        c.program.resource.offset = source.start;
+        c.program.error_offset = source.start;
+        if c.entity_stage == null { sem_require(entity_attach_result(entity, null, null) == WorkBudgetError.None); }
+        return null;
+    }
     // Types and external bindings are shared references. Owned vectors and
     // operation edges are copied; a second pass remaps internal local bindings.
     copy(value, source, sizeof(FoundationNode));
-    sem_evaluation_clone(c, original, entity);
-    sem_defer_copy_text(&value.name, &source.name);
-    sem_defer_copy_text(&value.comments, &source.comments);
+    value.name = default;
+    value.comments = default;
     fill(&value.items, 0, sizeof(vector(void*)));
     fill(&value.locals, 0, sizeof(vector(void*)));
     fill(&value.parameters, 0, sizeof(vector(void*)));
     fill(&value.attributes, 0, sizeof(vector(void*)));
+    if !sem_defer_copy_text(c, original, &value.name, &source.name)
+        || !sem_defer_copy_text(c, original, &value.comments, &source.comments) { return null; }
+    sem_evaluation_clone(c, original, entity);
+    if !sem_ok(c) || !sem_push_checked(c, to, entity) { return null; }
+    found.value = entity;
     value.left = sem_defer_clone(c, entity, source.left, clones, to);
     value.right = sem_defer_clone(c, entity, source.right, clones, to);
     value.value = sem_defer_clone(c, entity, source.value, clones, to);
@@ -64,18 +84,19 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     value.body = sem_defer_clone(c, entity, source.body, clones, to);
     value.otherwise = sem_defer_clone(c, entity, source.otherwise, clones, to);
     foreach(var & item in &source.items) {
-        sem_push(&value.items, sem_defer_clone(c, entity, *item, clones, to));
+        if !sem_push_checked(c, &value.items, sem_defer_clone(c, entity, *item, clones, to)) { return default; }
     }
     foreach(var & local in &source.locals) {
-        sem_push(&value.locals, sem_defer_clone(c, entity, *local, clones, to));
+        if !sem_push_checked(c, &value.locals, sem_defer_clone(c, entity, *local, clones, to)) { return default; }
     }
     foreach(var & parameter in &source.parameters) {
-        sem_push(&value.parameters, sem_defer_clone(c, entity, *parameter, clones, to));
+        if !sem_push_checked(c, &value.parameters, sem_defer_clone(c, entity, *parameter, clones, to)) { return default; }
     }
+    if !sem_ok(c) { found.value = null; return null; }
     if value.kind == KDeclare && !c.preserve_clone_storage {
         sem_add_local(c, entity);
     }
-    return entity;
+    return sem_ok(c) ? entity : null;
 }
 
 fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize): u32 {
@@ -86,8 +107,11 @@ fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize):
             break;
         }
         var clones = sem_table(c);
+        if !sem_ok(c) { return default; }
         var to = sem_list(c);
+        if !sem_ok(c) { return default; }
         var body = sem_defer_clone(c, block, pending.body, clones, to);
+        if !sem_ok(c) { return FlowStop; }
         foreach(var & to_item in to) {
             var value = sem_get(*to_item);
             if value.binding != null {
@@ -99,18 +123,21 @@ fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize):
                     if binding.kind == KDeclare || binding.kind == KParameter {
                         if c.defer_bindings == null {
                             c.defer_bindings = sem_table(c);
+                            if !sem_ok(c) { return default; }
                             c.defer_order = sem_list(c);
+                            if !sem_ok(c) { return default; }
                         }
                         var captured = sem_state(c, c.defer_bindings, value.binding);
+                        if !sem_ok(c) { return default; }
                         if captured.value == null {
                             captured.value = value.binding;
-                            sem_push(c.defer_order, value.binding);
+                            if !sem_push_checked(c, c.defer_order, value.binding) { return default; }
                         }
                     }
                 }
             }
         }
-        sem_push(&sem_get(block).items, body);
+        if !sem_push_checked(c, &sem_get(block).items, body) { return default; }
         if(flow &FlowNext) != 0 {
             flow =(flow & ~FlowNext) | pending.flow;
         }
@@ -130,7 +157,7 @@ fn sem_defer_hygiene(c: SemanticContext*): void {
     // Encounter order is stable across hosts; pointer-keyed hash-table iteration
     // must never decide serialized names.
     foreach(var & defer_order_item in c.defer_order) {
-        sem_set_name(sem_get(*defer_order_item), sem_control_name(c));
+        if !sem_set_name(c, sem_get(*defer_order_item), sem_control_name(c)) { return; }
     }
 }
 
@@ -177,6 +204,7 @@ fn sem_defer_finish(c: SemanticContext*, n: void*, state: SemanticDeferCursor*, 
         return FlowNext;
     }
     var pending = bits(SemanticDeferred*, sem_allocate(c, sizeof(SemanticDeferred)));
+    if !sem_ok(c) { return default; }
     pending.previous = bits(SemanticDeferred*, state.deferred);
     pending.body = sem_member(n, "body");
     pending.loops = state.loops;
@@ -192,7 +220,8 @@ fn sem_defer_register(c: SemanticContext*, n: void*, depth: u32): u32 {
     return sem_defer_finish(c, n, &state, flow);
 }
 
-fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
+export fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
+    if !sem_ok(c) { return FlowStop; }
     var value = sem_get(n);
     if value == null {
         return flow;
@@ -223,11 +252,13 @@ fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     // Evaluate a return value once before any cleanup can mutate its operands.
     if result != null {
         result = sem_control_read(c, n, sem_control_local(c, n, result));
+        if !sem_ok(c) { return FlowStop; }
     }
     var cleanup = sem_defer_emit(c, n, null, loops);
+    if !sem_ok(c) { return FlowStop; }
     var terminal = sem_control_node(c, n, kind);
     sem_get(terminal).value = result;
-    sem_push(&value.items, terminal);
+    if !sem_push_checked(c, &value.items, terminal) { return default; }
     if(cleanup &FlowNext) == 0 {
         return 0;
     }

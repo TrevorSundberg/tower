@@ -23,6 +23,8 @@ export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
     var state = bits(ReentrantState*, entity_context(component.owner));
     reentrant_check(lifecycle == ReentrantLifecycle && state != null
         && component.owner.references == 0 && component.owner.store.reclaiming != 0);
+    reentrant_check(entity_stage_lease_result(state.lease, component.owner) == WorkBudgetError.Busy
+        && component.owner.stage == null);
     // These stages, parents and types were acquired before reclamation. None
     // borrows the dying entity as a parent or leases its changing membership.
     reentrant_check(entity_stage_publish_result(state.publish) == WorkBudgetError.None
