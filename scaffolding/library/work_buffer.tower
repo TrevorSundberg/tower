@@ -6,6 +6,9 @@ import work_buffer_types;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn compiler_buffer_allocate(bytes: usize): void*;
 extern fn compiler_buffer_free(memory: void*): void;
+extern fn compiler_buffer_alignment(): usize;
+
+var WorkBufferInitialElements: usize = 8;
 
 fn work_buffer_dispose(buffer: WorkBuffer*): void {
     compiler_buffer_free(bits(void*, buffer.data));
@@ -42,6 +45,20 @@ fn work_buffer_resize(buffer: WorkBuffer*, budget: WorkBudget*, bytes: usize, pr
     work_buffer_dispose(buffer);
     *buffer = next;
     return WorkBudgetError.None;
+}
+
+// The typed vector checks its owner, live length and no-growth fast path first.
+// Share the remaining growth policy without specializing it for every element
+// type. buffer is a transactional borrow; failure leaves it and its owner intact.
+fn work_buffer_grow_elements(buffer: WorkBuffer*, budget: WorkBudget*, length: usize,
+    capacity: usize, needed: usize, size: usize, alignment: usize): WorkBudgetError {
+    if size == 0 || alignment > compiler_buffer_alignment()
+        || needed > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
+    var next_capacity = capacity * 2;
+    if next_capacity < capacity { next_capacity = needed; }
+    if next_capacity < WorkBufferInitialElements { next_capacity = WorkBufferInitialElements; }
+    if next_capacity < needed || next_capacity > ~convert(usize, 0) / size { next_capacity = needed; }
+    return work_buffer_resize(buffer, budget, next_capacity * size, length * size);
 }
 
 // Both operands are independent initialized owners. Borrowed aliases are not

@@ -4,12 +4,19 @@ import lexer_table;
 import lr_analysis;
 import lr_states;
 import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
 // Disposable runtime indexes. Grammar entities and their provenance remain the
 // source of truth; explicit precedence resolves eligible conflicts at build time.
 struct LRRow {
-    actions: vector(LRAction);
-    direct: vector(usize);
+    storage: WorkBuffer;
+    budget: WorkBudget*;
+    actions: work_vector(LRAction);
+    direct: work_vector(usize);
     hash: usize;
     next: usize;
     reduction: usize;
@@ -17,15 +24,17 @@ struct LRRow {
 
 struct LRRuntimeState {
     row: LRRow*;
-    gotos: vector(LRGoto);
+    gotos: work_vector(LRGoto);
 }
 
 struct LRRuntime {
-    states: vector(LRRuntimeState);
-    rows: vector(LRRow*);
-    rules: vector(LRProduction);
+    storage: WorkBuffer;
+    budget: WorkBudget*;
+    states: work_vector(LRRuntimeState);
+    rows: work_vector(LRRow*);
+    rules: work_vector(LRProduction);
     sequence: SymbolSequence*;
-    sequence_states: vector(usize);
+    sequence_states: work_vector(usize);
     sequence_rule: usize;
     conflict: LRConflict;
 }
@@ -50,7 +59,7 @@ fn lr_action_less(a: LRAction*, b: LRAction*): bool {
     return less;
 }
 
-fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
+fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: LRAction*): bool {
     var low: usize = 0;
     var high = values.length;
     loop {
@@ -72,7 +81,7 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
         }
     }
     var count = values.length + 1;
-    if !vector_reserve(values, count) {
+    if count == 0 || !work_vector_reserve(values, budget, count) {
         return false;
     }
     var moved = values.length -low;
@@ -84,10 +93,19 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
     return true;
 }
 
+fn lr_row_create(budget: WorkBudget*): LRRow* {
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, budget, sizeof(LRRow), 0) != WorkBudgetError.None { return null; }
+    var row = bits(LRRow*, storage.data);
+    *row = {storage: storage, budget: budget, ..default};
+    return row;
+}
+
 fn lr_row_destroy(value: LRRow*): void {
-    vector_dispose(&value.actions);
-    vector_dispose(&value.direct);
-    free(value);
+    work_vector_dispose(&value.actions);
+    work_vector_dispose(&value.direct);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn lr_runtime_destroy(value: LRRuntime*): void {
@@ -96,18 +114,19 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
     }
     var index: usize = 0;
     for(; index != value.states.length; index++) {
-        vector_dispose(&value.states.data[index].gotos);
+        work_vector_dispose(&value.states.data[index].gotos);
     }
     index = 0;
     for(; index != value.rows.length; index++) {
         lr_row_destroy(value.rows.data[index]);
     }
-    vector_dispose(&value.states);
-    vector_dispose(&value.rows);
-    vector_dispose(&value.rules);
-    vector_dispose(&value.sequence_states);
+    work_vector_dispose(&value.states);
+    work_vector_dispose(&value.rows);
+    work_vector_dispose(&value.rules);
+    work_vector_dispose(&value.sequence_states);
     symbol_sequence_destroy(value.sequence);
-    free(value);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Only explicit, compatible production annotations resolve a shift/reduce pair.
@@ -329,15 +348,18 @@ fn lr_row_index(row: LRRow*): bool {
             }
         }
     }
+    var maximum = ~convert(usize, 0);
+    if singles > maximum / 2 { return false; }
     var needed = singles *2;
     var size: usize = 1;
     loop {
         if size > needed {
             break;
         }
+        if size > maximum / 2 { return false; }
         size = size * 2;
     }
-    if !vector_reserve(&row.direct, size) {
+    if !work_vector_reserve(&row.direct, row.budget, size) {
         return false;
     }
     row.direct.length = size;
@@ -371,7 +393,7 @@ fn lr_row_index(row: LRRow*): bool {
     }
 }
 
-fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*): bool {
+fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*, budget: WorkBudget*): bool {
     var index: usize = 0;
     loop {
         if index == input.edges.length {
@@ -384,9 +406,12 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
             entry.nonterminal = symbol.nonterminal;
             entry.state = edge.state;
             var position = state.gotos.length;
-            if !lr_append(LRGoto, &state.gotos, &entry) {
+            var needed = position + 1;
+            if needed == 0 || !work_vector_reserve(&state.gotos, budget, needed) {
                 return false;
             }
+            state.gotos.data[position] = entry;
+            state.gotos.length = needed;
             loop {
                 if position == 0 {
                     break;
@@ -404,9 +429,9 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
     }
 }
 
-fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)*): bool {
+fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(usize)*): bool {
     var rule_count = source.analysis.rule_count;
-    var ok = vector_reserve(&value.rules, rule_count);
+    var ok = work_vector_reserve(&value.rules, value.budget, rule_count);
     if !ok {
         return false;
     }
@@ -414,16 +439,17 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     copy(value.rules.data, source.analysis.rules, rule_bytes);
     value.rules.length = rule_count;
     var count = source.states.length;
-    ok = vector_reserve(&value.states, count);
+    ok = work_vector_reserve(&value.states, value.budget, count);
     if !ok {
         return false;
     }
     var bytes = count *sizeof(LRRuntimeState);
     fill(value.states.data, 0, bytes);
     value.states.length = count;
+    if count > (~convert(usize, 0) - 1) / 2 { return false; }
     var bucket_count = count *2;
     bucket_count++;
-    ok = vector_reserve(buckets, bucket_count);
+    ok = work_vector_reserve(buckets, value.budget, bucket_count);
     if !ok {
         return false;
     }
@@ -436,11 +462,10 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         if done {
             return true;
         }
-        var row = alloc(LRRow, 1);
+        var row = lr_row_create(value.budget);
         if row == null {
             return false;
         }
-        *row = default;
         var input = source.states.data[index];
         var position: usize = 0;
         loop {
@@ -448,7 +473,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
             if done {
                 break;
             }
-            ok = lr_action_insert(&row.actions, &input.actions.data[position]);
+            ok = lr_action_insert(&row.actions, value.budget, &input.actions.data[position]);
             if !ok {
                 lr_row_destroy(row);
                 return false;
@@ -485,7 +510,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         }
         if !shared {
             ok = lr_row_index(row);
-            ok &&= vector_push(&value.rows, row);
+            ok &&= work_vector_push(&value.rows, value.budget, row);
             if !ok {
                 lr_row_destroy(row);
                 return false;
@@ -495,7 +520,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         }
         var state = &value.states.data[index];
         state.row = row;
-        ok = lr_runtime_gotos(state, input, source.analysis);
+        ok = lr_runtime_gotos(state, input, source.analysis, value.budget);
         if !ok {
             return false;
         }
@@ -503,18 +528,27 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     }
 }
 
-export fn lr_runtime_create(source: LRStates*): LRRuntime* {
-    var value = alloc(LRRuntime, 1);
-    if value == null {
-        return null;
-    }
-    *value = default;
+fn lr_runtime_open(budget: WorkBudget*): LRRuntime* {
+    var storage: WorkBuffer = default;
+    if work_buffer_resize(&storage, budget, sizeof(LRRuntime), 0) != WorkBudgetError.None { return null; }
+    var value = bits(LRRuntime*, storage.data);
+    *value = {storage: storage, budget: budget, ..default};
     value.conflict.state = lr_none();
     value.sequence_rule = lr_none();
-    var buckets: vector(usize);
-    vector_init(&buckets);
+    return value;
+}
+
+// Standalone low-level clients explicitly have no world-bound byte ledger.
+export fn lr_runtime_create(source: LRStates*): LRRuntime* {
+    return lr_runtime_create_owned(source, null);
+}
+
+export fn lr_runtime_create_owned(source: LRStates*, budget: WorkBudget*): LRRuntime* {
+    var value = lr_runtime_open(budget);
+    if value == null { return null; }
+    var buckets: work_vector(usize) = default;
     var ok = lr_runtime_build(value, source, &buckets);
-    vector_dispose(&buckets);
+    work_vector_dispose(&buckets);
     if ok {
         return value;
     }
@@ -665,11 +699,12 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         }
     }
     var count = rule.count + 1;
-    var ok = vector_reserve(&value.sequence_states, count);
+    if count == 0 { return; }
+    var ok = work_vector_reserve(&value.sequence_states, value.budget, count);
     if !ok {
         return;
     }
-    var sequence = symbol_sequence_create(rule.count);
+    var sequence = symbol_sequence_create_owned(rule.count, value.budget);
     missing = sequence == null;
     if missing {
         return;

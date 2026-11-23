@@ -1,0 +1,163 @@
+import tower;
+import .compiler.semantic_layout;
+import .compiler.semantic_lifecycle;
+import .compiler.semantic_context_types;
+import .compiler.semantic_context;
+import .compiler.semantic_program_types;
+import .compiler.semantic_support;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+// Opt-in Linux x64 profile of the actual layout pump, not a second scheduler.
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn runtime_print_value(kind: u32, value: u64, pointer_bytes: u32): bool;
+
+fn layout_profile_check(ok: bool): void {
+    if !ok { trap("Layout frontier reference mismatch", 0); }
+}
+
+fn layout_profile_time(): i64 {
+    var stamp: i64[2];
+    layout_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+fn layout_profile_number(value: u64): void {
+    layout_profile_check(runtime_print_value(SU64, value, 8));
+}
+
+fn layout_profile_record(owner: void*): void* {
+    var node = sem_create(owner);
+    var value = sem_attach(node, KType);
+    value.type = { scalar: SStruct, pointers: 0, record: node, pointer_bytes: 8 };
+    return node;
+}
+
+fn layout_profile_field(owner: void*, record: void*): void {
+    var node = sem_create(owner);
+    var value = sem_attach(node, KOperand);
+    value.type = { scalar: record == null ? SI32 : SStruct, pointers: 0, record: record, pointer_bytes: 8 };
+    sem_push(&sem_get(owner).items, node);
+}
+
+fn layout_profile_trial(workers: usize, fields: usize, chained: bool, warm: bool): void {
+    var gate = work_signal_open();
+    layout_profile_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    layout_profile_check(work_budget_init(&budget, workers, 0, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var outer: WorkReservation = default;
+    layout_profile_check(work_budget_reserve_result(&budget, 1, 1, 0, &outer) == WorkBudgetError.None);
+    var world = compiler_world_create_workers(workers);
+    layout_profile_check(world != null && compiler_world_bind_budget(world, &budget));
+    var store = compiler_world_store(world);
+    var owner = entity_create(store);
+    layout_profile_check(owner != null);
+    var program: SemanticProgram;
+    semantic_initialize(&program, owner, 8);
+    var context: SemanticContext;
+    sem_context_init(&context, &program);
+
+    // Unique owning fields preserve ordered publication and disjoint writes.
+    // The two shapes have identical reference sizes/offsets. In chained mode,
+    // every branch's first field needs the sole initially ready leaf layout.
+    var branches: usize = 32;
+    var leaf = layout_profile_record(owner);
+    layout_profile_field(leaf, null);
+    var sink = layout_profile_record(owner);
+    layout_profile_field(sink, leaf);
+    for(var i: usize = 0; i < branches; i++) {
+        var branch = layout_profile_record(owner);
+        for(var field: usize = 0; field < fields; field++) {
+            layout_profile_field(branch, chained && field == 0 ? leaf : null);
+        }
+        layout_profile_field(sink, branch);
+    }
+    var query = sem_layout_discover(&context, sink);
+    layout_profile_check(context.layout_jobs.length == branches + 2 && context.queries.running == 0);
+    var initially_ready: usize = 0;
+    foreach(var &task in &context.queries.tasks) { if task.state == WorkState.Ready { initially_ready++; } }
+    layout_profile_check(initially_ready == (chained ? convert(usize, 1) : branches + 1));
+    var startup: i64 = 0;
+    if warm {
+        var opening = layout_profile_time();
+        layout_profile_check(sem_workers_open(&context));
+        startup = layout_profile_time() - opening;
+    }
+    var before: i64[18]; var after: i64[18];
+    layout_profile_check(getrusage(0, &before[0]) == 0);
+    var start = layout_profile_time();
+    var completed = sem_layout_execute(&context);
+    var elapsed = layout_profile_time() - start;
+    layout_profile_check(getrusage(0, &after[0]) == 0);
+    layout_profile_check(completed == branches + 2 && program.error.length == 0
+        && context.workers.running == 0 && context.queries.running == 0
+        && work_task(&context.queries, query).state == WorkState.Succeeded);
+    layout_profile_check(sem_get(leaf).size == 4 && sem_get(leaf).alignment == 4);
+    var aggregate = sem_get(sink);
+    layout_profile_check(aggregate.size == 4 + branches * fields * 4 && aggregate.alignment == 4);
+    for(var i: usize = 0; i < aggregate.items.length; i++) {
+        var field = sem_get(aggregate.items.data[i]);
+        layout_profile_check(field.byte_offset == (i == 0 ? convert(usize, 0) : 4 + (i - 1) * fields * 4));
+        if i == 0 { continue; }
+        var branch = sem_get(field.type.record);
+        layout_profile_check(branch.size == fields * 4 && branch.alignment == 4);
+        for(var item: usize = 0; item < branch.items.length; item++) {
+            layout_profile_check(sem_get(branch.items.data[item]).byte_offset == item * 4);
+        }
+    }
+    var snapshot: WorkBudgetSnapshot;
+    layout_profile_check(work_budget_snapshot(&budget, &snapshot)
+        && snapshot.used_lanes == 1 && snapshot.live == 1 && snapshot.peak_lanes <= workers);
+    // warm pool, workers, fields/branch, chained, initial ready, wall ns, CPU us, RSS KiB,
+    // pool peak (admitted slots, NOT overlap), ledger peak, entities, components.
+    // Final startup ns is separate only in warm mode. Cold timing includes it.
+    layout_profile_number(warm ? 1 : 0);
+    layout_profile_number(convert(u64, workers)); layout_profile_number(convert(u64, fields));
+    layout_profile_number(chained ? 1 : 0); layout_profile_number(convert(u64, initially_ready));
+    layout_profile_number(convert(u64, elapsed));
+    layout_profile_number(convert(u64, (after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]));
+    layout_profile_number(convert(u64, after[4])); layout_profile_number(convert(u64, context.workers.peak));
+    layout_profile_number(convert(u64, snapshot.peak_lanes));
+    layout_profile_number(convert(u64, entity_store_count(store)));
+    layout_profile_number(convert(u64, entity_store_component_count(store)));
+    layout_profile_number(convert(u64, startup));
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(owner);
+    layout_profile_check(compiler_world_dispose(world)
+        && work_budget_release_result(&budget, &outer) == WorkBudgetError.None
+        && work_budget_dispose(&budget));
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    layout_profile_check(work_thread_available());
+    layout_profile_check(argc == 2 && (strcmp(argv[1], "cold") == 0 || strcmp(argv[1], "warm") == 0));
+    var warm = strcmp(argv[1], "warm") == 0;
+    for(var size: usize = 0; size < 3; size++) {
+        var fields: usize = size == 0 ? 8 : (size == 1 ? 1024 : 4096);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            layout_profile_trial(workers, fields, true, warm);
+            layout_profile_trial(workers, fields, false, warm);
+        }
+    }
+    return 0;
+}

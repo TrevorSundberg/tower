@@ -1,5 +1,6 @@
 import tower;
 import .compiler.lr_types;
+import .compiler.lr_api;
 import .compiler.compiler_kernel;
 import .compiler.parser_workers;
 import .library.work_budget;
@@ -18,6 +19,64 @@ extern fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool;
 extern fn lr_first_work_trial(root: void*, mode: usize): bool;
 extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
     symbols: LRSymbol*, length: usize, names: usize): bool;
+extern fn lr_runtime_create_owned(states: void*, budget: WorkBudget*): void*;
+extern fn lr_runtime_create_work(states: void*, anchor: void*, count: usize): void*;
+
+// Use a measured retained lower bound to force denial inside runtime creation,
+// including worker-produced rows. Joined failure must restore the original
+// ledger; releasing the competing grant must allow the same source to retry.
+fn lr_runtime_memory_budget(root: void*, budget: WorkBudget*): bool {
+    var rules: LRProduction[2] = default;
+    var symbols: LRSymbol[2] = default;
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    var symbol_count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    rules[0].count = 1;
+    rules[1].owner = 1; rules[1].begin = 1; rules[1].count = 1;
+    symbols[0].nonterminal = rules[1].owner;
+    symbols[1] = {nonterminal: ~convert(usize, 0), first: 65, last: 65};
+    var analysis = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, rule_count);
+    if analysis == null { return false; }
+    defer lr_analysis_destroy(analysis);
+    if !lr_analysis_compute(analysis) { return false; }
+    var states = lr_states_create(analysis);
+    if states == null { return false; }
+    defer lr_states_destroy(states);
+    if !lr_states_lalr(states, false) { return false; }
+    var before: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(budget, &before) { return false; }
+    var value = lr_runtime_create_owned(states, budget);
+    if value == null { return false; }
+    var retained: WorkBudgetSnapshot = default;
+    var measured = work_budget_snapshot(budget, &retained);
+    lr_runtime_destroy(value);
+    if !measured || retained.used_bytes <= before.used_bytes { return false; }
+    var available = retained.used_bytes - before.used_bytes - 1;
+    var competing: WorkReservation = default;
+    if work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes - available,
+        &competing) != WorkBudgetError.None { return false; }
+    defer {
+        if competing.active && work_budget_release_result(budget, &competing) != WorkBudgetError.None {
+            trap("LR memory fixture lost competing storage", 0);
+        }
+    }
+    var width: usize = 2;
+    if width > lr_states_count(states) { width = lr_states_count(states); }
+    value = lr_runtime_create_work(states, root, width);
+    var denied = value == null;
+    lr_runtime_destroy(value);
+    var after: WorkBudgetSnapshot = default;
+    if !denied || !work_budget_snapshot(budget, &after)
+        || after.used_bytes != before.used_bytes + competing.bytes
+        || after.used_lanes != before.used_lanes || after.live != before.live + 1 { return false; }
+    if work_budget_release_result(budget, &competing) != WorkBudgetError.None { return false; }
+    value = lr_runtime_create_work(states, root, width);
+    if value == null { return false; }
+    var conflict: LRConflict = default;
+    var valid = !lr_runtime_conflict(value, &conflict) && lr_runtime_row_count(value) != 0;
+    lr_runtime_destroy(value);
+    return valid && work_budget_snapshot(budget, &after) && after.used_bytes == before.used_bytes
+        && after.used_lanes == before.used_lanes && after.live == before.live;
+}
 
 // Hold competing outer reservations without blocking a worker. A previously
 // retained wide pool must obey the current shared grant, including no extras.
@@ -92,7 +151,9 @@ fn lr_shared_worker_budget(): bool {
     defer work_signal_close(gate);
     work_signal_post(gate);
     var budget: WorkBudget = default;
-    if !work_budget_init(&budget, limit, 0, 1)
+    // This fixture saturates lanes while allowing physical parser buffers.
+    // Byte-denial and retained-owner checks use separate bounded fixtures.
+    if !work_budget_init(&budget, limit, ~convert(usize, 0), 1)
         || !work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post) { return false; }
     defer { if !work_budget_dispose(&budget) { trap("LR fixture retained worker budget", 0); } }
     var outer: WorkReservation = default;
@@ -109,6 +170,7 @@ fn lr_shared_worker_budget(): bool {
     var root = entity_create(compiler_world_store(world));
     if root == null { return false; }
     defer entity_release(root);
+    if !lr_runtime_memory_budget(root, &budget) { return false; }
     if !lr_state_wide_admission(root, 512, true) { return false; }
     var other: WorkReservation = default;
     defer {
