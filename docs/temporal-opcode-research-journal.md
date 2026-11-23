@@ -65549,3 +65549,68 @@ ordinary reparse/reexecution returns the reference output. Final page checkpoint
 therefore retains explicit overhead/fragmentation limits alongside improved
 physical ownership and exact errors. ROOT requested typed stage/view/publication
 results next; proposal is in status, no implementation/caller adoption yet.
+
+### A1 owner-order measurements and direct clone-owner correction (2026-11-23)
+
+The a693465 checkpoint passes query/control/type smoke on its frozen input;
+type221.03wall/225.32user/12.05sys/268148KiB within the unchanged240s bound.
+Matched before6b1810dd/after6d744580 profiling used the same environment/resources/
+inputs as the receipt trial, one warmup and three alternating pairs per case.
+All32 outputs, serial/4worker canonical Foundation and reparse matched.
+
+| Input/jobs | Before wall / CPU seconds / peakRSS KiB | After wall / CPU seconds / peakRSS KiB |
+| --- | --- | --- |
+| Small/1 | 1.17 / 1.07 / 178024 | 1.20 / 1.10 / 178472 |
+| Small/4 | 1.06 / 1.20 / 195960 | 1.09 / 1.23 / 193636 |
+| Large/1 | 1.19 / 1.10 / 178372 | 1.21 / 1.12 / 178304 |
+| Large/4 | 1.08 / 1.22 / 197348 | 1.08 / 1.22 / 195544 |
+
+The apparent small2-3% cost was investigated with another fresh A2 quiet window,
+the same frozen binaries/inputs, one excluded warmup and nine alternating pairs
+for small1/4 only. All40 outputs plus canonical/reparse checks passed. Medians:
+serial1.19/1.10/178420 ->1.19/1.09/178616; four workers1.07/1.21/195692 ->
+1.07/1.20/195696. Thus the initial difference was not reproduced. Both data sets
+remain in semantic_failure_order_paired1/investigation1 logs. This is bounded
+short-workload evidence, not a proof of zero cost or general useful scaling.
+
+After all jobs drained, verified ROOT75fdf0bf bundle5fe3be67 fast-forwarded main,
+including the corrected L1 charged-frame/diagnostic and L2 TypeIndex history and
+A2 physical-page result changes. Matching17 native compiler/LR/execution/frontend
+actions passed98.53wall/68.88user/5.48sys/737804KiB. These are new integrated
+inputs; older a693 smoke results are not relabelled as this source.
+
+A subsequent full caller audit found sem_known_infer invokes clone_all directly
+before taking KnownSnapshot. Deferring clone errors without restoring them to
+that owner could leave a failed snapshot ticket with no program diagnostic.
+Four new direct-owner trials use the legitimate Foundation component limit,
+normal clone kernels/stages and ordinary error receipts. The same32-case object
+fails with exactly those four diagnostic assertions on the new merged before
+provider (.03wall/.02CPU/50988KiB); the existing28 cases still pass.
+
+Updated file review:
+- semantic_evaluation.tower: the existing source-order selector now accepts the
+  owning query kind. Evaluation pumping drains clone work directly and selects
+  only the Evaluation frontier, preserving an earlier pending evaluation even
+  when a later clone has failed. No new storage/index is added.
+- semantic_evaluation_work.tower: existing clone_all is the clone-only owner
+  boundary used by KnownSnapshot. It selects canonical KnownClone failures after
+  all stages join/publish. Its declaration-only export allows the focused client
+  to call the real owner path; no implementation is copied into the test.
+- semantic_declarations.tower: the existing failed-edge walker recognizes
+  KnownClone as another producer of SemanticEvaluation's retained error, so
+  isolated/dependent consumers do not lose clone diagnostics.
+- semantic_query_api.tower: adds only the existing clone_all entry declaration,
+  with no context/expression layout change or second provider.
+- semantic_failure_order_checks.tower: four direct clone-owner cases at4/8-byte
+  targets and1/4workers assert joined peers, selected retained text/offset, no
+  interpreter start, repeated-call count stability and world teardown. The
+  semantic path census remains56; no new file is introduced.
+
+The public evaluation-work leaf passes16.56wall/12.07user/.77sys/681392KiB and
+five affected native actions pass22.23/15.24/1.23/738504KiB. All32 unchanged
+fixture cases then pass (.03wall/.02CPU/51040KiB). Before compiler4981de5936cf2380de00c414c2dd30ccedcc05f4ed30da47d36b8d6619e53b3f,
+after5ac7fa876183d64283ead6315a8f77f845ce9925509bada144d67e6aebd08e1c.
+Matched clone-wrapper profiles and current supported instrumentation remain
+pending. D1's exact phase successor applies cleanly but is not silently installed
+or counted as run; owner coordination for its two harness paths is pending.
+No publication lease or final acceptance has been requested.
