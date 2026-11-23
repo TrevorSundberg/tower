@@ -7,6 +7,7 @@ import lr_analysis_api;
 import lr_control_types;
 import .compiler.parser_table_types;
 import .compiler.grammar_types;
+import .compiler.format_types;
 import .library.work_budget;
 import .library.work_budget_types;
 
@@ -22,6 +23,7 @@ extern fn lr_completion_accepts(completion: void*, id: u32): bool;
 extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 extern fn syntax_completion_enable(session: void*): void;
 extern fn syntax_completion_accepts(session: void*, text: u8*, literal: bool): bool;
+extern fn syntax_format_into(session: void*, result: FormatResult*, error: u8**): bool;
 extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation,
     mode: u32, error: WorkBudgetError*): ParserHostTable*;
 
@@ -167,6 +169,29 @@ fn parser_completion_ready(session: void*): void {
         "Completion has a known valid offer after parsing its imported grammar");
 }
 
+fn parser_session_diagnostic_failure(session: void*): void {
+    var world = compiler_world_create_workers(1);
+    var environment = frontend_modules_create();
+    utility_check(world is not null && environment is not null, "Diagnostic failure foreign owner");
+    var module = frontend_module_root_world(world, "", environment);
+    utility_check(module is not null, "Diagnostic failure foreign module");
+    tower_test_buffer_fail_after(0);
+    syntax_reset(session, "", module);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(syntax_session_resource_error(session) == WorkBudgetError.Memory
+        && syntax_get_error(session)[0] != 0 && syntax_next(session) is null,
+        "Denied diagnostic copy retains a fixed resource failure without aborting");
+    var formatted: FormatResult = default;
+    var error: u8* = null;
+    utility_check(!syntax_format_into(session, &formatted, &error) && error is not null
+        && error[0] != 0 && formatted.text.length == 0,
+        "Failed session cannot publish canonical source without error text storage");
+    format_dispose(&formatted);
+    frontend_module_destroy(module);
+    frontend_modules_destroy(environment);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Diagnostic fixture owners retire");
+}
+
 fn parser_session_completion_budget_test(): void {
     var buffers = tower_test_buffer_count();
     var budget: WorkBudget = default;
@@ -182,6 +207,9 @@ fn parser_session_completion_budget_test(): void {
     var session = frontend_module_session(module);
     utility_check(session != null, "Completion session owner");
     syntax_completion_enable(session);
+    parser_completion_ready(session);
+    parser_session_diagnostic_failure(session);
+    syntax_reset(session, source, module);
     parser_completion_ready(session);
     var occupied: WorkReservation = default;
     parser_control_occupy(&budget, 0, &occupied);

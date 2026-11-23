@@ -1793,7 +1793,9 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         sem_declaration_dispatch(c, batch.data, count, &receipt);
         entity_view_close(view);
         if count == 0 {
-            if sem_generic_copies_execute(c) { return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed; }
+            var progress = sem_generic_copies_execute(c);
+            if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+            if progress { return SemanticPumpResult.Progress; }
             var pending = sem_query_pending(c, DeclarationQuery) || sem_query_pending(c, ExpressionQuery)
                 || sem_query_pending(c, ArrayTypeQuery) || sem_query_pending(c, TypeConstructionQuery)
                 || sem_query_pending(c, convert(u32, SemanticQuery.IntegerArgument));

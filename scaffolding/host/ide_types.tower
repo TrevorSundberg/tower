@@ -24,6 +24,7 @@ struct IdeExecution {
 struct IdeState {
     handles: HostHandles;
     error: ByteBuffer;
+    error_fallback: u8*; // Borrowed static presentation; never freed as a buffer.
     execution: ByteBuffer;
     completion: ByteBuffer;
     bytecode: u8*;

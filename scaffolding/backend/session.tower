@@ -19,6 +19,7 @@ import .library.vector;
 struct BackendSession {
     target: vector(u8);
     response: vector(u8);
+    response_fallback: u8*; // Borrowed static JSON, separate from owned bytes.
     backend: Backend*;
     linker: BackendLink*;
     decoder: BackendDecoder*;
@@ -89,6 +90,7 @@ export fn backend_session_reset(s: BackendSession*): void {
     s.decoder = null;
     s.object_only = false;
     s.response.length = 0;
+    s.response_fallback = null;
     backend_link_reset_plan(s.linker);
     fill(&s.times[0], 0, sizeof(u64[6]));
 }
@@ -127,12 +129,20 @@ export fn backend_session_add_input(s: BackendSession*, name: u8*, bytes: u8*, l
 export fn backend_session_failure(s: BackendSession*, error: u8*, offset: usize): u8* {
     s.linker.output.length = 0;
     s.response.length = 0;
+    s.response_fallback = null;
     backend_text(&s.response, "{\"status\":\"error\",\"error\":");
     backend_json_text(&s.response, error);
     backend_text(&s.response, ",\"errorOffset\":");
     backend_decimal(&s.response, convert(u64, offset));
     backend_text(&s.response, "}");
     return s.response.data;
+}
+
+fn backend_session_resource_failure(s: BackendSession*): u8* {
+    s.linker.output.length = 0;
+    s.response.length = 0;
+    s.response_fallback = "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
+    return s.response_fallback;
 }
 
 export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize): u32 {
@@ -208,6 +218,7 @@ export fn backend_session_disassembly(s: BackendSession*): u8* {
 }
 
 export fn backend_session_response(s: BackendSession*): u8* {
+    if s.response_fallback != null { return s.response_fallback; }
     return s.response.data;
 }
 

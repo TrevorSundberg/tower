@@ -443,6 +443,10 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     var checked = mode == 0;
     if checked {
         sem_run(c);
+        if completion_semantic_failed(q) {
+            completion_dispose(q);
+            return null;
+        }
         checked = sem_ok(c);
         // A document diagnostic does not invalidate the declared parameters and
         // symbolic annotations of its registered templates. Inspect those even
@@ -450,7 +454,7 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
         // by the original result so partially checked values are never exposed.
         q.program.error.length = 0;
         q.generic_info = sem_generic_inspect(c, checked, &q.truncated);
-        if q.generic_info == null {
+        if completion_semantic_failed(q) || q.generic_info == null {
             completion_dispose(q);
             return null;
         }
@@ -464,6 +468,10 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
             }
         }
     }
+    if completion_semantic_failed(q) {
+        completion_dispose(q);
+        return null;
+    }
     q.program.error.length = 0;
     q.output.length = 0;
     q.count = 0;
@@ -474,6 +482,10 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     for(; i != q.roots.length; i++) {
         if q.bases.data[i] == 0 {
             language_walk(q, q.roots.data[i], &empty, checked, 0, &budget);
+        }
+        if completion_semantic_failed(q) {
+            completion_dispose(q);
+            return null;
         }
     }
     completion_text(&q.output, "],\"complete\":");
@@ -492,5 +504,6 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
 }
 
 export fn language_document_result(q: CompletionQuery*): u8* {
+    if completion_semantic_failed(q) { return null; }
     return q.output.data;
 }

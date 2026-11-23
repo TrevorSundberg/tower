@@ -787,3 +787,66 @@ ABI scratch is3 allocator calls/320 peak charged bytes; reachability is5/544.
 The exact source/binary, failure and corrected timing/RSS receipts are preserved
 in the journal. This validates the new API's physical-failure fixture, separately
 from still-pending caller adoption, shared resource ABI and instrumentation.
+
+## Resource-pump draft on the joined0fda source
+
+Full review of the seven touched owned production files retains the earlier ECS
+and type-identity audit. No new canonical graph, evaluator, queue or registry was
+introduced. TypeExecution keeps its evaluation-owned sequence/target/ticket
+validation; result readiness now follows successful terminal graph completion.
+Registration leaves parent phase cleanup to its owner. Constructor and type-value
+consumers guard failed or missing query handles. The remaining type constructor
+graph-demand assertion now records the shared typed receipt.
+
+GenericBody uses A1's checked admission and A2's typed finite dispatcher. Its
+per-wave deferred cleanup holds/discards unpublished stages before returning the
+worker grant; graph cancellation follows those stage retirements. Kernel storage
+failures remain on their owned request until the consumer selects the diagnostic.
+Existing structural metadata allocation assertions are outside this migration;
+checked graph/dispatch paths do not imply complete physical entity accounting.
+The optional generic inspector uses the fixed program receipt across its six
+ordinary diagnostic clears, and stops before binding/returning failed results.
+Node quota remains truncation, separately from resource failure.
+
+The existing type_execution_receipts fixture gains real request and terminal
+queue Capacity denial plus a success control. Queue fill and storage pressure are
+derived from actual graph capacity and available budget. The terminal case
+requires the producer to have reached Succeeded before checking unchanged result
+and readyfalse, so an earlier request/take failure cannot falsely satisfy it.
+Cleanup requires zero graph grants after disposal. Both target widths are
+supplied by the existing registered runner; no new harness or registration.
+
+Baseline944 has public leaves, coherent compiler/LR, query and editor receipts.
+The first updated fixture compile failed on unsupported else-if syntax before
+any runtime, and is corrected using existing guarded branches. Current source
+remains unvalidated until its corrected leaf and joined gates run. A1's evaluation
+finish and body/declaration callers still need matching resource guards, and B2
+owns the single editor phase boundary for a true late-inspection denial test.
+The exact draft, source/failure records and immutable before package are in the
+journal/lane status. No release, new performance or instrumentation claim follows
+from this source review.
+
+The corrected draft now has source-specific25651 evidence: public receipt and
+semantic leaves, coherent native compiler/LR, query-smoke and editor all pass;
+source hashes remain frozen. This supersedes the preceding unvalidated-draft
+statement only for those checks. Type-smoke, paired profiles, current instruments
+and complete publication remain pending. The single editor RSS increase is under
+paired investigation. Coordinator review identified another real classification
+gap: stage/view open and publication may reject invalid/busy/exhausted state,
+while this draft currently records Memory unconditionally. A2 owns the shared
+per-call result APIs; consume that complete provider and test the reachable
+non-memory failures before claiming this resource migration accepted.
+
+The required current full type-smoke gate is now25651-source/26691-run PASS:
+42 lifecycle cases, both widths,1/4 budgets, canonical reconstruction and focused
+type errors/cycles. Hash checks match. Paired performance, A2 result consumption,
+A1/B2 callers, current instrumented merged evidence and publication remain open.
+
+Paired11962 now supplies88 successful processes on frozen identical inputs and
+complete before/after packages. Canonical output, entity/component counts and
+retained charged bytes match per configuration; four-unit runs record real outer
+peak4. Costs and variability are tabulated in the journal. Editor median RSS
+increases5.7% and remains under controlled allocator investigation; passing output
+and slightly lower wall time do not make that neutral. Current code is a measured
+checkpoint, still awaiting typed stage/view classification, coordinated callers,
+late inspection phase proof, merged instrumentation and integrated publication.
