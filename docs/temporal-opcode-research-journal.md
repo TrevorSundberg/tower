@@ -83822,3 +83822,15 @@ results (4.539wall/5.485CPU/680472KiB); this is merged acceptance, not a replace
 for the frozen performance pair. Native CLI object matches the frozen fixture
 byte-for-byte. Logs build/b2_backend_merged_*.log. Jobs drained; no broad matrix,
 deployment or release claim. Normal main publication follows this receipt.
+
+L1 publication reconciliation: required pull fetched complete3078c63 and refused
+ff-only divergence. Merge8a18336 preserves all histories. The sole conflict was
+adjacent symbol-fixture additions; retained both B1 parser_structure cache cases
+and L1 typed-stage-lease case. Merged policy fixture rebuilt/linked/executed0,
+source hashes frozen, empty diagnostics (logs/successor_policy_merged). No runtime
+or policy check was weakened. Incoming active-lane implementation changes are
+newer than this checkpoint's explicitly frozen c7ad4f4 candidate; their whole
+compiler/WASI acceptance is not inferred from old artifacts. No broad rerun or
+repackaging chase. Native-generation mismatch remains the one checkpoint blocker;
+all complete candidate/overlay/failed and passing receipts remain external for
+ROOT. Normal main push follows, then this bounded task exits.
