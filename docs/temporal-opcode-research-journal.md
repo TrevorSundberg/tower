@@ -78310,3 +78310,51 @@ B1_pool_graph_receipts_68fa00d9.tgz SHA256
 contains the exact current artifacts and all24 profile records. No owned job,
 quiet watcher or hold remains. Evidence commit follows without runtime changes;
 complete ROOTc944 adoption and new grammar work have not begun.
+
+### D2: complete next ABI source and archived evidence review (2026-11-23)
+
+Own exact table policy and complete107MiB package receipt were committed/exported
+as8cb198038, bundle853919db/receipt64223a6e, before any next-source adoption.
+Verified D1's full1beec bundle da8ccc28 and500MiB receipt7160ccfd. Direct archive
+reads confirm the original missing compiler_buffer link1, original units124 and
+same-binary profiled440.23s exit0; no probe/test execution. Merge44fd32b8 retains
+all histories. README conflict only relocates two already complete paragraph
+groups; retain their current location once. Auto-merged journal moves older
+metadata/affinity/policy blocks; their complete sections remain present, with no
+cleanup of inherited historical copies. D1 corrected the narrow selector audit:
+frontend "parser"/default runs parser_failure_tests, while "allocations" returns
+before those cases. D2's previous receipt actually ran both selectors.
+
+Verified complete ROOT2252 bundle3ae22ed0/sole60741, read new parser contract,
+map layouts/producers/all production set callers, shared query/capture/executable
+result path, full238-line new executable fixture and owner audit/journal evidence.
+Merged as6e7feea51, guarded pull/diff/todo checks pass. Production/build equals2252
+except the independently measured D2 table-policy fixture/tool. No private draft
+or signature-only producer was substituted. Owner before/after costs and failures
+remain attached to their original6818/68fa/2c inputs; current c372 compiler and
+c801 native/WASI/package receipts do not validate this layout union.
+
+L1's six work-vector maps remain derived sorted execution indexes, with guest
+heap/free-range metadata admitted before range mutation and matching graph/Fast
+cleanup. New IMFrame/IMState layout invalidates all importing objects, including
+fixtures; actual depfiles and fresh source mtimes must drive the rebuild. The
+prior owner's stale Copy-Item mtime/SIG11 incident is retained as a diagnosed
+build-input failure, not a successful new ABI test. B1's pool bytes and phase
+WorkGraphs now share the world's stable budget, separately from lane admission;
+raw FIRST/state/lookahead vectors are still not whole-heap accounted. Exact new
+external ParserNodes dependency is entity_attach_result; its checked producer
+already exists, and lr_work_node_result preserves creator/containment ownership
+on both results. Other new LR results are intra-provider. Actual fresh native/
+WASI reports are the gate before a new permission, not the API announcement.
+
+ROOT's executable query guards reserve request/edge/access/seal state before
+metadata, discard undispatched stages before cancelling, and gate ready input
+on successful observation/completion. Shared sem_query_check stays internal.
+The fixture imports services/compiler_kernels itself; durable registration needs
+D1's existing aggregate-style semantic provider deduplication. No D2 CMake or
+shared production edit. Component, dispatch, stage-publication and hold contracts
+remain separate open work. Source/receipt review has no new runtime path to
+profile. D1 acquired the free shared slot for current leaves/manual baselines and
+registrations at13:22; D2 will use actual native/provider reports and a later WASI
+slot, preserving that freeze. Final empty-cache public bootstrap/browser/generation,
+current instrumentation/performance and leased atomic hosted release remain open.
