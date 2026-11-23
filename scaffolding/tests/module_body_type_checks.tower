@@ -26,6 +26,12 @@ struct ModuleBodyTypeFailure { message: u8*; location: u8*; }
 
 fn module_body_type_trial(root: u8*, bedrock: u8*, foundation: u8*, source: u8*, width: u32,
     workers: usize, wanted: u8*, error: ModuleBodyTypeFailure*, canonical: vector(u8)*, error_offset: usize*): bool {
+    return module_body_type_trial_steps(root, bedrock, foundation, source, width, workers,
+        wanted, error, canonical, error_offset, ModuleBodyTypeFuel);
+}
+
+fn module_body_type_trial_steps(root: u8*, bedrock: u8*, foundation: u8*, source: u8*, width: u32,
+    workers: usize, wanted: u8*, error: ModuleBodyTypeFailure*, canonical: vector(u8)*, error_offset: usize*, fuel: usize): bool {
     var input = "module_body_type_input.tower";
     var expected_line: usize = 1; var expected_column: usize = 1;
     if error != null {
@@ -86,7 +92,7 @@ fn module_body_type_trial(root: u8*, bedrock: u8*, foundation: u8*, source: u8*,
             }
             format_dispose(&formatted);
             if engine != 0 { units_check(execution_session_fast(&session), "Body type Fast admission"); }
-            execution_run(&session, 7, ModuleBodyTypeFuel);
+            execution_run(&session, 7, fuel);
             units_check(session.machine.done && !session.machine.failed && execution_text(&session.output, wanted),
                 "Body type Graph/Fast reference output and exactly-once effects");
         }
