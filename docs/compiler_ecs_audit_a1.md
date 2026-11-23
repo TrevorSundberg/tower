@@ -488,3 +488,62 @@ from these patches or passing stress tests. These are interpreted design
 principles, not adoption of another implementation language or borrowed
 performance claims. This documentation review changes no runtime and needs no
 new performance sample.
+
+### Joined failure ownership follow-up at 25b4aacf (2026-11-23)
+
+The production provider and focused-test registrations from ROOT0c8b7d66 are
+now merged. This source checkpoint does not validate the newer constructor ABI.
+
+| Re-reviewed path under scaffolding/compiler | Failure ownership and next required change |
+| --- | --- |
+| semantic_execution_work.tower | Every frozen context and staged executable snapshot survives until dispatch joins. Publish stage ownership for disposal, but withhold IMFunctionInput.ready and aliases on transport/graph failure. Existing helper readiness is complete; the missing work is checked failure retirement. |
+| semantic_evaluation_work.tower | Clone/preparation stages may already be referenced by canonical payloads. Join, publish all stage ownership, then suppress aliases and successful preparation receipts on failure. Existing 128-byte interpreter diagnostics cover preparation storage failure, not all transport/graph failures. |
+| semantic_lowering_work.tower | Signature and ordinary lowering share private stages and may change leased canonical payloads. Discarding a stage could leave dangling links. Keep all-stage ownership publication before graph settlement; suppress downstream readiness and retain the first diagnostic after a terminal graph allocation fails. |
+| semantic_body_work.tower | Publication also transfers allocation/list owners, evaluations, capture state and lexical prefixes. Failure cleanup must retire those owners without replaying a continuation or creating new queries after graph cancellation. Existing result disposal is the ownership reference, not a replacement scheduler. |
+| semantic_iteration_work.tower | All TypeIndex reads must retire before signature interning or preparation write claims. A failed batch must clear every borrowed context and dispose result vectors without calling the normal signature/publication path. |
+| semantic_flow.tower | Workers only calculate private flow facts; no staged ownership transfer is needed. Source-ordinal diagnostic order and terminal receipt cleanup can use the same checked transport contract. The current loop still assumes all requested jobs are immediately ready. |
+| semantic_known_work.tower | The checked dispatch draft handles joined transport/observation/finish failure, but graph request/access/seal/demand and take-time growth remain asserted. An empty batch after resource failure must not be reported as ordinary Waiting. Proof/snapshot callers also remain fallible-work gaps. |
+| semantic_query_pipeline.tower | Phase pumps own their frontiers; cycle selection belongs to the caller after all producers quiesce. Isolated layout diagnostics are deliberately deferred, but future infrastructure errors must not be cleared as ordinary producer diagnostics. |
+
+These are source-reviewed obligations, not newly passing runtime cases or a
+claim that every allocation is world-budgeted. No runtime code changed in this
+review, so a new performance sample is inapplicable. A2's public predecessor
+LLVM shows aggregate reset already uses memset; the earlier proposed default
+expansion attribution is withdrawn without a cosmetic source rewrite.
+
+### A1 numeric source-boundary experiment, not acceptance (2026-11-23)
+
+At25b4aacf plus the checked-dispatch draft, public9653 still exceeds its semantic
+component allowance after the constructor merge. A2's separately linked graph/
+pool candidate also fails its aggregate, so ROOT approved an A1-owned literal
+leaf experiment before any broader compiler split. No numeric library changed.
+
+New scaffolding/compiler/semantic_literals.tower is the55th assigned semantic
+path, fully reviewed here: it contains the unchanged borrowed-token classifier
+and the existing float_parse/status diagnostic block. It calls the same ordinary
+float_text implementation, uses the caller's private context, retains no pointer,
+and creates no numeric policy, constant folder, registry or scheduler. Its four
+declarations call the existing semantic owners. sem_literal, sem_token_text and
+sem_fail gain exports; semantic_support/semantic_values call two typed leaf
+functions instead of importing the full numeric implementation. KBits sign
+classification compares the same ASCII byte through an ordinary local "-" string.
+
+The isolated public object passes2.48wall/1.88user/.15sys/233300KiB
+(semantic_literals_leaf1, Linux x64 jobs1, LLVM19, own4CPU8GiB). First aggregate
+attempt failed on the remaining FloatDecimalMinus use. A quoted '-' is a string,
+not a scalar byte; direct indexing of the literal is also unsupported. Both
+failed attempts are retained, not new syntax or bootstrap adoption. The corrected
+local-string form compiles past those errors but still hits the component cap
+at semantic_types217 (semantic_literals_aggregate4); all jobs exited/reaped.
+This result is before A2's new API/borrowed-view package. No linked/runtime,
+performance-equivalence, provider, WASI or generation acceptance is claimed.
+D2 provider routing is conditional on a successful aggregate. Required later
+evidence includes float literals, exact bits/signed zero, malformed diagnostics,
+canonical roundtrips and matched small/large before/after profiling.
+
+The dispatch fixture now has a separate admission selector for two pointer
+widths with the graph's available ledger held before query creation. It expects
+failure before dispatch, a retained Capacity receipt, no value publication and
+no replay. Its public object passes3.09wall/2.33user/.16sys/221092KiB
+(semantic_dispatch_unit4). The original six default trials are unchanged.
+Neither selector has current-ABI linked runtime evidence yet.

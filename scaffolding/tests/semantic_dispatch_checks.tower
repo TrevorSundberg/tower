@@ -41,7 +41,7 @@ fn dispatch_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
 }
 
-fn dispatch_trial(width: u32, deny: bool, terminal: bool): u32 {
+fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool): u32 {
     var failures: u32 = 0;
     var workers: usize = 4;
     var budget: WorkBudget = default;
@@ -102,6 +102,12 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool): u32 {
     sem_require(work_pool_open(&context.workers, workers)
         && context.workers.threaded && context.workers.count == workers);
     var occupied: WorkReservation = default;
+    if admission {
+        var available: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &available)
+            && work_budget_reserve_result(&budget, 0, 0, budget.bytes - available.used_bytes, &occupied)
+                == WorkBudgetError.None);
+    }
     SemanticDispatchBudget = terminal ? &budget : null;
     SemanticDispatchOccupied = &occupied;
     SemanticDispatchFailSignal = deny;
@@ -113,21 +119,25 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool): u32 {
         "Dispatch failure drains every peer and retires all claimed tickets", &failures);
     dispatch_check(context.workers.resource_error == (deny ? WorkBudgetError.Memory : WorkBudgetError.None),
         "Dispatch retains its typed allocation failure", &failures);
-    dispatch_check(deny ? program.error.length != 0 && program.error_offset == 11 : program.error.length == 0,
+    dispatch_check(deny || admission ? program.error.length != 0 && program.error_offset == 11 : program.error.length == 0,
         "Dispatch failure reports the first source ordinal", &failures);
+    dispatch_check(!admission || (context.queries.cancelled && context.queries.resource_error == WorkBudgetError.Capacity
+        && context.queries.tasks.length == 0 && context.workers.claim == null),
+        "Graph admission denial fails before dispatch without retaining a live ticket", &failures);
     dispatch_check(!terminal || (context.queries.cancelled && context.queries.resource_error == WorkBudgetError.Capacity
         && sem_equal(program.error.data, "Cannot allocate semantic query work")),
         "Terminal graph denial cancels remaining receipts and preserves the first dispatch failure", &failures);
     for(var i: usize = 0; i < count; i++) {
         var query = work_find(&context.queries, program.functions.data[i], convert(u32, SemanticQuery.KnownPublish), 0);
-        dispatch_check(query != 0 && work_task(&context.queries, query).state
+        dispatch_check(admission ? query == 0 : query != 0 && work_task(&context.queries, query).state
             == (terminal ? WorkState.Cancelled : deny ? WorkState.Failed : WorkState.Succeeded),
             "No unexecuted publication ticket succeeds", &failures);
         var items = &sem_get(blocks[i]).items;
-        dispatch_check(items.length == (deny ? 2 : 1) && (deny ? items.data[0] == null : items.data[0] != null),
+        dispatch_check(items.length == (deny || admission ? 2 : 1)
+            && (deny || admission ? items.data[0] == null : items.data[0] != null),
             "A failed dispatch cannot publish canonical compaction", &failures);
     }
-    if deny {
+    if deny || admission {
         var tasks = context.queries.tasks.length;
         sem_known_publish(&context);
         dispatch_check(context.queries.tasks.length == tasks && context.workers.claim == null,
@@ -156,10 +166,18 @@ export fn main(argc: i32, argv: u8**): i32 {
     SemanticDispatchBudget = null;
     SemanticDispatchOccupied = null;
     var failures: u32 = 0;
+    var admission = argc == 2 && sem_equal(argv[1], "admission");
+    if argc != 1 && !admission {
+        puts("Usage: semantic_dispatch_checks [admission]");
+        return 2;
+    }
     for(var width: u32 = 4; width <= 8; width *= 2) {
-        failures += dispatch_trial(width, false, false);
-        failures += dispatch_trial(width, true, false);
-        failures += dispatch_trial(width, true, true);
+        if admission { failures += dispatch_trial(width, false, false, true); }
+        else {
+            failures += dispatch_trial(width, false, false, false);
+            failures += dispatch_trial(width, true, false, false);
+            failures += dispatch_trial(width, true, true, false);
+        }
     }
     if failures == 0 { puts("Semantic dispatch failures retain diagnostics without publishing or replaying work."); }
     return failures == 0 ? 0 : 1;
