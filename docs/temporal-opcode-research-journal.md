@@ -92143,3 +92143,14 @@ Preserve its mismatch log and original registry identity; selected language and
 fixture closure unchanged. Reuse the4passes/6failures without rerunning; incoming
 ROOT build/shared/core receipts retain their own sources and do not erase the
 three unresolved alias/type-body cases. No D2 body-continuation change arrived.
+D2 publication reconciliation: scoped7adc5878 merged complete published761aa5b5
+as edf1dd43 after prescribed ff-only pull detected divergence. Both journal
+histories preserved automatically. All final host/test, eac reactor and captured
+output hashes match; selected source/library/language bytes unchanged. The sole
+changed mounted Tower blob is unrelated tests/frontend_units_profile.tower,
+registered but neither imported nor executed by these cases; excluded from the
+frozen resource receipt, with failed hash check retained explicitly. Incoming
+profile/docs evidence is preserved, not adopted as an additional D2 test. Three
+TAP selections each exactly1; baseline fail1, corrected/control pass1 each,
+zero skips/cancels/timeouts. Node syntax/diff checks pass and todo unchanged.
+No repeated test or new compiler-runtime identity; normal main publication only.
