@@ -1664,3 +1664,9 @@ Readycommit/export fullthreeTowerpaths+README+audits with matchingnativeprofile/
 sanitizer receipts; portablevalidation deferredto immediatecompleteROOT351join,
 not falselyclaimed on this old29source. ROOT351bundle84a4 verified, not yetadopted.
 No source change during16592; no publicationlease/push/hostedacceptance.
+Receipt transcription correction 2026-11-23T09:24:20.4789641Z: preceding regexTSan note incorrectly
+transcribed parser/resource walltimes. Raw completedlogs are parser0.385s and
+resource20.999s, not0.346/20.844. Build75.06s/777008KiB; outer26.381/26.368s.
+No newrun or changedoutcome: all actual16592children exited0, noreports. Runtime
+source490d488e; this correction changes documentation only, no runtime/memory
+measurement applies to its text. Raw artifacts remain authoritative and retained.
