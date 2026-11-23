@@ -68013,3 +68013,51 @@ normal/instrumented products and raw source/time/status/failure logs. Sessions
 Other current WASI consumers and current runtime/query/full packaging performance/
 cleanbootstrap/browser/generation/final integrated sanitizer/atomic publication
 remain open. No new user approval, publication lease or hosted pass is claimed.
+
+### D2 current depfile source closure and exact compiler execution (2026-11-23)
+
+D1 independently reviewed7fb8 exact policy and verified matching production
+compiler/library/backend/host source. Its current838 runtime32receipt/24resource/
+query/parser/grammar and stage normal/fault/concurrent checks pass, including
+supported address/thread runs. Its executable32864 differs because the shared
+semantics interface also links a changed query fixture object; this does not make
+D2c691 an executed binary. D2 read the minimal two-list stage registration patch
+1b6ef69e; no duplicate provider or source issue found. No repeated broad matrix.
+
+After D1 release, atomic D2 slot09:13:49, source7fb8 frozen, same public9653/
+Docker4be584fb/LLVM19/CPUs0,2/jobs1/nooverride. Existing compiler_project_units
+public compile15.10wall/14.65CPU/324560KiB+link and native no-opguard.69s pass.
+Exactc691 known_bindings --interpret --target wasm32-unknown-unknown --jobs1/2
+both print0, checked against its existing failure counter. Times2.34/3.57wall,
+2.30/3.94CPU,182956/190668KiB, one sample each; correctness, not speedup/overlap.
+Session21009 then fails1 requesting CMake INTERFACE targettower-compiler-entities.
+Originalgroup1/run_initial.sh/providerlogs retained. All children drained; actual
+Ninja -t targets identifies entities.o/evaluation.o custom commands. Corrected
+only OS invocation and resumed pending work(session20766), without rerunning
+successful compiler/fixture checks or mutating frozen source.
+
+Current provider objects10.15wall/9.93CPU/323436KiB. Export from actual depfiles
+.02/.01/2364; TypeIndex API/types exact source present. Native export recompile
+entities16.26/15.65/323320 and evaluation14.10/13.62/323264 BOTH byte-identical to
+current originals. Fresh original/exported WASI evaluation8.47/8.38/320420 and
+9.57/9.29/319988 produce identical complete objects and pass current exact policy.
+No manual source manifest, second type registry/provider or alternate interchange.
+This is Tower compiler-source export proof, not a new Foundation-roundtrip claim
+or fullreactor package/retention profile. All swaps0; sourcehashpass and children
+drained before09:17:19UTC release/D1 handoff.
+
+Complete21MiB package_7fb8_receipt.tar SHA
+ d4323c5bc529f3dd14a63d7ca41c2bb78c8abe8ce3b228c8ac626bc17b7a180d
+contains fullsourcearchive, originalobjects/depfiles, exportedclosure, normal
+products, commands/rawtimes/failure1/resume0 and completec691+50resources. No
+runtime code changed; documentation-only new profiling is inapplicable. Full
+final browser/assets/cleanbootstrap/generation/instrumentation/publication remain.
+
+Further current tool ownership review identifies an explicit remaining budget
+boundary: link_wasi and wasm_link_audit call wasm_link_init/world_open, whose
+entity_store_create uses null/unbounded budget; work_init and linker pool open
+also lack a shared budget. Guest memory and worker/grain limits do not bound host
+allocations/outer+nested lanes. Mapped owners/drain remain correct. Routed exact
+chain/owned callers in status for B2's complete constructor/budget contract before
+D2 adoption; no speculative cap/globalstate/second API. Page accounting and race
+clearance are not reported as closing this gap.
