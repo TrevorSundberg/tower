@@ -82176,3 +82176,20 @@ producer and four immediate caller guards; no syntax/bootstrap adoption occurs.
 Remaining execution-kernel synthesis assertions and other worker caller closures
 are not claimed solved. A2 owns remaining stage callers, L2 known/capture
 admission, and ROOT final integrated sanitizer/bootstrap/browser/deployment gates.
+
+A1 merged staging receipt:7cea85cf implements this batch. Required ff-only pull
+found published5c5a308c ahead; complete-history mergec4f496b945efc998584a63870e852c178626928b
+preserves incoming L2 constructor/evaluation admission, A2 queued-stage/nested
+budget work and ROOT executable admission. The sole content conflict retained
+L2's checked registration/access/seal handling and added A1's prerequisite before
+sealing. No producer/layout copies or lost histories. The affected dependency
+build completed33 actions. All46 focused trials, query/control smoke and LR
+real-overlap checks pass on the merged inputs; comptime_flow jobs1/4 prints0,
+comptime_aggregates canonical output remains byte-identical to the old baseline
+at both worker settings, and the Foundation round trip prints0. Merged compiler
+SHA256758ada4901fa25c6dd6541d0fdba4aa56c2139cd73e802122f39f9ddb1acaa37.
+Logs/scripts: A1/cache/a1_staging_merged_*. Build5732 and checks84663 reaped0;
+container retains only idle init66612. Prior n1 profiles describe the frozen
+189e-to7cea batch, not the subsequently merged owners' runtime changes; their
+own measurements stay with their journal receipts. No broad matrix repeated.
+Scoped main push follows; no runtime deployment or integrated-release claim.
