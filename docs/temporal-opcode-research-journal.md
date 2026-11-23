@@ -48965,3 +48965,286 @@ Locked npm402-package and own Chromium installation also exit0; they establish
 browser dependency readiness only. No compiler browser/generation/publication
 check has run on this source. A1 receives the next quiet profiling slot; A2 has
 no active build during that window.
+
+### 2026-11-22 A2 retained-buffer design and first implementation draft
+
+The coordinator identified two required remaining capabilities after the coherent
+native milestone: physical retained-buffer accounting and a selectable packed
+component payload policy. These are required work, not optional optimizations.
+B1's complete parser allocation inventory was read. FIRST/propagation buffers
+swap into retained results, LR rows/gotos move into runtime tables, and closure
+hash growth is data dependent even in serial execution. Charging only a parser
+worker-count estimate cannot cover these owners.
+
+The first implementation draft is `library/work_buffer.tower` plus
+`library/work_vector.tower`. It uses the existing synchronized WorkBudget and
+compiler_buffer allocator, with a separate byte-only receipt attached to each
+physical allocation. It reserves the full replacement before allocation, copies
+only initialized bytes, frees old storage before releasing the old grant, and
+preserves the old owner on overflow, denied admission or allocation failure.
+Move/swap transfers the whole allocation receipt without charging it again.
+Outer frozen snapshots retain B2's existing grant; nested borrowed bytes are not
+charged again. Nested newly allocated scratch/results receive their own grant.
+Lane release at join/publication does not free retained bytes.
+
+The generic vector has a distinct type so ordinary vector free/realloc cannot
+silently discard its compiler allocation header or grant. It preserves the
+existing min-eight/doubling growth and explicit element ownership. A result API
+returns Capacity versus Invalid versus Memory; the bool convenience is retained.
+Alignment is an explicit host allocator contract, not inferred from a view or
+pointer width. B2 owns the proposed allocation-size/alignment helper exports;
+they must agree with the existing four-word header and conservative overflow
+check before any caller adoption. A null budget explicitly means standalone
+unbounded allocation. No process-global/TLS accounting or alternate scheduler
+was introduced. WorkBudget ledger-vector storage, descriptor storage, allocator
+metadata and RSS remain separately measured costs, not covered by these grants.
+
+Own draft fixtures cover retained results after lane release, full replacement
+peak, denial preserving pointer/content/receipt, stale receipts, transfer/swap,
+size overflow, standalone buffers, typed vector growth and teardown. The separate
+shared fixture uses four actual production allocator/pthread workers, a real
+rendezvous, concurrent growth/free, retained output after join, cancellation and
+capacity-denial cleanup. The fault fixture explicitly uses only the existing
+serial allocation-failure runtime. The profile uses the same physical compiler
+buffer allocate/copy/free workload with/without accounting, 8192 replacements
+divided over 1/2/4/8 workers, and independent byte checks. It records wall/CPU/RSS,
+actual interval overlap, allocations, retained payload, charged peak and retained
+ledger metadata. These new sources are UNCOMPILED/UNRUN as of this entry; A1's
+quiet profiling slot remains reserved. There is no runtime or speed claim.
+
+The packed-storage proposal keeps stable payloads as the default and opts in
+only trivially relocatable lifecycle-zero metadata. Stable component handles
+point into a real per-kind payload column; payload pointers would be valid under
+a view or until a documented structural operation. Every moved handle/index must
+be repaired and all fallible capacity reserved before commit. CompilerWorkUnit
+is the first candidate: its complete caller search finds temporary reads in
+compiler_work_create/unit/unit_task/next/accept and the focused test; no payload
+pointer is stored across structural mutation. Stage-local packed additions need
+an explicit reserve/transfer publication contract before that surface can be
+claimed supported. This is design only, awaiting the memory API checkpoint;
+there is no concurrent broad Entity ABI change or adoption yet.
+
+The reviewed D1/B1 harness handoff is also queued, not validated: capture-policy
+and parser selectors, full aggregate registration, two exact address-diagnostic
+oracles, bounded parser allocation-failure sweep, and Linux-only standalone type
+reachability profile. The standalone removes its old import/dispatch from the
+portable execution runner. README registration context was reconciled narrowly.
+Prior normal merged runtime receipts remain valid only for aadf300e, not these
+new selectors. A plain rebase after the coherent merge attempted to flatten
+imported owner history and stopped; it was aborted without reset/skip/discard.
+`git pull --rebase=merges --no-stat` then preserved exact aadf300e. A subsequent
+phase-start pull safely refused the expected dirty harness source. The premature
+status PASS from a PowerShell command which continued after git failure was
+explicitly withdrawn; subsequent git steps check their exit status.
+
+### A2 retained-buffer and common-lifetime arena evidence (2026-11-23)
+
+This supersedes the preceding uncompiled WorkBuffer draft, not historical failure
+receipts. Sources are on aadf300e plus the reviewed owner patches; publication and
+full lane acceptance remain open. A2 session01a2046f-fec2-7c71-be46-cad28f9ac147,
+PID15056, Windows11 Ryzen AI MAX+395,16 cores/32 threads,123.65GiB; own Docker
+CPU12-23/24GiB, compiler jobs1. Public checked-in Linux bootstrap, clang19 -O1,
+production guest allocator and pthread transport. No sibling cache mutation.
+
+WorkBuffer v3 archive3b03fc54 contains the six library/test sources. B2 helper
+07e634dd shares the exact existing compiler-header/overflow calculation between
+allocator and ledger, and declares conservative two-word alignment. WorkVector
+keeps a distinct owner and geometric growth, initialized-prefix copies, result
+errors, move/swap/pop and ordinary borrowed iteration. Both physical old and new
+buffers are charged while replacing; release follows free and retained owners
+outlive joins. Null budget is explicit standalone. Ledger metadata, allocator
+private overhead, other world allocations and RSS are not included in this cap.
+
+Native normal/shared/serial-fault checks passed. The initial serial fault link
+failed because print required tower_print, absent from the intentional serial
+instrumented+trap composition; v3 uses existing puts and preserves that failed
+receipt. Three ASan+leaks executions each of normal and real4pthread fixtures
+passed. Default Docker seccomp made the first TSan launch fail before main at
+personality(ADDR_NO_RANDOMIZE), exit139. A separate network-none disposable
+container allowing that syscall ran three normal and three actual4pthread TSan
+checks successfully, with no source/assertion changes.46/59 fixture functions and
+47 Tower guest-runtime functions were instrumented. Source-level UBSan, system
+LLVM instrumentation, Windows transport and universal race freedom are not claimed.
+
+Frozen bea8768f profile, c74c8ede fixture:262144 equal replacements total,
+4096/8192B capacities,1GiB initialized copying, full byte oracle, fresh processes.
+One warmup pair plus three retained alternating pairs per worker count; all32
+outputs checked. Container00:17:30.059816Z--00:17:31.829819Z, exit0. A1 next unit
+started00:17:42; its initial overlap notice was withdrawn from actual timestamps.
+
+| Workers | Baseline wall/CPU ms, RSS KiB | Shared ledger wall/CPU ms, RSS KiB |
+| --- | --- | --- |
+| 1 | 12.292488 /12.299,1336 | 15.553472 /15.548,1316 |
+| 2 | 9.739038 /18.742,1348 | 68.112553 /132.600,1328 |
+| 4 | 6.165578 /21.359,1316 | 88.549106 /273.711,1336 |
+| 8 | 3.789351 /23.155,1332 | 93.703668 /512.696,1300 |
+
+Actual interval overlap1/2/4/8, allocations262144+workers, retained payload4096
+bytes/worker, peak charged12352/worker; ledger capacity320B at1/2/4 and640B at8.
+This allocation-heavy micro exposes serious shared-gate contention: serial cost
+26.5%; eight-worker ledger is about6x slower than ledger serial. It is not an
+end-to-end compiler speed claim. Actual geometric caller growth and lifetime
+chunks need separate evidence. Parent receipt A2_work_buffer_manual_receipt.txt
+SHAae30f479 and exact OS recipe archive689bb0af preserve commands/results.
+
+A1's independent token-copy census still observes430450 tiny requests after
+removing23481 redundant copies, mean payload about14B. This motivates the owned
+WorkArena prototype rather than a per-object budget receipt. Arena bb84b958 keeps
+aligned stable slices in WorkBuffer chunks, with the descriptor inside its own
+allocation. Failure preserves old chunks/output; O(1)append requires the same
+budget and joined borrowers; nested resources retire before chunks. Disposal
+copies the self-hosted descriptor locally before freeing it. No implicit slice
+destructors, no global/TLS allocator and no scheduler were added. Caller selects
+chunk size; fragmentation and speed are still being measured.
+
+Smallest arena unit, three native fixtures, three ASan+leaks and three TSan
+executions each of normal and real4pthread fixtures passed;40/66 fixture functions
+plus47 runtime functions. Initial public-pin compile correctly rejected omitted
+named fields; explicit documented ..default fixed three constructors, preserving
+work_arena_initializer_failure.log. Native binaries40be3432/e226e8d9/df87424a.
+Four-source arena handoff fecd6931 is validated, not production scratch adoption.
+
+Actual WASI32 WorkBuffer and arena execution also passes stdout0 under existing
+host-wasi.mjs, Node21.7.3, pinned SDK34 archiveb761e3a0. Initial link ran into
+undefined_weak:main before fixture entry; existing TowerUtilityTests requires
+main->__main_argc_argv binding. Existing Tower runtime_bind fixed that transport
+recipe; failed work_buffer_wasi.log remains. Final modules6c21a8c4/d8f337a6 check
+alignment,32-bit capacity/overflow and ownership; serial WASI is not browser
+threaded acceptance. Recipes/logs are under A2/cache/work_memory_wasi_entry*.
+
+Semantic scratch adoption remains A1/L2 work over four owner fields, nine frees
+and three transfers. Capacity must latch a diagnostic without allocating from
+the denied arena, then propagate phase failure and cancel/drain. Existing
+infallible sem_allocate callers cannot safely receive null; no abort/replay or
+uncounted fallback closes this gap. B1 parser9e4d and B2 snapshotc654 source
+reviews found a joint-test risk: old snapshot-only exact caps/counts exclude newly
+retained parser tables. A1 independently confirmed units failure at Previously
+configured program still compiles after denied replacement. Owner fixture repair
+is pending; no assertion weakened and no repeated expensive matrix here.
+
+The current Root correction also withdraws the earlier categorical known-order
+fast-engine bug: docs/foundation.md explicitly exclude raw uninitialized reads
+from portable outputs. Graph0,7,7 versus normalized7,7,7 is preserved excluded-raw
+input evidence, not a portable oracle. D1 owns initialized effect1,1,7 and strict
+before-initialization comptime rejection; no zero-initialization policy was added.
+
+Current full-scope gaps remain real: packed component payload policy and safe
+stage transfer; complete retained allocation adoption and fallible scratch;
+profitable end-to-end1/2/4/8+ core scaling; current joined instrumentation and
+Windows/browser transport; clean merged bootstrap/generation/browser/atomic
+publication/hosted verification. Arena micro profile is compiled with eight
+checked smokes (b4764af6); qualified paired timings await A1's explicit quiet
+release. Documentation updates themselves have no runtime performance effect.
+
+### A2 arena profile, data-only owners and joined memory closure (2026-11-23 00:47Z)
+
+Frozen arena profile b4764af6/fixture952b6326 completed128 checked samples in
+2.278s at00:37:29.736797--00:37:32.014301Z, after A1 explicit idle hold and before
+its next token profile. Each configuration has one warmup and three retained
+alternating/reversed samples;2048/262144 common-lifetime objects of8/12/16/20B,
+full byte oracle, same allocation modes and equal pre-touched pointer index.
+All small/large1/2/4/8 samples pass. Timing excludes setup and validation; physical
+retirement is separately timed. Linux x64 production allocator, public pin and
+clang19-O1, A2 CPU12-23/24GiB. This is an allocation micro, not compiler timing.
+
+Large262144-object medians, wall/CPU ms and process peak RSS KiB:
+
+| Workers | Individual buffers | Arena4KiB | Arena16KiB | Arena64KiB |
+| --- | --- | --- | --- | --- |
+| 1 | 7.615602/7.621,18748 | 2.042437/2.049,7736 | 1.925347/1.932,7552 | 1.850160/1.857,7476 |
+| 2 | 7.246715/14.465,18740 | 2.433799/4.586,7480 | 1.695647/3.006,7460 | 1.518850/2.839,7460 |
+| 4 | 4.759217/17.995,18756 | 2.304562/6.629,7508 | 1.453331/4.313,7472 | 1.084170/3.105,7460 |
+| 8 | 5.668450/40.648,17976 | 2.143957/11.653,7752 | 1.432577/5.719,7552 | 1.250965/4.686,7504 |
+
+Actual large interval overlap1/2/4/8. Payload3670016B; baseline262144 physical
+allocations retain12058624B.16KiB chunks retain4235328/4235328/4268160/4333824B
+in258/258/260/264 allocations; ledger metadata20480B extra.64KiB chunks retain
+4261920/4327488/4458624/4720896B in65/66/68/72 allocations; ledger5120B.
+4KiB uses1049--1056 chunks and81920B ledger storage. The common pointer index
+is2097152B outside the ledger. Retirement at1worker: baseline.995ms versus
+16KiB.0049ms;8workers1.783ms versus.191ms, including coordinator remote frees.
+
+Small2048-object serial medians: baseline54.497us/59CPUus versus4KiB19.298/24,
+16KiB18.496/24,64KiB19.228/25. Parallel dispatch is unprofitable at this size;
+16KiB8worker.520ms, baseline.404ms, actual overlap only5--6. Payload28672B,
+baseline physical94208B;4KiB1/8worker37152/66048B,16KiB49248/131328B,
+64KiB65568/524544B. Large chunks can waste more than the individual baseline.
+A1 must measure per-owner lifetime distribution before choosing a compiler
+policy. Best measured large scaling is64KiB4workers~1.71x its serial;8 regresses.
+16KiB8~1.34x;4KiB shared-gate traffic gives no scaling. No universal core claim.
+
+The Tower-written temporary analyzer arena_profile_receipt.tower independently
+parses15 numeric fields from all96 retained logs and takes medians. Its first
+output mixed buffered libc puts labels with direct Tower print numbers; raw
+numeric data remained correct, and a checked fflush before each numeric group
+fixes presentation. No C/Python/JS implementation was introduced. Raw receipt
+archive1e983346 contains original recipe/log evidence; source APIv4 archive
+9c01ae65 and human receipt38fa26b1 are in the coordination parent.
+
+L1 data-only WorkBuffer/WorkVector split7f9fa retains single nominal records and
+allocation-free generic iteration hooks in their type producer; A2 adds the same
+work_arena_types boundary. Six smallest library units pass. First fixture failed
+because the generic work_vector constructor needs an explicit module import;
+adding work_vector_types corrects documented visibility. Eight fixture units and
+six native ownership/fault/concurrency checks then passed. Normal buffer and both
+fault objects are identical; other object bytes changed with module ordering,
+so old instrumentation/profile identities are not relabeled as current. D2's
+explicit remaining type imports a4eb are adopted, preserving the existing generic
+fix. Parser shared layout import change matches ownercfd3 exactly.
+
+Joint source now includes parser9e4d, frontendc654+6e961, interpreter measurement
+741b and buffer ownership9228, plus backend retained-accounting93b999. B2's exact
+input subtotal and finite64MiB test-only held allowance preserve denial/replacement
+assertions while permitting actual parser storage. Backend disposal compares its
+exact receipts with the joined frontend rather than the pre-parse baseline.
+Interpreters charge physical memory/initialization/input-storage vectors to the
+root-world budget before growth; maps/frame vectors remain explicitly uncounted.
+All dependent ABI objects must rebuild. No new scratch policy or constant folder.
+
+The first joint native recipe passed six smallest compiler units and53 build
+steps/link (83.610wall/113.967user/8.894sys), then failed copying generated output
+into the read-only source mount. No runtime check ran. Preserved
+joint_memory_readonly_copy_failure.log. The retry leaves sources read-only and
+mounts only own cache/native_delivery at generated /work/build/native; no script
+or sibling clone change. Required explicit import/backend-test additions occurred
+only after the failed process drained. Current joint runtime validation is pending.
+
+Packed storage remains proposed: type-owned packed chunk rows, stable component
+handles, swap-removal, actual base/stride query; private staged payloads transfer
+only after joined preparation reserves all capacity. A1 source review agrees an
+active-stage guard must survive all finalizers/pool detach before deferred reclaim;
+two simultaneous stages and reentrant release require stress. No packed production
+code or end-to-end scratch adoption is claimed at this checkpoint.
+
+### A2 current retained-memory checkpoint validation (2026-11-23 00:51Z)
+
+Joint retry exits0 at00:48:29.617Z; all frozen Tower source hashes verified.
+Six smallest changed compiler units pass. Incremental native12.851wall/5.402user/
+1.480sys; nine dependent runner tasks17.827/18.888/1.769. Query-smoke.168s,
+units17.691s, backend-overlap7.748s, parser plus failure selector.057s and aggregate
+stages18.239s all pass. The overlap fixture compares exact serial objects and
+observes distinct worker execution. This validates current parser/frontend/IM
+shared ownership together, including B2's exact cap/subtotal fixes. Compiler
+SHAa7a6a005296dc86d96c79d171d78934757b90b0c740c3d379571a3b220be0790;
+LR53e6344a, executione2e19b6e, frontend75c9dbfd. Times are correctness-run context,
+not isolated before/after profiles. The first read-only copy failure remains.
+
+After final explicit type imports, work_memory_final.sh exits0 at00:50:18.902Z.
+All14 source units compile independently with the public pin; six native normal/
+real4pthread/serial-fault fixtures pass. Three ASan+leaks and three TSan runs each
+of WorkBuffer, shared buffer, arena and shared arena pass (24 executions), using
+production runtime5a2a23a0. Actual serial WASI32 buffera377a923 and arena50ec0057
+both execute stdout0 through host-wasi.mjs. These are current owned API receipts,
+not final whole-compiler instrumentation. Source UBSan/system LLVM/Windows and
+browser threading remain uncovered. Current native bufferdff012a0, arena4a21440e;
+profile binariese80a3fc8/7285f216 await their isolated post-import paired runs.
+
+Fourteen-source handoff A2_work_memory_v5.tgz SHAb8b0c9b758cf4a383aaff8363f7ccd762626fd06cc861f44e7e44f3ae503fe25
+supersedes v4 only through defining-module imports (D2 a4eb and matching arena
+imports). Recipe/current logs/source manifest archive86b357b9 is routed beside it.
+A1 can use the validated complete WorkArena for the approved Publish-only fallible
+slice; broad raw sem_allocate migration remains required. B1 owns the proposed
+nongeneric element-growth helper to reduce measured public compiler import work;
+A2 will review its export rather than build a competing helper. No helper patch
+or packed component storage is implemented in this checkpoint. Goal stays active,
+with no publication request/lease or final integrated release claim.

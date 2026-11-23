@@ -1,0 +1,119 @@
+import tower;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
+import work_arena_types;
+
+// One owner allocates stable slices with a common retirement boundary. Workers
+// keep private arenas; after joining, the coordinator can splice whole chunks.
+// Slices have no individual free or implicit destructor. Dispose resources held
+// by slices, and drain all borrowers, before retiring the arena itself.
+// chunk_bytes includes the chunk descriptor and padding inside its buffer.
+// Oversized slices receive a larger checked chunk. Null budget is standalone.
+fn work_arena_init(arena: WorkArena*, budget: WorkBudget*, chunk_bytes: usize): bool {
+    if arena == null || arena.chunk_bytes != 0 || chunk_bytes <= sizeof(WorkArenaChunk)
+        || (budget != null && !budget.initialized) { return false; }
+    *arena = init(WorkArena) {budget: budget, chunk_bytes: chunk_bytes, ..default};
+    return true;
+}
+
+fn work_arena_chunk_allocate(chunk: WorkArenaChunk*, bytes: usize, alignment: usize): u8* {
+    var base = bits(usize, chunk.storage.data);
+    var maximum = ~convert(usize, 0);
+    var mask = alignment - 1;
+    if chunk.used > maximum - base || base + chunk.used > maximum - mask { return null; }
+    var address = (base + chunk.used + mask) & ~mask;
+    var offset = address - base;
+    if offset > chunk.storage.capacity || bytes > chunk.storage.capacity - offset { return null; }
+    chunk.used = offset + bytes;
+    chunk.payload += bytes;
+    return bits(u8*, address);
+}
+
+// No gate or heap call on the bump path. Growth reserves the complete physical
+// chunk before allocation. Failure leaves both the arena and output unchanged.
+fn work_arena_allocate_result(arena: WorkArena*, bytes: usize, alignment: usize, output: u8**): WorkBudgetError {
+    if arena == null || arena.chunk_bytes == 0 || output == null
+        || alignment == 0 || (alignment & (alignment - 1)) != 0 { return WorkBudgetError.Invalid; }
+    var payload: usize = bytes == 0 ? 1 : bytes;
+    var maximum = ~convert(usize, 0);
+    var header = sizeof(WorkArenaChunk);
+    if alignment - 1 > maximum - header || payload > maximum - header - (alignment - 1) {
+        return WorkBudgetError.Invalid;
+    }
+    if arena.last != null {
+        var data = work_arena_chunk_allocate(arena.last, payload, alignment);
+        if data != null { *output = data; return WorkBudgetError.None; }
+    }
+    var needed = header + payload + alignment - 1;
+    var capacity = needed > arena.chunk_bytes ? needed : arena.chunk_bytes;
+    var storage: WorkBuffer = default;
+    var result = work_buffer_resize(&storage, arena.budget, capacity, 0);
+    if result != WorkBudgetError.None { return result; }
+    var chunk = bits(WorkArenaChunk*, storage.data);
+    *chunk = init(WorkArenaChunk) {storage: storage, used: header, ..default};
+    var data = work_arena_chunk_allocate(chunk, payload, alignment);
+    if data == null {
+        work_buffer_dispose(&storage);
+        return WorkBudgetError.Invalid;
+    }
+    if arena.last == null { arena.first = chunk; }
+    else { arena.last.next = chunk; }
+    arena.last = chunk;
+    *output = data;
+    return WorkBudgetError.None;
+}
+
+fn work_arena_allocate(arena: WorkArena*, bytes: usize, alignment: usize): u8* {
+    var data: u8* = null;
+    work_arena_allocate_result(arena, bytes, alignment, &data);
+    return data;
+}
+
+fn work_arena_dispose(arena: WorkArena*): void {
+    var chunk = arena.first;
+    while chunk != null {
+        var next = chunk.next;
+        // The descriptor itself lives inside the allocation being retired.
+        // Move it to private local storage before free/release resets it.
+        var storage = chunk.storage;
+        work_buffer_dispose(&storage);
+        chunk = next;
+    }
+    *arena = default;
+}
+
+// Coordinator-only after both owners' borrowers join. No payload copies or new
+// grants. Reject a different budget lifetime instead of silently rebinding it.
+// The empty source keeps its configuration for the next private worker phase.
+fn work_arena_append(destination: WorkArena*, source: WorkArena*): bool {
+    if destination == null || source == null || destination.chunk_bytes == 0 || source.chunk_bytes == 0
+        || destination.budget != source.budget { return false; }
+    if destination == source || source.first == null { return true; }
+    if destination.last == null { destination.first = source.first; }
+    else { destination.last.next = source.first; }
+    destination.last = source.last;
+    source.first = null;
+    source.last = null;
+    return true;
+}
+
+// Read only while this owner is quiescent. Capacity includes descriptors;
+// payload excludes headers/alignment gaps. Retained includes compiler headers.
+fn work_arena_snapshot(arena: WorkArena*, output: WorkArenaSnapshot*): bool {
+    if arena == null || output == null || arena.chunk_bytes == 0 { return false; }
+    var snapshot: WorkArenaSnapshot = default;
+    var chunk = arena.first;
+    while chunk != null {
+        var retained = compiler_buffer_allocation_size(chunk.storage.capacity);
+        if retained == 0 || retained > ~convert(usize, 0) - snapshot.retained { return false; }
+        snapshot.retained += retained;
+        snapshot.capacity += chunk.storage.capacity;
+        snapshot.used += chunk.used;
+        snapshot.payload += chunk.payload;
+        snapshot.chunks++;
+        chunk = chunk.next;
+    }
+    *output = snapshot;
+    return true;
+}

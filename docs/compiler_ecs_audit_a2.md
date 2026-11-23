@@ -1036,3 +1036,116 @@ Locked npm402-package and own Chromium installation also exit0; they establish
 browser dependency readiness only. No compiler browser/generation/publication
 check has run on this source. A1 receives the next quiet profiling slot; A2 has
 no active build during that window.
+
+### 2026-11-22 retained-buffer draft: newly discovered owned files
+
+Current full production/composition source-review coverage is **100/100**
+(31/31 owned core, now 29 library files plus two compiler kernels). These two
+new implementation files are reviewed drafts on aadf300e, not runtime-validated.
+No packed Entity ABI change has been made. New focused test/profile files are
+listed separately and do not inflate the production count.
+
+| Full path relative to scaffolding | Ownership/storage conclusion | Disposition/evidence gap |
+| --- | --- | --- |
+| `library/work_buffer.tower` | One physical compiler buffer plus byte-only WorkReservation. Full replacement grant precedes allocation; physical free precedes release. Move/swap follows retained output through join. Null budget is explicit standalone; ledger/gate must outlive allocation. | Complete source review. Depends on B2 allocation-size export matching exact header/overflow policy. Uncompiled; denial/failure/concurrent-retention fixtures and paired overhead profile pending. |
+| `library/work_vector.tower` | Distinct typed owner prevents ordinary vector deallocation from losing header/receipt. Existing geometric growth, initialized-byte copy, explicit transfer and borrowed iteration. Per-call error result preserves actionable denial versus invalid/OOM. | Complete source review. Explicit host alignment boundary pending B2 verification, including u64 on32-bit. No implicit destructor or element ownership added. Uncompiled. |
+| `tests/work_buffer.tower` | Deterministic exact retained-byte/reference checks, rejection preserving old contents/receipt, moved/swapped buffers/vectors, standalone and teardown. | Own full source review; no runtime pass yet. |
+| `tests/work_buffer_shared.tower` | Four real workers use production allocation plus shared gate, rendezvous, concurrent replacement, retained results after lane release, capacity denial and cancellation drain. | Own full source review; native/ASan/TSan pending. No serial fault runtime permitted. |
+| `tests/work_buffer_faults.tower` | Explicit serial failure at ledger allocation and physical replacement; old pointer/contents/grant survive, final live allocation count exact. | Own full source review; serial runtime execution pending, not threaded sanitizer coverage. |
+| `tests/work_buffer_profile.tower` | Frozen equal physical allocate/copy/free workload with/without ledger; fixed total8192 replacements over1/2/4/8 workers. Independent byte oracle; wall/CPU/RSS/actual overlap/allocations/retained payload/ledger metadata. | Own full source review; no timings run during A1 quiet hold. Shared-helper cost measurement only, no compiler-speed claim. |
+
+B1's parser memory inventory requires propagating the same physical owner through
+FIRST/propagation swaps and retained LR runtime rows/gotos. Reservations at join
+alone are insufficient. B1/B2 own caller adoption after the common API is pinned;
+A2 is not modifying their production files without agreement. All-memory/world
+budget enforcement, packed payload implementation/staged transfer, and final
+integrated release/instrumentation remain open.
+
+## Retained memory and new arena review, 2026-11-23
+
+Current core census is32/32 (30 library files and2 kernel files). Adding the
+three newly explicit allocator-boundary reviews below yields104/104 disclosed
+production/composition paths, with earlier unchanged rows retaining their review
+commit. This is coverage, not acceptance. Tests do not inflate this count.
+Reviewed aadf300e plus source hashes below; pending type-split files are not yet
+adopted/counted. The preceding uncompiled-buffer receipt is historical; the
+following current evidence supersedes it.
+
+| Path relative to scaffolding / source SHA prefix | Full-source conclusion and disposition |
+| --- | --- |
+| library/work_buffer.tower / ccc61ca8 | Physical allocation owner plus exact byte grant. Checks overflow/owner before allocation; reserves complete replacement while old remains; transactional failure; free before receipt release; move/swap preserve sole ownership. Native/serial-fault/3ASan/3TSan and WASI32 passed. Gate contention measured below; does not cap whole-world RSS. |
+| library/work_vector.tower / e59bd354 | Distinct generic owner, checked size/alignment and initialized-prefix growth; borrowed iteration requires stable owner. Existing doubling/min8 preserved; per-call result and pop preserve old state on denial/empty. Native64/WASI32 u64 alignment and1535-byte capacity edge passed. No element destructor/noalias guarantee. |
+| library/work_arena.tower / bb84b958 | Private common-lifetime stable slices; physical chunk grants through WorkBuffer, checked alignment/overflow, exact retained snapshot. O(1)joined append rejects different budget; self-hosted descriptor copied before free; no copied dual ownership. Native/fault/3ASan/3TSan real4pthread and WASI32 passed. Production scratch adoption and chunk policy remain open. |
+| host/memory.tower / 2db4f04f | B2-owned exact compiler header size shared with allocation, production null-state path avoids legacy globals, explicit optional diagnostic guards/owner counts. Two-word alignment documented and exercised native64/WASI32; conservative overflow policy retained. Explicit legacy instrumentation remains single-owner, not race coverage. Complete source review including checked count*size reallocation and free ownership. |
+| host/memory_libc.tower / 4c5b3605 | Two typed foreign realloc/free declarations; selected target usize is size_t. Necessary libc boundary only, no hidden world state or parallel allocator policy. Complete source review, unchanged. |
+| host/memory_types.tower / 460aeae9 | Two explicit optional instrumentation state records, passed by owner rather than ambient singleton. Counters are not synchronized and remain serial-only. Complete source review, unchanged. |
+| tests/work_arena.tower / 6697f992 | Exact chunk cap, denied output preservation, same/different-budget append, stable aligned slices/oversized/zero/overflow, full payload checks and final zero ledger. Native/ASan/TSan/WASI32 passed. |
+| tests/work_arena_shared.tower / d9423e43 | Four actual pthreads, private arenas, rendezvous and coordinator cancellation/denial; pointers retained after join/append/lane release; parent final disposal zero. Production allocator,3ASan+leaks/3TSan passed; not universal race proof. |
+| tests/work_arena_faults.tower / dee0c37c | Separate serial ledger-allocation/new-chunk allocation failures preserve pointer/data/output/receipts, retry and exact live count teardown. Passed existing instrumented+trap composition, no threaded instrumentation claim. |
+| tests/work_arena_profile.tower / 952b6326 | Independent deterministic byte oracle, fixed2048/262144 small-object requests and common lifetime. Equal pre-touched pointer index outside timing; individual buffers versus4/16/64KiB chunks. Records physical/payload/index/ledger bytes, actual overlap, wall/CPU/RSS and retirement. Eight correctness smokes passed; paired timing pending at this receipt. |
+
+WorkBuffer fixtures in the earlier table are now native/fault/ASan/TSan validated;
+normal work_buffer also executed WASI32. Profile total was increased from the
+earlier8192 draft to262144 fixed replacements before measured samples. Same
+bea8768f binary, warmup+3paired samples, all32 outputs checked. Median wallms
+baseline->ledger for workers1/2/4/8:12.292->15.553,9.739->68.113,6.166->88.549,
+3.789->93.704; CPU/RSS/allocation/retention values and exact recipe identities are
+recorded in the journal. Real overlap is demonstrated; this per-allocation lock
+workload scales poorly. It cannot establish compiler speedup or complete memory
+accounting. Arena amortization is an implementation to measure, not an assumed win.
+
+L1's proposed data-only type split7f9fa3c4 has been read: one nominal definition,
+allocation-free iteration hooks stay with the generic type producer; full methods
+remain in implementation modules. A2 approves this source design after current
+freeze, with affected compile/runtime validation still required. Shared layout
+callers must select type modules; do not multiply types or inflate compiler caps.
+
+All prior packed-storage/scheduling/ownership and release gaps remain explicit.
+The existing stable pages and dense pointer archetype columns are not packed
+payload storage. Public pin execution and focused native/WASI/sanitizers above
+are scoped evidence; no final integrated release or publication lease exists.
+
+## New type modules and imported retained-storage boundaries
+
+The core is now35/35 paths (33 library plus2 kernel files). Three single-definition
+type modules and four newly explicit imported-boundary reviews bring disclosed
+production/composition coverage to111/111. This extends the prior104 count by7;
+new tests remain separate. Reviewed aadf300e plus exact owner patches noted here;
+all counts describe reviews, not implementation or release completion.
+
+| Path relative to scaffolding | Full-source ownership/scheduling conclusion and disposition |
+| --- | --- |
+| library/work_buffer_types.tower /49cb7029 | Single physical owner record and WorkReservation. Data-only import permits shared layouts without allocator methods. Same fields/lifetimes as validated v3; all callers must keep ledger/gate live and move the entire owner. Public-pin unit passes. |
+| library/work_vector_types.tower /035f61b3 | Single generic nominal owner plus four allocation-free borrowed iteration hooks in its defining module. Index cursor stays private; no mutation/alias guarantees arise from borrowing. Explicit constructor import required. Public-pin unit and normal fixture pass after caller import fix. |
+| library/work_arena_types.tower /3410b911 | Arena/config, self-hosted chunk descriptor and quiescent snapshot records; no allocator methods. Whole-owner transfers retain exact WorkBuffer receipts. Public-pin unit passes; source-layout policy matches A1/L2 coordination. |
+| compiler/parser_table_types.tower /9e4d+cfd3 | Coordinator-owned table descriptor, budget and work_vector state/context columns; borrowed immutable runtime after build. Explicit type-only imports prevent unnecessary implementation closure. Complete source read; selected payload remains contiguous vector data, grammar/runtime ownership separately retained. |
+| compiler/parser_table.tower /9e4d | All301 lines reviewed. Root/kind world selects budget, table descriptor self-hosts WorkBuffer, partial context failure cleans every initialized owner, successful runtime detaches source grammar indexes. Retry keeps grammar, rebuild/dispose require joined requests. Presentation text still a separate unbudgeted compiler_buffer owner; no whole-parser budget claim. Six-unit compile passed; current joint runtime pending. |
+| compiler/interpreter_types.tower /9228 | Full record file reviewed. Invocation-private frame/task/value/address execution indexes refer to authoritative Foundation entities. Memory work_vector plus explicit borrowed root budget; other map/frame vectors retain separate ownership. Shared ABI requires full dependent rebuild, no second IR. |
+| compiler/interpreter_storage.tower /9228 | All305 lines reviewed. Memory reserve preserves data/length on denial and initializes only newly extended host bytes; teardown retires WorkVector and clears borrowed budget. Ordered maps and reusable depth buffers remain derived private indexes. Existing im_storage_require abort on nonmigrated internal containers is an explicit incomplete fallible-allocation boundary; not normal cancellation acceptance. |
+
+Previously reviewed frontend_units and interpreter/context interface deltas were
+reviewed again againstc654/6e961/9228. Frontend snapshots now own physical buffers
+through batch close; per-input exact subtotal excludes retained parser/interpreter
+owners while whole ledger stays bounded. Interpreter memory/initialization/input
+vectors retain grants to disposal; checked memory denial preserves old owner.
+B2 backend test93b999 measures exact output retirement beside joined frontend
+owners. These source reviews do not substitute for current joint tests or full
+L1 interpreter-behavior audit. Final current ASan/TSan/native/browser gates remain.
+
+Arena before/after profiles are now measured (journal00:47Z entry): large16KiB
+serial7.6156->1.9253ms and physical12058624->4235328B; small contexts show chunk
+waste and poor parallel amortization. Best large scaling is1.71x at4workers with
+64KiB;8 regresses. This is not end-to-end compiler scaling. Source module splits
+changed some object bytes, so refresh current owned instrumentation/profile before
+claiming final API validation. Active-stage packed design is reviewed/proposed,
+not implemented; all earlier full-scope acceptance gaps remain open.
+
+Current receipt00:51Z supersedes pending runtime statements above for the frozen
+owned memory/API and joint normal closure: all14 owned units independently compile;
+6native fixtures,24ASan/TSan executions and actual serial WASI32 buffer/arena pass.
+Joint query/units/backend-overlap/parser-fault/aggregate-stages pass, with exact
+source hash verification; compiler a7a6a005, source archiveb8b0c9b7 and receipt
+86b357b9. No failing check was skipped or relabeled. The first copy/import/entry
+failures remain in the journal. Whole-compiler current instrumentation, isolated
+post-import profile refresh, packed storage/staged transfer and integrated release
+remain open. Core35/35 and expanded111/111 review counts are unchanged.

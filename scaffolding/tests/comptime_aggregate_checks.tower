@@ -7,14 +7,14 @@ import struct_value_checks;
 import .compiler.execution_session;
 import .library.vector;
 
-fn comptime_aggregate_tests(modules: void*, root: u8*): void {
+fn comptime_aggregate_source_tests(modules: void*, root: u8*, filename: u8*): void {
     var source: vector(u8) = default;
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     defer vector_dispose(&source);
     defer vector_dispose(&bedrock);
     defer vector_dispose(&foundation);
-    units_read(root, "/tests/comptime_aggregates.tower", &source);
+    units_read(root, filename, &source);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
     for(var width: u32 = 4; width <= 8; width += 4) {
@@ -36,6 +36,15 @@ fn comptime_aggregate_tests(modules: void*, root: u8*): void {
             body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
         }
     }
+}
+
+fn aggregate_capture_tests(modules: void*, root: u8*): void {
+    comptime_aggregate_source_tests(modules, root, "/tests/aggregate_capture_inputs.tower");
+    puts("Aggregate captures: nested values, private copies, Foundation and workers pass.");
+}
+
+fn comptime_aggregate_tests(modules: void*, root: u8*): void {
+    comptime_aggregate_source_tests(modules, root, "/tests/comptime_aggregates.tower");
     struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{var p:P;return p;}var p=comptime(make());", "uninitialized");
     struct_value_reject(modules, "import tower;struct P{x:i32*;}fn make():P{var x=42;return {x:&x};}var p=comptime(make());", "non-relocatable raw pointer");
     struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{print(42);return {x:42};}var p=comptime(make());", "output");

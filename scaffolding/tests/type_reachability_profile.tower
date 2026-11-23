@@ -3,7 +3,13 @@ import execution_support;
 import .compiler.execution_session;
 import .compiler.execution_package;
 import .compiler.format_types;
+import .compiler.syntax_version_types;
 import .host.driver_platform;
+import .host.driver_types;
+import .host.driver_support;
+import .host.driver_request;
+import .host.driver_api;
+import .host.syntax_baseline_api;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -11,6 +17,7 @@ extern fn type_object_program(root: void*): bool;
 extern fn entity_store_component_count(store: void*): usize;
 extern fn compiler_node_world(node: void*): void*;
 extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
 
 // Linux x64 getrusage ABI; RSS is the process high-water mark, including checking.
 struct TypeProfileTime { seconds: i64; fraction: i64; }
@@ -111,8 +118,36 @@ fn type_profile_trial(modules: void*, count: usize): void {
 // Opt-in microprofile: query work is serial, independently of compiler workers.
 // Compilation/output checking and formatting are outside each measured region.
 fn type_reachability_profile(modules: void*): void {
-    execution_check(sizeof(usize) == 8, "Type profile requires the Linux x64 measurement ABI");
+    execution_check(sizeof(usize) == 8 && sizeof(TypeProfileTime) == 16 && sizeof(TypeProfileUsage) == 144,
+        "Type profile requires the Linux x64 measurement ABI");
     type_profile_trial(modules, 16);
     type_profile_trial(modules, 256);
     type_profile_trial(modules, 1000);
+}
+
+// Registered only by the opt-in Linux x64 measurement target. The ordinary
+// execution runner must not import this platform-specific foreign ABI.
+export fn main(argc: i32, argv: u8**): i32 {
+    execution_check(argc == 2, "usage: tower-type-reachability-profile RESOURCE_ROOT");
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    execution_check(driver_text(&path, argv[1]) && driver_text(&path, "/foundation.tower")
+        && host_text_terminate(&path), "Type profile resource path");
+    var options: DriverOptions = default;
+    options.source = path.data;
+    options.bedrock = "";
+    options.foundation = "";
+    var request: DriverRequest;
+    execution_check(driver_request_open(&request, &options, argv[1]), "Type profile bootstrap snapshots");
+    defer driver_request_close(&request);
+    driver_request_bind(&request, syntax_host_environment(compiler_host_world()));
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &diagnostic),
+        "Type profile installs Bedrock");
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &diagnostic),
+        "Type profile installs Foundation");
+    frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    type_reachability_profile(request.modules);
+    return 0;
 }
