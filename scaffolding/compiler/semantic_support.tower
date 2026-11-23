@@ -634,12 +634,32 @@ fn sem_ok(c: SemanticContext*): bool {
     return c.program.resource.error == WorkBudgetError.None && c.program.error.length == 0;
 }
 
+// Called in source order after joins, or on a worker's private program. Keep
+// the chosen receipt and its text together without allocating on denial. An
+// empty diagnostic still leaves a fatal typed receipt for output consumers.
+// Message vectors own distinct buffers, or are the exact program error vector;
+// borrowed interior ranges are not valid vector owners.
+export fn sem_restore_resource(c: SemanticContext*, error: WorkBudgetError, message: vector(u8)*, offset: usize): bool {
+    if error == WorkBudgetError.None { return false; }
+    if c.program.resource.error != WorkBudgetError.None { return true; }
+    var length = message.length;
+    var text = message.data;
+    c.program.error.length = 0;
+    c.program.error_offset = offset;
+    if length != 0 && length < c.program.error.capacity {
+        if c.program.error.data != text { copy(c.program.error.data, text, length + 1); }
+        c.program.error.length = length;
+    }
+    sem_resource_record(c.program, error, offset);
+    return true;
+}
+
 // A producer receipt already contains its complete provenance. Restore that
 // diagnostic once after the join, without appending another instantiation trace
 // or replacing a previously selected message/offset.
 fn sem_restore_error(c: SemanticContext*, error: vector(u8)*, offset: usize): bool {
     if error.length == 0 { return false; }
-    if c.program.error.length == 0 {
+    if sem_ok(c) {
         sem_require(vector_reserve(&c.program.error, error.length + 1));
         copy(c.program.error.data, error.data, error.length + 1);
         c.program.error.length = error.length;

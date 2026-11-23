@@ -27,6 +27,7 @@ struct SemanticEvaluationWork {
     count: usize;
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
     query_reads: vector(usize);
     aliases: vector(SemanticEvaluationAlias);
     cloning: bool;
@@ -65,6 +66,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     stack_dispose(&context.scan);
     vector_dispose(&context.token_text);
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
@@ -186,13 +188,26 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
             sem_query_observe(c, &result.ticket, &result.query_reads);
             sem_evaluation_aliases(c, &result.aliases);
             c.count += result.count;
-            if result.error.length != 0 && sem_ok(c) {
-                sem_evaluation_fail(c, result.evaluation, result.error.data, result.error_offset);
+            if result.resource.error != WorkBudgetError.None {
+                var evaluation = result.evaluation;
+                if evaluation.resource_error == WorkBudgetError.None {
+                    evaluation.resource_error = result.resource.error;
+                    evaluation.error_offset = result.resource.offset;
+                    vector_dispose(&evaluation.error);
+                    evaluation.error = result.error;
+                    result.error = default;
+                }
+                if !c.declaration_isolated { sem_evaluation_failure(c, evaluation); }
+            } else {
+                if result.error.length != 0 && sem_ok(c) {
+                    sem_evaluation_fail(c, result.evaluation, result.error.data, result.error_offset);
+                }
             }
-            if c.count > c.node_limit {
+            if c.count > c.node_limit && result.resource.error == WorkBudgetError.None {
                 sem_evaluation_fail(c, result.evaluation, "Foundation component memory budget exceeded", sem_get(result.evaluation.subject).start);
             }
-            sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
+            sem_require(work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None
+                && result.error.length == 0 && c.count <= c.node_limit));
             vector_dispose(&result.error);
             vector_dispose(&result.query_reads);
             vector_dispose(&result.aliases);

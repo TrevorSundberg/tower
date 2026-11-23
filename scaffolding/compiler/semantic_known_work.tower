@@ -32,7 +32,7 @@ var SemanticKnownDiagnosticBytes: usize = 128;
 // Diagnostic capacity is reserved before admitting graph work. Failure paths
 // retain the first error without allocating while the world budget is denied.
 fn sem_known_work_error(c: SemanticContext*, subject: void*, error: WorkBudgetError, publication: bool): void {
-    if !sem_ok(c) { return; }
+    if c.program.resource.error != WorkBudgetError.None { return; }
     var message = "Cannot allocate semantic publication storage";
     if error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
     if error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
@@ -47,6 +47,7 @@ fn sem_known_work_error(c: SemanticContext*, subject: void*, error: WorkBudgetEr
     copy(c.program.error.data, message, length + 1);
     c.program.error.length = length;
     c.program.error_offset = sem_get(subject).start;
+    sem_resource_record(c.program, error, c.program.error_offset);
 }
 
 fn sem_known_query_check(c: SemanticContext*, subject: void*, ok: bool): bool {

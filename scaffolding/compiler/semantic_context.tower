@@ -22,6 +22,22 @@ export fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError,
     program.resource = { error: error, offset: offset };
 }
 
+// Output boundaries can report a retained failure even if diagnostic storage
+// was unavailable or an editor intentionally cleared ordinary source errors.
+export fn sem_resource_message(error: WorkBudgetError): u8* {
+    if error == WorkBudgetError.None { return ""; }
+    if error == WorkBudgetError.Capacity { return "Semantic memory budget exceeded"; }
+    if error == WorkBudgetError.Memory { return "Cannot allocate semantic storage"; }
+    if error == WorkBudgetError.Busy { return "Semantic worker admission failed"; }
+    return "Invalid semantic resource request";
+}
+
+// Classify an actual failed graph operation only. An empty take on a healthy
+// graph is ordinary waiting. This helper never cancels, drains or releases work.
+export fn sem_query_error(c: SemanticContext*): WorkBudgetError {
+    return c.queries.resource_error == WorkBudgetError.None ? WorkBudgetError.Invalid : c.queries.resource_error;
+}
+
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
 extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*): WorkBudgetError;
@@ -76,9 +92,9 @@ fn sem_query_observe_checked(c: SemanticContext*, ticket: WorkTicket*, reads: ve
 // The caller retains private outputs until it has selected its diagnostic.
 fn sem_query_cancel_failure(c: SemanticContext*): WorkBudgetError {
     sem_require(c.workers.running == 0);
-    var error = c.queries.resource_error;
+    var error = sem_query_error(c);
     work_cancel(&c.queries);
-    return error == WorkBudgetError.None ? WorkBudgetError.Invalid : error;
+    return error;
 }
 
 // Inspect only demanded queries of this phase. An empty ready queue is a

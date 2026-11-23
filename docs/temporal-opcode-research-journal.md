@@ -62644,3 +62644,82 @@ duplicate-symbol failure and corrected target/runtime checks are delegated to
 D2 on the matching frozen integration source. They are not passed yet. Runtime
 algorithm/performance is unchanged by this import correction; preserve compile,
 link and normal execution costs without comparing a failed link to a speedup.
+
+### Resource receipt transfers and joined-source review (2026-11-23)
+
+Review parent460a29b5 preserves ROOT9b318 and A1's checked admission history.
+The persistent interface checkpoint9a35996 is followed by producer integration,
+not a claim of complete allocator coverage. ROOT03:34 approved bounded diagnostic
+restoration: select the first resource receipt in caller source order, retain
+its offset, and copy only into sufficient existing capacity including NUL.
+Otherwise retain an empty text vector and the fatal fixed receipt. Ordinary
+restoration cannot attach another producer's text after that selection. Valid
+message owners have separate buffers or are the exact destination vector; the
+self case captures metadata first and skips copying. A shared static enum message
+serves output consumers without allocating. sem_query_error classifies an actual
+failed graph operation; it neither drains nor cancels and must not classify an
+ordinary empty ready queue on a healthy graph as failure.
+
+| Reviewed path | Ownership and failure disposition at this checkpoint |
+| --- | --- |
+| semantic_context.tower | Existing provider owns allocation-free record, static fallback and pure graph classifier. The existing joined-only cancellation helper keeps its cleanup boundary. No shared last-error slot. |
+| semantic_program_types.tower | One fixed resource pair on the program, initialized only with the fresh program. B2/L2 coordinated ABI; no independent semantic graph or value registry. |
+| semantic_support.tower | Sticky success check and bounded paired restoration keep failure selection independent of presentation. Distinct producer vectors retain their ownership; insufficient destination capacity is explicitly supported. |
+| semantic_query_api.tower | Thin declarations for the same implementation. Capture request/pump exports expose existing resumable production entrypoints; no second implementation. |
+| semantic_declaration_types.tower | Fixed receipt added beside producer-owned diagnostic; lexical captures, query identity and scratch ownership remain on the same component. |
+| semantic_declarations.tower | Private worker receipt transfers at join. Failure walk recognizes text-free resource failure; isolated error clearing and earlier ordinary error restoration cannot replace selected resource provenance. |
+| semantic_body_work.tower | Discovery/body workers copy private receipts to retained continuations. Prefix/call/success publication excludes failed receipts. Isolated layout text clearing preserves a selected resource error; lexical/scratch ownership still transfers after all stages publish. |
+| semantic_evaluation.tower | Interpreter storage_error survives invocation disposal and optional inference. Existing source-ordered failure restoration now publishes the fixed program receipt. Isolated producers retain their receipt until the owning dependency consumer selects it. |
+| semantic_evaluation_work.tower | Private preparation receipt transfers into its existing evaluation producer, including when no message survives. All stages publish before observations and fixed receipts; failed preparation cannot mark its ticket successful. |
+| semantic_execution_work.tower | Private snapshot receipt remains on the original function's producer. IMFunctionInput.ready rejects text-free failure; existing dependency failure walk restores that receipt. Completed helper readiness is reused. |
+| semantic_iteration_work.tower | Protocol resolution workers retain their private receipt. Joined publication enters failure cleanup instead of interning/signature continuation on resource failure. |
+| semantic_lowering_work.tower | All-stage publication still precedes result processing. Source-ordered paired restore and typed ticket success keep text-free failure from becoming successful lowering. |
+| semantic_known_work.tower | Coordinator formats its pre-reserved bounded error before recording the selected typed failure. Known scan/Publish/Inputs workers never mutate the borrowed shared program receipt. |
+| semantic_capture_work.tower | Cancelled entry now fails before taking work instead of interpreting Cancelled demanded tickets as Waiting. Retained capture failure includes the resource pair without clearing the selected program text. |
+| semantic_query_pipeline.tower | Existing phase order and quiescence ownership unchanged; isolated layout recovery cannot clear selected resource text. No cycle is diagnosed at an intermediate empty phase queue. |
+
+Smallest public9653 units declaration-types, support, capture and query API and
+both focused test objects pass. support15.99wall/11.37user/.90sys/680124KiB;
+receipt fixture2.97/2.22/.16/213160; dispatch fixture3.06/2.35/.12/215148.
+The first attempt failed unsupported else-if syntax; its log is preserved and
+the two handlers use supported nested if. No runtime result is inferred from
+these object compiles. Native refresh and focused runtime checks are next.
+The root-applicable four-path contract patch b255ff124c9c1bb0e2c39a38fb9690630e4cbb09fb0e1ab529ec6ef5f72a1e31
+passes a temporary-index apply check on ROOT9b318; excludes incidental capture
+exports and the checked-owner helper refactor. L2 retains constructor/type/generic
+ownership, B2 output and inspection consumers, D1 generic harness.
+
+Further review found private source-binding analysis still discards its resource
+receipt and completion visibility clears its text. Those two small corrections
+are queued until the current source build drains. Other phase graph/dispatch
+assertions, normal world-budget adoption, per-phase cancellation and complete
+allocation-failure coverage remain open. No shared-worker race freedom, packed
+locality or whole-compiler scheduling completion is claimed. A frozen matching
+pre-receipt source tree8490874169ce199f7f69a3ffecb3624a0caab545 was archived in
+the owned cache (ROOT9b318 plus A1 admission, with only the interface removed)
+for before/after profiling, not as a private bootstrap or release prerequisite.
+
+The two queued paths are now updated: semantic_source_bindings transfers a
+private program resource error to its existing SemanticKnownWork receipt before
+scratch disposal, and marks the proof incomplete on semantic failure. Its
+coordinator retains existing job/source-order error publication. In
+semantic_modules, completion visibility stops on a sticky resource receipt and
+clears only ordinary source diagnostics. No module binding/proof policy changed.
+
+Native compiler/LR/execution/frontend rebuild succeeds182.66wall/134.54user/
+10.74sys/737008KiB on the larger joined tree. The affected semantic provider
+refresh after these two corrections succeeds22.00/15.19/1.15/728796KiB. All ten
+strengthened real-transport dispatch/admission/source-retry cases and five new
+receipt/capture-cancellation cases pass; the latter .01wall/.01sys/50748KiB.
+The first OS link-script generation selected a PowerShell character instead of
+the full command and left the receipt executable absent; corrected host linking
+passes, with the original script failure preserved. Query-smoke also passes on
+the final provider, including existing22 Publish and24 interpreter-resource
+cases. These are still before L1's charged frame owners and do not replace D1's
+required successor calibration. Control's first invocation used the packaged
+resource directory instead of the harness source RESOURCE_ROOT and aborted at
+resource open; type did not run. Corrected /work/scaffolding invocations retain
+the unchanged120/240s bounds and have no claimed result yet. Current matching
+profiles, supported sanitizers, B2/L2 producer/consumer integration and release
+acceptance remain open. ROOT03:50 independently reviewed V2 b255ff12 and verified
+its application on9b318; that is source review, not independent runtime proof.

@@ -13,6 +13,7 @@ import semantic_work_ids;
 import foundation_tags;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 import .library.stack;
 
 // Lexical mutation/escape facts do not require storage layout or initializer
@@ -170,7 +171,8 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
         sem_require(pipeline != null && pipeline.roots_ready);
         foreach(var node in &pipeline.source_roots) { sem_source_scan(&context, job, node, 0); }
     }
-    job.binding_incomplete ||= program.error.length != 0;
+    job.binding_incomplete ||= !sem_ok(&context);
+    if job.resource_error == WorkBudgetError.None { job.resource_error = program.resource.error; }
     vector_dispose(&program.error);
     stack_dispose(&context.scan);
     vector_dispose(&context.token_text);

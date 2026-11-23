@@ -125,6 +125,10 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool, sourc
         "Dispatch retains its typed allocation failure", &failures);
     dispatch_check(deny || admission ? program.error.length != 0 && program.error_offset == 11 : program.error.length == 0,
         "Dispatch failure reports the first source ordinal", &failures);
+    dispatch_check(program.resource.error == (deny ? WorkBudgetError.Memory
+        : admission ? WorkBudgetError.Capacity : WorkBudgetError.None)
+        && program.resource.offset == (deny || admission ? 11 : 0),
+        "The selected typed failure and source location survive transport cleanup", &failures);
     dispatch_check(!admission || (context.queries.cancelled && context.queries.resource_error == WorkBudgetError.Capacity
         && context.queries.tasks.length == 0 && context.workers.claim == null),
         "Graph admission denial fails before dispatch without retaining a live ticket", &failures);
@@ -142,6 +146,9 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool, sourc
             "A failed dispatch cannot publish canonical compaction", &failures);
     }
     if deny || admission {
+        // Editor recovery may clear ordinary diagnostics, but cannot make a
+        // resource failure eligible to execute or publish a second time.
+        program.error.length = 0;
         var tasks = context.queries.tasks.length;
         var store = compiler_world_store(world);
         var nodes = entity_store_count(store);
@@ -153,6 +160,9 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool, sourc
             "Repeated failed entry cannot retry dispatch or its effects", &failures);
         dispatch_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
             "Repeated failed entry cannot recreate proof or work components", &failures);
+        dispatch_check(program.error.length == 0 && program.resource.offset == 11
+            && program.resource.error == (deny ? WorkBudgetError.Memory : WorkBudgetError.Capacity),
+            "Ordinary diagnostic recovery cannot erase or relabel the resource receipt", &failures);
     }
     work_pool_close(&context.workers);
     dispatch_check(context.workers.resource_error == (deny ? WorkBudgetError.Memory : WorkBudgetError.None),

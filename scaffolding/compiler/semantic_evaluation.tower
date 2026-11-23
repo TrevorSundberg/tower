@@ -99,7 +99,8 @@ fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message
 }
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
-    return result != null && sem_restore_error(c, &result.error, result.error_offset);
+    return result != null && (sem_restore_resource(c, result.resource_error, &result.error, result.error_offset)
+        || sem_restore_error(c, &result.error, result.error_offset));
 }
 
 // Unsupported optional staging may keep its runtime initializer. Exhausting

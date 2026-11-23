@@ -2,6 +2,7 @@ import tower;
 import compiler_kernel;
 import foundation_types;
 import semantic_context_types;
+import semantic_program_types;
 import semantic_evaluation_types;
 import semantic_constructor_types;
 import .library.vector;
@@ -71,6 +72,7 @@ struct SemanticDeclaration {
     query_reads: vector(usize);
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
 }
 
 struct DeclarationCall {

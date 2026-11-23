@@ -1,6 +1,7 @@
 import tower;
 import .library.work_budget_types;
 import semantic_context_types;
+import semantic_program_types;
 import compiler_kernel;
 import semantic_context;
 import semantic_body_work;
@@ -35,6 +36,7 @@ struct SemanticExecutable {
     count: usize;
     error: vector(u8);
     error_offset: usize;
+    resource: SemanticResourceFailure;
     query_reads: vector(usize);
     aliases: vector(SemanticEvaluationAlias);
     prepared: bool;
@@ -130,6 +132,7 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
+    result.resource = program.resource;
     stack_dispose(&context.scan);
     vector_dispose(&context.token_text);
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
@@ -183,7 +186,7 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         sem_query_observe(c, &result.ticket, &result.query_reads);
         sem_evaluation_aliases(c, &result.aliases);
         c.count += result.count;
-        if c.count > c.node_limit && result.error.length == 0 {
+        if c.count > c.node_limit && result.resource.error == WorkBudgetError.None && result.error.length == 0 {
             sem_fail(c, result.subject, "Foundation component memory budget exceeded");
             result.error = c.program.error;
             result.error_offset = c.program.error_offset;
@@ -191,7 +194,7 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         }
         var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(result.subject, c.executable_ready)));
         input.function = result.function;
-        input.ready = result.error.length == 0;
+        input.ready = result.resource.error == WorkBudgetError.None && result.error.length == 0;
         sem_require(work_finish(&c.queries, &result.ticket, input.ready));
     }
     return SemanticPumpResult.Progress;
@@ -199,7 +202,9 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
 
 fn sem_executable_failure(c: SemanticContext*, subject: void*): bool {
     var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, c.executable_functions)));
-    if result == null || result.error.length == 0 { return false; }
+    if result == null { return false; }
+    if sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset) { return true; }
+    if result.error.length == 0 || c.program.resource.error != WorkBudgetError.None { return false; }
     sem_fail(c, subject, result.error.data);
     c.program.error_offset = result.error_offset;
     return true;
