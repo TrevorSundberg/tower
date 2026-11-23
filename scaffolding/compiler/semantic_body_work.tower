@@ -649,7 +649,8 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
     if frame.kind == SemanticBodyBlockKind.Match {
         if sem_control_match_advance(c, &frame.match_state, flow) {
             var state = &frame.match_state;
-            sem_require(sem_block_begin(c, state.body, state.depth + convert(u32, state.index) + 1, &frame.cursor));
+            var begun = sem_block_begin(c, state.body, state.depth + convert(u32, state.index) + 1, &frame.cursor);
+            sem_require(!sem_ok(c) || begun);
             return;
         }
         flow = frame.match_state.flow;
@@ -667,7 +668,8 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
             frame.kind = SemanticBodyBlockKind.IfElse;
             frame.flow = flow;
             var depth = frame.cursor.depth;
-            sem_require(sem_block_begin(c, other, depth, &frame.cursor));
+            var begun = sem_block_begin(c, other, depth, &frame.cursor);
+            sem_require(!sem_ok(c) || begun);
             return;
         }
         flow = sem_if_finish(c, subject, flow, FlowNext);
@@ -733,7 +735,9 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
     }
     if branch {
         frame.kind = SemanticBodyBlockKind.IfThen;
-        sem_require(sem_if_begin_value(c, node, result.prepared_value));
+        var begun = sem_if_begin_value(c, node, result.prepared_value);
+        sem_require(!sem_ok(c) || begun);
+        if !begun { result.blocks.length--; return true; }
         body = sem_get(node).body;
     } else {
         if looping {
@@ -778,7 +782,8 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
         body = sem_member(node, "body");
         if !deferred_block { c.loops++; }
     }
-    sem_require(sem_block_begin(c, body, depth, &frame.cursor));
+    var begun = sem_block_begin(c, body, depth, &frame.cursor);
+    sem_require(!sem_ok(c) || begun);
     return true;
 }
 
@@ -1706,10 +1711,12 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     if result.done {
         // Error unwinding restores lexical scope ownership without emitting
         // deferred effects. sem_block_finish already checks sem_ok for emission.
-        while result.blocks.length != 0 {
+        while result.blocks.length != 0 && program.resource.error == WorkBudgetError.None {
             sem_body_close_block(&context, result);
         }
-        if result.resumed { sem_function_finish(&context, result.subject, &result.cursor); }
+        if result.resumed && program.resource.error == WorkBudgetError.None {
+            sem_function_finish(&context, result.subject, &result.cursor);
+        }
         fill(&result.lexical, 0, sizeof(SemanticBodyScope));
     } else {
         sem_body_save(&context, &result.lexical);

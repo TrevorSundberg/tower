@@ -1894,3 +1894,14 @@ used in lexical checking. Their underlying allocation and 25-file callers are
 L2's active closure, not passed by these checks. Prepared syntax/identity and
 completed-layout assertions remain structural contracts. This audit does not
 claim whole-compiler allocator closure or universal race freedom.
+
+Merged-boundary qualification: cb4bb586 plus complete upstream e116e966 was
+merged as0866fa73. L2's shared scratch replacements, A2 physical accounting and
+B2 layout reconciliation supersede the pending shared-helper list above. The
+merged public-bootstrap semantics provider fails its component-memory limit;
+a bounded generic-completion consolidation still fails. Final helper/lexical
+edits are committed but unvalidated. The132 focused trials and profiles are
+pre-merge evidence only. Shared statement/control sem_node wrappers still have
+allocation assertions before some begin helpers can return. No whole-worker
+allocator or integrated-release acceptance is claimed. See the journal blocker
+and retained a1_body_build_merged/concrete.log; no main push or deployment.

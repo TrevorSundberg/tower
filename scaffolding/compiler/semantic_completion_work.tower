@@ -27,12 +27,10 @@ fn sem_work_push(T: type, c: SemanticContext*, subject: void*, values: vector(T)
     return vector_push(values, value) || sem_work_resource(c, subject, WorkBudgetError.Memory);
 }
 
-struct SemanticWorkCompletion { subject: void*; ticket: WorkTicket; }
-
 fn sem_work_finish(c: SemanticContext*, subject: void*, ticket: WorkTicket*, success: bool): bool {
-    var completion = init(SemanticWorkCompletion) {subject: subject, ticket: *ticket};
-    var job = &completion;
-    return sem_completion_reserve(c, &job, 1, !success)
+    var needed = c.queries.ready.length;
+    return sem_completion_ticket(c, subject, ticket, &needed)
+        && (success || sem_completion_failure(c, subject))
         && sem_work_query(c, subject, work_finish(&c.queries, ticket, success));
 }
 
@@ -61,22 +59,29 @@ fn sem_completion_reserve(T: type, c: SemanticContext*, jobs: T**, count: usize,
     var needed = c.queries.ready.length;
     for(var i: usize = 0; i < count; i++) {
         var result = jobs[i];
-        if !sem_work_query(c, result.subject, work_ticket_valid(&c.queries, &result.ticket)) { return false; }
-        var edge = work_task(&c.queries, result.ticket.task).consumers;
-        while edge != 0 {
-            needed = work_next_length(&c.queries, needed);
-            if !sem_work_query(c, result.subject, needed != 0) { return false; }
-            edge = c.queries.edges.data[edge - 1].next_consumer;
-        }
-        if !sem_work_query(c, result.subject, work_index_reserve(&c.queries, &c.queries.ready,
-            &c.queries.storage.ready, needed)) { return false; }
+        if !sem_completion_ticket(c, result.subject, &result.ticket, &needed) { return false; }
     }
+    return !failing || count == 0 || sem_completion_failure(c, jobs[0].subject);
+}
+
+// Share the graph operation across typed phase payloads. Only field projection
+// is generic; duplicating this walker per payload adds no scheduling behavior.
+fn sem_completion_ticket(c: SemanticContext*, subject: void*, ticket: WorkTicket*, needed: usize*): bool {
+    if !sem_work_query(c, subject, work_ticket_valid(&c.queries, ticket)) { return false; }
+    var edge = work_task(&c.queries, ticket.task).consumers;
+    while edge != 0 {
+        *needed = work_next_length(&c.queries, *needed);
+        if !sem_work_query(c, subject, *needed != 0) { return false; }
+        edge = c.queries.edges.data[edge - 1].next_consumer;
+    }
+    return sem_work_query(c, subject, work_index_reserve(&c.queries, &c.queries.ready,
+        &c.queries.storage.ready, *needed));
+}
+
+fn sem_completion_failure(c: SemanticContext*, subject: void*): bool {
     // A failed producer can visit each consumer edge once. The root occupies
     // one additional slot. This is existing graph scratch, not another queue.
-    if failing && count != 0 {
-        var scratch = work_next_length(&c.queries, c.queries.edges.length);
-        if !sem_work_query(c, jobs[0].subject, scratch != 0 && work_index_reserve(&c.queries,
-            &c.queries.scratch, &c.queries.storage.scratch, scratch)) { return false; }
-    }
-    return true;
+    var scratch = work_next_length(&c.queries, c.queries.edges.length);
+    return sem_work_query(c, subject, scratch != 0 && work_index_reserve(&c.queries,
+        &c.queries.scratch, &c.queries.storage.scratch, scratch));
 }

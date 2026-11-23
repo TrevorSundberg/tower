@@ -84971,3 +84971,44 @@ receipt. Final whitespace check also passes after removing two introduced CR
 endings. All A2 jobs are drained; normal main push follows without deployment.
 
 L2 final provider integration: normal pre-push pull found42c1e142, including B1 checked presentation and D2 physical entity/stage accounting. Complete histories merged cleanly as128deea2dba0a6c742e2c337438c566161fbb543; no L2 production/test edits were required. Since providers changed, scratch_merge1/session60535 rebuilt30 dependent actions and passed storage/query with empty stderr, process0/source0, then scratch_merge1_nominal/session11741 passed lifecycle5 at32/64-bit workers1/4 and frozen-source checks. Both sessions drained0. Build126.64wall/193.40CPU seconds/818300KiB. Kind-only begin's retained-capacity success in the existing pressure fixture is not evidence of uncharged descriptors; the merged provider now accounts physical entity/stage storage. Earlier control/type/pair receipts retain their7160a10a identity and were not relabeled or repeated as a full matrix. Final journal-only recording changes no validated compiler input. Normal main push follows; final external lane status records the verified remote hash. No deployment, new goal or further assignment polling.
+A1 merged-input blocker (not acceptance): implementation cb4bb586 merged complete
+upstream e116e966 as0866fa73, including L2's14ce70f7 checked scratch, A2's
+fccb9131 effective physical accounting and B2's layout-frontier reconciliation.
+Conflicts retained all owners' work: declaration scratch insertion is checked
+through sem_push_checked and rolled back on failed graph admission; nullable
+metadata guards remain; no arena/registry or stage-helper API was rewritten.
+The prior list of pending L2 shared-helper sites is historical: this merge
+contains its checked replacements. This merged input has NOT passed A1's runtime
+checks. The132-trial/query/control/canonical/profile evidence above belongs to
+the pre-merge compiler identity, not to this merge.
+
+The prescribed dependency-aware build failed with the public pinned compiler:
+  /work/scaffolding/compiler/compiler_kernel.tower:17:1:
+  Foundation component memory budget exceeded
+  instantiated compiler_kernel_stages_result via sem_stage_wave
+  in semantic_declarations.tower:1705 (first attempt).
+All child jobs drained; /cache/a1_body_build_merged.log preserves the failure.
+This is the predecessor's semantic component allowance (source default128MiB),
+not measured exhaustion of the24GiB host-process budget. No private compiler,
+bootstrap override or increased bound was substituted.
+
+One bounded recovery moved the existing generic completion walk into concrete
+sem_completion_ticket/sem_completion_failure helpers: typed wrappers now only
+project fields, and sem_work_finish avoids a synthetic generic payload. This
+reduces duplicated compiler-owned logic without changing graph semantics. Merge
+review also retained fallible block/branch begin results and avoids lexical
+unwinding through an incompletely admitted resource-failed scope. The same target
+still failed at compiler_kernel.tower:17:1, now instantiated from the body
+source wave at semantic_body_work.tower:617. Log a1_body_build_concrete.log is
+preserved. No third retry, broad matrix, runtime test against a stale executable,
+or deployment was attempted. These final edits are committed but unvalidated.
+
+Remaining prerequisite: the canonical predecessor must compile this merged
+semantics provider within its allowance, through a coordinated unit/import
+boundary reduction or a properly published successor. Build-manifest/kernel
+ownership is outside this bounded A1 task. Remaining unchecked legacy sem_node
+wrapper calls in shared statement/control helpers can still assert before a
+begin helper returns; A1's graph/component admission is not whole-worker semantic
+allocation closure. Those gaps and final integration instrumentation remain
+pending, not passed. Work is preserved locally; main is not pushed while the
+merged compiler build is blocked. No active A1 build/test jobs remain.
