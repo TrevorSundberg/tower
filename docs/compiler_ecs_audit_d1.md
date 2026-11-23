@@ -2444,3 +2444,64 @@ one count and sizeof(u32), and use that count for indexing, preserving the workl
 and independently checked outputs. Iteration/sample constants are deliberate
 measurement policy and remain unchanged. This is pending implementation/evidence,
 not a new passing fixture or an audit census change.
+
+### Pool and typed-publication join — reviewed31c0dcc1 (ROOT30200761)
+
+The complete bundle34ce0a31 merged without conflicts after3e371ebd and all owned
+jobs drained. Current roster is522/522 assigned Tower files of1111 tracked:
+two new assigned fixtures and one new production declaration. The declaration
+moves the existing generic work structure without adding fields; tests import
+that actual type rather than infer private component offsets. Existing D1
+registrations and gated resource fixture are byte-unchanged. No new runtime
+acceptance follows from this source merge.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_pool_budget_checks.tower | New118-line fixture exercises actual sem_workers_open and declaration/layout entries with synchronized world budget. Sixteen cases cover32/64-bit targets and1/4 requested slots. Success checks exact sizeof(WorkSlot)-derived storage, physical allocator header charge, same budget owner, no lane reservation, and idempotent admission. Full remaining-byte pressure requires exact Capacity/no published slots; releasing pressure cannot revive terminal failure or grow entities/components across three retries. Context/graph/world teardown returns all grants to zero. This tests slot ownership, not actual worker overlap. Existing exported main needs only the standard production-composition registration; owner32f860 before failure and after pass/profile are distinct from forthcoming D1 evidence. |
+| scaffolding/tests/generic_pump_publication.tower | New89-line actual generic receipt fixture uses real copy completion, exact width*depth, no live stage or running jobs before checking publication. Independent extra pin forces Busy after a successful copy; failure leaves the instance empty/pending and node/component counts unchanged, and removing the pin cannot restart it. Unpinned control requires graph success and structural clone oracle, then final zero budget ownership. Existing query runner calls all four32/64-bit outcomes. Its direct unbudgeted work_pool_open is a known integration gap; L2 owns replacing it with sem_workers_open and checking the physical owner, preserving Busy/copy/cleanup oracles. |
+| scaffolding/tests/generic_clone_parallel.tower | Calls the new publication oracle before its existing calibrated distinct-thread overlap/cancellation/failure cases. No scheduler, calibration threshold or concurrent oracle is removed. Serial publication tests do not supply overlap evidence by themselves. |
+| scaffolding/tests/semantic_failure_order_checks.tower | Opens the actual budgeted pool before applying interpreter-startup pressure. This isolates the intended failure phase after new slot accounting; all32 canonical source/clone-order cases remain. No numeric-offset sorting or broad message alternative is introduced. |
+| scaffolding/tests/semantic_publish_checks.tower | Applies unchanged startup/arena/growth allowances after real input construction and pool admission. Remaining budget is measured, and postjoin grants equal the measured retained baseline plus independent pressure. Cancelled entry still creates no pool. Exact publication/no-partial-output and retry/cleanup assertions remain; owner retained initial wrong-phase failures and the null-assumption crash. |
+| scaffolding/tests/regex.tower | Previously prospective490d488e review is now adopted through complete B1 history. Counted span/NUL/Invalid/semantic-None cases and measured physical allocation sweep remain as reviewed above. Earlier B1 scoped runtime receipts remain tied to their original binary; current joined native/WASI checks are pending. |
+| scaffolding/tests/frontend_main.tower | Adopts B1's exact existing-import regex selector. Full default order remains; no extra provider or generic harness. B2 foreign-allocation branch is still separately owner-controlled and not present in this checkpoint. |
+
+Read the nine A1 pool/caller production changes and L2 typed stage/view/publish
+consumer. Admission precedes dispatch and sticky failure returns through owning
+pumps. Publication retains failed stages for deferred cleanup, clears successful
+freed stages before readiness, holds queued references before closing the last
+input pin and cancels graph work only after wave cleanup. Typed producer errors
+now replace the former unconditional Memory guess in this generic consumer.
+This does not close other graph/capture allocation paths or the independently
+known LR replacement Capacity failure. No noalias or whole-program race claim.
+
+### Prospective stable-page reuse — reviewede28c3eb2, not yet adopted
+
+Fetched full A2 bundlefb759496 for read-only review while D2 builds. The following
+three new/eight changed assigned paths are reviewed separately from the current
+522-file census. Adoption changes EntityComponentPage layout and requires coherent
+providers and consumers; earlier D1 binaries cannot validate it.
+
+| Assigned path | Substantive review and disposition |
+| --- | --- |
+| scaffolding/tests/entity_page_reuse.tower | New115-line fixture derives page occupancy from actual capacity, keeps a published payload stable while leasing its owner, and creates full/partial pages in two distinct stages. Publishing one transfers only its partial pool links; the other remains private. Tail reuse and exact freed-slot/address reuse require unchanged allocation generation/bytes, then private discard releases exact page grants. Reference/finalizer equations and final zero ledger/store ownership remain independent. Ordinary exported main can use the existing normal test factory. |
+| scaffolding/tests/entity_page_churn.tower | New116-line Tower measurement keeps one live survivor per original page, removes/refills all other slots over four rounds, and checks stable survivors, identities, payloads, counts, references and final cleanup. Page arrays/counts and charged bytes derive from actual allocations. Reports real remove/refill times, physical grants/retention, CPU/RSS for1024/65536 rows. Raw entities/indexes/fixture arrays are explicitly outside the ledger subtotal. Keep this measurement out of default timing-sensitive correctness gates. |
+| scaffolding/tests/entity_stage_reentrant.tower | New81-line callback regression publishes, leases and discards three separately owned stages while a different victim is finalizing. All parents/types/stages predate reclamation; it does not borrow or mutate the dying entity. Exact joined child/payload, survivor value, references, one finalization and zero final counts distinguish legal live-owner reentrancy from the existing dying-owner Busy case. Ordinary exported main fits the normal factory. |
+| scaffolding/tests/compiler_storage.tower | Coordinator-authorized stale UTF8 diagnostic correction now requires exact Memory, fixed current text and repeated terminal EOF before unchanged cleanup. This preserves physical failure injection; no parser producer is changed and no broad message alternative is accepted. Owner retained the old failing binary and validated the corrected test with its exact CMake host composition. |
+| scaffolding/tests/compiler_work_profile.tower | Eight plans remain deliberate fixture data; rounds/counts/checksum derive from the actual job array, with worker divisibility checked. Ownership comment now includes charged component pages while excluding raw nodes/membership indexes. Both profile provider builds used the same observer changes. Reported real overlap does not imply profitable eight-worker execution. |
+| scaffolding/tests/entity_component_budget.tower | Joined staged publication still checks stable payload addresses and full-page detachment; a partial published page must now point to store.storage. Its parallel allocation/publication/cancellation and exact physical budget assertions remain. |
+| scaffolding/tests/entity_component_faults.tower | Replaces guessed64-attempt ceiling with successful allocation-call measurement for each staged/large matrix entry. Every earlier prefix must fail; the exact count must succeed with matching allocation count. Existing rollback, payload and final ownership checks remain; serial fault allocator only. |
+| scaffolding/tests/entity_pages.tower | Published tail pages now belong to the store reuse pool; stable addresses, exact query ordering and lifecycle checks remain. This follows the new pool-link contract, not permission to move live payloads. |
+| scaffolding/tests/entity_stage_result_faults.tower | Replaces guessed96 sweep with measured successful publication calls, every failed prefix and exact-count success. Typed Memory, staged/new and leased rollback/retry, identities, references and zero buffer checks remain. Closes D1's specific derived-bound proposal once merged and validated. |
+| scaffolding/tests/work_constructor_budget.tower | Actual initialized task-index buffer capacity supplies the physical index charge. Descriptor/store/page threshold distinctions remain exact, including Invalid versus Capacity. Removes the copied16-entry assumption without changing the constructor contract. |
+| scaffolding/tests/work_schedule_budget.tower | One-task reference supplies actual initial capacities; reset/growth uses actual task capacity; shared lanes, loops and physical slot bytes derive from the four-job array. Deliberate cancelled job2/32-task workload stays fixed. Retained graph addresses, stale ticket rejection, exact denial, distinct threads and drain-before-dispose remain. |
+
+Read all three associated library changes: only dead descriptors reuse type_index
+as the free chain after finalization/index removal; living addresses do not move.
+Partial private pages transfer after staged owners publish. Full detached pages
+rejoin their owner's current pool on first free. This is measured stable payload
+reuse, not a packed archetype claim or safe stale-pointer handle. A2's repeated
+metadata regressions remain explicit: four-worker accounted wall about+5% and
+eight-worker plain about+8.8%, without measured per-lock attribution. Churn gains
+do not erase them. Owner24 supported sanitizer runs/WASI and unchanged reference
+measurements belong to its documented02db-based inputs; current joined evidence
+is pending.

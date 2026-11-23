@@ -70585,3 +70585,53 @@ its explicit unbudgeted pool open should use sem_workers_open on this union.
 L2 was directed to preserve all Busy/copy/cleanup oracles while checking actual
 pool budget ownership. Current union instrumentation and provider-policy checks
 remain pending. No publication or root runtime pass; todo.txt remains untouched.
+
+### D1 complete pool/publication history review (2026-11-23)
+
+Committed3e371ebd and exported the full D1_query_failure.bundle (SHA256
+0b3b44a832aede2d5bb657c1732324dab4b5668317d8ef3a08ea37bd95fdc913,
+sole60741 prerequisite), plus query_failure_receipt.tar (SHA256
+5c93115d9b25152fda3b8d7216213e5f1a4ea440dad3a50b646d899cd56b9ca7).
+Verified complete ROOT302 bundle34ce0a31 and merged as31c0dcc1 with no conflicts.
+Both generic CMake files and the owned gated resource fixture remain byte-equal
+to3e371. Full histories and todo preserved. Audit now522/522 of1111 tracked Tower
+files, with substantive two new/five changed fixture rows and all associated A1
+pool/L2 typed-publication producer changes read. B1 regex prospective review is
+now adopted. No current source build has run while D2 owns the host slot.
+
+A1's16 pool cases independently require exact physical slot/header accounting,
+no execution-lane charge, retained-slot reuse, terminal Capacity at direct/
+declaration/layout entries, and final zero ownership. The existing exported main
+can use the same production provider composition as the query-failure target;
+no SOURCE/binding/helper is necessary. The generic publication test reads the
+actual shared work declaration and completed-copy receipt before its Busy oracle.
+It is already reachable through query-smoke. Its unbudgeted pool constructor
+remains an explicit L2-owned follow-up, not accepted ownership coverage.
+
+Owner A1 paired n3 pool profiles retain small .01s wall differences, exact outputs,
+serial/parallel canonical reparse and slight RSS decreases. L2 paired n3 retains
+the generic serial +3.2% wall/+2.0% CPU result, with compilation-phase spread and
+under0.3% RSS changes; it is not called neutral or fast. Both are scoped owner
+comparisons on their documented inputs. Current joined D1 validation and final
+release remain pending; no extra unchanged matrix is run for source review.
+
+A documentation tool found the incoming journal is not valid UTF-8: iconv exits1
+at byte5130398 in this merged file. The new99123604 entry contains raw0x96 range
+separators, and earlier incoming L2 headings also display encoding damage. The
+apply_patch attempt was rejected atomically, leaving files unchanged. D1 used an
+ASCII append for this finding, preserving the incoming bytes, and routed the
+narrow encoding repair to the coordinator/L2; no whole-file recoding or rewritten
+history. This is a documentation integrity failure, not a compiler test failure.
+
+D1 prospective A2e28c3eb2 review during the D2 host slot: full bundlefb759496 was
+structurally verified and fetched only. All three library deltas, three new
+fixtures and eight assigned fixture changes were read; per-file ownership,
+reference and scheduling conclusions are in the D1 audit. Current census remains
+522 until adoption. Page ABI changes require matching rebuilt providers/consumers.
+New reuse/reentrant exported mains fit the existing normal factory; the separate
+churn measurement should not become a default timing-sensitive test. Existing
+D1-derived-bound requests are addressed by actual successful allocations and
+live collection capacities, preserving all negative/cleanup oracles. Owner
+measurement tradeoffs and unsupported instrumentation remain explicit. No local
+runtime pass is inferred; this documentation/source review has no runtime or
+allocation behavior, so separate before/after profiling is inapplicable.
