@@ -52082,3 +52082,110 @@ analysis. Corrected analysis collects an explicit array, then verifies all16
 records and pairs. Runtime jobs had already drained0 and quiet hold was released;
 this was an analysis-tool error, not a compiler test failure. Complete current
 compiler sanitizer/constructor/store/packed ownership milestone remains pending.
+### D2 joint physical-owner and production profile evidence (2026-11-23)
+
+At compiler source00caeef, package07474566756a48ba482efc390d6ed0487c460730b8c86be7ebecbdb00f8f7a64
+with46 exact resources, runner-only selector1dd7d96, runtime42063 passed query,
+production units, snapshot allocation faults, parser/storage, backend overlap,
+normal/fault buffer and three shared runs. Units preserve canonical32/64 serial
+and parallel output, deterministic failures and cancellation; backend overlap
+retains exact serial objects and distinct-thread barriers. Wall/CPU/RSS KiB:
+query0.22/0.20/61000, allocations2.94/2.90/162176, units48.08/64.31/731044,
+parser0.02/0.02/51356, backend18.71/26.84/486924. Snapshot failures remain serial;
+these are not current whole-compiler sanitizer or universal race-freedom claims.
+Source hashes passed and all jobs drained before changing files.
+
+The frontend guard was independently checked with the existing serial transport:
+initial negative-control link failed because its inherited native-only export
+work_thread_entry did not exist (7580, retained raw1). Original2e4 entry compile
+and production link had passed. Removing only that export for the deliberately
+serial negative control produced the expected pre-timing134 rejection and exact
+message. No dummy worker callback or production transport fallback was added.
+
+Controlled before2e4/current57e entries use identical00caeef compiler objects,
+resources and workloads. Native binaries f96ef9bf and d2385e46 are retained.
+Docker image4be584fb, LLVM19.1.1, public pin9653, Linux x64, CPUset0,2,
+powersave, fresh process/world per invocation and warm filesystem: one warmup
+then three alternating pairs per body count0/128 and worker1/2, all32 executions
+checked answer42, canonical hashes and teardown. Retained medians:
+
+| Bodies | Workers | Before wall/CPU seconds | Guard wall/CPU seconds | Before/guard RSS KiB |
+| --- | --- | --- | --- | --- |
+| 0 | 1 | 6.018 / 5.973 | 6.083 / 6.037 | 188484 / 188536 |
+| 0 | 2 | 4.467 / 8.463 | 4.565 / 8.635 | 312332 / 312600 |
+| 128 | 1 | 7.067 / 6.974 | 9.323 / 9.147 | 189000 / 189004 |
+| 128 | 2 | 4.466 / 8.504 | 4.590 / 8.756 | 312296 / 312224 |
+
+Every worker2 control recorded actual overlap2 on distinct pthreads and reserved
+peak2. The small current workload improves about1.33x wall with two workers,
+while CPU rises43% and RSS66%; this is a specific three-unit result. Summed
+outer spans are observations including waits, not CPU idle-time or critical-path
+proof. The apparent large serial regression remains UNRESOLVED: samples range
+6.0–9.9seconds, and a during-run observation found CPU0 at1.56GHz versus CPU2
+at3.50GHz. The guard is outside the measured region, but that alone does not
+validate unchanged performance. Next bounded slot repeats the exact immutable
+binaries/128-body input pinned to CPU2 with warmup+five pairs. No speed claim is
+made from the noisy large serial comparison. All child swap counts were zero.
+
+For0/128 bodies, canonical hashes1173729914654460811/11163853601021039373 match
+all entries/workers/samples. Retained physical bytes1422356/1432998, serial
+peak14072180/14082822, parallel peak usually26373268/26383910 and separately
+retained ledger metadata1310720/2621440 bytes. These exclude most world storage,
+allocator-private overhead and RSS; they are not a complete heap cap. Earlier
+status prose mislabeled decimal approximations as MiB; raw KiB/exact-byte data
+above supersedes those labels. RSS and the ledger are intentionally distinct.
+
+The unchanged canonical build85909 passed in1.15wall/0.78CPU/73692KiB with
+no compile/link work and identical compiler07474566. Ninja explain recorded
+only glob/CMake checking. Optional LibEdit/ZLIB/zstd/CURL discovery diagnostics
+remain in logs; the supported native build passed. No measured generic
+write-if-changed optimization is justified. Heavy slot released normally to D1
+at01:02 UTC after actual process drain, source checks and139GiB free/9.7GiB
+available observations. Logs/executables are in build/d2_ecs/physical_00caeef.
+
+The exact module-cache093 profile exposed a missing earlier owner fix:
+18-layer diamond first34–37ms versus reused273–301ms, unchanged7047 entities /
+8725 components and passing shared-leaf invalidation/teardown. Three-layer
+reuse was70–90microseconds. The source recursively revisited shared paths in
+module_cache_valid/cacheable. Root then supplied existing B2 fixdeba07ac
+(source-reviewed, now adopted after drain): cacheable uses completed-load/cycle
+invariants; validation visits the retained graph.order once and checks every
+edge's current lexical resolution AND source bytes, root bytes already checked
+by module_cached. Two local buffers are reused and disposed; no persistent
+validity memo or alternate graph. This was a missing-fix baseline, not a
+regression of B2's change. Independent exact093 before/after measurement and
+malformed/cycle/changed-source coverage on the new closure remain pending.
+
+Reviewed A2v5 archiveb8b0c9b7 and receipt86b357b9 after v4 full-body review.
+Eight existing buffer/type/fixture files match local bytes except an extra
+terminal blank in owner work_vector; kept local versions. Adopted exactly six
+new arena files and D1 registrationb94c45ee, with correct defining imports.
+Arena chunks carry complete physical ownership; private bump allocation avoids
+per-object ledger gates, checked growth preserves old output on denial, and
+coordinator append requires identical budget lifetime after borrowers drain.
+Descriptors are copied before freeing their own chunk; slices have no implicit
+resource destruction. Owner14 public units/6 native/24 ASan+TSan runs and actual
+WASI32 buffer/arena0 outputs (UTF16LE receipt decoded) are scoped owner evidence,
+not new D2 compiler acceptance. Current D2 arena compile/runtime/profile and
+fallible compiler callsite propagation remain open. No new syntax/private pin.
+
+D2 source-only followup during D1's heavy slot: fully read matched L1
+reportinga8ecf458/storage-errorbad3e4f1 and A1 semantic-resource76e1a971,
+plus efde967a regression. Adopted the complete production pair, no partial-ABI
+runtime. IMState latches the first physical failure; SemanticEvaluation retains
+it beyond invocation disposal. Required and inferred failures use fixed
+nonnull diagnostics and fail their matching tickets; ordinary unsupported
+optional staging retains its prior fallback only when resource_error is None.
+The owning finish path no longer suppresses resource failure for inferred or
+isolated declarations. Diagnostic128-byte receipts/destination reserve before
+dispatch; shared layouts and every dependent runner must rebuild.
+
+The owner regression covers two peers, source offset11 before29, required/
+inferred/isolated modes at widths32/64 and worker1/4, drained workers, failed
+readiness/tickets, no published value, no replay and final world/ledger cleanup.
+Root reports baseline failure and public-unit success; owner corrected runtime
+is pending. D1 owns conversion of its main entry into the existing LR/query
+fixture after that result. No competing unregistered runner was added. This
+change remains prepared source pending independent public units, joint runtime,
+actual memory/race coverage and complete union publication; prior00caeef
+measurements and741de29 bundle do not validate the new ABI.
