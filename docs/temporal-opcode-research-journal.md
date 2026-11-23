@@ -60820,3 +60820,18 @@ snapshot helper runtime performance and full native semantic correctness require
 the coherent compiler rebuild next. Packed component payloads, remaining
 physical heap accounting, useful nested scheduling, complete supported UB/race
 instrumentation, canonical browser/generation and publication still remain open.
+
+A2 frozen b992e28a native rebuild failed at13/53 in host/syntax_baseline:
+its two allocator externs used u8*, while the authoritative host.memory and
+newly shared WorkBuffer declarations use void*. Both externs are used; no
+unused-declaration deletion was valid. All failed jobs drained; the original
+35.063wall/35.961user/3.827sys log is nominal_snapshot_native_native.log.
+No runtime suite had started. ROOT/B2 explicitly authorized the exact four-line
+correction at03:06:33 UTC: matching opaque pointer declarations and explicit
+byte/opaque casts at the existing allocation/free calls. Allocation size,
+NUL termination, ownership, control flow and machine ABI remain unchanged.
+The smallest actual public-bootstrap host unit now compiles; source and object
+hashes/timing are in syntax_allocator_declarations.log. The before source
+cannot compile in the same merged closure, so there is no meaningful before
+runtime timing or speedup claim. Coherent native runtime validation resumes next,
+with new source hashes and affected objects rebuilt, not old-ABI reuse.

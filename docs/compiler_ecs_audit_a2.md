@@ -1387,3 +1387,11 @@ slightly in this window, but large accounted2/4/8-worker medians regress
 no neutral overhead or compiler speedup is asserted. Four workers remain useful,
 eight do not. All grants drain; descriptor overhead remains explicit. Full
 compiler and remaining lane acceptance are still open.
+
+B2-owned host/syntax_baseline.tower interface rechecked after b992 native failure:
+actual allocator ABI is void*, but its two local externs used u8*. ROOT/B2
+authorized matching declarations plus explicit casts at existing calls. The
+smallest public unit passes; ownership and allocation size are unchanged.
+Full native runtime checks had not started at the failure. Source fix and
+failure evidence are recorded in the journal; this is an interface correction,
+not a performance or release claim.
