@@ -5,15 +5,7 @@ import interpreter_context_types;
 import semantic_context_types;
 import .library.vector;
 import .library.work_graph;
-
-struct SemanticEvaluationLeaf {
-    subject: void*;
-    field: void*;
-    parent: usize;
-    index: usize;
-    type: FoundationType;
-    byte_offset: usize;
-}
+import .library.work_budget_types;
 
 struct SemanticEvaluation {
     kernel: CompilerKernel;
@@ -33,8 +25,10 @@ struct SemanticEvaluation {
     capture_ordinal: usize;
     error: vector(u8);
     error_offset: usize;
+    // Resource failure survives invocation disposal and isolated diagnostics.
+    resource_error: WorkBudgetError;
     aliases: vector(SemanticEvaluationAlias);
-    leaves: vector(SemanticEvaluationLeaf);
+    leaves: vector(IMValueProjection);
     aggregate_type: FoundationType;
     aggregate: bool;
 }

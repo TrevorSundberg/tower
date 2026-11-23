@@ -1,0 +1,35 @@
+import tower;
+import work_budget_types;
+import vector;
+
+// A distinct owner type prevents ordinary vector free/realloc from losing the
+// physical receipt. Shared layouts import this definition without methods.
+fn work_vector(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        capacity: usize;
+        reservation: WorkReservation;
+    }
+    return Result;
+}
+
+// Borrowed iteration is resolved in the type-producing function's module.
+// Keep these allocation-free protocol hooks with the shared type definition.
+fn work_vector_iterate_begin(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {
+    state.data = source.data;
+    state.length = source.length;
+    state.index = 0;
+}
+
+fn work_vector_iterate_next(T: type, source: work_vector(T)*, state: vector_iteration(T)*): bool {
+    if state.index == state.length { return false; }
+    state.index++;
+    return true;
+}
+
+fn work_vector_iterate_element(T: type, source: work_vector(T)*, state: vector_iteration(T)*): T* {
+    return &state.data[state.index - 1];
+}
+
+fn work_vector_iterate_end(T: type, source: work_vector(T)*, state: vector_iteration(T)*): void {}

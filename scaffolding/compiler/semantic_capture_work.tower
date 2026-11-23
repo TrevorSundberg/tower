@@ -264,6 +264,12 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         input.producer = result.evaluation.literal;
         input.owner = result.proof.owner;
         input.ordinal = result.proof.ordinal;
+        // Publication follows the exact evaluation dependency's success. Its
+        // canonical projections are now frozen and retained until all consumer
+        // invocations have joined and been disposed by the owning context.
+        input.aggregate = result.evaluation.aggregate;
+        input.projections = input.aggregate ? result.evaluation.leaves.data : null;
+        input.projection_count = input.aggregate ? result.evaluation.leaves.length : 0;
     } else {
         result.error = c.program.error;
         result.error_offset = c.program.error_offset;

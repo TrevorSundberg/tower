@@ -27,22 +27,25 @@ extern fn entity_release(node: void*): usize;
 
 // Legacy host setting lives on its world's registry, just like IDE transport
 // metadata. Only the coordinator changes it; explicit worlds set table.trace.
-export fn parser_set_debug_trace(enabled: bool): void {
+export fn parser_set_debug_trace(enabled: bool): bool {
     var owner = parser_match_get_type();
     var slot = entity_member_index(owner, "parser.trace");
     var present = slot != ParserNoIndex();
     if enabled {
         if present {
-            return;
+            return true;
         }
         var marker = entity_create_related(owner);
-        entity_attach(marker, owner, "parser.trace");
+        if marker == null { return false; }
+        var attached = entity_attach(marker, owner, "parser.trace");
         entity_release(marker);
+        return attached;
     } else {
         if present {
-            entity_attach(entity_child_at(owner, slot), null, null);
+            return entity_attach(entity_child_at(owner, slot), null, null);
         }
     }
+    return true;
 }
 
 fn parser_copy_text(source: u8*): u8* {

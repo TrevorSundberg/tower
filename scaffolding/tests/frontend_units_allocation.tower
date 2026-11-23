@@ -14,9 +14,9 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
     var baseline = tower_test_buffer_count();
     var source = "import tower; fn answer():i32{return 42;}";
     var path = "allocation.tower";
-    var resources = strlen(bedrock) + strlen(foundation) + strlen(root) + 3;
-    var input = strlen(path) + strlen(source) + 2;
-    var batch = frontend_units_create_bounded(1, 1, resources + input * 2, 8, 1, 1,
+    var resources = units_memory_resource_bytes(bedrock, foundation, root);
+    var input = units_memory_input_bytes(path, strlen(source));
+    var batch = frontend_units_create_bounded(1, 1, resources + input * 2 + UnitCompilationAllowance, 8, 1, 1,
         bedrock, foundation, root);
     units_memory_check(batch != null && frontend_units_source(batch, 1, path, source, strlen(source)),
         "Allocation regression owns its initial source");
@@ -35,6 +35,7 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
         var after = units_memory_snapshot(batch);
         units_memory_check(!replaced && after.used_bytes == before.used_bytes
             && after.used_lanes == before.used_lanes && after.live == before.live
+            && frontend_units_input_bytes(batch) == resources + input
             && tower_test_buffer_count() == buffers,
             "Failed first/second snapshot allocation restores buffers and receipts");
     }

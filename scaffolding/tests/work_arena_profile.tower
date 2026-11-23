@@ -1,0 +1,165 @@
+import tower;
+import .library.work_arena;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct ArenaProfileJob {
+    arena: WorkArena;
+    addresses: u8**;
+    count: usize;
+    ordinal: usize;
+    started: i64;
+    finished: i64;
+    chunks: usize;
+    retained: usize;
+    payload: usize;
+}
+
+fn arena_profile_check(ok: bool): void {
+    if !ok { trap("Common lifetime arena profile reference mismatch", 0); }
+}
+
+fn arena_profile_time(): i64 {
+    var stamp: i64[2];
+    arena_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+fn arena_profile_cpu(before: i64*, after: i64*): i64 {
+    return (after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3];
+}
+
+// Fixed total work with identical common lifetimes and initialized contents.
+// Pointer index storage is prepared outside timing, equally for every mode.
+// The baseline performs individual production compiler-buffer allocations;
+// arena modes charge physical chunks to the shared synchronized WorkBudget.
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(ArenaProfileJob*, payload);
+    job.started = arena_profile_time();
+    for(var i: usize = 0; i < job.count; i++) {
+        var bytes: usize = 8 + (i % 4) * 4;
+        var data: u8* = null;
+        if job.arena.chunk_bytes == 0 {
+            data = bits(u8*, compiler_buffer_allocate(bytes));
+            job.chunks++;
+            job.retained += compiler_buffer_allocation_size(bytes);
+        } else { data = work_arena_allocate(&job.arena, bytes, 8); }
+        arena_profile_check(data != null);
+        fill(data, convert(u8, (i + job.ordinal) % 251), bytes);
+        job.addresses[i] = data;
+        job.payload += bytes;
+    }
+    if job.arena.chunk_bytes != 0 {
+        var snapshot: WorkArenaSnapshot;
+        arena_profile_check(work_arena_snapshot(&job.arena, &snapshot) && snapshot.payload == job.payload);
+        job.chunks = snapshot.chunks;
+        job.retained = snapshot.retained;
+    }
+    job.finished = arena_profile_time();
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    arena_profile_check(argc == 4 && sizeof(usize) == 8);
+    var chunk_bytes: usize = 0;
+    if strcmp(argv[1], "arena4") == 0 { chunk_bytes = 4096; }
+    if strcmp(argv[1], "arena16") == 0 { chunk_bytes = 16384; }
+    if strcmp(argv[1], "arena64") == 0 { chunk_bytes = 65536; }
+    arena_profile_check(chunk_bytes != 0 || strcmp(argv[1], "baseline") == 0);
+    var workers: usize = 0;
+    if strcmp(argv[2], "1") == 0 { workers = 1; }
+    if strcmp(argv[2], "2") == 0 { workers = 2; }
+    if strcmp(argv[2], "4") == 0 { workers = 4; }
+    if strcmp(argv[2], "8") == 0 { workers = 8; }
+    arena_profile_check(workers != 0);
+    var count: usize = 0;
+    if strcmp(argv[3], "small") == 0 { count = 2048; }
+    if strcmp(argv[3], "large") == 0 { count = 262144; }
+    arena_profile_check(count != 0);
+    var gate = work_signal_open();
+    arena_profile_check(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    arena_profile_check(work_budget_init(&budget, workers, 67108864, 1));
+    arena_profile_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var jobs: ArenaProfileJob[8] = default;
+    for(var i: usize = 0; i < workers; i++) {
+        jobs[i].count = count / workers;
+        jobs[i].ordinal = i;
+        jobs[i].addresses = alloc(u8*, jobs[i].count);
+        arena_profile_check(jobs[i].addresses != null);
+        // Touch the whole common index before timing to remove first-touch
+        // differences between allocation modes from the measured interval.
+        fill(jobs[i].addresses, 0, jobs[i].count * sizeof(u8*));
+        if chunk_bytes != 0 { arena_profile_check(work_arena_init(&jobs[i].arena, &budget, chunk_bytes)); }
+    }
+    var pool: WorkPool = default;
+    arena_profile_check(work_pool_open(&pool, workers) && pool.count == workers);
+    var before: i64[18]; var after: i64[18];
+    arena_profile_check(getrusage(0, &before[0]) == 0);
+    var start = arena_profile_time();
+    for(var i: usize = 0; i < workers; i++) {
+        arena_profile_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    var elapsed = arena_profile_time() - start;
+    arena_profile_check(getrusage(0, &after[0]) == 0);
+    work_pool_close(&pool);
+    var overlap: usize = 0;
+    var allocations: usize = 0;
+    var retained: usize = 0;
+    var payload: usize = 0;
+    for(var i: usize = 0; i < workers; i++) {
+        for(var object: usize = 0; object < jobs[i].count; object++) {
+            var bytes: usize = 8 + (object % 4) * 4;
+            for(var byte: usize = 0; byte < bytes; byte++) {
+                arena_profile_check(jobs[i].addresses[object][byte] == convert(u8, (object + i) % 251));
+            }
+        }
+        var active: usize = 0;
+        for(var j: usize = 0; j < workers; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { active++; }
+        }
+        if active > overlap { overlap = active; }
+        allocations += jobs[i].chunks;
+        retained += jobs[i].retained;
+        payload += jobs[i].payload;
+    }
+    var snapshot: WorkBudgetSnapshot;
+    arena_profile_check(work_budget_snapshot(&budget, &snapshot)
+        && snapshot.used_bytes == (chunk_bytes == 0 ? 0 : retained)
+        && payload == count * 14);
+    var retire_before: i64[18]; var retire_after: i64[18];
+    arena_profile_check(getrusage(0, &retire_before[0]) == 0);
+    var retire_start = arena_profile_time();
+    for(var i: usize = 0; i < workers; i++) {
+        if chunk_bytes == 0 {
+            for(var object: usize = 0; object < jobs[i].count; object++) {
+                compiler_buffer_free(bits(void*, jobs[i].addresses[object]));
+            }
+        } else { work_arena_dispose(&jobs[i].arena); }
+    }
+    var retire_elapsed = arena_profile_time() - retire_start;
+    arena_profile_check(getrusage(0, &retire_after[0]) == 0);
+    // workers, chunk bytes, object count, allocation/join wall ns and CPU us,
+    // process peak RSS KiB, actual useful interval overlap, physical buffers,
+    // live payload, retained physical bytes, peak charge, ledger metadata,
+    // equally unbudgeted pointer-index bytes, retirement wall ns and CPU us.
+    print(workers); print(chunk_bytes); print(count); print(elapsed);
+    print(arena_profile_cpu(&before[0], &after[0])); print(after[4]); print(overlap);
+    print(allocations); print(payload); print(retained); print(snapshot.peak_bytes);
+    print(snapshot.retained); print(count * sizeof(u8*));
+    print(retire_elapsed); print(arena_profile_cpu(&retire_before[0], &retire_after[0]));
+    for(var i: usize = 0; i < workers; i++) { free(jobs[i].addresses); }
+    arena_profile_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    return 0;
+}

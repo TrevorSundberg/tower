@@ -3,6 +3,8 @@ import interpreter_types;
 import interpreter_abi;
 import interpreter_context_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_budget_types;
 
 fn ix_strict(m: IMExecution*): bool {
     return m.context != null && m.context.strict;
@@ -13,7 +15,10 @@ fn ix_initialize_frame(m: IMExecution*, base: usize, size: usize): bool {
         return true;
     }
     var end = base + size;
-    if end < base || !vector_reserve(u8, &m.context.initialized, end) {
+    var result = end < base ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(&m.context.initialized, m.state.budget, end);
+    if result != WorkBudgetError.None {
+        if m.state.storage_error == WorkBudgetError.None { m.state.storage_error = result; }
         ix_fail(m, "Cannot allocate strict evaluation initialization state", 0);
         return false;
     }
@@ -35,6 +40,16 @@ fn ix_initialized(m: IMExecution*, address: u64, size: usize, writing: bool, off
     if address > limit || convert(u64, size) > limit - address {
         ix_fail(m, "Strict evaluation access is outside live local storage", offset);
         return false;
+    }
+    if writing && size != 0 {
+        var end = address + convert(u64, size);
+        foreach(var &input in &m.context.input_storage) {
+            if address < convert(u64, input.address + input.bytes)
+                && convert(u64, input.address) < end {
+                ix_fail(m, "Compile-time evaluation cannot modify an immutable captured value", offset);
+                return false;
+            }
+        }
     }
     var first = convert(usize, address);
     var i: usize = 0;
