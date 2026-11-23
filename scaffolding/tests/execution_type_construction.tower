@@ -98,8 +98,9 @@ fn execution_type_storage_tests(width: u32): void {
         if denied {
             execution_check(session.machine.failed && session.machine.done
                 && session.machine.storage_error == WorkBudgetError.Capacity && session.fast == null
-                && execution_text(&session.error, "Cannot allocate interpreter type storage")
-                && session.machine.error_offset == ExecutionTypeStorageOffset
+                && execution_text(&session.error, fast ? "Cannot allocate interpreter execution cache"
+                    : "Cannot allocate interpreter type storage")
+                && session.machine.error_offset == (fast ? 0 : ExecutionTypeStorageOffset)
                 && execution_text(&session.output, fast ? "" : "7\n"),
                 "type-storage denial preserves exact failure and preceding effects only");
             execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,

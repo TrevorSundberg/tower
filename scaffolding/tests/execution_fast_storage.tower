@@ -1,0 +1,287 @@
+import tower;
+import execution_support;
+import execution_world;
+import .compiler.execution_session;
+import .compiler.fast_interpreter_types;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .host.driver_request;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.work_budget;
+import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+
+var FastStorageBudgetBytes: usize = 268435456;
+var FastStorageStackBase: usize = 16;
+var FastStorageHeapBase: usize = 4194304;
+var FastStorageStepLimit: usize = 10000;
+
+fn fast_storage_measurement(label: u8*, value: u64): void {
+    var text: ByteBuffer = default;
+    defer bytes_dispose(&text);
+    execution_check(execution_append_text(&text, label) && host_json_unsigned(&text, value)
+        && host_text_terminate(&text), "Fast storage measurement formatting");
+    puts(text.data);
+}
+
+fn fast_storage_open(session: ExecutionSession*, root: void*, width: u32): void {
+    entity_retain(root);
+    semantic_initialize(&session.program, root, width);
+    session.machine.stack = FastStorageStackBase;
+    session.machine.heap = FastStorageHeapBase;
+    execution_check(execution_session_start(session), "Fast storage graph starts before admission");
+}
+
+fn fast_storage_snapshot(budget: WorkBudget*): WorkBudgetSnapshot {
+    var snapshot: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(budget, &snapshot), "Fast storage budget snapshot");
+    return snapshot;
+}
+
+fn fast_storage_owner(T: type, value: work_vector(T)*, budget: WorkBudget*, bytes: usize*, owners: usize*): void {
+    if value.data == null {
+        execution_check(value.capacity == 0 && value.length == 0 && !value.reservation.active,
+            "Absent Fast array retains no owner");
+        return;
+    }
+    execution_check(value.length <= value.capacity && value.reservation.active
+        && value.reservation.owner == budget
+        && value.reservation.bytes == compiler_buffer_allocation_size(value.capacity * sizeof(T)),
+        "Fast array owns its exact physical allocation including the compiler header");
+    *bytes += value.reservation.bytes;
+    *owners += 1;
+}
+
+fn fast_storage_cache_owners(f: FMState*, budget: WorkBudget*, bytes: usize*, owners: usize*): void {
+    execution_check(f.storage.data == bits(u8*, f) && f.storage.capacity == sizeof(FMState)
+        && f.storage.reservation.owner == budget && f.storage.reservation.active
+        && f.storage.reservation.bytes == compiler_buffer_allocation_size(sizeof(FMState)),
+        "Fast descriptor owns its physical allocation");
+    *bytes = f.storage.reservation.bytes;
+    *owners = 1;
+    fast_storage_owner(&f.words, budget, bytes, owners);
+    fast_storage_owner(&f.constants, budget, bytes, owners);
+    fast_storage_owner(&f.type_values.values, budget, bytes, owners);
+    fast_storage_owner(&f.functions, budget, bytes, owners);
+    fast_storage_owner(&f.function_indices, budget, bytes, owners);
+    fast_storage_owner(&f.parameters, budget, bytes, owners);
+    fast_storage_owner(&f.types, budget, bytes, owners);
+    fast_storage_owner(&f.conversions, budget, bytes, owners);
+    fast_storage_owner(&f.strings, budget, bytes, owners);
+    fast_storage_owner(&f.sources, budget, bytes, owners);
+    fast_storage_owner(&f.registers, budget, bytes, owners);
+    fast_storage_owner(&f.frames, budget, bytes, owners);
+    fast_storage_owner(&f.labels, budget, bytes, owners);
+    fast_storage_owner(&f.jumps, budget, bytes, owners);
+    fast_storage_owner(&f.locals, budget, bytes, owners);
+    fast_storage_owner(&f.escaped, budget, bytes, owners);
+}
+
+fn fast_storage_until_call(session: ExecutionSession*, function: u8*): void {
+    var f = bits(FMState*, session.fast);
+    for(var step: usize = 0; step < FastStorageStepLimit && !session.machine.failed; step++) {
+        var word = f.words.data[f.pc];
+        var op = convert(usize, word & 255);
+        var target = convert(usize, (word >> 16) & 255);
+        if op == FMWideInstruction {
+            op = convert(usize, f.words.data[f.pc + 1]);
+            target = convert(usize, f.words.data[f.pc + 3]);
+        }
+        if op == FMDirectCall {
+            var name = &sem_get(f.functions.data[target].node).name;
+            if name.length == strlen(function) && memcmp(name.data, function, name.length) == 0 { return; }
+        }
+        execution_session_step(session, 1);
+    }
+    execution_check(false, "Fast fixture reaches its actual call after argument effects");
+}
+
+fn fast_storage_labeled_body(program: SemanticProgram*): void {
+    foreach(var function in &program.functions) {
+        var node = sem_get(function);
+        if node.name.length != strlen("descend") || memcmp(node.name.data, "descend", node.name.length) != 0 { continue; }
+        // Valid, unreachable ordered Foundation operations retain the program's
+        // behavior while exercising labels/jumps, escaped locals and pinning.
+        var label = sem_create(function);
+        sem_attach(label, KLabel);
+        var jump = sem_create(function);
+        sem_attach(jump, KJump).binding = label;
+        execution_check(vector_push(&sem_get(node.body).items, jump)
+            && vector_push(&sem_get(node.body).items, label), "Fast labeled-body fixture ownership");
+        return;
+    }
+    execution_check(false, "Fast labeled-body fixture finds its owning function");
+}
+
+fn execution_fast_storage_tests(request: DriverRequest*): void {
+    var source = "import tower; fn argument():i32 { print(6); return 12; } fn identity_type():type { var value:type=i32; return value; } fn descend(n:i32):i32 { var local=n; var p=&local; loop { break; } if n==12 { print(8); } if n==0 { return 0; } return *p+descend(n-1); } print(7); var answer=descend(argument()); print(convert(u64,answer)); var word:u8* = \"A\"; print(word[0]); print(identity_type()==i32); print(9);";
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        var budget: WorkBudget = default;
+        var world: void* = null;
+        execution_check(work_budget_init(&budget, 1, FastStorageBudgetBytes, 1)
+            && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+            "Fast fixture owns its world and budget");
+        var modules = frontend_modules_create();
+        execution_world_prepare(world, modules, request);
+        var anchor: ExecutionSession = default;
+        execution_compile(&anchor, source, width, modules);
+        fast_storage_labeled_body(&anchor.program);
+        var root = anchor.program.root;
+        var baseline = fast_storage_snapshot(&budget);
+        var reference: ExecutionSession = default;
+        fast_storage_open(&reference, root, width);
+        execution_run(&reference, 1, FastStorageStepLimit);
+        execution_check(reference.machine.done && !reference.machine.failed
+            && execution_text(&reference.output, "7\n6\n8\n78\n65\ntrue\n9\n"),
+            "Ordinary graph independently checks the recursive Fast fixture output");
+        execution_session_close(&reference);
+        var probe: ExecutionSession = default;
+        fast_storage_open(&probe, root, width);
+        var before = fast_storage_snapshot(&budget);
+        var graph_bytes: usize = 0;
+        var graph_owners: usize = 0;
+        fast_storage_owner(&probe.machine.frames, &budget, &graph_bytes, &graph_owners);
+        fast_storage_owner(&probe.machine.node_cache, &budget, &graph_bytes, &graph_owners);
+        foreach(var &frame in &probe.machine.frames) {
+            fast_storage_owner(&frame.tasks, &budget, &graph_bytes, &graph_owners);
+            fast_storage_owner(&frame.values, &budget, &graph_bytes, &graph_owners);
+            fast_storage_owner(&frame.addresses, &budget, &graph_bytes, &graph_owners);
+        }
+        var generation = budget.generation;
+        execution_check(execution_session_fast(&probe), "Fast positive cache admission");
+        var admissions = budget.generation - generation;
+        var f = bits(FMState*, probe.fast);
+        var cache_bytes: usize = 0;
+        var cache_owners: usize = 0;
+        fast_storage_cache_owners(f, &budget, &cache_bytes, &cache_owners);
+        var after = fast_storage_snapshot(&budget);
+        execution_check(after.used_bytes == before.used_bytes - graph_bytes + cache_bytes,
+            "Fast admission accounts for every retained byte and releases graph scratch");
+        execution_check(after.live == before.live - graph_owners + cache_owners,
+            "Fast admission accounts for every retained owner");
+        execution_check(f.type_values.values.length != 0, "Fast fixture reaches a runtime type value");
+        fast_storage_measurement("Fast fixture target pointer bytes: ", convert(u64, width));
+        fast_storage_measurement("Fast descriptor bytes: ", convert(u64, sizeof(FMState)));
+        fast_storage_measurement("Fast retained physical cache bytes: ", convert(u64, cache_bytes));
+        fast_storage_measurement("Fast retained physical cache owners: ", convert(u64, cache_owners));
+        fast_storage_measurement("Fast cache admission sites: ", admissions);
+        execution_run(&probe, 1, FastStorageStepLimit);
+        if probe.machine.failed || !execution_text(&probe.output, "7\n6\n8\n78\n65\ntrue\n9\n") {
+            if probe.error.data != null { puts(probe.error.data); }
+            if probe.output.data != null { puts(probe.output.data); }
+        }
+        execution_check(probe.machine.done && !probe.machine.failed
+            && execution_text(&probe.output, "7\n6\n8\n78\n65\ntrue\n9\n"), "Fast recursive reference output");
+        execution_session_close(&probe);
+        var released = fast_storage_snapshot(&budget);
+        execution_check(released.used_bytes == baseline.used_bytes && released.live == baseline.live,
+            "Fast successful execution releases every private owner");
+
+        var cancelled: ExecutionSession = default;
+        fast_storage_open(&cancelled, root, width);
+        execution_check(execution_session_fast(&cancelled), "Fast cancellation cache builds");
+        fast_storage_until_call(&cancelled, "descend");
+        execution_session_close(&cancelled);
+        released = fast_storage_snapshot(&budget);
+        execution_check(released.used_bytes == baseline.used_bytes && released.live == baseline.live,
+            "Cancelling a suspended Fast execution releases every private owner");
+
+        var denied_type = false;
+        for(var allowed: u64 = 0; allowed < admissions; allowed++) {
+            var trial: ExecutionSession = default;
+            fast_storage_open(&trial, root, width);
+            var saved_frames = trial.machine.frames.data;
+            var saved_tasks = trial.machine.task_count;
+            before = fast_storage_snapshot(&budget);
+            generation = budget.generation;
+            budget.generation = ~convert(u64, 0) - allowed;
+            execution_check(!execution_session_fast(&trial) && trial.fast == null
+                && trial.machine.failed && trial.machine.done && trial.machine.steps == 0
+                && trial.machine.storage_error == WorkBudgetError.Exhausted
+                && trial.machine.frames.data == saved_frames && trial.machine.task_count == saved_tasks,
+                "Every Fast cache admission denial retains first cause and unexecuted graph input");
+            denied_type ||= execution_text(&trial.error, "Cannot allocate interpreter type storage");
+            budget.generation = generation;
+            after = fast_storage_snapshot(&budget);
+            execution_check(after.used_bytes == before.used_bytes && after.live == before.live,
+                "Partial Fast caches release all admitted owners");
+            execution_session_step(&trial, FastStorageStepLimit);
+            execution_check(!execution_session_fast(&trial) && trial.machine.steps == 0 && trial.output.length == 0,
+                "Failed cache cannot execute or fall back after admission returns");
+            execution_session_close(&trial);
+        }
+        execution_check(denied_type, "Admission sweep reaches the existing type-index producer");
+
+        var register_cases: bool[2] = default;
+        register_cases[1] = true;
+        for(var which: usize = 0; which < sizeof(decltype(register_cases)) / sizeof(bool); which++) {
+            var trial: ExecutionSession = default;
+            fast_storage_open(&trial, root, width);
+            execution_check(execution_session_fast(&trial), "Fast runtime admission fixture");
+            f = bits(FMState*, trial.fast);
+            fast_storage_until_call(&trial, "descend");
+            execution_check(execution_text(&trial.output, "7\n6\n"), "Argument effects precede Fast call admission");
+            execution_check(f.frames.length == 0, "Argument returns to the root frame before pressure");
+            work_vector_dispose(&f.frames);
+            if register_cases[which] {
+                execution_check(work_vector_reserve_result(&f.frames, &budget, f.frames.length + 1) == WorkBudgetError.None,
+                    "Pre-admit only frames to isolate register admission");
+                // Keep exactly the live caller registers. This uses the shared
+                // transactional owner primitive, with no fabricated capacity.
+                var live_bytes = f.registers.length * sizeof(u64);
+                var storage: WorkBuffer = { data: bits(u8*, f.registers.data),
+                    capacity: f.registers.capacity * sizeof(u64), reservation: f.registers.reservation };
+                execution_check(work_buffer_resize(&storage, &budget, live_bytes, live_bytes) == WorkBudgetError.None,
+                    "Retain exact caller register extent before growth denial");
+                f.registers.data = bits(u64*, storage.data);
+                f.registers.capacity = storage.capacity / sizeof(u64);
+                f.registers.reservation = storage.reservation;
+            }
+            var frames = f.frames.length;
+            var stack = trial.machine.stack;
+            var base = f.register_base;
+            var count = f.register_count;
+            var registers = f.registers;
+            before = fast_storage_snapshot(&budget);
+            var occupied: WorkReservation = default;
+            execution_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
+                == WorkBudgetError.None, "Occupy exactly the remaining runtime allowance");
+            execution_session_step(&trial, 1);
+            execution_check(trial.machine.failed && trial.machine.done
+                && trial.machine.storage_error == WorkBudgetError.Capacity
+                && execution_text(&trial.error, register_cases[which] ? "Cannot allocate Fast interpreter registers"
+                    : "Cannot allocate Fast interpreter call frames")
+                && f.frames.length == frames && trial.machine.stack == stack && f.register_base == base
+                && f.register_count == count && f.registers.data == registers.data
+                && f.registers.length == registers.length && f.registers.capacity == registers.capacity
+                && execution_text(&trial.output, "7\n6\n"), "Denied Fast call preserves caller storage and skips callee effects");
+            execution_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+                "Release runtime allowance");
+            var steps = trial.machine.steps;
+            var offset = trial.machine.error_offset;
+            execution_session_step(&trial, FastStorageStepLimit);
+            execution_check(trial.machine.steps == steps && trial.machine.error_offset == offset
+                && execution_text(&trial.output, "7\n6\n"), "Failed Fast call never replays arguments or callee");
+            execution_session_close(&trial);
+        }
+        released = fast_storage_snapshot(&budget);
+        execution_check(released.used_bytes == baseline.used_bytes && released.live == baseline.live,
+            "Fast denied and cancelled owners return to the world baseline");
+        execution_session_close(&anchor);
+        frontend_modules_destroy(modules);
+        execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "Fast world drains after all caches");
+        released = fast_storage_snapshot(&budget);
+        execution_check(released.used_bytes == 0 && released.live == 0 && work_budget_dispose(&budget),
+            "Fast world retires every physical buffer grant");
+    }
+    puts("Fast cache and runtime array ownership passed at both widths.");
+}

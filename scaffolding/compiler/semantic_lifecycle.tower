@@ -14,6 +14,8 @@ import semantic_expression_lowering;
 import semantic_lowering_work;
 import semantic_aggregates;
 import semantic_work_ids;
+import semantic_phase_work;
+import semantic_query_pipeline;
 import semantic_layout;
 import semantic_evaluation;
 import semantic_flow;
@@ -146,6 +148,33 @@ fn sem_lifecycle_lowering(c: SemanticContext*): void {
     sem_lower_finish(c, false);
 }
 
+// Service an executed stage after its own lowering/signature inputs publish,
+// while unrelated lowering remains pending. Each existing pump joins before the
+// next phase can mutate canonical nodes, captured ranges or executable inputs.
+export fn sem_lifecycle_queries_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_phase_begin(c) { return SemanticPumpResult.Failed; }
+    var state = sem_lower_pipeline_pump(c);
+    if state == SemanticPumpResult.Failed { return state; }
+    state = sem_query_pipeline_merge(state, sem_phase_publish(c));
+    if state == SemanticPumpResult.Failed { return state; }
+    state = sem_query_pipeline_merge(state, sem_evaluation_pump(c));
+    if state == SemanticPumpResult.Failed { return state; }
+    return sem_query_pipeline_merge(state, sem_query_pipeline_pump(c));
+}
+
+fn sem_lifecycle_queries(c: SemanticContext*): void {
+    var state = sem_lifecycle_queries_pump(c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_queries_pump(c); }
+    if state == SemanticPumpResult.Failed { return; }
+    // No owning producer made progress. Preserve lowering's diagnostic priority;
+    // ordinary Waiting from an individual phase never diagnoses a cycle.
+    if state == SemanticPumpResult.Waiting {
+        sem_lower_finish(c, true);
+        sem_lower_finish(c, false);
+    }
+    if sem_ok(c) { sem_evaluation_finish(c); }
+}
+
 export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void {
     if program.resource.error != WorkBudgetError.None || program.error.length != 0 { return; }
     var context: SemanticContext;
@@ -168,8 +197,7 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_foreign_signatures(c);
     sem_defer_hygiene(c);
     sem_known_infer(c);
-    sem_lifecycle_lowering(c);
-    sem_evaluations(c);
+    sem_lifecycle_queries(c);
     sem_attributes_publish(c);
     sem_known_publish(c);
     sem_module_initializers(c);
