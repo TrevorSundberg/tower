@@ -80193,3 +80193,16 @@ Full compiler/build input manifests match SHA256
 Logs: L1/logs/execution_ownership_final_9985. No owned child remains running.
 This final receipt adds documentation only, so no new runtime measurement is
 needed for it. Normal main push follows; no gh-pages deployment is claimed.
+
+B1 final bounded integration: the required post-commit pull fetched L1e2ace4c4
+while B1 was validating. Normal merge ca286d12751732e60443cb424525baa3e171c08b
+preserves both complete histories; all B1 batch files are unchanged from the
+checked c07203d8 source. Incoming interpreter changes required an incremental
+dependency build of the two focused targets, nine actions,22.78s wall/46.58s CPU/
+750572KiB RSS. Parser .04s/53696KiB, regex .04s/51720KiB and query-smoke
+.23s/88112KiB all passed (exit0), with the same CPU0-11/24GiB/jobs6/compiler1
+limits. Logs/source/artifact hashes: `build/ecs_b1/logs/pattern_result_final_merge_*`.
+Session63664 drained0; container only init. No performance sweep, broad matrix
+or deployment repeated. Prior paired and c072 units evidence retains its exact
+source identity; final integrated milestone gates remain with ROOT. This last
+receipt changes documentation only; status records the normal main push result.
