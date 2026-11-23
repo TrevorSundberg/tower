@@ -773,7 +773,11 @@ fn sem_call_arguments(c: SemanticContext*, definition: void*, use: void*, args: 
     if args.length == count {
         for(var i: usize = 0; i < count && sem_ok(c); i++) {
             if generic_type_parameter(c.generics, definition, i) {
-                sem_push(arguments, sem_type_entity(c, sem_type(c, args.data[i])));
+                var type = sem_type(c, args.data[i]);
+                if !sem_ok(c) { return arguments; }
+                var entity = sem_type_entity(c, type, args.data[i]);
+                if entity == null { return arguments; }
+                sem_push(arguments, entity);
             } else { sem_push(values, args.data[i]); }
         }
     } else {

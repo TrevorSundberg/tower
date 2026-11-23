@@ -151,7 +151,7 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
     }
     var type = sem_type(a.context, annotation);
     if sem_ok(a.context) {
-        meaning.resolved = sem_type_entity(a.context, type);
+        meaning.resolved = sem_type_entity(a.context, type, annotation);
     }
     a.context.program.error.length = 0;
 }

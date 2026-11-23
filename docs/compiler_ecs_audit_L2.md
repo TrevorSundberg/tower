@@ -1053,3 +1053,16 @@ costs. The generic/1 2.17s outlier and serial CPU/wall discrepancies are preserv
 with no invented cause or favorable replacement. The journal records full metrics,
 limits and117-file archive989bd324. This closes the paired measurement step only;
 coherent current supported instruments and publication acceptance remain open.
+Bounded semantic admission completion: shared semantic_context/query_api helpers;
+semantic_type_execution and semantic_generic_body_work admission; semantic_types
+canonical/observation producers; semantic_call_inference, semantic_declarations,
+semantic_iteration_work, semantic_body_work, semantic_values, semantic_generic_info/
+values and language_query consumers; semantic_lifecycle root initialization; and
+minimal completion/frontend_compilation/driver_compile root-boundary guards are now
+checked as one coherent chain. Existing generic_result_storage, generic_pump_publication
+and type_execution_receipts cover physical failures, private cleanup, unchanged
+custom components, exact source receipts, no ready/index publication and no replay.
+Final52869 storage/query pass on complete3ff717b5 integration plus the batch; small
+matched7990 eight-process costs and all preserved failures are recorded in the journal.
+L1 interpreter/session code is unchanged. Full release instruments/platform/build/
+hosted verification are deferred to ROOT, not completed by this bounded task.

@@ -76,14 +76,29 @@ export fn sem_type_execution_request(c: SemanticContext*, owner: void*, request:
         return 0;
     }
     if c.type_executions == null {
-        c.type_executions = sem_create(c.program.root);
-        sem_require(entity_register(c.type_executions, sizeof(SemanticTypeExecution), alignof(SemanticTypeExecution), 0));
+        var error: WorkBudgetError;
+        var kind = sem_create_result(c.program.root, &error);
+        if kind == null {
+            sem_type_execution_resource(c, request.subject, error);
+            return 0;
+        }
+        if !entity_register(kind, sizeof(SemanticTypeExecution), alignof(SemanticTypeExecution), 0) {
+            sem_type_execution_resource(c, request.subject, WorkBudgetError.Invalid);
+            return 0;
+        }
+        c.type_executions = kind;
     }
     var component = entity_component_get(owner, c.type_executions);
     var fresh = component == null;
-    if fresh { component = entity_component_add(owner, c.type_executions); }
+    if fresh {
+        var error: WorkBudgetError;
+        component = entity_component_add_result(owner, c.type_executions, &error);
+        if component == null {
+            sem_type_execution_resource(c, request.subject, error);
+            return 0;
+        }
+    }
     var state = bits(SemanticTypeExecution*, entity_component_data(component));
-    sem_require(state != null);
     if fresh { *state = default; }
     var query = convert(u32, SemanticQuery.TypeExecution);
     var existing = work_find(&c.queries, owner, query, convert(u64, request.sequence));
@@ -248,7 +263,7 @@ export fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult {
                                     return SemanticPumpResult.Progress;
                                 }
                             }
-                            var type = sem_array_intern(c, &request.input, convert(usize, request.second));
+                            var type = sem_array_intern(c, &request.input, convert(usize, request.second), request.subject);
                             if !sem_ok(c) { return SemanticPumpResult.Failed; }
                             state.type = *type;
                         }

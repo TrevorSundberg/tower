@@ -8,6 +8,7 @@ import .library.work_graph;
 import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.entity_types;
 import generic_clone_fixture;
 import utility_checks;
 
@@ -20,6 +21,7 @@ extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 
 var GenericPumpBudgetBytes: usize = 1048576;
 var GenericPumpBranches: usize = 4;
@@ -157,11 +159,75 @@ fn generic_pump_scratch_trial(width: u32, ready: bool): void {
         && final.used_lanes == 0 && work_budget_dispose(&budget), "Generic scratch teardown releases every owner");
 }
 
+enum GenericAdmissionCase: u32 { Healthy, NodeExhausted, RootBusy, ComponentCapacity, Count }
+
+fn generic_pump_admission_trial(width: u32, mode: GenericAdmissionCase): void {
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericPumpBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Generic admission owns fully bounded physical storage");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_world(&fixture, GenericPumpBranches, GenericPumpDepth, world);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    var instance = generic_clone_fixture_instance(&fixture);
+    var store = bits(EntityStore*, fixture.store);
+    var next_id = store.next_id;
+    var view: void* = null;
+    var occupied: WorkReservation = default;
+    if mode == GenericAdmissionCase.NodeExhausted { store.next_id = ~convert(usize, 0); }
+    if mode == GenericAdmissionCase.RootBusy {
+        view = entity_view_open(fixture.root);
+        utility_check(view != null, "Generic admission caller pin");
+    }
+    if mode == GenericAdmissionCase.ComponentCapacity {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+            &occupied) == WorkBudgetError.None, "Generic admission physical page pressure");
+    }
+    var result = sem_generic_body_request(&context, instance, 0);
+    if mode == GenericAdmissionCase.NodeExhausted { store.next_id = next_id; }
+    if view != null { entity_view_close(view); }
+    if occupied.active {
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+            "Generic admission pressure release");
+    }
+    if mode == GenericAdmissionCase.Healthy {
+        utility_check(result != null && result.query != 0
+            && sem_generic_body_request(&context, instance, 0) == result,
+            "Generic admission keeps one work component and query identity");
+    } else {
+        var wanted = mode == GenericAdmissionCase.NodeExhausted ? WorkBudgetError.Exhausted
+            : mode == GenericAdmissionCase.RootBusy ? WorkBudgetError.Busy : WorkBudgetError.Capacity;
+        utility_check(result == null && program.resource.error == wanted
+            && work_find(&context.queries, instance, convert(u32, SemanticQuery.GenericBody), 0) == 0
+            && generic_body_pending(fixture.context, instance)
+            && entity_child_count(generic_clone_fixture_body(instance)) == 0
+            && !context.queries.cancelled && context.queries.running == 0 && context.workers.running == 0,
+            "Physical generic admission preserves cause before query, dispatch or body publication");
+        utility_check(mode == GenericAdmissionCase.ComponentCapacity || context.generic_copies == null,
+            "Rejected generic kind admission cannot publish its identity");
+        utility_check(sem_generic_body_request(&context, instance, 0) == null && program.resource.error == wanted,
+            "Released pressure cannot replay failed generic admission");
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    utility_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget), "Generic admission releases every physical and graph owner");
+}
+
 export fn generic_pump_publication_tests(): void {
     for(var width: u32 = 4; width <= 8; width *= 2) {
         generic_pump_publication_trial(width, false);
         generic_pump_publication_trial(width, true);
         generic_pump_scratch_trial(width, false);
         generic_pump_scratch_trial(width, true);
+        for(var mode = convert(u32, GenericAdmissionCase.Healthy); mode < convert(u32, GenericAdmissionCase.Count); mode++) {
+            generic_pump_admission_trial(width, convert(GenericAdmissionCase, mode));
+        }
     }
 }

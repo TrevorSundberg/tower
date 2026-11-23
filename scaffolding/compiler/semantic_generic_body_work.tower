@@ -36,14 +36,31 @@ fn sem_generic_body_resource(c: SemanticContext*, subject: void*, error: WorkBud
 // state. Type constructors can use this same component and staged copy kernel.
 fn sem_generic_body_work(c: SemanticContext*, subject: void*): SemanticGenericBodyWork* {
     sem_require(c.entity_stage == null);
+    if subject == null || compiler_node_world(subject) != compiler_node_world(c.program.root) {
+        sem_generic_body_resource(c, c.program.root, WorkBudgetError.Invalid);
+        return null;
+    }
     if c.generic_copies == null {
-        c.generic_copies = sem_create(c.program.root);
-        sem_require(entity_register(c.generic_copies, sizeof(SemanticGenericBodyWork), alignof(SemanticGenericBodyWork), 0));
+        var error: WorkBudgetError;
+        var kind = sem_create_result(c.program.root, &error);
+        if kind == null {
+            sem_generic_body_resource(c, subject, error);
+            return null;
+        }
+        if !entity_register(kind, sizeof(SemanticGenericBodyWork), alignof(SemanticGenericBodyWork), 0) {
+            sem_generic_body_resource(c, subject, WorkBudgetError.Invalid);
+            return null;
+        }
+        c.generic_copies = kind;
     }
     var component = entity_component_get(subject, c.generic_copies);
     if component != null { return bits(SemanticGenericBodyWork*, entity_component_data(component)); }
-    var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_component_add(subject, c.generic_copies)));
-    sem_require(result != null);
+    var error: WorkBudgetError;
+    var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_component_add_result(subject, c.generic_copies, &error)));
+    if result == null {
+        sem_generic_body_resource(c, subject, error);
+        return null;
+    }
     *result = default;
     result.kernel.kind = CompilerKernelKind.GenericBody;
     result.kernel.payload = bits(void*, &result.request);
@@ -65,6 +82,7 @@ fn sem_generic_body_dispose(c: SemanticContext*): void {
 export fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
     if !sem_ok(c) { return null; }
     var result = sem_generic_body_work(c, subject);
+    if result == null { return null; }
     if result.query != 0 { return result; }
     var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
     if id == 0 || (predecessor != 0 && !work_depend(&c.queries, id, predecessor)) {
@@ -155,6 +173,7 @@ export fn sem_generic_copies_execute(c: SemanticContext*): bool {
     while batch.length < SemanticPreparationWindow
         && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.GenericBody)) {
         var result = sem_generic_body_work(c, work_task(&c.queries, ticket.task).subject);
+        if result == null { return false; }
         result.ticket = ticket;
         var admitted = work_vector_push_result(&batch, budget, result);
         if admitted != WorkBudgetError.None {

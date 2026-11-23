@@ -78,6 +78,7 @@ extern fn syntax_capture_comments(session: void*, module: void*): void;
 extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
 
 export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void {
+    if program.resource.error != WorkBudgetError.None { return; }
     if count != 0 && sources == null {
         frontend_compile_error(program, "Compilation source array is missing");
         return;

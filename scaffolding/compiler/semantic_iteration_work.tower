@@ -124,12 +124,18 @@ fn sem_iteration_resolution_publish(c: SemanticContext*, result: SemanticIterati
         c.query_reads = &owner.query_reads;
         generic_error_clear(c.generics);
         if result.definition != null {
-            foreach(var &type in &result.order) { sem_type_entity(c, type); }
+            foreach(var &type in &result.order) {
+                if sem_type_entity(c, type, owner.expression_header) == null { break; }
+            }
             var arguments = sem_list(c);
-            foreach(var &type in &result.types) { sem_push(arguments, sem_type_entity(c, type)); }
-            result.function = sem_prepare_signature(c, result.definition, owner.expression_header, arguments);
+            foreach(var &type in &result.types) {
+                var entity = sem_type_entity(c, type, owner.expression_header);
+                if entity == null { break; }
+                sem_push(arguments, entity);
+            }
+            if sem_ok(c) { result.function = sem_prepare_signature(c, result.definition, owner.expression_header, arguments); }
         }
-        *sem_iteration_slot(&owner.iteration_plan, result.role) = result.function;
+        if sem_ok(c) { *sem_iteration_slot(&owner.iteration_plan, result.role) = result.function; }
         c.query_reads = reads;
         sem_body_restore(c, &saved);
         sem_query_observe(c, &ticket, &owner.query_reads);

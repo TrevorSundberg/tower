@@ -26,6 +26,8 @@ extern fn sem_restore_resource(c: SemanticContext*, error: WorkBudgetError, mess
 extern fn sem_get(node: void*): FoundationNode*;
 extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
 extern fn sem_create(parent: void*): void*;
+extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn sem_create_result(parent: void*, error: WorkBudgetError*): void*;
 extern fn sem_require(ok: bool): void;
 extern fn sem_equal(left: u8*, right: u8*): bool;
 extern fn generic_begin_result(root: void*, error: WorkBudgetError*): void*;
