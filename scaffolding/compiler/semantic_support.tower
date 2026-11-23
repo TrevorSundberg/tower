@@ -44,6 +44,39 @@ export fn sem_scratch_dispose(scratch: SemanticScratch*): void {
     *scratch = default;
 }
 
+// Exact identity lookup without reading through an unregistered vector pointer.
+// Each level consumes one address bit, so even adversarial allocation order is
+// bounded by pointer width plus the root. Lookup never mutates a borrowed owner;
+// optional probe output belongs to the caller, not the shared lexical parent.
+export fn sem_scratch_find(scratch: SemanticScratch*, value: vector(void*)*, probes: usize*): SemanticScratchList* {
+    var key = bits(usize, value);
+    var list = scratch.index;
+    var visited: usize = 0;
+    while list != null {
+        visited++;
+        if &list.value == value { break; }
+        list = (key & 1) == 0 ? list.index_zero : list.index_one;
+        key >>= 1;
+    }
+    if probes != null { *probes = visited; }
+    return list;
+}
+
+// Only newly allocated or joined descriptors enter this private derived index.
+// Registration cannot fail or allocate; the separate next chain owns disposal.
+fn sem_scratch_register(scratch: SemanticScratch*, list: SemanticScratchList*): void {
+    var key = bits(usize, &list.value);
+    var slot = &scratch.index;
+    list.index_zero = null;
+    list.index_one = null;
+    while *slot != null {
+        var at = *slot;
+        slot = (key & 1) == 0 ? &at.index_zero : &at.index_one;
+        key >>= 1;
+    }
+    *slot = list;
+}
+
 export fn sem_scratch_private(c: SemanticContext*, parent: SemanticContext*): void {
     c.scratch = default;
     c.scratch_parent = parent;
@@ -62,6 +95,7 @@ fn sem_scan_dispose(c: SemanticContext*): void {
 
 // Joined owners only. Splicing existing receipts cannot need another grant.
 export fn sem_scratch_append(c: SemanticContext*, source: SemanticScratch*): void {
+    if source == &c.scratch { return; }
     if source.arena.chunk_bytes == 0 { return; }
     if c.scratch.arena.chunk_bytes == 0 {
         c.scratch = *source;
@@ -71,6 +105,13 @@ export fn sem_scratch_append(c: SemanticContext*, source: SemanticScratch*): voi
     if !work_arena_append(&c.scratch.arena, &source.arena) {
         sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
         return;
+    }
+    // All borrowers have joined. Relink only transferred descriptors; failure
+    // above leaves both indexes intact. No grant is needed under memory pressure.
+    var list = source.first;
+    while list != null {
+        sem_scratch_register(&c.scratch, list);
+        list = list.next;
     }
     if c.scratch.last == null { c.scratch.first = source.first; }
     else { c.scratch.last.next = source.first; }
@@ -398,19 +439,22 @@ export fn sem_push_checked(c: SemanticContext*, v: vector(void*)*, n: void*): bo
         sem_scratch_error(c, c.current, WorkBudgetError.Invalid);
         return false;
     }
-    var owner = c;
-    var list: SemanticScratchList* = null;
-    while owner != null {
-        list = owner.scratch.first;
-        while list != null && &list.value != v { list = list.next; }
-        if list != null { break; }
-        owner = owner.scratch_parent;
-    }
-    var storage = list == null ? null : &list.storage;
-    var budget = list == null ? null : owner.scratch.arena.budget;
+    var storage: WorkBuffer* = null;
+    var budget: WorkBudget* = null;
     if v == &c.scan {
         storage = &c.scan_storage;
         budget = compiler_world_work_budget(compiler_node_world(c.program.root));
+    } else {
+        var owner = c;
+        while owner != null {
+            var list = sem_scratch_find(&owner.scratch, v, null);
+            if list != null {
+                storage = &list.storage;
+                budget = owner.scratch.arena.budget;
+                break;
+            }
+            owner = owner.scratch_parent;
+        }
     }
     if storage != null {
         if v.length == v.capacity {
@@ -441,6 +485,7 @@ export fn sem_list(c: SemanticContext*): vector(void*)* {
     var list = bits(SemanticScratchList*, sem_allocate(c, sizeof(SemanticScratchList)));
     if list == null { return null; }
     *list = default;
+    sem_scratch_register(&c.scratch, list);
     if c.scratch.last == null { c.scratch.first = list; }
     else { c.scratch.last.next = list; }
     c.scratch.last = list;

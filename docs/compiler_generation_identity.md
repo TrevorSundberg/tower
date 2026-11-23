@@ -145,3 +145,15 @@ is to avoid the scratch-list search for known scan storage and supply an efficie
 derived ownership lookup while preserving budget receipts and parent lifetimes.
 No scratch ownership redesign was made in this inference task. This later-source
 blocker does not alter the complete, frozen `b5b585fb` generation evidence above.
+
+B1 scratch-lookup follow-up (`3415d9c8`, integrated with L2 admission in
+`4bea26d6`): the linked-list hot-path scan is replaced by an arena-owned intrusive
+address index with a pointer-width lookup bound. On identical frozen current
+semantics sources/flags/path, B1's own before compiler timed out at60.04s; the
+fix completes22.61s and exactly matches the frozen b5b585 compiler's object.
+After merging L2 node-admission changes, current compilation completes23.88s
+at workers1 and21.18s at workers4, with byte-identical objects between those
+worker counts. This closes the measured lookup stall, not the entire successor
+generation gate. The merged object differs from the earlier compiler's object;
+that separate generation delta remains pending ROOT/B2 verification. Exact
+hashes, scratch denial/lifetime checks and measurements are in the B1 journal.

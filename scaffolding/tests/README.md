@@ -1611,3 +1611,16 @@ Every owned receipt is gone before ledger teardown. Run `parser` for immediate
 request/admission callers and `grammar-equivalence` for canonical live grammar and
 replacement coverage. These focused checks do not replace integrated sanitizers,
 bootstrap, browser or release verification.
+
+### Scratch identity lookup regression
+
+`tower-storage-tests RESOURCE_ROOT scratch` runs the focused semantic scratch
+allocation/denial/retry tests and a 1,024-list ownership-index regression. It
+checks exact pointer identity, bounded lookup probes, ordinary-vector fallback,
+private scan storage, lexical parent borrowing, allocation-free joined transfer,
+failed-registration atomicity and zero grants after teardown. The optional
+`sem_scratch_find` probe output is caller-owned; lookup never mutates the parent.
+Run the existing native `tower-lr-work-tests . query-smoke` and `control-smoke`
+from the `scaffolding` directory for the affected continuation/canonical checks.
+The separately observed absolute-resource-root control diagnostic is retained in
+the B1 journal; it is not a passing variant of this command.
