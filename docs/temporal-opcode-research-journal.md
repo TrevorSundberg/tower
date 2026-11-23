@@ -49115,3 +49115,55 @@ analysis. Corrected analysis collects an explicit array, then verifies all16
 records and pairs. Runtime jobs had already drained0 and quiet hold was released;
 this was an analysis-tool error, not a compiler test failure. Complete current
 compiler sanitizer/constructor/store/packed ownership milestone remains pending.
+
+### B2 coherent interpreter/semantic resource-failure checkpoint
+
+Reviewed and integrated L1 reporting a8ecf458 then typed storage failure bad3e4f1
+with A1 semantic counterpart76e1a971. IMState latches the first physical memory,
+initialization or captured-input metadata failure. SemanticEvaluation retains
+that error before invocation disposal, including isolated declarations. Both
+startup and terminal failure paths finish the matching work ticket as failed
+for resource errors; only ordinary unsupported optional staging with None may
+fall back. Fixed short diagnostics and their immediate coordinator destinations
+are reserved before dispatch. Alias publication stops on failure. This does not
+convert every legacy allocation boundary into a recoverable allocator: other
+sem_require paths and whole-heap adoption remain explicit gaps.
+
+Copied A1 fixture efde967a unchanged as tests/semantic_resource_checks.tower for
+the independent standalone check. Its entry conversion into the existing LR/query
+runner remains D1-owned and pending. The fixture checks two prepared peers,
+required/inferred/isolated cases at32/64-bit widths and worker limits1/4, exact
+first diagnostic offset11, failed work states, disposal, no replay and final
+zero grants. These worker settings alone are not proof of simultaneous execution.
+
+Public smallest interpreter PASS3.142820036wall/3.434460CPU/253880KiB;
+semantic_evaluation16.142160701/15.336752/781176; fixture2.589385278/2.713994/236312.
+Complete native71-step rebuild of compiler, frontend, LR, execution, backend,
+driver and type-profile consumers PASS40.982574028/225.062134/841088.
+The standalone fixture linked against the fresh production LR allocator/transport
+closure PASS.018994261/.015971/51460. Query smoke PASS.064371618/.067733/60128;
+full42-case type lifecycle PASS229.369645096/244.699217/257484, including serial/
+worker interpretation, canonical reparse, failures and cycles. Logs are
+build/b2_resource_error_{smallest,native_build,runtime}.log. Source inputs stayed
+frozen until all children drained. Never link an earlier IMInvocation profile
+object against this new layout. These are normal validation observations, not
+a matched quiet cost comparison of the resource-error change.
+
+Existing AddressSanitizer cache is now due for a complete current-source rebuild.
+ThreadSanitizer's Docker startup remains unsupported because personality is
+denied; unchanged instrumented binaries previously ran in ordinary WSL without
+a security-policy change, but older receipts do not validate this ABI. No current
+complete sanitizer, clean final bootstrap/generation/browser, source union or
+publication acceptance is claimed by this checkpoint.
+
+Constructor ownership contract received from A2: entity_store_create_result,
+work_init_budget, compiler_work_create_result and budgeted pool-open variants
+must reserve real storage before allocation and preserve immutable borrowed
+budget identity through retirement. B2 world factory/caller wiring is not yet
+implemented. Root also assigned the future L2 clone API's language-query null
+guard and transactional module-cache failure cleanup to B2. Existing cache
+publication can evict before discovering a failed clone; current mandatory clone
+checks abort rather than return null. The implementation must preserve the prior
+cache, retire the private partial graph, and propagate the resource diagnostic
+before clearing errors or exposing a successful document. Those are reviewed
+requirements, not completed fixes.

@@ -522,3 +522,13 @@ minimal cache-only patch and refreshed current093 functional measurement. No
 new production cache change or duplicate memo was introduced. Constructor/store/
 WorkPool budget integration and current shared storage-error propagation remain
 open with A2/A1/L1; backend target physical-header accounting is under validation.
+
+Reviewed new tests/semantic_resource_checks.tower: independent A1 white-box
+resource-denial fixture, two peer tickets, required/inferred/isolated cases and
+target widths/worker limits, exact source-order error, no replay, final cleanup.
+Census243 assigned +37 supporting +88 fixtures =368/368 reviewed paths.
+Current joined IM/SemanticEvaluation layouts rebuilt together; focused resource,
+query and full42 lifecycle checks pass. Existing-runner registration, matched
+owner cost and complete current instrumentation remain pending. Constructor-time
+store/world/graph/pool ownership and clone failure publication are the next
+concrete shared contracts; neither is implemented here yet.

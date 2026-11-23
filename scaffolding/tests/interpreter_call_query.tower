@@ -352,6 +352,13 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     input_query_number(peak_bytes); input_query_number(peak_memory);
     input_query_number(peak_initialized); input_query_number(peak_metadata * sizeof(IMValueStorage));
     input_query_number(capacity_changes);
+    if budgeted {
+        var charged: WorkBudgetSnapshot = default;
+        call_query_require(work_budget_snapshot(&budget, &charged));
+        puts("Bound-world physical buffers: retained bytes, peak bytes including replacement overlap");
+        input_query_number(charged.used_bytes - baseline.used_bytes);
+        input_query_number(charged.peak_bytes);
+    }
     interpreter_invocation_dispose(&a);
     interpreter_invocation_dispose(&b);
     call_query_check(a.state.memory.data == null && b.state.memory.data == null
@@ -393,6 +400,7 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
                 && a.state.memory.reservation.slot == receipt.slot
                 && a.state.memory.reservation.generation == receipt.generation
                 && a.state.memory.reservation.bytes == receipt.bytes
+                && a.state.storage_error == WorkBudgetError.Capacity
                 && data[at] == 7 && data[at + input_bytes - sizeof(i32)] == 8,
                 "Denied private memory growth preserves the live allocation, receipt and values", &failures);
             call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
@@ -441,6 +449,23 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
                 "Rejected memory operations preserve every captured field", &failures);
         }
         interpreter_invocation_dispose(&a);
+    }
+    if budgeted {
+        var charged: WorkBudgetSnapshot = default;
+        call_query_require(work_budget_snapshot(&budget, &charged));
+        var occupied: WorkReservation = default;
+        call_query_require(work_budget_reserve_result(&budget, 0, 0,
+            charged.bytes - charged.used_bytes, &occupied) == WorkBudgetError.None);
+        call_query_check(!interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
+            && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
+            && a.state.memory.data == null && a.context.initialized.data == null,
+            "Denied startup retains a typed resource failure without publishing private storage", &failures);
+        interpreter_invocation_dispose(&a);
+        call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+        var released: WorkBudgetSnapshot = default;
+        call_query_require(work_budget_snapshot(&budget, &released));
+        call_query_check(released.used_bytes == charged.used_bytes && released.live == charged.live,
+            "Failed startup releases every partial receipt before its world", &failures);
     }
     entity_release(root);
     call_query_check(compiler_world_dispose(world), "Aggregate input consumers release their world", &failures);
