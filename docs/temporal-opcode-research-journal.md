@@ -75368,3 +75368,31 @@ receipt. A2 holds, adjacent containment leases, B1 editor memory follow-up and
 ROOT typed metadata/provenance and linker consumers remain explicit work.
 The next metadata work will retain wrappers and propagate per-call producers;
 no signature-only consumer migration or global last-error state is proposed.
+
+After ed68ac121 review commit and no-op pull, complete ROOTd3 merges cleanly as
+c93a56ac5667ffa2ec0b7ba96bafd91663f5a797. Production compiler/library/host/backend/
+bootstrap bytes exactly match d3; current533/533 audit, own registrations and
+all histories remain. No D1 build was live during the merge and todoSHAe97d67a6
+is unchanged. d3's ownership union is not accepted by earlier213c receipts.
+
+D1 acquired the released host slot at11:31UTC for only four smallest public9653
+compiles, Docker tower-d1-ecs CPU0,2, build/compile jobs1, same LLVM19 image and
+lane cache, warm filesystem/fresh compiler processes, one sample each. Session
+76042/host2988641/controller2988667/container87372 drained0; source and actual
+per-unit depfile hashes passed. Logs/objects/times are proof_forest_leaf_c93.
+
+| Smallest fixture compile | Wall s | CPU user+system s | Peak RSS KiB |
+| --- | --- | --- | --- |
+| semantic_source_proof_admission_checks | 6.71 | 6.54 | 213424 |
+| semantic_aggregate_admission_checks | 31.57 | 30.86 | 755404 |
+| entity_attach_leases | 4.53 | 4.44 | 213012 |
+| entity_mutation_results | 4.09 | 4.03 | 216764 |
+
+These are compilation observations, not execution, before/after performance or
+new allocation/overlap claims. The dependency hashes permit reuse only while
+all imported bytes remain unchanged. No private bootstrap or syntax adoption.
+Container census returned only its idle init; own lock receipt records release
+at11:32:39UTC. D2's prior release was11:29:14 per its saved receipt, correcting
+its draft11:28 label; no heavy overlap. Full manual runtime baseline and durable
+registration remain pending the coherent affinity handoff. A2/ROOT received the
+concrete duplicate serial-transport composition issue before any harness edit.
