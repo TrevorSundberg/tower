@@ -13,6 +13,25 @@ fn schedule_check(ok: bool): void {
     if !ok { trap("Scheduling storage budget regression", 0); }
 }
 
+fn schedule_length_boundary(): void {
+    // Exercise only the shared arithmetic boundary: no invented payload
+    // address, huge allocation, or out-of-range element access is necessary.
+    var graph: WorkGraph;
+    work_init(&graph, 1, 7);
+    var maximum = ~convert(usize, 0);
+    schedule_check(work_next_length(&graph, 0) == 1
+        && work_next_length(&graph, maximum - 1) == maximum
+        && graph.resource_error == WorkBudgetError.None);
+    schedule_check(work_next_length(&graph, maximum) == 0
+        && graph.error == WorkError.Memory && graph.resource_error == WorkBudgetError.Invalid);
+    work_dispose(&graph);
+    work_init(&graph, 2, 7);
+    schedule_check(!work_resource(&graph, WorkBudgetError.Capacity));
+    schedule_check(work_next_length(&graph, maximum) == 0
+        && graph.resource_error == WorkBudgetError.Capacity);
+    work_dispose(&graph);
+}
+
 fn schedule_denial(): void {
     var budget: WorkBudget = default;
     var index_bytes = compiler_buffer_allocation_size(16 * sizeof(usize));
@@ -163,9 +182,58 @@ fn schedule_shared(): void {
     schedule_check(work_budget_dispose(&budget));
 }
 
+// Model terminal processing after the transport has joined both jobs. The
+// graph's Running receipts are still unsettled; this is not a thread-kill test.
+// Both success publication and failure propagation can need additional storage.
+fn schedule_terminal_denial(success: bool): void {
+    var budget: WorkBudget = default;
+    schedule_check(work_budget_init(&budget, 2, 1048576, 17));
+    var graph: WorkGraph;
+    schedule_check(work_init_budget(&graph, 17, 3, &budget));
+    var producer = work_request(&graph, null, 1, 0);
+    var peer = work_request(&graph, null, 2, 0);
+    schedule_check(producer != 0 && peer != 0 && work_seal(&graph, producer)
+        && work_seal(&graph, peer) && work_demand(&graph, producer) && work_demand(&graph, peer));
+    var fanout = graph.ready.capacity + 1;
+    for(var i: usize = 0; i < fanout; i++) {
+        var consumer = work_request(&graph, null, 3, convert(u64, i));
+        schedule_check(consumer != 0 && work_depend(&graph, consumer, producer)
+            && work_seal(&graph, consumer) && work_demand(&graph, consumer));
+    }
+    schedule_check(fanout > graph.scratch.capacity);
+    var ticket: WorkTicket;
+    var other: WorkTicket;
+    schedule_check(work_take(&graph, &ticket) && ticket.task == producer
+        && work_take(&graph, &other) && other.task == peer && graph.running == 2);
+    var snapshot: WorkBudgetSnapshot;
+    schedule_check(work_budget_snapshot(&budget, &snapshot));
+    var hold: WorkReservation = default;
+    schedule_check(work_budget_reserve(&budget, 0, 0, budget.bytes - snapshot.used_bytes, &hold));
+    schedule_check(!work_finish(&graph, &ticket, success)
+        && graph.resource_error == WorkBudgetError.Capacity && graph.running == 1);
+    // The first receipt has already been released and some coordinator state
+    // changed. The latched error prevents settling the peer through normal APIs.
+    schedule_check(!work_ticket_valid(&graph, &other) && !work_finish(&graph, &other, true));
+    work_cancel(&graph);
+    schedule_check(graph.running == 0 && graph.executing.length == 0 && graph.ready.length == 0
+        && graph.resource_error == WorkBudgetError.Capacity && !work_ticket_valid(&graph, &ticket));
+    for(var i: usize = 0; i < graph.tasks.length; i++) {
+        var task = &graph.tasks.data[i];
+        schedule_check(task.state == WorkState.Cancelled || (success && i + 1 == producer
+            && task.state == WorkState.Succeeded));
+    }
+    work_dispose(&graph);
+    schedule_check(work_budget_release(&budget, &hold)
+        && work_budget_snapshot(&budget, &snapshot) && snapshot.live == 0 && snapshot.used_bytes == 0);
+    schedule_check(work_budget_dispose(&budget));
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    schedule_length_boundary();
     schedule_denial();
     schedule_reset();
+    schedule_terminal_denial(true);
+    schedule_terminal_denial(false);
     schedule_shared();
     print(0);
     return 0;

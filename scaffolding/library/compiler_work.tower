@@ -3,7 +3,6 @@ import work_graph;
 import entities;
 import entity_types;
 import compiler_work_types;
-import work_vector_types;
 import work_buffer;
 import work_buffer_types;
 import work_budget_types;

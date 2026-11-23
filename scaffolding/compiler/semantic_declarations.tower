@@ -1519,7 +1519,8 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
 // Tickets and stages are reserved before this call, so type/readiness workers
 // see one immutable graph. Pool width changes execution, never the query wave.
 fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize, receipt: WorkReservation*): void {
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     for(var i: usize = 0; i < count; i++) { batch[i].context = &context; }
     var extra = sem_workers_admit(c, count, receipt);
     sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch, count, extra));
