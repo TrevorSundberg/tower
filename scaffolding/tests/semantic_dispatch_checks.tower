@@ -15,6 +15,8 @@ extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
 extern fn puts(text: u8*): i32;
 
 // The existing Linux link wrapper denies one coordinator semaphore creation.
@@ -41,7 +43,7 @@ fn dispatch_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
 }
 
-fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool): u32 {
+fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool, source: bool): u32 {
     var failures: u32 = 0;
     var workers: usize = 4;
     var budget: WorkBudget = default;
@@ -111,7 +113,9 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool): u32 
     SemanticDispatchBudget = terminal ? &budget : null;
     SemanticDispatchOccupied = &occupied;
     SemanticDispatchFailSignal = deny;
-    sem_known_publish(&context);
+    if source { dispatch_check(sem_source_binding_request(&context, root) == 0,
+        "Failed source proof admission returns no usable dependency", &failures); }
+    else { sem_known_publish(&context); }
     SemanticDispatchBudget = null;
     SemanticDispatchOccupied = null;
     dispatch_check(!SemanticDispatchFailSignal, "The requested dispatch claim was exercised", &failures);
@@ -139,9 +143,16 @@ fn dispatch_trial(width: u32, deny: bool, terminal: bool, admission: bool): u32 
     }
     if deny || admission {
         var tasks = context.queries.tasks.length;
-        sem_known_publish(&context);
+        var store = compiler_world_store(world);
+        var nodes = entity_store_count(store);
+        var components = entity_store_component_count(store);
+        if source { dispatch_check(sem_source_binding_request(&context, root) == 0,
+            "Repeated failed source proof has no usable dependency", &failures); }
+        else { sem_known_publish(&context); }
         dispatch_check(context.queries.tasks.length == tasks && context.workers.claim == null,
             "Repeated failed entry cannot retry dispatch or its effects", &failures);
+        dispatch_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Repeated failed entry cannot recreate proof or work components", &failures);
     }
     work_pool_close(&context.workers);
     dispatch_check(context.workers.resource_error == (deny ? WorkBudgetError.Memory : WorkBudgetError.None),
@@ -166,17 +177,18 @@ export fn main(argc: i32, argv: u8**): i32 {
     SemanticDispatchBudget = null;
     SemanticDispatchOccupied = null;
     var failures: u32 = 0;
-    var admission = argc == 2 && sem_equal(argv[1], "admission");
+    var source = argc == 2 && sem_equal(argv[1], "source");
+    var admission = source || (argc == 2 && sem_equal(argv[1], "admission"));
     if argc != 1 && !admission {
-        puts("Usage: semantic_dispatch_checks [admission]");
+        puts("Usage: semantic_dispatch_checks [admission|source]");
         return 2;
     }
     for(var width: u32 = 4; width <= 8; width *= 2) {
-        if admission { failures += dispatch_trial(width, false, false, true); }
+        if admission { failures += dispatch_trial(width, false, false, true, source); }
         else {
-            failures += dispatch_trial(width, false, false, false);
-            failures += dispatch_trial(width, true, false, false);
-            failures += dispatch_trial(width, true, true, false);
+            failures += dispatch_trial(width, false, false, false, false);
+            failures += dispatch_trial(width, true, false, false, false);
+            failures += dispatch_trial(width, true, true, false, false);
         }
     }
     if failures == 0 { puts("Semantic dispatch failures retain diagnostics without publishing or replaying work."); }

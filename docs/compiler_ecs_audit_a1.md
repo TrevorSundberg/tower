@@ -640,3 +640,60 @@ avoids the newer checked-dispatch context in the first patch. Neither patch
 is a runtime acceptance claim. Next, rebuild all affected current-ABI objects
 before linking the focused dispatch/admission tests. Earlier cached objects
 and preconstructor runtime results cannot establish this joined source.
+### Joined admission failure and source-proof retry (2026-11-23)
+
+The selected nominal graph/helper closure exposed two provider integration
+errors before runtime. The host syntax adapter declared compiler_buffer_allocate
+and free with u8* despite the defining void* ABI. ROOT03:06:33 authorized the
+two declaration corrections and explicit casts at both uses. The first compile
+correctly rejected the missing free cast; the final public smallest unit passes
+2.37wall/1.69user/.16sys/193240KiB. This declaration-only correction preserves
+the generated allocation behavior; no runtime speed claim is attached to it.
+A separate LR runner link failed because the selected A2 work_named helper
+imported host.memory while its aggregate already linked that provider. The
+exact duplicate is confirmed by llvm-nm. A2 owns the one-import undo; no
+multiple-definition workaround or test success is claimed for that failed link.
+The current native compiler itself linked successfully.
+
+On this coherent ABI, semantic_dispatch_checks' six original trials pass:
+32/64-bit target widths with normal execution, failed batch claim, and a claim
+failure followed by terminal graph scratch denial. Real four-worker transport,
+fixed first source offset11, no canonical compaction on failure, invalidated
+remaining tickets, repeated entry and zero final ledger are checked. The
+admission selector reproduces an earlier boundary abort134/signal6 with the
+available graph ledger held before request. Before: .14wall/.02sys/49088KiB,
+semantic_dispatch_selected_admission_before1. After: both width cases pass,
+.02wall/.01sys/50824KiB, semantic_dispatch_admission_after2. A failed run is
+not a performance baseline for successful compilation.
+
+semantic_known_work now reserves its fixed diagnostic before graph admission.
+Request/dependency/access/seal/demand and pool-construction failure return
+source-ordered jobs for disposal, retaining the typed error and cancelling only
+at the joined coordinator. A failed take cannot become Waiting; already claimed
+but undispatched peers are invalidated. Existing dispatch/terminal publication
+errors use the same fixed diagnostic writer. Source-binding begin returns zero
+after failed job admission, and its capture caller stops before reading that
+absent proof. No shared type, context layout or work-graph algorithm changes.
+
+A new source selector then reproduced a separate retry bug: after the first
+typed denial, a repeated proof request created more entities/components even
+though no query ran. Both widths failed the exact count oracle. The request
+entry now checks semantic/graph failure before touching proof metadata. The
+same frozen fixture object passes after that guard; .02wall/51040KiB. All ten
+focused cases pass; public known_work leaf passes16.52wall/11.95user/.91sys/
+671636KiB and the final provider/compiler refresh22.93/16.25/1.15/732828KiB.
+All failed jobs are reaped and their logs retained in the owned A1 cache.
+The pinned link driver rejects --wrap; only this host-denial fixture links with
+installed clang++19 -no-pie and the same current production objects. There is
+no replacement compiler or private bootstrap claim.
+
+Per-file follow-up at parent9c1927a: semantic_known_work owns the bounded error
+writer and graph-admission retirement; semantic_source_bindings preserves
+pipeline-owned jobs for context cleanup and suppresses failed-entry replay;
+semantic_capture_work stops after failed proof creation; semantic_dispatch_checks
+adds the real-ledger source proof and exact entity/component retry counts. These
+source reviews and ten runtime cases do not close remaining proof/snapshot
+assertions, other phase transport failures, all scratch accounting or global
+cycle/failure coverage. Normal graph/pool callers still need coordinated world
+budget adoption. Matched successful small/large serial/four-worker profiling,
+current instrumentation and the final integrated release gates remain pending.

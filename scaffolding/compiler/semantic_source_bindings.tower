@@ -249,6 +249,7 @@ fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
         }
     }
     pipeline.jobs = sem_known_jobs_begin(c, kind, count, SemanticQuery.SourceBindings);
+    if !sem_ok(c) { return 0; }
     pipeline.query = work_request(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
     foreach(var job in &pipeline.jobs) {
         sem_require(work_depend(&c.queries, pipeline.query,
@@ -260,6 +261,7 @@ fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
 }
 
 export fn sem_source_binding_request(c: SemanticContext*, subject: void*): usize {
+    if !sem_ok(c) || !work_ok(&c.queries) { return 0; }
     if c.source_binding_proof == 0 { return sem_source_bindings_begin(c, null); }
     if work_task(&c.queries, c.source_binding_proof).state != WorkState.Succeeded { return c.source_binding_proof; }
     var binding = sem_source_binding(c, subject);

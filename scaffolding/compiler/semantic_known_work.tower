@@ -29,6 +29,33 @@ extern fn semantic_known_publish_kernel(result: SemanticKnownWork*): void;
 var SemanticKnownArenaChunkBytes: usize = 4096;
 var SemanticKnownDiagnosticBytes: usize = 128;
 
+// Diagnostic capacity is reserved before admitting graph work. Failure paths
+// retain the first error without allocating while the world budget is denied.
+fn sem_known_work_error(c: SemanticContext*, subject: void*, error: WorkBudgetError, publication: bool): void {
+    if !sem_ok(c) { return; }
+    var message = "Cannot allocate semantic publication storage";
+    if error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
+    if error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
+    if !publication {
+        message = "Cannot allocate semantic query work";
+        if error == WorkBudgetError.Capacity { message = "Semantic query work memory budget exceeded"; }
+        if error == WorkBudgetError.Invalid { message = "Invalid semantic query work dispatch"; }
+        if error == WorkBudgetError.Busy { message = "Semantic worker admission failed"; }
+    }
+    var length = sem_length(message);
+    sem_require(length < c.program.error.capacity);
+    copy(c.program.error.data, message, length + 1);
+    c.program.error.length = length;
+    c.program.error_offset = sem_get(subject).start;
+}
+
+fn sem_known_query_check(c: SemanticContext*, subject: void*, ok: bool): bool {
+    if ok { return true; }
+    var error = sem_query_cancel_failure(c);
+    sem_known_work_error(c, subject, error, false);
+    return false;
+}
+
 fn sem_known_candidate(subject: void*): bool {
     var value = sem_get(subject);
     return value != null && value.kind == KDeclare && value.value != null
@@ -176,6 +203,7 @@ fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, 
 
 fn sem_known_jobs_begin(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
     var jobs: vector(SemanticKnownWork*) = default;
+    sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
     sem_require(vector_reserve(&jobs, count));
     jobs.length = count;
     fill(jobs.data, 0, count * sizeof(SemanticKnownWork*));
@@ -192,33 +220,34 @@ fn sem_known_jobs_begin(c: SemanticContext*, kind: void*, count: usize, query_ki
         }
     }
     entity_view_close(view);
-    if count != 0 && c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if count != 0 && c.workers.count == 0 && !sem_workers_open(c) {
+        sem_query_cancel_failure(c);
+        sem_known_work_error(c, jobs.data[0].subject, c.workers.resource_error, false);
+        return jobs;
+    }
     foreach(var result in &jobs) {
         var id = work_request(&c.queries, result.subject, convert(u32, query_kind), 0);
-        sem_require(id != 0);
+        if !sem_known_query_check(c, result.subject, id != 0) { return jobs; }
         if query_kind == SemanticQuery.KnownScan || query_kind == SemanticQuery.KnownOrder {
             var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
-            sem_require(proof != 0 && work_depend(&c.queries, proof, id));
+            if !sem_known_query_check(c, result.subject, proof != 0 && work_depend(&c.queries, proof, id)) { return jobs; }
         }
         if query_kind == SemanticQuery.KnownInputs {
             var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
-            sem_require(proof != 0 && work_depend(&c.queries, id, proof));
+            if !sem_known_query_check(c, result.subject, proof != 0 && work_depend(&c.queries, id, proof)) { return jobs; }
         }
         var input_kind = query_kind == SemanticQuery.KnownPublish ? SemanticQuery.Lowering : SemanticQuery.Body;
         var input = result.action == SemanticKnownAction.Bind ? 0
             : work_find(&c.queries, result.subject, convert(u32, input_kind), 0);
-        if input != 0 { sem_require(work_depend(&c.queries, id, input)); }
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.KnownAnalysis), result.ordinal, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+        if input != 0 && !sem_known_query_check(c, result.subject, work_depend(&c.queries, id, input)) { return jobs; }
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        if !sem_known_query_check(c, result.subject,
+            work_access(&c.queries, id, domain, convert(u64, SemanticAccess.KnownAnalysis), result.ordinal, 1, WorkAccessMode.Write)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read)
+            && work_seal(&c.queries, id) && work_demand(&c.queries, id)) { return jobs; }
     }
     return jobs;
 }
@@ -244,6 +273,7 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
             break;
         }
         if work_take_task(&c.queries, &result.ticket, id) { sem_require(vector_push(&batch, result)); }
+        if !sem_known_query_check(c, jobs.data[*first].subject, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
     }
     if batch.length == 0 {
         return *first == jobs.length ? SemanticPumpResult.Complete : SemanticPumpResult.Waiting;
@@ -253,7 +283,6 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     var context: SemanticContext;
     sem_context_snapshot(&context, c);
     foreach(var result in &batch) { result.context = &context; }
-    sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     var receipt: WorkReservation;
@@ -284,20 +313,7 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     }
     if failed != null {
         var error = dispatch_error == WorkBudgetError.None ? failed.resource_error : dispatch_error;
-        var message = "Cannot allocate semantic publication storage";
-        if error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
-        if error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
-        if dispatch_error != WorkBudgetError.None {
-            message = "Cannot allocate semantic query work";
-            if error == WorkBudgetError.Capacity { message = "Semantic query work memory budget exceeded"; }
-            if error == WorkBudgetError.Invalid { message = "Invalid semantic query work dispatch"; }
-            if error == WorkBudgetError.Busy { message = "Semantic worker admission failed"; }
-        }
-        var length = sem_length(message);
-        sem_require(length < c.program.error.capacity);
-        copy(c.program.error.data, message, length + 1);
-        c.program.error.length = length;
-        c.program.error_offset = sem_get(failed.subject).start;
+        sem_known_work_error(c, failed.subject, error, dispatch_error == WorkBudgetError.None);
         return SemanticPumpResult.Failed;
     }
     return SemanticPumpResult.Progress;

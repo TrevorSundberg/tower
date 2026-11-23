@@ -172,6 +172,7 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         // Suspend before dispatching proof workers. A retained proof pipeline
         // publishes declaration facts once, after all of its scans have joined.
         var proof = sem_source_binding_request(c, subject);
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         if work_task(&c.queries, proof).state != WorkState.Succeeded {
             sem_require(work_suspend(&c.queries, &ticket, proof));
             return SemanticPumpResult.Progress;
