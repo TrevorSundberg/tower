@@ -389,7 +389,7 @@ export fn format_dispose(result: FormatResult*): void {
 }
 
 export fn format_entity(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, `match`: void*): void {
-    var f: FormatEngine;
+    var f: FormatEngine = default;
     f.source_names = false;
     f.result = result;
     f.syntax_kind = syntax;

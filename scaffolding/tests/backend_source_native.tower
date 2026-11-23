@@ -8,6 +8,11 @@ import .library.bytes_interface;
 import .compiler.syntax_version_types;
 import .compiler.grammar_types;
 import .compiler.semantic_program_types;
+import .compiler.parser_types;
+import .compiler.component_kinds;
+import .backend.import_bindings;
+import .library.work_vector;
+import .library.work_vector_types;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;
@@ -17,13 +22,98 @@ extern fn driver_write_file(path: u8*, data: u8*, length: usize): bool;
 extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn fflush(stream: void*): i32;
 extern fn printf(format: u8*, phase: usize, entering: usize, entities: usize,
     components: usize, bytes: usize, grants: usize, lanes: usize): i32;
 
 struct ReconstructionProbe {
     world: void*; budget: WorkBudget*; source: BackendSource*; output: u8*;
-    parses: usize; deny: bool; occupied: WorkReservation;
+    parses: usize; deny: bool; census: bool; occupied: WorkReservation;
+}
+
+struct ReconstructionRule { label: u8*; count: usize; leaves: usize; wrappers: usize; bytes: usize; }
+struct ReconstructionUsage {
+    user_seconds: i64; user_micros: i64; system_seconds: i64; system_micros: i64;
+    peak_rss: i64; shared: i64; data: i64; stack: i64; minor: i64; major: i64;
+    swaps: i64; reads: i64; writes: i64; sent: i64; received: i64; signals: i64;
+    voluntary: i64; involuntary: i64;
+}
+extern fn getrusage(who: i32, usage: ReconstructionUsage*): i32;
+
+fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
+    var store = bits(EntityStore*, compiler_world_store(probe.world));
+    for(var id: u32 = 0; id < CompilerComponentCount; id++) {
+        var kind = bits(Entity*, compiler_world_type_existing(probe.world, id));
+        if kind == null { continue; }
+        var pages: usize = 0; var slots: usize = 0; var live: usize = 0; var bytes: usize = 0;
+        var page = store.storage.owned;
+        while page != null {
+            if page.type_id == kind.id {
+                pages++; slots += page.capacity; live += page.live;
+                bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+            }
+            page = page.owned_next;
+        }
+        printf("kind=%zu count=%zu payload=%zu pages=%zu slots=%zu page_live=%zu page_bytes=%zu\n",
+            convert(usize, id), kind.instance_count, kind.instance_count * kind.data_size, pages, slots, live, bytes);
+    }
+    var usage: ReconstructionUsage = default;
+    utility_check(getrusage(0, &usage) == 0, "Joined native process memory");
+    printf("peak_rss_kib=%zu entities_bytes=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        convert(usize, usage.peak_rss), store.entity_count * sizeof(Entity), 0, 0, 0, 0, 0);
+    if !parsed { return; }
+    var kind = bits(Entity*, compiler_world_type_existing(probe.world, CompilerParserMatch));
+    var maximum: usize = 0;
+    for(var i: usize = 0; i < kind.instance_count; i++) {
+        var item = bits(ParserMatchData*, kind.instances[i].data);
+        if convert(usize, item.id) > maximum { maximum = convert(usize, item.id); }
+    }
+    var rules: work_vector(ReconstructionRule) = default;
+    defer work_vector_dispose(&rules);
+    utility_check(work_vector_reserve_result(&rules, probe.budget, maximum + 1) == WorkBudgetError.None,
+        "Observer histogram sized from actual parse IDs");
+    rules.length = maximum + 1;
+    fill(rules.data, 0, rules.length * sizeof(ReconstructionRule));
+    for(var i: usize = 0; i < kind.instance_count; i++) {
+        var component = kind.instances[i];
+        var item = bits(ParserMatchData*, component.data);
+        var row = &rules.data[convert(usize, item.id)];
+        row.label = item.label.data; row.count++; row.bytes += item.label.capacity;
+        if component.owner.child_count == 0 { row.leaves++; }
+        if component.owner.child_count == 1 {
+            var role = component.owner.children[0].name;
+            if role == null || role[0] == 0 { row.wrappers++; }
+        }
+    }
+    var percent: usize = 100;
+    for(var id: usize = 0; id < rules.length; id++) {
+        var row = &rules.data[id];
+        if row.count < kind.instance_count / percent { continue; }
+        puts(row.label ?? "");
+        printf("parse_id=%zu count=%zu leaves=%zu unnamed_wrappers=%zu label_capacity=%zu reserved=%zu reserved=%zu\n",
+            id, row.count, row.leaves, row.wrappers, row.bytes, 0, 0);
+    }
+}
+
+fn reconstruction_ir(probe: ReconstructionProbe*): void {
+    var functions: usize = 0; var declarations: usize = 0; var blocks: usize = 0; var instructions: usize = 0;
+    var function = LLVMGetFirstFunction(probe.source.backend.backend.module);
+    while function != null {
+        functions++;
+        var block = LLVMGetFirstBasicBlock(function);
+        if block == null { declarations++; }
+        while block != null {
+            blocks++;
+            var instruction = LLVMGetFirstInstruction(block);
+            while instruction != null { instructions++; instruction = LLVMGetNextInstruction(instruction); }
+            block = LLVMGetNextBasicBlock(block);
+        }
+        function = LLVMGetNextFunction(function);
+    }
+    printf("llvm_functions=%zu declarations=%zu blocks=%zu instructions=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        functions, declarations, blocks, instructions, 0, 0, 0);
 }
 
 fn reconstruction_observe(payload: void*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
@@ -47,6 +137,11 @@ fn reconstruction_observe(payload: void*, phase: GrammarPhase, entering: bool, f
         convert(usize, phase), entering ? 1 : 0, store.entity_count, store.component_count,
         snapshot.used_bytes, snapshot.live, snapshot.used_lanes);
     fflush(null);
+    if probe.census {
+        if phase == GrammarPhase.FrontendParse && entering && probe.parses == 2 { reconstruction_ir(probe); }
+        reconstruction_census(probe, phase == GrammarPhase.FrontendParse && !entering);
+        fflush(null);
+    }
     if phase == GrammarPhase.FrontendParse && !entering && probe.occupied.active {
         utility_check(work_budget_release_result(probe.budget, &probe.occupied) == WorkBudgetError.None,
             "Recheck pressure released after join");
@@ -82,9 +177,10 @@ export fn __wasi_clock_time_get(clock: u32, precision: u64, out: u64*): u32 {
 export fn main(argc: i32, argv: u8**): i32 {
     var required_arguments: i32 = 4;
     var reconstruction = argc == 8 || argc == 9;
-    var denial = argc == 9;
+    var denial = argc == 9 && strcmp(argv[8], "deny-recheck") == 0;
+    var census = argc == 9 && strcmp(argv[8], "census") == 0;
     utility_check(argc == required_arguments || reconstruction,
-        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck]]");
+        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census]]");
     var workers: usize = 1;
     var width: u32 = 4;
     if reconstruction {
@@ -93,6 +189,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         width = strcmp(argv[6], "4") == 0 ? 4 : 8;
         workers = strcmp(argv[7], "1") == 0 ? 1 : 4;
         utility_check(!denial || (workers == 1 && strcmp(argv[8], "deny-recheck") == 0), "Serial recheck denial transport");
+        utility_check(argc != 9 || denial || census, "Known reconstruction observation mode");
     }
     var budget: WorkBudget = default;
     var gate: void* = null;
@@ -151,7 +248,7 @@ export fn main(argc: i32, argv: u8**): i32 {
                 && bytes_append(&saved, fixture.source.foundation.data, fixture.source.foundation.length), "Prior valid canonical owner");
         }
         var probe: ReconstructionProbe = {world: fixture.world, budget: &budget, source: fixture.source,
-            output: argv[5], deny: denial, ..default};
+            output: argv[5], deny: denial, census: census, ..default};
         compiler_world_grammar(fixture.world).observer = {context: bits(void*, &probe), event: reconstruction_observe};
         defer compiler_world_grammar(fixture.world).observer = default;
         var result = backend_source_compile_world(fixture.source, fixture.world, input.data, input.length,

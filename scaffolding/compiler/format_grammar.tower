@@ -232,7 +232,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
             if i != 0 {
                 var output: FormatResult = default;
                 format_storage_child(&output, f.result);
-                var probe: FormatEngine;
+                var probe: FormatEngine = default;
                 probe.source_names = false;
                 probe.result = &output;
                 probe.syntax_kind = f.syntax_kind;
@@ -317,7 +317,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
 // Compact grammar previews share canonical spelling without enclosing comments
 // or replacement bodies. Hover descriptions are emitted by the language query.
 export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: void*): void {
-    var f: FormatEngine;
+    var f: FormatEngine = default;
     f.source_names = false;
     f = default;
     f.result = result;
