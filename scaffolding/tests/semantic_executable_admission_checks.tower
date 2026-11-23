@@ -2,6 +2,8 @@ import tower;
 import .compiler.services;
 import .compiler.compiler_kernels;
 import .compiler.semantic_execution_work;
+import .compiler.semantic_evaluation;
+import .compiler.semantic_evaluation_types;
 import .compiler.semantic_aggregates;
 import .compiler.semantic_body_work;
 import .compiler.semantic_lowering_work;
@@ -21,6 +23,7 @@ import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;
 import .library.work_buffer;
+import .library.vector;
 
 extern fn compiler_world_create_workers(workers: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
@@ -343,6 +346,13 @@ fn executable_signature_trial(width: u32, workers: usize, denied: bool): u32 {
     }
     var query = sem_executable_request(&context, subject);
     sem_require(query != 0 && work_demand(&context.queries, query));
+    if denied {
+        // A failed worker's aliases are not publishable. A secondary malformed
+        // producer must not replace its earlier signature Capacity receipt.
+        var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, context.executable_functions)));
+        var alias = init(SemanticEvaluationAlias) { producer: subject, original: subject, clone: result.root };
+        sem_require(vector_push(&result.aliases, alias));
+    }
     state = sem_executables_pump(&context);
     var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, context.executable_functions)));
     var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subject, context.executable_ready)));
@@ -387,7 +397,7 @@ fn executable_signature_trial(width: u32, workers: usize, denied: bool): u32 {
 // A measured first stage plus the shared vector's initial physical allocation
 // fits exactly; a second stage cannot acquire its lease. Peak accounting then
 // distinguishes a charged coordinator batch from an untracked raw vector.
-fn executable_batch_trial(width: u32, workers: usize, partial: bool): u32 {
+fn executable_batch_trial(width: u32, workers: usize, partial: bool, growth: bool): u32 {
     var failures: u32 = 0;
     var budget: WorkBudget = default;
     var gate = work_signal_open(); sem_require(gate != null); work_signal_post(gate);
@@ -404,8 +414,9 @@ fn executable_batch_trial(width: u32, workers: usize, partial: bool): u32 {
         var program: SemanticProgram = default; semantic_initialize(&program, root, width);
         var context: SemanticContext = default; sem_context_init(&context, &program);
         context.generics = generic_begin(root); context.source = "";
-        var subjects: void*[2]; var queries: usize[sizeof(decltype(subjects)) / sizeof(void*)];
-        var count = partial ? sizeof(decltype(subjects)) / sizeof(void*) : 1;
+        var subjects: void*[WorkBufferInitialElements + 1];
+        var queries: usize[sizeof(decltype(subjects)) / sizeof(void*)];
+        var count = growth ? sizeof(decltype(subjects)) / sizeof(void*) : partial ? 2 : 1;
         for(var i: usize = 0; i < count; i++) { subjects[i] = executable_admission_function(&context, world); }
         var state = sem_bodies_pump(&context);
         while state == SemanticPumpResult.Progress { state = sem_bodies_pump(&context); }
@@ -424,17 +435,20 @@ fn executable_batch_trial(width: u32, workers: usize, partial: bool): u32 {
         var nodes = entity_store_count(store); var components = entity_store_component_count(store);
         if recovery == 0 {
             var available: usize = 0;
-            if partial {
+            if partial || growth {
                 var measured: WorkBudgetSnapshot = default;
                 sem_require(work_budget_snapshot(&budget, &measured));
-                var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[0], context.executable_functions)));
-                var error: WorkBudgetError;
-                var stage = entity_stage_open_result(root, &error);
-                sem_require(stage != null && entity_stage_lease_result(stage, result.root) == WorkBudgetError.None);
+                var stages: void*[sizeof(decltype(subjects)) / sizeof(void*)];
+                for(var i: usize = 0; i + 1 < count; i++) {
+                    var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[i], context.executable_functions)));
+                    var error: WorkBudgetError;
+                    stages[i] = entity_stage_open_result(root, &error);
+                    sem_require(stages[i] != null && entity_stage_lease_result(stages[i], result.root) == WorkBudgetError.None);
+                }
                 var held: WorkBudgetSnapshot = default; sem_require(work_budget_snapshot(&budget, &held));
                 available = held.used_bytes - measured.used_bytes
                     + compiler_buffer_allocation_size(WorkBufferInitialElements * sizeof(SemanticExecutable*));
-                entity_stage_discard(stage);
+                for(var i: usize = 0; i + 1 < count; i++) { entity_stage_discard(stages[i]); }
                 var released: WorkBudgetSnapshot = default; sem_require(work_budget_snapshot(&budget, &released));
                 sem_require(released.used_bytes == measured.used_bytes && released.live == measured.live);
             }
@@ -452,8 +466,8 @@ fn executable_batch_trial(width: u32, workers: usize, partial: bool): u32 {
                 && after.used_lanes == before.used_lanes && entity_store_count(store) == nodes
                 && entity_store_component_count(store) == components,
                 "Denied executable batch returns temporary storage, stages and lane grants", &failures);
-            if partial { executable_admission_check(after.peak_bytes == after.bytes,
-                "Partial executable wave charges batch bytes alongside its first leased stage", &failures); }
+            if partial || growth { executable_admission_check(after.peak_bytes == after.bytes,
+                "Partial executable wave charges the initial batch alongside every admitted lease", &failures); }
             for(var i: usize = 0; i < count; i++) {
                 var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[i], context.executable_functions)));
                 var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subjects[i], context.executable_ready)));
@@ -489,12 +503,120 @@ fn executable_batch_trial(width: u32, workers: usize, partial: bool): u32 {
     return failures;
 }
 
+// The normal alias comes from the real worker clone of an evaluation producer.
+// Only the denied pass prepends a missing producer at the joined publication
+// boundary. Recovery uses fresh semantic owners in the same budgeted world.
+fn executable_alias_trial(width: u32, workers: usize): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open(); sem_require(gate != null); work_signal_post(gate);
+    defer work_signal_close(gate);
+    sem_require(work_budget_init(&budget, workers, ExecutableSignatureBudgetBytes, ExecutableAdmissionRevision)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var world: void* = null;
+    sem_require(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None);
+    // Deny the first alias, then a later alias after a valid one, then recover.
+    for(var recovery: usize = 0; recovery < 3; recovery++) {
+        var root = entity_create(compiler_world_store(world)); sem_require(root != null);
+        var program: SemanticProgram = default; semantic_initialize(&program, root, width);
+        var context: SemanticContext = default; sem_context_init(&context, &program);
+        context.generics = generic_begin(root); context.source = "";
+        var subjects: void*[2]; var queries: usize[sizeof(decltype(subjects)) / sizeof(void*)];
+        var count = sizeof(decltype(subjects)) / sizeof(void*);
+        for(var i: usize = 0; i < count; i++) { subjects[i] = executable_admission_function(&context, world); }
+        sem_get(subjects[1]).start = 29;
+        var denied = recovery < count;
+        var expected_aliases: usize = recovery == 0 ? 0 : 1;
+        var expected_offset = denied ? sem_get(subjects[recovery]).start : 0;
+        var state = sem_bodies_pump(&context);
+        while state == SemanticPumpResult.Progress { state = sem_bodies_pump(&context); }
+        sem_require(state == SemanticPumpResult.Complete && sem_ok(&context));
+        var producer = sem_evaluation_state(&context, subjects[0]);
+        sem_require(producer != null && sem_ok(&context));
+        for(var i: usize = 0; i < count; i++) {
+            queries[i] = sem_executable_request(&context, subjects[i]);
+            sem_require(queries[i] != 0 && work_demand(&context.queries, queries[i]));
+        }
+        if denied {
+            var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[recovery], context.executable_functions)));
+            var alias = init(SemanticEvaluationAlias) { producer: subjects[1], original: subjects[recovery], clone: result.root };
+            sem_require(vector_push(&result.aliases, alias));
+        }
+        state = sem_executables_pump(&context);
+        executable_admission_check(context.workers.running == 0 && context.queries.running == 0,
+            "Alias publication returns only after all executable jobs join", &failures);
+        for(var i: usize = 0; i < count; i++) {
+            var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[i], context.executable_functions)));
+            var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subjects[i], context.executable_ready)));
+            executable_admission_check(result.stage == null && result.context == null && result.function != null,
+                "Joined aliases retain published nodes without live stages or borrowed contexts", &failures);
+            if denied {
+                executable_admission_check(!input.ready && input.function == null
+                    && work_task(&context.queries, queries[i]).state == WorkState.Cancelled
+                    && !work_ticket_valid(&context.queries, &result.ticket),
+                    "Denied alias publication exposes no successful executable prefix", &failures);
+            } else {
+                executable_admission_check(input.ready && input.function == result.function
+                    && work_task(&context.queries, queries[i]).state == WorkState.Succeeded,
+                    "Clean alias retry publishes checked executable inputs", &failures);
+            }
+        }
+        if denied {
+            executable_admission_check(state == SemanticPumpResult.Failed && context.queries.cancelled
+                && program.resource.error == WorkBudgetError.Invalid && program.resource.offset == expected_offset
+                && program.error_offset == expected_offset && producer.aliases.length == expected_aliases,
+                "Alias denial preserves its first typed cause and owning source offset", &failures);
+        } else {
+            var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subjects[0], context.executable_functions)));
+            executable_admission_check(state == SemanticPumpResult.Progress && sem_ok(&context)
+                && producer.aliases.length == 1 && producer.aliases.data[0].producer == subjects[0]
+                && producer.aliases.data[0].original == subjects[0] && producer.aliases.data[0].clone == result.function,
+                "Normal publication preserves the actual producer and worker clone identities", &failures);
+        }
+        var nodes = entity_store_count(compiler_world_store(world));
+        var components = entity_store_component_count(compiler_world_store(world));
+        var settled: WorkBudgetSnapshot = default; sem_require(work_budget_snapshot(&budget, &settled));
+        for(var repeat: usize = 0; repeat < 3; repeat++) {
+            var after: WorkBudgetSnapshot = default;
+            executable_admission_check(sem_executables_pump(&context)
+                == (denied ? SemanticPumpResult.Failed : SemanticPumpResult.Complete)
+                && work_budget_snapshot(&budget, &after) && after.used_bytes == settled.used_bytes
+                && after.used_lanes == settled.used_lanes && after.live == settled.live
+                && entity_store_count(compiler_world_store(world)) == nodes
+                && entity_store_component_count(compiler_world_store(world)) == components
+                && producer.aliases.length == expected_aliases,
+                "Terminal alias pumps retain no new owners and replay no publication", &failures);
+        }
+        if denied {
+            executable_admission_check(sem_executable_request(&context, subjects[0]) == 0
+                && program.resource.error == WorkBudgetError.Invalid && program.resource.offset == expected_offset,
+                "Cancellation and repeated request cannot replace the alias failure", &failures);
+        }
+        sem_context_dispose(&context); semantic_program_dispose(&program); entity_release(root);
+    }
+    executable_admission_check(compiler_world_dispose(world), "Alias retry releases its world", &failures);
+    var final: WorkBudgetSnapshot = default;
+    executable_admission_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0
+        && final.used_lanes == 0 && final.live == 0 && work_budget_dispose(&budget),
+        "Alias failure and clean recovery release every retained grant", &failures);
+    return failures;
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
-    if argc > 1 && (strcmp(argv[1], "batch") == 0 || strcmp(argv[1], "batch-partial") == 0) {
+    if argc > 1 && strcmp(argv[1], "alias") == 0 {
+        var failures: u32 = 0;
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            for(var workers: usize = 1; workers <= 4; workers *= 4) { failures += executable_alias_trial(width, workers); }
+        }
+        return failures == 0 ? 0 : 1;
+    }
+    if argc > 1 && (strcmp(argv[1], "batch") == 0 || strcmp(argv[1], "batch-partial") == 0
+        || strcmp(argv[1], "batch-growth") == 0) {
         var failures: u32 = 0;
         for(var width: u32 = 4; width <= 8; width *= 2) {
             for(var workers: usize = 1; workers <= 4; workers *= 4) {
-                failures += executable_batch_trial(width, workers, strcmp(argv[1], "batch-partial") == 0);
+                failures += executable_batch_trial(width, workers, strcmp(argv[1], "batch-partial") == 0,
+                    strcmp(argv[1], "batch-growth") == 0);
             }
         }
         return failures == 0 ? 0 : 1;
