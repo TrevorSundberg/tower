@@ -88624,6 +88624,52 @@ evidence remain at f7; none is relabeled as validation of the merged compiler.
 Our changes relative to incoming main are documentation only; ROOT's later
 composition remains pending. Archive hash/recorded comparisons rechecked,
 owned jobs drained, todo unchanged; normal source/report push follows.
+### B1 remaining serial frontend: measured candidate rejected (2026-11-23)
+
+Frozen12722151cc16daab46bb328cdd2dd1626880f2c0/tree3f7480e26a21a9d6614c4132a150ec62e8f41601,
+including range union and current grain policy. Own KinmenB CPU0-11/24GiB,
+public768a/LLVM19.1.1 native Release, smallest dependency targets only. Existing
+f7 generation receipt/package unchanged. No B2 scheduling/counters or A1/L2 edits.
+Current cold observer still performs155 builds/123 tables/36 reuses:289.15ms
+version build,220.44ms tables,137.94ms lookahead (nested). Installed baseline
+60 tables does not eliminate request123 tables. Lookup remains sub-millisecond.
+CLI baseline/bootstrap99.56/96.72ms and parse-check357.22/445.51ms dominate
+small/large; backend optimization2.04/39.43ms, emission1.48/1.62ms. Temporary
+Tower phase/counter hooks separate graph build70.66ms/solve118.03ms/actions18.05ms
+on small, with353408 edges traversed815967 times and25.27M incoming ranges.
+Instrumentation perturbs full CLI timing (700ms vs473ms); these finer slices
+are producer evidence, not relabeled uninstrumented latency. Final semantic
+pass5.52/72.42ms is separate from staged semantic preparation inside parse/import.
+
+One nine-line candidate orders the initial serial worklist by insertion, keeping
+later LIFO updates and all existing storage/owners/errors. Traversals fall39%,
+range visits22%, but it FAILS the useful end-to-end performance gate. Alternating
+n3 before/candidate wall medians: small1 .51/.50, large1 .68/.69, small4 .57/.57,
+large4 .74/.74s. CPU .44/.43,.60/.62,.52/.53,.71/.71; RSS and all noisy/regressing
+samples retained in times.csv. Production-unit single observation1.23/1.22s is
+not a speedup claim. Cold/installed whole-process .41/.49s unchanged.
+Cold allocation calls2144035->2127214 (-0.8%), installed2562308->2544357;
+charged live1893528/peak58035248/metadata5242880 and buffers36677/48979 unchanged,
+zero teardown grants/buffers checked. All24 executions15/999,24 objects and2
+unit objects exact;976-byte canonicalhash13832670361687071853 unchanged.
+Independent150-grammar oracle, denial/retry, parser/regex, grammar/revision/cache,
+owner lifetime and native serial/threaded LR pass. Clang19 -O2 -fwrapv native
+object controls .04/.09s, checked15/999; single observations separate from prior
+ROOT paired controls. Full wall/CPU/RSS/phase/retention receipt:
+docs/compiler_serial_remaining_12722151.md.
+
+Rejected candidate, both compiler/runners, exact frozen inputs, counters and
+patches/logs remain /cache/serial_remaining_1272. Before compiler3fd9460b54b5eac604cc35d52a2a8ee4e5abe51b1c0294b04f371b68087c96f5;
+rejected92da60bc1e1cbdc649e89b0981f777a7de7db4b42e50d8cc19b33d939b513f69.
+Restored-file timestamps initially left stale measurement objects; caught before
+matched timings, touched/rebuilt affected inputs, retained the setup logs. After
+rejection, original source restored and dependency rebuild byte-matched compiler
+and both runners to baseline; original source manifest verified. No runtime or
+profiling hook ships, no second candidate, no broad matrix or private bootstrap.
+Finite next producer is exact-range membership/union in lr_propagation_solve_result:
+19.7M entries remain even with reduced traversal. A graph-owned budgeted derived
+membership representation would need sparse bounds/conversion evidence before
+adoption; it is only a proposal. Status/report publication follows, then stop.
 ### ROOT f7 browser artifact checkpoint and eight-lane continuation (2026-11-23)
 
 Implementation/evidence boundaries remain explicit. ROOT's existing public-pin
@@ -88795,3 +88841,11 @@ candidate and public768 pin retain their exact scope. ROOT's documentation-only
 publication preserves the verified old Pages runtime; no new runtime deployment
 is claimed, and documentation itself needs no runtime performance comparison.
 All original todo.txt bytes remain unchanged.
+B1 rejected-candidate publication reconciliation: required ff-only pull refused
+divergence, normal merge221c68dea09f7e84448f7a750b35f0131f0d4220 preserves complete
+c299b862 history without conflict. Serial LR/grammar inputs byte-identical to
+12722151; incoming generic-semantic/backend-test/browser changes have separate
+owner evidence and are not validated by the frozen timing/compiler artifacts.
+B1 diff against incoming main is receipt/journal only. No runtime delta, second
+candidate or unnecessary merged compiler build. Original source/binary/check
+receipts stay exact; owned jobs drained, todo preserved. Normal push follows.
