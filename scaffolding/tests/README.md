@@ -1223,3 +1223,41 @@ same valid replace/take/reattach sequence for small/large iteration counts, chec
 ordered identity/reference counts and final disposal, and is a measurement tool
 rather than a default test. Shared containment publication is serial; this
 microbenchmark does not claim worker scaling or total-heap accounting.
+
+Source-proof admission and ordered callback-signature publication have focused
+production-provider targets:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-semantic-source-proof-admission-tests tower-semantic-aggregate-admission-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-(source-proof|aggregate)-admission-'
+```
+
+Source-proof selectors `healthy`, `failed`, `cancelled`, `query`, `edge` and
+`finish` cover query/edge admission and failure while waking dependent consumers.
+Aggregate selectors `healthy`, `failed`, `cancelled` and `lowering` preserve
+callback ABI identity after failure and cancellation. Each selector covers both
+target widths and worker budgets1/4. The aggregate fixture supplies the semantic
+implementation itself; the target retains the other production service objects
+without linking that implementation twice. Budget width alone is not overlap.
+
+Containment leases and actual Linux thread-affinity checks use:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-entity-attach-leases-tests \
+  tower-entity-mutation-results-tests tower-work-linux-affinity-tests \
+  tower-work-linux-affinity-faults-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(entity-(attach-leases|mutation-results)|work-linux-affinity(-faults)?)-tests$'
+```
+
+Mutation faults use the fixture's own portable transport and single-owner
+allocation instrumentation. The real affinity fixture checks child restriction,
+parent isolation and restoration before joins. Its separate serial fault target
+binds the actual transport and allocator through the existing Tower runtime
+symbol tool, covering sparse CPU IDs, growth denial and zero retained storage.
+It uses ordinary source initialization; native `SOURCE` objects explicitly select
+object emission. The manual capacity profile and argument oracle require the
+actual allowed capacity and are not default tests. Tests that deliberately require
+four physical worker slots need at least four allowed CPUs; preserve those oracles.
