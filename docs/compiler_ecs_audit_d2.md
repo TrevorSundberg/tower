@@ -2675,16 +2675,18 @@ integrated runtime builds remain ROOT-owned. No new audit/test framework is adde
 
 ### Bounded publication-readiness review, 2026-11-23
 
-Reviewed main `afca69b171c790ce9386ae85c3f3d493d21cec59`, including published
+Reviewed main `d8db5f3fc14aced96fadc1b57f9f8fd9715dc100`, including published
 D2 `636f7f9302144ca5bfe7575111dc10f4e884a660`. The initial `f33770ba` review
-was updated after the required pull brought in L2 admission changes. This is
+was updated for L2 at `afca69b1`, then complete published `53d63157` was merged
+after the final fast-forward-only pull refused divergence. This includes B2's
+module startup and D1's ownership-prerequisite report, preserving all history. This is
 source/receipt review, not release acceptance. No compiler build, policy test,
 sanitizer or browser suite was rerun. Runtime profiling is inapplicable to these
 documentation changes. ROOT owns final assets and deployment; this task pushes
 only the audit and journal. Earlier open-ended waiting instructions do not apply.
 
-Current source trees: scaffolding `816b8345655a1519d3d88d2ef931a2dd6f9e36c4`,
-compiler `dbea7ef0b8c241a62711f94bc5f50c7312559d21`, CMake
+Current source trees: scaffolding `9060a66dd5b88788226cbfc2eda17e1f72a119de`,
+compiler `a63ffc4173a3bf3d3932e6fc3ee69aee0a5c14a4`, CMake
 `88e49f4105972ad8d625a61b249213d345d17a7d`. These identify this review's inputs;
 ROOT must freeze and record any later compiler/build changes before final checks.
 
@@ -2729,6 +2731,7 @@ are dependency evidence, not fresh binaries. No other worker's cache was read.
 | --- | --- |
 | `636f7f93` to initial `f33770ba`: ParserNodes | Seven changed producers/consumers: `frontend_pattern`, `frontend_table`, `frontend_world`, `lr_tree`, `parser_nodes`, `parser_state`, `syntax_session_next`. Of the inspected compiler depfiles, only ParserNodes intersects these paths. Refresh its actual native/WASI U/T report and resulting link/export closure. B1's focused parser/regex/query receipts are described below; they do not supply the current browser export. |
 | L2 admission joined at `afca69b1` | Actual depfiles now also invalidate Semantics, Evaluation, Interpreter and query-checks. `host/driver_compile.tower` additionally requires the configured driver consumer. Reconfigure/build through the real targets and let their regenerated depfiles select transitive consumers; do not copy an old ABI object into the new package. A2/L2 contexts or declarations in a depfile can invalidate a consumer without changing its entry file. |
+| B2 startup joined from `53d63157` | `frontend_compilation`, `frontend_modules`, `frontend_units` and the module fixture changed. Actual compiler depfiles intersect ParserNodes, Semantics and frontend-units. Build these consumers and the module-cache registration coherently. B2's startup checks do not provide final current WASI/export/symbol-policy acceptance. |
 | Entities versus the D2 native policy receipt | No changed path intersects the saved Entities depfile. Its exact native object `030ae5b4ec3c21805e92b57a3d9be0baa9cde30fdbf1f5fe400e514d2fd4b57c` and report remain reusable within that target/flags/compiler profile. Semantics `c02fa58100e7a8b0e2d13e2f7def4257e019bce775e6519c971200fcd3001b9e` was checked at `c566caedbde305a14e7a8aa39317add3eca2d71e` and is now historical. Both full reports passed then; logs/status0 are in `generic_policy_b042/publish_retry_1`. |
 | Published `98ade8cc` compiler project to current source | Rebuild the current Tower unit closure: shared `types.tower` changed, and every inspected native compiler depfile includes it. The old project's 22 units are IDE, Interpreter, ParserNodes, syntax-live-cases, parser-format/integration/fixtures, template-build, syntax-host, Semantics, Entities, shared-lifecycle, legacy, UTF8, bytes, host, work-host, Evaluation and four backend units (Wasm/linker/native/Mach-O). Changes also affect host/runtime/driver and backend composition. Unchanged leaf source is not sufficient to reuse an old object across the changed prelude or layout. |
 | Current CMake/package composition | `TowerCompilerUtilities.cmake` additionally links frontend-units and, for browser/parser/work profiles, query-checks. `compiler_project_files.tower` explicitly maps those objects and reads actual depfiles. Parser roots derive from module/work/check flags; browser Interpreter and Semantics have specific entries. Export the final configured link inputs, including generated runtime/source, exact support members, imports, exports and linker arguments. Do not impose the old count of 22 on the new package. |
@@ -2746,6 +2749,26 @@ Keep exact-unit, suffix and truncation rejection. Current policy already has the
 measured WASM Entities table permission; the older tests README sentence saying
 only parser/semantics allow it is historical prose, not the policy authority.
 
+B2's joined `b21bdb2d` receipt reports actual new native imports
+`frontend_module_root_world_size_result`, `frontend_modules_create_result` and
+`frontend_modules_bind_world_result`. Current source exports them from
+`frontend_modules.tower` in ParserNodes; Semantics' frontend-compilation caller
+uses the first, and the separate frontend-units caller uses create/bind. The
+current exact policy does not name these three. ROOT needs the complete current
+undefined/defined reports, exact consumer-unit permissions only where observed,
+negative policy cases and refreshed WASI exports. This audit independently
+confirms the source boundary and missing names, not a newly executed nm/policy
+failure. The four generic-result permissions remain present and unchanged.
+
+D1 `53d63157` also records a production prerequisite, not just a missing test:
+`syntax_origin_copy_staged_result` installs borrowed references whose ordinary
+finalizer releases them. Checked hold failure needs an agreed cancellation
+ownership contract before discard; skipping finalizers leaks buffers and a pin
+does not own history. That protocol is proposed, not implemented. ROOT must close
+the immediate provenance/hold/publication caller boundary and validate cleanup,
+or explicitly leave this acceptance item open. No passing release matrix can
+substitute for the missing contract. D2 makes no out-of-scope production edit.
+
 **Receipt ledger: latest relevant scopes, not one combined pass.**
 
 | Receipt | What it establishes / what remains missing |
@@ -2754,6 +2777,7 @@ only parser/semantics allow it is historical prose, not the policy authority.
 | A1 `1c9f723dc701fbea2b217784949e1e781375d3f4` | 26 flow trials, query and serial/parallel comptime outputs passed; compiler `8b442c4593f17c90eb10194d2c10d16fe86e1e01583617387ed5bf4b6643e328`. Its semantic provider matches D2's `c02fa581` report. Later admission changes invalidate that provider identity. |
 | B1 `ca286d12751732e60443cb424525baa3e171c08b` | Nine dependency actions, parser/regex/query passed; `pattern_result_final_merge_*`. Earlier measured units outputs and retention remain scoped to their earlier frozen source. No current WASI/parser export receipt is attached. |
 | L2 `aa01512c6476ab1d7eeb6f242c0465b5275814eb` | Twelve dependency actions, storage/query passed in `semantic_admission_*` merged0. Original fixture SIG6/134 and corrected final1 remain recorded. The later union with B1 requires final coherent checks; no final type/browser/instrumentation pass is claimed. |
+| B2 startup `b21bdb2d` and `b2_startup_push_merge_{build,modules}.log` | Focused module checks passed after complete A1/L1 integration and policy636, with the four scoped sources unchanged; original wrong fixture expectation134 is preserved. The receipt explicitly defers the three new module-result import policy checks. D2 reviewed this journal receipt, not remote raw binaries. |
 | D2 WASI/export at `c8019dc44` plus `8cb198038` | Four native and four WASI original/exported unit pairs matched; canonical known-value roundtrip passed. Compiler `c3724363dee165211f08a3ab964fbc2ed9160941031efaa983f48e99429096b6`. Later ParserNodes attachment at `9db1be18` plus `227bf39a` has its own WASI/policy receipt. Neither is the final current-source package. |
 | Supported instrumentation | ROOT executable-query `c944` address/LSan and actual TSan overlap passed; thread package `52f985ecea40a69940716d9021b62d4303cc4d983d507a86d516b19acb0f3468`. Later lease join has address/LSan/concurrency passes but thread package `9331699b552fb128ec4391672f2452321f23591f98632c33b18df91d9595731c` was built, not executed. D1 `ed7f53026` positive native/address receipt and its same-binary timeout followup retain their old scope; current `2f7` type-smoke124 and unstarted instrument campaign are not passes. These receipts do not sanitize the final union. |
 | Browser/hosted | The served old manifest is verified above. D2's Node22.23.5/Playwright1.65.1 install and Chromium launch are OS readiness only. D2 has no current `build/compiler-project/project.json`, threaded test reactor or dist manifest. Current generation hashes, mandatory thread execution, local/hosted behavioral report and workflow/deployment identity remain missing. |
