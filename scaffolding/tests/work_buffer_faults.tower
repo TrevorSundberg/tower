@@ -6,6 +6,7 @@ import .host.memory;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn puts(text: u8*): i32;
 
 fn fault_buffer_check(ok: bool): void {
     if !ok { trap("Retained buffer allocation failure regression", 0); }
@@ -41,6 +42,6 @@ export fn main(argc: i32, argv: u8**): i32 {
     fault_buffer_check(buffer.data[63] == 91 && budget.live == 1);
     work_buffer_dispose(&buffer);
     fault_buffer_check(work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
-    print(0);
+    puts("0");
     return 0;
 }

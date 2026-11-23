@@ -56,6 +56,20 @@ fn buffer_retention(): void {
     buffer_check(work_buffer_resize(&input, null, 0, 0) == WorkBudgetError.None && input.data == null);
 }
 
+fn buffer_layout(): void {
+    var word = sizeof(usize);
+    var maximum = ~convert(usize, 0);
+    buffer_check(compiler_buffer_allocation_size(0) == word * 4 + 1);
+    buffer_check(compiler_buffer_allocation_size(maximum - word * 5) == maximum - word);
+    buffer_check(compiler_buffer_allocation_size(maximum - word * 5 + 1) == 0);
+    for(var size: usize = 0; size <= 65; size++) {
+        var memory = compiler_buffer_allocate(size);
+        buffer_check(memory != null && bits(usize, memory) % compiler_buffer_alignment() == 0);
+        fill(memory, 37, size);
+        compiler_buffer_free(memory);
+    }
+}
+
 fn buffer_vectors(): void {
     var budget: WorkBudget = default;
     buffer_check(work_budget_init(&budget, 1, 16384, 2));
@@ -70,6 +84,11 @@ fn buffer_vectors(): void {
     buffer_check(!work_vector_reserve(&values, &budget, ~convert(usize, 0)) && values.length == 257);
     buffer_check(!work_vector_reserve(&values, null, 512));
     buffer_check(work_vector_reserve_result(&values, &budget, ~convert(usize, 0)) == WorkBudgetError.Invalid);
+    buffer_check(work_vector_reserve_result(&values, &budget, 1535) == WorkBudgetError.Capacity
+        && values.capacity == 512 && values.length == 257 && values.data[256] == 256);
+    var popped: u64 = 0;
+    buffer_check(work_vector_pop(&values, &popped) && popped == 256);
+    buffer_check(work_vector_push_result(&values, &budget, popped) == WorkBudgetError.None);
     work_vector_move(&retained, &values);
     buffer_check(values.data == null && retained.length == 257 && retained.data[256] == 256);
     buffer_check(work_vector_push(&values, &budget, convert(u64, 99)));
@@ -77,10 +96,13 @@ fn buffer_vectors(): void {
     buffer_check(values.length == 257 && retained.length == 1 && retained.data[0] == 99);
     work_vector_dispose(&values);
     work_vector_dispose(&retained);
+    popped = 19;
+    buffer_check(!work_vector_pop(&values, &popped) && popped == 19);
     buffer_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
+    buffer_layout();
     buffer_retention();
     buffer_vectors();
     print(0);

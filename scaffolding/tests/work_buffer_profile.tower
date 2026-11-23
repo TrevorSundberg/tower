@@ -89,7 +89,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var start = profile_buffer_time();
     for(var i: usize = 0; i < workers; i++) {
         if accounted { jobs[i].budget = &budget; }
-        jobs[i].rounds = 8192 / workers;
+        jobs[i].rounds = 262144 / workers;
         profile_buffer_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
     }
     while pool.running != 0 { work_pool_receive(&pool, true); }

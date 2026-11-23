@@ -1472,3 +1472,41 @@ value-position decltype comparison at7:4 (build28535 exit1). After draining,
 ordinary `var Captured:type=decltype(captured.result)` plus identity comparison
 passed the smallest unit (22841 exit0). File is now9lines; value7 checks and
 original-module import unchanged. No new syntax or production semantics.
+
+### Drained v3 and aggregate storage measurement follow-up
+
+Build32042 passed corrected capture/generated execution-main and native4steps,
+then failed linking v2 serial faults: undefined tower_print. Normal/shared/profile
+objects linked first; no runtime test ran. Exact successor archive3b03fc54 was
+read as a complete delta against the already-reviewed six v2 bodies. Current
+files matched v2 before replacement. The v3 fault fixture uses existing puts;
+no output shim or alternate allocator is introduced. Generic registration stays
+unchanged. Original failed link/status remain in corrected/targets.log.
+
+- `library/work_vector.tower`: adds ordinary fresh-owner init, explicit-result
+  push preserving denial reason and bool wrapper, plus pop with output-before-
+  length update and unchanged storage charge. Raw owner initialization is not
+  disposal of a live owner. All prior reservation/overflow/borrow rules remain.
+- `tests/work_buffer.tower`: now112lines; adds exact zero-size header/overflow
+  boundary and66 physical allocation alignment checks, retained-vector capacity
+  denial, pop/reinsert result and unchanged output on empty pop. Fresh grant and
+  full cleanup remain independently asserted; no scalar type registry involved.
+- `tests/work_buffer_faults.tower`: now47lines, output-boundary-only puts change;
+  both allocation-failure/rollback sequences unchanged. Still serial-only.
+- `tests/work_buffer_profile.tower`: same129-line ownership/control flow, now
+ 262144 total replacements so short baseline timings are less dominated by
+  dispatch/clock noise. README/target modes match; v2 timings cannot be compared
+  directly with v3 as equivalent workloads. Baseline versus accounted v3 can.
+- `tests/interpreter_call_query.tower`: owner test-only741b6cb4 afterd982 keeps
+  all existing call/capture/cancel/immutable oracles, running8-byte and64KiB
+  aggregate layouts at32/64. Last projection at extent-minus-i32 tests padded
+  storage. Two private frames bound observed payload/memory/initialization
+  capacities to4x input plus128 frame allowance; metadata bytes and capacity
+  growth observations are reported via existing format_api, not claimed as
+  allocation counts or RSS. After disposal all private vector pointers are null;
+  retained-root and cancellation behavior remain. Owner3x query passes are
+  source-specific external evidence; independent D1 execution pending.
+
+No new path is added by v3/query updates:1054tracked/477direct remains. Fresh
+smallest affected units, normal/fault/real-thread checks, cost profiles and
+current instrumentation are still required before acceptance.

@@ -49119,3 +49119,22 @@ oracles without a language extension. Smallest corrected unit22841 passed0 with
 the public predecessor; original failed log/status/time retained under
 build/d1_ecs/buffer_defined_order. Eleven unaffected unit receipts remain scoped
 to the unchanged bodies; execution-main/native/targets/runtime still pending.
+
+Build32042 exited1 after canonical native4steps passed and normal/shared/profile
+buffer targets linked. The serial fault target failed with undefined tower_print,
+not a production allocator failure; existing instrumented/trap composition does
+not provide general guest output. No tests ran and remaining target build steps
+were not passed. After polling terminal status and checking no live children,
+reviewed root-delivered A2 v3 archive3b03fc54: puts fixes that exact boundary;
+vector init/pop/result-push and direct allocation/alignment/denial tests added;
+profile work increases from8192 to262144 replacements. Adopted exact owner delta,
+retained generic runtime composition, and updated README count. No unsafe probe,
+output shim, second allocator or silent fallback.
+
+Also adopted reviewed L1 test-only input measurement741b6cb4:8-byte/64KiB
+projections, two nested private frames, capacity bounds/observed growth plus
+explicit post-disposal null pointers. It uses existing formatter and interpreter,
+not a separate counter/constant evaluator. Counts are observed vector capacity,
+not allocator calls, retained global memory or RSS. Previous32/64 query receipts
+remain valid only for their smaller fixture. New smallest query unit and joined
+runtime must pass before current evidence; owner3x pass does not substitute D1.

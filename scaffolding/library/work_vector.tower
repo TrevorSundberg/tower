@@ -18,6 +18,10 @@ fn work_vector(T: type): type {
     return Result;
 }
 
+fn work_vector_init(T: type, value: work_vector(T)*): void {
+    *value = default;
+}
+
 fn work_vector_reserve(T: type, value: work_vector(T)*, budget: WorkBudget*, needed: usize): bool {
     return work_vector_reserve_result(value, budget, needed) == WorkBudgetError.None;
 }
@@ -46,10 +50,25 @@ fn work_vector_reserve_result(T: type, value: work_vector(T)*, budget: WorkBudge
 }
 
 fn work_vector_push(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): bool {
+    return work_vector_push_result(value, budget, element) == WorkBudgetError.None;
+}
+
+fn work_vector_push_result(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
     var needed = value.length + 1;
-    if needed == 0 || !work_vector_reserve(value, budget, needed) { return false; }
+    if needed == 0 { return WorkBudgetError.Invalid; }
+    var result = work_vector_reserve_result(value, budget, needed);
+    if result != WorkBudgetError.None { return result; }
     value.data[value.length] = element;
     value.length = needed;
+    return WorkBudgetError.None;
+}
+
+fn work_vector_pop(T: type, value: work_vector(T)*, output: T*): bool {
+    if value.length == 0 || output == null { return false; }
+    var last = value.length - 1;
+    *output = value.data[last];
+    value.length = last;
     return true;
 }
 

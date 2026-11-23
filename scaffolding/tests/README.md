@@ -850,7 +850,7 @@ The buffer measurement target supplies `budget 1`. For equivalent baseline and
 accounted runs, invoke `tower-work-buffer-profile-tests baseline 1` and
 `tower-work-buffer-profile-tests budget 1` in that build directory; repeat both
 with `2` for a two-lane host. Supported counts are1/2/4/8. The workload always
-performs8192 replacements and checks the retained bytes independently. Its ten
+performs262144 replacements and checks the retained bytes independently. Its ten
 fields are workers, budget mode, wall nanoseconds, CPU microseconds, peak RSS KiB,
 observed interval overlap, allocation calls, retained payload bytes, peak charged
 bytes and retained ledger bytes. Timing excludes pool setup and postjoin
