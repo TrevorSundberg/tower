@@ -1673,7 +1673,7 @@ export fn sem_declaration_discover(c: SemanticContext*): void {
     var batch: work_vector(SemanticDeclaration*) = default;
     var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     defer {
-        foreach(var result in &batch) { result.context = null; }
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index]; result.context = null; }
         if c.program.resource.error != WorkBudgetError.None { work_cancel(&c.queries); }
         work_vector_dispose(&batch);
     }
@@ -1704,7 +1704,7 @@ export fn sem_declaration_discover(c: SemanticContext*): void {
         var dispatched = sem_declaration_dispatch(c, batch.data, batch.length, &receipt);
         if !sem_stage_wave(c, batch.data, batch.length, view, dispatched, batch.data[0].subject, sem_declaration_stage_cancel) { return; }
         var failing = false;
-        foreach(var result in &batch) {
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index];
             if result.resource.error != WorkBudgetError.None {
                 sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset);
                 return;
@@ -1735,11 +1735,11 @@ export fn sem_declaration_discover(c: SemanticContext*): void {
             failing ||= !success;
         }
         if !sem_completion_reserve(c, batch.data, batch.length, failing) { return; }
-        foreach(var result in &batch) {
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index];
             if !sem_work_finish(c, result.subject, &result.ticket, result.error.length == 0) { return; }
         }
         if !c.declaration_isolated {
-            foreach(var result in &batch) { if sem_declaration_restore_error(c, result) { return; } }
+            for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index]; if sem_declaration_restore_error(c, result) { return; } }
         }
         if !sem_ok(c) { return; }
     }
@@ -1925,13 +1925,13 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
     var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     defer {
         var staged = false;
-        foreach(var result in &batch) { staged ||= result.stage != null; }
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index]; staged ||= result.stage != null; }
         if staged {
             sem_stage_wave(c, batch.data, batch.length, null,
                 c.program.resource.error == WorkBudgetError.None ? sem_query_error(c) : c.program.resource.error,
                 batch.data[0].subject, sem_declaration_stage_cancel);
         }
-        foreach(var result in &batch) { result.context = null; }
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index]; result.context = null; }
         if c.program.resource.error != WorkBudgetError.None { work_cancel(&c.queries); }
         work_vector_dispose(&batch);
     }
@@ -1989,7 +1989,7 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         var dispatched = sem_declaration_dispatch(c, batch.data, count, &receipt);
         if !sem_stage_wave(c, batch.data, count, view, dispatched, batch.data[0].subject, sem_declaration_stage_cancel) { return SemanticPumpResult.Failed; }
         var failing = false;
-        foreach(var result in &batch) {
+        for(var job_index: usize = 0; job_index < batch.length; job_index++) { var result = batch.data[job_index];
             if result.resource.error != WorkBudgetError.None {
                 sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset);
                 return SemanticPumpResult.Failed;
@@ -2179,9 +2179,9 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
             index++;
         }
         failing = false;
-        foreach(var result in &finishing) { failing ||= result.error.length != 0; }
+        for(var job_index: usize = 0; job_index < finishing.length; job_index++) { var result = finishing.data[job_index]; failing ||= result.error.length != 0; }
         if !sem_completion_reserve(c, finishing.data, finishing.length, failing) { return SemanticPumpResult.Failed; }
-        foreach(var result in &finishing) {
+        for(var job_index: usize = 0; job_index < finishing.length; job_index++) { var result = finishing.data[job_index];
             if !sem_work_finish(c, result.subject, &result.ticket, result.error.length == 0) { return SemanticPumpResult.Failed; }
         }
         // Every declaration relinquishes its claims before this wave. Layout

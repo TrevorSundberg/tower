@@ -85012,3 +85012,50 @@ begin helper returns; A1's graph/component admission is not whole-worker semanti
 allocation closure. Those gaps and final integration instrumentation remain
 pending, not passed. Work is preserved locally; main is not pushed while the
 merged compiler build is blocked. No active A1 build/test jobs remain.
+
+## 2026-11-23 A1 complete-successor prerequisite preflight
+
+Resumed clean main3288b834a92471a60e91db1e4671aa47c6db81ba, thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, actual Codex PID3572/node35952. No
+surviving A1 jobs. Prescribed pull fetched36fe4488 and refused divergence;
+retained the exact blocked source for the requested controlled preflight.
+
+Verified ROOT_b5_successor.tgz SHA256
+e20fd2025a671fa795a366879f2fced1c7a55b274e07019b00419b833271b171,
+all packaged SHA256SUMS, metadata baseb5b585fba041d3a464f4ab4f5567b6bdfa281fe4,
+and executablef71fd0d58bb0231c55600bd7bf2d70911147e5bba9b7ca18e44dee00ba1d5881.
+This is ROOT/B2's supplied complete generation2/3 fixed-point candidate; A1 did
+not rerun or relabel that historical validation. Extracted safely under owned
+A1/cache/root_b5_successor_preflight_3288 with all resources/development.json.
+No public pin, CMake compiler setting or bootstrap override changed.
+
+Isolated command substitutes only the candidate executable and output paths:
+semantics_checks.tower --jobs1 --library --target x86_64-pc-linux-gnu with the
+same explicit /work/scaffolding Bedrock/Foundation, object and depfile flags.
+Working directory/cache/native; frozen source tree9057f1c343e1d5216fa321665c5ac6f42ae10848.
+All tracked Tower input hashes and clean status verified before/after. One
+process, CPU0-11/24GiB container ceiling, Linux/LLVM19.1.1 on KinmenA Windows11.
+Fresh process, first candidate sample, cache warmth uncontrolled, n1:
+exit1; wall14.29s; user8.39s+sys0.98s=9.37CPU seconds; peak RSS823640KiB.
+Exact diagnostic: /work/scaffolding/library/work_vector.tower:16:1:
+Semantic memory budget exceeded. No object/depfile success or canonical pass.
+Logs/time/source manifests preserved in that isolated directory; session10647
+and compiler103402 drained. Complete history bundle a1_body_admission_3288.bundle
+verified, SHA256f45f1d2c6290b93866a5ba900247c31e237eafb24b868fb960a47130ba065ccb,
+requiring publishedfae7f9c6 ande116e966. All132 earlier trials remain intact.
+
+Import audit: units/semantics.tower and units/semantics_checks.tower are byte
+identical, SHA2567bbb82922f0fe293859145636dcfbc77bda2d8e94926857527fdbe7735e289f1.
+Both import services and compiler_kernels; query fixtures already compile in a
+separate provider. There is no test-only import expansion to remove here.
+Editor services share ordinary semantic implementation imports; splitting them
+would require a new coordinated service/provider API, not silently dropping
+exports or coverage. B1's sem_push_checked lookup regression is untouched.
+
+Next bounded footprint experiment uses counted traversal of the existing body/
+declaration work-vector windows, eliminating their unused generic iteration
+protocol specializations while retaining typed payloads, actual lengths, existing
+WorkBuffer reservations, source order and identical disposal/dispatch ownership.
+This is distinct from the already-failed completion-helper consolidation. It
+changes no fixture, scheduler, provider ABI, capacity policy or shared allocator.
+Its build/runtime result is pending; the preceding failure remains the baseline.

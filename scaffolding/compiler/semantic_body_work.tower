@@ -582,7 +582,7 @@ export fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork*
     var ready: work_vector(SemanticBodyWork*) = default;
     var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     defer {
-        foreach(var result in &ready) { result.context = null; }
+        for(var job_index: usize = 0; job_index < ready.length; job_index++) { var result = ready.data[job_index]; result.context = null; }
         if c.program.resource.error != WorkBudgetError.None { work_cancel(&c.queries); }
         work_vector_dispose(&ready);
     }
@@ -604,7 +604,7 @@ export fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork*
     var error: WorkBudgetError;
     var view = entity_view_open_result(c.program.root, &error);
     if view == null { sem_work_resource(c, ready.data[0].subject, error); return 0; }
-    foreach(var result in &ready) { result.context = &context; }
+    for(var job_index: usize = 0; job_index < ready.length; job_index++) { var result = ready.data[job_index]; result.context = &context; }
     var receipt: WorkReservation = default;
     var extra: usize = 0;
     error = sem_workers_admit_result(c, ready.length, &receipt, &extra);
@@ -616,7 +616,7 @@ export fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork*
     // its input lifetime and invalidates the whole wave on dispatch failure.
     if !sem_stage_wave(c, ready.data, ready.length, view, error, ready.data[0].subject, sem_body_stage_cancel) { return 0; }
     var failing = false;
-    foreach(var result in &ready) {
+    for(var job_index: usize = 0; job_index < ready.length; job_index++) { var result = ready.data[job_index];
         if result.resource.error != WorkBudgetError.None {
             sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset);
             return 0;
@@ -626,7 +626,7 @@ export fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork*
         failing ||= result.done;
     }
     if !sem_completion_reserve(c, ready.data, ready.length, failing) { return 0; }
-    foreach(var result in &ready) {
+    for(var job_index: usize = 0; job_index < ready.length; job_index++) { var result = ready.data[job_index];
         if !sem_work_finish(c, result.subject, &result.ticket, !result.done) { return 0; }
         result.ticket = default;
         result.kernel.kind = CompilerKernelKind.Body;
@@ -1963,14 +1963,14 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     defer {
         var staged = false;
-        foreach(var result in &running) { staged ||= result.stage != null; }
+        for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index]; staged ||= result.stage != null; }
         if staged {
             sem_stage_wave(c, running.data, running.length, null,
                 c.program.resource.error == WorkBudgetError.None ? sem_query_error(c) : c.program.resource.error,
                 running.data[0].subject, sem_body_stage_cancel);
         }
         if c.program.resource.error != WorkBudgetError.None { work_cancel(&c.queries); }
-        foreach(var result in &running) { result.context = null; }
+        for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index]; result.context = null; }
         work_vector_dispose(&running);
         work_vector_dispose(&lease_nodes);
     }
@@ -2004,7 +2004,7 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     var error: WorkBudgetError;
     var view = entity_view_open_result(c.program.root, &error);
     if view == null { sem_work_resource(c, running.data[0].subject, error); return 0; }
-    foreach(var result in &running) { result.context = &context; }
+    for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index]; result.context = &context; }
     var receipt: WorkReservation = default;
     var extra: usize = 0;
     var dispatched = sem_workers_admit_result(c, active, &receipt, &extra);
@@ -2015,7 +2015,7 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     if !sem_stage_wave(c, running.data, active, view, dispatched, running.data[0].subject, sem_body_stage_cancel) { return 0; }
     var failing = false;
     var joined_count = c.count;
-    foreach(var result in &running) {
+    for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index];
         if result.resource.error != WorkBudgetError.None {
             sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset);
             return 0;
@@ -2031,9 +2031,9 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     for(var i: usize = 0; i < active; i++) { sem_body_publish(c, running.data[i]); }
     if !sem_ok(c) { return 0; }
     failing = false;
-    foreach(var result in &running) { failing ||= result.error.length != 0; }
+    for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index]; failing ||= result.error.length != 0; }
     if !sem_completion_reserve(c, running.data, active, failing) { return 0; }
-    foreach(var result in &running) {
+    for(var job_index: usize = 0; job_index < running.length; job_index++) { var result = running.data[job_index];
         if result.done && !sem_work_finish(c, result.subject, &result.ticket, result.error.length == 0) { return 0; }
     }
     return active;
