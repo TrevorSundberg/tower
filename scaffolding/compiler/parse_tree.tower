@@ -150,7 +150,8 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
             capture = child.capture;
         }
         if child.entity != null {
-            ok = entity_attach(child.entity, parent, capture);
+            forest.resource_error = entity_attach_result(child.entity, parent, capture);
+            ok = forest.resource_error == WorkBudgetError.None;
             if ok {
                 entity_release(child.entity);
                 child.entity = null;

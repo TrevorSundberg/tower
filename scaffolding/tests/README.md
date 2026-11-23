@@ -1066,6 +1066,9 @@ It uses the serial fault allocator; it does not test production worker overlap.
 The same parser selector checks forest descriptor, child-index and traversal
 storage: exact Capacity/Memory results, observed growth boundaries, preserved
 receipts and entity ownership, then successful retries and final cleanup.
+Attachment trials also require exact Busy for pinned owners, Invalid for self
+attachment, and Memory from a real relationship allocation denial after the
+traversal stack has been prepared, preserving the leaf through every retry.
 Prewarmed match storage exercises forest growth through ordinary and specialized
 recognizers without duplicating a vector's capacity policy.
 

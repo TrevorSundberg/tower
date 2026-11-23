@@ -434,10 +434,11 @@ to its entity store; independent worker units use independent worlds.
 The request's temporary forest binds `runtime.budget` before allocating its
 descriptor, child index or traversal stack. Keep that ledger alive until request
 destruction. `parse_forest_create_result` reports constructor denial directly;
-`parse_forest_resource_error` reports the last leaf/join/attach allocation result.
+`parse_forest_resource_error` reports the last leaf/join/attach result.
 The recognizer preserves those causes through its existing resource-error channel.
-Entity attachment still has a separate boolean failure contract; a `None` forest
-allocation result does not make a failed attachment successful. The legacy
+Attachment retains the entity producer's exact structural admission and allocation
+result before transferring ownership, so pinned or invalid inputs remain distinct
+from physical allocation failure. The legacy
 `parse_forest_create` remains an explicit standalone constructor without a ledger.
 
 UTF-8 and layered recognizer streams work through `parser_recognizer_step`.

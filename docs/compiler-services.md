@@ -52,7 +52,9 @@ the per-call entity result in the request's existing LR control error field.
 Recognizer forests charge their descriptor, child index and traversal stack to
 the runtime world's budget. Their per-call result preserves allocation denials
 through shifts/reductions; the legacy standalone forest constructor uses no ledger.
-Early grammar phases, entity attachment and some candidate allocation outcomes
+Forest attachment also preserves the entity producer's structural admission and
+allocation results before transferring the leaf, including `Busy` and `Invalid`.
+Early grammar phases, other entity attachment callers and some candidate allocation outcomes
 still need complete propagation; the getters do not establish coverage of every
 allocation path.
 
