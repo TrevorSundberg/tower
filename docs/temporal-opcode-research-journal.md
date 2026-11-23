@@ -90725,6 +90725,46 @@ for the limited contract finding, not an asserted native race.
 Receipt docs/browser_worker_boundary_48db0f27.md; raw/source/hash/failed setup
 artifacts B2/worker_boundary_48db0f27. Originald47/73824811 blocked handoff intact.
 ROOT owns production/gate repair and final release. All owned jobs drained.
+### D1 fixed Node execution-coverage reconciliation (2026-11-23)
+
+Frozen published48db0f27b439e9d0c7bb15e6f0c4beb932650e89; PID3138849, same
+D1 thread, clean pull/no surviving owned job. Documentation only: no test,
+compiler build, source census, generation or profile executed. Runtime profiling
+is inapplicable. The audit's new fixed checklist maps all51 original top-level
+Node files to actual O1/O2 TAP and later D1/ROOT/A1/B1/B2/D2/L1 receipts, with
+separate reactor and host/resource identities. A text inventory comparison matches
+all51 exact paths (the first extraction omitted the digit in compiler-utf8;
+corrected the extraction, not the documented inventory). Inputs/snapshot and
+comparison are preserved in build/d1_ecs/node_inventory_48db0f27.
+
+Closed scoped receipts: stack/defer and supported pointer aliases E7; ROOT's
+invocation/world/stage; qualified module completion/hover/lifetime G8 plus A1 IDE;
+both real link assets E7; diagnostic/deep-layout/control-body S3. These are not
+one all-current run. D2's newly published packaging test/producer hashes match:
+synthetic contract1/1 passes; real assets/hosted acceptance remains ROOT. A1's
+six package gates pass but do not execute the full narrow/body LLVM comparisons.
+B1's four ECS failures and D2's full struct reconstruction failure are retained
+with their exact earlier inputs; current owner routing is L2. L1 native alias
+repair needs successor browser adoption and its numeric nominal-wrapper contract
+remains an acceptance decision. A2 owns the valid negation reproducer.
+
+Additional unassigned original failures were not lost: twelve unchanged Node
+files (c-source, compiler-bytes, compiler-entities, compiler-utf8, compiletime,
+default, defer, execution, fast-interpreter, for-loops, foreach, formatter-port)
+have no later Node closure in the available receipts. ROOT must route matching
+artifact/fixture triage; native or related export successes are not substitutes.
+Cross's seven original skips and compiler-workers' eight cases unstarted at
+project initialization remain explicit artifact/acceptance gates. Eight other
+semantic-port framework cases failed under old mixed artifacts and remain
+unstarted on the matching-pair follow-ups; the checklist names every one.
+
+Exact commands/prerequisites distinguish ordinary, cross, shared, package-test
+and real project artifacts. In particular global ordinary LLVM/portable overrides
+must not silently replace cross/shared reactors; some raw loader/eager paths
+require actual final default files. Preserved all assertions, historical logs,
+journal and todo. No implementation or other owner's fixture edit. Checklist is
+fixed at48db; later deltas keep their owner receipts for final adoption, not a
+new expanding audit or automatic whole-file approval. ROOT owns final release.
 ## 2026-11-23 B1 complete native fixed point at48db0f27
 
 Frozen published48db0f27b439e9d0c7bb15e6f0c4beb932650e89/tree
@@ -90930,6 +90970,23 @@ node counts after independent loads (24446 narrow,41227 control) before final
 reference destruction; the recorded final counts are shared-world owners, not
 an unsupported zero-handle/LLVM-store census. No compiler build or deployed
 runtime adoption is implied. All jobs drained before normal main publication.
+D1 publication reconciliation: ff-only pull fetched bda11a9b but correctly refused
+local divergence; normal merge b6f6893b preserves complete1cfd775c/published
+history. Adopted incoming A1 receipt8de9ce72: actual narrow/body LLVM package
+cases and division-zero control each pass on E with c8e1d10b host/resources;
+current selected Node source SHA b6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779
+matches. T4 is scoped closed, not a whole-file/current-compiler pass. A2 b84c6ba7
+has merged22-case/query-smoke native evidence, but the original browser negation
+adoption needs successor reactors. ROOT's two Windows retirement passes preserve
+a different serialized resource identity and do not erase Linux failures.
+
+No new Node execution, build or profiling. The51-file inventory remains fixed;
+only llvm-execution changed among recorded Node/host inputs, while A2's separate
+semantic producer/native fixture registration is outside E. Twelve original
+failing files still lack later Node closure; exact scope, owners, artifact traps
+and next commands are in the fixed D1 table. Original logs, todo and owner files
+preserved; documentation-only performance is inapplicable. ROOT retains final
+changed-input adoption and release.
 D2 dependency-language reconciliation: scoped commitf7fa33c3 merged complete
 publishedbda11a9b without conflict after the required ff-only pull diverged.
 Incoming A2 unary-integer source/fixtures and separate LLVM test changes do not

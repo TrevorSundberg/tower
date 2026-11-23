@@ -4210,3 +4210,181 @@ Wall/CPU/peakKiB respectively6.62/8.30/327416,7.69/9.55/357812 and
 These close only the three named gates on eac plus current mounted sources;
 B1's heavy cases and all other unrun/release gates remain separate. Runtime
 profiling is inapplicable to this documentation-only receipt; no speedup claim.
+
+## Fixed Node execution checklist at 48db0f27 (2026-11-23)
+
+Freeze `48db0f27b439e9d0c7bb15e6f0c4beb932650e89`. This is an execution-receipt
+reconciliation, not a source census or new test run. The original shell glob
+`playground/tests/*.test.mjs` still contains exactly51 files; nested Roku tests,
+`test:ide`, Playwright and generation scripts are separate gates. Saved inventory
+and current input hashes: `build/d1_ecs/node_inventory_48db0f27/`.
+
+**P/F/S/U below mean passed/failed/skipped/unstarted at the named receipt only.**
+No sums across overlapping selections are a clean full-suite result. New reactor,
+host API or imported-resource bytes require affected adoption; a source build,
+filtered test, rejected candidate or native-only success is not a Node pass.
+Pure host/mock receipts may be reused where the producer, data and package lock
+are unchanged. The current diff from the original run changes only compiler-build,
+foundation-storage, llvm-host and tower-host among `src/*.mjs`; all other host
+producers and package locks used by the host-only rows are unchanged. Compiler
+receipts remain tied to their exact executable and resource manifests.
+
+### Evidence keys and identities
+
+Full reactor SHA256 values (short names in the tables are these identities):
+
+| Pair | Portable | LLVM |
+| --- | --- | --- |
+| O, source2013ad28 plus older LLVM | `0b9d22e60d545e82e6079addd6c67e8e6c6ebc607036c5b4a8143ff4aca08bae` | `6ec53230a2d78bf49717139973682f6035174029124c4256875674708bdc50be` |
+| F, sourcef7e764ab0807376025700b2a3176c6f6130e34a8 | `b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42` | `ba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543` |
+| G, source9d9329db3606cbe74c544271ad4b9bb1912a0eec | `13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738` | `bd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac` |
+| E, sourceeac16533ad7169988c53af934ece62e083b39bad | `df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99` | `87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472` |
+
+All later pairs have ROOT's public768 provenance, not an implicit current build.
+Paths below beginning `build/d1_ecs/` are preserved D1 logs/manifests; each has
+actual commands/status, source identities and failed logs. The journal retains
+owner commands and their external receipt locations.
+
+| Key | Exact host/resource boundary and receipt |
+| --- | --- |
+| O1/O2 | `d5b65afee426f2576d44a60f44249010a15ace1d`, pairO; `node_transport_d5b65afe/before.log` (240s interruption) and `remaining.log` (completed continuation), `before_inputs.sha256`. O1 stops after three formatting cases; O2 repeats those three and completes the rest. Shared work artifact `b8a187c629a73845f19584e462034c2c9c58b65e57e80b9971b3d8901e5db67f`; no shared compiler/project/cross artifact. Module-resolution initially used portable5dfa4525, corrected in N. |
+| N | Same freeze plus fc3f52da/69391085 transport/data delta, pairO; `node_transport_d5b65afe/final*`, `final_inputs.sha256`, `final_resources.sha256`, merged17-case check.47/49P,2F; module-scope alias failures not waived. |
+| D | `ce4f7240392b283a2af9d8cf378a359b32aa7dda` plus explicit-import repair, portableO; `diagnostics_imports_ce4f724/`, preceding diagnostic audit above.10 diagnostics plus source-location control P. |
+| F4 | `e0e3530b84472be5ba1bc4e331b74bab4dba01bd` plus8b2bb2d7 fixture/transport delta, pairF; journal “D1 four-file Node language fixtures”,20/22P. Exact unchanged forward/inference/storage blobs reused in E7; pointer source later deliberately corrected by L1. |
+| G4 | `cc21bb4e0df478933ffb4f9ec797020221919374` plus499648cf/b8a14fa3, pairG; `browser_four_cc21bb4e/final*`, Node/resource/export manifests.23/25P; two export fixture failures later closed by R. |
+| G8 | `b3ac7aca41deca72f0944782c9f4a80526fc0256` plus9b0ba0bb/3b3d6ee8, pairG; `browser_eight_b3ac7aca/final*`, `before.log`, final Node/resource manifests. Seven-file87P/3F/1S; four completed semantic-port cases are a separate partial receipt. Four merged transport checks P. |
+| E7 | `bcd0e3abf9bd2d970c771133b95d11990defb02c` plus7f936c33/b90b6f4e, pairE; `adoption_bcd0e3ab/{adoption,final}.*`, host/resource/focused-fixture manifests.7/7 adoption P; final link/template8P/4F. Archive7a2ea4eeb2dd1ff89dcbf35292f709df7682fc75687da4531ff5fb6f2eb9d63e and native Wasmcc8387f92412874691521f841a8d38a33c1ebbe8cd6030bebf5b328cdb6e0d7e actually execute. |
+| S3 | `f25799ccbe62e6ab5b90f61432a7d13c1038e1bc`, pairE; `semantic_light_f25799cc/`, c8e1d10b receipt. Three fresh selections P; host manifest a9378283a1c9fb36ba1c0a93015fc44ad80b614c71ea4786eaecd61659ebd6e1, resources65405ea53d0c8910a6a268ceced9ca645b4cc7c7fdc1dda137c0295dafc7ceb8. |
+| R | ROOT merged578437af source/fixture check, portableE; journal “ROOT portable invocation/resource fixture repair and merged adoption”, ROOT_portable_fixtures_merged_578437af. Exact invocation/world/stage exports3/3P, not merely linked. |
+| LL | D2 `e0e3530b` plus5ce2e0b9/9d466037, pairF; `tower-agent-2/build/d2_ecs/llvm_differential/` original8-case and remaining43-case logs plus focused repairs. Across those scoped receipts48 cases have P and3 resource cases F, not a clean51-case run. Host80be1da99218dca064251c36160d268baa4b3048a501237ff1a73ae860084671; resource manifest9c5364569020c82f028c2e66c817d52d5fccaedbc4a5ec02783ebf4d9b8a5f36. A1's later actual LLVM adoption is LA below. |
+| PK | A1 full IDE/bytecode5-case P on9d source plus package-fixture repair, reactor0be1798cc07be921fb0b6da212064e4f5336fcfef1e3234915b517e7eb006130, input listf8adcaa8adaa314e94ba44a90a03d2fa1617191b257b70b0128efeaca94939bc. Later928764f3 package/map transport, mergedf6c0aec1 reactorab4f2c6c78c578bc5c2cbb982c2ef411eed7c484b8f52eb8b0d083ad55930684:6/6 bytecode gates P, actual normalized32-bit direct/reload/Memory rollback P. Actual narrow/body LLVM differential adoption is LA. |
+| LA, received during publication reconciliation | A1 8de9ce72: sourcec8e1d10b7d08067deb040f3b04783f35b6555f4f plus scoped transport delta, pairE; scaffolding treec74c92ace782fa2994167848fc5d6113e4f0d043, host tree1d2209bbe79671caf9191154e5b4bd21dce5c14c, selected test SHAb6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779. `A1/cache/a1_llvm_cases_c8e1d10b` and journal “A1: actual paired LLVM-Wasm package gates”: narrow integers, resumable control bodies and division zero each1P/0F/0S in fresh processes. Graph/Fast, both LLVM Foundation profiles, prepared/independently loaded packages, canonical and executable LLVM assertions pass. Exact trap remains Division by zero/empty output/offset31. No whole51-case/current-compiler claim. |
+| BP | D2 c8e1d10b plus145bae0a; current packaging test SHAa74681775486341c23960844b28b94415abfed6f60d2e71fbe1dedd91dcf9610 and build.mjs7da1520dfe99e3691c3f762b9e7893e1af2c64b82f88faf751badd82025266fc match. Packager9d257830c23ad71229805950a1d9aefb69ab2a9cbf6f50794f0e0be8d5ec13ef, public768. `tower-agent-2/build/d2_ecs/packaging_c8e1d10b/`:1/1P, synthetic91/78-asset bundles and five negative prerequisite paths; no real reactor execution or hosted release. |
+
+### All51 top-level files
+
+Names below are under `playground/tests/` and end in `.test.mjs`. Original counts
+come directly from O1/O2 TAP, including initialization failures rather than
+invented per-case results. `T` references the finite unpassed worklist below.
+
+| File | Original execution | Latest scoped disposition / remaining action |
+| --- | --- | --- |
+| backend-worlds | O1 1P | Historical export P; final changed compiler adoption only. |
+| bedrock | O1 5P/9F | N14/14P, rejected-install recovery and lifetime assertions intact. |
+| build-packaging | O1 setup F | BP1/1P; D2 synthetic contract closed, real packaging remains ROOT. |
+| bytecode | O1 4P/1S | PK6/6P including formerly skipped export and new map-retention case; T4 distinguishes large LLVM cases. |
+| c-source | O1 6F | No later Node closure located; T8. |
+| comparison | O1 1P | Unchanged host-only producer/data; reuse O1. |
+| compiler-bytes | O1 1P/2F | Buffer differential and reset/provenance remain unpassed; T8. |
+| compiler-entities | O1 1P/3F | Entity/world-view/generic-registry execution failures; store export alone passed; T8. |
+| compiler-threads | O1 2P/1F | Old work-Wasm pool/trap P; shared compiler ENOENT. New browser retirement receipt is not this Node suite; T5. |
+| compiler-utf8 | O1 2P/1F | Utility interpreter/LLVM/canonical comparison unpassed; T8. |
+| compiler-workers | O1 file-init F | Missing project.json, all8 registered cases U; generation success is not these assertions; T6. |
+| compiletime | O1 27P/18F | Sixteen healthy fixture differentials, inference_alias_invalid and parameterized-field chain fail; no matching later Node receipt; T8. |
+| completion-queries | O1 4P | Unchanged mock transport producer/data; reuse O1. |
+| cross-compilation | O1 7S | Six target groups and recoverable-linker case lack execution in this inventory; T7. |
+| data-driven-scanners | O1 3F | N3/3P. |
+| default | O1 6F | No later Node closure located; T8. |
+| defer | O1 5P/1F | Foundation ordinary-identifier case unpassed; T8. |
+| diagnostic-delay | O1 4P | Unchanged timer/mock boundary; reuse O1. |
+| diagnostics | O1 10P | D10/10P with corrected explicit inputs/offsets; later input/host diff does not change this diagnostic transport. |
+| execution | O1 4P/5F | Integer/type-error/pointer/control/edited-rule cases unpassed; T8. |
+| fast-interpreter | O1 7P/6F | Example comparisons P; six inline arithmetic/storage/budget/CFG groups unpassed; T8. |
+| for-loops | O1 4P/1F | Foundation ordinary-identifier case unpassed; T8. |
+| foreach | O1 1P/6F | Only unsupported-protocol negative passed; T8. |
+| formatter-port | O1 3F | Exact token mappings/numeric canonical/trials unpassed; T8. |
+| formatting | O2 5P | Historical portableO P; O1's first3 are duplicate evidence, not extra cases. |
+| forward-references | O2 4F | F4 4/4P; E7 rechecks module binding/order case. Other three retain F4 input identity, not a new E full-file run. |
+| foundation-storage | O2 2P/2F | F4 4/4P; current producer/test/data byte-identical, reactor-independent reuse. |
+| generic-inference | O2 2P/5F | F4 5P/2F; E7 closes stack/defer and corrected pointer alias in all compare modes, also deduction negatives P. Other four retain F4 receipt; no clean new7-case aggregate claimed. |
+| hover | O2 6P | Historical Node transport P; real qualified/array hover also has A1 full IDE PK and G module-scopes evidence. No current missing-hover claim; final test reactor must include exports. |
+| increment | O2 2P/4F | G4 6/6P. |
+| inference | O2 7F | F4 7/7P; E7 module forward/effect-order case P. |
+| interpreter-invocation | O2 1P/2F | G4 same failures; R closes all3 exact export groups (invocation4/8, worlds4/8, stage), portable serial capability correctly selected. |
+| language-service | O2 3P | Unchanged mock worker scheduling/cancellation; reuse O2. |
+| llvm-execution | O2 2P/49F | LL48 scoped P/3F; LA closes narrow/body and rechecks division zero. T3 struct remains unpassed; T4 records scoped closure, not a whole-file current-source run. |
+| module-path-names | O2 2P | Historical P; path inventory/project resources subsequently added, so final changed-input adoption remains necessary. |
+| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; lexical alias/path expectations unchanged. |
+| module-scopes | O2 file-init F | N17P/2F; G8 19/19P, qualified completion plus full repeated-lifetime case now reached, matching LLVM override. |
+| operators | O2 6P | Historical pairO source/canonical/LLVM P; not relabeled current compiler evidence. |
+| output-syntax | O2 8P | Unchanged display-only lexer/dependencies/data; reuse O2. |
+| platform | O2 1P/2F | G8 3/3P. |
+| precedence | O2 1P/5F | G4 6/6P. |
+| projects | O2 6P/2F | G8 8/8P, complete explicit project-root resources. |
+| raw-memory | O2 3P/22F/1S | G8 24P/1F/1S; E7 both missing-asset cases actually P with full linkedOutput, callback/export/import/recovery checks. All26 have scoped P, not one E26-case run. |
+| replacements | O2 2P/8F | G4 10/10P. |
+| semantic-port | O2 2P/17F | G8 first4P, interrupted at entity_pages; S3 three P. B1 four F; eight other framework groups lack matching-pair execution. T2/T9 below; no19-case pass. |
+| source-location | O2 1P | D control P; unchanged host-only location/Unicode inputs. |
+| structs | O2 1P/11F | G8 12/12P; separate LL large struct reconstruction still F, not the same file/gate. |
+| targets | O2 25P | Unchanged host-only capability/selection mocks; reuse O2, not cross-target executable evidence. |
+| templates | O2 8F | G8 6P/2F; E7 independent known/mutable/type-error negatives P; four failures across current registrations (two compositions, invalid bound and valid negation). T1; remaining original six retain G8. |
+| wasi-host | O2 4P | Unchanged host ABI/memory/FS fixture data; reuse O2. |
+| wasm | O2 6P/9F | G8 15/15P with exact revision/offset/provenance/cache/lifetime assertions. |
+
+### Finite unpassed worklist and final-run commands
+
+Use repository-root cwd and Node22.23.5-compatible test options. Before running,
+freeze final host/resources and a **matching** complete artifact set, record
+hashes and provide ordinary eager default paths still used by some callers.
+For scoped ordinary files set absolute `TOWER_TEST_WASM` and
+`TOWER_TEST_LLVM_WASM` to that pair; clear `TOWER_INTERPRETER_ONLY` so LLVM cannot
+be omitted. These are commands for ROOT's final run, **not executed here**.
+
+| ID / owner | Exact unpassed scope and next command / prerequisites |
+| --- | --- |
+| T1 — L1, A2, ROOT adoption | Use the exact templates command below. L1's48499b3a identity-helper fix passes native32/64 and1/4, but E lacks it; use successor reactors. L1 found runtime numeric forwarding into a nominal constructor unsupported, documented in type-values.md: original positive numeric fixture remains unresolved as an acceptance contract, not secretly passed by direct/array substitutes. A2's published b84c6ba7 unary-argument repair and merged44d4dd48 have22-case/query-smoke native passes ([receipt](compiler_integer_arguments_b90b6f4e.md)); exact -(-2) browser adoption still requires successor matched reactors. Leave original fixtures/expected values to those owners. |
+| T2 — L2 reconstruction, ROOT | Four separate cases `entity_pages`, `entity_tables`, `work_graph`, `work_resume`. [B1 receipt](semantic_port_four_bcd0e3ab.md), bcd0e3ab+7cfb6531 transport / pairE, all fail at32-bit unoptimized LLVM Foundation with `Compiler resource request failed`, before reconstructed execution/optimized64/native stages. Original32 Graph/Fast/canonical phases P. Saved canonical input plus incomplete typed-error propagation handoff belongs to L2 now; generic error is not proven Memory/Capacity. Use the per-case command below after producer/diagnostic repair. |
+| T3 — L2 reconstruction, D2 evidence | `node --test --test-concurrency=1 --test-name-pattern='^LLVM matches interpreter: struct values$' playground/tests/llvm-execution.test.mjs`. D2 full source / pairF freeze578437af remains failed/90s incomplete inside unoptimized LLVM Foundation. Small struct_reconstruction_small passes, not a full-case fix. Receipt/source/canonical hashes in journal “D2 bounded struct LLVM Foundation isolation”; input2ce1c260ebe11faeb2dc7524f1e0f239208caf8afc629962b800200e7052f285, canonical2f4602e298b100c6e93dc47798a515c118d12cf42e53da330a7faa88167c2601. |
+| T4 — CLOSED on LA; ROOT final changed-input adoption | LL's narrow/body package failures are superseded by LA's actual end-to-end passes, including independent load/execute. Preserve separately scoped evidence; no extra repeat for unchanged inputs. If final reactor/caller inputs change, selectors are `--test-name-pattern='^LLVM matches interpreter: narrow integers$'` and `'^LLVM matches interpreter: resumable control bodies$'` in llvm-execution.test.mjs, retaining all original profile/output/offset/canonical assertions. |
+| T5 — ROOT/B2 shared retirement and Node adoption | [f167c444 receipt](compiler_shared_browser_f167c444.md): shared compiler8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4, work6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c, resources67561156ce8afa76460323b29d96ea5400603e31dabcf9dc9c080f5cdfea264b. Strict browser retirement repeatedly fails; once-passing rejected candidates/older D2 passes do not close it. Run `TOWER_REQUIRE_THREADS=1 node playground/scripts/test-shared-compiler.mjs /absolute/shared/tower.wasm /absolute/shared/tower-work-tests.wasm REPORT.json`, then the Node compiler-threads file with real matching work/compiler bytes and no skips. Chromium/Playwright and resource manifest must match the accepted repair. |
+| T6 — ROOT/B2 worker artifact adoption | `node --test --test-concurrency=1 playground/tests/compiler-workers.test.mjs`. All8 cases were unstarted at missing build/compiler-project/project.json. Supply final project manifest/resources and build/browser-wasi-llvm/tower-llvm.wasm; this file imports the raw LLVM loader and worker entry, so generic fixture overrides alone are insufficient. Two edited9d generations prove their own script, not these eight output-order/cancel/generic/iteration/vectorization cases. |
+| T7 — ROOT cross artifacts / fixture triage | `env -u TOWER_TEST_LLVM_WASM node --test --test-concurrency=1 playground/tests/cross-compilation.test.mjs`. All7 previously skipped. Supply final build/browser-wasi-llvm/tower-cross.wasm and every targetInputs runtime/link input. The shared fixture loader's LLVM override would otherwise replace the cross reactor with the ordinary LLVM reactor. Current inline object/link/recovery source strings still lack language imports: reconcile their explicit-language boundary when reached, not by treating seven skips as passes. |
+| T8 — ROOT to assign; twelve original files without later Node closure | `node --test --test-concurrency=1 playground/tests/{c-source,compiler-bytes,compiler-entities,compiler-utf8,compiletime,default,defer,execution,fast-interpreter,for-loops,foreach,formatter-port}.test.mjs`. Do **not** silently delegate this to L1/A2's unrelated fixes. Exact failed groups/counts are above and original logs remain O1. These Node files are unchanged since69391085; imported resources/providers have advanced. Observed old failures include implicit-language strings, older LLVM integer_type reconstruction and generic_registry's Tower-owned compiler_buffer_allocation_size provider. Matched-pair/resource adoption and fixture triage are required before classifying current compiler defects. Keep malformed/seed cases deliberate. compiletime has eager Tower stress generation even with a name filter; schedule it on the final capable host. |
+| T9 — ROOT framework scheduling, then relevant producer owner if failing | Eight exact semantic-port cases lack a matching-pair pass: `entity_stage_ownership`, `work_access`, `work_observe`, `compiler_work`, `compiler_batch`, `backend_popcount`, `backend_stack`, `backend_import_constants`. They failed under O's mixed artifacts; were unstarted after the G8 interruption; B1/S3 did not select them. Native fixtures and R's stage export are not these full Graph/Fast/LLVM32/64/canonical checks. Run separately with the command below. |
+
+For each name in T2 or T9, use a separate bounded process; the example selects
+only work_access and cannot enter the other framework cases:
+
+```sh
+TOWER_TEST_PHASES=1 timeout -k 5s 180s node --test --experimental-test-isolation=none --test-concurrency=1 --test-name-pattern='^Tower work_access agrees across graph, fast, LLVM and Foundation text$' playground/tests/semantic-port.test.mjs
+```
+
+For T1 the directly copyable alternation is:
+
+```sh
+node --test --test-concurrency=1 --test-name-pattern='integer type arguments preserve|generic calls bind types|negative unsigned argument|nested integer negation' playground/tests/templates.test.mjs
+```
+
+For the Node part of T5, use `TOWER_TEST_WORK_WASM=/absolute/shared/tower-work-tests.wasm`
+and `TOWER_TEST_WASM=/absolute/shared/tower.wasm`, `TOWER_REQUIRE_THREADS=1`, then
+`node --test --test-concurrency=1 playground/tests/compiler-threads.test.mjs`.
+The eager build/browser-wasi-threads/tower.wasm read must also exist. A portable
+ordinary override is inappropriate for that group. Keep cross/shared overrides
+separate from ordinary selections; a single global pair override over all51 files
+would not identify the reactors intended by those callers.
+
+BP is **closed**, not another unassigned failure: current test/production hashes
+match D2. If final packaging inputs change, its exact command is
+`TOWER_PLAYGROUND_ASSET_PACKAGER=/absolute/public-built/package_playground_assets TOWER_REQUIRE_BACKENDS=1 TOWER_REQUIRE_THREADS=1 node --test --test-concurrency=1 playground/tests/build-packaging.test.mjs`.
+It uses synthetic bytes/notices, never compiler execution. Actual real-asset
+manifest/CNAME/provenance/hosted checks remain ROOT's release gate. Likewise PK
+needs a test reactor exporting ide_package_tests; absence must not turn its
+optional old skip into acceptance. Full IDE/node/build/runtime identities remain
+separate. No additional test, build or profiling ran for this checklist;
+documentation-only runtime performance is inapplicable.
+
+Publication reconciliation is limited to received receipts, not a new freeze or
+census. Normal full-history merge b6f6893b preserves checklist commit1cfd775c
+and incoming published bda11a9b. LA closes T4; A2's native repair advances T1's
+implementation status but not its browser result. Only llvm-execution.test.mjs
+changed among the recorded Node/host inputs; its current hash matches LA above.
+A2's separate semantic_type_values/fixture/registration deltas retain their own
+native evidence and are absent from E's compiler bytes.
+
+ROOT's351f9e9f control adds two strict Windows Chromium159/Playwright1.65.1
+retirement passes with B2's exact frozen compiler/work bytes. It does not close
+T5: Linux failures remain, and Windows serialized resource hash
+97b3a30fdda7482932070c0c0a6b56a077a4d3c1e84efea4ccb48d91686b5bd8 differs
+from B2's67561156 identity. Ordering/serialization equivalence is unproved;
+ROOT's journal records exact verified archive and host boundaries. Preserve both
+outcomes and the outstanding Node compiler-threads/worker gates.
