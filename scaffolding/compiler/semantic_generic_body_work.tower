@@ -1,7 +1,7 @@
 import tower;
 import semantic_context_types;
 import compiler_kernel;
-import generic_body_types;
+import semantic_generic_body_types;
 import semantic_context;
 import semantic_program_types;
 import semantic_declarations;
@@ -21,14 +21,9 @@ extern fn compiler_generic_body_kernel(payload: void*): void;
 extern fn compiler_node_world(node: void*): void*;
 extern fn entity_stage_hold(stage: void*): void;
 extern fn entity_stage_discard(stage: void*): void;
-
-struct SemanticGenericBodyWork {
-    query: usize;
-    kernel: CompilerKernel;
-    ticket: WorkTicket;
-    request: GenericBodyCopy;
-    error: u8*;
-}
+extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_stage_publish_result(stage: void*): WorkBudgetError;
 
 fn sem_generic_body_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
     var message: vector(u8) = default;
@@ -65,7 +60,7 @@ fn sem_generic_body_dispose(c: SemanticContext*): void {
     }
 }
 
-fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
+export fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
     if !sem_ok(c) { return null; }
     var result = sem_generic_body_work(c, subject);
     if result.query != 0 { return result; }
@@ -138,7 +133,7 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize): void {
 
 // One graph-driven executor serves function and type-instance consumers. Clone
 // errors stay on their receipts so the consumer selects its source diagnostic.
-fn sem_generic_copies_execute(c: SemanticContext*): bool {
+export fn sem_generic_copies_execute(c: SemanticContext*): bool {
     if !sem_ok(c) { return false; }
     // A busy entry owns none of the other caller's jobs, stages or graph leases.
     if c.workers.running != 0 {
@@ -204,15 +199,17 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
         }
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
-            result.request.stage = entity_stage_open(c.program.root);
+            var error: WorkBudgetError;
+            result.request.stage = entity_stage_open_result(c.program.root, &error);
             if result.request.stage == null {
-                sem_generic_body_resource(c, result.request.node, WorkBudgetError.Memory);
+                sem_generic_body_resource(c, result.request.node, error);
                 return false;
             }
         }
-        var view = entity_view_open(c.program.root);
+        var view_error: WorkBudgetError;
+        var view = entity_view_open_result(c.program.root, &view_error);
         if view == null {
-            sem_generic_body_resource(c, batch.data[first].request.node, WorkBudgetError.Memory);
+            sem_generic_body_resource(c, batch.data[first].request.node, view_error);
             return false;
         }
         var dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, &batch.data[first], stop - first, extra);
@@ -229,10 +226,12 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
             var request = &result.request;
             var accepted = request.success && request.copied <= generic_body_limit(c.generics);
             if accepted {
-                if !entity_stage_publish(request.stage) {
-                    sem_generic_body_resource(c, request.node, WorkBudgetError.Memory);
+                var published = entity_stage_publish_result(request.stage);
+                if published != WorkBudgetError.None {
+                    sem_generic_body_resource(c, request.node, published);
                     return false;
                 }
+                request.stage = null;
                 generic_body_complete(c.generics, request.node, request.copied);
             } else {
                 entity_stage_discard(request.stage);

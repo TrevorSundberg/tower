@@ -3,6 +3,7 @@ import regex_oracle;
 import mt19937;
 import utility_checks;
 import .library.vector;
+import .library.work_budget_types;
 import .compiler.syntax_types;
 import .compiler.parser_types;
 import .compiler.format_types;
@@ -19,12 +20,14 @@ extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
 extern fn format_dispose(result: FormatResult*): void;
 extern fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): void;
 extern fn regex_compile_tree(root: void*, source: u8*, kind: void*, table: LexerTable*, offset: usize*): u8*;
+extern fn regex_compile_tree_result(root: void*, source: u8*, length: usize, kind: void*, table: LexerTable*, offset: usize*, resource_error: WorkBudgetError*): u8*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): void*;
 extern fn entity_view_open(node: void*): void*;
 extern fn entity_view_close(view: void*): void;
 extern fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize;
 extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn strlen(text: u8*): usize;
 extern fn strstr(text: u8*, part: u8*): u8*;
@@ -147,26 +150,101 @@ fn regex_test_scratch_failures(world: void*): void {
     utility_check(view is not null, "Regex lowering pins its shared input graph");
     defer entity_view_close(view);
     var baseline = tower_test_buffer_count();
-    var success = false;
-    for (var failure: usize = 0; failure < 256 && !success; ++failure) {
+    var construction: usize = 0;
+    {
+        var table = lex_table_create();
+        utility_check(table is not null, "Regex baseline table allocation");
+        var offset: usize = 0;
+        var resource_error = WorkBudgetError.Memory;
+        var calls = tower_test_buffer_allocations();
+        var message = regex_compile_tree_result(parsed.grammar, source, strlen(source), kind, table, &offset, &resource_error);
+        construction = tower_test_buffer_allocations() - calls;
+        utility_check(message is null && resource_error == WorkBudgetError.None && construction != 0,
+            "Regex measured allocation baseline");
+        lex_table_destroy(table);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Regex successful lowering releases scratch and output");
+    for (var failure: usize = 0; failure < construction; ++failure) {
         var table = lex_table_create();
         utility_check(table is not null, "Regex scratch table allocation");
         var offset: usize = 0;
+        var resource_error = WorkBudgetError.None;
         tower_test_buffer_fail_after(failure);
-        var message = regex_compile_tree(parsed.grammar, source, kind, table, &offset);
+        var message = regex_compile_tree_result(parsed.grammar, source, strlen(source), kind, table, &offset, &resource_error);
         tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check(message is null || strstr(message, "allocate") is not null, "Regex scratch failure diagnostic");
-        success = message is null;
+        utility_check(message is not null && strstr(message, "allocate") is not null
+            && resource_error == WorkBudgetError.Memory, "Regex actual allocation failure retains its typed cause");
         lex_table_destroy(table);
         utility_check(tower_test_buffer_count() == baseline, "Regex scratch failure releases all temporary buffers");
     }
-    utility_check(success, "Regex scratch allocation sweep reaches success");
+    {
+        var table = lex_table_create();
+        utility_check(table is not null, "Regex short-span table allocation");
+        var offset: usize = 0;
+        var resource_error = WorkBudgetError.None;
+        var length = strlen(source) - 1;
+        var message = regex_compile_tree_result(parsed.grammar, source, length, kind, table, &offset, &resource_error);
+        utility_check(message is not null && resource_error == WorkBudgetError.Invalid && offset <= length,
+            "Regex rejects a parse span outside the supplied byte count");
+        lex_table_destroy(table);
+        utility_check(tower_test_buffer_count() == baseline, "Regex invalid span releases lowering storage");
+    }
     var after: FormatResult;
     fill(&after, 0, sizeof(FormatResult));
     defer format_dispose(&after);
     format_parser_tree(&after, parsed.grammar, kind);
     utility_check(!after.failed && before.text.length == after.text.length
         && utility_equal(before.text.data, after.text.data, before.text.length), "Regex failure sweep leaves shared parse entities unchanged");
+}
+
+fn regex_test_result_semantic(world: void*, parsed_source: u8*, source: u8*, detail_text: u8*): void {
+    var error: FormatResult = default;
+    defer format_dispose(&error);
+    var length = strlen(source);
+    utility_check(length == strlen(parsed_source), "Regex semantic fixture keeps parse spans unchanged");
+    var parsed = frontend_world_pattern(world, parsed_source, length, &error);
+    utility_check(parsed is not null, "Regex semantic fixture begins with a valid parse tree");
+    defer syntax_pattern_release(parsed);
+    var table = lex_table_create();
+    utility_check(table is not null, "Regex semantic fixture table");
+    defer lex_table_destroy(table);
+    var offset: usize = 0;
+    var resource_error = WorkBudgetError.Memory;
+    var message = regex_compile_tree_result(parsed.grammar, source, length,
+        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
+    utility_check(message is not null && strstr(message, detail_text) is not null
+        && resource_error == WorkBudgetError.None && offset <= length,
+        "Regex semantic rejection is distinct from infrastructure failure");
+    var reference_error: u8* = null;
+    var reference = oracle_regex_compile(source, length, &reference_error);
+    defer lex_table_destroy(reference);
+    utility_check(reference is null && reference_error is not null, "Independent regex oracle rejects the same semantic input");
+}
+
+fn regex_test_result_counted(world: void*): void {
+    var source: u8[3];
+    source[0] = 97; source[1] = 0; source[2] = 98;
+    var length = sizeof(decltype(source)) / sizeof(u8);
+    var error: FormatResult = default;
+    defer format_dispose(&error);
+    var parsed = frontend_world_pattern(world, &source[0], length, &error);
+    utility_check(parsed is not null, "Regex counted NUL fixture parses");
+    defer syntax_pattern_release(parsed);
+    var table = lex_table_create();
+    utility_check(table is not null, "Regex counted NUL table");
+    defer lex_table_destroy(table);
+    var offset: usize = 0;
+    var resource_error = WorkBudgetError.Memory;
+    var message = regex_compile_tree_result(parsed.grammar, &source[0], length,
+        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
+    utility_check(message is null && resource_error == WorkBudgetError.None
+        && lex_table_match(table, &source[0], length, 0) == length,
+        "Regex counted result retains bytes after NUL");
+    message = regex_compile_tree_result(parsed.grammar, &source[0], length,
+        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
+    utility_check(message is not null && resource_error == WorkBudgetError.Invalid
+        && lex_table_match(table, &source[0], length, 0) == length,
+        "Regex rejects a populated output table without changing its accepted input");
 }
 
 fn regex_test_case(world: void*, source: u8*, input: u8*, wanted: usize): void {
@@ -225,6 +303,10 @@ export fn regex_tests(): void {
     var world = compiler_world_create();
     utility_check(world is not null, "Regex world allocation");
     regex_test_scratch_failures(world);
+    regex_test_result_counted(world);
+    regex_test_result_semantic(world, "a+", "a*", "must not match empty input");
+    regex_test_result_semantic(world, "[a-z]", "[z-a]", "Reversed character range");
+    regex_test_result_semantic(world, "\\u{e000}", "\\u{d800}", "Invalid Unicode scalar escape");
     regex_test_case(world, "a|ab", "ab!", 2);
     regex_test_case(world, "a(b?)*", "abbb!", 4);
     regex_test_case(world, "[a-c]+", "abc!", 3);

@@ -1055,6 +1055,14 @@ It checks typed resource denial, ordinary grammar diagnostics, optional uncached
 success, pinned type admission and exact cleanup.
 It uses the serial fault allocator; it does not test production worker overlap.
 
+`tower-frontend-tests RESOURCE_ROOT regex` runs the existing independent regex
+oracle, including 300 generated patterns, 500 arbitrary byte patterns, counted
+NUL input, invalid source spans and output-table state, semantic rejection, and
+an allocation-failure sweep bounded by the successful allocation count. Use the
+native address/thread instrumentation profiles for this selector; parser-only
+builds do not support those profiles. The fault sweep is serial, so use the
+separate frontend-unit checks for real worker overlap.
+
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
 four-unit serial baseline, source programs, exact object comparison and distinct
 worker overlap assertions as `backend-overlap`. It measures the existing serial
