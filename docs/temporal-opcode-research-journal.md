@@ -94813,3 +94813,14 @@ Tower blobs and the audit text remain unchanged. Incoming D2 C/LLVM fixture
 split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba950;
 no source/runtime adoption of those unrelated changes is claimed. Diff checks
 pass; no owned test/build or lock, todo unchanged. Normal main push follows.
+
+L1 counted-byte coverage publication reconciliation: implementation95167e53 and
+complete incoming history through4354581c merged asd1f9298a855f64e689f9f893b0d1217596464106.
+Required ff-only pull refused concurrent divergence; normal merge preserved all
+histories. Incoming D2 C/LLVM driver fixture registrations and independent owner
+receipts do not change this storage selector or its compiler/backend/library/host
+producers; exact scoped blob comparison is empty. Journal and README retain both
+owners' entries. Reuse the four passing CTests at the recorded frozen inputs;
+new unrelated driver cases are not claimed tested here. Diff checks pass, no
+owned build/test remains, todo unchanged. No broad rerun or deployment; normal
+main push follows.
