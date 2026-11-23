@@ -1,0 +1,35 @@
+import tower;
+
+// O2 folds these explicit target-address comparisons to ordered LLVM ptr icmp.
+// Foundation must reconstruct the integer operands, not add pointer operators.
+export fn address_order(left: u8*, right: u8*): u32 {
+    var a = bits(usize, left);
+    var b = bits(usize, right);
+    return convert(u32, a > b) + convert(u32, a >= b) * 2
+        + convert(u32, a < b) * 4 + convert(u32, a <= b) * 8
+        + convert(u32, a == b) * 16 + convert(u32, a != b) * 32;
+}
+
+fn observed(trace: u32*, digit: u32, value: u8*): u8* {
+    *trace = *trace * 10 + digit;
+    return value;
+}
+
+var data: u8[4] = default;
+var first = &data[0];
+var last = &data[sizeof(decltype(data)) - 1];
+var trace: u32 = 0;
+var ordered = address_order(observed(&trace, 1, first), observed(&trace, 2, last));
+if ordered != 44 || trace != 12 || address_order(last, first) != 35
+    || address_order(first, first) != 26 { trap("Pointer ordering/effects changed", 0); }
+
+// Raw address values are compared, never dereferenced; the sign bit must remain
+// unsigned under both explicit target profiles.
+var maximum = ~convert(usize, 0);
+var high = bits(u8*, maximum / 2 + 1);
+var low = bits(u8*, convert(usize, 1));
+if address_order(low, high) != 44 || address_order(high, low) != 35
+    || address_order(high, high) != 26 || address_order(null, low) != 44 {
+    trap("Target-width unsigned pointer ordering changed", 0);
+}
+print(0);

@@ -40,6 +40,19 @@ add_test(NAME tower-backend-source-recheck COMMAND tower-backend-source-tests
 set_tests_properties(tower-backend-source-recheck PROPERTIES WORKING_DIRECTORY "${source_workdir}"
   TIMEOUT 180 LABELS "native;backend;focused")
 
+foreach(pointer_bytes IN ITEMS 4 8)
+  foreach(workers IN ITEMS 1 4)
+    set(pointer_test "tower-backend-pointer-order-${pointer_bytes}-${workers}")
+    add_test(NAME "${pointer_test}" COMMAND tower-backend-source-tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" "${source_runtime}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_pointer_order.tower"
+      "${source_workdir}/pointer_order_${pointer_bytes}_${workers}.tower" "${pointer_bytes}" "${workers}" optimized)
+    set_tests_properties("${pointer_test}" PROPERTIES WORKING_DIRECTORY "${source_workdir}"
+      TIMEOUT 180 LABELS "native;backend;focused")
+  endforeach()
+endforeach()
+
 # Same session provider with the existing single-owner allocation-denial seam.
 get_property(response_runtime GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
 set(response_input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_response_tests.tower")
