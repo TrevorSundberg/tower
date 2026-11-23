@@ -211,14 +211,19 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
 }
 
 export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): Entity* {
+    var storage_error: WorkBudgetError = WorkBudgetError.None;
+    return compiler_clone_tree_result(source, limit, copied, &storage_error);
+}
+
+// Capacity and allocation failure are distinct from the caller's node quota.
+// Sources outside a compiler world retain the explicit standalone boundary.
+export fn compiler_clone_tree_result(source: Entity*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): Entity* {
     var remaining = limit;
-    // Legacy synchronous module copies still have fatal allocation callers.
-    // Keep this boundary explicitly unbudgeted until those callers propagate
-    // capacity failure; this is never a fallback after a denied reservation.
-    var scratch: CloneStack = default;
+    var scratch: CloneStack = { budget: compiler_world_work_budget(compiler_node_world(source)), ..default };
     defer work_vector_dispose(&scratch.frames);
     var result = compiler_clone_branch(source, &remaining, null, null, null, null, null, null, &scratch);
     *copied = limit - remaining;
+    *storage_error = scratch.error;
     return result;
 }
 

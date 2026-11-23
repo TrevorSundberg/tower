@@ -11,10 +11,12 @@ import foundation_types;
 import format_types;
 import inspection_policy;
 import .library.vector;
+import .library.work_budget_types;
 
-extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
+extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
 
 fn generic_step(a: GenericAnalysis*, depth: usize): bool {
+    if a.storage_error != WorkBudgetError.None { return false; }
     if depth >= InspectionDepthLimit {
         a.truncated = true;
         return false;
@@ -467,6 +469,7 @@ fn generic_expression_result(a: GenericAnalysis*, source: void*, copy: void*, de
 }
 
 fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: void*, depth: usize): void {
+    if a.storage_error != WorkBudgetError.None { return; }
     node = generic_unwrap(node);
     var eligible = sem_is(node, "CoreBinary");
     if sem_is(node, "TowerExpression") {
@@ -482,10 +485,10 @@ fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: voi
         return;
     }
     var copied: usize = 0;
-    var clone = compiler_clone_tree(node, a.budget, &copied);
+    var clone = compiler_clone_tree_result(node, a.budget, &copied, &a.storage_error);
     a.budget = a.budget - copied;
     if clone == null {
-        a.truncated = true;
+        if a.storage_error == WorkBudgetError.None { a.truncated = true; }
         return;
     }
     if generic_expression_seed(a, node, clone, depth) {
@@ -523,9 +526,10 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         return;
     }
     var next = depth + 1;
-    for(var i: usize = 0; i < sem_child_count(node); i++) {
+    for(var i: usize = 0; i < sem_child_count(node) && a.storage_error == WorkBudgetError.None; i++) {
         generic_value_walk(a, sem_child(node, i), next);
     }
+    if a.storage_error != WorkBudgetError.None { return; }
     var info = generic_info(node, a.component);
     if info != null {
         var reference = info.kind == GenericInfoKind.Variable;
