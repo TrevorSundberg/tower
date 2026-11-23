@@ -47907,3 +47907,81 @@ this establishes before behavior, not an optimization result or real overlap
 proof. All jobs drain before returning the host lock to L1. The implementation,
 physical receipt denial checks, current worker transport, paired after profiles,
 final instrumentation and public release remain outstanding.
+
+### L2 first physical clone-stack implementation and paired evidence
+
+Implement one private CloneStack with work_vector(CloneFrame), borrowed budget and
+fixed WorkBudgetError. Preserve the initial16-frame capacity. Each branch clears
+length while retaining capacity; growth reserves old plus replacement physical
+storage, preserves the old owner on denial and reacquires its frame pointer.
+The job disposes scratch before returning. GenericBodyCopy freezes the world
+binding coordinator-side and returns a typed storage error. Header cloning uses
+its context root's budget. Existing node limits, provenance, stage holds, input
+pins, graph tickets and coordinator publication ordering remain unchanged.
+The public synchronous tree-clone boundary is temporarily still explicitly
+unbudgeted while its module callers receive fallible propagation; root00:50
+requires closing that gap before completion. This intermediate receipt is not
+whole-compiler memory acceptance.
+
+Dependencies are the exact four WorkBuffer/WorkVector library files and four
+fixtures from A2v4 (including the single data-only type split), B2's allocation
+size/alignment helper07e634, and D2's direct defining imports. v4 already contains
+one fixture import, so whole D2 patch-check fails; add only five missing imports,
+preserving the existing one. No library algorithm changes. The first coherent
+build then fails on a missing direct compiler_node_world declaration in L2's
+coordinator unit; drain25604, add its existing opaque declaration and preserve
+clone_after_missing_world_* logs. Smallest generics/fixture already passed.
+No half-ABI runtime follows that failure.
+
+The corrected public-pin build produces compiler37db021e669fd66d089d8858a0aa59dda1d53de081b687b4eb5fdfcc398bddef,
+serial storage6b4c0d59, LR72f68e32 and execution9f6268a1. Coherent native rebuild
+31.24s wall/21.72s CPU/790496KiB RSS passes, followed by all three runner builds,
+three complete storage runs and query-smoke at both widths/worker settings.
+Wide256x1 kernel allocations fall1038 to783 (exact255 redundant stack allocations
+removed); deep1x600 remains2434. Both bound/unbound outputs and exact provenance
+pass. Physical stack peak is416 bytes for wide and36928 bytes for deep, including
+replacement overlap and compiler headers. Saturating the remaining ledger after
+initial-capacity admission fails exactly at16 cloned nodes with Capacity; injected
+first heap failure returns Memory. Both discard their stage, preserve node and
+component counts and release every frame grant. Storage after runs are
+0.22/0.21/0.20s wall,0.22/0.21/0.20s CPU,93888/93964/93844KiB; these now include
+additional bound/failure cases and are not equivalent suite-speed comparisons.
+
+Run a frozen paired end-to-end campaign on this host with LLVM19.1.1, default
+native compiler profile, --interpret --timings, workers1/4, identical complete
+before-package source/resources, one/eight demanded240-statement specializations.
+One warmup pair plus three retained balanced pairs per case gives32 checked runs
+(8warmup/24retained), all exact ordinary-loop-oracle outputs. Eight Foundation
+emissions are byte-identical before/after and across workers. Fresh processes
+reuse filesystem cache; no cold-cache claim. Median wall/CPU/RSS values:
+
+| Specializations / workers | Before wall / CPU (s) / RSS (KiB) | After wall / CPU (s) / RSS (KiB) |
+| --- | --- | --- |
+| 1 / 1 | 1.48 / 1.49 / 172568 | 1.45 / 1.49 / 172132 |
+| 1 / 4 | 1.22 / 1.52 / 190956 | 1.21 / 1.51 / 191820 |
+| 8 / 1 | 1.49 / 1.53 / 180752 | 1.46 / 1.50 / 180696 |
+| 8 / 4 | 1.27 / 1.60 / 203848 | 1.22 / 1.57 / 204096 |
+
+Retain the before-large4worker1.96s wall/1.65CPU sample and after-smallserial
+1.68s/1.70CPU sample; neither is removed. These small differences do not establish
+a general speedup. Approximately1.2x current four-worker wall scaling carries
+higher CPU/RSS, and CLI timings do not alone prove clone overlap. Exact allocation
+reduction is stronger evidence for this scoped bottleneck. All source/package
+hashes remain fixed. Logs/scripts are clone_profile_*, clone_canonical_* and
+clone_after_* in L2; complete type suite is still running at this entry. Real
+clone-worker overlap/cancellation, synchronous module-denial propagation,
+latest shared-owner integration, final sanitizer/bootstrap/publication remain open.
+
+Complete types passes on the same frozen37db compiler in53.44s wall/63.09s CPU/
+408292KiB RSS, preserving constructor errors, target widths, graph/cache/canonical
+reconstruction and worker determinism. Sessions11454/26734/68140 all drain0 before
+host release. The eight adopted library/fixture files compare byte-for-byte after
+line-ending normalization with A2's newer canonicalv5 package b8b0c9b7; no further
+library change is needed. v5's owner instrumentation/WASI receipts are library
+scope only, not instrumentation of this compiler clone change.
+
+Staged whitespace validation rejects one extra terminal blank line in the newly
+imported work_vector file; remove only that blank line before committing. This
+is a whitespace-only difference from the tested raw source hash, not a new
+allocator algorithm or a relabeled exact-build receipt. Final clean merged builds
+will establish the release source identity; all measured pre-trim hashes remain.

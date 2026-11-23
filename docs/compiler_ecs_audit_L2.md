@@ -593,3 +593,25 @@ wide256x1 measures1038 total kernel allocation calls and deep1x600 measures2434.
 Four one/eight-specialization CLI runs at workers1/4 match the independent loop
 reference. Earlier import/opaque-interface fixture errors are preserved in the
 journal. Production clone code remains unchanged; this is the before receipt.
+
+## First clone stack implementation receipt
+
+A private typed WorkVector now survives sibling branches, while each branch keeps
+its ordered source/destination/index state and clears length on return. Physical
+stack storage borrows the frozen root budget and returns a fixed resource error;
+coordinator stage/ticket order is unchanged. Wide256node kernel allocation count
+falls1038 to783; deep600 remains2434. Bound peaks416/36928 bytes include replacement
+overlap. Exact denied growth, allocation failure, partial counts, no publication
+and zero retained grants pass serial storage. Public-pin coherent compiler37db,
+query smoke and complete type suite pass. Thirty-two paired reference-output runs
+and eight canonical comparisons pass, with small/noisy end-to-end differences
+recorded in the journal. These are scoped measurements, not all-core proof.
+
+The shared data-only WorkBuffer/WorkVector definitions and four library fixtures
+match A2v5 after newline normalization; the only host addition is the established
+B2 allocation-size/alignment contract. No nominal type, interpreter result or
+Foundation storage identity changes. The public synchronous clone helper remains
+explicitly outside the first cap pending fallible module-cache propagation;
+root requires closing this before acceptance. Real clone-worker overlap/cancel,
+merged resource-error handling, supported compiler instrumentation and leased
+public-bootstrap/deployment closure remain active work.

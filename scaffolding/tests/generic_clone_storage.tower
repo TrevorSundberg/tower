@@ -2,12 +2,15 @@ import tower;
 import .compiler.generic_body_types;
 import .compiler.format_api;
 import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
 import storage_api;
 import utility_checks;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 extern fn entity_release(node: void*): usize;
@@ -33,6 +36,11 @@ extern fn generic_origin(context: void*, node: void*): void*;
 extern fn generic_definition(context: void*, node: void*): void*;
 extern fn compiler_generic_body_kernel(payload: void*): void;
 
+var GenericCloneBudgetBytes: usize = 131072;
+var GenericCloneInitialFrames: usize = 16;
+var GenericCloneFrameWords: usize = 3;
+var GenericCloneHeaderWords: usize = 4;
+
 fn generic_clone_number(value: usize): void {
     var text: FormatResult = default;
     defer format_dispose(&text);
@@ -55,10 +63,16 @@ fn generic_clone_child(store: void*, parent: void*, label: u8*, role: u8*, start
 
 // The production registry and deferred-header API create the actual instance.
 // Only fixture syntax is synthetic; no second clone implementation is compared.
-fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool, short_limit: bool): void {
+fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool, short_limit: bool,
+    budgeted: bool, deny_growth: bool): void {
     var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
     var world = compiler_world_create_workers(1);
     utility_check(world != null, "Clone fixture world");
+    if budgeted {
+        utility_check(work_budget_init(&budget, 1, GenericCloneBudgetBytes, 1)
+            && compiler_world_bind_budget(world, &budget), "Clone world freezes its physical budget");
+    }
     var store = compiler_world_store(world);
     var root = entity_create(store);
     utility_check(root != null, "Clone fixture root");
@@ -90,7 +104,13 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
     utility_check(stage != null && view != null, "Clone fixture stage and input view");
     var count = width * depth;
     var request: GenericBodyCopy = { context: context, node: instance, stage: stage,
-        limit: short_limit ? count - 1 : count, ..default };
+        limit: short_limit ? count - 1 : count, budget: budgeted ? &budget : null, ..default };
+    var occupied: WorkReservation = default;
+    if deny_growth {
+        var first = (GenericCloneInitialFrames * GenericCloneFrameWords + GenericCloneHeaderWords) * sizeof(usize);
+        utility_check(work_budget_reserve(&budget, 0, 0, GenericCloneBudgetBytes - first, &occupied),
+            "Clone growth test leaves room for exactly the initial stack");
+    }
     var started = tower_test_buffer_allocations();
     if fail_allocation { tower_test_buffer_fail_next(); }
     compiler_generic_body_kernel(bits(void*, &request));
@@ -98,13 +118,17 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
     var allocations = tower_test_buffer_allocations() - started;
     entity_stage_hold(stage);
     entity_view_close(view);
-    if fail_allocation || short_limit {
-        utility_check(!request.success && request.copied == (fail_allocation ? 0 : count - 1), "Clone failure reports exact partial count");
+    if fail_allocation || short_limit || deny_growth {
+        var copied = fail_allocation ? 0 : deny_growth ? GenericCloneInitialFrames : count - 1;
+        var error = fail_allocation ? WorkBudgetError.Memory : deny_growth ? WorkBudgetError.Capacity : WorkBudgetError.None;
+        utility_check(!request.success && request.copied == copied && request.storage_error == error,
+            "Clone failure reports exact partial count and distinct resource error");
         entity_stage_discard(stage);
         utility_check(entity_child_count(destination) == 0 && entity_store_count(store) == nodes
             && entity_store_component_count(store) == components, "Failed clone publishes no children or retained payloads");
     } else {
-        utility_check(request.success && request.copied == count && entity_stage_publish(stage), "Clone success publishes exact node count");
+        utility_check(request.success && request.copied == count && request.storage_error == WorkBudgetError.None
+            && entity_stage_publish(stage), "Clone success publishes exact node count");
         generic_body_complete(context, instance, request.copied);
         utility_check(!generic_body_pending(context, instance) && entity_child_count(destination) == width, "Clone publication marks instance ready");
         for(var branch: usize = 0; branch < width; branch++) {
@@ -127,14 +151,28 @@ fn generic_clone_storage_trial(width: usize, depth: usize, fail_allocation: bool
         generic_clone_number(width); generic_clone_number(depth);
         generic_clone_number(request.copied); generic_clone_number(allocations);
     }
+    if budgeted {
+        var released: WorkBudgetSnapshot = default;
+        utility_check(work_budget_snapshot(&budget, &released) && released.used_bytes == occupied.bytes
+            && released.live == (occupied.active ? 1 : 0) && released.peak_bytes <= released.bytes,
+            "Clone scratch is retired before publication result cleanup");
+        if occupied.active { utility_check(work_budget_release(&budget, &occupied), "Release clone test occupancy"); }
+        puts("Generic clone physical budget: peak bytes including replacement overlap");
+        generic_clone_number(released.peak_bytes);
+    }
     entity_release(root);
     utility_check(compiler_world_dispose(world), "Clone fixture world teardown");
+    if budgeted { utility_check(work_budget_dispose(&budget), "Clone budget outlives the world"); }
     utility_check(tower_test_buffer_count() == buffers, "Clone fixture releases all allocations");
 }
 
 fn generic_clone_storage_tests(): void {
-    generic_clone_storage_trial(256, 1, false, false);
-    generic_clone_storage_trial(1, 600, false, false);
-    generic_clone_storage_trial(16, 2, false, true);
-    generic_clone_storage_trial(16, 2, true, false);
+    generic_clone_storage_trial(256, 1, false, false, false, false);
+    generic_clone_storage_trial(1, 600, false, false, false, false);
+    generic_clone_storage_trial(16, 2, false, true, false, false);
+    generic_clone_storage_trial(16, 2, true, false, false, false);
+    generic_clone_storage_trial(256, 1, false, false, true, false);
+    generic_clone_storage_trial(1, 600, false, false, true, false);
+    generic_clone_storage_trial(1, 600, false, false, true, true);
+    generic_clone_storage_trial(16, 2, true, false, true, false);
 }
