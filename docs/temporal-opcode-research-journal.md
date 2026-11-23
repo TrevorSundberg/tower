@@ -93805,3 +93805,5 @@ A shell-quoting failure during that hash bookkeeping did not run a compiler/test
 or alter binaries; the native file hashes above were independently recomputed.
 Owned jobs drained, no new runtime deployment; remaining Wasm/other-input limits
 are unchanged. Normal source publication follows with all prior histories intact.
+
+L1 final reconciliation preserved L2's pointer-return repair74ccfb00 as merge `4bbde387421c78c90542f968a9e69532d7d7e2ca`. Capture/query/compiler sources are identical to validated2a5477be. CLI Fast does consume LLVM reconstruction, so only its changed backend leaf was rebuilt (10.90wall/8.20CPU/486972KiB); the existing canonical capture controls still print0 through Fast at32/64 bits. Final native SHA256 `4835472aba256980e4719cdda87956e8495cb8d97129f91219b5d6b211f5d2e2`; semantics remains c131e34c. No unrelated backend corpus or unchanged capture matrix was repeated. Exact source/binary boundary and logs are in `header_capture_receipt.json` / `logs/header_capture_backend_adoption`; owned jobs drained, normal publication pending.
