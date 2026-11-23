@@ -83276,3 +83276,13 @@ only. Existing n1 profiles remain evidence for the frozenb9f2-to-d911 inputs,
 not attribution of concurrently merged owners' changes. Current services/handoff
 paragraphs now reflect the removed inference gate and retain historical receipts.
 No new sanitizer, browser, bootstrap or deployment claim. Normal main push follows.
+
+A1 inferred push retry1: published D1 dependency-fixture history5b05d6bb merged
+as6e070e4f; production inputs unchanged. Two LR-harness build actions and query
+smoke pass. The new dependency-units selector also passes imported helpers,
+forward decltype/comptime, lazy executed branches, byte-identical serial/parallel
+Foundation and ordered cycle errors. Success observes four distinct overlapping
+threads at workers4 (outer_peak4); this is overlap evidence, not a new scaling
+claim. Logs A1/cache/a1_inferred_retry1_*. Session28371 reaped0; no active jobs.
+Unchanged production profiling/control/canonical receipts reused. Normal push
+retry follows; no release-gate attribution to these test-only merges.
