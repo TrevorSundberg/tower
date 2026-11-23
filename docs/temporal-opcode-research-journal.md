@@ -88632,3 +88632,24 @@ exactly12 current ledger rows, byte-identical historical ledger suffix and
 whitespace. One metadata-read helper used a .NET API unavailable in Windows
 PowerShell; corrected to supported ProcessStartInfo.Arguments without executing
 runtime code. No source/test/WIP/todo edit or sanitizer retry. Named stash retained.
+
+L2 merged adoption for the declaration-call correction: full-history merge
+5b023f63 retains22167104 and published9d9329db, including A1's64450fc1 inspection
+preparation and52895b4f LR worker policy. The five audited producer/caller files
+are byte-unchanged. A1's new preparation explicitly uses sem_declaration_discover
+before sem_declarations_execute; it does not bypass this prerequisite. Rebuilt
+only affected dependencies of the existing native/storage targets (13 actions,
+67.34wall/92.63CPU seconds/1063844KiB). Merged storage/native/query selections pass,
+source/status0, empty stderr:2.82/2.51/179400,6.04/5.73/218632,
+0.38/0.36/86660 (wall/CPU seconds/RSS KiB). Query production allocator records
+actual intersecting four-worker clone intervals, separate from serial counting.
+
+Final fixture-only iteration derives its case bound from the actual bool input
+array. An attempted borrowed foreach on a raw fixed array was correctly rejected
+by the public compiler; the failed log is preserved, and a counted loop with
+sizeof(array)/sizeof(element) is used. No runtime/provider inputs changed in this
+last edit. Test objects/links rebuilt4 actions in15.49wall/20.28CPU/458204KiB;
+final serial storage2.95/2.64/179424 and native1/4 combined6.35/6.01/220732 pass,
+including zero retained buffers. Unchanged merged query-smoke evidence is reused.
+Final manifests/logs are declaration_calls_final1*, with previous failed attempts
+preserved. No broad matrix repeated and no runtime optimization claimed.

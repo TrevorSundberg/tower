@@ -78,15 +78,19 @@ fn declaration_call_checks(root: u8*, workers: usize): void {
     defer vector_dispose(&bedrock);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    var failures: bool[2];
+    failures[0] = true; failures[1] = false;
+    var cases = sizeof(decltype(failures)) / sizeof(bool);
     for(var width: u32 = 4; width <= 8; width += 4) {
-        for(var mode: usize = 0; mode < 2; mode++) {
+        for(var index: usize = 0; index < cases; index++) {
+            var failure = failures[index];
             var first: vector(u8) = default;
             var second: vector(u8) = default;
             defer vector_dispose(&second);
             defer vector_dispose(&first);
-            declaration_call_trial(root, bedrock.data, foundation.data, 1, width, mode == 0, &first);
+            declaration_call_trial(root, bedrock.data, foundation.data, 1, width, failure, &first);
             if workers > 1 {
-                declaration_call_trial(root, bedrock.data, foundation.data, workers, width, mode == 0, &second);
+                declaration_call_trial(root, bedrock.data, foundation.data, workers, width, failure, &second);
                 units_check(first.length == second.length, "Discovery serial/parallel output length");
                 for(var i: usize = 0; i < first.length; i++) {
                     units_check(first.data[i] == second.data[i], "Discovery serial/parallel canonical and diagnostic bytes");
