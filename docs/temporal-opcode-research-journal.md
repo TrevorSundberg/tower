@@ -91732,3 +91732,12 @@ The cross main/language closure remains unchanged. Preserve that mismatch log;
 reuse scoped execution without claiming the entire later registry was rerun.
 Incoming five Node files/owner receipts are outside this assignment. No repeated
 tests, compiler builds or owner edits; final joined release stays ROOT-owned.
+
+D2 two-case publication reconciliation: receipt50f1170f merged complete47433acf
+history after the required ff-only pull diverged. Later nominal-wrapper producers,
+fixtures and D1 cross checks are excluded from the frozen eac result. Selected
+WorkGraph/language/host imports and two Tower fixtures are unchanged. The incoming
+semantic-port line saves a returned LLVM error JSON before assertion; our calls
+never returned, so it cannot provide missing error/timing evidence retroactively.
+Original test hash/logs retained; no rerun or passing claim for that later source.
+All jobs drained, todo unchanged; normal source push follows, ROOT owns release.
