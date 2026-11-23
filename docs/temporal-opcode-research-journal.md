@@ -81932,3 +81932,81 @@ dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
 oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
 or broad matrix; the committed receipts and earlier remaining-gap list retain
 their precise scopes. Normal push includes both complete histories and journals.
+## 2026-11-23 L2 known-work and capture admission closure
+
+Bounded continuation after84e919eb, CLI PID21628, main only. Initial required
+pull was current; surviving WSL23336 belonged to L1's separate cache. The first
+successful work audited actual known-work/source-proof/capture producers and
+caller contracts against type-values, computed-type-arguments and the threading
+handoff. No goal, agents, inbox loop, todo edit or hosted deployment.
+
+Implemented checked kind/component/job/vector/query admission in
+semantic_known_work, known inference's proof/input/snapshot consumers, capture
+metadata and source-binding proof metadata. Component lists now use the existing
+world-owned kind index; no redundant archetype plan allocation just to copy it.
+Completed prefixes return without allocating a new dispatch vector. Admission
+records the first typed cause and cancels partial graph work before retry can
+observe it. Joined waves retain each settled terminal receipt; a subsequent graph
+failure cannot replace an earlier worker cause. Worker contexts and private
+outputs retire after joining. Required/optional evaluation policy, declaration
+and frame identity, mutation/escape proofs, lazy executed branches and existing
+interpreter execution remain unchanged. No recursive dependency completion or
+separate evaluator was added.
+
+Source proofs reserve every declaration payload first, validate extension writes,
+finish their exact proof ticket, then publish facts. Default partial components
+have no query and are hidden from consumers. Capture inputs publish only after
+the capture ticket finishes; optional known producers on the same declaration
+are preserved. Nullable initializer admission uses sem_declaration_state_result
+and a checked sem_expression_add_result with the existing compatibility wrapper.
+Direct guards in semantic_statements and semantic_lowering_work stop/discard an
+unadmitted capture wave. ROOT execution/constructor/type-value guards, A1 lifecycle
+frontiers and A2 stage hold/publish transitions were not edited by this lane.
+
+Validation used the existing dependency-aware native target set (towerc,
+tower-lr-work-tests,tower-storage-tests), parallel2, WSL Orchestral-Revng Linux
+x64, affinity4-7, 4GiB virtual-memory ceiling, one runtime at a time. New existing
+storage fixtures cover source/capture admission, joined proof publication and
+pre-dispatch denial at widths4/8. Serial allocator sweeps derive actual call
+counts; physical Capacity, Busy and exhausted IDs retain exact causes and offset,
+query identity/no readiness, no replay or replacement of first error, and complete
+buffer/world/budget retirement. Worker lexical scratch is outside fault injection.
+Existing query-smoke covers source-proof suspension, aliases/writes/escapes,
+lazy dependencies, source-order publication failures and serial/threaded staging.
+
+Failures retained under L2/logs/semantic_admission_known_capture0..2: first two
+build attempts exposed missing opaque entity declarations and an incompatible
+void* versus existing u8* return declaration in the storage fixture. Production
+semantic objects built. Attempt2 passed storage, then query-smoke rejected an
+unconditional cancellation that replaced already-settled Failed receipts with
+Cancelled. Removed that redundant cancellation; admission/graph failure still
+cancels, while joined peers retain exact outcomes. These failed attempts are not
+passes. Final known_capture3/session18203 passed build, full storage, query-smoke,
+empty stderr and frozen-source checks. Build30.02wall/23.37CPU seconds/774200KiB;
+storage.28/.22/97928; query.21/.23/75116. All owned jobs drained.
+
+Minimal checked comparison18792 reused immutable constructor/evaluation compiler
+1a50488772b586ba6e2f951fab03d2467e8718ef1cbe13a7658358ba9a9de508;
+after e40934490e5d4bf365a473e08d34ed254d9c846ab5b75f61d6de03e5d1aa80f2.
+The same executable path, frozen baseline resource tree and unchanged constructor
+fixture (bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071)
+were used with --interpret --jobs1/4, one alternating pair per worker count.
+All four exact0 outputs, empty stderr and source/input/resource hashes passed.
+Wall/CPU seconds/peakRSS KiB: serial1.45/1.45/180160 ->1.45/1.43/179872;
+parallel1.25/1.53/199400 ->1.26/1.54/199368. The +.01s parallel wall/CPU is
+reported, not called speedup or neutrality. n1 process samples are a small
+regression screen, not scaling evidence; retained baseline predates the later
+ROOT/A1/A2 integration, so this comparison is not causal attribution to L2 alone.
+Raw manifests, times and environment remain under L2/known_capture_pair* and logs.
+
+Remaining exact admission gaps: semantic_known_kernel/semantic_source_binding_kernel
+lexical name/table/traversal/candidate/mutation scratch remains assertion-based;
+sem_capture_clone_range and ordinary control/aggregate projection/cloned-alias
+synthesis retain legacy allocation paths. Non-constructor declaration compatibility
+callers and other body/lowering preparation producers retain assertions. Capture
+range stage leases and stage ownership belong to A2; lifecycle orchestration to
+A1; executable admission and immediate constructor/type-value guards to ROOT.
+These are pending, not passed. Full sanitizer/thread stress/scaling, canonical
+bootstrap/browser/generation and hosted release verification remain ROOT's
+integrated milestone. Normal main integration/push follows this coherent batch;
+merged-input evidence is recorded separately without relabeling this measurement.
