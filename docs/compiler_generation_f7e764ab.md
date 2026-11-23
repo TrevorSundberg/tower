@@ -134,3 +134,13 @@ outputs remain exact. No generation build warning/error or byte comparison faile
 Public pin adoption, later-source composition, integrated instrumentation,
 browser and hosted verification remain ROOT-owned and pending. The independent
 A1/L2 defects are not marked resolved by this native fixed point.
+
+Publication reconciliation preserved incoming e0e3530b history through merge
+95c33836307f23150073f3e96a2932a880542db0. That history changes compiler completion,
+grammar metadata, LR/worker policy, semantic modules and provenance, plus tests
+and browser work. Those inputs postdate the explicit f7e764ab freeze: this
+candidate and its manifests remain unchanged and do not validate the merged
+compiler. Only this receipt/journal differ from the incoming branch on behalf
+of B1; no new generation build is claimed. ROOT must select or validate the
+later composition before public adoption. The frozen candidate's complete
+comparison and relocated verification remain evidence for f7e764ab only.

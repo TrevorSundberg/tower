@@ -88306,3 +88306,13 @@ Node jobs drained. Reused the unchanged49-case and relative-path receipts;
 remaining broad failures are preserved, not waived. Normal main push follows.
 
 B2 normal push recovery: preserved incoming69391085 in merge381fc109 after one fetch-first rejection. Changes are browser transport/tests/docs only, outside the affected native closure; reused unchanged e292754d native checks and frozen d5b65afe timings. No rebuild, relabeling or hosted claim. Both journal histories retained; normal push retry follows.
+
+B1 generation receipt publication reconciliation: required ff-only pull fetched
+e0e3530b and correctly refused divergence; normal merge 95c33836307f23150073f3e96a2932a880542db0
+preserves both complete histories without conflict. Incoming completion,
+grammar metadata, worker policy, semantic-module and provenance inputs are
+explicitly later than frozenf7e764ab. Candidate archive/manifests and all original
+evidence remain at f7; none is relabeled as validation of the merged compiler.
+Our changes relative to incoming main are documentation only; ROOT's later
+composition remains pending. Archive hash/recorded comparisons rechecked,
+owned jobs drained, todo unchanged; normal source/report push follows.
