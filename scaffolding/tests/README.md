@@ -1159,6 +1159,21 @@ false idle progress after failed admission. Capacity derives from the live graph
 and shared budget; final ownership must return to zero. The unchanged fixture
 runs with production allocation and supported address/thread instrumentation.
 
+Capture admission uses that same compiler composition:
+
+```sh
+cmake --build build/native --parallel 1 --target tower-semantic-capture-admission-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-capture-admission-(healthy|cancelled|capacity|failed)$'
+```
+
+The four selectors each cover 32/64-bit targets and worker budgets1/4. They check
+healthy undemanded identity, cancellation, actual graph-capacity denial and an
+existing failure receipt. Repeated requests must retain the owning declaration's
+receipt without metadata growth, and teardown must release every graph grant.
+These admission checks do not execute worker jobs; the `failed` selector preserves
+an injected Memory receipt rather than simulating a physical allocation failure.
+
 Pool ownership, stable page reuse and live-owner reentrant finalization use these
 existing-composition targets:
 
