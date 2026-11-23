@@ -1,7 +1,10 @@
 import tower;
 import frontend_world;
 import frontend_table_owner;
+import frontend_session_world;
 import utility_checks;
+import lr_analysis_api;
+import lr_control_types;
 import .compiler.parser_table_types;
 import .compiler.grammar_types;
 import .library.work_budget;
@@ -10,6 +13,181 @@ import .library.work_budget_types;
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn lr_completion_create(parser: void*): void*;
+extern fn lr_completion_destroy(completion: void*): void;
+extern fn lr_completion_accepts(completion: void*, id: u32): bool;
+extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
+extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation,
+    mode: u32, error: WorkBudgetError*): ParserHostTable*;
+
+fn parser_control_occupy(budget: WorkBudget*, available: usize, reservation: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(budget, &snapshot)
+        && snapshot.bytes - snapshot.used_bytes >= available,
+        "Parser control remaining physical capacity");
+    utility_check(work_budget_reserve_result(budget, 0, 0,
+        snapshot.bytes - snapshot.used_bytes - available, reservation) == WorkBudgetError.None,
+        "Reserve competing parser control bytes");
+}
+
+fn parser_control_budget_trial(specialize: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Parser control ledger");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null && compiler_world_bind_budget(world, &budget), "Parser control budget owner");
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Parser control world kinds");
+    var input: u8* = "parser_memory_budget";
+    var builder: GrammarBuilder = default;
+    grammar_builder_init(&builder, &kinds);
+    var rule = grammar_builder_rule(&builder, "Root", false);
+    grammar_builder_literal(&builder, rule, input);
+    var root = grammar_builder_finish(&builder);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && parser_table_build(table, specialize), "Parser control frozen table");
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Parser control initial owners");
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(lr_parser_create(table.runtime, false, specialize) == null,
+        "LR control creation obeys its runtime world's physical capacity");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release control blocker");
+    var parser = lr_parser_create(table.runtime, false, specialize);
+    var opened: WorkBudgetSnapshot = default;
+    utility_check(parser != null && work_budget_snapshot(&budget, &opened)
+        && opened.used_bytes > before.used_bytes, "LR control object and initial frames stay charged");
+    var retained = opened.used_bytes - before.used_bytes;
+    lr_parser_destroy(parser);
+    parser_control_occupy(&budget, retained - 1, &occupied);
+    utility_check(lr_parser_create(table.runtime, false, specialize) == null,
+        "Partial LR control creation retires its object when initial frames are denied");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release partial control blocker");
+    parser = lr_parser_create(table.runtime, false, specialize);
+    utility_check(parser != null && work_budget_snapshot(&budget, &opened)
+        && opened.used_bytes == before.used_bytes + retained, "LR control retry has no leaked partial owner");
+
+    var quota: LRProbeBudget = {remaining: ~convert(usize, 0), complete: true};
+    var probe = lr_probe_create(parser, &quota);
+    var probed: WorkBudgetSnapshot = default;
+    utility_check(probe != null && work_budget_snapshot(&budget, &probed)
+        && probed.used_bytes > opened.used_bytes, "Probe snapshot owns charged object and frames");
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(lr_probe_clone(probe) == null && !quota.complete,
+        "Denied probe clone reports incomplete without modifying its source");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release probe clone blocker");
+    quota.complete = true;
+    var clone = lr_probe_clone(probe);
+    utility_check(clone != null && lr_probe_count(clone) == lr_probe_count(probe), "Probe clone retries after denial");
+    lr_probe_destroy(clone);
+    var denied = false;
+    for(var index: usize = 0; input[index] != 0; index++) {
+        parser_control_occupy(&budget, 0, &occupied);
+        var count = lr_probe_count(probe);
+        var state: usize = 0;
+        var status = lr_probe_step(probe, convert(u32, input[index]), &state);
+        if status == 0 {
+            utility_check(!quota.complete && lr_probe_count(probe) == count,
+                "Denied probe frame growth preserves the prior stack and reports incomplete");
+            denied = true;
+        }
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release probe growth blocker");
+        if status == 0 {
+            quota.complete = true;
+            status = lr_probe_step(probe, convert(u32, input[index]), &state);
+        }
+        utility_check(status == LRShift && lr_parser_frame_count(parser) == 1 && lr_parser_consumed(parser) == 0,
+            "Probe growth retry never changes real parser state");
+    }
+    utility_check(denied, "Probe fixture reaches a physical growth boundary");
+    lr_probe_destroy(probe);
+
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(lr_completion_create(parser) == null, "Completion owner denies before publication");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion blocker");
+    var completion = lr_completion_create(parser);
+    utility_check(completion != null, "Completion owner retries after denial");
+    parser_control_occupy(&budget, 0, &occupied);
+    utility_check(!lr_completion_accepts(completion, convert(u32, input[0])), "Completion cannot fabricate a denied probe result");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release completion query blocker");
+    utility_check(lr_completion_accepts(completion, convert(u32, input[0])), "Completion query retries with available memory");
+    lr_completion_destroy(completion);
+
+    denied = false;
+    var length: usize = 0;
+    for(; input[length] != 0; length++) {
+        var step: LRStep = default;
+        var status = lr_parser_step(parser, true, convert(u32, input[length]), false, length, 1, &step);
+        utility_check(status == (specialize ? LRSequenceShift : LRShift), "Control fixture follows its actual LR path");
+        parser_control_occupy(&budget, 0, &occupied);
+        var count = lr_parser_frame_count(parser);
+        var committed = lr_parser_commit(parser, &step, ~convert(usize, 0), ~convert(usize, 0));
+        if !committed {
+            utility_check(lr_parser_frame_count(parser) == count && lr_parser_consumed(parser) == length,
+                "Denied frame or evidence growth preserves real control state");
+            denied = true;
+        }
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release control growth blocker");
+        if !committed { committed = lr_parser_commit(parser, &step, ~convert(usize, 0), ~convert(usize, 0)); }
+        utility_check(committed, "Real parser retries the same uncommitted shift after capacity returns");
+    }
+    utility_check(denied && lr_parser_consumed(parser) == length, "Both control paths reach growth and preserve source extent");
+    lr_parser_destroy(parser);
+    var released: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &released) && released.used_bytes == before.used_bytes
+        && released.live == before.live, "All control, probe and completion owners retire exactly");
+    parser_table_destroy(table);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && work_budget_dispose(&budget), "Control budget outlives runtime and world");
+    utility_check(tower_test_buffer_count() == buffers, "Control denial and retry retain no physical buffers");
+}
+
+fn parser_session_budget_trial(prepare: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Syntax control budget");
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null && compiler_world_bind_budget(world, &budget), "Syntax control world");
+    var environment = frontend_modules_create();
+    utility_check(environment != null, "Syntax control environment");
+    world_session_prepare(world, environment);
+    var source: u8* = "import shared; hello";
+    var module = frontend_module_root_world(world, source, environment);
+    utility_check(module != null, "Syntax control module");
+    var session: void* = null;
+    if prepare {
+        session = frontend_module_session(module);
+        utility_check(session != null && syntax_get_error(session)[0] == 0, "Prepare session before denying control bytes");
+    }
+    var occupied: WorkReservation = default;
+    parser_control_occupy(&budget, 0, &occupied);
+    if !prepare { session = frontend_module_session(module); }
+    utility_check(session != null, "Session keeps its diagnostic owner after grammar denial");
+    utility_check(syntax_next(session) == null && syntax_session_resource_error(session) == WorkBudgetError.Capacity
+        && syntax_get_error(session)[0] != 0,
+        "Syntax session preserves typed grammar or control denial without an absent recognizer access");
+    if prepare {
+        utility_check(strcmp(syntax_get_error(session), "Unable to allocate parser control within its memory budget") == 0,
+            "Control denial retains its concrete diagnostic");
+    }
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release syntax control blocker");
+    syntax_reset(session, source, module);
+    var node = syntax_next(session);
+    if node == null { puts(syntax_get_error(session)); }
+    utility_check(node != null && syntax_get_error(session)[0] == 0
+        && syntax_session_resource_error(session) == WorkBudgetError.None, "Syntax session retries after memory capacity returns");
+    entity_release(node);
+    syntax_reset(session, "import ;", module);
+    utility_check(syntax_next(session) == null && syntax_get_error(session)[0] != 0
+        && syntax_session_resource_error(session) == WorkBudgetError.None,
+        "Ordinary incomplete syntax remains distinct from a resource failure");
+    frontend_module_destroy(module);
+    frontend_modules_destroy(environment);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world) && work_budget_dispose(&budget),
+        "Syntax session and retained tables retire before their ledger");
+    utility_check(tower_test_buffer_count() == buffers, "Syntax session control denial releases physical owners");
+}
 
 // The direct table/context owners are only part of parser memory. Keep their
 // exact receipts separate from any other world/LR buffers sharing this ledger.
@@ -34,8 +212,10 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
     var occupied: WorkReservation = default;
     utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
         == WorkBudgetError.None, "Occupy remaining parser memory without worker lanes");
-    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
-    utility_check(table == null, "Parser table denies allocation before publishing an owner");
+    var error = WorkBudgetError.None;
+    var table = parser_table_open_result(root, &kinds, null, ParserPresentation.Numeric, 0, &error);
+    utility_check(table == null && error == WorkBudgetError.Capacity,
+        "Parser table denies allocation with its exact typed capacity result before publishing an owner");
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
         "Release competing parser memory reservation");
 
@@ -44,7 +224,7 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
         before.bytes - before.used_bytes - table_bytes, &occupied) == WorkBudgetError.None,
         "Permit the table descriptor while denying its grammar storage");
     table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
-    utility_check(table != null && table.grammar == null && table.error != null,
+    utility_check(table != null && table.grammar == null && table.error != null && table.resource_error == WorkBudgetError.Capacity,
         "Grammar allocation obeys the table world's remaining byte capacity");
     parser_table_destroy(table);
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
@@ -62,7 +242,7 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
         before.bytes - before.used_bytes - (open_bytes - 1), &occupied) == WorkBudgetError.None,
         "Deny one byte below the observed retained grammar and table storage");
     table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
-    utility_check(table != null && table.grammar == null && table.error != null,
+    utility_check(table != null && table.grammar == null && table.error != null && table.resource_error == WorkBudgetError.Capacity,
         "Partial grammar construction publishes no incomplete grammar");
     parser_table_destroy(table);
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
@@ -77,7 +257,7 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
     utility_check(work_budget_reserve_result(&budget, 0, 0, opened.bytes - opened.used_bytes, &occupied)
         == WorkBudgetError.None, "Deny parser table construction growth");
     utility_check(!parser_table_build(table, false) && table.error != null
-        && table.runtime == null && table.states.data == null,
+        && table.runtime == null && table.states.data == null && table.resource_error == WorkBudgetError.Capacity,
         "Denied parser growth retains grammar and retires partial runtime/context owners");
     var failed: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &failed)
@@ -111,4 +291,8 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
 fn parser_table_budget_tests(): void {
     parser_table_budget_trial(TableOwnerFixture.Sequence);
     parser_table_budget_trial(TableOwnerFixture.Closure);
+    parser_control_budget_trial(false);
+    parser_control_budget_trial(true);
+    parser_session_budget_trial(false);
+    parser_session_budget_trial(true);
 }

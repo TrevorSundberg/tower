@@ -2,6 +2,7 @@ import tower;
 import frontend_revision_types;
 import grammar_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Private execution owner. Grammar meaning remains on the retained entities;
 // tables, lexicons and expansion views are disposable derived data.
@@ -20,6 +21,7 @@ struct SyntaxVersion {
 }
 
 struct SyntaxVersionDiagnostic {
+    resource_error: WorkBudgetError;
     text: vector(u8);
     fallback: u8*;
     offset: usize;

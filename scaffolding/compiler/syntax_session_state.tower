@@ -7,6 +7,7 @@ import syntax_session_pins;
 import syntax_session_types;
 import syntax_version_cache;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn compiler_buffer_free(memory: void*): void;
 
@@ -32,6 +33,7 @@ export fn syntax_session_suffix(value: SyntaxSession*, text: u8*): u8* {
 }
 
 export fn syntax_session_progress(value: SyntaxSession*): void {
+    value.resource_error = WorkBudgetError.None;
     value.source = value.inputs.source ?. text.data;
     value.source_length = value.inputs.source ?. text.length ?? 0;
     value.cursor = 0;

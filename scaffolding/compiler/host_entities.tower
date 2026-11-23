@@ -1,5 +1,4 @@
 import tower;
-import .library.compiler_work;
 import host_world;
 import world;
 import host_parser_components;
