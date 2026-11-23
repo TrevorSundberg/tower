@@ -1,0 +1,73 @@
+import tower;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import utility_checks;
+
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn work_thread_available(): bool;
+
+struct WorldConstructorSample { bytes: usize; allocations: usize; }
+
+fn world_constructor_trial(cap: usize, allowed: usize, wanted: WorkBudgetError): WorldConstructorSample {
+    var buffers = tower_test_buffer_count();
+    var sample: WorldConstructorSample = default;
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, cap, 1), "World constructor finite ledger");
+    var world: void* = null;
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var error = compiler_world_create_result(1, &budget, &world);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    sample.allocations = tower_test_buffer_allocations() - calls;
+    utility_check(error == wanted, "World constructor preserves typed storage failure");
+    var snapshot: WorkBudgetSnapshot = default;
+    if wanted == WorkBudgetError.None {
+        utility_check(world != null, "Successful world constructor publishes its owner");
+        var store = bits(EntityStore*, compiler_world_store(world));
+        utility_check(compiler_world_work_budget(world) == &budget && store.budget == &budget,
+            "World and store borrow the same constructor ledger");
+        utility_check(work_budget_snapshot(&budget, &snapshot)
+            && store.allocation.reservation.active && store.allocation.reservation.owner == &budget
+            && store.allocation.reservation.bytes > store.allocation.capacity
+            && snapshot.used_bytes > store.allocation.reservation.bytes
+            && snapshot.peak_bytes == snapshot.used_bytes && snapshot.used_lanes == 0,
+            "World and store descriptors retain physical byte grants without reserving execution lanes");
+        sample.bytes = snapshot.used_bytes;
+        var original = world;
+        utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.Invalid
+            && world == original, "Nonempty constructor output is preserved");
+        utility_check(compiler_world_dispose(world), "World constructor owner disposes");
+    } else { utility_check(world == null, "Failed world constructor publishes no partial owner"); }
+    utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+        && snapshot.live == 0 && snapshot.used_lanes == 0, "World constructor releases every partial byte grant");
+    utility_check(work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "World constructor ledger metadata and physical allocations retire");
+    return sample;
+}
+
+export fn world_constructor_tests(): void {
+    utility_check(!work_thread_available(), "World constructor allocation faults require serial transport");
+    var unlimited = ~convert(usize, 0);
+    // Use the actual successful constructor footprint, not a copied world layout
+    // or an imported second implementation in this linked consumer fixture.
+    var baseline = world_constructor_trial(unlimited, unlimited, WorkBudgetError.None);
+    var exact = world_constructor_trial(baseline.bytes, unlimited, WorkBudgetError.None);
+    utility_check(exact.bytes == baseline.bytes, "Exact world descriptor capacity succeeds");
+    world_constructor_trial(baseline.bytes - 1, unlimited, WorkBudgetError.Capacity);
+    for(var allowed: usize = 0; allowed < baseline.allocations; allowed++) {
+        world_constructor_trial(baseline.bytes, allowed, WorkBudgetError.Memory);
+    }
+    world_constructor_trial(baseline.bytes, unlimited, WorkBudgetError.None);
+    var empty: void* = null;
+    var uninitialized: WorkBudget = default;
+    utility_check(compiler_world_create_result(1, &uninitialized, &empty) == WorkBudgetError.Invalid
+        && compiler_world_create_result(0, null, &empty) == WorkBudgetError.Invalid && empty == null,
+        "Invalid world policies fail before construction");
+}

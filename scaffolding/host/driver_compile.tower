@@ -22,6 +22,9 @@ import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.foundation_types;
 import .compiler.execution_profiles;
+import .library.work_budget_types;
+
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 struct DriverCompilation {
     request: DriverRequest*;
@@ -69,11 +72,23 @@ fn driver_compile_report(state: DriverCompilation*, error: u8*, offset: usize): 
     request.text[DriverSourceText].length, request.options.source, request.modules);
 }
 
+fn driver_compile_execution_report(state: DriverCompilation*): void {
+    var execution = &state.execution;
+    var text = execution.error.length != 0 ? execution.error.data : "Execution failed without a diagnostic";
+    var offset = execution.machine.error_offset;
+    if execution.program.resource.error != WorkBudgetError.None {
+        text = sem_resource_message(execution.program.resource.error);
+        offset = execution.program.resource.offset;
+    }
+    driver_compile_report(state, text, offset);
+}
+
 fn driver_compile_program(state: DriverCompilation*): bool {
-    if driver_execution_compile(&state.execution, state.text, state.length, state.width, driver_request_modules(state.request)) {
+    if driver_execution_compile(&state.execution, state.text, state.length, state.width, driver_request_modules(state.request))
+        && state.execution.program.resource.error == WorkBudgetError.None {
         return true;
     }
-    driver_compile_report(state, state.execution.error.data ?? "Unable to compile source", state.execution.machine.error_offset);
+    driver_compile_execution_report(state);
     return false;
 }
 
@@ -161,11 +176,12 @@ fn driver_compile_package(state: DriverCompilation*): bool {
         return false;
     }
     var data = state.text;
-    if !execution_package_load(&state.execution, data, state.length, driver_request_modules(state.request)) {
-        if state.execution.program.error.length != 0 {
-            driver_compile_report(state, state.execution.error.data, state.execution.machine.error_offset);
+    if !execution_package_load(&state.execution, data, state.length, driver_request_modules(state.request))
+        || state.execution.program.resource.error != WorkBudgetError.None {
+        if state.execution.program.error.length != 0 || state.execution.program.resource.error != WorkBudgetError.None {
+            driver_compile_execution_report(state);
         } else {
-            driver_error("", state.execution.error.data);
+            driver_error("", state.execution.error.length != 0 ? state.execution.error.data : "Unable to load compiler package");
         }
         return false;
     }
@@ -188,6 +204,10 @@ fn driver_compile_dependencies(state: DriverCompilation*, output: u8*): bool {
 }
 
 fn driver_compile_text_output(state: DriverCompilation*): i32 {
+    if state.execution.program.resource.error != WorkBudgetError.None {
+        driver_compile_execution_report(state);
+        return 1;
+    }
     var options = state.request.options;
     var emit = options.emit;
     var output = options.output;
@@ -251,6 +271,10 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
 }
 
 fn driver_compile_interpret(state: DriverCompilation*): i32 {
+    if state.execution.machine.failed || state.execution.program.resource.error != WorkBudgetError.None {
+        driver_compile_execution_report(state);
+        return 1;
+    }
     var options = state.request.options;
     if !driver_compile_dependencies(state, options.output) {
         return 1;
@@ -265,7 +289,7 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
     }
     var execution = &state.execution;
     if !driver_execution_start(execution) {
-        driver_compile_report(state, execution.error.data, execution.machine.error_offset);
+        driver_compile_execution_report(state);
         return 1;
     }
     while !execution.machine.done {
@@ -278,14 +302,18 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
         driver_execution_flush(execution);
     }
     driver_timing_mark(state.timing, options.timings, "execute");
-    if execution.error.length != 0 {
-        driver_compile_report(state, execution.error.data, execution.machine.error_offset);
+    if execution.machine.failed || execution.error.length != 0 || execution.program.resource.error != WorkBudgetError.None {
+        driver_compile_execution_report(state);
         return 1;
     }
     return 0;
 }
 
 fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
+    if state.execution.program.resource.error != WorkBudgetError.None {
+        driver_compile_execution_report(state);
+        return 1;
+    }
     var options = state.request.options;
     var program = &state.execution.program;
     var parsed = driver_clock();
