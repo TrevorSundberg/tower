@@ -59759,3 +59759,49 @@ changes no runtime behavior; runtime measurements for the correction itself are
 inapplicable. Current equivalent profiles, resource-error fix, final supported
 instrumentation, clean public-bootstrap/generation/browser and leased atomic
 main/Pages publication remain required. No todo edits or public refs changed.
+
+### L2: matched public-clone union profiles, 2026-11-23
+
+After L1's old-source TSan observer actually drained and released the host,
+L2 acquired the primary lock and ran public_clone_profile.sh, session87413.
+All32 CLI children pass checked ordinary-loop reference outputs: small one-generic
+and large eight-specialization workloads, each240 statements, workers1/4,
+one warmup pair plus three retained alternating before/after pairs. All eight
+Foundation outputs are byte-identical across before/after and workers for each
+size. Source and complete before-package SHA manifests pass after the final run;
+all jobs drain0 and the host is released to L1. A prior lock acquisition failed
+before any profile process started; it is not part of this accepted interval.
+
+Before is the preserved37db021e compiler with64af resources; after is7ba14c94
+built from the complete6b8355 production union. Both use the SAME immutable64af
+Bedrock/Foundation/import resources and exact Tower inputs, native x86_64,
+--interpret --jobs1/4 --timings, production allocator/transport, Linux WSL
+Orchestral-Revng, LLVM19.1.1,8physical/16logical host,15.3GiB WSL memory.
+No concurrent sibling build or intentional filesystem-cache eviction. Warmup is
+excluded below; three process samples per cell are not a broad scaling study.
+
+| Workload/workers | Median wall s before -> after | Median CPU s before -> after | Median peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| small/1 |1.47 ->1.48|1.47 ->1.49|172508 ->181344|
+| small/4 |1.27 ->1.30|1.58 ->1.62|191024 ->200420|
+| large/1 |1.52 ->1.56|1.53 ->1.57|180636 ->190140|
+| large/4 |1.27 ->1.28|1.61 ->1.63|203776 ->213452|
+
+Retain the large/1 after sample2 wall2.34s/CPU1.58s outlier; its internal Tower
+total is1.566663625s and RSS190140KiB. That difference is outside the measured
+internal phases; its cause was not established, and it is not silently dropped.
+Current medians show modest latency/CPU increases and a consistent8836-9676KiB
+peak-RSS increase (~5%). No speedup, neutrality or whole-heap budget claim.
+Several owners' changes intervene, so this end-to-end difference cannot be
+attributed to the clone-result API alone. Exact clone micro allocation counts
+remain783/2434 and frame retention peaks416/36928 from the focused checks;
+those are not whole-compiler allocation counts. Four workers reduce wall time
+with higher CPU/RSS, while actual concurrency remains established by the separate
+native barrier/interval tests, not requested lane count alone.
+
+The public inspection regression remains FAILED independently of these ordinary
+compiler profile passes. B2 owns its early resource-error propagation. Latest
+root86e7 grammar/arena bundle is verified/fetched but deliberately not merged
+until this frozen campaign finishes; these receipts are not relabeled as that
+new source's validation. Current final sanitizer/public bootstrap/browser and
+atomic published-main ancestry/hosted verification remain open.
