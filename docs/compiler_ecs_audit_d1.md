@@ -1945,3 +1945,11 @@ fixture correction; preserve timing outside the admission barrier and actual
 work/ownership assertions. D1 has not rerun or weakened this assertion. This
 follow-up qualifies the earlier generic_clone_parallel audit row; it does not
 establish a production race, deadlock, speedup or reliable overlap on every run.
+
+D1 verified D2 failure archivebb626610 and read the original failed process
+receipt: signal6/status134 overrides GNUtime's trailing0. There are no actual
+kernel interval timestamps to attribute why overlap was absent. D2 also reports
+independent406d type-errors PASS93.18s/251372KiB and arena-linkage PASS; those
+qualified receipts advance the two generic hooks' validation without validating
+new full lifecycle coverage or current wholecompiler instrumentation. Root0c8b7d66
+history is now merged; no new Tower path or source-byte change.

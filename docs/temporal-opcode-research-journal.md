@@ -60241,7 +60241,7 @@ build and runtime; no new pass is inferred from D1's earlier lifecycle42 receipt
 
 ### D1 provider-history reconciliation and next validation boundary
 
-At actual2026-11-23 02:28UTC, D1 verifies D2 bundle39f2efd5180a6dd4ed767f22f9730fef20c515de61abaf2b852cae87b5b986d1,
+Before the2026-11-23 02:27:27UTC clock receipt, D1 verifies D2 bundle39f2efd5180a6dd4ed767f22f9730fef20c515de61abaf2b852cae87b5b986d1,
 sole60741 prerequisite, and merges406d1709 asfc7662bc. Only D2 audit/journal
 content differs from the existingaa22 tree; compiler, test, CMake, bootstrap and
 build-script bytes remain identical. Original provider commit1fa854a5 is now
@@ -60328,3 +60328,21 @@ four-unit frontend duration as a finite bound, keeping the ordinary30s selector
 and all workload/output/overlap assertions. Its implementation and execution
 are pending; the original timeout remains failed. A2 constructor/graph/pool
 changes still exceed public aggregate limits and are not in this root checkpoint.
+
+D1 independently verifies D2's exported failure archivebb626610 and reads its
+original stdout/stderr/time/status: only workers1/Publish has a completion receipt,
+then the actual overlap assertion aborts. The command reports signal6 and stored
+status134; GNUtime's trailing Exit status0 does not turn it into a pass. Recorded
+wall1.19s, CPU.07s and RSS53276KiB describe the failed process, not kernel timing
+or throughput. No kernel interval timestamps exist in that receipt. Source406d
+and runner/source hash manifests remain available for L2's targeted diagnosis.
+
+D2's separately reported new type-errors mode passes93.18wall/100.56CPU/
+251372KiB on406d, along with arena linkage and parser/allocation/storage/module
+checks. This is independent evidence for D1's hooks, not D1's own execution or
+full type-smoke/lifecycle coverage on the newer compiler inputs. Root's later
+0c8b7d66 bundleba76f764 merges without compiler/test/build changes, retaining both
+histories and the D1 ledger target. D1 keeps final instrumentation/bootstrap/
+browser/generation/publication gates open. The earlier manually estimated02:28
+journal label is corrected against the actual02:27:27 tool clock; no benchmark
+or lease used that estimate.
