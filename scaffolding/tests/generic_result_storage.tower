@@ -4,6 +4,8 @@ import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
 import .compiler.semantic_declaration_types;
 import .compiler.semantic_evaluation_types;
+import .compiler.semantic_source_binding_types;
+import .compiler.interpreter_context_types;
 import .compiler.semantic_work_ids;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
@@ -42,11 +44,19 @@ extern fn sem_evaluation_begin(context: SemanticContext*): void;
 extern fn sem_evaluation_expression(context: SemanticContext*, node: void*, expression: void*, owner: void*, requested: bool): void*;
 extern fn sem_evaluation_get(context: SemanticContext*, subject: void*): SemanticEvaluation*;
 extern fn sem_evaluation_work_register(context: SemanticContext*, cloning: bool): void*;
+extern fn sem_source_binding_request(context: SemanticContext*, subject: void*): usize;
+extern fn sem_source_bindings_pump(context: SemanticContext*): SemanticPumpResult;
+extern fn sem_source_binding(context: SemanticContext*, subject: void*): SemanticSourceBinding*;
+extern fn sem_capture_request(context: SemanticContext*, subject: void*): usize;
+extern fn sem_capture_pump(context: SemanticContext*): SemanticPumpResult;
 extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): u8*;
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
 enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
 enum SemanticAdmissionOperation: u32 { Constructor, Begin, Expression, Prepare, Clone, Count }
+enum KnownAdmissionOperation: u32 { Source, Capture, Publish, Count, Dispatch }
 var GenericResultBudgetBytes: usize = 1048576;
 var GenericResultOrdinaryKind: u32 = 0;
 
@@ -176,6 +186,19 @@ fn generic_result_storage_tests(): void {
     }
     generic_result_admission_tests();
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        semantic_known_admission_trial(width, KnownAdmissionOperation.Dispatch, 0, WorkBudgetError.Memory);
+        for(var tag = convert(u32, KnownAdmissionOperation.Source); tag < convert(u32, KnownAdmissionOperation.Count); tag++) {
+            var operation = convert(KnownAdmissionOperation, tag);
+            var calls = semantic_known_admission_trial(width, operation, unlimited, WorkBudgetError.None);
+            for(var allowed: usize = 0; allowed < calls; allowed++) {
+                semantic_known_admission_trial(width, operation, allowed, WorkBudgetError.Memory);
+            }
+            semantic_known_admission_trial(width, operation, unlimited, WorkBudgetError.Capacity);
+            semantic_known_admission_trial(width, operation, unlimited, WorkBudgetError.Busy);
+            if operation != KnownAdmissionOperation.Publish {
+                semantic_known_admission_trial(width, operation, unlimited, WorkBudgetError.Exhausted);
+            }
+        }
         for(var tag = convert(u32, SemanticAdmissionOperation.Constructor); tag < convert(u32, SemanticAdmissionOperation.Count); tag++) {
             var operation = convert(SemanticAdmissionOperation, tag);
             var calls = semantic_admission_storage_trial(width, operation, unlimited, WorkBudgetError.None);
@@ -202,6 +225,104 @@ fn generic_result_storage_tests(): void {
         generic_result_lifecycle_trial(width, false);
         generic_result_lifecycle_trial(width, true);
     }
+}
+
+// Admission and joined publication are separate injection windows. Worker
+// execution uses the production allocator; its lexical scratch is not part of
+// this metadata test. Failed admission cannot execute or replay that work.
+fn semantic_known_admission_trial(width: u32, operation: KnownAdmissionOperation, allowed: usize, wanted: WorkBudgetError): usize {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Known admission bounded world");
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var root = entity_create(bits(void*, store));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var error: WorkBudgetError;
+    var base = sem_attach_result(root, KProgram, &error);
+    base.start = 73;
+    var subject = generic_clone_child(bits(void*, store), root, "CoreDeclare", null, base.start);
+    var value = sem_attach_result(subject, KDeclare, &error);
+    value.start = base.start;
+    value.global = true;
+    utility_check(vector_push(&base.items, subject), "Known admission original declaration identity");
+    var proof: usize = 0;
+    if operation == KnownAdmissionOperation.Publish || operation == KnownAdmissionOperation.Dispatch {
+        proof = sem_source_binding_request(&context, subject);
+        utility_check(proof != 0 && work_demand(&context.queries, proof), "Known admission demanded proof");
+        if operation == KnownAdmissionOperation.Publish {
+            utility_check(sem_source_bindings_pump(&context) == SemanticPumpResult.Progress,
+                "Known metadata injection begins after the scan has joined");
+        }
+    }
+    var occupied: WorkReservation = default;
+    var view: void* = null;
+    var next_id = store.next_id;
+    if wanted == WorkBudgetError.Capacity {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &occupied)
+            == WorkBudgetError.None, "Known admission physical page pressure");
+    }
+    if wanted == WorkBudgetError.Busy { view = entity_view_open(root); utility_check(view != null, "Known admission lifetime pin"); }
+    if wanted == WorkBudgetError.Exhausted { store.next_id = ~convert(usize, 0); }
+    var unlimited = ~convert(usize, 0);
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var query: usize = 0;
+    var outcome = SemanticPumpResult.Waiting;
+    if operation == KnownAdmissionOperation.Publish || operation == KnownAdmissionOperation.Dispatch { outcome = sem_source_bindings_pump(&context); }
+    else { query = operation == KnownAdmissionOperation.Source ? sem_source_binding_request(&context, subject) : sem_capture_request(&context, subject); }
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if wanted == WorkBudgetError.Exhausted { store.next_id = next_id; }
+    if view != null { entity_view_close(view); }
+    if program.resource.error != wanted {
+        puts("Known admission: operation, width, allowed, actual, wanted");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(convert(usize, width)); generic_clone_number(allowed);
+        generic_clone_number(convert(usize, program.resource.error)); generic_clone_number(convert(usize, wanted));
+    }
+    utility_check(program.resource.error == wanted && context.workers.running == 0 && context.queries.running == 0,
+        "Known admission retains its exact first typed failure and drains tickets");
+    if wanted == WorkBudgetError.None {
+        if operation == KnownAdmissionOperation.Publish {
+            var binding = sem_source_binding(&context, subject);
+            utility_check(outcome == SemanticPumpResult.Progress && binding != null && binding.immutable
+                && binding.owner == null && binding.ordinal == 0 && work_task(&context.queries, proof).state == WorkState.Succeeded,
+                "Source facts publish only after the exact proof receipt succeeds");
+        } else {
+            utility_check(query != 0 && work_task(&context.queries, query).state != WorkState.Succeeded
+                && (operation == KnownAdmissionOperation.Source ? sem_source_binding_request(&context, subject) : sem_capture_request(&context, subject)) == query,
+                "Known and capture admission preserve resumable query identity without executing effects");
+        }
+    } else {
+        utility_check(query == 0 && program.resource.offset == base.start && sem_source_binding(&context, subject) == null,
+            "Failed known admission publishes no partial immutable declaration fact");
+        var tasks = context.queries.tasks.length;
+        var before = tower_test_buffer_allocations();
+        sem_resource_record(&program, WorkBudgetError.Invalid, 0);
+        utility_check(sem_source_binding_request(&context, subject) == 0 && sem_capture_request(&context, subject) == 0
+            && sem_source_bindings_pump(&context) == SemanticPumpResult.Failed && sem_capture_pump(&context) == SemanticPumpResult.Failed
+            && context.queries.tasks.length == tasks && tower_test_buffer_allocations() == before
+            && program.resource.error == wanted && program.resource.offset == base.start,
+            "Rejected known/capture consumers neither replay effects nor replace the first cause");
+    }
+    if context.value_inputs != null {
+        var input = bits(IMValueInput*, entity_component_data(entity_component_get(subject, context.value_inputs)));
+        utility_check(input == null || input.producer == null && input.known_producer == null,
+            "Admission never publishes an unevaluated captured value");
+    }
+    if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Known pressure release"); }
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Known admission retires partial kinds, jobs, proof metadata and graph ownership");
+    return calls;
 }
 
 fn semantic_admission_storage_trial(width: u32, operation: SemanticAdmissionOperation, allowed: usize, wanted: WorkBudgetError): usize {

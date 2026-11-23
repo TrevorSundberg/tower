@@ -611,3 +611,39 @@ Final merged source9985c385 passes the dependency-aware native build and focused
 query/core/constructor gates (58570, exit0, frozen hashes). This closes the direct
 user's bounded interpreter execution ownership batch; it does not claim ROOT's
 pending integrated release or L2's separate root initialization work complete.
+
+### Bounded Fast storage batch after e2ace4c
+
+`fast_interpreter.tower` now owns its descriptor through WorkBuffer and all15
+cache/runtime arrays plus lexical break scratch through checked work_vector.
+The new `fast_interpreter_types.tower` is the single private layout definition;
+`bytecode_package.tower` imports it directly. Native/check/browser interpreter
+providers compose the same module, while driver/IDE/session consumers retain
+opaque handles. IMState/IMFrame/IMContext and exported function signatures are
+unchanged. Cache byte encoding still uses contents and counts, not owner layouts.
+
+First failure stops cache emission and disposes partial owners without releasing
+the caller's graph scheduling input. Runtime frame/register growth is admitted
+before stack/frame publication or callee effects; already-admitted calls take
+the direct serial path. Nine redundant shrink reallocations are removed and
+geometric capacity remains visible in stats and the owning physical receipts.
+
+Focused native core/functions/constructor pass, including156 graph/Fast trials,
+package reconstruction and exact outputs/errors. The final new fixture checks
+all24 observed cache admission positions at widths4/8, exact physical owner sums,
+normal/cancelled/failed cleanup, runtime frame/register denial after argument
+effects and no replay. Final representative Fast samples retain +1.28% large
+execution time (n1); the earlier +5.87% cost and all fixture failures remain in
+the journal. Four-unit1/4-worker controls preserve canonical output and ownership.
+
+Remaining gaps are diagnostic/output/constructor-message and package encoding
+storage, physical allocator-fault coverage for this new caller chain, and ROOT's
+final supported instrumentation/platform/release validation. This batch does not
+claim those gaps closed or any deployed runtime.
+
+Complete publishedbaf2a5a merged into20e46f49. After adapting two owned
+execution_world assertions to upstream's exact Invalid/offset0 contract, merged
+86777 passes the coherent native closure, core/functions/constructor and exact
+Fast CLI1/4-worker-request controls, with frozen input hashes. Shared semantic
+producers remain untouched by L1. All final release/instrumentation gaps above
+remain explicit; this is the bounded main-only Fast storage completion.

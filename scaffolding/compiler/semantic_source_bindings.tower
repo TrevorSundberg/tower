@@ -25,8 +25,9 @@ extern fn entity_query_count(kind: void*): usize;
 extern fn entity_query_at(kind: void*, index: usize): void*;
 
 export fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
-    return c.source_bindings == null ? null : bits(SemanticSourceBinding*,
+    var result = c.source_bindings == null ? null : bits(SemanticSourceBinding*,
         entity_component_data(entity_component_get(subject, c.source_bindings)));
+    return result != null && result.query != 0 ? result : null;
 }
 
 fn sem_source_place(c: SemanticContext*, node: void*): void* {
@@ -182,15 +183,16 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
     vector_dispose(&context.allocations);
 }
 
-fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, extension: bool): void {
-    var complete = true;
-    foreach(var job in jobs) { complete &&= !job.binding_incomplete; }
+fn sem_source_bindings_prepare(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, extension: bool): void {
+    // Reserve every payload before publishing any immutable fact. Default
+    // components carry no query and are invisible to proof consumers.
     foreach(var job in jobs) {
-        var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0);
         foreach(var &candidate in &job.candidates) {
-            var binding = bits(SemanticSourceBinding*, entity_component_data(entity_component_add(candidate.subject, c.source_bindings)));
-            sem_require(binding != null);
-            *binding = { owner: job.owner, query: query, ordinal: candidate.ordinal, immutable: complete };
+            if entity_component_get(candidate.subject, c.source_bindings) != null { continue; }
+            var error: WorkBudgetError;
+            var binding = bits(SemanticSourceBinding*, entity_component_data(entity_component_add_result(candidate.subject, c.source_bindings, &error)));
+            if binding == null { sem_known_admission_error(c, candidate.subject, error); return; }
+            *binding = default;
         }
     }
     foreach(var job in jobs) {
@@ -202,6 +204,23 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
                 sem_fail(c, declaration, "Specialization invalidates a published binding proof");
                 return;
             }
+        }
+    }
+}
+
+fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*): void {
+    var complete = true;
+    foreach(var job in jobs) { complete &&= !job.binding_incomplete; }
+    foreach(var job in jobs) {
+        var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0);
+        foreach(var &candidate in &job.candidates) {
+            var binding = bits(SemanticSourceBinding*, entity_component_data(entity_component_get(candidate.subject, c.source_bindings)));
+            *binding = { owner: job.owner, query: query, ordinal: candidate.ordinal, immutable: complete };
+        }
+    }
+    foreach(var job in jobs) {
+        foreach(var declaration in &job.mutations) {
+            var binding = sem_source_binding(c, declaration);
             if binding != null { binding.immutable = false; }
         }
     }
@@ -211,17 +230,28 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
 // Retain their original ordered syntax identities before that list can change;
 // the program owns every referenced tree until this derived index is disposed.
 fn sem_source_binding_roots(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
     if c.source_bindings == null {
-        c.source_bindings = sem_create(c.program.root);
-        sem_require(entity_register(c.source_bindings, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), 0));
-        c.source_binding_pipeline = sem_create(c.program.root);
-        sem_require(entity_register(c.source_binding_pipeline, sizeof(SemanticSourceBindingPipeline), alignof(SemanticSourceBindingPipeline), 0));
+        var error: WorkBudgetError;
+        var kind = sem_kind_result(c.program.root, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), &error);
+        if kind == null { sem_known_admission_error(c, c.program.root, error); return; }
+        var pipeline_kind = sem_kind_result(c.program.root, sizeof(SemanticSourceBindingPipeline), alignof(SemanticSourceBindingPipeline), &error);
+        if pipeline_kind == null {
+            sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
+            sem_known_admission_error(c, c.program.root, error); return;
+        }
+        c.source_bindings = kind;
+        c.source_binding_pipeline = pipeline_kind;
     }
     var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(c.program.root, c.source_binding_pipeline)));
     if pipeline != null { return; }
-    pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(c.program.root, c.source_binding_pipeline)));
-    sem_require(pipeline != null);
+    var error: WorkBudgetError;
+    pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add_result(c.program.root, c.source_binding_pipeline, &error)));
+    if pipeline == null { sem_known_admission_error(c, c.program.root, error); return; }
     *pipeline = default;
+    if !vector_reserve(&pipeline.source_roots, sem_get(c.program.root).items.length) {
+        sem_known_admission_error(c, c.program.root, WorkBudgetError.Memory); return;
+    }
     foreach(var node in &sem_get(c.program.root).items) { sem_push(&pipeline.source_roots, node); }
     pipeline.roots_ready = true;
 }
@@ -231,10 +261,12 @@ fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
     var existing = work_find(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
     if existing != 0 { return existing; }
     sem_source_binding_roots(c);
+    if !sem_ok(c) { return 0; }
     var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(subject, c.source_binding_pipeline)));
     if pipeline == null {
-        pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(subject, c.source_binding_pipeline)));
-        sem_require(pipeline != null);
+        var error: WorkBudgetError;
+        pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add_result(subject, c.source_binding_pipeline, &error)));
+        if pipeline == null { sem_known_admission_error(c, subject, error); return 0; }
         *pipeline = default;
     }
     pipeline.extension = owner != null;
@@ -300,10 +332,11 @@ export fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult {
             waiting = true;
             continue;
         }
-        sem_source_bindings_publish(c, &pipeline.jobs, pipeline.extension);
+        sem_source_bindings_prepare(c, &pipeline.jobs, pipeline.extension);
         var finished = work_finish(&c.queries, &ticket, sem_ok(c));
-        // Joined facts have already published. Retire their private owners once,
-        // even if enqueueing a dependent consumer cannot grow the graph.
+        if finished && sem_ok(c) { sem_source_bindings_publish(c, &pipeline.jobs); }
+        // Retire joined owners even if completing the proof cannot enqueue its
+        // consumers. No immutable fact precedes that terminal graph receipt.
         pipeline.published = true;
         sem_known_jobs_dispose(&pipeline.jobs);
         if !sem_known_query_check(c, subject, finished) { return SemanticPumpResult.Failed; }
