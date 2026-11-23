@@ -49108,3 +49108,14 @@ normal/fault/real shared execution, paired1/2 cost measurements and applicable
 current ASan/TSan/stress. Documentation additions have no runtime path of their
 own. Final clean public bootstrap/native/browser/generation, named publication
 lease, atomic refs and exact hosted verification remain open; goal stays active.
+
+D1 build28535 at46766d2 stopped1 at the new capture fixture after eleven public-pin
+library units passed. Exact error at7:4 was `Unknown local 'decltype(captured.result)'`:
+D1 incorrectly placed decltype directly in a value comparison. No native build or
+link had started. After reaping and inspecting the idle container, changed only
+the fixture to `var Captured: type = decltype(captured.result); if Captured != i32`.
+This uses the existing ordinary type binding, preserving exact identity/value
+oracles without a language extension. Smallest corrected unit22841 passed0 with
+the public predecessor; original failed log/status/time retained under
+build/d1_ecs/buffer_defined_order. Eleven unaffected unit receipts remain scoped
+to the unchanged bodies; execution-main/native/targets/runtime still pending.

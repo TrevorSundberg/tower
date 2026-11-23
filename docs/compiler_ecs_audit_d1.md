@@ -1466,3 +1466,9 @@ costs, actual sanitizer hooks/stress and final coherent release remain open.
 After staging these additions the census is1054tracked/477D1direct, with all477
 substantively reviewed; the two production library reviews do not claim A2 audit
 credit and new inventory does not imply executed coverage.
+
+Capture-fixture correction: public predecessor rejected the initial direct
+value-position decltype comparison at7:4 (build28535 exit1). After draining,
+ordinary `var Captured:type=decltype(captured.result)` plus identity comparison
+passed the smallest unit (22841 exit0). File is now9lines; value7 checks and
+original-module import unchanged. No new syntax or production semantics.
