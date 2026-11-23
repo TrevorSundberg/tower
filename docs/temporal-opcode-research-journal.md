@@ -94250,3 +94250,30 @@ and the backend CMake contract remain identical; audit/handoff text survived the
 merge unchanged. Source-only C incompatibility remains on unchanged producers.
 Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
+
+### 2026-11-23 D1: independent three-fix source adoption at ea606d32
+
+Required pull was current; frozeea606d329b989378df15fdc58bf5165456bb0cb7,
+tree7f41401d3078e46331bcd55a2b58c329750cfaf0/compiler306ac3a3e67ef73790eb7fdc9878534b8c5df259/
+library62350befa8df3e261fd184a23a64e6bb7263204a. Same thread01a2046a-4644-7ab1-a0ae-abd80210f013,
+CLI3176773, own main. Reviewed A1 b78d606b/ef59b0aa joined executable alias failure
+ordering, L1 3bc0a726 module lexical capture registration and D2 exact-output/
+alias-negative composition through451bea0c, with immediate consumers and owner
+receipts. D1 audit has14 exact blobs and the finite disposition; source/fixture
+matches checked against each owner commit, not inferred from filenames.
+
+No new concrete defect. Alias acceptance precedes any ready input; failed worker
+aliases cannot replace that worker's retained cause; published stages/accepted
+prefix remain owned through terminal cleanup. Invalid-first/later and Capacity
+controls are real owner-run checks; alias append Memory and mid-pump stale
+injection remain limits. Module scan binds exact lexical declarations without
+changing frame/ordinal identity; lazy staged reads retain their existing demand
+contract. D2 preserves child failure, exact0 newline/empty stderr, the old
+inference negative and the new scalar negative with source location/no partial
+program/terminal checks. Current shared CMake has eight positive registrations;
+initial six/control receipts stay separate. No runtime/build/profile/rejected
+instrumentation or hosted work: docs-only performance inapplicable. Prior C
+registration repair remains D2-owned; later A2/B1/B2 work excluded. Disk127GiB,
+RAM9.9GiB at startup; no owned child job/heavy lock, todo preserved. Evidence
+build/d1_ecs/joined_correctness_review_ea606d32/{paths,blobs}.txt. Publish normal
+history reconciliation only; ROOT retains integrated runtime/release acceptance.
