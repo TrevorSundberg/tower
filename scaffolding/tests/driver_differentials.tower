@@ -211,6 +211,7 @@ fn driver_test_differentials(compiler: u8*, grammar: u8*, filter: u8*, native: b
     var context: DriverDifferentials = { compiler: compiler, grammar: grammar, filter: filter, native: native, checks: 0 };
     driver_execution_cases(&context);
     driver_execution_file(&context, "backend_execution_roots", "45\n2\n");
+    driver_execution_file(&context, "backend_void_returns", "0\n");
     if !native {
         driver_check(fixture_json_checks(), "fixture string decoder bounds and escapes");
         driver_execution_idioms(&context); driver_execution_modules(&context);

@@ -94481,6 +94481,68 @@ merge unchanged. Source-only C incompatibility remains on unchanged producers.
 Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
 
+
+### 2026-11-23 D2 — separate direct C returns from LLVM callback coverage
+
+Followed D1 b694761386's concrete registration finding on source ea606d32.
+One existing native compiler raw `--emit c --no-optimize --jobs 1` request for
+unchanged backend_void_returns fails exit1 with exactly: `This source backend
+does not yet implement function values; use LLVM native/Wasm output`. This is
+ce_collect's intentional function-value/indirect-call contract, reached by the
+exported select_callback and apply; not an importer or void-pointer defect.
+Original error/artifact logs retained, not reclassified as a positive check.
+
+Replaced only that positive Native C list entry with the new ordinary Tower
+backend_void_returns_direct fixture. It preserves exported opaque/forwarded
+void* returns, local direct wrapper, void** depth, null/non-null identities,
+42-to-7 read/store, deferred free and true-void notify. The two opaque calls,
+two deeper calls and notify require effects122; a nonzero check traps before
+printing, so shared wrong output cannot silently satisfy the C reference.
+Registered the complete original callback fixture through existing native
+`driver_execution_file(..., "backend_void_returns", "0\n")`: graph independent
+expected output plus raw/optimized LLVM native execution. Full fixture remains
+byte-identical, including callback-valued return, indirect apply and effects123.
+No changes to importer/C emitter/counted-byte fixtures, language or harness APIs.
+
+Reviewed the complete new fixture and changed registration callers. Heap ownership
+stays inside check with deferred free on all post-allocation returns; void**
+borrows a live local slot, with no borrow escaping. Driver file buffers/capture
+results retain their existing synchronous child/reap/dispose ownership. Native
+filter excludes the full callback from package/C execution; C's named subset
+uses the existing emission and four-tool comparison loops. No new framework,
+ECS storage or scheduler. README now states this capability boundary.
+
+Validation: smallest new fixture through existing exact-zero CLI boundary passes.
+ONE jobs1 dependency-aware tower-driver-tests target rebuild, three actions;
+compiler/reactor unchanged. Selected --c-backend backend_void_returns_direct
+passes16 comparisons: raw/optimized Tower C, each Clang/GCC C89 and Clang++/G++
+C++98 at O0/O2, existing LP64 native target and strict warning flags. Graph and
+corresponding LLVM native references agree; both expected.json rows record
+exact stdout0/newline, empty stderr, code0. Selected --native-differential
+backend_void_returns passes both raw/optimized executables with independent0.
+No full backend, Node, generation, sanitizer or 32-bit C profile sweep. L2's
+prior reconstructed32/64/worker evidence is preserved, not rerun or relabeled.
+
+Deck CPU0,2/8GiB Docker tower-d2-ecs, native x86_64 Linux, production allocator,
+fresh child processes/warm files, n1/group, existing180s outer bounds. G++ was
+absent; installed four standard G++ packages in this lane's container with no
+upgrades. Actual GCC/G++13.3.0, Clang/Clang++19.1.1, CMake3.28.3; install log kept.
+Public bootstrap768 compiled only the runner. Wall/CPU seconds/peakRSS KiB:
+original rejection1.37/1.31/170436 exit1; direct independent check1.06/1.03/178492;
+runner build13.27/12.88/330668; C selected12.47/11.86/182516; LLVM selected
+7.38/7.21/183232. All post-fix checks exit0. These are validation costs, not a
+production optimization comparison; no production performance change claimed.
+
+Receipt root build/d2_ecs/void_return_c_ea606d32 preserves commands in time logs,
+source snapshots, generated C/executables/expected.json and failures. Complete
+Tower source manifest193835a2c6a0637dcb787924faa4e1e7e2288dd218b39337b531229fbbbdeef7 matches before/after.
+Full fixture dcbe40e2c48df1e7b093cb1a9655c0d2960d28543383f59765e39063df54f588;
+direct subset653d75f32edaeef9346ff8e246c6c699cbd29bff73f1de1a4f71c18c2e1fd0ae;
+runner373e18d81dfc42e2f138c9e2875b98423ac961a7cddb09f9398c75603a5b766b.
+Compiler96ed3119a9fa47883f261cc3fc2740390185ea822719aa11e2da66cebe94796b unchanged,
+with the prior source-matched native closure; exact changed-file hashes recorded.
+All owned children drained, heavy lock released,127GiB disk/9.7GiB RAM available;
+todo preserved. ROOT retains later joined-source and release acceptance.
 ### 2026-11-23 D1: independent three-fix source adoption at ea606d32
 
 Required pull was current; frozeea606d329b989378df15fdc58bf5165456bb0cb7,
@@ -94540,6 +94602,16 @@ silently source-reviewed or runtime-adopted here. No repeated checks beyond git
 identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
 push follows; this closes the requested independent review only.
 
+D2 C-registration reconciliation: implementation31bd0359, complete-history
+merge96c207e1f06aeca85cb3341da797e905972b964b retains fd1725d8 and both README/
+journal additions. Incoming A2 module-body preparation changed the native
+semantic provider; only two affected towerc actions refreshed (40.34wall/39.18CPU/
+1074488KiB). The unchanged runner and fixture bytes were reused. Selected direct
+C16/16 passes13.90/13.39/182800; complete LLVM callback2/2 passes6.30/6.12/182916,
+all exit0. No full compiler/reactor matrix or repeated unsupported-C request.
+Merged source manifest7d90a9bd91d754361635c20de93cdad84730d79bb25f54e50a67108a453b2fb7 matches after checks; compiler48a58fa3ce64947e3dbb739cd34731b0aea6c66b806012ec252ed37538d8bb8b.
+Original and merged measurements retain separate directories/identities; all
+owned jobs drained and lock released. No producer edits or new performance claim.
 B2 lowering attribution reconciliation: evidence6a6faded merged completefd1725d8
 history asee371edd after required ff-only divergence. Both journal histories
 preserved. All10restoredprobe paths still match ef59b0aa; cachedprofile still
