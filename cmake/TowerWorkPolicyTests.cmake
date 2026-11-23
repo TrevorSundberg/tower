@@ -103,6 +103,17 @@ function(tower_lr_work_policy_test)
   endif()
 
   if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(semantic-capture-admission-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_capture_admission_checks.tower" "${triple}")
+    add_executable(tower-semantic-capture-admission-tests ${sources} "${semantic-capture-admission-checks_OBJECT}")
+    set_target_properties(tower-semantic-capture-admission-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-semantic-capture-admission-tests PRIVATE ${libraries})
+    target_link_options(tower-semantic-capture-admission-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    foreach(mode IN ITEMS healthy cancelled capacity failed)
+      add_test(NAME tower-semantic-capture-admission-${mode} COMMAND tower-semantic-capture-admission-tests ${mode})
+      set_tests_properties(tower-semantic-capture-admission-${mode} PROPERTIES TIMEOUT 60)
+    endforeach()
+
     tower_runtime_object(semantic-pool-budget-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks.tower" "${triple}")
     add_executable(tower-semantic-pool-budget-tests ${sources} "${semantic-pool-budget-checks_OBJECT}")
