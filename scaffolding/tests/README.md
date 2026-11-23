@@ -1376,3 +1376,37 @@ denying actual nested frame growth. Known proofs/snapshots and shared signature
 publication remain prerequisites. Lowering/evaluation windows still join before
 cross-phase mutation, and diagnostics retain the full lowering priority.
 Integrated sanitizers/platform checks remain separate release gates.
+
+### Entity accounting census and pending finite-cap gate
+
+On the supported Linux x64 native configuration with `TOWER_WORK_TESTS=ON`:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-entity-accounting-tests
+"$TOWER_NATIVE_BUILD/tower-entity-accounting-tests" profile
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-check-entity-accounting-cap
+```
+
+`entity_accounting.tower` reuses the entity page/node fixtures' ownership census,
+`compiler_buffer_allocation_size` and `work_budget_snapshot`. It uses the normal
+allocator, one owner and no dispatch/fault counters. Each named profile record
+prints the twelve fields listed in its header, one value per line. Canonical
+component sums, detach/reuse, cancellable staged borrows, finalizers and complete
+world/ledger disposal are checked. `tower-measure-entity-accounting` runs that
+same profile. The small workload's store/pages have no replacement-buffer growth,
+so its compiler-buffer peak is captured by these phases. The separately labeled
+world-retained peak is sampled: transient raw replacement allocations, malloc
+metadata, libc output buffers and RSS are not included. Ledger metadata is
+reported separately and is outside the declared work-byte allowance.
+
+The explicit cap target is **currently failing**, not a CTest expected-failure
+pass or a skip. It calibrates the actual charged empty-store footprint, gives a
+fresh store exactly that finite allowance, verifies a charged buffer is denied,
+then requires raw entity creation to return `Capacity` without changing identity
+or publishing a node. It always disposes the attempted owner before returning.
+Current baseline admits a 184-byte node after using all 2,232 ledger bytes and
+returns1. This is an independent descriptor-admission regression for A2's future
+producer closure; a passing profile is not finite-cap acceptance, and fixing
+this one denial does not establish child/index/query/stage accounting. The census
+must remain tied to the actual allocation layout as those owners migrate.
+See the journal's D2 entity accounting receipt for source hashes and byte totals.
