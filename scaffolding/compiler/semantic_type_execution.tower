@@ -13,6 +13,7 @@ import interpreter_context_types;
 import type_primitives;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 extern fn compiler_node_world(node: void*): void*;
 
@@ -37,8 +38,17 @@ struct SemanticTypeExecution {
     constructed: bool;
 }
 
+// Registration can run inside another phase's joined publication loop. Leave
+// its outstanding tickets to that owner; the type pump cancels its own failure.
+fn sem_type_execution_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    var message: vector(u8) = default;
+    var operation = sem_get(subject);
+    sem_restore_resource(c, error, &message, operation == null ? sem_offset(c, subject) : operation.start);
+}
+
 export fn sem_type_execution_request(c: SemanticContext*, owner: void*, request: IMTypeConstruction*, receipt: WorkTicket*): usize {
     sem_require(c.entity_stage == null && c.workers.running == 0);
+    if !sem_ok(c) { return 0; }
     var valid = work_ticket_valid(&c.queries, receipt);
     valid &&= request != null && owner != null;
     if valid {
@@ -93,17 +103,23 @@ export fn sem_type_execution_request(c: SemanticContext*, owner: void*, request:
         second: request.second, input: request.input, ..default };
     if operation.right != null { state.extent = sem_get(operation.right).type; }
     var id = work_request(&c.queries, owner, query, convert(u64, request.sequence));
-    sem_require(id != 0);
+    if id == 0 {
+        sem_type_execution_resource(c, request.subject, sem_query_error(c));
+        return 0;
+    }
     var domain = convert(u64, SemanticWorkDomain.Compiler);
     // Interning is ordered coordinator publication. The invocation result has
     // the same exclusive range as its suspended evaluation, never a worker view.
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
-        0, ~convert(usize, 0), WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation),
-        receipt.task, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression),
-        0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_seal(&c.queries, id));
+    if !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
+        0, ~convert(usize, 0), WorkAccessMode.Write)
+        || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation),
+            receipt.task, 1, WorkAccessMode.Write)
+        || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression),
+            0, ~convert(usize, 0), WorkAccessMode.Read)
+        || !work_seal(&c.queries, id) {
+        sem_type_execution_resource(c, request.subject, sem_query_error(c));
+        return 0;
+    }
     return id;
 }
 
@@ -138,15 +154,16 @@ fn sem_type_execution_current(c: SemanticContext*, state: SemanticTypeExecution*
     return false;
 }
 
-fn sem_type_execution_error(request: IMTypeConstruction*, message: u8*): void {
-    vector_dispose(&request.error);
+fn sem_type_execution_error(c: SemanticContext*, request: IMTypeConstruction*, message: u8*): void {
     var length: usize = 0;
     while message[length] != 0 { length++; }
-    sem_require(vector_reserve(&request.error, length + 1));
+    if !vector_reserve(&request.error, length + 1) {
+        sem_type_execution_resource(c, request.subject, WorkBudgetError.Memory);
+        return;
+    }
     copy(request.error.data, message, length + 1);
     request.error.length = length;
     request.failed = true;
-    request.ready = true;
 }
 
 fn sem_type_execution_input(c: SemanticContext*, input: FoundationType*): bool {
@@ -165,18 +182,25 @@ fn sem_type_execution_input(c: SemanticContext*, input: FoundationType*): bool {
 
 export fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult {
     sem_require(c.entity_stage == null && c.workers.running == 0);
-    if !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    defer { if !sem_ok(c) { work_cancel(&c.queries); } }
     if c.type_executions == null { return SemanticPumpResult.Complete; }
     var query = convert(u32, SemanticQuery.TypeExecution);
     var ticket: WorkTicket;
     if !work_take_query(&c.queries, &ticket, query) {
+        if !work_ok(&c.queries) {
+            sem_type_execution_resource(c, c.program.root, sem_query_error(c));
+            return SemanticPumpResult.Failed;
+        }
         return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
     }
     var owner = work_task(&c.queries, ticket.task).subject;
     var state = bits(SemanticTypeExecution*, entity_component_data(entity_component_get(owner, c.type_executions)));
     if !sem_type_execution_current(c, state, &ticket) {
         sem_fail(c, owner, "Invalid or stale type construction continuation");
-        sem_require(work_finish(&c.queries, &ticket, false));
+        if !work_finish(&c.queries, &ticket, false) {
+            sem_type_execution_resource(c, owner, sem_query_error(c));
+        }
         return SemanticPumpResult.Failed;
     }
     var request = state.request;
@@ -188,56 +212,79 @@ export fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult {
         if integer || floating {
             var scalar = integer ? type_integer_scalar(request.first, request.second != 0) : type_float_scalar(request.first);
             if integer && request.second > 1 {
-                sem_type_execution_error(request, "Integer signedness must be 0 (unsigned) or 1 (signed)");
+                sem_type_execution_error(c, request, "Integer signedness must be 0 (unsigned) or 1 (signed)");
             } else {
-                if scalar == InvalidTypeScalar { sem_type_execution_error(request, "Unsupported primitive numeric width"); }
+                if scalar == InvalidTypeScalar { sem_type_execution_error(c, request, "Unsupported primitive numeric width"); }
                 else { state.type = { scalar: scalar, pointer_bytes: c.program.pointer_bytes, ..default }; }
             }
         } else {
             if (!pointer && !array) || !sem_type_execution_input(c, &request.input) {
-                sem_type_execution_error(request, "Invalid type construction descriptor or target");
+                sem_type_execution_error(c, request, "Invalid type construction descriptor or target");
             } else {
                 state.type = request.input;
                 if pointer {
                     if state.type.pointers == FoundationPointerDepthLimit {
-                        sem_type_execution_error(request, "Foundation pointer nesting limit is 16");
+                        sem_type_execution_error(c, request, "Foundation pointer nesting limit is 16");
                     } else { state.type.pointers++; }
                 } else {
                     var extent = &state.extent;
                     var negative = semantic_signed(extent) && (request.second & (semantic_mask(extent) / 2 + 1)) != 0;
                     if negative || request.second == 0 || request.second > FoundationArrayLengthLimit {
-                        sem_type_execution_error(request, "Array length must be between 1 and 1,048,576");
+                        sem_type_execution_error(c, request, "Array length must be between 1 and 1,048,576");
                     } else {
                         if request.input.scalar == SVoid && request.input.pointers == 0 {
-                            sem_type_execution_error(request, "An array cannot have void elements");
+                            sem_type_execution_error(c, request, "An array cannot have void elements");
                         } else {
                             if semantic_aggregate(&request.input) {
                                 var fields = sem_declaration_layout_waiting(c, request.input.record);
+                                if !sem_ok(c) { return SemanticPumpResult.Failed; }
                                 if fields != 0 {
                                     sem_declaration_discover(c);
-                                    sem_require(work_suspend(&c.queries, &ticket, fields));
+                                    if !sem_ok(c) { return SemanticPumpResult.Failed; }
+                                    if !work_suspend(&c.queries, &ticket, fields) {
+                                        sem_type_execution_resource(c, state.subject, sem_query_error(c));
+                                        return SemanticPumpResult.Failed;
+                                    }
                                     return SemanticPumpResult.Progress;
                                 }
                             }
-                            state.type = *sem_array_intern(c, &request.input, convert(usize, request.second));
+                            var type = sem_array_intern(c, &request.input, convert(usize, request.second));
+                            if !sem_ok(c) { return SemanticPumpResult.Failed; }
+                            state.type = *type;
                         }
                     }
                 }
             }
         }
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         state.constructed = true;
     }
     if array && !request.failed {
         var layout = sem_layout_discover(c, state.type.record);
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
+        if layout == 0 {
+            sem_type_execution_resource(c, state.subject, sem_query_error(c));
+            return SemanticPumpResult.Failed;
+        }
         if work_task(&c.queries, layout).state != WorkState.Succeeded {
-            sem_require(work_suspend(&c.queries, &ticket, layout));
+            if !work_suspend(&c.queries, &ticket, layout) {
+                sem_type_execution_resource(c, state.subject, sem_query_error(c));
+                return SemanticPumpResult.Failed;
+            }
             return SemanticPumpResult.Progress;
         }
-        sem_require(work_observe(&c.queries, &ticket, layout));
+        if !work_observe(&c.queries, &ticket, layout) {
+            sem_type_execution_resource(c, state.subject, sem_query_error(c));
+            return SemanticPumpResult.Failed;
+        }
     }
-    if !request.failed { request.result = state.type; request.ready = true; }
     // A delivered semantic error is a completed request. Resuming the ordinary
     // interpreter preserves its diagnostic and existing inferred-stage policy.
-    sem_require(work_finish(&c.queries, &ticket, true));
+    if !work_finish(&c.queries, &ticket, true) {
+        sem_type_execution_resource(c, state.subject, sem_query_error(c));
+        return SemanticPumpResult.Failed;
+    }
+    if !request.failed { request.result = state.type; }
+    request.ready = true;
     return SemanticPumpResult.Progress;
 }
