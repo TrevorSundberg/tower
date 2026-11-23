@@ -63089,3 +63089,47 @@ L1 reports all six current thread gates passed after its six address gates;
 the complete67669 history is ready but not yet in this root union. D1's current
 phase-fixture public leaves and native compiler pass; paired24-case and successor
 instrumentation remain pending. Full objective and publication remain open.
+
+### D2 same-session resume and scoped policy preparation (2026-11-23)
+
+At actual07:36:57UTC, resumed thread01a2046a-45eb-7452-8fb0-6d924bb320a6,
+nativeCLI2918222/launcher2918189; process arguments retain gpt-6-astra/xhigh,
+default service tier and interactive --yolo --no-daemon. No new context or agent.
+Initial goal state usageLimited was subsequently restored active by the user's
+same-session resume. Read replacement AGENTS, current coordinator checkpoint and
+lane state; preserve prior failure/receipt history and todo. Guarded pull succeeds.
+Only the two previously prepared policy/test files were initially uncommitted.
+
+Verified full ROOT provider bundle5673dc37/sole60741 and merged72a218 asd4e721f4.
+Production scaffolding/CMake matches preceding5335201 exactly; the merge preserves
+journal history without claiming newer runtime validation. D2 Docker has only
+init/sleep. Both D1 containers were also idle and five former controller PIDs
+absent, but its existing lock remains its responsibility until reconciliation and
+release. Sent one direct internal handoff request; no stale-lock removal or test
+restart. Disk137GiB free, about10GiB availableRAM,6.0GiB preexisting swap. No cleanup.
+
+Actual9b318 nm reports and definitions support eight pending exact policy imports:
+interpreter sem_context_snapshot; parser nodes parser_table_finish_result,
+parser_table_open_result and work_arena_allocate_result; semantics buffer alignment,
+allocation size and frontend/module-session resource getters. Existing checker
+c03e6de9 rejects those imports, while utf8/bytes/entities/host pass. Extended the
+existing Tower fixture with exact/prefix/suffix/wrong-unit cases; these prepared
+edits remain unbuilt. No wildcard, test allocator or anticipated resource helper
+is allowed. Before binary and complete immutable scaffolding snapshot were saved
+under build/d2_ecs/policy_72a with hashes and OS-only invocation scripts.
+
+Updated size/count audit finds the directly used file reader repeats4096 in its
+array type and fread count. Documented sizeof(decltype(chunk)) derives the byte
+bound from the actual array; sizeof(value) is not the Tower contract. Plan the
+single-line correction after the frozen baseline fixture compiles/runs. Existing
+filesystem checks cover bounded read and destination preservation; no new harness
+is needed. This is a contract-maintenance correction, not a proposed speedup.
+
+Read exact A1V2b255 interface and git apply --check succeeds without applying it.
+First typed receipt and diagnostic are selected together after joins; restore
+uses owned vector length/capacity, supports exact self-alias, and does not allocate.
+Classification is only for actual failed graph operations, not empty takes or
+waiting. New producer/consumer ABI remains unadopted pending coordinated closure.
+No old source-specific native/ASan/TSan evidence is relabeled. This review append
+has no runtime performance effect; current policy/provider/native-WASI checks,
+supported instrumentation and final coherent release/publication remain open.

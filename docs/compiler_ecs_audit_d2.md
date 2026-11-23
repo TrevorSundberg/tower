@@ -2008,3 +2008,32 @@ All D2 jobs drained before releasing its lock at03:52:35UTC for D1's phase fixtu
 Current symbol-policy/native-WASI provider checks, supported instrumentation,
 remaining merged compiler work and final public/bootstrap/browser/generation plus
 leased atomic publication remain open. Earlier receipts keep their source identity.
+
+### Same-session continuation and current policy boundary (2026-11-23)
+
+Resumed the existing D2 thread after its usage limit. Guarded pull preserves the
+two prepared policy/test edits and todo. Verified ROOT72a218's complete bundle
+5673dc37 against sole60741, then merged as d4e721f4. Its production scaffolding
+and CMake files are identical to the preceding D2 checkpoint; journal history is
+preserved. This merge is not new runtime evidence. The existing goal is active.
+
+| Reviewed path / source | Ownership, evidence and disposition |
+| --- | --- |
+| `tools/bootstrap_symbols.tower`, d4e721f4 plus pending policy | Actual ROOT9b318 native reports reject eight newly required exact imports. The semantics unit owns `sem_context_snapshot`; parser integration owns the two typed table-result constructors; entities owns `work_arena_allocate_result`; host owns buffer size/alignment; parser nodes owns module/session resource getters. Existing provider definitions and actual nm reports justify only these per-unit additions. The policy remains allocation-free, borrowing explicit bounded spans; no scheduler, world or ownership change. Pending regression/runtime validation is not yet acceptance. |
+| `tests/bootstrap_symbols_checks.tower`, same pending change | Existing fixture adds accepted exact imports and rejected prefixes, suffixes and wrong-unit uses. Report and rejected-symbol lengths derive from `strlen`; no hardcoded span length or array bound is introduced. Check-only allocator hooks remain rejected. No generic harness modification. |
+| `tools/tool_streams_posix.tower`, d4e721f4 | Caller audit confirms the verifier owns its bounded report, while this shared reader keeps a temporary buffer until successful close. Its stack chunk declaration and byte count both repeat4096. Updated instructions require deriving the read bound from the actual array type; documented `sizeof(decltype(chunk))` supplies bytes, unlike pointer size. Preserve the existing partial-read/error/over-limit and destination-preservation behavior. Before/after existing filesystem regression and public-predecessor compile are prepared, not yet run. |
+
+The A1 V2 interface patch b255ff12 was read completely and apply-checked without
+adoption. Its fixed first-error receipt and allocation-free restore require one
+coherent SemanticProgram ABI rebuild. The restore derives copy length from the
+owning message vector and permits its exact destination alias; interior aliases
+are not vector owners. Pure query classification must follow an actual failed
+operation, never ordinary waiting. No future helper is added to symbol policy
+without emitted-import evidence. Producers and output consumers remain their
+assigned owners' work.
+
+All former D2 jobs are drained. The surviving D1 lock is left intact pending its
+same-session reconciliation; absence of former controller PIDs does not transfer
+ownership. Public/compiler receipts remain exact9b318, and the current policy,
+provider/WASI and instrumentation checks remain pending. Documentation-only
+review adds no runtime behavior or performance measurement claim.
