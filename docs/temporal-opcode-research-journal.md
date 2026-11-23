@@ -92207,3 +92207,45 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+### D2 optional browser retirement trace transport (2026-11-23)
+
+Frozen publishedc93ddaabdd961c4be27d825ae4e3bf59575ec303. Read existing diagnostic,
+boundary worker and browser_worker_boundary_48db0f27 receipt; fully reviewed
+changed driver. Only existing browser/OS transport plus documentation changed.
+No strict-script/production-worker/Tower scheduler changes, target filtering,
+GC/page closure workaround, retirement deadline increase or browser rebuild.
+Added optional TOWER_WORKER_TRACE with browser CDP category inventory, requested
+filters, clock marker, bounded4MiB trace/16MiB JSON/64KiB reads/5s trace I/O,
+actual event counts/hash, explicit errors/nonzero exit and pre-browser-close
+finally drain. Exclusive file creation preserves prior failure traces. Separate
+retirementPassed prevents a trace failure from being relabeled a worker failure
+or a passed tracing gate. Native shutdown observation is not inferred from names.
+
+Primary supplied source requests returned HTTP429, not retried. Cached exact-tag
+WorkerThread source85f07dd1 shows only blink.worker InitializeWorkerContext;
+requested termination/preparation/final/child-removal methods lack explicit trace
+calls there. Proxy source was unavailable locally and was not freshly verified.
+This is limited source inspection, not evidence that no native tracing exists.
+Full source/transport/limitations are in browser_worker_boundary_48db0f27.md.
+
+One permitted no-Wasm smoke on existing Chromium159.0.8154.6, executable24eb0a14,
+Playwright1.65.1, Node22.23.5, tower-d2-ecs CPU0,2/8GiB. Fresh browser, warm files,
+n1; no Wasm execution or source/compiler build. All five workers closed, no live
+CDP target, original30s criterion intact. Trace FAILED: getCategories returned[]
+before a renderer existed; first driver164adb34 wrongly gated Tracing.start on
+nonempty advertised categories. Preserved report/error and0-byte trace, exit1.
+Actual native event count0; no shutdown transition captured. Removed that invalid
+category-admission assumption in final023d1dee; optional filters are now submitted
+and actual returned events determine observation. Final code syntax/review only;
+no second smoke or unrun successful stream/flush claim under one-smoke bound.
+The missing native shutdown/inspector distinction therefore remains OPEN for ROOT.
+
+Exact command uses PLAYWRIGHT_BROWSERS_PATH=/tmp/tower-home/.cache/ms-playwright,
+TOWER_WORKER_TRACE=.../worker_trace_c93ddaab/native_trace.json, `/usr/bin/time -v`
+and `timeout --foreground --signal=KILL 120s node playground/scripts/diagnose-worker-retirement.mjs no-wasm build/d2_ecs/browser_retirement/frozen_2013/tower_work_tests.wasm build/d2_ecs/worker_trace_c93ddaab/smoke.json`.
+1.34wall/1.38CPU(1.04+.34)s,128800KiB peakRSS/0swaps. Validation overhead, not
+runtime optimization or aggregate browser-tree RSS. Full failed logs/report/hash,
+input identities and drained-process list in build/d2_ecs/worker_trace_c93ddaab.
+Strict scriptbc41120d/coordinator415a3888/boundary58b90415 unchanged. No earlier
+controls/full suites repeated, no sanitizer/hosted/release acceptance. All owned
+jobs drained and lock released;127GiB disk/9.8GiB RAM available, todo untouched.

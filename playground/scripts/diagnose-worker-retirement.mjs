@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile, writeFile, open} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {chromium} from '@playwright/test';
@@ -14,6 +14,8 @@ if (!['no-wasm', 'tower', 'tower-direct'].includes(mode) || !workPath || !report
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sourceRoot = frozenSource ? path.resolve(frozenSource) : root;
 const RETIREMENT_MS = 30000, PROBE_MS = 1000, TRIAL_MS = 180000, CAPACITY = 4;
+const tracePath = process.env.TOWER_WORKER_TRACE;
+const TRACE_BUFFER_KIB = 4096, TRACE_FILE_BYTES = 16*1024*1024, TRACE_FLUSH_MS = 5000;
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const work = await readFile(workPath);
 const report = {mode, sourceRoot, workSHA256:hash(work), launch:{headless:true}, capacity:CAPACITY,
@@ -46,6 +48,7 @@ const server = http.createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser, diagnosticPage, deadline, workers = [], live = [];
+let traceSession, traceFile, traceStarted = false, traceComplete;
 const isCoordinator = entry => entry.url.includes('mode=') || entry.url.endsWith('/shared_compiler_worker.mjs');
 const start = performance.now();
 const bounded = async (promise, milliseconds) => {
@@ -54,9 +57,88 @@ const bounded = async (promise, milliseconds) => {
     timer = setTimeout(() => reject(new Error('Observation deadline expired')), Math.max(0, milliseconds));
   })]); } finally { clearTimeout(timer); }
 };
+const traceError = (phase, error) => {
+  report.trace.errors.push({phase, error:error.stack || error.message});
+  process.exitCode = 1;
+};
+async function startTrace() {
+  if (!tracePath) return;
+  const requestedCategories = ['blink.worker', 'devtools.timeline',
+    'disabled-by-default-devtools.timeline', 'toplevel'];
+  report.trace = {path:path.resolve(tracePath), requestedCategories, bufferKiB:TRACE_BUFFER_KIB,
+    fileLimitBytes:TRACE_FILE_BYTES, flushBudgetMilliseconds:TRACE_FLUSH_MS,
+    bytes:0, complete:false, errors:[]};
+  const startDeadline = performance.now()+TRACE_FLUSH_MS;
+  const send = (method, params) => bounded(traceSession.send(method, params), startDeadline-performance.now());
+  try {
+    // Never replace a prior failure trace. Open before enabling browser capture.
+    traceFile = await open(tracePath, 'wx');
+    traceSession = await browser.newBrowserCDPSession();
+    report.trace.availableCategories = (await send('Tracing.getCategories')).categories;
+    // Enumeration can be empty before any renderer exists. It is an inventory,
+    // not an admission contract; only returned events establish observation.
+    report.trace.unadvertisedCategories = requestedCategories.filter(category => !report.trace.availableCategories.includes(category));
+    traceComplete = new Promise(resolve => traceSession.once('Tracing.tracingComplete', resolve));
+    traceSession.on('Tracing.bufferUsage', data => { report.trace.lastBufferUsage = data; });
+    traceStarted = true; // Also attempt stop if the start reply times out.
+    await send('Tracing.start', {transferMode:'ReturnAsStream', streamFormat:'json',
+      bufferUsageReportingInterval:1000, traceConfig:{recordMode:'recordUntilFull',
+        traceBufferSizeInKb:TRACE_BUFFER_KIB, includedCategories:requestedCategories}});
+    record('trace.started');
+    // Bracket a native trace marker with the existing external clock; do not
+    // assume trace microseconds and epoch milliseconds share an origin.
+    report.trace.clockSyncId = 'tower-worker-retirement';
+    record('trace.clock-sync.begin', {syncId:report.trace.clockSyncId});
+    await send('Tracing.recordClockSyncMarker', {syncId:report.trace.clockSyncId});
+    record('trace.clock-sync.end', {syncId:report.trace.clockSyncId});
+  } catch (error) { traceError('start', error); }
+}
+async function stopTrace() {
+  if (!report.trace) return;
+  let stream;
+  const flushDeadline = performance.now()+TRACE_FLUSH_MS;
+  const send = (method, params) => bounded(traceSession.send(method, params), flushDeadline-performance.now());
+  try {
+    if (!traceStarted) return;
+    record('trace.stop.begin');
+    await send('Tracing.end');
+    const completed = await bounded(traceComplete, flushDeadline-performance.now());
+    report.trace.dataLossOccurred = completed.dataLossOccurred;
+    stream = completed.stream;
+    if (!stream) throw new Error('Chromium returned no trace stream');
+    while (true) {
+      const chunk = await send('IO.read', {handle:stream, size:65536});
+      const bytes = Buffer.from(chunk.data, chunk.base64Encoded ? 'base64' : 'utf8');
+      if (report.trace.bytes+bytes.length > TRACE_FILE_BYTES)
+        throw new Error('Trace exceeds file limit; retained file is incomplete');
+      await traceFile.writeFile(bytes);
+      report.trace.bytes += bytes.length;
+      if (chunk.eof) break;
+    }
+    await traceFile.close(); traceFile = undefined;
+    report.trace.sha256 = hash(await readFile(tracePath));
+    const {traceEvents} = JSON.parse(await readFile(tracePath, 'utf8'));
+    const counts = new Map();
+    for (const event of traceEvents) {
+      const key = JSON.stringify([event.cat || '', event.name]);
+      counts.set(key, (counts.get(key) || 0)+1);
+    }
+    report.trace.eventCounts = [...counts].map(([key, count]) => {
+      const [category, name] = JSON.parse(key); return {category, name, count};
+    });
+    report.trace.complete = !completed.dataLossOccurred;
+    if (completed.dataLossOccurred) throw new Error('Chromium reports lost trace data');
+    record('trace.stop.saved');
+  } catch (error) { traceError('stop', error); }
+  finally {
+    if (stream) await send('IO.close', {handle:stream}).catch(error => traceError('stream-close', error));
+    if (traceFile) await traceFile.close().catch(error => traceError('file-close', error));
+  }
+}
 try {
   browser = await chromium.launch(report.launch);
   report.browser = browser.version();
+  await startTrace();
   const discovery = await browser.newBrowserCDPSession();
   const known = new Map();
   discovery.on('Target.targetCreated', ({targetInfo}) => {
@@ -171,9 +253,15 @@ try {
   if (!report.pageEvents && diagnosticPage) report.pageEvents = await diagnosticPage.evaluate(() => window.boundaryEvents).catch(() => null);
   report.observedWorkers = workers.map(({ordinal, url, closed}) => ({ordinal, url, closed}));
   report.wallMilliseconds = performance.now()-start;
-  // Preserve observations before closing the browser; teardown is not a pass.
-  await writeFile(reportPath, JSON.stringify(report, null, 2)+'\n');
-  await browser?.close();
-  await new Promise(resolve => server.close(resolve));
+  // Preserve both timelines before browser teardown, including failed trials.
+  report.retirementPassed = report.passed;
+  try {
+    await stopTrace();
+    if (report.trace?.errors.length) report.passed = false;
+    await writeFile(reportPath, JSON.stringify(report, null, 2)+'\n');
+  } finally {
+    await browser?.close();
+    await new Promise(resolve => server.close(resolve));
+  }
 }
 console.log((report.passed ? 'PASS' : 'FAIL')+' '+mode+' '+reportPath);
