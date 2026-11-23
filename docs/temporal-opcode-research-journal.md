@@ -60346,3 +60346,24 @@ histories and the D1 ledger target. D1 keeps final instrumentation/bootstrap/
 browser/generation/publication gates open. The earlier manually estimated02:28
 journal label is corrected against the actual02:27:27 tool clock; no benchmark
 or lease used that estimate.
+
+### D1 explicit calibrated overlap entry after owner review
+
+Root02:32:45 approves B2 observer patcha08e822929d1c8d1a923b0bfaaa866ce0d005453a03812f22cd7c4177e52594a
+then policyff030d95a41b37b810229944adb4974faafb4edec92476f79c309d02ed57580a.
+D1 reads and applies both after its own jobs are drained; D2 still owns the Deck
+heavy lock. Checked nanosecond clock conversion, finite bounded waits, private
+trace storage and unchanged serial object/worker/budget assertions are recorded
+in the per-file audit. No compiler production input changes. The explicit new
+mode measures the existing complete serial four-unit frontend once; it freezes
+max30seconds/baseline only for frontend2 awaiting backend1. Ordinary/all and the
+backend acknowledgement keep30seconds. No extra baseline compile, guessed
+multiplier, retry extension or unsupported skip.
+
+D1's separate tiny LR entry patch100a1083b5fb442c5953a4b104cbb95fd0ca79bd9fb158546b1f7d21e68f0142
+adds usage, selector validation and the exact owner export call. Source/reverse
+checks pass; public compilation and runtime are unrun locally. B2 has reported
+only its native leaf so far. Await B2 ordinary runtime before any instrumented
+use per root. Upcoming normal/calibrated receipts must identify source and bound;
+previous normal TSan timeout134 remains failed. Hook/runtime measurements and
+final coherent sanitizer/browser/generation/publication evidence remain open.

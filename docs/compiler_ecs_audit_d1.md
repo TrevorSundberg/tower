@@ -1953,3 +1953,24 @@ independent406d type-errors PASS93.18s/251372KiB and arena-linkage PASS; those
 qualified receipts advance the two generic hooks' validation without validating
 new full lifecycle coverage or current wholecompiler instrumentation. Root0c8b7d66
 history is now merged; no new Tower path or source-byte change.
+
+### Explicit calibrated overlap policy, B2ff030d95 plus D1 hook
+
+Read both complete owner patches (observera08e8229 followed by calibratedff030d95)
+and applied only after root's02:32:45 authorization. Existing backend_units.tower
+owns private formatter/event lines and checked nonnegative/normalized monotonic
+nanoseconds, including multiply/add overflow and backwards-clock rejection.
+Calibration times the already-required complete four-unit serial frontend batch;
+no extra compiler invocation or hidden sanitizer/environment test. Before dispatch,
+the context freezes max30seconds/measured duration for frontend2's wait. Backend1's
+acknowledgement and ordinary/full-suite paths keep30seconds. Exact serial objects,
+original decltype/comptime workload, shared budget and distinct-worker assertions
+remain. Traces precede fatal errors; private formatter allocations are disposed.
+The timing-bound change is test policy, not production throughput evidence.
+
+D1 lr_work_main adds only the authorized explicit selector/usage/admission and
+call to backend_units_overlap_calibrated_tests(root). It does not alter default/all
+coverage or retry failure. Patch100a1083 is exported independently for current
+owner closures. Native smallest entry/link, both normal modes and instrumentation
+are locally pending; root requires B2 normal runtime before instrumented adoption.
+Existing old TSan134 stays failed. No new Tower path; census remains499 direct.
