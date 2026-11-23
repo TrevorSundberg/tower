@@ -94805,6 +94805,53 @@ frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
 
+## 2026-11-23 A1: retire browser coordinator errors before replacement callbacks
+
+Implemented the concrete8f9bb924 review finding in the existing generic browser
+worker group. Frozen host/resources3e355d9e, reused b8 compiler/work reactors;
+[receipt](browser_retired_error_repair_3e355d9e.md) records exact identities,
+controls and measurement limits. Browser DOM glue only; no compiler rebuild or
+semantic changes. Engine/LanguageService, default Node and separate LLVM pool
+remain unchanged because their production factory enforces the corrected gate.
+
+Previously retired error callbacks could call stop() on replacement B. Now the
+first error listener closes the group before owner delivery; retired errors stop
+there. Synthesized failures dispatch while active through that same listener,
+so the former close-before-dispatch sequence cannot swallow a valid first error.
+Raw messageerror is consumed and forwarded once as error. Closed/reentrant
+failures cannot reach the old owner. Close still requests termination, not join.
+
+Added two selectors to the existing ownership fixture: retired-errors and
+coordinator-messageerror. Original final control fails with two stale errors and
+two stale messageerrors reaching A's callbacks and stopping B; six actual workers
+close and zero CDP targets remain. Initial development log also preserved: used
+onmessageerror property, then corrected the observer to addEventListener for real
+EventTarget delivery. Repaired nine controls all pass, including startup/partial
+startup/busy cancellation, active coordinator/child/message errors exactly once,
+real shared guest trap and actual posted old-generation reply. Replacement B runs
+the existing Tower pool twice,24 spawns,4 endpoints opened/closed; ten actual close
+events and zero targets. Controlled event delivery is not native queued-error
+race reproduction or full Engine/LanguageService UI execution.
+
+Healthy pool/serial/four before and after pass exact reference/Graph/Fast/full
+canonical comparisons; binary/resource hashes and all output/hash records match.
+Windows11, installed Chromium159/build1255, Node21.7.3/Playwright1.65.1;
+CPU12-23/Windows job24GiB, n1 fresh browser/warm files. Before4.187254wall/
+6.140625jobCPU s/589152KiB sampled aggregate RSS; after4.259422/6.031250/571672.
+Nine controls4.966186/4.687500/556260; final expected before failure1.041469/
+1.468750/413464. Job peak commit is recorded separately; every tree drains to
+zero active OS processes. Sampled RSS is not an exact aggregate maximum, can
+count shared pages repeatedly, and excludes the OS measuring parent. No speedup
+claim: healthy wall+1.7% in one sample; parallel trial includes extra checks.
+Wasm capacity unchanged: pool33947648B/serial90374144B/four97976320B, not RSS or
+retained allocation counts. Actual close events and zero CDP targets precede
+browser cleanup; original180s/30s bounds retained, outer240s guard unused.
+
+Full inputs/commands/reports/failures/OS-only measurement launcher preserved at
+C:/Sandbox/build/codex_ecs_20261122/A1/retired_errors_3e355d9e. Browser tests use
+served source modules, not a rebuilt app bundle. No broad UI/Node/generation or
+instrumentation run. ROOT25 reactor/LLVM memory work and final deployment remain
+separate. Syntax/diff checks pass; no active jobs, todo unchanged; normal publish.
 A2 Wasm struct receipt publication reconciliation: first normal push raced. Complete upstream70e77b60 merged, retaining unrelated later C/native void-return registrations (driver_c_cases/driver_differentials/new backend_void_returns_direct). Those new mounted test-resource bytes are outside the measured e932b546 freeze; the reactor, selected Node test/transport, primitive resources and full struct fixture are unchanged. Receipt remains source-bound; no runtime rerun or current-registry acceptance inferred. No compiler implementation changed in this documentation task.
 
 
@@ -94906,6 +94953,14 @@ split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba9
 no source/runtime adoption of those unrelated changes is claimed. Diff checks
 pass; no owned test/build or lock, todo unchanged. Normal main push follows.
 
+A1 retired-error publication reconciliation: implementation f2c35cb8 merged
+complete4354581c asae2ceeb9f5d78eedc76efe7f779d8142a0f94caf without conflicts.
+All playground sources/fixtures and selected Tower language/prelude inputs match
+the validated batch; merged syntax/diff checks pass. Incoming backend-void/driver
+fixture additions are outside these executed controls and preserved. They change
+the all-files resource inventory, so frozen3e355d9e measurements are not relabeled
+as that later inventory. No transport dependency changed or rerun needed. Full
+history, raw failures, receipts and todo preserved; normal main push, no deployment.
 L1 counted-byte coverage publication reconciliation: implementation95167e53 and
 complete incoming history through4354581c merged asd1f9298a855f64e689f9f893b0d1217596464106.
 Required ff-only pull refused concurrent divergence; normal merge preserved all
