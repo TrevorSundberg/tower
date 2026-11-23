@@ -62,7 +62,7 @@ function(tower_lr_work_policy_test)
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   tower_runtime_object(lr-work-main "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/lr_work_main.tower" "${triple}" lr_work_test_main main)
   set(receipt_objects)
-  foreach(suite IN ITEMS receipt failure_order)
+  foreach(suite IN ITEMS receipt failure_order lifecycle_frontier)
     tower_runtime_object(semantic-${suite}-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_checks.tower" "${triple}"
       main semantic_${suite}_tests)

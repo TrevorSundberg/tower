@@ -19,6 +19,7 @@ extern fn evaluation_query_tests(width: u32, workers: usize): u32;
 extern fn semantic_resource_tests(width: u32, workers: usize): u32;
 extern fn semantic_receipt_tests(): i32;
 extern fn semantic_failure_order_tests(): i32;
+extern fn semantic_lifecycle_frontier_tests(): i32;
 
 extern fn work_thread_available(): bool;
 
@@ -137,6 +138,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         utility_check(semantic_failure_order_tests() == 0, "Canonical producer order across waiting failure frontiers");
     }
     if all || queries {
+        utility_check(semantic_lifecycle_frontier_tests() == 0, "Mixed lifecycle stage ownership and failure draining");
         generic_clone_parallel_tests();
         utility_check(semantic_publish_tests() == 0, "Semantic publication pressure and atomic output");
         utility_check(semantic_publish_cancellation_tests() == 0, "Cancelled semantic publication never dispatches");

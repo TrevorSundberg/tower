@@ -83496,3 +83496,97 @@ No second full matrix or performance comparison was run, and no A1 scheduling
 hunk was changed by L2. Full checkpoint acceptance remains b959ad59; these are
 separate merged behavior receipts under L2/type_checkpoint_retry1* and logs.
 Normal push retry follows with all committed histories retained.
+## 2026-11-23 A2 bounded checked-stage caller closure
+
+Implementation against published `0aee8b07`; this supersedes that receipt's
+limited caller scope, not its historical evidence. Source review traced all
+compiler stage hold/publish/discard callers. Body, declaration/discovery,
+evaluation preparation and lowering closed the last view before an implicit
+publish-time hold; some trapped on dispatch/publication errors, and lowering
+attempted publication after a failed dispatch. They now use the shared
+`compiler_kernel_stages_result`/`sem_stage_wave` boundary. No new scheduler,
+registry, stage storage or alias assumption; the existing world-owned components,
+private queues, frozen snapshots and pre-dispatch tickets/leases remain.
+
+Dispatch has joined before transfer. A prior dispatch/graph error skips holds;
+otherwise every hold is checked while sources remain pinned. On failure all
+peers discard under that pin, including already-held peers. Only a successful
+hold barrier closes the view and permits checked structural publication. No
+caller readiness/bookkeeping runs after a failed transfer/publication. A late
+publication failure can leave already-published structure for ordinary world
+teardown; it is not a transactional rollback. Worker resource errors retain
+their original message/offset when ownership later fails; ordinary source-order
+worker diagnostic selection remains unchanged. Empty queues use the existing
+fast hold path; no shared reference count is touched by workers.
+
+Failure review also found result-owned scratch surviving the new early returns.
+The shared optional cancellation callback now disposes unpublished evaluation
+buffers before any stage can destroy their backing component addresses. Normal
+consumer-before-producer evaluation disposal is reused, while unpublished body
+and declaration lexical lists/allocations are reclaimed at pipeline teardown.
+Normal publication empties these ownership vectors. No finalizer is skipped.
+Generic-body cloning already has checked hold/discard ordering and remains
+unchanged. ROOT alone owns `semantic_execution_work` and its fixture; scoped
+search at this base finds its void hold as the sole remaining production call.
+
+Focused regression additions: the actual common boundary covers partially held
+peers, original Capacity versus later Exhausted, duplicate-name publication
+failure and cancellation callbacks before staged finalizers. Existing mixed
+lowering fixture gains real SyntaxOrigin hold exhaustion, both workers1/4,
+asserting drained jobs/tickets, original histories and no ready/ABI publication.
+D1's existing receipt-target loop gains only this already-existing fixture;
+query smoke invokes it. Production imports require no new exact-symbol policy.
+Existing stage tests add a larger duplicate-queue cost case and retain the old
+ordinary/concurrent workloads through explicit profile modes.
+
+Validation: one dependency-aware CMake target set, incrementally rebuilt after
+fixes: `tower-entity-stage-result-tests tower-entity-stage-concurrent-tests
+ tower-lr-work-tests`, jobs2/compilerjobs1. Stage normal and queued modes, real
+2/4-worker concurrent stage coverage (57792 original finalizers), query-smoke,
+resource-smoke (24 cases, widths4/8 workers1/4) and lifecycle14-16 all pass in
+`stage_callers_final.log`. Body-smoke serial/worker canonical output, execution,
+ordered diagnostics/cycles passed in `stage_callers_validate.log` before the
+final private-buffer teardown addition; final query/resource/lifecycle coverage
+was rerun after it. No failed or earlier check is relabeled as final evidence.
+The initial `stage_callers_check.log` preserves incompatible foreign declarations
+for typed versus opaque stage APIs in the standalone fixture. Passing ordinary
+callbacks into the shared helper fixed it; the failed container drained first.
+Bounded read-only path/glob lookup errors are retained in session output.
+
+Measurements: same Windows11 host, Docker Linux x64, CPU12-23/24GiB,
+Clang/LLVM19 Release and public bootstrap SHA256
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`.
+Frozen before binaries retained; identical fixture inputs/flags for each pair.
+Three alternating pairs after one warm-up each. Existing Tower
+`ecs_process_profile`, `profile_process_values`, `profile_medians_all` check child
+exit receipts; workloads check results/canonical equivalence and cleanup.
+
+| Workload | Median wall ms before -> after | CPU ms | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Original serial process, old unchecked versus published checked protocol, repeat | 3.787621 -> 3.780799 | 1.115 -> 1.129 | 1376 -> 1388 |
+| Larger queued references: 65536 duplicates/stage, 8 rounds | 7.435695 -> 7.197639 | 4.927 -> 4.501 | 2204 -> 2204 |
+| Existing concurrent stage workload, 2/4 workers | 102.000654 -> 103.236633 | 100.010 -> 100.336 | 1656 -> 1604 |
+| Compiler lifecycle case14, widths4/8 and workers1/4, canonical/result checks | 4516.096701 -> 4554.801142 | 4810.171 -> 4847.093 | 213336 -> 212908 |
+
+The earlier +13.6% tiny serial wall sample was not reproduced (repeat -0.18%
+wall/+1.26% CPU). This does not establish zero overhead. The larger queue is a
+control: the before/after binary SHA256 is identical, so its -3.2% wall variation
+cannot be an optimization. Library duplicate/cumulative accounting remains
+linear and allocation-free at hold; no demonstrated avoidable overhead justified
+weakening it. The actual compiler sample is +0.86% wall/+0.77% CPU with similar
+RSS, not a demonstrated regression from three pairs. Stage serial and concurrent
+workloads differ and cannot form a speedup ratio; simultaneous-entry checks prove
+real overlap, not useful universal scaling. No full scaling claim.
+
+Receipts/raw output/CSV/values and exact binary hashes: own cache
+`C:\Sandbox\build\codex_ecs_20261122\A2\cache\logs\stage_callers_repeat.log`,
+`stage_callers_profile.log` and `stage_callers_*_{before,after}_*` files. Checked
+before compiler binary `46f3a6ee204e668e75c1782b5eccf153a56de0765b7bb60ddbecb4cba73d62cf`;
+measured after `12f6d2f9dd297dc0be3f04ab7354b790fd4a0e230316b00f9126edb9f96769a1`.
+Store/component counts, finalizers and budget retirement are checked; arbitrary
+private-vector allocation counts are not instrumented. Disk free321.6GiB during
+final check, all owned test/profile containers drained. No old node-control,
+allocation-failure or sanitizer probe ran. ROOT retains final merged memory/UB/
+thread instrumentation, useful scaling, bootstrap/browser/generation and hosted
+release gates. This batch claims caller migration only, with ROOT's execution
+exception explicit; no overall compiler completion or deployment claim.

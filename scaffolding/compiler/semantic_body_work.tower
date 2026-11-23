@@ -1672,6 +1672,13 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     vector_dispose(void*, &context.allocations);
 }
 
+fn sem_body_stage_cancel(payload: void*): void {
+    // These jobs have not entered the shared evaluation graph. Their component
+    // addresses are still live here; stage discard may destroy them afterwards.
+    var result = bits(SemanticBodyWork*, payload);
+    sem_evaluation_dispose_jobs(&result.evaluations);
+}
+
 fn sem_body_clear(result: SemanticBodyWork*): void {
     result.declaration = null;
     result.bound_declaration = null;
@@ -1695,6 +1702,10 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     vector_dispose(&result.nodes);
     vector_dispose(&result.boundaries);
     vector_dispose(&result.blocks);
+    // Normal publication transferred these owners to c. Failure keeps them
+    // private until the joined pipeline closes, after stage cancellation.
+    foreach(var list in &result.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    foreach(var allocation in &result.allocations) { compiler_buffer_free(allocation); }
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
     vector_dispose(&result.calls);
@@ -1901,17 +1912,15 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     sem_require(view != null);
     for(var i: usize = 0; i < active; i++) { running.data[i].context = &context; }
     var receipt: WorkReservation;
-    var extra = sem_workers_admit(c, active, &receipt);
+    var extra: usize = 0;
+    var dispatched = sem_workers_admit_result(c, active, &receipt, &extra);
     defer sem_workers_release(c, &receipt);
-    sem_require(compiler_kernel_dispatch_admitted(&c.workers, running.data, active, extra));
-    entity_view_close(view);
+    if dispatched == WorkBudgetError.None {
+        dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, running.data, active, extra);
+    }
     // Publish every stage before any cross-body bookkeeping. Completion order
     // must not change diagnostics, nominal type identity or observation order.
-    for(var i: usize = 0; i < active; i++) {
-        sem_require(entity_stage_publish(running.data[i].stage));
-        running.data[i].stage = null;
-        running.data[i].context = null;
-    }
+    if !sem_stage_wave(c, running.data, active, view, dispatched, running.data[0].subject, sem_body_stage_cancel) { return 0; }
     for(var i: usize = 0; i < active; i++) { sem_body_publish(c, running.data[i]); }
     return active;
 }
@@ -2023,6 +2032,7 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     // A later producer can unblock an earlier consumer even after another
     // body has failed. Retain diagnostics while servicing that dependency.
     sem_body_wave(c, batch, count, count);
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     // Release every worker claim before any coordinator continuation publishes
     // types or registers new producers. Waiting bodies retain their ECS cursor.
     for(var i: usize = 0; i < count; i++) {

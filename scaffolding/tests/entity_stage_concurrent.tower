@@ -8,6 +8,7 @@ import .library.work_budget;
 import .library.work_budget_types;
 import .host.work_linux;
 import .host.work_dispatch;
+import .compiler.compiler_kernel;
 
 extern fn pthread_self(): usize;
 extern fn getrusage(who: i32, result: i64*): i32;
@@ -215,7 +216,89 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     stage_check(work_budget_release(&budget, &outer) && work_budget_dispose(&budget));
 }
 
+struct StageTransitionJob {
+    stage: EntityStage*; context: void*; borrowed: StageReference*; cancelled: bool;
+}
+enum StageTransition: u32 { Publish, HoldFailure, DispatchFailure, PublishFailure, Count }
+fn stage_transition_hold(stage: void*): WorkBudgetError { return entity_stage_hold_result(bits(EntityStage*, stage)); }
+fn stage_transition_publish(stage: void*): WorkBudgetError { return entity_stage_publish_result(bits(EntityStage*, stage)); }
+fn stage_transition_discard(stage: void*): void { entity_stage_discard(bits(EntityStage*, stage)); }
+fn stage_transition_close(view: void*): void { entity_view_close(bits(EntityView*, view)); }
+
+fn stage_transition_result_cancel(payload: void*): void {
+    var job = bits(StageTransitionJob*, payload);
+    var state = bits(StageState*, job.context);
+    stage_check(!job.cancelled && state.finalized == 0 && job.borrowed.target != null);
+    job.borrowed = null;
+    job.cancelled = true;
+}
+
+fn stage_transition_cancel(context: void*): void {
+    var payload = bits(StageReference*, context);
+    // Keep a source owner too: an incorrect early close fails this assertion
+    // deterministically rather than using an already-freed source as a probe.
+    stage_check(payload.target.store.views != 0);
+    payload.target = null;
+}
+
+fn stage_transition_trial(mode: StageTransition): void {
+    var state: StageState = { finalized: 0, coordinator: pthread_self() };
+    var store = entity_store_create();
+    stage_check(entity_store_set_context(store, bits(void*, &state)));
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var source = entity_create(store);
+    var exhausted = entity_create(store);
+    stage_check(entity_register(type, sizeof(StageReference), alignof(StageReference), StageReferenceLifecycle));
+    var jobs: StageTransitionJob[3];
+    var pointers: StageTransitionJob*[sizeof(decltype(jobs)) / sizeof(StageTransitionJob)];
+    var count = sizeof(decltype(jobs)) / sizeof(StageTransitionJob);
+    for(var i: usize = 0; i < count; i++) {
+        var job = &jobs[i];
+        *job = default;
+        job.stage = entity_stage_open(root);
+        job.context = bits(void*, &state);
+        pointers[i] = job;
+        var node = entity_stage_create_named(job.stage, root, mode == StageTransition.PublishFailure ? "joined" : null);
+        var value = bits(StageReference*, entity_component_data(entity_component_add(node, type)));
+        *value = default;
+        job.borrowed = value;
+        var target = i == 1 ? exhausted : source;
+        stage_check(entity_stage_references_cancellable_result(job.stage, &target, 1,
+            stage_transition_cancel, bits(void*, value)) == WorkBudgetError.None);
+        value.target = target;
+    }
+    var view = entity_view_open(root);
+    var failing = mode == StageTransition.HoldFailure || mode == StageTransition.DispatchFailure;
+    if failing { exhausted.references = ~convert(usize, 0); }
+    var cause = mode == StageTransition.DispatchFailure ? WorkBudgetError.Capacity : WorkBudgetError.None;
+    var receipt = compiler_kernel_stages_result(&pointers[0], count, bits(void*, view), cause,
+        stage_transition_hold, stage_transition_publish, stage_transition_discard, stage_transition_close,
+        stage_transition_result_cancel);
+    var wanted = mode == StageTransition.HoldFailure ? WorkBudgetError.Exhausted
+        : mode == StageTransition.PublishFailure ? WorkBudgetError.Invalid : cause;
+    stage_check(receipt == wanted && store.views == 0);
+    for(var i: usize = 0; i < count; i++) {
+        stage_check(jobs[i].stage == null && jobs[i].context == null
+            && jobs[i].cancelled == (mode != StageTransition.Publish));
+    }
+    var published = mode == StageTransition.Publish ? count : mode == StageTransition.PublishFailure ? convert(usize, 1) : 0;
+    stage_check(root.child_count == published && state.finalized == count - published);
+    if failing {
+        stage_check(source.references == 1 && exhausted.references == ~convert(usize, 0));
+        exhausted.references = 1;
+    }
+    entity_release(source); entity_release(exhausted); entity_release(type); entity_release(root);
+    stage_check(state.finalized == count && store.entity_count == 0 && store.component_count == 0
+        && entity_store_dispose(store));
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 1 {
+        for(var mode: u32 = 0; mode < convert(u32, StageTransition.Count); mode++) {
+            stage_transition_trial(convert(StageTransition, mode));
+        }
+    }
     stage_check(work_thread_available() && work_thread_capacity() >= 4);
     var state: StageState = { finalized: 0, coordinator: pthread_self() };
     for(var round: usize = 0; round < 16; round++) {

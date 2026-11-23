@@ -399,6 +399,28 @@ wrappers trap on error instead of wrapping counters or finalizing unowned fields
 Production provenance uses the cancellable protocol. Its private vectors remain
 ordinary allocations, not a new claim of world-budget accounting.
 
+Joined body, declaration/discovery, evaluation-preparation and lowering waves
+use `sem_stage_wave`. Its shared `compiler_kernel_stages_result` boundary consumes
+the wave's input view: check every hold, close the view, then check every
+structural publication before callers expose readiness. A prior dispatch error
+skips transfer/publication. Hold failure discards partially held peers under the
+view; publication failure discards the remaining held peers. Published structure
+is not rolled back, but the failed wave exposes no ready results. The first
+dispatch/graph cause wins; a worker resource receipt already present when an
+ownership operation fails keeps its original message/offset. Ordinary deferred
+worker diagnostics retain the owning pipeline's source-order policy.
+
+The optional private-result cancellation callback runs for every job on failure,
+before any remaining stage is discarded or job context cleared. Body/declaration
+callbacks dispose unpublished evaluation buffers while their component addresses
+are live; untransferred lexical lists/allocations remain result-owned until
+pipeline teardown. Workers must already be joined, stages must use cancellable
+borrowed payloads, and sources must remain owned through either outcome. A
+transport `Busy` on entry admits no jobs from this wave and does not authorize
+joining another owner's jobs. This helper does not dispatch, allocate, create
+leases, or infer alias guarantees. Generic-body cloning retains its existing
+checked ownership boundary. ROOT owns the remaining execution-pump adoption.
+
 Ordered containment also offers `entity_replace_child_result(parent, index,
 replacement)` and `entity_take_last_child_result(parent, error)`. Replacement
 checks all affected leases, including the displaced child, before changing links
