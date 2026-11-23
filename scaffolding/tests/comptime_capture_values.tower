@@ -1,0 +1,9 @@
+import tower;
+import semantic_invalid.comptime_capture as captured;
+
+// Keep the original immutable-input fixture as the source of these values.
+var failures: i32 = 0;
+if captured.input != 7 || captured.result != 7 { failures++; }
+var Captured: type = decltype(captured.result);
+if Captured != i32 { failures++; }
+print(failures);

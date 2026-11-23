@@ -1319,3 +1319,30 @@ known-order v1/v2 adoption occurred. Preserve compile admission of the original,
 strict demanded comptime(earlier) rejection, and use initialized state0 with
 exactly-once read increment for portable1,1,7 output checks. D1 owns that test
 update. Stronghold's future initialization policy is not imposed here.
+
+#### Owner test alignment prepared after 58f1e309
+
+Exact D1 storage13ef3fc8, defined known-order8ee87576 and browser9981111f
+handoffs reviewed and integrated after D2 jobs drained. They change test
+behavior, not production semantics; independent local compilation/runtime is
+pending next Deck slot. Source checks do not inherit prior146 runtime credit.
+Storage retains100resets, retained source pointer/text, explicit active grammar
+declaration/statement order, fault recovery and final buffer checks.
+body_runs_trial_output preserves default0 newline for all existing callers,
+compares all requested bytes, retains whole program initialization and canonical
+worker comparison. New known helper compares graph/fast target memory as well
+as output/errors, reparses canonical, closes completed worlds before worker
+runs, admits the raw original without executing it and retains strict demanded
+earlier-read diagnostics at32/64 and workers1/2/4/8.
+
+New owner fixture scaffolding/tests/comptime_capture_values.tower is reviewed:
+it imports the unchanged original immutable capture fixture, checks input/result7
+and reflected exacti32, prints failure count0. No storage or independent AST/
+scheduler added; source/import identity and module lifetime stay with existing
+compiler sessions. D1 predecessor rejected decltype directly in expression
+position; matched its ordinary type-position Captured binding correction before
+local build, preserving the original failure receipt/source proposal. Browser
+transport uses the correct entry path in both Tower and LLVM so relative imports
+resolve, updates three specific observed diagnostics, retains alias as negative
+and does not alter already-correct threaded regex. Current actual browser/backend
+execution still requires final assets. No false pass from source review.

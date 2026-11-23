@@ -49077,3 +49077,23 @@ ASan/TSan/stress, final clean public/bootstrap/generation/browser/threaded
 validation and coherent atomic publication/hosted verification remain required.
 Root owns final immutable artifact assembly; D2 does not duplicate vendor
 builds or treat dependency reuse as independent test credit.
+
+After current146 measurements drained, integrated exact D1 storage13ef3fc8,
+known_order_defined8ee87576 and browser9981111f reviewed source patches. Never
+applied obsolete0,7,7 portable known drafts. Original admitted source remains
+compile-only; initialized effect source requires1,1,7 across graph/fast memory/
+outputs, canonical and worker matrix; demanded earlier capture remains negative.
+Default body output wrapper preserves all previous0newline expectations.
+Storage's active grammar reset strengthens actual statement parsing without
+weakening source provenance/fault checks. New browser capture fixture imports
+original immutable7 source and checks exact values/type. D1's predecessor
+compile then exposed decltype in value expression as unsupported; its corrected
+ordinary var Captured: type = decltype(captured.result) plus type identity
+comparison passes its smallest-unit compile. Matched that correction here
+before any local compilation. Exact original failed proposal retained by D1;
+no production syntax or compiler fix. Browser three diagnostic changes are
+grounded in prior exact current native/WASI classifications, not guessed passes.
+D2 local affected checks pending next slot; production compiler146 bytes remain
+unchanged, so repeat full compiler performance profiling is not warranted for
+test-only wrappers. Measure affected harness wall/CPU/RSS and exact results
+when executed; no current browser/known acceptance claim from source review.
