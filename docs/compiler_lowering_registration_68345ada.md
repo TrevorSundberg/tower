@@ -118,3 +118,10 @@ profile ELF byte-identical to original76728e7b. One restoration query-smoke pass
 Raw follow-up: `lowering_prepare_68345ada/small_followup_ae5d34b2`, including four
 timestamped process/affinity snapshots and every result. One transient `/proc/120`
 vanished during read-only enumeration; its error is preserved, not a test failure.
+
+Publication: revert `647bb6fc`, complete-history merge `a93f5444` adopts `ae99ce12`.
+B1's new Foundation page policy changes the merged storage input; refresh only
+the native query runner (3 actions,16.14s), then query-smoke passes4.96wall/
+4.02CPU/350892KiB, executable962c8a98. Matched timing inputs remain the older
+frozen pair; no new page-policy performance claim or extra timing samples.
+Incoming dependency/platform owner receipts remain separate. All owned work drained.
