@@ -850,3 +850,35 @@ increases5.7% and remains under controlled allocator investigation; passing outp
 and slightly lower wall time do not make that neutral. Current code is a measured
 checkpoint, still awaiting typed stage/view classification, coordinated callers,
 late inspection phase proof, merged instrumentation and integrated publication.
+
+New file review: compiler/semantic_generic_body_types.tower contains the existing
+instance-owned SemanticGenericBodyWork declaration extracted without layout
+change. Registration, lifetime, leases and publication remain in the original
+executor. Tests and provider share the nominal declaration so a joined receipt
+can prove actual copied work without a global observer or inferred offsets. It
+adds no authoritative graph or storage. Public compile/runtime evidence for this
+new header and pinned-publication fixture is pending; preceding import/library
+fixture failures remain recorded in the journal.
+
+Current eec97f6 before20888 now compiles the shared receipt fixture and coherent
+compiler/LR, then actually aborts at the pinned Busy assertion after successful
+clone/join and stage retirement. Earlier compile-only failures are superseded
+only for this gate. The three A2 typed boundary calls are now adopted locally;
+matching after gates/profiles, D2 exact providers, instruments and publication
+remain open. Full costs and source/package identities are in the journal.
+
+After52036 now rebuilds the real semantic object, relinks distinct binaries, and
+passes the unchanged Busy/publication fixture at both widths plus query-smoke.
+The first after attempt reused stale objects because of preserved copy mtime;
+its hashes/failure remain recorded, and a changed-binary guard prevents repeat.
+Current clone controls prove distinct-thread overlap/cancel/failure cleanup;
+paired cost, current instrumentation and full release are still pending.
+
+Current four-path audit at eec97f6 plus review patch2662097c (native52036):
+
+| Path under scaffolding/ | Ownership and behavior reviewed | Evidence / boundary |
+| --- | --- | --- |
+| compiler/semantic_generic_body_types.tower | Exact existing component fields/order; borrowed request entities, graph ticket and worker-private result. No new allocation or authoritative graph. | Public fixture and coherent semantic object compile; provider and test use one nominal declaration. |
+| compiler/semantic_generic_body_work.tower | Only coordinator opens/publishes stages and records the exact per-call result. Join, hold, pin close, stage retirement, grant release and graph cancellation retain their order. Failed publish preserves ownership for defer. | Same before fixture aborts; corrected52036 query passes. Exact imported provider names and two exported entry names still require D2 review. |
+| tests/generic_pump_publication.tower | Actual registered component proves completed copy; legal caller-owned view denies structural publication. No observer global, guessed offsets or duplicate executor. Expected copied count derives fixture dimensions. | Both target widths check failure/success, instance/count preservation, sticky receipt, drained work and zero ledger. Serial transport here complements existing real-overlap controls; it is not sanitizer coverage. |
+| tests/generic_clone_parallel.tower | Adds the new fixture to the existing query entry; existing calibration, per-thread intervals and cancellation/failure oracles unchanged. | Current query selects1024 branches and proves distinct-thread overlap with2/4 workers. No claim that queue width or this validation timing measures end-to-end scaling. |
