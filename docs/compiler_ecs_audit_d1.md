@@ -2851,3 +2851,38 @@ it further in this milestone. The earlier actual provider link failure and
 three-unit reference result remain factual historical receipts; they do not
 close current standalone negative-control acceptance. Positive ownership and
 concurrency instrumentation proceeds independently, with this limitation explicit.
+
+### Prospective capture, queue-alias and late-inspection join review
+
+Reviewed ROOT34aa7526c and its complete successor c9442c6edbc0c3f7398ee3034ebde85bd18512fc
+from verified bundles04a924c5/7b28e024, without changing the active ed7 compiler
+closure. Prospective roster is539 assigned of1128; current checkout remains538.
+
+| Assigned path | Reviewed identity, substantive conclusion and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_capture_continuation_checks.tower | New153-line fixture at34aa. One world/context owns actual capture and source-proof producers, with a separate borrowed local budget kept alive through context disposal. Healthy checks a legitimate wait, not completed initializer execution. Take exhausts dispatch; suspend/observe occupy actual edge capacity; finish derives consumer pressure from actual scratch capacity. Exact Invalid/Capacity, phase/declaration offsets, terminal cancellation, no live tickets/workers, repeated-call node/component/task stability and zero final grants are checked across widths4/8 and budgets1/4. These graph-only variants do not prove overlap. Ordinary production semantic provider/exported main and five selectors require no SOURCE/binding or alternate implementation. External registration draft28ffaa75 independently reviewed by D2; runtime/adoption pending. |
+| scaffolding/tests/parser_table_budget.tower |34aa adds real forest attachment Busy under a pinned view, Invalid for self attachment and physical Memory after traversal storage is already prepared. Assertions preserve leaf ownership and parent emptiness before retry. Matching parse_tree now stores entity_attach_result's exact cause before transfer; the previous bool fallback gap is addressed by the producer. Serial fault injection remains separate from actual concurrency evidence. Existing frontend allocations registration suffices. |
+| scaffolding/tests/world_constructor.tower |34aa replaces the copied literal name extent5 with strcmp against the actual null-terminated name, preserving the bare-store clone oracle. No competing D1 fixture edit. The prior ed7 native/ASan build still contains the earlier source and is not relabeled as validating this change. |
+| scaffolding/tests/entity_mutation_results.tower |c944 adds live reference-queue slice reuse with and without growth. Array-derived pairs and actual queue capacity bound setup; spare/partially live slices are rejected before reads, and growth denial preserves data/length/capacity. Success installs owning payload fields only after admission; every queued pointer/order is checked before two idempotent holds, discard and exact reference/buffer baseline restoration. Successful measured allocation calls bound the physical fault sweep. Matching producer keeps a live-slice index across vector reserve, rebinds after growth and rejects unaligned/spare input. No extra allocation or noalias promise; raw external pointer validity remains a caller contract. Existing serial mutation registration suffices. |
+| scaffolding/tests/generic_inspection_budget.tower |c944 keeps a successfully parsed/checked document alive before occupying its remaining budget and calling the actual new single-owner inspection phase. Exact Capacity and source-derived expression offset, null result after failure, no live workers/tickets, and no replay after diagnostics are cleared are asserted. World node/component counts guard against hidden second work. Context/document lifetime encloses the pressure grant and cleanup. The legacy world binder charges selected scratch rather than physical pages, explicitly retained as a limitation. Existing LR editor selector owns this fixture; no speculative import-policy permission or new scheduler is needed. |
+
+Primary sources were revisited during this review: Flecs systems distinguish
+structural staging from writes to existing component values; component traits
+separate stable sparse addresses from table traversal/fragmentation; Burst's
+aliasing example demonstrates that a disjointness assumption changes results
+when ranges overlap. These principles support the lease and live-slice checks,
+not any unmeasured storage/vectorization gain. Raw Foundation ownership remains
+explicit: acyclic ownership is an existing caller precondition, not a newly
+claimed checked hierarchy policy. Documentation review itself has no executable
+performance path. Current merged runtime and release acceptance remains pending.
+
+The ed7 positive execution receipt now contains55 native processes and54 ASan
+processes with real stage/component concurrency and exact checked outputs. Full
+ASan units first timed out at300s; supported user-space sampling identified LR
+construction/sanitizer stack cost, and the unchanged binary completed a bounded
+UID1000 followup in440.23s. Original timeout, UID difference and sampling overhead
+remain explicit. The final separate allocation sweep passes under UID0/serial
+transport. Actual43 linked objects/instrumented IR and20 required access-hook
+checks are retained. This supports the ed7 scope only: prospective c944 fixtures
+and current thread/whole-release acceptance are still pending. No race probe was
+changed or re-executed after ROOT's directive.

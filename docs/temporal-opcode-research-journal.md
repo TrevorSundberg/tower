@@ -76281,3 +76281,94 @@ negative-control coverage stays open. Actual positive-object access hooks and
 concurrency stress are the supported forthcoming evidence, not universal race
 freedom. Final clean bootstrap/browser/generation and leased atomic hosted
 publication remain open; there is no publication lease or push.
+
+### D1 ed7 native positives, actual ASan coverage and unit timeout diagnosis
+
+Frozened7f53026f29f05e047cc4d2f049297a3dc21fc3 includes completeROOT4b, D26159
+and D1bf093 registrations. Source/archive, public9653 compiler hash, LLVM19.1.1,
+Docker image/security/CPU settings and all commands are retained under
+build/d1_ecs/child_registered_positive. No private bootstrap override. Builds use
+jobs1/CPU0,2, warm filesystem/incremental caches; correctness runs use explicit
+CPU0-7 for tests requiring multiple real workers, restoring0,2 after drain.
+Same original CLI2918210/thread01a2046a; todo hash remains unchanged.
+
+Four changed public fixture leaves pass: lease7.72wall/7.47CPU/214068KiB,
+mutation4.25/4.20/218812, world constructor2.86/2.82/184624, child transfer
+observer4.69/4.58/201108. Native19 actions pass93.30wall/91.06CPU/433492KiB.
+Resulting compilerc0372979 and all50 resources are saved; the executable matches
+D2's independently built same-production-source compiler byte for byte. Diff to
+D2 complete94bc finds only a README difference under source/build inputs.
+
+Native55 processes pass:48 fixture runs (six new registrations and real stage/
+component stress, each applicable selector three times), query-smoke three times,
+resource, units, control and allocations. Stage finalizations57792 each. Query
+sample1 selects width256 and records actual useful overlap; it is a full-host
+profile, not a fix of the old ff3/two-CPU cancellation failure. Native units
+45.64wall/67.11CPU/863140KiB, control74.52/83.40/264920, allocations5.57/5.48/
+172828. These correctness timings are not equivalent before/after performance
+claims. Input hashes pass after all runs, container CPU allowance restored.
+
+Address75 build actions pass533.20wall/523.60CPU/748744KiB. The OS collector then
+exits1 because it asks for native-mode unbound/plain IR filenames instead of the
+actual sanitizer original/bound names. Session27238 drains; original script,
+status, log, metrics and errors remain in address_attempt1. Correct only that
+collector after drain.52064 no-work retry plus actual final-link/archive capture
+passes:43 linked Tower objects and matching instrumented IR saved,20 explicitly
+required access-hook checks pass. This is actual artifact evidence, beyond the
+configured sanitizer-object manifest. External LLVM/system libraries and source
+UBSan remain outside this instrumentation contract.
+
+Address36053 passes52 positive processes (48 fixture runs, query3 and resource),
+then full units times out124 at300.31wall/389.12CPU/1128744KiB. No stdout/stderr
+or sanitizer report; zero major faults/swaps. The allocations selector is not
+reached. All processes drain, CPU allowance restores and source hashes verify.
+This is a failed/pending gate, not an instrumentation pass or detected race.
+Do not repeat the52 passing cases merely to recover the remaining gate.
+
+User-space perf cpu-clock sampling is supported. Noninteractive sudo sampling of
+a root-owned guest is unavailable (password required, preserved); no prompt or
+host security change. A bounded600s followup uses the exact saved binary and
+resources under UID1000 for own-user sampling, with that UID difference and
+observer overhead explicitly recorded. Fifteen seconds at49Hz capture721 samples,
+zero lost,5.853MB; actual guestPID3011071 and sampler status0 are retained.
+Top self costs are ASan stack malloc0 17.20%, LR item sift11.65%, item index insert
+8.60%, item less8.18%, range insert6.66%. Stacks lead through LR closure/LALR
+propagation/parser table construction and syntax-version/module import into
+frontend unit compilation. This identifies active compiler work and sanitizer
+stack overhead in the sampled interval, not a diagnosed wait/deadlock or a
+whole-run cost attribution. No sanitizer option or overlap assertion is weakened.
+The followup is still pending at this entry; raw original timeout stays intact.
+
+CompleteROOT34aa/c944 histories and all five assigned fixture deltas are reviewed
+read-only during the freeze; audit rows distinguish prospective539/1128 from
+current538/1127. D2 independently approves the28ffaa75 five-selector capture
+registration draft. ROOT owns stopped A1/A2/B2 ordinary followup; no retry or new
+context is attempted. After current ASan work drains, hand the host slot to D2,
+then adopt complete current inputs and validate the new registration/current
+thread union once. Ed7 thread checks remain explicitly unrun, not passed or a
+completed milestone. Final current clean-bootstrap/browser/generation/publication
+acceptance remains open; no publication lease or push.
+
+The bounded followup76452 actually passes0:440.23wall/671.81CPU/1176876KiB,
+exact native-unit success stdout, empty stderr and source hashes0. It uses UID1000
+and two explicitly recorded profiler intervals; do not relabel it as the original
+UID0/300s run or a normal performance comparison. A later10s/49Hz interval
+captures957 samples/0 lost/7.806MB; top self ASan stack malloc0 13.06%, item
+sift11.08%, item index insert10.66%, item less7.00%, range insert5.43%. Both
+intervals show active LR work rather than a blocked worker. Samplers and workload
+are reaped, CPU allowance restored0,2. The original timeout124 remains intact.
+The full suite did not need any source, sanitizer-option or fixture-oracle change.
+Only the previously unrun ASan allocations selector follows; the52 earlier
+passing processes are not repeated. Ed7 thread coverage remains unrun and will
+be replaced by explicitly current-source validation after the queued join.
+
+The missing allocations selector37043 now passes0 under original UID0/serial
+transport:38.69wall/38.24CPU/772896KiB, empty stderr and source hashes0. Thus
+this frozen source has55 successful native processes and54 successful address
+processes across the explicitly recorded profiles (52 initial, one longer
+profiled unit run, one remaining allocation run), alongside the preserved initial
+collector1 and units124 failures. These are not thread-mode results. Both own
+containers are idle; saved owner receipt records actual lock release12:53:23UTC,
+with CPU0,2 restored. D2 receives the next native/WASI/export slot. No source
+merge or code edit occurred during the build/runtime freeze. Final current-source
+thread/clean-bootstrap/browser/generation and publication gates remain open.
