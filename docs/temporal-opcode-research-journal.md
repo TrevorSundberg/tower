@@ -84069,3 +84069,17 @@ Artifacts: root_signature_before_5b05, root_signature_after_5b05 (failed first
 after) and root_signature_after_capacity_5b05 under /cache and the ROOT coordinator
 directory. The old default frontend result above precedes this production patch.
 Final integrated instrumentation/browser/generation/publication remain pending.
+
+ROOT merged signature receipt: rebased the unpublished patch onto complete main
+36ad3378, preserving A1 inference, A2 checked stage waves, B2 object-only output,
+L1 WASI/policy and D2 accounting/locality histories. Frozen196d93c7e285068257a2f1fbceca1a8b34e1f049
+rebuilt the affected closure in37.21wall/102.48CPU seconds/796456KiB, then passed
+all13 admission selectors, query-smoke and both known aggregate output checks.
+The original before/after samples remain tied to5b05; these are merged acceptance
+costs only (.21s admission, .23s query,1.09/.97s aggregate jobs1/4). Complete source
+manifest verified after execution. ROOT pushed196d93c7 normally and independently
+verified its exact remote main ref; the actual build-source commit is reachable.
+Current compiler3fd78f33024c41f613415a9760c33bc8bf637072c4c4976b219141ec813a8bc8;
+receipt root_signature_integrated_196d retained locally, KinmenA and container cache.
+All ROOT jobs drained. User todo.txt remains untouched at SHA256
+8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
