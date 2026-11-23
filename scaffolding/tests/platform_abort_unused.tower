@@ -1,0 +1,4 @@
+import foundation;
+extern fn abort(): void;
+export fn fail(): void { abort(); }
+print(42);

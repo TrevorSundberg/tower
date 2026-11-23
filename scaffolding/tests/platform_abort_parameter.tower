@@ -1,0 +1,3 @@
+import foundation;
+extern fn abort(value: i32): void;
+abort(1);

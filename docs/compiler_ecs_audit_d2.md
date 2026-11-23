@@ -3301,3 +3301,73 @@ Owner default wall/CPU ms / peak KiB: component .877308/0-reported/1384; stage1.
 Plain Linux shared-budget exit0: .00wall/.01CPU s/1652KiB. The accidental instrumented-cache build was **BUILD ONLY**, never executed; no instrumentation acceptance or retry here.
 Full artifact hashes/raw logs remain in those receipts: B2 `entity_faults_6019450c`, A1 `cache/a1_windows_gate`; local source map `build/d2_ecs/peer_fault_windows_6e8001fd/{paths,blobs}.txt`.
 No code/runtime/build/profile change; documentation-only profiling inapplicable. D1 heavy slot untouched; twelve-row ledger unchanged. Remaining peer gaps: D2 direct-C fixture/differential driver/packager and A2 later native census/LLVM capacity accessor; no other gate is closed by this review.
+
+## Independent reconstruction observer review — 1e428ede (2026-11-23)
+
+Freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d`; both changed files remain exactly2bad3e52/6649bbe1.
+**No defect found in the scoped changes; these two peer-review gaps are closed.** Read full files, changed callers and allocation/observer contracts; no production edit or runtime rerun.
+
+| Reviewed path | Exact Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/tests/backend_source_native.tower` | `5d149aeda17fca3fde6430f1539583c35011af27` | Sparse-ID histogram, joined physical categories and owner teardown reviewed against actual Entity/WorkBuffer/WorkBudget producers. |
+| `playground/src/llvm-host.mjs` | `dd311be9833e6c819e9907c65787be16ee861ecd` | New read-only accessor resolves this instance's current exported memory.buffer.byteLength on each call; no cached pre-growth buffer or allocator/limit change. |
+
+Histogram lookup scans actual groups, not numeric ID space. After a new group successfully pushes, the old length is a valid new index; the row pointer is acquired after possible relocation, never retained across pushes.
+IDs, including4294967294, stay u32 data; maximum is reporting only. Checked vector growth rejects overflow/admission failure before dereference; total group counts must equal all ParserMatch instances.
+Labels/child roles are borrowed only during the synchronous joined callback; the preinstalled baseline owns the ParserMatch kind until world teardown. Lookup uses type_existing, never creates component kinds.
+Each nonempty entity belongs to one archetype row. Its heap component/child/instance index is counted once; inline component storage is skipped before attempting an EntityBufferAllocation header read.
+Table rows and component columns share one allocation rooted at table.rows; the observer counts that full capacity/header once, not columns again. Both store owned-page lists include full and partial pages, independently of available-slot lists.
+Page ownership transfers unlink the old list; component payload and descriptor/name pools are separate. Per-kind page reports filter stable type IDs and are an alternative breakdown, not additional bytes to add to pool totals.
+Logical count*data_size, label capacities and entity_count*sizeof(Entity) are not physical allocations. Oversized standalone blocks, unindexed kind indexes, other scratch/owners and foreign heaps are not fully censused.
+The category-sum <= live-budget assertion is a consistency bound, not by itself proof of disjointness or completeness; the actual owner layout above supplies disjointness. instance_indexes=0 does not assert absence of all type indexes.
+Compiler allocator headers are included via compiler_buffer_allocation_size; allocator-private overhead/RSS are excluded. Ledger metadata is separately reported, not double charged as payload/page bytes.
+
+Only FrontendParse/SemanticDispose boundaries inspect the world, after synchronous worker stages join; worker-kernel callbacks return without touching this census. No payload, table, page link or ownership reference is modified.
+Private histogram work_vector charges the supplied budget and frees via defer after each callback; its temporary allocations can affect peak/ledger retention. Optional observation is not allocation-free or timing-neutral.
+The old+new growth contract retains the previous vector on failure. A failed utility_check prints and aborts: it cannot continue into an invalid index, but this is **not recoverable observer OOM cleanup evidence**.
+Normal returns and ordinary compiler-error returns clear the observer before releasing its stack context; source/session/modules/world close before final zero bytes/grants/lanes, ledger disposal and gate close.
+The separate deny-recheck mode holds/releases its explicit reservation and preserves prior output; census and denial modes are exclusive. No new fault-injection coverage is inferred from the six successful census/plain runs.
+
+The JS accessor performs no grow/allocate and returns only current linear capacity, not live bytes, a sampled peak, configured maximum, remaining allocatable space or process RSS. It does not authorize increasing the2GiB ceiling.
+Current semantic-port phase logging uses distinct llvmCapacityBytes, rss and maxRssKiB fields; the loader owns the instance through its closure. The accessor is transport, not a second allocator/census implementation.
+
+Attributed [A2 receipt](entity_pages_wasm_storage_a06ec4b1.md): native executable `0c8bdbb65f4979be4932dc5e3f291a34ac87235f1495c8a95073ff66a1c89d2a`, mounted a18d584e plus observer, public768; **six native exits0**, resource0/final owners0, unchanged small/large outputs across workers1/4 and census/plain.
+Large plain1 versus census1 wall/CPU s/peak KiB:10.801937/10.698070/2933020 versus11.198066/11.099400/2934484. Sparse groups173/168 small and161 large,12288B vector capacity; original guard exit134 and compile/metadata failures remain recorded.
+Exact965691B guest input SHA`fadb0568535010d954cafde4ce9559e5636829c81e181be66b14e27f187b08d5` returns native-identical4675795B on compiled a06 LLVM `8acbaf08545d0ce972f2de7db2a89fcfc7ef434f95f775feca06dde759107697`.
+Isolated25→a06: exits1→0, command wall172.1796941→132.5450749s, cumulative CPU at response238.765→195.452s, peak RSS at response2028912→1862976KiB, capacity2147483648→1978990592B. Response counters are not final exit metrics; failed-versus-successful requests are not a throughput speedup.
+These native/guest freezes predate later backend work; this review does not relabel them as execution of1e428ede. No new full differential, runtime, sanitizer, bootstrap or hosted claim.
+Raw A2 paths remain `cache/logs/entity_pages_{25dddd04_4354581c,a06ec4b1_a18d584e}` under its receipt root; local exact map `build/d2_ecs/observer_review_1e428ede/blobs.txt`.
+Documentation-only profiling is inapplicable. Twelve-row ledger unchanged; B1 page-policy work excluded. C split peer review remains B2's assignment, packager A1's; this closes no unrelated acceptance gate.
+
+## Independent i1 overflow reconstruction review — 5fc00c85 (2026-11-23)
+
+Freeze `5fc00c8597760ac9c21613cbd78063ddf9f4236d`; implementation `158624c70827ba5d89f4dd2a3e7e864739b74f26`, publication `1e428ede6c33cba159b753247affd8d5cf3ed67d`.
+**No scoped defect found; this producer/fixture peer-review gap is closed.** Compared implementation parent `e637ba38`, read both new fixtures fully and traced immediate builders, callers, registration and cleanup. No producer edit or runtime rerun.
+
+| Reviewed path | Exact Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/backend/import_instructions.tower` | `057d57de2b64f1958ce1d3a0d5e82df0cd6ea025` | i1 branch precedes arithmetic construction; unchanged wider formula and extract dispatch reviewed. |
+| `scaffolding/tests/backend_overflow_fixture.tower` | `d5b7bde6d47c81f6a3b612dfa70862aaf34ae1c8` | Independent truth/factor oracles, runtime parameters, distinct cross-block extracts and valid capability-negative IR. |
+| `scaffolding/tests/backend_import_overflow.tower` | `e9b2a9694bf892228fc0dfa45767959e3d696643` | Fresh canonical recheck, both engines/target widths, exact result/error/offset, bounded execution and complete ordinary cleanup. |
+| `scaffolding/tests/backend_import_fixture.tower` | `71ec8c886404b3124c80722e3411834cbea56389` | New fixture import only; original admission/count-byte provider retained. |
+| `scaffolding/tests/storage_main.tower` | `39a0edc990a5e2dc3c331174476649d44a10cd14` | Existing backend-import runs original fault suite then overflow once; focused selectors return its failure code. |
+| `cmake/TowerStorageTests.cmake` | `30894c794457073a4d0f1390d1d83c5ad084d35b` | Existing selected CTest invokes that chain with unchanged120s bound; no permissive output regex or WILL_FAIL on this positive gate. |
+
+For unsigned i1, (0,0)/(0,1)/(1,0)/(1,1) give product0/0/0/1 and false overflow. `bi_binary(OAnd)` uses the existing bool→u8/masked-result→bool legalization; no bool multiply, divide or ordered comparison is constructed, including product-only/flag-only requests.
+Widths2–64 retain masked modular product, max/(a!=0?a:1), and a!=0 && b>limit; selection is materialized before division. `bi_pow2(64)` wraps in u64, so subtracting1 gives the correct maximum. Scalar widths and pointer target widths remain separate; no Foundation numeric policy changed.
+`bi_function` allocates a distinct local per LLVM extraction before importing blocks, excluding the aggregate call itself. The helper evaluates operands into existing SSA references, materializes shared product/flag at the dominating call and assigns each extract local there; later extracts return null instead of replaying work.
+The helper bypasses final-result coalescing, so `bi_result` cannot steal a shared/existing extract binding. Module/use pointers remain borrowed during synchronous import; all new nodes belong to the same private stage, with world-budgeted disposable associations, not another IR or global cache.
+Only one-index extractvalue0/1 is supported. Verified aggregate-store/vector/i128 controls preserve the exact capability diagnostics; prior error text/offset wins before import. No invalid LLVM index is presented as an executable rejection case.
+
+The i1 oracle is exhaustive; i8/i16/i32/i64 use ten rows with zero on each side,1,max and independently derived factor/wrap identities, not the importer's division formula. Both/product/flag modes have separate extracts in entry and both successor blocks; zero/nonzero inputs take both branches.
+The fixture calls `backend_optimize(false)`: verifier only, no O2 inlining/folding before reconstruction. Intrinsic operands are probe parameters and expected values are separate parameters. Calls and extraction users therefore reach import; this is not a claim that this fixture tests survival through LLVM O2 or executes emitted machine code.
+Thirty fresh imported/formatted programs × Graph/Fast give60 configurations at target32/64 and528 probe calls. Each engine reparses, requires terminal success and exact `0\n`; step exhaustion fails. Failed rechecks reject both starts at zero steps and return1 after cleanup.
+The LLVM world closes before canonical text enters a separate recheck world. Text's budget remains alive until format disposal; sessions, modules, worlds, ledger grants/bytes/lanes and compiler-buffer baseline drain. Rejection additionally checks unchanged entity/component census and no output payload/children.
+Production stage/association cleanup remains checked and first-error preserving. Fatal fixture `utility_check` aborts on a violated setup/assertion; it is not recoverable OOM cleanup evidence. The original allocation sweep remains enabled, but does not inject failure at every new overflow-specific allocation.
+
+Attributed [D1 receipt](compiler_ecs_audit_d1.md#d1-admitted-i1-overflow-repair--e637ba38-plus-focused-delta-2026-11-23): before, all12 i1 rechecks fail `This operation requires integer operands`; after, all60 configurations and8 rejection controls pass, with original admission sweep/registered CTest passing. This is owner execution evidence, not a D2 rerun.
+D1 public768/native LLVM19 Release, Deck CPU0,2/8GiB, jobs1, single-owner host; one fresh-process warm-filesystem sample. Before→after wall/CPU s/peak KiB: i1 failure1.64/1.60/118268→success1.56/1.54/122372; wider5.72/5.67/127000→5.65/5.60/126692. Final registered check7.91/7.65/127068; no speedup or scaling inferred.
+Owner binary SHA256 `219736c8770a7a0368a19f9758e4e552c680dfbfb74eab99bc6aeafacddf8020`; raw retained logs/inputs/build failures: D1 `build/d1_ecs/umul_fix_e637ba38/`. Source reconciliation at1e428ede records unchanged tested closure; current six reviewed blobs still match158624c7.
+Local exact path/context map: `build/d2_ecs/umul_peer_5fc00c85/{paths,blobs}.txt`; implementation drift file is empty. Immediate contracts were traced only as needed, not a new full-file audit of all mapped callees.
+Limits: widths2–7/nonstandard widths are source-reviewed, not added runtime cases; poison/undef totalization and other intrinsic families are unchanged and not newly validated. The unavailable608636B entity_views large-request comparison remains unrun; no substitute benchmark, sanitizer/threaded coverage, reactor/generation/hosted adoption claimed.
+L1's separate pointer-ordering `bi_compare` repair is excluded; this helper fix does not close entity_pages/stage-ownership failures. ROOT retains integrated artifacts/release. Documentation-only profiling is inapplicable; D1's heavy slot, twelve-row ledger, todo and other owners' sources are unchanged.
