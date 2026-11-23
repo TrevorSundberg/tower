@@ -27,7 +27,7 @@ if(policy_triple MATCHES "^x86_64-.*linux")
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower" "${policy_triple}")
   # Buffer/arena fixtures import host.memory; the ledger fixture links the
   # existing memory object. All use the single-owner fault allocator/transport.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults)
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")

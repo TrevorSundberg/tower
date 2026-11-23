@@ -176,7 +176,8 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     if growth {
         var prepared = sem_evaluation_pump(&context);
         resource_check(prepared == SemanticPumpResult.Waiting && context.workers.running == 0
-            && program.error.length == 0 && resource_entry_ready(first) && resource_entry_ready(second),
+            && program.error.length == 0 && program.resource.error == WorkBudgetError.None
+            && resource_entry_ready(first) && resource_entry_ready(second),
             "Nested-growth setup did not prepare both owning entry frames before pressure", &failures);
         first_probe.entry = first.function;
         second_probe.entry = second.function;
@@ -198,12 +199,15 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
         growth ? "Missing exact executed nested-memory growth denial in one or both workers"
             : "Missing exact invocation startup-memory denial in one or both workers", &failures);
     if isolated {
-        resource_check(program.error.length == 0, "Isolated resource receipts wait for owning diagnostic selection", &failures);
+        resource_check(program.error.length == 0 && program.resource.error == WorkBudgetError.None,
+            "Isolated resource receipts wait for owning diagnostic selection", &failures);
         context.declaration_isolated = false;
         sem_evaluations(&context);
     }
     resource_check(program.error.length != 0 && program.error_offset == 11,
         "Required and inferred resource denial selects the first source-ordered diagnostic", &failures);
+    resource_check(program.resource.error == WorkBudgetError.Capacity && program.resource.offset == program.error_offset,
+        "The actual denial phase publishes its typed receipt at the selected owning source", &failures);
     if program.error.length == 0 || program.error_offset != 11 {
         puts(growth ? "Diagnostic phase: nested growth" : "Diagnostic phase: startup");
         puts(inferred ? "Diagnostic stage: inferred" : "Diagnostic stage: required");
