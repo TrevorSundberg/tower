@@ -84132,3 +84132,10 @@ Current compiler3fd78f33024c41f613415a9760c33bc8bf637072c4c4976b219141ec813a8bc8
 receipt root_signature_integrated_196d retained locally, KinmenA and container cache.
 All ROOT jobs drained. User todo.txt remains untouched at SHA256
 8c39608bce025104ed1fe00ccc131f8ee242eb142e8ce5ab50e1b223cc473dbc.
+Final pre-push pull again refused divergence after fetching d21ba95; normal
+mergef2c7c43 preserved the three additional Tower changes (executable producer,
+frontend_main and executable-admission fixture). Normal push succeeded
+`d21ba95..f2c7c43`. No source census changes:1146/551; later review delta is now
+33 paths/15 D1, with51 unique paths in its union with the frozen26 actions.
+Whitespace, exact inventory and preserved todo hash pass. This final receipt
+changes documentation only and does not reopen the bounded5b05 source review.

@@ -1848,3 +1848,14 @@ The inventory extension is exact: the frozen1144-owner set plus the two named
 additions equals the later Git tree, without duplicates. B2 becomes277 and D1551;
 other domain counts stay fixed. This finite integration boundary prevents an
 unbounded audit chase or automatic approval of concurrently published inputs.
+
+Final pre-push reconciliation also preserves publishedd21ba95 through normal
+mergef2c7c43. Compared with36ad337, it modifies exactly three more Tower paths:
+`scaffolding/compiler/semantic_execution_work.tower`,
+`scaffolding/tests/frontend_main.tower` and
+`scaffolding/tests/semantic_executable_admission_checks.tower`. No path is added
+or retired. The final post-freeze delta is33 paths, including15 D1 fixtures;
+its union with the frozen26 actions is51 paths. These later signature-admission
+and frontend-phase changes retain their upstream receipts and require separate
+source adoption; neither this final merge nor its normal push extends the5b05
+substantive review. The1146-path inventory equality remains valid.

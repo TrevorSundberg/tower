@@ -3287,3 +3287,7 @@ postdate the frozen review above. Their exact paths are in the roster's
 They remain pending source-delta adoption, including newer inferred-stage,
 retention, accounting and layout fixtures; the550-path5b05 review and preserved
 native evidence are not relabeled as acceptance of those later bytes.
+The final pre-push d21ba95 merge additionally changes frontend_main and
+semantic_executable_admission_checks, bringing that later D1 delta to15 paths;
+no additional file is added. Frozen550 review versus current551 inventory remains
+explicit, with the exact final source delta recorded in the roster.
