@@ -76975,3 +76975,52 @@ No source edits occurred during the freeze. Current package source identity is
 cde, not the earlier6159 receipt; final root contracts/clean-bootstrap/browser/
 generation/atomic hosted publication remain unfinished. Documentation-only
 receipt reconciliation adds no runtime behavior to profile.
+
+### D2: capture source join and actual late-inspection unit ownership (2026-11-23)
+
+At12:37UTC, same CLI2918222/thread01a2046a-45eb-7452-8fb0-6d924bb320a6,
+main6332f6658 is clean and guarded pull reports Already up to date. D2 Docker
+contains only its init/sleep processes; D1 owns the shared heavy lock for its
+frozened7 positive instrumentation. Disk132GiB free, RAM9.1GiB available,
+preexisting swap6.2GiB; no cleanup, new session or build restart. The active goal
+remains unchanged. ROOT coordinator_current still describes the older bff
+checkpoint; delivered complete34aa source and verified history establish the
+actual current join. Pending/failed messages are not treated as completed work.
+
+Read complete ROOT34aa capture/attachment changes and integrated them only after
+the previous D2 freeze drained. Exact forest attachment errors now survive before
+ownership transfer; the previously reported missing B1 source is superseded by
+this complete delivery. Capture query take/suspend/observe/finish failures retain
+the owning resource receipt through existing cancellation, which requires no
+active workers. The new fixture's healthy state is legitimate suspension, not a
+successful initializer or overlap proof. D1's external five-selector registration
+draft28ffaa75 matches existing normal providers and worker-entry export; review
+was delivered once, with no shared harness edit. ROOT's strcmp change resolves
+D2's bare-clone extent finding. No6332 runtime result is inferred from c037.
+
+Verified complete L2 bundle0e40b7ee, head8c4282576, sole60741 prerequisite and
+fetched it without adopting during another lane's freeze. Read its complete
+language_document_inspect extraction and65-line late-inspection fixture addition.
+The retained document owns its context, output and persistent resource receipt;
+releasing pressure and clearing text cannot replay the failed producer. Pressure
+uses actual remaining budget, offsets use the actual source substring, and
+entity/component counts are observations, not claimed total heap accounting.
+Legacy budget binding covers selected scratch, not entity pages.
+
+Source composition audit commands: git grep language_document_inspect at8c428;
+read both semantic unit entries, TowerCompilerUtilities, TowerWorkPolicyTests,
+compiler_project_files and compiler_project_units. Only the separately compiled
+LR-main fixture externally calls the new export; ordinary language_document_world
+calls it within its own semantic provider. Thus no new bootstrap permission is
+predicted among the seven checked units. Do not add a speculative allowance;
+reconcile actual native/WASI undefined reports at the next complete source
+boundary. Existing real-depfile packaging already includes language_query.
+
+Updated the substantive D2 audit with reviewed commits and pending dispositions.
+This source review/documentation has no changed runtime path to profile. Prepared
+package_6332 remains UNRUN and requires a future matching native compiler plus
+product hashes before it can export/recompile or round-trip Foundation. The
+older package scripts and compiler identities remain historical receipts. ROOT
+still owns linker-world budgets/hold/alias work; current native/WASI/package,
+final instrumentation, clean public bootstrap/browser/generation and leased
+atomic hosted release remain open.

@@ -2532,3 +2532,27 @@ claim; journal records scope and allocation-path/owner-profile comparison.
 No fresh WASI, whole joined sanitizer, clean-cache or published-release acceptance
 is claimed. Primary and supplemental source audit dispositions above remain in
 force; final linker budget and integrated release work remains open.
+
+### Capture/attachment source join and late-inspection review — 2026-11-23
+
+Complete ROOT34aa history is integrated as6332f6658 after the preceding owned
+jobs drained. The worktree and guarded pull are clean. This supersedes the earlier
+statement that B1's attachment source was unavailable; it does not extend the
+c037 compiler's runtime receipt to these new compiler inputs.
+
+| Supplemental path and reviewed commit | Ownership, scheduling and evidence disposition |
+| --- | --- |
+| `compiler/parse_tree.tower`, `tests/parser_table_budget.tower` at34aa7526 | The existing forest records the exact entity_attach_result before transferring the leaf reference. On failure, the caller still owns the leaf; the fixture covers pinned Busy, self Invalid and allocation Memory with a retry. Traversal scratch and entity containment retain their distinct budget coverage. No new entity representation or symbol-policy permission is needed for this consumer. Source reviewed; current D2 runtime check is pending. |
+| `compiler/semantic_capture_work.tower`, `tests/semantic_capture_continuation_checks.tower` at34aa7526 | Failed take, suspend, observe and finish operations use the existing query cancellation/resource path, preserving the owning declaration's receipt. Cancellation requires zero active workers. The fixture derives occupancy from actual graph capacity and checks repeated pumps do not replay work or erase failures; context/world/budget owners survive cleanup. Its healthy case demonstrates legitimate suspension, not completed initializer execution. Worker-budget variants alone demonstrate no overlap. D1's ordinary-provider, five-selector registration draft28ffaa75 was independently reviewed; no D2 harness edit or runtime pass is claimed. |
+| `tests/world_constructor.tower` at34aa7526 | ROOT resolved the earlier hardcoded string extent finding using exact strcmp. Existing distinct clone identity/order/teardown checks remain. No D2 production edit; current execution is pending. |
+| `compiler/language_query.tower`, `tests/generic_inspection_budget.tower` at8c4282576 (complete L2 bundle, fetched only) | The single initialized document owner invokes its existing inspection producer through language_document_inspect. A persistent resource receipt rejects replay before clearing text; the fixture fills the actual remaining scratch budget after successful checking, verifies Capacity at a source-derived expression offset, hides prior output and checks no new entities/components after pressure release. Legacy bound-budget scope excludes physical entity pages. No concurrent use of the query or separate evaluator is introduced. Source review only, awaiting complete ROOT integration and current runtime evidence. |
+| `tools/bootstrap_symbols.tower`, `tools/compiler_project_files.tower`; `compiler/units/semantics.tower`, `compiler/units/semantics_checks.tower`; `tests/lr_work_main.tower` and their existing CMake recipes at6332f6658, compared with8c4282576 | The new language_document_inspect definition and ordinary call are in the same semantic provider. The only external caller is the generic_inspection_budget fixture imported by the separate LR-main object. Neither of the seven bootstrap policy units imports that fixture. Source composition therefore predicts no new permission, rather than adding the export speculatively. Actual fresh native/WASI undefined reports remain the final check. The project packager already collects this provider's real depfile closure; no second API registry/provider is proposed. |
+
+Primary assigned coverage remains33tools+7benchmarks=40/40, with these additional
+owned-producer/caller reviews recorded separately. These are read-only review and
+documentation changes, so new runtime profiling is inapplicable. The prepared
+package_6332 OS runner explicitly requires a matching, not-yet-built6332 native
+package and its product hashes; old c037 assets cannot satisfy that gate. D1's
+current ed7 instrumentation freeze is respected. Final linker budget contracts,
+merged measurements/instrumentation and public-bootstrap/browser/generation/
+leased atomic publication remain open.
