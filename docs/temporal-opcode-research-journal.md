@@ -82953,6 +82953,101 @@ Logs A1/cache/a1_staging_retry2_*. Ordinary staged interpreter code changed only
 in a comment; unchanged control/LR evidence is reused from retry1. No new profile
 or release claim. Owned jobs drained; retry normal push within the user's bound.
 
+## 2026-11-23 A1 inferred-stage frontier (bounded implementation)
+
+Input mainb9f2c44369214cfad3b050dfeeb41b734ff15dce; clean initial pull, no
+surviving jobs. Same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, CodexPID19232.
+Windows11/Docker Linux x64, LLVM19.1.1, public bootstrap9653f818, assigned
+CPU0-11/24GiB, six CMake build actions maximum and compiler jobs1. Preserved
+baseline `/cache/a1_inferred_b9_before_towerc`, SHA256
+3f9b54bac07abe4c8c5682c3ac388a941afa2c90cd020389d77d62ddf6719aff.
+No branch/worktree, todo change, inbox loop or publication lease.
+
+The previous global inference gate protected direct calls into canonical bodies.
+Both evaluation policies now initialize/use the existing executable input kind;
+a reached call suspends on the ordinary body/executable producer and resumes its
+retained invocation. ROOT's checked producer/hold code is unchanged. The shared
+phase helper now admits inferred preparation/execution after signature publication
+and its own owner's Lowering query. KnownProof/KnownClone/Body edges remain on
+that stage, including the known-input proof recorded by L2. No canonical body
+from an unrelated lowering query is read through the invocation. Existing
+WorkGraph tickets, per-function snapshots, worker grants and joined pumps are
+reused; no new IR, evaluator, scheduler or context layout.
+
+Optional policy is unchanged: type_arguments/construct_types remain false,
+require_relocatable remains true, and reads select known_producer rather than
+required capture producer. Unsupported ordinary inference retains its runtime
+initializer; physical resource failures remain fatal. Published snapshots remap
+local declarations and preserve nominal external bindings, so owning-frame
+identity protects locals even when byte offsets coincide. Reached calls alone
+request executable work; untaken calls/stages create no such dependency. Errors
+remain private until the full lowering join settles the existing phase/source
+priority. This removes the global execution gate, not diagnostic ordering.
+
+The registered staging frontier now has20 trials at workers1/4. Both policies
+finish with an unrelated Lowering task still Ready; at four workers two actual
+evaluation kernels rendezvous before returning (private invocation-owned probes,
+production kernel dispatch). It also covers an inferred call suspended in its
+callee frame, module and foreign-local known captures with distinct dormant
+required producers, repeated waits preserving steps/frame/memory, untaken
+calls/stages, own-owner lowering, optional divide-by-zero fallback before a later
+required error, lowering priority, cancellation and terminal/world cleanup.
+The existing flow26 and lifecycle10 fixtures also pass, total56 focused trials.
+Query-smoke and control-smoke pass; the latter includes canonical/ordered-error
+checks. Existing known_bindings covers module/local chains, writes, escaping
+aliases, runtime effects, lazy captures and optional failure. Before/after at
+workers1/4 print0 and give identical Foundation bytes, SHA256
+215fb1fdd887278348d4c814c130bcd8d799b0905d2be9db4383b52ad662670d;
+reparse/interpret prints0. Imported alias capture also prints0 at both budgets.
+known_cycle_bad_a gives the same exact source diagnostic/exit1 before/after and
+workers1/4; aggregate/callback canonical bytes retain the previousf2b3811c hash.
+
+First query-smoke after the implementation failed its inferred nested-memory
+oracle: the fixture had supplied IMFunctionInput only for required stages, so
+inferred execution correctly suspended before reaching the intended denial.
+The directly affected semantic_resource_checks fixture now supplies its already
+checked callee for both policies. It still denies actual executed frame growth
+and checks exact typed resource receipts/source priority; query-smoke then passes.
+The failed log/core receipt is preserved, never counted passed. Three small
+fixture-only refinements reused the dependency target; no duplicate public-leaf
+or broad matrix builds. Production changes are confined to phase/evaluation
+scheduling, preserving L2 admission, A2 stage transitions and ROOT producers.
+
+Small checked profiles, same frozen source/resource paths, native x64 --interpret
+--jobs1/4 with explicit Bedrock/Foundation, warm filesystem/fresh processes,n1
+per side and setting. Wall seconds / CPU(user+system) seconds / peakRSS KiB:
+
+| input / workers | before | after |
+| --- | --- | --- |
+| known_bindings /1 |1.21 /1.14 /183928|1.23 /1.16 /182876|
+| known_bindings /4 |1.09 /1.27 /202008|1.09 /1.28 /201420|
+| comptime_flow /1 |1.21 /1.14 /176328|1.18 /1.11 /179480|
+| comptime_flow /4 |1.07 /1.25 /194560|1.08 /1.26 /197464|
+
+No speedup, scaling or regression bound follows from n1. Known-workload RSS is
+slightly lower; control RSS increases3152/2904KiB, with no excessive-memory signal
+in these samples. Extra executable kinds/snapshots remain world-owned and shared
+per reached function; wait tests verify stable task/component/invocation storage
+and final world teardown. Query buffer checks retain16256/540288 bytes with
+16352/605472 peaks. No new full-compiler allocation counter was added. Candidate
+compiler SHA256d14731e381e22eaec44b764dae292281d260903f3881c58aaa21245f019d1bef.
+Commands, outputs, failed check and measurements remain A1/cache/a1_inferred_*.
+
+Remaining barriers and dependent data: whole-unit known proofs need every write,
+escape and initializer-order fact; KnownSnapshot must finish borrowing/cloning
+original initializer nodes before canonical lowering changes them. Shared callback
+ABI publication freezes the parameter/result type records used by execution.
+Per-owner Lowering protects its actual frame/expression ownership; reached
+ExecutableFunction work waits on its checked Body and observes already published
+signature/lowering inputs while producing a private snapshot. Windows still join
+before alias/reference/structural mutation; no simultaneous lowering/evaluation
+kernel claim. Attribute/known publication consumes final staged values and updates
+canonical initializers/storage; module validation then needs final known values
+to reject effectful import cycles; late flow needs the final canonical control.
+All-lowering diagnostic ordering remains. These are explicit data contracts, not
+a claim that all phases overlap. ROOT's frozen5c5a address/thread checks are
+historical only. New sanitizer/bootstrap/browser/generation/hosted release gates
+remain pending for ROOT's integrated milestone; no deployment claimed.
 Third total push (second retry) was rejected fetch-first. The last authorized
 retry integrates complete b9f2c44 as84b7719662c32705af9ffcaf343012980d7cef18.
 Incoming Fast storage and executed-stage frontier changes affect compiler inputs;
@@ -83277,3 +83372,26 @@ This is focused integration evidence, not a repeated full matrix or a relabeling
 of the full b959ad59 acceptance. No production fix or new profile was needed.
 Normal main push includes both histories and journals; final lane status records
 the verified published commit. ROOT retains overall publication ownership.
+A1 inferred-frontier integration receipt: implementationd9112a01 merged complete
+published9d98c95f history as3f317b2e, including L2 checked known/capture admission
+and B1 LR structure reuse. No conflicts or copied ABI fragments. Seventeen
+required dependency actions passed; all56 focused cases, query/control smoke,
+LR overlap, workers1/4 known/control/imported-capture execution and exact known/
+aggregate canonical comparisons passed. Known-cycle diagnostic still matches
+baseline and canonical reparse prints0. Merged compiler SHA256
+fdc93d0dc578f205227e21764a4ffcd4b3dccaef29979be33dd8781967760d24.
+Logs A1/cache/a1_inferred_merged_*. Sessions67007/67660 reaped0; idle init66612
+only. Existing n1 profiles remain evidence for the frozenb9f2-to-d911 inputs,
+not attribution of concurrently merged owners' changes. Current services/handoff
+paragraphs now reflect the removed inference gate and retain historical receipts.
+No new sanitizer, browser, bootstrap or deployment claim. Normal main push follows.
+
+A1 inferred push retry1: published D1 dependency-fixture history5b05d6bb merged
+as6e070e4f; production inputs unchanged. Two LR-harness build actions and query
+smoke pass. The new dependency-units selector also passes imported helpers,
+forward decltype/comptime, lazy executed branches, byte-identical serial/parallel
+Foundation and ordered cycle errors. Success observes four distinct overlapping
+threads at workers4 (outer_peak4); this is overlap evidence, not a new scaling
+claim. Logs A1/cache/a1_inferred_retry1_*. Session28371 reaped0; no active jobs.
+Unchanged production profiling/control/canonical receipts reused. Normal push
+retry follows; no release-gate attribution to these test-only merges.
