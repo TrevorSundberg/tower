@@ -1,4 +1,4 @@
-import {test} from 'node:test';
+import {test, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower,runToEnd} from './compiler-fixtures.mjs';
@@ -6,8 +6,8 @@ import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=p=>readFile(new URL('../../'+p,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const foundationSyntax=(await read('scaffolding/foundation_syntax.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+after(()=>tower.close());
 function parse(source){const h=tower.create(source);try{return runToEnd(tower,h);}finally{tower.destroy(h);}}
 test('forward rule and token dependencies resolve before root activation',()=>{
  for(const source of [
@@ -40,6 +40,7 @@ test('forward rules follow declaration grammar changes without prescanning or ch
  assert.match(parse("parse A = B;parse B = 'x' | 'x';parse Statement = A;").end.error,/Grammar conflict/);
 });
 test('module functions, types and variables resolve forward, preserving initialization order and local scopes',async()=>{
+ const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
  const source=`import foundation;
 fn read_later(): i32 { return later; }
 fn read_field(): i32 { return value.left; }
