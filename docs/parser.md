@@ -516,6 +516,16 @@ outside this physical-accounting change; it is not a process-memory limit or a
 claim of complete parser resource coverage. Validation and measurements for this
 implementation are tracked in the B1 audit and project journal.
 
+The recognizer's private request descriptor also charges its actual allocation
+footprint to the runtime's borrowed budget, before allocating. Whole-input and
+prefix constructors preserve `Capacity` versus `Memory` through their existing
+result APIs. Failure releases the partial descriptor, forest and LR control;
+the input stream is still borrowed and unconsumed. Destroy requests before the
+runtime/world budget. The descriptor's receipt is copied out before freeing the
+object that contains it. Diagnostic byte vectors still cross the stream ownership
+boundary and remain outside this accounting; this is not complete request storage
+coverage.
+
 ### Checked grammar construction
 
 `GrammarBuilder.resource_error` retains the first failure while its existing

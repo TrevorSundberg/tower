@@ -2199,3 +2199,25 @@ constructor and runtime.budget but raw allocation; diagnostic vector ownership
 also crosses parser_stream_return. No partial buffer conversion is adopted.
 Fullfrontend300s timeout, remaining raw storage and final joined clean bootstrap/
 generation/browser publication/hosted verification remain explicit open gates.
+
+### Request descriptor: implementation pending final evidence
+
+Reviewed6fd430af and the owned candidate. parser_state.tower already has complete
+whole/prefix typed constructor outcomes and a runtime-owned ledger. Its descriptor
+now charges sizeof(ParserRequest) through WorkBuffer before allocation, retaining
+its byte-only receipt until destruction. The destructor copies the receipt out
+before freeing the object. Partial forest/control failure releases the descriptor.
+Tests in parser_table_budget.tower measure actual footprint/allocation positions,
+zero-available-byte admission, minus-one rollback, Memory failures, stream-preserving
+retry and ledger/allocator cleanup for both input modes. Before64889 actually
+failed the no-allocation assertion; after native66619 pending. No public API or
+shared semantic layout change; no separate authoritative graph/scheduler.
+
+parser_stream.tower's moved diagnostic vectors remain an explicit cross-owner
+accounting gap; there is no partial work_vector substitution. Raw LR analysis and
+lexer storage are also still open. The default fullfrontend timeout remains open:
+corrected minimal debugger markers prove frontend_world_tests completes, and the
+later sampled stack is grammar construction during frontend_compile_sources.
+High-frequency debugger samples are not performance measurements. Initial wrong
+breakpoint offsets induced a rejectedSIGABRT probe; all logs/drains are preserved.
+No cache/private pin establishes release closure; publication remains unleased.

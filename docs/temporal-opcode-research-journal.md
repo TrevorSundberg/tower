@@ -77579,3 +77579,70 @@ contains currentea1b evidence and frozen81c26 inputs. All owned jobs have exited
 no profile hold or watcher remains. B1 primary KinmenB compute ownership continues
 under ROOT's13:16:58 coordination grant. Evidence commit follows; source has not
 yet adopted2252 or begun the next request-storage change.
+## B1 request descriptor admission and full-frontend diagnosis (2026-11-23)
+
+Implementation follows the complete6fd430af join of68fb grammar producers and
+ROOT2252 query/interpreter-map history. No signatures or private layout were copied
+in isolation. Native32843 rebuilt the interpreter first and affected providers
+through depfiles: interpreter5.91s/402844KiB, dependent22.68/798856, fullunits21.34/
+754692, LR1.79/116704, parser.04/54124, query.23/87956, grammarresource1.26/52732,
+editor10.50/875800, storage.24/99220; runtimefault/resourcephases also passed.
+CPU totals and complete GNUtime output remain request_join_*.log. These checks
+are6fd evidence; ea1b sanitizer/browser results were not relabeled.
+
+Same original PID33768/session, gpt-6-astra/xhigh/default. A plain startup
+pull --rebase attempted to flatten the existing merged history and conflicted.
+Rebase was immediately aborted, preserving6fd and the clean tree; the established
+merge-preserving --rebase=merges --autostash --ff-only pull then reported up to date.
+Restoration changed some mtimes, so later depfile rebuilds legitimately regenerated
+unchanged providers; old objects were not presented as fresh validation. Todo's
+SHA256e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327 is unchanged.
+
+The unresolved default frontend300s/124 received bounded diagnostic samples on
+unchanged6fd. An entry-only frontend_world_tests breakpoint followed by a60s LR
+sample does NOT prove the sampled function still belongs to the world fixture.
+High-frequency breakpoint tracing showed thousands of allocation/table trials
+but materially added debugger overhead. Minimal instruction-boundary markers,
+derived from the actual binary's symbol/disassembly addresses, prove all world
+fixtures finish before30s. The sampled stack then runs LR closure/LALR through
+parser_table_build/finish_result, syntax_version_build/cached, session declaration,
+module import and frontend_compile_sources. A specific later compiler fixture is
+not yet established. No deadlock, full-suite pass or raised timeout is inferred.
+All diagnostic children drained. One initial boundary probe had two incorrectly
+calculated offsets and induced SIGABRT despitegdb exiting0; it is retained and
+rejected as production failure evidence. Corrected probes timed out124 normally.
+The complete logs request_join_full_frontend_* preserve all failures and stacks.
+ROOT/D1 received the finding; first routing to nonexistent root/inbox.md failed,
+then the actual parent inbox received it. No output was treated as progress merely
+because a wrapper returned0.
+
+File findings: parser_state.tower owns a private ParserRequest descriptor, forest,
+control, completion and unread node, borrowing runtime/table/stream. Its existing
+whole/prefix result chain already propagates exact WorkBudgetError. Only the
+request descriptor still used raw compiler_buffer_allocate. The implementation
+now uses WorkBuffer with runtime.budget and sizeof(ParserRequest), then copies the
+receipt to a local before freeing its containing object. This avoids accessing
+freed receipt storage. No new public API, shared AST/type layout or syntax.
+Diagnostic vectors remain raw: lookahead_error ownership can move through
+parser_stream_return, so changing one side alone would lose the ledger owner or
+outlive its world. That separate gap remains open.
+
+The new parser_table_budget fixture measures actual constructor allocations and
+retained physical footprint for both WholeInput and Constructs. It requires no
+allocation at all with zero available bytes, exactCapacity at footprint-minus-one,
+exactMemory/ledger restoration at every actual allocation failure, and successful
+parsing of the same unconsumed stream after retry. All owners release before the
+budget. Actual regression-before64889 built successfully then failedSIG6 at the
+zero-allocation assertion (.02s); GNUtime's trailing0 does not override the signal.
+The source fix and fixture are now frozen under native66619; current after checks,
+profiles and supported instrumentation are pending, not claimed complete.
+
+Before profile inputs were frozen from coherent6fd at request_6fd430af:
+units2a5bcc7632b3f94a32608842fb658118c6e8e3cf2b5a495f10143b71323f8a8a,
+editorb88f0eedce2a1759b2ad45a579620989721ad6ec55fe9762c694a57f1af3d9b7,
+resources91c123680b21556182eb26c6db13f321872f4ae3db244a5ec9515c5be29d98c1.
+B1 primary KinmenB compute grant continues, CPU0-11/24GiB/one heavy job, outer3 and
+compiler4, separate caches, checked-in Linux9653 bootstrap/LLVM19.1.1. ROOT requests
+a slot before KinmenB work. No publication lease, private bootstrap, new session,
+agent or full-goal completion. Raw LR/lexer/stream storage and final clean joined
+bootstrap/generation/browser publication/hosted gates remain open.

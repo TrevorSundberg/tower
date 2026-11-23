@@ -8,6 +8,8 @@ import lr_parser;
 import lr_runtime;
 import lr_states;
 import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_budget_types;
 import lr_types;
 import parser_types;
@@ -45,6 +47,7 @@ struct ParserRequestLookahead {
 // Request-owned mutable state. Runtime/diagnostic context/stream are borrowed;
 // LR control, completion, forest and unread node references are owned here.
 struct ParserRequest {
+    storage: WorkBuffer;
     resource_error: WorkBudgetError;
     capture_completion: bool;
     completion: LRCompletion*;
@@ -81,7 +84,8 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
     }
     vector_dispose(&request.lookahead_error);
     vector_dispose(&request.error);
-    compiler_buffer_free(bits(void*, request));
+    var storage = request.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Low-level LR request constructor. A null table supports clients driving the
@@ -102,13 +106,11 @@ fn parser_request_create_result(runtime: LRRuntime*, context: void*, stream: Par
     if missing {
         return null;
     }
-    var request = bits(ParserRequest*, compiler_buffer_allocate(sizeof(ParserRequest)));
-    *error = WorkBudgetError.Memory;
-    missing = request == null;
-    if missing {
-        return null;
-    }
-    fill(request, 0, sizeof(ParserRequest));
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, runtime.budget, sizeof(ParserRequest), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var request = bits(ParserRequest*, storage.data);
+    *request = {storage: storage, ..default};
     request.stream = stream;
     request.table = bits(ParserHostTable*, context);
     request.runtime = runtime;
