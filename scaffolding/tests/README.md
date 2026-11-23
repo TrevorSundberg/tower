@@ -852,6 +852,24 @@ verification/disposal. Charged bytes include the compiler header but exclude
 ledger storage, allocator-private overhead and RSS; this is buffer-accounting
 cost, not evidence of a complete compiler memory limit or useful core scaling.
 
+The common-lifetime arena fixtures use the same native registration and
+instrumentation rules: `tower-work-arena-tests`,
+`tower-work-arena-shared-tests` and the separate serial allocator target
+`tower-work-arena-faults-tests`. The shared fixture checks four distinct threads,
+cancelled and denied work, stable slice addresses, retained grants after joins,
+and complete chunk transfer before disposal. These checks cover explicit arena
+ownership, not fallible allocation propagation throughout the compiler.
+
+The opt-in `tower-measure-work-arena-profile` target runs `arena16 1 large`.
+Its executable accepts `baseline|arena4|arena16|arena64`, worker count `1|2|4|8`,
+and `small|large` (2,048 or 262,144 objects). Compare equivalent inputs using
+both allocation/join and retirement measurements. It checks every initialized
+byte after timing and reports observed overlap, CPU/RSS, physical allocations,
+payload, retained bytes, peak charge, ledger metadata and the equally unbudgeted
+pointer index. Chunk capacity includes descriptors and alignment gaps; individual
+slices have no free or implicit destructor. Compiler performance requires separate
+caller measurements, and requested workers alone do not prove useful scaling.
+
 Two opt-in Linux x64 compiler measurements reuse the production LR/backend
 source and library composition with `TOWER_WORK_TESTS=ON` and
 `TOWER_BACKEND_TESTS=ON`. Build and run `tower-measure-frontend-units` for three

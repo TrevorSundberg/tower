@@ -1503,3 +1503,37 @@ allocations selectordfb232 adopted after all jobs drained: existing snapshot
 fault cases can run without invoking the body/parser matrix, default unchanged.
 This reuses the registered serial allocator and is neither parallel evidence
 nor a new test implementation. Current measurements and runtime checks follow.
+
+#### Current joint validation and additional arena measurement review
+
+The preceding journal's D2 joint evidence section records exact00caeef compiler,
+1dd7d96 runner,12 public units, native/linked build, combined runtime, no-op and
+32 controlled guard samples. Production frontend/cache entrypoints now execute
+with the reviewed transport. Serial-negative guard134 is intentional; original
+negative-link failure1 is preserved. The128-body serial timing regression is
+unresolved pending pinned-core samples; neither passing outputs nor an
+outside-timer guard proves performance unchanged. Small current three-unit
+1/2-worker medians6.083/4.565s show useful specific overlap with greater CPU/RSS.
+
+The module_cache_profile093 row now has independent executed evidence:
+3/18-layer counts, shared-leaf invalidation and teardown pass.18-layer warm
+273–301ms versus first34–37ms exposed missing B2 unique-graph fixdeba07, not a
+regression of that fix. Source review follows snapshot ownership through
+module_clone/module_complete/order and revalidates every lexical edge/source.
+Adopted owner fix after drain; new runtime/measurement pending. No new memo,
+authoritative graph, scheduler or relaxed cache identity was introduced.
+
+| Additional source path, reviewed v5 SHA256 prefix | Storage, scheduling, ownership and evidence disposition |
+| --- | --- |
+| scaffolding/library/work_arena_types.tower,3410b911 | Sole typed owner/chunk/snapshot declarations. Borrowed budget must outlive retained chunks; lists describe physical buffers, not an ECS archetype. No world singleton or hidden allocator. |
+| scaffolding/library/work_arena.tower,61244195 | Explicit budget/null-standalone owner, checked power-of-two alignment/overflow, stable slices in charged physical chunks, unchanged output on growth denial. Worker-private bump path; coordinator same-budget splice only after joins. Dispose copies self-owned descriptor before release. Source-reviewed, owner native/WASI/instrumentation evidence; D2 execution pending. |
+| scaffolding/tests/work_arena.tower,0bcc91fe | Exact aligned/zero/oversize payload checks, denied growth preserving previous addresses, cross-budget append rejection, complete transfer and exact grants at teardown. Standalone explicit null boundary. No concurrency proof. |
+| scaffolding/tests/work_arena_faults.tower,a2f0946b | Existing serial failure allocator isolates first/growth failure, output/chunk/byte/grant invariants and final buffer baseline. Explicitly separate from real threaded allocation or sanitizer evidence. |
+| scaffolding/tests/work_arena_shared.tower,e2d87102 | Four distinct pthreads at real barriers, cancellation and denied growth, checked stable first/last slices, drain/join before complete chunk transfer and disposal. Production allocator/shared ledger; tests are bounded evidence, not universal race freedom. |
+| scaffolding/tests/work_arena_profile.tower,bb147b67 | Fixed2048/262144 objects with all initialized bytes independently checked after timing. Worker-private arenas share ledger only on chunk growth; raw production allocations are the baseline. Equal pre-touched pointer-index storage is unbudgeted/outside timing. Reports allocation/join and retirement wall/CPU separately, actual span overlap, payload/chunks/physical/ledger bytes and RSS. Linux x64 ABI boundary. Owner median evidence is separate; modest-host D2 profile remains pending. |
+
+Arena profile is the22nd incoming measurement snapshot/path review; these six
+source-closure rows are not summed into the40 primary tool/benchmark paths.
+All40 assigned primary paths remain inventoried, no new path appeared there.
+D1 owns generic registration and supplied exactb94c; no duplicate harness.
+Only six new v5 bodies were copied, preserving all eight current buffer files.

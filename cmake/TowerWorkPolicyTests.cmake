@@ -21,16 +21,19 @@ add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
 if(policy_triple MATCHES "^x86_64-.*linux")
-  # This fixture imports host.memory itself; do not link a second copy. Its
+  # These fixtures import host.memory; do not link a second copy. Their
   # failure allocator and transport are deliberately single-owner/serial.
-  tower_runtime_object(work-buffer-faults
-    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_buffer_faults.tower" "${policy_triple}")
-  add_executable(tower-work-buffer-faults-tests
-    "${work-buffer-faults_OBJECT}" "${policy_runtime}" "${policy_trap}")
-  set_target_properties(tower-work-buffer-faults-tests PROPERTIES LINKER_LANGUAGE C)
-  target_link_libraries(tower-work-buffer-faults-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
-  add_test(NAME tower-work-buffer-faults-tests COMMAND tower-work-buffer-faults-tests)
-  set_tests_properties(tower-work-buffer-faults-tests PROPERTIES TIMEOUT 30)
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults)
+    string(REPLACE "_" "-" name "${unit}")
+    tower_runtime_object(${name}
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
+    add_executable(tower-${name}-tests
+      "${${name}_OBJECT}" "${policy_runtime}" "${policy_trap}")
+    set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE C)
+    target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
+    add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
+    set_tests_properties(tower-${name}-tests PROPERTIES TIMEOUT 30)
+  endforeach()
 endif()
 
 # Backend/frontend registration runs after the native compiler target exists.
