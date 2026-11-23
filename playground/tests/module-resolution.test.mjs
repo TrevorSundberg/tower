@@ -5,8 +5,8 @@ import {readFile} from 'node:fs/promises';
 import {loadTower, runToEnd} from '../src/tower-host.mjs';
 import {builtins as grammar} from './compiler-fixtures.mjs';
 
-const read = path => readFile(new URL('../../'+path,import.meta.url));
-const wasm = await read('build/browser-wasi/tower.wasm');
+const read = path => readFile(new URL(path,new URL('../../',import.meta.url)));
+const wasm = await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm');
 const host = () => loadTower(wasm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
 const file = (path,text) => ({path,text});
 const sources = () => Object.entries(grammar).map(([name,text]) => file(name+'.tower',text));

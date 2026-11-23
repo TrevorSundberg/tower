@@ -87817,6 +87817,77 @@ Final counterbalanced paired n3 small16/large1000 bodies workers1/4; all initial
 PASS exact before/after canonical/source and multi-unit optimized object bytes; profile known42, independent native42/42; current LR serial/threaded/range/pool/budget tests; unit-admission real nested wake122771ns and cancellation drain; backend-ir; dependency canonical/error ordering1/4/8/12. Independent current lr-order passes150 randomized oracle comparisons/storage failures. Cyclic solver fixture keeps independent expected range values, a no-dispatch narrow case and genuine wide multi-wave path; unseeded cycle remains empty. Production allocator closes with zero live grants/borrows. No broad generation/browser/sanitizer campaign; pending ROOT. Preserved initial observer build failure (missing explicit WorkPool import), fixed without semantic changes.
 
 Receipt [worker grain](compiler_worker_grain_d5b65afe.md). All raw paired/unpaired/phase measurements, artifacts, frozen executable hashes and source/resource identities: C:\Sandbox\build\codex_ecs_20261122\B2\worker_grain_d5b65afe and /cache/b2_admission_*. Final provider change is the one measured grain; other compiler edits expose optional observations. Older whole-generation/partition receipts intact. Remaining: small grammar4 still has overhead, serialized frontend/graph/LLVM phases and high-width shared-budget/allocator synchronization are separate limits. No speculative lifecycle rewrite or claim that queue width proves overlap. Normal coherent commit/reconciliation follows.
+### D1 bounded Node transport acceptance / input publication (2026-11-23)
+
+Freeze d5b65afee426f2576d44a60f44249010a15ace1d; thread
+01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3106870. Required pull was current;
+no surviving owned build, todo unchanged. D2 heavy slot/cache untouched. Node
+v22.23.5 in tower-d1-ecs, SteamDeck Linux x64, existing CPU affinity0,2; ordinary
+Node default concurrency, fresh processes/warm filesystem, one sample per phase.
+No compiler build. Preserved D2 portable IDE reactor0b9d22e60d545e82e6079addd6c67e8e6c6ebc607036c5b4a8143ff4aca08bae
+is source2013ad28, not current compiler validation; public pin768a0cdf unchanged.
+Existing LLVM6ec53230a2d78bf49717139973682f6035174029124c4256875674708bdc50be
+and shared-workb8a187c629a73845f19584e462034c2c9c58b65e57e80b9971b3d8901e5db67f
+are separate older artifacts. Initial module-resolution bypassed the override
+and used portable5dfa4525; fixed below before its final run.
+
+Inspected package registration: `npm test` invokes test:ide first. Ran direct
+`node --test playground/tests/*.test.mjs` from repository root with
+TOWER_TEST_WASM naming the preserved reactor; did not rerun the known IDE gate.
+Explicit TOWER_PLAYGROUND_ASSET_PACKAGER named the absent own-cache tool to
+prevent implicit compilation; packaging actually failed earlier on absent
+third_party/llvm-project/llvm/LICENSE.TXT. No prerequisite was substituted/passed.
+First run's240s guard expired during formatting:86pass/73fail/8existing skips,
+no final TAP summary, exit124. Drained it, then ran only unfinished formatting
+and later files:104pass/158fail/1existing skip, exit1. The three completed
+formatting cases overlap; these are phase receipts, not summed acceptance.
+All51 top-level files were attempted. Failure logs were never overwritten.
+
+Repair scope: valid explicit Foundation imports in Bedrock/scanner source data,
+retaining pure seed cases and every existing expected value/rejection/provenance
+assertion. Initial focused result14/17 exposed three actual reset/configuration
+edges. Source trace: syntax_session_inputs_reset rebuilds an owned module from
+current capabilities, so reset must reject old `parse Extra` and accept current
+`rule Extra` after the imported grammar changes; seed identity remains checked.
+Two failures were a real JS transport publication defect: configureBedrock put
+invalid source into moduleInputs before tw_set_bedrock rejected missing captures.
+A later valid Foundation import therefore read the rejected module. Reverse only
+those two existing boundary calls; Tower remains the validator. Three exact
+regressions now pass, including post-rejection imports, idempotency and live
+counters. This does not promise allocation-failure atomicity for all configuration.
+
+Module-scopes' absolute artifact path became repo+absolute and ENOENT; resolve
+with the repository URL as a base instead. Module-resolution now honors the
+same override. No Tower lexical path normalization or alias behavior changed.
+Existing Tower frontend_modules/module_test_seed and frontend_template_build
+already own semantic behavior; no duplicate semantic model/framework was added.
+The README documents the direct command and its broader artifact prerequisites.
+
+Validation-cost receipts (wall seconds / CPU seconds / peak KiB): initial
+240.02/267.31/894380; remaining391.17/416.43/1438720; focused fixture repair
+7.14/7.09/187992; final four affected files90.73/91.25/308344. Each recorded0swaps.
+Final47pass/2fail/0skip: all17 Bedrock/scanner and13 module-resolution cases pass;
+module-scopes retains two A1 failures at220/272, `print(left.he|);` with explicit
+left.tools alias gives[] instead of helper. The lifetime test stops at warm-up;
+its final counters are pending. No label changed or error normalized. Broader
+failure categories and exact producer boundaries are in the D1 audit; complete
+named failures in before_failures.txt/remaining_failures.txt beside raw logs.
+
+Tiny equivalent successful configure/import/execution sample (same fixture and
+42 output, old/new call order only):2.07/2.07/158692 before,
+2.44/2.43/157892 after, n1 each. The observed0.37s increase is retained; this
+single concurrent-host sample does not establish a speedup or compiler scaling
+acceptance. Rejection checks short-circuit before the fix and are not equivalent
+performance inputs. Fixture data changes have no production compiler performance
+claim. Native/UB/race/browser-generation matrices were not run; the reactor is
+unchanged and ROOT retains final integrated instrumentation/release ownership.
+Inputs/source copies/logs/time/status files: build/d1_ecs/node_transport_d5b65afe.
+Relative artifact override control also passes2/2,0skip (module-resolution
+replacement/reset and module-scopes nominal/alias identity):9.79wall/10.03CPU/
+182200KiB. Absolute override is covered by the49-case final selection. Exact
+Node inputs and all loaded Tower resources pass saved SHA256 readback; todo hash
+e97d67a6 unchanged, no owned processes remain. Source publication follows;
+full Node acceptance, A1 completion and hosted release are not claimed passed.
 ### 2026-11-23 A2: ordinary bounded locality/fragmentation acceptance
 
 Separate direct user task; no restart/substitution of rejected instrumentation.
@@ -87979,3 +88050,15 @@ Affected adoption only: integrated_language_merge0 built frontend/native/alias t
 
 No remaining blocker in the frozen functional milestone or affected merged checks. No additional full matrices/profiling/instrumentation runs, no deployment, no new goal/context/agent. This follow-up only records evidence; compiler inputs unchanged since merged validation and no new runtime performance measurement is needed. Existing complete histories, failed logs, accepted prior receipts and immutable baselines preserved; todo hash remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Normal main push follows.
 B2 worker-grain reconciliation: implementation52895b4f, complete-history mergee292754d32a313bb9b527a8b6751967630a4c375 preserves3a7f4b39 including B1 range union and other ownership fixes. No scheduling-file conflict; no ROOT interface change requested. Nine affected native actions PASS, then LR/pool/budget, unit-admission/cancel, dependency-units and independent150-trial oracle PASS. Merged1000-body1/4 canonical/source bytes and known42 agree;44 propagation waves still show four simultaneous kernels. Separate changed-source wall0.759/0.814 is not the frozen paired performance claim. Saved merged logs/artifacts; all owned jobs drained. Normal publication follows, with old generation/source receipts intact.
+D1 publication reconciliation: scoped implementationfc3f52da; required ff-only
+pull found3a7f4b39, so normal mergefc3e0101 preserves complete history. All saved
+Node/fixture/artifact hashes still match. Nine later Tower blobs and one added
+completion fixture change the supplied resource inventory; unchanged language,
+type and functions-example inputs retain their hashes. In particular upstream
+A1 repair5fdb4827 now has its own native owner receipt; the two old-reactor
+failures above are pending browser artifact adoption, not an assertion that
+current source lacks that fix. No compiler rebuild or repeated full Node gate.
+A tiny merged-resource Bedrock/scanner check follows; ROOT owns final reactors.
+Merged-resource check PASS17/17,0skip,6.31wall/7.15CPU/183236KiB, exit0. All owned
+Node jobs drained. Reused the unchanged49-case and relative-path receipts;
+remaining broad failures are preserved, not waived. Normal main push follows.

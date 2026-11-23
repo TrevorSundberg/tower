@@ -3888,3 +3888,47 @@ boundary without accepting its import error. All failed logs preserved. Final
 Node22.23.5/Docker run2.02s wall/2.39s CPU/133468KiB peak, no swaps. No compiler
 build, production speed claim or current-source compiler/runtime matrix. Aliased
 IDE completion and shared worker retirement remain separate owner gates.
+
+## Node input/transport closure at d5b65afe (2026-11-23)
+
+Frozen source `d5b65afee426f2576d44a60f44249010a15ace1d`, scaffolding tree
+`1fec5300d034693381c6e4f91a8c1cfe1ea0a56b`; no new Tower census. The complete
+51-file top-level Node selection was attempted directly, excluding the separate
+Tower IDE export command. Its broad acceptance remains **failed**. Preserved
+logs/inputs/timings: `build/d1_ecs/node_transport_d5b65afe/`.
+
+| Inspected/changed boundary | Finding and disposition |
+| --- | --- |
+| `playground/tests/bedrock.test.mjs`, `data-driven-scanners.test.mjs` | Ordinary/CoreOperand/Number source data now imports Foundation explicitly; seed-only declaration/token tests remain seed-only. Existing execution42, formatting, template captures, comments, exact input-relative spans, counters and negative assertions remain. Reset rebuilds its owned module using current explicit capabilities (`syntax_session_inputs_reset`), so the keyword case now rejects the old imported spelling and successfully reparses the new spelling; immutable seed assertions remain. All17 cases pass. |
+| `playground/src/tower-host.mjs:configureBedrock` | Confirmed boundary defect: `modules.configure` published invalid candidate text before Tower validation threw. Subsequent `import foundation; print(1);` loaded the rejected Bedrock and failed with missing name/segment captures. Validate before publishing that module source. `syntax_baseline_install` already preserves the previous baseline on validation failure. Existing rejected-install/import-capture tests now exercise successful subsequent imports and unchanged live-node/allocation counts. This establishes rejection handling, not allocation-failure atomicity of every host configuration operation. |
+| `playground/tests/module-resolution.test.mjs`, `module-scopes.test.mjs` | First ignored the artifact override; second prefixed an absolute override with the repository directory and failed before assertions. Existing file transport now resolves relative/absolute artifact URLs correctly and both use `TOWER_TEST_WASM`. Tower lexical import identities/aliases and all expected outputs remain unchanged. |
+| Existing semantic ownership | `frontend_modules.tower:module_test_seed` already owns seed/no-ambient-language behavior; `frontend_template_build.tower` owns checked replacement/capture failures. No new JS semantic model, Tower fixture duplication or test runner. The changed JS is existing source data, test transport, or the required Wasm/module publication boundary. |
+
+Final affected aggregate:47/49 pass,2fail,0skip. The failures are unchanged A1
+qualified-completion assertions in module-scopes220/272: with the explicit
+`left.tools as left` fixture, `print(left.he|);` returns `[]`, expected `helper`.
+The lifetime case fails during its warm-up, so its final counters are **not**
+accepted. Bedrock/scanner17, module-resolution13 and the other module-scope17
+cases pass. LLVM comparisons retain their separate older artifact identity.
+
+Broad remaining failures stay in the original logs: stale implicit-language data
+in execution/fast-interpreter/formatter/precedence/replacement/etc. tests; legacy
+Foundation migration expectations tied to pre-split grammar; missing compiler
+project/shared frontend/LLVM license resources, optional cross/native artifacts;
+older LLVM rejection of current canonical `integer_type`; and the frozen
+interpreter's generic_registry request for `compiler_buffer_allocation_size`.
+That provider is Tower-owned (`host/memory.tower:35`), not a new foreign policy
+allowance or a proposed JS implementation. ROOT/L1/A2 must adopt the matching
+provider/package; L2 owns unmatched semantic/dependency evidence. No unsupported
+constructor/ABI outcome here is promoted to a current-source compiler regression.
+A1 completion and D2 worker-retirement work remain separate; no expectations were
+changed to accept their failures. Final generation/sanitizer/hosted gates remain
+ROOT-owned. This bounded batch closes input/publication defects, not the full
+Node suite or compiler completion ledger.
+
+Publication reconciliation preserves upstream3a7f4b39 via mergefc3e0101. A1's
+qualified-completion source repair5fdb4827 and native receipt are now present;
+ROOT's adoption into a new browser reactor remains pending. The above failures
+retain their exact old0b9 reactor identity. Node/fixture/artifact and imported
+language/type/example hashes are unchanged; later compiler providers are source
+data here, not new executable compiler validation.
