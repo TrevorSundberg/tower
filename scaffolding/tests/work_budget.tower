@@ -50,15 +50,15 @@ fn budget_reference(): void {
     var budget: WorkBudget = default;
     budget_check(work_budget_init(&budget, 12, 3072, 7));
     defer work_budget_dispose(&budget);
-    var receipts: WorkReservation[17];
-    fill(&receipts, 0, sizeof(WorkReservation[17]));
+    var receipts: WorkReservation[17] = default;
+    var count = sizeof(decltype(receipts)) / sizeof(WorkReservation);
     var lanes: usize = 0;
     var bytes: usize = 0;
     var live: usize = 0;
     var seed: u32 = 314159;
     for(var round: usize = 0; round < 8192; round++) {
         seed = seed * 1664525 + 1013904223;
-        var index = convert(usize, seed % 17);
+        var index = convert(usize, seed) % count;
         var receipt = &receipts[index];
         if receipt.active {
             lanes -= receipt.lanes;
@@ -69,8 +69,8 @@ fn budget_reference(): void {
             var minimum = 1 + convert(usize, (seed >> 16) % 3);
             var preferred = minimum + convert(usize, (seed >> 20) % 9);
             var requested = convert(usize, (seed >> 6) % 1024);
-            var fits = minimum <= 12 - lanes && requested <= 3072 - bytes;
-            var granted = preferred < 12 - lanes ? preferred : 12 - lanes;
+            var fits = minimum <= budget.lanes - lanes && requested <= budget.bytes - bytes;
+            var granted = preferred < budget.lanes - lanes ? preferred : budget.lanes - lanes;
             budget_check(work_budget_reserve(&budget, minimum, preferred, requested, receipt) == fits);
             if fits {
                 budget_check(receipt.active && receipt.lanes == granted && receipt.bytes == requested);
@@ -82,9 +82,9 @@ fn budget_reference(): void {
             }
         }
         budget_check(budget.used_lanes == lanes && budget.used_bytes == bytes && budget.live == live);
-        budget_check(budget.entries.length <= 12);
+        budget_check(budget.entries.length <= budget.lanes);
     }
-    for(var i: usize = 0; i < 17; i++) {
+    for(var i: usize = 0; i < count; i++) {
         if receipts[i].active { budget_check(work_budget_release(&budget, &receipts[i])); }
     }
     budget_check(budget.used_lanes == 0 && budget.used_bytes == 0 && budget.live == 0);
@@ -135,11 +135,87 @@ fn budget_optional(): void {
     budget_check(work_budget_release_result(&budget, &extra) == WorkBudgetError.Stale);
 }
 
+fn budget_validate_unchanged(budget: WorkBudget*, receipt: WorkReservation*, wanted: WorkBudgetError): void {
+    var before = *budget;
+    var borrowed: WorkReservation = default;
+    if receipt != null { borrowed = *receipt; }
+    budget_check(work_budget_validate_result(budget, receipt) == wanted);
+    budget_check(budget.entries.data == before.entries.data && budget.entries.length == before.entries.length
+        && budget.entries.capacity == before.entries.capacity && budget.lanes == before.lanes
+        && budget.bytes == before.bytes && budget.used_lanes == before.used_lanes
+        && budget.used_bytes == before.used_bytes && budget.peak_lanes == before.peak_lanes
+        && budget.peak_bytes == before.peak_bytes && budget.live == before.live
+        && budget.free_slot == before.free_slot && budget.revision == before.revision
+        && budget.generation == before.generation && budget.initialized == before.initialized
+        && budget.error == before.error);
+    if receipt != null {
+        budget_check(receipt.owner == borrowed.owner && receipt.revision == borrowed.revision
+            && receipt.slot == borrowed.slot && receipt.generation == borrowed.generation
+            && receipt.lanes == borrowed.lanes && receipt.bytes == borrowed.bytes && receipt.active == borrowed.active);
+    }
+}
+
+fn budget_validate(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    var parent: WorkReservation = default;
+    budget_check(work_budget_validate_result(null, &parent) == WorkBudgetError.Invalid);
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.Stale);
+    budget_check(work_budget_init(&budget, 2, 128, 1) && work_budget_init(&other, 2, 128, 1));
+    defer work_budget_dispose(&budget);
+    defer work_budget_dispose(&other);
+    budget_check(work_budget_reserve(&budget, 1, 1, 64, &parent));
+    // Preserve a prior diagnostic; validation's private result must not replace it.
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, &parent) && budget.error == WorkBudgetError.Busy);
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None);
+    budget_validate_unchanged(&budget, null, WorkBudgetError.Stale);
+    budget_validate_unchanged(&other, &parent, WorkBudgetError.Stale);
+    var changed = parent;
+    changed.owner = &other;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.revision++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.slot = 0;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.slot = budget.entries.length + 1;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.generation++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.lanes++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.bytes++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent; changed.active = false;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    changed = parent;
+    budget_check(work_budget_release(&budget, &parent));
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    budget_check(work_budget_reserve(&budget, 1, 1, 64, &parent) && parent.slot == changed.slot);
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None);
+    // Validation does not manufacture an executing lane from bytes or an empty grant.
+    var retained: WorkReservation = default;
+    budget_check(work_budget_reserve(&budget, 0, 0, 64, &retained) && retained.lanes == 0);
+    budget_validate_unchanged(&budget, &retained, WorkBudgetError.None);
+    var empty: WorkReservation = default;
+    budget_check(work_budget_reserve(&budget, 0, 0, 0, &empty));
+    budget_validate_unchanged(&budget, &empty, WorkBudgetError.Stale);
+    changed = parent;
+    budget_check(work_budget_release(&budget, &retained) && work_budget_release(&budget, &parent)
+        && work_budget_dispose(&budget));
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    budget_check(work_budget_init(&budget, 2, 128, 2) && work_budget_reserve(&budget, 1, 1, 64, &parent));
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale);
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None);
+    budget_check(work_budget_release(&budget, &parent) && budget.live == 0);
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
     budget_receipts();
     budget_reference();
     budget_limits();
     budget_optional();
+    budget_validate();
     print(0);
     return 0;
 }

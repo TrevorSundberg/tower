@@ -94,11 +94,11 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
             foreign_fail(result, "Unterminated foreign name expression");
         }
         if prefix[0] != 0 {
-            if result.error.length == 0 {
+            if !foreign_failed(result) {
                 var text: vector(u8);
                 vector_init(&text);
-                backend_text(&text, prefix);
-                backend_text(&text, foreign_name_text(result));
+                foreign_text(result, &text, prefix);
+                foreign_text(result, &text, foreign_name_text(result));
                 vector_dispose(&result.text);
                 copy(&result.text, &text, sizeof(vector(u8)));
             }
@@ -110,7 +110,7 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         return null;
     }
     fill(result, 0, sizeof(ForeignName));
-    backend_text(&result.text, name);
+    foreign_text(result, &result.text, name);
     return result;
 }
 
