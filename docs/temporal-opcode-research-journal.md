@@ -86720,6 +86720,78 @@ L2 module/inspection admission and final current-source performance,
 instrumentation, complete generations, browser and hosted release remain pending.
 
 L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+### 2026-11-23 L2 integrated decltype/comptime/dependency slice (plan and source boundary)
+
+CLI PID20744; first successful work confirmed no surviving L2 child job, clean main and required ff-only pull current at6767cd301c7c0b08e6df3ff5894ba251143f0191. This bounded acceptance slice is not final whole-compiler acceptance and does not adopt A1's preserved86843700 body-admission batch or L1's later backend-import work. Existing registry receipts remain exact.
+
+Inventoried actual dispatch in lr_work_main/execution_main plus registered body_runs, lifecycle, dependency_units, known-binding and query fixtures. New command selection: native work `units` (already includes dependency-units), `type-errors`, `control-smoke`; lifecycle ranges0-3,8-13,15-17,21-22,33-34; execution `known` (includes aggregate_capture_tests once). These cover forward imported helpers and deferred decltype bodies, required/optional ordinary interpreter values, recursive nominal aliases/layout cycles, capture declaration/frame identity and reuse, local staging, executed-only reads, initialization/effects, graph/cached interpreter differential and canonical/diagnostic determinism. Omit all/type-smoke/body-smoke/capture-policy/type-staging, separate dependency-units and separate aggregate-stages to avoid running their included cases again. This is selected integration coverage, not the full42-case lifecycle or every execution selector.
+
+Reuse module_merge0 query-smoke and module_registry_merged editor/lifecycle5+24 after verifying their frozen Tower/build inputs against current files:97b8b1c3 and6767cd30 differ only in this journal. Those receipts cover lazy phase pumps, fixed receipts, source-ordered failures after eligible frontiers, cancellation, stale tickets, publication pressure and cleanup. The actual clone interval receipt observed four distinct threads overlapping on12288-node branches with1664 charged scratch bytes, and the lifecycle frontier uses a shared barrier for signature/expression work. This is bounded within-unit overlap evidence, not proof that every source body's checking scales. The newly selected units/dependency fixtures measure actual cross-unit intervals, known answers42/43/44/45, serial/worker canonical and diagnostic equality, shared outer/nested lane limits and released reservations. Worker request counts alone are not overlap evidence.
+
+One dependency-aware native build in existing /root/.cache/tower/l2_ecs_native, affinity4-7, parallel2/compiler jobs1, followed by sequential frozen tests; process wall/CPU/RSS and existing cleanup/interval receipts retained externally under L2 integrated_dependency_6767*. No production changes proposed, so no new before/after performance claim; immutable prior baseline remains untouched. No sanitizer/browser/generation/deployment work; later-source adoption is pending its owners.
+L2 result: PASS on frozen published6767cd301c7c0b08e6df3ff5894ba251143f0191; integrated_dependency_6767/session81463 drained0. One dependency build produced only the missing/stale execution runner object/link and reused the unchanged native work runner. Build16.65wall/11.60CPU seconds, peak412336KiB. Runner SHA256ae3425e4e163e81b0234c10d95254231827e04425688e56282b96bafac91ad3f; execution runner4de4a66a7589fad84eaac657e5e6564a827fb3f14b705d76753b4b39b1d95747. Exact commands, all Tower/build-input hashes, binary identities, stdout/stderr and time-v receipts are in external L2 integrated_dependency_6767*. Every selected process exited0, stderr was empty, reuse and final frozen manifests passed. No production defect or A1-intersecting failure was found; no new compiler/test implementation or reproduction was needed.
+
+| Registered selection | Wall s | CPU user+system s | Peak RSS KiB | Checked coverage |
+| --- | ---: | ---: | ---: | --- |
+| work `units` (includes `dependency-units`) | 38.17 | 60.49 | 851664 | Independent worlds; exact source/retained budgets; cancellation; forward imported decltype/type helpers/comptime; dormant invalid body not forced; deterministic executed-cycle error. |
+| work `type-errors` | 37.62 | 40.64 | 296516 | Body continuation/reparse; local binding errors; array extents/fields/computed extents; shared aliases/nested types; constructor/layout cycles and structural failures; enums. |
+| work `control-smoke` | 37.26 | 40.40 | 312752 | Lexical continuation/defer/iteration, source-order failures and canonical execution. |
+| work `lifecycle 0 3` | 20.01 | 21.31 | 271104 | Root type-producing call/failure, signature-only decltype, ordered initialization. |
+| work `lifecycle 8 13` | 30.00 | 31.84 | 247708 | Recursive nominal alias/default/layout cycle, captured/shadowed alias, local staged type. |
+| work `lifecycle 15 17` | 15.34 | 16.21 | 248740 | Untaken forward read, executed early read, repeated capture/frame use. |
+| work `lifecycle 21 22` | 9.78 | 10.41 | 247148 | Runtime parameter capture rejection and untaken mutable branch. |
+| work `lifecycle 33 34` | 10.21 | 10.86 | 248664 | Captured function/type identity. |
+| execution `known` | 54.41 | 60.32 | 359676 | Aggregate private copies/captures; graph/cached engine agreement; fixed cyclic modules; required/optional staging, mutation/escape/address policy, exactly-once runtime initialization/effect order; canonical reconstruction. |
+
+All17 newly selected lifecycle cases finished at32/64-bit widths and workers1/4, with exact canonical comparison and successful serial Foundation recompilation. `known` preserves its graph/fast comparison and requested1/2/4/8-worker canonical checks; units uses existing1/6-worker paths plus observed1/4 dependency trials. Affinity remained four CPUs4-7; requested6/8-thread cases are scheduling/correctness coverage, not six/eight-core scaling evidence. The two existing body selectors share their three-call body_continuation prefix; that small registered overlap was retained, not represented as independent extra coverage. No additional all/type-smoke/body-smoke/capture-policy/dependency-units/aggregate-stages run duplicated their larger included suites.
+
+Actual cross-unit dependency success: workers1 observed_threads1/outer_peak1,5.126269304s, peak_budget160688463bytes; workers4 observed_threads4/outer_peak4,2.140569120s, peak_budget425398262bytes under the2147483648-byte cap. Answers42/43/44/45 and concatenated canonical bytes matched. Taken-cycle trials2.477677680s(serial) and2.018338313s(four workers) produced identical diagnostic bytes and offset, prioritizing unit2's executed imported cycle over unit3's later missing name; no partial result published. Joined used_lanes==0 and peak_lanes<=requested budget were asserted. Retained input/world bytes remain intentionally live until close; do not misreport the joined subtotal as zero. Existing reused query/publication/denial fixtures separately assert drained running counts and zero final budget/buffer ownership.
+
+Reused current-input query coverage includes TypeReceiptCase.StaleRevision/StaleProfile/StaleDispatch plus changed sequence/operand, cancellation, wrong dependency/target and real denial; lazy layout/body/lowering/evaluation continuations, first-error ordering after eligible producers, publication no-replay, capture ownership and zero-resource teardown. Four distinct clone workers had intersecting measured intervals for actual12288-node branch work (1664 charged scratch bytes); mixed signature/expression frontier has a shared-barrier check before coordinator publication. The new dependency measurement adds real cross-unit overlap. These separate observations do not establish simultaneous outer-and-inner overlap for every program, full compiler scaling, race freedom, or whole-language acceptance. No new before/after runtime comparison applies to this evidence-only turn; the accepted immutable baseline remains untouched.
+
+Later-source adoption remains explicit: A1's preserved86843700 semantic_body_work admission and its complete public-capacity-successor prerequisite must be integrated by its owners, then rebuild and rerun affected body/query/diagnostic/cancellation slices. L1's pending checked backend import_foundation/import_module/import_bindings producer/caller closure needs its own source/binary identity plus affected interpreter/canonical/import checks after adoption. This6767 receipt cannot validate either future batch. Full42-case lifecycle and unselected execution fixtures, A2/D2 sanitizer/current-platform slices, bootstrap/generations, browser and ROOT hosted publication remain pending/outside this bounded result. No hidden fallback or forced worker completion was introduced; no deployment performed. todo remains b927852fe2494d2ff13acbdc8b0100dd0dbe7562566e58049e23edfe52a64df9. Reconcile and normal evidence push follows.
+### 2026-11-23 B2: complete current generation prerequisite, frozen252b424a
+
+PASS on exact published252b424ab770a0b334f31fa68eede1f1584a5acc, tree
+14675a432d410badc6c548370b8632d506b6861e. Only the journal differs from ROOTf72179d2.
+Clean documented public9653 bootstrap/no private override produced generation1;
+its complete package passed development verification before selecting it for gen2.
+Gen2 likewise passed before gen3. Both successor generations used the identical
+build path; gen2 full outputs were preserved before CMake clean. Every generation
+ran all52 native target actions, including runtime/helper objects and resources.
+All34 produced compiler/runtime/helper objects/archive/executables and all53
+manifest payload files plus SHA256SUMS match exactly between gen2/3. No ModuleID,
+object, resource or symbol normalization. Manifests retain distinct predecessor
+lineage and identical1166 source hashes, with no source patch. No compiler edits
+or limit changes were needed; no later L2/A1 work entered this frozen run.
+
+Gen1 executable e885c76780e2e00c5e8ca80786ac87ca1f93f294276867a33923a2a0d342f65c;
+gen2/gen3 executable768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138.
+Gen3 manifest5b6f9a0fed461fcdc1640a2be948ff47cb7712e41bb80915062ae2a8735db857;
+shared payload checksums bd4639d8b9cf9e9ed0b7052725466856b585d094841b2e54c4ec835d4646bd80.
+Complete package/archive delivered to B2/current_fixed_point_252b424a under the
+existing C:\Sandbox\build\codex_ecs_20261122 handoff. generation3.tar.gz SHA256
+94f03176cf057155b84928bf02ffb8959be496f795e803a4cc033f36b1ca1f5e preserves executable
+mode0755 (2236032 bytes). Original gen1/gen2/gen3 packages, full build paths,
+commands, binary manifests, verification reports and failures are retained.
+
+All nine current native exact unit symbol policies PASS. Existing package checks
+PASS; restricted negative control confirms missing Clang, NOT standalone release
+acceptance. Actual semantics provider default160MiB policy passes workers1/4 with
+identical object b74bac0c8dda6a40af34fba5223c63b56aff41c1134b6f18ad42fb2041923673.
+Generic/cast control relative+absolute package invocation workers1/4 and canonical
+round-trip print42; backend optimized/unoptimized controls print45 then2.
+Build wall/CPU/peakKiB gen1:39.086/144.790/825820; gen2:36.943/134.019/1011532;
+gen3:36.032/132.908/1011920 (12-23 cpuset/quota12/24GiB, outer6/compilerjobs1).
+These are cost observations, not a speedup claim. First profiler attempt used
+bare env and failed before configure; corrected to absolute /usr/bin/env and
+retained that failed log. No completed generation diagnostic/identity failure.
+
+Full exact receipt: docs/compiler_generation_252b424a.md. Historical public-vs-
+successor object mismatch stays FAILED; this complete current fixed point is
+separate evidence. ROOT retains pin/Pages, later-source acceptance and integrated
+instrumentation. No broad browser/type/frontend/sanitizer campaign was run.
+L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
 ### ROOT public capacity bootstrap and paired reference receipt (2026-11-23)
 
 Required prerequisite: A1's preserved body/declaration provider legitimately
@@ -86875,3 +86947,83 @@ This explains why the original180s allowance was insufficient; its failed log
 remains preserved. All frozen input hashes still match. Session88842 and every
 owned build/test PID drained before reconciliation. This closes the selected
 merged body/declaration gate, not ROOT's broader integrated release acceptance.
+B2 documentation reconciliation after the frozen proof: commit7c66be3c records
+only the journal and exact receipt. Requested ff-only pull found an advance;
+normal mergeaccde9b0 preserves complete incoming L2 history and ROOT pin2013ad28.
+The tested receipt is unchanged in scope: source252b424a only. ROOT's new pin
+identifies252b424a, matches fixed-point executable768a0cdf and resource checksum
+bd4639d8 exactly, and all checked-in payload checksums pass. ROOT performed that
+publication; B2 did not adopt/change the pin. No new generation or later-source
+acceptance is claimed from this documentation merge.
+
+ROOT canonical adoption PASS after public pin2013ad28ce. KinmenA normal clone
+was pulled to that exact published commit, tracked compiler/build inputs frozen,
+and /cache/root_public_capacity_2013 was created fresh. With
+TOWER_BOOTSTRAP_COMPILER unset, documented build-native.sh selected
+/work/bootstrap/linux-x64/towerc, compiler jobs1/build jobs4, CPU24-31/24GiB.
+All52 actions passed45.83wall/124.90CPU seconds/1016164KiB child peak RSS;
+relocated development checks passed7.41wall/9.04CPU/217384KiB. Compiler
+feed7d647835c9c305487b38faa783f19d120c2528baeebc1b2e2f45af1b8e8b.
+Source manifests match before/after; cache CMake explicitly names the public pin.
+Evidence /cache/root_public_capacity_2013_receipt/status0 and complete local
+coordination copy ROOT_public_capacity_2013_receipt. All ROOT jobs drained.
+This validates clean public adoption including published L2 module admission;
+it is not generations2/3 for later-source inputs or final threaded acceptance.
+
+Atomic publication2013ad28ce preserved Pages6f142bef15f58380831ed344ab5eac5c4b3c2840.
+Fresh hosted raw manifest SHA256eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c
+and Git blobc0c17f4ac2b3ef7747e044c91022c72842dd35ed match that Pages ref exactly.
+No new runtime deployment or full browser/UI acceptance is claimed. Current
+receipt-only follow-up changes no executable input; additional runtime profiling
+is inapplicable. User explicitly corrected coordination: maintain all eight
+existing bounded sessions with useful assignments and replace completed tasks
+promptly. All eight were relaunched/verified; no extra context was created.
+
+### ROOT current portable/LLVM/cross build and browser generation failure (2026-11-23)
+
+Frozen published source b0f507c6ad4bdaec4a3b87ddd943e647ba393eaa, public
+768a0cdf bootstrap with no private override. Local Orchestral-Revng WSL,
+LLVM19.1.1/WASI SDK34, CPU8-15, build jobs4/compiler jobs1; Linux memory16GiB,
+no competing cache writer. Existing pinned LLVM source/tablegen/cross caches
+were reused, with dedicated /root/.cache/tower/root_release_tools. Normal
+release frontend built with IDE_TESTS=OFF; TOWER_BROWSER_CROSS=ON rebuilt
+both LLVM reactors and complete compiler-project support packs. All tracked
+compiler/build/transport input hashes matched before/after. This is preparatory
+current-source release evidence, not final adoption of concurrent owner fixes.
+
+Portable28 actions PASS65.96wall/125.41CPU seconds/1041372KiB child peak RSS.
+LLVM/cross40 actions plus packaging PASS109.12wall/199.56CPU/1041676KiB.
+Receipt /root/.cache/tower/root_release_b0f507c6/status0 retains all logs,
+source hashes, flags and host settings. Complete artifacts:
+tower.wasm308150ecab0ff80e3985f06305530ffa68e763e64a5b8c35ac04cd1729f4b23d;
+tower-llvm.wasm64f508684f74eff491a78128820497bcb00d4270c6fba1cbb6d20395635468bb;
+tower-cross.wasm7e874158f03bc2e9ab43b746dd28ad4d702edef2d03b7ab1ca656a6bbeb6491b;
+project.json748997326a3a385e7f31a2bd5d0150d51df492202749493dc8669699620d5ef9.
+No rebuild of unchanged LLVM third-party libraries was required.
+
+The actual two-edited-browser-generation gate FAILED during generation1 candidate
+acceptance. node v21.7.3 --max-old-space-size=4096 ran the existing
+test-compiler-project.mjs with output build/root_ecs_generations_b0f507c6.
+All generation1 units compiled and all three reactors linked; candidate checks
+then threw "Candidate module completion check failed" at compiler-build.mjs:115.
+The qualified source imports helpers.answer as left and requests left.an; it
+must produce exactly exported label answer. This is consistent with D2's
+independent helpers.he/helper failure but the common root cause is not yet proved.
+No candidate was accepted and generation2 never ran. A1's next bounded task
+owns both exact reproducers; expected checks remain intact.
+
+Retained wall120.390s/CPU286.641s/Windows peak working set1555529728bytes.
+The PowerShell monitor did not cache its process handle and observed a null
+Process.ExitCode after exit; consequently its wrapper exited0. That0 is NOT a
+passed check. Original stdout/stderr/result.json remain preserved, with a separate
+result_review.json explicitly marking failure and the uncaptured native exit.
+Future monitors must retain the handle before polling and reject a missing
+exit status. Artifacts/measurement/logs are in coordination directory
+ROOT_browser_generations_b0f507c6; original generation1 unit objects remain.
+All ROOT build/Node jobs are drained; source mutations may now resume.
+
+This receipt-only commit changes no compiler behavior; additional before/after
+runtime profiling is inapplicable. Final current-source normal/shared/LLVM/cross,
+two edited generations, supported instrumentation, useful scaling and hosted
+release still require affected-source adoption and fixing actual failures.
+Publication reconciliation: f04c3e91 (this evidence only) merged b0f507c6 as782cdd46, preserving all journal histories. Concurrent2013ad28 publishes the new public capacity compiler/resources; ROOT's b0f507c6 records its clean adoption. Thus that bootstrap prerequisite is now published, superseding the pending-publication wording above, but A1 body86843700 and L1 backend-import adoption remain separate. `git diff 6767cd30 HEAD -- scaffolding CMakeLists.txt cmake` is empty: compiler/test sources are identical. The bootstrap binary/resources changed, so this acceptance remains explicitly the6767 build/run, not a test of newly generated binaries under the adopted bootstrap. ROOT's clean-pin receipt is preserved as its own evidence. This turn contributes only journal evidence relative to published main; merged-document diff/receipt boundaries checked, no new runtime inputs or rerun claimed. No owned jobs remain; normal push follows.
