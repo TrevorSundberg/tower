@@ -16,62 +16,100 @@ import .library.work_pool;
 
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
+extern fn compiler_node_world(node: void*): void*;
 
 // The native chain/fanout profile crosses dispatch overhead between 4096 and
 // 8192 fields. Keep smaller layouts on the caller, including mixed frontiers.
 var SemanticLayoutParallelFields: usize = 8192;
 
-fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationType*): void {
-    if semantic_aggregate(type) {
-        var dependency = work_request(&c.queries, type.record, convert(u32, SemanticQuery.Layout), 0);
-        sem_require(dependency != 0);
-        sem_require(work_depend(&c.queries, consumer, dependency));
-        sem_require(work_access(&c.queries, consumer, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), dependency, 1, WorkAccessMode.Read));
+// Admit owned payload storage before exposing a query to its consumers. A
+// partial failure stays on the context for disposal; no worker can receive it.
+fn sem_layout_request(c: SemanticContext*, subject: void*): usize {
+    var query = convert(u32, SemanticQuery.Layout);
+    var known = work_find(&c.queries, subject, query, 0);
+    if known != 0 { return known; }
+    var type = sem_get(subject);
+    if type == null || compiler_node_world(subject) != compiler_node_world(c.program.root) {
+        sem_type_resource(c, subject, WorkBudgetError.Invalid);
+        return 0;
     }
+    var error: WorkBudgetError;
+    if c.layout_results == null {
+        var kind = sem_create_result(c.program.root, &error);
+        if kind == null { sem_type_resource(c, subject, error); return 0; }
+        if !entity_register(kind, sizeof(SemanticLayoutWork), alignof(SemanticLayoutWork), 0) {
+            sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
+            sem_type_resource(c, subject, WorkBudgetError.Invalid);
+            return 0;
+        }
+        c.layout_results = kind;
+    }
+    var component = entity_component_add_result(subject, c.layout_results, &error);
+    if component == null { sem_type_resource(c, subject, error); return 0; }
+    var result = bits(SemanticLayoutWork*, entity_component_data(component));
+    *result = { subject: subject, ..default };
+    result.kernel.kind = CompilerKernelKind.Layout;
+    result.kernel.payload = bits(void*, result);
+    if !vector_push(&c.layout_jobs, bits(void*, result)) {
+        sem_type_resource(c, subject, WorkBudgetError.Memory);
+        return 0;
+    }
+    if type.type.scalar == SStruct && !semantic_enum(&type.type) {
+        if !vector_reserve(&result.offsets, type.items.length) {
+            sem_type_resource(c, subject, WorkBudgetError.Memory);
+            return 0;
+        }
+        result.offsets.length = type.items.length;
+    }
+    var id = work_request(&c.queries, subject, query, 0);
+    if id == 0 { sem_type_resource(c, subject, sem_query_error(c)); }
+    return id;
+}
+
+fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationType*): bool {
+    if semantic_aggregate(type) {
+        var dependency = sem_layout_request(c, type.record);
+        if dependency == 0 { return false; }
+        if !work_depend(&c.queries, consumer, dependency)
+            || !work_access(&c.queries, consumer, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), dependency, 1, WorkAccessMode.Read) {
+            sem_type_resource(c, type.record, sem_query_error(c));
+            return false;
+        }
+    }
+    return true;
 }
 
 export fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
+    if !sem_ok(c) { return 0; }
     var graph = &c.queries;
+    if !work_ok(graph) { sem_type_resource(c, n, sem_query_error(c)); return 0; }
     var first = graph.tasks.length;
-    var root = work_request(graph, n, convert(u32, SemanticQuery.Layout), 0);
-    sem_require(root != 0);
-    if c.layout_results == null {
-        c.layout_results = sem_create(c.program.root);
-        sem_require(entity_register(c.layout_results, sizeof(SemanticLayoutWork), alignof(SemanticLayoutWork), 0));
-    }
+    var root = sem_layout_request(c, n);
+    if root == 0 { return 0; }
     var index = first;
     while index < graph.tasks.length {
         var id = index + 1;
         var task = work_task(graph, id);
         var subject = task.subject;
         var type = sem_get(subject);
-        var component = entity_component_add(subject, c.layout_results);
-        var result = bits(SemanticLayoutWork*, entity_component_data(component));
-        sem_require(result != null);
-        fill(result, 0, sizeof(SemanticLayoutWork));
-        result.subject = subject;
-        result.kernel.kind = CompilerKernelKind.Layout;
-        result.kernel.payload = bits(void*, result);
-        if type.type.scalar == SStruct && !semantic_enum(&type.type) {
-            sem_require(vector_reserve(usize, &result.offsets, type.items.length));
-            result.offsets.length = type.items.length;
+        if !work_access(graph, id, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), id, 1, WorkAccessMode.Write) {
+            sem_type_resource(c, subject, sem_query_error(c));
+            return 0;
         }
-        sem_require(vector_push(void*, &c.layout_jobs, bits(void*, result)));
-        sem_require(work_access(graph, id, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), id, 1, WorkAccessMode.Write));
         if type.type.scalar == SArray {
-            sem_layout_dependency(c, id, &type.element);
+            if !sem_layout_dependency(c, id, &type.element) { return 0; }
         } else {
             if !semantic_enum(&type.type) {
                 foreach(var & item in &type.items) {
                     var field = sem_get(*item);
-                    sem_layout_dependency(c, id, &field.type);
+                    if !sem_layout_dependency(c, id, &field.type) { return 0; }
                 }
             }
         }
-        sem_require(work_seal(graph, id));
+        if !work_seal(graph, id) { sem_type_resource(c, subject, sem_query_error(c)); return 0; }
         index++;
     }
-    sem_require(work_demand(graph, root));
+    if !work_demand(graph, root) { sem_type_resource(c, n, sem_query_error(c)); return 0; }
     return root;
 }
 
@@ -192,6 +230,7 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
     var fields = sem_declaration_layout_waiting(c, n);
     if fields != 0 && sem_declaration_failure(c, fields) { return; }
     var root = sem_layout_discover(c, n);
+    if root == 0 { return; }
     if work_task(&c.queries, root).state == WorkState.Succeeded {
         sem_query_read(c, root);
         return;
@@ -213,8 +252,9 @@ fn sem_layout_all(c: SemanticContext*): void {
         var type = c.program.types.data[index];
         if sem_get(type).type.record != null && sem_get(type).type.scalar != SFunction {
             var query = sem_layout_discover(c, sem_get(type).type.record);
+            if query == 0 { return; }
             if work_task(&c.queries, query).state != WorkState.Succeeded {
-                sem_require(vector_push(&pending, query));
+                if !vector_push(&pending, query) { sem_type_resource(c, type, WorkBudgetError.Memory); return; }
             }
         }
         index++;

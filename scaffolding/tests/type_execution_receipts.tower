@@ -29,23 +29,27 @@ enum TypeReceiptCase: u32 {
     Complete, SemanticFailure, StaleRevision, StaleProfile, StaleDispatch,
     ChangedSequence, ChangedOperand, Cancelled, WrongDependency, WrongTarget,
     RequestCapacity, CompletionCapacity, CompletionControl,
-    NodeExhausted, RootBusy, ComponentCapacity, ArrayHealthy, ArrayNodeExhausted, ArrayBusy, Count
+    NodeExhausted, RootBusy, ComponentCapacity, ArrayHealthy, ArrayNodeExhausted, ArrayBusy,
+    ArrayLayoutExhausted, ArrayLayoutBusy, ArrayLayoutCapacity, Count
 }
 
 var TypeReceiptBudgetBytes: usize = 1024 * 1024;
 
 fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
+    var layout_denied = mode == TypeReceiptCase.ArrayLayoutExhausted || mode == TypeReceiptCase.ArrayLayoutBusy
+        || mode == TypeReceiptCase.ArrayLayoutCapacity;
     var array = mode == TypeReceiptCase.ArrayHealthy || mode == TypeReceiptCase.ArrayNodeExhausted
-        || mode == TypeReceiptCase.ArrayBusy;
+        || mode == TypeReceiptCase.ArrayBusy || layout_denied;
     var terminal = mode == TypeReceiptCase.CompletionCapacity || mode == TypeReceiptCase.CompletionControl;
     var structural = mode == TypeReceiptCase.NodeExhausted || mode == TypeReceiptCase.RootBusy
         || mode == TypeReceiptCase.ComponentCapacity;
-    var bounded = mode == TypeReceiptCase.RequestCapacity || terminal || mode == TypeReceiptCase.ComponentCapacity;
+    var world_bounded = mode == TypeReceiptCase.ComponentCapacity || mode == TypeReceiptCase.ArrayLayoutCapacity;
+    var bounded = mode == TypeReceiptCase.RequestCapacity || terminal || world_bounded;
     var budget: WorkBudget = default;
     var occupied: WorkReservation = default;
     if bounded { sem_require(work_budget_init(&budget, 1, TypeReceiptBudgetBytes, 1)); }
     var world: void* = null;
-    if mode == TypeReceiptCase.ComponentCapacity {
+    if world_bounded {
         sem_require(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None);
     } else { world = compiler_world_create_workers(1); }
     type_receipt_check(world != null, "Type request world");
@@ -151,17 +155,35 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
             sem_require(work_demand(&context.queries, query));
         } else { sem_require(work_suspend(&context.queries, &ticket, query)); }
         if array {
+            if layout_denied {
+                // A canonical identity already exists, but its layout has never
+                // been requested. Denial must occur in layout admission, after
+                // the ordinary constructor consumes that identity.
+                var canonical = sem_create(root);
+                var value = sem_attach(canonical, KType);
+                value.type = { scalar: SArray, pointer_bytes: width, record: canonical, ..default };
+                value.element = request.input;
+                value.length = convert(usize, request.second);
+                value.start = operation.start;
+                sem_push(&program.types, canonical);
+            }
             var types = program.types.length;
             next_id = store.next_id;
             request.result = { scalar: SU8, pointer_bytes: width, ..default };
-            if mode == TypeReceiptCase.ArrayNodeExhausted { store.next_id = ~convert(usize, 0); }
-            if mode == TypeReceiptCase.ArrayBusy {
+            var exhausted = mode == TypeReceiptCase.ArrayNodeExhausted || mode == TypeReceiptCase.ArrayLayoutExhausted;
+            var busy = mode == TypeReceiptCase.ArrayBusy || mode == TypeReceiptCase.ArrayLayoutBusy;
+            if exhausted { store.next_id = ~convert(usize, 0); }
+            if busy {
                 view = entity_view_open(root);
                 sem_require(view != null);
             }
+            if mode == TypeReceiptCase.ArrayLayoutCapacity {
+                sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+                    &occupied) == WorkBudgetError.None);
+            }
             var outcome = sem_type_execution_pump(&context);
-            if mode == TypeReceiptCase.ArrayNodeExhausted { store.next_id = next_id; }
-            if mode == TypeReceiptCase.ArrayBusy { entity_view_close(view); }
+            if exhausted { store.next_id = next_id; }
+            if busy { entity_view_close(view); }
             if mode == TypeReceiptCase.ArrayHealthy {
                 while !request.ready && outcome == SemanticPumpResult.Progress {
                     sem_layout_execute(&context);
@@ -173,12 +195,26 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
                     && sem_get(request.result.record).element.scalar == request.input.scalar,
                     "Executed array publishes one canonical identity after its layout dependency");
             } else {
-                var wanted = mode == TypeReceiptCase.ArrayNodeExhausted ? WorkBudgetError.Exhausted : WorkBudgetError.Busy;
+                var wanted = exhausted ? WorkBudgetError.Exhausted : busy ? WorkBudgetError.Busy : WorkBudgetError.Capacity;
                 type_receipt_check(outcome == SemanticPumpResult.Failed && !request.ready && !request.failed
                     && request.result.scalar == SU8 && program.types.length == types
                     && program.resource.error == wanted && program.resource.offset == operation.start
                     && context.queries.cancelled && context.queries.running == 0,
                     "Canonical array admission fails before index or result publication and drains its ticket");
+                if layout_denied {
+                    var canonical = program.types.data[program.types.length - 1];
+                    var tasks = context.queries.tasks.length;
+                    var identity = store.next_id;
+                    type_receipt_check(sem_get(canonical).size == 0 && context.layout_jobs.length == 0
+                        && work_find(&context.queries, canonical, convert(u32, SemanticQuery.Layout), 0) == 0,
+                        "Failed layout payload cannot publish a layout query or size");
+                    sem_resource_record(&program, WorkBudgetError.Memory, operation.start + 1);
+                    type_receipt_check(sem_layout_discover(&context, canonical) == 0
+                        && context.queries.tasks.length == tasks && store.next_id == identity
+                        && program.resource.error == wanted && program.resource.offset == operation.start
+                        && sem_type_execution_pump(&context) == SemanticPumpResult.Failed && !request.ready,
+                        "Layout denial retains the first cause and cannot replay or publish the constructor");
+                }
             }
         }
         if terminal {

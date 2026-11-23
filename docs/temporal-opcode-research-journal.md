@@ -80867,3 +80867,69 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+
+
+### L2: bounded layout admission continuation (2026-11-23)
+
+Prior admission039a7fc6 is now published through preserving mergeafca69b1; the authorized normal push race was recovered without flattening history. Actual remaining callers select layout kind/payload/query admission as this batch. Layout discovery previously published a graph request before asserting dynamic kind/component creation; body and declaration consumers then unconditionally dereferenced its query. Implement checked admission before query publication, preserve first producer failure, and guard the complete consumer chain. Constructor-state admission is a separate pending chain; A1 lifecycle, A2 stage protocol and ROOT execution ownership remain untouched. Evidence below will distinguish implementation from checks.
+
+Implemented the selected layout chain with sem_create_result and
+entity_component_add_result. A kind is published only after registration; each
+payload and its owned offset storage precede its graph request. Discovery checks
+request/dependency/access/seal/demand results and preserves the first producer
+receipt without cancelling another phase's active tickets. Failed admissions
+cannot execute or publish sizes. All six production sem_layout_discover callers
+were audited: synchronous/layout-all and body iterator/input/declaration callers
+now guard zero; the executed-type constructor already had the required guard.
+No new recursive query completion or worker structural mutation was introduced.
+The existing synchronous compatibility path is unchanged after successful admission.
+
+Extended existing storage/query fixtures, not a separate test framework. A serial
+allocation sweep derives its bound from actual production calls across a dependent
+array/record layout frontier, checks first producer offsets, no sizes/replay, and
+zero final tracked buffers. Healthy queries suspend, retain canonical identity,
+and publish each dependent size once. Executed array constructors at widths4/8
+now cover layout-specific Exhausted/Busy/physical Capacity after canonical identity
+already exists, with no layout query/result publication, no retry after first
+failure, cancelled/drained constructor tickets and zero final ledger owners.
+
+One dependency-aware native build sequence used the existing l2_ecs_native cache,
+max2 build jobs, CPUs4..7 and a4GiB per-process virtual-memory cap. Layout0 failed
+on a missing explicit existing compiler_node_world declaration; layout1 compiled
+semantics/query fixtures but the new storage fixture needed a direct vector import.
+Both failures drained before corrections; original logs and source0 manifests
+are retained. Layout2/94812 completed the remaining four actions and passed full
+storage and query-smoke with empty stderr and source manifest0. Final incremental
+build:10.18wall/7.57CPU seconds/316096KiB; storage:.30/.25/99548;
+query-smoke:.20/.23/75128. Earlier successful semantics compilation is retained
+from layout1, whose whole build was not a pass. No duplicate public-leaf build.
+
+Small checked comparison5720 uses immutable prior admission compilerb0362b6c
+and current9c5db90f at one actual executable path, the same frozen baseline
+resources and unchanged generic_stage_constructor inputbbc45255. Commands use
+--interpret --jobs1/4, native x64/LLVM19 Release, WSL2 Linux6.18.33.2, affinity4..7,
+fresh processes and warm file copies. Inventory showed no competing build at
+start. Each side/count runs once; all four outputs equal the independent0 oracle,
+with empty stderr and final input/resource/source hashes0. Before also predates
+integrated interpreter/flow/parser work, so this is not isolated lane attribution.
+
+| Constructor jobs | Before wall/CPU seconds/peak KiB | After wall/CPU seconds/peak KiB |
+| --- | --- | --- |
+| 1 | 1.64 / 1.54 / 180296 | 1.47 / 1.45 / 179744 |
+| 4 | 1.24 / 1.53 / 198940 | 1.23 / 1.52 / 199468 |
+
+The four-worker peak rose528KiB; this tiny sample supports no neutrality, speedup
+or scaling claim. Raw receipts/recipes are L2/semantic_admission_layout* and
+L2/layout_pair*. No existing baseline or failed receipt was overwritten.
+
+Remaining exact gaps: semantic_constructor_work.sem_constructor_state still uses
+asserting dynamic kind/component admission; its sem_constructor_add/instance
+callers need their own complete nullable chain. Semantic evaluation-work kind/
+payload admission and shared sem_state table allocation remain asserting staging
+paths. Layout execution still retains its existing worker dispatch/finish and
+cycle-analysis contracts; this batch closes admission and its consumers, not
+universal scheduler/allocation failure handling. A1 lifecycle orchestration,
+A2 stage holds and ROOT semantic_execution_work were untouched. Supported
+sanitizers/full scaling/bootstrap/browser/generation/hosted release remain pending
+ROOT's integrated milestone. This task publishes main only; no runtime deployment
+is claimed. todo.txt hash remainsb927852f. All owned validation jobs have drained.
