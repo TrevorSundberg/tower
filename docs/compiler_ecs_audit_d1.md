@@ -4281,7 +4281,7 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | compiler-threads | O1 2P/1F | Old work-Wasm pool/trap P; shared compiler ENOENT. New browser retirement receipt is not this Node suite; T5. |
 | compiler-utf8 | O1 2P/1F | Utility interpreter/LLVM/canonical comparison unpassed; T8. |
 | compiler-workers | O1 file-init F | Missing project.json, all8 registered cases U; generation success is not these assertions; T6. |
-| compiletime | O1 27P/18F | DL42P/3F portable; decltype_type_fields/parameterized-field chain fail Unknown type constructor 'alias' (ROOT/L1 with L2); inference_alias_invalid rejects with earlier capability error (ROOT/L2).43 LLVM registrations U on E; commands below. Not an unassigned whole-file failure. |
+| compiletime | O1 27P/18F | DL42P/3F portable. LLVM-only c95b04a2/E receipt below:39P/4F, all43 attempted,45 portable registrations excluded. Three older-eac alias/type-body failures remain; body_continuation additionally prints1 instead of0 in emitted Wasm. Source/input-phase adoption remains ROOT/L1/L2; no full current-source file pass. |
 | completion-queries | O1 4P | Unchanged mock transport producer/data; reuse O1. |
 | cross-compilation | O1 7S | T7 now7/7P at84146755 plus explicit fixture imports / supplied eac cross reactor; see the source-bound T7 receipt below. Other-OS binaries emitted, not executed natively. |
 | data-driven-scanners | O1 3F | N3/3P. |
@@ -4361,12 +4361,12 @@ separately from A2's numeric repair. Exact follow-ups on the final capable host:
 
 ```sh
 node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|inference_alias_invalid|parameterized fields).*\(portable\)$' playground/tests/compiletime.test.mjs
-node --test --test-concurrency=1 --test-name-pattern='\(LLVM\)$' playground/tests/compiletime.test.mjs
+node --test --test-concurrency=1 --test-name-pattern='^(decltype_type_fields|body_continuation|inference_alias_invalid|parameterized fields).*\(LLVM\)$' playground/tests/compiletime.test.mjs
 ```
 
 DL makes LLVM/stress loading lazy without omitting default assertions. The second
-command selects all43 unstarted LLVM registrations and requires the final pair;
-it is not a lightweight Deck instruction. Exact invalid inference expectation
+command now selects only the four failures from the completed c95b04a2/E LLVM
+receipt, after their repair/target-input diagnosis and matched artifacts. Exact invalid inference expectation
 remains `Cannot infer type argument 'T'; pass explicit type arguments`, not the
 observed general-compile-time-execution capability error. Both alias positives
 still expect0; later modes were not reached after their Graph32 failure.
@@ -4445,3 +4445,43 @@ Merged adoption66657986 retains all T7 test/host/artifact hashes. The only chang
 existing mounted resource is A1's tests/stress/comment_functions.tower, outside
 these executed imports. Its mismatch is preserved in merged_resources_check.log;
 the original full-registry identity is not relabeled as a fresh merged test run.
+
+## LLVM-only compiletime selection at c95b04a2 (2026-11-23)
+
+Frozen sourcec95b04a2d841ff7fb951b51e77319ee4fd1acb25, unchanged test SHA
+b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d, matching
+supplied eac portable/LLVM pairE. One suffix-filtered aggregate completed within
+180s:39P/4F,0unstarted selected registrations,0skips/cancellations/timeouts;
+45portable registrations filtered out, not executed or counted as passes.
+
+| Selected group | P | F | Unstarted registrations |
+| --- | --- | --- | --- |
+| Lazy signature / demanded body negatives | 2 | 0 | 0 |
+| Source + canonical execution positives | 14 | 2 | 0 |
+| Stage/dependency/execution diagnostics | 23 | 1 | 0 |
+| Generated parameterized-field chain | 0 | 1 | 0 |
+
+Failures retain independent expectations: decltype_type_fields cannot complete
+Graph64 canonical setup (`Unknown type constructor 'alias'`); inference_alias_invalid
+gets the earlier general-compile-time-execution capability error at LLVM32;
+generated type_fields fails LLVM32 alias admission. Those source-bound older-eac
+results need L1/ROOT wrapper/type-body adoption, not changed diagnostics.
+body_continuation completes Graph64 canonical setup but emitted Wasm returns1
+instead of0. The loop does not label original versus canonical input, so the
+failing iteration is unresolved. It prepares64-bit canonical then targets default
+wasm32, unlike A1's already passing same-target LLVM/package case; this observable
+setup difference is not yet a proven cause. ROOT owns that input/target isolation.
+No memory-error inference, producer repair, expectation weakening or fixture edit.
+
+Logs/names/manifests: build/d1_ecs/compiletime_llvm_c95b04a2/. All43 completed names
+match the preflight list exactly. Only the selected type_fields stress producer
+runs; other generators stay lazy.16.25wall/21.14CPU s,476656KiB peak,0swaps,
+exit1. No source changes or compiler build; timing is validation cost, not a
+production before/after or scaling measurement. All owned jobs drained, shared
+heavy lock released. Later phases within failed cases remain unpassed as detailed
+in the journal; completing registrations does not imply all their assertions ran.
+
+Reconciliationaaf01529 preserves selected test/host/fixture inputs. L1's newer
+5cb0b061 wrapper implementation and unrelated registered test additions are outside
+the eac executable and measured resource identity; their source/native receipts
+are not substitutes for this still-required joined-artifact adoption. No rerun.

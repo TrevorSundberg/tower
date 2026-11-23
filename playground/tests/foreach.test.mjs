@@ -99,7 +99,7 @@ test('foreach formatting is stable and Foundation retains ordinary identifiers',
  const source='import tower;import library.vector;var v:vector(i32);vector_init(&v);defer vector_dispose(&v);vector_push(&v,42);foreach(var &x in &v){print(*x);}';
  let formatted;
  for(const text of [source,null]){const handle=tower.create(text??formatted);try{assert.equal(runToEnd(tower,handle).end.status,'done');const result=tower.format(handle);assert.equal(result.error,undefined);if(text===null)assert.equal(result.source,formatted);else formatted=result.source;}finally{tower.destroy(handle);}}
- assert.equal(execute(formatted).output,'42\n');assert.equal(execute('var foreach:i32=42;print(foreach);').output,'42\n');
+ assert.equal(execute(formatted).output,'42\n');assert.equal(execute('import foundation;var foreach:i32=42;print(foreach);').output,'42\n');
 });
 
 test('the shared iteration worker fixture retains its runtime behavior',async()=>{
