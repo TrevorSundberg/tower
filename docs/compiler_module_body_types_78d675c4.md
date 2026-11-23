@@ -113,3 +113,32 @@ run or claimed. The previously service-rejected instrumentation gate remains
 open; all three pre-existing stashes are preserved. Temporary frontier vectors
 retain the existing coordinator ownership model; this change does not extend the
 physical memory budget to raw vectors or foreign allocations.
+
+## Merged-source adoption
+
+Complete upstream451bea0c history was merged as
+`27fcab01cc39af465439e48755833ca738800986`, tree
+`2fd49172a87627e9479daf5397e0063c975ea440`. The only conflict was the test README;
+its A2 selector and L1 capture-control descriptions were both retained. Changed
+producer inputs include L1's lexical source binding, A1's checked alias-publication
+wave and the void-pointer backend import fix. None of those methods was edited
+by this task. Their published history is preserved.
+
+The affected closure rebuilt once. All44 focused configurations pass again
+(9.117s wall / 8.283s CPU / 228448KiB), query-smoke passes
+(3.507 / 4.417 / 414128), and the expanded module-loop capture/offset/teardown
+checks pass (14.671 / 13.858 / 221460). One merged healthy sample per worker count
+retains the exact canonical/input hashes and ledger peaks above, with zero final
+owners: one worker0.456897wall/0.400068CPU/178044KiB; four workers
+0.525883/0.509504/180596. These adoption samples do not replace the original paired
+measurement boundary. The earlier type-smoke receipt is retained for its original
+candidate; the merged semantic delta received the focused checks just listed.
+
+Merged SHA256: semantics object
+`16f13e9f461f26947b67dca4356c08ea1a4ccf25dbc354feb64b02b00c253cee`,
+execution target `9a347ea2e14fce578f1e6ae9405ff137b4965c38c26473cf5794e1f62701f648`,
+query target `15c914862246cc24397f0e1cb12a71b6af7d531ffb83ef3163ea3e915ac21c24`,
+profile `b5b7318d74501a9ea59f2da299e197d5436c5eb7a87e02bb55128898630e1003`.
+`merged_*` logs, source/tree, actual commands and checked dependency manifests are
+retained in the same external directory. ROOT final browser/release adoption
+remains pending; this receipt claims no hosted update.
