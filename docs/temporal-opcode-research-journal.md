@@ -95402,3 +95402,31 @@ binary as built from the later B1 source or claiming that batch-gate path execut
 No additional rebuild/run is needed for this unchanged selected path; B1's own
 receipt retains gate adoption. Diff checks pass, no owned work/lock; normal push
 retry follows. Final full-artifact adoption remains ROOT-owned.
+
+Final scoped adoption: merge2a6fa609b8292403e541d4f0bed9388a79baa9dd retains
+cabc2062 and native exclusive-gate05780abb plus module initializer test receipts.
+Reviewed frontend_units/work_gate/host additions; source-runner's explicit
+synchronized budget and importer blobs are unchanged. Dependency refresh of only
+source service/CLI9.88wall/5.30CPU/257028KiB, source-worlds+recheck2/2 PASS1.26s.
+Exact request worker4 and healthy control worker1 again produce unchanged bytes,
+execute0 and drain source counters to zero. Gate service586a492d/CLI1994d7b8;
+source manifest/logs retained, no broad gate-owner tests duplicated.
+
+Boundary-oracle clarification: saved optimized IR shows the small fixture's
+original top-level constant calls folded to print0. Its exported product32/64
+functions still contain the actual overflow intrinsic, so reconstruction failure
+coverage is real, but that top-level output alone cannot exercise boundary paths.
+Added backend_unsigned_overflow_calls.tower as a fresh ordinary Tower consumer;
+copy the UNCHANGED reconstructed module as backend_unsigned_overflow.tower beside
+it, then interpret the consumer. No edits to reconstructed text and no second
+optimizer pass. All12 product calls remain in fresh canonical Foundation (lines
+317-457 in the32-bit receipt). Both widths x1/4 execute exact0 newline0 newline,
+empty stderr. Module SHA staysb4e571ae; caller SHAa860f8e84a16f539d61a4f5cbe7073e2e98c3ea4191c7a604ad9375a4ad473ec.
+Actual zero/nonzero/overflow/wrapped-store paths are therefore now checked at
+runtime, independently of LLVM constant folding. CPU4-7 n1 wall/CPU/peakKiB:
+32/1 .75/.57/172508;32/4 .67/.58/177392;64/1 .59/.50/172552;
+64/4 .64/.57/176528. These CLI runs have no per-phase byte ledger output; zero
+source-service owners belong to the separately recorded reconstruction probes,
+not an invented CLI counter. Existing large entity_views ownership assertions
+also execute to0. No production change aftera5ffb99d; fresh-call fixture/README
+complete the regression evidence. All jobs drained; normal publication follows.
