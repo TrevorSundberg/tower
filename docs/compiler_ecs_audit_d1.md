@@ -5600,8 +5600,8 @@ future fix. No race-freedom or whole-compiler completion claim.
 
 ### D1 seeded dependency/cancellation interaction — 1e428ede (2026-11-23)
 
-Freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d` plus the following fixture delta;
-compiler/library/host remain unchanged. Existing unit/profile tests cover forward
+Initial freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d` plus the following fixture delta;
+no D1 compiler/library/host change. Existing unit/profile tests cover forward
 imports and overlap, module-body/header fixtures cover frames, and work_observe
 covers stale revision/profile tickets separately. The missing composition was
 admitted cancellation followed by changed seeded inputs under identical virtual
@@ -5630,3 +5630,10 @@ Raw commands/failures/time, source/resource hashes and preserved prior binary:
 `build/d1_ecs/dependency_stress_1e428ede/`. No production change: before/after
 production profiling is inapplicable. Target64 ordinary interpreter only;
 32-bit/Fast/browser/sanitizer/release remain ROOT's separate frozen gates.
+
+Final adoption at `325db64171cb1f864858b0dd0e5bac66e91792b5` includes L2's
+`semantic_lowering_work` registration guard: semantics+link rebuild39.40wall/
+38.35CPU/1082740KiB, same two CTests pass30.62wall/38.13CPU/574704KiB with the
+same15 batches/negative1215vs1216. Binary SHA256
+`93cf2e288735aa1284a45fee473caaf2ada142c1f482769880adb7069b8ab00e`;
+`merged_*` logs retain this boundary; initial serial/two timings are not relabeled.

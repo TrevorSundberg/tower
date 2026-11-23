@@ -96248,10 +96248,12 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
-D1 final integration boundary: implementatione96d2282 preserves publishedb4bd9980
-history. Tested native compiler/library/host/backend, fixture/registration and
-resource hashes remain unchanged; incoming browser abort transport and unrelated
-fixtures are excluded from this execution receipt. No invalidated test rerun.
+D1 final integration: implementatione96d2282, merged325db641 includes L2's
+semantic_lowering_work registration guard. Affected semantics+link rebuilt
+39.40wall/38.35CPU/1082740KiB; the same two CTests pass30.62wall/38.13CPU/574704KiB,
+with the same15 batches and rejecting1215vs1216 oracle. New artifact/source
+identity is in the finite receipt and merged_* logs. Initial timing remains
+bound to1e428ede; unrelated codec/browser changes are not independently adopted.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
