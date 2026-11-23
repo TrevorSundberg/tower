@@ -4304,8 +4304,8 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | interpreter-invocation | O2 1P/2F | G4 same failures; R closes all3 exact export groups (invocation4/8, worlds4/8, stage), portable serial capability correctly selected. |
 | language-service | O2 3P | Unchanged mock worker scheduling/cancellation; reuse O2. |
 | llvm-execution | O2 2P/49F | LL48 scoped P/3F; LA closes narrow/body and rechecks division zero. T3 struct remains unpassed; T4 records scoped closure, not a whole-file current-source run. |
-| module-path-names | O2 2P | Historical P; path inventory/project resources subsequently added, so final changed-input adoption remains necessary. |
-| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; lexical alias/path expectations unchanged. |
+| module-path-names | O2 2P | Current c93ddaab2/2P: actual resource paths/import availability and synthetic project upgrade checked; changed-resource gap closed at this freeze. Receipt below. |
+| module-resolution | O2 13P with wrong default portable | N13/13P with verified override; new c93ddaab/47433acf13/13P with current language/module inputs. Exact case, lexical identity, relative boundaries and selected-file diagnostics retained; receipt below. |
 | module-scopes | O2 file-init F | N17P/2F; G8 19/19P, qualified completion plus full repeated-lifetime case now reached, matching LLVM override. |
 | operators | O2 6P | Historical pairO source/canonical/LLVM P; not relabeled current compiler evidence. |
 | output-syntax | O2 8P | Unchanged display-only lexer/dependencies/data; reuse O2. |
@@ -4530,3 +4530,136 @@ Merge2d8a96fe leaves selected test/host/artifact and executed import hashes inta
 The sole resource delta, tests/frontend_units_profile.tower, is an unexecuted
 native profiling fixture; its recorded mismatch does not relabel the earlier
 full registry as rerun. Scoped4P/6F evidence reused, no further selection.
+
+## Module-path/resource adoption at c93ddaab (2026-11-23)
+
+Frozen sourcec93ddaabdd961c4be27d825ae4e3bf59575ec303. Fresh runs only of
+module-path-names2/2 and module-resolution13/13 pass, zero skips/timeouts; no code
+or fixture changes. Both matching47433acf overrides verified; path test uses no
+reactor and resolution uses portable68cd7a8a only, not LLVM execution evidence.
+Exact names, commands, hashes and TAP/time/status: build/d1_ecs/module_paths_c93ddaab/.
+
+Actual inputs reviewed: path test scans1151scaffolding and3browser Tower fixture
+paths, checking identifier/underscore components, dotted production imports and
+local/library availability. Compared with originald5b65afe there are35added
+scaffolding test files and2browser fixtures; all are included in this fresh scan.
+Test/invalid import contents are deliberately excluded from the production-import
+assertion. The upgrade test supplies a synthetic recipe, not generated project.json;
+unchanged old names retire, edited/user files survive, active entry updates and
+repeat upgrade is idempotent. Historical hyphenated user strings remain deliberate.
+
+Resolution imports compiler-fixtures' resource data but directly uses the real
+host with five root language files (bedrock,foundation,foundation_syntax,tower,
+types) and explicit case modules. All1151 sources are read by the fixture loader;
+they are not all configured or compiled by these cases. The five baseline files
+and project-refresh implementation match the older receipt, while actual new
+portable execution validates renamed grammars, capability removal/recovery,
+nearest-file cache edits, cycles, lexical dotted/quoted/separator identity with
+once-only effects, exact case/extension, parent boundaries, comment/alias canonical
+formatting and selected errorFile values. No realpath/symlink identity collapse,
+native filesystem equivalence or numeric-offset coverage is inferred.
+
+Costs wall/CPU s/peakKiB: names0.36/0.43/62296; resolution22.76/25.22/223384;
+0swaps. These are validation costs, not production profiling/scaling. Inputs
+verify unchanged after runs; jobs drained and owned lock released. Other fixed
+checklist gates and ROOT's final joined runtime release remain separate.
+
+Mergedcd4f85b0 adds11numeric-wrapper fixtures. Only the affected two-case host
+naming check reran:2/2P on1162scaffolding+3browser paths,0.48wall/0.55CPU s,
+62272KiB,0swaps. Resolution's actual five baseline language files, functions
+example, test and host bytes still match, so its13passes are reused without a
+repeat. Separate merged resource manifest/receipts preserve both input boundaries;
+new producer sources do not become a newly built47433acf reactor.
+
+## Numeric-only wrapper independent review at 22e15d5b (2026-11-23)
+
+Fixed source `22e15d5b8e459cd63417234cf2b8198a85dc283d`; implementation
+`0c1d24ddb7d08795746841def2c09e06a4b1f25a`. All sixteen changed Tower files and
+`cmake/TowerWorkTests.cmake` have identical blobs at those two commits. This
+adopts that delta after A1's unchanged-context review at `9caa921c`, without
+extending the freeze to later alias work or the pulled `fcaad5a6` source.
+Disposition: no concrete defect found in the inspected producer/caller closure;
+source adoption is separate from the owner execution evidence below.
+
+Paths in the following producer table are under `scaffolding/compiler/`.
+
+| Path / fixed blob | Substantive finding |
+| --- | --- |
+| `generics.tower` / `9649a3d2` | `generic_register_result` attaches parameter metadata to a successfully read single-return `CoreCall`, but returns the existing `GenericKind.Ordinary` for a numeric-only function. `sem_register_template` in `semantic_types.tower` branches on that returned kind, not metadata presence; ordinary calls remain in the function registry. Registration rejects foreign stores, stages and active views. Deferred instantiation now retains the ordinary wrapper's body source, uses the existing definition/count/argument-entity cache key, attaches the clone to the world root before registry publication, and releases the local reference. `generic_lookup` binds through the clone's defining template; no global type registry or second representation is introduced. |
+| `semantic_constructor_work.tower` / `0abf6ac1` | Both known calls and body admission use `sem_constructor_wrapper_definition`. Each link resolves a declaration from its syntax/module, requires a single-return call with textual result `type`, rejects a formal callee/global value and repeated declaration, and must end at an existing type constructor. The first signature must have a source-resolved non-type parameter; the Parameters phase then checks actual integer types. General/effectful bodies and dependent/structural parameter signatures fall back to ordinary execution. `sem_constructor_arguments` binds arguments left-to-right through existing type/constant queries; unknown/written extents are not accepted as runtime layouts. Clone/Alias and ordinary Execute retain shared declaration/evaluation dependencies and prior instance errors, rather than recursively completing helpers. |
+| `semantic_body_work.tower` / `7a5a8201` | `sem_body_needed` tests demand first. Only an undemanded original function with a nonpointer type result, nonempty all-integer signature and successful forwarding proof gains the new exclusion. Original exports/externs, other signatures and general bodies remain retained; generic clones retain their prior demand rule. Pruning stably compacts the function index, generated items and root items using the same predicate; it does not destroy definition entities or transfer ownership. The original declaration remains world-owned for clone provenance and nominal binding. |
+
+Reachability trace: `semantic_values.tower:sem_call` puts the resolved ordinary
+declaration or specialization in `KCall.binding`; indirect calls retain their
+callee as `value`. `semantic_types.tower:sem_function_reference` and
+`semantic_evaluation.tower:sem_evaluation_value` produce a `KFunctionReference`
+with the actual declaration binding. `semantic_iteration.tower` likewise binds
+generated protocol calls. `sem_body_collect` walks canonical owned expression
+edges, including `value`, arguments, branches and bodies, collecting both kinds;
+it deliberately skips definition bodies and type/back-reference edges.
+`semantic_statements.tower` finishes root expressions before `sem_bodies` enables
+root demand. Evaluation expressions are scanned separately. Workers use private
+`body_seen`, scratch and call vectors; `sem_body_wave` uses the existing leases,
+view, admitted dispatch and `semantic_context.tower:sem_stage_wave` join/stage
+publication boundary before the coordinator publishes demands. Completed bodies
+publish calls once; progress and the reset scan admit newly demanded earlier
+functions before quiescence. Pruning follows this pump and returns immediately
+on an existing semantic error. Thus the inspected reachable-reference paths
+retain their original body (and its ordinary diagnostics), rather than leaving
+a removed callable binding in successful output. This is source reasoning, not
+an exhaustive reachability or race proof.
+
+`semantic_modules.tower:sem_owner` follows generic origin back to the definition;
+`sem_resolve` uses that module and qualified import identity. Constructor
+instances retain construction owner/identity; their scope comes from the
+definition, not coincident caller offsets. Proof-cycle detection only declines
+the optimization; actual dependency cycles still belong to the owning shared
+pipeline's quiescent failure path. No scheduler, capture evaluator or lifetime
+policy changed. Existing checked scratch allocation and stage/drain machinery
+are reused; this review does not add allocation-failure or cancellation execution.
+
+Fixture/provider paths below are under `scaffolding/tests/`; each row was read,
+including its imports and actual registration/consumer.
+
+| Path | Coverage and disposition |
+| --- | --- |
+| `numeric_wrapper_minimal.tower` | Local numeric-only forwarding shares `buffer(i32,2)` identity; independent output remains `42 / 8 / true`. Preserve. |
+| `numeric_wrapper_module.tower` | Imported `Extent` alias, direct/forwarded/nested count+1, typed-wrapper bridge and byte layout providers; consumed by positive and negative fixtures. Preserve. |
+| `numeric_wrapper_known.tower` | Repeated/distinct nominal arguments, imported aliases, target-width layout, known locals and caller shadowing; staged `extent` checks ordered two effects, module initializer timing stays observable, ordinary callback has exactly one effect, untaken mutable read creates no dependency. Output remains42. Preserve. |
+| `semantic_invalid/numeric_wrapper_unknown.tower` | Runtime formal extent remains unknown even when its caller passes2. Preserve rejection. |
+| `semantic_invalid/numeric_wrapper_written.tower` | Later write disqualifies the local extent from known binding. Preserve rejection. |
+| `semantic_invalid/numeric_wrapper_mismatch.tower` | Forwarded extent2 cannot accept a nominal extent3 pointer; expected buffer types remain distinct. Preserve exact mismatch. |
+| `semantic_invalid/numeric_wrapper_order.tower` | A helper reads a later initializer while computing the earlier extent; preserve initialization-order error. |
+| `semantic_invalid/numeric_wrapper_effect.tower` | Ordinary trap before returning a constant nominal type must reach the staging capability error, not the strict forwarding path. Preserve. |
+| `semantic_invalid/numeric_wrapper_runtime.tower` | `var callback = runtime; callback(2)` demands the original numeric wrapper; its unbound extent must reject. This specifically exercises function-reference retention. |
+| `semantic_invalid/numeric_wrapper_cycle.tower` | Extent depends on `sizeof` its own numeric wrapper; preserve actual shared query-cycle failure. |
+| `numeric_wrapper_checks.tower` | Registers all seven invalid sources with their independent expected diagnostic substrings; shared checker compares complete diagnostics/offsets across width4/8 and workers1/4. Count comes from the path array. |
+| `nominal_wrapper_checks.tower` | Shared checker retains the four older nominal failures, adds explicit work-budget import, requires no partial program and zero admitted lanes, then checks stable bytes/live grants and diagnostics on terminal retries. Each batch closes before its source buffers. Stable retained ownership is not zero retained memory or proof of exactly-once effects in every path. |
+| `lr_work_main.tower` | Explicit `numeric-wrappers` returns after this checker; `all`, `type-smoke` and `type-errors` each invoke it once. No duplicate fixture inclusion in `all`. |
+
+`cmake/TowerWorkTests.cmake` adds the two positive files at workers1/4 through the
+existing `towerc --interpret` command with explicit Bedrock/Foundation resources;
+the minimal regex preserves42/8/true, the broad fixture42. Those four registrations
+are distinct from the negative runner selector and from canonical/Graph/Fast
+checks reported by L1; CTest registration itself proves none of those executions.
+
+Execution adoption: the journal's **2026-11-23 L1 — numeric-only known nominal
+forwarding** receipt and its **Numeric-only L1 reconciliation** retain the exact
+implementation, compiler SHA `9cc9ec7bdae3d37bf84c41d7e28743149c73fa85c8f847322b9040378ab24e7b`
+and runner SHA `03f247c3a40cb9fa1acefee3610366ae042b3ce897e2f8134021fd97ea889866`.
+They report both widths/workers, canonical equality/idempotent reparse and
+Graph/Fast positives, four CTests,28 negative trials, query-smoke and integer
+arguments; prior failed probes remain recorded. D1 verified the changed blobs
+against that publication without independently authenticating L1's external raw logs. Small n1
+paired samples and their256–908KiB RSS increases retain their original limits:
+worker count is not measured overlap or useful scaling.
+
+No new execution, build, performance or sanitizer campaign was run for this
+documentation-only review; runtime profiling is inapplicable. Dedicated
+export/extern pruning and direct-call-only numeric-wrapper regressions are not
+present in this batch (guards/call paths were source-reviewed). Existing47433acf
+browser artifacts predate this change, so their receipts cannot validate it.
+Joined browser/backend/generation/instrumentation adoption remains ROOT's work;
+the three later alias/type-body repairs remain outside this freeze. No concrete
+new defect or duplicate implementation is handed to L1. Exact changed/caller
+blob manifests: `build/d1_ecs/numeric_review_22e15d5b/`.

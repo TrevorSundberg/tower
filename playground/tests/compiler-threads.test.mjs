@@ -4,6 +4,11 @@ import {readFile} from 'node:fs/promises';
 import {compilerThreads} from '../src/compiler-threads.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
 
+// Optional host-side progress only; synchronous Wasm can prevent timeout callbacks.
+const phase = (name, details = {}) => {
+ if (process.env.TOWER_TEST_PHASES === '1') console.error(JSON.stringify({phase:name, ...details}));
+};
+
 let bytes;
 try { bytes = await readFile(process.env.TOWER_TEST_WORK_WASM ?? 'build/browser-wasi-threads/tower-work-tests.wasm'); }
 catch (error) {
@@ -11,6 +16,7 @@ catch (error) {
 }
 
 test('the Tower pool overlaps four distinct Wasm threads and reuses their jobs', {skip:!bytes, timeout:30000}, async () => {
+ phase('pool:start');
  const module = await WebAssembly.compile(bytes);
  const transport = await compilerThreads(module);
  try {
@@ -23,11 +29,13 @@ test('the Tower pool overlaps four distinct Wasm threads and reuses their jobs',
   // alone cannot pass it. Repeat the complete pool lifecycle in one host too.
   for (let repeat = 0; repeat < 128; repeat++) {
    assert.equal(instance.exports.main(), 0, `pool lifecycle ${repeat}`);
+   phase('pool:completed', {repeat});
   }
  } finally { transport.close(); }
 });
 
 test('a worker trap interrupts a blocked coordinator through shared failure state', {skip:!bytes, timeout:10000}, async () => {
+ phase('trap:start');
  const module = await WebAssembly.compile(bytes);
  const transport = await compilerThreads(module, {workerURL:new URL('./compiler-failure-worker.mjs', import.meta.url)});
  try {
@@ -38,6 +46,7 @@ test('a worker trap interrupts a blocked coordinator through shared failure stat
   transport.attach(instance); wasi.initialize(instance);
   assert.throws(() => instance.exports.main(), /Injected compiler worker failure/);
   assert.equal(transport.failed(), true);
+  phase('trap:completed');
  } finally { transport.close(); }
 });
 
@@ -74,19 +83,25 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  let iterationCanonical;
  const genericCanonical = new Map();
  for (const capacity of [1,2,4,8]) {
+  phase('compiler:load', {capacity});
   const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
   try {
    if (!stress) {
     stress = {};
-    for (const name of ['workers', 'generic_workers', 'window', 'type_fields'])
+    for (const name of ['workers', 'generic_workers', 'window', 'type_fields']) {
+     phase('source:generate', {capacity, name});
      stress[name] = await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
+    }
    }
    const {workers:source, generic_workers:genericSource, window:windowSource, type_fields:typeFields} = stress;
+   phase('lr:check', {capacity});
    assert.equal(tower.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
    for (const width of [4,8]) {
+    phase('world:check', {capacity, width});
     assert.equal(tower.exports.semantic_world_tests(width), 0, `World budgets and shared kernels at ${capacity} workers, width ${width}`);
    }
    for (const pointerBytes of [4,8]) for (let repeat = 0; repeat < 2; repeat++) {
+    phase('workers:execute', {capacity, pointerBytes, repeat});
     const handle = tower.compile(source, {pointerBytes});
     try {
      if (repeat) tower.useFast(handle);
@@ -99,6 +114,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      assert.equal(text, canonical.get(pointerBytes), `workers=${capacity}, width=${pointerBytes}, repeat=${repeat}`);
     } finally { tower.destroyExecution(handle); }
    }
+   phase('invalid:check', {capacity, name:'worker_body_errors'});
    const invalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_body_errors.tower','utf8'));
    try {
     const result = tower.execute(invalid);
@@ -107,6 +123,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(invalid); }
    for (const name of ['worker_suffix_error','worker_prefix_error']) {
+    phase('invalid:check', {capacity, name});
     const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8'));
     try {
      const result=tower.execute(broken);
@@ -116,6 +133,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     } finally { tower.destroyExecution(broken); }
    }
    for (const firstFails of [false,true]) {
+    phase('invalid:check', {capacity, name:firstFails ? 'worker_first_error' : 'worker_later_error'});
     const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/worker_${firstFails ? 'first' : 'later'}_error.tower`,'utf8'));
     try {
      const result=tower.execute(broken);
@@ -124,6 +142,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      if (firstFails) assert.doesNotMatch(result.error,/unknownSecond/);
     } finally { tower.destroyExecution(broken); }
    }
+   phase('window:execute', {capacity});
    const window = tower.compile(windowSource);
    try {
     let result, output='';
@@ -134,6 +153,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     windowCanonical ??= source;
     assert.equal(source,windowCanonical,`body preparation windows at ${capacity} workers`);
    } finally { tower.destroyExecution(window); }
+   phase('iteration:execute', {capacity});
    const iteration = tower.compile(await readFile('scaffolding/tests/worker_iteration.tower','utf8'));
    try {
     let result, output = '';
@@ -145,6 +165,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.equal(text, iterationCanonical, `implicit protocol publication at ${capacity} workers`);
    } finally { tower.destroyExecution(iteration); }
    for (const pointerBytes of [4,8]) for (let fast = 0; fast < 2; fast++) {
+    phase('generic:execute', {capacity, pointerBytes, fast});
     const handle = tower.compile(genericSource, {pointerBytes});
     try {
      if (fast) tower.useFast(handle);
@@ -157,6 +178,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      assert.equal(text, genericCanonical.get(pointerBytes), `generic bodies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
+   phase('invalid:check', {capacity, name:'worker_generic_errors'});
    const genericInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_generic_errors.tower','utf8'));
    try {
     const result = tower.execute(genericInvalid);
@@ -164,6 +186,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(genericInvalid); }
+   phase('invalid:check', {capacity, name:'worker_type_errors'});
    const typeInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_type_errors.tower','utf8'));
    try {
     const result = tower.execute(typeInvalid);
@@ -171,6 +194,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.match(result.error, /Unknown type 'MissingFirst'/);
     assert.doesNotMatch(result.error, /MissingSecond/);
    } finally { tower.destroyExecution(typeInvalid); }
+   phase('invalid:check', {capacity, name:'worker_leaf_errors'});
    const leafInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_leaf_errors.tower','utf8'));
    try {
     const result = tower.execute(leafInvalid);
@@ -178,6 +202,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.match(result.error, /Unknown local 'unknownFirst'/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(leafInvalid); }
+   phase('invalid:check', {capacity, name:'decltype_cycle'});
    const leafCycle = tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_cycle.tower','utf8'));
    try {
     const result = tower.execute(leafCycle);
@@ -188,6 +213,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     'comptime_generic_selected', 'worker_generic_mismatch', 'inference_alias_invalid',
     'declaration_index_cycle', 'worker_index_errors',
    ]) {
+    phase('invalid:check', {capacity, name});
     const source=await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8');
     const handle=tower.compile(source);
     try {
@@ -199,6 +225,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);
     } finally { tower.destroyExecution(handle); }
    }
+   phase('invalid:check', {capacity, name:'worker_field_errors'});
    const fieldsInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_field_errors.tower','utf8'));
    try {
     const result = tower.execute(fieldsInvalid);
@@ -206,8 +233,9 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults, namedInitialization, structValues, knownBindings, computedTypeArguments])
+   for (const [fixtureIndex, fixture] of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults, namedInitialization, structValues, knownBindings, computedTypeArguments].entries())
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
+    phase('dependency:execute', {capacity, fixtureIndex, pointerBytes, fast});
     const handle=tower.compile(fixture,{pointerBytes});
     try {
      if (fast) tower.useFast(handle);
@@ -221,6 +249,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      assert.equal(text, dependencyCanonical.get(key), `generic/layout dependencies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
+   phase('invalid:check', {capacity, name:'worker_operator_cycle'});
    const operatorCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_operator_cycle.tower','utf8'));
    try {
     const result=tower.execute(operatorCycle);
@@ -229,6 +258,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     operatorCycleDiagnostic ??= result.error;
     assert.equal(result.error,operatorCycleDiagnostic,`operator cycle at ${capacity} workers`);
    } finally { tower.destroyExecution(operatorCycle); }
+   phase('invalid:check', {capacity, name:'generic_body_demanded'});
    const bodyBudget=tower.compile(demandedBodyBudget);
    try {
     const result=tower.execute(bodyBudget);
@@ -238,6 +268,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     genericBodyBudgetDiagnostic ??= result.error;
     assert.equal(result.error,genericBodyBudgetDiagnostic,`clone budget at ${capacity} workers`);
    } finally { tower.destroyExecution(bodyBudget); }
+   phase('invalid:check', {capacity, name:'decltype_generic_header_cycle'});
    const genericCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_generic_header_cycle.tower','utf8'));
    try {
     const result=tower.execute(genericCycle);
@@ -246,24 +277,28 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     genericCycleDiagnostic ??= result.error;
     assert.equal(result.error, genericCycleDiagnostic, `signature cycle at ${capacity} workers`);
    } finally { tower.destroyExecution(genericCycle); }
+   phase('invalid:check', {capacity, name:'decltype_layout_cycle'});
    const layoutCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_layout_cycle.tower','utf8'));
    try {
     const result=tower.execute(layoutCycle);
     assert.equal(result.status,'error');
     assert.match(result.error,/Recursive by-value layout: Recursive -> Recursive/);
    } finally { tower.destroyExecution(layoutCycle); }
+   phase('invalid:check', {capacity, name:'decltype_type_field_cycle'});
    const typeCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_type_field_cycle.tower','utf8'));
    try {
     const result=tower.execute(typeCycle);
     assert.equal(result.status,'error');
     assert.match(result.error,/initializer dependency cycle/);
    } finally { tower.destroyExecution(typeCycle); }
+   phase('modules:configure', {capacity});
    tower.configureModules({entry:'main.tower', files:[
     {path:'left.tower', text:await readFile('scaffolding/tests/worker_modules/left.tower','utf8')},
     {path:'right.tower', text:await readFile('scaffolding/tests/worker_modules/right.tower','utf8')},
    ]});
    const modules = await readFile('scaffolding/tests/worker_modules/main.tower','utf8');
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
+    phase('modules:execute', {capacity, pointerBytes, fast});
     const handle=tower.compile(modules,{pointerBytes});
     try {
      if (fast) tower.useFast(handle);
@@ -277,8 +312,9 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
      assert.equal(text,moduleCanonical.get(pointerBytes),`imported queries: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
-  } finally { tower.close(); }
+  } finally { phase('compiler:close', {capacity}); tower.close(); }
   assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
   assert.doesNotThrow(() => tower.destroyExecution(0));
+  phase('capacity:completed', {capacity});
  }
 });
