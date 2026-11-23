@@ -95852,3 +95852,5 @@ two selected T8 continuation cases; D1's source-derived i1 issue and additional
 narrow-width/extraction coverage requests remain separate pending producer work,
 not tested/fixed or waived by these passing fixtures. No requested T8 blocker.
 All owned processes drained, unchanged todo, normal push; ROOT owns final release.
+
+L1 generation receipt088baa95 reconciled through complete-history merge07bd99db with published6649bbe1. Production native compiler/library/host/backend/runtime, language resources and public predecessor trees unchanged. Incoming Windows/native fixture registration, browser memory-capacity transport and owner receipts stay outside frozena18d584e. Complete archive/manifests retain their original identities, no generation rerun for unrelated inputs. All owned jobs drained; normal push follows.

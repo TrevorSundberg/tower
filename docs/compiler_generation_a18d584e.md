@@ -125,3 +125,11 @@ This remains a **Linux x64 development bootstrap requiring system LLVM/Clang**.
 Restricted standalone release verification has **not** passed. Included runtime
 resources are not new cross-host runtime acceptance. ROOT owns repinning, clean
 default adoption, joined platform checks and deployment; none is claimed here.
+
+Publication reconciliation preserved complete incoming6649bbe1 history through
+07bd99dba1dfbe30ef2a2938ae54423499fbe1b9. Compiler/library/host/backend/runtime,
+language resources and public predecessor trees are unchanged. Incoming Windows
+and native test fixtures/registration, browser memory-capacity exposure and owner
+receipts are outside the frozen candidate. Their adoption is not claimed by this
+receipt; no runtime checks were repeated merely to follow main. Final diff check
+passed, generation/evidence hashes stayed fixed, and all owned jobs drained.
