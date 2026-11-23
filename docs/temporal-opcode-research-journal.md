@@ -95647,3 +95647,11 @@ providers remain unchanged. Todo remains protected and byte-identical.
 This journal-only publication reuses the verified existing Pages runtime identity;
 it does not represent the new artifacts as hosted. No runtime code is changed by
 this ROOT record, so new runtime profiling for the documentation is inapplicable.
+
+A1 Windows-gate publication reconciliation:607f9ce9 merged complete35add633 as
+d1ccd5b5bdf772f1180a6cb4ff498bc2fa2eed81 without conflicts/history loss. All26
+actual compiler dependency hashes, focused CMake registration and public runtime/
+bootstrap pin remain identical; the executed Windows and plain-Linux evidence
+therefore applies without another build/run. Incoming backend reconstruction,
+packaging and Entity-fault sources are preserved but excluded from this frozen
+runtime claim. Diff checks pass; ordinary main publication, no deployed runtime.
