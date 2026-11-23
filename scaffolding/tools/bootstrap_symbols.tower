@@ -65,9 +65,12 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         if bootstrap_symbol_in("work_signal_open work_thread_available work_thread_open compiler_node_get compiler_node_world compiler_world_worker_limit", symbol, length) { return true; }
     }
     if unit == BootstrapUnit.Interpreter {
+        // Physical input/storage owners use the source world's shared budget.
+        if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_world compiler_world_bind_budget compiler_world_work_budget", symbol, length) { return true; }
         // The configured interpreter unit also owns the upstream staged-call
         // continuation fixture; its world and Foundation builders are Tower.
         if bootstrap_symbol_in("compiler_world_create_workers compiler_world_dispose compiler_world_store entity_component_add entity_create entity_register entity_release puts sem_attach sem_create", symbol, length) { return true; }
+        if bootstrap_symbol_in("format_dispose format_unsigned foundation_execution_item foundation_execution_reference strcmp", symbol, length) { return true; }
         return bootstrap_symbol_in("abort tower_allocate tower_trap im_append im_fail im_foreign im_has_foreign im_missing_foreign", symbol, length)
             || bootstrap_symbol_in("im_pointer_bytes im_root sem_get semantic_alignment semantic_mask semantic_signed semantic_size", symbol, length)
             || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width semantic_type_equal sem_require", symbol, length);
@@ -87,6 +90,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Table buffers share the world ledger; frontend unit lifecycle and
+        // configured parser fixtures retain explicit world/store boundaries.
+        if bootstrap_symbol_in("compiler_world_create compiler_world_create_workers compiler_world_dispose compiler_world_work_budget entity_store_component_count entity_store_count", symbol, length) { return true; }
         // Source emitters consume the same checked Foundation through explicit
         // read-only queries; their code no longer expands the semantics unit.
         if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_size semantic_width", symbol, length) { return true; }
@@ -100,7 +106,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("entity_attach entity_child_at entity_child_count entity_parent entity_release entity_retain compiler_parse_match", symbol, length)
             || bootstrap_symbol_in("parse_forest_leaf parse_forest_join parse_forest_attach parse_forest_take bytes_assign_text bytes_append", symbol, length)
             || bootstrap_symbol_in("core_component_type semantic_builtin_name semantic_operator semantic_scalar_name semantic_signed semantic_mask", symbol, length)
-            || bootstrap_symbol_in("abort compiler_clone_tree compiler_host_world compiler_world_component compiler_world_get compiler_world_grammar", symbol, length)
+            || bootstrap_symbol_in("abort compiler_clone_tree compiler_clone_tree_result compiler_host_world compiler_world_component compiler_world_get compiler_world_grammar", symbol, length)
             || bootstrap_symbol_in("compiler_world_pinned compiler_world_store compiler_world_type entity_create entity_register fclose ferror fopen", symbol, length)
             || bootstrap_symbol_in("format_parser_host_text format_parser_label_text fread fwrite module_file_case_matches parse_forest_visits", symbol, length)
             || bootstrap_symbol_in("parser_match_get_type parser_presentation_text parser_trace_step semantic_enum semantic_source_comments", symbol, length)
@@ -112,6 +118,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        // Nested workers reserve the same world budget; source construction and
+        // foreign ABI validation call their existing Tower component owners.
+        if bootstrap_symbol_in("compiler_unit_kernel compiler_world_work_budget compiler_world_worker_release compiler_world_worker_reserve frontend_module_root_world_size type_object_abi_safe", symbol, length) { return true; }
         // Staged helper preparation uses the shared query plan and deferred
         // generic body exports; these are Tower implementations.
         if bootstrap_symbol_in("compiler_work_plan generic_body_cost generic_instantiate_deferred", symbol, length) { return true; }
@@ -123,7 +132,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("entity_component_add entity_register tower_node_create entity_attach entity_release entity_child_at entity_child_count", symbol, length)
             || bootstrap_symbol_in("entity_parent entity_member_index foundation_node_init syntax_identifier_decode_in_place generic_begin generic_error generic_error_clear", symbol, length)
             || bootstrap_symbol_in("generic_register generic_parameter_count generic_type_parameter generic_instantiate generic_lookup generic_type_result", symbol, length)
-            || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree entity_child_name entity_component_at", symbol, length)
+            || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree compiler_clone_tree_result entity_child_name entity_component_at", symbol, length)
             || bootstrap_symbol_in("entity_component_count entity_component_type entity_id entity_retain entity_view_close entity_view_open", symbol, length)
             || bootstrap_symbol_in("format_dependent_summary format_dependent_view format_dispose format_grammar_preview format_summary", symbol, length)
             || bootstrap_symbol_in("frontend_module_alias frontend_module_at frontend_module_attach_comments frontend_module_comments frontend_module_count", symbol, length)

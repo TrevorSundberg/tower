@@ -3,12 +3,20 @@ import .compiler.lr_tree;
 import .compiler.frontend_modules;
 import .compiler.syntax_reader;
 import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
 
 // Exercise the compatibility host entry point in this legacy test suite.
 extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
 extern fn entity_component_add(node: void*, kind: void*): void*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): void*;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
 
 fn module_test_source(environment: ModuleEnvironment*, name: u8*, source: u8*): void {
     module_require(frontend_modules_source(environment, name, source, syntax_text_length(source)));
@@ -187,7 +195,82 @@ export fn frontend_modules_tests(): usize {
     if result != 0 {
         return result;
     }
-    return module_session_tests();
+    result = module_session_tests();
+    if result != 0 { return result; }
+    module_clone_budget_test(false);
+    module_clone_budget_test(true);
+    return 0;
+}
+
+var ModuleCloneBudgetBytes: usize = 134217728;
+
+// Real parsed grammar and ordinary roots, with denial only after setup. A full
+// cache must retain every old entry when a private replacement fails midway.
+fn module_clone_budget_test(read_cached: bool): void {
+    var budget: WorkBudget = default;
+    module_require(work_budget_init(&budget, 1, ModuleCloneBudgetBytes, 1));
+    var world = compiler_world_create_workers(1);
+    module_require(world != null && compiler_world_bind_budget(world, &budget));
+    var environment = frontend_modules_create();
+    module_require(frontend_modules_bind_world(environment, world));
+    frontend_modules_configure(environment, "main.tower", "");
+    module_test_source(environment, "shared.tower", "parse Statement = 'shared';");
+    module_test_source(environment, "left.tower", "import shared; parse Statement = 'left'; left");
+    var request = frontend_module_root_world(world, "import left; left", environment);
+    var session = frontend_module_session(request);
+    while module_session_step(session) {}
+    module_require(syntax_get_error(session)[0] == 0);
+    frontend_module_finish(request);
+    var source = request.dependencies.data[0];
+    module_require(source.roots.length == 1 && source.dependencies.length == 1);
+    while environment.cache.length < ModuleCacheEntries { module_require(module_cache_store(source)); }
+    var prior: vector(FrontendModule*) = default;
+    foreach(var cached in &environment.cache) { module_require(vector_push(&prior, cached)); }
+    var store = compiler_world_store(world);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var before: WorkBudgetSnapshot = default;
+    module_require(work_budget_snapshot(&budget, &before));
+    var occupied: WorkReservation = default;
+    module_require(work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &occupied));
+    if read_cached {
+        var reader = frontend_module_root_world(world, "", environment);
+        module_require(module_clone(reader.graph, prior.data[prior.length - 1]) == null);
+        module_require(reader.graph.resource_error == WorkBudgetError.Capacity
+            && frontend_module_error(reader)[0] != 0);
+        // A failed request cannot resume with one of its partially cloned nodes.
+        module_require(module_clone(reader.graph, prior.data[prior.length - 1]) == null);
+        frontend_module_destroy(reader);
+    } else {
+        module_require(!module_cache_store(source));
+        module_require(source.graph.resource_error == WorkBudgetError.Capacity
+            && frontend_module_error(source)[0] != 0);
+        module_require(!module_cache_store(source));
+    }
+    module_require(environment.cache.length == prior.length);
+    for(var i: usize = 0; i < prior.length; i++) {
+        module_require(environment.cache.data[i] == prior.data[i]);
+    }
+    module_require(entity_store_count(store) == nodes && entity_store_component_count(store) == components);
+    var failed: WorkBudgetSnapshot = default;
+    module_require(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.bytes
+        && failed.live == before.live + 1);
+    module_require(work_budget_release(&budget, &occupied));
+    frontend_module_destroy(request);
+    // The unchanged cached graph remains usable after the failed request retires.
+    request = frontend_module_root_world(world, "import left; left", environment);
+    session = frontend_module_session(request);
+    while module_session_step(session) {}
+    module_require(syntax_get_error(session)[0] == 0 && frontend_module_error(request)[0] == 0);
+    frontend_module_finish(request);
+    module_require(frontend_module_count(request) == 3);
+    frontend_module_destroy(request);
+    vector_dispose(&prior);
+    frontend_modules_destroy(environment);
+    module_require(frontend_world_clear(world) && compiler_world_dispose(world));
+    var final: WorkBudgetSnapshot = default;
+    module_require(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0);
+    module_require(work_budget_dispose(&budget));
 }
 
 var ModuleCacheFailure: usize = 843;
