@@ -88245,3 +88245,89 @@ A tiny merged-resource Bedrock/scanner check follows; ROOT owns final reactors.
 Merged-resource check PASS17/17,0skip,6.31wall/7.15CPU/183236KiB, exit0. All owned
 Node jobs drained. Reused the unchanged49-case and relative-path receipts;
 remaining broad failures are preserved, not waived. Normal main push follows.
+
+### L2 declaration-call discovery concern: current prerequisite rules it out (2026-11-23)
+
+Bounded follow-up to accepted3a7f4b39. Started on clean main, no surviving owned
+build, CLI PID32440; required ff-only/rebase-merges/autostash pull froze published
+a3fbe0a4. No production Tower source changed. A1 constructor/IDE preparation and
+other owners' implementations remain untouched. Earlier full48d791a8 acceptance
+and later focused603fa60a adoption retain their exact source identities.
+
+The proposed direct allocation-underflow is not reachable: the call loop pops
+one DeclarationCallScan, keeps its allocation/capacity, and the nominal branch
+re-pushes that same nonnull node before any other scan push. vector_reserve returns
+true without allocation for that reclaimed slot. Sibling calls to the helper
+only enqueue work; this is its only caller that subsequently indexes the last
+entry. No sibling assumes an append succeeded by reading a scan slot.
+
+There is a superficially more plausible semantic-error path: the spelling
+function makes sem_type_identity_call's final OR true even if callable resolution
+reports ambiguity. However its production caller runs after declaration discovery.
+sem_declaration_dependencies uses the same roots and resolves templates/functions
+first; sem_callable_visible checks the union of functions/templates/type-functions
+for ambiguity regardless of the selected table. The failed discovery ticket is
+finished unsuccessfully, and the checking query depends on it. This rules out the
+late ambiguity for those frozen module/name indexes. The execute transition first
+requires a resolved ordinary callee; alias roots retain their type role and child
+query ownership. These continuations do not introduce an unchecked ambiguous
+function spelling into this nominal-value branch.
+
+Fallible token/identifier work in sem_call_uses_value and sem_identifier is followed
+by the existing sem_ok check before the final callable resolutions. Unqualified
+callable resolution otherwise only reads ownership/import links and name tables;
+its only error construction is the ambiguity above. Qualified resolution may
+allocate identifier text, but failed namespace resolution returns null and failed
+field decoding cannot find a named callable; qualified spelling is not function.
+Thus an allocation denial cannot turn that final result into true on this path.
+No mock failed context or manually emptied scan was used to bypass these guards.
+No defensive runtime change is claimed necessary for the audited current chain.
+
+Reusable tests: tests/declaration_call_checks.tower, selected by existing
+native/storage runners with declaration-calls. Two real imported files both
+export ordinary functions named function; the root calls function(i32). This
+preserves the exact ambiguity, combined semantic-source offset, no published
+program and stable terminal retries. Fresh healthy source exercises the nominal
+function type identity, struct/type alias, forward ordinary comptime helper,
+generic identity and decltype, executes answer42, and formats Foundation. Native
+1/4-worker diagnostics/offsets and complete canonical bytes agree at32/64-bit.
+The serial storage composition runs four failed/fresh trials, ends with zero
+retained buffer delta, and unit close asserts world/budget retirement. Terminal
+retry also preserves live grants/bytes with zero lanes. No allocation injection
+or sanitizer was added. Existing query-smoke additionally passes unchanged.
+
+A debugger observation of these real production sources (not a patched helper)
+records436 call-push entries,332 identity queries and zero failed-context pushes.
+Ambiguity originates in sem_callable_visible; optimized deeper stack frames are
+not used as source-line proof. The dependency gate conclusion also relies on the
+source/graph invariants above. GDB changes timing; this is reachability evidence,
+not performance, exhaustive proof for arbitrary future callers or race freedom.
+Reusable debugger commands and raw output are under external L2 lane
+`declaration_call_probe/prerequisite.{gdb,out,err,log}`. Symbol/structure offsets
+were derived from this binary's disassembly, not portable debug APIs.
+
+Environment: existing WSL Orchestral-Revng native cache l2_ecs_native, Ryzen9
+5900HX, CPU4-7, public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138,
+compiler jobs1/build parallel2, one build owner. Only test objects/links rebuilt;
+compiler/provider inputs are unchanged. Costs (wall/CPU seconds; peak RSS KiB):
+serial declaration-calls2.28/2.08/179492; normal allocator native1/4-worker combined
+5.06/4.93/220936; query-smoke0.39/0.37/104184. These are validation costs, not
+matched speedup measurements or a concurrency claim from requested worker count.
+The query smoke retains its actual normal-allocator clone-overlap oracle; the
+previous integrated milestone remains the full language/overlap receipt.
+
+Preserved failures: initial test compilation rejected reserved local expected,
+raw-pointer subtraction, transitive foreign imports (including an unnecessary
+backend clock declaration conflict), then a missing explicit format API import.
+The first runtime test incorrectly assumed frontend_units_error_offset was a
+file-local offset; it is the combined semantic-source offset. That assertion
+failure134 is retained; the corrected test compares the full offset across
+worker settings and terminal retries. An exploratory existing CLI returned the
+expected ambiguity; it was not treated as proof of the suspect write. Initial
+GDB unqualified-symbol/early-abort probes are also retained. Final selected
+storage/native/query runs all exit0, stderr empty, source hashes unchanged.
+
+Receipts are external L2 logs/declaration_calls* plus source/binary manifests;
+no full frontend/body/bootstrap/browser/generation/sanitizer rerun. Later merged
+source adoption is recorded separately below. ROOT owns final release. This
+corrects the audit's suspected edge; it does not claim a repaired runtime defect.

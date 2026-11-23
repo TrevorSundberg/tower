@@ -1703,3 +1703,15 @@ The existing `allocations` frontend selector checks metadata copies from the
 first published entity (ID zero), exact Memory/Capacity causes and staged cleanup.
 Owned cloning distinguishes published stage leases from new private nodes by
 their actual lease membership. Numeric ID zero alone is not a private-node test.
+
+The focused `tower-lr-work-tests RESOURCE_ROOT declaration-calls` and
+`tower-storage-tests RESOURCE_ROOT declaration-calls` selectors check actual
+ambiguous imported `function` calls, terminal diagnostic/offset preservation and
+fresh nominal/decltype/comptime compilation at 32/64-bit widths. Native mode
+compares one/four-worker canonical Foundation and diagnostics; storage mode uses
+serial transport and checks zero final owned-buffer delta. Both execute the
+healthy answer42. These cover the declaration-discovery prerequisite, which
+rejects callable ambiguity before structural call scanning. The same-node
+nominal re-push reuses the just-popped capacity; no artificial reserve-failure
+or manually failed scan is presented as a reachable production regression.
+See the journal's 2026-11-23 L2 declaration-call correction for exact evidence.
