@@ -92294,3 +92294,13 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+Numeric-only L1 reconciliation: implementation0c1d24dd preserved via normal
+mergeaa648406466c3313027c20344dda147a8915c1b1 with complete publishedc93ddaab
+history after required ff-only pull rejected divergence. Incoming edits are
+receipts, Node fixture boundaries and B2's standalone frontend_units_profile
+uniform-work measurement mode. The actual compiler/backend/CMake/runner and
+selected fixtures are unchanged from checked inputs; the profile source is
+absent from lr-work-main-unbound.ll.d. Reused those exact scoped results without
+rebuilding identical leaves or running another matrix. No claim validates the
+new profile tool or ROOT's separate frozen portable bundle. All jobs drained,
+prior failures retained, todo unchanged; normal publication follows.
