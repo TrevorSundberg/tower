@@ -882,3 +882,12 @@ Current four-path audit at eec97f6 plus review patch2662097c (native52036):
 | compiler/semantic_generic_body_work.tower | Only coordinator opens/publishes stages and records the exact per-call result. Join, hold, pin close, stage retirement, grant release and graph cancellation retain their order. Failed publish preserves ownership for defer. | Same before fixture aborts; corrected52036 query passes. Exact imported provider names and two exported entry names still require D2 review. |
 | tests/generic_pump_publication.tower | Actual registered component proves completed copy; legal caller-owned view denies structural publication. No observer global, guessed offsets or duplicate executor. Expected copied count derives fixture dimensions. | Both target widths check failure/success, instance/count preservation, sticky receipt, drained work and zero ledger. Serial transport here complements existing real-overlap controls; it is not sanitizer coverage. |
 | tests/generic_clone_parallel.tower | Adds the new fixture to the existing query entry; existing calibration, per-thread intervals and cancellation/failure oracles unchanged. | Current query selects1024 branches and proves distinct-thread overlap with2/4 workers. No claim that queue width or this validation timing measures end-to-end scaling. |
+
+Quiet26993 completes32 checked CLI processes on exact d65c110/52036, with all
+package/source/input hashes intact. Three retained pairs per1/4-worker case:
+constructor wall medians1.55->1.50 /1.30->1.26s; generic1.54->1.59 /1.31->1.30s.
+The generic serial median is3.2% slower, predominantly compilation; ranges and
+phase values are retained, with no speedup or neutrality claim. Median RSS
+changes are under0.3%. The journal identifies raw170-file receipt692e274e and
+complete source bundlec06c302a. Current instrumentation, late-inspection producer
+coverage, final union/public bootstrap and publication remain open.

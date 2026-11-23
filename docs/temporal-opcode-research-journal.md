@@ -68181,3 +68181,55 @@ beforeeec package on identical constructor/generic inputs/resources, workers1/4,
 one discarded warmup plus three alternating pairs. It is not yet run. Final
 current instruments, late-inspection phase, coherent public package and leased
 atomic deployment remain open; no old checks are relabeled for this source.
+
+### Quiet typed-publication comparison26993
+
+All32 fresh CLI processes and exact output comparisons pass; final immutable
+package, source and input hashes pass. Source bytes equal committed d65c110
+(native52036). Before compiler6242578c/LR44a30b5d and after39a1929c/LR9c04e94b
+use the identical beforeeec runtime resources and explicit Bedrock/Foundation,
+ordinary --interpret --timings, jobs1/4. Host: same WSL Linux6.18.33.2 x64,
+glibc2.39-0ubuntu8.12, Ryzen5900HX8 cores/16 threads. Arena, mmap threshold and
+GLIBC_TUNABLES are unset. Dedicated host reservation09:32:06–09:32:55UTC; one
+warmup per combination discarded, then three alternating before/after pairs.
+No cold-cache or isolated-kernel speed claim. Constructor input3846 bytes has
+SHA256bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071
+and expected0. The generated generic input4613 bytes has SHA256
+c7348160a58a5dfd987a8a96a705e6ddb92f3d7586d42448928f94fb5087e41f,
+expected lines28,36,504,504,73. Both exact input files are retained.
+
+Medians of three retained samples (CPU=user+system, RSS KiB):
+
+| Workload / jobs | Wall before ? after, s | CPU before ? after, s | RSS before ? after, KiB |
+| --- | --- | --- | --- |
+| Constructor /1 |1.55 ?1.50|1.53 ?1.50|179908 ?180376|
+| Constructor /4 |1.30 ?1.26|1.59 ?1.57|198932 ?199048|
+| Generic /1 |1.54 ?1.59|1.53 ?1.56|184808 ?184920|
+| Generic /4 |1.31 ?1.30|1.62 ?1.61|206300 ?206548|
+
+The generic one-worker median increases3.2% wall/2.0% CPU; it is not recorded as
+neutral or faster. Retained wall ranges are1.52–1.55s before and1.53–1.64s after.
+CLI phase review locates most of that difference in compilation: median1388.413
+?1444.867ms (ranges1376.975–1412.658 and1381.404–1478.624). These three samples
+do not establish a persistent cause; no additional identical rerun is justified
+solely to obtain a better result. Other configurations vary in the opposite
+direction; the four-worker generic median is close. All median RSS increases are
+under0.3%. This narrow comparison does not erase the earlier measured editor
+RSS+6% on the larger resource-ABI union, whose allocator sensitivity is recorded
+above. Final integrated performance remains source-specific acceptance work.
+
+These timings complement52036's actual distinct-thread clone intervals and zero
+final budget ownership. They do not measure whole-world physical allocation,
+prove nested overlap from requested jobs alone, or replace current sanitizers.
+Publication error classification adds no new owned buffer; the reachable failure
+and success paths check the actual ledger cleanup. No C-like cross-toolchain
+comparison is claimed for these staged type/generic contracts.
+
+Raw logs, scripts, frozen manifests, exact two workloads, earlier failed leaves,
+stale-mtime failure, before/after native receipts and profiling are archived as
+L2_typed_publication_d65_receipt.tgz (170 files,343198 bytes), SHA256
+692e274ebc76f0185133382c4489cd0432bef5700840b0af944d2b219a8439f4.
+Complete source bundle L2_complete_d65c110_typed_publication.bundle SHA256
+c06c302a6776890f810a36b6a3866692e72fec14578e88e33a08d87a16a2e542
+requires only published60741. This documentation update changes no runtime
+inputs; no separate runtime/memory rerun applies to the prose itself.
