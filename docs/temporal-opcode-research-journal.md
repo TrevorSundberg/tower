@@ -76670,3 +76670,100 @@ before claiming current negative-control coverage. ROOT-owned linker world/budge
 contract, final merged instrumentation/clean bootstrap/browser/generation and
 leased atomic publication remain open. Audit/documentation changes themselves
 have no runtime profiling applicability.
+
+## ROOT queued-reference alias audit — 2026-11-23, source join34aa
+
+Complete validated owner histories A1 capture3a9, B1 attachmenta856, D1 native
+registrationsbf093, D2 affinitycbe/policy6159 and ROOT child/metadata4b/466 are
+joined at34aa7526cdf23caa03649c538610bfb272c7e1bb. README append conflict
+preserves both sections. Historical journal line-presence comparison againste96
+finds zero missing nonempty lines; Git's moved blocks are not erased evidence.
+ROOT B2 native session37259 actually drains0: coherent build, registered14CTest,
+allocations/query/fullunits and actual concurrent stages pass; raw receipts in
+build/root_capture_registration_union. This is not a final published bootstrap.
+
+Next scoped ownership audit finds entity_stage_references_result validates an
+input slice before vector_reserve, then reads the same pointer after reserve.
+If the slice belongs to that queue, growth invalidates it. No production caller
+currently requires such a slice; the public boundary did not exclude it. Proposed
+and now implemented: recognize a live aligned slice, preserve its index, rebase
+only after successful reserve; reject spare/overrunning slices before reading.
+No new storage, shared mutation, layout or scheduler is introduced. Existing
+external arrays retain null filtering and exact Memory/Invalid results. Focused
+allocation/ownership regression, current native/instrumentation and matched
+compiler profiling are pending. No pre-fix invalid-memory execution is needed
+or claimed. Queued hold counter exhaustion remains a separate OPEN ownership
+problem; this alias repair cannot make failed holds safe to finalize.
+
+### ROOT queue-alias validation and measured cost
+
+Frozen34aa plus exactly library/entity_stage.tower and the existing
+entity_mutation_results.tower extension. Hashes:
+d75ab17702b546bbdb8210d56bdd34456888a9c6044284e3f71abfea22526412 and
+0b92be42490c75d289f54800bc84aa10635774c8494ea7abfee5e81d0c5c18a4.
+Root and B2 exact source hashes agree. Caller audit finds production provenance
+uses an independent temporary array; this is shared boundary correctness, not
+a claim that current compiler callers previously triggered aliasing.
+
+Session40519 drains0. Public9653 bootstrap smallest fixture2.427wall/2.184CPU/
+222200KiB; coherent10 actions8.741/13.779/324392; registered mutation/stage-fault/
+actual-stage3CTest pass, allocations/query/fullunits pass. Fullunits21.470wall/
+31.762CPU/750488KiB includes independent worlds, nested budgets, staging,
+deterministic failure and cancellation. New fixture fills the actual capacity,
+installs owning payload fields only after queue success, checks every reference
+against an independent alternating input array, denies every allocation position
+derived from a successful growth, verifies unchanged failed state, double hold
+and finalizer/allocator zero. No-growth succeeds with the next allocation denied.
+
+Dedicated B1 reciprocal grant12:34:19, ROOT profile84950 begins12:35:28 after
+the peer actually drains. All32 processes pass, one warmup plus three alternating
+pairs per case, three units, fixed executable path/cwd and identical immutable
+d3 resources. Byte comparison/hash occurs outside timing and after each child
+exits. Both executable packages, sources, resources and exact canonical/entity/
+component/retention comparisons pass. Linux x64/glibc, same public bootstrap,
+native flags from /cache/native, CPU12-23 (12 allowed),24GiB container. Warm-cache
+process measurements, whole invocation wall/CPU/RSS; explicit1/4 worker budgets.
+Parallel outer_peak3, serial1; no C-toolchain comparison in this narrow repair.
+
+| Bodies / workers | Wall ns before -> after | CPU us before -> after | Peak RSS KiB before -> after | Retained bytes |
+| --- | --- | --- | --- | --- |
+| 0 / 1 | 3222694696 -> 3205216448 | 3211602 -> 3200482 | 198060 -> 197716 | 15161359 |
+| 0 / 4 | 1350345994 -> 1370315271 | 4083328 -> 4117820 | 461480 -> 462372 | 15152231 |
+| 4096 / 1 | 4848606957 -> 4827419850 | 4834822 -> 4817971 | 679788 -> 679472 | 289310048 |
+| 4096 / 4 | 2742491402 -> 2748626773 | 6020125 -> 6039381 | 937380 -> 935788 | 289300920 |
+
+Median wall changes -0.54% to+1.48%, CPU -0.35% to+0.84%, RSS -0.17% to+0.19%.
+Retained bytes exactly match all paired runs. These short samples do not prove
+neutrality or a speedup; the largest positive wall result remains recorded.
+The patch adds no queue allocation; raw queue bytes remain outside the world
+ledger, and ledger equality is not a whole-heap measurement. RSS is separate.
+
+Session35147 drains0 after scoped current ASan/LSan and TSan. Each mode runs
+mutation3, real stage3, query and actual three-unit/four-lane overlap; each
+standalone mutation IR has163 instrumented definitions. Stage fixture reaches
+57792 finalizations each run. TSan runs existing Ubuntu WSL/taskset12-23, while
+Docker builds exact binaries copied/cmp-checked before execution; no host or
+container security settings change. Address overlap10.588wall/33.770CPU/
+1109464KiB; thread27.243/86.611/1433640, actual outer_peak3 and canonical
+1173729914654460811. Different instrumented paths/profiles are not performance
+comparisons. Source manifests verify after each build and final thread run.
+
+Raw logs: B2 build/root_capture_registration_union, root_queue_alias_after,
+root_queue_profiles and root_queue_sanitizers; thread runtime logs
+/home/trevo/root_queue_34aa. Exact address/thread entity original+instrumented IR,
+objects, instrument tools and executed compiler/stage binaries are retained in
+root_queue_sanitizers/receipt with SHA manifest, plus dedicated mutation IR/objects/
+executables and immutable before/after profile packages. Compiler allocation
+instrumentation is serial and remains separate from positive real overlap.
+Supported checks are evidence, not proof of universal race freedom. Source UBSan,
+foreign/system libraries, browser/Windows instrumentation and final joined
+bootstrap/generation/publication are not closed by this checkpoint.
+
+A1 original session also stops at12:07:33 with service cyber_policy. ROOT detects
+the stale status from its actual original JSONL and records the stop; no retry,
+resume/rephrasing or replacement context. Completed3a9 remains integrated. Its
+untracked executable-admission fixture and prior logs are preserved; remaining
+ordinary compiler work passes to ROOT. L2 owns the four generic per-call result
+producers plus exact coordinated consumers, B1 owns grammar builders at its next
+drained boundary. Five original CLI workers continue. todo remains untouched.
+

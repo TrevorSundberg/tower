@@ -1224,6 +1224,12 @@ ordered identity/reference counts and final disposal, and is a measurement tool
 rather than a default test. Shared containment publication is serial; this
 microbenchmark does not claim worker scaling or total-heap accounting.
 
+The mutation fixture also reuses live slices of a stage's reference queue, both
+with spare capacity and across growth. It checks exact growth-denial rollback,
+reference order, repeated hold and finalizer cleanup; a successful allocation
+count determines the denial sweep. Spare or overlong internal slices are rejected
+before reads. Queued-reference counter exhaustion is a separate ownership issue.
+
 Source-proof admission and ordered callback-signature publication have focused
 production-provider targets:
 
