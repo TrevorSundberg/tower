@@ -16,6 +16,7 @@ import syntax_version;
 import syntax_version_cache;
 import syntax_version_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn abort(): void;
 
@@ -42,6 +43,7 @@ export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): voi
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock, &diagnostic);
+    value.resource_error = diagnostic.resource_error;
     // cached transfers one owned reference; replace the session's old owner.
     syntax_session_pin_version(&value.pins.version, version);
     syntax_version_release(version);
@@ -90,7 +92,12 @@ export fn syntax_get_error(opaque: void*): u8* {
 export fn syntax_get_revision(opaque: void*): usize { return bits(SyntaxSession*, opaque).revision; }
 export fn syntax_get_error_offset(opaque: void*): usize { return bits(SyntaxSession*, opaque).error_offset; }
 
+export fn syntax_session_resource_error(opaque: void*): WorkBudgetError {
+    return bits(SyntaxSession*, opaque).resource_error;
+}
+
 export fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool {
+    diagnostic.resource_error = WorkBudgetError.None;
     if !frontend_modules_bind_world(bits(ModuleEnvironment*, environment), world) {
         diagnostic.fallback = "Syntax session environment belongs to another compiler world or cannot be bound";
         return false;
@@ -105,6 +112,7 @@ export fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
         entity_release(root);
     }
     if session.error.length != 0 {
+        diagnostic.resource_error = session.resource_error;
         // Transfer the diagnostic owner before destroying its session.
         vector_dispose(&diagnostic.text);
         copy(&diagnostic.text, &session.error, sizeof(vector(u8)));

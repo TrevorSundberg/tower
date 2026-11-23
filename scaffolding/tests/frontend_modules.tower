@@ -236,14 +236,14 @@ fn module_clone_budget_test(read_cached: bool): void {
     if read_cached {
         var reader = frontend_module_root_world(world, "", environment);
         module_require(module_clone(reader.graph, prior.data[prior.length - 1]) == null);
-        module_require(reader.graph.resource_error == WorkBudgetError.Capacity
+        module_require(frontend_module_resource_error(reader) == WorkBudgetError.Capacity
             && frontend_module_error(reader)[0] != 0);
         // A failed request cannot resume with one of its partially cloned nodes.
         module_require(module_clone(reader.graph, prior.data[prior.length - 1]) == null);
         frontend_module_destroy(reader);
     } else {
         module_require(!module_cache_store(source));
-        module_require(source.graph.resource_error == WorkBudgetError.Capacity
+        module_require(frontend_module_resource_error(source) == WorkBudgetError.Capacity
             && frontend_module_error(source)[0] != 0);
         module_require(!module_cache_store(source));
     }

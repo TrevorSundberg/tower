@@ -40,6 +40,13 @@ a shared-world payload lock. Use the unit executor below for isolated worker job
 `language_document` and `completion_begin` remain legacy host adapters; browser
 transport entry points still select their host context at that boundary.
 
+Module snapshot failures retain their typed `WorkBudgetError` through
+`frontend_module_resource_error` and `completion_resource_error`. Completion
+stops recovery after that failure and returns an error object from `completion_end`;
+document inspection returns null. Ordinary incomplete syntax still permits partial
+inspection. Parser/grammar resource failures need their own typed propagation into
+this boundary; the module getter alone does not cover those earlier failures.
+
 Hover results include a canonical signature, resolved type/layout where present,
 attached comments, and file/line/column locations. Grammar references retain the
 snapshot active at that source position. One tree walk covers every leaf and
