@@ -95,22 +95,30 @@ function(tower_runtime_tools)
 endfunction()
 
 function(tower_runtime_object name input triple)
+  # Ordinary entries initialize mutable top-level values. Keep library mode as
+  # the default and consume this opt-in before forwarding symbol bindings.
+  set(source_mode --library)
+  set(bindings ${ARGN})
+  if(ARGV3 STREQUAL "SOURCE")
+    set(source_mode)
+    list(REMOVE_AT bindings 0)
+  endif()
   if(TOWER_SANITIZER)
     set(ir "${CMAKE_CURRENT_BINARY_DIR}/${name}-original.ll")
     set(bound "${ir}")
     set(outputs "${ir}")
     set(binding_command)
     set(binding_dependencies)
-    if(ARGN)
+    if(bindings)
       tower_runtime_tools()
       get_property(bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
       set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}-bound.ll")
       list(APPEND outputs "${bound}")
-      set(binding_command COMMAND "${bind}" "${ir}" "${bound}" ${ARGN})
+      set(binding_command COMMAND "${bind}" "${ir}" "${bound}" ${bindings})
       set(binding_dependencies "${bind}" tower-runtime-bind)
     endif()
     add_custom_command(OUTPUT ${outputs}
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         --emit llvm -o "${ir}" --depfile "${ir}.d"
@@ -125,11 +133,11 @@ function(tower_runtime_object name input triple)
     set(${name}_PRIMARY_OUTPUT "${ir}" PARENT_SCOPE)
     return()
   endif()
-  if(NOT ARGN)
+  if(NOT bindings)
     # No foreign rewrites remain: emit the Tower object directly.
     set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${object}" --depfile "${object}.d"
@@ -145,11 +153,11 @@ function(tower_runtime_object name input triple)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
   add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --emit llvm-optimized -o "${ir}" --depfile "${ir}.d"
-    COMMAND "${bind}" "${ir}" "${bound}" ${ARGN}
+    COMMAND "${bind}" "${ir}" "${bound}" ${bindings}
     COMMAND "${CMAKE_C_COMPILER}" --target=${triple} -O2 -c "${bound}" -o "${object}"
     DEPFILE "${ir}.d"
     DEPENDS "${input}" "${bind}" tower-runtime-bind "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
