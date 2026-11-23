@@ -87428,6 +87428,111 @@ L1 reconciliation complete: implementation `041912d1` merged complete published 
 
 Merged compiler SHA256 `d6b0f6c077b6d962ad85f82d018f8d21dea0d185e362c8bf9965802dd4ad9a86`, backend object `a6f03ff78b12d9cd5041a289e982b176684095e34f6f5df9ae59cbb72e595917`, portable backend consumer `1552a79e83239fbe6de2cbb4260540970593a4efd0944a55789b368b4862f66d`. Canonical/execution hashes and ledger counts remain the same as above. Merged healthy jobs1 wall1.28s/CPU1.26s/191828KiB and jobs4 wall1.07s/CPU1.32s/208544KiB are new-input observations, not substitutes for the original matched before/after pair. Full receipt `C:\Sandbox\build\codex_ecs_20261122\L1\backend_admission_receipt.json`; exact logs `backend_admission_merged` and `backend_admission_merged_packages`. All owned jobs drained; todo unchanged. Remaining limits remain explicit: canonical payload-vector accounting, LLVM-private allocation accounting and integrated browser/sanitizer/generation/publication gates are not claimed by this bounded admission batch.
 
+### B1 serial range-union preparation improvement (2026-11-23)
+
+One bounded follow-up to accepted46167039/ea941807, preserving those exact source,
+binary and measurement boundaries. Required pull fast-forwarded main toce4f7240;
+owned tower_ecs_b1 was idle. Current native baseline rebuilt affected L1 backend
+providers through /cache/native, public bootstrap768a0cdf, Linux x64/LLVM19,
+KinmenB CPU0-11/24GiB, up to6 independent object jobs/compiler jobs1. No B2
+admission/WorkPool method, public pin, agent, goal or unrelated owner was changed.
+
+Before choosing a candidate, reused the archived temporary Tower GrammarObserver
+phase hooks and added serial allocation deltas, item-graph build/solve clocks and
+solver work counts. Same16/1000-function generator outputs and a frozen current
+parser_table.tower unit. Small/large: lookahead383.4/386.0ms of table488.3/492.8ms;
+FIRST6.95/6.81ms, states49.24/50.59ms, semantic check5.85/71.36ms. Item-graph
+construction79.62/79.81ms versus solve136.24/137.87ms; production unit131.67ms
+construction versus236.07ms solve (total lookahead570.63ms). Small graph totals
+353408 edges across235254 allocated edge vectors,9371187 final exact ranges.
+The solver made815967 merges examining25268148 incoming ranges;155173 merges
+changed destination capacity (not a count of every allocator call within them).
+The serial cold observer attributed1056899 allocations to lookahead and592066
+to state construction, out of2323145 total calls. This is measured work rather
+than an inference that every allocation is the dominant cost. Edge allocation
+and other preparation remain; the slower solve was selected for this batch.
+All hooks were archived as phase_measurement.patch and removed before timing.
+
+Implementation is confined to lr_analysis.tower::lr_range_merge_result. The old
+loop restarted binary insertion for every source range, including duplicate
+sets, and could shift/reallocate repeatedly while growing one union. The new
+helper counts missing exact identities with a forward sorted walk, reserves the
+existing destination once, and merges backward in place. Empty/self/subset cases
+need no allocation; one incoming range retains binary insertion. Overflow and
+allocation results still flow through lr_reserve_result; denial does not publish
+a partial set or clear the first error. No new allocator, scratch/cache owner,
+second grammar, guessed identity, threshold, noalias annotation or shared mutable
+state. Actual callers were audited: serial FIRST (same descriptor or different
+nonterminals), suffix scratch versus immutable FIRST, propagation node owners,
+and worker-private FIRST/propagation results versus frozen inputs. Their vectors
+are separately owned or the identical self descriptor, tested before growth.
+No claim is made that existing raw LR vectors are newly budgeted by this change.
+
+States/actions/provenance, incremental declaration boundaries, module/revision
+identity and the disjoint-label guard/range-overlap closure fallback are unchanged.
+The generic helper also serves existing worker algorithms without changing their
+admission, dispatch or publication. No second optimization was attempted.
+
+Focused validation PASS: independent150 randomized grammar/propagation oracle
+including exact states/actions/runtime/control, nullable/recursive/empty-FIRST and
+range overlap; existing serial allocation sweep, explicit world Capacity/retry/
+zero-grant teardown; new33-range denied union preserving Memory and both original
+sets, retry through the existing solver requeue contract, allocation-free subset,
+equal-start/different-end interleaving and aliased self-cycle; structure-reuse
+identities/revisions/cancellation/lifetime; grammar-equivalence; parser malformed/
+error-order; regex300 generated+500 arbitrary byte patterns and failures; native
+LR actual overlap/shared-budget/serial-worker/cleanup (1.75wall/2.27CPU/116416KiB).
+No strict symbol policy or public API/import boundary changed.
+
+Matched cold processes, warm filesystem, n3 counterbalanced before/after per
+size and workers1/4. Source, target/flags and output path are identical: --emit
+object --target x86_64-pc-linux-gnu --jobs1|4, explicit frozen Bedrock/Foundation.
+Before compiler04996b9756dae30fe76e3ec9fc6e518c5722f35b878c2673437d80be86b3755e;
+after14241bad9784aea47a2b61d5c53826ab735f876c0cc5503a6013520f7d0d175a.
+All24 measured linked executions return exact15/999; independently authored
+Clang-O2-fwrapv C controls also return15/999. All24 fixture objects and4 production
+unit objects match across compiler versions/workers. Medians (wall seconds /
+user+system seconds / peak RSS KiB):
+
+| Input | Workers | Before | After |
+| --- | --- | --- | --- |
+|16 functions|1|0.61 /0.53 /185132|0.50 /0.42 /186440|
+|1000 functions|1|0.75 /0.68 /238408|0.63 /0.56 /237912|
+|16 functions|4|0.70 /0.76 /188444|0.63 /0.63 /188896|
+|1000 functions|4|0.84 /0.91 /240220|0.77 /0.79 /240648|
+
+Serial wall improves18%/16%; workers4 improves10%/8%, still slower than serial.
+RSS is mixed, not a memory-reduction claim. Production parser_table unit, one
+pair only: serial1.37/.97/228708 ->1.19/.78/228624; workers4
+1.50/1.35/233476 ->1.42/1.20/234244. Original source/binary comparison is retained,
+not relabeled as older accepted B1/ROOT measurements or future integrated builds.
+
+Uninstrumented serial cold observer: table336.79->211.41ms; version build410.12
+->276.99ms. Allocation calls2323145->2144029 (-7.7%). Canonical hash
+13832670361687071853/976bytes/answer42,185 lookups/155 builds/123 tables/36 reuses,
+36677 retained buffers,1893528 charged retained bytes,58035248 charged peak and
+5242880 ledger metadata remain identical, with zero final bytes/grants/buffers.
+The allocation reduction comes from reserving each union once, not omitting
+checks. Remaining table cost~211ms and2.14million calls remain substantial; this
+does not close the full C latency gap or establish profitable four-worker scaling.
+Those limits are recorded once; no further tuning loop in this task.
+
+Evidence /cache/serial_prepare_ce4f (host build/ecs_b1/cache/serial_prepare_ce4f):
+frozen inputs/executables, manifest, raw times.csv, measure.sh, outputs, checks,
+phase patch and all failures. Source hashes16/1000 remain5966271c7144afe728376214c0289d60c0e682be71a0c7f29da386f962ba9fd2 /
+583024d07c2c70a84e6c8cf5167d972fb44e8e2d0c6c74645bd4fb75da120639;
+object hashes remaincdc5a6ec0f2b12f1f7a622f45a27859e374558867df97470c8120cd81ddfb407 /
+ae9e824d75213b15baa1811f9ec4db04a2f044cce25746d291b888c7952f4e08;
+unit56689c8f2210c813af7644763e9f263fd6d8e37c9506b46fc4cb6d872406156d.
+Initial archived hook patch failed its changed import context; an incomplete hook
+build then reported missing lr_profile_clock. It drained, the unaffected hooks
+were reused with the local clock declaration, and profiling passed. No failed
+build was timed as progress. An initial host aggregation used string instead of
+integer match keys and printed zero sums; corrected sums above derive from the
+unchanged raw logs. Frozen copied source hashes were checked against main.
+No new source syntax/bootstrap override or full platform/sanitizer/generation/
+browser matrix. ROOT integrated gates remain pending. Commit/reconciliation and
+normal main push follow; all owned work is drained before publication.
 ## 2026-11-23 D1 browser diagnostic fixture import boundary
 
 Bounded D1 task, thread01a2046a-4644-7ab1-a0ae-abd80210f013, CodexPID3103444.
@@ -87743,3 +87848,16 @@ artifact manifests, phase data, originals and rejected candidates are preserved
 in build/d2_ecs/browser_retirement (including frozen_2013); selected receipts are
 copied to the external D2/browser_retirement_7ebb directory. This scoped repair
 and current-source evidence are ready for normal main publication.
+B1 range-union integration receipt: implementation253af949 merged complete
+published7ebb80d5 history as2920e6e7563bd4aace7d8c42a517baca0a3924c0 after the
+required ff-only pull reported divergence. No conflicts. Incoming L2 KnownScan,
+B2 profile/controls and D1 review/browser receipts preserved; no scheduling edit.
+The one native dependency target rebuilt5 affected actions; merged lr-order,
+structure-reuse, grammar-equivalence, parser and native LR all passed. Merged
+compilerbd4e492d9b760e0effba278a14df5f591e8c10c2c54e96cd66c2edf933bef9e6
+produces the same frozen small/large object bytes at workers1/4 and all four
+linked runs return exact15/999. These are integration checks, not an additional
+performance sample or relabeling of the n3 ce4f7240 comparison. Source checks
+passed; todo hash remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Owned container is idle. Normal main push/remote verification follows; ROOT's
+broader integrated publication gates remain pending.
