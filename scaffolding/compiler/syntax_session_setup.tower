@@ -20,9 +20,14 @@ import .library.work_budget_types;
 
 extern fn abort(): void;
 
+fn syntax_session_resource_fail(value: SyntaxSession*, error: WorkBudgetError): void {
+    if value.resource_error == WorkBudgetError.None { value.resource_error = error; }
+}
+
 fn syntax_session_error(value: SyntaxSession*, text: u8*): void {
-    // Preserve the existing native diagnostic setter's fatal allocation policy.
-    if !node_text_set(&value.error, text) { abort(); }
+    // Keep the concrete diagnostic when storage is available. Copy failure
+    // cannot replace an earlier typed cause or require another allocation.
+    if !node_text_set(&value.error, text) { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
 }
 
 export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): void {
@@ -86,7 +91,9 @@ export fn syntax_session_open(world: void*, environment: void*, source: u8*, mod
 }
 
 export fn syntax_get_error(opaque: void*): u8* {
-    return node_text_get(&bits(SyntaxSession*, opaque).error);
+    var value = bits(SyntaxSession*, opaque);
+    if value.resource_error != WorkBudgetError.None && value.error.length == 0 { return "Unable to acquire syntax resources"; }
+    return node_text_get(&value.error);
 }
 
 export fn syntax_get_revision(opaque: void*): usize { return bits(SyntaxSession*, opaque).revision; }
@@ -111,8 +118,9 @@ export fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
         if root is null { break; }
         entity_release(root);
     }
-    if session.error.length != 0 {
+    if session.error.length != 0 || session.resource_error != WorkBudgetError.None {
         diagnostic.resource_error = session.resource_error;
+        if session.resource_error != WorkBudgetError.None { diagnostic.fallback = "Unable to acquire syntax resources"; }
         // Transfer the diagnostic owner before destroying its session.
         vector_dispose(&diagnostic.text);
         copy(&diagnostic.text, &session.error, sizeof(vector(u8)));
