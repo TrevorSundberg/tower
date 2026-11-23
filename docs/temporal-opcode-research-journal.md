@@ -86073,6 +86073,173 @@ shared-Wasm38d7c19815b7ee7baee71e8567e1b4ece2466fb227dae1f2f9cceec7f5b5eb59.
 External L1/diagnostic_origin_receipt.json links complete hashes, logs, preserved
 failures, original storage commits, limits and the verified publication commit.
 All owned jobs drained, todo unchanged; this entry changes no tested runtime input.
+## A2 semantic-provider capacity policy - 2026-11-23
+
+Diagnosis/implementation (validation continues below): base main
+`c13c263178c1001fb5873b8e11568cf00d57cf4c`; A1 remains an untouched read-only
+input at `86843700623e12583ea460c53524e2368f508911`. An owned git archive under
+`C:/Sandbox/build/codex_ecs_20261122/A2/cache/capacity_release/a1_input` freezes
+its complete source. Both semantics provider entry files have SHA256
+`7bbb82922f0fe293859145636dcfbc77bda2d8e94926857527fdbe7735e289f1`.
+No test import was dropped and no A1 history was integrated by partial copying.
+
+Verified ROOT b5 package SHA256
+`e20fd2025a671fa795a366879f2fced1c7a55b274e07019b00419b833271b171`, executable
+`f71fd0d58bb0231c55600bd7bf2d70911147e5bba9b7ca18e44dee00ba1d5881`, and all
+resource checksums. The exact library compile uses the frozen
+`scaffolding/compiler/units/semantics_checks.tower`, jobs1, target
+x86_64-pc-linux-gnu, its own bedrock/foundation, object and depfile outputs.
+Bounded GDB runs used the existing tower-a1-validation:32f860 image in A2-owned
+network-none containers, CPU12-23/24GiB, container-only SYS_PTRACE, with ASLR
+left enabled. Scripts, disassembly, logs and statuses remain in capacity_release.
+The optimized recorder is inlined, so the initial function breakpoint missed
+it; a hardware watchpoint on the actual SemanticProgram resource field caught
+the first write. A subsequent count script initially mistook pointer_bytes for
+the root pointer and exited1; its diagnostic remains preserved. Corrected
+layout reads were checked against the actual binary accessors/disassembly.
+
+The first Capacity comes from sem_lower_frontier's joined result accumulation:
+389994 counted nodes +269 from the result exceed node_limit390167, derived
+from134217728/344. The Foundation kind actually owns390291 live instances;
+the physical world WorkBudget pointer is null. GenericContext has276 instances
+and42903 copied nodes, below the separate512/65536 quotas. This is the semantic
+component-count policy, not physical ledger exhaustion or generic quota denial.
+One bounded diagnostic-only192MiB argument substitution completed the same
+input:391866 counted nodes,391894 live Foundation instances,344B each,
+962775 entities and1162046 components. Counted payload134801904B exceeds the
+old default by584176B; live payload134811536B independently confirms genuine
+capacity need rather than inflated count alone. The28 additional live instances
+are outside the newly-attached counter; this is not an exact physical ledger.
+Generic counts remained unchanged. The diagnostic completed exit0 in23.109714s
+wall/17.923043s CPU,837720KiB peak RSS including GDB. It is not canonical or
+candidate acceptance. The original first-watch run reproduced the ordinary
+failure; debugger exit0 must not be mistaken for inferior compile success.
+
+The implementation changes only SemanticComponentBudgetBytes to160MiB
+(487709 nodes at this layout), a bounded default with roughly24% payload
+headroom above the measured provider. It neither allocates that amount upfront
+nor installs a process cap. semantic_compile_budget still uses the caller's
+exact byte argument; physical world/storage grants, generic clone quotas and
+all existing denial/cleanup paths are unchanged. The stale64MiB language-doc
+statement is corrected. No admission, scratch, diagnostic or scheduling owner
+was rewritten. Broader process memory includes syntax, indexes, scratch, LLVM,
+allocator internals and other resources beyond this payload-count policy.
+
+One dependency-aware native build used the unchanged public pin
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, existing
+A2/cache/native, LLVM19 Release, compiler jobs1/build parallel2, CPU12-23/24GiB.
+The13 affected actions built towerc and tower-lr-work-tests successfully in
+45.889437s wall/68.277305s CPU,817344KiB peak. Candidate executable SHA256
+`e4ffd7e3005e27df40658bce5011dd9af24e95a6173bf29de0cc230bd9c898dc`.
+No bootstrap override, candidate-only syntax, second scheduler or storage layout
+change was used. Existing resource-smoke24 cases and receipt-smoke pass,
+including32/64-bit and1/4-worker capacity failures, canonical first-cause
+selection, cancellation, no replay and complete grant/world cleanup. Exact A1
+candidate compilation, matched healthy profiles and complete package verification
+are still pending at this entry; later receipts record their actual outcomes.
+
+A2 capacity integration follow-up: the first current-main candidate reached its
+180s bound (exit124,180.037664s wall/174.920041s CPU/614668KiB peak), so its
+A1 acceptance and queued profiles did not pass. Two brief attach traces locate
+the hot PC at sem_push_checked+83 in the linked-list identity scan; the first
+attach lacked symbols and the corrected trace supplied the actual executable.
+Both are preserved, along with candidate_before_b1 (SHAe4ffd7e3... above).
+This is the separately assigned B1 lookup problem, not evidence for another
+resource-policy increase. No scratch implementation was changed by A2.
+
+After draining the timed-out job, the requested pull/autostash fast-forwarded
+to a241935e6628597fcc13f8310b2b0557c11c47e8, including B1's3415d9c8 lookup,
+L2's1137b6ce admission and L1's first-cause/output changes. All were retained.
+The sole production diff remains the same160MiB policy/comment. An affected-only
+12-action rebuild through the same public pin passed in35.917500s wall/
+52.829201s CPU/825900KiB peak; merged_build.log/status retain the commands.
+Merged candidate SHA256
+`a0ffc67c9a8e4f8371a828d798bf0a6a1aa826d74519195231df956611a50852`.
+The merged resource-smoke24 cases and receipt-smoke pass again. Unmodified
+candidate now compiles the exact frozen A1 provider at jobs1, exit0,
+23.577945s wall/18.684996s CPU/1047416KiB peak. Parallel equality, healthy
+paired measurements and complete package receipts follow separately; this
+successful invocation uses no debugger argument substitution or bootstrap override.
+
+A2 final capacity checks on source a0e0cdcd182dfd31de3bd883f648c0bd30c123d6:
+the exact A1 provider succeeds at workers1/4 with identical object SHA256
+`d0c1c8aef58042d3da09dfe08bff11cecb5eaadf9b4e0f2ddd6c4f1977956970`.
+Workers4 cost20.358123s wall/19.318382s CPU/1085604KiB peak; workers1 cost
+is above. Frozen input archive SHA256
+`708e860cb61038ed36844a624cb3b434b0677977df8bf08e6654e21b709a37dc`.
+The original complete A1 history remains separate and unpublished by A2.
+
+Healthy matched profile: same frozen A1 parser provider path, target, library
+flags and resource files; ROOT b5 versus the merged candidate, alternating
+before/after, two fresh processes per compiler/workers1/4, warm filesystem.
+Windows11 Pro10.0.26200, Ryzen AI MAX+39516C/32T, Docker Linux x64 LLVM19.1.1,
+CPU12-23/24GiB. Tower ecs_process_profile records child wall/CPU/maxRSS/status;
+no competing A2 build ran during samples. Means below, peak is maximum of two:
+
+| Compiler | Workers | Wall s | CPU s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| ROOT b5 | 1 | 18.421135 | 13.878552 | 745884 |
+| Candidate | 1 | 19.141056 | 14.580435 | 934280 |
+| ROOT b5 | 4 | 16.876620 | 14.761932 | 774908 |
+| Candidate | 4 | 17.130313 | 15.546795 | 964988 |
+
+All eight processes exit0. Each compiler's four outputs are byte-identical;
+reference object SHAa82c5bcbbb325cb8247e957db95e4fc57f77d742225849ffc99759755fbec1ce,
+candidate SHA3a727896bf85161208e42063c4776599dc71a43528fc6d23bcf7f6d5345244d6.
+Cross-version byte comparison is1 (preserved), while defined symbol names match.
+B1 already records a generation difference after L2 admission integration; this
+profile does not claim cross-version object identity or diagnose ROOT's separate
+complete-generation gate. Serial wall is+3.9%, peak RSS+25.3%; workers4 wall+1.5%.
+The reference predates the merged scratch/admission/output ownership changes,
+so these are compiler-version costs, not an isolated cost of the default constant.
+B1's completed compiler profile independently has a comparable RSS increase.
+The initial stalled version's180s/614668KiB is an incomplete lower-bound sample,
+not a memory improvement. No new allocation-retention claim or universal scaling
+claim follows from these small compiler process samples; focused cleanup tests
+require zero final grants. Existing storage sanitizer evidence remains unchanged.
+
+A2 complete successor receipt: existing Tower package_bootstrap and verify_compiler
+were built through the unchanged public pin, without modifying either tool.
+Initial packaging failed1 because this independent clone's LLVM submodule is
+unpopulated and the expected llvm/LICENSE.TXT is absent. The public pin and
+verified ROOT b5 package carry the identical license SHA256
+`8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee`.
+An owned copy was mounted read-only at the expected input path for packaging;
+no repository/submodule or compiler source was changed. Publication into the
+Windows bind mount then failed1. The same packager succeeded when its staging
+and atomic new-directory publication used container-local /tmp; that complete
+output was copied to the owned cache and verified after relocation. The precise
+failed syscall errno was not captured, so filesystem accommodation is recorded
+as observed recovery rather than an asserted errno. Both failed receipts remain.
+
+Complete archive:
+`C:/Sandbox/build/codex_ecs_20261122/A2/cache/capacity_release/A2_semantic_capacity_successor.tgz`
+SHA256 `fb898fb4f63735c52df6095a1b26d2f8bb1924edcaec74b38003131e679fbe01`.
+Extracted package: capacity_release/successor, executable linux-x64/towerc
+SHA256 `a0ffc67c9a8e4f8371a828d798bf0a6a1aa826d74519195231df956611a50852`.
+Provenance development.json SHA256
+`f74f72b03f1459bcc9015cb2f09a1336d02d40826cdaf2aae855e95e6d0e342f` records
+source_base_revision a0e0cdcd182dfd31de3bd883f648c0bd30c123d6, complete actual
+source-file/resource hashes, public predecessor9653f818..., build command,
+LLVM19.1.1 and dynamic dependencies. Policy source SHA256
+`48e303582174edc356416ed838ed5e46ae6c5bb0de28421daaf2140ae977efad` exactly
+matches the compiled input. Every package SHA256SUMS entry passes; packaged
+executable equals the tested native candidate byte-for-byte. Relocated Tower
+verify_compiler development mode passes interpretation/diagnostics, three equal
+fresh object emissions, separate-library linking and repeated wanted execution.
+Its actual checks.txt, arguments and separate logs are under
+capacity_release/package_development_verification; process0,8.767028s wall/
+9.019221s CPU/217512KiB. package_native.status is0, final_package.sha256 also
+matches an independent host archive hash. Earlier package failures are not passes.
+
+This repairs the measured capacity blocker with a bounded policy and a complete
+verified development successor. ROOT must still publish/adopt its pin and run
+current integrated complete-generation, instrumentation, browser and release
+acceptance. Cross-version generation identity above remains pending, not passed.
+The candidate requires its recorded development-host dynamic dependencies; no
+portable/restricted-host or universal race-freedom claim is made. The accepted
+unchanged storage sanitizer receipt c13c2631 remains reusable. All A2 jobs drained;
+no Pages deployment or other owner's unpublished source adoption was performed.
 
 Publication integration: implementation f626ed9e; requested ff-only pull fetched
 a241935e and correctly refused divergence. Normal merge f6d1f167 preserves both
@@ -86120,3 +86287,18 @@ calls remain present, and no additional policy permission was inferred. The
 cannot validate those new production objects. ROOT/B1 retain current-source
 control-smoke/resource-roots and actual new-object import checks. README entries
 merged intact, git diff --check passes, todo hash unchanged, all D1 jobs drained.
+A2 publication reconciliation: requested ff-only pull fetched76c38e7a and refused
+divergence. Normal merge6cbb2e3928f8f004612898fff7de88835090b5e9 preserves both
+complete histories and, importantly, the packaged source commit a0e0cdcd as an
+ancestor. Incoming B2 f626ed9e changes backend/driver code-generation policy;
+its separate merged validation receipt is retained. Every scaffolding/compiler,
+scaffolding/library, bootstrap, CMake and cmake path is byte-unchanged relative
+to the candidate source, so the semantic capacity/denial receipts remain valid.
+The complete successor stays explicitly frozen at a0e0cdcd: it does not claim
+the later B2 backend changes or a current integrated generation check. ROOT
+must include those changes at its final generation/pin gate. No unchanged
+semantic/storage suite or profiling campaign was repeated for this backend merge.
+The journal's two preexisting non-UTF8 headings were restored byte-exact after
+an initial append transcode; the final lane diff against upstream is append-only.
+Policy source hash and packaged executable/archive hashes still match, source
+ancestry and git diff --check pass. Normal main publication follows; no deployment.
