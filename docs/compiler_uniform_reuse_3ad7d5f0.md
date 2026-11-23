@@ -183,6 +183,14 @@ remaining cost; the counters do not predict net savings or identify a particular
 allocator/lock. No plainly demonstrated small scheduling repair justifies a
 production edit in this measurement batch.
 
+Subsequent [bounded admission trial](compiler_lr_admission_902f7c4d.md) corrects
+the proposed graph-saving attribution above: the existing serial preparation
+also constructs the same item graph. `LookaheadGraph` observes only the parallel
+wrapper, so selecting serial can remove the event without removing construction.
+The held-receipt candidate passed correctness but was rejected on measurements;
+the original code was restored. The earlier1.275s observation remains valid for
+that wrapper, but is not evidence of removable graph work.
+
 ## Ownership and correctness
 
 All30 runs pass independent ordinary interpreter results `answer()==42` and
