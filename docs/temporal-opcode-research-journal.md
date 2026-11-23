@@ -78358,3 +78358,56 @@ profile. D1 acquired the free shared slot for current leaves/manual baselines an
 registrations at13:22; D2 will use actual native/provider reports and a later WASI
 slot, preserving that freeze. Final empty-cache public bootstrap/browser/generation,
 current instrumentation/performance and leased atomic hosted release remain open.
+
+### D2: observed checked LR attachment policy (2026-11-23)
+
+At clean9db1be18 (complete2252 plus committed D2 policy), read D1's exact expanded
+registration draft832d3ea4 and the imported fixture/provider composition. The
+capture fixture stays declaration-only; executable imports services/kernels and
+correctly uses the existing aggregate provider deduplication while retaining
+frontend/query objects. All eight executable selectors match; source review
+sent with no blocker, not a claimed execution. D1 subsequently reported39 direct
+and39 registered processes plus13CTest passes. Full handoff/integration remains
+separate from this owned policy receipt.
+
+D1's first provider-export command failed because external coordination is not
+mounted in its container; its corrected host redirection actually supplied the
+current parser9928d135/Entities e62f8520 reports. D2 read those reports, copied
+only the external artifacts, and reviewed `lr_work_node_result` plus the existing
+`entity_attach_result` producer. No sibling cache access or inferred blanket
+permission. The actual new import preserves typed attachment failure and creator/
+containment ownership. Acquired the sole free heavy lock after D1 drained. Source
+manifest/archive at9db frozen, public9653 compiler, image4be584fb, x86-64 Deck,
+CPU0,2/jobs1, no private bootstrap override. Public current WASI parser compile
+passes34.43wall/33.69CPU/773060KiB, n1/zero swaps. Actual WASI import matches the
+native report. Before a19 checker, three fixed-report samples per target, all
+reject only entity_attach_result with exit1 and exact diagnostic. Session75134
+ends0 because those six rejections are the required oracle; no failed check is
+relabeled as accepting the closure.
+
+Only after drain, exact owned patch227bf39a adds one ParserNodes permission and
+eight Tower cases: Linux/Windows/WASI positive, truncated/suffixed name and
+Entities/Interpreter/Semantics negative. Shared exact matching/underscore policy
+unchanged. Current string lengths derive from input text. No production provider,
+manifest, scheduler, memory owner or syntax changed. After20059 compiles the
+smallest fixture first, links/runs it, builds the checker through the canonical
+selected-tool entry, checks the same six reports and runs actual Address/Leak/
+ThreadSanitizer fixture products with byte-matching guest runtime. All exit0;
+11 original LLVM definitions,109 ASan report sites and11 TSan access hooks are
+retained. New checker SHA256
+c8b98a2f838256ef48fa1b09bd44f1b3af5374f79f9343b5daf1aa21b4bf027f.
+
+Both sides use identical GNU-time/timeout wrappers, same reports, warm filesystem
+and fresh processes, n3 per target. Every wall/user/system sample is0.00 at0.01s
+resolution. Native/WASI RSS medians each1616KiB before and after; raw1488 values
+remain in the logs, zero swaps. This is no speedup/neutrality or live-heap/scaling
+claim; allocation-free span lookup adds no storage and serial publication stays
+ordered. Windows is policy-only coverage. Scoped serial instrumentation does not
+establish current threaded-compiler sanitization, universal race freedom, foreign
+internals coverage or source UBSan. No expensive unaffected compiler matrix was
+repeated for a one-name policy change. Logs/source/archive/commands/statuses are
+under `build/d2_ecs/parser_attach_2252`; both groups terminal0/source hashes pass,
+container only init/sleep before own lock release. Disk130GiB free/RAM9.7GiB
+available, preexisting swap6.3GiB; no cleanup. D1 receives the next slot for current
+instrumentation. Independent patch review and complete commit/receipt follow;
+final current native/bootstrap/browser/generation and leased release remain open.

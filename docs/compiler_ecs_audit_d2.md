@@ -2624,3 +2624,40 @@ profiling claim. D1 now owns the Deck heavy slot for current leaves/native/manua
 baselines and registrations. D2 awaits its actual parser/provider reports and a
 free slot for fresh WASI/policy validation; no speculative API permission was
 added. Final linker budget contract and integrated release gates remain open.
+
+### Exact checked LR attachment import at9db1be18 +227bf39a
+
+The completed primary audit remains 40/40 paths; this change updates the owned
+`scaffolding/tools/bootstrap_symbols.tower` disposition and its existing
+`scaffolding/tests/bootstrap_symbols_checks.tower` fixture. B1's checked
+`lr_work_node_result` now imports `entity_attach_result` from the existing Entities
+provider. It releases the creator on failed attachment and after successful
+containment transfer. This adds no graph, allocator, world, scheduler or ABI.
+
+D1 exported immutable reports after its current2252 native build drained: parser
+object9928d135 has the exact undefined name and Entities e62f8520 exports it.
+D2 independently compiled the current public-bootstrap WASI parser entry and
+confirmed the same import. Before checker a19e878f rejects only that name for
+both targets. Exact patch227bf39a adds that single ParserNodes permission; eight
+cases cover Linux/Windows/WASI acceptance and truncation, suffix and three wrong
+units. String bounds still derive from actual text, and rejected spans remain
+borrowed from the captured input. Windows here is policy coverage only.
+
+On the same Deck/image4be584fb/public9653, CPU0,2, jobs1, fresh processes with
+warm filesystem, identical GNU-time/timeout wrappers and fixed report paths,
+three samples per target before/after all have the expected status and exact
+stdout/stderr. Wall/user/system times are below0.01s resolution; each target's
+RSS median is1616KiB on both sides (raw1488 outliers retained). No measurable
+speedup, regression bound, overlap or whole-heap retention claim follows. The
+allocation-free permission lookup adds no live storage; tool input ownership
+and serial error publication are unchanged. WASI compile is34.43wall/33.69CPU/
+773060KiB, zero swaps, n1; that is validation cost, not policy runtime cost.
+
+Smallest fixture compile/link/run, canonical selected-tool build, actual fixed
+reports and scoped ASan/LSan/TSan all pass. Retained public LLVM has11 definitions,
+109 ASan report sites and11 TSan access hooks, with the byte-matching guest runtime.
+These serial policy checks do not sanitize the threaded compiler, prove general
+race freedom or provide source UBSan coverage. New checker c8b98a2f and all raw
+statuses/profiles/source manifests are in `build/d2_ecs/parser_attach_2252`.
+Both controllers drained before lock release. Current joined compiler/native/
+browser/generation acceptance and the linker-world budget API remain open.
