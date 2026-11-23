@@ -1,0 +1,238 @@
+import tower;
+import .compiler.services;
+import .compiler.compiler_kernels;
+import .compiler.semantic_execution_work;
+import .compiler.semantic_body_work;
+import .compiler.semantic_lowering_work;
+import .compiler.semantic_context;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_lifecycle;
+import .compiler.semantic_support;
+import .compiler.semantic_work_ids;
+import .compiler.interpreter_context_types;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .library.work_graph;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+enum ExecutableAdmissionMode: u32 { Healthy, Query, Edge, Access, Take, PartialTake, Observe, Finish }
+var ExecutableAdmissionBytes: usize = 1048576;
+var ExecutableAdmissionRevision: u64 = 123;
+
+fn executable_admission_check(ok: bool, text: u8*, failures: u32*): void {
+    if !ok { puts(text); (*failures)++; }
+}
+
+fn executable_admission_pressure(budget: WorkBudget*, pressure: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+    sem_require(work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, pressure) == WorkBudgetError.None);
+}
+
+fn executable_admission_edges(c: SemanticContext*, dependency: usize): void {
+    var argument: u64 = 1;
+    while c.queries.edges.length < c.queries.edges.capacity {
+        var consumer = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.BodyInputs), argument++);
+        sem_require(consumer != 0 && work_depend(&c.queries, consumer, dependency));
+    }
+    // Keep a free task slot so the next denial reaches its dependency edge.
+    if c.queries.tasks.length == c.queries.tasks.capacity {
+        sem_require(work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.BodyInputs), argument) != 0);
+    }
+}
+
+fn executable_admission_function(c: SemanticContext*, world: void*): void* {
+    var subject = sem_create(c.program.root);
+    var function = sem_attach(subject, KFunction);
+    function.start = 17;
+    function.type.scalar = SVoid;
+    function.index = c.program.functions.length;
+    function.body = sem_create(subject);
+    sem_require(entity_attach(function.body, subject, "body"));
+    var syntax = bits(ParserMatchData*, compiler_world_component(world, function.body, CompilerParserMatch));
+    sem_require(node_match_set_label(syntax, "CoreBlock"));
+    sem_push(&c.program.functions, subject);
+    sem_require(sem_body_request(c, subject) != null);
+    return subject;
+}
+
+fn executable_admission_trial(width: u32, workers: usize, mode: ExecutableAdmissionMode): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 83;
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, ExecutableAdmissionBytes, ExecutableAdmissionRevision));
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    var subject = executable_admission_function(&context, world);
+    var second: void* = null;
+    if mode == ExecutableAdmissionMode.PartialTake { second = executable_admission_function(&context, world); }
+    var body_state = sem_bodies_pump(&context);
+    while body_state == SemanticPumpResult.Progress { body_state = sem_bodies_pump(&context); }
+    sem_require(body_state == SemanticPumpResult.Complete && sem_ok(&context));
+    var body_query = work_find(&context.queries, subject, BodyQuery, 0);
+    sem_require(body_query != 0 && work_task(&context.queries, body_query).state == WorkState.Succeeded);
+    if mode == ExecutableAdmissionMode.Observe {
+        context.surface_expressions = true;
+        sem_lower_parallel(&context);
+        var lowering = work_find(&context.queries, subject, convert(u32, SemanticQuery.Lowering), 0);
+        sem_require(sem_ok(&context) && lowering != 0 && work_task(&context.queries, lowering).state == WorkState.Succeeded);
+    }
+    sem_executables_begin(&context);
+    var pressure: WorkReservation = default;
+    if mode == ExecutableAdmissionMode.Query {
+        var argument: u64 = 1;
+        while context.queries.tasks.length < context.queries.tasks.capacity {
+            sem_require(work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+        }
+    }
+    if mode == ExecutableAdmissionMode.Edge { executable_admission_edges(&context, body_query); }
+    if mode == ExecutableAdmissionMode.Access {
+        var unused = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), 1);
+        sem_require(unused != 0);
+        while context.queries.accesses.length < context.queries.accesses.capacity {
+            sem_require(work_access(&context.queries, unused, convert(u64, SemanticWorkDomain.Compiler),
+                convert(u64, SemanticAccess.Expression), context.queries.accesses.length, 1, WorkAccessMode.Read));
+        }
+    }
+    var denied_request = mode == ExecutableAdmissionMode.Query || mode == ExecutableAdmissionMode.Edge
+        || mode == ExecutableAdmissionMode.Access;
+    if denied_request { executable_admission_pressure(&budget, &pressure); }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var query = sem_executable_request(&context, subject);
+    var state = SemanticPumpResult.Failed;
+    if denied_request {
+        executable_admission_check(query == 0 && program.resource.error == WorkBudgetError.Capacity
+            && program.resource.offset == 17 && context.queries.cancelled
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Denied executable query publishes no partial snapshot or ready input", &failures);
+        if mode != ExecutableAdmissionMode.Query {
+            executable_admission_check(work_find(&context.queries, subject, convert(u32, SemanticQuery.ExecutableFunction), 0) != 0,
+                "Edge and access denial follow successful query reservation", &failures);
+        }
+        sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None);
+    } else {
+        sem_require(query != 0 && work_demand(&context.queries, query));
+        if mode == ExecutableAdmissionMode.Take { work_task(&context.queries, query).dispatch = ~convert(u64, 0); }
+        if second != null {
+            var next = sem_executable_request(&context, second);
+            sem_require(next != 0 && work_demand(&context.queries, next));
+            work_task(&context.queries, next).dispatch = ~convert(u64, 0);
+        }
+        if mode == ExecutableAdmissionMode.Observe { executable_admission_edges(&context, body_query); }
+        var consumers: usize = 0;
+        if mode == ExecutableAdmissionMode.Finish {
+            consumers = context.queries.ready.capacity + 1;
+            for(var index: usize = 0; index < consumers; index++) {
+                var consumer = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), convert(u64, index + 1));
+                sem_require(consumer != 0 && work_depend(&context.queries, consumer, query)
+                    && work_seal(&context.queries, consumer) && work_demand(&context.queries, consumer));
+            }
+        }
+        var denied_completion = mode == ExecutableAdmissionMode.Observe || mode == ExecutableAdmissionMode.Finish;
+        if denied_completion { executable_admission_pressure(&budget, &pressure); }
+        nodes = entity_store_count(store);
+        components = entity_store_component_count(store);
+        state = sem_executables_pump(&context);
+        if mode == ExecutableAdmissionMode.Take || mode == ExecutableAdmissionMode.PartialTake {
+            executable_admission_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Invalid
+                && program.resource.offset == 83 && context.queries.cancelled
+                && entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+                "Executable take exhaustion is a phase-owned terminal failure", &failures);
+        } else { if denied_completion {
+            var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, context.executable_functions)));
+            var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subject, context.executable_ready)));
+            executable_admission_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Capacity
+                && program.resource.offset == 17 && context.queries.cancelled && result.stage == null && result.context == null
+                && result.function != null && !input.ready && input.function == null,
+                "Joined executable graph failure preserves its cause without publishing a ready input", &failures);
+            for(var index: usize = 0; index < consumers; index++) {
+                var consumer = work_find(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), convert(u64, index + 1));
+                executable_admission_check(work_task(&context.queries, consumer).state == WorkState.Cancelled
+                    && work_task(&context.queries, consumer).dispatch == 0,
+                    "Partial completion cancels consumers without dispatching effects", &failures);
+            }
+            sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None);
+        } else {
+            var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subject, context.executable_ready)));
+            executable_admission_check(state == SemanticPumpResult.Progress && work_task(&context.queries, query).state == WorkState.Succeeded
+                && input != null && input.ready && input.function != null && input.function != subject,
+                "Actual checked body publishes one ordinary executable snapshot", &failures);
+        } }
+    }
+    if second != null {
+        var first = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, context.executable_functions)));
+        var next = bits(SemanticExecutable*, entity_component_data(entity_component_get(second, context.executable_functions)));
+        var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subject, context.executable_ready)));
+        executable_admission_check(first.stage == null && next.stage == null && first.context == null && next.context == null
+            && first.function == null && next.function == null && !input.ready,
+            "Partial executable admission discards acquired stages before cancelling without executing snapshots", &failures);
+    }
+    nodes = entity_store_count(store);
+    components = entity_store_component_count(store);
+    var tasks = context.queries.tasks.length;
+    var retained = program.resource;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        state = sem_executables_pump(&context);
+        executable_admission_check(state == (mode == ExecutableAdmissionMode.Healthy ? SemanticPumpResult.Complete : SemanticPumpResult.Failed)
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks && program.resource.error == retained.error
+            && program.resource.offset == retained.offset && context.workers.running == 0 && context.queries.running == 0,
+            "Repeated executable terminal pumps replay no effects or metadata", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    executable_admission_check(compiler_world_dispose(world), "Executable admission releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    executable_admission_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Executable admission releases its graph grants", &failures);
+    return failures;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var mode = ExecutableAdmissionMode.Healthy;
+    if argc > 1 {
+        if strcmp(argv[1], "partial") == 0 { mode = ExecutableAdmissionMode.PartialTake; }
+        else { if strcmp(argv[1], "query") == 0 { mode = ExecutableAdmissionMode.Query; }
+        else { if strcmp(argv[1], "edge") == 0 { mode = ExecutableAdmissionMode.Edge; }
+        else { if strcmp(argv[1], "access") == 0 { mode = ExecutableAdmissionMode.Access; }
+        else { if strcmp(argv[1], "take") == 0 { mode = ExecutableAdmissionMode.Take; }
+        else { if strcmp(argv[1], "observe") == 0 { mode = ExecutableAdmissionMode.Observe; }
+        else { if strcmp(argv[1], "finish") == 0 { mode = ExecutableAdmissionMode.Finish; }
+        else { if strcmp(argv[1], "healthy") != 0 { puts("Unknown executable admission selector"); return 1; } } } } } } } }
+    }
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += executable_admission_trial(width, workers, mode);
+        }
+    }
+    return failures == 0 ? 0 : 1;
+}

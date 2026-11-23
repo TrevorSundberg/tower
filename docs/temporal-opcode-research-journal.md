@@ -76944,3 +76944,109 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+## ROOT executable-query continuation follow-up on c944 — in progress
+
+Current c944 plus the preserved untracked A1 executable fixture joins into the
+existing KinmenA agent1 clone; no CLI restart or replacement. Container was
+verified init-only before the new ROOT-owned command. Baseline42277 drains0:
+public coherent native towerc/LR/profile, query/editor/fullunits, source hash
+verification and immutable before compiler/profile capture all pass. Logs and
+artifacts /cache/root_executable_baseline_c944. CPU0-11/24GiB/max2 build; no
+other A1/A2 work is alive. This also validates the queue-alias/L2-late source union.
+
+The existing executable request attaches metadata before graph admission and
+asserts query/access/seal success. Its pump treats a failed take as waiting and
+can leave a previously acquired private stage, then asserts observe/finish after
+publishing ready input. A1's earlier before4 logs preserve healthy pass, query
+abort134, take false-wait failure and partial-take abort; no new old-path unsafe
+probe is needed. ROOT draft checks graph operations before metadata, discards
+undispatched stages before cancellation, preserves exact cause/provenance, and
+publishes IMFunctionInput only after successful finish. The unchanged capture
+failure helper moves to internal shared sem_query_check in semantic_context;
+all capture callers reuse it. This introduces no public API or context layout.
+L2's generic declarations/consumer hunks are separately reserved and informed.
+
+The retained executable fixture now includes eight modes x two widths x two
+worker budgets; the earlier four-mode16-case evidence does not validate the
+expanded32. Current smallest-unit/runtime/capture regressions, measured cost,
+instrumentation and full registration are PENDING. Storage/component/dispatch
+assertions in this executable path remain a separate outstanding migration;
+this focused query transition draft does not claim full allocation coverage.
+
+### ROOT executable query checkpoint — current native/profile/instrument evidence
+
+First smallest-unit82404 fails1 with Unknown function entity_stage_discard at
+semantic_execution_work:174; no larger build/runtime starts. Preserve logs in
+/cache/root_executable_after_c944. Add the existing opaque stage-discard extern
+at its direct caller (same signature as semantic_generic_body_work); no producer
+or public ABI change. Retry49659 uses distinct after2 logs and drains0:
+public smallest unit20.65wall/15.88CPU/756292KiB, coherent native21.49/16.00/
+750248, executable32/capture20/registered capture-admission16/query/fullunits
+PASS. Query .21/.22/87596; fullunits20.79/30.72/784836. Tests keep required
+two target widths and budgets1/4, real body/source-proof/lowering producers,
+exact Capacity/Invalid and root83/subject17 provenance. Partial take discards
+the earlier acquired stage before graph cancellation, with no snapshot execution.
+Observe/finish failure leaves input null/not ready; repeated pumps do not create
+metadata, dispatch cancelled consumers or overwrite the first receipt. All owned
+world/graph grants are disposed. No weakened oracle or new scheduler is used.
+
+Four exact ROOT/A1 matching source SHA256 values:
+- semantic_context d08b83d3a9750fea81d9976e1859a96dc6cbafc7402aa76829dbc17828ff9f7d
+- semantic_capture_work eab636589d69ce78ba0f0b67419225236249074b74a2911d41937f2829c1ebe1
+- semantic_execution_work 28e403596afc8997d3a16c8c12883ad8722a284914465c918f3c366ce10fca51
+- semantic_executable_admission_checks 64dbee2e61f895a906d3030b1eebb5499bddf5acd2d097198fd65681ee635436
+
+Matched profile80648 drains0,32 processes: one warmup plus three alternating
+pairs per workload, same actual executable/cwd and immutable resources exported
+from c944:scaffolding. Copies/cmp/hash happen outside timing after prior exits.
+Both binary packages/source/resource freezes and every canonical/entity/component/
+retention pair agree. KinmenA Linux x64/Clang19 native Release, public bootstrap,
+CPU0-11/24GiB, no other A1/A2 job; the other container was verified init-only.
+GNU time supplies whole-process wall/user+system CPU/RSS; the Tower observer
+also records internal phase nanoseconds/CPU. Three units, bodies0/4096, budgets1/4,
+actual outer_peak1/3. No cold-cache or C-toolchain comparison is implied.
+
+| Bodies / workers | Whole wall s before -> after | Whole CPU s before -> after | RSS KiB before -> after | Retained bytes |
+| --- | --- | --- | --- | --- |
+| 0 / 1 | 3.34 -> 3.30 | 3.16 -> 3.12 | 197500 -> 197608 | 15161357 |
+| 0 / 4 | 1.38 -> 1.37 | 4.00 -> 3.97 | 459328 -> 458360 | 15152229 |
+| 4096 / 1 | 4.86 -> 4.87 | 4.68 -> 4.70 | 679460 -> 679724 | 289310046 |
+| 4096 / 4 | 2.72 -> 2.71 | 5.86 -> 5.83 | 936768 -> 934328 | 289300918 |
+
+Whole wall -1.20% to+0.21%, CPU -1.27% to+0.43%, RSS -0.26% to+0.06%;
+retained counts identical. Phase wall medians small1 3298185279->3248644559ns,
+small4 1310926476->1305840917, large1 4526646666->4530438664,
+large4 2347973676->2333356880. Short samples and GNU time precision preclude
+a general speedup/neutrality claim. No new persistent storage is introduced.
+
+Supported instrument build/address36470 drains0: each address/thread standalone
+executable fixture has1003 instrumented definitions, capture98; matching actual
+semantic/evaluation/query/entity provider original+instrumented IR/objects and
+instrument tools/configs are retained in root_executable_sanitizers/*/receipt
+with hashes. Address+LSan three repetitions of32+20 cases (156 total), query and
+real3unit4lane overlap pass with empty stderr. Address overlap internal8.564wall/
+27.696CPU/1125724KiB, outer_peak3 and canonical1173729914654460811.
+
+KinmenA has only docker-desktop WSL, so run the already-built exact thread package
+on existing KinmenB Ubuntu/taskset12-23, not by changing container/host security.
+Package root_executable_thread_runtime.tgz SHA256
+52f985ecea40a69940716d9021b62d4303cc4d983d507a86d516b19acb0f3468 contains executed
+binaries, IR and actual frozen resources. Both transfer hashes, full before/after
+package manifests and required dynamic-library checks pass. Runtime79864 drains0:
+96 executable+60 capture cases, query and real3unit4lane overlap, all stderr empty.
+Thread overlap internal24.094wall/76.154CPU/1460900KiB, outer_peak3 and same
+canonical. These different hosts/instrumentation are correctness evidence,
+not an address/thread performance comparison. No current production allocator
+fault injection, intentional race probe or unsupported UBSan claim substitutes
+for this coverage.
+
+Raw baseline/after2/profile/address/thread-build artifacts remain in KinmenA A1
+cache/root_executable_*; thread runtime logs are KinmenB
+/home/trevo/root_executable_c944, immutable package at coord
+ROOT_executable_thread_c944. Source snapshots verify after final copying.
+D1 receives eight-selector registration request through the existing semantic
+provider factory; no duplicate implementation/CLI context is authorized.
+Component/stage/dispatch error propagation, hold-before-last-view discipline,
+hold exhaustion, later B1/L1 unions and final clean public bootstrap/browser/
+generation/atomic hosted publication remain OPEN. todo hash remains8c39608b.

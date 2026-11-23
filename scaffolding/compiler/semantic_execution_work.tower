@@ -21,6 +21,7 @@ import .library.work_pool;
 
 extern fn entity_query_count(kind: void*): usize;
 extern fn entity_query_at(kind: void*, index: usize): void*;
+extern fn entity_stage_discard(stage: void*): void;
 
 // Derived executable snapshots use ordinary Foundation entities. Source bodies
 // and signatures remain authoritative and available to later checking/proofs.
@@ -57,12 +58,20 @@ fn sem_executables_begin(c: SemanticContext*): void {
 
 fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
     if !sem_ok(c) || !work_ok(&c.queries) { return 0; }
-    sem_executables_begin(c);
     var query = convert(u32, SemanticQuery.ExecutableFunction);
     var existing = work_find(&c.queries, subject, query, 0);
     if existing != 0 { return existing; }
     var body = sem_body_request(c, subject);
     if body == null || !sem_ok(c) || !work_ok(&c.queries) { return 0; }
+    var id = work_request(&c.queries, subject, query, 0);
+    if !sem_query_check(c, subject, id != 0 && work_depend(&c.queries, id, work_find(&c.queries, subject, BodyQuery, 0))) { return 0; }
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    if !sem_query_check(c, subject,
+        work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), body.ordinal, 1, WorkAccessMode.Read)
+        && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)
+        && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), id, 1, WorkAccessMode.Write)
+        && work_seal(&c.queries, id)) { return 0; }
+    sem_executables_begin(c);
     var result = bits(SemanticExecutable*, entity_component_data(entity_component_add(subject, c.executable_functions)));
     sem_require(result != null);
     *result = default;
@@ -74,13 +83,6 @@ fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
     var input = bits(IMFunctionInput*, entity_component_data(entity_component_add(subject, c.executable_ready)));
     sem_require(input != null);
     *input = default;
-    var id = work_request(&c.queries, subject, query, 0);
-    sem_require(id != 0 && work_depend(&c.queries, id, work_find(&c.queries, subject, BodyQuery, 0)));
-    var domain = convert(u64, SemanticWorkDomain.Compiler);
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), body.ordinal, 1, WorkAccessMode.Read));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), id, 1, WorkAccessMode.Write));
-    sem_require(work_seal(&c.queries, id));
     return id;
 }
 
@@ -168,6 +170,15 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         sem_require(result.stage != null && entity_stage_lease(result.stage, result.root));
         sem_require(vector_push(&batch, result));
     }
+    if !work_ok(&c.queries) {
+        foreach(var result in &batch) {
+            entity_stage_discard(result.stage);
+            result.stage = null;
+            result.context = null;
+        }
+        sem_query_check(c, c.program.root, false);
+        return SemanticPumpResult.Failed;
+    }
     if batch.length == 0 { return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete; }
     var context: SemanticContext;
     sem_context_snapshot(&context, c);
@@ -185,7 +196,9 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         result.context = null;
     }
     foreach(var result in &batch) {
-        sem_query_observe(c, &result.ticket, &result.query_reads);
+        if !sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads)) {
+            return SemanticPumpResult.Failed;
+        }
         sem_evaluation_aliases(c, &result.aliases);
         c.count += result.count;
         if c.count > c.node_limit && result.resource.error == WorkBudgetError.None && result.error.length == 0 {
@@ -195,9 +208,12 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
             c.program.error = default;
         }
         var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(result.subject, c.executable_ready)));
+        var ready = result.resource.error == WorkBudgetError.None && result.error.length == 0;
+        if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, ready)) {
+            return SemanticPumpResult.Failed;
+        }
         input.function = result.function;
-        input.ready = result.resource.error == WorkBudgetError.None && result.error.length == 0;
-        sem_require(work_finish(&c.queries, &result.ticket, input.ready));
+        input.ready = ready;
     }
     return SemanticPumpResult.Progress;
 }
