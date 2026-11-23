@@ -88,6 +88,10 @@ part of the document has a semantic error. Executable Foundation presentation
 and nominal layout resolution remain gated by successful checking; failed
 documents retain symbolic annotations/bindings without exposing unfinished type
 layouts. Independently known primitive field types remain usable after errors.
+Inspection node quotas may produce a truncated result. A clone storage failure
+instead disposes the query and returns null; it cannot become a successful
+partial document. Module-cache cloning likewise reports failure and retires its
+private graph before changing any existing cache entry.
 
 `semantic_generic_values.tower` follows member paths through those annotations
 and declaration-based argument bindings. A type function with direct struct

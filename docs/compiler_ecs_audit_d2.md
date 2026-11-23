@@ -1537,3 +1537,181 @@ source-closure rows are not summed into the40 primary tool/benchmark paths.
 All40 assigned primary paths remain inventoried, no new path appeared there.
 D1 owns generic registration and supplied exactb94c; no duplicate harness.
 Only six new v5 bodies were copied, preserving all eight current buffer files.
+
+#### Pinned guard followup and current bootstrap symbol closure
+
+The six arena rows above are now committed in741de29; their source identities
+remain the listed v5 hashes. D1's independent f635 receipt subsequently passes
+the arena/API checks and actual ASan/TSan stress, but does not validate D2's newer
+643 resource-failure ABI or the final source union. No duplicate arena matrix is
+needed merely to reproduce that owner's receipt.
+
+Pinned CPU2 followup resolves the earlier large guard timing concern only to
+this measured extent: five alternating retained serial128-body samples after
+warmup give before/current medians6.061068/6.139582s, CPU6.017704/6.092433s and
+188880/188880KiB RSS. The earlier32% slowdown was not reproduced; the remaining
+1.3% wall difference stays recorded, with overlapping ranges. All twelve runs
+check answer42 and canonical11163853601021039373. Both use the same immutable
+00caeef resources; its longer archived path adds43 charged bytes equally.
+This is a new controlled experiment, not replacement of the original raw data.
+
+At reviewed commit643ceb4, bootstrap_symbols, bootstrap_comparison and the
+verifier caller were re-audited against all seven actual00caeef component
+objects. The unchanged verifier7465f311 rejects24 exact imports:6 parser,
+12 interpreter and6 semantics; utf8/bytes/entities/host pass. Definitions and
+callers establish these as Tower component boundaries:
+
+| Component | Reviewed export owners and caller contract |
+| --- | --- |
+| ParserNodes | world create/dispose/budget and entity-store counts. Parser table/worker buffers use the owning world's budget; frontend units and configured lr_work fixtures own separate worlds and verify cleanup. No ambient world or native implementation is introduced. |
+| Interpreter | host/memory physical buffer size/alignment/allocate/free; compiler/world node-world/bind/budget; format dispose/unsigned; Foundation execution item/reference; strcmp. Interpreter storage and the configured interpreter_call_query fixture use these explicit boundaries. Diagnostic formatting remains synchronous and owned. |
+| Semantics | compiler_unit_kernel dispatch, world budget/reserve/release, frontend_module_root_world_size and type_object_abi_safe. The shared kernel dispatch and semantic context use the common worker budget; source construction and foreign ABI checking call their existing component owners. |
+
+Implementation changes only exact per-unit strings and extends existing
+bootstrap_symbols_checks with wrong-unit/prefix/suffix cases. The parser and
+semantic lists also admit compiler_clone_tree_result after review of exact
+L2 patch25503293 and root's API coordination. Its matched service consumers
+are still pending here; policy approval is not runtime acceptance. No arbitrary
+prefix/native adapter, second registry, allocation or concurrent mutation was
+added. All seven frozen Linux reports now pass verifier6e97faac; public-pin
+smallest checker and existing boundary cases pass. Actual final cross-target
+generation comparison remains required, with any new imports reviewed afresh.
+
+The existing serial checker allocates no storage; its CLI retains the bounded
+nm report unchanged. One before/after measurement per frozen component is below
+GNU time's0.01s wall/CPU resolution. Interpreter peak RSS1348/1352KiB is process
+startup noise, not evidence of a speed or retention improvement. There is no
+parallel work in these tiny checks and no scaling claim. Exact logs, original
+exit1 reports, input object hashes and source checks are retained under
+build/d2_ecs/bootstrap_closure_00caeef.
+
+D1's semantic_resource_checks fixture0751 was read fully and adopted after
+owner corrected-runtime acceptance, together with its existing query-runner
+import/call. Its three trials preserve explicit budget/world ownership,
+source-ordered failure, matching failed tickets, drained peers, no published
+value/replay and complete disposal. Only the entry changed from the original
+standalone draft; no new runner or generic manifest. Independent current ABI
+execution is still pending at this source checkpoint.
+
+Current exact checker also passes actual11-definition ASan with the existing
+instrumented guest boundary, leak detection and unchanged source hashes. The
+first manual link/compile command reinstrumented IR and failed1; its
+shadow-of-shadow disassembly and raw error are preserved. Corrected canonical
+compile-without-sanitize/link-with-sanitize succeeds separately. No threaded
+mutable path was added here, no race-freedom or source-level UBSan claim.
+
+#### Integrated owner receipts at78e955c; measurement refresh
+
+The40 primary tools/benchmarks remain33+7, with no additional primary path.
+All eight owner histories from3915 plus D1 focused registration80ec are now
+integrated on main78e955c. They are not a new runtime pass. Exactfa725bf
+compiler8388c79a/48resources, public units/native and query/resource/units/backend
+checks, fresh symbol closure and pinned cache before/after results are in the
+journal's preceding D2 section. New source changes require affected validation.
+The original missing parser-only target remains a failed command; D1's supported
+conditional module target now supplies the necessary native composition.
+
+These source reviews refresh earlier incoming rows at reviewed commitde3ceea
+(and unchanged in78e955c); hashes distinguish changed revisions without counting
+existing paths again. No additional ownership transfers or speculative rewrites.
+
+| Path / current SHA prefix | Storage, scheduling, ownership and evidence disposition |
+| --- | --- |
+|scaffolding/backend/foreign_tool.tower /aa3c9300|Checked ByteBuffer appends replace the earlier unchecked text helpers; all temporary quoted-name mutations restore before failure, mangler objects close and both paths allocate before ordered writes. Shared driver file helpers replace duplicate transport. Output files can remain partial on write/close error; no atomic pair claim. B2 owner fault/reference evidence, D2 current integration unrun.|
+|scaffolding/tests/foreign_tool_checks.tower /1ac2930b|Same previously reviewed serial fault fixture, now integrated. Checks exact wrapper/source bytes, rejected plain/string/comment/name/wrap allocation failures, input restoration and no retained buffers. No concurrent allocator or all-mangler OOM claim.|
+|scaffolding/tests/entity_locality.tower /dbdab851|Unchanged reviewed explicit store/stable paged payloads versus derived packed copy. Setup/copy and traversal costs remain distinct; Linux usable allocation sizes are not all heap/RSS. Source integrated, no new D2 runtime evidence.|
+|scaffolding/tests/layout_frontier_profile.tower /a72e2c09|Adds cold/warm pool split with separate startup interval to the existing explicit-world frontier workload. Every field offset/size and joined receipt checked. Caller reservation persists through world cleanup. Pool peak remains admission, not interval overlap;0byte budget unbounded, fixed1/2/4/8 requests need host admission. Not a replacement for the separately observed production layout profile.|
+|scaffolding/tests/lr_state_benchmark.tower /4a01d179|New runtime mode retains frozen LR/LALR states and independent serial table reference, checks every action/goto outside construction timing, binds finite shared budget and reports physical retained/peak bytes separately from ledger/RSS. Table destruction returns all byte grants while caller lane stays reserved. State mode unchanged. CPU/switch timing scopes differ as documented; worker counts do not prove overlap. New union runtime unrun.|
+|scaffolding/tests/parser_retention_observer.tower /ce3d2e30|Comment now accurately describes aggregate pooled-reference reconciliation, not per-page census. Joined-world observer deduplicates canonical pages, overflow-checks layout-derived bytes and frees private index. Large individual allocations excluded; exact owner/payload totals do not cover all heap.|
+|scaffolding/tests/parser_retention.tower /3cb4a401|Explicit owned/legacy boundary, derived source lengths and counted raw buffers, repeated reset/declaration/statement release. Observer verifies stable owner totals and page-attributed buffer changes; owned mode requires exact teardown baseline. Serial counter transport required; attribution companion does not waive stricter parser oracle or prove threaded safety.|
+|scaffolding/tests/work_budget_allocation.tower /fe6f0842|Existing serial fail allocator checks first-entry/growth denial leaves receipts, vector identity and counters unchanged; free-slot reuse allocates nothing, stale copy cannot release replacement, final exact baseline.16 rounds are fixture data, no timing/scaling claim. Root/D1 generic registration/runtime remain separate.|
+|scaffolding/tests/module_cache_checks.tower /5376e1d1|Thin synchronous entry into existing frontend_modules_tests; owns no extra graph/scheduler. Nonzero detailed fixture exit retained, requires parser_modules composition and scaffolding cwd. D1 conditional target62b9 supplies that closure without a parser-only matrix. Full malformed/cycle/resolution/session run still pending here.|
+
+The pinned cache control reports no retained-count growth and does not reproduce
+initial first-load slowdown; exact3/18-layer medians and qualification are in the
+journal. Its unchanged093 entry stays a single serial workload even with requested4.
+The physical-buffer ledger, process RSS, canonical entity counts and true overlap
+remain distinct metrics. Public clone non-stack allocation failure distinction
+was routed to L2/A2/B2 with exact source paths; no competing implementation.
+
+### Current remaining scope at 2a8646e (2026-11-23)
+
+This update supersedes the open/implemented classifications at83ca8a6 above;
+the intervening receipts and failures remain historical evidence. Primary
+coverage remains40/40 paths (33tools,7benchmarks), verified against the current
+directory census; bootstrap provenance remains45/45. Incoming owner API reviews
+below are separate from adoption and runtime acceptance. D2 has no heavy job;
+D1 owns the shared Deck slot. This source/documentation review does not change
+runtime code, so new runtime performance/memory measurements are inapplicable.
+
+| Requirement / exact locus | Current disposition and next concrete evidence |
+| --- | --- |
+| Iteration, tools/build_tools.tower build_tool and canonical build entry | The positive compiler budget/default1 and explicit missing-language measurement fix are implemented and measured. D1's current smallest aggregate checks cost34.05s(parser_modules_work)+30.74s(semantics_checks), then canonical native recompiles both. Future validation keeps direct changed-unit checks first and uses the required canonical build for those aggregate checks; no cache or new scheduler is needed. No claim that unexecuted recipe changes already save measured end-to-end time. |
+| Packaging ownership, compiler_project_files/compiler_project_package/bootstrap_package | Explicit request-owned records and derived source/member indexes remain appropriate; ordered archive/filesystem publication is serial. Final current-artifact packaging CPU/RSS/retention still needs measurement. New work_arena_api will be collected by existing library glob/tree traversal once adopted; no manifest edit is necessary. Actual complete package, one provider and undefined/duplicate symbol checks remain required. |
+| Between/within-unit ready work, semantic_layout.tower sem_layout_execute | The older missing grant-refresh claim is now superseded: current code recomputes profitable ready layouts only after running work reaches zero, with prior receipts released after publication. Threshold is8192fields. Current layout_frontier_profile selects8/1024/4096 and therefore cannot establish this worker path. Routed to A1/A2/D1; need checked at/above-threshold spans and actual useful scaling. Backend distinct-thread overlap passes atfa725bf; common Deck jobs2 benefit remains workload-dependent, not universal. |
+| Serial/reference/import measurements, compiler_reference_inputs and module_cache_profile | Frozen16/1000-function and workers/window independent-reference/canonical evidence exists at1461866; current merged CLI repeat is pending. Cache fixdeba07 is independently measured atfa725bf: pinned18-layer warm median309.109ms to549.529us, exact counts/invalidation/teardown; serial cache traversal is not threading evidence. Pinned128-unit control leaves1.3% residual with equal RSS; initial uncontrolled32% slowdown was not reproduced. |
+| Staging, semantic_capture_work/semantic_evaluation_work/interpreter_storage | Production helper readiness, executed-path capture policy, immutable aggregate snapshots and paired typed resource failure are implemented. fa725bf query tests cover32/64,1/4, failed tickets/no replay/drain; initialized-order and aggregate receipts are source-specific. Full42 lifecycle/current full milestone remains open; no new evaluator or Foundation safety policy is introduced. |
+| Failure/stale/lifetime, entity_stage and compiler/generics | Stage membership fast path has checked native/concurrent evidence; semantic_world owner cleanup is now integrated. Exact current shared-source sanitizer/stress remains pending. Public clone-result handoff25503293 and matched B2 consumers are not adopted; non-stack null allocation can still leave CloneStack.error=None in current source, so optional inspection must not silently treat it as quota. L2/A2 own correction. |
+| Physical retention/locality, work_buffer/work_arena/entity storage | Charged physical buffers and worker-private stable arena slices are implemented and measured separately from RSS. Stable paged entity payloads are not packed archetype columns; retained-count observations are not all-heap accounting. Constructor patchfe458 and matched B2 callers remain pending, and that patch explicitly excludes store pages/component payloads. A1 fallible publication/arena adoption is still owner work. |
+| Instrumentation, instrument_llvm and TowerSanitizers.cmake | Actual LLVM19 Tower ASan/TSan support and earlier scoped passes exist; current exact checker ASan passes11definitions. Its failed double-instrumentation experiment is preserved. New union whole-compiler/query/stage/parser/worker validation remains open; source-level UBSan and other-host sanitizer coverage are unsupported, not passed. Do not substitute serial fault counters. |
+| Canonical build/browser/publication, bootstrap_comparison/verify_compiler/playground Checks | Latest D2 compiled package isfa725bf/8388c79a+48resources, not current2a source. D1 independently built0e544 union, but its receipt is not a D2 build identity. Final frozen clean public build, generation/package closure, native/browser/threaded assets, source-reachable provenance and leased atomic main+Pages/hosted verification remain open. Direct host libLLVM19 boundary requires the supported Docker image. Root owns final vendor/backend assembly; no duplicate Deck vendor build. |
+
+#### Arena declaration handoff and packaging closure review
+
+Reviewed exact patch819a9542 and archive2f16b385 without adopting them. The patch
+exports the existing six arena operations and adds the sole provider import to
+compiler/units/entities.tower, already selected by TowerCompilerUtilities.
+No algorithm, nominal layout or second scheduler is added. D2 will inspect actual
+new component imports before extending exact per-unit symbol policy; no prefix
+allowance or speculative catch-all is justified.
+
+| Incoming path / SHA256 | Substantive review and disposition |
+| --- | --- |
+|scaffolding/library/work_arena_api.tower /5df4ac6bffab97dce2a6148216a94260179d54d813d6059475c30fba98bac656|Typed extern declarations import defining arena/budget types; clients borrow the same explicit private owner, with exactly one linked implementation. No allocation, state, world or scheduling hidden in this boundary. Source-only handoff review; joined consumers/full package remain pending.|
+|scaffolding/tests/work_arena_linkage.tower /ada9e5cc4deb3c850ba194c93a49abdeeed028691509d85131bf5bd64208538e|Separate client object exercises all six provider symbols, explicit finite budget, aligned initialized slices, unchanged output on denial, same-budget transfer, retained-byte snapshot and final zero grants. No threads or overlap claim. Native/ASan/TSan receipts reported by A2, not run by D2; generic registration belongs to D1.|
+
+CMakeLists copies top-level library Tower modules into native resources;
+compiler_project_sources traverses the library tree for editable browser sources;
+playground/scripts/build.mjs includes top-level library builtins; bootstrap_collect
+packages the actual executable's complete share tree. These existing paths cover
+the new declaration file after adoption. They do not prove a built artifact has
+the new file or exactly one provider: final package hashes, source comparisons,
+link and symbol checks must establish that. Prior failed read-only searches of
+guessed build-file paths were corrected using the tracked inventory; no check was
+run or counted as passing by those searches.
+
+### Current provider and clone follow-up at63aaba35 (2026-11-23)
+
+This supersedes the earlier current-table claim that public clone25503293 and
+matched consumers were not adopted. Root6b includes the node/attachment Memory
+correction and B2 transactional module/query cleanup. D2's exact6b public native,
+query/full-module/storage/allocations/units/backend checks pass. Nonstaged metadata
+allocation and separately reproduced partial inspection failure remain owner gaps;
+positive editor or clone tests do not establish that missing failure behavior.
+
+The following overlapping provider/caller rows extend the audit, not the40-file
+primary tooling count. Source reviewed at63aaba35 plus D2's five import lines;
+compiled leaf evidence retains5681da4+five-import identity. New owner algorithms
+are reviewed here for build/lifetime composition, not reassigned to D2.
+
+| Path | Storage/world/scheduling/ownership conclusion | Evidence and disposition |
+| --- | --- | --- |
+| scaffolding/compiler/units/interpreter.tower | Existing native execution owner imports the thin Publish kernel; its private arena/derived queue borrow frozen world nodes. No additional authoritative graph or global state. | Native public leaf PASS; exactly one kernel definition and external arena/semantic helpers. Actual native link/runtime pending. |
+| scaffolding/compiler/units/interpreter_browser.tower | Same production provider with existing browser invocation fixtures; browser workers still own their session/input lifetimes. | Native and WASI leaf PASS; one kernel each. Browser threading/linked artifact acceptance remains separate. |
+| scaffolding/compiler/units/interpreter_checks.tower | Parser-check profile selects this instead of the other interpreter entries. It adds no second provider within that artifact. | Public native leaf PASS; nm one kernel. Current full parser-check link and sanitizer closure pending. |
+| scaffolding/compiler/units/evaluation.tower | Existing invocation-only alternative used by LLVM/cross and compile-only tests. Linking it alongside interpreter would duplicate core definitions, so current mutually exclusive recipes are required. | Public native/WASI leaves PASS; each one kernel. No manifest change needed; native alternate and final browser/backend link still required. |
+| scaffolding/compiler/units/evaluation_checks.tower | Explicit import list, not inheritance from evaluation; requires its own same helper import for check profile. Scratch and publication ownership stay in the common helper/coordinator. | Public native leaf PASS, one kernel. No duplicate implementation introduced. |
+| scaffolding/compiler/semantic_known_publish.tower | Private stable arena entries combine identity index and first-seen linked traversal; derived indexes only. Traverses owned executable edges in existing order, omits nested function/type/label bodies. Checked patches/read logs/output vectors suppress canonical publication on failure; vectors retain their older allocation ownership. | Fully reviewed b7; public provider leaves pass. No packed ECS claim, complete memory budget or fallible transport claim. A1 owns kernel;22 registered runtime cases pending locally. |
+| scaffolding/compiler/semantic_known_bindings.tower | Coordinator pre-reserves diagnostics/jobs, joins before ordered publication, releases arena after join; ab603725 rejects cancelled graph before captures or dispatch. | Guard and four-case source reviewed. Owner22-case receipt is source-specific; D2 joined runtime pending. Shared dispatcher fallibility remains a later owner change. |
+| scaffolding/tests/semantic_resource_checks.tower | Existing parameterized helper retains two-peer required/inferred/isolated failure semantics, exact source offset, no replay and final zero grants. Added mode loop covers successful entry allocation then nested storage denial. | Entry-only conflict resolution preserves24 trials. D1 owns generic hook; no duplicated runner or weakened budget/error oracle. |
+| scaffolding/tools/bootstrap_symbols.tower; scaffolding/tests/bootstrap_symbols_checks.tower | Allocation-free exact per-unit borrowed-span policy remains appropriate. Actual6b imports reveal nine stale entries; no wildcard expansion is justified. | Seven actual object reports preserved: four pass, three fail1. Current provider imports require final emitted closure review before narrow policy update. |
+
+Root86 grammar review confirms budgeted fixed rule columns and common-lifetime
+names/captures arena are derived snapshots of immutable ordered grammar entities.
+Existing getters preserve source order/first nonnull anchor; destruction releases
+all buffers and arena before its descriptor. This is not evidence of packed
+world payloads. B1's denied object/retained-minus-one/partial cleanup/retry fixture
+and source-specific native/ASan/TSan/WASI receipts remain qualified in its journal.
+D2 joined provider and grammar performance, current instrumentation and final
+artifact validation are pending. No further runtime measurement is attributed to
+these audit paragraphs themselves.

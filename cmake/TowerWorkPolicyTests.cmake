@@ -21,14 +21,18 @@ add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
 if(policy_triple MATCHES "^x86_64-.*linux")
-  # These fixtures import host.memory; do not link a second copy. Their
-  # failure allocator and transport are deliberately single-owner/serial.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults)
+  # Buffer/arena fixtures import host.memory; the ledger fixture links the
+  # existing memory object. All use the single-owner fault allocator/transport.
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
+    set(fault_memory)
+    if(unit STREQUAL "work_budget_allocation")
+      list(APPEND fault_memory "${host_memory_OBJECT}")
+    endif()
     add_executable(tower-${name}-tests
-      "${${name}_OBJECT}" "${policy_runtime}" "${policy_trap}")
+      "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")
     set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE C)
     target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
     add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
@@ -68,6 +72,21 @@ function(tower_lr_work_policy_test)
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
+
+  if(TOWER_MODULE_TESTS)
+    tower_runtime_object(module-cache-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/module_cache_checks.tower" "${triple}")
+    add_executable(tower-module-cache-tests ${sources} "${module-cache-checks_OBJECT}")
+    set_target_properties(tower-module-cache-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-module-cache-tests PRIVATE ${libraries})
+    target_link_options(tower-module-cache-tests PRIVATE
+      -Wl,--export-dynamic-symbol=work_thread_entry
+      -Wl,--export-dynamic-symbol=backend_register_targets
+      -Wl,--export-dynamic-symbol=backend_thread_entry)
+    add_test(NAME tower-module-cache-regressions COMMAND tower-module-cache-tests)
+    set_tests_properties(tower-module-cache-regressions PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" TIMEOUT 180)
+  endif()
 
   # Explicit Linux x64 clock/rusage measurement, using this same compiler closure.
   # No default build, CTest registration or timing pass threshold.

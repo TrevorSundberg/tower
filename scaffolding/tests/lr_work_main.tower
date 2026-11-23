@@ -5,16 +5,79 @@ import editor_units;
 import body_runs;
 import lr_budget;
 import generic_clone_parallel;
+import generic_inspection_budget;
+import semantic_publish_checks;
 import utility_checks;
+import semantic_lifecycle_checks;
+import .library.vector;
+import .compiler.format_api;
+import .compiler.format_types;
 
 extern fn lr_work_tests(): u32;
 extern fn evaluation_query_tests(width: u32, workers: usize): u32;
 
 extern fn work_thread_available(): bool;
 
+fn lr_lifecycle_case(text: u8*, result: SemanticLifecycleCase*): bool {
+    if text[0] == 0 { return false; }
+    var value: u32 = 0;
+    for(var index: usize = 0; text[index] != 0; index++) {
+        var digit = text[index];
+        if digit < 48 || digit > 57 { return false; }
+        value = value * 10 + convert(u32, digit - 48);
+        if value > convert(u32, SemanticLifecycleCase.LocalAggregateCapture) { return false; }
+    }
+    *result = convert(SemanticLifecycleCase, value);
+    return true;
+}
+
+fn lr_lifecycle_progress(mode: SemanticLifecycleCase, complete: bool): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var formatter: FormatEngine = { result: &text, ..default };
+    format_text(&formatter, "Lifecycle case ");
+    format_unsigned(&formatter, convert(u64, mode));
+    format_text(&formatter, complete ? " complete: 32/64-bit, workers 1/4" : " starting: 32/64-bit, workers 1/4");
+    utility_check(!text.failed && vector_push(&text.text, 0), "Lifecycle progress receipt");
+    puts(text.text.data);
+    fflush(null);
+}
+
+fn lr_lifecycle_range(root: u8*, first: SemanticLifecycleCase, last: SemanticLifecycleCase): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var index = convert(u32, first); index <= convert(u32, last); index++) {
+        var mode = convert(SemanticLifecycleCase, index);
+        lr_lifecycle_progress(mode, false);
+        semantic_lifecycle_range(root, bedrock.data, foundation.data, mode, mode);
+        lr_lifecycle_progress(mode, true);
+    }
+}
+
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
+    if argc >= 3 && strcmp(argv[2], "lifecycle") == 0 {
+        if argc < 4 || argc > 5 {
+            puts("usage: tower-lr-work-tests RESOURCE_ROOT lifecycle FIRST [LAST]");
+            return 1;
+        }
+        var first: SemanticLifecycleCase = default;
+        var last: SemanticLifecycleCase = default;
+        if !lr_lifecycle_case(argv[3], &first)
+            || !lr_lifecycle_case(argc == 5 ? argv[4] : argv[3], &last)
+            || convert(u32, first) > convert(u32, last) {
+            puts("Lifecycle bounds must be ordered decimal case indices from 0 through LocalAggregateCapture");
+            return 1;
+        }
+        utility_check(work_thread_available(), "Lifecycle checks use the uninstrumented native worker profile");
+        lr_lifecycle_range(argv[1], first, last);
+        return 0;
+    }
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|editor|bodies|body-smoke|type-smoke|capture-policy|control-smoke|query-smoke]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|lifecycle FIRST [LAST]]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
@@ -28,10 +91,11 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var bodies = strcmp(suite, "bodies") == 0;
     var smoke = strcmp(suite, "body-smoke") == 0;
     var type_smoke = strcmp(suite, "type-smoke") == 0;
+    var type_errors = strcmp(suite, "type-errors") == 0;
     var capture_policy = strcmp(suite, "capture-policy") == 0;
     var control_smoke = strcmp(suite, "control-smoke") == 0;
     var queries = strcmp(suite, "query-smoke") == 0;
-    if !all && !lr && !units && !backend && !backend_overlap && !editor && !bodies && !smoke && !type_smoke && !capture_policy && !control_smoke && !queries {
+    if !all && !lr && !units && !backend && !backend_overlap && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries {
         puts("Unknown worker test suite");
         return 1;
     }
@@ -43,6 +107,8 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     }
     if all || queries {
         generic_clone_parallel_tests();
+        utility_check(semantic_publish_tests() == 0, "Semantic publication pressure and atomic output");
+        utility_check(semantic_publish_cancellation_tests() == 0, "Cancelled semantic publication never dispatches");
         for(var width: u32 = 4; width <= 8; width *= 2) {
             for(var workers: usize = 1; workers <= 4; workers *= 4) {
                 utility_check(evaluation_query_tests(width, workers) == 0,
@@ -54,10 +120,11 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if all || units { frontend_units_tests(argv[1]); }
     if all || backend { backend_units_tests(argv[1]); }
     if backend_overlap { backend_units_overlap_tests(argv[1]); }
-    if all || editor { editor_units_tests(argv[1]); }
+    if all || editor { editor_units_tests(argv[1]); generic_inspection_budget_tests(argv[1]); }
     if all || bodies { body_runs_tests(argv[1]); }
     if smoke { body_runs_smoke(argv[1]); }
     if type_smoke { body_runs_type_smoke(argv[1]); }
+    if type_errors { body_runs_type_errors(argv[1]); }
     if capture_policy { body_runs_capture_policy(argv[1]); }
     if control_smoke { body_runs_control_smoke(argv[1]); }
     return 0;

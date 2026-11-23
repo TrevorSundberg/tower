@@ -19,7 +19,7 @@ fn parser_table_direct_bytes(table: ParserHostTable*): usize {
     return bytes;
 }
 
-fn parser_table_budget_tests(): void {
+fn parser_table_budget_trial(shape: TableOwnerFixture): void {
     var buffers = tower_test_buffer_count();
     var budget: WorkBudget = default;
     utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Parser table memory ledger");
@@ -27,7 +27,7 @@ fn parser_table_budget_tests(): void {
     utility_check(world != null && compiler_world_bind_budget(world, &budget), "Parser table explicit world budget");
     var kinds: FrontendKinds = default;
     utility_check(frontend_world_test_kinds(world, &kinds), "Parser table world-owned kinds");
-    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var root = table_owner_grammar(&kinds, shape);
     var before: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &before), "Parser table initial memory snapshot");
 
@@ -39,12 +39,41 @@ fn parser_table_budget_tests(): void {
     utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
         "Release competing parser memory reservation");
 
+    var table_bytes = compiler_buffer_allocation_size(sizeof(ParserHostTable));
+    utility_check(work_budget_reserve_result(&budget, 0, 0,
+        before.bytes - before.used_bytes - table_bytes, &occupied) == WorkBudgetError.None,
+        "Permit the table descriptor while denying its grammar storage");
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && table.grammar == null && table.error != null,
+        "Grammar allocation obeys the table world's remaining byte capacity");
+    parser_table_destroy(table);
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Denied grammar construction releases its partial table owner");
+
     table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     utility_check(table != null && table.budget == &budget
         && table.storage.reservation.bytes == compiler_buffer_allocation_size(sizeof(ParserHostTable)),
         "Parser table charges its actual physical object and allocator header");
     var opened: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &opened), "Parser table retained object snapshot");
+    var open_bytes = opened.used_bytes - before.used_bytes;
+    parser_table_destroy(table);
+    utility_check(open_bytes > table_bytes && work_budget_reserve_result(&budget, 0, 0,
+        before.bytes - before.used_bytes - (open_bytes - 1), &occupied) == WorkBudgetError.None,
+        "Deny one byte below the observed retained grammar and table storage");
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && table.grammar == null && table.error != null,
+        "Partial grammar construction publishes no incomplete grammar");
+    parser_table_destroy(table);
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Release grammar retention blocker");
+    var grammar_failed: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &grammar_failed)
+        && grammar_failed.used_bytes == before.used_bytes && grammar_failed.live == before.live,
+        "Denied grammar object and child buffers retire before retry");
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
+    utility_check(table != null && table.grammar != null && table.error == null
+        && work_budget_snapshot(&budget, &opened), "Grammar construction retries after capacity returns");
     utility_check(work_budget_reserve_result(&budget, 0, 0, opened.bytes - opened.used_bytes, &occupied)
         == WorkBudgetError.None, "Deny parser table construction growth");
     utility_check(!parser_table_build(table, false) && table.error != null
@@ -77,4 +106,9 @@ fn parser_table_budget_tests(): void {
     utility_check(work_budget_snapshot(&budget, &reused) && reused.used_bytes == 0 && reused.live == 0
         && work_budget_dispose(&budget), "Parser table ledger outlives and releases all physical owners");
     utility_check(tower_test_buffer_count() == buffers, "Parser table budget checks retain no allocator buffers");
+}
+
+fn parser_table_budget_tests(): void {
+    parser_table_budget_trial(TableOwnerFixture.Sequence);
+    parser_table_budget_trial(TableOwnerFixture.Closure);
 }

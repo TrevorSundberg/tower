@@ -24,7 +24,7 @@ fn resource_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
 }
 
-fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool): SemanticEvaluation* {
+fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bool): SemanticEvaluation* {
     var subject = sem_create(c.program.root);
     var value = sem_attach(subject, KOperand);
     value.type.scalar = SI32;
@@ -36,6 +36,23 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool): SemanticE
     literal.type = value.type;
     literal.constant = true;
     literal.bits = 42;
+    if growth {
+        // Entry frames fit the shared budget. Only the executed nested call
+        // requests this larger frame, after preparation has succeeded.
+        var callee = sem_create(c.program.root);
+        var function = sem_attach(callee, KFunction);
+        function.type = value.type;
+        function.frame_size = 8192;
+        function.body = sem_create(callee);
+        var body = sem_attach(function.body, KBlock);
+        var returned = sem_create(function.body);
+        sem_attach(returned, KReturn).value = input;
+        sem_require(vector_push(&body.items, returned));
+        input = sem_create(c.program.root);
+        var call = sem_attach(input, KCall);
+        call.type = value.type;
+        call.binding = callee;
+    }
     var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
     *result = default;
     result.subject = subject;
@@ -51,18 +68,32 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool): SemanticE
     result.kernel.payload = bits(void*, &result.invocation);
     sem_push(&c.evaluation_jobs, bits(void*, result));
     sem_evaluation_request(c, result);
+    if growth && !inferred {
+        // The required stage consumes the existing production helper-readiness
+        // contract. This checked ordinary callee is already available.
+        var callee = sem_get(input).binding;
+        var executable = bits(IMFunctionInput*, entity_component_data(entity_component_add(callee, c.executable_ready)));
+        *executable = default;
+        executable.function = callee;
+        executable.ready = true;
+    }
     return result;
 }
 
-fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool): u32 {
+fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, growth: bool): u32 {
     var failures: u32 = 0;
     var budget: WorkBudget = default;
     var gate = work_signal_open();
     sem_require(gate != null);
     defer work_signal_close(gate);
     work_signal_post(gate);
-    sem_require(work_budget_init(&budget, workers, 1, 91)
+    sem_require(work_budget_init(&budget, workers, 16384, 91)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    // Each request fits the configured limit, but an existing live owner leaves
+    // insufficient available capacity. A request larger than the total limit
+    // is correctly classified Invalid by the common budget contract instead.
+    var occupied: WorkReservation = default;
+    sem_require(work_budget_reserve_result(&budget, 0, 0, growth ? 15360 : 16383, &occupied) == WorkBudgetError.None);
     var world = compiler_world_create_workers(workers);
     sem_require(world != null && compiler_world_bind_budget(world, &budget));
     var root = entity_create(compiler_world_store(world));
@@ -81,8 +112,8 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool): u
             && work_take_task(&context.queries, &ticket, proof));
         sem_require(work_finish(&context.queries, &ticket, true));
     }
-    var first = resource_stage(&context, 11, inferred);
-    var second = resource_stage(&context, 29, inferred);
+    var first = resource_stage(&context, 11, inferred, growth);
+    var second = resource_stage(&context, 29, inferred, growth);
     context.declaration_isolated = isolated;
     sem_evaluation_pump(&context);
     resource_check(context.workers.running == 0 && first.started && second.started,
@@ -99,6 +130,15 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool): u
         var query = work_find(&context.queries, result.subject, convert(u32, SemanticQuery.Evaluation), 0);
         resource_check(result.ready.ready && result.ready.failed && work_task(&context.queries, query).state == WorkState.Failed,
             "Resource failure never becomes successful optional inference", &failures);
+        resource_check(result.resource_error == WorkBudgetError.Capacity,
+            "Capacity receipt survives interpreter disposal", &failures);
+        if result.resource_error != WorkBudgetError.Capacity {
+            puts(growth ? "Resource trial: nested growth" : "Resource trial: startup");
+            if result.error.length != 0 { puts(result.error.data); }
+            if result.resource_error == WorkBudgetError.None { puts("Retained resource code: None"); }
+            if result.resource_error == WorkBudgetError.Invalid { puts("Retained resource code: Invalid"); }
+            if result.resource_error == WorkBudgetError.Memory { puts("Retained resource code: Memory"); }
+        }
         resource_check(result.invocation.state.memory.data == null && sem_get(result.subject).bits == 0,
             "Failed invocations retire storage without publishing a value", &failures);
         var dispatch = work_task(&context.queries, query).dispatch;
@@ -112,21 +152,25 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool): u
     entity_release(root);
     resource_check(compiler_world_dispose(world), "Resource-denied stages release their world", &failures);
     var snapshot: WorkBudgetSnapshot = default;
-    resource_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    resource_check(!growth || snapshot.peak_bytes > occupied.bytes,
+        "Nested growth denial follows successful charged entry storage", &failures);
+    resource_check(snapshot.used_bytes == occupied.bytes && snapshot.live == 1,
+        "Only the independent capacity holder remains after semantic cleanup", &failures);
+    sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None
+        && work_budget_snapshot(&budget, &snapshot));
+    resource_check(snapshot.used_bytes == 0
         && snapshot.used_lanes == 0 && snapshot.live == 0 && work_budget_dispose(&budget),
         "All resource receipts retire after worker and world cleanup", &failures);
     return failures;
 }
 
-export fn main(argc: i32, argv: u8**): i32 {
+fn semantic_resource_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
-    for(var width: u32 = 4; width <= 8; width *= 2) {
-        for(var workers: usize = 1; workers <= 4; workers *= 4) {
-            failures += resource_trial(width, workers, false, false);
-            failures += resource_trial(width, workers, true, false);
-            failures += resource_trial(width, workers, true, true);
-        }
+    for(var mode: usize = 0; mode < 2; mode++) {
+        failures += resource_trial(width, workers, false, false, mode != 0);
+        failures += resource_trial(width, workers, true, false, mode != 0);
+        failures += resource_trial(width, workers, true, true, mode != 0);
     }
-    if failures == 0 { puts("Semantic resource failures preserve failed receipts and drain peers."); }
-    return failures == 0 ? 0 : 1;
+    return failures;
 }

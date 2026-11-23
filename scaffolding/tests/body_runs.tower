@@ -357,7 +357,12 @@ fn body_runs_type_smoke(root: u8*): void {
     body_runs_smoke_select(root, BodySmokeKind.Types);
 }
 
-enum BodySmokeKind: u32 { All, Types, Control, CapturePolicy }
+// Reuse a completed lifecycle receipt while iterating the remaining type checks.
+fn body_runs_type_errors(root: u8*): void {
+    body_runs_smoke_select(root, BodySmokeKind.TypeErrors);
+}
+
+enum BodySmokeKind: u32 { All, Types, Control, CapturePolicy, TypeErrors }
 
 fn body_runs_capture_policy(root: u8*): void {
     body_runs_smoke_select(root, BodySmokeKind.CapturePolicy);
@@ -431,7 +436,9 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
         return;
     }
     units_read(root, "/tests/body_continuation.tower", &source);
-    if kind != BodySmokeKind.Control { semantic_lifecycle_checks(root, bedrock.data, foundation.data); }
+    if kind != BodySmokeKind.Control && kind != BodySmokeKind.TypeErrors {
+        semantic_lifecycle_checks(root, bedrock.data, foundation.data);
+    }
     body_runs_trial(source.data, 1, 8, bedrock.data, foundation.data, root, &canonical);
     body_runs_trial(source.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
     units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
@@ -453,7 +460,7 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
         puts("Control continuation smoke: serial/worker execution, canonical reparse, cleanup and ordered errors passed.");
         return;
     }
-    if kind == BodySmokeKind.Types {
+    if kind == BodySmokeKind.Types || kind == BodySmokeKind.TypeErrors {
         for(var budget: usize = 1; budget <= 4; budget *= 4) {
             body_runs_binding_errors(budget, bedrock.data, foundation.data, root);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
@@ -468,7 +475,9 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumNames);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumOverflow);
         }
-        puts("Type query smoke: serial/worker execution, canonical reparse and focused failures/cycles passed.");
+        puts(kind == BodySmokeKind.TypeErrors
+            ? "Type query errors: body continuation, canonical reparse and focused failures/cycles passed."
+            : "Type query smoke: serial/worker execution, canonical reparse and focused failures/cycles passed.");
         return;
     }
     body_runs_header_error(4, bedrock.data, foundation.data, root);

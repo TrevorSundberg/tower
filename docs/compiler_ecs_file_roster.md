@@ -1321,3 +1321,53 @@ reviewed in the D1 audit; production ownership is unchanged.
 After staging: 1,064 tracked Tower files / 483 D1 direct files. Existing updated
 query/frontend/backend/buffer fixtures retain their rows. The D1 supporting
 library review is not a replacement for A2's audit or current runtime evidence.
+
+### Typed resource failure regression integration
+
+`scaffolding/tests/semantic_resource_checks.tower` is one new D1 audit path,
+implemented by A1 (original efde967a) and registered by D1 after independent
+A1/B2 after-pass confirmation. Entry-only helper source SHA256
+0b6cbbef608d3b3085b1a471400f98ec78e4359289b94f303c2b8513902e9e6b.
+Every trial body and assertion is preserved. This brings the current tracked
+roster to1,065 Tower files and484 D1 direct files; substantive review and pending
+local execution are distinguished in compiler_ecs_audit_d1.md.
+
+### Root six-lane checkpoint 1fec1b91
+
+Bundle79350aa1 adds seven D1-direct paths: compiler_buffer_contract,
+foreign_tool_checks, generic_clone_fixture, generic_clone_parallel,
+generic_clone_storage, module_cache_checks and token_text (all beneath
+scaffolding/tests with .tower suffix). B2 retains foreign/cache/buffer helper
+implementation reservations, L2 the three clone fixtures, and A1 token_text.
+D1 reviewed every complete body and each changed existing fixture at that exact
+checkpoint, recording conclusions in compiler_ecs_audit_d1.md. New
+scaffolding/backend/execution_functions.tower belongs to B2 and
+scaffolding/benchmarks/compiler_reference_inputs.tower to D2. Total1,074 Tower
+paths /491 D1 direct paths. Local merged runtime remains unrun.
+
+### Root all-eight checkpoint3915aee8
+
+Six additional D1 audit paths beneath scaffolding/tests: entity_locality,
+layout_frontier_profile, lr_state_benchmark, parser_retention,
+parser_retention_observer and work_budget_allocation (all.tower). A2 owns the
+locality/layout/ledger measurement implementations, B1 the LR/retention sources;
+D1 reviewed every complete body and the seven modified existing fixtures.
+Current total1,080 tracked /497 direct D1 paths; all have substantive review,
+without transferring owner implementation scope or claiming merged execution.
+
+### Root grammar checkpoint86e7ec98
+
+Added scaffolding/library/work_arena_api.tower (A2 implementation) and
+scaffolding/tests/work_arena_linkage.tower (A2 specific fixture/D1 full audit).
+D1 reviewed all39 linkage lines plus the complete113-line parser_table_budget
+successor and preserved prior fixture intent. Inventory1,082 total /498 direct,
+all current direct paths substantively reviewed. Runtime remains source-specific;
+new registration and latest merged validation are pending.
+
+### A1 accepted publication ancestorab603725
+
+New compiler/semantic_known_publish belongs to A1; new
+scaffolding/tests/semantic_publish_checks.tower (173lines) is A1's specific test
+and D1's complete direct audit. Existing resource fixture's growth delta and
+entry-only registration conflict were reviewed in full. Counts1,084/499direct.
+Advertised later0e36d5c9 constructor/dispatch additions were not adopted or counted.
