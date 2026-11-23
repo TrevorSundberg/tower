@@ -23,6 +23,12 @@ struct UnitsProfileUsage {
     remaining: i64[13];
 }
 struct UnitsProfileSpan { start: u64; end: u64; thread: usize; }
+struct UnitsProfileEvents { spans: UnitsProfileSpan*; count: usize; phases: usize; }
+var UnitsProfileMaximumUnits: usize = 32;
+var UnitsProfileMaximumBodies: usize = 4096;
+var UnitsProfileBodyBands: usize = 4;
+var UnitsProfileFrontendPhase: usize = 0;
+var UnitsProfileBackendPhase: usize = 1;
 extern fn clock_gettime(clock: i32, out: UnitsProfileTime*): i32;
 extern fn getrusage(who: i32, out: UnitsProfileUsage*): i32;
 extern fn pthread_self(): usize;
@@ -57,9 +63,12 @@ fn units_profile_cpu(usage: UnitsProfileUsage*): u64 {
 }
 
 fn units_profile_event(context: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
-    if phase == CompilerQuery.Backend { return; }
-    units_check(phase == CompilerQuery.Unit, "profile frontend phase");
-    var span = &bits(UnitsProfileSpan*, context)[ordinal - 1];
+    var events = bits(UnitsProfileEvents*, context);
+    units_check((phase == CompilerQuery.Unit || phase == CompilerQuery.Backend)
+        && ordinal != 0 && ordinal <= events.count, "profile phase and ordinal");
+    var index = phase == CompilerQuery.Unit ? UnitsProfileFrontendPhase : UnitsProfileBackendPhase;
+    units_check(index < events.phases, "profile configured phase");
+    var span = &events.spans[index * events.count + ordinal - 1];
     if entering { span.start = units_profile_clock(); span.thread = pthread_self(); }
     else { span.end = units_profile_clock(); }
 }
@@ -81,15 +90,39 @@ fn units_profile_argument(text: u8*): usize {
     return value;
 }
 
+fn units_profile_object_has(data: u8*, length: usize, text: u8*): bool {
+    var count = strlen(text);
+    if count > length { return false; }
+    for(var i: usize = 0; i <= length - count; i++) {
+        var matches = true;
+        for(var j: usize = 0; j < count; j++) { if data[i + j] != text[j] { matches = false; break; } }
+        if matches { return true; }
+    }
+    return false;
+}
+
+fn units_profile_result(function: void*, arguments: u64*, count: usize): void {
+    var invocation: IMInvocation = default;
+    units_check(interpreter_invocation_init(&invocation, function, 8, arguments, count, true, 10000), "profile invocation");
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+    units_check(!invocation.state.failed && invocation.context.result == 42, "profile independent result");
+    interpreter_invocation_dispose(&invocation);
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
-    if (argc != 5 && argc != 6) || sizeof(usize) != 8 { return 2; }
+    if argc < 5 || argc > 7 || sizeof(usize) != 8 { return 2; }
     units_check(work_thread_available(), "profile requires production native worker transport");
-    var backend_mode = argc == 6;
-    if backend_mode && strcmp(argv[5], "backend") != 0 { return 2; }
+    var backend_mode = false;
+    var spread = false;
+    for(var i: i32 = 5; i < argc; i++) {
+        if strcmp(argv[i], "backend") == 0 && !backend_mode { backend_mode = true; }
+        else { if strcmp(argv[i], "spread") == 0 && !spread { spread = true; } else { return 2; } }
+    }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
     var bodies = units_profile_argument(argv[4]);
-    units_check(count != 0 && count <= 32 && budget != 0 && budget <= 32 && bodies <= 4096,
+    units_check(count != 0 && count <= UnitsProfileMaximumUnits && budget != 0
+        && budget <= work_thread_capacity() && bodies <= UnitsProfileMaximumBodies,
         "profile workload bounds");
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
@@ -99,30 +132,45 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_read(argv[1], "/foundation.tower", &foundation);
     var source: ByteBuffer = default;
     defer bytes_dispose(&source);
-    units_profile_text(&source, "import tower; fn answer():i32{return comptime(later());} fn later():i32{return 42;}");
+    units_profile_text(&source, "import tower; ");
+    if backend_mode { units_profile_text(&source, "export "); }
+    units_profile_text(&source, "fn answer():i32{return comptime(later());} fn later():i32{return 42;}");
     var small = source.length;
+    var lengths = alloc(usize, bodies + 1);
+    units_check(lengths != null, "profile body prefix lengths");
+    defer free(lengths);
+    lengths[0] = small;
     for(var i: usize = 0; i < bodies; i++) {
+        if backend_mode { units_profile_text(&source, "export "); }
         units_profile_text(&source, "fn body_"); units_profile_number(&source, convert(u64, i));
         units_profile_text(&source, "(x:i32):i32{var y:decltype(x)=x;for(var j:i32=0;j<4;j++){y+=j;}return y;}");
+        lengths[i + 1] = source.length;
     }
     units_check(host_text_terminate(&source), "profile source terminator");
-    var spans = alloc(UnitsProfileSpan, count);
+    var phases = backend_mode ? UnitsProfileBackendPhase + 1 : UnitsProfileFrontendPhase + 1;
+    var span_count = count * phases;
+    var spans = alloc(UnitsProfileSpan, span_count);
     units_check(spans != null, "profile spans");
-    fill(spans, 0, count * sizeof(UnitsProfileSpan));
+    fill(spans, 0, span_count * sizeof(UnitsProfileSpan));
     defer free(spans);
+    var events = init(UnitsProfileEvents) { spans: spans, count: count, phases: phases };
     var before: UnitsProfileUsage;
     var after: UnitsProfileUsage;
     units_check(getrusage(0, &before) == 0, "profile before usage");
     var started = units_profile_clock();
-    var batch = backend_mode
-        ? frontend_units_create_bounded(count, budget, DriverUnitRetainedByteLimit, 8, 81, 19, bedrock.data, foundation.data, argv[1])
-        : frontend_units_create(count, budget, 8, 81, 19, bedrock.data, foundation.data, argv[1]);
+    // This many-world profile has an explicit per-input ceiling plus one unit
+    // of transient headroom. The production driver's project limit is unchanged.
+    var retained_limit = (count + 1) * DriverUnitRetainedByteLimit;
+    var batch = frontend_units_create_bounded(count, budget, retained_limit,
+        8, 81, 19, bedrock.data, foundation.data, argv[1]);
     units_check(batch != null, "profile batch");
     defer frontend_units_close(batch);
-    units_check(frontend_units_observer(batch, bits(void*, spans), units_profile_event), "profile observer");
+    units_check(frontend_units_observer(batch, bits(void*, &events), units_profile_event), "profile observer");
     for(var i: usize = 1; i <= count; i++) {
+        var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
+            : (i == count ? bodies : 0);
         units_check(frontend_units_source(batch, i, "profile_unit.tower", source.data,
-            i == count ? source.length : small), "profile source snapshot");
+            lengths[unit_bodies]), "profile source snapshot");
     }
     var backend: void* = null;
     if backend_mode {
@@ -138,10 +186,12 @@ export fn main(argc: i32, argv: u8**): i32 {
     // outputs stay identical to the earlier profile without ledger reporting.
     var reservation: WorkBudgetSnapshot = default;
     units_check(work_budget_snapshot(frontend_units_work_budget(batch), &reservation)
-        && reservation.used_lanes == 0, "profile joined budget snapshot");
+        && reservation.used_lanes == 0 && reservation.peak_lanes <= reservation.lanes
+        && reservation.peak_bytes <= reservation.bytes, "profile joined budget snapshot");
     if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
     units_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0, "profile compilation");
     var object_bytes: usize = 0;
+    var object_hash: u64 = 14695981039346656037;
     if backend != null {
         if backend_units_failed(backend) != 0 { puts(backend_units_error(backend)); }
         units_check(!backend_units_cancelled(backend) && backend_units_failed(backend) == 0, "profile backend compilation");
@@ -151,7 +201,11 @@ export fn main(argc: i32, argv: u8**): i32 {
             var data = backend_bytes(result);
             units_check(data != null && data[0] == 127 && data[1] == *"E" && data[2] == *"L" && data[3] == *"F",
                 "profile target object envelope");
+            units_check(units_profile_object_has(data, backend_size(result), "answer"), "profile emitted answer export");
             object_bytes += backend_size(result);
+            for(var i: usize = 0; i < backend_size(result); i++) {
+                object_hash = (object_hash ^ convert(u64, data[i])) * 1099511628211;
+            }
         }
     }
     var hash: u64 = 14695981039346656037;
@@ -160,6 +214,62 @@ export fn main(argc: i32, argv: u8**): i32 {
     var peak: usize = 0;
     var separate_workers = false;
     var worker_ns: u64 = 0;
+    var kernel_peak: usize = 0;
+    var kernel_ns: u64 = 0;
+    var first = started + elapsed;
+    var last_start: u64 = 0;
+    var last_end: u64 = 0;
+    var refill_ns: u64 = 0;
+    var refill_max_ns: u64 = 0;
+    var refills: usize = 0;
+    for(var i: usize = 0; i < span_count; i++) {
+        var span = &spans[i];
+        units_check(span.start >= started && span.end >= span.start && span.end <= started + elapsed
+            && span.thread != 0, "profile all kernel bounds");
+        if span.start < first { first = span.start; }
+        if span.end > last_end { last_end = span.end; }
+        if i < count && span.start > last_start { last_start = span.start; }
+        kernel_ns += span.end - span.start;
+        var active: usize = 0;
+        var previous: u64 = 0;
+        for(var j: usize = 0; j < span_count; j++) {
+            if spans[j].start <= span.start && spans[j].end > span.start { active++; }
+            if j != i && spans[j].thread == span.thread && spans[j].end <= span.start
+                && spans[j].end > previous { previous = spans[j].end; }
+        }
+        if active > kernel_peak { kernel_peak = active; }
+        // These frontend inputs were all ready before dispatch. This interval
+        // also includes receipt publication or legitimate nested lane use; it
+        // is observable thread reuse latency, not proof of avoidable idle time.
+        if i < count && previous != 0 {
+            var gap = span.start - previous;
+            refill_ns += gap; refills++;
+            if gap > refill_max_ns { refill_max_ns = gap; }
+        }
+    }
+    var outer_limit = count < reservation.lanes ? count : reservation.lanes;
+    units_check(kernel_peak <= outer_limit, "profile outer dispatch ceiling");
+    // Integrate unoccupied OUTER slots while at least one frontend remains
+    // unstarted. Nested kernels may occupy the shared lanes during this time;
+    // this is an upper bound on idle capacity, not an eligible-work assertion.
+    var ready_vacancy_ns: u64 = 0;
+    var cursor = first;
+    while cursor < last_start {
+        var next = last_start;
+        var active: usize = 0;
+        var ready: usize = 0;
+        for(var i: usize = 0; i < span_count; i++) {
+            var span = &spans[i];
+            if span.start <= cursor && span.end > cursor { active++; }
+            if i < count && span.start > cursor { ready++; }
+            if span.start > cursor && span.start < next { next = span.start; }
+            if span.end > cursor && span.end < next { next = span.end; }
+        }
+        var vacant = outer_limit > active ? outer_limit - active : 0;
+        if vacant > ready { vacant = ready; }
+        ready_vacancy_ns += (next - cursor) * convert(u64, vacant);
+        cursor = next;
+    }
     for(var i: usize = 1; i <= count; i++) {
         var span = &spans[i - 1];
         units_check(span.end >= span.start && span.start >= started && span.thread != 0, "profile event bounds");
@@ -178,16 +288,25 @@ export fn main(argc: i32, argv: u8**): i32 {
         entities += entity_store_count(store);
         components += entity_store_component_count(store);
         var answer: void* = null;
+        var body: void* = null;
         foreach(var function in &program.functions) {
             var node = sem_get(function);
             if node.name.length == 6 && strcmp(node.name.data, "answer") == 0 { answer = function; }
+            if node.name.length == 6 && strcmp(node.name.data, "body_0") == 0 { body = function; }
         }
         units_check(answer != null, "profile answer binding");
-        var invocation: IMInvocation = default;
-        units_check(interpreter_invocation_init(&invocation, answer, 8, null, 0, true, 10000), "profile invocation");
-        while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
-        units_check(!invocation.state.failed && invocation.context.result == 42, "profile independent result");
-        interpreter_invocation_dispose(&invocation);
+        units_profile_result(answer, null, 0);
+        var unit_bodies = spread ? bodies * ((i - 1) % UnitsProfileBodyBands + 1) / UnitsProfileBodyBands
+            : (i == count ? bodies : 0);
+        if unit_bodies != 0 {
+            units_check(body != null, "profile ordinary loop body binding");
+            var arguments: u64[1]; arguments[0] = 36;
+            units_profile_result(body, &arguments[0], sizeof(decltype(arguments)) / sizeof(u64));
+            if backend != null {
+                var result = backend_units_result(backend, i);
+                units_check(units_profile_object_has(backend_bytes(result), backend_size(result), "body_0"), "profile emitted body export");
+            }
+        }
         var formatted: FormatResult = default;
         format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
             compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
@@ -201,20 +320,45 @@ export fn main(argc: i32, argv: u8**): i32 {
     units_profile_text(&out, ",\"budget\":"); units_profile_number(&out, convert(u64, budget));
     units_profile_text(&out, ",\"bodies\":"); units_profile_number(&out, convert(u64, bodies));
     units_profile_text(&out, ",\"backend\":"); units_profile_number(&out, backend_mode ? 1 : 0);
+    units_profile_text(&out, ",\"spread\":"); units_profile_number(&out, spread ? 1 : 0);
     units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, elapsed);
     units_profile_text(&out, ",\"cpu_us\":"); units_profile_number(&out, units_profile_cpu(&after) - units_profile_cpu(&before));
     units_profile_text(&out, ",\"peak_rss_kib\":"); units_profile_number(&out, convert(u64, after.peak_rss));
     units_profile_text(&out, ",\"outer_peak\":"); units_profile_number(&out, convert(u64, peak));
     units_profile_text(&out, ",\"outer_ns\":"); units_profile_number(&out, worker_ns);
+    units_profile_text(&out, ",\"kernel_peak\":"); units_profile_number(&out, convert(u64, kernel_peak));
+    units_profile_text(&out, ",\"kernel_ns\":"); units_profile_number(&out, kernel_ns);
+    units_profile_text(&out, ",\"outer_limit\":"); units_profile_number(&out, convert(u64, outer_limit));
+    units_profile_text(&out, ",\"shared_lane_limit\":"); units_profile_number(&out, convert(u64, reservation.lanes));
+    units_profile_text(&out, ",\"nested_extra_limit\":"); units_profile_number(&out, convert(u64, reservation.lanes - 1));
+    units_profile_text(&out, ",\"startup_ns\":"); units_profile_number(&out, first - started);
+    units_profile_text(&out, ",\"last_frontend_start_ns\":"); units_profile_number(&out, last_start - first);
+    units_profile_text(&out, ",\"tail_ns\":"); units_profile_number(&out, last_end - last_start);
+    units_profile_text(&out, ",\"ready_outer_vacancy_ns\":"); units_profile_number(&out, ready_vacancy_ns);
+    units_profile_text(&out, ",\"refills\":"); units_profile_number(&out, convert(u64, refills));
+    units_profile_text(&out, ",\"refill_ns\":"); units_profile_number(&out, refill_ns);
+    units_profile_text(&out, ",\"refill_max_ns\":"); units_profile_number(&out, refill_max_ns);
     units_profile_text(&out, ",\"reserved_peak_lanes\":"); units_profile_number(&out, convert(u64, reservation.peak_lanes));
     units_profile_text(&out, ",\"retained_bytes\":"); units_profile_number(&out, convert(u64, reservation.used_bytes));
+    units_profile_text(&out, ",\"byte_limit\":"); units_profile_number(&out, convert(u64, reservation.bytes));
     units_profile_text(&out, ",\"object_bytes\":"); units_profile_number(&out, convert(u64, object_bytes));
+    units_profile_text(&out, ",\"object_hash\":"); units_profile_number(&out, object_hash);
     units_profile_text(&out, ",\"reserved_peak_bytes\":"); units_profile_number(&out, convert(u64, reservation.peak_bytes));
     units_profile_text(&out, ",\"ledger_storage_bytes\":"); units_profile_number(&out, convert(u64, reservation.retained));
     units_profile_text(&out, ",\"entities\":"); units_profile_number(&out, convert(u64, entities));
     units_profile_text(&out, ",\"components\":"); units_profile_number(&out, convert(u64, components));
     units_profile_text(&out, ",\"canonical_hash\":"); units_profile_number(&out, hash);
-    units_profile_text(&out, "}");
+    units_profile_text(&out, ",\"spans\":[");
+    for(var i: usize = 0; i < span_count; i++) {
+        if i != 0 { units_profile_text(&out, ","); }
+        units_profile_text(&out, "{\"phase\":"); units_profile_number(&out, convert(u64, i / count));
+        units_profile_text(&out, ",\"unit\":"); units_profile_number(&out, convert(u64, i % count + 1));
+        units_profile_text(&out, ",\"start_ns\":"); units_profile_number(&out, spans[i].start - started);
+        units_profile_text(&out, ",\"end_ns\":"); units_profile_number(&out, spans[i].end - started);
+        units_profile_text(&out, ",\"thread\":"); units_profile_number(&out, convert(u64, spans[i].thread));
+        units_profile_text(&out, "}");
+    }
+    units_profile_text(&out, "]}");
     units_check(host_text_terminate(&out), "profile JSON terminator");
     puts(out.data);
     // Keep failed observations above. Equal independent units are the control
