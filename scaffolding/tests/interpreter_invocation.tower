@@ -36,7 +36,11 @@ export fn interpreter_invocation_tests(width: u32): u32 {
     var body = invocation_test_node(function, KBlock, width);
     definition.body = body;
     var parameter = invocation_test_node(function, KParameter, width);
-    vector_push(void*, &definition.parameters, parameter);
+    sem_get(parameter).index = definition.locals.length;
+    if !vector_push(&definition.parameters, parameter) || !vector_push(&definition.locals, parameter) {
+        entity_release(root);
+        return 1;
+    }
     var input = invocation_test_node(body, KOperand, width);
     sem_get(input).binding = parameter;
     var one = invocation_test_node(body, KOperand, width);
@@ -76,6 +80,11 @@ export fn interpreter_invocation_tests(width: u32): u32 {
     // Reading a local never initialized by this invocation is a stage error.
     var local = invocation_test_node(body, KDeclare, width);
     sem_get(local).byte_offset = 4;
+    sem_get(local).index = definition.locals.length;
+    if !vector_push(&definition.locals, local) {
+        entity_release(root);
+        return 1;
+    }
     sem_get(input).binding = local;
     interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 100);
     invocation_test_run(&a, 1);

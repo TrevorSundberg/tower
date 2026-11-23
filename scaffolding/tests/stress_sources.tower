@@ -134,6 +134,7 @@ fn stress_wide_functions(out: ByteBuffer*): void {
     stress_name(out, "print(f", StressFunctionCount - 1, "());\n");
 }
 fn stress_llvm_functions(out: ByteBuffer*): void {
+    stress_text(out, "import foundation;\n");
     stress_functions(out, StressFunctionCount, "unit", false);
     stress_name(out, "print(unit", StressFunctionCount - 1, "()); print(unit0());\n");
 }
