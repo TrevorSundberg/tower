@@ -1861,3 +1861,19 @@ cleanup. Inspection-denial fixture remains L2-owned next work; positive editor
 checks alone are not failure coverage. README merge retained one copy of B1's
 runtime-profile paragraph plus every D1 registration and ledger paragraph.
 Earlier0e544 runtime receipts do not validate these new production inputs.
+
+### Approved type-errors selector afterc2d0064
+
+Coordinator/A1 handoff explicitly authorizes only the generic body_runs mode and
+LR entry wiring. Appended TypeErrors preserves prior enum values and all existing
+default/type-smoke/all/control branches. Its wrapper reuses the same body
+continuation, Foundation reparse, serial/four-worker binding and declaration
+negative bodies; only the already separable lifecycle call is bypassed. Success
+text names this narrower suite explicitly. No new fixture or production logic.
+
+The measured0e lifecycle cost is10.14–17.22s per case; repeated unchanged lifecycle
+coverage is the iteration bottleneck this selector avoids. This is evidence reuse,
+not a compiler speedup or permission to skip changed-input checks. New clone
+production in6b means the old0e full42 receipt cannot serve final current release
+acceptance. Smallest public entry compilation, focused new mode and equivalent
+existing-entry measurements await the next D1 heavy slot; current change unrun.

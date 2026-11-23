@@ -75,7 +75,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         return 0;
     }
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|editor|bodies|body-smoke|type-smoke|capture-policy|control-smoke|query-smoke|lifecycle FIRST [LAST]]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|lifecycle FIRST [LAST]]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
@@ -89,10 +89,11 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var bodies = strcmp(suite, "bodies") == 0;
     var smoke = strcmp(suite, "body-smoke") == 0;
     var type_smoke = strcmp(suite, "type-smoke") == 0;
+    var type_errors = strcmp(suite, "type-errors") == 0;
     var capture_policy = strcmp(suite, "capture-policy") == 0;
     var control_smoke = strcmp(suite, "control-smoke") == 0;
     var queries = strcmp(suite, "query-smoke") == 0;
-    if !all && !lr && !units && !backend && !backend_overlap && !editor && !bodies && !smoke && !type_smoke && !capture_policy && !control_smoke && !queries {
+    if !all && !lr && !units && !backend && !backend_overlap && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries {
         puts("Unknown worker test suite");
         return 1;
     }
@@ -119,6 +120,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if all || bodies { body_runs_tests(argv[1]); }
     if smoke { body_runs_smoke(argv[1]); }
     if type_smoke { body_runs_type_smoke(argv[1]); }
+    if type_errors { body_runs_type_errors(argv[1]); }
     if capture_policy { body_runs_capture_policy(argv[1]); }
     if control_smoke { body_runs_control_smoke(argv[1]); }
     return 0;

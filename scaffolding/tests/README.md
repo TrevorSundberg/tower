@@ -976,6 +976,12 @@ prints and flushes start/completion receipts, using the unchanged32/64-bit and
 and `type-smoke` coverage is unchanged. Use separate case invocations for external
 wall/CPU/RSS measurements; an unfinished case has no completion receipt.
 
+`tower-lr-work-tests RESOURCE_ROOT type-errors` runs the existing post-lifecycle
+part of `type-smoke`: body continuation, canonical reparse, binding failures and
+declaration/type cycles for serial/four-worker budgets. Reuse a completed
+lifecycle receipt for the same compiler inputs when iterating these checks.
+This selector does not replace lifecycle coverage; `type-smoke` still runs both.
+
 The serial `tower-frontend-tests RESOURCE_ROOT execution-index` selector runs the
 existing executable-function index fixture, including exact canonical preservation,
 declaration identity and allocation-failure cleanup. The default frontend suite

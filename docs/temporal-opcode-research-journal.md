@@ -59864,3 +59864,14 @@ positions; retained it once with all newer D1 ledger/selector text. Audit/journa
 histories merge intact, no todo change. New runtime remains pending and is not
 credited with the prior0e544 measurements. Root authorizes TypeErrors mode only
 after freeze; it will preserve existing Types/default behavior and share oracles.
+
+D1 implements the root-approved minimal TypeErrors mode/wrapper and LR selector
+afterc2d0064. Every existing body/negative oracle remains shared; existing modes
+keep their lifecycle behavior and messages. The new narrower success message
+cannot be mistaken for a full type-smoke pass. Source-only patch SHA256
+56f043005e92922db5e3aa924c31fd7a0144aae7dae588c71a7da7546549ed2e is exported with
+reverse-apply/diff checks. No production edits or new syntax. Compilation/runtime
+and focused measurement remain pending while D2 owns the heavy lock. The old
+full42 receipt establishes the repeated work's cost; changed clone production
+still needs applicable current checks and final frozen full coverage. D1 does not
+claim identical input closure after this merge or inherited instrumentation.
