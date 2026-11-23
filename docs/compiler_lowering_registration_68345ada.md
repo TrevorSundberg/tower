@@ -66,3 +66,62 @@ Publication: implementation `b3caffd3`, complete-history merge `c164429e` adopts
 all selected native providers, callers, registrations and resources are unchanged.
 Reuse the exact checked binary and evidence; unimported codec/browser fixtures are excluded,
 not relabeled tested. Original and frozen-input hashes reverify; owned work drained.
+
+## Small-serial follow-up: candidate reverted
+
+At published `ae5d34b2`, ROOT had not accepted small-serial neutrality. Exactly
+two additional pairs use the same frozen before/candidate ELFs,16-body source,
+resources, flags,1.25GiB budget and CPU4–7; order before/candidate, candidate/before.
+The original16 observations, hashes and timestamps remain unchanged.
+Read-only local Windows/WSL process censuses found no ROOT/L1 compiler/build job.
+Actual sample PIDs430/499/550/592 all report affinity4–7; the OS measurement shell
+runs on CPU0. ROOT/L1 agents remain eligible on0–15 and consumed1.828/1.891 CPU
+seconds across the61.07s census interval; that is not an isolated-host claim or
+proof of simultaneous CPU use during the3s measurement interval. No job was moved,
+killed or waited out. Samples ran2026-11-23 23:50:13.787–23:50:16.768UTC.
+
+|Run order|Frontend wall/CPU s|Whole process wall/CPU s|Peak KiB|
+|---|---:|---:|---:|
+|Before1|0.614762 /0.503438|0.77 /0.57|165112|
+|Candidate1|0.618859 /0.504224|0.66 /0.53|165248|
+|Candidate2|0.709885 /0.558642|0.75 /0.58|165464|
+|Before2|0.628318 /0.515359|0.67 /0.54|165400|
+
+Frontend midpoint0.621540→0.664372s (+6.89%), CPU0.509399→0.531433s (+4.33%);
+paired wall differences+4.10/+81.57ms. Whole-process midpoints0.720→0.705s,
+CPU0.555→0.555s include variable startup/formatting/teardown. Across the original
+and follow-up observations, all four frontend pairs favor before. Host noise prevents causal certainty,
+but the additional observations do not clear the requested acceptance criterion.
+Revert the five-line guard, preserving history and large candidate evidence;
+the0.04ms slice cannot excuse the whole compilation regression. No new candidate.
+All four exit0, complete source/Foundation bytes equal the original reference,
+known42/42 pass; retained18,325,751B/17,119 grants and peak98,324,599B match,
+joined lanes0 and final checked world/budget disposal succeeds after drain.
+
+Independent guard audit: `sem_phase_begin` is the sole LifecycleLowered creator,
+after both registrations. Partial construction errors cancel/retain first cause;
+phase/frontier callers reject `!work_ok` before existence reuse. Context init
+creates a fresh graph per compile and disposal drains it; semantic code neither
+resets it nor edits revision/profile. Generic `work_reset` clears task/index
+lengths, so `work_find` cannot return an old phase; ticket checks also compare
+revision/profile/dispatch. `sem_run` finishes declarations, generic signatures,
+bodies/pruning and known admission precedes the lifecycle join. Standalone pumps
+without that join still register newly available bodies. Later query pumps may
+service bodies: existence is only this lifecycle's frozen-set contract, not a
+general versioned registration cache. No concrete uncovered invalidation was
+found; no synthetic stale-context assertion or new test was added. Restoration
+removes this extra reliance and retains the original scans.
+
+Restored semantic provider+two links:36.20wall/26.00CPU/1075868KiB, exit0;
+profile ELF byte-identical to original76728e7b. One restoration query-smoke passes
+3.61wall/4.06CPU/353512KiB; no repeated type/control/large or additional samples.
+Raw follow-up: `lowering_prepare_68345ada/small_followup_ae5d34b2`, including four
+timestamped process/affinity snapshots and every result. One transient `/proc/120`
+vanished during read-only enumeration; its error is preserved, not a test failure.
+
+Publication: revert `647bb6fc`, complete-history merge `a93f5444` adopts `ae99ce12`.
+B1's new Foundation page policy changes the merged storage input; refresh only
+the native query runner (3 actions,16.14s), then query-smoke passes4.96wall/
+4.02CPU/350892KiB, executable962c8a98. Matched timing inputs remain the older
+frozen pair; no new page-policy performance claim or extra timing samples.
+Incoming dependency/platform owner receipts remain separate. All owned work drained.
