@@ -597,3 +597,12 @@ message to append NUL; counted propagation is next. Shared semantic_initialize
 root attachment failure belongs to the coordinated L2 producer/consumer chain.
 Current instruments and integrated bootstrap/browser/publication are pending;
 earlier map receipts retain their original source scope.
+
+The bounded follow-up now propagates counted failed-constructor diagnostics
+without mutating the producer's vector. Existing constructor regression checks
+both widths, exact queued source offset, retained storage and no replay; native
+75207 constructor/query passes. Minimal same-path serial/threaded query comparison
+passes; n1 timing limits and preserved fixture failures are in the journal.
+The user assigns remaining shared root initialization to L2 and integrated
+release checks/deployment to ROOT. No IMContext ABI or blanket Fast/output
+migration is included. Final merged-source check and main push follow.

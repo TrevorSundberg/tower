@@ -77998,3 +77998,44 @@ public bootstrap/browser/generation and leased atomic hosted publication remain
 open. ROOT has granted the next sem_create_result/sem_attach_result and owned
 admission closure only after that current instrument milestone. No new helpers
 are adopted during the freeze. The original active goal is not complete.
+### L1 bounded execution ownership completion: counted constructor diagnostics
+
+The direct user request ends the former open-ended lane scheme. This batch
+retains54e4f85 (checked wide calls/root descriptor and borrowed counted session
+sources) and adds only counted interpreter diagnostic propagation plus the
+existing constructor fixture. IMContext ABI and Fast/output buffer ownership do
+not change. L2 owns semantic create/attach/root initialization producers.
+
+ix_construct_type no longer reserves or terminates a failed producer's error.
+The invocation copies its exact count to its own optional presentation; failure
+and source offset are recorded first. Empty diagnostics retain the fallback.
+The real waiting-constructor regression uses every allocated producer byte,
+checks unchanged pointer/capacity/length, exact message and actual FinishValue
+continuation offset, then verifies no operand-effect replay. Both widths pass.
+
+Complete ROOT2252 and L2d3 histories merged cleanly into e055315d. Baseline55330
+completed29-step dependency build111.92s wall/169.29s CPU/751280KiB and existing
+constructor/query checks. Attempt42563 stopped at compile: a quoted character
+is a text pointer in this language; use fixture byte33. No runtime ran.
+Regression69785 and first after29103 failed the combined diagnostic assertion.
+Review found the fixture incorrectly expected the synthetic node's offset:
+the interpreter correctly retains its enclosing queued continuation offset.
+Thus the initial failure alone does not establish which assertion failed.
+Corrected75207 completes focused constructor and query suites, both exit0,
+empty stderr and unchanged source manifests. Constructor cost1.22s wall/
+1.65s CPU/189544KiB; query0.19/.23/74468. These are validation costs.
+
+A minimal same-path comparison reuses the immutable e055 before and corrected
+native binaries/resources. Existing query-smoke includes widths4/8 and workers1/4,
+checks actual staging/cancellation/ownership outputs and clone overlap. One
+process per variant, no warmup: before wall.34s/CPU.28/RSS74052KiB; after
+.21/.24/74504. Both checks and final oracle pass. This tiny mixed-suite sample
+is no statistical speedup/scaling claim; previous native24167 and minimal6
+receipts retain their unchanged scope. Logs are in L1/logs/constructor_counted_*.
+
+A subsequent fetch sees published main6714a03, so the required ff-only pull
+correctly refuses divergent history without changing edits. Commit this batch,
+merge the complete published history, run only the affected native targets and
+focused gates, then push main normally. Naming the fixture phase/step constants
+is included in that final check. Full instruments, scaling, bootstrap/browser/
+generation and hosted deployment remain ROOT's pending integrated milestone.

@@ -20,6 +20,8 @@ extern fn compiler_world_dispose(world: void*): bool;
 
 var ExecutionTypeStorageBytes: usize = 16777216;
 var ExecutionTypeStorageOffset: usize = 37;
+var ExecutionTypeFinishValuePhase: usize = 4;
+var ExecutionTypeResumeBudget: usize = 1000;
 
 fn construction_storage_node(root: void*, width: u32, kind: u32): void* {
     var node = sem_create(root);
@@ -262,6 +264,53 @@ fn execution_type_construction_tests(modules: void*): void {
         construction_test_until_wait(&invocation);
         execution_check(invocation.state.failed && invocation.context.output.length == 4,
             "failed producer terminates even without a ready receipt");
+        interpreter_invocation_dispose(&invocation);
+        construction_test_begin(&invocation, function, width, true);
+        construction_test_until_wait(&invocation);
+        var request = &invocation.context.type_construction;
+        var message = "Constructor producer rejected the requested type";
+        var message_length = strlen(message);
+        execution_check(invocation.context.waiting_type && request.subject == construct
+            && !invocation.state.failed && vector_reserve(&request.error, message_length),
+            "counted constructor failure reaches its real waiting producer");
+        execution_check(invocation.state.frame_count != 0, "waiting constructor retains its frame");
+        var frame = &invocation.state.frames.data[invocation.state.frame_count - 1];
+        execution_check(frame.tasks.length != 0, "waiting constructor retains its continuation");
+        var continuation = frame.tasks.data[frame.tasks.length - 1];
+        execution_check(continuation.node == construct && continuation.phase == ExecutionTypeFinishValuePhase,
+            "waiting constructor retains its actual FinishValue source offset");
+        // Every allocated byte belongs to the diagnostic. The consumer must not
+        // grow or terminate this producer-owned counted span to report failure.
+        var storage = request.error.data;
+        var extent = request.error.capacity;
+        var suffix: u8 = 33;
+        fill(storage, suffix, extent);
+        copy(storage, message, message_length);
+        request.error.length = extent;
+        request.failed = true;
+        construction_test_until_wait(&invocation);
+        execution_check(invocation.state.failed && !invocation.context.returned
+            && invocation.state.error_offset == continuation.offset,
+            "counted constructor failure preserves the continuation source offset");
+        execution_check(request.error.data == storage && request.error.capacity == extent
+            && request.error.length == extent && request.failed && !request.ready,
+            "counted constructor failure preserves producer storage");
+        execution_check(invocation.context.error.length == extent
+            && memcmp(invocation.context.error.data, request.error.data, extent) == 0,
+            "counted constructor failure preserves the exact diagnostic");
+        execution_check(memcmp(request.error.data, message, message_length) == 0,
+            "counted constructor diagnostic retains its prefix");
+        for(var i = message_length; i < extent; i++) {
+            execution_check(request.error.data[i] == suffix, "counted constructor diagnostic retains its suffix");
+        }
+        var steps = invocation.state.steps;
+        var sequence = request.sequence;
+        interpreter_invocation_step(&invocation, ExecutionTypeResumeBudget);
+        var effects = "1\n2\n";
+        execution_check(invocation.state.steps == steps && request.sequence == sequence
+            && invocation.context.output.length == strlen(effects)
+            && memcmp(invocation.context.output.data, effects, strlen(effects)) == 0,
+            "counted constructor failure never replays its operand effects");
         interpreter_invocation_dispose(&invocation);
         construction_test_begin(&invocation, function, width, true);
         invocation.context.type_construction.sequence = ~convert(usize, 0);
