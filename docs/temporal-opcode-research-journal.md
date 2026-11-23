@@ -90175,6 +90175,53 @@ The change against published main is receipt/journal only. Reused unchanged
 compiler/oracle evidence, checked the merged diff and preserved all source/log
 boundaries; no unrelated rebuild or repeat matrix. Normal push follows.
 
+## 2026-11-23 B1 four real ECS semantic-port observations: blocked
+
+Frozen host/resources bcd0e3abf9bd2d970c771133b95d11990defb02c/tree
+b949eaa1c9a06c4128452c97c558e7f430546636 plus transport-only semantic-port patch.
+ROOT eac16533 reactors independently SHA256 checked: portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+Explicit overrides, no rebuild/pin/cap change. KinmenB CPU0-11/24GiB, Node22.23.5,
+fresh single-process test runner per exact anchored case, concurrency1, one180s
+guard each. GNU time covers actual Node/V8 process; no killed-child exclusion.
+
+All four return status1 before their guard: entity_pages50.06wall/100.38CPU s/
+2826728KiB; entity_tables50.41/101.02/2847968; work_graph36.04/73.21/2353568;
+work_resume30.67/66.34/2321244. Each TAP reports exactly1test/1fail/0skip, phases
+only selected name. Preceding32-bit Graph/Fast outputs0 and both canonical
+reparse/output/text-equality checks pass. All fail the unchanged compiled-status
+assertion at LLVM Foundation32 optimize=false: Compiler resource request failed.
+Later reconstructed execution, optimize=true,64-bit and executable LLVM modes
+remain pending, as do unselected cases. This is not a retroactive Deck60s pass,
+leak proof or established Memory category. All original assertions preserved.
+
+One reduced request sequence submits saved entity_pages canonical Tower text
+(1101861bytes, SHA7db91392a90c5d3a85e23899dc4b05c6836635bbc0160de6d79f4c453ed06fbd)
+to a fresh LLVM-only reactor, same entry/resources/options; no preceding portable
+reactor or Graph/Fast execution. It also fails49.33wall/78.50CPU s/2110560KiB,
+exit1, inside its sole180s guard. Exact response status/error plus mapped
+errorFile .tower/tests/entity_pages.tower/errorOffset4998499 preserved. Offset
+exceeds submitted length; do not infer culprit location from that transport map.
+No LLVM/reconstructed text returned, so no invented expansion-stage conclusion.
+Canonical inspected once: imported ECS definitions explain substantial text,
+but size alone does not identify the denied producer. No second reduction.
+
+Concrete handoff: backend/source_session.tower:67 sees program.resource.error
+but calls backend_session_resource_failure without transferring error/offset;
+backend/session.tower:140 reads different backend.resource_error, defaulting to
+generic response. Response-buffer denial also uses that fallback. Both initial
+frontend and reconstructed-source validation use this caller, so exact first
+resource category/stage remains obscured. ROOT/L1 diagnostic boundary and actual
+producer handoff; D2 Foundation investigation separate. No production edits.
+
+Only JS transport changes: honor overrides before default reads, split existing
+phase logs, optional canonical/LLVM artifact saving. Test body/source/expectations,
+widths/profiles remain unchanged. node --check/diff checks pass; complete source
+manifest verified after observations. Logs/commands/manifests/canonical inputs
+and isolated API transport remain build/ecs_b1/cache/semantic_port_bcd0; receipt
+docs/semantic_port_four_bcd0e3ab.md. Four gates FAILED/pending, not passed; no
+full Node/browser/native/generation/sanitizer round. Owned jobs drained, todo
+unchanged; ROOT final release separate. Prior rejected LR receipts untouched.
 Merged acceptance: implementation928764f3 merged complete published bcd0e3ab history as eaa09b9f; the caller conflict preserves D2's bounded execution loops/phases and LLVM trap localization, including the new independent-loader loop using the same execution budget. The16 affected portable units rebuilt through the documented public-bootstrap target. Merged reactor `07135ce36e11e5c2239d0a662c469a43569ca8e8366816e4263658ad1866b620`:6/6 package gates, no skips; large32 normalized direct+independent-load check0 at37.04s/53.26s/1,538,868KiB; real Memory rollback/same-instance retry check0 at81.24s/105.74s/2,097,636KiB. Failure/retry ends with zero handles/views/package bytes/capacity/grants; the Wasm heap stays at its2GiB high-water mark. Original32/64/native/scaling measurements above remain explicitly base94dd evidence, not relabeled merged measurements. The final host-only guard also destroys a just-loaded handle if source-map capture throws, preserving that first exception. The six package gates were rerun after it. JS metadata allocation failure itself was not injected. Node syntax checks for both affected callers pass. Full LLVM-reactor differential/candidate generations and final hosted release remain D2/ROOT pending; no local LLVM reactor was installed and no missing-artifact skip was treated as a pass. No active owned jobs remain before publication.
 ### D1 supplied-artifact and blocked-fixture adoption (2026-11-23)
 
@@ -90389,6 +90436,19 @@ actual failures/metrics remain in type_composition_adopted_controls and
  type_composition_adoption_triage, appended to the external receipt. No passing
 claim for nested negation or for unsupported numeric nominal forwarding.
 
+B1 semantic-port publication reconciliation: required ff-only pull refused
+normal divergence; complete-history merge cff9d3ae062d3185ff0f02e9261b27d4538209dc preserves published5e1c92c9
+without conflicts. Measured semantic-port transport, fixture loader and LLVM
+host are unchanged; Node syntax/diff checks pass. Incoming Tower host hunks
+only register packaged/loaded bytecode handles, APIs not used by this four-case
+slice. A2 entity registration/type/page-policy and semantic inputs did change:
+the old failed observations are NOT acceptance of those newer resources.
+All original frozen hashes, canonical requests, statuses and raw diagnostics
+remain intact; no repeat of the bounded four cases or isolated failure. The
+new inspector/tool and independent owner receipts are preserved, not rerun.
+Source boundary remains bcd0e3ab plus transport patch, reactor eac16533; source
+history is complete and public. Four gates remain unpassed, ROOT/L1 producer
+handoff exact; normal push follows.
 D1 three-gate reconciliation: receipt80ca7d85 merged complete published5e1c92c9
 asbc681ac3 after the required ff-only pull refused divergence. Selected test
 bodies, fixtures, language resources and vector/platform imports are unchanged.
