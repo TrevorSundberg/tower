@@ -1738,3 +1738,43 @@ rejects callable ambiguity before structural call scanning. The same-node
 nominal re-push reuses the just-popped capacity; no artificial reserve-failure
 or manually failed scan is presented as a reachable production regression.
 See the journal's 2026-11-23 L2 declaration-call correction for exact evidence.
+`type-smoke` also registers `imported_alias_checks.tower`: ordinary imported
+stack aliases in inferred/explicit deferred calls, the complete vector/stack/queue
+browser control, vector reference behavior, once-only cleanup effects, qualified
+same-named module constructors and ordered nominal mismatch diagnostics. It
+compares serial/four-worker execution and canonical Foundation, including recompile,
+at32/64-bit widths. Use `imported-alias minimal|containers|controls|scopes 1|4`
+for a small checked process-cost sample; that selector runs only its named case
+at both widths and does not itself compare separate worker processes.
+The bare "imported-alias" selector runs only the complete28-trial alias regression set, for affected merged-source validation without repeating type-smoke's existing lifecycle cases.
+
+### Real compiler component occupancy (ordinary allocator)
+
+The optional `tower-frontend-storage-profile` target links the production compiler
+closure and allocator; it is excluded from the default build. Configure the normal
+native work-test cache, then build only this target:
+
+```sh
+cmake --build build --target tower-frontend-storage-profile --parallel 2
+build/tower-frontend-storage-profile scaffolding 8 1 observe
+build/tower-frontend-storage-profile scaffolding 512 4 plain
+```
+
+Arguments are resource root, independent body count (1..4096), worker budget
+(1 or4), and `observe`/`plain`. Both modes compile the same imported generic,
+`decltype`/`comptime` input, execute reference answers, report comparable canonical
+checksums and dispose to zero byte/lane grants. `plain` skips all storage walks.
+The census runs at coordinator joins, never through a worker/global allocator hook.
+It is not a fault-injection or sanitizer entry point.
+
+CSV `kind` fields: phase, compiler-kind label (or dynamic), local entity ID,
+payload size, live count, live payload bytes, page count, reserved slots, live
+page slots, physical page bytes, strided slot bytes, one-live-slot pages,
+<=25%-occupied pages, individual allocations, individual bytes, instance-index
+bytes. `used` rows report phase/label/ID/ever-used slots in remaining pages;
+`metric` rows give phase/key/value totals and separately identify observer and
+ledger metadata. Core and dynamic component counts are checked against the store.
+Payload pages, descriptor pages and dense pointer indexes must not be added to
+logical payload twice. Raw vectors/foreign allocations and RSS remain separate.
+See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md)
+for exact identities, limits, phase retention and the bounded page-policy proposal.

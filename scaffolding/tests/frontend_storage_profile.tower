@@ -1,0 +1,301 @@
+import tower;
+import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import compiler_dependency_source;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .library.entity_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.component_kinds;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+import .compiler.syntax_version_types;
+import .compiler.semantic_declaration_types;
+
+// Optional coordinator census. No allocator hook, worker callback, global state,
+// mutation of compiler owners or retained query exists. Plain mode does not scan.
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, out: void**): WorkBudgetError;
+extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+extern fn clock_gettime(clock: i32, out: i64*): i32;
+extern fn getrusage(who: i32, out: i64*): i32;
+// Fixed Linux printf ABI, matching the existing profile boundary. Unused trailing
+// arguments are ignored by formats which emit just a scalar metric.
+extern fn printf(format: u8*, phase: u8*, kind: u8*, id: usize, size: usize,
+    count: usize, payload: usize, pages: usize, slots: usize, page_live: usize,
+    page_bytes: usize, stride_bytes: usize, single_pages: usize, sparse_pages: usize,
+    individuals: usize, individual_bytes: usize, index_bytes: usize): i32;
+
+var StorageProfileByteLimit: usize = 2147483648;
+var StorageProfileMaximumBodies: usize = 4096;
+var StorageProfileHashOffset: u64 = 14695981039346656037;
+var StorageProfileHashPrime: u64 = 1099511628211;
+struct StorageSample {
+    count: usize; payload: usize; pages: usize; slots: usize; page_live: usize;
+    page_bytes: usize; stride_bytes: usize; single_pages: usize; sparse_pages: usize;
+    individuals: usize; individual_bytes: usize; index_bytes: usize;
+    used_slots: usize;
+}
+
+fn storage_clock(): i64 {
+    var time: i64[2];
+    units_check(clock_gettime(1, &time[0]) == 0, "storage clock");
+    return time[0] * 1000000000 + time[1];
+}
+fn storage_metric(phase: u8*, key: u8*, value: usize): void {
+    units_check(printf("metric,%s,%s,%zu\n", phase, key, value,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) >= 0, "storage metric output");
+}
+fn storage_row(phase: u8*, name: u8*, kind: Entity*, sample: StorageSample*): void {
+    units_check(printf("kind,%s,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu\n",
+        phase, name, kind.id, kind.data_size, sample.count, sample.payload,
+        sample.pages, sample.slots, sample.page_live, sample.page_bytes,
+        sample.stride_bytes, sample.single_pages, sample.sparse_pages,
+        sample.individuals, sample.individual_bytes, sample.index_bytes) >= 0, "storage kind output");
+    units_check(printf("used,%s,%s,%zu,%zu\n", phase, name, kind.id, sample.used_slots,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) >= 0, "storage used-slot output");
+}
+fn storage_kind_name(world: void*, kind: Entity*): u8* {
+    if compiler_world_type_existing(world, CompilerParserRule) == bits(void*, kind) { return "ParserRule"; }
+    if compiler_world_type_existing(world, CompilerParserReference) == bits(void*, kind) { return "ParserReference"; }
+    if compiler_world_type_existing(world, CompilerParserString) == bits(void*, kind) { return "ParserString"; }
+    if compiler_world_type_existing(world, CompilerParserRange) == bits(void*, kind) { return "ParserRange"; }
+    if compiler_world_type_existing(world, CompilerParserMatch) == bits(void*, kind) { return "ParserMatch"; }
+    if compiler_world_type_existing(world, CompilerSyntax) == bits(void*, kind) { return "Syntax"; }
+    if compiler_world_type_existing(world, CompilerFoundation) == bits(void*, kind) { return "Foundation"; }
+    if compiler_world_type_existing(world, CompilerSyntaxOrigin) == bits(void*, kind) { return "SyntaxOrigin"; }
+    if compiler_world_type_existing(world, CompilerSyntaxExpansion) == bits(void*, kind) { return "SyntaxExpansion"; }
+    return "dynamic";
+}
+fn storage_kind_add(kinds: vector(Entity*)*, kind: Entity*): void {
+    if kind == null { return; }
+    foreach(var existing in kinds) { if existing == kind { return; } }
+    units_check(vector_push(kinds, kind), "storage observer private kind index");
+}
+fn storage_buffer(data: u8*): usize {
+    if data == null { return 0; }
+    var header = bits(EntityBufferAllocation*, data - sizeof(EntityBufferAllocation));
+    return compiler_buffer_allocation_size(header.allocation.capacity);
+}
+fn storage_pages(pool: EntityComponentPool*, sample: StorageSample*): void {
+    var page = pool.owned;
+    while page != null {
+        units_check(page.owner == pool && page.live != 0 && page.live <= page.used
+            && page.used <= page.capacity, "storage physical page owner");
+        sample.pages++; sample.slots += page.capacity; sample.page_live += page.live;
+        sample.used_slots += page.used;
+        sample.page_bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+        sample.stride_bytes += page.capacity * page.stride;
+        if page.live == 1 { sample.single_pages++; }
+        if page.live * 4 <= page.capacity { sample.sparse_pages++; }
+        page = page.owned_next;
+    }
+}
+
+fn storage_observe(world: void*, phase: u8*, enabled: bool): void {
+    if !enabled { return; }
+    var store = bits(EntityStore*, compiler_world_store(world));
+    units_check(store.views == 0 && !compiler_world_grammar(world).workers_busy
+        && compiler_world_grammar(world).workers.running == 0, "storage census after joins");
+    var kinds: vector(Entity*) = default;
+    defer vector_dispose(&kinds);
+    for(var id: u32 = 0; id < CompilerComponentCount; id++) {
+        storage_kind_add(&kinds, bits(Entity*, compiler_world_type_existing(world, id)));
+    }
+    var table_bytes: usize = 0;
+    var column_slots: usize = 0;
+    var rows: usize = 0;
+    for(var bucket: usize = 0; bucket < sizeof(decltype(store.tables)) / sizeof(EntityTable*); bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            units_check(table.pending == 0, "storage joined table reservations");
+            table_bytes += storage_buffer(bits(u8*, table.rows));
+            column_slots += table.capacity * table.arity;
+            rows += table.length;
+            if table.length != 0 {
+                for(var column: usize = 0; column < table.arity; column++) {
+                    storage_kind_add(&kinds, table.columns[column * table.capacity].type);
+                }
+            }
+            table = table.next;
+        }
+    }
+    var payloads: StorageSample = default;
+    storage_pages(&store.storage, &payloads);
+    var descriptors: StorageSample = default;
+    storage_pages(&store.buffers, &descriptors);
+    var all: StorageSample = default;
+    foreach(var kind in &kinds) {
+        var sample: StorageSample = default;
+        sample.count = kind.instance_count;
+        sample.payload = sample.count * kind.data_size;
+        sample.index_bytes = storage_buffer(bits(u8*, kind.instances));
+        var page = store.storage.owned;
+        while page != null {
+            if page.type_id == kind.id {
+                sample.pages++; sample.slots += page.capacity; sample.page_live += page.live;
+                sample.used_slots += page.used;
+                sample.page_bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+                sample.stride_bytes += page.capacity * page.stride;
+                if page.live == 1 { sample.single_pages++; }
+                if page.live * 4 <= page.capacity { sample.sparse_pages++; }
+            }
+            page = page.owned_next;
+        }
+        for(var index: usize = 0; index < kind.instance_count; index++) {
+            var component = kind.instances[index];
+            units_check(component.type == kind && component.type_index == index
+                && component.owner.stage == null, "storage published component index");
+            if component.page == null {
+                sample.individuals++;
+                sample.individual_bytes += compiler_buffer_allocation_size(
+                    bits(EntityComponentAllocation*, component.allocation).allocation.capacity);
+            }
+        }
+        units_check(sample.page_live + sample.individuals == sample.count, "storage kind physical/live census");
+        storage_row(phase, storage_kind_name(world, kind), kind, &sample);
+        all.count += sample.count; all.payload += sample.payload;
+        all.pages += sample.pages; all.page_bytes += sample.page_bytes;
+        all.individual_bytes += sample.individual_bytes; all.index_bytes += sample.index_bytes;
+    }
+    units_check(all.count == store.component_count && all.pages == payloads.pages
+        && all.page_bytes == payloads.page_bytes, "storage complete component census");
+    var budget: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(store.budget, &budget) && budget.used_lanes == 0, "storage joined ledger");
+    var known = all.page_bytes + all.individual_bytes + all.index_bytes + descriptors.page_bytes + table_bytes;
+    units_check(known <= budget.used_bytes, "storage categories do not double count");
+    storage_metric(phase, "entities", store.entity_count);
+    storage_metric(phase, "entity_logical_bytes", store.entity_count * sizeof(Entity));
+    storage_metric(phase, "components", all.count); storage_metric(phase, "live_payload_bytes", all.payload);
+    storage_metric(phase, "payload_pages", all.pages); storage_metric(phase, "payload_page_bytes", all.page_bytes);
+    storage_metric(phase, "descriptor_page_bytes", descriptors.page_bytes);
+    storage_metric(phase, "descriptor_pages", descriptors.pages);
+    storage_metric(phase, "descriptor_slots", descriptors.slots);
+    storage_metric(phase, "descriptor_live", descriptors.page_live);
+    storage_metric(phase, "descriptor_used_slots", descriptors.used_slots);
+    storage_metric(phase, "table_row_column_bytes", table_bytes);
+    storage_metric(phase, "table_rows", rows); storage_metric(phase, "pointer_column_slots", column_slots);
+    storage_metric(phase, "kind_index_bytes", all.index_bytes);
+    storage_metric(phase, "other_ledger_bytes", budget.used_bytes - known);
+    storage_metric(phase, "ledger_live", budget.used_bytes); storage_metric(phase, "ledger_peak", budget.peak_bytes);
+    storage_metric(phase, "ledger_metadata", budget.retained);
+    storage_metric(phase, "observer_vector_bytes", kinds.capacity * sizeof(Entity*));
+}
+
+fn storage_text(out: ByteBuffer*, text: u8*): void {
+    units_check(bytes_append(out, text, strlen(text)), "storage source text");
+}
+fn storage_hash(data: u8*, count: usize): u64 {
+    var hash = StorageProfileHashOffset;
+    for(var i: usize = 0; i < count; i++) { hash = (hash ^ convert(u64, data[i])) * StorageProfileHashPrime; }
+    return hash;
+}
+fn storage_argument(text: u8*): usize {
+    var value: usize = 0;
+    for(var i: usize = 0; text[i] != 0; i++) {
+        units_check(text[i] >= 48 && text[i] <= 57 && value <= StorageProfileMaximumBodies, "storage argument");
+        value = value * 10 + convert(usize, text[i] - 48);
+    }
+    return value;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 5 || sizeof(usize) != 8 { return 2; }
+    var bodies = storage_argument(argv[2]); var workers = storage_argument(argv[3]);
+    var observed = strcmp(argv[4], "observe") == 0;
+    units_check(observed || strcmp(argv[4], "plain") == 0, "storage observation mode");
+    units_check(bodies != 0 && bodies <= StorageProfileMaximumBodies && (workers == 1 || workers == 4)
+        && work_thread_available(), "storage production workload/transport");
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock); defer vector_dispose(&foundation);
+    units_read(argv[1], "/bedrock.tower", &bedrock); units_read(argv[1], "/foundation.tower", &foundation);
+    var source: ByteBuffer = default; var imported: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&imported);
+    storage_text(&source, "import tower;import dependency_shared;fn answer():i32{var ignored:decltype(unused(1));var value:chosen_type()=comptime(pick(false));var next:decltype(identity(value))=comptime(later());return identity(next)+value;}fn later():i32{return 0;}");
+    for(var i: usize = 0; i < bodies; i++) {
+        storage_text(&source, "fn body_"); units_check(host_json_unsigned(&source, convert(u64, i)), "storage body ordinal");
+        storage_text(&source, "(x:i32):i32{var y:decltype(x)=x;for(var j:i32=0;j<4;j++){y+=j;}return y;}");
+    }
+    storage_text(&imported, "import tower;var Selected=comptime(pick(false));");
+    storage_text(&imported, dependency_unit_helpers_source());
+    units_check(host_text_terminate(&source) && host_text_terminate(&imported), "storage source terminators");
+    storage_metric("input", "source_hash", convert(usize, storage_hash(source.data, source.length)));
+    storage_metric("input", "import_hash", convert(usize, storage_hash(imported.data, imported.length)));
+    storage_metric("input", "bodies", bodies); storage_metric("input", "workers", workers);
+    if observed { storage_metric("layout", "SemanticDeclaration", sizeof(SemanticDeclaration)); }
+    storage_metric("input", "source_observer_external_bytes", source.capacity + imported.capacity + bedrock.capacity + foundation.capacity);
+    var gate = work_signal_open(); units_check(gate != null, "storage budget gate");
+    defer work_signal_close(gate); work_signal_post(gate);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, workers, StorageProfileByteLimit, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "storage explicit synchronized budget");
+    var world: void* = null;
+    units_check(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None, "storage world");
+    var environment = frontend_modules_create();
+    units_check(environment != null && frontend_modules_bind_world(environment, world), "storage module owner");
+    frontend_modules_configure(environment, "storage_profile.tower", argv[1]);
+    units_check(frontend_modules_source(environment, "dependency_shared.tower", imported.data, imported.length), "storage imported snapshot");
+    storage_observe(world, "created", observed);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    var installed = syntax_baseline_install(world, environment, bedrock.data, false, &diagnostic)
+        && syntax_baseline_install(world, environment, foundation.data, true, &diagnostic);
+    syntax_version_diagnostic_dispose(&diagnostic); units_check(installed, "storage grammar baseline");
+    storage_observe(world, "baseline", observed);
+    var owner = entity_create(compiler_world_store(world)); units_check(owner != null, "storage program owner");
+    var program: SemanticProgram = default; semantic_initialize(&program, owner, 8);
+    var input: FrontendSource = {data: source.data, length: source.length};
+    var before: i64[18]; var after: i64[18]; // Linux x64 rusage ABI.
+    units_check(getrusage(0, &before[0]) == 0, "storage before usage");
+    var started = storage_clock();
+    frontend_compile_sources(&program, &input, 1, environment);
+    var elapsed = storage_clock() - started;
+    units_check(getrusage(0, &after[0]) == 0, "storage after usage");
+    if program.error.length != 0 { units_check(vector_push(&program.error, 0), "storage error terminator"); puts(program.error.data); }
+    units_check(program.error.length == 0 && program.resource.error == WorkBudgetError.None, "storage healthy compilation");
+    storage_metric("compile", "wall_ns", convert(usize, elapsed));
+    storage_metric("compile", "cpu_us", convert(usize, (after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]));
+    storage_metric("compile", "peak_rss_kib", convert(usize, after[4]));
+    storage_observe(world, "compiled", observed);
+    units_memory_answer(&program);
+    var body: void* = null;
+    foreach(var function in &program.functions) {
+        var node = sem_get(function);
+        if node.name.length == strlen("body_0") && strcmp(node.name.data, "body_0") == 0 { body = function; }
+    }
+    var arguments: u64[1]; arguments[0] = 36;
+    var invocation: IMInvocation = default;
+    units_check(body != null && interpreter_invocation_init(&invocation, body, 8, &arguments[0],
+        sizeof(decltype(arguments)) / sizeof(u64), true, 10000), "storage body invocation");
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+    units_check(!invocation.state.failed && invocation.context.result == 42, "storage body reference");
+    interpreter_invocation_dispose(&invocation);
+    var canonical: FormatResult = default;
+    format_entity(&canonical, program.root, null, null, null);
+    units_check(!canonical.failed, "storage canonical output");
+    storage_metric("output", "canonical_hash", convert(usize, storage_hash(canonical.text.data, canonical.text.length)));
+    storage_metric("output", "canonical_bytes", canonical.text.length);
+    format_dispose(&canonical);
+    semantic_program_dispose(&program); entity_release(owner);
+    storage_observe(world, "program_released", observed);
+    frontend_modules_destroy(environment); storage_observe(world, "modules_released", observed);
+    units_check(frontend_world_clear(world), "storage grammar reset"); storage_observe(world, "cache_cleared", observed);
+    units_check(compiler_world_dispose(world), "storage world teardown");
+    var final: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
+        && final.used_lanes == 0, "storage final zero grants");
+    storage_metric("disposed", "ledger_live", final.used_bytes); storage_metric("disposed", "ledger_peak", final.peak_bytes);
+    storage_metric("disposed", "ledger_metadata", final.retained);
+    units_check(work_budget_dispose(&budget), "storage ledger teardown");
+    return 0;
+}
