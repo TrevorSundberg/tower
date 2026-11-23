@@ -67919,3 +67919,97 @@ Ready to commit this complete producer/consumer/test slice and export full main
 history (root75 plus prior B1 checkpoints), not signatures alone. Publication is
 still unleased; earlier fullfrontend300s timeout remains open. No push or hosted
 verification claimed. Documentation-only evidence additions have no runtime cost.
+
+### D2 complete registration/typed-stage/declaration joins (2026-11-23)
+
+After scoped race repair716e commit/guardedpull/export, independently verified
+D1 full9842 bundle69ca7536 and phase/entity a7dd76b5 plus durable registration
+86cc230a receipt archives. Read final source deltas and actual archived0 statuses;
+merged clean fddf5978. Compiler/backend/library/host/tool/benchmark/reader bytes
+were identical to716e, so this registration-only join did not invalidate that
+reader receipt. D1's normal/address/thread execution remains its own evidence.
+
+Verified ROOT556 bundleb47a3c0a and merged9ddf06b7, then root-routed complete B1
+3992 declaration bundle536b7436 and merged53ec9830 BEFORE any new D2 build.
+Multiple merge bases made a triple-dot review list already-joined source; corrected
+the review to exact endpoint paths and the sole new B1 commit, not source edits.
+Both merges preserve full owner history, todo and owned tools/fixtures. Read
+exact typed stage/view failure preparation/rollback, new world-type result,
+clone-only owning failure frontier and all10 declaration-reader source/test deltas;
+read owner journal/profile/instrumentation scopes. The current33tool/7benchmark
+bytes still equal716e. No new provider or blanket import policy was added.
+
+Typed stage/name/side indexes remain physically unbudgeted despite exact errors.
+Both new stage fixtures already import full entities/stage and host.memory; D1
+received the concrete no-duplicate-provider composition. Fault instrumentation
+remains serial. Existing sourcepackager reads real depfiles and whole source
+trees; new TypeIndex API/types must be checked in exported current closures after
+fresh builds, not inserted as a duplicate provider. Earlier two-unit export.02s/
+2236KiB is not full packaging performance or evidence warranting a cache rewrite.
+
+ROOT's future L2 generic helper exports are source-only instructions until its
+complete producer/client bundle arrives. Current definitions are within semantics,
+while generic_clone_parallel enters LRmain. If only those clients change, exports
+become provider definitions and LR imports, with no production bootstrap allowlist
+addition necessary. Actual emitted symbols remain the decision boundary.
+
+D1 released its next bounded phase/page group; D2 acquired atomic heavy.lock
+08:54:39UTC, same CLI2918222, controller2942397/session43558. Frozen source53ec,
+public9653, own Docker4be584fb/cpus0,2/jobs1/nooverride and existing own native cache.
+Prepared OS-only policy_556/run_native.sh compiles small entity_stage and
+syntax_reader leaves, then canonical native and exact seven actual nm reports.
+Directory name denotes the base join; source_commit/source.sha256 name actual
+53ec+B1 inputs. UNFINISHED at this entry; no new current compiler/runtime claim.
+Disk136GiB free/RAM9.9GiB available/preexisting swap5.8GiB. Final compiler consumers,
+current instrumentation, clean bootstrap/browser/generation and publication remain
+open. Documentation updates during this run do not mutate its frozen import closure.
+
+### D2 exact parser provider-policy repair on53ec (2026-11-23)
+
+Frozen source53ec9830 joins complete ROOT556+B1 declaration3992. Smallest stage
+leaf5.43wall/5.34CPU/206696KiB and readerleaf26.93/26.51/639116 pass. Canonical
+public native16targets pass170.01/166.12/740688, no override, same jobs1/cpus0,2/
+Docker4be584fb/public9653/LLVM19.1.1. All measured swaps0. Native compilerc6917748
+and50 adjacent resources are copied/verified byte-for-byte; older cache directory
+name f13c8f6 is not the new source identity. No current runtime/query acceptance
+is inferred from building/linking the compiler.
+
+The unchanged policy then fails parser1 on compiler_world_type_result,
+entity_component_add_result, entity_create_related_result and entity_create_result.
+Other six actual native reports pass. Read exact implementations/callers and
+actual entities object definitions; all are existing shared-world providers.
+After all children drain, add only four ParserNodes names and positive/prefix/
+suffix/wrong-unit tests in the existing owned Tower fixture. No wildcard,
+check-only allocator hooks, new provider or broad formatting change. B1's new
+reader/declaration exports appear as definitions rather than additional imports
+in the checked production units; they require no speculative policy entry.
+
+After source freeze, smallest fixture compile5.88wall/5.68CPU/179936KiB, link and
+all cases pass. Canonical build-bootstrap.sh --tools verify_bootstrap_symbols
+passes6.64/6.42/196516. Checker66496c8683228bdd88d72bd31a362cdd5b7819c875feaaf52afa533a9ca40f54
+passes the same seven actual native reports. Fresh public WASI parser27.06/26.72/
+759644 compiles and passes the new checker; preserved old checker fails1 on
+that same report's four names. Before/after scans below.01s wall/CPU,1348–1352KiB
+RSS. These are equivalent frozen symbol inputs and intended rejection-to-pass
+behavior, not a performance gain; the new exact comparisons own no allocations
+or parallel work. No allocation/retention census is inferred from RSS, and single
+compile samples do not measure compile-speed change.
+
+Exact changed fixture public IR then canonical instrument_llvm address/thread,
+clang19-O1 object and runtime-only sanitizer link pass.11 emitted definitions,
+4ASan/11TSan access hooks and matching guest providers verified; ordinary and
+instrumented stdout match, empty errors, LSan/halt-on-error enabled. Address
+.02wall/.01CPU/13988KiB; thread.01wall/below.01CPU/27440KiB. This serial checker
+has no actual worker path; it does not sanitize the threaded compiler or establish
+source UBSan/system-library coverage. All processes drained and source manifests
+pass before09:02:00UTC slot release/D1 handoff; no idle lock held for archival work.
+
+Full receipt D2/policy_53ec_receipt.tar SHA
+ff9a5d3f1b1ee9abcfc6a2746e4edcbc1e81c54f683ce3b485b4a42fd489a2fb
+(34MiB): source archiveb20a5a51, exact two-file patch23980e3d, complete new compiler/
+resources, before/after checkers, native objects/provider reports, WASI parser,
+normal/instrumented products and raw source/time/status/failure logs. Sessions
+43558(nativepass then policy1),49596(afterpolicy0),28882(instrumented0) retained.
+Other current WASI consumers and current runtime/query/full packaging performance/
+cleanbootstrap/browser/generation/final integrated sanitizer/atomic publication
+remain open. No new user approval, publication lease or hosted pass is claimed.

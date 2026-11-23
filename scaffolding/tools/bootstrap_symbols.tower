@@ -96,6 +96,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Grammar admission retains exact results from the existing entities unit.
+        if bootstrap_symbol_in("compiler_world_type_result entity_component_add_result entity_create_related_result entity_create_result", symbol, length) { return true; }
         // Grammar snapshots use the world ledger and the entities arena provider.
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocation_size compiler_world_bind_budget work_arena_allocate work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
         // Table buffers share the world ledger; frontend unit lifecycle and
