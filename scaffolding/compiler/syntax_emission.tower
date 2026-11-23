@@ -18,6 +18,7 @@ import .library.work_budget_types;
 // Lower shared grammar declarations into ordinary parser entities. These name
 // and provenance indexes are disposable; the input entities remain authoritative.
 extern fn entity_create_related_result(node: void*, error: WorkBudgetError*): void*;
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 extern fn entity_create_related(node: void*): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
@@ -369,10 +370,11 @@ fn emission_child(value: SyntaxEmission*, parent: void*, kind: void*, payload: u
         value.failed = true;
         return null;
     }
-    var data = entity_component_data(entity_component_add(node, kind));
+    var data = entity_component_data(entity_component_add_result(node, kind, &error));
     missing = data == null;
     if missing {
         entity_release(node);
+        value.resource_error = error == WorkBudgetError.None ? WorkBudgetError.Invalid : error;
         value.failed = true;
         return null;
     }
