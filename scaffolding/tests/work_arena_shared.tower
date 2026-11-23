@@ -1,5 +1,6 @@
 import tower;
 import .library.work_arena;
+import .library.work_arena_types;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;

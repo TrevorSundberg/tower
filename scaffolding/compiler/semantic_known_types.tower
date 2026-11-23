@@ -3,6 +3,8 @@ import compiler_kernel;
 import semantic_context_types;
 import .library.vector;
 import .library.work_graph;
+import .library.work_arena_types;
+import .library.work_budget_types;
 
 enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
 
@@ -36,4 +38,8 @@ struct SemanticKnownWork {
     patches: vector(SemanticKnownPatch);
     query_reads: vector(usize);
     storage: vector(SemanticKnownStorage);
+    // Publish scratch never escapes the worker. The receipt remains available
+    // for source-ordered failure selection after all readers have joined.
+    scratch: WorkArena;
+    resource_error: WorkBudgetError;
 }

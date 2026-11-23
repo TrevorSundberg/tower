@@ -39,6 +39,9 @@ extern fn sem_evaluations(c: SemanticContext*): void;
 extern fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_evaluation_prepare_all(c: SemanticContext*): void;
 extern fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void*;
+// Late publication requires completed proof/lowering prerequisites. It drains
+// every dispatched peer before selecting errors or replacing canonical values.
+extern fn sem_known_publish(c: SemanticContext*): void;
 extern fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration*;
 extern fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult;

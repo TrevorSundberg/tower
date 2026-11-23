@@ -1,5 +1,6 @@
 import tower;
 import work_buffer;
+import work_buffer_types;
 import work_budget_types;
 import work_arena_types;
 

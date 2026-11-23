@@ -3,18 +3,21 @@ import .library.work_budget_types;
 import semantic_known_types;
 import semantic_context_types;
 import compiler_kernel;
+import worker_policy;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
 import semantic_evaluation;
 import semantic_expressions;
 import semantic_known_bindings;
+import semantic_known_publish;
 import semantic_source_bindings;
 import semantic_support;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
+import .library.work_arena;
 
 
 extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
@@ -22,6 +25,9 @@ extern fn entity_table_query_count(query: void*): usize;
 extern fn entity_table_query_ranges(query: void*): usize;
 extern fn entity_table_query_range_count(query: void*, index: usize): usize;
 extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+
+var SemanticKnownArenaChunkBytes: usize = 4096;
+var SemanticKnownDiagnosticBytes: usize = 128;
 
 fn sem_known_candidate(subject: void*): bool {
     var value = sem_get(subject);
@@ -59,6 +65,7 @@ fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
 
 fn semantic_known_kernel(result: SemanticKnownWork*): void {
     if result.action == SemanticKnownAction.Bind { semantic_source_binding_kernel(result); return; }
+    if result.action == SemanticKnownAction.Publish { semantic_known_publish_kernel(result); return; }
     if result.action == SemanticKnownAction.Inputs {
         var pending: vector(void*) = default;
         defer vector_dispose(&pending);
@@ -79,7 +86,6 @@ fn semantic_known_kernel(result: SemanticKnownWork*): void {
     context.query_reads = &result.query_reads;
     var pending = sem_list(&context);
     var seen = sem_table(&context);
-    if result.action == SemanticKnownAction.Publish { sem_push(pending, result.subject); }
     sem_push(pending, result.root);
     for(var at: usize = 0; at < pending.length; at++) {
         var subject = pending.data[at];
@@ -115,86 +121,11 @@ fn semantic_known_kernel(result: SemanticKnownWork*): void {
                 sem_push(pending, sem_get(value.binding).body);
             }
         }
-        if result.action == SemanticKnownAction.Publish {
-            var declaration = value.kind == KDeclare;
-            var binding = sem_known_binding(&context, declaration ? subject : value.kind == KOperand ? value.binding : null);
-            if binding == null || binding.evaluation == null { continue; }
-            var evaluation = sem_evaluation_get(&context, binding.evaluation);
-            sem_query_input(&context, binding.evaluation, convert(u32, SemanticQuery.Evaluation));
-            if !evaluation.ready.ready || evaluation.ready.failed { continue; }
-            var patch: SemanticKnownPatch = default;
-            patch.subject = subject;
-            patch.literal = evaluation.literal;
-            patch.declaration = declaration;
-            sem_require(vector_push(&result.patches, patch));
-        }
     }
-    if result.action == SemanticKnownAction.Publish { sem_known_storage(&context, result, pending); }
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
     vector_dispose(&context.lists);
     foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
     vector_dispose(&context.allocations);
-}
-
-// A successful ordinary interpreter result permits removal of its runtime
-// initializer. Build compacted indexes privately, keeping every lowered range
-// intact until all ranges have been inspected. Rejected/effectful candidates
-// retain their storage and execution order.
-fn sem_known_storage(c: SemanticContext*, result: SemanticKnownWork*, nodes: vector(void*)*): void {
-    var dropped = sem_table(c);
-    var removed = sem_table(c);
-    var dead = sem_list(c);
-    foreach(var &patch in &result.patches) {
-        if !patch.declaration { continue; }
-        // Retain the declaration and its metadata without disabling the normal
-        // immutability/staging proof or substituting its executable uses.
-        if sem_get(patch.subject).attributes.length != 0 { continue; }
-        var binding = sem_known_binding(c, patch.subject);
-        if binding.block == null { continue; }
-        var block = sem_get(binding.block);
-        for(var at = binding.begin; at < binding.end; at++) {
-            var item = block.items.data[at];
-            if item != null {
-                sem_state(c, dropped, item).number = 1;
-                sem_push(dead, item);
-            }
-        }
-    }
-    for(var at: usize = 0; at < dead.length; at++) {
-        var node = dead.data[at];
-        if node == null { continue; }
-        var mark = sem_state(c, removed, node);
-        if mark.number != 0 { continue; }
-        mark.number = 1;
-        var value = sem_get(node);
-        if value != null { sem_known_edges(dead, value); }
-    }
-    var containers = sem_table(c);
-    foreach(var node in nodes) {
-        if node == null { continue; }
-        var value = sem_get(node);
-        if value == null || (value.kind != KProgram && value.kind != KFunction && value.kind != KBlock) { continue; }
-        var visit = sem_state(c, containers, node);
-        if visit.number != 0 { continue; }
-        visit.number = 1;
-        var update: SemanticKnownStorage = default;
-        update.subject = node;
-        foreach(var item in &value.items) {
-            update.replace_items ||= item == null || sem_find(dropped, null, item) != null;
-        }
-        foreach(var local in &value.locals) { update.replace_locals ||= sem_find(removed, null, local) != null; }
-        if update.replace_items {
-            foreach(var item in &value.items) {
-                if item != null && sem_find(dropped, null, item) == null { sem_push(&update.items, item); }
-            }
-        }
-        if update.replace_locals {
-            foreach(var local in &value.locals) {
-                if sem_find(removed, null, local) == null { sem_push(&update.locals, local); }
-            }
-        }
-        if update.replace_items || update.replace_locals { sem_require(vector_push(&result.storage, update)); }
-    }
 }
 
 fn sem_known_storage_publish(result: SemanticKnownWork*): void {
@@ -235,6 +166,10 @@ fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, 
     result.action = action;
     result.kernel.kind = CompilerKernelKind.KnownBinding;
     result.kernel.payload = bits(void*, result);
+    if action == SemanticKnownAction.Publish {
+        sem_require(work_arena_init(&result.scratch, compiler_world_work_budget(compiler_node_world(c.program.root)),
+            SemanticKnownArenaChunkBytes));
+    }
     return result;
 }
 
@@ -316,6 +251,9 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     // the view or publishing graph observations; the component owns its output.
     var context = *c;
     foreach(var result in &batch) { result.context = &context; }
+    if query_kind == SemanticQuery.KnownPublish {
+        sem_require(vector_reserve(&c.program.error, SemanticKnownDiagnosticBytes));
+    }
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     var receipt: WorkReservation;
@@ -323,10 +261,23 @@ fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, q
     defer sem_workers_release(c, &receipt);
     sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, batch.length, extra));
     entity_view_close(view);
+    var failed: SemanticKnownWork* = null;
     foreach(var result in &batch) {
         result.context = null;
         sem_query_observe(c, &result.ticket, &result.query_reads);
-        sem_require(work_finish(&c.queries, &result.ticket, true));
+        sem_require(work_finish(&c.queries, &result.ticket, result.resource_error == WorkBudgetError.None));
+        if failed == null && result.resource_error != WorkBudgetError.None { failed = result; }
+    }
+    if failed != null {
+        var message = "Cannot allocate semantic publication storage";
+        if failed.resource_error == WorkBudgetError.Capacity { message = "Semantic publication memory budget exceeded"; }
+        if failed.resource_error == WorkBudgetError.Invalid { message = "Invalid semantic publication storage request"; }
+        var length = sem_length(message);
+        sem_require(length < c.program.error.capacity);
+        copy(c.program.error.data, message, length + 1);
+        c.program.error.length = length;
+        c.program.error_offset = sem_get(failed.subject).start;
+        return SemanticPumpResult.Failed;
     }
     return SemanticPumpResult.Progress;
 }
@@ -338,12 +289,13 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
     while state == SemanticPumpResult.Progress { state = sem_known_jobs_pump(c, &jobs, query_kind, &first); }
     // Ordered late phases call this only after their prerequisites have drained.
     // Early proof consumers retain jobs and use the pump directly instead.
-    sem_require(state == SemanticPumpResult.Complete);
+    sem_require(state == SemanticPumpResult.Complete || (state == SemanticPumpResult.Failed && !sem_ok(c)));
     return jobs;
 }
 
 fn sem_known_jobs_dispose(jobs: vector(SemanticKnownWork*)*): void {
     foreach(var job in jobs) {
+        work_arena_dispose(&job.scratch);
         vector_dispose(&job.candidates);
         vector_dispose(&job.mutations);
         vector_dispose(&job.patches);

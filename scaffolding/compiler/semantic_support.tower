@@ -11,6 +11,9 @@ import semantic_modules;
 import .library.stack;
 import .library.vector;
 import .library.float_text;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget_types;
 
 extern fn compiler_buffer_allocate(bytes: usize): void*;
 extern fn compiler_buffer_free(pointer: void*): void;
@@ -537,6 +540,41 @@ fn sem_entry(c: SemanticContext*, t: SemanticTable*, text: u8*, entity: void*): 
     sem_insert(t, result);
     t.count++;
     return result;
+}
+
+// Fallible common-lifetime storage uses the same semantic index and identity
+// rules as ordinary scratch. Existing entries remain stable through growth;
+// a failed insertion never publishes a partial entry or replaces the output.
+fn sem_entry_arena(arena: WorkArena*, table: SemanticTable*, text: u8*, entity: void*,
+    output: SemanticEntry**): WorkBudgetError {
+    var found = sem_find(table, text, entity);
+    if found != null { *output = found; return WorkBudgetError.None; }
+    var maximum = ~convert(usize, 0);
+    if table.count >= maximum / 2 { return WorkBudgetError.Invalid; }
+    if (table.count + 1) * 2 >= table.capacity {
+        if table.capacity > maximum / 2 { return WorkBudgetError.Invalid; }
+        var capacity = table.capacity < 8 ? 16 : table.capacity * 2;
+        if capacity > maximum / sizeof(SemanticEntry*) { return WorkBudgetError.Invalid; }
+        var memory: u8* = null;
+        var error = work_arena_allocate_result(arena, capacity * sizeof(SemanticEntry*), alignof(SemanticEntry*), &memory);
+        if error != WorkBudgetError.None { return error; }
+        var previous = *table;
+        table.entries = bits(SemanticEntry**, memory);
+        table.capacity = capacity;
+        fill(table.entries, 0, capacity * sizeof(SemanticEntry*));
+        for(var i: usize = 0; i < previous.capacity; i++) {
+            if previous.entries[i] != null { sem_insert(table, previous.entries[i]); }
+        }
+    }
+    var memory: u8* = null;
+    var error = work_arena_allocate_result(arena, sizeof(SemanticEntry), alignof(SemanticEntry), &memory);
+    if error != WorkBudgetError.None { return error; }
+    var entry = bits(SemanticEntry*, memory);
+    *entry = init(SemanticEntry) {text: text, entity: entity, ..default};
+    sem_insert(table, entry);
+    table.count++;
+    *output = entry;
+    return WorkBudgetError.None;
 }
 
 fn sem_lookup_table(t: SemanticTable*, text: u8*): void* {

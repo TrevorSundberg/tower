@@ -256,7 +256,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     }
 }
 
-fn sem_known_publish(c: SemanticContext*): void {
+export fn sem_known_publish(c: SemanticContext*): void {
     if !sem_ok(c) || c.known_bindings == null { return; }
     sem_captures_finalize(c);
     var kind = sem_known_kind(c);
@@ -267,6 +267,8 @@ fn sem_known_publish(c: SemanticContext*): void {
         if block != null { sem_known_job(c, kind, function, block, function, count++, SemanticKnownAction.Publish); }
     }
     var jobs = sem_known_jobs(c, kind, count, SemanticQuery.KnownPublish);
+    defer sem_known_jobs_dispose(&jobs);
+    if !sem_ok(c) { return; }
     foreach(var job in &jobs) {
         foreach(var &patch in &job.patches) {
             var value = sem_get(patch.subject);
@@ -282,5 +284,4 @@ fn sem_known_publish(c: SemanticContext*): void {
         }
     }
     foreach(var job in &jobs) { sem_known_storage_publish(job); }
-    sem_known_jobs_dispose(&jobs);
 }
