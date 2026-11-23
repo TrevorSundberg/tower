@@ -58,6 +58,7 @@ fn world_constructor_trial(cap: usize, allowed: usize, wanted: WorkBudgetError):
 
 export fn world_constructor_tests(): void {
     utility_check(!work_thread_available(), "World constructor allocation faults require serial transport");
+    world_bare_clone();
     world_component_results();
     world_metadata_results();
     var unlimited = ~convert(usize, 0);
@@ -88,6 +89,44 @@ extern fn entity_stage_hold(stage: void*): void;
 extern fn entity_stage_discard(stage: void*): void;
 extern fn entity_retain(node: void*): usize;
 extern fn entity_references(node: void*): usize;
+extern fn entity_store_create(): void*;
+extern fn entity_store_dispose(store: void*): bool;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, error: WorkBudgetError*): void*;
+extern fn syntax_origin_copy_result(world: void*, source: void*, destination: void*): WorkBudgetError;
+
+fn world_bare_clone(): void {
+    var buffers = tower_test_buffer_count();
+    var store = entity_store_create();
+    var other = entity_store_create();
+    var source = entity_create(store);
+    var child = entity_create(store);
+    var destination = entity_create(store);
+    var foreign = entity_create(other);
+    utility_check(source != null && child != null && destination != null && foreign != null
+        && entity_attach(child, source, "leaf"), "Bare-store clone prepares ordinary containment");
+    entity_release(child);
+    var original = bits(Entity*, source);
+    var count = original.child_count + 1;
+    var copied: usize = 0;
+    var error = WorkBudgetError.Memory;
+    var clone = compiler_clone_tree_result(source, count, &copied, &error);
+    var tree = bits(Entity*, clone);
+    utility_check(clone != null && error == WorkBudgetError.None && copied == count
+        && clone != source && tree.store == original.store && tree.child_count == original.child_count
+        && tree.children[0].entity != bits(Entity*, child) && tree.children[0].entity.parent == tree
+        && tree.component_count == 0 && tree.children[0].entity.component_count == 0
+        && utility_equal(tree.children[0].name, "leaf", 5),
+        "Bare-store cloning preserves ordered names without requiring compiler metadata");
+    utility_check(compiler_node_copy_metadata_result(source, destination) == WorkBudgetError.None
+        && syntax_origin_copy_result(null, source, destination) == WorkBudgetError.None
+        && compiler_node_copy_metadata_result(source, foreign) == WorkBudgetError.Invalid
+        && syntax_origin_copy_result(null, source, foreign) == WorkBudgetError.Invalid,
+        "Metadata-free serial copies are no-ops only within their actual store");
+    entity_release(clone); entity_release(source); entity_release(destination); entity_release(foreign);
+    utility_check(entity_store_dispose(store) && entity_store_dispose(other)
+        && tower_test_buffer_count() == buffers, "Bare-store clone retires all original and copied owners");
+}
 
 // Ordinary allocation denial is serial. Successful staged copies queue immutable
 // history and acquire ownership only after join, before the source view closes.

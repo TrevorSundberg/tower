@@ -76165,3 +76165,90 @@ before claiming current negative-control coverage. ROOT-owned linker world/budge
 contract, final merged instrumentation/clean bootstrap/browser/generation and
 leased atomic publication remain open. Audit/documentation changes themselves
 have no runtime profiling applicability.
+### ROOT child containment leases and standalone clone compatibility
+
+Take over ordinary A2 shared-entity work without restarting its service-flagged
+session. Re-run A2's saved containment follow-up against dba on B2: actual two
+failed assertions/exit1, safely restoring the stranded old-parent reference for
+cleanup. Logs build/root_child_lease_before preserve source hashes and original
+LLVM/object/executable. This is a confirmed defect: replacement releases a leased
+displaced child through a guarded no-op, and take mutates a leased child's parent.
+
+Add entity_replace_child_result and entity_take_last_child_result, retaining old
+wrappers. Check all affected leases/pins before mutation; reject null, foreign,
+already-attached and out-of-range replacements, and check new-retain overflow.
+Valid removal transfers the existing parent reference, with no allocation/retain.
+None plus null reports a valid empty parent. Existing lease and mutation fixtures
+cover the actual old defect, exact result codes, unchanged failure state, preserved
+name/order, exhausted-counter boundaries, successful retry and allocation-free
+operations under next-allocation denial. Existing fixture registrations suffice;
+new entity_child_transfer_profile is measurement only, not a default test.
+
+L2 independently identifies a regression in ROOTdba's new metadata boundary:
+compiler_clone_tree_result explicitly supports standalone stores without a
+CompilerWorld; the new legacy wrapper aborts instead of preserving the metadata
+no-op. Add a real two-node bare-store clone to existing world_constructor.
+First fixture compile fails at its opaque Entity*/void* boundary; preserve
+root_metadata_bare_before/build.log, fix only explicit handle conversions.
+The second attempt actually aborts134 on the old strict producer; retain
+root_metadata_bare_before_retry. Serial same-store/no-world metadata and provenance
+copies now succeed without registering/copying compiler components. Null/cross-store
+inputs still return Invalid; staged copying still requires an explicit world.
+The regression checks distinct cloned identities, ordered name/parent structure,
+exact copied count, no metadata components and zero retained owners.
+
+Four public child leaves, native lease/mutation/observer fixtures, and coherent
+native allocations/query/fullunits pass. Child-only instrumentation passes three
+lease, three actual mutation/fault and three real concurrent-stage executions per
+mode; actual stage finalizations57792. Supported Tower LLVM instrumentation covers
+159/161 function definitions in the respective standalone fixtures. Current query
+and real three-unit/four-lane overlap also pass. First thread fixture link fails
+because this cache lacks runtime-instrumented.o; preserve the failed link log,
+build only its existing object targets, relink and resume unfinished thread checks.
+Do not rerun or relabel the already passing address group. No security changes.
+
+After the metadata correction, three changed public leaves and final native
+allocations/raw-clone/query/fullunits pass (units22.828wall/33.608CPU/906572KiB).
+Final fresh address and thread builds/checks include the new allocation/raw-clone
+fixture plus query and real unit overlap. Session20001 drains0 with source manifest
+verification0; TSan overlap actualouter_peak3 and canonical1173729914654460811,
+24.857wall/78.370CPU/1438248KiB. ASan/LSan allocation selector17.074wall/16.993CPU/
+793652KiB. No findings. Child-only receipts remain scoped to their preceding
+metadata revision; final joined receipts are build/root_child_final_sanitizers
+and /home/trevo/root_child_final_dba, not an assertion of universal race freedom
+or supported source UBSan.
+
+KinmenB CPU12-23/24GiB, quiet grant11:56:35, warm native cache, same /work cwd:
+profile54029 passes32 compiler processes plus24 short transfer processes and all
+exact output/retention/source/resource/binary checks, then releases B1's hold.
+Compiler pairs use one fixed executable installation path and immutable d3
+resources; before is the saved dba-equivalent metadata binary, after includes
+both corrections. Warmup plus three alternating pairs, three units; medians
+(wall ns; CPU us; RSS KiB):
+- bodies0/jobs1:3206517720 ->3156352809;3203554 ->3153288;197508 ->197532.
+- bodies0/jobs4:1312731615 ->1295263564;4107830 ->4035874;464164 ->460164.
+- bodies4096/jobs1:4504211250 ->4520302378;4495084 ->4512789;679828 ->679648.
+- bodies4096/jobs4:2357365508 ->2355497768;5686398 ->5662995;940964 ->940180.
+Wall -1.56 to+0.36%, CPU -1.75 to+0.39%, RSS -0.86 to+0.01%; retained bytes
+match per case15161358/15152230/289310047/289300919. Parallel outer_peak3.
+These combined small-n observations are not attributed as a general speedup.
+
+The isolated child-transfer observer uses unchanged source and the actual
+before/after entity implementations, a second identical executable path, warmup
+plus five alternating pairs per size. It checks two replacements/takes/reattaches
+per round, references/order and complete disposal. For1024 rounds, phase median
+14558 ->14598ns (+0.27%), CPU21 ->21us. For1048576 rounds,14261646 ->14471755ns
+(+1.47%), CPU14268 ->14479us (+1.48%). Measured descriptor/child-array storage
+stays2264B; this is not total heap accounting. Phase RSS1076 ->1084KiB small,
+1060 ->1076KiB large. Whole-process medians2.543 ->2.702ms small and17.145 ->
+17.400ms large; process peak RSS1132 ->1336KiB and1080 ->1348KiB, recorded
+separately from the timed phase. Small startup variance is not a throughput claim.
+All raw56 records are in build/root_child_profiles; no favorable-sample rerun.
+
+The complete B1 attachment result a856/ac65 and D2 affinity cbe histories are
+fetched/reviewed but not included in these isolated runtime receipts. Consumer
+propagation, held-reference overflow/aliasing, raw node/label buffers, module/
+linker budgets, current joined registrations, final clean public-bootstrap/browser/
+generation validation and atomic hosted publication remain open. No new contexts,
+force pushes or todo edits. Current disk space remains sufficient; no evidence
+or other agent's build was deleted.
