@@ -52,7 +52,6 @@ struct GenericAnalysis {
     resolve_types: bool;
     budget: usize;
     truncated: bool;
-    storage_error: WorkBudgetError;
 }
 
 fn generic_info(node: void*, component: void*): GenericInfo* {
@@ -132,6 +131,7 @@ fn generic_info_dependent(node: void*, component: void*, depth: usize): bool {
 }
 
 fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     var annotation = meaning.annotation;
     if annotation == null {
         return;
@@ -157,19 +157,8 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
 }
 
 fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, types: SemanticScope*, depth: usize): void {
+    if node == null || !generic_step(a, depth) { return; }
     var next = depth + 1;
-    if node == null {
-        return;
-    }
-    if depth == InspectionDepthLimit {
-        a.truncated = true;
-        return;
-    }
-    if a.budget == 0 {
-        a.truncated = true;
-        return;
-    }
-    a.budget--;
     var c = a.context;
     var declaration = generic_info(node, a.component);
     var name: void* = null;
@@ -260,14 +249,16 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
         values = sem_scope(c, values);
         types = sem_scope(c, types);
     }
-    for(var i: usize = 0; i < sem_child_count(node); i++) {
+    for(var i: usize = 0; i < sem_child_count(node) && c.program.resource.error == WorkBudgetError.None; i++) {
         var child = sem_child(node, i);
         if child != name {
             generic_info_walk(a, child, values, types, next);
         }
     }
+    if c.program.resource.error != WorkBudgetError.None { return; }
     if declaration != null {
         generic_info_type(a, declaration);
+        if c.program.resource.error != WorkBudgetError.None { return; }
         if name != null {
             generic_info_bind(a, name, node);
         }
@@ -281,16 +272,14 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
 // Query clients opt into this pass; executable compilation still checks each
 // concrete instance normally. Type/value bindings stay on the source entities.
 fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
+    *truncated = false;
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     var component = sem_create(c.program.root);
     sem_require(entity_register(component, sizeof(GenericInfo), alignof(GenericInfo), 0));
-    var a: GenericAnalysis = default;
-    a.context = c;
-    a.component = component;
-    a.resolve_types = resolve_types;
-    a.budget = InspectionNodeLimit;
-    a.truncated = false;
+    var a: GenericAnalysis = {context: c, component: component, resolve_types: resolve_types,
+        budget: InspectionNodeLimit, ..default};
     var i: usize = 0;
-    for(; i < c.template_nodes.length && a.storage_error == WorkBudgetError.None; i++) {
+    for(; i < c.template_nodes.length && c.program.resource.error == WorkBudgetError.None; i++) {
         var definition = c.template_nodes.data[i];
         a.definition = definition;
         a.constructor = sem_equal(sem_tokens(c, sem_member(definition, "type")), "type");
@@ -326,11 +315,11 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.
     i = 0;
-    for(; i < c.template_nodes.length && a.storage_error == WorkBudgetError.None; i++) {
+    for(; i < c.template_nodes.length && c.program.resource.error == WorkBudgetError.None; i++) {
         a.definition = c.template_nodes.data[i];
         generic_value_walk(&a, a.definition, 0);
     }
     *truncated = a.truncated;
-    if a.storage_error != WorkBudgetError.None { return null; }
+    if c.program.resource.error != WorkBudgetError.None { return null; }
     return component;
 }

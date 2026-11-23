@@ -7,6 +7,8 @@ import .compiler.semantic_work_ids;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .library.work_graph;
+import .library.work_budget;
+import .library.work_budget_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
@@ -21,10 +23,18 @@ fn type_receipt_check(ok: bool, message: u8*): void {
 
 enum TypeReceiptCase: u32 {
     Complete, SemanticFailure, StaleRevision, StaleProfile, StaleDispatch,
-    ChangedSequence, ChangedOperand, Cancelled, WrongDependency, WrongTarget
+    ChangedSequence, ChangedOperand, Cancelled, WrongDependency, WrongTarget,
+    RequestCapacity, CompletionCapacity, CompletionControl
 }
 
+var TypeReceiptBudgetBytes: usize = 1024 * 1024;
+
 fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
+    var terminal = mode == TypeReceiptCase.CompletionCapacity || mode == TypeReceiptCase.CompletionControl;
+    var bounded = mode == TypeReceiptCase.RequestCapacity || terminal;
+    var budget: WorkBudget = default;
+    var occupied: WorkReservation = default;
+    if bounded { sem_require(work_budget_init(&budget, 1, TypeReceiptBudgetBytes, 1)); }
     var world = compiler_world_create_workers(1);
     type_receipt_check(world != null, "Type request world");
     var root = entity_create(compiler_world_store(world));
@@ -32,6 +42,12 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     semantic_initialize(&program, root, width);
     var context: SemanticContext = default;
     sem_context_init(&context, &program);
+    if bounded {
+        // The existing query owner is empty. All its later allocations retain
+        // one ledger; never rebind an already allocated graph to another owner.
+        work_dispose(&context.queries);
+        sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    }
     context.generics = generic_begin(root);
     sem_evaluation_begin(&context);
     var owner = sem_create(root);
@@ -45,6 +61,7 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     invocation.pointer_bytes = convert(usize, width);
     var subject = sem_create(owner);
     var operation = sem_attach(subject, KTypeConstruct);
+    operation.start = 37;
     operation.op = convert(u32, TypeConstructionKind.Integer);
     operation.type = { scalar: SType, pointer_bytes: width, ..default };
     var request = &invocation.type_construction;
@@ -62,11 +79,28 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     if mode == TypeReceiptCase.StaleProfile { ticket.profile++; }
     if mode == TypeReceiptCase.StaleDispatch { ticket.dispatch++; }
     if mode == TypeReceiptCase.WrongTarget { invocation.pointer_bytes = width == 4 ? 8 : 4; }
+    if mode == TypeReceiptCase.RequestCapacity {
+        // Reach actual retained capacity before admission; the next real
+        // request needs storage, independently of the initial growth policy.
+        while context.queries.tasks.length < context.queries.tasks.capacity {
+            sem_require(work_request(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot),
+                convert(u64, context.queries.tasks.length)) != 0);
+        }
+        sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+            &occupied) == WorkBudgetError.None);
+    }
     var query = sem_type_execution_request(&context, owner, request, &ticket);
+    if mode == TypeReceiptCase.RequestCapacity {
+        type_receipt_check(query == 0 && program.resource.error == WorkBudgetError.Capacity
+            && program.resource.offset == operation.start
+            && !request.ready && !context.queries.cancelled && context.queries.running == 1,
+            "Denied constructor registration retains typed failure without publishing a receipt");
+    }
     if rejected {
         type_receipt_check(query == 0 && program.error.length != 0 && context.type_executions == null
             && !request.ready, "Stale/target receipt rejected before publication");
-    } else {
+    }
+    if !rejected && mode != TypeReceiptCase.RequestCapacity {
         type_receipt_check(query != 0 && sem_type_execution_request(&context, owner, request, &ticket) == query,
             "Repeated admission has one request identity");
         if mode == TypeReceiptCase.WrongDependency {
@@ -75,11 +109,53 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
             sem_require(work_suspend(&context.queries, &ticket, unrelated));
             sem_require(work_demand(&context.queries, query));
         } else { sem_require(work_suspend(&context.queries, &ticket, query)); }
+        if terminal {
+            // Real demanded peers fill the retained ready queue. Taking the
+            // constructor removes its slot but does not shrink the queue; its
+            // terminal consumer enqueue is the next required growth.
+            while context.queries.ready.length < context.queries.ready.capacity {
+                var peer = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot),
+                    convert(u64, context.queries.tasks.length));
+                sem_require(peer != 0 && work_seal(&context.queries, peer) && work_demand(&context.queries, peer));
+            }
+            sem_require(context.queries.ready.length == context.queries.ready.capacity
+                && work_task(&context.queries, evaluation).state == WorkState.Waiting
+                && work_task(&context.queries, query).state == WorkState.Ready);
+            request.result = { scalar: SU8, pointer_bytes: width, ..default };
+            if mode == TypeReceiptCase.CompletionCapacity {
+                sem_require(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+                    &occupied) == WorkBudgetError.None);
+            }
+            var outcome = sem_type_execution_pump(&context);
+            // Succeeded proves the pump reached work_finish, beyond request
+            // admission and construction. No receipt may escape a failed enqueue.
+            type_receipt_check(work_task(&context.queries, query).state == WorkState.Succeeded,
+                "Constructor terminal enqueue phase was reached");
+            if mode == TypeReceiptCase.CompletionCapacity {
+                type_receipt_check(outcome == SemanticPumpResult.Failed && !request.ready
+                    && request.result.scalar == SU8 && program.resource.error == WorkBudgetError.Capacity
+                    && program.resource.offset == operation.start
+                    && context.queries.cancelled && context.queries.running == 0,
+                    "Denied terminal enqueue preserves unpublished result and typed failure");
+                var offset = program.resource.offset;
+                program.error.length = 0;
+                sem_resource_record(&program, WorkBudgetError.Memory, offset + 1);
+                type_receipt_check(program.resource.error == WorkBudgetError.Capacity
+                    && program.resource.offset == offset && sem_type_execution_pump(&context) == SemanticPumpResult.Failed
+                    && !request.ready, "Optional text recovery cannot revive a failed constructor receipt");
+            } else {
+                type_receipt_check(outcome == SemanticPumpResult.Progress && request.ready && !request.failed
+                    && request.result.scalar == SI32 && program.resource.error == WorkBudgetError.None
+                    && work_task(&context.queries, evaluation).state == WorkState.Ready,
+                    "Same terminal queue pressure succeeds with available storage");
+            }
+        }
         if mode == TypeReceiptCase.Cancelled {
             work_cancel(&context.queries);
             type_receipt_check(sem_type_execution_pump(&context) == SemanticPumpResult.Failed && !request.ready,
                 "Cancelled graph cannot publish a type descriptor");
-        } else {
+        }
+        if !terminal && mode != TypeReceiptCase.Cancelled {
             if mode == TypeReceiptCase.ChangedSequence { request.sequence++; }
             if mode == TypeReceiptCase.ChangedOperand { request.first++; }
             var outcome = sem_type_execution_pump(&context);
@@ -116,10 +192,15 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     semantic_program_dispose(&program);
     entity_release(root);
     type_receipt_check(compiler_world_dispose(world), "Type request world and invocation cleanup");
+    if bounded {
+        if occupied.active { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); }
+        type_receipt_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget),
+            "Constructor resource failure releases every retained graph grant");
+    }
 }
 
 export fn type_execution_receipt_tests(width: u32): void {
-    for(var mode: u32 = 0; mode <= convert(u32, TypeReceiptCase.WrongTarget); mode++) {
+    for(var mode: u32 = 0; mode <= convert(u32, TypeReceiptCase.CompletionControl); mode++) {
         type_execution_receipt_trial(width, convert(TypeReceiptCase, mode));
     }
 }

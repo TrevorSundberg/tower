@@ -464,7 +464,9 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
             sem_require(c.declaration_subjects != null);
             sem_declaration_add(c, result);
             sem_declaration_discover(c);
-            if sem_ok(c) { sem_require(work_demand(&c.queries, sem_declaration_query(c, result))); }
+            if sem_ok(c) && !work_demand(&c.queries, sem_declaration_query(c, result)) {
+                sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result));
+            }
         } else { sem_type_fields(c, result); }
         entry.number = 0;
         return t;

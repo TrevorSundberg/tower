@@ -22,6 +22,7 @@ import foundation_types;
 import foundation_tags;
 import .library.vector;
 import .library.work_graph;
+import .library.work_budget_types;
 
 // Static identity forms use the existing type producer graph. Resolve ordinary
 // callees first: a user function named function is still an ordinary call.
@@ -213,6 +214,7 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
 // Returns true only when a changed continuation needs readmission. Waiting
 // dependencies are installed by the declaration executor after publication.
 fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool {
+    if !sem_ok(c) { return false; }
     var work = result.constructor;
     if work.phase == SemanticConstructorPhase.Call {
         if work.definition == null && sem_type_identity_call(c, result.subject) {
@@ -255,6 +257,11 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
         if prior.query == 0 && sem_declaration_restore_error(c, prior) { return false; }
         var instance = sem_constructor_instance(c, result);
         sem_declaration_discover(c);
+        if !sem_ok(c) { return false; }
+        if instance == null || instance.query == 0 {
+            sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
+            return false;
+        }
         if sem_declaration_input(result, instance.query)
             || work_task(&c.queries, instance.query).state != WorkState.Succeeded {
             result.waiting = instance.query;
@@ -267,7 +274,13 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
     }
     if work.phase == SemanticConstructorPhase.Clone {
         if generic_body_pending(c.generics, work.instance) {
-            result.waiting = sem_generic_body_request(c, work.instance, 0).query;
+            var copy = sem_generic_body_request(c, work.instance, 0);
+            if !sem_ok(c) { return false; }
+            if copy == null || copy.query == 0 {
+                sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
+                return false;
+            }
+            result.waiting = copy.query;
             return false;
         }
         work.syntax = generic_type_result(c.generics, work.instance);
@@ -282,7 +295,11 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             sem_push(&c.generated, work.syntax);
             sem_declaration_add(c, work.syntax);
             sem_declaration_discover(c);
-            sem_require(work_demand(&c.queries, sem_declaration_query(c, work.syntax)));
+            if !sem_ok(c) { return false; }
+            if !work_demand(&c.queries, sem_declaration_query(c, work.syntax)) {
+                sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
+                return false;
+            }
             result.checked = true;
             return false;
         }
@@ -313,8 +330,13 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             if !sem_ok(c) { return false; }
             work.evaluation = sem_evaluation_get(c, output);
             sem_evaluation_work_register(c, false);
+            if !sem_ok(c) { return false; }
         }
         var query = work_find(&c.queries, work.evaluation.subject, EvaluationQuery, 0);
+        if query == 0 {
+            sem_resource_record(c.program, sem_query_error(c), sem_offset(c, result.subject));
+            return false;
+        }
         if sem_declaration_input(result, query) || work_task(&c.queries, query).state != WorkState.Succeeded {
             result.waiting = query;
             return false;
@@ -330,7 +352,7 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
 
 fn sem_constructor_publish(c: SemanticContext*, result: SemanticDeclaration*): void {
     var work = result.constructor;
-    if !result.checked || work == null { return; }
+    if !sem_ok(c) || !result.checked || work == null { return; }
     work.phase = SemanticConstructorPhase.Ready;
     if work.instance == result.subject {
         sem_state(c, c.type_results, work.instance).value = bits(void*, &work.type);
