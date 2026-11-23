@@ -2787,3 +2787,102 @@ build and successful checks. Runtime wall/CPU/RSS samples and limitations are in
 the journal. Newly joined scoped instrumentation and current full-query/release
 gates remain pending; incoming ROOT metadata/child-owner fixtures will require
 coherent revalidation. No existing failed Cancel4 oracle was weakened or relabeled.
+
+### Metadata/provenance consumer fixture review (2026-11-23)
+
+Reviewed complete dba1f69970907e0f1f0bb768eaad95209f2de429 after bf093's native
+checkpoint drained and exported. Only one assigned Tower path changes; the
+joined roster remains537/1126. No D1 build runs during this review.
+
+| Assigned path | Ownership/storage/scheduling review, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/world_constructor.tower | dba adds118 lines under the existing serial-transport guard. Each trial owns a bounded world, source, destination and trace owner. Parser span/label and provenance expansion+splice intentionally alias the same immutable history through two owning fields. Successful serial/staged allocation counts bound every physical fault position. Invalid null/stage, pinned serial Busy, physical Memory and occupied-ledger staged Capacity preserve exact causes. Success checks scalar metadata, distinct owned label/splice storage, every label byte including terminator, and unchanged shared references until staged hold. Hold precedes closing the source view; discarded destination/source release their exact history retains and all final buffers/grants. Capacity retry is at the denied first component boundary, not permission to retry arbitrary incomplete destinations. Physical failures always discard their destination. ROOT's public leaves/native allocations/query/units and scoped address/thread evidence are recorded; D1 current-union execution remains pending. No actual worker dispatch in this serial fault sweep. Foreign-stage variants, self-copy, already-populated staged destination and hold exhaustion are not newly covered. Existing frontend allocations registration is retained. |
+
+Read the two matching producer files to verify this consumer contract. Results
+are private per call, preserving component and staged-reference queue causes;
+raw label/splice allocations still return Memory without ledger charging. Serial
+copies reject pins/leases; staged copies require a new destination owned by that
+stage/world and install owning history only after queue admission succeeds.
+Wrappers remain compatible; incomplete destination cleanup belongs to callers.
+This is not atomic replacement of existing payloads or complete shared-counter
+exhaustion handling. Source review changes no runtime, so profiling the audit is
+inapplicable. ROOT's measured costs and L2's older2e3d instrumentation retain
+their actual source identities; none accepts the forthcoming D1 joined release.
+
+### Current import policy and sanitizer sensitivity review (2026-11-23)
+
+| Assigned path | Reviewed identity and substantive disposition |
+| --- | --- |
+| scaffolding/tests/bootstrap_symbols_checks.tower | Complete D2 6159d78a8, exact reviewed patch0058caa6. Adds native/WASI positives and truncated/suffixed/wrong-unit negatives for exactly two ParserNodes forest results and Interpreter's world constructor/strlen. D1 actual fa15 object reports independently confirm those imports and entity providers; both interpreter/evaluation source units import the function-query fixture that requires them. Exact-string matcher and rejection of fault allocator hooks remain unchanged. Tests own only their existing private report/process buffers; no world, scheduler or storage representation changes. D2 old-checker exit1 and corrected native/three fresh WASI/fixture instrumentation evidence remain separately identified. No new assigned path; adopt complete history after current D1 jobs drain. |
+| scaffolding/tests/sanitizer_race_probe.tower | Current a0 source unchanged. Deliberately invalid two-worker barrier/counter race; stack jobs/counter live through joins, and pool defers before signal teardown. Current documented fixture+full-runtime link actually fails1 on compiler_buffer_allocation_size/allocate/free after public LLVM/object compilation; it is not a sanitizer result. Adding the existing separately compiled host.memory provider establishes the reference: all three Tower units carry actual TSan access hooks,53/12/49 original functions are instrumented, and exit66 reports T1/T2 racing in work_kernel_execute. The stack symbolizer warning remains in the diagnostic. No ordinary pass/race-freedom claim, no fixture edit yet. Existing docs assign the probe to A2; narrow ROOT handoff for standalone-provider/count cleanup remains pending. Its fixed two-job pool/loop/barrier extents should derive from the actual array when touched, while preserving the intentional race. |
+
+The bounded same-path proof timing control uses the existing fa15 before/after
+executables, not recompiled current sources. Warmup plus nine alternating pairs
+for healthy/query all pass; query's earlier wall increase is not sustained.
+Both binary hashes remain unchanged. This resolves the need for further unchanged
+timing reruns, without asserting a speedup or exact neutral cost at .01s resolution.
+
+### Child transfer and bare-store compatibility review (2026-11-23)
+
+Complete ROOT4b4c75ddc95f0de97ab9546320478095f2682cab verified from bundle188337cc,
+then adopted after both D1 containers were idle. One new assigned path brings the
+full reviewed roster to538/1127. The following four files were read substantively
+alongside the actual entity and metadata producers; owner evidence is separate
+from D1's forthcoming current-source checks.
+
+| Assigned path | Storage, ownership, scheduling, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/entity_attach_leases.tower | Adds actual displaced-child/replacement lease regressions. An ordinary store owns the ordered parent edge, stage leases freeze the affected child, and wrapper calls must preserve parent/order/reference state until discard. Cleanup explicitly repairs the old forbidden replacement outcome without hiding the failing assertion. Root's before exit1/two failures and after scoped native/address/thread checks are recorded. Existing normal registration exercises this extension; no new scheduler or concurrent mutation is introduced. |
+| scaffolding/tests/entity_mutation_results.tower | Adds exact Invalid/Busy/Exhausted/None child-operation results, parent/old-child/replacement lease cases with array-derived bounds, foreign store, pinned view, named-edge preservation and unchanged failure references. Replacement at maximum reference count denies before mutation; take transfers the existing hold without incrementing it, including the exhausted boundary. Next-allocation denial verifies these operations allocate nothing, then owners/stores/counters return to baseline. Deliberate reference-field injection is single-owner fault coverage, not a legal concurrent operation or thread sanitizer substitute. Existing serial fault registration remains appropriate. |
+| scaffolding/tests/world_constructor.tower | Adds bare same-store/no-world clone compatibility: two distinct copied node identities, original-derived copied/child counts, ordered name, correct parent links, no invented compiler components, foreign-store rejection and complete owner disposal. Metadata-free calls remain no-ops only for their actual store; staged world requirements are unchanged. ROOT retained first compile type-conversion failure and actual old-producer abort134 before correction. Existing allocations selector owns the fixture. D2 already routed its duplicated literal name extent5 to ROOT; no competing fixture edit here. |
+| scaffolding/tests/entity_child_transfer_profile.tower | New manual observer, not a default CTest. A two-element entity array defines traversal bounds; each round replaces, takes and reattaches both children, checks exact existing-hold transfer, final ordered edge/reference state and empty-store disposal. Raw store/child arrays remain explicit low-level storage. Phase clocks/getrusage use a documented Linux x64 foreign ABI; small1024 and large1048576 rounds are workload parameters. Descriptor plus child-capacity bytes are partial retained storage, not total heap. ROOT's same-path warmup/five alternating pairs, +1.47% large phase wall and unchanged2264B measured retention are retained without a speedup claim. No worker overlap is asserted for this serial operation profile. |
+
+The actual checked producer validates all affected leases before changing links;
+replacement alone acquires a new hold, while take transfers the existing one.
+A null take with None is an empty parent, distinct from failure. Raw node/label
+budgeting and general queued-reference exhaustion remain separate open contracts.
+Documentation review itself changes no executable path, so new runtime profiling
+is inapplicable. Incoming ownership changes still require the current joined
+native and positive sanitizer checks before release acceptance.
+
+ROOT's12:14:55 coordination directive supersedes the pending negative-probe
+handoff request: leave the deliberate race fixture unchanged and do not execute
+it further in this milestone. The earlier actual provider link failure and
+three-unit reference result remain factual historical receipts; they do not
+close current standalone negative-control acceptance. Positive ownership and
+concurrency instrumentation proceeds independently, with this limitation explicit.
+
+### Prospective capture, queue-alias and late-inspection join review
+
+Reviewed ROOT34aa7526c and its complete successor c9442c6edbc0c3f7398ee3034ebde85bd18512fc
+from verified bundles04a924c5/7b28e024, without changing the active ed7 compiler
+closure. Prospective roster is539 assigned of1128; current checkout remains538.
+
+| Assigned path | Reviewed identity, substantive conclusion and disposition |
+| --- | --- |
+| scaffolding/tests/semantic_capture_continuation_checks.tower | New153-line fixture at34aa. One world/context owns actual capture and source-proof producers, with a separate borrowed local budget kept alive through context disposal. Healthy checks a legitimate wait, not completed initializer execution. Take exhausts dispatch; suspend/observe occupy actual edge capacity; finish derives consumer pressure from actual scratch capacity. Exact Invalid/Capacity, phase/declaration offsets, terminal cancellation, no live tickets/workers, repeated-call node/component/task stability and zero final grants are checked across widths4/8 and budgets1/4. These graph-only variants do not prove overlap. Ordinary production semantic provider/exported main and five selectors require no SOURCE/binding or alternate implementation. External registration draft28ffaa75 independently reviewed by D2; runtime/adoption pending. |
+| scaffolding/tests/parser_table_budget.tower |34aa adds real forest attachment Busy under a pinned view, Invalid for self attachment and physical Memory after traversal storage is already prepared. Assertions preserve leaf ownership and parent emptiness before retry. Matching parse_tree now stores entity_attach_result's exact cause before transfer; the previous bool fallback gap is addressed by the producer. Serial fault injection remains separate from actual concurrency evidence. Existing frontend allocations registration suffices. |
+| scaffolding/tests/world_constructor.tower |34aa replaces the copied literal name extent5 with strcmp against the actual null-terminated name, preserving the bare-store clone oracle. No competing D1 fixture edit. The prior ed7 native/ASan build still contains the earlier source and is not relabeled as validating this change. |
+| scaffolding/tests/entity_mutation_results.tower |c944 adds live reference-queue slice reuse with and without growth. Array-derived pairs and actual queue capacity bound setup; spare/partially live slices are rejected before reads, and growth denial preserves data/length/capacity. Success installs owning payload fields only after admission; every queued pointer/order is checked before two idempotent holds, discard and exact reference/buffer baseline restoration. Successful measured allocation calls bound the physical fault sweep. Matching producer keeps a live-slice index across vector reserve, rebinds after growth and rejects unaligned/spare input. No extra allocation or noalias promise; raw external pointer validity remains a caller contract. Existing serial mutation registration suffices. |
+| scaffolding/tests/generic_inspection_budget.tower |c944 keeps a successfully parsed/checked document alive before occupying its remaining budget and calling the actual new single-owner inspection phase. Exact Capacity and source-derived expression offset, null result after failure, no live workers/tickets, and no replay after diagnostics are cleared are asserted. World node/component counts guard against hidden second work. Context/document lifetime encloses the pressure grant and cleanup. The legacy world binder charges selected scratch rather than physical pages, explicitly retained as a limitation. Existing LR editor selector owns this fixture; no speculative import-policy permission or new scheduler is needed. |
+
+Primary sources were revisited during this review: Flecs systems distinguish
+structural staging from writes to existing component values; component traits
+separate stable sparse addresses from table traversal/fragmentation; Burst's
+aliasing example demonstrates that a disjointness assumption changes results
+when ranges overlap. These principles support the lease and live-slice checks,
+not any unmeasured storage/vectorization gain. Raw Foundation ownership remains
+explicit: acyclic ownership is an existing caller precondition, not a newly
+claimed checked hierarchy policy. Documentation review itself has no executable
+performance path. Current merged runtime and release acceptance remains pending.
+
+The ed7 positive execution receipt now contains55 native processes and54 ASan
+processes with real stage/component concurrency and exact checked outputs. Full
+ASan units first timed out at300s; supported user-space sampling identified LR
+construction/sanitizer stack cost, and the unchanged binary completed a bounded
+UID1000 followup in440.23s. Original timeout, UID difference and sampling overhead
+remain explicit. The final separate allocation sweep passes under UID0/serial
+transport. Actual43 linked objects/instrumented IR and20 required access-hook
+checks are retained. This supports the ed7 scope only: prospective c944 fixtures
+and current thread/whole-release acceptance are still pending. No race probe was
+changed or re-executed after ROOT's directive.
