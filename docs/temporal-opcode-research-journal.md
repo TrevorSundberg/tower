@@ -76170,3 +76170,66 @@ linker budgets, current joined registrations, final clean public-bootstrap/brows
 generation validation and atomic hosted publication remain open. No new contexts,
 force pushes or todo edits. Current disk space remains sufficient; no evidence
 or other agent's build was deleted.
+
+### 2026-11-23 D2: integrated registration and child-result source review
+
+Own6159 policy handoff is complete: bundle72a6f18e (sole60741),54MiB receipt
+0c98f33f with actual current compiler/resources/providers/failures/scoped
+instrumentation/full-host gates and corrected identical-wrapper measurements.
+Then merged complete D1bf093 as9577f7401. The only conflict was README append
+placement; preserved metadata-allocation instructions and both registration
+groups, with CMake files byte-identical to the independently reviewed draft.
+
+Complete ROOT4b bundle188337cc source reviewed and merged ascde907cbd. Again
+preserved all README append groups, journal merged cleanly, todo unchanged.
+Checked child replacement/removal now guard all affected leases and new retain
+exhaustion; take transfers an existing hold without allocation. Bare same-store
+metadata-free clones again work without a compiler world. Read all changed
+fixture oracles and new entity_child_transfer_profile: handles/parent holds,
+actual array count, ordered output, final retirement and serial clock/rusage
+measurement are explicit. ROOT's measured+1.47% large transfer phase is recorded
+as a correctness cost, not silently called free. Its2264B retained subset does
+not describe raw-node/whole-heap memory. Routed the new bare-clone fixture's
+utility_equal("leaf",5) duplication to its owner under the updated count rule;
+no D2 production or foreign fixture edit. B1's attachment result is not yet
+available in a local complete bundle despite ROOT's owner receipt; no local
+validation claim from a message alone.
+
+At actual12:15:20 (shared owner receipt), acquired the free heavy slot after
+D1's controller drained; process list showed no other Docker exec. Own public9653
+smallest host_metadata, syntax_provenance and entities leaves precede canonical
+native plus six new registered targets,14CTest, current allocation/bare-clone and
+symbol-policy checks. Sourcecde and import closure frozen; session53192,
+controller2998298/container2998325, logs build/d2_ecs/child_join_cde. First leaf
+passed; the rest are pending at this entry. Earlier6159 runtime evidence is not
+relabeled to new4b production. Current resource ownership still awaits ROOT's
+linker-budget/hold/alias work and final joined public-bootstrap/browser/generation/
+hosted publication. Read-only audit text itself requires no runtime profile.
+
+Actual cde join results supersede the preceding pending-run note. All three
+public leaves, native6actions and focused16actions pass; all14 registered cases
+pass, including ordinary real-affinity and bound serial-fault targets. Native
+54.15wall/52.89CPU/437200KiB, focused77.16/75.00/754740. Existing allocations
+selector, including the new bare-store clone and typed metadata/child cases,
+passes4.11/4.06/173440. All7actual native symbol reports pass the final eec40a2c
+checker. Packagec0372979 and complete50resources are captured. No new WASI or
+whole-compiler instrumentation claim follows from these native results.
+
+Separate correctness allowance0-7: query passes0.25/0.28/65312 with width512,
+fastest serial2790960ns, actual Cancel4 overlap1; resource24, fullunits
+44.85/66.28/883748 and runtime-faults pass. Fullunits peak is60604KiB above the
+preceding3c74 run; this n1 observation includes concurrent lifetime/interleaving
+variation and is not a controlled neutral-memory claim. Reviewed production delta
+adds lease/overflow validation and restores metadata no-op, not new persistent
+buffers; ROOT's matched32 compiler/24 transfer observations retain the same byte
+counts. No whole-heap ledger is inferred from that subtotal. Last sampled
+available host RAM was9.6GiB; no new swap operation in timed children. Preserve the higher RSS
+observation and investigate at the final fixed-input profile if it persists,
+rather than repeating the whole gate solely for a favorable number.
+
+Both53192/60942 drained0, final source/todo hashes pass, container restored0,2
+before12:19:47 release. D1 notified for its next joined instrumentation phase.
+No source edits occurred during the freeze. Current package source identity is
+cde, not the earlier6159 receipt; final root contracts/clean-bootstrap/browser/
+generation/atomic hosted publication remain unfinished. Documentation-only
+receipt reconciliation adds no runtime behavior to profile.

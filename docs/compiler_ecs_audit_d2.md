@@ -2501,3 +2501,34 @@ reference inputs. Old two-CPU Cancel4 failure remains distinct. Journal contains
 exact commands/environment/profiles/failure and instrumentation scope. Primary
 40/40 audit is unchanged. Current-unit ownership fixes do not close raw-allocation
 coverage or final clean bootstrap/browser/generation/publication gates.
+
+### Child-result compatibility join — reviewed4b4c75ddc, integratedcde907cbd
+
+Complete ROOT bundle188337cc was reviewed after6159 work drained. D1bf093
+registration merge9577f7401 and this subsequent join preserve all README
+paragraphs; four CMake files still match D1's reviewed draft. Current runtime
+validation is running separately; older325cd2a3 receipts remain at3c74 inputs.
+
+| Supplemental path | Current ownership and evidence disposition |
+| --- | --- |
+| `library/entities.tower`, `library/entity_api.tower` | Replacement now checks parent, replacement and displaced-child leases plus new-retain overflow before any link change. Take checks parent/child leases, frees the owned name and transfers the parent's existing reference without retaining or allocating. Exact Invalid/Busy/Exhausted and None/null-empty results retain legacy wrappers. No storage-layout change or new scheduler; hold-counter/alias/raw-buffer gaps remain separate. |
+| `compiler/host_metadata.tower`, `compiler/syntax_provenance.tower` | Serial same-store/no-world copying is a metadata-free no-op again, preserving standalone entity clone support; null/cross-store inputs fail. Staged copies continue to require the actual world. ROOT reproduced old abort134 and validated corrected behavior; this is owner evidence until the current D2 allocation run completes. |
+| `tests/entity_attach_leases.tower`, `tests/entity_mutation_results.tower`, `tests/world_constructor.tower` | Reviewed new displaced-child/removal lease, exact error/overflow/empty/next-allocation-denial and distinct bare-clone identities/order/cleanup oracles. Reuse D1's registered targets and existing allocation selector. New bare-clone string comparison duplicates length5; routed to ROOT for an actual-data-derived bound, no unauthorized fixture edit. |
+| `tests/entity_child_transfer_profile.tower` | Newly discovered measurement source, ROOT-owned. Private standalone store and two raw entity handles are kept alive through replace/take/reattach; iteration count selects fixed small/large workload data, inner count derives the actual handle array. Final parent/reference identities and store disposal are checked. Explicit Linux x64 clock/rusage ABI; serial manual observer only. Reported descriptor+child-array2264B is a subset, not total live heap. ROOT's warmup+5 paired samples show large phase+1.47%; no worker scaling or new D2 timing claim. |
+
+Primary33tools/7benchmarks inventory remains40/40. The additional measurement
+entry is tracked separately, with reviewed commit and ownership. Source review
+and documentation have no runtime profiling applicability; current native/14CTest/
+allocation and full-host query/unit checks are pending in child_join_cde. B1's
+completed attachment fix is reported by ROOT but its standalone bundle is absent
+here; await complete source delivery before claiming independent source review.
+
+Current cde runtime receipt: public three leaves/native6/focused16, all14 newly
+registered cases, updated allocation/bare-clone selector and7native policies pass.
+Packagec0372979/all50resources captured. Explicit0-7 query/resource/fullunits/
+runtime-faults pass; restored0,2 and drained before12:19:47. Fullunits883748KiB peak
+is retained as a higher single-run observation, not hidden by a neutral-memory
+claim; journal records scope and allocation-path/owner-profile comparison.
+No fresh WASI, whole joined sanitizer, clean-cache or published-release acceptance
+is claimed. Primary and supplemental source audit dispositions above remain in
+force; final linker budget and integrated release work remains open.
