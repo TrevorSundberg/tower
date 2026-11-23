@@ -11,6 +11,7 @@ import semantic_control;
 import semantic_support;
 import semantic_types;
 import semantic_work_ids;
+import semantic_phase_work;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -125,6 +126,7 @@ export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void
         // Evaluation reads expressions and writes results, so the graph also
         // excludes evaluation while a preparation wave owns these inputs.
         var domain = convert(u64, SemanticWorkDomain.Compiler);
+        if !cloning && !sem_phase_evaluation_depend(c, evaluation, id) { return null; }
         if !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), i, 1, WorkAccessMode.Write)
             || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)
             || !work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read)
