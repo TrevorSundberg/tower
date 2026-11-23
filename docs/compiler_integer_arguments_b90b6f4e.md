@@ -130,3 +130,33 @@ were checked after measurement. No browser/reactor/generation/deployment evidenc
 is claimed. D1/ROOT must adopt the changed producer in current browser artifacts;
 L1's independent numeric-wrapper/nullary-alias work retains its own acceptance.
 The service-rejected instrumentation gate stays open, with old stashes untouched.
+
+## Merged-source adoption
+
+Implementation `b84c6ba7` merged complete published `48db0f27` as
+`44d4dd484703bfd19ba8d70b43cbd26af18a9858`. L1's actual named-return/nullary-call
+producer and dependency admission changed; they are preserved without overlapping
+edits. The helper and all A2/D1 numeric fixtures remain unchanged. Therefore
+hash-only adoption was insufficient: the existing dependency targets rebuilt
+entities/semantics and relinked both runners,4 actions,33.910 wall/24.453 CPU s,
+1,066,336 KiB peak.
+
+Exact-source reproduction, all22 unary/computed cases and query-smoke pass on
+that merge (focused9.562/9.172 s,253,624 KiB; query0.284/0.302 s,103,420 KiB).
+Four affected plain profiles also retain exact reference/canonical checksums and
+zero teardown. Merged n1 wall/CPU milliseconds/RSS KiB:8/1 504.041/447.120/176812;
+8/4 584.256/575.893/179112;512/1 684.894/627.374/254456;
+512/4 751.145/814.531/255884. These are adoption checks, not a new paired n3
+comparison. The earlier complete type-smoke and paired timing table retain their
+b90-plus-b84 source boundary; ROOT owns final broader integrated gates.
+
+Merged SHA256: runner
+`2e9e7cb7a1686af9f966f932d532f8e4aa8ac15a24cfb3ea0037279dd2ac45b4`, profile
+`30b58b4cc88b84f8747f202213a3dfc32431c1d62f250d6e90c59c7a814280a5`, semantics
+`67ccb61220a59590eb54186b59775e870ce95db1c298da0e070e474b7ba62545`.
+Expanded profile inputs manifest
+`0bde1f6231880ad9c938f1c4ef3a0e6f0c2277239310f7cf24ac779a6316fbb3`;
+fixture inputs manifest unchanged
+`3e7f1ea00cb6df5bb699e734eca2d21be7f8e32413787b6113b64e7977ae4738`.
+Exact commands/objects/statuses are in the same external receipt's `merged_*`
+files. All owned jobs drained; old stashes/todo untouched. No runtime deployment.

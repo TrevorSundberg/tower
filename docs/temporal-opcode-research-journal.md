@@ -90592,3 +90592,15 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+A2 unary-argument reconciliation: b84c6ba7 merged complete published48db0f27
+as44d4dd48 after required ff-only divergence; no conflicts or discarded history.
+Incoming L1 generics/declarations affect the real provider, so dependency target
+rebuilt entities/semantics plus two links (4actions33.910wall/24.453CPU/1066336KiB).
+Repaired exact source, focused22 unary/computed cases, query-smoke and4 healthy
+plain8/512x1/4 checks PASS at merged source, reference/canonical/zero grants.
+Focused9.562/9.172/253624; query.284/.302/103420. Merged runner2e9e7cb7,
+profile30b58b4c, semantics67ccb612; input/object hashes and n1 adoption costs in
+receipt. Earlier complete type-smoke and pairedn3 remain b90+b84 evidence, not
+relabeled as full later-source acceptance. D1/ROOT browser adoption and blocked
+instrumentation gate remain open. Owned jobs drained;3stashes/todo untouched.
