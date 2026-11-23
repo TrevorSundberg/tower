@@ -23,6 +23,18 @@ extern fn __errno_location(): i32*;
 // wasi-sdk 34's wasm32 timespec is i64 seconds and i32 nanoseconds.
 struct WorkDeadline { seconds: i64; nanoseconds: i32; }
 
+// Preserve the browser's timed wait and trapped-worker failure checks for
+// exclusive ownership too. This private signal starts with exactly one permit;
+// ordinary pool/completion signals retain their separate counting semantics.
+export fn work_gate_open(): void* {
+    var gate = work_signal_open();
+    if gate != null { work_signal_post(gate); }
+    return gate;
+}
+export fn work_gate_close(gate: void*): void { work_signal_close(gate); }
+export fn work_gate_enter(gate: void*): void { work_signal_wait(gate); }
+export fn work_gate_leave(gate: void*): void { work_signal_post(gate); }
+
 export fn work_thread_available(): bool { return work_host_available(); }
 export fn work_thread_capacity(): usize { return work_host_capacity(); }
 

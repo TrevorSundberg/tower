@@ -1847,6 +1847,10 @@ nominal alias writes, nested shadowing, exactly-once effects and function-body
 controls. It checks Graph/Fast output and canonical equality at32/64 bits with
 one/four workers, exact unknown/recursive diagnostics, Foundation round trips
 and final zero budget owners. It is also registered in `all`.
+The explicit self-address initializer checks its stored address without reading
+uninitialized storage and counts one effect per loop entry. Negative diagnostics
+also assert the configured virtual filename and positions independently derived
+from the unchanged source tokens (unknown1:69, recursive1:37).
 `body-type-reproduce` selects the exact original seven-line failure source.
 The module-loop query selector also checks mutable/escaped header and block
 captures at the original declaration, including shadow identity. Its negative

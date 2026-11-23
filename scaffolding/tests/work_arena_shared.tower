@@ -55,16 +55,15 @@ export fn work_kernel_execute(payload: void*): void {
 }
 
 fn shared_arenas(cancelled: bool, denied: bool): void {
-    var gate = work_signal_open();
+    var gate = work_gate_open();
     var entered = work_signal_open();
     var release = work_signal_open();
     shared_arena_check(gate != null && entered != null && release != null);
-    defer work_signal_close(gate); defer work_signal_close(entered); defer work_signal_close(release);
-    work_signal_post(gate);
+    defer work_gate_close(gate); defer work_signal_close(entered); defer work_signal_close(release);
     var budget: WorkBudget = default;
     var initial = 4 * compiler_buffer_allocation_size(4096);
     shared_arena_check(work_budget_init(&budget, 4, denied ? initial : 524288, 1));
-    shared_arena_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    shared_arena_check(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
     var joined: WorkArena = default;
     shared_arena_check(work_arena_init(&joined, &budget, 4096));
     var jobs: ArenaJob[4] = default;

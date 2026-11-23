@@ -3,8 +3,11 @@ fn box(T:type):type { struct Item { value:T; } return Item; }
 fn forwarded(T:type):type { return box(T); }
 var effects:i32=0;
 fn once():usize { effects++; return 41; }
+var initializer_effects:i32=0;
+fn address_once(value:usize*):usize { initializer_effects++; return bits(usize,value); }
 var entered:usize=0;
 for(var address:usize=0; address<2; address++) {
+    var self:decltype(address)=address_once(&self);
     var original:box(decltype(address));
     original.value=once()+address;
     var same:forwarded(decltype(address))* = &original;
@@ -19,7 +22,10 @@ for(var address:usize=0; address<2; address++) {
         print(alias.value);
         print(sizeof(decltype(nested)));
     }
+    print(self==bits(usize,&self));
+    print(initializer_effects==convert(i32,address)+1);
     entered++;
 }
 print(entered);
 print(effects);
+print(initializer_effects);

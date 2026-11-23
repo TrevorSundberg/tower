@@ -1,6 +1,11 @@
 import tower;
 export fn work_thread_retention(): bool { return false; }
 
+export fn work_gate_open(): void* { return null; }
+export fn work_gate_close(gate: void*): void {}
+export fn work_gate_enter(gate: void*): void { trap("Thread transport unavailable", 0); }
+export fn work_gate_leave(gate: void*): void { trap("Thread transport unavailable", 0); }
+
 // Portable interpreted/WASI execution uses the same dispatcher and ownership
 // rules. A host without shared-memory threads reports that explicitly.
 export fn work_thread_available(): bool { return false; }

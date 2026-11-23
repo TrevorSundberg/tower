@@ -5284,3 +5284,83 @@ Later B1/B2 performance/browser changes, current generations and hosted release
 are excluded. No build/test/profile/sanitizer or rejected operation was attempted;
 documentation-only profiling is inapplicable, with no general race-freedom claim.
 Local frozen six-path evidence: `build/d1_ecs/module_declaration_review_0ffba950/`.
+
+## Module-body declaration coverage closure — 2026-11-23
+
+Source `4354581caeaf2bc71189617c04d48cdd45750f9e`, tree
+`852fe967cc7a3b2f13fe39530a170ca4fddae048`; unchanged compiler tree
+`b90a997e29d4d30547a026b5b5d1481bf6a41579`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`, plus the two test edits below.
+This executes the two coverage controls proposed by the preceding review;
+it does not replace its source proof or broaden the accepted production scope.
+
+| Path under scaffolding/tests | Change and checked boundary |
+| --- | --- |
+| `module_body_type_queries.tower` | `address_once(usize*)` increments a separate counter and returns address bits. Each module-loop entry initializes `self:decltype(address)` from `&self`; it never reads uninitialized storage. Booleans check the initialized address and one new effect per entry; the final counter is2. Existing assignment effects2, aliased values42/43, usize layout4/8 and nested i16 shadow7/layout2 remain asserted. No nondeterministic address is printed. |
+| `module_body_type_checks.tower` | Expected failure records pair the unchanged exact message with an independently chosen source-token marker. A counted scan of the actual ASCII source derives line/column before compilation; mapped filename must equal configured `module_body_type_input.tower`. Unknown is1:69; recursive layout is1:37. Existing instantiation trace, raw-offset consistency, rejected Graph/Fast start/zero steps, canonical equality and zero-owner teardown remain intact. |
+
+Provider SHA256 `bec273a2f826ebaf6cc2629499df66486a1d7a8199bdb6852723ace5863d1962`;
+runtime fixture `89164e03bc33971283616fb799a5955f7c14c2268d095737452984a404f920b9`.
+The minimal fixture and `execution_main` registration are unchanged; the latter
+remains blob SHA256 `28debac10c7ddaa3ccd325e8e331df61d87e75ff93bd2ee526e2b50cb130fd2c`.
+
+The existing selector was executed once with final inputs: **44/44 compile-session
+configurations pass**,28 positive executions and16 negatives. This is Graph/Fast,
+32/64-bit target pointers, workers1/4, plus four canonical reparse sessions at
+workers4, not44 independent processes or a measured-overlap claim. All owner
+teardown assertions passed. Two temporary controls actually rejected bad inputs:
+wrong expected token `value:unknown(...)` yielded expected1:63 versus actual1:69
+and aborted at the mapped-location oracle; doubling only the runtime helper's
+counter increment aborted at the exact-output/effect oracle. Each returned134;
+both mutations were restored and their sources/logs retained before the final run.
+
+Docker `tower-d1-ecs`, image `4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`,
+CPU0,2/8GiB, Release native Linux x64, jobs1; public bootstrap SHA256
+`768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138` checked against
+its manifest with no override. Only `tower-execution-tests` was requested. The
+stale cache needed35 dependency actions; the first attempt failed on a new
+file-scope string initializer (library executable-statement rejection). Moving
+that filename literal into the trial fixed the provider; the next two builds
+were the two-action test object/link leaf, including restoring the position oracle.
+No production source or runtime semantics changed.
+
+| Check, one sample each | Wall s | CPU s | Peak RSS KiB | Result |
+| --- | ---: | ---: | ---: | --- |
+| Initial execution-target build | 216.77 | 211.26 | 1082876 | failed; preserved bootstrap diagnostic |
+| Corrected provider, wrong-position build | 17.94 | 17.35 | 509264 | pass |
+| Wrong-position control | 7.21 | 5.64 | 183908 | expected abort134 at position oracle |
+| Restored final provider build | 15.53 | 15.08 | 509452 | pass |
+| Doubled initializer-count control | 5.22 | 3.75 | 183208 | expected abort134 at output oracle |
+| Final44-session selection | 21.77 | 21.55 | 206252 | pass, exit0; no timeout/skip |
+
+Command: `tower-execution-tests /home/deck/tower-agent-1/scaffolding body-type-queries`
+under GNU time and a180s guard, with the same current source/resources. Final binary
+SHA256 `f1e4d5e35498aac105f15651fc43942a6a39465cca1257a0b552b16e8763e8af`.
+Build/run inputs were checked before and after; local evidence is
+`build/d1_ecs/module_body_oracles_4354581c/` (`*.build.*`, `*.run.*`, input manifests,
+restored/failing Tower variants and preserved old/new binaries). Final input
+manifest SHA256 `e337bb9aa8c04f841f6685350f54a8fcfd0469a6e5f9ef7df2a6d55aee5a452b`
+precedes the documentation-only README addition. The old runner was preserved,
+not claimed current; the owner27fcab01 baseline retains its original identity.
+These are warm-cache validation costs, not production before/after speedup or
+scaling evidence. No production-performance profile is applicable to fixture-only
+changes. No broad type/lifecycle/browser/generation/sanitizer/release check was
+run; ROOT owns that final milestone. All owned jobs drained before releasing the
+successfully acquired heavy lock; no general race-freedom claim.
+
+**Affected merged adoption.** The first push raced with B2's published inline
+component-index change. Complete upstream4a8694da was merged as
+`fd8f8dac6c0258dfa9c5f8597cc6aaad8ee8f9a8`, tree
+`133fcd0cf734a346753ba4faef544add59e8c900`, library
+`407c47fe6a2d52c7b1ce29104e0e1b75d353e171`; compiler tree remains unchanged.
+The changed `Entity` layout invalidates native dependencies, so the same target
+was refreshed (nine actions,109.21wall/106.37CPU/1082524KiB, exit0), after another
+successful exclusive lock acquisition. The unchanged fixture/provider selector
+then passed44/44 again:19.71wall/19.46CPU/196920KiB, exit0/no skip/timeout, with
+all exact positions, canonical/effect and zero-owner assertions retained.
+Runner SHA256 `98e686dd2b486c0eaf5fe0a1563a75a7a80938017e0c6c4aa1d982406f91ae84`;
+merged input manifest `7b644c509b65e02126d0423fae212815088693e7a120f45c3c2b71bf3727492b`
+verified after execution. `merged.*` evidence retains this separate boundary.
+The two unchanged oracle controls were not rerun; no broader test was launched.
+Incoming browser/byte-test receipts keep their own identities. All owned jobs
+drained and lock released; these n1 costs do not establish a performance change.

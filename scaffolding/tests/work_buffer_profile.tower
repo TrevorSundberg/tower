@@ -75,13 +75,12 @@ export fn main(argc: i32, argv: u8**): i32 {
     if strcmp(argv[2], "4") == 0 { workers = 4; }
     if strcmp(argv[2], "8") == 0 { workers = 8; }
     profile_buffer_check(workers != 0);
-    var gate = work_signal_open();
+    var gate = work_gate_open();
     profile_buffer_check(gate != null);
-    defer work_signal_close(gate);
-    work_signal_post(gate);
+    defer work_gate_close(gate);
     var budget: WorkBudget = default;
     profile_buffer_check(work_budget_init(&budget, workers, workers * 16384, 1));
-    profile_buffer_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    profile_buffer_check(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
     var jobs: BufferProfileJob[8] = default;
     var pool: WorkPool = default;
     profile_buffer_check(work_pool_open(&pool, workers) && pool.count == workers);

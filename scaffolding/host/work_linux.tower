@@ -14,6 +14,34 @@ extern fn sem_wait(signal: void*): i32;
 extern fn sem_trywait(signal: void*): i32;
 extern fn __errno_location(): i32*;
 
+// glibc bits/pthreadtypes{,-arch}.h: LP64 pthread_mutex_t is 40 bytes on
+// x86_64 and 48 on AArch64, aligned as long. Reserve the larger supported ABI;
+// libc alone initializes/accesses the opaque storage. Null attributes select
+// the normal process-private mutex, not a recursive or custom spinning lock.
+var LinuxMutexStorageBytes: usize = 48;
+extern fn pthread_mutex_init(mutex: void*, attributes: void*): i32;
+extern fn pthread_mutex_destroy(mutex: void*): i32;
+extern fn pthread_mutex_lock(mutex: void*): i32;
+extern fn pthread_mutex_unlock(mutex: void*): i32;
+
+export fn work_gate_open(): void* {
+    var gate = bits(void*, alloc(u64, LinuxMutexStorageBytes / sizeof(u64)));
+    if gate == null { return null; }
+    if pthread_mutex_init(gate, null) != 0 { free(gate); return null; }
+    return gate;
+}
+export fn work_gate_close(gate: void*): void {
+    if gate == null { return; }
+    if pthread_mutex_destroy(gate) != 0 { trap("Cannot release compiler exclusive gate", 0); }
+    free(gate);
+}
+export fn work_gate_enter(gate: void*): void {
+    if pthread_mutex_lock(gate) != 0 { trap("Cannot enter compiler exclusive gate", 0); }
+}
+export fn work_gate_leave(gate: void*): void {
+    if pthread_mutex_unlock(gate) != 0 { trap("Cannot leave compiler exclusive gate", 0); }
+}
+
 export fn work_thread_available(): bool { return true; }
 extern fn sched_getaffinity(pid: i32, bytes: usize, mask: usize*): i32;
 extern fn compiler_buffer_allocate(bytes: usize): void*;

@@ -94927,6 +94927,59 @@ frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
 validation retains both journal histories, no runtime rebuild/relabel or
 integrated acceptance claim. ROOT owns final publication; normal push follows.
 
+### B1 exclusive budget gate implementation and matched native improvement (70e77b60)
+
+Freeze published70e77b60844ecd19554fed58d824fc115ea90479,
+tree1d65fc61682e94df844088549802ef8e2ed7b5d4 after required pull/drain;112GiBfree,
+CPU0-11/24GiB,Clang19.1.1 Release/public768. B2 Entity first-list candidate excluded
+from both sides. Actual glibc headers + official glibc/Windows/Apple contracts
+audited before implementation; native ABI storage is explicit, no guessed layout.
+
+New library/work_gate.tower boundary owns stable nonrecursive mutual exclusion.
+Linux normal pthread mutex with named48byte maximum for supported40/48byte LP64
+ABIs; Windows pointer-sized SRW exclusive; macOSu32 os_unfair_lock. WASI delegates
+to existing timed semaphore wait with failure checks intact; portable open remains
+unavailable. frontend_units_open binds only parallel budget gates; close after
+pool/world/receipt drain. Serial gatefree, counting signals, ledger fields and
+reserve/release algorithms, exact old+new admission, errors, wake callbacks and
+Entity storage unchanged. Thin host lock allocation remains foreign transport
+storage (Linux+16bytes perparallelbatch), released atclose, not compilerpayload.
+
+One dependency baseline build34.18wall/26.64CPU/1074304KiB; candidate21actions
+14.95/19.20/257004, sharedproviders reused. Currentbefore profilerf89f1e3b268d0ba437760e3da398085d20f0a58bb5745d0442e215b0bbf8adf5;
+candidate3e7005a1eb12dcc294f93cdf67182d00b49b1ba310ad391c2770b195a8d5ab44.
+Full input/command/source/binary manifests retained underbudget_gate_70e77b60.
+
+16productionallocator paired controls,n2,reversedroundorder,exact existing
+1x16/uniform12x256 dependencies/width8/backend0, freshprocess/warmfilesystem:
+median smallserialwall.4134->.4073; multiserial5.7833->5.7235;
+multi4 wall4.3231->3.2776(-24.2%),CPU13.8563->10.7426;
+multi12 wall4.8076->3.8714(-19.5%),CPU39.3488->31.8293.
+Multi4/12 wholeprocesssystem5.230->3.135/23.940->17.740seconds;
+voluntary230195->130559/1087734->791869.5. Allfull source/canonical bytes equal,
+known42/42 andzerojoinedlanes/checkedzerograntteardown pass. Retainedbytes EXACT
+same bywidth; no materialRSS/serialregression. Preserve small wholeprocesssystem
+.05->.09 variation, no serial speedupclaim. Fourworkersstillbest1.746x candidate
+serial;12workers1.478x. Residual31.83CPU/17.74system remains, not whollyattributed.
+
+Focusedsharedbudget4threads*2048rounds plusnewCapacity/generation/revision/wake
+controls pass. ExistingbudgetallocationMemory, sharedbuffer/arena andschedule
+cancel/drain pass. LR1.73wall/2.25CPU/115144KiB andFULLunits12.47/20.14/833468
+pass originalfinitecapacity/retry/errororder/independentworld/nested/cycle/cancel.
+Threechangedstorageprofilefixtures compile/check4workerwiring separately.
+One nonexistent vector CMake target rejected beforecompile; retainedlog, actual
+unregisteredleaf compiledonce/publicpredecessor. Editing-hunk errors retained;
+no compilerwarning/error or security/sanitizerretry. Actualnativehost nm hasfour
+pthread imports; frontend_units alone consumesfourgateexports. All9strictnative
+componentclosures/currentnegativefixtures pass withpolicy unchanged. Windows/
+macOS/WASI/portablehostobjects compile, notruntimeexecuted; WASIfailureimports
+retained. Broaderplatform/browser/generation/sanitizergates pendingROOT.
+
+KEEP candidate, one measured scoped improvement. Receipt
+ docs/compiler_budget_gate_70e77b60.md; rawbuild/ecs_b1/cache/budget_gate_70e77b60;
+handoffC:/Sandbox/build/codex_ecs_20261122/B1/budget_gate_70e77b60. Ownership and
+capacity are unchanged; B2 storage work remains independent. Todo/publicpin and
+priorrejectedreceipts preserved; commit/completehistoryreconcile/push follows.
 ### B2 inline first-component storage — frozen70e77b60, accepted candidate
 
 Implemented one descriptor-owned component pointer; pending inline-to-heap promotion preserves failed-growth payload/index/charges. Reclaim and stage discard never free inline storage. Audited both zero-init constructors, stable pages, all reserve/free/copy consumers, leases/removal/publication; updated two physical census readers. No WorkBudget/gate/scheduler edits (B1 owns those).
@@ -95082,6 +95135,43 @@ split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba9
 no source/runtime adoption of those unrelated changes is claimed. Diff checks
 pass; no owned test/build or lock, todo unchanged. Normal main push follows.
 
+### 2026-11-23 D1: module-body initializer and diagnostic-position oracles
+
+Freeze4354581caeaf2bc71189617c04d48cdd45750f9e/compilerb90a997e29d4d30547a026b5b5d1481bf6a41579,
+library62350befa8df3e261fd184a23a64e6bb7263204a; same thread/PID3182858. Read
+existing declaration/query review, owner compiler_module_body_types_78d675c4
+receipt, module mapping and execution/provider/registration contracts. Only two
+Tower tests change: effectful self-address explicit initializer in the existing
+loop (no uninitialized read/raw address output), and independent source-token
+file/line/column oracles for the unchanged negatives. Original alias/layout,
+shadow, assignment effects, recursive trace, raw offsets, rejected start and
+zero-owner assertions stay intact. Actual markers yield unknown1:69/recursive1:37;
+expected positions are not learned from the first engine.
+
+D2 released its lock before successful native D1 mkdir/owner write. Existing
+Docker CPU0,2/8GiB, Release native x64 jobs1; checked public bootstrap768a0cdf,
+no override. One affected execution target refreshed35 cached dependency actions;
+first build failed on provider global string initialization at line25 (216.77wall/
+211.26CPU/1082876KiB), preserved. Local literal fixes it with no production change.
+Corrected wrong-position leaf build17.94/17.35/509264; actual control abort134
+(expected1:63 vs actual1:69),7.21/5.64/183908. Restored leaf15.53/15.08/509452.
+Doubled runtime initializer count abort134 at exact-output/effect oracle,
+5.22/3.75/183208; restored before final run. Each control source/log preserved.
+
+Final `tower-execution-tests /home/deck/tower-agent-1/scaffolding body-type-queries`
+under time/timeout180:44/44 sessions pass,28 positive executions/16 negatives,
+Graph/Fast32/64workers1/4 and four canonical reparses;21.77wall/21.55CPU/206252KiB,
+exit0/no skip/timeout. No claimed overlap merely from requested workers. Runner
+SHAf1e4d5e35498aac105f15651fc43942a6a39465cca1257a0b552b16e8763e8af;
+providerSHA bec273a2f826ebaf6cc2629499df66486a1d7a8199bdb6852723ace5863d1962;
+fixtureSHA89164e03bc33971283616fb799a5955f7c14c2268d095737452984a404f920b9.
+All frozen inputs verified after execution. Local build/d1_ecs/module_body_oracles_4354581c
+retains commands/manifests/failures/binaries; audit records exact boundaries/costs.
+Old owner baseline and cached runner retain their identities, not relabeled.
+Warm-cache validation cost only; fixture-only edits do not imply production
+performance change. All jobs drained/own lock released, disk127GiB/RAM9.7GiB,
+todo unchanged. No production edit, broad matrix, browser, generation, sanitizer
+or release operation. ROOT final adoption stays separate; normal publication next.
 A1 retired-error publication reconciliation: implementation f2c35cb8 merged
 complete4354581c asae2ceeb9f5d78eedc76efe7f779d8142a0f94caf without conflicts.
 All playground sources/fixtures and selected Tower language/prelude inputs match
@@ -95119,6 +95209,18 @@ Node fixtures (compilerThreads takes the non-shared module return or Node worker
 factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
 hosts, compilerThreads and Tower providers still match the measured freeze.
 
+B1 gate publication reconciliation: implementation05780abb merged complete
+published0fe314ef atf416c52a0991715d4a3af64fdbf56f4b65b5f652 after required
+ff-onlydivergence, no conflicts/historyloss. Incomingbrowser/backendfixtures
+preserved; compilerproduction/budget/host/library unchanged, B2Entityexcluded.
+Fixturedependency rebuiltonebackendprovider +relinked2runners. Separate merged
+profilered52532c148269628694b7122fee4d6e6b5e85ee0324172a8e7fc76d6c879717,
+LR02c90e957f662c97a9550fbbd9986edc1da5857c8efde8eb9dc20241dc413fc0.
+MergedLR1.72/2.24CPU/123804KiB andFULLunits12.64/20.21/796112 PASS;
+small1 .4202/.3845/177548,multi4 3.4133/11.0911/1127792 exactfullcanonical/source
+andzerograntteardown PASS. Currentresource-rootpath16bytesshorter accountsfor
+16bytelowerretention; controls separate from original16matchedpairs. No source/
+binary relabel. Diffchecks/source/manifests pass; normalpush,ROOTownsrelease.
 
 ## 2026-11-23 D2: four selected T4 cases adopt 25dddd04
 
@@ -95220,9 +95322,45 @@ C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
 before/339077795840B after, todo unchanged. Normal source-bound documentation
 publication follows; ROOT retains later-provider builds/generations/hosted release.
 
+D1 initializer-oracle publication reconciliation:58a1fe9f merged complete
+published52b2640e asd3c2397ae9fab4bcb3d189fec3d388954a751418 after required
+ff-only pull refused divergence. No conflicts. Compiler/library/backend/host,
+language/bootstrap/execution contract, selected provider and runtime fixtures
+are unchanged; current provider/fixture/binary hashes retain the final44 receipt.
+Incoming backend byte/storage tests are absent from the execution object's
+recorded dependency list; new browser transport/T5 and byte receipts are preserved
+but excluded from this gate. README and journal additions both retained. No repeat
+of unchanged execution evidence or broad rebuild. Diff checks/todo hash pass,
+all owned processes drained and heavy lock released. Normal main push follows;
+ROOT retains later full-generation/hosted acceptance.
 
 L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
 
+D1 second publication reconciliation: first push raced with B2 Entity inline
+storage. Merged complete4a8694da asfd8f8dac6c0258dfa9c5f8597cc6aaad8ee8f9a8,
+library407c47fe6a2d52c7b1ce29104e0e1b75d353e171; compiler unchanged. Its changed
+Entity ABI justified refreshing the same execution target (nine actions,
+109.21wall/106.37CPU/1082524KiB, exit0) and only the affected44 selection again.
+Merged44/44 pass19.71wall/19.46CPU/196920KiB, exit0/no skip/timeout; exact positions,
+Graph/Fast32/64workers1/4, canonical/effects and zero-owner assertions retained.
+RunnerSHA98e686dd2b486c0eaf5fe0a1563a75a7a80938017e0c6c4aa1d982406f91ae84;
+merged inputs checked after execution, logs same directory merged.*. Provider/
+fixture bytes and both prior fault controls unchanged; no redundant control or
+broad matrix. Confirmed native mkdir before owner write, all jobs now drained and
+own lock released; disk127GiB/RAM9.9GiB, todo unchanged. Incoming browser/byte-test
+receipts retain their boundaries. No production edits or performance/release claim.
+B1 gate push raced publishedB2inlineEntity. Complete merge4a8694da at
+ba8816e4c0d632d19f637f71237a180c90c1fdfd adopts its newdescriptorABI, without
+editing B2methods. Gate-only16pairedclaims still exclude Entitydelta onbothsides.
+11affecteddependencyactions34.92wall/59.48CPU/1073532KiB. Joinedprofiler
+caf213eb8a1236f0656a4ac8994e1a428510e3922eb3c706c17b51403fa30b0e,
+LR eb3b8514e5994644468be4c39437077503bffd47aea0f149cf1fab0a4e88fbde.
+JoinedLR1.74/2.26CPU/117356KiB,FULLunits10.78/16.78/880448 and9exactnative
+symbolclosures PASS. Singlejoined small1 .3793/.3439/165268,multi4
+2.4119/8.2157/1015152 exactfullsource/canonical+known42/42+zeroownersPASS;
+retention18321455/579913459bytes with17118/498251livepreclose receipts.
+Joinedcontrols separate from matchedgate-onlyclaim; no residualproduceredit or
+newtuning. Originalsources/binaries preserved, normalpushafterdocrecord follows.
 D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
@@ -95253,3 +95391,14 @@ receipts are retained with their own boundaries, not rerun/claimed here. ROOT
 still must adopt this new backend into reactors and rerun unchanged T8 first
 selector before the unstarted generic-registry case. No new reactor, broad matrix,
 sanitizer, deployment or other-owner method change. All jobs drained; normal push.
+D1 final push reconciliation retained complete6019450c B1 exclusive-budget-gate
+history after another normal push race. Its source delta switches frontend unit
+batch open/close and adds host work_gate functions; this selected provider never
+opens a unit batch, instead creating its world with its unchanged explicit
+work_signal budget. Execution_main returns the selected provider before other
+suites. Read those actual changed callers; selected fixtures/producer path and
+Entity ABI remain unchanged. Reuse the fd8f8dac44 receipt, without relabeling its
+binary as built from the later B1 source or claiming that batch-gate path executed.
+No additional rebuild/run is needed for this unchanged selected path; B1's own
+receipt retains gate adoption. Diff checks pass, no owned work/lock; normal push
+retry follows. Final full-artifact adoption remains ROOT-owned.

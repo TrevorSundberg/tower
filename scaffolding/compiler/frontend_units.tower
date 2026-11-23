@@ -5,6 +5,7 @@ import syntax_version_types;
 import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_gate;
 import .library.compiler_work_types;
 import .library.vector;
 import .library.work_buffer;
@@ -315,7 +316,7 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
     work_buffer_dispose(&batch.foundation.storage);
     work_buffer_dispose(&batch.library.storage);
     if !work_budget_dispose(&batch.budget) { trap("Compilation budget still borrowed", 0); }
-    work_signal_close(batch.budget_gate);
+    work_gate_close(batch.budget_gate);
     free(batch);
 }
 
@@ -364,10 +365,9 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error:
         frontend_units_close(batch); return null;
     }
     if budget > 1 {
-        batch.budget_gate = work_signal_open();
+        batch.budget_gate = work_gate_open();
         if batch.budget_gate == null { *error = WorkBudgetError.Memory; frontend_units_close(batch); return null; }
-        work_signal_post(batch.budget_gate);
-        if !work_budget_synchronize(&batch.budget, batch.budget_gate, work_signal_wait, work_signal_post) {
+        if !work_budget_synchronize(&batch.budget, batch.budget_gate, work_gate_enter, work_gate_leave) {
             frontend_units_close(batch); return null;
         }
     }
