@@ -7,7 +7,10 @@ import interpreter_storage;
 import interpreter;
 import type_objects;
 import type_object_index_types;
-import .library.vector;
+import fast_interpreter_types;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_vector;
 import .library.work_budget_types;
 import .library.float_bits;
@@ -24,114 +27,70 @@ var FMUInt16: usize = 6;
 var FMInt16: usize = 7;
 var FMFloat32BinaryBase: usize = 192;
 var FMFloat64BinaryBase: usize = 208;
-var FMIndirectCall: usize = 25;
 var FMCheckFunction: usize = 26;
-var FMDirectCall: usize = 15;
 var FMTypeConstruction: usize = 27;
+var FMStackLimitBytes: usize = 4194304;
+var FMFrameLimit: usize = 127;
+var FMEntryStackBase: usize = 16;
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler
 // metadata occur in the instruction words. Cold provenance/type/binding tables
 // retain references to the owning program. The entire compiler and runner here
 // use ordinary Foundation operations, with no computed goto, JIT or native ABI.
-struct FMFunction {
-    node: void*;
-    entry: usize;
-    registers: usize;
-    frame_size: usize;
-    parameters: usize;
-    parameter_count: usize;
-    external: bool;
-    pinned: usize;
-}
-
-struct FMParameter {
-    offset: usize;
-    size: usize;
-    register_slot: usize;
-}
-
-struct FMConversion {
-    from: FoundationType*;
-    to: FoundationType*;
-}
-
-struct FMSource {
-    pc: usize;
-    offset: usize;
-}
-
-struct FMFrame {
-    pc: usize;
-    base: usize;
-    registers: usize;
-    result: usize;
-    count: usize;
-}
-
-struct FMState {
-    words: vector(u32);
-    constants: vector(u64);
-    type_values: TypeObjectIndex;
-    budget: WorkBudget*;
-    type_error_offset: usize;
-    functions: vector(FMFunction);
-    function_indices: vector(usize);
-    parameters: vector(FMParameter);
-    types: vector(FoundationType*);
-    conversions: vector(FMConversion);
-    strings: vector(void*);
-    sources: vector(FMSource);
-    registers: vector(u64);
-    frames: vector(FMFrame);
-    labels: vector(IMEntry);
-    jumps: vector(IMEntry);
-    locals: vector(IMEntry);
-    escaped: vector(u64);
-    pinned: usize;
-    next_register: usize;
-    max_register: usize;
-    pc: usize;
-    base: usize;
-    register_base: usize;
-    register_count: usize;
-    current_offset: usize;
-    instructions: usize;
-    wide_instructions: usize;
-    preserve_error_offset: bool;
-}
-
-// Failed type storage invalidates the entire derived cache. Guard emission and
+// Failed storage invalidates the entire derived cache. Guard emission and
 // patching while unwinding the current expression; no partial cache may execute.
 fn fm_build_ok(f: FMState*): bool {
-    return f.type_values.error == WorkBudgetError.None;
+    return f.error == WorkBudgetError.None;
 }
 
-fn fm_push(T: type, values: vector(T)*, value: T*): void {
+fn fm_storage_result(f: FMState*, result: WorkBudgetError, message: u8*, offset: usize): bool {
+    if result != WorkBudgetError.None && fm_build_ok(f) {
+        f.error = result;
+        f.error_message = message;
+        f.error_offset = offset;
+    }
+    return fm_build_ok(f);
+}
+
+fn fm_reserve(T: type, f: FMState*, values: work_vector(T)*, needed: usize): bool {
+    return fm_build_ok(f) && fm_storage_result(f, work_vector_reserve_result(values, f.budget, needed),
+        "Cannot allocate Fast interpreter execution storage", f.current_offset);
+}
+
+fn fm_push(T: type, f: FMState*, values: work_vector(T)*, value: T*): bool {
+    if values == null {
+        return fm_storage_result(f, WorkBudgetError.Invalid,
+            "Invalid Fast interpreter execution storage", f.current_offset);
+    }
     var needed = values.length + 1;
-    im_storage_require(vector_reserve(values, needed));
-    copy(&values.data[values.length], value, sizeof(T));
+    if needed == 0 {
+        return fm_storage_result(f, WorkBudgetError.Invalid,
+            "Fast interpreter execution storage size overflow", f.current_offset);
+    }
+    if !fm_reserve(f, values, needed) { return false; }
+    values.data[values.length] = *value;
     values.length = needed;
+    return true;
 }
 
-fn fm_trim(T: type, values: vector(T)*): void {
-    if values.length == 0 {
-        vector_dispose(values);
-        return;
-    }
-    if values.length == values.capacity {
-        return;
-    }
-    var data = realloc(T, values.data, values.length);
-    var ok = data != null;
-    im_storage_require(ok);
-    values.data = data;
-    values.capacity = values.length;
+fn fm_append(T: type, f: FMState*, values: work_vector(T)*, value: T): bool {
+    return fm_push(f, values, &value);
+}
+
+fn fm_fail(m: IMState*, f: FMState*): void {
+    im_storage_result(m, f.error);
+    im_fail(m, f.error_message, f.error_offset);
+    m.done = true;
 }
 
 fn fm_register(f: FMState*): usize {
     if !fm_build_ok(f) { return 0; }
     var result = f.next_register;
+    if result == ~convert(usize, 0) {
+        fm_storage_result(f, WorkBudgetError.Invalid, "Fast interpreter register count overflow", f.current_offset);
+        return 0;
+    }
     f.next_register = result + 1;
     if f.next_register > f.max_register {
         f.max_register = f.next_register;
@@ -140,7 +99,7 @@ fn fm_register(f: FMState*): usize {
 }
 
 fn fm_word(f: FMState*, value: usize): void {
-    im_storage_require(vector_push(&f.words, convert(u32, value)));
+    fm_append(f, &f.words, convert(u32, value));
 }
 
 fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
@@ -155,7 +114,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
         var source: FMSource;
         source.pc = at;
         source.offset = f.current_offset;
-        fm_push(FMSource, &f.sources, &source);
+        fm_push(FMSource, f, &f.sources, &source);
     }
     f.instructions++;
     // Branch target extensions are one full word; common branch registers still
@@ -227,7 +186,7 @@ fn fm_constant(f: FMState*, value: u64): usize {
         }
     }
     if index == f.constants.length {
-        im_storage_require(vector_push(&f.constants, value));
+        fm_append(f, &f.constants, value);
     }
     var result = fm_register(f);
     fm_emit(f, 0, result, index, 0);
@@ -244,7 +203,7 @@ fn fm_type(f: FMState*, type: FoundationType*): usize {
             return index;
         }
     }
-    im_storage_require(vector_push(&f.types, type));
+    fm_append(f, &f.types, type);
     return index;
 }
 
@@ -273,14 +232,19 @@ fn fm_function(f: FMState*, node: void*): usize {
     foreach(var & parameter in &n.parameters) {
         var param = im_node(*parameter);
         var value: FMParameter = { offset: param.byte_offset, size: im_type_size(&param.type), register_slot: 0 };
-        fm_push(FMParameter, &f.parameters, &value);
+        if !fm_push(FMParameter, f, &f.parameters, &value) { return 0; }
     }
-    fm_push(FMFunction, &f.functions, &function);
+    if !fm_push(FMFunction, f, &f.functions, &function) { return 0; }
     if f.function_indices.length <= n.index {
         var previous = f.function_indices.length;
-        im_storage_require(vector_reserve(&f.function_indices, n.index + 1));
-        f.function_indices.length = n.index + 1;
-        for(var i = previous; i <= n.index; i++) { f.function_indices.data[i] = 0; }
+        var needed = n.index + 1;
+        if needed == 0 {
+            fm_storage_result(f, WorkBudgetError.Invalid, "Fast interpreter function index overflow", n.start);
+            return 0;
+        }
+        if !fm_reserve(f, &f.function_indices, needed) { return 0; }
+        for(var i = previous; i < needed; i++) { f.function_indices.data[i] = 0; }
+        f.function_indices.length = needed;
     }
     f.function_indices.data[n.index] = index + 1;
     return index;
@@ -305,7 +269,7 @@ fn fm_local(f: FMState*, node: void*): usize {
 }
 
 fn fm_collect_addresses(f: FMState*, node: void*): void {
-    if node == null {
+    if node == null || !fm_build_ok(f) {
         return;
     }
     var n = im_node(node);
@@ -328,7 +292,7 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
             if target.binding != null {
                 place = target.binding;
             }
-            im_storage_require(vector_push(&f.escaped, im_key(place)));
+            fm_append(f, &f.escaped, im_key(place));
             break;
         }
     }
@@ -382,6 +346,7 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
     }
     f.escaped.length = 0;
     fm_collect_addresses(f, body);
+    if !fm_build_ok(f) { return; }
     var node = im_node(f.functions.data[index].node);
     var all_registers = true;
     i = 0;
@@ -417,7 +382,7 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
             var register = fm_register(f);
             register++;
             entry.value = convert(u64, register);
-            fm_push(IMEntry, &f.locals, &entry);
+            if !fm_push(IMEntry, f, &f.locals, &entry) { return; }
         }
         i++;
     }
@@ -495,7 +460,10 @@ fn fm_value(f: FMState*, node: void*): usize {
     var n = im_node(node);
     if n.kind == KTypeReference {
         var reference = type_object_index_intern(&f.type_values, f.budget, &n.element);
-        if reference == 0 { f.type_error_offset = n.start; return 0; }
+        if reference == 0 {
+            fm_storage_result(f, f.type_values.error, "Cannot allocate interpreter type storage", n.start);
+            return 0;
+        }
         return fm_constant(f, reference);
     }
     if n.kind == KTypeConstruct {
@@ -529,7 +497,7 @@ fn fm_value(f: FMState*, node: void*): usize {
     }
     if n.kind == KString {
         var index = f.strings.length;
-        im_storage_require(vector_push(&f.strings, node));
+        fm_append(f, &f.strings, node);
         var result = fm_register(f);
         fm_emit(f, 18, result, index, 0);
         return result;
@@ -641,7 +609,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         descriptor.from = &input.type;
         descriptor.to = &n.type;
         var index = f.conversions.length;
-        fm_push(FMConversion, &f.conversions, &descriptor);
+        fm_push(FMConversion, f, &f.conversions, &descriptor);
         var result = fm_register(f);
         fm_emit(f, 7, result, value, index);
         return result;
@@ -650,7 +618,7 @@ fn fm_value(f: FMState*, node: void*): usize {
     return value;
 }
 
-fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: usize): void {
+fn fm_statement(f: FMState*, node: void*, breaks: work_vector(usize)*, continue_pc: usize): void {
     if !fm_build_ok(f) { return; }
     var n = im_node(node);
     f.current_offset = n.start;
@@ -659,7 +627,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         var entry: IMEntry;
         entry.key = im_key(node);
         entry.value = convert(u64, f.words.length);
-        fm_push(IMEntry, &f.labels, &entry);
+        fm_push(IMEntry, f, &f.labels, &entry);
         return;
     }
     if n.kind == KJump {
@@ -667,7 +635,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         entry.key = im_key(n.binding);
         var at = fm_emit(f, 13, 0, 0, 0);
         entry.value = convert(u64, at);
-        fm_push(IMEntry, &f.jumps, &entry);
+        fm_push(IMEntry, f, &f.jumps, &entry);
         return;
     }
     if n.kind == KTrap {
@@ -728,20 +696,19 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         return;
     }
     if n.kind == KLoop {
-        var local_breaks: vector(usize);
-        vector_init(&local_breaks);
+        var local_breaks: work_vector(usize) = default;
         var start = f.words.length;
         fm_statement(f, n.body, &local_breaks, start);
         fm_emit(f, 13, start, 0, 0);
         foreach(var & local_break in &local_breaks) {
             fm_patch(f, *local_break, 2, f.words.length);
         }
-        vector_dispose(&local_breaks);
+        work_vector_dispose(&local_breaks);
         return;
     }
     if n.kind == KBreak {
         var at = fm_emit(f, 13, 0, 0, 0);
-        im_storage_require(vector_push(breaks, at));
+        fm_append(f, breaks, at);
         return;
     }
     if n.kind == KContinue {
@@ -780,80 +747,62 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
 }
 
 export fn fast_interpreter_create(m: IMState*): FMState* {
-    var f = alloc(FMState, 1);
-    if f == null {
+    if m.failed { return null; }
+    var storage: WorkBuffer = default;
+    var result = work_buffer_resize(&storage, m.budget, sizeof(FMState), 0);
+    if !im_storage_result(m, result) {
         im_fail(m, "Cannot allocate interpreter execution cache", 0);
         m.done = true;
         return null;
     }
-    *f = {budget: m.budget, ..default};
-    var failed = m.failed;
-    if failed {
-        return f;
-    }
+    var f = bits(FMState*, storage.data);
+    *f = { budget: m.budget, storage: storage, ..default };
+    var published = false;
+    defer { if !published { fast_interpreter_dispose(f); } }
     fm_function(f, im_root(m));
-    var i: usize = 0;
-    for(; i != f.functions.length; i++) {
+    for(var i: usize = 0; i < f.functions.length && fm_build_ok(f); i++) {
         var node = f.functions.data[i].node;
         var n = im_node(node);
+        f.current_offset = n.start;
         f.functions.data[i].entry = f.words.length;
         f.max_register = 1;
         f.next_register = 0;
         f.pinned = 0;
         f.locals.length = 0;
-        var external = n.external;
-        if !external {
-            var body = n.body;
-            if i == 0 {
-                body = node;
-            }
+        if !n.external {
+            var body = i == 0 ? node : n.body;
             fm_pin_locals(f, i, body);
-            fm_statement(f, body, null, 0);
-            if !fm_build_ok(f) {
-                if m.storage_error == WorkBudgetError.None { m.storage_error = f.type_values.error; }
-                im_fail(m, "Cannot allocate interpreter type storage", f.type_error_offset);
-                m.done = true;
-                fast_interpreter_dispose(f);
-                return null;
-            }
+            if fm_build_ok(f) { fm_statement(f, body, null, 0); }
             f.next_register = f.pinned;
             fm_emit(f, 16, fm_constant(f, 0), 0, 0);
         }
-        f.functions.data[i].registers = f.max_register;
+        if fm_build_ok(f) { f.functions.data[i].registers = f.max_register; }
     }
-    i = 0;
-    for(; i != f.jumps.length; i++) {
-        var j: usize = 0;
-        loop {
-            var end = j == f.labels.length;
-            var available = !end;
-            im_storage_require(available);
+    for(var i: usize = 0; i < f.jumps.length && fm_build_ok(f); i++) {
+        var found = false;
+        for(var j: usize = 0; j < f.labels.length; j++) {
             if f.labels.data[j].key == f.jumps.data[i].key {
                 fm_patch(f, convert(usize, f.jumps.data[i].value), 2, convert(usize, f.labels.data[j].value));
+                found = true;
                 break;
             }
-            j++;
+        }
+        if !found {
+            fm_storage_result(f, WorkBudgetError.Invalid, "Fast interpreter jump target is missing", f.current_offset);
         }
     }
-    vector_dispose(&f.labels);
-    vector_dispose(&f.jumps);
-    vector_dispose(&f.locals);
-    vector_dispose(&f.escaped);
-    f.base = 16;
+    if !fm_build_ok(f) { fm_fail(m, f); return null; }
+    work_vector_dispose(&f.labels);
+    work_vector_dispose(&f.jumps);
+    work_vector_dispose(&f.locals);
+    work_vector_dispose(&f.escaped);
+    f.base = FMEntryStackBase;
     f.register_count = f.functions.data[0].registers;
-    im_storage_require(vector_reserve(&f.registers, f.register_count));
+    if !fm_reserve(f, &f.registers, f.register_count) { fm_fail(m, f); return null; }
     f.registers.length = f.register_count;
-    fm_trim(u32, &f.words);
-    fm_trim(u64, &f.constants);
-    fm_trim(FMFunction, &f.functions);
-    fm_trim(usize, &f.function_indices);
-    fm_trim(FMParameter, &f.parameters);
-    fm_trim(FoundationType*, &f.types);
-    fm_trim(FMConversion, &f.conversions);
-    fm_trim(void*, &f.strings);
-    fm_trim(FMSource, &f.sources);
-    // Release graph scheduling storage for this execution. The graph itself is
-    // still the program and is available to formatting/reflection outside us.
+    // Keep bounded geometric capacity instead of allocating nine replacement
+    // buffers solely to shrink this private cache. Scratch owners retire above.
+    // Release graph scheduling storage only after the complete cache is ready.
     im_frame_pop(m);
     var graph_frame = &m.frames.data[0];
     work_vector_dispose(&graph_frame.tasks);
@@ -861,27 +810,28 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     work_vector_dispose(&graph_frame.addresses);
     work_vector_dispose(&m.frames);
     work_vector_dispose(&m.node_cache);
+    published = true;
     return f;
 }
-
 export fn fast_interpreter_dispose(f: FMState*): void {
-    vector_dispose(&f.escaped);
-    vector_dispose(&f.labels);
-    vector_dispose(&f.jumps);
-    vector_dispose(&f.locals);
-    vector_dispose(&f.words);
-    vector_dispose(&f.constants);
+    work_vector_dispose(&f.escaped);
+    work_vector_dispose(&f.labels);
+    work_vector_dispose(&f.jumps);
+    work_vector_dispose(&f.locals);
+    work_vector_dispose(&f.words);
+    work_vector_dispose(&f.constants);
     type_object_index_dispose(&f.type_values);
-    vector_dispose(&f.functions);
-    vector_dispose(&f.function_indices);
-    vector_dispose(&f.parameters);
-    vector_dispose(&f.types);
-    vector_dispose(&f.conversions);
-    vector_dispose(&f.strings);
-    vector_dispose(&f.sources);
-    vector_dispose(&f.registers);
-    vector_dispose(&f.frames);
-    free(f);
+    work_vector_dispose(&f.functions);
+    work_vector_dispose(&f.function_indices);
+    work_vector_dispose(&f.parameters);
+    work_vector_dispose(&f.types);
+    work_vector_dispose(&f.conversions);
+    work_vector_dispose(&f.strings);
+    work_vector_dispose(&f.sources);
+    work_vector_dispose(&f.registers);
+    work_vector_dispose(&f.frames);
+    var storage = f.storage;
+    work_buffer_dispose(&storage);
 }
 
 fn fm_offset(f: FMState*, pc: usize): usize {
@@ -1202,9 +1152,9 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
         f.registers.data[at] = value;
         return;
     }
-    var remaining: usize = 4194304;
+    var remaining = FMStackLimitBytes;
     remaining = remaining - m.stack;
-    var exhausted = f.frames.length >= 127;
+    var exhausted = f.frames.length >= FMFrameLimit;
     var fm_condition_36 = function.frame_size > remaining;
 
     exhausted = im_or(exhausted, fm_condition_36);
@@ -1213,16 +1163,38 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
         return;
     }
     var frame: FMFrame = { pc: f.pc, base: f.base, registers: f.register_base, result: dest, count: f.register_count };
-    fm_push(FMFrame, &f.frames, &frame);
     var register_base = f.register_base + f.register_count;
     var needed = register_base + function.registers;
-    im_storage_require(vector_reserve(&f.registers, needed));
+    var depth = f.frames.length + 1;
+    var admission = WorkBudgetError.None;
+    if depth == 0 || register_base < f.register_base || needed < register_base {
+        admission = WorkBudgetError.Invalid;
+    } else { if depth > f.frames.capacity {
+        admission = work_vector_reserve_result(&f.frames, f.budget, depth);
+    } }
+    if admission != WorkBudgetError.None {
+        im_storage_result(m, admission);
+        im_fail(m, "Cannot allocate Fast interpreter call frames", offset);
+        return;
+    }
+    if needed > f.registers.capacity {
+        admission = work_vector_reserve_result(&f.registers, f.budget, needed);
+        if admission != WorkBudgetError.None {
+            im_storage_result(m, admission);
+            im_fail(m, "Cannot allocate Fast interpreter registers", offset);
+            return;
+        }
+    }
+    // Reserve both owners before publishing the frame, stack or callee effects.
+    // A retained capacity increase is harmless if the second admission fails.
+    f.frames.data[f.frames.length] = frame;
+    f.frames.length = depth;
     f.registers.length = needed;
     f.register_count = function.registers;
     f.register_base = register_base;
     f.base = m.stack;
     m.stack = m.stack + function.frame_size;
-    var pinned_bytes = function.pinned *8;
+    var pinned_bytes = function.pinned * sizeof(u64);
     fill(&f.registers.data[register_base], 0, pinned_bytes);
     var i: usize = 0;
     for(; i != function.parameter_count; i++) {
@@ -1245,7 +1217,7 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
 export fn fast_interpreter_stat(f: FMState*, key: usize): usize {
     var selected = key == 0;
     if selected {
-        var bytes = f.words.length *4;
+        var bytes = f.words.length * sizeof(u32);
         return bytes;
     }
     selected = key == 1;
@@ -1258,7 +1230,7 @@ export fn fast_interpreter_stat(f: FMState*, key: usize): usize {
     }
     selected = key == 3;
     if selected {
-        var bytes = f.registers.capacity *8;
+        var bytes = f.registers.capacity * sizeof(u64);
         return bytes;
     }
     var bytes = f.constants.capacity *sizeof(u64);
