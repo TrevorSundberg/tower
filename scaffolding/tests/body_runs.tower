@@ -547,7 +547,7 @@ fn body_runs_tests(root: u8*): void {
         defer vector_dispose(&root_layout);
         // Foundation root operands can create an array after declaration
         // layouts, even when the only function needs no structural preparation.
-        var root_source: u8* = "struct Item { value:i32; } var size:usize=sizeof(Item[2]); fn result():i32 { return 0; } print(result());";
+        var root_source: u8* = "import foundation; struct Item { value:i32; } var size:usize=sizeof(Item[2]); fn result():i32 { return 0; } print(result());";
         for(var budget: usize = 1; budget <= 8; budget *= 2) {
             body_runs_trial(root_source, budget, width, bedrock.data, foundation.data, root, &root_layout);
         }

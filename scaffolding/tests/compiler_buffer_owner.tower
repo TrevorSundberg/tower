@@ -1,6 +1,7 @@
 import tower;
 import .host.memory_types;
 import utility_checks;
+import compiler_buffer_contract;
 
 extern fn compiler_node_allocate(state: CompilerNodeMemoryState*, bytes: usize, diagnostic: bool): void*;
 extern fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void;
@@ -11,6 +12,8 @@ extern fn tower_test_buffer_fail_after(count: usize): void;
 
 export fn compiler_buffer_owner_tests(): void {
     var baseline = tower_test_buffer_count();
+    utility_check(compiler_buffer_contract_tests(), "compiler buffer size and typed alignment contract");
+    utility_check(tower_test_buffer_count() == baseline, "compiler buffer contract cleanup");
     var owner: CompilerNodeMemoryState = default;
     for(var size: usize = 0; size <= 65; size++) {
         var owned = compiler_buffer_allocate(size);
@@ -28,7 +31,15 @@ export fn compiler_buffer_owner_tests(): void {
     }
     compiler_buffer_free(null);
     tower_test_buffer_fail_after(0);
+    var maximum = ~convert(usize, 0);
+    utility_check(compiler_buffer_allocation_size(17) == 4 * sizeof(usize) + 17 &&
+        compiler_buffer_alignment() == 2 * sizeof(usize), "compiler buffer queries do not allocate");
+    utility_check(compiler_buffer_allocate(maximum - 5 * sizeof(usize) + 1) is null,
+        "compiler buffer admission preserves overflow margin");
     utility_check(compiler_buffer_allocate(17) is null, "compiler buffer failure propagation");
+    var recovered = compiler_buffer_allocate(17);
+    utility_check(recovered is not null, "compiler buffer rejection preserves fault ticket");
+    compiler_buffer_free(recovered);
     tower_test_buffer_fail_after(~convert(usize, 0));
     utility_check(compiler_buffer_allocate(~convert(usize, 0)) is null, "compiler buffer size overflow");
     utility_check(tower_test_buffer_count() == baseline, "compiler buffer failure cleanup");

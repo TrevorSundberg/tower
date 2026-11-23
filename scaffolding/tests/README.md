@@ -32,7 +32,7 @@ Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build
 `tower-driver-tests`. The existing runner also provides:
 
 - `ctest --test-dir <native-build> -R '^tower-driver-native-differential$' --output-on-failure`
-  compares eight real native programs with the graph interpreter, with both
+  compares the native fixtures with the graph interpreter, with both
   optimized and unoptimized compilation.
 - `ctest --test-dir <native-build> -R '^tower-driver-package-differential$' --output-on-failure`
   compares graph/fast execution, file package loads, Foundation reconstruction,
@@ -47,6 +47,12 @@ and a writable working directory. Each CTest has a separate output directory;
 direct runs retain sources, binaries and capture logs there for inspection.
 Unknown filters fail. Child exit statuses are preserved, including abnormal
 termination, with a 30-second child limit and a 20-minute CTest limit.
+
+The native-only `backend_execution_roots` case reads its Tower fixture from
+this directory and requires the independent output `45\n2\n` before comparing
+raw and optimized native execution. Its direct, callback and recursive calls
+share two observable effects; its uncalled type helper remains in the source.
+The fixture keeps its own explicit language import, without a runner prefix.
 
 The shared scalar-idiom JSON remains browser test data. The Tower runner reads
 only its ASCII string/null table format and rejects unsupported values/escapes;
@@ -893,20 +899,21 @@ Its requested worker count alone is not concurrency evidence. Both measurements
 report Linux x64 wall/CPU/RSS and retained counters with no timing pass threshold;
 retain source, transport, samples and actual overlap alongside performance claims.
 
-The Linux x64 worker-test build also provides the opt-in
-`tower-semantic-layout-profile` executable and `tower-measure-semantic-layout`
-target. They reuse the existing compiler/worker link closure and are excluded
-from default builds and CTest. Two warmups and three reported samples cover
-32/512/2048/4096/8192 fields, one/four requested workers and a fully occupied
-shared budget. Each trial checks actual layout results and exactly-once job
-observations, then closes the world and budget.
+With both `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`, the separate
+Linux x64 `tower-semantic-layout-profile` executable reuses the native compiler
+unit link closure and production worker transport. It is excluded from default
+builds and CTest; explicitly run `tower-measure-semantic-layout` to build and
+measure it. Two warmups precede three samples at32/512/2048/4096/8192 fields,
+requesting one or four lanes, plus an8192-field case with the other lanes reserved.
+Host capacity can reduce the actual worker count.
 
-Each report contains eleven lines: requested workers, fields, occupied flag,
-pump wall nanoseconds, CPU microseconds, process peak RSS KiB, actual interval
-overlap, caller jobs, summed job span nanoseconds, retained derived layout bytes
-and ledger peak lanes. Requested workers do not establish overlap. RSS is
-cumulative; derived vector capacity is not total live allocation. This measures
-the layout pump, not end-to-end compilation.
+Each result has eleven lines: requested lanes, fields, other-lane reservation,
+pump wall nanoseconds, process CPU microseconds, process peak RSS KiB, observed
+overlapping job intervals, caller jobs, summed job nanoseconds, retained derived
+layout-vector bytes and ledger peak lanes. Sizes, alignments, every field offset,
+exactly-once job observations and complete world/budget teardown are checked.
+RSS is cumulative across trials; derived vector bytes are not total live memory.
+This is a layout-pump measurement, not end-to-end compilation or a speed claim.
 
 With `TOWER_EXECUTION_TESTS=ON`, the native Linux x64 build also provides the
 opt-in `tower-type-reachability-profile RESOURCE_ROOT` executable and
@@ -931,7 +938,25 @@ the30-second internal deadline are unchanged. Phase messages identify baseline
 versus streaming work; directional deadline errors identify the waiting side.
 The focused selector does not replace the full backend matrix or its failures.
 
+The existing worker and execution runners accept `capture-policy` for the
+12 address/effect policy cases in the lifecycle fixture. This reuses the same
+32/64-bit, serial/worker and successful canonical reconstruction checks. The
+full42-case lifecycle gate remains in `type-smoke` and the broader body suites.
+The focused selector does not replace aggregate or full-suite acceptance.
+
+`aggregate_capture_inputs.tower` runs through the existing aggregate execution
+helper from the `types`, `known`, `aggregate-stages` and full execution selections.
+It checks nested aggregate/array, type/function/null-pointer and empty-field
+captures, repeated frame use and independent copies. Both engines, target widths,
+canonical reconstruction and worker1/2/4/8 comparisons reuse the original helper;
+the original aggregate rejection fixtures remain unchanged.
+
 `tower-frontend-tests RESOURCE_ROOT allocations` runs the existing serial
 frontend snapshot allocation-failure checks without the unrelated body/parser
 matrix. The default frontend invocation still runs these checks. This selector
 does not provide production threading or whole compiler sanitizer coverage.
+
+`tower-frontend-tests RESOURCE_ROOT parser` runs the existing parser integration
+and failure suites without the unrelated body matrix. It includes valid trace
+output and serial allocation-failure/ownership checks. Use the serial frontend
+target for this fault allocator; it is not a threaded allocator sanitizer.

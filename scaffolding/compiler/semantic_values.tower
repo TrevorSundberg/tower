@@ -375,8 +375,8 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
     if value == null {
         value = sem_node(c, n, KOperand);
     }
-    var text: u8* = sem_tokens(c, n);
     if sem_literal(c, n) {
+        var text = sem_tokens(c, n);
         var nominal = expected_type != null;
         nominal &&= expected_type.pointers == 0;
         nominal &&= semantic_enum(expected_type);

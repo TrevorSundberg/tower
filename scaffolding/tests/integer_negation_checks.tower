@@ -24,7 +24,7 @@ fn integer_negation_tests(modules: void*, root: u8*): void {
         execution_check(graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Negation uses ordinary operation semantics");
         execution_roundtrip(&graph, modules, false);
         execution_session_close(&graph);
-        execution_compile(&graph, "var byte:u8=-0;var word:u32=-0;var wide:u64=-0;var size:usize=-0;print(size);", width, modules);
+        execution_compile(&graph, "import foundation;var byte:u8=-0;var word:u32=-0;var wide:u64=-0;var size:usize=-0;print(size);", width, modules);
         execution_check(execution_session_start(&graph), "Foundation zero spelling starts");
         execution_run(&graph, 1000, 100000);
         execution_check(graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Foundation negative zero is zero");
@@ -33,6 +33,6 @@ fn integer_negation_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var x:i32=-2147483649;", "Integer literal out of range");
     struct_value_reject(modules, "import tower;var x:i64=-(9223372036854775809);", "Integer literal out of range");
     struct_value_reject(modules, "import tower;var x:u8=-256;", "Integer literal out of range");
-    struct_value_reject(modules, "var x:u64=-1;", "Integer literal out of range");
+    struct_value_reject(modules, "import foundation;var x:u64=-1;", "Integer literal out of range");
     puts("Integer negation: zero, signed minima, unsigned wrapping, staging and Foundation pass.");
 }

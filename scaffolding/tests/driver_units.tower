@@ -23,7 +23,8 @@ fn driver_units_arguments(args: DriverArguments*, compiler: u8*, jobs: u8*): voi
 fn driver_test_units(compiler: u8*): void {
     driver_units_fixture("driver units main.tower", "import tower; extern fn unit_first():i32; extern fn unit_second():i32; print(unit_first()+unit_second());");
     driver_units_fixture("driver units dependency.tower", "import tower; fn identity(T:type,x:T):T{return x;} fn box(T:type):type{struct Item{value:T;}return Item;}");
-    driver_units_fixture("driver units first.tower", "import \"driver units dependency.tower\"; export fn unit_first():i32{var item:box(i32)={value:comptime(identity(40))}; var result:decltype(item.value)=item.value; return result;}");
+    var first = "import \"driver units dependency.tower\"; export fn unit_first():i32{var item:box(i32)={value:comptime(identity(40))}; var result:decltype(item.value)=item.value; return result;}";
+    driver_units_fixture("driver units first.tower", first);
     driver_units_fixture("driver units second.tower", "import tower; export fn unit_second():i32{var value:i32=2; if value==2{return value;} return 0;}");
     var denied: DriverArguments = default;
     driver_units_arguments(&denied, compiler, "1");
@@ -31,6 +32,15 @@ fn driver_test_units(compiler: u8*): void {
     driver_check(driver_test_capture(&denied) == 1, "finite unit snapshot budget rejects before compilation");
     driver_arguments_dispose(&denied);
     driver_test_read("driver stderr.txt", "--unit-retained-bytes", false);
+    var invalid: u8[3] = default;
+    invalid[0] = *" "; invalid[2] = *"@";
+    driver_check(driver_write_file("driver units first.tower", &invalid[0], sizeof(decltype(invalid))),
+        "Explicit source span with interior NUL");
+    driver_units_arguments(&denied, compiler, "1");
+    driver_check(driver_test_capture(&denied) == 1, "Interior NUL rejects before unit compilation");
+    driver_arguments_dispose(&denied);
+    driver_test_read("driver stderr.txt", "driver units first.tower:1:2: Compilation source contains an embedded NUL byte", false);
+    driver_units_fixture("driver units first.tower", first);
     for (var trial: usize = 0; trial < 2; trial++) {
         var args: DriverArguments = default;
         driver_units_arguments(&args, compiler, trial == 0 ? "1" : "4");

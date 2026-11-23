@@ -1,5 +1,6 @@
 import tower;
 import frontend_units;
+import frontend_units_memory;
 import work_named;
 import .library.vector;
 import .library.work_pool;
@@ -96,7 +97,7 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     var before: WorkBudgetSnapshot;
     units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &before), "backend input accounting");
     var input_bytes = frontend_units_input_bytes(frontend);
-    var output_bytes = strlen(target) + 1;
+    var output_bytes = units_memory_span_bytes(strlen(target));
     units_check(backend_units_create(frontend, ~convert(usize, 0), budget, target, true, true) == null,
         "backend rejects invalid count before allocating or walking units");
     var batch = backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true);
@@ -151,11 +152,11 @@ fn backend_units_memory(frontend: void*, target: u8*): void {
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, 0, target, true, true) == null
         && backend_units_create_bounded(frontend, BackendFixtureUnits, 1, ~convert(usize, 0), target, true, true) == null,
         "bounded backend rejects missing or unbounded policy");
-    var bytes = strlen(target) + 1;
+    var bytes = units_memory_span_bytes(strlen(target));
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes - 1, target, true, true) == null,
         "target cap rejection leaves frontend graph usable");
     var batch = backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes, target, true, true);
-    units_check(batch != null, "exact target bytes admitted before allocation");
+    units_check(batch != null, "exact target payload and allocator header admitted before allocation");
     defer backend_units_close(batch);
     while !backend_units_step(batch, true) {}
     units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 1

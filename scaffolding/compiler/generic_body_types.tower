@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 
 // Internal worker arguments, borrowing canonical entities from one compiler world.
 struct GenericBodyCopy {
@@ -8,4 +9,7 @@ struct GenericBodyCopy {
     limit: usize;
     copied: usize;
     success: bool;
+    // Frozen by the coordinator; the world budget outlives the dispatched job.
+    budget: WorkBudget*;
+    storage_error: WorkBudgetError;
 }
