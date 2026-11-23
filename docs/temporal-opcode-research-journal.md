@@ -91018,3 +91018,27 @@ library/language and public predecessor inputs are unchanged; the focused
 fixture and all9 frozen nm closures pass again on merged policy. Source snapshot,
 allbuilds, archives and hashes retain their original measured boundary. No
 unnecessary second generation/matrix; ROOT must choose later-source adoption.
+
+Publication/adoption: implementation commit `7deeb795` plus full-history merge
+`7c10bb3072c3016bc40b65c57469c6f396fdf973` preserve incoming main3373f70c.
+No backend/recheck fixture hunk changed in the merge. Read the three relevant
+incoming producer hunks: L1 named-wrapper/nullary type-return dependency handling
+in generics/semantic_declarations and A2 ordinary unary type-argument preparation
+in semantic_type_values. Refreshed only their affected entity/semantic providers
+and the two existing test links (4 actions):37.67 wall/33.15 CPU s,1067644 KiB peak.
+Merged source runner SHA256
+`c39971ce62b02e4ffee040a8e72953a1ba581c7b750e72a0801c875b9e3c797a`.
+Same three focused CTests pass (1.62 s); the identical large canonical request
+again passes controlled Capacity/rollback/fresh-retry/zero-owner checks.
+A read-only debugger capture at the actual second frontend call confirms the
+private merged candidate is byte-identical to the original9707075 B reconstruction
+(SHAdcede543f74e1bac88e6839639a23f0b5d49295d879df632d194658af9a22567).
+It is not published by the failed request. All four32/64-bit1/4-worker healthy
+canonical outputs match the frozen before files; their exact0 execution evidence
+is reused by those hashes. No repeat full ECS run or broad suite. The full native
+logical-limit failure stays scoped to the premerge executable9818a5d1, not labeled
+as final merged/hosted acceptance. The semantic count derives from the native
+compiler's FoundationNode ABI, not the target pointer width; no assertion that
+the eac Wasm host reaches the same limit. Later browser/build/package/generation
+receipts remain their owners' evidence. ROOT retains final release/current
+reactor adoption, and the unresolved large reconstruction gate is not waived.
