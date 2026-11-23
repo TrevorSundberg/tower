@@ -95111,3 +95111,17 @@ all owned processes drained and heavy lock released. Normal main push follows;
 ROOT retains later full-generation/hosted acceptance.
 
 L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
+
+D1 second publication reconciliation: first push raced with B2 Entity inline
+storage. Merged complete4a8694da asfd8f8dac6c0258dfa9c5f8597cc6aaad8ee8f9a8,
+library407c47fe6a2d52c7b1ce29104e0e1b75d353e171; compiler unchanged. Its changed
+Entity ABI justified refreshing the same execution target (nine actions,
+109.21wall/106.37CPU/1082524KiB, exit0) and only the affected44 selection again.
+Merged44/44 pass19.71wall/19.46CPU/196920KiB, exit0/no skip/timeout; exact positions,
+Graph/Fast32/64workers1/4, canonical/effects and zero-owner assertions retained.
+RunnerSHA98e686dd2b486c0eaf5fe0a1563a75a7a80938017e0c6c4aa1d982406f91ae84;
+merged inputs checked after execution, logs same directory merged.*. Provider/
+fixture bytes and both prior fault controls unchanged; no redundant control or
+broad matrix. Confirmed native mkdir before owner write, all jobs now drained and
+own lock released; disk127GiB/RAM9.9GiB, todo unchanged. Incoming browser/byte-test
+receipts retain their boundaries. No production edits or performance/release claim.

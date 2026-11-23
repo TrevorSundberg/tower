@@ -5347,3 +5347,20 @@ scaling evidence. No production-performance profile is applicable to fixture-onl
 changes. No broad type/lifecycle/browser/generation/sanitizer/release check was
 run; ROOT owns that final milestone. All owned jobs drained before releasing the
 successfully acquired heavy lock; no general race-freedom claim.
+
+**Affected merged adoption.** The first push raced with B2's published inline
+component-index change. Complete upstream4a8694da was merged as
+`fd8f8dac6c0258dfa9c5f8597cc6aaad8ee8f9a8`, tree
+`133fcd0cf734a346753ba4faef544add59e8c900`, library
+`407c47fe6a2d52c7b1ce29104e0e1b75d353e171`; compiler tree remains unchanged.
+The changed `Entity` layout invalidates native dependencies, so the same target
+was refreshed (nine actions,109.21wall/106.37CPU/1082524KiB, exit0), after another
+successful exclusive lock acquisition. The unchanged fixture/provider selector
+then passed44/44 again:19.71wall/19.46CPU/196920KiB, exit0/no skip/timeout, with
+all exact positions, canonical/effect and zero-owner assertions retained.
+Runner SHA256 `98e686dd2b486c0eaf5fe0a1563a75a7a80938017e0c6c4aa1d982406f91ae84`;
+merged input manifest `7b644c509b65e02126d0423fae212815088693e7a120f45c3c2b71bf3727492b`
+verified after execution. `merged.*` evidence retains this separate boundary.
+The two unchanged oracle controls were not rerun; no broader test was launched.
+Incoming browser/byte-test receipts keep their own identities. All owned jobs
+drained and lock released; these n1 costs do not establish a performance change.
