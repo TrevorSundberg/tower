@@ -94159,6 +94159,45 @@ hashes and all101existingdist assets still pass. Reuse exact three strict/fourUI
 receipts without new tests. Incoming L1header-capture/L2void-pointer producers
 and fixtures are preserved, excluded from host78d675c4/resourcesa2e1902e/b8binary
 acceptance. No source/package relabel or runtime deployment; normalpush follows.
+### 2026-11-23 L1 — complete native lifecycle checkpoint on3211cb1e
+
+Frozen published main3211cb1eab6a9582ab0b4ceb2c39ca4283a2532b, existing public-bootstrap native cache/CPU0-3. Derived42 cases from the actual SemanticLifecycleCase enum (0RootCall..41LocalAggregateCapture). One runner relink only; then existing lifecycle0-41 and dependency-units selectors each ran once. All42 lifecycle cases completed at32/64 workers1/4:168 source trials plus52 positive Foundation reparses, original outputs/canonical/error/ownership assertions PASS. Dependency-units original64-bit profile passes all four healthy/cycle trials with known42/43/44/45, ordinary type helpers, forward queries, untaken cyclic reads, canonical equality and ordered error/offset/no-partial-publication checks. Observed healthy overlap/threads1/1 and4/4; joined used lanes zero, all220 lifecycle and4 dependency batches pass world/budget disposal guards. No actual failure or unstarted case; no production edit or owner routing needed.
+
+Validation costs: lifecycle101.89wall/95.61CPU seconds/236180KiB RSS; dependency7.65/14.01/760692; runner link.84/.15/74428. Dependency healthy work clocks3.091491908s serial/1.570332919s four-worker; owned-budget peaks161241722/424128391 bytes. These are one frozen checkpoint's costs, not optimization/scaling claims. Runner SHA25614ee08755c22c58d06748196013b2b8129f50dcb55001b9c01138d1ea7213f52; semanticsc131e34c; complete source manifest7924750dd8810e43656e11ed049c99f864eb5f33447e7654b5ef18b4732345a9 identical before/after. Full identities, commands, exact counts and limitations: docs/compiler_lifecycle_checkpoint_3211cb1e.md and external L1/lifecycle_checkpoint_receipt.json, logs/lifecycle_checkpoint. Owned jobs drained; other lane jobs untouched; todo unchanged. Earlier48d/e755 receipts remain historical. Focused header/query/loop evidence reused at its own boundary. Later compiler changes must be excluded from this frozen acceptance, not trigger another full run. ROOT retains portable/shared/hosted release acceptance; documentation-only publication follows.
+
+L1 receipt transport note: the first PowerShell JSON-writing process grew while serializing decorated file-content values and was terminated before creating JSON or running Git. Exact process metrics/failure retained in logs/lifecycle_checkpoint/receipt_transport_failure.txt; plain .NET strings resolved receipt creation. This occurred after both successful native phases and did not alter their inputs/results or costs. No compiler retry occurred.
+
+### 2026-11-23 D1: finite pending-source closure at 1e60c511
+
+Freeze1e60c51167c6cc0438d10fe2366614ad872fa85b/tree72820a3b863adc36e29ef382c532708c5b2b40ae,
+compiler21b00de919403346f3f852a387a2b50b07b667d2/library62350befa8df3e261fd184a23a64e6bb7263204a.
+Same D1 thread01a2046a-4644-7ab1-a0ae-abd80210f013, CLI3173284, main only.
+Read nineteen pending Tower paths/two CMake contracts from7890 plus the five
+explicitly requested current shape/void-result deltas, enclosing functions,
+callers and registrations. Sixteen original Tower blobs still match7890; the
+three changed fixtures/runner and changed Work CMake were reviewed at this freeze.
+The D1 audit records all paths and source-specific ownership/query/measurement
+conclusions; local exact26-path manifest: build/d1_ecs/source_review_1e60c511/.
+
+Concrete source-only discrepancy: driver_c_cases registers backend_void_returns
+as successful C output, but its exported function-valued return/indirect callback
+hits ce_collect's explicit unsupported-function-values rejection. Exact existing
+fixture, minimal Tower source, call chain and owner command are in the audit.
+ROOT/L2 handoff; no C run or producer edit. L2's actual native reconstructed/full
+execution0 receipts remain valid within their identities. Raw65/0/128/255/0/67
+initializer passes the source counted-copy/fill review, but its storage fixture
+only imports/formats/cleans that global; executed byte/guard checks remain a test
+coverage limit, not a demonstrated producer bug. A2 required-shape controls,
+loop-header shared queries/current nine negatives, native probe ABI/fallback,
+and uniform profile timing-versus-observer boundaries substantively reviewed.
+Published owner measurements/tests are attributed, not rerun or authenticated
+from inaccessible raw logs. Current D2 CTest repair/later producers excluded.
+
+No compiler/build/test/profile/sanitizer/publication operation; documentation-only
+performance inapplicable. D2 heavy lock untouched; no D1 child job to drain,
+disk127GiB free, todo preserved. Required pull froze inputs; focused git/diff
+checks and normal history reconciliation/publication complete this receipt,
+not the original whole-compiler goal or ROOT's final artifact/release milestone.
 D2 routine push-race recovery: ce7bba6b lost the main race; full merge
 edf8d78dab422cb546d442833b349afb03cd780f retains published3211cb1e. Resolved
 TowerWorkTests overlap by preserving incoming module_header_capture_controls
@@ -94215,3 +94254,16 @@ rebuild/repetition or claim that a prior binary tests newer source. All complete
 histories and original failures remain preserved. Diff checks pass; normal push.
 
 A2 module-body query merged adoption: implementation125efb11 plus complete upstream451bea0c merged as27fcab01cc39af465439e48755833ca738800986/tree2fd49172a87627e9479daf5397e0063c975ea440. README conflict retained both owner descriptions; no overlapping production edits. Rebuilt affected dependencies for L1 lexical capture proof, A1 alias-publication wave and backend void-pointer import. Focused44 configurations, query-smoke and expanded module-loop checks pass; one/four-worker healthy samples preserve exact input/canonical hashes, ledger peaks107430664/107378560 and zero terminal owners. Exact timing/artifact hashes and old/new evidence boundaries in docs/compiler_module_body_types_78d675c4.md. Earlier type-smoke remains attributed to its original candidate, not silently relabeled. All owned jobs drained; pending normal main push, ROOT browser/release ownership unchanged.
+D1 finite-review publication reconciliation: required ff-only pull refused
+concurrent divergence; normal merge retained complete451bea0c history. Of the26
+reviewed paths, only TowerWorkTests changed after1e60; its D2 exact-zero wrapper
+and alias-negative adoption are published later inputs, excluded from this frozen
+source review (not claimed absent). Incoming A1 alias-publication repair/tests,
+B1 rejected admission trial/measurements and L2 retained large-request receipts
+are likewise preserved without relabeling this review. All24 reviewed Tower blobs
+and the backend CMake contract remain identical; audit/handoff text survived the
+merge unchanged. Source-only C incompatibility remains on unchanged producers.
+Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
+ROOT owns final runtime acceptance and release.
+
+L1 lifecycle receipt56cfc85f reconciliation: normal merge1b7ba13c1d362d42ce5097475e48452a27d12dfd preserves all incoming history through ea606d32. Incoming A1 alias-publication repairb78d606b, semantic_execution_work, admission/alias tests and exact-output CMake gates are explicitly excluded from frozen3211cb1e acceptance. No matrix restart, later-binary relabel or production edits. Requested42/42 lifecycle and dependency checkpoint remains complete at its exact recorded inputs; joined later compiler acceptance remains separate.
