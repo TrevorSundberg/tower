@@ -12,6 +12,9 @@ import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.format_types;
 import .compiler.component_kinds;
+import .library.work_budget_types;
+
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 extern fn compiler_node_type(node: void*, kind: u32): void*;
 
@@ -24,6 +27,7 @@ fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
     *formatted = default;
     var present = session != null;
     present &&= session.program.error.length == 0;
+    present &&= session.program.resource.error == WorkBudgetError.None;
     if present {
         format_entity(formatted, session.program.root, compiler_node_type(session.program.root, CompilerSyntax),
             null, compiler_node_type(session.program.root, CompilerParserMatch));
@@ -34,6 +38,10 @@ fn ide_emit(handle: u32, flags: u32, roku: bool): u8* {
     var session = ide_execution(handle);
     if session == null {
         ide_error("Invalid execution handle");
+        return null;
+    }
+    if session.program.resource.error != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(session.program.resource.error));
         return null;
     }
     var output: ByteBuffer;
@@ -81,7 +89,7 @@ fn ide_package_reset(): void {
     bytecode_free(state.bytecode);
     state.bytecode = null;
     state.bytecode_size = 0;
-    ide_error("");
+    ide_static_error("");
 }
 
 // Check the exact Foundation bytes stored in the envelope once. Encoding and
@@ -90,6 +98,11 @@ fn ide_package_reset(): void {
 fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32): IdeExecution* {
     var state = ide_state();
     var canonical = ide_execution_text(source, length, width, true);
+    if canonical.program.resource.error != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(canonical.program.resource.error));
+        ide_execution_close(canonical);
+        return null;
+    }
     var failed = canonical.error.length != 0;
     if failed {
         ide_error(ide_result(&canonical.error));
@@ -130,6 +143,10 @@ fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32
 fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
     ide_package_reset();
     var session = ide_execution(handle);
+    if session != null && session.program.resource.error != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(session.program.resource.error));
+        return null;
+    }
     if session is null || session.program.error.length != 0 {
         ide_error("Cannot package an invalid program");
         return null;
@@ -209,6 +226,11 @@ export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
         }
     }
     var session = ide_execution_text(source, length, convert(u32, bytecode_pointer_bytes(data)), true);
+    if session.program.resource.error != WorkBudgetError.None {
+        ide_static_error(sem_resource_message(session.program.resource.error));
+        ide_execution_close(session);
+        return 0;
+    }
     rejected = session.error.length != 0;
     if rejected {
         ide_error(ide_result(&session.error));
@@ -235,6 +257,9 @@ fn ide_type_name(out: ByteBuffer*, type: FoundationType*): void {
 
 export fn tw_exec_foundation(handle: u32): u8* {
     var session = ide_execution(handle);
+    if session != null && session.program.resource.error != WorkBudgetError.None {
+        return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
+    }
     var formatted: FormatResult;
     ide_program_format(session, &formatted);
     var state = ide_state();
@@ -251,6 +276,7 @@ export fn tw_exec_foundation(handle: u32): u8* {
     ide_text(out, ",\"types\":[");
     var present = session != null;
     present &&= session.program.error.length == 0;
+    present &&= session.program.resource.error == WorkBudgetError.None;
     if present {
         var i: usize = 0;
         for(; i < session.program.types.length; i++) {
