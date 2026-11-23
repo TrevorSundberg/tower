@@ -1286,6 +1286,11 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
 extern fn entity_query_count(type: void*): usize;
 extern fn entity_query_at(type: void*, index: usize): void*;
 
+fn sem_declaration_stage_cancel(payload: void*): void {
+    var result = bits(SemanticDeclaration*, payload);
+    sem_evaluation_dispose_jobs(&result.evaluations);
+}
+
 fn sem_declaration_dispose(c: SemanticContext*): void {
     if c.prepared_calls != null {
         for(var i: usize = 0; i < entity_query_count(c.prepared_calls); i++) {
@@ -1617,13 +1622,15 @@ fn sem_declaration_add_result(c: SemanticContext*, node: void*): bool {
 
 // Tickets and stages are reserved before this call, so type/readiness workers
 // see one immutable graph. Pool width changes execution, never the query wave.
-fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize, receipt: WorkReservation*): void {
+fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize, receipt: WorkReservation*): WorkBudgetError {
     var context: SemanticContext;
     sem_context_snapshot(&context, c);
     for(var i: usize = 0; i < count; i++) { batch[i].context = &context; }
-    var extra = sem_workers_admit(c, count, receipt);
-    sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch, count, extra));
+    var extra: usize = 0;
+    var error = sem_workers_admit_result(c, count, receipt, &extra);
+    if error == WorkBudgetError.None { error = compiler_kernel_dispatch_admitted_result(&c.workers, batch, count, extra); }
     for(var i: usize = 0; i < count; i++) { batch[i].context = null; }
+    return error;
 }
 
 fn sem_declaration_discover(c: SemanticContext*): void {
@@ -1645,8 +1652,8 @@ fn sem_declaration_discover(c: SemanticContext*): void {
         }
         var receipt: WorkReservation;
         defer sem_workers_release(c, &receipt);
-        sem_declaration_dispatch(c, batch.data, count, &receipt);
-        entity_view_close(view);
+        var dispatched = sem_declaration_dispatch(c, batch.data, count, &receipt);
+        if !sem_stage_wave(c, batch.data, count, view, dispatched, c.program.root, sem_declaration_stage_cancel) { return; }
         if count == 0 { break; }
         index = 0;
         while index < count {
@@ -1881,8 +1888,8 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         // dispatch so workers read an immutable graph throughout this wave.
         var receipt: WorkReservation;
         defer sem_workers_release(c, &receipt);
-        sem_declaration_dispatch(c, batch.data, count, &receipt);
-        entity_view_close(view);
+        var dispatched = sem_declaration_dispatch(c, batch.data, count, &receipt);
+        if !sem_stage_wave(c, batch.data, count, view, dispatched, c.program.root, sem_declaration_stage_cancel) { return SemanticPumpResult.Failed; }
         if count == 0 {
             var progress = sem_generic_copies_execute(c);
             if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
@@ -1897,13 +1904,6 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         defer vector_dispose(&layouts);
         // Release every lease before a structural continuation can discover
         // declarations or prepare syntax owned by another completed job.
-        for(var i: usize = 0; i < count; i++) {
-            var result = batch.data[i];
-            if result.stage != null {
-                sem_require(entity_stage_publish(result.stage));
-                result.stage = null;
-            }
-        }
         index = 0;
         while index < count {
             var result = batch.data[index];

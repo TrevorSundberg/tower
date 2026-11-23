@@ -12,15 +12,15 @@ import semantic_declarations;
 import semantic_aggregates;
 import semantic_support;
 import semantic_work_ids;
+import semantic_completion_work;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
 import .library.work_graph;
 import .library.work_pool;
 
-extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
-extern fn entity_table_query_count(query: void*): usize;
-extern fn entity_table_query_ranges(query: void*): usize;
-extern fn entity_table_query_range_count(query: void*, index: usize): usize;
-extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn compiler_node_world(node: void*): void*;
 
 var FlowQuery: u32 = convert(u32, SemanticQuery.Flow);
 var SemanticFlowDepthLimit: usize = 1024;
@@ -35,6 +35,12 @@ struct SemanticFlow {
     flow: u32;
 }
 
+fn sem_flow_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    var message: vector(u8) = default;
+    var operation = sem_get(subject);
+    sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
+}
+
 // This is a readiness check, not evaluation of a constant expression. Only the
 // ordinary interpreter publishes the producer's value. Conservative initial
 // flow keeps cleanup paths until the dependent result is available.
@@ -43,7 +49,11 @@ fn sem_flow_known(c: SemanticContext*, node: void*): bool {
     var dependency = sem_evaluation_dependency(c, node);
     if dependency != null && !dependency.ready {
         if !sem_has(&c.flow_dependencies, dependency.subject) {
-            if !sem_push_checked(c, &c.flow_dependencies, dependency.subject) { return default; }
+            if !vector_push(&c.flow_dependencies, dependency.subject) {
+                // Body workers own their private program receipt. Cancellation
+                // belongs to the joined body caller, never to this worker.
+                sem_flow_resource(c, c.current, WorkBudgetError.Memory);
+            }
         }
         return false;
     }
@@ -68,11 +78,13 @@ export fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: ve
         && work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read)
         && work_seal(&c.queries, query)) { return; }
     if c.flow_results == null {
-        c.flow_results = sem_create(c.program.root);
-        sem_require(entity_register(c.flow_results, sizeof(SemanticFlow), alignof(SemanticFlow), 0));
+        var error: WorkBudgetError;
+        c.flow_results = sem_kind_result(c.program.root, sizeof(SemanticFlow), alignof(SemanticFlow), &error);
+        if c.flow_results == null { sem_flow_resource(c, subject, error); work_cancel(&c.queries); return; }
     }
-    var result = bits(SemanticFlow*, entity_component_data(entity_component_add(subject, c.flow_results)));
-    sem_require(result != null);
+    var error: WorkBudgetError;
+    var result = bits(SemanticFlow*, entity_component_data(entity_component_add_result(subject, c.flow_results, &error)));
+    if result == null { sem_flow_resource(c, subject, error); work_cancel(&c.queries); return; }
     fill(result, 0, sizeof(SemanticFlow));
     result.subject = subject;
     result.ordinal = c.flow_count;
@@ -158,31 +170,38 @@ export fn sem_flows_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if !sem_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
     if c.flow_count == 0 { return SemanticPumpResult.Complete; }
-    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
-    var view = entity_view_open(c.program.root);
-    sem_require(view != null);
+    // Registration owns exactly one component for every source ordinal. Its
+    // world-owned instance index already supplies stable payloads under a pin;
+    // rebuilding a two-term archetype plan adds no information to this pass.
+    sem_require(c.flow_results != null && entity_query_count(c.flow_results) == c.flow_count);
+    var owner = bits(SemanticFlow*, entity_component_data(entity_query_at(c.flow_results, 0))).subject;
+    for(var index: usize = 0; index < c.flow_count; index++) {
+        var result = bits(SemanticFlow*, entity_component_data(entity_query_at(c.flow_results, index)));
+        if result.ordinal == 0 { owner = result.subject; break; }
+    }
+    defer { if !sem_ok(c) { work_cancel(&c.queries); } }
+    if c.workers.count == 0 {
+        var current = c.current;
+        c.current = owner;
+        var opened = sem_workers_open(c);
+        c.current = current;
+        if !opened { return SemanticPumpResult.Failed; }
+    }
+    var error: WorkBudgetError;
+    var view = entity_view_open_result(c.program.root, &error);
+    if view == null { sem_flow_resource(c, owner, error); return SemanticPumpResult.Failed; }
     defer entity_view_close(view);
-    // Discover jobs from their canonical Foundation and flow components. The
-    // cached table plan is immutable under this pin, including across workers.
-    var terms: void*[2];
-    terms[0] = compiler_node_type(c.program.root, CompilerFoundation);
-    terms[1] = c.flow_results;
-    var query = entity_view_tables(view, &terms[0], sizeof(decltype(terms)) / sizeof(void*));
-    sem_require(query != null && entity_table_query_count(query) == c.flow_count);
-    var jobs: vector(SemanticFlow*);
-    vector_init(&jobs);
-    defer vector_dispose(&jobs);
-    sem_require(vector_reserve(&jobs, c.flow_count));
+    var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
+    var jobs: work_vector(SemanticFlow*) = default;
+    defer work_vector_dispose(&jobs);
+    error = work_vector_reserve_result(&jobs, budget, c.flow_count);
+    if error != WorkBudgetError.None { sem_flow_resource(c, owner, error); return SemanticPumpResult.Failed; }
     jobs.length = c.flow_count;
     fill(jobs.data, 0, jobs.length * sizeof(SemanticFlow*));
-    for(var index: usize = 0; index < entity_table_query_ranges(query); index++) {
-        var column = entity_table_query_column(query, index, 1);
-        var length = entity_table_query_range_count(query, index);
-        for(var row: usize = 0; row < length; row++) {
-            var result = bits(SemanticFlow*, entity_component_data(column[row]));
-            sem_require(result.ordinal < jobs.length && jobs.data[result.ordinal] == null);
-            jobs.data[result.ordinal] = result;
-        }
+    for(var index: usize = 0; index < c.flow_count; index++) {
+        var result = bits(SemanticFlow*, entity_component_data(entity_query_at(c.flow_results, index)));
+        sem_require(result.ordinal < jobs.length && jobs.data[result.ordinal] == null);
+        jobs.data[result.ordinal] = result;
     }
     // Archetype/row order is an execution detail. Demand, admission and errors
     // retain the source ordinal recorded when each dependency query was created.
@@ -192,9 +211,10 @@ export fn sem_flows_pump(c: SemanticContext*): SemanticPumpResult {
             return SemanticPumpResult.Failed;
         }
     }
-    var batch: vector(SemanticFlow*) = default;
-    defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, jobs.length < SemanticPreparationWindow ? jobs.length : SemanticPreparationWindow));
+    var batch: work_vector(SemanticFlow*) = default;
+    defer work_vector_dispose(&batch);
+    error = work_vector_reserve_result(&batch, budget, jobs.length < SemanticPreparationWindow ? jobs.length : SemanticPreparationWindow);
+    if error != WorkBudgetError.None { sem_flow_resource(c, owner, error); return SemanticPumpResult.Failed; }
     foreach(var result in &jobs) {
         var id = work_find(&c.queries, result.subject, FlowQuery, 0);
         if work_take_task(&c.queries, &result.ticket, id) {
@@ -206,7 +226,7 @@ export fn sem_flows_pump(c: SemanticContext*): SemanticPumpResult {
     if batch.length != 0 {
         var receipt: WorkReservation;
         var extra: usize = 0;
-        var error = sem_workers_admit_result(c, batch.length, &receipt, &extra);
+        error = sem_workers_admit_result(c, batch.length, &receipt, &extra);
         defer sem_workers_release(c, &receipt);
         if error == WorkBudgetError.None {
             error = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, batch.length, extra);
@@ -219,6 +239,11 @@ export fn sem_flows_pump(c: SemanticContext*): SemanticPumpResult {
             sem_restore_resource(c, error, &message, sem_get(batch.data[0].subject).start);
             return SemanticPumpResult.Failed;
         }
+        var failing = false;
+        foreach(var result in &batch) {
+            failing ||= sem_flow_missing(c, result) || result.invalid_label != null || result.excessive_depth != null;
+        }
+        if !sem_completion_reserve(c, batch.data, batch.length, failing) { return SemanticPumpResult.Failed; }
         foreach(var result in &batch) {
             if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket,
                 !sem_flow_missing(c, result) && result.invalid_label == null && result.excessive_depth == null)) {

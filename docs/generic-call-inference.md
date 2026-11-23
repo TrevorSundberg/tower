@@ -25,6 +25,10 @@ the existing straight-return type-alias subset, so `stack(T)` can forward to
 `vector(T)`. It does not compare display names, guess conversions, rank overloads,
 or invert arbitrary type-producing programs. The instantiated signature is checked
 normally, including complete nominal identity and fixed array/count arguments.
+Straight-return wrappers registered as ordinary executed templates participate
+in the same constraint lookup as nominal type constructors. This does not turn
+their execution into static alias expansion: their substituted signatures still
+run through the ordinary type queries and checking.
 
 Typed operands are considered before contextual integer/null literals. Thus either
 argument of `choose(-9223372036854775808, an_i64)` can provide the constraint, without

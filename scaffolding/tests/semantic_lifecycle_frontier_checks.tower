@@ -8,9 +8,12 @@ import .compiler.compiler_kernel;
 import .compiler.foundation_tags;
 import .compiler.component_kinds;
 import .compiler.parser_types;
+import .compiler.syntax_types;
+import .library.entity_types;
 import .library.work_graph;
 import .library.work_pool;
 import .library.work_budget_types;
+import .library.work_budget;
 
 extern fn sem_lifecycle_lowering_pump(c: SemanticContext*): SemanticPumpResult;
 extern fn semantic_lowering_kernel(result: SemanticLowering*): void;
@@ -24,14 +27,24 @@ extern fn entity_store_component_count(store: void*): usize;
 extern fn entity_register(kind: void*, size: usize, alignment: usize, flags: u32): bool;
 extern fn sem_member(node: void*, name: u8*): void*;
 extern fn puts(message: u8*): i32;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn compiler_node_copy_metadata_staged_result(source: void*, destination: void*, stage: void*): WorkBudgetError;
+extern fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease(stage: void*, node: void*): bool;
+extern fn entity_stage_discard(stage: void*): void;
 
-enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, Count }
+enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, HoldFailure, Count }
 var LifecycleExpressionStatements: usize = 32;
 var LifecycleMalformedDepth: u32 = 130;
 var LifecycleInvalidParameters: usize = 64;
 // Each function owns its probe. The callback uses the real worker's function
 // lease; signal handles are frozen before admission and closed after final join.
-struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; }
+struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; source: void*; }
 
 fn lifecycle_kernel(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
@@ -47,6 +60,10 @@ fn lifecycle_kernel(payload: void*): void {
         }
     }
     semantic_lowering_kernel(result);
+    if probe != null && probe.signature == result.signature && probe.source != null {
+        var node = entity_stage_create(result.stage, result.subject);
+        sem_require(node != null && compiler_node_copy_metadata_staged_result(probe.source, node, result.stage) == WorkBudgetError.None);
+    }
 }
 
 fn lifecycle_check(ok: bool, message: u8*, failures: u32*): void {
@@ -154,6 +171,22 @@ fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
     *signature_probe = default;
     *expression_probe = default;
     signature_probe.signature = true;
+    var history: Entity* = null;
+    var history_references: usize = 0;
+    if mode == LifecycleCase.HoldFailure {
+        var source = sem_create(root);
+        var owner = sem_create(root);
+        var trace = bits(SyntaxExpansion*, compiler_world_component(world, owner, CompilerSyntaxExpansion));
+        var origin = bits(SyntaxOrigin*, compiler_world_component(world, source, CompilerSyntaxOrigin));
+        sem_require(trace != null && origin != null);
+        origin.expansion = trace;
+        entity_retain(owner);
+        history = bits(Entity*, owner);
+        history_references = history.references;
+        history.references = ~convert(usize, 0);
+        signature_probe.source = source;
+        expression_probe.source = source;
+    }
     var overlap = workers > 1 && (mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting);
     if overlap {
         signature_probe.arrived = work_signal_open();
@@ -166,6 +199,20 @@ fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
     if overlap { sem_require(c.workers.threaded && c.workers.count > 1); }
     if mode == LifecycleCase.Cancelled { work_cancel(&c.queries); }
     var state = sem_lifecycle_lowering_pump(&c);
+    if mode == LifecycleCase.HoldFailure {
+        lifecycle_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Exhausted
+            && c.queries.cancelled && c.workers.running == 0 && c.queries.running == 0
+            && signature_probe.calls == 1 && expression_probe.calls == 1
+            && history.references == ~convert(usize, 0) && history.store.views == 0
+            && callback.element.scalar == SStruct && callback.parameters.length == 0,
+            "Checked mixed-lowering holds discard every peer before readiness or ABI publication", &failures);
+        foreach(var &task in &c.queries.tasks) {
+            if task.query == convert(u32, SemanticQuery.Lowering) || task.query == convert(u32, SemanticQuery.AggregatePrepare) {
+                lifecycle_check(task.state != WorkState.Succeeded, "Failed ownership publishes no ready transform", &failures);
+            }
+        }
+        history.references = history_references;
+    }
     if mode == LifecycleCase.PartialTake {
         lifecycle_check(state == SemanticPumpResult.Waiting && signature_probe.calls == 0 && expression_probe.calls == 0,
             "Known snapshot blocks all transformation admission", &failures);
@@ -225,12 +272,178 @@ fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
     return failures;
 }
 
+enum LowerDenial: u32 { Query, Edge, Access, KindPin, ComponentPin, Lease, Scratch, Finish, Anchor, Count }
+var LowerDenialBytes: usize = 1048576;
+var LowerDenialRevision: u64 = 139;
+
+fn lifecycle_pressure(budget: WorkBudget*, reservation: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+    sem_require(work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, reservation) == WorkBudgetError.None);
+}
+
+fn lifecycle_denial(workers: usize, mode: LowerDenial): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var scratch: WorkBudget = default;
+    var pressure: WorkReservation = default;
+    sem_require(work_budget_init(&budget, workers, LowerDenialBytes, LowerDenialRevision));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var scratch_gate: void* = null;
+    defer { if scratch_gate != null { work_signal_close(scratch_gate); } }
+    if mode == LowerDenial.Scratch {
+        scratch_gate = work_signal_open();
+        sem_require(scratch_gate != null);
+        work_signal_post(scratch_gate);
+        sem_require(work_budget_init(&scratch, workers, LowerDenialBytes, LowerDenialRevision)
+            && work_budget_synchronize(&scratch, scratch_gate, work_signal_wait, work_signal_post)
+            && compiler_world_bind_budget(world, &scratch));
+    }
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    sem_get(root).start = 3;
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    work_dispose(&c.queries);
+    sem_require(work_init_budget(&c.queries, 1, convert(u64, program.pointer_bytes), &budget));
+    var first = lifecycle_function(&c, 17);
+    var second = lifecycle_function(&c, 29);
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    var first_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(first, probe_kind)));
+    var second_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(second, probe_kind)));
+    *first_probe = default;
+    *second_probe = default;
+    sem_require(work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    var delayed = mode == LowerDenial.Lease || mode == LowerDenial.Scratch || mode == LowerDenial.Finish || mode == LowerDenial.Anchor;
+    var gate: usize = 0;
+    if delayed || mode == LowerDenial.Edge {
+        gate = work_request(&c.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        sem_require(gate != 0 && work_seal(&c.queries, gate));
+    }
+    if mode == LowerDenial.Query {
+        var argument: u64 = 0;
+        // Give the graph real retained storage, then exhaust its actual bound.
+        sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+        while c.queries.tasks.length < c.queries.tasks.capacity {
+            sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+        }
+    }
+    if mode == LowerDenial.Query || mode == LowerDenial.Edge || mode == LowerDenial.Access {
+        if mode == LowerDenial.Access {
+            sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), 0) != 0);
+        }
+        lifecycle_pressure(&budget, &pressure);
+    }
+    if mode == LowerDenial.ComponentPin {
+        c.lowering_results = sem_create(root);
+        sem_require(entity_register(c.lowering_results, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+    }
+    var pin: void* = null;
+    if mode == LowerDenial.KindPin || mode == LowerDenial.ComponentPin {
+        pin = entity_view_open(root);
+        sem_require(pin != null);
+    }
+    var state = sem_lower_pump(&c, false);
+    if pin != null { entity_view_close(pin); }
+    var foreign_stage: void* = null;
+    var anchor: Entity* = null;
+    var references: usize = 0;
+    if delayed {
+        lifecycle_check(state == SemanticPumpResult.Waiting && first_probe.calls == 0 && second_probe.calls == 0,
+            "Registered lowering waits without executing source effects", &failures);
+        lifecycle_complete(&c, gate);
+        if mode == LowerDenial.Lease {
+            foreign_stage = entity_stage_open(probe_kind);
+            sem_require(foreign_stage != null && entity_stage_lease(foreign_stage, first));
+        }
+        if mode == LowerDenial.Anchor {
+            anchor = bits(Entity*, c.lowering_results);
+            references = anchor.references;
+            anchor.references = ~convert(usize, 0);
+        }
+        if mode == LowerDenial.Scratch { lifecycle_pressure(&scratch, &pressure); }
+        if mode == LowerDenial.Finish {
+            var query = work_find(&c.queries, first, convert(u32, SemanticQuery.Lowering), 0);
+            var consumers = c.queries.ready.capacity + 1;
+            for(var i: usize = 0; i < consumers; i++) {
+                var consumer = work_request(&c.queries, second, convert(u32, SemanticQuery.BodyInputs), convert(u64, i + 1));
+                sem_require(consumer != 0 && work_depend(&c.queries, consumer, query)
+                    && work_seal(&c.queries, consumer) && work_demand(&c.queries, consumer));
+            }
+            sem_require(work_index_reserve(&c.queries, &c.queries.executing, &c.queries.storage.executing, c.program.functions.length));
+            lifecycle_pressure(&budget, &pressure);
+        }
+        state = sem_lower_pump(&c, false);
+    }
+    var cause = mode == LowerDenial.Lease || mode == LowerDenial.KindPin || mode == LowerDenial.ComponentPin
+        ? WorkBudgetError.Busy : mode == LowerDenial.Anchor ? WorkBudgetError.Exhausted : WorkBudgetError.Capacity;
+    var offset: usize = mode == LowerDenial.Lease || mode == LowerDenial.Finish ? 17 : 3;
+    lifecycle_check(state == SemanticPumpResult.Failed && program.resource.error == cause && program.resource.offset == offset
+        && c.queries.cancelled && c.queries.running == 0 && c.workers.running == 0,
+        "Lowering admission/completion preserves the exact typed failure and canonical owner", &failures);
+    lifecycle_check(first_probe.calls == (mode == LowerDenial.Finish ? 1 : 0)
+        && second_probe.calls == first_probe.calls && bits(EntityStore*, store).views == 0,
+        "Partial lowering admission dispatches nothing; denied completion joins each effect once", &failures);
+    foreach(var &task in &c.queries.tasks) {
+        if task.query == convert(u32, SemanticQuery.Lowering) {
+            lifecycle_check(task.state != WorkState.Succeeded, "Denied lowering publishes no successful prefix", &failures);
+        }
+    }
+    if c.lowering_results != null {
+        foreach(var subject in &program.functions) {
+            var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, c.lowering_results)));
+            lifecycle_check(result == null || result.stage == null && result.context == null,
+                "Failure retires every private stage and borrowed context", &failures);
+        }
+    }
+    if foreign_stage != null {
+        lifecycle_check(bits(Entity*, first).stage == foreign_stage, "Denied lowering preserves another owner's lease", &failures);
+        entity_stage_discard(foreign_stage);
+    }
+    if anchor != null { anchor.references = references; }
+    if pressure.active { sem_require(work_budget_release_result(mode == LowerDenial.Scratch ? &scratch : &budget, &pressure) == WorkBudgetError.None); }
+    var tasks = c.queries.tasks.length;
+    var components = entity_store_component_count(store);
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        lifecycle_check(sem_lower_pump(&c, false) == SemanticPumpResult.Failed && c.queries.tasks.length == tasks
+            && entity_store_component_count(store) == components && program.resource.error == cause && program.resource.offset == offset
+            && first_probe.calls == (mode == LowerDenial.Finish ? 1 : 0) && second_probe.calls == first_probe.calls,
+            "Terminal lowering retries retain the first receipt without replay or metadata growth", &failures);
+    }
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Denied lowering releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&budget),
+        "Denied lowering releases graph reservations", &failures);
+    if mode == LowerDenial.Scratch {
+        sem_require(work_budget_snapshot(&scratch, &released));
+        lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&scratch),
+            "Denied lowering releases world scratch reservations", &failures);
+    }
+    return failures;
+}
+
 export fn main(): i32 {
     sem_require(work_thread_available());
     var failures: u32 = 0;
     for(var mode: u32 = 0; mode < convert(u32, LifecycleCase.Count); mode++) {
         failures += lifecycle_trial(1, convert(LifecycleCase, mode));
         failures += lifecycle_trial(4, convert(LifecycleCase, mode));
+    }
+    for(var mode: u32 = 0; mode < convert(u32, LowerDenial.Count); mode++) {
+        failures += lifecycle_denial(1, convert(LowerDenial, mode));
+        failures += lifecycle_denial(4, convert(LowerDenial, mode));
     }
     return failures == 0 ? 0 : 1;
 }

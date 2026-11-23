@@ -135,6 +135,17 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
     if arguments_node != null {
         var name = sem_member(annotation, "name");
         var definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
+        // Executed type-producing wrappers are ordinary templates. Their
+        // straight-return alias constraints still describe the same nominal
+        // arguments; lookup must not depend on the execution registry chosen
+        // by generic_register. This only inspects syntax. The ordinary type
+        // queries still execute/check the substituted parameter at the call.
+        if definition == null {
+            var callable = sem_resolve(c, c.templates, name, sem_identifier(c, name));
+            if callable != null && sem_equal(sem_tokens(c, sem_member(callable, "type")), "type") {
+                definition = callable;
+            }
+        }
         if definition == null && sem_equal(sem_identifier(c, name), "function") {
             if actual.scalar != SFunction || actual.pointers != 0 { return; }
             var arguments = sem_collect(c, arguments_node, sem_is(annotation, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");

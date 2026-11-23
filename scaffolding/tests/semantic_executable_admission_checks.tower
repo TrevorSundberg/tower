@@ -2,6 +2,7 @@ import tower;
 import .compiler.services;
 import .compiler.compiler_kernels;
 import .compiler.semantic_execution_work;
+import .compiler.semantic_aggregates;
 import .compiler.semantic_body_work;
 import .compiler.semantic_lowering_work;
 import .compiler.semantic_context;
@@ -17,10 +18,12 @@ import .compiler.parser_types;
 import .library.work_graph;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_pool;
 
 extern fn compiler_world_create_workers(workers: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
 extern fn entity_create(store: void*): void*;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
@@ -28,10 +31,12 @@ extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
 extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
 extern fn puts(text: u8*): i32;
 extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn printf(format: u8*, error: usize, offset: usize, state: usize, ready: usize): i32;
 
 enum ExecutableAdmissionMode: u32 { Healthy, Query, Edge, Access, Take, PartialTake, Observe, Finish, Pinned }
 var ExecutableAdmissionBytes: usize = 1048576;
 var ExecutableAdmissionRevision: u64 = 123;
+var ExecutableSignatureBudgetBytes: usize = 32 * 1048576;
 
 fn executable_admission_check(ok: bool, text: u8*, failures: u32*): void {
     if !ok { puts(text); (*failures)++; }
@@ -287,7 +292,105 @@ fn executable_storage_trial(width: u32, workers: usize, startup: bool): u32 {
     return failures;
 }
 
+fn executable_signature_trial(width: u32, workers: usize, denied: bool): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, ExecutableSignatureBudgetBytes, ExecutableAdmissionRevision));
+    var gate: void* = null;
+    if workers > 1 {
+        gate = work_signal_open();
+        sem_require(gate != null);
+        work_signal_post(gate);
+        sem_require(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    }
+    defer { if gate != null { work_signal_close(gate); } }
+    var world: void* = null;
+    sem_require(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None && world != null);
+    var root = entity_create(compiler_world_store(world));
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    var subject = executable_admission_function(&context, world);
+    var record = sem_create(root);
+    var layout = sem_attach(record, KType);
+    layout.type = { scalar: SStruct, pointers: 0, record: record, pointer_bytes: width };
+    layout.size = convert(usize, width);
+    layout.alignment = convert(usize, width);
+    var parameter = sem_create(subject);
+    var value = sem_attach(parameter, KParameter);
+    value.type = layout.type;
+    sem_push(&sem_get(subject).parameters, parameter);
+    var state = sem_bodies_pump(&context);
+    while state == SemanticPumpResult.Progress { state = sem_bodies_pump(&context); }
+    sem_require(state == SemanticPumpResult.Complete && sem_ok(&context) && sem_aggregate_needed(subject));
+    sem_executables_begin(&context);
+    var pressure: WorkReservation = default;
+    if denied {
+        // The payload fits the configured total but not its remaining capacity
+        // alongside live owners. No allocator hook or concurrent counter is used.
+        var error: WorkBudgetError;
+        context.aggregate_signatures = sem_kind_result(root,
+            budget.bytes / 2, alignof(SemanticAggregateSignature), &error);
+        sem_require(context.aggregate_signatures != null && error == WorkBudgetError.None);
+        sem_require(budget.used_bytes < budget.bytes / 2
+            && work_budget_reserve_result(&budget, 0, 0, budget.bytes / 2 - budget.used_bytes, &pressure) == WorkBudgetError.None);
+    }
+    var query = sem_executable_request(&context, subject);
+    sem_require(query != 0 && work_demand(&context.queries, query));
+    state = sem_executables_pump(&context);
+    var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, context.executable_functions)));
+    var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(subject, context.executable_ready)));
+    executable_admission_check(state == SemanticPumpResult.Progress && result.stage == null && result.context == null
+        && context.workers.running == 0 && context.queries.running == 0,
+        "Executable signature result joins and retires its stage", &failures);
+    if denied {
+        if result.resource.error != WorkBudgetError.Capacity || result.resource.offset != 17
+            || work_task(&context.queries, query).state != WorkState.Failed || input.ready {
+            printf("Signature receipt: error=%zu offset=%zu state=%zu ready=%zu\n",
+                convert(usize, result.resource.error), result.resource.offset,
+                convert(usize, work_task(&context.queries, query).state), input.ready ? 1 : 0);
+        }
+        executable_admission_check(result.resource.error == WorkBudgetError.Capacity && result.resource.offset == 17
+            && work_task(&context.queries, query).state == WorkState.Failed && !input.ready,
+            "Executable signature admission preserves its worker cause without a ready input", &failures);
+        executable_admission_check(sem_executable_failure(&context, subject)
+            && program.resource.error == WorkBudgetError.Capacity && program.resource.offset == 17,
+            "Executable signature denial reaches the owning source function", &failures);
+        var count = context.queries.tasks.length;
+        executable_admission_check(sem_executable_request(&context, subject) == 0
+            && sem_executables_pump(&context) == SemanticPumpResult.Failed && context.queries.tasks.length == count,
+            "Executable signature denial cannot replay or revive its query", &failures);
+    } else {
+        executable_admission_check(work_task(&context.queries, query).state == WorkState.Succeeded
+            && input.ready && sem_aggregate_signature(&context, input.function) != null,
+            "Executable signature metadata remains available after successful publication", &failures);
+    }
+    if pressure.active { sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None); }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    executable_admission_check(compiler_world_dispose(world), "Executable signature owner releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    executable_admission_check(work_budget_snapshot(&budget, &released) && released.used_bytes == 0
+        && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&budget),
+        "Executable signature cleanup releases all world budget grants", &failures);
+    return failures;
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc > 1 && (strcmp(argv[1], "signature") == 0 || strcmp(argv[1], "signature-healthy") == 0) {
+        var failures: u32 = 0;
+        for(var width: u32 = 4; width <= 8; width += 4) {
+            for(var workers: usize = 1; workers <= 4; workers += 3) {
+                failures += executable_signature_trial(width, workers, strcmp(argv[1], "signature") == 0);
+            }
+        }
+        return failures == 0 ? 0 : 1;
+    }
     if argc > 1 && (strcmp(argv[1], "startup") == 0 || strcmp(argv[1], "metadata") == 0) {
         var failures: u32 = 0;
         for(var width: u32 = 4; width <= 8; width += 4) {

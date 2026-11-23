@@ -5,6 +5,7 @@ import .compiler.grammar_types;
 import .compiler.frontend_revision_types;
 import .compiler.format_types;
 import .library.vector;
+import .library.work_budget;
 
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
@@ -13,11 +14,16 @@ extern fn format_dispose(result: FormatResult*): void;
 extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
 struct IterationTime { seconds: i64; nanoseconds: i64; }
 extern fn clock_gettime(clock: i32, time: IterationTime*): i32;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn work_thread_available(): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 var IterationNanoseconds: u64 = 1000000000;
 var IterationMonotonicClock: i32 = 1;
 var IterationHashOffset: u64 = 1469598103934665603;
 var IterationHashPrime: u64 = 1099511628211;
 var IterationLogInterval: usize = 32;
+var IterationBudgetBytes: usize = 268435456;
 var IterationPhaseCount: usize = convert(usize, GrammarPhase.Count);
 struct IterationProfile {
     started: u64[IterationPhaseCount];
@@ -55,13 +61,23 @@ fn iteration_report(profile: IterationProfile*): void {
 // allocation-failure matrices. Both modes compile the same checked source;
 // cold starts at the immutable seed, installed matches the units startup path.
 fn frontend_iteration_profile(root: u8*, installed: bool): void {
+    // This entry links the existing serial instrumentation transport. Do not use
+    // its single-owner allocation counters to profile real worker overlap.
+    units_check(!work_thread_available(), "Iteration counters require serial transport");
+    var buffers = tower_test_buffer_count();
+    var allocations = tower_test_buffer_allocations();
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
-    defer vector_dispose(&bedrock);
-    defer vector_dispose(&foundation);
+    defer {
+        vector_dispose(&bedrock); vector_dispose(&foundation);
+        units_check(tower_test_buffer_count() == buffers, "Iteration releases every owned buffer");
+    }
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, 1, IterationBudgetBytes, 1), "Iteration explicit ledger");
     var world = compiler_world_create_workers(1);
+    units_check(world != null && compiler_world_bind_budget(world, &budget), "Iteration bind before first entity");
     var environment = frontend_modules_create();
     units_check(world != null && environment != null && frontend_modules_bind_world(environment, world), "Iteration explicit owners");
     frontend_modules_configure(environment, "iteration.tower", root);
@@ -96,10 +112,20 @@ fn frontend_iteration_profile(root: u8*, installed: bool): void {
     var hash = IterationHashOffset;
     foreach(var byte in &canonical.text) { hash = (hash ^ convert(u64, byte)) * IterationHashPrime; }
     units_check(dprintf(2, "grammar canonical=%zu bytes=%u\n", convert(usize, hash), convert(u32, canonical.text.length), 0) >= 0, "Iteration canonical report");
+    var memory: WorkBudgetSnapshot;
+    units_check(work_budget_snapshot(compiler_world_work_budget(world), &memory), "Iteration world budget snapshot");
+    units_check(dprintf(2, "grammar ledger_live=%zu\n", memory.used_bytes, 0, 0) >= 0
+        && dprintf(2, "grammar ledger_peak=%zu\n", memory.peak_bytes, 0, 0) >= 0
+        && dprintf(2, "grammar ledger_metadata=%zu\n", memory.retained, 0, 0) >= 0,
+        "Iteration retained byte report");
+    units_check(dprintf(2, "grammar allocation_calls=%zu\n", tower_test_buffer_allocations() - allocations, 0, 0) >= 0
+        && dprintf(2, "grammar retained_buffers=%zu\n", tower_test_buffer_count() - buffers, 0, 0) >= 0,
+        "Iteration allocation report");
     format_dispose(&canonical);
     semantic_program_dispose(&program);
     entity_release(owner);
     frontend_modules_destroy(environment);
     compiler_world_grammar(world).observer = default;
     units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Iteration world cleanup");
+    units_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget), "Iteration ledger cleanup");
 }

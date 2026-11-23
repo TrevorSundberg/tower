@@ -1,6 +1,7 @@
 import tower;
 import bindings;
 import context;
+import observation_types;
 
 // Pass-by-pass verification is a debugging policy. Production still verifies
 // lowering and the complete optimized module at the stage boundaries.
@@ -19,6 +20,9 @@ fn backend_verify(b: Backend*): bool {
 }
 
 export fn backend_optimize(b: Backend*, optimize: bool): bool {
+    var phase = BackendPhase.Optimization;
+    backend_observe(b, phase, true);
+    defer backend_observe(b, phase, false);
     var failed = b.error.length != 0;
     if failed {
         return false;
@@ -37,13 +41,18 @@ export fn backend_optimize(b: Backend*, optimize: bool): bool {
         }
     }
     var valid = backend_verify(b);
-    if valid {
+    backend_observe(b, phase, false);
+    phase = BackendPhase.OptimizedText;
+    backend_observe(b, phase, true);
+    if valid && !b.discard_ir {
         b.optimized = LLVMPrintModuleToString(b.module);
     }
     return valid;
 }
 
 export fn backend_emit(b: Backend*): bool {
+    backend_observe(b, BackendPhase.Emission, true);
+    defer backend_observe(b, BackendPhase.Emission, false);
     var failed = b.error.length != 0;
     if failed {
         return false;

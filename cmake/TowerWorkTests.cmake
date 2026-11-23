@@ -91,6 +91,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Explicitly requested accounting gate: current raw descriptors bypass the
     # finite ledger. Keep that failure separate from the passing census/profile.
     tower_work_fixture(entity_accounting ON profile)
+    tower_work_fixture(entity_locality ON layout mixed direct)
     add_custom_target(tower-check-entity-accounting-cap
       COMMAND "$<TARGET_FILE:tower-entity-accounting-tests>" cap
       DEPENDS tower-entity-accounting-tests USES_TERMINAL VERBATIM)
@@ -130,4 +131,24 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
     -Wl,--export=work_thread_entry -Wl,--export-table -Wl,--growable-table
     -Wl,--initial-memory=8388608 -Wl,--max-memory=2147483648
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
+endif()
+if(TARGET towerc)
+  foreach(workers IN ITEMS 1 4)
+    add_test(NAME tower-generation-layout-frontier-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generation_layout_frontier.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(tower-generation-layout-frontier-${workers} PROPERTIES
+      PASS_REGULAR_EXPRESSION "42")
+    add_test(NAME tower-generic-cast-inference-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_cast_inference.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(tower-generic-cast-inference-${workers} PROPERTIES
+      PASS_REGULAR_EXPRESSION "42")
+  endforeach()
 endif()

@@ -188,18 +188,13 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         sem_context_snapshot(&context, c);
         for(var i: usize = 0; i < count; i++) { batch.data[i].context = &context; }
         var receipt: WorkReservation;
-        var extra = sem_workers_admit(c, count, &receipt);
+        var extra: usize = 0;
+        var dispatched = sem_workers_admit_result(c, count, &receipt, &extra);
         defer sem_workers_release(c, &receipt);
-        sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, count, extra));
-        entity_view_close(view);
-        for(var i: usize = 0; i < count; i++) {
-            var result = batch.data[i];
-            // Failed preparations can still own generated nodes. Publish after
-            // every worker joins so normal program cleanup owns all references.
-            sem_require(entity_stage_publish(result.stage));
-            result.stage = null;
-            result.context = null;
+        if dispatched == WorkBudgetError.None {
+            dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, count, extra);
         }
+        if !sem_stage_wave(c, batch.data, count, view, dispatched, batch.data[0].evaluation.subject, null) { return; }
         for(var i: usize = 0; i < count; i++) {
             var result = batch.data[i];
             sem_query_observe(c, &result.ticket, &result.query_reads);

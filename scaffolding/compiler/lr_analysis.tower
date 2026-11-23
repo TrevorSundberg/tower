@@ -486,7 +486,7 @@ fn lr_items_sift(values: vector(LRItem)*, root: usize, count: usize): void {
     values.data[root] = saved;
 }
 
-fn lr_items_sort(values: vector(LRItem)*): void {
+fn lr_items_heap_sort(values: vector(LRItem)*): void {
     var branches: usize = 2;
     var root = values.length / branches;
     while root != 0 { --root; lr_items_sift(values, root, values.length); }
@@ -498,6 +498,58 @@ fn lr_items_sort(values: vector(LRItem)*): void {
         values.data[0] = last;
         lr_items_sift(values, 0, count);
     }
+}
+
+var LRItemsInsertionLimit: usize = 16;
+fn lr_items_swap(left: LRItem*, right: LRItem*): void {
+    var saved = *left; *left = *right; *right = saved;
+}
+
+// Private contiguous closure items, with the same lexicographic comparator.
+// Partition sequentially instead of repeatedly walking a large heap. Recurse
+// only into the smaller side; a size-derived depth limit retains heapsort's
+// worst-case bound. No allocation, new cache, ownership or public order change.
+fn lr_items_sort_range(values: LRItem*, count: usize, depth: usize): void {
+    while count > LRItemsInsertionLimit {
+        if depth == 0 {
+            // Borrowed descriptor only; this helper never disposes the owner.
+            var heap: vector(LRItem) = {data: values, length: count, capacity: count};
+            lr_items_heap_sort(&heap);
+            return;
+        }
+        depth--;
+        var middle = count / 2;
+        if lr_item_less(&values[middle], &values[0]) { lr_items_swap(&values[middle], &values[0]); }
+        if lr_item_less(&values[count - 1], &values[0]) { lr_items_swap(&values[count - 1], &values[0]); }
+        if lr_item_less(&values[count - 1], &values[middle]) { lr_items_swap(&values[count - 1], &values[middle]); }
+        var pivot = values[middle];
+        var left: usize = 0;
+        var right = count;
+        while left < right {
+            while left < right && lr_item_less(&values[left], &pivot) { left++; }
+            while left < right && lr_item_less(&pivot, &values[right - 1]) { right--; }
+            if left < right { lr_items_swap(&values[left], &values[right - 1]); left++; right--; }
+        }
+        if left < count - left {
+            lr_items_sort_range(values, left, depth);
+            values += left; count -= left;
+        } else {
+            lr_items_sort_range(values + left, count - left, depth);
+            count = left;
+        }
+    }
+    for(var i: usize = 1; i < count; i++) {
+        var saved = values[i];
+        var at = i;
+        while at != 0 && lr_item_less(&saved, &values[at - 1]) { values[at] = values[at - 1]; at--; }
+        values[at] = saved;
+    }
+}
+
+fn lr_items_sort(values: vector(LRItem)*): void {
+    var depth: usize = 0;
+    for(var count = values.length; count > 1; count /= 2) { depth += 2; }
+    lr_items_sort_range(values.data, values.length, depth);
 }
 
 export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {

@@ -631,20 +631,24 @@ fn sem_evaluation_value(node: void*, invocation: IMInvocation*, bits_value: u64)
     }
 }
 
-fn sem_evaluation_dispose(c: SemanticContext*): void {
+fn sem_evaluation_dispose_jobs(jobs: vector(void*)*): void {
     // The owning pipeline has drained its worker pool. Dispose every consumer
     // invocation before releasing any producer's borrowed projection array.
-    foreach(var job in &c.evaluation_jobs) {
+    foreach(var job in jobs) {
         var result = bits(SemanticEvaluation*, job);
         interpreter_invocation_dispose(&result.invocation);
     }
     var index: usize = 0;
-    while index < c.evaluation_jobs.length {
-        var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
+    while index < jobs.length {
+        var result = bits(SemanticEvaluation*, jobs.data[index]);
         vector_dispose(&result.aliases);
         vector_dispose(&result.leaves);
         vector_dispose(&result.error);
         index++;
     }
-    vector_dispose(void*, &c.evaluation_jobs);
+    vector_dispose(jobs);
+}
+
+fn sem_evaluation_dispose(c: SemanticContext*): void {
+    sem_evaluation_dispose_jobs(&c.evaluation_jobs);
 }

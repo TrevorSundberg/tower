@@ -1668,6 +1668,13 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     sem_scratch_dispose(&context.scratch);
 }
 
+fn sem_body_stage_cancel(payload: void*): void {
+    // These jobs have not entered the shared evaluation graph. Their component
+    // addresses are still live here; stage discard may destroy them afterwards.
+    var result = bits(SemanticBodyWork*, payload);
+    sem_evaluation_dispose_jobs(&result.evaluations);
+}
+
 fn sem_body_clear(result: SemanticBodyWork*): void {
     result.declaration = null;
     result.bound_declaration = null;
@@ -1691,6 +1698,8 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     vector_dispose(&result.nodes);
     vector_dispose(&result.boundaries);
     vector_dispose(&result.blocks);
+    // Normal publication transferred these owners to c. Failure keeps them
+    // private until the joined pipeline closes, after stage cancellation.
     sem_scratch_dispose(&result.scratch);
     vector_dispose(&result.calls);
     vector_dispose(&result.evaluations);
@@ -1753,9 +1762,16 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
     if sem_ok(c) { sem_body_prefix(c, result); }
-    sem_query_observe(c, &result.ticket, &result.query_reads);
-    sem_evaluation_aliases(c, &result.evaluation_aliases);
-    sem_type_observations_publish(c, &result.type_observations);
+    // A preceding joined body's flow admission may have cancelled the graph.
+    // Still transfer this body's owned buffers below, but never observe or
+    // finish its now-stale ticket or publish more dependent metadata.
+    if sem_ok(c) {
+        sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads));
+    }
+    if sem_ok(c) {
+        sem_evaluation_aliases(c, &result.evaluation_aliases);
+        sem_type_observations_publish(c, &result.type_observations);
+    }
     if !sem_ok(c) {
         sem_body_hold_error(c, result);
         result.done = true;
@@ -1795,8 +1811,8 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
         sem_body_hold_error(c, result);
         result.done = true;
     }
-    if result.done {
-        sem_require(work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
+    if result.done && sem_ok(c) {
+        sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, result.resource.error == WorkBudgetError.None && result.error.length == 0));
     }
 }
 
@@ -1893,17 +1909,15 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     sem_require(view != null);
     for(var i: usize = 0; i < active; i++) { running.data[i].context = &context; }
     var receipt: WorkReservation;
-    var extra = sem_workers_admit(c, active, &receipt);
+    var extra: usize = 0;
+    var dispatched = sem_workers_admit_result(c, active, &receipt, &extra);
     defer sem_workers_release(c, &receipt);
-    sem_require(compiler_kernel_dispatch_admitted(&c.workers, running.data, active, extra));
-    entity_view_close(view);
+    if dispatched == WorkBudgetError.None {
+        dispatched = compiler_kernel_dispatch_admitted_result(&c.workers, running.data, active, extra);
+    }
     // Publish every stage before any cross-body bookkeeping. Completion order
     // must not change diagnostics, nominal type identity or observation order.
-    for(var i: usize = 0; i < active; i++) {
-        sem_require(entity_stage_publish(running.data[i].stage));
-        running.data[i].stage = null;
-        running.data[i].context = null;
-    }
+    if !sem_stage_wave(c, running.data, active, view, dispatched, running.data[0].subject, sem_body_stage_cancel) { return 0; }
     for(var i: usize = 0; i < active; i++) { sem_body_publish(c, running.data[i]); }
     return active;
 }
@@ -1912,6 +1926,9 @@ fn sem_bodies(c: SemanticContext*): void {
     // Root expressions have completed before ordinary body roots are demanded.
     // Do not repeat this global scan between declaration frontiers: a newly
     // published nominal identity can still be waiting for its field producer.
+    // Early executed helpers can advance the local-construction frontier before
+    // unrelated module fields finish. Reconcile it once at this safe boundary.
+    if c.body_pipeline != null { c.layout_checked = 0; }
     sem_layout_all(c);
     c.body_roots = true;
     var saved_subjects = c.declaration_subjects;
@@ -2015,6 +2032,7 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     // A later producer can unblock an earlier consumer even after another
     // body has failed. Retain diagnostics while servicing that dependency.
     sem_body_wave(c, batch, count, count);
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     // Release every worker claim before any coordinator continuation publishes
     // types or registers new producers. Waiting bodies retain their ECS cursor.
     for(var i: usize = 0; i < count; i++) {

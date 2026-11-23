@@ -10,7 +10,9 @@ import .compiler.parser_types;
 import .library.vector;
 import .library.work_graph;
 import .library.work_budget;
+import .library.work_pool;
 import .library.work_budget_types;
+import .library.entity_types;
 
 // Link the production semantic provider; this fixture owns no flow algorithm.
 extern fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(void*)*): void;
@@ -24,8 +26,12 @@ extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
 extern fn entity_store_component_count(store: void*): usize;
 extern fn puts(text: u8*): i32;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn sem_workers_open(c: SemanticContext*): bool;
 
-enum FlowCase: u32 { Healthy, Ordered, Query, Edge, Access, Demand, Take, Finish, Cancelled, Cycle, ProducerFailure, Ready, PartialTake }
+enum FlowCase: u32 { Healthy, Ordered, Query, Edge, Access, Demand, Take, Finish, Cancelled, Cycle, ProducerFailure, Ready, PartialTake, KindPin, ComponentPin, Scratch, ViewOverflow, Pool, Count }
 var FlowGraphBytes: usize = 1048576;
 var FlowGraphRevision: u64 = 127;
 
@@ -62,6 +68,18 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
     var failures: u32 = 0;
     var world = compiler_world_create_workers(workers);
     sem_require(world != null);
+    var scratch_budget: WorkBudget = default;
+    var scratch_pressure: WorkReservation = default;
+    var scratch_gate: void* = null;
+    defer { if scratch_gate != null { work_signal_close(scratch_gate); } }
+    if mode == FlowCase.Scratch || mode == FlowCase.Pool {
+        scratch_gate = work_signal_open();
+        sem_require(scratch_gate != null);
+        work_signal_post(scratch_gate);
+        sem_require(work_budget_init(&scratch_budget, workers, FlowGraphBytes, FlowGraphRevision)
+            && work_budget_synchronize(&scratch_budget, scratch_gate, work_signal_wait, work_signal_post)
+            && compiler_world_bind_budget(world, &scratch_budget));
+    }
     var store = compiler_world_store(world);
     var root = entity_create(store);
     sem_require(root != null);
@@ -95,11 +113,23 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
         }
     }
     if denied_request { flow_pressure(&budget, &pressure); }
+    if mode == FlowCase.ComponentPin { sem_flow_request(&c, second, &dependencies); }
+    var pin: void* = null;
+    if mode == FlowCase.KindPin || mode == FlowCase.ComponentPin {
+        pin = entity_view_open(root);
+        sem_require(pin != null);
+    }
     var components = entity_store_component_count(store);
     sem_flow_request(&c, first, &dependencies);
+    if pin != null { entity_view_close(pin); }
     var query = work_find(&c.queries, first, convert(u32, SemanticQuery.Flow), 0);
     var state = SemanticPumpResult.Failed;
-    if denied_request {
+    if mode == FlowCase.KindPin || mode == FlowCase.ComponentPin {
+        flow_check(program.resource.error == WorkBudgetError.Busy && program.resource.offset == 17
+            && c.queries.cancelled && c.flow_count == (mode == FlowCase.ComponentPin ? 1 : 0)
+            && entity_store_component_count(store) == components,
+            "Pinned kind/component admission retains its source owner and publishes no partial flow", &failures);
+    } else { if denied_request {
         flow_check(program.resource.error == WorkBudgetError.Capacity && program.resource.offset == 17
             && c.queries.cancelled && c.flow_count == 0 && c.flow_results == null
             && entity_store_component_count(store) == components,
@@ -109,7 +139,20 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
         sem_flow_request(&c, first, &dependencies);
         flow_check(c.flow_count == 1 && program.resource.error == WorkBudgetError.None,
             "Repeated sealed request retains its ordinal and claims", &failures);
-        if mode == FlowCase.Ready || mode == FlowCase.PartialTake {
+        if mode == FlowCase.Scratch || mode == FlowCase.ViewOverflow || mode == FlowCase.Pool {
+            if mode == FlowCase.Scratch { sem_require(sem_workers_open(&c)); }
+            if mode == FlowCase.Scratch || mode == FlowCase.Pool { flow_pressure(&scratch_budget, &scratch_pressure); }
+            var entity_store = bits(EntityStore*, store);
+            var views = entity_store.views;
+            if mode == FlowCase.ViewOverflow { entity_store.views = ~convert(usize, 0); }
+            state = sem_flows_pump(&c);
+            if mode == FlowCase.ViewOverflow { entity_store.views = views; }
+            flow_check(state == SemanticPumpResult.Failed && program.resource.offset == 17
+                && program.resource.error == (mode == FlowCase.ViewOverflow ? WorkBudgetError.Exhausted : WorkBudgetError.Capacity)
+                && c.queries.cancelled && c.queries.running == 0 && c.workers.running == 0
+                && work_task(&c.queries, query).dispatch == 0 && entity_store.views == 0,
+                "Scratch/view/pool denial is terminal before dispatch and closes the owned view", &failures);
+        } else { if mode == FlowCase.Ready || mode == FlowCase.PartialTake {
             sem_flow_request(&c, second, &dependencies);
             var later = work_find(&c.queries, second, convert(u32, SemanticQuery.Flow), 0);
             if mode == FlowCase.PartialTake { work_task(&c.queries, later).dispatch = ~convert(u64, 0); }
@@ -192,8 +235,8 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
                 && c.queries.cancelled && c.queries.running == 0 && c.workers.running == 0,
                 "Demand/take/finish/cancellation failure drains and retains its actual graph cause", &failures);
             if mode == FlowCase.Finish {
-                flow_check(work_task(&c.queries, query).dispatch == 1,
-                    "Finish denial follows one completed flow kernel", &failures);
+                flow_check(work_task(&c.queries, query).dispatch == 1 && work_task(&c.queries, query).state == WorkState.Cancelled,
+                    "Finish reservation denial follows one joined kernel without publishing success", &failures);
                 foreach(var &task in &c.queries.tasks) {
                     if task.query == convert(u32, SemanticQuery.BodyInputs) && task.argument != 0 {
                         flow_check(task.state == WorkState.Cancelled && task.dispatch == 0,
@@ -201,9 +244,10 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
                     }
                 }
             }
-        } } }
-    }
+        } } } }
+    } }
     if pressure.active { sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None); }
+    if scratch_pressure.active { sem_require(work_budget_release_result(&scratch_budget, &scratch_pressure) == WorkBudgetError.None); }
     components = entity_store_component_count(store);
     var count = c.flow_count;
     var tasks = c.queries.tasks.length;
@@ -224,6 +268,13 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
     semantic_program_dispose(&program);
     entity_release(root);
     flow_check(compiler_world_dispose(world), "Flow fixture releases its world", &failures);
+    if mode == FlowCase.Scratch || mode == FlowCase.Pool {
+        var scratch_released: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&scratch_budget, &scratch_released));
+        flow_check(scratch_released.used_bytes == 0 && scratch_released.used_lanes == 0
+            && scratch_released.live == 0 && work_budget_dispose(&scratch_budget),
+            "Denied flow scratch releases every world reservation", &failures);
+    }
     var released: WorkBudgetSnapshot = default;
     sem_require(work_budget_snapshot(&budget, &released));
     flow_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&budget),
@@ -232,24 +283,10 @@ fn flow_trial(workers: usize, mode: FlowCase): u32 {
 }
 
 export fn main(): i32 {
-    var modes: FlowCase[13];
-    modes[0] = FlowCase.Healthy;
-    modes[1] = FlowCase.Ordered;
-    modes[2] = FlowCase.Query;
-    modes[3] = FlowCase.Edge;
-    modes[4] = FlowCase.Access;
-    modes[5] = FlowCase.Demand;
-    modes[6] = FlowCase.Take;
-    modes[7] = FlowCase.Finish;
-    modes[8] = FlowCase.Cancelled;
-    modes[9] = FlowCase.Cycle;
-    modes[10] = FlowCase.ProducerFailure;
-    modes[11] = FlowCase.Ready;
-    modes[12] = FlowCase.PartialTake;
     var failures: u32 = 0;
-    for(var i: usize = 0; i < sizeof(decltype(modes)) / sizeof(FlowCase); i++) {
-        failures += flow_trial(1, modes[i]);
-        failures += flow_trial(4, modes[i]);
+    for(var mode: u32 = 0; mode < convert(u32, FlowCase.Count); mode++) {
+        failures += flow_trial(1, convert(FlowCase, mode));
+        failures += flow_trial(4, convert(FlowCase, mode));
     }
     return failures == 0 ? 0 : 1;
 }

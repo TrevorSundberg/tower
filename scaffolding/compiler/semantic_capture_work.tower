@@ -23,6 +23,8 @@ import interpreter_context_types;
 import .library.vector;
 import .library.work_graph;
 
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
+
 struct SemanticCapture {
     subject: void*;
     proof: SemanticSourceBinding*;
@@ -123,7 +125,8 @@ fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, st
             result.lowering = *ticket;
             // A function lease is not recursive. Reserve this declaration's
             // payload too before a worker can record its initializer range.
-            sem_require(entity_stage_lease(stage, node));
+            var error = entity_stage_lease_result(stage, node);
+            if error != WorkBudgetError.None { sem_type_resource(c, node, error); return; }
         }
         sem_known_edges(c, &pending, value);
     }

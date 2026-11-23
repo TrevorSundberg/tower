@@ -14,7 +14,10 @@ import semantic_evaluation;
 import semantic_declarations;
 import semantic_capture_work;
 import semantic_work_ids;
+import semantic_completion_work;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
 import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
@@ -22,6 +25,16 @@ import .library.work_pool;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_stage_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
+extern fn entity_view_open_result(anchor: void*, error: WorkBudgetError*): void*;
+extern fn compiler_node_world(node: void*): void*;
+
+fn sem_lower_resource(c: SemanticContext*, subject: void*, error: WorkBudgetError): void {
+    var message: vector(u8) = default;
+    var operation = sem_get(subject);
+    sem_restore_resource(c, error, &message, operation == null ? 0 : operation.start);
+}
 
 export fn semantic_lowering_kernel(result: SemanticLowering*): void {
     var context: SemanticContext;
@@ -96,28 +109,45 @@ fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
     // Source spellings and names produced by earlier control lowering are frozen
     // before dispatch. Every function owns its generated-name table and prefix.
     sem_control_names(c);
+    if !sem_ok(c) { return null; }
     var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
     for(var i: usize = 0; i < c.program.functions.length; ++i) {
         var subject = c.program.functions.data[i];
         var block = i == 0 ? subject : sem_get(subject).body;
         if block == null { continue; }
         if signature && (i == 0 || !sem_aggregate_needed(subject)) { continue; }
-        if *kind == null {
-            *kind = sem_create(c.program.root);
-            sem_require(entity_register(*kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+        if *kind != null && entity_component_get(subject, *kind) != null { continue; }
+        var id = work_request(&c.queries, subject, query_kind, 0);
+        if !sem_query_check(c, subject, id != 0) { return null; }
+        var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
+        if body != 0 && !sem_query_check(c, subject, work_depend(&c.queries, id, body)) { return null; }
+        var snapshot = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        if snapshot != 0 && !sem_query_check(c, subject, work_depend(&c.queries, id, snapshot)) { return null; }
+        if !signature {
+            var preparation = work_find(&c.queries, subject, convert(u32, SemanticQuery.AggregatePrepare), 0);
+            if preparation != 0 && !sem_query_check(c, subject, work_depend(&c.queries, id, preparation)) { return null; }
         }
-        if entity_component_get(subject, *kind) != null { continue; }
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        if !sem_query_check(c, subject,
+            work_access(&c.queries, id, domain, convert(u64, signature ? SemanticAccess.Aggregate : SemanticAccess.Lowering), i, 1, WorkAccessMode.Write)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), i, 1, WorkAccessMode.Write)
+            && work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read)) { return null; }
+        if !signature && !sem_query_check(c, subject,
+            work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Aggregate), i, 1, WorkAccessMode.Read)) { return null; }
+        var error: WorkBudgetError = WorkBudgetError.None;
+        if *kind == null { *kind = sem_kind_result(c.program.root, sizeof(SemanticLowering), alignof(SemanticLowering), &error); }
+        if *kind == null { sem_lower_resource(c, subject, error); work_cancel(&c.queries); return null; }
         if signature {
             if c.aggregate_signatures == null {
-                c.aggregate_signatures = sem_create(c.program.root);
-                sem_require(entity_register(c.aggregate_signatures, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), 0));
+                c.aggregate_signatures = sem_kind_result(c.program.root, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), &error);
             }
-            var metadata = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(subject, c.aggregate_signatures)));
-            sem_require(metadata != null);
+            if c.aggregate_signatures == null { sem_lower_resource(c, subject, error); work_cancel(&c.queries); return null; }
+            var metadata = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add_result(subject, c.aggregate_signatures, &error)));
+            if metadata == null { sem_lower_resource(c, subject, error); work_cancel(&c.queries); return null; }
             *metadata = default;
         }
-        var result = bits(SemanticLowering*, entity_component_data(entity_component_add(subject, *kind)));
-        sem_require(result != null);
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_add_result(subject, *kind, &error)));
+        if result == null { sem_lower_resource(c, subject, error); work_cancel(&c.queries); return null; }
         fill(result, 0, sizeof(SemanticLowering));
         result.subject = subject;
         result.block = block;
@@ -125,31 +155,9 @@ fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
         result.signature = signature;
         result.kernel.kind = CompilerKernelKind.Lower;
         result.kernel.payload = bits(void*, result);
-        var id = work_request(&c.queries, subject, query_kind, 0);
-        sem_require(id != 0);
-        var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
-        if body != 0 { sem_require(work_depend(&c.queries, id, body)); }
-        var snapshot = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownSnapshot), 0);
-        if snapshot != 0 { sem_require(work_depend(&c.queries, id, snapshot)); }
-        if !signature {
-            var preparation = work_find(&c.queries, subject, convert(u32, SemanticQuery.AggregatePrepare), 0);
-            if preparation != 0 { sem_require(work_depend(&c.queries, id, preparation)); }
-        }
         // Disjoint function payload ranges; layout/type inputs are immutable.
         // Generated entities remain private until the publication barrier.
-        var domain = convert(u64, SemanticWorkDomain.Compiler);
-        sem_require(work_access(&c.queries, id, domain,
-            convert(u64, signature ? SemanticAccess.Aggregate : SemanticAccess.Lowering), i, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), i, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        if !signature {
-            // Lowering reads only its own aggregate return metadata. Calls
-            // lower from checked operand/result types, not callee parameters;
-            // callback type records publish at the joined lifecycle boundary.
-            sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Aggregate), i, 1, WorkAccessMode.Read));
-        }
-        sem_require(work_seal(&c.queries, id));
-        sem_require(work_demand(&c.queries, id));
+        if !sem_query_check(c, subject, work_seal(&c.queries, id) && work_demand(&c.queries, id)) { return null; }
     }
     if signature && *kind != null { c.surface_expressions = true; }
     return *kind;
@@ -190,12 +198,19 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
     if !sem_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
     if mixed { sem_lower_register(c, true); }
     var kind = sem_lower_register(c, signature);
+    if !sem_ok(c) { work_cancel(&c.queries); return SemanticPumpResult.Failed; }
     if mixed && kind == null { kind = c.aggregate_preparations; }
     if kind == null { return SemanticPumpResult.Complete; }
-    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
-    var batch: vector(SemanticLowering*) = default;
-    defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
+    var batch: work_vector(SemanticLowering*) = default;
+    defer {
+        foreach(var result in &batch) {
+            if result.stage != null { entity_stage_discard(result.stage); result.stage = null; }
+            result.context = null;
+        }
+        if !sem_ok(c) { work_cancel(&c.queries); }
+        work_vector_dispose(&batch);
+    }
+    var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     {
         var count: usize = 0;
         for(var index: usize = 0; index < c.program.functions.length && count < SemanticPreparationWindow && sem_ok(c); index++) {
@@ -209,41 +224,53 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
             var id = work_find(&c.queries, subject, convert(u32, preparing ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering), 0);
             if id == 0 { continue; }
             var ticket: WorkTicket;
-            if !work_take_task(&c.queries, &ticket, id) { continue; }
+            if !work_take_task(&c.queries, &ticket, id) {
+                if !sem_query_check(c, subject, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+                continue;
+            }
             var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, result_kind)));
+            sem_require(result != null);
+            var admission = work_vector_push_result(&batch, budget, result);
+            if admission != WorkBudgetError.None { sem_lower_resource(c, subject, admission); return SemanticPumpResult.Failed; }
             result.ticket = ticket;
             // Signature publication can replace the body with a prelude after
             // registration. Consume that published body, never the old pointer.
             result.block = index == 0 ? subject : sem_get(subject).body;
             // The immutable work-kind entity anchors this wave. The program
             // root can itself be leased by its own lowering job.
-            result.stage = entity_stage_open(kind);
-            sem_require(result.stage != null);
-            batch.data[count++] = result;
+            result.stage = entity_stage_open_result(kind, &admission);
+            if result.stage == null { sem_lower_resource(c, subject, admission); return SemanticPumpResult.Failed; }
+            count++;
             if !preparing { sem_capture_ranges(c, result.block, &ticket, result.stage); }
             if !sem_ok(c) { break; }
-            sem_require(entity_stage_lease(result.stage, result.subject));
+            admission = entity_stage_lease_result(result.stage, result.subject);
+            if admission != WorkBudgetError.None { sem_lower_resource(c, subject, admission); return SemanticPumpResult.Failed; }
             if preparing {
                 foreach(var parameter in &sem_get(result.subject).parameters) {
-                    sem_require(entity_stage_lease(result.stage, parameter));
+                    admission = entity_stage_lease_result(result.stage, parameter);
+                    if admission != WorkBudgetError.None { sem_lower_resource(c, subject, admission); return SemanticPumpResult.Failed; }
                 }
             }
           }
         }
         if !sem_ok(c) || !work_ok(&c.queries) {
-            for(var i: usize = 0; i < count; i++) {
-                entity_stage_discard(batch.data[i].stage);
-                batch.data[i].stage = null;
-            }
-            sem_query_check(c, c.program.root, false);
+            if sem_ok(c) { sem_query_check(c, c.program.root, false); }
             return SemanticPumpResult.Failed;
         }
         if count == 0 {
             var state = mixed ? sem_lower_state(c, true) : SemanticPumpResult.Complete;
             return state == SemanticPumpResult.Complete ? sem_lower_state(c, signature) : state;
         }
-        var view = entity_view_open(kind);
-        sem_require(view != null);
+        if c.workers.count == 0 {
+            var current = c.current;
+            c.current = batch.data[0].subject;
+            var opened = sem_workers_open(c);
+            c.current = current;
+            if !opened { return SemanticPumpResult.Failed; }
+        }
+        var view_error: WorkBudgetError;
+        var view = entity_view_open_result(kind, &view_error);
+        if view == null { sem_lower_resource(c, batch.data[0].subject, view_error); return SemanticPumpResult.Failed; }
         var context: SemanticContext;
         sem_context_snapshot(&context, c);
         for(var i: usize = 0; i < count; i++) { batch.data[i].context = &context; }
@@ -254,18 +281,8 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
         if error == WorkBudgetError.None {
             error = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, count, extra);
         }
-        entity_view_close(view);
-        for(var i: usize = 0; i < count; ++i) {
-            sem_require(entity_stage_publish(batch.data[i].stage));
-            batch.data[i].stage = null;
-            batch.data[i].context = null;
-        }
-        if error != WorkBudgetError.None {
-            var message: vector(u8) = default;
-            work_cancel(&c.queries);
-            sem_restore_resource(c, error, &message, sem_get(batch.data[0].subject).start);
-            return SemanticPumpResult.Failed;
-        }
+        if !sem_stage_wave(c, batch.data, count, view, error, batch.data[0].subject, null) { return SemanticPumpResult.Failed; }
+        var failing = false;
         for(var i: usize = 0; i < count; ++i) {
             var result = batch.data[i];
             if !sem_query_check(c, result.subject, sem_query_observe_checked(c, &result.ticket, &result.query_reads)) {
@@ -274,16 +291,35 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
             // Even a failed function owns its generated nodes until the failed
             // program is destroyed. Publish them so ordinary lifecycle cleanup
             // handles all canonical links without dangling staged references.
-            sem_evaluation_aliases(c, &result.evaluation_aliases);
-            c.count += result.count;
             sem_restore_resource(c, result.resource.error, &result.error, result.resource.offset);
-            if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
-            var success = result.resource.error == WorkBudgetError.None && result.error.length == 0 && c.count <= c.node_limit;
-            if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, success)) {
+            if !sem_ok(c) { return SemanticPumpResult.Failed; }
+            // The shared alias publisher appends without a failure result.
+            // Reserve a bound for this result's aliases before entering it;
+            // repeated producers cannot require more than this actual list.
+            foreach(var &alias in &result.evaluation_aliases) {
+                var producer = sem_evaluation_get(c, alias.producer);
+                sem_require(producer != null);
+                var needed = producer.aliases.length + result.evaluation_aliases.length;
+                if needed < producer.aliases.length || !vector_reserve(&producer.aliases, needed) {
+                    sem_lower_resource(c, result.subject, needed < producer.aliases.length ? WorkBudgetError.Invalid : WorkBudgetError.Memory);
+                    return SemanticPumpResult.Failed;
+                }
+            }
+            sem_evaluation_aliases(c, &result.evaluation_aliases);
+            if c.count > c.node_limit || result.count > c.node_limit - c.count {
+                sem_lower_resource(c, result.subject, WorkBudgetError.Capacity);
                 return SemanticPumpResult.Failed;
             }
+            c.count += result.count;
+            failing ||= result.error.length != 0;
             vector_dispose(&result.query_reads);
             vector_dispose(&result.evaluation_aliases);
+        }
+        if !sem_completion_reserve(c, batch.data, count, failing) { return SemanticPumpResult.Failed; }
+        foreach(var result in &batch) {
+            if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket, result.error.length == 0)) {
+                return SemanticPumpResult.Failed;
+            }
         }
     }
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
