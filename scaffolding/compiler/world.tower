@@ -18,6 +18,10 @@ extern fn syntax_node_init(data: SyntaxNode*): void;
 
 extern fn foundation_node_init(data: FoundationNode*): void;
 
+// Independent semantic stages often publish only one or two Foundation rows.
+// Bound their unused payload slots without changing dense coordinator pages.
+var CompilerFoundationStagePageRows: u8 = 4;
+
 // Coordinator-owned identity and lifetime. Worlds do not share stores or type
 // entities. The legacy host uses one default world until its sessions migrate.
 struct CompilerWorld {
@@ -209,10 +213,10 @@ export fn compiler_world_type_result(world: CompilerWorld*, kind: u32, error: Wo
     if type == null {
         return null;
     }
-    var registered = entity_register(type, size, alignment, lifecycle);
-    if !registered {
+    var stage_rows: u8 = kind == CompilerFoundation ? CompilerFoundationStagePageRows : 0;
+    *error = entity_register_stage_result(type, size, alignment, lifecycle, stage_rows);
+    if *error != WorkBudgetError.None {
         entity_release(type);
-        *error = WorkBudgetError.Invalid;
         return null;
     }
     world.types[kind] = type;

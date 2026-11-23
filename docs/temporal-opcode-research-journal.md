@@ -96083,6 +96083,33 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+### 2026-11-23 B1: Foundation private-stage page slack
+
+Frozen1e428ede, native public768/LLVM19 CPU0-11/24GiB, exact ROOT972596B
+request403fdc6b and4709291B output452132b9. One four-row Foundation policy
+uses existing immutable per-kind registration; no Entity layout/ParserMatch or
+semantic method changes. Census proves sparse private-stage origin; page bytes
+513224220->235866539, peak charged2743902878->2466545197, ledger unchanged.
+All16 paired n2 serial/four large/small outputs and zero-owner checks pass;
+large serial wall10.695->10.985s (+2.7%), four9.445->9.250s; RSS~4.2% lower.
+Retain explicit memory tradeoff, not speedup: pages4.07x/live grants3.62% higher.
+Six focused storage/concurrent/Capacity-retry CTests, grammar-resource/world
+Memory/registration checks and unchanged strict entities symbol policy pass.
+[Concise receipt](compiler_foundation_pages_1e428ede.md) retains source/binary
+hashes, original transport assertion failure, raw paths and exact limits.
+No optimized/browser/generation/sanitizer or deployment claim; ROOT owns release.
+### 2026-11-23 D1: seeded cross-unit dependency/cancellation differential
+
+At1e428ede, added one Tower fixture through existing frontend-unit/ordinary
+invocation/observer APIs and lr-work registration. Three seeds combine forward
+imported queries, shadow/capture aliases, ordered effects and untaken cycles;
+admitted cancellation then changed seed/revision under same filenames uses fresh
+worlds. Paired15-batch/36-answer check and wrong-result1215vs1216 rejecting control
+both passed, clean disposal, no skips/timeouts. [Finite receipt](compiler_ecs_audit_d1.md#d1-seeded-dependencycancellation-interaction--1e428ede-2026-11-23)
+records exact blobs and native binary. Six-batch serial11.74wall/11.52CPU/207840KiB,
+two-worker10.76/17.61/427952; increased CPU/RSS, no broad speedup claim. CTest32.13s;
+logs/failures/measurements `build/d1_ecs/dependency_stress_1e428ede/`. Production,
+importer and scheduling untouched; no sanitizer/build-generation/release claim.
 ## 2026-11-23 A1: shared bounded lazy DEFLATE improvement
 Reviewed actual03d8123d package change preserved by6b74889b, plus write/remove/
 manifest and browser/build callers. Dist-only post-gzip unlink leaves complete
@@ -96236,6 +96263,12 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
+D1 final integration: implementatione96d2282, merged325db641 includes L2's
+semantic_lowering_work registration guard. Affected semantics+link rebuilt
+39.40wall/38.35CPU/1082740KiB; the same two CTests pass30.62wall/38.13CPU/574704KiB,
+with the same15 batches and rejecting1215vs1216 oracle. New artifact/source
+identity is in the finite receipt and merged_* logs. Initial timing remains
+bound to1e428ede; unrelated codec/browser changes are not independently adopted.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
@@ -96249,3 +96282,43 @@ New frontend before wall0.614762/0.628318, CPU0.503438/0.515359; candidate wall0
 Decision: revert precisely the five-line sem_lower_register optimization with history preserved. All four original+new frontend pairs favor before; noise precludes causal certainty, but retention acceptance is not met and the0.04ms slice is not an excuse. No second optimization or threshold. Independent producer/caller audit: sole phase creator registers both sets before join; errors cancel/retain first cause and callers reject unhealthy graphs; percompile fresh graph, no semanticreset/profile mutation, genericreset clears index/tasks and receipts validate revision/profile/dispatch. Standalone pumps preserve newly available bodies. Lifecycle existence depends on its frozen function-set boundary and is not a general late-registration version check; no concrete uncovered production invalidation found, no mirrored fake-state test. Restored scans remove reliance on the guard.
 
 One dependency restoration build3actions36.20wall/26.00CPU/1075868KiB yields byte-identical originalprofile76728e7b; focused restoredquery-smoke3.61/4.06/353512 passes. No repeated type/control/large samples, reactor/generation/sanitizer/hosted operation or unrelated edits. Original source/todo retained, all owned processes drained. Publication boundary follows after normal integration.
+## 2026-11-23 A1: independent abort capability peer review
+Reviewed9f37944356/b4bd9980 against1e428ede at freezeae5d34b2;11 scoped
+blobs unchanged. No concrete defect found. Forty-byte typed import/export
+descriptor enforces() -> void at Wasm linking; Graph/Fast forwards serialized
+returnType to the shared validator before invoking. Explicit provider precedence,
+unknown rejection, first failure/effect stop, staged capability denial and guest
+finally/handle cleanup remain. No new interpreter, permissive fallback or registry.
+[Short peer receipt](abort_host_peer_review_a1.md) maps exact blobs/all6fixtures
+and actual A2 controls/T9/profile logs; those runs remain attributed, not repeated.
+An extra ordinary enum-named-void Tower control rejects on32/64 Graph/Fast with
+empty output; initial missing-Foundation transport setup failure retained.
+No confirmed nominal-name bypass. A2 still owns the separate spelling assertion;
+host-instance lifetime/zero-owner limits and absent override/OOM controls explicit.
+Docs-only: no runtime build, performance comparison, instrumentation or release.
+Raw A1/abort_review_ae5d34b2 contains input/output/counters/hash map; owned work
+drained, todo unchanged; normal commit/reconcile/push follows.
+## A2 platform canonical binding oracle closure (2026-11-23)
+
+The stale fourth platform assertion expected recursively expanded integer_type
+at the use; retained output instead correctly declares i32 then uses i32*.
+Foundation/type-value/function contracts require preserved bindings, exact
+signatures and stable independently compilable text. Only test/fixture changed:
+exact prelude i32/usize bindings, identity usize parameter/result, array/pointer
+use and call/effect order assertions; original positive logic moved to Tower.
+Source handles retire before independent-host parse/recheck/GraphFast execution
+at32/64, exact12/24 outputs, byte-stable canonical reformat, source/canonical
+wasm32 output12. Five original malformed built-in controls remain steps0 failures.
+
+Full unfiltered platform file on exact a06 pair, host26f99a40 plus test-only edit:
+4pass/0fail/0skip/0cancelled, actualexit0,2.1922186s command wall; actualchildCPU
+3.343s/peak343556KiB.1252 frozen resource hashes unchanged. Both1083B canonical
+files SHA4d2a49dc are equal; target-layout behavior checked independently.
+Prior abort_t9_a06_1e428ede/focused.log remains3pass/1failure at its old oracle.
+Receipt docs/platform_binding_a06_26f99a40.md; raw cache/logs/platform_binding_a06_26f99a40.
+No production change, so before/after profiling inapplicable; no T9/rebuild/backend/
+sanitizer/release run. L1's separate optimization error remains outside scope.
+Owned jobs drained, three old stashes/todo preserved; final integration in status.
+
+B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
+A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
