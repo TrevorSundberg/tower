@@ -414,6 +414,14 @@ allocator; it covers UTF-8 source locations, deep copies and ownership transfers
 Foundation payloads, borrowed edges, aliasing, failure atomicity, 600-level tree
 clones, 100 session resets and source provenance surviving session destruction.
 
+`tower-storage-tests RESOURCE_ROOT runtime-faults` selects the existing LR runtime
+allocation oracle without installing unrelated grammar baselines. It checks
+serial and worker-result construction, exact `Memory` versus ordinary grammar
+conflicts, deterministic allocation failures, unchanged reference rows and clean
+retry. Sweep bounds and retained test arrays derive from each successful run's
+allocation count. This uses the single-owner fault allocator; real concurrency
+is checked separately by `tower-lr-work-tests RESOURCE_ROOT lr` and unit profiles.
+
 Formatter fixtures now run in Tower. Configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
