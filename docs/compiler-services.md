@@ -365,6 +365,34 @@ its explicit single-owner allocation clients, not all compiler allocations;
 production workers do not access it. Fault-injection tests use the serial runtime
 and check exact buffer cleanup separately from real worker-overlap tests.
 
+Entity stores install their borrowed `WorkBudget` at creation, before worker
+handoff. The budget and its synchronization gate outlive every allocation.
+Entity descriptors (including staged nodes), names, component/child/instance
+indexes, archetype descriptors/signatures/rows, views/query plans and stage
+descriptors/queues now own charged physical storage. Small descriptors reuse
+stable pages; full and partial pages retain explicit owners. Workers allocate in
+private stage pools, transferred to the store after joins and publication.
+Replaceable indexes carry independent `WorkBuffer` receipts so a leased worker
+never frees through a shared pool. Replacement admission includes the complete
+old/new peak before releasing old storage. Denial preserves identities,
+membership and links; successfully reserved capacity may remain with its owner.
+Cancellation runs payload cleanup before releasing storage; pinned owners retire
+only after the last joined view closes. No payload address or `Entity` layout
+changes are required.
+
+`entity_view_tables_result(view, terms, count, error)` and
+`entity_component_remove_result(owner, type)` expose exact resource causes;
+pointer/bool compatibility wrappers remain. A valid physical buffer larger than
+its configured allowance returns `Capacity`, while malformed/overflowing sizes
+remain `Invalid`. Flow uses its existing instance index and checked view/scratch
+admission, preserving the original receipt before dispatch. The entity census compares actual physical
+owners with charged live bytes and the strict cap fixture requires real denial.
+Ledger backing metadata is separately reported, not charged recursively to
+itself. Client-owned allocations reachable through component pointers (including
+provenance splice vectors), foreign LLVM heaps and allocator internals are not
+automatically covered. This is an explicit ownership budget, not a process RSS
+cap or a claim that all compiler allocations are charged.
+
 Metadata copying exposes per-call `WorkBudgetError` results through
 `compiler_node_copy_metadata_result` and
 `compiler_node_copy_metadata_staged_result`; provenance uses the matching

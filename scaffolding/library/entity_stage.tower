@@ -1,7 +1,8 @@
 import tower;
 import entities;
 import entity_types;
-import vector;
+import work_vector;
+import work_vector_types;
 import work_budget_types;
 
 // A worker owns these actual canonical entities, not a shadow graph or commands
@@ -9,12 +10,13 @@ import work_budget_types;
 // remain unchanged until the coordinator publishes after all readers join.
 struct EntityStage {
     anchor: Entity*;
-    nodes: vector(EntityStageNode);
-    references: vector(Entity*);
+    nodes: work_vector(EntityStageNode);
+    references: work_vector(Entity*);
     held: usize;
-    cancellations: vector(EntityStageCancellation);
-    leases: vector(EntityStageLease);
+    cancellations: work_vector(EntityStageCancellation);
+    leases: work_vector(EntityStageLease);
     storage: EntityComponentPool;
+    buffers: EntityComponentPool;
 }
 
 // One complete payload's pending references. Context and borrowed fields stay
@@ -55,8 +57,8 @@ export fn entity_stage_open_result(anchor: Entity*, error: WorkBudgetError*): En
     if anchor == null || anchor.stage != null { return null; }
     if anchor.store.reclaiming != 0 { *error = WorkBudgetError.Busy; return null; }
     if anchor.references == ~convert(usize, 0) { *error = WorkBudgetError.Exhausted; return null; }
-    var stage = alloc(EntityStage, 1);
-    if stage == null { *error = WorkBudgetError.Memory; return null; }
+    var stage = entity_owned_allocate_result(EntityStage, &anchor.store.buffers, anchor.store.budget, 1, error);
+    if stage == null { return null; }
     *stage = default;
     stage.anchor = anchor;
     entity_retain(anchor);
@@ -75,11 +77,14 @@ export fn entity_stage_lease(stage: EntityStage*, node: Entity*): bool {
 export fn entity_stage_lease_result(stage: EntityStage*, node: Entity*): WorkBudgetError {
     if stage == null || stage.anchor == null || node == null
         || node.store != stage.anchor.store || node.registered { return WorkBudgetError.Invalid; }
-    if node.store.views != 0 || node.store.reclaiming != 0 { return WorkBudgetError.Busy; }
+    // A finalizer may operate on separately owned live entities. It may never
+    // lease the zero-reference entity currently being reclaimed.
+    if node.store.views != 0 || (node.store.reclaiming != 0 && node.references == 0) { return WorkBudgetError.Busy; }
     if node.stage == bits(void*, stage) { return WorkBudgetError.None; }
     if node.stage != null { return WorkBudgetError.Busy; }
     if stage.leases.length >= ~convert(usize, 0) / sizeof(EntityStageLease) { return WorkBudgetError.Invalid; }
-    if !vector_reserve(&stage.leases, stage.leases.length + 1) { return WorkBudgetError.Memory; }
+    var error = work_vector_reserve_result(&stage.leases, stage.anchor.store.budget, stage.leases.length + 1);
+    if error != WorkBudgetError.None { return error; }
     var lease = &stage.leases.data[stage.leases.length];
     lease.node = node;
     lease.components = node.component_count;
@@ -110,9 +115,9 @@ export fn entity_stage_create_result(stage: EntityStage*, parent: Entity*, error
     if error == null { return null; }
     *error = entity_stage_create_admission(stage, parent);
     if *error != WorkBudgetError.None { return null; }
-    *error = WorkBudgetError.Memory;
-    if !vector_reserve(EntityStageNode, &stage.nodes, stage.nodes.length + 1) { return null; }
-    var node = alloc(Entity, 1);
+    *error = work_vector_reserve_result(&stage.nodes, stage.anchor.store.budget, stage.nodes.length + 1);
+    if *error != WorkBudgetError.None { return null; }
+    var node = entity_owned_allocate_result(Entity, &stage.buffers, parent.store.budget, 1, error);
     if node == null { return null; }
     *node = default;
     node.store = parent.store;
@@ -127,7 +132,7 @@ export fn entity_stage_create_result(stage: EntityStage*, parent: Entity*, error
     return node;
 }
 
-fn entity_stage_count(counts: vector(EntityStageCount)*, node: Entity*): EntityStageCount* {
+fn entity_stage_count(counts: work_vector(EntityStageCount)*, node: Entity*): EntityStageCount* {
     var hash = bits(usize, node) / 16;
     hash ^= hash >> 16;
     var mask = counts.length - 1;
@@ -175,10 +180,10 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
         capacity *= 2;
     }
     if capacity > maximum / sizeof(EntityStageCount) { return WorkBudgetError.Invalid; }
-    var counts: vector(EntityStageCount);
-    vector_init(EntityStageCount, &counts);
-    if !vector_reserve(EntityStageCount, &counts, capacity) { return WorkBudgetError.Memory; }
-    defer vector_dispose(&counts);
+    var counts: work_vector(EntityStageCount) = default;
+    result = work_vector_reserve_result(&counts, store.budget, capacity);
+    if result != WorkBudgetError.None { return result; }
+    defer work_vector_dispose(&counts);
     counts.length = capacity;
     fill(counts.data, 0, capacity * sizeof(EntityStageCount));
     for(var i: usize = 0; i < count; ++i) {
@@ -207,14 +212,14 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
             break;
         }
         if children > node.child_capacity {
-            var memory = realloc(EntityChild, node.children, children);
-            if memory == null { result = WorkBudgetError.Memory; break; }
+            var memory = entity_buffer_resize_result(store.budget, node.children, children, node.child_count, &result);
+            if memory == null { break; }
             node.children = memory;
             node.child_capacity = children;
         }
         if instances > node.instance_capacity {
-            var memory = realloc(EntityComponent*, node.instances, instances);
-            if memory == null { result = WorkBudgetError.Memory; break; }
+            var memory = entity_buffer_resize_result(store.budget, node.instances, instances, node.instance_count, &result);
+            if memory == null { break; }
             node.instances = memory;
             node.instance_capacity = instances;
         }
@@ -304,14 +309,15 @@ export fn entity_stage_publish_result(stage: EntityStage*): WorkBudgetError {
             entity_table_publish(lease.node);
         }
     }
-    vector_dispose(EntityStageNode, &stage.nodes);
-    vector_dispose(Entity*, &stage.references);
-    vector_dispose(&stage.cancellations);
-    vector_dispose(EntityStageLease, &stage.leases);
+    work_vector_dispose(&stage.nodes);
+    work_vector_dispose(&stage.references);
+    work_vector_dispose(&stage.cancellations);
+    work_vector_dispose(&stage.leases);
     entity_component_pool_transfer(&stage.storage, &store.storage);
-    entity_release(stage.anchor);
-    stage.anchor = null;
-    free(stage);
+    entity_component_pool_transfer(&stage.buffers, &store.buffers);
+    var anchor = stage.anchor;
+    entity_owned_free(stage);
+    entity_release(anchor);
     return WorkBudgetError.None;
 }
 
@@ -350,11 +356,11 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
             }
             entity_component_free(component);
         }
-        free(node.components);
-        free(node.children);
-        free(node.instances);
-        free(stage.nodes.data[i].name);
-        free(node);
+        entity_buffer_free(node.components);
+        entity_buffer_free(node.children);
+        entity_buffer_free(node.instances);
+        entity_owned_free(stage.nodes.data[i].name);
+        entity_owned_free(node);
     }
     for(var i: usize = 0; i < stage.leases.length; ++i) {
         var lease = &stage.leases.data[i];
@@ -370,14 +376,14 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
         node.stage = null;
         node.storage = null;
     }
-    vector_dispose(EntityStageNode, &stage.nodes);
-    vector_dispose(Entity*, &stage.references);
-    vector_dispose(&stage.cancellations);
-    vector_dispose(EntityStageLease, &stage.leases);
-    entity_component_pool_detach(&stage.storage);
-    if stage.anchor != null { entity_release(stage.anchor); }
-    stage.anchor = null;
-    free(stage);
+    work_vector_dispose(&stage.nodes);
+    work_vector_dispose(&stage.references);
+    work_vector_dispose(&stage.cancellations);
+    work_vector_dispose(&stage.leases);
+    if stage.storage.owned != null || stage.buffers.owned != null { trap("Live discarded stage storage", 0); }
+    var anchor = stage.anchor;
+    entity_owned_free(stage);
+    entity_release(anchor);
     return WorkBudgetError.None;
 }
 
@@ -397,12 +403,11 @@ export fn entity_stage_create_named_result(stage: EntityStage*, parent: Entity*,
     var maximum = ~convert(usize, 0);
     while name[length] != 0 && length != maximum { length++; }
     if length == maximum { *error = WorkBudgetError.Invalid; return null; }
-    *error = WorkBudgetError.Memory;
-    var owned = alloc(u8, length + 1);
+    var owned = entity_owned_allocate_result(u8, &stage.buffers, stage.anchor.store.budget, length + 1, error);
     if owned == null { return null; }
     copy(owned, name, length + 1);
     var node = entity_stage_create_result(stage, parent, error);
-    if node == null { free(owned); return null; }
+    if node == null { entity_owned_free(owned); return null; }
     stage.nodes.data[stage.nodes.length - 1].name = owned;
     return node;
 }
@@ -421,9 +426,10 @@ fn entity_stage_names_result(stage: EntityStage*): WorkBudgetError {
         capacity *= 2;
     }
     if capacity > maximum / sizeof(EntityStageNameIndex) { return WorkBudgetError.Invalid; }
-    var names = alloc(EntityStageNameIndex, capacity);
-    if names == null { return WorkBudgetError.Memory; }
-    defer free(names);
+    var error: WorkBudgetError;
+    var names = entity_buffer_resize_result(EntityStageNameIndex, stage.anchor.store.budget, null, capacity, 0, &error);
+    if names == null { return error; }
+    defer entity_buffer_free(names);
     fill(names, 0, capacity * sizeof(EntityStageNameIndex));
     var mask = capacity - 1;
     foreach(var &entry in &stage.nodes) {
@@ -487,9 +493,11 @@ fn entity_stage_references_record_result(stage: EntityStage*, nodes: Entity**, c
     if !nonempty { return WorkBudgetError.None; }
     if cancel != null {
         if stage.cancellations.length >= ~convert(usize, 0) / sizeof(EntityStageCancellation) { return WorkBudgetError.Invalid; }
-        if !vector_reserve(&stage.cancellations, stage.cancellations.length + 1) { return WorkBudgetError.Memory; }
+        var error = work_vector_reserve_result(&stage.cancellations, stage.anchor.store.budget, stage.cancellations.length + 1);
+        if error != WorkBudgetError.None { return error; }
     }
-    if !vector_reserve(&stage.references, needed) { return WorkBudgetError.Memory; }
+    var error = work_vector_reserve_result(&stage.references, stage.anchor.store.budget, needed);
+    if error != WorkBudgetError.None { return error; }
     if borrowed { nodes = &stage.references.data[offset]; }
     var first = stage.references.length;
     for(var i: usize = 0; i < count; i++) {
