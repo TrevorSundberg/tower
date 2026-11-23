@@ -2505,3 +2505,13 @@ eight-worker plain about+8.8%, without measured per-lock attribution. Churn gain
 do not erase them. Owner24 supported sanitizer runs/WASI and unchanged reference
 measurements belong to its documented02db-based inputs; current joined evidence
 is pending.
+
+Adoption update: complete ROOT9d73da0b bundle3fdea35e merged cleanly asc9f3e3f5
+after the preceding read-only review. Those three new/eight changed files are now
+in the direct audit:525/525 assigned of1114 tracked Tower paths. Existing D1
+registrations and the gated resource fixture remain byte-identical. The incoming
+journal's six Windows1252 dash bytes were repaired by ROOT with the original blob
+retained; strict UTF-8 validation now passes locally. The changed page-header ABI
+and pool/publication union have not yet been built in D1; no older runtime result
+is relabeled. New pool/reuse/reentrant registration will follow equivalent manual
+baseline measurements on these coherent sources.

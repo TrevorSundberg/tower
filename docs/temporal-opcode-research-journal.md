@@ -71259,3 +71259,50 @@ code costs, because executable-derived fallback paths also affect allocations.
 L2 and B1 are controlling that variable in their next bounded comparisons. This
 does not establish that the explicit primary Foundation resource trees differed.
 All final combined acceptance and publication gates remain open.
+
+D1 actual ROOT9d73 adoption: verified full ROOT_reuse_query_join.bundle SHA256
+3fdea35e4a1443a976221ebb1ad04aeb31bc8738b3ae8f0492584eeeb3ca88be,
+sole60741, then merged cleanly asc9f3e3f5. Incoming runtime changes beyond current
+31c are exactly the already-reviewed A2e28 page reuse history; query registration
+and both generic CMake files remain unchanged. Three new/eight changed assigned
+paths are now525/525 direct of1114 tracked Tower files, with exact saved rosters.
+Root's narrow six-byte dash repair resolves the journal UTF-8 failure; local
+strict iconv check passes. Original incoming damaged blob remains preserved by
+ROOT. No values, measurements or conclusions were changed by that repair.
+
+Read B2's3d29 scoped ROOT351 instrumentation receipt and corrected producer trace:
+actual native/editor/backend overlap and supported address/thread checks passed
+on their precise older union, with source UBSan/external libraries unsupported.
+That evidence does not validate this new page-header ABI. B1's newer actual LR
+Capacity correction is reported as passing its unchanged units but is not yet
+published in a complete committed/profiled/instrumented history here; current
+known-red source identity remains unchanged. L1 cache and L2 fixture ownership
+follow-up are also absent, without implicit acceptance.
+
+Next prepared bounded D1 run uses public9653 for the five smallest changed leaves,
+manual existing-provider pool/reuse/reentrant baselines, coherent native compiler/
+LR/frontend/storage rebuild and focused query/resource/regex/grammar/parser/
+allocation/storage checks. It has not run while D2 owns the shared host slot.
+Only then will the three minimal registrations be edited and measured. Existing
+OS build/transport scripts are reused; all fixture and measurement logic remains
+Tower. Review/documentation alone changes no runtime allocation or timing path.
+
+D2's authorized memory-generator experiment exposed a real measured downside.
+The first nested sizeof expression was outside Foundation's simple operand
+contract and failed compilation. The corrected runtime-count version produced
+the same long/short outputs2492321792/3197601747, but existing seven-sample
+runtime medians changed LLVM47.624->87.973ms, rawClang102.987->572.581ms and
+rawGCC108.373->593.103ms. Whole fixture11.40wall/10.76CPU/122328KiB became
+18.50/16.47/140160. These version runs were chronological, not alternating pairs;
+loss of constant division/load optimization from observable global storage is
+an inference pending IR inspection, not measured alias analysis or a noalias
+guarantee. The slowdown is not accepted or called neutral.
+
+D1 authorized a narrower generator-owned solution: one named element count,
+sizeof(u32)-derived byte extent, and existing measure_number emission at the
+allocation/fill/modulo sites. This uses ordinary Tower value arithmetic in the
+existing generator, not a separate constant folder. It must reproduce the exact
+original long/short Foundation bytes and preserve their checked objects/outputs,
+with bounded existing measurement. Iteration and sample policy stay unchanged.
+The experiment/regression remains recorded; the refined implementation and its
+actual evidence are still D2 work, with no competing D1 source edit.
