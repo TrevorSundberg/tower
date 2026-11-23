@@ -84555,3 +84555,22 @@ is passed. Frozen source/artifact manifests above describe the earlier measured
 fix boundary, before subsequent README/journal/upstream changes; they are not
 relabeled as merged performance evidence. All owned jobs drained. Normal main
 push publishes the tested prerequisite and precise remaining blocker only.
+
+D2 LR integration receipt: implementationd9e1b348 merged complete published
+98d69cf4 as1906afcd. Actual import-hash comparison detected six changed A1 semantic
+files and frontend_main's default-suite progress labels; LR implementation and
+resource closure unchanged. Rebuilt only affected dependency targets jobs1:
+62.64wall/60.88CPU seconds/798736KiB. Refreshed lr-order, grammar-equivalence,
+parser, diagnostics, structure-reuse, normal LR worker equivalence and one each
+cold/installed request all pass; canonical/count/retained identities unchanged.
+Merged cold n1 was4.36wall/4.23CPU/166924KiB, installed2.13/2.10/169240. The slow
+cold observation is preserved, not replaced with the earlier median. CPUs0/2
+subsequently reported different powersave frequencies; no exact cause is proved,
+and these mixed-source integration samples establish no performance bound.
+Allocation calls drop by25 under upstream changes, not attributed to the sort.
+Paired old/new performance remains frozen at36ad+the explicitly recorded fixture.
+Merged frontend SHA256cf9479ee69148da4355cae82ed1527845ed2048f85b66a283a6cc3830d85f188,
+LR-worker b0fc28dcb9059a6d4bd9c3de68a1b75b816e9a1ea4dc071602caa3735c738611;
+428 actual imported files captured in merged_compiled_imports.sha256. Final
+frontend_main hash/full review appended to D2 audit. All owned children drained,
+heavy lock released. No additional release acceptance claimed; normal push follows.

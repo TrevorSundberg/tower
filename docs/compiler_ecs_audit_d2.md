@@ -2972,3 +2972,13 @@ are not hardware cache metrics. Native3-unit workers1/2 control observes real
 outer peaks1/2, but only modest latency reduction and higher CPU/RSS; no all-host
 scaling claim. Full sanitizer/bootstrap/browser/generation/deployment remain ROOT
 release gates, not passed here. B1 provenance/formatter and B2 ordering untouched.
+
+Merged adoption follow-up: complete upstream98d69cf4 was merged as1906afcd after
+implementationd9e1b348. Re-reviewed the full129-line frontend_main: upstream adds
+only default-suite progress labels; focused selectors/imports retain their prior
+behavior. Final merged entry SHA256
+`aa5b76080914f65c0c1e5edfda8e9a1ba06b9d47165cd1f47c39d866a01a1485`
+supersedes its112-line hash above. The other three reviewed Tower files retain
+exact hashes. Upstream A1 semantic completion changes are outside this owner
+review; affected merged consumers are rebuilt/rechecked separately, and paired
+performance remains tied to the stated36ad inputs rather than relabeled.
