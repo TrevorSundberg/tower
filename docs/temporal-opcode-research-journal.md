@@ -79896,3 +79896,29 @@ allocation/error probe, sanitizer or profile was run. ROOT retains integrated
 validation/deployment; this inventory receipt claims neither compiler completion
 nor current runtime acceptance. Exact union/one-owner and receipt-exception checks pass;
 the scoped commit/push receipt is recorded in the existing A2 status.
+### D2: bounded generic-result symbol policy at ROOT b0421447 (2026-11-23)
+
+The direct user task replaces the open-ended campaign for this batch. Required
+pull fetched6714a030 but refused fast-forward across existing local merges;
+merged published main without discarding history. It contains completeb042,
+verified against the supplied e25f1456 bundle; subsequent upstream changes are
+prose only. Provider/build inputs matchb042 exactly at merged1961c69f.
+
+Built only the existing Semantics/Entities object targets in one dependency-aware
+CMake invocation, public9653/Linux x64/LLVM19/jobs1/CPU0,2:53.45wall/51.77CPU/
+753960KiB. Actual llvm-nm reports show all four generic_begin_result,
+generic_register_result, generic_instantiate_result and
+ generic_instantiate_deferred_result as Semantics U and Entities T. Objects are
+48c2bc88 (Semantics) and030ae5b4 (Entities); full hashes/reports/commands/statuses
+remain in build/d2_ecs/generic_policy_b042. Existing checkerc8b98a2f rejects
+exactly those four names (exit1); the unchanged Entities policy passes (exit0).
+
+Add only these four exact names in the Semantics branch. The existing Tower
+fixture adds24 cases: each name accepted there, rejected when truncated/suffixed
+or attributed to Entities, ParserNodes or Interpreter. Lengths still derive from
+actual text. No wildcard, allocator, world, scheduler or compiler ABI change.
+Focused public fixture compile/link/run and canonical selected-checker build pass;
+both fixed current provider reports then pass with empty stdout/stderr. Existing
+before checker/reports are retained. No broad native, sanitizer, WASI/backend,
+browser or generation matrix was run; ROOT owns those final integrated gates and
+publication. Both bounded jobs drained before releasing the lane's lock.
