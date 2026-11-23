@@ -77445,3 +77445,85 @@ Five original CLI workers continue, three service-stopped sessions stay stopped.
 ROOT's next owned scope is precise stage lease admission and the remaining
 executable ownership/publication boundary. Existing raw lease storage accounting
 and general queued hold-counter exhaustion are separate open items.
+
+### Typed stage lease admission and rollback (ROOT, November 23)
+
+Implementation candidate on joined2252/ee89753: entity_stage_lease_result preserves
+its bool wrapper and actual storage layout. Invalid stage/node/foreign store or
+registered kind reports Invalid; pinned/reclaiming stores and competing owners
+report Busy; count overflow is rejected before reserve; failed reserve reports
+Memory. Existing owning-stage admission remains allocation-free. No ownership
+field changes until reserve succeeds. Raw lease-vector physical budget accounting
+and queued hold-counter exhaustion remain separate open work.
+
+Existing entity_stage_result and entity_stage_result_faults now cover exact
+causes, unchanged owner/vector on failure, allocation-derived denial prefixes,
+retry, idempotence, discard/reacquisition and zero live allocations. Synthetic
+limit/reclaiming counters are restored before disposal. No invalid-memory probe
+is executed. D1 was asked to review exact patch523a5cf184d6900f5a21b14eb3acc0f9c740106059ae65ea5c0877caf6de9975 independently.
+
+KinmenA existing A1 container, CPU0-11/24GiB, public checked-in bootstrap and
+LLVM19, max2 build. Baseline46244 drained0 with existing stage tests. Candidate
+25580 drained0: smallest stage leaf2.25wall/2.02CPU/218256KiB, coherent compiler
+and three existing stage fixtures, query-smoke and full multi-unit suite passed.
+Logs root_lease_baseline_2252 and root_lease_after_2252 under A1/cache preserve
+source manifests and immutable before/after compiler/profile executables.
+
+Profile58206 drained0: warmup plus three alternating matched pairs, three units,
+0/4096 generated bodies, worker budgets1/4, same actual installed runner path,
+cwd and immutable2252 resources. All32 runs matched canonical output, entity and
+component counts and retained bytes. Whole-process median wall/CPU seconds and
+peak RSS KiB (before -> after):
+- 0 bodies/1 worker: 3.34/3.17/197608 -> 3.30/3.13/197332; retained15159002.
+- 0/4: 1.35/3.92/461680 -> 1.38/4.01/460992; retained15150642.
+- 4096/1: 4.79/4.61/679348 -> 4.88/4.70/679740; retained289307691.
+- 4096/4: 2.70/5.80/938444 -> 2.70/5.85/940236; retained289299331.
+Observed wall changes range -1.20% to +2.22%, CPU -1.26% to +2.30%, RSS below
+0.20% absolute change. Small samples do not establish neutrality or speedup;
+there is no new retained-memory cost. Actual outer peak1/3, lane ceiling1/4.
+Raw GNU time and Tower observer output, installed executable hashes and final
+input/source checks are in root_lease_profiles. Address/leak checks and current
+thread instrumentation/package are running as68766; runtime TSan is not yet
+claimed. No publication or complete-goal claim.
+Acceleration decision after the user's explicit 16-hour urgency request:
+ROOT audited current/recent lane status, actual timing logs, local thread messages
+and build recipes. Repeated 211-294s type-smoke, D1's533.20s ASan rebuild plus
+300.31s unit timeout/440.23s diagnostic, per-helper32/64-profile campaigns,
+duplicate public leaf/CMake compilation and whole-host ACK serialization were
+substantial avoidable overhead. D2 also had a broad native suite queued after D1
+was executing the same compiler inputs. This was excessive validation cadence,
+not evidence that those checks passed or are no longer required at release.
+
+New instruction delivered to all five active original agents: substantial
+producer/caller batches; dependency-aware smallest compile plus directly affected
+regression during development; preserve one immutable batch baseline; minimal
+serial/parallel checked timing/RSS sample, expanding only for a real concern.
+Defer new broad matrices, per-helper ASan/TSan rebuilds, portable release builds,
+repeated archives and large profiling sweeps to the stable integrated milestone.
+Separate capped caches may build/test concurrently; comparative profiles remain
+quiet. Final supported sanitizers, actual overlap/stress, canonical bootstrap,
+browser/generation, atomic publication and hosted verification remain required.
+Do not spend the critical path on cosmetic fixture length/syntax rewrites.
+
+D1 has acknowledged and stopped only its native controller between children;
+its active bounded type test drains before restoration/release. D2 is instructed
+not to duplicate D1's source-matched native checks. L1/L2 inbox directives cancel
+queued64 profiles/new full instrument campaigns and authorize continuing their
+assigned implementation. Direct app-server message attempts failed active-writer
+ownership; no retry, replacement context or successful delivery through that tool
+is claimed. Existing agent inbox delivery is the coordination channel.
+B1 now owns downstream pattern/frontend_table typed grammar consumers as well as
+its parser request batch; ROOT has no edits there. Local host16CPUs/~31.4GiB,
+KinmenB32CPUs/~124GiB. B1 may use6 parallel independent native object jobs inside
+its existing12CPU/24GiB cap instead of2, with actual memory monitoring.
+
+ROOT68766 has already drained0: current lease address/leak fixtures repeated3,
+real staged concurrency3, query and real3-unit/4-lane all passed; exact thread
+IR/binaries were built and hashed. Runtime TSan is deliberately deferred to the
+integrated milestone under the user's acceleration directive. Package
+root_lease_thread_runtime.tgz SHA9331699b552fb128ec4391672f2452321f23591f98632c33b18df91d9595731c
+is preserved, not relabeled as a runtime pass. D1 independently reviewed exact
+523a5cf1 patch and found no blocker; populated growth interleavings beyond the
+existing tests are not claimed. ROOT will batch the executable admission/hold/
+publication closure next and integrate native-tested owner batches without
+waiting for redundant per-helper instrument campaigns.
