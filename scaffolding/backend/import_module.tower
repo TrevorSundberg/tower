@@ -14,9 +14,49 @@ import .library.vector;
 import .library.work_vector;
 import .library.work_budget_types;
 
+var BackendSourceAsciiLimit: u8 = 128;
+
 fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: void*): void {
     if backend_failed(c.backend) { return; }
     var kind = LLVMGetTypeKind(type);
+    // A counted LLVM byte initializer is one ordinary Foundation memory copy,
+    // not a graph of address arithmetic and stores for every character. Keep
+    // embedded/trailing NULs and initialization order exactly as supplied.
+    if LLVMIsAConstantDataArray(initializer) != null && LLVMIsConstantString(initializer) != 0 {
+        var length: usize = 0;
+        var bytes = LLVMGetAsString(initializer, &length);
+        var start: usize = 0;
+        while start < length {
+            if backend_failed(c.backend) { return; }
+            var textual = bytes[start] != 0 && bytes[start] < BackendSourceAsciiLimit;
+            var end = start + 1;
+            while end < length {
+                if textual {
+                    if bytes[end] == 0 || bytes[end] >= BackendSourceAsciiLimit { break; }
+                } else { if bytes[end] != bytes[start] { break; } }
+                end++;
+            }
+            var value: void* = null;
+            if !textual { value = bi_const(c, SU8, convert(u64, bytes[start])); }
+            else {
+                value = bi_node(c, KString, BackendImportPointer);
+                var text = bi_get(c, value);
+                if text == null { return; }
+                backend_require(c.backend, backend_text_append(&text.name, &bytes[start], end - start));
+            }
+            // Source text rejects NULs and malformed UTF-8. Arbitrary bytes
+            // use fill; ASCII runs use strings, excluding their implicit NUL.
+            var at = start == 0 ? address : bi_offset(c, address, bi_const(c, SUSize, convert(u64, start)));
+            var entity = bi_node(c, textual ? KCopy : KFill, SVoid);
+            var operation = bi_get(c, entity);
+            if operation == null { return; }
+            operation.left = at; operation.right = value;
+            operation.value = bi_const(c, SUSize, convert(u64, end - start));
+            bi_append(c, c.block, entity);
+            start = end;
+        }
+        return;
+    }
     var aggregate = kind == 10;
     var array = kind == 11;
     if array {

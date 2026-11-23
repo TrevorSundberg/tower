@@ -76,6 +76,7 @@ extern fn frontend_module_diagnostic(module: void*, offset: usize): void;
 extern fn frontend_module_error(module: void*): u8*;
 
 extern fn syntax_capture_comments(session: void*, module: void*): void;
+extern fn syntax_world_structures_clear(world: void*): void;
 
 extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
 
@@ -230,6 +231,9 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         index++;
     }
     if world != null { grammar_observe(world, GrammarPhase.FrontendParse, false, count, 0); }
+    // All parser work has joined. Versions own any still-live table pins;
+    // discard intermediate baseline/import plans before semantic work begins.
+    if world != null { syntax_world_structures_clear(world); }
     if program.resource.error == WorkBudgetError.None && program.error.length == 0 {
         sem_require(vector_push(&source, 0));
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
