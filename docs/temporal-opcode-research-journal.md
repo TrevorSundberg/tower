@@ -77613,3 +77613,22 @@ CMake and bootstrap inputs now match c944 exactly; current roster539/1128.
 D2 has the heavy slot at c801 with the same production inputs. D1 prepares the
 ordinary public-leaf/manual-link baseline for capture continuation while waiting;
 no CMake edit, new compilation or current-runtime acceptance is implied by merge.
+
+### D1 independent review of actual Wasm table-policy failure
+
+While D2 owns the next host slot, its c801 package run fails1 only when checking
+Entities __indirect_function_table after four native original/exported object
+comparisons and byte-identical original/exported Entities WASI objects. Later
+WASI pairs and roundtrip are unrun at that boundary. D1 reads external exact patch
+00682b68, actual undefined/relocation report and object hash307d9371, plus current
+WorkBudget reserve/release typed enter/leave calls. The imported symbol is an
+undefined Wasm TABLE, not a missing implementation or language_document_inspect.
+
+D2's predicate adds only exact Wasm Entities table permission alongside existing
+Interpreter permission. Eight fixture additions retain native/wrong-unit/prefix/
+suffix/table_base rejection and cover wasm32/64 policy parsing. No wildcard,
+new ABI/provider or speculative inspection permission is introduced. D1 reports
+no source blocker; runtime/after/instrumentation/package gates remain D2's pending
+work. Actual artifact iswasm32, not evidence of wasm64 execution. This read-only
+review changes no executable path, so its own runtime profiling is inapplicable.
+No D1 source edit/build or premature adoption is needed during the sibling freeze.

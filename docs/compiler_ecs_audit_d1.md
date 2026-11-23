@@ -2894,3 +2894,21 @@ resolution preserves all content and equals ROOT's complete README. Production
 and build inputs match c944 exactly. The ed7 receipt remains separately scoped.
 The capture registration is still only an independently reviewed external draft:
 its direct public-leaf/manual-link baseline must run before the CMake edit.
+
+### Prospective exact Wasm Entities table policy review
+
+D2 draft00682b68124d4d5fd2becf32b76ee62201b6006de88e8d60cfd7465ef091ba5b
+changes the already assigned bootstrap_symbols_checks.tower at c801's source.
+Read the actual nm/readobj reports for object307d9371, the narrow tool predicate
+and existing WorkBudget enter/leave callers. The object declares an undefined
+TABLE __indirect_function_table and real table-number relocations; reserve/release
+contain the typed gate calls. The new exact Wasm Entities permission is a target
+ABI table dependency, not permission for an external implementation.
+
+The fixture adds two Wasm policy positives and six negatives: both native modes,
+wrong unit, truncated/suffixed spelling and table_base. Full-string matching and
+existing underscore normalization are unchanged; no native/table_base/inspection
+provider permission is added. Actual artifact evidence is32-bit; wasm64 is policy
+coverage only. Source review finds no blocker. D2 owns before/after and supported
+instrumentation plus unfinished package checks; no D1 runtime/adoption claim is
+made from this draft. No world/storage/scheduler or test-buffer ownership changes.
