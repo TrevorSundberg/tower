@@ -145,3 +145,23 @@ Measured source patch SHA256:
 No compiler generation, Node/browser matrix, sanitizer campaign, public pin
 adoption or hosted deployment is claimed. Prior rejected evidence and generation
 freezes remain intact. ROOT retains final integrated publication.
+
+## Merged validation
+
+Implementation `54f3baab` merged complete published `a2bd2987` as
+`75c15ee747c94a564cdf07255079710ef09365ab`, tree
+`cdf6cccb6cc7140895e2f0470e10f2143d455c41`, after the required ff-only pull
+refused ordinary divergence. Incoming semantic admission/alias and backend
+changes did not alter B1's implementation, but changed compiler inputs.
+One affected dependency build and the full units selection pass on that merged
+source:13.41s wall/22.79s CPU/815948KiB peakRSS. Small/large serial objects and
+15/999 executions remain exact; the two affected symbol boundaries also pass.
+Source manifests checked unchanged throughout the build and validation.
+
+Merged compiler SHA256:
+`141a2b5a5cae4030d090678dda334412d17ebbfe34693243c3b71f9d20d804ae`.
+These merged checks are separate from the paired7e46 measurements; no new
+before/after performance or whole-project acceptance is inferred. All owned jobs
+drained, todo/public768 bytes unchanged, and no other owner's implementation was
+rewritten. Complete merged source/binary manifests are under `merged/` in the
+same evidence directory.

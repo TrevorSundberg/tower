@@ -92957,3 +92957,12 @@ execution and remain separately owned/unadopted. Syntax/diff checks pass; no
 repeated browser run or source-identity relabel. Normal main publication only.
 
 A2 finalpushrace reconciliation: merged published260562f4 into284019bc preserving A1backendfallback/D2browserdiagnostic histories. All509 executedinputhash entries plusbootstrap/direct3files unchanged; session.tower is outside these imported providers, so reuse478353f9 focusedruntime evidence without morebuilds. Backend/browser owner receipts stayseparate. Firstpushnonfastforward preserved; secondnormalpush follows. No activejobs/instrumentation.
+B1 publication reconciliation:54f3baab merged completea2bd2987 as75c15ee747c94a564cdf07255079710ef09365ab,
+treecdf6cccb6cc7140895e2f0470e10f2143d455c41, after required ff-only divergence.
+Incoming A2 semantic admission/L1 aliases/L2 backend inputs triggered one affected
+dependency build; B1 scope unchanged. FULL merged units PASS13.41wall/22.79CPU/
+815948KiB, original Capacity gate and all cancellation/dependency assertions intact.
+Merged small/large objects/executions exact15/999; nm strict Semantics/ParserNodes
+policies pass. Source manifests stable; compiler141a2b5a5cae4030d090678dda334412d17ebbfe34693243c3b71f9d20d804ae.
+These checks do not relabel paired7e46 timings. All jobs drained, todo/public768
+unchanged; no generation/pin/hosted publication. Complete history and prior receipts preserved.
