@@ -96069,3 +96069,12 @@ release, L1/D1 the earlier optimized failure. Todo preserved; normal publication
 Final integration: complete b1d5d314 history merged after routine ff-only refusal;
 all eight reviewed blobs and immediate ownership/host callees still match6e8001fd.
 Source evidence reused unchanged; unrelated new runtime receipts are not this review.
+
+D1 overflow publication reconciliation: required ff-only pull refused divergence;
+normal merge5b0409fd preserved publishedf88dbe04 and implementation158624c7.
+Backend/compiler/library/host, the five changed Tower blobs, mounted language
+resources and tested storage executable match the checked inputs exactly.
+Incoming source-native census/Node transport and owner receipts are preserved,
+not relabeled as independently executed. No invalidated storage dependency or
+runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
+T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
