@@ -88791,3 +88791,49 @@ owner evidence and are not validated by the frozen timing/compiler artifacts.
 B1 diff against incoming main is receipt/journal only. No runtime delta, second
 candidate or unnecessary merged compiler build. Original source/binary/check
 receipts stay exact; owned jobs drained, todo preserved. Normal push follows.
+### B1 exact-range membership index: measured rejection (2026-11-23)
+
+One newly authorized representation attempt, frozen415a54e942b4944ffa39bbda607c53c2c3a0c42f/
+tree2938cca4a00331b5a3c72a09b2b5d0e3473e4930. Own KinmenB CPU0-11/24GiB,
+public768a/LLVM19 native Release, same exact small/large/production inputs.
+Existing frontier-order rejection and f7 generation checkpoint untouched.
+Candidate interns exact(first,last) pairs through shared range merge into one
+WorkBuffer dictionary and graph-local bounded bitmap; dense words admitted only
+within seed+edge input count, otherwise old sparse solver. Budget passed explicitly
+from serial world owner or WorkGraph; B2 grain/admission/publication unchanged.
+Private pending flags preserve original LIFO order. All output reserves precede
+logical publication; Capacity/Memory releases scratch, preserves original work
+and permits direct retry. Sorted exact overlapping ranges/sentinels stay distinct.
+Legacy sparse API and allocation-free subset behavior preserved; no global cache.
+
+Candidate FAILS the required net performance gate and is rejected. Alternating
+n3 before/candidate wall medians: small1 .49/.53, large1 .66/.68, small4 .55/.60,
+large4 .69/.74s. CPU .42/.46,.59/.61,.50/.57,.66/.71; RSS medians186860/187140,
+237768/238852,188416/189700,240600/241996KiB. All noisy samples retained. One
+production unit1.17/1.21s, .81/.84CPU,228988/230432KiB. Existing cold lookahead
+137.89->171.43ms/table218.96->250.69ms, whole process .40->.44s; installed
+.48->.51s. Setup/conversion included, no membership-only speed claim. Cold
+allocation calls2144035->2090041 (-2.5%), installed2562308->2503821; live1893528,
+metadata5242880 and retained36677/48979 unchanged, charged peak58035248->58522288.
+Zero teardown grants/buffers checked. Storage bound does not establish favorable
+high-cardinality dictionary setup time; no second candidate/profiling sweep.
+
+All24 executions15/999,24 objects plus2 production controls exact; canonical976
+bytes/hash13832670361687071853. Independent150-grammar oracle/range fallback,
+mutating indexed/sparse alternation,129 exact pair/word-boundary/cycle cases,
+Capacity/every observed allocation denial/direct retry/zero grants,257-pair
+sparse dictionary-only allowance, grammar/revision/cache/lifetime/cancellation,
+parser/diagnostics/regex/native parallel LR and exact parser-node symbol policy PASS.
+Initial new fixture build rejected reserved identifier expected; retained log,
+local renamed, no waived check. No broad browser/generation/sanitizer matrix.
+
+Preserved /cache/range_membership_415a: frozen sources, all binaries/objects,
+raw logs/times.csv, manifests, rejected_tracked.patch plus all7 exact candidate
+files (including added fixture) in rejected_sources. Before compiler
+3a9a6849cadc66c4a8775a6746d66d5ed4e192d4d560719dc59e5c803da19a44;
+rejected e44c3e88544c5f6e8d4bc657a9191509526bc78a4c777ef39028a59d758e48c9.
+All production/test source restored after jobs drained, timestamps advanced,
+smallest dependency rebuild matches original compiler and both runners byte
+for byte; original source manifest PASS. No representation/API/hook ships.
+Full receipt docs/lr_range_membership_415a54e9.md. Report publication follows,
+then stop; public pin/adoption/final integrated release remains ROOT-owned.
