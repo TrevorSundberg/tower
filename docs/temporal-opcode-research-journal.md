@@ -90172,3 +90172,14 @@ controls pass, negation/compositions retain final8pass/4fail evidence. Link and
 stack/pointer host successes remain owner evidence only. No provider/package/pin
 change or L2 runtime rerun. Fixed12-row ledger stays3ea; publication audit records
 both later input boundaries rather than extending acceptance indefinitely.
+L1 final adoption boundary: complete347a6ba4 merged as37cba0a0; compiler producer
+inputs remain identical to validated63cb. New D1 known-size control prints8 and
+mutable-size control correctly rejects at8:1 with empty output. The newly added
+nested-negation fixture FAILS its expected8: Expected a compile-time integer
+argument at7:24. Preserved pre-change compiler16fa4f76 gives the same exit1,
+empty output and byte-identical diagnostic as merged95cb9b38. This is an inherited
+newly adopted fixture failure, not a regression from the alias dependency repair;
+its expectation remains untouched and its native acceptance is pending. Both
+actual failures/metrics remain in type_composition_adopted_controls and
+ type_composition_adoption_triage, appended to the external receipt. No passing
+claim for nested negation or for unsupported numeric nominal forwarding.
