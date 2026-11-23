@@ -1924,3 +1924,75 @@ Generic hook49927ff7 is exported for D2's matched provider build. D1 awaits D2's
 exact five provider imports before any local build; this joined source is not
 runtime evidence. L2/B2 partial inspection resource recovery remains separately
 open, and later constructor/dispatch drafts must not enter via advertised tip.
+
+### D2 provider history reconciliation and overlap failure
+
+Merged verified complete D2 bundle39f2efd5 at406d1709 into mainfc7662bc after
+checking the sole60741 prerequisite. This preserves the original five-provider
+commit1fa854a5 and all three D1 hooks; compiler, fixture and build inputs are
+byte-identical to D1aa22 before this merge. The D1 ledger target and README
+coverage remain present. Census remains1,084 tracked/499 direct reviewed files.
+No local runtime acceptance follows from this history/documentation-only merge.
+
+D2's first joined query run failed134 in generic_clone_parallel.tower's two-worker
+Publish interval-overlap assertion, before semantic publication checks. Its
+initial attribution to Publish was corrected using the actual fatal diagnostic
+and debugger. The admission barrier precedes both production-kernel intervals;
+distinct threads and simultaneous admission do not ensure a short kernel pair
+will overlap after wakeup. D2's ten later successful same-binary runs establish
+successful executions, not resolution of the original failure. L2 owns the
+fixture correction; preserve timing outside the admission barrier and actual
+work/ownership assertions. D1 has not rerun or weakened this assertion. This
+follow-up qualifies the earlier generic_clone_parallel audit row; it does not
+establish a production race, deadlock, speedup or reliable overlap on every run.
+
+D1 verified D2 failure archivebb626610 and read the original failed process
+receipt: signal6/status134 overrides GNUtime's trailing0. There are no actual
+kernel interval timestamps to attribute why overlap was absent. D2 also reports
+independent406d type-errors PASS93.18s/251372KiB and arena-linkage PASS; those
+qualified receipts advance the two generic hooks' validation without validating
+new full lifecycle coverage or current wholecompiler instrumentation. Root0c8b7d66
+history is now merged; no new Tower path or source-byte change.
+
+### Explicit calibrated overlap policy, B2ff030d95 plus D1 hook
+
+Read both complete owner patches (observera08e8229 followed by calibratedff030d95)
+and applied only after root's02:32:45 authorization. Existing backend_units.tower
+owns private formatter/event lines and checked nonnegative/normalized monotonic
+nanoseconds, including multiply/add overflow and backwards-clock rejection.
+Calibration times the already-required complete four-unit serial frontend batch;
+no extra compiler invocation or hidden sanitizer/environment test. Before dispatch,
+the context freezes max30seconds/measured duration for frontend2's wait. Backend1's
+acknowledgement and ordinary/full-suite paths keep30seconds. Exact serial objects,
+original decltype/comptime workload, shared budget and distinct-worker assertions
+remain. Traces precede fatal errors; private formatter allocations are disposed.
+The timing-bound change is test policy, not production throughput evidence.
+
+D1 lr_work_main adds only the authorized explicit selector/usage/admission and
+call to backend_units_overlap_calibrated_tests(root). It does not alter default/all
+coverage or retry failure. Patch100a1083 is exported independently for current
+owner closures. Native smallest entry/link, both normal modes and instrumentation
+are locally pending; root requires B2 normal runtime before instrumented adoption.
+Existing old TSan134 stays failed. No new Tower path; census remains499 direct.
+
+### Executed registration checkpoint8f46 and later policy review
+
+Frozen8f46 passes public smallest leaves, canonical native6 steps and14 affected
+target steps with fresh dependency timestamps. Complete compiler1a9476d0 plus49
+resources matches D2's independent production compiler; new LR runner5e78fbed
+contains the test policy. All raw evidence is in registered_8f46_receipt.tar,
+SHA4fa778f6f669cbf394242ca375d36521c8f94bfaf74c8b4c46fe95f3838ef101.
+
+| Reviewed path | Current executed evidence and remaining boundary |
+| --- | --- |
+| scaffolding/tests/lr_work_main.tower; body_runs.tower | type-errors passes90.52s with existing body/canonical/binding/declaration assertions. Both ordinary and calibrated overlap selectors pass, as do query/storage/parser/module/index companions. Default/all source coverage is preserved; full42 on newer production inputs is not inferred. |
+| scaffolding/tests/backend_units.tower | Exact four-unit object comparison and distinct-worker handshake pass in both modes and all16 paired/control runs. Calibrated native serial baseline8.275375291s selects30s. Two-CPU median cost12.6% was not reproduced under CPU2-only control; wide ranges and placement sensitivity preclude neutrality/speedup claims. One-processor control is not multicore evidence. New wholecompiler instrumentation remains separate. |
+| scaffolding/tests/work_arena_linkage.tower; work_arena_shared.tower | Ordinary separate link has exactly one provider for all six functions. Actual address/thread client/provider/runtime objects and positive runs pass, plus ten extra shared cases per mode. Instrumented objects/IR/hooks retained. This does not sanitize the compiler, system LLVM or unsupported UBSan targets. |
+| scaffolding/tests/semantic_publish_checks.tower; semantic_resource_checks.tower | Current registered22 publication/24 resource cases pass. Future L1 frame/task ownership changes invalidate the growth phase assumption: peak above occupancy alone can also describe early entry failure. A1 review of a graph-gated, per-job phase receipt design remains pending; no arbitrary budget edit or successor claim. |
+| scaffolding/tests/generic_clone_parallel.tower | Current query invocation passes all unchanged cases. D2's earlier workers2 interval134 remains unresolved despite subsequent successes. No dropped assertion, barrier-padded timing or universal overlap claim. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | After drain, D2c4aa's21 new lines cover exact owning-unit arena/buffer/publication imports, wrong unit/prefix, legacy Tower node builder, rejected check-only allocator hooks, and WASI-only indirect table with native/table-base negatives. Implementation policy remains D2-owned and observed-symbol based;12 actual production reports and scoped checker ASan are owner evidence. No new Tower path. |
+
+All owned jobs drained and lock released02:57:06 UTC before merging D2 policy
+history. Corpus remains499 direct/1,084 tracked. Final clean merged release,
+current full instrumentation, browser/generation and hosted publication remain
+open; these scoped passes do not complete the lane acceptance objective.
