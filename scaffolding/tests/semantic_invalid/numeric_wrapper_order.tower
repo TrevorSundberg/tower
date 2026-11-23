@@ -1,0 +1,6 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+fn read(): usize { return later; }
+var earlier: usize = read();
+var later: usize = 2;
+var value: numeric.direct(earlier);

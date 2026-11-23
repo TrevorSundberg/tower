@@ -1,0 +1,4 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+fn unknown(count: usize): usize { var value: numeric.direct(count); return sizeof(decltype(value)); }
+print(unknown(2));

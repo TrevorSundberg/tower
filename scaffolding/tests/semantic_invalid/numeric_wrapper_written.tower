@@ -1,0 +1,4 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+fn changed(): void { var count: usize = 2; var value: numeric.forwarded(count); count++; }
+changed();

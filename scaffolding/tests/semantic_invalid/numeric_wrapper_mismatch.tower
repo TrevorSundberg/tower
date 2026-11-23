@@ -1,0 +1,4 @@
+import tower;
+import .numeric_wrapper_module as numeric;
+var value: numeric.direct(3);
+var wrong: numeric.forwarded(2)* = &value;
