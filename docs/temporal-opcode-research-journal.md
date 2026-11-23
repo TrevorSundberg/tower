@@ -90777,3 +90777,20 @@ node counts after independent loads (24446 narrow,41227 control) before final
 reference destruction; the recorded final counts are shared-world owners, not
 an unsupported zero-handle/LLVM-store census. No compiler build or deployed
 runtime adoption is implied. All jobs drained before normal main publication.
+D1 publication reconciliation: ff-only pull fetched bda11a9b but correctly refused
+local divergence; normal merge b6f6893b preserves complete1cfd775c/published
+history. Adopted incoming A1 receipt8de9ce72: actual narrow/body LLVM package
+cases and division-zero control each pass on E with c8e1d10b host/resources;
+current selected Node source SHA b6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779
+matches. T4 is scoped closed, not a whole-file/current-compiler pass. A2 b84c6ba7
+has merged22-case/query-smoke native evidence, but the original browser negation
+adoption needs successor reactors. ROOT's two Windows retirement passes preserve
+a different serialized resource identity and do not erase Linux failures.
+
+No new Node execution, build or profiling. The51-file inventory remains fixed;
+only llvm-execution changed among recorded Node/host inputs, while A2's separate
+semantic producer/native fixture registration is outside E. Twelve original
+failing files still lack later Node closure; exact scope, owners, artifact traps
+and next commands are in the fixed D1 table. Original logs, todo and owner files
+preserved; documentation-only performance is inapplicable. ROOT retains final
+changed-input adoption and release.
