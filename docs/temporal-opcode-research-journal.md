@@ -66209,3 +66209,168 @@ ordinary reparse/reexecution returns the reference output. Final page checkpoint
 therefore retains explicit overhead/fragmentation limits alongside improved
 physical ownership and exact errors. ROOT requested typed stage/view/publication
 results next; proposal is in status, no implementation/caller adoption yet.
+
+### 2026-11-23 D1 independent receipt/pages union and unchanged phase reproducer
+
+Same thread01a2046a-4644-7ab1-a0ae-abd80210f013 resumed CLI2918210, no new
+session/model/tier. Guarded pull `git pull --rebase=merges --autostash --ff-only`
+was a no-op. Complete ROOT75fdf history merged at2c1eec38 after prior jobs drained;
+no production patch copying. B1 newer grammar/B2 output consumers still absent,
+so this is not whole compiler resource closure or a release.
+
+D2 released its drained host lock08:12:41 UTC. D1 acquired atomically, public
+bootstrap9653, Docker tower_build image4be584fb, Linuxx64/LLVM19.1.1,
+cpus0,2, buildjobs1, production allocator, warm vendor/cache, separate D1 roots.
+No compiler/import inputs changed during session49276. Smallest unchanged resource
+fixture public leaf passes6.03wall/5.85CPU/215052KiB; LR entry12.37/12.01/295780.
+Canonical no-override compiler refresh12steps passes138.46wall/134.85CPU/
+740008KiB; LR3steps18.35/18.00/323776. Compiler SHA
+`a6a9e980b9840aba7f2c7e83dfd22583ec7ed0ee822eb0ca35f878d4822edcaa`,
+runner `d5a23191378301a86bb34a226b11cf25bf7a7e878aa248e8a319b61b8d08e345`.
+Complete50-file resource tree saved beside compiler; source hashes verified.
+Logs `build/d1_ecs/receipt_pages_2c1e` retain exact commands/status/time/RSS.
+
+UNCHANGED successor resource-smoke passes all24cases in each of3runs at
+widths4/8 andworkers1/4. Eachprocess.04wall/.03CPU, RSS50912/50844/50928KiB.
+First group wallns841385/2593606/503828/2108757 in width-major order. Exact
+startup and nested-growth probes, both peer receipts, first-source selection,
+no replay/value publication and zero ownership remain intact. Original c08
+first-group134/offset29 failures are retained; A1 canonical owner-order fix now
+independently clears this reproducer. No performance comparison is inferred
+across the concurrent page/TypeIndex/compiler changes, and configured workers4
+is not alone overlap evidence. Current query-smoke passes.26wall/.28CPU/
+63956KiB with empty stderr. Measured children report0swaps; host already had
+5.8GiB swap in use,9GiB RAM available,137GiB disk free. No cleanup.
+
+Session99932 independently builds and executes the two new durable entity-create
+registrations at this same union: public client/provider leaves,5step build
+9.64wall/9.45CPU/194108KiB,3normal+3serial-fault processes, exact0stdout,
+empty stderr, unique allocator/entity symbols and2/2CTest passes. Existing
+production allocator versus single-owner fault transport retained. Small runtime
+is below meaningful process timing resolution; no speedup claim. Current scoped
+address/thread validation is next, not yet passed at this entry.
+
+Substantive current audit516/516 direct paths /1104tracked, including7new files
+and7changed bodies. A1's28case owner-order fixture already covers reversed
+numeric offsets83/11, earlier pending frontier and earlier success; do not add
+a duplicate regression. New page tests distinguish physical charges from payload
+and RSS; owner profile documents fragmentation and unprofitable8lane scaling.
+D2 exposed genuine Wasm-reader cancellation race (first TSan66, remaining2unrun),
+assigned B2: parent error write precedes deferred drain while worker copies owner.
+Provider import is not a race repair; prior ordinary/address passes stay scoped.
+
+ROOT08:18 explicitly assigns D1 narrow shared TowerRuntime ordinary-source option,
+consistent across3existing paths, preserving default library/binding order. D2
+technical review confirms runtime_bind wrapper/real renaming. Implementation
+follows frozen checks; no new adapter/scheduler or global allocation injection.
+Receipt/order durable LR integration and measured cost remain next. Documentation
+rows change no executable behavior; runtime profiling is inapplicable to the audit
+text. Final current sanitizers/bootstrap/browser/generation and named-lease atomic
+publication/hosted verification remain open; no completion claim.
+
+D1 entity registration scoped instrumentation session71740 completes0 on the
+same frozen2c1e source:3address/LSan and3thread runs EACH for normal and serial
+fault targets, exact0stdout/empty stderr, actual load/store hooks checked in both
+clients, shared entities provider and host memory. Address wall.01s each;
+normal RSS17744/18276/16312KiB, fault18144/16168/16128. Thread normal.02/.01/.01s,
+RSS28944/29400/29512; fault.01/.02/.02s,RSS26856/26920/28236. Runtime below
+meaningful throughput resolution. Actual object/IR and sanitizer manifests plus
+four binary hashes preserved in entity_registration. These exercise serial
+entity operations; TSan instrumentation is not a threaded-stress claim, and the
+serial fault allocator does not sanitize production overlap. UBSan remains
+unsupported by this TowerLLVM19 instrumentation path; external libraries are not
+instrumented. Full current LR/ownership closure still needs matching checks.
+
+D1 durable receipt/dispatch registration,08:24-08:28 UTC: session15475 establishes
+unchanged standalone before behavior using exact current LR provider composition,
+ordinary source for dispatch globals and existing runtime_bind signal aliases.
+Receipt/order3each; workdispatch3; semantic default/admission/source3each all
+PASS with sourcehashes, unique main/wrapper/real symbols and empty stderr. This
+is a supported manual composition reference, not a new native adapter.
+
+After all jobs drained, implemented authorized first-argument SOURCE mode in
+TowerRuntime's3paths; remaining binding argument order and default library
+behavior retained. CMakeWork fixtures/policy reuse existing object/runtime
+factories; two semantic main exports bind to typed LR callable entries. Added
+receipt-smoke and once-per-query/all hooks; dispatch runs separately so wrapper
+state initializes before any signal call. No producer or fixture-body changes;
+work_dispatch_result comment now describes actual binding mechanism.
+
+Session72949 PASS smallest LR public leaf,11step build42.21wall/41.05CPU/
+296172KiB,3receipt-smoke,3workdispatch,9semanticdispatch,3query,4CTest, default
+library budget caller. Focused stdout matches the corresponding before program
+exactly; receipt-smoke equals concatenated two before receipts. Workdispatch
+wall median.01->.01s, RSS2384->2648KiB; defaultsemanticdispatch.04->.02s,
+RSS50476->50384. These short processes do not support speedup or retention
+claims. Actual pool/private-world cleanup assertions still execute. Queryafter
+.22/.22/.29wall,.24/.23/.31CPU,RSS62472/61832/61928, but beforelater samples
+selected adaptive clone width1024 and after512. That explains a workload/memory
+difference; querytiming is NOT an equivalent-input optimization comparison.
+Source/runtime_inputs otherwise fixed, hostcache warm, sameCPU0,2/public9653.
+
+Session49329 now validates current supported address/thread targets using actual
+instrumented compiler closure and real clone/dispatch concurrency. No current
+instrumented pass recorded until complete. Logs durable_receipts_before/after
+preserve every command/time/sourcepatch/hash; native package remains a6a9e980.
+No private bootstrap, changed syntax, extra scheduler or fixture-body port.
+
+D1 scoped address/LSan group completes all15runtime invocations on the exact
+registration patch:3query,3workdispatch,3each semanticdispatchdefault/admission/
+source, all checkedstdout/emptyerr. Query2.40/2.22/2.58wall,
+2.44/2.25/2.60CPU,RSS269576/269540/270596KiB. Actual13selected access-bearing
+objects, IR and one main/wrapper/real definition preserved. Current thread group
+still building; no TSan pass yet. Nativebound SOURCE and unchanged direct-library
+caller passed; opt-in SOURCE without bindings is not yet exercised as a CMake
+caller, although its emission uses the same consumed option. Do not call that
+specific branch tested.
+
+D2 independently reviews concrete six-file draftcb7943f5 on08:37Z: no correctness
+issue found, defaultlibrary and remainingbindingorder preserved, parent-scope
+transport objects correctly available to deferred policy registration. Agrees
+profile-only comment should move below dispatch registration after freeze; no
+competing edit or extra recipe requested. Review is separate from runtime proof.
+The completed phase/entity archive is43MiB,
+D1/phase_entity_2c1e_receipt.tar SHA
+`a7dd76b50194dce5cde6462ce83d5d64b97b57e573bf3442309c02f9bb97a1c2`.
+It includes2c1e sources, completea6a9compiler+50resources (41Tower source matches),
+phase/native and entitynormal/fault native/address/thread evidence, actual IR and
+objects. First artifact-copy attempt stopped1 on guessed missing runtime filename;
+inspected actual CMake link selected runtime-instrumented, then copied and verified
+against prior object hashes. No runtime check failed or was rerun for that copy.
+
+D1 current threaded milestone finishes08:38:58UTC, session49329 exit0. Three
+TSan query processes and3workdispatch +9semanticdispatch mode processes all pass,
+checked output, empty stderr and sourcehashes. Query6.07/3.94/3.42wall,
+5.99/3.95/3.45CPU,RSS135072/139300/136036KiB. All instrumented clone runs choose
+width256 (native512 in current afterrun); timing across instrumentation modes
+is not equivalent workload/throughput. Actual intervals prove distinct-thread
+useful clone overlap inside each checked process, not full compiler speedup.
+ASan54step refresh397.02wall/389.85CPU/734568KiB; thread54steps269.59/
+264.26/736356. Same no-override public bootstrap, frozen Tower providers.
+
+Native LR SHA051fb8a71a27b098e5fcaa7e2031781d442a433b7d5abb54616d58d37b14b2c4;
+address LR2c1a7abbb0698a8db626123e1180292b50ca7e626e90924d936927ba90c54a37;
+thread LR0747b78008f744529e0444f3a29122031ee3d278e669f9ffd0e9d56952a285da.
+Actual13selected memory-access object/IR pairs per mode, complete manifests,
+binary hashes and emitted commands retained. Full before and after output,
+resource and query logs remain reproducible in durable_receipts_before/after.
+No source UBSan capability or external-library instrumentation claimed; scoped
+passing tests cannot establish universal race freedom. The separate B2reader
+cancellation TSan66 remains pending its owner's independent fix validation.
+
+Both D1 containers were init/sleep only at drain. At08:39UTC saved own lock
+receipt, removed only own empty heavy.lock and notified D2 for its priority
+cancellation run. No heavy work while it owns the slot. Moved only the stale
+profile-only CMake comment below dispatch registration after freeze. Guarded pull
+is unchanged. ROOT independently reviewed exactcb7943 draft with no blocking
+source finding; warned its newer A1 clone-owner fixture expands28to32 cases.
+That newer source is not yet D1 input: keep current28receipt honest and update
+count/affected evidence when complete history arrives. No synthetic duplicate
+SOURCE test added for the unused no-binding branch.
+
+Next: commit/export this complete bounded milestone, adopt later owner histories
+only after preserving frozen evidence, add typed program-receipt assertions to
+actual phase fixture, finish selected page/constructor/schedule registrations and
+negative borrowed-view evidence, and validate affected final source. Whole current
+clean public-bootstrap/browser/generation matrices and named-lease deployment
+remain unrun, so D1's overall acceptance goal remains active.

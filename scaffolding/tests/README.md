@@ -1058,3 +1058,30 @@ It prints the calibration and monotonic event timeline. Ordinary `backend-overla
 and the full backend suite retain their30-second bound. Name the selected variant
 in instrumentation receipts; a successful calibrated run does not erase an older
 ordinary timeout or establish a performance improvement.
+
+The existing LR query entry also calls `semantic_receipt_checks.tower` and
+`semantic_failure_order_checks.tower` once each. `receipt-smoke` selects just
+these unchanged fixtures: allocation-free typed receipt restoration, diagnostic
+clearing and cancelled capture entry, plus28 cases of canonical failure selection
+across reversed readiness, earlier pending work and differing numeric offsets.
+The existing `tower-query-continuations` CTest registration includes both.
+
+Linux x64 dispatch fixtures use ordinary-source initialization for their mutable
+coordinator-only controls. Existing Tower `runtime_bind` connects each wrapper
+and a separate real transport; no linker `--wrap` support is required. Build/run:
+
+```sh
+cmake --build build/native --parallel 1 --target \
+  tower-work-dispatch-result-tests tower-semantic-dispatch-tests
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-(work-dispatch-result-tests|semantic-dispatch-(default|admission|source))$'
+build/native/tower-lr-work-tests scaffolding receipt-smoke
+```
+
+The work fixture checks invalid/busy/admitted calls, actual peer draining, named
+transport restrictions and exact-once results after a denied dispatch. Semantic
+modes check pre-dispatch and graph-admission denial, terminal cancellation, typed
+source receipts, no publication/replay and complete cleanup. Allocation and
+workers use the production providers. Supported `TOWER_SANITIZER=address|thread`
+builds use the same registration and symbol bindings; serial allocation-failure
+fixtures remain separate. No universal race-freedom claim follows from a pass.

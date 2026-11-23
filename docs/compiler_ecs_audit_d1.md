@@ -2176,3 +2176,85 @@ No new Tower implementation, allocator, entry wrapper or fixtures. Root assigned
 these exact generic registrations; D2 manifest coordination sent before edits.
 Current newly merged production inputs and registrations still require D1 runtime
 validation; prior target_once evidence remains tied to prejoin7f84.
+
+### Complete receipt/pages union at reviewed 2c1eec38 (ROOT75fdf)
+
+Census is 1,104 tracked Tower files /516 D1 direct paths (504 tests/editor/
+playground and12 examples). Exact sorted rosters are external
+D1/roster/current_2c1e_all.txt and current_2c1e_d1.txt. Seven new direct files and
+seven changed direct bodies below are substantively reviewed; prior unchanged
+rows retain their original review identity. This is source coverage, not runtime
+acceptance. No invalid/Foundation-only fixture was mechanically rewritten.
+
+| Path | Storage, ownership, scheduling and evidence disposition |
+| --- | --- |
+| scaffolding/tests/entity_component_budget.tower | Physical pooled and oversized component receipts derive actual allocation capacity, distinguish Invalid/Busy/Capacity without consulting seeded store-wide error, and preserve stable data/backpointers. Real 2/4-lane barriers establish different worker threads and private pages; lane grants and leases precede dispatch. All cancellation flags publish before any shared semaphore wake. Workers record private references; coordinator drains, holds stages before closing the last view, then publishes/discards and verifies coordinator finalizers and zero grants. Eight named stress rounds cover publish/cancel/deny; page-fill bounds derive actual capacity. A2 owner normal/address/thread evidence is recorded in its journal, not D1 execution. No durable current CTest registration yet. |
+| scaffolding/tests/entity_component_faults.tower | Single-owner allocator prefix sweep covers small/oversized, direct/staged components. Denial preserves table, stable prior payload, counts and exact budget; retry succeeds. Forced publish failure preserves stage/address/receipts, then successful publication retires ownership. Choice count derives its array; named fault limit bounds the sweep. Requires existing serial fault runtime, never threaded allocator injection. Owner evidence only; registration remains open. |
+| scaffolding/tests/entity_component_layout.tower | Unchanged native/wasm32 source derives target header sizes and exact requested charges from actual types/capacities. Checks adjacent same-page payloads, alignment/backpointers, capacity denial/retry, oversized storage and pinned existing lookup; last-live removal returns charges before store disposal. Literal payload/alignment values define test data, not guessed host layout. A2 actual native/wasm32 evidence retained; no browser-thread claim or D1 runtime pass. |
+| scaffolding/tests/semantic_receipt_checks.tower | Three cases exercise allocation-free typed receipt restoration with unreserved/reserved/exact-self-alias diagnostics, first-error retention and text-clearing persistence. Two target widths use real world/query ownership to test demanded cancellation versus undemanded completion; repeated failed pumps neither create entities nor invent a resource failure. Independent contexts dispose before world close. Exported main needs a callable binding in existing LR runner; no test-body rewrite required. |
+| scaffolding/tests/semantic_failure_order_checks.tower |28 cases use existing Foundation entities, interpreter and shared dependency gates. Canonical producer offsets83/11 deliberately disagree with numeric order; reversed readiness and earlier pending work span pump frontiers. Earlier success, ordinary division failure, typed capacity failure and isolated demand select the proper receipt without running an unused producer. Repeated failed pumps preserve dispatch/counts and no effects; zero ledger at disposal. This already covers the proposed numeric-sort/pending regression; no duplicate test. Exported main can bind into LR runner. A1 before/after owner evidence is separate from pending D1 run. |
+| scaffolding/tests/semantic_dispatch_checks.tower | Production worker dispatch with a coordinator-controlled signal-open denial, typed private receipt transfer, optional exact remaining-budget pressure and32-consumer fanout. Tests fixed first failure, cancellation/drain, diagnostic-clear reentry and zero world budget at two widths. Mutable top-level wrapper state requires ordinary-source initialization and isolated wrapper composition; importing into the shared LR transport would expose uninitialized wrapper state to unrelated tests. Existing runtime_bind can connect wrapper/real symbols. Shared helper ownership proposal sent; no second scheduler/runtime or unvalidated registration. |
+| scaffolding/tests/type_object_storage.tower | Disposable TypeObjectIndex uses explicit owning ledgers; fills actual capacity, checks nominal identity and sticky failure without corrupting previous descriptors. Distinguishes Capacity/Memory/wrong owner, measures allocator prefix count, and increments disposed budget revisions before reinit. Canonical recursive records/calls exercise visited traversal and ABI semantic rejection separately from resource failure. Traversals cannot mutate/retain world entities. Existing serial storage runner hook is L2-authorized and merged; owner3-pass evidence retained, current D1 union unrun. |
+
+| Changed path | Reviewed delta and limits |
+| --- | --- |
+| scaffolding/tests/entity_locality.tower | Replaces allocator-private usable-byte query with physical compiler-buffer requested size, including header. Retained page bytes remain distinct from live payload and process RSS; no packed-payload inference from an archetype index. Owner profile records real one-survivor fragmentation and8-worker regression, not universal speedup. |
+| scaffolding/tests/execution_core.tower | Fixed resource receipts tested at compile/start/cache/step gates across target widths; counted diagnostics include extra trailing bytes to reject accidental C-string copying. First offset survives later reports and diagnostic clearing, no execution/effects occur, new compilation resets state. Ordinary graph/session APIs and checked cleanup retained. |
+| scaffolding/tests/execution_packages.tower | Resource error with empty message refuses Foundation package encoding, clears stale output and later preserves exactly the counted diagnostic without reconstructing entities. Existing canonical roundtrip/corruption checks retained; test intentionally uses the existing host-world compatibility boundary. |
+| scaffolding/tests/execution_type_construction.tower | Private world budget and post-entry pressure reach actual type interning in graph/cache and constructor-result paths. Denial preserves preceding output only, refuses fallback/replay even after capacity returns, and leaves pending constructor result unconsumed. Every request restores baseline and final world retires all grants. Existing mode literals define four graph/cache×deny/admit cases; no new interpreter/folder. |
+| scaffolding/tests/interpreter_call_query.tower | Owned-byte oracle now includes invocation-private type-index reservation, in addition to memory/input/frame/task buffers. Avoids falsely attributing newly charged type storage to leakage. Earlier owner/frame alias and continuation checks unchanged. |
+| scaffolding/tests/storage_main.tower | L2-owned one import/one call adds type-object storage to existing mandatory single-owner fault runner; no parallel global injection or duplicate runner. |
+| scaffolding/tests/work_constructor_budget.tower | Derives physical component-page request through an actual probe and distinguishes a request larger than total allowance (Invalid) from live-owner pressure (Capacity). Failure-only numbers aid diagnosis; constructor cleanup retained. Existing ready-slot16 constant still mirrors implementation and is an explicit follow-up for owner review, not silently generalized during integration. |
+
+Current local validation is frozen at2c1eec38 using the documented public Linux
+bootstrap. Receipt/page/TypeIndex changes invalidate earlier compiler evidence;
+B1 newer grammar and B2 output consumers remain outside this union. D2's genuine
+Wasm-reader cancellation TSan66 remains a production failure assigned B2. Its
+native provider import and passing ordinary/address runs do not repair that race.
+Final merged instrumentation, bootstrap/browser/generation and leased publication
+remain open. Documentation itself does not change runtime behavior, so no runtime
+profile is attributed to these audit rows.
+
+### Durable receipt/dispatch integration after 2c1eec38
+
+The ROOT-authorized shared build helper now accepts an explicit first `SOURCE`
+option, removes it before symbol bindings and selects ordinary initialization in
+all three existing emission paths. Library mode remains default. This is build/
+foreign-symbol orchestration, not new test logic. Native standalone before
+compositions pass3each and use the existing public compiler/runtime_bind and
+production providers. New durable targets preserve the same bodies/outputs;
+actual symbol tables contain one main, one wrapper and one real signal provider.
+
+`scaffolding/tests/lr_work_main.tower` adds two typed externs and one focused
+receipt-smoke selector. Existing all/query call the5 receipt/cancellation plus28
+owner-order cases exactly once outside width/worker iteration. Separate bound
+objects avoid duplicate main and preserve each fixture's lexical ownership.
+`scaffolding/tests/work_dispatch_result.tower` changes only its composition
+comment: no GNU linker wrapping is needed. No assertion or workload weakened.
+Native3query,3focusedreceipt,3workdispatch and3each semanticdispatch mode pass,
+plus4CTest entries and an unchanged default-library budget caller. Supported
+current-source address/thread runs are pending at this entry.
+
+Focused unchanged workdispatch median wall remains.01s; native RSS median
+2384->2648KiB is a264KiB process-level difference, not measured retained payload.
+Semantic dispatch default median wall.04->.02s, RSS50476->50384KiB; timer/scheduling
+resolution prevents speed claims. Both old/new execute identical fixture inputs,
+references and cleanup assertions. Old separate receipt/order processes combine
+into one LR invocation with identical concatenated stdout; this changes process
+startup, so its timing is an integration cost, not compiler throughput.
+
+Query before samples2/3 adapt clone width to1024; after3samples use512. Their
+RSS/time difference therefore cannot measure registration overhead. This exact
+workload mismatch is recorded rather than attributing an apparent gain to the
+helper. The focused dispatch comparisons avoid adaptive inputs. Current page
+and constructor/schedule fixtures still need durable registrations, and the
+borrowed-view disposal fixture remains deliberately compile-negative.
+
+The current receipt/dispatch milestone now passes3native/3ASanLSan/3TSan query
+runs and all registered dispatch modes. Actual memory hooks/objects and real
+clone intervals are retained; independent D2 and ROOT code review found no
+blocking issue. Final post-freeze change moves a misleading profile-only comment;
+no emitted recipe changes. ROOT's later owner-order fixture32case expansion is
+not yet adopted here, so this exact28case checkpoint stays distinct. Pages,
+constructor/schedule/borrowed-view registration work and integrated release gates
+remain open; no global race-freedom or unsupported UBSan claim.
