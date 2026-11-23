@@ -10,9 +10,6 @@ import .library.work_budget_types;
 import .library.work_vector;
 import parser_markers;
 
-extern fn lr_states_lalr_parallel(states: void*, constructs: bool, anchor: void*): bool;
-extern fn lr_states_create_parallel(analysis: void*, anchor: void*): void*;
-extern fn lr_analysis_compute_parallel(analysis: void*, anchor: void*): bool;
 
 extern fn entity_child_count(root: void*): usize;
 
@@ -190,30 +187,31 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
         table.error = "Unresolved grammar rule";
         return false;
     }
-    var analysis = lr_analysis_create(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
-    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar));
+    var analysis = lr_analysis_create_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), &table.resource_error);
     missing = analysis == null;
     if missing {
-        table.error = "Unable to allocate LR grammar analysis";
-        table.resource_error = WorkBudgetError.Memory;
+        table.error = "Unable to create LR grammar analysis";
         return false;
     }
     var names = lr_grammar_name_count(grammar);
     for(var index: usize = 0; index < names; index++) {
         lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
     }
-    var ok = lr_analysis_compute_parallel(analysis, table.match_kind);
+    table.resource_error = lr_analysis_compute_parallel_result(analysis, table.match_kind);
+    var ok = table.resource_error == WorkBudgetError.None;
     var states: void* = null;
     if ok {
         table.error = "Unable to construct LR parser tables";
-        states = lr_states_create_parallel(analysis, table.match_kind);
+        states = lr_states_create_parallel_result(analysis, table.match_kind, &table.resource_error);
         ok = states != null;
         if ok {
             var constructs = table.mode == convert(u32, ParserReadMode.Constructs);
-            ok = lr_states_lalr_parallel(states, constructs, table.match_kind);
+            table.resource_error = lr_states_lalr_parallel_result(states, constructs, table.match_kind);
+            ok = table.resource_error == WorkBudgetError.None;
         }
     } else {
-        table.error = "Unable to allocate LR grammar analysis";
+        table.error = "Unable to compute LR grammar analysis";
     }
     ok &&= parser_table_contexts(table, analysis, states);
     if ok {
@@ -235,10 +233,9 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);
     if !ok {
-        // Legacy FIRST/state constructors expose only success/failure.
-        // Preserve a precise buffer error when available; their remaining
-        // construction failures have the existing memory-failure contract.
-        if table.resource_error == WorkBudgetError.None { table.resource_error = WorkBudgetError.Memory; }
+        // Every phase retains its own per-call result; logical failures must
+        // never be reported as a guessed allocation failure.
+        if table.resource_error == WorkBudgetError.None { table.resource_error = WorkBudgetError.Invalid; }
         parser_table_clear_runtime(table);
     }
     return ok;

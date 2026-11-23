@@ -8,6 +8,7 @@ import .library.work_budget;
 extern fn tower_test_buffer_fail_next(): void;
 
 extern fn tower_test_buffer_count(): usize;
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 
 export fn interpreter_storage_tests(): i32 {
     var baseline = tower_test_buffer_count();
@@ -272,6 +273,7 @@ fn interpreter_container_tests(): i32 {
     if !interpreter_node_cache_trial(true) || !interpreter_node_cache_trial(false) {
         return InterpreterNodeCacheFailure;
     }
+    if !interpreter_maps_trial() { return InterpreterMapFailure; }
     return 0;
 }
 
@@ -279,8 +281,106 @@ var InterpreterScheduleFailure: i32 = 630;
 var InterpreterScheduleBudgetBytes: usize = 1048576;
 var InterpreterNodeCacheFailure: i32 = 631;
 var InterpreterNodeCacheBudgetBytes: usize = 65536;
+var InterpreterMapFailure: i32 = 632;
+var InterpreterMapBudgetBytes: usize = 1048576;
 
 extern fn puts(message: u8*): i32;
+
+// Keep these adapters independent of the setter's result ABI so this same
+// capacity oracle can run against the previous unaccounted implementation.
+fn interpreter_map_allocations(state: IMState*, key: u64, value: u64): void { im_allocations_set(state, key, value); }
+fn interpreter_map_free(state: IMState*, key: u64, value: u64): void { im_free_blocks_set(state, key, value); }
+fn interpreter_map_strings(state: IMState*, key: u64, value: u64): void { im_strings_set(state, key, value); }
+fn interpreter_map_sequenced(state: IMState*, key: u64, value: u64): void { im_sequenced_set(state, key, value); }
+fn interpreter_map_values(state: IMState*, key: u64, value: u64): void { im_values_set(state, key, value); }
+fn interpreter_map_addresses(state: IMState*, key: u64, value: u64): void { im_addresses_set(state, key, value); }
+
+fn interpreter_map_trial(Map: type, state: IMState*, map: Map*,
+    insert: function(void, IMState*, u64, u64), name: u8*): bool {
+    var budget = state.budget;
+    var baseline: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    defer { if occupied.active { work_budget_release(budget, &occupied); } }
+    if !work_budget_snapshot(budget, &baseline)
+        || !work_budget_reserve(budget, 0, 0, baseline.bytes - baseline.used_bytes, &occupied) { return false; }
+    var original = *map;
+    insert(state, 0, 0);
+    var denied = map.data == original.data && map.length == original.length
+        && map.capacity == original.capacity && state.storage_error == WorkBudgetError.Capacity
+        && map.reservation.active == original.reservation.active
+        && map.reservation.owner == original.reservation.owner && map.reservation.slot == original.reservation.slot
+        && map.reservation.revision == original.reservation.revision && map.reservation.lanes == original.reservation.lanes
+        && map.reservation.generation == original.reservation.generation && map.reservation.bytes == original.reservation.bytes;
+    if !interpreter_schedule_check(denied, name) { return false; }
+    if !work_budget_release(budget, &occupied) { return false; }
+    insert(state, 0, 0);
+    if !interpreter_schedule_check(map.length == 1 && map.data != null,
+        "A map admits its first entry after allowance returns") { return false; }
+    while map.length < map.capacity {
+        var key = convert(u64, map.length);
+        insert(state, key, key * 3);
+    }
+    var charged: WorkBudgetSnapshot = default;
+    if !interpreter_schedule_check(work_budget_snapshot(budget, &charged)
+        && charged.used_bytes == baseline.used_bytes + compiler_buffer_allocation_size(map.capacity * sizeof(IMEntry))
+        && charged.live == baseline.live + 1 && map.reservation.active && map.reservation.owner == budget
+        && map.reservation.bytes == compiler_buffer_allocation_size(map.capacity * sizeof(IMEntry)),
+        "A map charges its complete physical buffer to the owning world") { return false; }
+    original = *map;
+    if !work_budget_reserve(budget, 0, 0, charged.bytes - charged.used_bytes, &occupied) { return false; }
+    // Updating an existing entry never needs growth; insertion must preserve all
+    // live entries when a replacement cannot be admitted.
+    insert(state, 0, 17);
+    insert(state, convert(u64, map.length), 99);
+    if !interpreter_schedule_check(map.data == original.data && map.length == original.length
+        && map.capacity == original.capacity && state.storage_error == WorkBudgetError.Capacity
+        && map.reservation.active == original.reservation.active
+        && map.reservation.owner == original.reservation.owner && map.reservation.slot == original.reservation.slot
+        && map.reservation.revision == original.reservation.revision && map.reservation.lanes == original.reservation.lanes
+        && map.reservation.generation == original.reservation.generation && map.reservation.bytes == original.reservation.bytes,
+        "Denied map growth preserves its original owner and sorted extent") { return false; }
+    for(var i: usize = 0; i < map.length; i++) {
+        if !interpreter_schedule_check(map.data[i].key == convert(u64, i)
+            && map.data[i].value == (i == 0 ? 17 : convert(u64, i) * 3),
+            "Denied map growth preserves every payload and the admitted update") { return false; }
+    }
+    var retained: WorkBudgetSnapshot = default;
+    if !interpreter_schedule_check(work_budget_snapshot(budget, &retained)
+        && retained.used_bytes == charged.used_bytes + occupied.bytes && retained.live == charged.live + 1,
+        "Denied map replacement retains no tentative grant") { return false; }
+    if !work_budget_release(budget, &occupied) { return false; }
+    insert(state, convert(u64, map.length), 99);
+    return interpreter_schedule_check(map.length == original.length + 1
+        && state.storage_error == WorkBudgetError.Capacity,
+        "Later low-level admission preserves the first typed failure");
+}
+
+fn interpreter_maps_trial(): bool {
+    var initial_buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var state: IMState = { budget: &budget, ..default };
+    defer { interpreter_storage_dispose(&state); work_budget_dispose(&budget); }
+    if !work_budget_init(&budget, 1, InterpreterMapBudgetBytes, 1)
+        || !im_frame_push(&state, null, 0, 0, null) { return false; }
+    var ok = interpreter_map_trial(&state, &state.allocations, interpreter_map_allocations,
+        "Allocation tracking must honor initial budget denial");
+    ok = interpreter_map_trial(&state, &state.free_blocks, interpreter_map_free,
+        "Free-range tracking must honor initial budget denial") && ok;
+    ok = interpreter_map_trial(&state, &state.strings, interpreter_map_strings,
+        "String memoization must honor initial budget denial") && ok;
+    ok = interpreter_map_trial(&state, &state.sequenced, interpreter_map_sequenced,
+        "Sequencing memoization must honor initial budget denial") && ok;
+    ok = interpreter_map_trial(&state, &state.frames.data[0].values, interpreter_map_values,
+        "Frame values must honor initial budget denial") && ok;
+    ok = interpreter_map_trial(&state, &state.frames.data[0].addresses, interpreter_map_addresses,
+        "Frame addresses must honor initial budget denial") && ok;
+    interpreter_storage_dispose(&state);
+    var released: WorkBudgetSnapshot = default;
+    return interpreter_schedule_check(work_budget_snapshot(&budget, &released)
+        && released.used_bytes == 0 && released.live == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == initial_buffers,
+        "Every graph map and frame owner retires before its world budget") && ok;
+}
 
 // Single-owner physical failure coverage. Threaded execution uses the production
 // allocator in the ordinary compiler regression and instrumentation suites.

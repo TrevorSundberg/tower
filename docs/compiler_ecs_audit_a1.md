@@ -1765,3 +1765,29 @@ Together with native/ASan/LSan this completes the bounded capture-transition
 validation milestone. It does not complete the full lane, independent review,
 unsupported/full-control instrumentation, or clean-bootstrap/browser/generation/
 publication gates. ROOTdba metadata-result history remains a subsequent input.
+
+## ROOT executable-query continuation checkpoint on c944
+
+After the original A1 service stop, ROOT preserves its completed capture history
+and unfinished executable fixture. `semantic_execution_work.tower` now reserves
+and checks query/dependency/access/seal admission before attaching executable
+metadata, distinguishes failed take from waiting, discards undispatched stages
+before cancellation, and checks observed reads/completion before exposing ready
+function input. Capture and executable phases share the unchanged cancellation
+and provenance helper through `semantic_context.tower`; no public layout changes.
+
+The new `semantic_executable_admission_checks.tower` is reviewed in full:
+eight modes at two target widths and worker budgets cover healthy completion,
+query/edge/access denial, take exhaustion, partial batch cleanup, observation and
+finish failures, exact resource provenance, cancelled consumers, terminal replay
+and final world/ledger cleanup. These budget variants alone are not overlap.
+Native32 plus capture20/admission16/query/fullunits pass; supported address/leak
+and thread modes each pass three repetitions of32+20 cases, query and real
+three-unit/four-lane compilation. Fixed-path32 paired profiles preserve canonical
+output and retained memory; costs and failed attempts are in the journal.
+
+Executable component/dispatch/stage-publication failures, hold-before-last-view
+discipline and other body/declaration paths still need their separate ownership
+closures. The scoped query repair does not claim universal failure/race coverage
+or final bootstrap/browser/generation/publication. Durable fixture registration
+is routed to D1; no restarted or replacement A1 session.

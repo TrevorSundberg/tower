@@ -2,7 +2,7 @@ import interpreter_types;
 import tower;
 import interpreter_abi;
 import type_object_index_api;
-import .library.vector;
+import .library.work_vector_types;
 import .library.work_vector;
 import .library.work_budget_types;
 
@@ -47,17 +47,17 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     for(; i != m.frames.capacity; i++) {
         var frame = &m.frames.data[i];
         work_vector_dispose(&frame.tasks);
-        vector_dispose(&frame.values);
-        vector_dispose(&frame.addresses);
+        work_vector_dispose(&frame.values);
+        work_vector_dispose(&frame.addresses);
     }
     work_vector_dispose(&m.frames);
     work_vector_dispose(&m.node_cache);
     work_vector_dispose(&m.function_values);
     type_object_index_dispose(&m.type_values);
-    vector_dispose(&m.allocations);
-    vector_dispose(&m.free_blocks);
-    vector_dispose(&m.strings);
-    vector_dispose(&m.sequenced);
+    work_vector_dispose(&m.allocations);
+    work_vector_dispose(&m.free_blocks);
+    work_vector_dispose(&m.strings);
+    work_vector_dispose(&m.sequenced);
     work_vector_dispose(&m.memory);
     m.budget = null;
 }
@@ -68,7 +68,7 @@ fn im_storage_result(m: IMState*, result: WorkBudgetError): bool {
     return false;
 }
 
-// Remaining map/cache allocation failure retains the previous fatal host policy.
+// Remaining Fast and diagnostic allocation failure retains the fatal host policy.
 // Guest allocation itself has a separate, recoverable null-result contract.
 extern fn abort(): void;
 
@@ -80,7 +80,7 @@ fn im_storage_require(ok: bool): void {
 
 // Sorted u64 maps: deterministic lower-bound lookup, with contiguous storage.
 // Values and keys are execution facts; the foundation nodes remain authoritative.
-fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
+fn im_map_lower(map: work_vector(IMEntry)*, key: u64): usize {
     var begin: usize = 0;
     var end = map.length;
     loop {
@@ -98,7 +98,7 @@ fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
     }
 }
 
-fn im_map_get(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
+fn im_map_get(map: work_vector(IMEntry)*, key: u64, found: bool*): u64 {
     var index = im_map_lower(map, key);
     *found = false;
     if index == map.length {
@@ -111,18 +111,18 @@ fn im_map_get(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
     return 0;
 }
 
-fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
+fn im_map_set(m: IMState*, map: work_vector(IMEntry)*, key: u64, value: u64): bool {
     var index = im_map_lower(map, key);
     if index < map.length {
         if map.data[index].key == key {
             map.data[index].value = value;
-            return;
+            return true;
         }
     }
     var needed = map.length + 1;
-    var valid = needed != 0;
-    im_storage_require(valid);
-    im_storage_require(vector_reserve(map, needed));
+    var result = needed == 0 ? WorkBudgetError.Invalid
+        : work_vector_reserve_result(map, m.budget, needed);
+    if !im_storage_result(m, result) { return false; }
     var tail = map.length -index;
     var bytes = tail *sizeof(IMEntry);
     var next = index + 1;
@@ -130,9 +130,26 @@ fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
     map.data[index].key = key;
     map.data[index].value = value;
     map.length = needed;
+    return true;
 }
 
-fn im_map_take(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
+// An allocation can add one live range without consuming a free interval. Pay
+// for tracking and all future free intervals before changing any guest range.
+// Free/coalescing cannot increase allocations.length + free_blocks.length, so
+// every valid free remains allocation-free even when the budget is exhausted.
+fn im_heap_admit(m: IMState*): bool {
+    var allocations = m.allocations.length + 1;
+    var intervals = allocations + m.free_blocks.length;
+    if allocations == 0 || intervals < allocations {
+        return im_storage_result(m, WorkBudgetError.Invalid);
+    }
+    if !im_storage_result(m, work_vector_reserve_result(&m.allocations, m.budget, allocations)) {
+        return false;
+    }
+    return im_storage_result(m, work_vector_reserve_result(&m.free_blocks, m.budget, intervals));
+}
+
+fn im_map_take(map: work_vector(IMEntry)*, key: u64, found: bool*): u64 {
     var index = im_map_lower(map, key);
     *found = false;
     if index == map.length {
@@ -287,28 +304,28 @@ export fn im_allocations_get(m: IMState*, key: u64, found: bool*): u64 {
     return im_map_get(&m.allocations, key, found);
 }
 
-export fn im_allocations_set(m: IMState*, key: u64, value: u64): void {
-    im_map_set(&m.allocations, key, value);
+export fn im_allocations_set(m: IMState*, key: u64, value: u64): bool {
+    return im_map_set(m, &m.allocations, key, value);
 }
 
-export fn im_free_blocks_set(m: IMState*, key: u64, value: u64): void {
-    im_map_set(&m.free_blocks, key, value);
+export fn im_free_blocks_set(m: IMState*, key: u64, value: u64): bool {
+    return im_map_set(m, &m.free_blocks, key, value);
 }
 
 export fn im_strings_get(m: IMState*, key: u64, found: bool*): u64 {
     return im_map_get(&m.strings, key, found);
 }
 
-export fn im_strings_set(m: IMState*, key: u64, value: u64): void {
-    im_map_set(&m.strings, key, value);
+export fn im_strings_set(m: IMState*, key: u64, value: u64): bool {
+    return im_map_set(m, &m.strings, key, value);
 }
 
 export fn im_sequenced_get(m: IMState*, key: u64, found: bool*): u64 {
     return im_map_get(&m.sequenced, key, found);
 }
 
-export fn im_sequenced_set(m: IMState*, key: u64, value: u64): void {
-    im_map_set(&m.sequenced, key, value);
+export fn im_sequenced_set(m: IMState*, key: u64, value: u64): bool {
+    return im_map_set(m, &m.sequenced, key, value);
 }
 
 export fn im_values_get(m: IMState*, key: u64, found: bool*): u64 {
@@ -316,9 +333,9 @@ export fn im_values_get(m: IMState*, key: u64, found: bool*): u64 {
     return im_map_get(&frame.values, key, found);
 }
 
-export fn im_values_set(m: IMState*, key: u64, value: u64): void {
+export fn im_values_set(m: IMState*, key: u64, value: u64): bool {
     var frame = im_frame(m);
-    im_map_set(&frame.values, key, value);
+    return im_map_set(m, &frame.values, key, value);
 }
 
 export fn im_addresses_get(m: IMState*, key: u64, found: bool*): u64 {
@@ -326,7 +343,7 @@ export fn im_addresses_get(m: IMState*, key: u64, found: bool*): u64 {
     return im_map_get(&frame.addresses, key, found);
 }
 
-export fn im_addresses_set(m: IMState*, key: u64, value: u64): void {
+export fn im_addresses_set(m: IMState*, key: u64, value: u64): bool {
     var frame = im_frame(m);
-    im_map_set(&frame.addresses, key, value);
+    return im_map_set(m, &frame.addresses, key, value);
 }
