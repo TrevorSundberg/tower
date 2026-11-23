@@ -1,0 +1,9 @@
+import tower;
+
+fn buffer(T: type, size: usize): type {
+    struct Result { data: T[size]; }
+    return Result;
+}
+var size: usize = 2;
+var value: buffer(i32, size);
+print(sizeof(decltype(value)));

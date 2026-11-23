@@ -1,0 +1,10 @@
+import tower;
+
+print(123);
+fn buffer(T: type, size: usize): type {
+    struct Result { data: T[size]; }
+    return Result;
+}
+var size: usize = 2;
+var value: buffer(i32, size);
+size = 3;
