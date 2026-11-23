@@ -30,6 +30,18 @@ export fn im_memory_resize(m: IMState*, count: usize): bool {
     return ok;
 }
 
+// A power-of-two lookup policy; storage belongs to the invocation's world.
+var InterpreterNodeCacheEntries: usize = 256;
+
+fn im_node_cache_init(m: IMState*): bool {
+    if !im_storage_result(m, work_vector_reserve_result(&m.node_cache, m.budget, InterpreterNodeCacheEntries)) {
+        return false;
+    }
+    m.node_cache.length = InterpreterNodeCacheEntries;
+    fill(m.node_cache.data, 0, m.node_cache.length * sizeof(IMEntry));
+    return true;
+}
+
 export fn interpreter_storage_dispose(m: IMState*): void {
     var i: usize = 0;
     for(; i != m.frames.capacity; i++) {
@@ -39,7 +51,7 @@ export fn interpreter_storage_dispose(m: IMState*): void {
         vector_dispose(&frame.addresses);
     }
     work_vector_dispose(&m.frames);
-    vector_dispose(&m.node_cache);
+    work_vector_dispose(&m.node_cache);
     vector_dispose(&m.function_values);
     type_object_index_dispose(&m.type_values);
     vector_dispose(&m.allocations);

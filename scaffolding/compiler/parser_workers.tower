@@ -18,22 +18,27 @@ struct ParserAdmission {
 }
 
 fn parser_admission_open(admission: ParserAdmission*, anchor: void*, preferred: usize): bool {
-    if admission.reservation.active || preferred == 0 { return false; }
+    return parser_admission_open_result(admission, anchor, preferred) == WorkBudgetError.None;
+}
+
+fn parser_admission_open_result(admission: ParserAdmission*, anchor: void*, preferred: usize): WorkBudgetError {
+    if admission == null || preferred == 0 { return WorkBudgetError.Invalid; }
+    if admission.reservation.active { return WorkBudgetError.Busy; }
     *admission = default;
     var capacity = compiler_worker_capacity(anchor);
     if preferred > capacity { preferred = capacity; }
-    if preferred <= 1 { return true; }
+    if preferred <= 1 { return WorkBudgetError.None; }
     var budget = compiler_world_work_budget(compiler_node_world(anchor));
     if budget == null {
         admission.extra = preferred - 1;
-        return true;
+        return WorkBudgetError.None;
     }
     // Parser heap allocation remains unaccounted here. A zero byte reservation
     // is lane admission only, not a promise to enforce a process memory limit.
     var error = work_budget_reserve_result(budget, 0, preferred - 1, 0, &admission.reservation);
-    if error != WorkBudgetError.None { return false; }
+    if error != WorkBudgetError.None { return error; }
     admission.extra = admission.reservation.lanes;
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Every dispatch is synchronous and drains before returning. Keep this scope
@@ -59,29 +64,34 @@ struct ParserWorkers {
 }
 
 fn parser_workers_open(lease: ParserWorkers*, anchor: void*, capacity: usize): bool {
+    return parser_workers_open_result(lease, anchor, capacity) == WorkBudgetError.None;
+}
+
+fn parser_workers_open_result(lease: ParserWorkers*, anchor: void*, capacity: usize): WorkBudgetError {
+    if lease == null { return WorkBudgetError.Invalid; }
     *lease = default;
-    if capacity == 0 || capacity > WorkPoolMaximumCapacity { return false; }
+    if capacity == 0 || capacity > WorkPoolMaximumCapacity { return WorkBudgetError.Invalid; }
     var world = compiler_node_world(anchor);
     if world == null {
-        if !work_pool_open(&lease.local, capacity) { return false; }
+        if !work_pool_open(&lease.local, capacity) { return lease.local.resource_error; }
         lease.pool = &lease.local;
-        return true;
+        return WorkBudgetError.None;
     }
     var limit = compiler_world_worker_limit(world);
     if capacity > limit { capacity = limit; }
     var cache = compiler_world_grammar(world);
-    if cache.workers_busy { return false; }
+    if cache.workers_busy { return WorkBudgetError.Busy; }
     var pool = &cache.workers;
     // Grow only between leases. Never move live thread slots or discard jobs.
     // A serial transport keeps its one slot regardless of requested width.
     if pool.count != 0 && pool.threaded && pool.count < capacity {
         work_pool_close(pool);
     }
-    if pool.count == 0 && !work_pool_open(pool, capacity) { return false; }
+    if pool.count == 0 && !work_pool_open(pool, capacity) { return pool.resource_error; }
     cache.workers_busy = true;
     lease.cache = cache;
     lease.pool = pool;
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn parser_workers_close(lease: ParserWorkers*): void {
