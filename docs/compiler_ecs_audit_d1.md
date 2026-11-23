@@ -1895,3 +1895,12 @@ getters without changing order or first nonnull anchor; lr_tree uses generated
 rule metadata through the same API. Grammar names/captures and buffers now share
 explicit lifetime-bound physical owners, with public APIs and one arena provider.
 These are B1/A2 production conclusions, not extra D1 primary-file audit credit.
+
+Coordinator02:10:50 authorizes the narrow separate-arena registration. Existing
+tower_work_fixture now adds one library/work_arena provider object only for the
+work_arena_linkage client; every other fixture retains the same object/runtime
+composition. The ordinary positive loop registers it with the existing30s bound.
+No compiler entity unit, new runner, duplicate arena implementation or deliberate
+probe. Ordinary sanitizer object rules cover both separate objects and runtime.
+Source checks pass; smallest compilation/link, exact symbol uniqueness, positive
+runtime and supported instrumentation remain pending the next D1 heavy slot.

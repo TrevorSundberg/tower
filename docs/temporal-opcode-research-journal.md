@@ -60016,3 +60016,14 @@ are not relabeled as final current acceptance. D1 keeps its already committed
 TypeErrors and ledger hooks. New separate-client target is proposed through
 manifest-owner coordination; no duplicate provider or non-Tower fixture logic.
 D2 holds the heavy slot. No D1 build starts or frozen sibling input changes.
+
+Root approves D1 arena linkage registration at02:10:50UTC. Implemented a single
+conditional provider object in the existing tower_work_fixture function and added
+work_arena_linkage to its ordinary positive loop. Same guest/runtime/sanitizer
+recipes, no entity/compiler object linkage or extra runner. Source-only patch
+3ada5d30b836f2dc4e5e438aa69b6db2392e7bddf0073874b5e69b9fa0eadb7a passes reverse
+check/diff check. It requires the complete root86 arena API/provider sources.
+Fixture logic is unchanged from A2's independently measured separate-boundary
+source; D1 target build/runtime time/RSS and symbol/instrumentation evidence are
+still pending. This registration supplies reproducible coverage, not a claimed
+runtime optimization or inherited wholecompiler sanitizer acceptance.

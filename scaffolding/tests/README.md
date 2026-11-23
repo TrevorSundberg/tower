@@ -1007,3 +1007,9 @@ destruction. Requested workers and reserved lanes do not prove physical overlap.
 fixture through the serial fault allocator. It checks rollback, output and receipt
 preservation, slot reuse and stale releases. The registration reuses the host
 memory object and instrumented runtime; it does not sanitize concurrent workers.
+
+`tower-work-arena-linkage-tests` links the declaration-only arena client with one
+separately compiled implementation and the ordinary guest runtime. It exercises
+all six exported operations, physical retention, alignment, denial and ownership
+transfer. The existing native work-test object rules apply supported sanitizer
+instrumentation to both client and provider; no compiler entity unit is linked.
