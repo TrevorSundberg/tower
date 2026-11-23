@@ -82500,3 +82500,15 @@ This receipt changes documentation only. Normal push follows as the last of
 three permitted retries after the initial concurrent-main rejection. Remaining
 diagnostic/output and package-encoding storage plus ROOT integrated release
 checks are pending; no deployment or broader validation is claimed.
+
+First normal push encountered remote advance13c8652b. Merge4df041ef preserves
+its L1 Fast-storage changes and both journals. Only evaluation regeneration and
+two relinks were needed. Final merged small16/8 and single4096/12 profiles pass
+known staged/loop results and preserve canonical/object hashes exactly; actual
+outer peaks8/1 and shared ceilings8/12 remain checked. Admission/cancellation
+regression passes with74458ns refill; backend-overlap-calibrated passes exact
+objects/distinct live threads. Logs b2_scaling_fast_merge_{build,small,single,
+admission,overlap}.log. Frozen scaling table and untouched cases retain their
+original source identity. B2 profile source remains9dd90fc1; no production
+scheduling changes or broader acceptance claims. All owned children drained;
+retrying normal main push, then ending this bounded task.
