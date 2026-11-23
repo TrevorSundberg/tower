@@ -90737,3 +90737,114 @@ node counts after independent loads (24446 narrow,41227 control) before final
 reference destruction; the recorded final counts are shared-world owners, not
 an unsupported zero-handle/LLVM-store census. No compiler build or deployed
 runtime adoption is implied. All jobs drained before normal main publication.
+### 2026-11-23 A1: five original Node fixture/transport gates
+
+Bounded adoption on main bda11a9b52c59b4b3b08eab2a5cb17b8fe10c119,
+scaffolding tree 8b87b79c59c3bde34d2660e815b8559c8e2a44ad, host tree
+1d2209bbe79671caf9191154e5b4bd21dce5c14c. No compiler rebuild or producer change.
+ROOT's supplied eac16533 pair was SHA256 verified before copying into A1's cache:
+portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99;
+LLVM 87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472.
+These reactors exclude later A2 unary/page-policy and L1 composition producers;
+loading current resource sources does not validate a rebuilt current compiler.
+The accepted f63de88f narrow/body/trap and previous package/native receipts were
+not rerun or relabeled. D1's historical mixed-artifact failures remain historical.
+
+Reviewed docs/modules.md, Foundation's seed/interchange contracts, README Checks,
+compiler-fixtures and both host transports; actual providers work_buffer,
+host.memory, generic_registry, entity_views, foundation_nodes::foundation_execution_item,
+c_emitter::ce_collect and the existing Tower stress generator. Findings/fixes:
+
+- All five files eagerly read absent default Wasm paths before fixture overrides
+  could apply. They now defer those reads when the matching override is set;
+  ordinary default-path behavior remains. Both overrides were set, interpreter-only
+  shortcuts unset. No substitution of interpreter output for executable LLVM.
+- Ordinary C and formatter inputs and the Statement-extension reset input require
+  an explicit language import. Added import foundation to those input strings;
+  exact formatted expectation gains that same line and still verifies every UTF-8
+  byte span, idempotence and canonical roundtrip. Seed-only custom Unicode grammar,
+  malformed UTF-8/NUL/truncation rejections and invalid C++ identifier assertion
+  are unchanged. No implicit import was added to the host or a generic helper.
+- The entity test saved the last (64-bit) canonical graph, then sent it to LLVM's
+  default wasm32 target, producing Integer literal out of range for usize. Keep
+  the wasm32 canonical text for the wasm32 executable comparison; both interpreter
+  widths still run and now each gets an exact same-width canonical roundtrip.
+  The real library source AND canonical input now execute through LLVM with the
+  original complete expected output.
+- generic_registry's standalone input omitted host.memory. work_buffer explicitly
+  declares compiler_buffer_allocation_size/allocate/free/alignment and expects
+  the owning program to supply them. Import the existing Tower provider at this
+  test boundary (also harmlessly deduplicated in entity_views). The old missing
+  external-function error is obsolete fixture setup, not an allocator to emulate
+  in JS. The new run reaches real Graph/Fast and then LLVM reconstruction.
+- C's collect routine follows foundation_execution_item/reference: private
+  declarations enter executable output through calls, while canonical formatting
+  retains every declaration. After language adoption, the bulk-comment fixture
+  kept all128 canonical comments but emitted only the called last function into C
+  (observed 1 != 128). Its own Tower producer now emits the language import and
+  calls every existing annotated function using StressCommentFunctions, leaving
+  the original print statement intact. The exact128-comment assertion and all
+  canonical per-declaration/order assertions remain unchanged and pass. No C
+  reachability policy change or JS source generator was added.
+
+Entity test transport optionally saves each exact LLVM input/response and emitted
+Foundation via TOWER_TEST_ARTIFACTS, plus existing-style phase timing via
+TOWER_TEST_PHASES. It never accepts an error as success. Lifetime/buffer/denial
+checks remain: C warmed node/allocation equality, byte-buffer failed reserve
+preservation and disposal, entity query index/alignment and zero store counts,
+UTF-8 reference codec/malformed tests and no-import standalone Wasm assertion.
+Legacy allocation counter equality is not proof of enabled allocation accounting.
+
+All five files ran in separate fresh Node22.23.5 processes on KinmenA Windows11,
+Docker Linux x64 tower-a1-environment, CPU12-23/24GiB, concurrency1, one heavy
+process at a time. Filesystem warm/not flushed, n1 each condition; no compiler
+worker-scaling claim. Original semantic baseline (after only override transport
+adoption) was7pass/12fail. Final totals are17pass/2fail, zero skipped/cancelled,
+all19 top-level tests started. Passing UTF-8 evidence reused unchanged. Only C
+needed a second affected run after its reachability fixture correction. Every
+failure/intermediate log is retained; no timeout was reached.
+
+| File | Before pass/fail; wall/CPU s; peak KiB | Final pass/fail; wall/CPU s; peak KiB |
+| --- | --- | --- |
+| c-source | 1/5; 4.73/3.34; 291892 | 6/0; 4.83/3.55; 290104 |
+| compiler-bytes | 2/1; 4.90/4.46; 401284 | 3/0; 5.46/5.11; 401172 |
+| compiler-entities | 1/3; 45.34/86.63; 2628388 | 2/2; 87.46/170.97; 2718504 |
+| compiler-utf8 | 3/0; 6.84/8.82; 437372 | same unchanged run |
+| formatter-port | 0/3; 3.12/1.11; 124440 | 3/0; 4.20/2.49; 165052 |
+
+These are validation costs, not equivalent successful-work before/after speedups:
+the repaired cases reach formerly unstarted work, including another failed large
+LLVM reconstruction. No runtime implementation changed, so a serial/four-worker
+compiler profiling sweep is inapplicable here. GNU time peak RSS includes Node,
+V8/JIT, both reactors and host data; it is not Wasm capacity or live ECS bytes.
+
+L2/ROOT residuals, unchanged compiled-status assertions, both at the FIRST
+llvm.compile(canonical,{emit:'foundation',optimize:false,target:'wasm32-unknown-unknown'}):
+
+| Case | Exact saved input | Response | Call wall/CPU s |
+| --- | --- | --- | --- |
+| entity_views | llvm-3.tower,706287B,SHA256 9d5136499c33b9ccf5b5ca3617b1faec923680aa4a8cded345152c9d6370868d | Compiler resource request failed; errorFile .tower/bedrock.tower; offset0 | 34.640/70.001 |
+| generic_registry | llvm-4.tower,764205B,SHA256 4c6830aa81fd7cb8a7fdb086919d7cea3b0fb747b0f8e51c8f8832113761c9b2 | Compiler resource request failed; errorFile input.tower; offset5475504 | 32.979/69.561 |
+
+Both preceding32-bit Graph and Fast executions return0 and canonical equality
+passes. Neither returns reconstructed text. The response exposes no typed
+Memory/Capacity/etc cause; generic's reported offset exceeds its submitted input
+length, so neither map identifies a reliable culprit location. The exact owning
+internal phase/first typed cause remains L2's systemic reconstruction task; no
+cap increase or unrelated producer repair. Later reconstructed execution,
+optimized profile,64-bit and executable LLVM modes in THESE TWO tests remain
+UNSTARTED, not passed. Other tests/widths above retain their separate passes.
+
+Evidence root: C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_node_five_bda11a9b
+(container /cache/a1_node_five_bda11a9b), before/after/final directories and scripts.
+Exact command form: both TOWER_TEST_WASM and TOWER_TEST_LLVM_WASM point to that
+root; unset TOWER_INTERPRETER_ONLY; /usr/bin/time -v -o CASE/time.txt timeout -k 5s
+600s node --test --test-concurrency=1 playground/tests/NAME.test.mjs. Final C
+bound180s; no compiler build. SHA manifest identities: original complete Tower
+resource list d9bf456293e12903a0d6a2d83936edc2ad1d3ea7077d5a79109628a9f5d84f14;
+final resource list d3f7198f430569e785d3e71a0ac4f39cdf7829edc168fbfae508d0d168d209d9;
+final six fixture files manifest139002d1943ef724f49700b6f44cbda6241e9f07d1e4c5b1488c8b91f36ef4d9.
+Only the dedicated comment generator changes the resource list. Other passing
+files do not import it. Reactors/host hashes and syntax/diff checks pass. All
+owned jobs drained, disk~341GB free, todo unchanged. No full IDE/51-file Node/
+LLVM suite, sanitizer, generation or deployment; ROOT owns integrated release.

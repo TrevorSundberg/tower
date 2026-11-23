@@ -1,3 +1,15 @@
 import tower;
 import tests.stress_sources;
-stress_emit(stress_comment_functions);
+import library.bytes_types;
+
+fn live_comment_functions(out: ByteBuffer*): void {
+    stress_text(out, "import foundation;\n");
+    stress_comment_functions(out);
+    // Source backends emit private functions reached by executable references.
+    // Keep every annotated declaration live without changing the printed value.
+    for (var index: usize = 0; index < StressCommentFunctions; index++) {
+        stress_name(out, "f", index, "();\n");
+    }
+}
+
+stress_emit(live_comment_functions);

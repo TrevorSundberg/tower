@@ -1,15 +1,32 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import {loadTower} from './compiler-fixtures.mjs';
 import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const imports={tower_entity_finalize:()=>{throw new Error('Plain components do not need host finalization');},
  abort:()=>{throw new Error('Compiler ownership allocation failed');}};
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,undefined,{imports});
+const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,undefined,{imports});
 const source='import library.entities; import tests.entities;';
 const expected='true\ntrue\n1\n1\ntrue\ntrue\n42\ntrue\ntrue\n1\n0\n0\ntrue\n';
+let compilation=0;
+async function compileLLVM(llvm,input,options={}) {
+ const name='llvm-'+(++compilation),directory=process.env.TOWER_TEST_ARTIFACTS;
+ if(directory)await writeFile(join(directory,name+'.tower'),input);
+ const start=performance.now(),cpu=process.cpuUsage();
+ const result=llvm.compile(input,options);
+ const receipt={name,options,...(result.status==='error'?result:{status:result.status}),
+  wallMs:performance.now()-start,cpu:process.cpuUsage(cpu),
+  rss:process.memoryUsage().rss,peakRssKiB:process.resourceUsage().maxRSS};
+ if(process.env.TOWER_TEST_PHASES)console.error(JSON.stringify(receipt));
+ if(directory){
+  await writeFile(join(directory,name+'.json'),JSON.stringify(receipt,null,2));
+  if(result.foundation)await writeFile(join(directory,name+'_result.tower'),result.foundation);
+ }
+ return result;
+}
 
 test('the shared entity library runs under both interpreter layouts and LLVM',async()=>{
  let canonical;
@@ -19,12 +36,18 @@ test('the shared entity library runs under both interpreter layouts and LLVM',as
    let output='',result;
    do {result=tower.execute(h,100000);output+=result.output;}while(result.status==='executing');
    assert.equal(result.status,'done',result.error);assert.equal(output,expected);
-   canonical=tower.foundation(h).source;
+   const formatted=tower.foundation(h).source;
+   const round=tower.compile(formatted,{pointerBytes});
+   try {
+    assert.equal(tower.foundation(round).source,formatted);
+   }finally{tower.destroyExecution(round);}
+   // Executable LLVM below targets wasm32. Canonical layouts are target-bound.
+   if(pointerBytes===4)canonical=formatted;
   }finally{tower.destroyExecution(h);}
  }
- const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+ const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
  for(const input of [source,canonical]){
-  const compiled=llvm.compile(input);assert.equal(compiled.status,'compiled',compiled.error);
+  const compiled=await compileLLVM(llvm,input);assert.equal(compiled.status,'compiled',compiled.error);
   const result=await executeWasm(compiled,undefined,{imports});
   assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
  }
@@ -34,8 +57,9 @@ for(const [title,fixture] of [
  ['Tower world views pin query ranges and defer ownership reclamation','entity_views'],
  ['Tower generic registries belong to their programs and reclaim their types','generic_registry'],
 ])test(title,async()=>{
- const source=`import tests.${fixture};`;
- const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+ // The standalone program owns its allocator; the library only declares its ABI.
+ const source=`import host.memory; import tests.${fixture};`;
+ const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
  const run=(source,pointerBytes,fast)=>{
   const h=tower.compile(source,{pointerBytes});
   try{
@@ -50,14 +74,14 @@ for(const [title,fixture] of [
   const canonical=run(source,pointerBytes,false);
   assert.equal(run(canonical,pointerBytes,true),canonical);
   for(const optimize of [false,true]){
-   const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
+   const rebuilt=await compileLLVM(llvm,canonical,{emit:'foundation',optimize,
     target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
    assert.equal(rebuilt.status,'compiled',rebuilt.error);
    run(rebuilt.foundation,pointerBytes,true);
   }
  }
  for(const optimize of [false,true]){
-  const compiled=llvm.compile(source,{optimize});assert.equal(compiled.status,'compiled',compiled.error);
+  const compiled=await compileLLVM(llvm,source,{optimize});assert.equal(compiled.status,'compiled',compiled.error);
   const result=await executeWasm(compiled,undefined,{imports});
   assert.equal(result.status,'done',result.error);assert.equal(result.output,'0\n');
  }
