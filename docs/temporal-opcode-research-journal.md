@@ -73191,3 +73191,62 @@ D1 authorizes D2's narrow host.memory imports in work_signal_observe and
 sanitizer_race_probe only if changed-transport supported-link evidence requires
 them; D1 retains generic new-fixture registration pending its concrete composition.
 No competing fixture or host edit has been made.
+
+### D1 prospective ROOT565 audit and measurement review
+
+Verified/fetched complete565cd436e bundle8d838127, sole60741, after current213c
+instrumentation had begun; no running closure was changed. Both new assigned
+Tower files and six changed assigned test deltas are reviewed in the D1 audit.
+Incoming census1117 total/528 assigned includes12 unchanged scaffolding/examples;
+the first prefix inventory incorrectly omitted those examples and was corrected
+before claiming coverage. The root bundle omits D1's later capture registration;
+merge history must preserve it, never replace the entire tree with the root tree.
+
+Read the newer owner implementation/evidence entries. L1's function-reference
+index is a derived world/declaration table, now budgeted by work_vector and
+retired with the invocation. Its corrected runtime/staged fixture replaced an
+invalid staged-print experiment; before failed actual Capacity/replay assertions,
+after ten cases and coherent native suites pass on its source. Its64 fixed-path
+samples retain graph CLI medians about+2%, large Fast about+1%, and variable
+four-unit wall+3.8%; charged retention increases1344B per body world/5376B across
+four units while RSS stays close. Actual four-unit outer_peak4 is measured;
+reserved body lanes alone are not overlap. ROOT's direct-return publication
+concern remains outside the included conversion-statement fixture. Current D1
+resource/receipt-only instrumentation at213c does not cover this new IMState ABI.
+
+L2 removes a redundant pointer vector only after checking the function window is
+stable across clone publication. The needed taken-ticket batch uses the world's
+work_vector, with exact denial before dispatch and cleanup before cancellation.
+Before scratch case134 and the missing work_vector_types import compile1 remain
+preserved; corrected native/query and32 fixed-path outputs pass on its source.
+Serial generic wall/CPU medians rise2.6%/3.3%; stable RSS and checked outputs do
+not establish neutral cost or accept the new combined source.
+
+A2's non-mutating borrowed validation retains exact receipt/ledger diagnostics and
+shares release's locked entry validation. Selected serial ledger microcost remains
++0.49%/+1.61%; the more expensive initial extraction is rejected.18 supported
+owner sanitizer invocations and actual WASI validation pass. Large metadata four
+workers provide about1.55x measured speedup, eight remain unprofitable; small work
+is slower in parallel. The new eight-stage node measurement preserves canonical
+identities but its65,536 raw descriptors remain12,058,624 uncharged bytes while
+ledger peak is2320/2488/2712B at1/4/8 workers. This is evidence for remaining node
+storage work, not implemented packed/charged node pages or whole-memory closure.
+
+ROOT's foreign-name change retains a static first failure before presentation
+allocation and returns no partial symbol. Its exact successful-input sweeps cover
+515 ABI and18 malformed-diagnostic denial positions, with retry and final-zero
+owners. The missed prefix-allocation case originally produced only a token;
+that failed probe and corrected guard remain explicit. The current2c standalone
+ASan/LSan passes, not whole-union/thread acceptance. Fixed-path serial symbol
+microbenchmarks show wall+5.94% ordinary and+16.16% complex, CPU+6.82%/+17.04%,
+unchanged allocation calls/returned-owner peaks and final-zero retention. Roughly
+0.371us extra per complex call is a correctness cost; no end-to-end compiler
+impact, broad neutrality or speed claim follows. Shared backend_text now returns
+checked success, while these foreign consumers propagate it through the sticky
+owner; this audit does not claim all other backend callers are complete.
+
+All measurements above remain owner/source-scoped. New joined public-native/
+query/function/foreign/borrowed-reservation and final bootstrap/browser/generation
+checks remain unrun by D1 at565. Existing full history, unchanged invalid fixtures
+and the fixed-four affinity test oracles are preserved. This documentation-only
+review has no independent runtime performance cost to profile.
