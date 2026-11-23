@@ -44,12 +44,14 @@ extern fn compiler_work_plan(work: void*): void*;
 extern fn entity_create(store: void*): void*;
 
 extern fn entity_create_related(anchor: void*): void*;
+extern fn entity_create_related_result(anchor: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_release(node: void*): usize;
 
 extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 
 extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_component_get(node: void*, kind: void*): void*;
 
@@ -63,11 +65,11 @@ extern fn compiler_world_dispose(world: void*): bool;
 
 extern fn frontend_world_clear(world: void*): bool;
 
-extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_create_result(error: WorkBudgetError*): void*;
 
 extern fn frontend_modules_destroy(environment: void*): void;
 
-extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn frontend_modules_bind_world_result(environment: void*, world: void*): WorkBudgetError;
 
 extern fn frontend_modules_configure(environment: void*, source: u8*, library: u8*): void;
 
@@ -158,13 +160,17 @@ fn frontend_units_release(batch: FrontendUnits*, receipt: WorkReservation*): voi
 // buffer reserves its full request before allocation; publish only after every
 // replacement exists. Denial/failure leaves every old buffer and receipt intact.
 fn frontend_units_snapshot(batch: FrontendUnits*, inputs: FrontendSnapshot*, count: usize): bool {
-    if count == 0 || count > FrontendSnapshotLimit { return false; }
+    return frontend_units_snapshot_result(batch, inputs, count) == WorkBudgetError.None;
+}
+
+fn frontend_units_snapshot_result(batch: FrontendUnits*, inputs: FrontendSnapshot*, count: usize): WorkBudgetError {
+    if count == 0 || count > FrontendSnapshotLimit { return WorkBudgetError.Invalid; }
     var bytes: usize = 0;
     for(var i: usize = 0; i < count; i++) {
         var length = inputs[i].length;
-        if length == ~convert(usize, 0) { return false; }
+        if length == ~convert(usize, 0) { return WorkBudgetError.Invalid; }
         var allocated = compiler_buffer_allocation_size(length + 1);
-        if allocated == 0 || allocated > ~convert(usize, 0) - bytes { return false; }
+        if allocated == 0 || allocated > ~convert(usize, 0) - bytes { return WorkBudgetError.Invalid; }
         bytes += allocated;
     }
     var copies: FrontendText[FrontendSnapshotLimit] = default;
@@ -174,7 +180,8 @@ fn frontend_units_snapshot(batch: FrontendUnits*, inputs: FrontendSnapshot*, cou
     for(var i: usize = 0; i < count; i++) {
         var input = &inputs[i];
         var output = &copies[i];
-        if work_buffer_resize(&output.storage, &batch.budget, input.length + 1, 0) != WorkBudgetError.None { return false; }
+        var error = work_buffer_resize(&output.storage, &batch.budget, input.length + 1, 0);
+        if error != WorkBudgetError.None { return error; }
         copy(output.storage.data, input.source, input.length);
         output.storage.data[input.length] = 0;
         output.length = input.length;
@@ -183,7 +190,7 @@ fn frontend_units_snapshot(batch: FrontendUnits*, inputs: FrontendSnapshot*, cou
         work_buffer_move(&inputs[i].output.storage, &copies[i].storage);
         inputs[i].output.length = copies[i].length;
     }
-    return true;
+    return WorkBudgetError.None;
 }
 
 fn frontend_units_job(batch: FrontendUnits*, ordinal: usize): FrontendUnit* {
@@ -314,23 +321,34 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
 // Width is explicit target layout, independent of the host or worker count.
 export fn frontend_units_create(count: usize, budget: usize, width: u32,
 revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
-    return frontend_units_open(count, budget, FrontendLegacyByteLimit, width, revision, profile, bedrock, foundation, library);
+    var error = WorkBudgetError.None;
+    return frontend_units_open(count, budget, FrontendLegacyByteLimit, width, revision, profile, bedrock, foundation, library, &error);
 }
 
 export fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32,
 revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
+    var error = WorkBudgetError.None;
+    return frontend_units_create_bounded_result(count, budget, retained_bytes, width, revision, profile, bedrock, foundation, library, &error);
+}
+
+export fn frontend_units_create_bounded_result(count: usize, budget: usize, retained_bytes: usize, width: u32,
+revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error: WorkBudgetError*): FrontendUnits* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
     if retained_bytes == 0 || retained_bytes == FrontendLegacyByteLimit { return null; }
-    return frontend_units_open(count, budget, retained_bytes, width, revision, profile, bedrock, foundation, library);
+    return frontend_units_open(count, budget, retained_bytes, width, revision, profile, bedrock, foundation, library, error);
 }
 
 fn frontend_units_open(count: usize, budget: usize, retained_bytes: usize, width: u32,
-revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
+revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error: WorkBudgetError*): FrontendUnits* {
+    *error = WorkBudgetError.Invalid;
     if count == 0 || budget == 0 || budget > WorkPoolMaximumCapacity ||(width != 4 && width != 8)
     || bedrock is null || foundation is null || library is null {
         return null;
     }
     var batch = alloc(FrontendUnits, 1);
     if batch is null {
+        *error = WorkBudgetError.Memory;
         return null;
     }
     *batch = default;
@@ -344,7 +362,7 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
     }
     if budget > 1 {
         batch.budget_gate = work_signal_open();
-        if batch.budget_gate == null { frontend_units_close(batch); return null; }
+        if batch.budget_gate == null { *error = WorkBudgetError.Memory; frontend_units_close(batch); return null; }
         work_signal_post(batch.budget_gate);
         if !work_budget_synchronize(&batch.budget, batch.budget_gate, work_signal_wait, work_signal_post) {
             frontend_units_close(batch); return null;
@@ -352,29 +370,33 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
     }
     var lanes = count < budget ? count: budget;
     if !work_pool_open_kernel_budget(&batch.pool, lanes, compiler_work_kernel_execute, &batch.budget) {
+        *error = batch.pool.resource_error;
         frontend_units_close(batch);
         return null;
     }
     batch.count = count;
-    if compiler_work_create_result(count, batch.pool.count, revision, profile, &batch.budget, &batch.work) != WorkBudgetError.None {
+    *error = compiler_work_create_result(count, batch.pool.count, revision, profile, &batch.budget, &batch.work);
+    if *error != WorkBudgetError.None {
         frontend_units_close(batch);
         return null;
     }
-    batch.kind = entity_create_related(compiler_work_anchor(batch.work));
-    var ok = batch.kind is not null;
-    ok &&= entity_register(batch.kind, sizeof(FrontendUnit), alignof(FrontendUnit), 0);
+    batch.kind = entity_create_related_result(compiler_work_anchor(batch.work), error);
+    if batch.kind == null { frontend_units_close(batch); return null; }
+    if !entity_register(batch.kind, sizeof(FrontendUnit), alignof(FrontendUnit), 0) {
+        *error = WorkBudgetError.Invalid; frontend_units_close(batch); return null;
+    }
     var inputs: FrontendSnapshot[FrontendSnapshotLimit];
     inputs[0] = { output: &batch.bedrock, source: bedrock, length: frontend_source_length(bedrock) };
     inputs[1] = { output: &batch.foundation, source: foundation, length: frontend_source_length(foundation) };
     inputs[2] = { output: &batch.library, source: library, length: frontend_source_length(library) };
-    ok &&= frontend_units_snapshot(batch, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot));
-    if !ok {
+    *error = frontend_units_snapshot_result(batch, &inputs[0], sizeof(decltype(inputs)) / sizeof(FrontendSnapshot));
+    if *error != WorkBudgetError.None {
         frontend_units_close(batch);
         return null;
     }
     for(var i: usize = 1; i <= count; i++) {
         var node = compiler_work_subject(batch.work, i);
-        var job = bits(FrontendUnit*, entity_component_data(entity_component_add(node, batch.kind)));
+        var job = bits(FrontendUnit*, entity_component_data(entity_component_add_result(node, batch.kind, error)));
         if job is null {
             frontend_units_close(batch);
             return null;
@@ -385,17 +407,19 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
         job.kernel.payload = bits(void*, job);
         job.kernel.execute = compiler_unit_kernel;
         job.kernel.receive = frontend_unit_receive;
-        if compiler_world_create_result(budget, &batch.budget, &job.world) != WorkBudgetError.None {
+        *error = compiler_world_create_result(budget, &batch.budget, &job.world);
+        if *error != WorkBudgetError.None {
             frontend_units_close(batch);
             return null;
         }
-        job.modules = frontend_modules_create();
-        if job.modules is null
-            || !frontend_modules_bind_world(job.modules, job.world) {
+        job.modules = frontend_modules_create_result(error);
+        if job.modules != null { *error = frontend_modules_bind_world_result(job.modules, job.world); }
+        if *error != WorkBudgetError.None {
             frontend_units_close(batch);
             return null;
         }
     }
+    *error = WorkBudgetError.None;
     return batch;
 }
 
