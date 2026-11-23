@@ -94250,3 +94250,95 @@ and the backend CMake contract remain identical; audit/handoff text survived the
 merge unchanged. Source-only C incompatibility remains on unchanged producers.
 Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
+
+## 2026-11-23 ROOT: joined 25dddd04 browser compiler build
+
+The exact published source25dddd0420258bc5174a3039293c447fd60ef367 builds
+through the documented public bootstrap768a0cdf with no private compiler
+override. This joins A1 executable alias publication, L1 module capture,
+A2 malformed type captures, L2 void-pointer return/reconstruction, B1 scoped
+grammar reuse and B2 page-owned browser transport. The later A2 module-body
+forwarding query fix125efb11 and later test-only changes are excluded.
+
+Environment: Windows host/Orchestral-Revng WSL Linux; existing LLVM1e57ee22
+and WASI SDK34; CPU8-15, build jobs4, compiler jobs1, existing warm caches.
+Command: root_release_joined.sh25dddd0420258bc5174a3039293c447fd60ef367
+(the external boundary passes source as its separate argument).
+It invokes build-wasm.sh, build-llvm.sh and build-threads.sh in order, release
+IDE tests off. Each phase verifies a frozen tracked-input hash manifest.
+No overlapping ROOT build owned these caches. All three exit0; no matched
+warning/error/FAILED diagnostics. No runtime implementation changed in this
+ROOT receipt, so these are build costs, not before/after compiler speedups.
+
+| Phase | Wall seconds | User+system CPU seconds | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable |48.33|82.18|1108048|
+| LLVM/cross |72.24|122.71|1108008|
+| Shared |45.71|77.64|1107888|
+
+Source-bound output SHA256:
+- portable35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb
+- LLVMc1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa
+- cross2be6f98bfa84742aa8e1a4c498a45c2a8bc415e350d300b634c91a448e9565a2
+- projectb2f9154b233f1c4fcf6f1197c9a0b86161c6c12efb5e34a63ac04f6c55fc9e01
+- shared671fb95d38cc1374f26c8b8563c6009806d3351f02141584a96b61bbf0fc402a
+- work fixture6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c
+
+Raw logs/time/source/artifact manifests remain in
+/root/.cache/tower/root_release_25dddd04. The immutable external snapshot
+C:/Sandbox/build/codex_ecs_20261122/ROOT_browser_inputs_25dddd04 retains
+32 files/168207359 bytes plus files.json and SOURCE.txt. Every copied file
+was rehashed against its source. An initial summary-only Measure-Object call
+could not read ordered-dictionary properties; reading the written JSON gave
+the correct32-file/byte total. No artifact validation was skipped.
+The preceding b8 snapshot remains unchanged.
+
+This closes the build step only. Actual large WebAssembly reconstruction,
+current shared/browser acceptance, successor generations/public pin and final
+hosted release remain open. Native large-request success cannot establish
+wasm32 fit. ROOT is executing the unchanged entity_pages Node test with this
+pair; A2 receives the same hash-verified pair for the full struct-values Node
+contract. Source/resources and exclusions are recorded independently.
+No rejected instrumentation operation was retried. The protected todo.txt hash
+remains8C39608BCE025104ED1FE00CCC131F8EE242EB142E8CE5AB50E1B223CC473DBC.
+
+### ROOT: actual entity_pages WebAssembly failure on the joined build
+
+The unchanged anchored test in playground/tests/semantic-port.test.mjs ran with
+the25dddd04 portable/LLVM pair above and host/resources frozen at
+ea606d329b. Command: node --test --test-concurrency=1 --test-timeout=600000
+"--test-name-pattern=^Tower entity_pages agrees across graph, fast, LLVM and Foundation text$"
+playground/tests/semantic-port.test.mjs. Node21.7.3, Windows x64; fresh process,
+warm filesystem, one selected case. All tracked scaffolding/host/test input hashes
+were rechecked unchanged after the process drained.
+
+Result: exit1, selected case failed after248.394s; full command249.392s, no timeout.
+The original32-bit Graph and Fast executions and their canonical reparses/execution
+passed. The FIRST LLVM Foundation32-bit unoptimized compile returned:
+{"status":"error","error":"Cannot allocate semantic storage","errorOffset":2303454,"resourceError":"Memory","errorFile":".tower/tests/entity_pages.tower"}
+No reconstructed Foundation was returned. Later reconstructed execution, optimized,
+64-bit and executable-LLVM phases remain UNSTARTED. The other18 top-level cases
+were intentionally filtered out, not passing coverage.
+
+Exact submitted canonical:965691bytes,
+SHA256 fadb0568535010d954cafde4ce9559e5636829c81e181be66b14e27f187b08d5.
+The reported offset exceeds that submitted byte length; it does not identify
+the allocating internal operation. The typed Memory cause is now preserved;
+do not substitute an old generic capacity response or call this a successful
+wasm32 fit based on L2's separate native success.
+
+Evidence under C:/Sandbox/build/codex_ecs_20261122/ROOT_wasm25_entity_pages
+and ROOT_wasm25_entity_pages_artifacts includes logs, error JSON, exact input,
+host hashes and process observations. Existing OS measurement wrapper reports
+parent-only0.109375CPU seconds/36306944B peak; those are NOT compiler CPU/RSS.
+A sampled actual test child at22:26:59UTC had304.453125 cumulativeCPU seconds
+and2080923648B OS working-set high-water. These are observed values, not final
+whole-run totals or Wasm linear-memory capacity. A later attempt to attach a
+retained process handle found the child already exited; preserve that missing
+final metric rather than inventing a peak. The original600s guard was not hit.
+No source/cap/assertion was weakened and no automatic rerun was started.
+
+L2 is exercising the distinct current entity_views/generic_registry requests and
+owns backend/package producer fixes; A2 owns actual fullstruct acceptance.
+ROOT will use the exact failed request to narrow current retention/allocation.
+The final current runtime and sanitizer/release gates remain open.
