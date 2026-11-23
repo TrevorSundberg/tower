@@ -13,6 +13,7 @@ import semantic_expression_lowering;
 import semantic_aggregates;
 import interpreter_context_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn ix_load(m: IMExecution*, address: u64, type: FoundationType*, offset: usize): u64;
 
@@ -40,8 +41,9 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
         projection.index = index;
         projection.type = *element;
         var projection_index = result.leaves.length;
-        sem_require(vector_push(&result.leaves, projection));
+        if !vector_push(&result.leaves, projection) { sem_scratch_error(c, node, WorkBudgetError.Memory); return; }
         var entry = sem_control_node(c, node, KAssign);
+        if entry == null { return; }
         var assignment = sem_get(entry);
         assignment.type = *element;
         assignment.binding = field;
@@ -50,17 +52,20 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
         if !sem_ok(c) { return; }
         if semantic_aggregate(element) {
             assignment.value = sem_control_node(c, entry, SurfaceInitializer);
+            if assignment.value == null { return; }
             sem_evaluation_aggregate(c, result, assignment.value, element, projection_index);
         } else {
             assignment.value = sem_surface_constant(c, entry, element, 0);
+            if assignment.value == null { return; }
             var leaf = assignment.value;
             if sem_get(leaf).kind == KConvert { leaf = sem_get(leaf).value; }
-            result.leaves.data[projection_index].subject = leaf;
-            var dependency = bits(IMDependency*, entity_component_data(entity_component_add(leaf, c.evaluation_ready)));
-            sem_require(dependency != null);
+            var error: WorkBudgetError;
+            var dependency = bits(IMDependency*, entity_component_data(entity_component_add_result(leaf, c.evaluation_ready, &error)));
+            if dependency == null { sem_scratch_error(c, node, error); return; }
             *dependency = default;
             dependency.subject = leaf;
             dependency.source = result.ready;
+            result.leaves.data[projection_index].subject = leaf;
         }
         if !sem_push_checked(c, &value.items, entry) { return; }
     }
@@ -75,6 +80,7 @@ fn sem_evaluation_aggregate_prepare(c: SemanticContext*, result: SemanticEvaluat
     if !sem_ok(c) { return; }
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
+    if definition.body == null { return; }
     var previous = c.current;
     c.current = function;
     defer { c.current = previous; }
@@ -82,6 +88,7 @@ fn sem_evaluation_aggregate_prepare(c: SemanticContext*, result: SemanticEvaluat
     sem_lift_initialization(c, definition.body, local, result.expression);
     if !sem_ok(c) { return; }
     var returned = sem_control_node(c, definition.body, KReturn);
+    if returned == null { return; }
     sem_get(returned).value = sem_lift_address(c, definition.body, local);
     if !sem_ok(c) { return; }
     sem_lift_append(c, definition.body, returned);

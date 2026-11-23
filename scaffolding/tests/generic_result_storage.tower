@@ -31,6 +31,8 @@ extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_discard(stage: void*): void;
 extern fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void;
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
@@ -39,6 +41,11 @@ extern fn sem_context_dispose(context: SemanticContext*): void;
 extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
 extern fn sem_create_result(parent: void*, error: WorkBudgetError*): void*;
 extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_node_result(context: SemanticContext*, node: void*, kind: u32): FoundationNode*;
+extern fn sem_control_node(context: SemanticContext*, parent: void*, kind: u32): void*;
+extern fn sem_operand(context: SemanticContext*, node: void*, expected_type: FoundationType*): void*;
+extern fn sem_block(context: SemanticContext*, node: void*, depth: u32): u32;
 extern fn sem_layout_discover(context: SemanticContext*, node: void*): usize;
 extern fn sem_layout_execute(context: SemanticContext*): usize;
 extern fn sem_constructor_add(context: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration*;
@@ -72,6 +79,7 @@ enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count
 enum SemanticAdmissionOperation: u32 { Constructor, Begin, Expression, Prepare, Clone, Count }
 enum KnownAdmissionOperation: u32 { Source, Capture, Publish, Count, Dispatch }
 enum ScratchAdmissionOperation: u32 { Initialize, List, Table, Entry, Push, Clone, Count }
+enum NodeAdmissionOperation: u32 { Source, Operand, Block, Synthetic, Read, Local, Staged, Count }
 var GenericResultBudgetBytes: usize = 1048576;
 var GenericResultOrdinaryKind: u32 = 0;
 
@@ -182,6 +190,15 @@ fn generic_result_storage_trial(operation: GenericResultOperation, allowed: usiz
 
 fn generic_result_storage_tests(): void {
     var unlimited = ~convert(usize, 0);
+    for(var tag = convert(u32, NodeAdmissionOperation.Source); tag < convert(u32, NodeAdmissionOperation.Count); tag++) {
+        var operation = convert(NodeAdmissionOperation, tag);
+        var calls = semantic_node_storage_trial(operation, unlimited, WorkBudgetError.None);
+        for(var allowed: usize = 0; allowed < calls; allowed++) {
+            semantic_node_storage_trial(operation, allowed, WorkBudgetError.Memory);
+        }
+        semantic_node_storage_trial(operation, unlimited, WorkBudgetError.Capacity);
+        if operation != NodeAdmissionOperation.Staged { semantic_node_storage_trial(operation, unlimited, WorkBudgetError.Busy); }
+    }
     for(var tag = convert(u32, ScratchAdmissionOperation.Initialize); tag < convert(u32, ScratchAdmissionOperation.Count); tag++) {
         var operation = convert(ScratchAdmissionOperation, tag);
         var calls = semantic_scratch_storage_trial(operation, unlimited, false);
@@ -918,4 +935,133 @@ fn semantic_scratch_table_atomicity(): void {
     work_arena_dispose(&arena);
     utility_check(budget.live == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget)
         && tower_test_buffer_count() == buffers, "Unpublished table storage remains accounted and retires");
+}
+
+// Source-node admission must carry a real component/store denial through the
+// semantic API. Existing payloads and source identity remain owned by the world.
+fn semantic_node_call(context: SemanticContext*, operation: NodeAdmissionOperation, subject: void*, initial: void*): void* {
+    if operation == NodeAdmissionOperation.Source {
+        return sem_node_result(context, subject, KOperand) == null ? null : subject;
+    }
+    if operation == NodeAdmissionOperation.Operand { return sem_operand(context, subject, null); }
+    if operation == NodeAdmissionOperation.Block {
+        sem_block(context, subject, 0);
+        return context.program.resource.error == WorkBudgetError.None ? subject : null;
+    }
+    if operation == NodeAdmissionOperation.Synthetic || operation == NodeAdmissionOperation.Staged { return sem_control_node(context, subject, KOperand); }
+    if operation == NodeAdmissionOperation.Read { return sem_control_read(context, subject, initial); }
+    return sem_control_local(context, subject, initial);
+}
+
+fn semantic_node_storage_trial(operation: NodeAdmissionOperation, allowed: usize, wanted: WorkBudgetError): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Node admission bounded world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, 8);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    // Parser offsets are module-relative; the receipt and synthetic descendants
+    // retain the same canonical source position, including the module base.
+    var source_offset: usize = 73;
+    var module_base: usize = 101;
+    sem_state(&context, context.source_bases, root).number = module_base;
+    sem_get(root).start = source_offset + module_base;
+    var label = operation == NodeAdmissionOperation.Operand ? "42"
+        : operation == NodeAdmissionOperation.Block ? "CoreBlock" : "CoreOperand";
+    var subject = generic_clone_child(store, root, label, null, source_offset);
+    if operation == NodeAdmissionOperation.Operand {
+        parser_match_create(subject).rule = unlimited;
+        context.generics = generic_begin(root);
+        utility_check(context.generics != null, "Operand admission owns its ordinary generic context");
+    }
+    var initial: void* = null;
+    if operation == NodeAdmissionOperation.Read || operation == NodeAdmissionOperation.Local {
+        // These helpers consume a checked initializer and only admit its new
+        // read/local. The enclosing block is already a valid Foundation owner.
+        var block = sem_node_result(&context, subject, KBlock);
+        initial = sem_control_node(&context, root, KOperand);
+        sem_get(initial).type = { scalar: SI32, pointer_bytes: program.pointer_bytes, ..default };
+        sem_get(initial).constant = true;
+        sem_get(initial).bits = 42;
+        utility_check(block != null && initial != null, "Node initializer is admitted before injection");
+    }
+    utility_check(program.resource.error == WorkBudgetError.None && program.error.length == 0, "Node fixture is healthy before denial");
+    if operation == NodeAdmissionOperation.Staged {
+        context.entity_stage = entity_stage_open(root);
+        utility_check(context.entity_stage != null, "Worker-private node stage opens before denial");
+    }
+    var previous_scope = context.scope;
+    var previous_frame = sem_get(root).frame_size;
+    var previous_locals = sem_get(root).locals.length;
+    var previous_items = sem_get(subject) == null ? 0 : sem_get(subject).items.length;
+    var previous_children = entity_child_count(subject);
+    var occupied: WorkReservation = default;
+    if wanted == WorkBudgetError.Capacity {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &occupied)
+            == WorkBudgetError.None, "Node admission denies actual component storage");
+    }
+    var view = wanted == WorkBudgetError.Busy || operation == NodeAdmissionOperation.Staged ? entity_view_open(root) : null;
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var result = semantic_node_call(&context, operation, subject, initial);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if program.resource.error != wanted || (result != null) != (wanted == WorkBudgetError.None) {
+        puts("Node admission: operation, allowed, actual, wanted");
+        generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
+        generic_clone_number(convert(usize, program.resource.error)); generic_clone_number(convert(usize, wanted));
+    }
+    utility_check(program.resource.error == wanted && (result != null) == (wanted == WorkBudgetError.None),
+        "Node producer and direct consumer preserve their exact physical cause");
+    utility_check(context.scope == previous_scope && context.current == root && context.value_depth == 0,
+        "Denied and completed node admission restore lexical context");
+    if occupied.active { utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Node admission pressure release"); }
+    if wanted != WorkBudgetError.None {
+        utility_check(program.resource.offset == source_offset + module_base && program.error_offset == program.resource.offset,
+            "Node admission preserves the canonical module source offset");
+        if operation == NodeAdmissionOperation.Synthetic || operation == NodeAdmissionOperation.Read {
+            utility_check(entity_child_count(subject) == previous_children, "Failed component admission retires its private synthetic owner");
+        }
+        utility_check(sem_get(subject) == null || sem_get(subject).items.length == previous_items,
+            "No failed node or local is published to executable items");
+        if sem_get(root).locals.length == previous_locals {
+            utility_check(sem_get(root).frame_size == previous_frame, "An unregistered local cannot advance its frame");
+        }
+        var before = tower_test_buffer_allocations();
+        var nodes = entity_store_count(store);
+        var count = context.count;
+        tower_test_buffer_fail_after(0);
+        utility_check(semantic_node_call(&context, operation, subject, initial) == null
+            && sem_node_result(&context, root, KOperand) == null
+            && sem_control_node(&context, subject, KOperand) == null
+            && tower_test_buffer_allocations() == before && entity_store_count(store) == nodes
+            && context.count == count && program.resource.error == wanted
+            && program.resource.offset == source_offset + module_base,
+            "Terminal node retries preserve the first cause without allocation, mutation or effect replay");
+        tower_test_buffer_fail_after(unlimited);
+    } else {
+        utility_check(sem_get(result) != null && sem_get(result).start == source_offset + module_base,
+            "Healthy source and synthetic results preserve their source identity");
+        if operation == NodeAdmissionOperation.Operand { utility_check(sem_get(result).constant && sem_get(result).bits == 42, "Ordinary operand checking retains its known value"); }
+        if operation == NodeAdmissionOperation.Read { utility_check(sem_get(result).binding == initial, "Synthetic reads retain declaration identity"); }
+        if operation == NodeAdmissionOperation.Local { utility_check(sem_get(result).value == initial, "Synthetic locals retain initializer order and identity"); }
+    }
+    if context.entity_stage != null {
+        utility_check(entity_child_count(subject) == previous_children, "Private stage nodes cannot publish before the owning join");
+        entity_stage_discard(context.entity_stage);
+        context.entity_stage = null;
+    }
+    if view != null { entity_view_close(view); }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Denied node admission leaves no owner or grant");
+    return calls;
 }

@@ -10,6 +10,8 @@ extern fn strcmp(left: u8*, right: u8*): i32;
 var StageQueueLifecycle: usize = 3;
 var StageQueueCount: usize = 65536;
 var StageQueueRounds: usize = 8;
+var StageQueueSmokeCount: usize = 2;
+var StageQueueSmokeRounds: usize = 1;
 struct StageQueuePayload { references: vector(Entity*); }
 
 var StageResultLifecycle: usize = 1;
@@ -224,8 +226,8 @@ fn stage_queue_cancel(context: void*): void {
     foreach(var &target in &payload.references) { *target = null; }
 }
 
-fn stage_queue_cost(): void {
-    for(var round: usize = 0; round < StageQueueRounds; round++) {
+fn stage_queue_cost(count: usize, rounds: usize): void {
+    for(var round: usize = 0; round < rounds; round++) {
         var store = entity_store_create();
         var root = entity_create(store);
         var type = entity_create(store);
@@ -234,11 +236,15 @@ fn stage_queue_cost(): void {
         var stage = entity_stage_open(root);
         var node = entity_stage_create(stage, root);
         var payload = bits(StageQueuePayload*, entity_component_data(entity_component_add(node, type)));
-        stage_result_check(payload != null && vector_reserve(&payload.references, StageQueueCount));
-        for(var i: usize = 0; i < StageQueueCount; i++) { payload.references.data[i] = target; }
-        stage_result_check(entity_stage_references_cancellable_result(stage, payload.references.data, StageQueueCount,
+        stage_result_check(payload != null);
+        // Component payloads are raw storage. Construct the owned vector before
+        // reserve, cancellation, or the ordinary payload finalizer can see it.
+        *payload = default;
+        stage_result_check(vector_reserve(&payload.references, count));
+        for(var i: usize = 0; i < count; i++) { payload.references.data[i] = target; }
+        stage_result_check(entity_stage_references_cancellable_result(stage, payload.references.data, count,
             stage_queue_cancel, bits(void*, payload)) == WorkBudgetError.None);
-        payload.references.length = StageQueueCount;
+        payload.references.length = count;
         var view = entity_view_open(root);
         stage_result_check(entity_release(target) == 0 && entity_stage_hold_result(stage) == WorkBudgetError.None
             && target.references == payload.references.length && entity_stage_hold_result(stage) == WorkBudgetError.None
@@ -253,11 +259,14 @@ fn stage_queue_cost(): void {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    if argc == 2 && strcmp(argv[1], "queued") == 0 { stage_queue_cost(); return 0; }
+    if argc == 2 && strcmp(argv[1], "queued") == 0 { stage_queue_cost(StageQueueCount, StageQueueRounds); return 0; }
     stage_result_lease();
     // The optional argument preserves the pre-change ordinary workload for a
     // checked before/after cost sample; the default always runs new coverage.
-    if argc == 1 { stage_result_holds(); }
+    if argc == 1 {
+        stage_result_holds();
+        stage_queue_cost(StageQueueSmokeCount, StageQueueSmokeRounds);
+    }
     var store = entity_store_create();
     stage_result_check(store != null);
     var state: StageResultState = default;

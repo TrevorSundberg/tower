@@ -196,3 +196,70 @@ main89d60388 plus recorded A2/D1/D2 patches passes three LR and one query-smoke
 TSan runs (`lr_tsan_{1,2,3}.log`, `lr_tsan_query_smoke.log`). Later dispatcher/world
 changes, B1's separate parser delta, execution/session/constructor paths and the
 final integrated compiler require their own frozen-input checks.
+
+## Final storage ownership receipt (2026-11-23)
+
+The entity/store/index/view/stage producer closure at published
+`42c1e1422e85f9304c422ae28a5050f27c9d7610` passes the focused LLVM19 address/leak
+and thread milestone. Two fixture corrections accompany this receipt; no
+production owner or allocator changed. `entity_component_layout` now validates
+each payload grant's exact size and live-to-stale retirement, allowing the
+separately charged descriptor/index owners. ASan also found a real SEGV in
+`entity_stage_result`'s optional queued stress: its raw component payload's vector
+was not initialized before reserve. The fixture now initializes it explicitly
+and runs a two-reference smoke case from its normal entry point. The original
+failure, binary and instrumented IR are preserved. Earlier queued-cost samples
+do not establish correct initialization; the accepted compiler/storage timings
+did not execute this optional queued case.
+
+Each mode has 26 successful final process receipts over these 14 executables:
+
+- `tower-entity-{accounting,stage-result,stage-concurrent,component-budget,component-layout,page-reuse,stage-reentrant,attach-leases}-tests`.
+- `tower-work-{buffer,buffer-shared,arena,arena-shared,arena-linkage,budget-shared}-tests`.
+
+Accounting runs both `cap` and `profile`; stage-result runs normal and `queued`.
+The five concurrent fixtures (stage-concurrent, component-budget, buffer-shared,
+arena-shared, budget-shared) each run three times with production allocation and
+real worker transport. Their existing barriers, distinct-thread checks and
+ownership oracles cover overlap, leases/pinning, cancellation and joined handoff.
+Serial work-vector checks and private stage queues cover vector ownership;
+serial allocation-failure transport is not used as concurrency evidence.
+Both modes retain the genuine exhausted-store `Capacity` denial, exact
+45,567B physical/charged census, zero omitted bytes and final zero grants.
+
+Both actual link closures contain 16 instrumented Tower objects: 14 fixtures,
+the guest runtime and the separate arena provider. Undefined memory-access
+hooks (`__asan_report_load/store*` or `__tsan_read/write*`), linked sanitizer
+initializers, and the five concurrent executables' dynamic `work_thread_entry`
+exports were checked. Actual link commands/inputs, import depfiles, original and
+instrumented IR/object/executable hashes are retained; the configured manifest
+alone was not treated as execution evidence.
+
+Evidence directory:
+`C:/Sandbox/build/codex_ecs_20261122/A2/cache/logs/storage_ownership_42c1e142`.
+`passing_cases.csv` selects the 26 zero-exit receipts per mode, including reused
+unchanged ASan checks; failed attempts remain separate. `final_receipts.sha256`
+pins the source, artifact, toolchain and case manifests. Exact source identities:
+
+| Input | SHA256 |
+| --- | --- |
+| Frozen source manifest, including the two corrected fixtures | `bb38d0767dd83e09b340f7068e8bd4a9160209b7c5c0b1199ce88642408b02d3` |
+| `entity_component_layout.tower` | `59669a089d025c3dcb8d3d7c43286fd823001031c5d0f546f64b45dc29fbd0ae` |
+| `entity_stage_result.tower` | `1c35f82ad9b026f8f69c2ae527ad296c97c34e03cae6ceea79f492624131d9bc` |
+
+Reused separate `native_address_joined`/`native_thread_joined` caches, public
+bootstrap SHA256 `9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`,
+LLVM/Clang19.1.1, CPU12–23, 24GiB, build jobs2/compiler jobs1.
+`ASAN_OPTIONS=detect_leaks=1:halt_on_error=1` and `TSAN_OPTIONS=halt_on_error=1`.
+The temporary TSan container used network-none and the documented per-container
+seccomp accommodation with unchanged limits; no system security setting changed.
+All owned jobs exited. Production code/performance is unchanged; instrumented
+test costs in the journal are not production scaling measurements.
+
+This closes the selected storage milestone, not integrated compiler/query/browser
+or publication gates. ROOT may reuse it when these actual producer/test inputs
+remain unchanged. The historical negative-control receipts and current missing-
+provider sensitivity limitation above remain explicit: no invalid probe was
+rerun. Source-language UBSan and other-host sanitizer coverage remain unsupported.
+Physical allocation checks do not prove every pooled-slot lifetime or universal
+race freedom.

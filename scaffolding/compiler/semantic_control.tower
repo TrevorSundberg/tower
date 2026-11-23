@@ -9,6 +9,7 @@ import semantic_types;
 import semantic_values;
 import semantic_flow;
 import .library.vector;
+import .library.work_budget_types;
 
 // Control-flow outcomes are a private analysis bit set, not program opcodes.
 var FlowStop: u32 = 0;
@@ -91,16 +92,30 @@ fn sem_control_name(c: SemanticContext*): u8* {
     }
 }
 
-fn sem_control_node(c: SemanticContext*, parent: void*, kind: u32): void* {
-    var entity = c.entity_stage == null ? sem_create(parent): entity_stage_create(c.entity_stage, parent);
-    sem_require(entity != null);
-    sem_node(c, entity, kind);
+export fn sem_control_node(c: SemanticContext*, parent: void*, kind: u32): void* {
+    if !sem_ok(c) { return null; }
+    var error: WorkBudgetError;
+    var entity = c.entity_stage == null ? sem_create_result(parent, &error)
+        : entity_stage_create_result(c.entity_stage, parent, &error);
+    if entity == null {
+        var position = sem_node_offset(c, parent);
+        sem_resource_record(c.program, error, position);
+        c.program.error_offset = position;
+        return null;
+    }
+    if sem_node_result(c, entity, kind) == null {
+        // A stage owns its queued nodes until joined publication/discard. The
+        // coordinator-created private child can retire immediately.
+        if c.entity_stage == null { sem_require(entity_attach_result(entity, null, null) == WorkBudgetError.None); }
+        return null;
+    }
     return entity;
 }
 
 export fn sem_control_read(c: SemanticContext*, parent: void*, local: void*): void* {
     if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, parent, KOperand);
+    if entity == null { return default; }
     var value = sem_get(entity);
     value.binding = local;
     var binding = sem_get(local);
@@ -111,11 +126,12 @@ export fn sem_control_read(c: SemanticContext*, parent: void*, local: void*): vo
 fn sem_control_literal(c: SemanticContext*, parent: void*, bit: u64): void* {
     if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, parent, KOperand);
+    if entity == null { return default; }
     var value = sem_get(entity);
     sem_set_type(&value.type, sem_type_new(c, SBool, 0, null));
     value.constant = true;
     value.bits = bit;
-    return entity;
+    return sem_ok(c) ? entity : null;
 }
 
 export fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
@@ -134,6 +150,7 @@ export fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): 
         }
     }
     var entity = sem_control_node(c, block, KDeclare);
+    if entity == null { return default; }
     var value = sem_get(entity);
     if !sem_set_name(c, value, sem_control_name(c)) { return default; }
     sem_set_type(&value.type, &initializer.type);
@@ -154,10 +171,12 @@ export fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): 
 fn sem_control_branch(c: SemanticContext*, block: void*, condition: void*, body: void*): void* {
     if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, block, KIf);
+    if entity == null { return default; }
     var value = sem_get(entity);
     value.value = condition;
     value.body = body;
     value.otherwise = sem_control_node(c, entity, KBlock);
+    if value.otherwise == null { return default; }
     var owner = sem_get(block);
     if !sem_push_checked(c, &owner.items, entity) { return default; }
     return value.otherwise;
@@ -166,6 +185,7 @@ fn sem_control_branch(c: SemanticContext*, block: void*, condition: void*, body:
 fn sem_control_equal(c: SemanticContext*, block: void*, subject: void*, pattern: void*): void* {
     if !sem_ok(c) { return null; }
     var entity = sem_control_node(c, block, KBinary);
+    if entity == null { return default; }
     var value = sem_get(entity);
     value.op = OEq;
     value.left = sem_control_read(c, entity, subject);
@@ -237,7 +257,9 @@ fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool
         if !sem_ok(c) { return false; }
         if multiple {
             var hit = sem_control_node(c, block, KBlock);
+            if hit == null { return default; }
             var store = sem_control_node(c, hit, KAssign);
+            if store == null { return default; }
             var assignment = sem_get(store);
             assignment.target = sem_control_read(c, store, selected);
             assignment.value = sem_control_literal(c, store, 1);
@@ -288,7 +310,7 @@ fn sem_control_match_value(c: SemanticContext*, n: void*, depth: u32, state: Sem
     if !sem_shape(c, fallback, "body") {
         return false;
     }
-    sem_node(c, n, KBlock);
+    if sem_node_result(c, n, KBlock) == null { return default; }
     state.arms = arms;
     state.patterns = sem_list(c);
     if !sem_ok(c) { return default; }
@@ -352,8 +374,10 @@ fn sem_control_while_value(c: SemanticContext*, n: void*, state: SemanticLoopCur
     if !sem_ok(c) {
         return false;
     }
-    var value = sem_node(c, n, KLoop);
+    var value = sem_node_result(c, n, KLoop);
+    if value == null { return default; }
     var block = sem_control_node(c, n, KBlock);
+    if block == null { return default; }
     value.body = block;
     var known = sem_get(condition);
     var guard = condition;
@@ -379,6 +403,7 @@ fn sem_control_while_finish(c: SemanticContext*, n: void*, state: SemanticLoopCu
     var otherwise = sem_control_branch(c, block, guard, body);
     if !sem_ok(c) { return FlowStop; }
     var stop = sem_control_node(c, otherwise, KBreak);
+    if stop == null { return default; }
     var failure = sem_get(otherwise);
     sem_push_checked(c, &failure.items, stop);
     var result = flow &FlowReturn;
@@ -419,7 +444,7 @@ fn sem_control_for_scope(c: SemanticContext*, n: void*, depth: u32, state: Seman
         sem_fail(c, n, "for lowering exceeds Foundation block nesting limit of 128");
         return false;
     }
-    sem_node(c, n, KBlock);
+    if sem_node_result(c, n, KBlock) == null { return default; }
     state.saved = c.scope;
     var scope = sem_scope(c, state.saved);
     if !sem_ok(c) { return default; }
@@ -454,6 +479,7 @@ fn sem_control_for_tail(c: SemanticContext*, n: void*, state: SemanticLoopCursor
     if sem_child_count(step_syntax) != 0 && sem_ok(c) {
         c.surface_expressions = true;
         update = sem_control_node(c, n, SurfaceDiscard);
+        if update == null { return; }
         sem_get(update).value = sem_surface_discard(c, sem_child(step_syntax, 0));
     }
     state.condition = condition;
@@ -485,14 +511,18 @@ fn sem_control_for_finish(c: SemanticContext*, n: void*, state: SemanticLoopCurs
     }
 
     var loop_node = sem_control_node(c, n, KLoop);
+    if loop_node == null { return default; }
     var block = sem_control_node(c, loop_node, KBlock);
+    if block == null { return default; }
     sem_get(loop_node).body = block;
     var repeats = flow &FlowContinue;
     if update != null && repeats != 0 {
         var first = sem_control_local(c, n, sem_control_literal(c, n, 1));
         if !sem_ok(c) { return FlowStop; }
         var start = sem_control_node(c, block, KBlock);
+        if start == null { return default; }
         var store = sem_control_node(c, start, KAssign);
+        if store == null { return default; }
         sem_get(store).target = sem_control_read(c, store, first);
         sem_get(store).value = sem_control_literal(c, store, 0);
         sem_push_checked(c, &sem_get(start).items, store);
