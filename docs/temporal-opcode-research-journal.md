@@ -83959,3 +83959,11 @@ compiler/WASI acceptance is not inferred from old artifacts. No broad rerun or
 repackaging chase. Native-generation mismatch remains the one checkpoint blocker;
 all complete candidate/overlay/failed and passing receipts remain external for
 ROOT. Normal main push follows, then this bounded task exits.
+
+D2 layout integration: implementation `f7a201e0` merged complete published
+`130bde3c` as `d5ee412b`, preserving upstream journal/test documentation and all
+merge ancestry. All16 depfile-listed Tower inputs, the public compiler and both
+linked binary/runtime hashes remain identical; the four focused run receipts
+therefore apply to the merged fixture without another build. Diff whitespace
+checks and preserved todo hash pass. No runtime release or sanitizer claim;
+ROOT's concurrent compiler/backend changes are outside this fixture's closure.
