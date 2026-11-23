@@ -1,0 +1,15 @@
+import tower;
+import type_object_index_types;
+import foundation_types;
+import .library.work_budget_types;
+
+// Supply the same frozen budget on every call; null is an explicit standalone
+// boundary. Zero means failure, with the first error retained until disposal.
+// Denied growth preserves old entries and their grant until the owner retires.
+extern fn type_object_index_intern(index: TypeObjectIndex*, budget: WorkBudget*, type: FoundationType*): u64;
+extern fn type_object_index_dispose(index: TypeObjectIndex*): void;
+
+// Consume the semantic answer only when the status is None. Resource failure
+// must not become a false ABI-safety or program-preservation decision.
+extern fn type_object_abi_safe_result(type: FoundationType*, budget: WorkBudget*, safe: bool*): WorkBudgetError;
+extern fn type_object_program_result(root: void*, budget: WorkBudget*, contains: bool*): WorkBudgetError;

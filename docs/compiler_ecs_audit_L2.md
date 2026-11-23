@@ -712,3 +712,78 @@ this failure; do not claim late generic-inspection denial or the remaining matri
 The original test-import linkage failure, corrected thin ABI, exact current
 hashes, timing/RSS and failed status are preserved in the journal. Final complete
 source instrumentation and public pin/deployment acceptance remain open.
+
+## Clone concurrency fixture follow-up on root0c8 / bb1a0af
+
+Reviewed the entire generic_clone_parallel.tower after D2's first actual
+two-worker interval-overlap failure. It still dispatches the production clone
+kernel through the existing pool with frozen input, private stages, access ranges,
+tickets and synchronized shared ledger. The admission barrier is outside the
+kernel timestamps. New reports preserve actual intervals and distinct thread IDs;
+the overlap rejection now follows stage/world/grant retirement. Calibration uses
+fully checked serial clones before admission, bounded by the existing expansion
+allowance, and never substitutes for measured overlap. No new compiler algorithm,
+queue, clock boundary or allocator instrumentation was introduced.
+
+Diagnostic-only2048-node baseline shows submillisecond kernels; the bounded
+calibration selected8192 nodes on this host in three complete query passes, with
+actual2/4-worker overlap, cancellation/failed-peer/stale-ticket coverage and exact
+metadata/cleanup. Frame peaks are unchanged; increased suite time/RSS and exact
+source/binary/log identities are in the journal. The original D2failure remains
+recorded. Crosshost/current instrumented validation is still required, and a
+passing finite sample cannot guarantee overlap under every scheduler delay.
+
+## Type-storage continuation draft after9bdbc81
+
+The following is implementation under review, not caller or release acceptance.
+It adds three production paths to the owned audit (two new files and one existing
+file changed). No canonical entity, nominal equality or traversal order changes.
+
+| Path under scaffolding | Full-file review and ownership | Evidence / remaining work |
+| --- | --- | --- |
+| compiler/type_object_index_types.tower | One invocation-private WorkVector owner plus fixed first-error receipt. Descriptors borrow retained canonical roots; copying the owner does not transfer its allocation. Four-byte index representation remains explicit. | Public predecessor smallest passes through implementation/fixture; graph/fast state adoption and dependent ABI rebuild pending L1. |
+| compiler/type_object_index_api.tower | Declaration-only index intern/dispose and two fallible traversal operations. Every intern call supplies the same frozen budget, including existing-entry hits. Semantic boolean output is usable only on None. | L1 reviewed the API; A1 ABI/B2 driver typed-error propagation and D2 actual import/export closure still pending. |
+| compiler/type_objects.tower | Existing semantic identity scan retained. New index validates owner before lookup, preserves old allocation on denied growth, and latches first error. ABI/program scratch uses shared WorkVector with explicit budget and deferred cleanup. Legacy vector/bool entry points remain compatible with explicit null-budget boundaries. | Public smallest passes; prior known-correct type/ABI/reachability suite is the independent semantic oracle. New runtime failure fixture, paired query profiles, caller migration and current instrumentation remain open. Legacy wrappers are not claimed as bounded compiler paths. |
+| tests/type_object_storage.tower | Serial existing-storage-runner fixture uses actual nominal entities and bound recursive calls. It covers widths4/8, start/growth Capacity and Memory, same-budget-on-hit enforcement, semantic identity, first-error preservation and cleanup. Both traversal queries measure successful allocation prefixes and peak, then deny every allocation and the peak-minus-one capacity. | Current expanded fixture smallest passes. Proposed two-line existing runner hook awaits D1 coordination; fault execution remains unrun. Fault transport remains serial and is not race evidence. |
+
+The complete review of semantic_type_execution, semantic_generic_body_work and
+semantic_constructor_work also identifies remaining sem_require calls at
+fallible graph/dispatch boundaries. A2's proposed typed graph errors and A1's
+coordinator error/drain helpers must be joined consistently before changing these
+owned pumps. In particular, TypeExecution currently writes the request receipt
+before terminal graph completion, and GenericBody assumes dispatch success.
+No new failure-handling pass or resource completeness is inferred from the
+successful old graph contract. This next migration is explicitly still open.
+
+The coherent current native compiler ea8daf26 and matching LR/execution/profile
+runners pass query-smoke, required type-smoke and the full type execution suite.
+This independently preserves ABI rejection, ordinary/staged type identity,
+constructors, both widths, canonical reconstruction and worker determinism while
+legacy wrappers now call the fallible traversal implementation. It does not
+execute the new TypeObjectIndex owner or fault fixture. Eight matched profile
+processes preserve all exact outputs/canonical graphs and entity/component counts;
+sampled query medians and process RSS show no observed regression, with material
+large-query timing variation and intervening owner changes explicitly retained in
+the journal. No general speedup, whole-program byte accounting, current sanitizer
+or release acceptance is claimed. The new root97b inspection history and L1 frame
+history are not part of these frozen runtime/profile receipts.
+
+## Registered TypeIndex fault gate on7d223
+
+ROOT03:18:50 assigned L2 the exact reviewed a4cf282a two-line storage_main hook.
+It is now applied, retaining the serial allocator host guard and all older tests.
+The fixture's width, nominal identity, typed failure and ownership audit above is
+unchanged. Execution remains pending a coherent build in the next agreed host
+slot. ROOT97b's inspection fix and L145dd's frame/task layout are now integrated;
+the earlier ea8daf26 runtime/profile receipt does not validate these newer inputs.
+
+The gate now has actual runtime evidence: first81690 fails because the fixture
+reinitialized a disposed budget with the same revision. The fixture now advances
+the retained revision, preserving stale-receipt rejection. Corrected34805 passes
+public leaf, two-step existing-target rebuild and all three serial executions;
+full source hashes match. Both target widths cover all index cases and every
+measured traversal allocation prefix, nominal entities and zero retained grants.
+ABI scratch is3 allocator calls/320 peak charged bytes; reachability is5/544.
+The exact source/binary, failure and corrected timing/RSS receipts are preserved
+in the journal. This validates the new API's physical-failure fixture, separately
+from still-pending caller adoption, shared resource ABI and instrumentation.

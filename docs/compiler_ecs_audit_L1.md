@@ -1,5 +1,39 @@
 # L1 execution ownership audit
 
+Current counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
+execution and package boundaries even when presentation text is absent. Public
+leaves, coherent rebuild and six native gates pass, including first-error/replay
+and canonical-package regressions at both pointer widths. Current paired
+performance and supported instrumentation are pending; frontend producer
+integration, remaining allocation owners and final release gates stay open.
+Independent ROOT review rejected e3's assumption that frontend diagnostics are
+NUL-terminated. Both valid counted-buffer regressions reproduce that failure on
+e3 and pass after the explicit-length correction. Earlier e3 passes/profiles keep
+their original source identity and do not establish this corrected contract.
+
+Earlier f46b3e2 uses the shared budgeted TypeObjectIndex in graph and fast execution.
+Four public-bootstrap leaves, five native gates, ten new caller cases,100 checked
+profile/control processes, six address/leak gates and six thread gates pass on
+that frozen source. Actual four-unit overlap4 and canonical output agree. Narrow
+fast controls retain about2%/1% small/large wall-time cost; broader variance and
+occasional non-CPU gaps outside compilation remain explicit in the journal.
+
+Earlier frame/task checkpoint: main15ff plus the six-file WorkVector change
+passes a coherent native rebuild and query/storage/control/units/backend-overlap/
+aggregate/types checks. The existing low-level storage fixture passes three times,
+including physical denial, exact rollback and retained child-owner cleanup.
+FastInterpreter's graph handoff disposes the matching new owners. All 64 paired
+profile processes preserve outputs and canonical hashes. Large call-heavy runs
+cost about 2-3% end to end; separate phase timing shows about 7.5% execution cost.
+Two slow process exits outside compilation did not recur in twelve Linux-local
+output controls; their original measurements remain recorded, cause unproven.
+Current e68 thread instrumentation passes three query runs, two four-unit runs
+with actual outer overlap and identical canonical hashes, and full aggregate
+execution. The latter finishes in533.78s within its unchanged600s bound. This
+does not cover later merged sources, native UBSan or foreign libraries. Integrated
+memory instrumentation/bootstrap/browser/publication remain pending. Preserve
+older evidence below as historical; see the journal for identities and limits.
+
 This is an in-progress audit of `6282238779034442e0578d76b921ca117df819f1`,
 begun on 2026-11-22. It is not an acceptance or publication receipt. Paths below
 are relative to `scaffolding/compiler/` unless qualified. Tests cited here are
@@ -7,14 +41,22 @@ existing coverage identified by reading; fresh results are recorded separately.
 
 ## Contracts and sources
 
-The 83832b0 checkpoint contains the three physical interpreter buffer owners and
-typed storage-failure receipt. The receipt's smallest units pass; the matching
-A1 semantic coordinator hook remains pending, so this is not full runtime
-acceptance. Subsequent source integration adds D1's defined initialization-order
-oracle, numeric fixture imports and serial snapshot selector/root wrapper, plus
-A2's two arena modules and explicit nominal imports. Five smallest public-pin
-units pass with frozen inputs. Startup denial now also covers the second buffer
-and its partial owner; that extra query unit compiles but has not run yet.
+The current coherent snapshot is b8dfc67 plus A1's exact resource-error hook
+76e1a971. Compiler 452f2fc0 passes independent resource failure checks three times
+and query, units, backend overlap, serial snapshot/parser, known bindings,
+aggregate stages, types, narrow integers and negation. The query now covers both
+startup buffers and partial-owner cleanup. All source hashes remain frozen;
+earlier failed receipts remain historical evidence. Resource tests check two
+peers and drain at requested worker counts 1/4; actual overlap is established
+separately by the production unit/backend controls. Paired 1f37-to-452f measurements
+preserve every output and show small timing changes: serial effects 1.43 to 1.40s,
+serial aggregates 1.41 to 1.44s, four-worker cases 1.19/1.21 to 1.17/1.18s.
+No large regression appears in these two workloads; the serial aggregate cost
+and all samples remain recorded. On this snapshot, TSan query checks pass three
+times, production units pass, and the separately instrumented resource fixture
+passes three times. Backend overlap fails its existing deadline under TSan;
+the later aggregate/type/known checks did not run. This remains a coverage gap,
+alongside final union instrumentation/public bootstrap/browser/publication.
 
 Read the compiler services and ECS/threading handoff with the journal's newer
 type-value continuation. Production helper readiness uses `IMFunctionInput`;
@@ -288,3 +330,79 @@ final joined instrumentation and performance/allocation coverage, while L2
 independently validates the newest portable harness. Historical helper/readiness/aggregate bugs are not restated as
 unimplemented capabilities. No deliberate invalid-memory/race sensitivity probe
 will be repeated; supported valid-program instrumentation remains required.
+
+### Remaining execution allocation scope after e68e2b2
+
+The preceding rows retain their historical snapshot identities. Current memory,
+initialization/input, frame and task owners have shared physical receipts; native
+seven-suite and exact rollback/reuse checks pass. Frame/task cost and source-specific
+instrumentation limits are recorded in the latest journal entry.
+
+Remaining work is concrete: graph value/address/heap/string/sequencing maps,
+node/function/type indexes, fast-cache arrays and diagnostic/opaque owners still
+have separate allocation boundaries. L2's proposed TypeObjectIndex is the next
+shared dependency; its resource result must survive graph/fast consumers and
+optional semantic queries. No API draft is credited as implemented. Incoming
+resource-growth tests must prove they reach the nested allocation after the newly
+charged entry owners. Current supported instrumentation, merged source rebuilds,
+public-bootstrap/generation/browser closure and leased publication remain open.
+
+### Type-value owner migration after the frame/task milestone
+
+The six-path11f6b5b6 caller patch now uses L2's shared TypeObjectIndex in graph and
+fast engines. Its descriptors remain borrowed canonical Foundation types; private
+one-based indexes never become another semantic graph. The world budget is passed
+on every intern request, including existing-value hits. Both graph interning sites
+retain the first resource error, failed constructor delivery stays unconsumed, and
+fast construction disposes its partial cache before returning a failed session.
+Capacity-owned graph scheduling storage remains available for normal failed-session
+disposal. Retained index reads, disposal and fast payload statistics use the shared
+owner layout. Existing semantic evaluation already preserves storage_error before
+optional source-diagnostic clearing. Both implementation imports remain present.
+
+Four public-bootstrap leaves, a coherent14-step native rebuild, the new ten caller
+cases at32/64bits, query/type smoke, full types, and calibrated exact-object overlap
+all pass on c1560f8 plus this patch. Complete ad79 baseline binaries/resources were
+saved before adoption. Journal/raw receipts retain exact hashes, costs and the
+concurrent-validation qualification. L2 reviewed the full caller patch. Its newly
+registered serial Memory-prefix suite is separate and still awaiting actual exit;
+paired performance and current instrumented gates are pending, not passed.
+
+The remaining map/cache/diagnostic/opaque owners in the previous section still
+need closure. Node-cache accounting additionally requires binding the budget before
+invocation_init's first cached function lookup; no such migration is claimed here.
+The newly coordinated SemanticProgram.resource receipt also requires an execution
+session success-boundary update after its exact shared header lands. Neither this
+native milestone nor the earlier frame/task sanitizer receipt is final merged
+bootstrap/browser/generation/hosted acceptance.
+
+The frozen f46 milestone now also has100 checked before/after profile processes,
+six address/leak gates and six thread gates, all completed successfully. The small
+and large fast controls retain roughly2%/1% median end-to-end costs and wider
+original variance; unexplained external delays occurred in both binaries and are
+preserved. Actual four-unit overlap reaches4 with unchanged canonical output and
+reported retention. Instrumented calibrated backend checks preserve exact objects
+and distinct-worker overlap. Source manifests and actual generated IR/binary hashes
+are retained; foreign libraries/native Tower UBSan remain outside coverage.
+L2's corrected301 fixture independently passes three serial allocation-prefix
+suites with unchanged production API; its new source hook still awaits adoption
+here. These receipts supersede the preceding pending labels only for their exact
+source scopes. Shared resource consumer and remaining map/cache work stays open.
+
+### Fixed semantic resource receipts at execution boundaries
+
+The execution_session compile/start/cache/step gates and execution_package encode
+now honor A1's shared SemanticProgram.resource independently of optional diagnostic
+text. Static shared fallback messages and the first offset remain available; an
+already failed session cannot acquire a later error's text or resume after text is
+cleared. Error-report allocation failure preserves failed/done and package false/
+zero-output, without aborting to format the failure. Existing ordinary diagnostics
+and recoverable guest allocation-null behavior retain their contracts.
+
+Final own patchafb3cc69 plus exact A1V2b255 atop ROOT72/L2301 passes public leaves,
+coherent native rebuild and six native gates including full execution/canonical
+packages and actual backend overlap. New fixtures cover both pointer widths,
+empty/present diagnostics, no effects/replay, root cleanup and clean recompile.
+Actual diagnostic allocator denial and full frontend producer integration remain
+separate evidence gaps; hand-seeded shared receipts do not prove those producers.
+Current performance/instrumentation and final publication are still pending.
