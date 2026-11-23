@@ -81125,3 +81125,16 @@ history and replayed only this journal entry without conflict. Incoming changes
 touch frontend admission and documentation, not the reviewed stage/provenance
 contract. `git diff --check` and the scoped documentation diff remain the
 applicable validation; no runtime evidence is relabeled for the merged source.
+
+Post-commit integration: layout0ecf31c2 merged published53d63157 as41b8031d,
+preserving both journal histories with no owned-code changes. Incoming frontend
+module/unit admission changed provider inputs, so merged57986 rebuilt six real
+dependency actions:30.94wall/47.93CPU seconds/747532KiB. Full storage
+(.29/.23/99532), query-smoke(.19/.22/74776) and constructor --jobs1/4 exact0
+oracles all passed, with empty stderr and source manifest0. The first merged OS
+wrapper failed before starting a build because its quoted path included its
+argument; that original wrapper/output is preserved, then corrected merged1 ran.
+No production change or skipped check was hidden. Earlier baseline comparison
+retains its measured source identity. This receipt is documentation only; no new
+runtime measurement applies. All owned jobs drained; normal main push follows,
+with ROOT deployment and the explicitly listed remaining chains still pending.
