@@ -334,7 +334,9 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             c.integer_arguments = true;
             defer { c.integer_arguments = previous; }
             sem_executables_begin(c);
+            if !sem_ok(c) { return false; }
             sem_captures_begin(c);
+            if !sem_ok(c) { return false; }
             var value = sem_operand(c, result.subject, sem_type_new(c, SType, 0, null));
             if !sem_ok(c) { return false; }
             var output = sem_evaluation_node(c, result.subject);
