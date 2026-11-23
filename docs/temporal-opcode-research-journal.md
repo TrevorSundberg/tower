@@ -80260,3 +80260,32 @@ Commands/logs: a1_flow_merged_build.log, a1_flow_merged_checks.sh,
 a1_flow_merged_fixture.log, a1_flow_merged_query_smoke.log. Existing backups
 still match ROOT's three committed entity-stage files exactly. Final publication
 for this bounded task is normal main push only; gh-pages remains ROOT-owned.
+
+### 2026-11-23 D1: bounded grammar/generic fixture audit at b0421447
+
+Fully reviewed grammar_builder_results.tower (166 lines) and
+generic_result_storage.tower (243 lines) against actual builder/UTF8/regex,
+registry/instantiate/lifecycle producers and default frontend/storage registration.
+The D1 audit records exact ownership, sticky first causes, measured fault extents,
+physical-budget pressure, retry/cleanup and cache identity assertions. No source
+regression found; existing parser/default and storage/default callers suffice.
+UTF8 rollback permits retained capacity; clone-work counter rollback, full grammar
+round trips, real threaded cancellation/stale results and staged body execution
+are not established by these fixtures. Production helper readiness remains the
+implemented shared producer, not the historical handoff gap.
+
+SteamDeck Linux, thread01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3035169.
+Owned jobs were drained before integration. Required
+`git pull --rebase=merges --autostash --ff-only` exited128 on divergent histories;
+verified supplied full ROOT bundle SHAe25f1456 and merged complete origin/main
+without conflicts as c3eb1b4997c7580bd75fad9b31384b7b6c15f8c3. Both requested
+fixtures, reviewed producers and registration files match b0421447 exactly.
+Direct Git census advances540/1129 to542/1131 at b042, then543/1132 in the
+merged tree; semantic_flow_checks is the additional path, outside this review.
+Older file receipts retain their original identities; A2's global roster is untouched.
+The be0d123bb eight-line stale-ticket change, native logs and todo are preserved.
+Documentation-only checks: tree/set and unchanged-input comparisons, scoped diff
+and whitespace validation. No runtime input changes, hence no profile/build/test
+rerun; no sanitizer/bootstrap/browser/deployment pass claimed. Normal main push
+and final commit/check receipt belong in existing D1 status; ROOT retains release
+verification. No old goal, polling or new worker is started for this bounded task.

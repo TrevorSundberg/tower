@@ -3026,3 +3026,86 @@ unapplied, and avoids repeated archives/duplicate leaf compilations. The92
 completed results remain valid; deferred or timed-out gates do not become passes.
 Current fixtures/production source are unchanged. Both jobs drained and own host
 lock released13:43:59. The standalone negative probe remains unchanged/unexecuted.
+
+### Bounded grammar/generic result review at b0421447
+
+Reviewed every line of the two paths below at
+`b04214474ac14588abffea1c6c27b2a0b2ebb2ed`. Both fixtures, their named producers
+and the registration chain below are unchanged in the integrated D1 tree
+`c3eb1b4997c7580bd75fad9b31384b7b6c15f8c3`. This is independent source review,
+not a new execution receipt. No fixture regression requiring correction was found.
+
+| Assigned path | Substantive findings and disposition |
+| --- | --- |
+| scaffolding/tests/grammar_builder_results.tower | All166 lines reviewed. Uses production GrammarBuilder/regex/string result APIs and explicitly owned one-lane worlds/kinds. Init failure is deliberately consumed through the sticky finish result; successful finish transfers the root, failure releases the partial tree. The test warms storage, measures actual allocation calls, sweeps denied prefixes, releases returned roots and checks node/component/buffer baselines. Busy is exercised with a real pinned root; null names/kinds and an unregistered kind exercise Invalid and first-cause retention. A separately budget-bound world reserves its actual remaining allowance, checks exact Capacity and the surviving pressure grant, then releases pressure and retries before world/budget disposal. UTF8 cases distinguish malformed/count-overflow Invalid from allocation failure, check logical rollback and a valid scalar. Array extents derive from sizeof; scalar233 and range97..122 are fixture data. Preserve without edits. |
+| scaffolding/tests/generic_result_storage.tower | All243 lines reviewed. Four ordinary production operations (begin/register/eager/deferred instantiate) each use a fresh bounded world owned by GenericCloneFixture; argument/definition/root share its store. Width/depth2/2 describe fixture shape. Allocation counts and actual remaining budget determine fault sweeps/pressure; instantiate paths leave the measured CloneFrame allocation allowance. Failed operations require unchanged node/component/root-child counts, then clear the retained generic diagnostic and retry. Registration checks the actual type parameter; eager/deferred instances check body readiness and child count. A repeated specialization must return identical cached identity without allocation or another root child. Invalid ownership/arguments, pinned Busy and ID Exhausted are distinguished; Register deliberately omits exhaustion because attaching its component need not create an entity. Lifecycle cases measure actual context/registry ID demand, force each begin boundary through semantic_compile_budget at target widths4/8, and preserve an earlier Capacity receipt/offset over later Exhausted. Roots/programs retire before restoring IDs; world disposal precedes budget disposal and zero-grant/buffer assertions. Preserve without edits. |
+
+Producer and caller review:
+
+- `grammar_builder.tower` retains the first error, uses typed entity/component/
+  attachment results, and consumes the builder root at finish. Ordered children
+  and named captures remain the existing grammar entities. `regex_grammar.tower`
+  uses this same builder and finalizer, including its ASCII-array bounds.
+  `parser_nodes.tower::node_string_append_result` rejects count overflow before
+  reserving, but reserves before decoding: malformed UTF8 rolls back logical
+  length, not necessarily capacity or bytes outside the live prefix. Raw string
+  vectors are not claimed fully charged to the world's physical ledger.
+- `generic_registry.tower::generic_begin_result` prepares registry/type ownership
+  before publishing the root context component. `generics.tower` validates store
+  and admission state, attaches a completed instance before linking it into the
+  context, and releases unpublished clones on failure. The specialization cache
+  is a derived identity index over world-owned components, not another AST or
+  global type registry. CloneStack uses the owning world budget; deferred bodies
+  retain their source through the existing instance contract.
+  `generic_clone_fixture.tower` explicitly takes ownership of the supplied world.
+  `semantic_lifecycle.tower` disposes its context on early generic-begin failure;
+  `semantic_context.tower::sem_resource_record` preserves the first cause/offset.
+- `parser_failures.tower::parser_failure_tests` calls the grammar fixture. The
+  `frontend_main.tower` default and `parser` selector reach it; `allocations`
+  returns earlier. `cmake/TowerFrontendFocused.cmake` already registers the
+  default `tower-frontend` CTest with the instrumented allocator provider.
+  `generic_clone_storage.tower::generic_clone_storage_tests` calls the generic
+  fixture; `storage_main.tower` default reaches it and explicitly requires the
+  single-owner transport. Its `runtime-faults` selector returns earlier.
+  `cmake/TowerStorageTests.cmake` already registers default `tower-storage`.
+  Neither fixture needs another generic harness registration.
+
+Coverage limits: these are serial allocation/admission/retirement oracles, not
+parallel scheduling, cancellation, stale-ticket, alias/frame-capture or canonical
+serial/parallel equivalence tests. Only the generic lifecycle subcases explicitly
+vary target width. Neither fixture executes staged type bodies or proves branch
+dependency/cycle behavior. Stable entity/component payloads and ordered links
+are exercised; contiguous string/clone scratch does not demonstrate packed ECS
+payloads, locality, fragmentation or useful overlap. The grammar fixture does not
+compare full grammar contents/order or canonical round trips; malformed UTF8
+rollback is not tested after a pre-existing live prefix. The generic failure
+oracle does not assert context.copied/first/count: the producer charges attempted
+clone work before a possible late failure, so cumulative-work policy needs its
+own oracle before treating that counter as rollback state. These are explicit
+coverage boundaries, not established regressions or reasons to rewrite fixtures.
+
+Direct Git census, using tracked `.tower` paths and the existing D1 prefixes
+`scaffolding/tests`, `scaffolding/examples`, `editors/tower/tests` and
+`playground/tests/fixtures`:
+
+| Tree | D1 assigned paths | All tracked Tower paths |
+| --- | ---: | ---: |
+| Prior current_executable_d1 roster | 540 | 1129 |
+| ROOT b0421447 | 542 | 1131 |
+| Integrated c3eb1b499 | 543 | 1132 |
+
+The exact additions to the prior direct roster are the two reviewed paths and,
+only after b042, `scaffolding/tests/semantic_flow_checks.tower`. Thus542 of the
+current543 assigned paths have D1 substantive receipts at their recorded review
+identities; the flow fixture remains outside this bounded review. This does not
+upgrade older receipts to current-source acceptance: post-b042 upstream also
+changes execution_type_construction, execution_world and interpreter_call_query.
+A2 owns cross-repository roster reconciliation; no roster is edited here.
+
+The portable stale revision/profile test in `work_order.tower` remains identical
+to committed `be0d123bb`; its focused native evidence is preserved without rerun.
+Checks here are tree/set reconciliation, producer/caller inspection, unchanged
+reviewed input comparison and `git diff --check`. Documentation changes no runtime
+input, so runtime profiling/builds/tests are inapplicable to this edit. Integrated
+instrumentation, bootstrap/browser/generation and deployment remain ROOT's
+pending milestone; no old receipt is relabeled as merged runtime validation.
