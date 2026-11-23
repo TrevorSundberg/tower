@@ -269,13 +269,61 @@ fn interpreter_container_tests(): i32 {
         || !interpreter_schedule_trial(false, true) || !interpreter_schedule_trial(false, false) {
         return InterpreterScheduleFailure;
     }
+    if !interpreter_node_cache_trial(true) || !interpreter_node_cache_trial(false) {
+        return InterpreterNodeCacheFailure;
+    }
     return 0;
 }
 
 var InterpreterScheduleFailure: i32 = 630;
 var InterpreterScheduleBudgetBytes: usize = 1048576;
+var InterpreterNodeCacheFailure: i32 = 631;
+var InterpreterNodeCacheBudgetBytes: usize = 65536;
 
 extern fn puts(message: u8*): i32;
+
+// Single-owner physical failure coverage. Threaded execution uses the production
+// allocator in the ordinary compiler regression and instrumentation suites.
+fn interpreter_node_cache_trial(capacity_failure: bool): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 1, InterpreterNodeCacheBudgetBytes, 1) { return false; }
+    var state: IMState = { budget: &budget, ..default };
+    var occupied: WorkReservation = default;
+    defer {
+        if occupied.active { work_budget_release(&budget, &occupied); }
+        interpreter_storage_dispose(&state);
+        work_budget_dispose(&budget);
+    }
+    // Prepare ledger metadata before arming physical buffer allocation failure.
+    if !work_budget_reserve(&budget, 0, 0, 1, &occupied)
+        || !work_budget_release(&budget, &occupied) { return false; }
+    if capacity_failure {
+        if !work_budget_reserve(&budget, 0, 0, budget.bytes, &occupied) { return false; }
+    } else { tower_test_buffer_fail_next(); }
+    var wanted = capacity_failure ? WorkBudgetError.Capacity : WorkBudgetError.Memory;
+    var initialized = im_node_cache_init(&state);
+    var denied: WorkBudgetSnapshot = default;
+    if !interpreter_schedule_check(!initialized && state.storage_error == wanted
+        && state.node_cache.data == null && state.node_cache.length == 0
+        && state.node_cache.capacity == 0 && !state.node_cache.reservation.active
+        && work_budget_snapshot(&budget, &denied) && denied.used_bytes == (occupied.active ? occupied.bytes : 0)
+        && denied.live == (occupied.active ? 1 : 0),
+        "Denied node-cache startup retains its exact failure without a partial owner") { return false; }
+    if occupied.active && !work_budget_release(&budget, &occupied) { return false; }
+    if !im_node_cache_init(&state) { return false; }
+    var admitted: WorkBudgetSnapshot = default;
+    if !interpreter_schedule_check(work_budget_snapshot(&budget, &admitted)
+        && admitted.used_bytes == state.node_cache.reservation.bytes && admitted.live == 1
+        && state.node_cache.reservation.owner == &budget && state.storage_error == wanted,
+        "Node-cache retry owns exactly its physical grant without erasing the first failure") { return false; }
+    interpreter_storage_dispose(&state);
+    var released: WorkBudgetSnapshot = default;
+    return interpreter_schedule_check(work_budget_snapshot(&budget, &released)
+        && released.used_bytes == 0 && released.live == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == baseline,
+        "Node-cache disposal retires both physical storage and ledger metadata");
+}
 
 fn interpreter_schedule_check(ok: bool, message: u8*): bool {
     if !ok { puts(message); }

@@ -39,6 +39,10 @@ var InputQueryBudgetBytes: usize = 1048576;
 struct InputQueryStartup {
     allowed: usize;
     message: u8*;
+    cached: bool;
+    memory: bool;
+    frames: bool;
+    initialized: bool;
 }
 
 fn call_query_require(ok: bool): void { if !ok { abort(); } }
@@ -60,7 +64,7 @@ fn input_query_owned_bytes(invocation: IMInvocation*): usize {
     var frames = &invocation.state.frames;
     var bytes = invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
         + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes
-        + invocation.state.type_values.values.reservation.bytes;
+        + invocation.state.type_values.values.reservation.bytes + invocation.state.node_cache.reservation.bytes;
     for(var i: usize = 0; i < frames.capacity; i++) { bytes += frames.data[i].tasks.reservation.bytes; }
     return bytes;
 }
@@ -300,13 +304,16 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     var b: IMInvocation = default;
     call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     call_query_require(interpreter_invocation_init(&b, entry, convert(usize, width), null, 0, true, CallQueryFuel));
-    var startup: InputQueryStartup[4] = default;
-    startup[0].message = "Cannot allocate interpreter memory";
-    startup[1] = {allowed: a.state.memory.reservation.bytes, message: "Cannot allocate interpreter frame storage"};
-    startup[2] = {allowed: startup[1].allowed + a.state.frames.reservation.bytes,
-        message: "Cannot allocate strict evaluation initialization state"};
-    startup[3] = {allowed: startup[2].allowed + a.context.initialized.reservation.bytes,
-        message: "Cannot allocate interpreter task storage"};
+    var startup: InputQueryStartup[5] = default;
+    startup[0].message = "Cannot allocate interpreter node cache";
+    startup[1] = {allowed: a.state.node_cache.reservation.bytes,
+        message: "Cannot allocate interpreter memory", cached: true, ..default};
+    startup[2] = {allowed: startup[1].allowed + a.state.memory.reservation.bytes,
+        message: "Cannot allocate interpreter frame storage", cached: true, memory: true, ..default};
+    startup[3] = {allowed: startup[2].allowed + a.state.frames.reservation.bytes,
+        message: "Cannot allocate strict evaluation initialization state", cached: true, memory: true, frames: true, ..default};
+    startup[4] = {allowed: startup[3].allowed + a.context.initialized.reservation.bytes,
+        message: "Cannot allocate interpreter task storage", cached: true, memory: true, frames: true, initialized: true};
     a.context.value_inputs = inputs;
     b.context.value_inputs = inputs;
     a.context.type_arguments = true;
@@ -479,16 +486,27 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
                 charged.bytes - charged.used_bytes - allowed, &occupied) == WorkBudgetError.None);
             call_query_check(!interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
                 && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
-                && (a.state.memory.data != null) == (attempt != 0)
-                && (a.state.frames.data != null) == (attempt >= 2)
-                && (a.context.initialized.data != null) == (attempt >= 3) && a.context.input_storage.data == null
+                && (a.state.node_cache.data != null) == startup[attempt].cached
+                && (a.state.memory.data != null) == startup[attempt].memory
+                && (a.state.frames.data != null) == startup[attempt].frames
+                && (a.context.initialized.data != null) == startup[attempt].initialized && a.context.input_storage.data == null
                 && a.context.output.length == 0 && !a.context.returned
                 && input_query_owned_bytes(&a) == allowed,
                 "Denied startup retains its typed error and exactly the permitted private owners", &failures);
             call_query_check(a.context.error.data != null && strcmp(a.context.error.data, startup[attempt].message) == 0,
                 "Startup denial identifies the actual failed buffer", &failures);
-            interpreter_invocation_dispose(&a);
+            if attempt == 0 {
+                call_query_check(a.state.node_cache.data == null,
+                    "Exhausted startup budget cannot retain a hidden node cache", &failures);
+            }
             call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+            var steps = a.state.steps;
+            interpreter_invocation_step(&a, convert(usize, CallQueryFuel));
+            call_query_check(a.state.done && a.state.failed && a.state.steps == steps
+                && a.state.storage_error == WorkBudgetError.Capacity && a.context.output.length == 0
+                && input_query_owned_bytes(&a) == allowed,
+                "Returning startup allowance cannot replay a failed invocation", &failures);
+            interpreter_invocation_dispose(&a);
             var released: WorkBudgetSnapshot = default;
             call_query_require(work_budget_snapshot(&budget, &released));
             call_query_check(released.used_bytes == charged.used_bytes && released.live == charged.live,
