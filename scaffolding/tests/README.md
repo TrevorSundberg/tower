@@ -1011,6 +1011,12 @@ query receipts, first-source diagnostic selection, joined peers, no replay or
 published value, and zero retained ownership. This reuses the production query
 transport; serial fault instrumentation does not establish threaded coverage.
 
+The portable `semantic_world_tests` export runs the same denial cases inline.
+Its fixture binds a one-lane ledger/world/pool because the portable host has no
+thread transport or synchronization signals. Native cases retain synchronized
+ledgers and the requested one/four-worker coverage; portable success is not
+evidence of concurrent execution.
+
 `tower-lr-work-tests RESOURCE_ROOT resource-smoke` selects only those24 resource
 cases, using the same query-checks object and production transport. Growth cases
 first gate Evaluate until both owning entry frames prepare successfully, then

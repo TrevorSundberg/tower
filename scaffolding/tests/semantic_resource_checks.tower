@@ -179,15 +179,24 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bo
 
 fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, growth: bool): u32 {
     var failures: u32 = 0;
+    var capacity = workers;
+    if !work_thread_available() { capacity = 1; }
     var budget: WorkBudget = default;
-    var gate = work_signal_open();
-    sem_require(gate != null);
-    defer work_signal_close(gate);
-    work_signal_post(gate);
-    sem_require(work_budget_init(&budget, workers, ResourceBudgetBytes, 91)
-        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    sem_require(work_budget_init(&budget, capacity, ResourceBudgetBytes, 91));
+    var gate: void* = null;
+    defer { if gate != null { work_signal_close(gate); } }
+    if work_thread_available() {
+        gate = work_signal_open();
+        sem_require(gate != null);
+        work_signal_post(gate);
+        sem_require(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    } else {
+        // The same kernels and denial cases run inline on the portable host.
+        // Its one admitted lane has no concurrent access to this ledger.
+        sem_require(work_thread_capacity() == 1);
+    }
     var occupied: WorkReservation = default;
-    var world = compiler_world_create_workers(workers);
+    var world = compiler_world_create_workers(capacity);
     sem_require(world != null && compiler_world_bind_budget(world, &budget));
     var root = entity_create(compiler_world_store(world));
     var program: SemanticProgram = default;
@@ -215,7 +224,7 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     second.kernel.payload = bits(void*, &second_probe);
     // Constructors and pool storage succeed before either denial phase. Both
     // stack-owned probes remain alive through pool drain and world retirement.
-    sem_require(work_pool_open_kernel_budget(&context.workers, workers, resource_probe_execute, &budget));
+    sem_require(work_pool_open_kernel_budget(&context.workers, capacity, resource_probe_execute, &budget));
     context.declaration_isolated = isolated;
     {
         var prepared = sem_evaluation_pump(&context);
