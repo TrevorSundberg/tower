@@ -243,7 +243,7 @@ fn sem_known_infer(c: SemanticContext*): void {
 }
 
 export fn sem_known_publish(c: SemanticContext*): void {
-    if !sem_ok(c) || c.known_bindings == null { return; }
+    if !sem_ok(c) || !work_ok(&c.queries) || c.known_bindings == null { return; }
     sem_captures_finalize(c);
     var kind = sem_known_kind(c);
     var count: usize = 0;

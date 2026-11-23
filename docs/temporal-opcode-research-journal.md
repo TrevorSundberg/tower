@@ -59026,3 +59026,33 @@ target widths, no partial canonical output and zero retained scratch receipts.
 Logs publish_objects1, publish_runtime_unit1/link1/runtime1. This scoped manual
 composition is not the still-pending production provider/native/WASI/generation
 closure. It uses no private compiler override or alternate implementation.
+
+A1 late-publication cancellation admission: a new focused selector cancels the
+existing graph at a joined frontier, then calls the normal late Publish entry.
+On b7bf916c it aborts while trying to create new work. This is valid graph
+cancellation, not an invalid-memory/race probe. The before log preserves
+signal6/nonzero; GNU time's trailing Exit status0 does not override that signal.
+Add the same work_ok admission check already used by semantic pumps before
+capture finalization or any publication job/component creation. The cancelled
+graph remains cancelled and untouched storage is retained; no completed compile
+or successful publication is reported by the fixture.
+
+The exact fixture object is identical before/after (e34d00cd); before executable
+4467f7d4 fails, afterc2166057 passes all4 width/worker combinations, repeated
+entry creates no query or dispatch. Smallest semantic object passes20.88wall/
+15.08user/1.17sys/790488KiB. After cancellation run .02wall/50524KiB; unchanged18
+pressure cases also pass .02wall/.02CPU/51928KiB. These single cold focused
+receipts do not establish a performance improvement. Final fixture source
+simplifies the equivalent cancellation/error condition; all22 cases rerun
+successfully (publish_cancel_final1 and publish_pressure_final1). Full current
+sanitizers and end-to-end paired profiles remain pending.
+
+ROOT has approved five existing mutually exclusive interpreter/evaluation
+entrypoint imports in principle. D2 owns exact placement after L1 acknowledgment
+and native/WASI/generation sole-definition audit. A1 did not add an entity
+provider or edit those reserved units. Complete A1b7 bundle ec75283b retains the
+typed kernel source and18case evidence, solely60741 prerequisite. The guard and
+four new cancellation cases are the following checkpoint, not retroactive
+claims for that bundle. ROOT6b8355 and A2ecc35d74 bundles have been hash-verified
+and fetched; their constructor/clone/typed-transport changes still require
+merge and complete dependent rebuild before new runtime acceptance.
