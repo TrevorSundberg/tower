@@ -1410,3 +1410,10 @@ producer closure; a passing profile is not finite-cap acceptance, and fixing
 this one denial does not establish child/index/query/stage accounting. The census
 must remain tied to the actual allocation layout as those owners migrate.
 See the journal's D2 entity accounting receipt for source hashes and byte totals.
+The registered semantic flow/lifecycle frontier fixtures also exercise checked
+kind/component pin denial, world-budgeted scratch and worker-pool denial,
+partial lowering lease admission, exhausted stage anchors/views, and graph
+completion pressure. They require canonical error offsets, joined cleanup,
+no successful ticket prefix, preserved foreign leases, stable terminal retries
+and zero retained budget reservations. These focused cases are not sanitizer
+or integrated bootstrap/browser evidence.

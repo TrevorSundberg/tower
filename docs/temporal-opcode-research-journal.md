@@ -83624,3 +83624,101 @@ incoming documentation and execution-runner type-staging selector. Its diff
 changes no production source or stage/lr-work fixture in this batch, so focused
 validation is reused. Rebased implementation is `0a958f27`; normal push is
 retried without force or deployment.
+
+## 2026-11-23 A1 checked lowering/flow admission and joined completion
+
+Implementation on 294194a0 (complete A2 joined-stage history), following published
+7abe4e74 inferred scheduling. This bounded batch preserves all explicit/inferred
+phase dependencies and required/optional inference policy. No new scheduler,
+IR, layout, interpreter or worker pool was introduced.
+
+The lowering registrar checks graph request/depend/access/seal/demand, then
+checked kind/component admission before readiness. The frontier uses world-budgeted
+work_vector scratch, checked stage open/leases/view and the published A2
+sem_stage_wave for joined hold/publication/discard. Resource/node-count failures
+retain the owning canonical offset, cancel unsettled tickets and stop retries.
+The capture-range change is only the directly called declaration lease denial;
+L2 metadata producers are preserved. Alias publication reserves the existing
+producer vector before entering its legacy append helper. Failed phase registration
+stops lifecycle joins. A joined body's failed flow registration cannot finish its
+cancelled ticket or make the following joined body observe a stale ticket;
+buffer transfer/cleanup still runs.
+
+Flow kind/component/view/scratch/pool denials are checked. The immutable kind's
+existing instance index replaces a redundant allocated two-term table query;
+source ordinal still controls demand, dispatch and error selection. Work vectors
+use the world's ledger and release reservations at the join. A separate thin
+semantic_completion_work helper reserves the existing WorkGraph ready/failure
+scratch before any joined ticket succeeds. Its ready bound counts actual consumer
+edges; failure scratch uses graph edge count plus its root. No partial successful
+prefix can survive queue-growth denial. No worker waits for a producer.
+
+Experiments/failures preserved under A1/cache/a1_checked_*: initial dependency
+build diagnosed a reserved fixture identifier and missing direct work_vector/type/
+world imports; corrected after draining each build. Initial new fixture aborts
+were unsynchronized multi-lane test budgets; fixtures now bind the existing
+semaphore protocol before world admission. The subsequent flow scratch denial
+exposed pool creation before the cancellation defer and root-attributed pool
+failure. Fixed production ownership/cancellation and split pool versus actual
+scratch denial cases. These failures were not passes or unsupported fallbacks.
+
+Current focused evidence: dependency target tower-semantic-staging-smoke built
+with pinned public Linux predecessor, --jobs1 per compiler, CMake --parallel6.
+All86 registered flow/lifecycle/staging trials pass (36 flow,30 lifecycle including
+18 new lowering denials,20 staging), workers1/4. They cover real mixed-signature/
+lowering and evaluation overlap, graph/component/pin/budget/anchor/view denial,
+partial admission, joined hold failure, completion pressure, exact offsets,
+no ready prefix, preserved foreign lease, zero final budget retention, repeated
+terminal calls without effects, lazy/nested/inferred/capture/source-order behavior.
+query-smoke passes; control/canonical/profile results recorded below after drain.
+
+Remaining unchecked sites are explicitly outside this admission gate: shared
+sem_control_names/sem_table/sem_list/sem_push and sem_known_edges traversal growth,
+private semantic lowering node/text helpers, and sem_restore_error text growth
+still use fatal allocation wrappers (L2/B1 ownership). Retained assertions in the
+two owned pumps validate registered component identity, alias-producer identity,
+unique in-range source ordinals and joined/disposed lifetime contracts; they no
+longer wrap their coordinator admission, pool, view or scratch allocation.
+A2's stage-wave helper owns aggregate structural failure attribution and hold/
+cancel protocol. Its wave-level failure is attributed to the canonical wave
+owner; no task becomes ready if the structural wave fails. ROOT executable
+aggregate-signature work and shared helper closure are separate obligations.
+Known-snapshot/proof/clone, per-owner lowering/executable, callback-signature
+publication and final attribute/known/module-init/flow barriers are unchanged.
+Broad sanitizer/bootstrap/browser/generation/hosted checks remain pending ROOT's
+integrated milestone; historical frozen5c5a instrumentation is not this evidence.
+
+Validation/profile receipt: control-smoke passed serial/worker execution, canonical
+reparse, cleanup and ordered errors. Known bindings Foundation is byte-identical
+to the preserved baseline at workers1/4, SHA256
+215fb1fdd887278348d4c814c130bcd8d799b0905d2be9db4383b52ad662670d;
+reparsed output0. Imported comptime capture output0 and known-cycle exit1/exact
+baseline diagnostic match at both widths. Compiler SHA256
+dc4cfae9f57d6d3526b6d487db8c0d699e15a49bbe5f6a031c6f3b0bd4d9b738.
+Logs: a1_checked_build{,_2,_3,_4,_5}.log, focused{,_2,_3}.log,
+query/control.log, measure.sh and known/capture/bad/roundtrip receipts.
+
+Small checked n1 warm-filesystem/fresh-process sample, Windows11 Pro host,
+16 cores/32 threads/123.65GiB; own Docker Linux x64 CPU0-11/24GiB,
+LLVM19.1.1, public predecessor9653f818, no compiler override.
+Input scaffolding/tests/comptime_flow.tower, --interpret --jobs1/4 with explicit
+/work/scaffolding Bedrock/Foundation resources; all outputs0. Preserved baseline
+/cache/a1_checked_before_towerc SHA256 fdc93d0dc578f205227e21764a4ffcd4b3dccaef29979be33dd8781967760d24
+is the previously checked production compiler (unchanged at initial3bee18e2).
+After includes A2's published294194a0 ownership transition, so the table cannot
+attribute a difference solely to A1. CPU is user+system, RSS from /usr/bin/time.
+
+| Frozen executable | Workers | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Preserved before |1|1.16|1.09|177668|
+| This batch |1|1.13|1.06|178460|
+| Preserved before |4|0.98|1.15|193332|
+| This batch |4|0.97|1.13|192372|
+
+No speedup claim from n1. No obvious healthy regression in this small sample;
+RSS changes are below0.5%. Actual useful overlap is separately asserted by the
+existing signal-rendezvous fixtures. Denial fixtures assert zero graph/world
+bytes, lanes and live reservations at teardown, and completion pressure proves
+joined effects are not replayed. No new allocation-count, contention, large
+scaling or cross-language claim. Sessions26375/80741 failed and drained;
+24593/17256/33792 builds and18255 final checks drained. No owned active jobs.
