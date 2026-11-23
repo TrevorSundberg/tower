@@ -1,0 +1,13 @@
+import tower;
+import foundation_types;
+import .library.work_vector_types;
+import .library.work_budget_types;
+
+// Disposable execution index; descriptors borrow the retained canonical graph.
+// A live owner must not be copied. Readers/workers drain before its disposal.
+struct TypeObjectIndex {
+    values: work_vector(FoundationType);
+    error: WorkBudgetError;
+}
+
+var TypeObjectIndexLimit: usize = convert(usize, ~convert(u32, 0));
