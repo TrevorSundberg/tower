@@ -90540,3 +90540,96 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+### D2 bounded portable dependency-language acceptance (2026-11-23)
+
+Frozen checkout48db0f27b439e9d0c7bb15e6f0c4beb932650e89; supplied portable
+compiler sourceeac16533, SHA256
+df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99,
+verified before copying unchanged into build/d2_ecs/dependency_language_48db0f27/.
+No compiler/reactor build or LLVM execution. Read D1's node_transport_d5b65afe,
+language_fixtures_e0e3530b and adoption_bcd0e3ab source-bound receipts. Earlier
+compiletime/module-scope runs use different reactors and cannot establish eac
+acceptance. D1's eac adoption.log does accept the unchanged forward initialization
+case with output42/41/8/8/41/73, original duplicate/local-scope negatives and LLVM
+comparisons; reuse that case. Its three grammar cases were not selected there.
+Actual checksums confirm unchanged Foundation/Bedrock/types/Tower and common
+fixture loader. Incoming host changes affect package/load-bytecode APIs this case
+does not call;13 changed registered compiler/storage fixture resources are outside
+its imported language closure. Retained full mismatch lists rather than calling
+the entire old registry byte-identical. The reused7-case aggregate cost belongs
+to D1, not an isolated cost for this one adopted case.
+
+The existing files eagerly loaded LLVM before Node could select portable cases.
+Split compiletime's43 combined cases into independently named `(portable)` and
+`(LLVM)` registrations; its two already-portable chain checks retain all their
+assertions. Default unfiltered runs still require both capabilities. LLVM loading
+and the existing Tower stress producers are lazy, so selecting grammar/portable
+checks does not invoke LLVM or unrelated generators. Forward's LLVM loader moves
+inside its unchanged mixed initialization case; overrides avoid eager default
+reads, and after() closes the portable owner. No semantic fixture, required error,
+expected output or compiler producer changed; no skip becomes acceptance. All
+semantic programs/generators remain existing Tower files. Reviewed both complete
+changed Node files, actual loader/callers, module/type contracts and relevant
+producer diagnostics. The separate LLVM canonical setup retains the original
+execute(source,8,false) checked input; its registration is unexecuted here.
+
+Fresh bounded Docker Node22.23.5 processes, --test-concurrency=1, 60s timeout with
+5s kill grace, same eac TOWER_TEST_WASM. Set TOWER_TEST_LLVM_WASM to an intentionally
+nonexistent must_not_load_llvm.wasm: both selected runs complete without loading
+it. Commands, GNU time, statuses and complete nonzero log are in the above root:
+- `node --test --test-concurrency=1 --test-name-pattern='\(portable\)$'
+  playground/tests/compiletime.test.mjs`:42pass/3fail,45run,0skip, exit1.
+  15.69wall/17.60CPU(16.97user+0.63sys) seconds,266664KiB peakRSS.
+- `node --test --test-concurrency=1 --test-name-pattern='^(forward rule|incomplete active)'
+  playground/tests/forward-references.test.mjs`:3/3,0skip, exit0.
+  1.07wall/1.45CPU(1.20user+0.25sys),137544KiB peakRSS.
+
+Passes include lazy generic signatures with no large-body clone in canonical text,
+demanded-body65536-node rejection before output at32/64bits,1024-declaration
+annotated/inferred/operator chains,256-generic chains and their exact cycle,
+executed comptime/dead/uninitialized/effect/fuel errors, header/layout/declaration
+cycles and continuations. Successful execution retains0 output and canonical/Fast
+comparisons at both widths where registered. Grammar passes preserve activation
+revision1, unresolved-at-EOF and incomplete-reader/optional-rule failures, grammar
+replacement/conflict ordering and pinned-session assertions. This is45 new passes
+plus1 adopted pass; three failures remain, not a full two-file success claim.
+
+Concrete failures, no retry or weaker regex:
+1. tests/decltype_type_fields.tower (SHA2568b2cf17a518ae80ec6294b703301756310abd744829af2e112a521d5b7185b72)
+   and tests/stress/type_fields.tower via existing stress_fields256-chain both
+   fail their first Graph32 execution: `Unknown type constructor 'alias'`,
+   expected0. Existing ordinary `fn alias(T:type):type { return box(T); }`
+   participates in outer's `inner:alias(T)` field. Source-supported boundary:
+   generic_register_result classifies returned CoreCall as an ordinary function;
+   sem_type_apply/sem_constructor_arguments later requires a type_functions
+   definition and diagnoses null. Exact wrong admission/owner edge is not proved.
+   ROOT/L1 wrapper/type-constructor work with L2 constructor query ownership;
+   no numeric unary-argument change or replacement representation applied.
+2. semantic_invalid/inference_alias_invalid.tower (SHA2567a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9)
+   correctly rejects but gives `Type constructors currently support a struct and
+   return; general compile-time execution is not implemented`, not the required
+   `Cannot infer type argument 'T'; pass explicit type arguments`. Its alias has
+   an ordinary local before return. sem_infer_match calls generic_type_result_read
+   and propagates that capability error before the intended inference diagnostic.
+   ROOT/L2 call-inference/type-body boundary; retained mismatch, not a pass.
+All three fail at the first32-bit assertion; later64/Fast/canonical paths for those
+cases are unstarted. Frozen eac predates the newer named-return-wrapper preservation
+in generics.tower; do not attribute the observed failures to a rebuilt current main.
+
+The43 LLVM registrations and module-scopes fallback are unstarted: the task's
+fallback condition (both files already fully accepted on eac) was false. No
+packaging, global coverage audit, browser, sanitizer, generation or LLVM rerun.
+Executed input manifest digest71b4555b202a4c52813c2459bfc0c912a072ebde3666169b2bde791b216422e2
+separates resources/tests/hosts from executable identity. Final reviewed Node
+SHA256 compiletime b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d;
+forward a0e808f40d2c570979c6748a738d4decd9c5457ecc8fc94a0b6e56311bb91397.
+The final edit only restored the original checked canonical setup in the unrun
+LLVM registration; portable bodies match the measured source. Syntax/diff checks
+pass. A mistaken wasm-modules.mjs identity-list path failed explicitly and was
+corrected to actual module-inputs.mjs; partial list/error retained, no test claim.
+Fresh processes/warm filesystem caches, n1 per selection, dynamic Deck frequency;
+Docker cpuset0,2 and8GiB limit. RSS is process high-water, not a live-byte ledger or
+scaling/overlap result; no runtime optimization or speedup claimed. No swaps or
+timeouts in either run. All jobs drained, heavy lock released, todo unchanged;
+ROOT retains final current-source runtime/deployment acceptance.
