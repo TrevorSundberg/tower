@@ -89684,6 +89684,110 @@ Missing-LLVM control, source syntax and diff checks are clean at their stated
 scope. Docker is idle; own heavy lease released. Normal main publication follows,
 with no Pages asset changes and the three resource failures still explicitly open.
 
+### D2 bounded struct LLVM Foundation isolation (2026-11-23)
+
+Freeze: main578437afc65dfe994900ec08179e2ecc2eaeab68, immutable ROOT f7e764ab
+reactors (portable b755fdc8628567de5759eb0c4835c238c0cb1ab3eb2b492181a82982fbe5fc42;
+LLVM ba517692f67a9d7f53259af385d72e9f061df3bc45335e94b9db485224896543), public768
+provenance as previously supplied. No rebuild. Current host/resources are recorded
+separately: tracked input manifest596ebd0a80bdf3a03eb0ffe2fcd13a86e197b2dc48580385ed156c19ae350879.
+The original struct source and selected language/type resources are unchanged;
+unused registered compiler/test resources have advanced. A1's LLVM test and
+packaging callers/producers remain untouched, as do all production files.
+
+**Actual historical phase:** remaining_selection.log enters `struct values` at
+463707.80ms, starts `llvm.compile(formatted.source,{emit:'foundation',optimize:false})`
+at463776.30ms, then returns `Compiler resource request failed` after38.89s for the
+case. It never enters portable compilation of the emitted result or packaging.
+This followed body-package exhaustion at about3.87GB process RSS. The earlier
+receipt is a genuine failed check, but its pressure/history is not a fresh-case
+baseline and its generic message does not establish Memory versus Capacity.
+
+One fresh full-source attempt, **no full retry**, was stopped by the90s command
+bound while still inside that LLVM call:90.40wall/133.22CPU/1521960KiB peak RSS,
+exit124. It supplies no new returned error or successful in-process cleanup.
+The process drained; no deadline/memory limit was raised. Original input4152bytes,
+SHA2562ce1c260ebe11faeb2dc7524f1e0f239208caf8afc629962b800200e7052f285,
+executes exact0/newline before formatting. Captured canonical LLVM input138853bytes,
+SHA2562f4602e298b100c6e93dc47798a515c118d12cf42e53da330a7faa88167c2601,
+1963 formatter spans and21 top-level textual fn declarations (`rg` count, not a
+semantic API count). Portable node API5383 ->25453 before LLVM; portable memory
+capacity102629376B. The probe omits the preceding Fast-copy setup and captures
+this input for the first time; no old serialized-input hash existed to assert
+byte identity with the historical failing call. Exact original source/artifacts,
+new serialized bytes and the different fresh/warm conditions remain distinct.
+
+Reduced ordinary fixture `tests/struct_reconstruction_small.tower` retains the
+mixed u8/u64 by-value generic copy, original/copy independence and maximum u64,
+observing initialized fields only. It **passes**, so is not labeled a minimized
+failure. Known output0 is independently enforced in Tower. Full-file review:
+no raw padding assumptions, ownership transfer, allocation framework, new syntax,
+worker state or producer changes. Source518bytes/SHA256d08c3db30ab1ef78e6a1e9f16ed65f54e08c15cf97a4cdee2642f755500775f2;
+canonical9926bytes/a64bb2b6be884c5a21774b0cf15fa35895ab6386b9442b27ca0850453eb60c15;
+unoptimized LLVM Foundation126234bytes/b18d447856b3741916dfb20e89d2d887e64e339ea943afc42ad706f623badc4d.
+Both canonical texts contain3 top-level fn declarations: text expansion, not
+function proliferation. Original and independently compiled emitted Foundation
+execute exact0/newline. Repeating the same request in one process gives identical
+input/emitted bytes (`cmp`), profile2, and successful reuse after handle release.
+Cold LLVM emit4.371s, portable emitted compile+execute3.109s; warm2.375s/1.050s.
+Combined14.63wall/20.32CPU/512276KiB peak; n=1 cold plus1 warm, not a speedup claim.
+
+Portable node API reaches100297/100296 with original and emitted handles live,
+returns to16160 after each release, versus startup5383. This establishes stable
+observed post-request node retention for these two runs, not zero retention or
+universal leak freedom. Portable linear-memory capacity remains191889408B after
+both releases. RSS includes both reactors/JIT/host data; capacity is not live
+payload bytes. Legacy allocation count0 does not count production allocations.
+LLVM's loader does not expose a live-node/allocator ledger; no such count is
+invented. The passing reduction does not resolve full-case exhaustion or timing.
+
+**L1/ROOT handoff, not an A1 package fix:**
+`tw_llvm_compile_options -> backend_source_compile_world -> backend_source_program`
+checks the input, then `backend_source_import -> backend_session_import` lowers
+and reconstructs, `format_entity` serializes, and `backend_source_program(&checked)`
+checks emitted Foundation. The input program, imported graph and formatted bytes
+remain alive during that last check (source_session.tower102-130); the source
+program closes only after return. This is a separate LLVM instance from A1's
+`ide_prepare_package_text -> ide_execution_text -> frontend_compile_sources`.
+Both use the ordinary frontend, but changing the portable direct-package caller
+cannot by itself remove this earlier LLVM reconstruction/check. Independent
+canonical checking must remain; this observation does not justify deleting it.
+The small input demonstrates substantial expansion (9926 ->126234bytes); it does
+not prove which internal subphase dominates the full call or which allocation fails.
+
+A concrete diagnostic gap also prevents a stronger attribution:
+`backend/source_session.tower:backend_source_error` sees `program.resource.error`
+but calls `backend_session_resource_failure` without transferring that typed
+cause. `backend/session.tower` chooses the message from `backend.resource_error`
+instead; with None it emits the generic historical message without resourceError.
+The bytes of both producer files match f7e. The same fallback can follow response
+allocation failure, so the old log alone does not select one branch. L1 should
+preserve the first typed frontend cause at this boundary, then measure/reduce the
+captured input on the stronger host, including retained input/imported/check
+world ownership. No specific failing allocator site or current-main runtime
+failure is claimed without that evidence; no second package repair is proposed.
+
+Reusable transport only: `playground/scripts/inspect_foundation.mjs INPUT.tower
+NEW_OUTPUT_DIRECTORY [RECOVERY.tower]` uses existing compiler-fixtures loaders,
+requires both TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM overrides, saves exact texts,
+responses/IR, phase/CPU/RSS and existing portable counters, never packages/builds.
+It assumes these self-checking fixtures print0/newline. Tower owns all semantic
+logic. Missing source paths are preflighted and an existing receipt directory
+fails EEXIST instead of overwriting logs. An initial small command passed its
+struct stages but then exited1 for an incorrectly assumed, absent recovery-file
+path; that failure is preserved. The corrected repeated-struct command exits0;
+EEXIST negative control exits1 before reactor startup. Full-file transport review
+and Node syntax/diff checks pass. No LLVM test edits, broad suite, sanitizer,
+shared-worker repeat or deployment. These are diagnostic validation costs, with
+no production algorithm change to compare. Docker Node22.23.5, cpuset0,2,8GiB,
+one Node process at a time, shared heavy slot, dynamic host frequency/normal
+allocator; no Tower worker-overlap inference from CPU time.
+
+Raw logs/commands/status/inputs: `build/d2_ecs/struct_reconstruction/`. Exact full
+canonical input and small emitted text plus receipts are copied for ROOT to
+`/home/deck/tower_coord_ecs_20261122/D2/struct_reconstruction_f7e_578437af/`.
+Transport SHA2566e7afdb8f15261f73898f6d39d335e070ad28755266faf6c2478c2bb12579f85.
+No native build or further full-struct attempt is needed for this handoff.
 L1 pointer alias reconciliation: complete published `578437af` merged as
 `5486bd6d595aa643521e39763eb12d8b85da48e0`; L2's actual lexical module-expression
 provider changed, so the dependency-aware target rebuilt only semantics and
@@ -90141,6 +90245,17 @@ performance remain scoped to the prior frozen input, not rerun or relabeled.
 D1's exact numeric fixture still honestly rejects runtime size capture at3:21;
 its original expected nominal behavior was not weakened. Exact merged hashes,
 metrics and limitations are appended to external type_composition_receipt.json.
+D2 struct-isolation publication: fd3a095e committed the scoped fixture/transport
+and receipt. Required ff-only pull reported divergence; complete0d789444 history
+merged asf9fb9cb74af44a15510338096b2ed2cdba8b950f, with no conflict or lost entry.
+Own files/hashes and selected language/type/loader inputs remain identical.
+Incoming tower-host.configure changes only an explicit reconfiguration method
+this probe does not call; compiler/libraries outside the fixture import closure
+and other owners' fixtures retain their own evidence. Reused frozen f7e/578
+measurements without a repeated full struct or package run; they are not tests
+of newer executable providers. Diff/syntax/hash checks remain clean. All jobs
+drained, heavy slot released, todo unchanged; ROOT/L1 retain the full failure
+reduction and first-typed-cause handoff. Normal main push follows.
 Publication race receipt: a transient DNS fetch failure recovered with an ordinary lookup/fetch. Push attempt1 was non-fast-forward; complete origin0d789444 (A2 declaration-page policy/entity API) merged as f6c0aec1. The six affected portable units rebuilt, reactor `ab4f2c6c78c578bc5c2cbb982c2ef411eed7c484b8f52eb8b0d083ad55930684`. Six package gates again pass with no skips. Actual Memory rollback plus same-instance direct retry and independent load again returns0:80.72s wall/105.96s CPU/2,106,056KiB, final handles/views/package bytes/capacity/grants zero,10656/12062 retained shared entities/components. Logs `a1_narrow_race_*`; source build identity f6c0aec1 is preserved. This was affected merged-input validation, not another broad matrix. All owned jobs drained; normal main push is retried without rewriting either history. Full LLVM reactor/candidate generations and hosted deployment remain with D2/ROOT.
 L2 ledger publication reconciliation:5a4c575e committed the3ea freeze, required
 ff-only pull refused normal divergence, full-history mergec90330ef preserves
