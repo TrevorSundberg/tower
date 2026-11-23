@@ -929,6 +929,21 @@ Tower session, completion, hover, candidate and lifetime checks; `npm test` runs
 them before the Node transport suite. A missing export fails explicitly.
 Reconfigure with `-DTOWER_IDE_TESTS=OFF` before building release assets.
 
+To run the Node selection separately, use the repository root (several fixtures
+read repository-relative resource paths):
+
+```sh
+TOWER_TEST_WASM=/absolute/path/to/tower.wasm node --test playground/tests/*.test.mjs
+```
+
+`TOWER_TEST_WASM` also accepts a repository-relative path. Record its reactor hash
+separately from the current fixture/resource sources. This selection includes
+LLVM, shared-thread, compiler-project and packaging checks as well as portable
+transport checks; those retain their own artifact/resource prerequisites and
+existing optional skips. `TOWER_TEST_LLVM_WASM` selects an existing LLVM reactor,
+and `TOWER_PLAYGROUND_ASSET_PACKAGER` selects an already built packaging tool to
+avoid an implicit tool build. The Tower IDE export gate remains `test:ide`.
+
 ```powershell
 npm test
 npx playwright install chromium
