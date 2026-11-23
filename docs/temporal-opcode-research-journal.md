@@ -76252,3 +76252,32 @@ linker budgets, current joined registrations, final clean public-bootstrap/brows
 generation validation and atomic hosted publication remain open. No new contexts,
 force pushes or todo edits. Current disk space remains sufficient; no evidence
 or other agent's build was deleted.
+
+### D1 complete child ownership handoff and positive-check boundary
+
+Same resumed CLI2918210/thread01a2046a, main only; todo SHAe97d67a6 unchanged.
+The pending full D2 policy merge completed as1b0167e9e and guarded pull was a no-op.
+ROOT4b child/metadata compatibility bundle SHA188337cc verified with sole60741
+prerequisite. Initial fetch requested absent HEAD and failed128 without changing
+sources; retry used the bundle's actual refs/heads/main and succeeded. Complete
+history merged cleanly, preserving both README/journal additions. All four
+assigned fixture deltas were reviewed with their producer contracts; roster is
+538/538 assigned of1127. No D1 build was active during either merge.
+
+D2 owns the host heavy slot for its native/full-host correctness checks. D1
+prepares the six registered positive targets plus current metadata allocations,
+query/resource and real stage/component concurrency under supported address and
+thread instrumentation. Fixed-four correctness runs require at least four
+allowed CPUs, distinct from two-CPU single-build/compilation measurements. Current
+source checks are pending; old213c instrumentation and old failed Cancel4 run
+keep their exact identities. No new runtime performance claim comes from this
+review-only change.
+
+ROOT's12:14:55 instruction keeps sanitizer_race_probe unchanged and unexecuted
+from this boundary. Preserve the already recorded current documented-provider
+link failure and earlier three-unit TSan reference66/stack-symbolizer warning;
+no further probe execution or alternative fixture is planned. Standalone current
+negative-control coverage stays open. Actual positive-object access hooks and
+concurrency stress are the supported forthcoming evidence, not universal race
+freedom. Final clean bootstrap/browser/generation and leased atomic hosted
+publication remain open; there is no publication lease or push.

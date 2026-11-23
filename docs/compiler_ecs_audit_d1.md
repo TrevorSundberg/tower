@@ -2821,3 +2821,33 @@ executables, not recompiled current sources. Warmup plus nine alternating pairs
 for healthy/query all pass; query's earlier wall increase is not sustained.
 Both binary hashes remain unchanged. This resolves the need for further unchanged
 timing reruns, without asserting a speedup or exact neutral cost at .01s resolution.
+
+### Child transfer and bare-store compatibility review (2026-11-23)
+
+Complete ROOT4b4c75ddc95f0de97ab9546320478095f2682cab verified from bundle188337cc,
+then adopted after both D1 containers were idle. One new assigned path brings the
+full reviewed roster to538/1127. The following four files were read substantively
+alongside the actual entity and metadata producers; owner evidence is separate
+from D1's forthcoming current-source checks.
+
+| Assigned path | Storage, ownership, scheduling, evidence and disposition |
+| --- | --- |
+| scaffolding/tests/entity_attach_leases.tower | Adds actual displaced-child/replacement lease regressions. An ordinary store owns the ordered parent edge, stage leases freeze the affected child, and wrapper calls must preserve parent/order/reference state until discard. Cleanup explicitly repairs the old forbidden replacement outcome without hiding the failing assertion. Root's before exit1/two failures and after scoped native/address/thread checks are recorded. Existing normal registration exercises this extension; no new scheduler or concurrent mutation is introduced. |
+| scaffolding/tests/entity_mutation_results.tower | Adds exact Invalid/Busy/Exhausted/None child-operation results, parent/old-child/replacement lease cases with array-derived bounds, foreign store, pinned view, named-edge preservation and unchanged failure references. Replacement at maximum reference count denies before mutation; take transfers the existing hold without incrementing it, including the exhausted boundary. Next-allocation denial verifies these operations allocate nothing, then owners/stores/counters return to baseline. Deliberate reference-field injection is single-owner fault coverage, not a legal concurrent operation or thread sanitizer substitute. Existing serial fault registration remains appropriate. |
+| scaffolding/tests/world_constructor.tower | Adds bare same-store/no-world clone compatibility: two distinct copied node identities, original-derived copied/child counts, ordered name, correct parent links, no invented compiler components, foreign-store rejection and complete owner disposal. Metadata-free calls remain no-ops only for their actual store; staged world requirements are unchanged. ROOT retained first compile type-conversion failure and actual old-producer abort134 before correction. Existing allocations selector owns the fixture. D2 already routed its duplicated literal name extent5 to ROOT; no competing fixture edit here. |
+| scaffolding/tests/entity_child_transfer_profile.tower | New manual observer, not a default CTest. A two-element entity array defines traversal bounds; each round replaces, takes and reattaches both children, checks exact existing-hold transfer, final ordered edge/reference state and empty-store disposal. Raw store/child arrays remain explicit low-level storage. Phase clocks/getrusage use a documented Linux x64 foreign ABI; small1024 and large1048576 rounds are workload parameters. Descriptor plus child-capacity bytes are partial retained storage, not total heap. ROOT's same-path warmup/five alternating pairs, +1.47% large phase wall and unchanged2264B measured retention are retained without a speedup claim. No worker overlap is asserted for this serial operation profile. |
+
+The actual checked producer validates all affected leases before changing links;
+replacement alone acquires a new hold, while take transfers the existing one.
+A null take with None is an empty parent, distinct from failure. Raw node/label
+budgeting and general queued-reference exhaustion remain separate open contracts.
+Documentation review itself changes no executable path, so new runtime profiling
+is inapplicable. Incoming ownership changes still require the current joined
+native and positive sanitizer checks before release acceptance.
+
+ROOT's12:14:55 coordination directive supersedes the pending negative-probe
+handoff request: leave the deliberate race fixture unchanged and do not execute
+it further in this milestone. The earlier actual provider link failure and
+three-unit reference result remain factual historical receipts; they do not
+close current standalone negative-control acceptance. Positive ownership and
+concurrency instrumentation proceeds independently, with this limitation explicit.
