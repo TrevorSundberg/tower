@@ -56842,6 +56842,69 @@ fixture after that result. No competing unregistered runner was added. This
 change remains prepared source pending independent public units, joint runtime,
 actual memory/race coverage and complete union publication; prior00caeef
 measurements and741de29 bundle do not validate the new ABI.
+
+### D2 pinned timing followup and exact bootstrap import policy (2026-11-23)
+
+After D1 released the shared slot, D2 acquired it atomically and repeated the
+immutable00caeef guard experiment on CPU2 only. Before executablef96ef9bf and
+currentd2385e46 share the same production objects and archived resources.
+Three units/one worker/128 bodies, one warmup plus five alternating pairs:
+before wall6.146159/6.119007/6.018415/6.061068/6.058303s; current6.185144/
+6.139582/6.110278/6.091191/6.219099s. Medians6.061068/6.139582 (+1.30%),
+CPU6.017704/6.092433 (+1.24%), RSS188880/188880KiB. All twelve answer42 and
+canonical11163853601021039373 checks pass; binaries remain byte-identical to
+the recorded inputs, no child swaps. Retained1433041/peak14082865 bytes and
+1310720 metadata bytes match both variants; the frozen archive path adds43
+bytes equally versus the earlier experiment. Frequency snapshots and raw logs
+are in build/d2_ecs/guard_pinned_00caeef. Prior32% apparent regression is not
+reproduced under this control; smaller difference remains, ranges overlap and
+no zero-cost claim follows. Host powersave/governor remained unchanged.
+
+Re-audited bootstrap symbol callers before changing policy. Canonical selected
+public-pin verifier build passed20.13wall/19.61CPU/196764KiB with no override.
+Verifier7465f311 on the seven saved00caeef object nm reports returns group1:
+parser-nodes rejects6, interpreter12, semantics6; other four pass. Exact errors
+are preserved. Each rejected symbol maps to existing Tower world/buffer,
+Foundation/formatter, shared unit dispatch, source-root or ABI-policy exports;
+the audit records caller/lifetime attribution. This is stale cross-unit policy,
+not justification for a native shim or broad symbol-prefix allowance.
+
+Added the24 exact imports only to their observed units. After reading finalized
+L2 public_clone_result_v2 patch25503293, also admitted that exact result-bearing
+clone API alongside oldclone in ParserNodes/Semantics, as root requested.
+Wrong-unit, shortened and suffixed names remain rejected in the existing Tower
+fixture. New API policy is source-reviewed only until the matched L2/B2 runtime
+closure arrives; no partial production API was applied here.
+
+Public9653 smallest checker passes4.01wall/3.91CPU/179988KiB; selected final
+verifier build4.02/3.96/196968, no swaps. Verifier6e97faac passes all seven
+unchanged Linux reports and full checker boundary cases; final source hashes
+match. Both before/after one-sample report checks are below GNU time0.01s
+wall/CPU resolution, interpreter RSS1348/1352KiB. Exact strings change neither
+allocation ownership nor scheduling: spans remain borrowed, CLI report bound
+unchanged, serial work only. No performance/scaling improvement is claimed.
+Logs and object/source hashes: build/d2_ecs/bootstrap_closure_00caeef. The
+original failed checks are not relabeled; complete merged/cross-target
+generation and current instrumentation remain separate requirements.
+
+D1 exact query fixture0751 applied after owner A1/B2 corrected runtime passed.
+The full127-line body preserves all original required/inferred/isolated
+failure, site11/29 ordering, no replay/value publication, drain and zero-ledger
+assertions. Only entry conversion and two-line existing query registration;
+no CMake or duplicate runner. Local full ABI rebuild/runtime pending. Current
+compiler receipts still identify00caeef; they do not prove643 or these changes.
+
+Scoped checker ASan evidence: the first manual command incorrectly passed
+-fsanitize=address while compiling already-instrumented IR, contrary to
+cmake/TowerSanitizers.cmake51. It exited1 with a shadow-of-shadow SEGV; exact
+failed executable, log and disassembly retained. After drain, used the canonical
+-O1 object compilation without that flag and applied it only at object link.
+The same11 instrumented Tower definitions and existing instrumented host
+boundary then pass with leak detection/halt-on-error, source hashes unchanged.
+This is a corrected command, not a production fix or suppressed finding.
+Current checker has no shared mutable/threaded path; this ASan receipt does not
+sanitize the full compiler. Source-level UBSan remains unsupported by this
+LLVM-only workflow; final coherent compiler TSan/stress is still required.
 Merged exact coherent checkpoint7ac22f4 after all cd8 jobs drained. Twenty
 conflicted paths were reconciled against the complete reviewed diff: retained
 newer D1/A2/B1/B2/D2 registrations, backend overlap helper, named capacities,
@@ -59163,3 +59226,110 @@ coherent link/runtime and malformed/range checks are next. Individual case timin
 will report actual wall/CPU/RSS and exact completed scope; reduced selected work
 will not be presented as a compiler speedup. Final union instrumentation/release
 and remaining owner constructor/clone/arena handoffs stay open.
+
+### D2 current resource failure, cache comparison and source union (2026-11-23)
+
+Frozen sourcefa725bf/scaffolding16116eb4 compiled through public9653 in the
+same Docker image4be584fb and own native cache, jobs1, no bootstrap override.
+Six smallest changed storage/evaluation/cache/query units pass. Canonical native
+six-step rebuild:84.04wall/82.34CPU/792944KiB; eight affected native targets:
+31.63/30.98/354312. Compiler8388c79ae048765509f822ad175ebe16bd98a1ae62b43755ab9411baec904c12
+and48 resources are preserved in build/d2_ecs/native_package_fa725bf; every
+Tower resource byte-compares to that frozen source. Seven freshly emitted
+component import reports also pass the exact updated symbol verifier.
+
+Preserved command failures: Docker-root Git refused host-owned repository128
+before any compiler ran; the attempted host replacement of its empty root-owned
+source.txt was permission-denied. A separate host-written source_host.txt and
+complete tracked-input hash manifest corrected identity capture without changing
+Git safety configuration. The next group built native successfully, then failed1
+because tower-parser-tests is a parser-only target, absent from this native
+configuration. Corrected native targets pass separately. No failed step is hidden
+or a skipped full module regression called passed.
+
+The new D1 resource helper executes through query-smoke at widths32/64 and
+workers1/4:0.16wall/0.15CPU/61008KiB. This covers required/inferred/isolated
+resource failures, exact first diagnostic, failed tickets, no replay/value
+publication, peer drain and zero receipts. Serial allocation/root replacement
+checks2.06/2.03/162184 and parser integration0.02/0.02/51464 pass. Production
+independent units48.55/65.24/631052 and backend streaming overlap17.29/25.63/
+490256 pass, including exact serial objects and distinct native threads. These
+are one-run correctness receipts, not before/after speed claims. All child swaps0.
+No current whole-compiler ASan/TSan, full42 or final browser/generation claim.
+
+The exact module-cache profile0930654a now passes shared-leaf invalidation,
+unique module counts and complete world/cache teardown with B2 fixdeba07.
+Initial uncontrolled18-layer reuse improved from273–301ms to0.93–1.46ms, but
+first-load80–92ms versus34–37ms and small reuse were slower. Investigated rather
+than dismissing this: retained original09b7b604 and current394e8b49 executables,
+CPU2 only, warmup plus three alternating process pairs. Each process reports
+first load and three warm reuses for3/18layers and requested1/4 workers. All128
+records and invalidation/cleanup assertions pass; binaries/entry hashes unchanged.
+
+| Requested1 workload | Before wall | Current wall | Qualification |
+| --- | ---: | ---: | --- |
+|3layers first load|8.159ms|8.062ms|Median of3 process-first samples per executable.|
+|3layers reused|103.761us|95.361us|Median of9 warm samples from those processes.|
+|18layers first load|42.085ms|37.151ms|Median of3 process-first samples per executable.|
+|18layers reused|309.109ms|549.529us|Median of9 warm samples; CPU307686us/542us.|
+
+The initial2.5x first-load slowdown is not reproduced under the pinned control;
+all raw observations remain. Retained entities/components exactly1646/1680 and
+7047/8725 match both versions;18-layer reported peak RSS median55860/55880KiB
+is cumulative process memory, not total live ownership. No allocation-call
+counter is available here. The control deliberately pins one CPU; requested4
+is not overlap/scaling evidence. Results describe this cache-validation workload,
+not end-to-end compiler performance. Existing three-unit production profile and
+backend observer provide separate actual-overlap evidence. Inputs and outputs,
+CPU/RSS/frequency samples, original errors and checks are in
+build/d2_ecs/resource_fa725bf. Pinned repeat addresses host variance without
+changing governor or deleting initial results. Heavy lock released at actual
+01:31:05UTC after all jobs drained;139GiB free/9.6GiB available, preexisting
+6.2GiB swap, measured child swaps0.
+
+Then merged coordinator1fec and complete eight-lane3915 histories on main,
+followed by D1's80ec focused registrations, preserving all owner history and
+newer D2 symbol policy. The only code conflict was old standalone resource main
+versus D1's registered helper; preserved exact0b6cbbef helper, all trial bodies
+identical. README conflict retained both LR runtime measurement and new selectors.
+No todo changes. Read the new AGENTS derived-size/count rule. Source78e955c /
+scaffoldingfb4371c6 remains UNBUILT; fa725bf receipts do not validate this union.
+
+D1 module registration62b9 uses existing parser_modules_work composition and
+module_cache_checks entry when TOWER_MODULE_TESTS=ON, with the normal native
+source/library/callback closure and scaffolding working directory. Its lifecycle
+selectorfca3 retains shared case bodies, widths/workers and default coverage,
+adding flushed per-case start/completion receipts. Execution-indexd679 reuses
+B2's pure helper and serial frontend entry. No D2 competing harness or manifest.
+Full module/session regressions, full42, current instrumentation and final clean
+public/native/browser/generation/atomic publication remain required. New shared
+constructor, public clone consumers and fallible semantic-arena ownership are
+still separate owner work, not established by a resource_error field alone.
+
+Cross-lane review sent to L2/A2/B2: in3915 generics, failed entity/node/component
+creation can return null while CloneStack.error remains None. The proposed public
+clone-result API25503293 would then classify it as node-quota truncation in
+optional inspection. This is source evidence for an unmigrated non-stack failure
+path, not a reproduced budgeted-page error: pages/payloads are not yet charged.
+Preserve true quota exhaustion semantics while completing typed failure propagation.
+
+### Joined-source comparison and regression entry integration
+
+Compared B1's validated d1a23181 against root3915aee8 across scaffolding, CMake,
+bootstrap and build transport. Production differences are three comment blocks
+(worker_policy, entity_types and work_budget_types); build rules are identical.
+Other differences are README and three unregistered A2 measurement/fixture files.
+B1's public-pin 54-step native build and query, LR, parser, allocation, units,
+storage/clone and buffer/arena checks therefore exercise the same production
+behavior, with their original d1a source identity. They do not validate the three
+new standalone entries or constitute a byte-identical root release build.
+
+Integrated D1 80ecb11b's resource test entry, bounded lifecycle selector, serial
+execution-index selector and conditional existing native module-cache target.
+Integrated D2 2a8646ee's observed bootstrap import-policy correction and exact-name,
+wrong-unit and suffix regression checks. The full D2 bundle already contains the
+eight-lane union and D1 hooks; the reviewed merge adds only those two tool/test
+files and owner evidence. D2's tool verification and seven recorded object checks
+pass on their stated older closure; final generation validation remains open.
+The new native selector compile/link/runtime checks are pending D1's current
+frozen build. No earlier checks are relabelled as validation of these additions.
