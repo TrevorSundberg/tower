@@ -10,6 +10,7 @@ import syntax_reader;
 import syntax_validation;
 import syntax_expansion_types;
 import .library.vector;
+import .library.work_budget_types;
 
 // Replacement execution over shared parse entities. Rule slots and visitation
 // sets are disposable indexes; capture holes refer to the compiled template tree.
@@ -34,6 +35,9 @@ extern fn syntax_expansion_origin(trace: void*, node: void*, template: void*, ge
 extern fn syntax_trace_release(trace: void*): void;
 
 extern fn syntax_expansion_copy_origin(source: void*, destination: void*): bool;
+extern fn syntax_expansion_copy_origin_result(source: void*, destination: void*): WorkBudgetError;
+extern fn syntax_expansion_trace_result(rule: u8*, start: usize, end: usize, invocation: void*, error: WorkBudgetError*): void*;
+extern fn syntax_expansion_origin_result(trace: void*, node: void*, template: void*, generated: bool): WorkBudgetError;
 
 struct ExpansionFrame {
     node: void*;
@@ -80,7 +84,14 @@ fn expansion_append(state: ExpansionState*, text: u8*): void {
 }
 
 fn expansion_memory(state: ExpansionState*): bool {
+    if state.result.resource_error == WorkBudgetError.None { state.result.resource_error = WorkBudgetError.Memory; }
     return expansion_error(state, "Unable to allocate replacement expansion storage");
+}
+
+fn expansion_resource(state: ExpansionState*, error: WorkBudgetError): bool {
+    if error == WorkBudgetError.None { return true; }
+    if state.result.resource_error == WorkBudgetError.None { state.result.resource_error = error; }
+    return false;
 }
 
 fn expansion_same(left: u8*, right: u8*): bool {
@@ -237,7 +248,7 @@ fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): voi
             data.start = from.start;
             data.length = from.length;
             ok = node_match_set_label(data, node_text_get(&from.label));
-            ok &&= syntax_expansion_copy_origin(source, node);
+            ok &&= expansion_resource(state, syntax_expansion_copy_origin_result(source, node));
         }
         if ok {
             if copied {
@@ -291,7 +302,7 @@ fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
 }
 
 fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: ExpansionWork*): bool {
-    var ok = syntax_expansion_origin(trace, node, work.source, false);
+    var ok = expansion_resource(state, syntax_expansion_origin_result(trace, node, work.source, false));
     ok &&= entity_attach(node, work.parent, work.role);
     if ok {
         return true;
@@ -392,7 +403,9 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         state.captures.data[index].node = node;
         state.captures.data[index].remaining = rule.captures[index].uses;
     }
-    var trace = syntax_expansion_trace(rule.rule, rule.start, rule.end, invocation);
+    var error = WorkBudgetError.None;
+    var trace = syntax_expansion_trace_result(rule.rule, rule.start, rule.end, invocation, &error);
+    expansion_resource(state, error);
     if trace == null {
         expansion_memory(state);
         return null;
@@ -438,7 +451,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
             var made = expansion_match(state, node);
             made.start = span.start;
             made.length = span.length;
-            ok = syntax_expansion_origin(trace, node, work.source, true);
+            ok = expansion_resource(state, syntax_expansion_origin_result(trace, node, work.source, true));
             ok &&= entity_attach(node, work.parent, work.role);
             if ok {
                 ok = expansion_children(state, &state.work, work.source, node);

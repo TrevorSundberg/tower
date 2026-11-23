@@ -1,4 +1,7 @@
 import tower;
+import format_storage;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import component_kinds;
 import format_types;
 import frontend_modules;
@@ -12,6 +15,7 @@ import syntax_version_cache;
 import .library.vector;
 import .library.work_budget_types;
 
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 
 // Formatting remains in its existing compiled unit. These calls share its
@@ -21,11 +25,11 @@ extern fn format_dispose(result: FormatResult*): void;
 extern fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
 comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*, match_kind: void*): void;
 
-extern fn format_same_tree(a: void*, b: void*, source_a: u8*, size_a: usize,
-source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool;
+extern fn format_same_tree_result(a: void*, b: void*, source_a: u8*, size_a: usize,
+source_b: u8*, size_b: usize, syntax: void*, kind: void*, budget: WorkBudget*, error: WorkBudgetError*): bool;
 
-fn syntax_format_clone(source: SyntaxSession*, text: u8*): SyntaxSession* {
-    var value = syntax_session_allocate(source.inputs.world, source.inputs.environment);
+fn syntax_format_clone(source: SyntaxSession*, text: u8*, error: WorkBudgetError*): SyntaxSession* {
+    var value = syntax_session_allocate_result(source.inputs.world, source.inputs.environment, error);
     if value is null {
         return null;
     }
@@ -39,11 +43,11 @@ fn syntax_format_clone(source: SyntaxSession*, text: u8*): SyntaxSession* {
     return value;
 }
 
-fn syntax_format_roots_dispose(roots: vector(void*)*): void {
+fn syntax_format_roots_dispose(roots: vector(void*)*, storage: WorkBuffer*): void {
     foreach(var & root in roots) {
         entity_release(*root);
     }
-    vector_dispose(roots);
+    work_buffer_dispose(storage);
 }
 
 // The caller owns the shared formatter output. Diagnostics are immutable static
@@ -59,40 +63,63 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     if session.error.length != 0 || !session.finalized {
         return false;
     }
-    var source = syntax_format_clone(session, session.source);
+    format_storage_begin(output, compiler_world_work_budget(session.inputs.world));
+    if output.failed { *error = "Invalid formatter output owner"; return false; }
+    var resource_error = WorkBudgetError.None;
+    var source = syntax_format_clone(session, session.source, &resource_error);
     if source is null {
+        format_storage_fail(output, resource_error);
+        *error = "Unable to acquire formatter session resources";
         return false;
     }
     defer syntax_destroy(bits(void*, source));
-    var roots: vector(void*);
-    vector_init(&roots);
-    defer syntax_format_roots_dispose(&roots);
+    var roots: vector(void*) = default; // Borrowed view of roots_storage.
+    var roots_storage: WorkBuffer = default;
+    defer syntax_format_roots_dispose(&roots, &roots_storage);
     loop {
         var root = syntax_next(bits(void*, source));
         if root is null {
             break;
         }
-        if !vector_push(&roots, root) {
+        var resource = WorkBudgetError.None;
+        var needed = roots.length + 1;
+        if needed == 0 { resource = WorkBudgetError.Invalid; }
+        else { if needed > roots.capacity {
+            resource = work_buffer_grow_elements(&roots_storage, output.budget, roots.length, roots.capacity, needed, sizeof(void*), alignof(void*));
+            if resource == WorkBudgetError.None { roots.data = bits(void**, roots_storage.data); roots.capacity = roots_storage.capacity / sizeof(void*); }
+        } }
+        if resource != WorkBudgetError.None {
+            format_storage_fail(output, resource);
             entity_release(root);
             *error = "Unable to allocate canonical formatted source";
             return false;
         }
+        roots.data[roots.length++] = root;
     }
     if source.resource_error != WorkBudgetError.None {
+        format_storage_fail(output, source.resource_error);
         *error = "Unable to acquire syntax resources";
         return false;
     }
     if source.error.length != 0 {
         return false;
     }
-    var comments: vector(FormatComment);
-    vector_init(&comments);
-    defer vector_dispose(&comments);
+    var comments: vector(FormatComment) = default; // Borrowed view of comment_storage.
+    var comment_storage: WorkBuffer = default;
+    defer work_buffer_dispose(&comment_storage);
     foreach(var & row in &source.highlights.items) {
         if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", syntax_text_length("comment")) != 0 {
             continue;
         }
-        if !vector_reserve(&comments, comments.length + 1) {
+        var resource = WorkBudgetError.None;
+        var needed = comments.length + 1;
+        if needed == 0 { resource = WorkBudgetError.Invalid; }
+        else { if needed > comments.capacity {
+            resource = work_buffer_grow_elements(&comment_storage, output.budget, comments.length, comments.capacity, needed, sizeof(FormatComment), alignof(FormatComment));
+            if resource == WorkBudgetError.None { comments.data = bits(FormatComment*, comment_storage.data); comments.capacity = comment_storage.capacity / sizeof(FormatComment); }
+        } }
+        if resource != WorkBudgetError.None {
+            format_storage_fail(output, resource);
             *error = "Unable to allocate canonical formatted source";
             return false;
         }
@@ -104,7 +131,7 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     format_source(output, roots.data, roots.length, source.source, source.source_length,
     comments.data, comments.length, syntax, null, match_kind);
     if !output.failed {
-        output.failed = !vector_reserve(&output.text, output.text.length + 1);
+        format_storage_reserve(output, output.text.length + 1, false);
         if !output.failed {
             output.text.data[output.text.length] = 0;
         }
@@ -112,13 +139,15 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     if output.failed {
         format_dispose(output);
         *error = "Unable to allocate canonical formatted source";
+        return false;
     }
     // Reparse without replacements, preserving the same baseline/cache and
     // exact shared-tree comparison used by the old source formatting path.
-    var verify = syntax_format_clone(source, output.text.data ?? "");
+    var verify = syntax_format_clone(source, output.text.data ?? "", &resource_error);
     if verify is null {
+        format_storage_fail(output, resource_error);
         format_dispose(output);
-        *error = "";
+        *error = "Unable to acquire formatter verification resources";
         return false;
     }
     defer syntax_destroy(bits(void*, verify));
@@ -131,12 +160,15 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
         }
         defer entity_release(root);
         // Keep comparing later roots even after an earlier mismatch.
-        var matches = index < roots.length && format_same_tree(roots.data[index], root,
-        source.source, source.source_length, verify.source, verify.source_length, syntax, match_kind);
+        var resource = WorkBudgetError.None;
+        var matches = index < roots.length && format_same_tree_result(roots.data[index], root,
+        source.source, source.source_length, verify.source, verify.source_length, syntax, match_kind, output.budget, &resource);
+        format_storage_fail(output, resource);
         same &&= matches;
         index++;
     }
-    if verify.resource_error != WorkBudgetError.None {
+    if verify.resource_error != WorkBudgetError.None || output.failed {
+        format_storage_fail(output, verify.resource_error);
         format_dispose(output);
         *error = "Unable to acquire syntax resources";
         return false;

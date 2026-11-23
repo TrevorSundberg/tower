@@ -31,6 +31,7 @@ extern fn entity_create(store: void*): void*;
 extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 extern fn entity_component_add_result(entity: void*, kind: void*, error: WorkBudgetError*): void*;
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession*;
+extern fn syntax_session_open_result(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32, error: WorkBudgetError*): SyntaxSession*;
 
 extern fn syntax_destroy(session: void*): void;
 extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
@@ -907,7 +908,13 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
                     if session == null {
-                        session = bits(void*, syntax_session_open(parent.graph.world, bits(void*, parent.graph.environment), result.source.text.data, result, SyntaxFoundationBaseline));
+                        var error = WorkBudgetError.None;
+                        session = bits(void*, syntax_session_open_result(parent.graph.world, bits(void*, parent.graph.environment), result.source.text.data, result, SyntaxFoundationBaseline, &error));
+                        if session == null {
+                            module_clone_fail(parent.graph, error, "Unable to acquire imported syntax session");
+                            parent.graph.depth--;
+                            return null;
+                        }
                     }
                     else {
                         syntax_reset(session, result.source.text.data, result);
@@ -1434,7 +1441,9 @@ export fn frontend_module_session(module: FrontendModule*): void* {
     var session = environment.compilation_session;
     environment.compilation_session = null;
     if session == null {
-        session = bits(void*, syntax_session_open(module.graph.world, bits(void*, environment), module.source.text.data, module, SyntaxFoundationBaseline));
+        var error = WorkBudgetError.None;
+        session = bits(void*, syntax_session_open_result(module.graph.world, bits(void*, environment), module.source.text.data, module, SyntaxFoundationBaseline, &error));
+        if session == null { module_clone_fail(module.graph, error, "Unable to acquire syntax session"); return null; }
     }
     else {
         syntax_reset(session, module.source.text.data, module);

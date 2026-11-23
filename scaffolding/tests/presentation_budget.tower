@@ -1,0 +1,197 @@
+import tower;
+import utility_checks;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.parser_markers;
+import .compiler.parser_table_types;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .compiler.format_types;
+import .compiler.format_api;
+import .compiler.format_storage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_component_result(world: void*, node: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn syntax_trace_create_result(world: void*, node: void*, rule: u8*, start: usize, end: usize, error: WorkBudgetError*): SyntaxExpansion*;
+extern fn syntax_trace_release(trace: SyntaxExpansion*): void;
+extern fn syntax_origin_get(world: void*, node: void*): SyntaxOrigin*;
+extern fn syntax_origin_mark_result(world: void*, trace: SyntaxExpansion*, node: void*, source: void*, generated: bool): WorkBudgetError;
+extern fn syntax_origin_copy_result(world: void*, source: void*, destination: void*): WorkBudgetError;
+extern fn syntax_origin_copy_staged_result(world: void*, source: void*, destination: void*, stage: void*): WorkBudgetError;
+extern fn entity_stage_open(root: void*): void*;
+extern fn entity_stage_create_named(stage: void*, parent: void*, name: u8*): void*;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_view_open(root: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn syntax_session_open_result(world: void*, environment: void*, source: u8*, module: void*, mode: u32, error: WorkBudgetError*): SyntaxSession*;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn parser_stream_create(bytes: usize, kind: ParserInputService): void*;
+extern fn parser_stream_get_userdata(stream: void*): void*;
+extern fn parser_stream_destroy(stream: void*): void;
+extern fn parser_recognizer_create_prefix_result(table: ParserHostTable*, stream: void*, error: WorkBudgetError*): void*;
+extern fn parser_recognizer_destroy(request: void*): void;
+extern fn parser_recognizer_step(request: void*, running: bool*): void*;
+extern fn parser_recognizer_get_error(request: void*): u8*;
+extern fn parser_recognizer_resource_error(request: void*): WorkBudgetError;
+extern fn syntax_session_diagnostic_buffer_result(session: SyntaxSession*, request: void*, repairs: bool, text: WorkBuffer*): WorkBudgetError;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+fn presentation_diagnostic_lifetime(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Final diagnostic ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Final diagnostic world");
+    var error = WorkBudgetError.None;
+    var session = syntax_session_open_result(world, null, "parse Statement = 'a' 'b';a", null, SyntaxSeedBaseline, &error);
+    utility_check(session != null && error == WorkBudgetError.None, "Checked diagnostic session admission");
+    var declaration = syntax_next(bits(void*, session));
+    utility_check(declaration != null && session.resource_error == WorkBudgetError.None, "Activate fixture grammar boundary");
+    entity_release(declaration);
+    session.bootstrapping = false;
+    session.declaration = false;
+    var stream = parser_stream_create(sizeof(SyntaxSession*), ParserInputService.Syntax);
+    *bits(SyntaxSession**, parser_stream_get_userdata(stream)) = session;
+    var request = parser_recognizer_create_prefix_result(bits(ParserHostTable*, session.pins.version.table), stream, &error);
+    utility_check(request != null && error == WorkBudgetError.None, "Final diagnostic recognizer");
+    session.recognizer = request;
+    var running = true;
+    while running { utility_check(parser_recognizer_step(request, &running) == null, "Missing suffix is syntax failure"); }
+    utility_check(parser_recognizer_resource_error(request) == WorkBudgetError.None
+        && strcmp(parser_recognizer_get_error(request), "Unexpected end of input.") == 0, "Original diagnostic precedes presentation");
+    var original_offset = session.error_offset;
+    var original_insertion = session.error_insertion;
+    var text: WorkBuffer = default;
+    var calls = tower_test_buffer_allocations();
+    utility_check(syntax_session_diagnostic_buffer_result(session, request, true, &text) == WorkBudgetError.None,
+        "Format complete diagnostic under request budget");
+    var allocations = tower_test_buffer_allocations() - calls;
+    utility_check(allocations != 0 && text.data != null, "Measure required final diagnostic allocations");
+    var insertion_offset = session.error_offset;
+    var inserted = session.error_insertion;
+    var wanted: WorkBuffer = default;
+    work_buffer_move(&wanted, &text);
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Final text live accounting");
+    session.error_offset = original_offset;
+    session.error_insertion = original_insertion;
+    tower_test_buffer_fail_after(allocations - 1);
+    error = syntax_session_diagnostic_buffer_result(session, request, true, &text);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var after: WorkBudgetSnapshot = default;
+    utility_check(error == WorkBudgetError.Memory && text.data == null
+        && session.error_offset == original_offset && session.error_insertion == original_insertion
+        && strcmp(parser_recognizer_get_error(request), "Unexpected end of input.") == 0,
+        "Late formatting failure preserves original source position, insertion and first diagnostic");
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes && after.live == before.live,
+        "Late formatting rollback releases all partial owners");
+    utility_check(syntax_session_diagnostic_buffer_result(session, request, true, &text) == WorkBudgetError.None
+        && strcmp(text.data, wanted.data) == 0 && session.error_offset == insertion_offset && session.error_insertion == inserted,
+        "Retry preserves exact diagnostic order, grammar provenance and offsets");
+    work_buffer_dispose(&wanted);
+    parser_recognizer_destroy(request); session.recognizer = null;
+    parser_stream_destroy(stream); syntax_destroy(bits(void*, session));
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Retire diagnostic world and revisions");
+    utility_check(work_budget_snapshot(&budget, &after) && after.live == 1 && after.used_bytes != 0,
+        "Final diagnostic alone retains its physical grant");
+    dprintf(2, "diagnostic production_peak=%zu\n", after.peak_bytes, 0, 0);
+    work_buffer_dispose(&text);
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == 0 && after.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Final diagnostic teardown releases every grant");
+}
+
+fn presentation_budget_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Presentation ledger");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Presentation world");
+    var source = entity_create(compiler_world_store(world));
+    var destination = entity_create(compiler_world_store(world));
+    var error = WorkBudgetError.None;
+    var span = bits(ParserMatchData*, compiler_world_component_result(world, source, CompilerParserMatch, &error));
+    utility_check(span != null, "Provenance input span");
+    var input: u8* = "invocation";
+    span.start = strlen("prefix "); span.length = strlen(input);
+    var trace = syntax_trace_create_result(world, source, "Statement", strlen("definition "), strlen("definition body"), &error);
+    utility_check(trace != null && error == WorkBudgetError.None, "Checked trace rule storage");
+    utility_check(syntax_origin_mark_result(world, trace, source, source, true) == WorkBudgetError.None
+        && syntax_origin_mark_result(world, trace, source, source, false) == WorkBudgetError.None, "Owned generated and splice history");
+    var origin = syntax_origin_get(world, source);
+    while origin.splices.length < origin.splices.capacity {
+        utility_check(syntax_origin_mark_result(world, trace, source, source, false) == WorkBudgetError.None, "Fill actual splice capacity");
+    }
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &before), "Provenance live accounting");
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied) == WorkBudgetError.None,
+        "Deny new provenance and formatter storage");
+    var count = origin.splices.length;
+    utility_check(syntax_origin_mark_result(world, trace, source, source, false) == WorkBudgetError.Capacity
+        && origin.splices.length == count && origin.expansion == trace, "Splice denial rolls back ownership");
+    utility_check(syntax_origin_copy_result(world, source, destination) == WorkBudgetError.Capacity
+        && syntax_origin_get(world, destination) == null, "Copy denial leaves destination unchanged");
+    var formatted: FormatResult = default;
+    format_storage_begin(&formatted, &budget);
+    var engine: FormatEngine = {result: &formatted, ..default};
+    format_text(&engine, "original diagnostic");
+    utility_check(formatted.failed && format_storage_error(&formatted) == WorkBudgetError.Capacity, "Formatter reports exact admission failure");
+    format_storage_fail(&formatted, WorkBudgetError.Memory);
+    var text: WorkBuffer = default;
+    utility_check(format_storage_finish(&formatted, &text) == WorkBudgetError.Capacity && text.data == null,
+        "First cause survives final text admission; empty success forbidden");
+    format_dispose(&formatted);
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release storage denial");
+    var after: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes && after.live == before.live,
+        "Denied operations release every partial receipt");
+    utility_check(syntax_origin_copy_result(world, source, destination) == WorkBudgetError.None, "Provenance copy retry");
+    var copied = syntax_origin_get(world, destination);
+    utility_check(copied.expansion == trace && copied.splices.length == origin.splices.length
+        && copied.splices.data != origin.splices.data && copied.template_start == span.start
+        && copied.template_end == span.start + span.length && strcmp(trace.rule.data, "Statement") == 0,
+        "Independent splice owner preserves exact identity, order and source offsets");
+    var stage = entity_stage_open(destination);
+    var view = entity_view_open(source);
+    var child = entity_stage_create_named(stage, destination, "cancelled");
+    utility_check(child != null && syntax_origin_copy_staged_result(world, source, child, stage) == WorkBudgetError.None,
+        "Staged splice and reference scratch admitted together");
+    entity_stage_discard(stage);
+    entity_view_close(view);
+    utility_check(origin.expansion == trace && copied.expansion == trace && origin.splices.length == count,
+        "Cancelled unheld splice copy preserves immutable history");
+    formatted = default;
+    format_storage_begin(&formatted, &budget);
+    format_text(&engine, "canonical Foundation;\n");
+    utility_check(format_storage_finish(&formatted, &text) == WorkBudgetError.None, "Formatter retry transfers receipt");
+    format_dispose(&formatted);
+    entity_release(source); entity_release(destination); syntax_trace_release(trace);
+    utility_check(compiler_world_dispose(world), "Detached final text does not borrow destroyed world");
+    utility_check(strcmp(text.data, "canonical Foundation;\n") == 0 && work_budget_snapshot(&budget, &after)
+        && after.used_bytes != 0 && after.live == 1 && !work_budget_dispose(&budget), "Detached text retains budget owner");
+    work_buffer_dispose(&text);
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == 0 && after.live == 0,
+        "Zero grants after final owner teardown");
+    // The denial reservation deliberately fills the ledger, so the pre-denial
+    // snapshot records meaningful production peak rather than that artificial cap.
+    dprintf(2, "presentation live_before=%zu\n", before.used_bytes, 0, 0);
+    dprintf(2, "presentation production_peak=%zu\n", before.peak_bytes, 0, 0);
+    dprintf(2, "presentation ledger_retained=%zu final_live=0\n", after.retained, 0, 0);
+    utility_check(work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Presentation owner cleanup");
+}

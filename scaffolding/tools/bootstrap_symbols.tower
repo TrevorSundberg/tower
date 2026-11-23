@@ -118,7 +118,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_replacement_begin syntax_replacement_capture syntax_replacement_attempt syntax_replacement_diagnostic", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_offset syntax_replacement_select syntax_replacement_commit entity_id entity_replace_child", symbol, length)
             || bootstrap_symbol_in("entity_take_last_child entity_child_name syntax_expansion_history syntax_expansion_previous syntax_expansion_trace", symbol, length)
-            || bootstrap_symbol_in("syntax_expansion_origin syntax_expansion_copy_origin tower_utf8_decode tower_allocate compiler_grammar_root", symbol, length)
+            || bootstrap_symbol_in("syntax_expansion_origin syntax_expansion_copy_origin syntax_expansion_origin_result syntax_expansion_copy_origin_result syntax_expansion_trace_result tower_utf8_decode tower_allocate compiler_grammar_root", symbol, length)
             || bootstrap_symbol_in("compiler_grammar_rule compiler_grammar_reference compiler_grammar_literal compiler_grammar_range", symbol, length)
             || bootstrap_symbol_in("entity_component_get entity_component_data entity_component_add entity_member_index entity_create_related", symbol, length)
             || bootstrap_symbol_in("entity_attach entity_child_at entity_child_count entity_parent entity_release entity_retain compiler_parse_match", symbol, length)
@@ -131,30 +131,30 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_capture_comments syntax_component_type syntax_create syntax_destroy syntax_get_error syntax_get_error_offset", symbol, length)
             || bootstrap_symbol_in("syntax_next syntax_parser_diagnostic_read syntax_parser_read syntax_parser_template_read syntax_reset syntax_trace_release", symbol, length)
             || bootstrap_symbol_in("tower_memory_allocate tower_memory_free tower_node_create", symbol, length)
-            || bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_free entity_view_close entity_view_open format_same_tree format_syntax_diagnostic", symbol, length)
-            || bootstrap_symbol_in("parser_table_destroy parser_table_finish parser_table_finish_result parser_table_open parser_table_open_result syntax_description_text syntax_diagnostic_text_finish", symbol, length)
+            || bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_free entity_view_close entity_view_open format_same_tree format_same_tree_result format_syntax_description format_syntax_origin format_syntax_diagnostic", symbol, length)
+            || bootstrap_symbol_in("parser_table_destroy parser_table_finish parser_table_finish_result parser_table_finish_buffer_result parser_table_open parser_table_open_result syntax_description_text syntax_diagnostic_text_finish", symbol, length)
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     // Separate native objects: reviewed nm closures, not ParserNodes imports.
     // Target-only runtime additions require their own observed object evidence.
     if unit == BootstrapUnit.ParserFormat {
-        return bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_get", symbol, length)
+        return bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_get", symbol, length)
             || bootstrap_symbol_in("entity_child_at entity_child_count entity_child_index entity_child_name entity_component_data entity_component_get entity_parent", symbol, length)
             || bootstrap_symbol_in("format_bytes format_char format_dispose format_entity format_match format_repeat format_text format_unsigned format_write", symbol, length)
             || bootstrap_symbol_in("lr_grammar_missing_count lr_grammar_missing_name lr_grammar_name lr_grammar_name_count lr_grammar_rule_count lr_grammar_rule_data lr_grammar_symbol_count lr_grammar_symbol_data", symbol, length)
             || bootstrap_symbol_in("lr_runtime_action_count lr_runtime_actions lr_runtime_conflict lr_runtime_goto_count lr_runtime_goto_data", symbol, length)
-            || bootstrap_symbol_in("parser_table_non_terminal_id_to_string_result parser_table_rule_next putchar puts syntax_nodes_equal syntax_parser_describe syntax_parser_token_name_result syntax_source_location", symbol, length)
+            || bootstrap_symbol_in("parser_table_non_terminal_id_to_string_result parser_table_rule_next putchar puts syntax_nodes_equal syntax_nodes_equal_result syntax_parser_describe syntax_parser_token_name_result syntax_parser_describe_into syntax_parser_token_name_into syntax_source_location", symbol, length)
             || bootstrap_symbol_in("tower_allocate tower_trap tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.TemplateBuild {
-        return bootstrap_symbol_in("bytes_append compiler_buffer_free compiler_node_world", symbol, length)
+        return bootstrap_symbol_in("bytes_append compiler_buffer_free compiler_node_world tower_trap", symbol, length)
             || bootstrap_symbol_in("entity_attach entity_child_at entity_component_data entity_component_get entity_member_index entity_release entity_retain", symbol, length)
             || bootstrap_symbol_in("format_dispose format_entity frontend_revision_release frontend_revision_retain", symbol, length)
             || bootstrap_symbol_in("parser_recognizer_create_result parser_recognizer_destroy parser_recognizer_get_error parser_recognizer_resource_error parser_recognizer_step", symbol, length)
-            || bootstrap_symbol_in("parser_stream_create parser_stream_destroy parser_stream_get_userdata parser_table_finish_result parser_table_grammar parser_table_open_result", symbol, length)
+            || bootstrap_symbol_in("parser_stream_create parser_stream_destroy parser_stream_get_userdata parser_table_finish_result parser_table_finish_buffer_result parser_table_grammar parser_table_open_result", symbol, length)
             || bootstrap_symbol_in("syntax_destroy syntax_emission_find_index syntax_emission_keyword_count syntax_emission_keywords syntax_emission_production_count syntax_emission_productions syntax_emission_repetition_count syntax_emission_repetitions syntax_emission_wrapper syntax_pending_contains", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_candidate syntax_replacement_error syntax_replacement_host syntax_replacement_inspect syntax_replacement_resource_fail syntax_replacement_sequence syntax_replacement_tree", symbol, length)
-            || bootstrap_symbol_in("syntax_revision_reference syntax_revision_rule syntax_session_allocate syntax_session_diagnostic_result syntax_session_inputs_source syntax_session_pin_revision syntax_session_pin_version syntax_session_progress", symbol, length)
+            || bootstrap_symbol_in("syntax_revision_reference syntax_revision_rule syntax_session_allocate syntax_session_allocate_result syntax_session_diagnostic_result syntax_session_diagnostic_buffer_result syntax_session_inputs_source syntax_session_pin_revision syntax_session_pin_version syntax_session_progress", symbol, length)
             || bootstrap_symbol_in("syntax_template_holes_revision_result syntax_template_remap_revisions_result syntax_version_create_result syntax_version_lexicon_result syntax_version_release syntax_version_seed_result", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {

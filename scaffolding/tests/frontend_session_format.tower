@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 import .compiler.format_types;
 import .compiler.syntax_session_types;
 import .compiler.syntax_version_types;
@@ -32,7 +33,10 @@ fn frontend_session_format_tests(): void {
     tower_test_buffer_fail_after(0);
     var ready = syntax_format_into(session, &output, &error);
     tower_test_buffer_fail_after(frontend_world_unlimited());
-    frontend_world_check(!ready && error[0] == 0 && output.text.length == 0);
+    frontend_world_check(!ready && error[0] != 0 && output.text.length == 0
+        && output.resource_error == WorkBudgetError.Memory);
+    format_dispose(&output);
+    output = default;
     frontend_world_check(syntax_format_into(session, &output, &error));
     frontend_world_check(error[0] == 0 && output.spans.length != 0);
     frontend_world_check(output.text.data[output.text.length] == 0);

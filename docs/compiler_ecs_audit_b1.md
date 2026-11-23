@@ -2305,3 +2305,16 @@ results match. Cold whole process1.03->1.02s n1, with.85s LR time remaining:
 this removes duplicate construction but does not solve the dominant distinct
 large revisions or historical300s timeout. Contract and full measurements in
 parser.md and journal; ROOT release gates remain pending.
+
+B1 checked provenance/presentation successor: rule/splice/staged-reference scratch,
+formatter descriptor/frames/text/spans/nested previews/source verification, parser
+labels/table errors and session/final diagnostic owners now use explicit checked
+budgets. Producer-to-caller transfers retain receipts; late failures preserve the
+original diagnostic and offsets, static failures allocate nothing, denied session
+admission is typed/nullable and guarded. Focused parser/grammar/regex/denial/lifetime
+checks and exact native symbol closures pass, with zero grants after teardown.
+Normal serial/parallel canonical results agree and LR123/36 reuse remains intact.
+The small timing samples show no speedup; the changed serial sample is about5%
+slower than an adjacent frozen baseline, with comparable RSS. Full evidence and
+legacy/unmigrated storage boundaries are in parser.md and the journal. ROOT's
+integrated sanitizer/release gates and historical full-frontend timeout stay open.

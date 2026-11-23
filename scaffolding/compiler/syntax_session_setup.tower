@@ -1,4 +1,5 @@
 import tower;
+import .library.work_vector;
 import frontend_cache;
 import frontend_modules;
 import frontend_revision_types;
@@ -19,6 +20,7 @@ import .library.vector;
 import .library.work_budget_types;
 
 extern fn abort(): void;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 fn syntax_session_resource_fail(value: SyntaxSession*, error: WorkBudgetError): void {
     if value.resource_error == WorkBudgetError.None { value.resource_error = error; }
@@ -27,7 +29,44 @@ fn syntax_session_resource_fail(value: SyntaxSession*, error: WorkBudgetError): 
 fn syntax_session_error(value: SyntaxSession*, text: u8*): void {
     // Keep the concrete diagnostic when storage is available. Copy failure
     // cannot replace an earlier typed cause or require another allocation.
-    if !node_text_set(&value.error, text) { syntax_session_resource_fail(value, WorkBudgetError.Memory); }
+    syntax_session_error_assign(value, text, syntax_text_length(text));
+}
+
+fn syntax_session_error_assign(value: SyntaxSession*, text: u8*, length: usize): void {
+    if length == 0 {
+        value.error.length = 0;
+        if value.error.data != null { value.error.data[0] = 0; }
+        return;
+    }
+    if length == ~convert(usize, 0) { syntax_session_resource_fail(value, WorkBudgetError.Invalid); return; }
+    var offset = bits(usize, text) - bits(usize, value.error.data);
+    var inside = offset < value.error.capacity;
+    if inside && (offset > value.error.length || length > value.error.length - offset) {
+        syntax_session_resource_fail(value, WorkBudgetError.Invalid); return;
+    }
+    var error = work_vector_reserve_result(&value.error, compiler_world_work_budget(value.inputs.world), length + 1);
+    if error != WorkBudgetError.None { syntax_session_resource_fail(value, error); return; }
+    if inside { text = &value.error.data[offset]; }
+    if length != 0 { copy(value.error.data, text, length); }
+    value.error.length = length;
+    value.error.data[length] = 0;
+}
+
+fn syntax_session_version_error(value: SyntaxSession*, diagnostic: SyntaxVersionDiagnostic*): void {
+    var text = syntax_version_diagnostic_text(diagnostic);
+    syntax_session_resource_fail(value, diagnostic.resource_error);
+    // A checked table/session diagnostic already owns the required bytes.
+    // Transfer its grant before the revision diagnostic goes out of scope.
+    if diagnostic.text_storage.data != null {
+        work_vector_dispose(&value.error);
+        value.error = {data: diagnostic.text.data, length: diagnostic.text.length,
+            capacity: diagnostic.text.capacity, reservation: diagnostic.text_storage.reservation};
+        diagnostic.text = default;
+        diagnostic.text_storage = default;
+    } else {
+        value.error_fallback = diagnostic.fallback;
+        syntax_session_error(value, text);
+    }
 }
 
 export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): void {
@@ -48,19 +87,25 @@ export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): voi
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock, &diagnostic);
-    value.resource_error = diagnostic.resource_error;
+    syntax_session_resource_fail(value, diagnostic.resource_error);
     // cached transfers one owned reference; replace the session's old owner.
     syntax_session_pin_version(&value.pins.version, version);
     syntax_version_release(version);
     value.error_offset = diagnostic.offset;
-    syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+    syntax_session_version_error(value, &diagnostic);
 }
 
 // The caller supplies the environment explicitly. Existing host entry points
 // only select their host world/environment; all construction policy lives here.
 export fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession* {
-    var value = syntax_session_allocate(world, environment);
-    if value is null { abort(); return null; }
+    var error = WorkBudgetError.None;
+    return syntax_session_open_result(world, environment, source, module, mode, &error);
+}
+
+export fn syntax_session_open_result(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32,
+    error: WorkBudgetError*): SyntaxSession* {
+    var value = syntax_session_allocate_result(world, environment, error);
+    if value is null { return null; }
     if module is not null && frontend_module_world(module) != world {
         syntax_session_error(value, "Syntax session module belongs to another compiler world");
         return value;
@@ -92,8 +137,9 @@ export fn syntax_session_open(world: void*, environment: void*, source: u8*, mod
 
 export fn syntax_get_error(opaque: void*): u8* {
     var value = bits(SyntaxSession*, opaque);
+    if value.error.length == 0 && value.error_fallback != null && value.error_fallback[0] != 0 { return value.error_fallback; }
     if value.resource_error != WorkBudgetError.None && value.error.length == 0 { return "Unable to acquire syntax resources"; }
-    return node_text_get(&value.error);
+    return value.error.data ?? "";
 }
 
 export fn syntax_get_revision(opaque: void*): usize { return bits(SyntaxSession*, opaque).revision; }
@@ -104,6 +150,7 @@ export fn syntax_session_resource_error(opaque: void*): WorkBudgetError {
 }
 
 export fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool {
+    if diagnostic.text_storage.data != null { syntax_version_diagnostic_dispose(diagnostic); }
     diagnostic.resource_error = WorkBudgetError.None;
     if !frontend_modules_bind_world(bits(ModuleEnvironment*, environment), world) {
         diagnostic.fallback = "Syntax session environment belongs to another compiler world or cannot be bound";
@@ -111,7 +158,8 @@ export fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
     }
     var length = syntax_text_length(source);
     if syntax_world_matches(world, source, length, foundation) { return true; }
-    var session = syntax_session_open(world, environment, source, null, foundation ? SyntaxBedrockBaseline : SyntaxSeedBaseline);
+    var session = syntax_session_open_result(world, environment, source, null, foundation ? SyntaxBedrockBaseline : SyntaxSeedBaseline, &diagnostic.resource_error);
+    if session == null { diagnostic.fallback = "Unable to acquire syntax session resources"; return false; }
     defer syntax_destroy(bits(void*, session));
     loop {
         var root = syntax_next(bits(void*, session));
@@ -120,11 +168,12 @@ export fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
     }
     if session.error.length != 0 || session.resource_error != WorkBudgetError.None {
         diagnostic.resource_error = session.resource_error;
-        if session.resource_error != WorkBudgetError.None { diagnostic.fallback = "Unable to acquire syntax resources"; }
+        if session.resource_error != WorkBudgetError.None { diagnostic.fallback = session.error_fallback ?? "Unable to acquire syntax resources"; }
         // Transfer the diagnostic owner before destroying its session.
-        vector_dispose(&diagnostic.text);
-        copy(&diagnostic.text, &session.error, sizeof(vector(u8)));
-        vector_init(&session.error);
+        syntax_version_diagnostic_dispose(diagnostic);
+        diagnostic.text = {data: session.error.data, length: session.error.length, capacity: session.error.capacity};
+        diagnostic.text_storage = {data: session.error.data, capacity: session.error.capacity, reservation: session.error.reservation};
+        session.error = default;
         diagnostic.offset = session.error_offset;
         return false;
     }

@@ -1,5 +1,6 @@
 import tower;
 import .library.vector;
+import .library.work_budget_types;
 
 struct SyntaxExpansionCapture {
     name: u8*;
@@ -24,6 +25,7 @@ struct SyntaxExpansionInput {
 }
 
 struct SyntaxExpansionResult {
+    resource_error: WorkBudgetError;
     root: void*;
     replacements: usize;
     generated_nodes: usize;

@@ -1,4 +1,6 @@
 import tower;
+import format_storage;
+import lr_api;
 import format_parser;
 import format_parser_table;
 import format_types;
@@ -15,6 +17,8 @@ extern fn syntax_parser_token_name_result(context: void*, id: u32, error: WorkBu
 extern fn parser_table_non_terminal_id_to_string_result(context: void*, id: u32, error: WorkBudgetError*): u8*;
 
 extern fn syntax_parser_describe(context: void*, rule: usize): u8*;
+extern fn syntax_parser_describe_into(context: void*, rule: usize, output: FormatResult*): void;
+extern fn syntax_parser_token_name_into(context: void*, id: u32, output: FormatResult*): void;
 
 extern fn parser_table_non_terminal_id_to_string(context: void*, id: u32): u8*;
 
@@ -37,7 +41,8 @@ fn parser_trace_write(text: u8*, length: usize): void {
 // service only answers names/descriptions and returns text through the existing
 // host allocation API. Formatter vectors keep their own allocation family.
 export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): u8* {
-    var request = parser_presentation_format(table, kind, first, second);
+    var error = WorkBudgetError.None;
+    var request = parser_presentation_format(table, kind, first, second, null, &error);
     if request == null { return null; }
     var output = parser_format_result(request);
     var text: u8* = null;
@@ -46,29 +51,24 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
     return text;
 }
 
-// Formatter scratch retains its existing allocation contract. The returned
-// bytes have an explicit physical receipt, including their terminating byte.
+// Descriptor, traversal, label scratch and detached text use the same explicit
+// budget. The destination changes only after complete successful formatting.
 export fn parser_presentation_buffer_result(table: ParserHostTable*, kind: ParserFormatKind,
     first: usize, second: usize, budget: WorkBudget*, output: WorkBuffer*): WorkBudgetError {
     if table == null || output == null { return WorkBudgetError.Invalid; }
-    var request = parser_presentation_format(table, kind, first, second);
-    if request == null { return WorkBudgetError.Memory; }
+    var error = WorkBudgetError.None;
+    var request = parser_presentation_format(table, kind, first, second, budget, &error);
+    if request == null { return error; }
     defer parser_format_destroy(request);
     var text = parser_format_result(request);
-    if text.failed { return WorkBudgetError.Memory; }
-    var bytes = text.text.length + 1;
-    if bytes == 0 { return WorkBudgetError.Invalid; }
-    var error = work_buffer_resize(output, budget, bytes, 0);
-    if error != WorkBudgetError.None { return error; }
-    if text.text.length != 0 { copy(output.data, text.text.data, text.text.length); }
-    output.data[text.text.length] = 0;
-    return WorkBudgetError.None;
+    return format_storage_finish(text, output);
 }
 
-fn parser_presentation_format(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): ParserFormat* {
+fn parser_presentation_format(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize,
+    budget: WorkBudget*, error: WorkBudgetError*): ParserFormat* {
     var names = table.presentation != ParserPresentation.Numeric;
     var descriptions = table.presentation == ParserPresentation.Syntax;
-    var request = parser_format_create(table, kind, first, second, names, descriptions);
+    var request = parser_format_create_result(table, kind, first, second, names, descriptions, budget, error);
     if request == null {
         return null;
     }
@@ -78,41 +78,27 @@ fn parser_presentation_format(table: ParserHostTable*, kind: ParserFormatKind, f
             break;
         }
         var index = parser_format_index(request);
-        var text: u8* = null;
+        var label: FormatResult = default;
+        format_storage_begin(&label, budget);
+        defer format_dispose(&label);
         if need == ParserFormatNeed.Description {
-            text = syntax_parser_describe(table.userdata, index);
+            syntax_parser_describe_into(table.userdata, index, &label);
         } else {
-            var id = convert(u32, index);
+            var f: FormatEngine = {result: &label, ..default};
             match table.presentation {
-                ParserPresentation.Utf8 => {
-                    var error = WorkBudgetError.None;
-                    text = parser_table_utf8_id_to_string_result(null, id, &error);
-                    if error != WorkBudgetError.None { request.result.failed = true; }
-                }
+                ParserPresentation.Utf8 => { format_parser_scalar(&label, convert(u32, index)); }
                 ParserPresentation.NonTerminal => {
-                    var error = WorkBudgetError.None;
-                    text = parser_table_non_terminal_id_to_string_result(table.userdata, id, &error);
-                    if error != WorkBudgetError.None { request.result.failed = true; }
+                    var owner = bits(ParserHostTable*, table.userdata);
+                    if owner == null || owner.grammar == null { format_storage_fail(&label, WorkBudgetError.Invalid); }
+                    else { if index < lr_grammar_name_count(owner.grammar) { format_text(&f, lr_grammar_name(owner.grammar, index)); } }
                 }
-                ParserPresentation.Syntax => {
-                    var error = WorkBudgetError.None;
-                    text = syntax_parser_token_name_result(table.userdata, id, &error);
-                    if error != WorkBudgetError.None { request.result.failed = true; }
-                }
+                ParserPresentation.Syntax => { syntax_parser_token_name_into(table.userdata, convert(u32, index), &label); }
                 _ => {}
             }
         }
-        var length: usize = 0;
-        var present = text != null;
-        if present {
-            while text[length] != 0 {
-                length = length + 1;
-            }
-        }
-        parser_format_reply(request, text, length);
-        if present {
-            compiler_buffer_free(bits(void*, text));
-        }
+        format_storage_fail(&request.result, format_storage_error(&label));
+        if request.result.failed { break; }
+        parser_format_reply(request, label.text.data, label.text.length);
     }
     return request;
 }

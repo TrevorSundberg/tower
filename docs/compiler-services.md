@@ -365,6 +365,36 @@ its explicit single-owner allocation clients, not all compiler allocations;
 production workers do not access it. Fault-injection tests use the serial runtime
 and check exact buffer cleanup separately from real worker-overlap tests.
 
+Entity stores install their borrowed `WorkBudget` at creation, before worker
+handoff. The budget and its synchronization gate outlive every allocation.
+Entity descriptors (including staged nodes), names, component/child/instance
+indexes, archetype descriptors/signatures/rows, views/query plans and stage
+descriptors/queues now own charged physical storage. Small descriptors reuse
+stable pages; full and partial pages retain explicit owners. Workers allocate in
+private stage pools, transferred to the store after joins and publication.
+Replaceable indexes carry independent `WorkBuffer` receipts so a leased worker
+never frees through a shared pool. Replacement admission includes the complete
+old/new peak before releasing old storage. Denial preserves identities,
+membership and links; successfully reserved capacity may remain with its owner.
+Cancellation runs payload cleanup before releasing storage; pinned owners retire
+only after the last joined view closes. No payload address or `Entity` layout
+changes are required.
+
+`entity_view_tables_result(view, terms, count, error)` and
+`entity_component_remove_result(owner, type)` expose exact resource causes;
+pointer/bool compatibility wrappers remain. A valid physical buffer larger than
+its configured allowance returns `Capacity`, while malformed/overflowing sizes
+remain `Invalid`. Flow uses its existing instance index and checked view/scratch
+admission, preserving the original receipt before dispatch. The entity census
+compares actual physical owners with charged live bytes and the strict cap
+fixture requires real denial.
+Ledger backing metadata is separately reported, not charged recursively to
+itself. Client-owned allocations reachable through component pointers need their
+own producer receipts; the entity library cannot account for arbitrary pointers.
+Foreign LLVM heaps and allocator internals are outside this ownership budget.
+This is an explicit ownership budget, not a process RSS
+cap or a claim that all compiler allocations are charged.
+
 Metadata copying exposes per-call `WorkBudgetError` results through
 `compiler_node_copy_metadata_result` and
 `compiler_node_copy_metadata_staged_result`; provenance uses the matching
@@ -375,9 +405,9 @@ pinned mutation; staged copies require a new private destination in the supplied
 stage and world. Serial same-store copies without a compiler world preserve the
 metadata-free no-op used by standalone entity cloning. Callers discard an
 incomplete destination on failure: this is
-not transactional replacement of an existing payload. Parser labels and splice
-arrays still use ordinary vectors, so their physical allocation failures report
-`Memory`; this does not claim those buffers are charged to the world budget.
+not transactional replacement of an existing payload. Provenance rule and splice
+vectors now use their producer's world-budgeted work vectors, including staged
+copy scratch; admission preserves `Capacity` versus physical allocation `Memory`.
 Staged history fields remain borrowed after queue admission. The producer uses
 `entity_stage_references_cancellable_result(stage, nodes, count, cancel, context)`
 to register stable private cancellation metadata before installing those fields.
@@ -396,8 +426,8 @@ Legacy `entity_stage_references[_result]` callers retain their existing behavior
 but without cancellation metadata discard must first acquire their ownership;
 failure leaves the stage intact and returns its exact error. The void hold/discard
 wrappers trap on error instead of wrapping counters or finalizing unowned fields.
-Production provenance uses the cancellable protocol. Its private vectors remain
-ordinary allocations, not a new claim of world-budget accounting.
+Production provenance uses the cancellable protocol and releases its charged
+private vectors through ordinary payload finalizers.
 
 Joined body, declaration/discovery, evaluation-preparation and lowering waves
 use `sem_stage_wave`. Its shared `compiler_kernel_stages_result` boundary consumes

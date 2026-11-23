@@ -372,10 +372,20 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
             if request.lookahead_error.length != 0 {
                 parser_request_fail(request, request.lookahead_error.data);
             } else {
-                var message = parser_presentation_text(request.table, ParserFormatKind.Unexpected, convert(usize, request.read_id), 0);
-                if message == null { request.resource_error = WorkBudgetError.Memory; }
-                parser_request_fail(request, message);
-                compiler_buffer_free(bits(void*, message));
+                var message: WorkBuffer = default;
+                defer work_buffer_dispose(&message);
+                request.resource_error = parser_presentation_buffer_result(request.table, ParserFormatKind.Unexpected,
+                    convert(usize, request.read_id), 0, request.runtime.budget, &message);
+                if request.resource_error != WorkBudgetError.None {
+                    parser_request_fail(request, "Unable to format unexpected parser input within its memory budget");
+                } else {
+                    work_vector_dispose(&request.error);
+                    var length: usize = 0;
+                    while message.data[length] != 0 { length++; }
+                    request.error = {data: message.data, length: length, capacity: message.capacity, reservation: message.reservation};
+                    message = default;
+                    request.complete = true;
+                }
             }
             return null;
         }
@@ -417,14 +427,17 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     }
     var grammar = bits(LRGrammar*, request.table.grammar);
     if shift {
-        var label: u8* = null;
+        var label: WorkBuffer = default;
+        defer work_buffer_dispose(&label);
         if lr_tree_needs_label(request.read_node_or_null, request.match_kind) {
-            label = parser_presentation_text(request.table, ParserFormatKind.Scalar, convert(usize, step.id), 0);
-            var present = label != null;
-            parser_state_require(present);
+            request.resource_error = parser_presentation_buffer_result(request.table, ParserFormatKind.Scalar,
+                convert(usize, step.id), 0, request.runtime.budget, &label);
+            if request.resource_error != WorkBudgetError.None {
+                parser_request_fail(request, "Unable to format parser label within its memory budget");
+                return null;
+            }
         }
-        var status = lr_tree_shift(request.control, request.forest, grammar, request.match_kind, &step, &request.read_node_or_null, label);
-        compiler_buffer_free(bits(void*, label));
+        var status = lr_tree_shift(request.control, request.forest, grammar, request.match_kind, &step, &request.read_node_or_null, label.data);
         if status == 2 {
             parser_request_fail(request, "Stream returned an attached node");
             return null;

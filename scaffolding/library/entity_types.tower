@@ -21,17 +21,23 @@ struct EntityStore {
     // resolve node-local component identities without an ambient singleton.
     context: void*;
     storage: EntityComponentPool;
+    // Descriptor/name/query blocks reuse the stable page machinery without
+    // entering component/type indexes. Workers have a private stage pool.
+    buffers: EntityComponentPool;
     tables: EntityTable*[256];
 }
 
 // Allocation indexes only. Canonical component identity/payloads stay on entities.
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
-struct EntityComponentPool { first: EntityComponentPage*; }
+struct EntityComponentPool { first: EntityComponentPage*; owned: EntityComponentPage*; }
 struct EntityComponentPage {
     allocation: WorkBuffer;
     pool: EntityComponentPool*;
     previous: EntityComponentPage*;
     next: EntityComponentPage*;
+    owner: EntityComponentPool*;
+    owned_previous: EntityComponentPage*;
+    owned_next: EntityComponentPage*;
     type_id: usize;
     used: usize;
     live: usize;
@@ -107,6 +113,11 @@ struct EntityComponentAllocation {
     allocation: WorkBuffer;
     component: EntityComponent;
 }
+
+// Independently replaceable indexes can be resized by different leased workers.
+// Their physical allocation carries its receipt; freeing one never mutates a
+// shared page. The header and old/new overlap both count against the budget.
+struct EntityBufferAllocation { allocation: WorkBuffer; }
 
 // Dense entity rows and component-pointer columns for an exact type signature.
 // Payloads remain in their stable allocations; this index does not pack them.

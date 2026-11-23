@@ -642,3 +642,47 @@ admission/copy may decline without invalidating a usable uncached table. The
 saved construction time. `Table` counts only actual LR builds. Run the focused
 `structure-reuse` selector for metadata separation, scope invalidation, request
 cancellation/retry, Capacity cleanup and ownership-order checks.
+
+### Checked provenance and presentation ownership
+
+`SyntaxExpansion.rule` and `SyntaxOrigin.splices` own checked work vectors charged
+against their explicit compiler world. Trace creation, splice growth, ordinary
+copy and staged copy return `WorkBudgetError` through the result APIs. Copies
+prepare storage before replacing metadata or retaining history; staged copies
+keep the existing reference-hold/cancellation protocol. Source offsets, expansion
+order, imported grammar identity and revision pins remain unchanged.
+
+For compiler presentation, call `format_storage_begin(result, budget)` on an
+empty result before writing. Checked `FormatResult.text` and `.spans` are borrowed
+vector views of receipt-owned buffers: release them with `format_dispose`, never
+with vector disposal or an unaccompanied vector move. Nested previews, formatter
+traversal, source tokens and verification scratch use the same explicit budget.
+`resource_error` preserves the first resource failure; a failed semantic format
+without a resource cause reports `Invalid`. Dispose and initialize a fresh result
+before retrying a failed request.
+
+`format_storage_finish` transfers NUL-terminated text and its receipt into an
+initialized `WorkBuffer`; failure leaves that destination unchanged. The budget
+must outlive detached results, even when the originating world/session has gone.
+`syntax_session_diagnostic_buffer_result` and `parser_presentation_buffer_result`
+use this contract. Diagnostic insertion offsets commit only after complete
+formatting; failed presentation leaves the recognizer's original diagnostic and
+source position intact. Session/version consumers move checked text ownership.
+`parser_table_finish_buffer_result` similarly transfers failure text before
+retiring a failed table; normal successful table completion is unchanged.
+
+Session descriptors now use checked admission through
+`syntax_session_allocate_result` / `syntax_session_open_result`. A denied owner
+returns null with its exact cause; immediate module/compiler callers guard it.
+Existing wrappers remain callable. Static failure messages require no new text
+allocation. Session reset supports ordinary request retry; a module graph's
+resource failure remains sticky, so denied module admission is retried through
+a fresh graph after disposing the failed owner.
+
+Raw-pointer presentation/debug wrappers still return standalone host text freed
+with `compiler_buffer_free`; default, unbound formatter results retain the legacy
+vector contract. General grammar-revision/cache/semantic containers are outside
+this text/splice batch. Budget receipts count migrated payload plus known compiler
+allocation headers, not foreign allocator metadata, stdio, total process RSS or
+the budget ledger's own retained index. These boundaries are not a global cap on
+the legacy default world. Integrated memory/race/platform gates remain pending.

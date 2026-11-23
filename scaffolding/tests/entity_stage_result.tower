@@ -193,9 +193,12 @@ fn stage_result_lease(): void {
     stage_result_check(view != null && entity_stage_lease_result(stage, node) == WorkBudgetError.Busy
         && stage.leases.length == 0 && node.stage == null && node.storage == null);
     entity_view_close(view);
+    var retained = node.references;
+    node.references = 0;
     store.reclaiming++;
     stage_result_check(entity_stage_lease_result(stage, node) == WorkBudgetError.Busy);
     store.reclaiming--;
+    node.references = retained;
     stage.leases.length = ~convert(usize, 0) / sizeof(EntityStageLease);
     stage_result_check(entity_stage_lease_result(stage, node) == WorkBudgetError.Invalid
         && stage.leases.data == null && node.stage == null && node.storage == null);
