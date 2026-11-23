@@ -168,3 +168,12 @@ Merged compiler SHA256 is
 before/after source manifest
 `b9ea3fc29b2089451e0d61e2a6a7a27c0814963b8fce3c9395e69b2ba963c8fe`.
 Exact logs are `logs/foundation_type_merged` in the same external lane.
+
+The first push raced shared worker-pool descriptor changes. Complete history
+through `7facb35f` was merged as `59f4c085075649817e6febec73b0348444b47ae2`.
+The dependency-aware native refresh and the same four canonical format/graph/Fast
+checks passed again, with unchanged canonical hashes. Compiler SHA256
+`0e8019924b7d17d04aa8ecbd54b388ab6ffee0a975c59bc5e9b1e77dbfb18377`;
+source manifest `30109c5fa76ac2ea772e1d59539d87b97866888e4591af06fb3e913580118aaf`.
+Logs `foundation_type_dispatch_merge` retain this changed-input adoption; build
+cost94.43s wall/141.67s CPU/1066336KiB. Other owners' code was preserved.
