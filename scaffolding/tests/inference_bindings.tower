@@ -1,0 +1,8 @@
+import tower;
+import examples.inference;
+
+// Observe both inferred stores so canonical binding checks do not depend on
+// keeping unused or immutable known-value declarations in the output graph.
+var result = twice(21);
+var address = &result;
+unsigned_result = *address;
