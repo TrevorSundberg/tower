@@ -1974,3 +1974,25 @@ coverage or retry failure. Patch100a1083 is exported independently for current
 owner closures. Native smallest entry/link, both normal modes and instrumentation
 are locally pending; root requires B2 normal runtime before instrumented adoption.
 Existing old TSan134 stays failed. No new Tower path; census remains499 direct.
+
+### Executed registration checkpoint8f46 and later policy review
+
+Frozen8f46 passes public smallest leaves, canonical native6 steps and14 affected
+target steps with fresh dependency timestamps. Complete compiler1a9476d0 plus49
+resources matches D2's independent production compiler; new LR runner5e78fbed
+contains the test policy. All raw evidence is in registered_8f46_receipt.tar,
+SHA4fa778f6f669cbf394242ca375d36521c8f94bfaf74c8b4c46fe95f3838ef101.
+
+| Reviewed path | Current executed evidence and remaining boundary |
+| --- | --- |
+| scaffolding/tests/lr_work_main.tower; body_runs.tower | type-errors passes90.52s with existing body/canonical/binding/declaration assertions. Both ordinary and calibrated overlap selectors pass, as do query/storage/parser/module/index companions. Default/all source coverage is preserved; full42 on newer production inputs is not inferred. |
+| scaffolding/tests/backend_units.tower | Exact four-unit object comparison and distinct-worker handshake pass in both modes and all16 paired/control runs. Calibrated native serial baseline8.275375291s selects30s. Two-CPU median cost12.6% was not reproduced under CPU2-only control; wide ranges and placement sensitivity preclude neutrality/speedup claims. One-processor control is not multicore evidence. New wholecompiler instrumentation remains separate. |
+| scaffolding/tests/work_arena_linkage.tower; work_arena_shared.tower | Ordinary separate link has exactly one provider for all six functions. Actual address/thread client/provider/runtime objects and positive runs pass, plus ten extra shared cases per mode. Instrumented objects/IR/hooks retained. This does not sanitize the compiler, system LLVM or unsupported UBSan targets. |
+| scaffolding/tests/semantic_publish_checks.tower; semantic_resource_checks.tower | Current registered22 publication/24 resource cases pass. Future L1 frame/task ownership changes invalidate the growth phase assumption: peak above occupancy alone can also describe early entry failure. A1 review of a graph-gated, per-job phase receipt design remains pending; no arbitrary budget edit or successor claim. |
+| scaffolding/tests/generic_clone_parallel.tower | Current query invocation passes all unchanged cases. D2's earlier workers2 interval134 remains unresolved despite subsequent successes. No dropped assertion, barrier-padded timing or universal overlap claim. |
+| scaffolding/tests/bootstrap_symbols_checks.tower | After drain, D2c4aa's21 new lines cover exact owning-unit arena/buffer/publication imports, wrong unit/prefix, legacy Tower node builder, rejected check-only allocator hooks, and WASI-only indirect table with native/table-base negatives. Implementation policy remains D2-owned and observed-symbol based;12 actual production reports and scoped checker ASan are owner evidence. No new Tower path. |
+
+All owned jobs drained and lock released02:57:06 UTC before merging D2 policy
+history. Corpus remains499 direct/1,084 tracked. Final clean merged release,
+current full instrumentation, browser/generation and hosted publication remain
+open; these scoped passes do not complete the lane acceptance objective.

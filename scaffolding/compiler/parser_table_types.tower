@@ -34,6 +34,7 @@ struct ParserHostTable {
     presentation: ParserPresentation;
     mode: u32;
     error: u8*;
+    resource_error: WorkBudgetError;
     built: bool;
     match_kind: void*;
     trace: bool;
