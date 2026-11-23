@@ -577,7 +577,7 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     return true;
 }
 
-fn lr_propagation_work_trial(anchor: void*): bool {
+fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool {
     var owner = entity_create_related(anchor);
     if owner == null {
         return false;
@@ -591,8 +591,10 @@ fn lr_propagation_work_trial(anchor: void*): bool {
         return false;
     }
     defer work_pool_close(&pool);
-    var a = lr_propagation_create(1032);
-    var b = lr_propagation_create(1032);
+    var cycle_nodes: usize = 8;
+    var count = (seeded + 1) * cycle_nodes;
+    var a = lr_propagation_create(count);
+    var b = lr_propagation_create(count);
     defer {
         lr_propagation_destroy(a);
         lr_propagation_destroy(b);
@@ -605,10 +607,10 @@ fn lr_propagation_work_trial(anchor: void*): bool {
     // overlapping ranges. An unseeded cycle must stay empty and terminate.
     for(var mode: usize = 0; mode < 2; mode++) {
         var value = mode == 0 ? a: b;
-        for(var lane: usize = 0; lane < 129; lane++) {
-            var start = lane *8;
-            for(var i: usize = 0; i < 8; i++) {
-                if !lr_propagation_edge(value, start + i, start +(i + 1) % 8) {
+        for(var lane: usize = 0; lane < count / cycle_nodes; lane++) {
+            var start = lane * cycle_nodes;
+            for(var i: usize = 0; i < cycle_nodes; i++) {
+                if !lr_propagation_edge(value, start + i, start +(i + 1) % cycle_nodes) {
                     return false;
                 }
                 if !lr_propagation_edge(value, start + i, start + i) {
@@ -619,10 +621,10 @@ fn lr_propagation_work_trial(anchor: void*): bool {
             || !lr_propagation_edge(value, start, start + 2) {
                 return false;
             }
-            if lane < 128 {
-                var first = convert(u32, lane *8 + 32);
+            if lane < seeded {
+                var first = convert(u32, start + 32);
                 if !lr_propagation_seed(value, start, first, first + 3)
-                || !lr_propagation_seed(value, start + 7, first + 2, first + 4) {
+                || !lr_propagation_seed(value, start + cycle_nodes - 1, first + 2, first + 4) {
                     return false;
                 }
             }
@@ -634,17 +636,23 @@ fn lr_propagation_work_trial(anchor: void*): bool {
     if a.pending.length != 0 || b.pending.length != 0 {
         return false;
     }
-    if pool.count > 1 &&(pool.peak == 0 || pool.peak >= pool.count || graph.revision < 3) {
+    if parallel && pool.count > 1 &&(pool.peak == 0 || pool.peak >= pool.count || graph.revision < 3) {
         return false;
     }
+    if !parallel && (pool.peak != 0 || graph.revision != 1) { return false; }
     for(var i: usize = 0; i < a.count; i++) {
         var x = &a.nodes[i];
         var y = &b.nodes[i];
         if x.queued || y.queued || x.ranges.length != y.ranges.length {
             return false;
         }
-        if y.ranges.length !=(i < 1024 ? 2: 0) {
+        if y.ranges.length !=(i < seeded * cycle_nodes ? 2: 0) {
             return false;
+        }
+        if y.ranges.length != 0 {
+            var first = convert(u32, (i / cycle_nodes) * cycle_nodes + 32);
+            if y.ranges.data[0].first != first || y.ranges.data[0].last != first + 3
+                || y.ranges.data[1].first != first + 2 || y.ranges.data[1].last != first + 4 { return false; }
         }
         for(var j: usize = 0; j < x.ranges.length; j++) {
             if x.ranges.data[j].first != y.ranges.data[j].first
@@ -762,7 +770,8 @@ export fn lr_work_tests(): u32 {
             failures++;
         }
     }
-    if !lr_propagation_work_trial(root) {
+    if !lr_propagation_work_trial(root, 128, false)
+        || !lr_propagation_work_trial(root, LRPropagationGrain * 2, true) {
         failures++;
     }
     if !lr_worker_lifetime() {

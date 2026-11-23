@@ -1182,7 +1182,7 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [artifacts DIRECTORY]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized] [dependencies] [grammar] [artifacts DIRECTORY]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
@@ -1229,6 +1229,18 @@ context-switch counts accompany wall/CPU/RSS. Live per-thread OS samples can
 supplement these counters; threads active during a sampling interval are not an
 instantaneous concurrency count. See the frozen
 [KinmenB partition receipt](../../docs/compiler_partition_utilization_b0f507c6.md).
+`grammar` enables the existing world-owned GrammarObserver for pool leases,
+lookahead graph/solver/action phases and synchronous dispatch waves. Its JSON
+`grammar` array is indexed by `GrammarPhase`; enclosing phase times are nested,
+not additive. Kernel callbacks write distinct ordinal slots; the coordinator
+aggregates only after join. `kernel_peak` and `threads` are observed per-wave
+maxima within a world, not requested width or combined cross-world concurrency.
+Kernel time is summed over overlapping jobs; off-CPU time includes blocking and
+preemption. Serial worklist fallback is included in solver time and emits no
+worker-kernel events. PoolClose measures a lease end; retained threads survive
+until world teardown. Leave `grammar` off for ordinary throughput samples.
+The measured grain change and retained controls are in the
+[worker admission receipt](../../docs/compiler_worker_grain_d5b65afe.md).
 `kernel_peak` counts overlapping **outer** frontend/backend kernels; nested lane
 limits and `reserved_peak_lanes` are admission ceilings/observations, not measured
 nested leaf execution. `refill_*` measures same-thread reuse before a ready

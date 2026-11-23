@@ -87,7 +87,8 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
     configure: source => { modules.configure({builtins:{foundation:source}}); configureTower(exports, source, modules.environment); },
-    configureBedrock: source => { modules.configure({builtins:{bedrock:source}}); configureBedrock(exports, source); },
+    // Reject invalid grammar before publishing its source to future imports.
+    configureBedrock: source => { configureBedrock(exports, source); modules.configure({builtins:{bedrock:source}}); },
     bedrockSeed: () => string(exports.tw_bedrock_seed()),
     createBedrock: source => withSource(source, (pointer, length) => exports.tw_create_bedrock(pointer, length)),
     createFoundation: source => withSource(source, (pointer, length) => exports.tw_create_foundation(pointer, length)),
