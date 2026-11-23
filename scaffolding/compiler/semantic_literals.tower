@@ -2,6 +2,7 @@ import tower;
 import foundation_types;
 import semantic_context_types;
 import .library.float_text;
+import .library.float_bits;
 
 // This linked leaf uses the same numeric implementation as the interpreter.
 // Its caller owns the context and token scratch for the complete call.
@@ -9,6 +10,10 @@ extern fn sem_literal(c: SemanticContext*, node: void*): bool;
 extern fn sem_token_text(c: SemanticContext*, node: void*): u8*;
 extern fn semantic_width(t: FoundationType*): u32;
 extern fn sem_fail(c: SemanticContext*, node: void*, text: u8*): void;
+
+export fn sem_float_one(type: FoundationType*): u64 {
+    return tower_float_from_integer(1, Float32Width, false, semantic_width(type));
+}
 
 export fn sem_float_literal(c: SemanticContext*, node: void*): bool {
     if !sem_literal(c, node) { return false; }

@@ -60764,3 +60764,32 @@ failure before dispatch, a retained Capacity receipt, no value publication and
 no replay. Its public object passes3.09wall/2.33user/.16sys/221092KiB
 (semantic_dispatch_unit4). The original six default trials are unchanged.
 Neither selector has current-ABI linked runtime evidence yet.
+
+Numeric-leaf follow-up: exact A2 review package dbe38d was adopted after drain;
+nine shared-owner conflicts retained the owner's latest API/types/storage and
+terminal-denial fixture. A1's literal extern/import change was preserved. The
+newly merged Publish fixture also needed API-only graph/pool imports to avoid
+duplicate providers; A2 independently included that correction in v2.
+
+Removing float_text alone still fails at semantic_types359,
+13.55wall/7.96user/1.02sys/734636KiB (semantic_literals_api1).
+The remaining full float_bits import in semantic_expression_lowering constructs
+floating one for increment/decrement. Moving that exact expression into the
+same leaf also fails the aggregate at semantic_attributes69
+(semantic_literals_api2). Both failures are preserved; no numeric boundary is
+accepted or routed into production providers. The draft is checkpointed before
+restoring its original callers for the next independent experiment.
+
+A2 v2 package3833050c corrects the serial provider's unconditional default-kernel
+reference with four API-local selection wrappers and12 implementation exports.
+Reviewed conflicts preserve the exact owner version; no deliberate memory/race
+probe is run. A1 has no complete current-ABI runtime receipt.
+
+The more direct candidate is repeated fieldwise SemanticContext copy expansion:
+the actual aggregate lowering recursively emits each field, including every
+new WorkBuffer owner descriptor. ROOT02:51:26 authorized one exported typed
+helper whose body remains ordinary *destination = *source. This preserves
+source evaluation/snapshot timing, padding and shallow borrowed ownership;
+raw byte copying and general copy-policy changes are excluded. Compare this
+helper alone with the same API/constructor inputs before retaining numeric
+module splits. Runtime outputs and matched profiles remain required.
