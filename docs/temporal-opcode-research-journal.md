@@ -80334,3 +80334,86 @@ and its full undefined-symbol policy check passes. Entities still hashes030ae5b4
 policy/checker and24-case fixture inputs are identical, so their passing receipts
 are reused. Logs: build/d2_ecs/generic_policy_b042/publish_retry_1. No broad build,
 new runtime change, sanitizer or browser/deployment claim; ROOT owns final assets.
+### B2 checked module startup transaction (2026-11-23)
+
+Direct bounded task on main6714a030 (includes complete ROOTb042 history), PID25884.
+No surviving owned build existed before pull. The three frontend units now use
+checked module/environment constructors and actual entity admission results.
+Startup prepares graph, optional environment, anchor and source privately;
+active/active_graphs and binding publish only after success. Failed startup leaves
+existing cache/session/source diagnostics intact. Partial owners unwind without
+an unmatched tracked-graph decrement. Ordinary import construction/completion
+also preserves the graph's first typed cause. frontend_compilation records it
+before presentation; frontend_units_create_bounded_result exposes constructor
+errors while existing signatures remain compatible. This does not budget raw
+module strings/vectors or change B1's parser/session allocation policy.
+
+The existing module-cache target covers normal imports, a prebound world's real
+remaining-budget Capacity denial, preserved active graph/cache/idle session/source
+map, unpublished unbound anchors, private-environment cleanup, exact retained
+ledger/entity/component counts, and successful retry. Existing invalidation,
+cycles and session regressions pass too. One added unit-constructor expectation
+initially failed134: a request larger than the TOTAL ledger is Invalid under
+work_budget_reserve_locked, whereas exhausted remaining bytes are Capacity.
+Corrected that new expectation; the real Capacity oracle and producer semantics
+were unchanged. Failure log b2_startup_after_modules.log is retained. Initial
+/usr/bin/time invocation failed127 because it is absent; used existing
+/cache/process_profile for measurement, without installing another tool.
+
+One dependency-aware native target build per revision, compiler jobs1/buildj6,
+public bootstrap9653f818, Release Linux x64, WSL2 kernel6.18.33.2, CPU12-23/24GiB.
+Commands: cmake --build /cache/native --target tower-module-cache-tests
+tower-frontend-units-profile --parallel 6; module tests run from /work/scaffolding.
+Changed production build22.587s/36.245CPU/748852KiB; final focused suite0.0535s,
+0.0522CPU,54568KiB, exit0. No separate leaf compile or broad matrix was run.
+
+Minimal comparison uses one fixed /cache/b2_startup_profile path, unchanged
+/work/scaffolding resources, fresh processes/warm filesystem, three units with
+4096 bodies only in the final unit, workers1/4. Before binary is preserved at
+/cache/b2_startup_before_profile; final at /cache/b2_startup_after_profile.
+Compilation interval wall/CPU seconds and peakRSS KiB, one before/final sample:
+
+| Workers | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | --- | --- |
+| 1 | 4.720 / 4.605 / 679936 | 4.637 / 4.529 / 680076 |
+| 4 | 2.328 / 5.505 / 942532 | 2.329 / 5.554 / 942720 |
+
+Canonical4242261087906147675,646269entities/792327components and per-worker-budget
+retained/peak-ledger counts match exactly. Outer overlap peaks1/3. These small
+observations establish neither a speedup nor broad scaling; earlier after samples
+before the final fixture count assertions remain in their original logs. Logs:
+build/b2_startup_{before,after,final}_*.log. All owned children drained. Supported
+instrumentation, broad scaling/bootstrap/browser/generation and deployment remain
+pending with ROOT's integrated milestone; no hosted-runtime claim. todo unchanged.
+
+Post-commit pull found concurrent A1/L1 changes on origina2ffdedb. The required
+fast-forward-only pull rejected divergence; explicit merge-preserving rebase
+completed without conflict. Rebuilt the two affected targets coherently against
+those new semantic/interpreter inputs (8actions,22.973s/48.368CPU/751600KiB).
+Merged module suite passes0 in0.0530s; workers1/4 actual profiles pass with the
+same canonical/entity/component/retained counts and outer peaks1/3. Their
+4.443s/2.373s observations are merged-union checks, not isolated B2 cost estimates.
+No owned child remains. Scoped main push follows; deployment remains ROOT-owned.
+
+Integration note for ROOT/D2: actual nm imports now include
+frontend_module_root_world_size_result, frontend_modules_create_result and
+frontend_modules_bind_world_result. The exact Semantics allowlist in
+scaffolding/tools/bootstrap_symbols.tower still names the prior entry points;
+its owned update is needed before the final bootstrap-symbol gate. That tooling
+file is outside this bounded four-source grant and was not changed. Existing
+entity result imports are already allowed. Native focused acceptance above is
+not a claim that this deferred packaging gate has passed.
+
+The first normal push was rejected because another lane advanced main. Fetched
+636f7f93 and rebased without conflict; the newly integrated changes affect
+policy/tests/documentation, not the measured startup implementation. Verified
+all four scoped Tower sources byte-identical to the validated prior commit,
+rebuilt affected targets after checkout timestamps changed, and reran the focused
+module suite successfully. Logs b2_startup_push_merge_{build,modules}.log retain
+that final affected check. No repeated performance or broad matrix was needed.
+
+The second normal push also received fetch-first rejection: remote main advanced
+again during the required merged validation. Per this bounded task's stop rule,
+no further integration/push loop was attempted. The focused-tested batch remains
+committed locally; its final commit and exact push blocker are in B2/status.md.
+No force push, deployment, goal continuation or new assignment was attempted.

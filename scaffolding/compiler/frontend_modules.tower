@@ -28,6 +28,8 @@ extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn compiler_world_component(world: void*, entity: void*, kind: u32): void*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 extern fn entity_create(store: void*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
+extern fn entity_component_add_result(entity: void*, kind: void*, error: WorkBudgetError*): void*;
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession*;
 
 extern fn syntax_destroy(session: void*): void;
@@ -445,29 +447,38 @@ fn module_node(graph: ModuleGraph*, entity: void*): FrontendModule* {
     return bits(FrontendModule*, entity_component_data(entity_component_get(entity, graph.kind)));
 }
 
-fn module_new(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
-    var result = module_new_result(graph, name, text, length);
-    module_require(result != null);
-    return result;
-}
-
 fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
+    if graph.resource_error != WorkBudgetError.None || graph.clone_error != null { return null; }
+    if name == null || text == null || length == ~convert(usize, 0) {
+        module_clone_fail(graph, WorkBudgetError.Invalid, "Invalid module source span");
+        return null;
+    }
     if !vector_reserve(&graph.entities, graph.entities.length + 1) {
         module_clone_memory(graph);
         return null;
     }
     if graph.kind == null {
-        graph.kind = entity_create(compiler_world_store(graph.world));
-        if graph.kind == null || !entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0) {
+        var error = WorkBudgetError.None;
+        graph.kind = entity_create_result(compiler_world_store(graph.world), &error);
+        if graph.kind == null {
+            module_clone_fail(graph, error, "Cannot create module component kind");
+            return null;
+        }
+        if !entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0) {
             if graph.kind != null { entity_release(graph.kind); graph.kind = null; }
-            module_clone_memory(graph);
+            module_clone_fail(graph, WorkBudgetError.Invalid, "Cannot register module component kind");
             return null;
         }
     }
-    var entity = entity_create(compiler_world_store(graph.world));
-    if entity == null { module_clone_memory(graph); return null; }
-    var component = entity_component_add(entity, graph.kind);
-    if component == null { entity_release(entity); module_clone_memory(graph); return null; }
+    var error = WorkBudgetError.None;
+    var entity = entity_create_result(compiler_world_store(graph.world), &error);
+    if entity == null { module_clone_fail(graph, error, "Cannot create module entity"); return null; }
+    var component = entity_component_add_result(entity, graph.kind, &error);
+    if component == null {
+        entity_release(entity);
+        module_clone_fail(graph, error, "Cannot allocate module component");
+        return null;
+    }
     var value = bits(FrontendModule*, entity_component_data(component));
     fill(value, 0, sizeof(FrontendModule));
     value.entity = entity;
@@ -481,12 +492,9 @@ fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): 
 
 // Publish dependencies before their importer, using the same completion order
 // as execution. Cached clones take this path too; discovery order is not order.
-fn module_complete(module: FrontendModule*): void {
-    module_require(module_complete_result(module));
-}
-
 fn module_complete_result(module: FrontendModule*): bool {
     var graph = module.graph;
+    if graph.resource_error != WorkBudgetError.None || graph.clone_error != null { return false; }
     if !vector_reserve(&graph.order, graph.order.length + 1) {
         module_clone_memory(graph);
         return false;
@@ -512,14 +520,19 @@ fn module_complete_result(module: FrontendModule*): bool {
 // Coordinator-owned binding. A foreign world is rejected before changing any
 // source, cache, session or active-graph bookkeeping.
 export fn frontend_modules_bind_world(environment: ModuleEnvironment*, world: void*): bool {
-    if world is null { return false; }
-    if environment is null { return true; }
-    if environment.world is not null { return environment.world == world; }
-    var anchor = entity_create(compiler_world_store(world));
-    if anchor is null { return false; }
+    return frontend_modules_bind_world_result(environment, world) == WorkBudgetError.None;
+}
+
+export fn frontend_modules_bind_world_result(environment: ModuleEnvironment*, world: void*): WorkBudgetError {
+    if world == null { return WorkBudgetError.Invalid; }
+    if environment == null { return WorkBudgetError.None; }
+    if environment.world != null { return environment.world == world ? WorkBudgetError.None : WorkBudgetError.Invalid; }
+    var error = WorkBudgetError.None;
+    var anchor = entity_create_result(compiler_world_store(world), &error);
+    if anchor == null { return error; }
     environment.anchor = anchor;
     environment.world = world;
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn frontend_module_world(module: FrontendModule*): void* {
@@ -540,33 +553,55 @@ export fn frontend_module_root_world(world: void*, source: u8*, environment: Mod
 }
 
 export fn frontend_module_root_world_size(world: void*, source: u8*, length: usize, environment: ModuleEnvironment*): FrontendModule* {
-    if source == null || length == ~convert(usize, 0) { return null; }
-    if !frontend_modules_bind_world(environment, world) { return null; }
+    var error = WorkBudgetError.None;
+    return frontend_module_root_world_size_result(world, source, length, environment, &error);
+}
+
+// Prepare all fallible owners privately. Failed startup must not retire a
+// caller's active graph, source diagnostics, cache, or reusable parser session.
+export fn frontend_module_root_world_size_result(world: void*, source: u8*, length: usize,
+environment: ModuleEnvironment*, error: WorkBudgetError*): FrontendModule* {
+    if error == null { return null; }
+    *error = WorkBudgetError.Invalid;
+    if world == null || source == null || length == ~convert(usize, 0)
+        || (environment != null && environment.world != null && environment.world != world) { return null; }
+    if environment != null && environment.active_graphs == ~convert(usize, 0) {
+        *error = WorkBudgetError.Exhausted;
+        return null;
+    }
     var graph = alloc(ModuleGraph, 1);
-    var allocated5 = graph != null;
-    module_require(allocated5);
+    if graph == null { *error = WorkBudgetError.Memory; return null; }
     *graph = default;
     graph.world = world;
-    graph.tracked = true;
-    graph.environment = environment;
     if environment == null {
-        environment = frontend_modules_create();
-        module_require(frontend_modules_bind_world(environment, world));
-        graph.environment = environment;
+        environment = frontend_modules_create_result(error);
+        if environment == null { free(graph); return null; }
         graph.owns_environment = true;
     }
-    var next = environment.active_graphs + 1;
-    var valid = next != 0;
-    module_require(valid);
-    environment.active_graphs = next;
+    graph.environment = environment;
+    var published = false;
+    defer { if !published { module_graph_destroy(graph); } }
+    var anchor: void* = null;
+    defer { if anchor != null { entity_release(anchor); } }
+    if environment.world == null {
+        anchor = entity_create_result(compiler_world_store(world), error);
+        if anchor == null { return null; }
+    }
+    var name = environment.entry.length == 0 ? "input.tower" : environment.entry.data;
+    var result = module_new_result(graph, name, source, length);
+    if result == null { *error = graph.resource_error; return null; }
+    if anchor != null {
+        environment.anchor = anchor;
+        environment.world = world;
+        anchor = null;
+    }
+    environment.active_graphs++;
+    graph.tracked = true;
     frontend_modules_used_clear(environment);
     frontend_modules_sources_clear(environment);
-    var name = module_text(&environment.entry);
-    if name[0] == 0 {
-        name = "input.tower";
-    }
-    var result = module_new(graph, name, source, length);
     environment.active = result;
+    published = true;
+    *error = WorkBudgetError.None;
     return result;
 }
 
@@ -866,7 +901,8 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     module_fail(parent, "Import depth exceeds 128: ", path.data);
                 }
                 else {
-                    result = module_new(parent.graph, path.data, text.data, text.length);
+                    result = module_new_result(parent.graph, path.data, text.data, text.length);
+                    if result == null { return null; }
                     parent.graph.depth++;
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
@@ -904,11 +940,10 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     parent.graph.import_session = session;
                     parent.graph.depth--;
                     if resource_error == WorkBudgetError.None {
-                        module_complete(result);
-                        module_validate_cycles(result.graph);
+                        if (module_complete_result(result)) { module_validate_cycles(result.graph); }
                         if frontend_module_error(parent)[0] == 0 {
                             if !module_cache_store(result) { result = null; }
-                        }
+                        } else { result = null; }
                     } else {
                         result = null;
                     }
@@ -1123,8 +1158,7 @@ export fn frontend_module_seed_only(module: FrontendModule*): bool {
 }
 
 export fn frontend_module_finish(module: FrontendModule*): void {
-    module_complete(module);
-    module_validate_cycles(module.graph);
+    if module_complete_result(module) { module_validate_cycles(module.graph); }
 }
 
 // Semantic declarations may depend on one another across files. A cyclic
@@ -1357,10 +1391,16 @@ fn module_graph_destroy(graph: ModuleGraph*): void {
 }
 
 export fn frontend_modules_create(): ModuleEnvironment* {
+    var error = WorkBudgetError.None;
+    return frontend_modules_create_result(&error);
+}
+
+export fn frontend_modules_create_result(error: WorkBudgetError*): ModuleEnvironment* {
+    if error == null { return null; }
     var environment = alloc(ModuleEnvironment, 1);
-    var ok = environment != null;
-    module_require(ok);
+    if environment == null { *error = WorkBudgetError.Memory; return null; }
     *environment = default;
+    *error = WorkBudgetError.None;
     return environment;
 }
 
