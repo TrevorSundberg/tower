@@ -515,3 +515,30 @@ Raw FIRST/item/state/lookahead vectors and other request/lexer allocations remai
 outside this physical-accounting change; it is not a process-memory limit or a
 claim of complete parser resource coverage. Validation and measurements for this
 implementation are tracked in the B1 audit and project journal.
+
+### Checked grammar construction
+
+`GrammarBuilder.resource_error` retains the first failure while its existing
+`failed` flag suppresses following construction. Initialize a fresh builder with
+`grammar_builder_init_result`; consume its root once through
+`grammar_builder_finish_result(builder, error)`. The required error output receives
+the exact cause. Failure releases the partial document; success transfers the root
+to the caller. Reinitialize only after consuming the prior root. Legacy init/finish
+wrappers remain available.
+
+Related-node creation, component registration/storage and attachment retain their
+producer's `WorkBudgetError`, including `Busy`, `Invalid`, `Capacity` and `Memory`.
+Counted text/string helpers reject count overflow before allocation. Name inputs
+retain the existing NUL-terminated contract; the storage helper receives the actual
+byte count. `node_string_append_result` accepts an explicit byte count, returns
+`Invalid` for malformed UTF8 and restores the original logical string length on
+failure. Buffer capacity may have grown before decoding failed. The bool append
+wrapper also rejects malformed input instead of silently accepting a valid prefix.
+
+`regex_grammar_create_result(kinds, error)` constructs the same ordered ordinary
+grammar entities and preserves the builder's exact cause. The ASCII exclusion
+mask derives fill bytes and iteration extent from its array; ASCII extent and the
+maximum Unicode scalar are named language-data limits. The downstream pattern
+table remains responsible for propagating the result into its own diagnostics;
+adding this producer alone does not complete that consumer or budget raw text
+vectors. Validation status is recorded in the journal.

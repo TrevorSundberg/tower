@@ -2501,3 +2501,163 @@ reference inputs. Old two-CPU Cancel4 failure remains distinct. Journal contains
 exact commands/environment/profiles/failure and instrumentation scope. Primary
 40/40 audit is unchanged. Current-unit ownership fixes do not close raw-allocation
 coverage or final clean bootstrap/browser/generation/publication gates.
+
+### Child-result compatibility join — reviewed4b4c75ddc, integratedcde907cbd
+
+Complete ROOT bundle188337cc was reviewed after6159 work drained. D1bf093
+registration merge9577f7401 and this subsequent join preserve all README
+paragraphs; four CMake files still match D1's reviewed draft. Current runtime
+validation is running separately; older325cd2a3 receipts remain at3c74 inputs.
+
+| Supplemental path | Current ownership and evidence disposition |
+| --- | --- |
+| `library/entities.tower`, `library/entity_api.tower` | Replacement now checks parent, replacement and displaced-child leases plus new-retain overflow before any link change. Take checks parent/child leases, frees the owned name and transfers the parent's existing reference without retaining or allocating. Exact Invalid/Busy/Exhausted and None/null-empty results retain legacy wrappers. No storage-layout change or new scheduler; hold-counter/alias/raw-buffer gaps remain separate. |
+| `compiler/host_metadata.tower`, `compiler/syntax_provenance.tower` | Serial same-store/no-world copying is a metadata-free no-op again, preserving standalone entity clone support; null/cross-store inputs fail. Staged copies continue to require the actual world. ROOT reproduced old abort134 and validated corrected behavior; this is owner evidence until the current D2 allocation run completes. |
+| `tests/entity_attach_leases.tower`, `tests/entity_mutation_results.tower`, `tests/world_constructor.tower` | Reviewed new displaced-child/removal lease, exact error/overflow/empty/next-allocation-denial and distinct bare-clone identities/order/cleanup oracles. Reuse D1's registered targets and existing allocation selector. New bare-clone string comparison duplicates length5; routed to ROOT for an actual-data-derived bound, no unauthorized fixture edit. |
+| `tests/entity_child_transfer_profile.tower` | Newly discovered measurement source, ROOT-owned. Private standalone store and two raw entity handles are kept alive through replace/take/reattach; iteration count selects fixed small/large workload data, inner count derives the actual handle array. Final parent/reference identities and store disposal are checked. Explicit Linux x64 clock/rusage ABI; serial manual observer only. Reported descriptor+child-array2264B is a subset, not total live heap. ROOT's warmup+5 paired samples show large phase+1.47%; no worker scaling or new D2 timing claim. |
+
+Primary33tools/7benchmarks inventory remains40/40. The additional measurement
+entry is tracked separately, with reviewed commit and ownership. Source review
+and documentation have no runtime profiling applicability; current native/14CTest/
+allocation and full-host query/unit checks are pending in child_join_cde. B1's
+completed attachment fix is reported by ROOT but its standalone bundle is absent
+here; await complete source delivery before claiming independent source review.
+
+Current cde runtime receipt: public three leaves/native6/focused16, all14 newly
+registered cases, updated allocation/bare-clone selector and7native policies pass.
+Packagec0372979/all50resources captured. Explicit0-7 query/resource/fullunits/
+runtime-faults pass; restored0,2 and drained before12:19:47. Fullunits883748KiB peak
+is retained as a higher single-run observation, not hidden by a neutral-memory
+claim; journal records scope and allocation-path/owner-profile comparison.
+No fresh WASI, whole joined sanitizer, clean-cache or published-release acceptance
+is claimed. Primary and supplemental source audit dispositions above remain in
+force; final linker budget and integrated release work remains open.
+
+### Capture/attachment source join and late-inspection review — 2026-11-23
+
+Complete ROOT34aa history is integrated as6332f6658 after the preceding owned
+jobs drained. The worktree and guarded pull are clean. This supersedes the earlier
+statement that B1's attachment source was unavailable; it does not extend the
+c037 compiler's runtime receipt to these new compiler inputs.
+
+| Supplemental path and reviewed commit | Ownership, scheduling and evidence disposition |
+| --- | --- |
+| `compiler/parse_tree.tower`, `tests/parser_table_budget.tower` at34aa7526 | The existing forest records the exact entity_attach_result before transferring the leaf reference. On failure, the caller still owns the leaf; the fixture covers pinned Busy, self Invalid and allocation Memory with a retry. Traversal scratch and entity containment retain their distinct budget coverage. No new entity representation or symbol-policy permission is needed for this consumer. Source reviewed; current D2 runtime check is pending. |
+| `compiler/semantic_capture_work.tower`, `tests/semantic_capture_continuation_checks.tower` at34aa7526 | Failed take, suspend, observe and finish operations use the existing query cancellation/resource path, preserving the owning declaration's receipt. Cancellation requires zero active workers. The fixture derives occupancy from actual graph capacity and checks repeated pumps do not replay work or erase failures; context/world/budget owners survive cleanup. Its healthy case demonstrates legitimate suspension, not completed initializer execution. Worker-budget variants alone demonstrate no overlap. D1's ordinary-provider, five-selector registration draft28ffaa75 was independently reviewed; no D2 harness edit or runtime pass is claimed. |
+| `tests/world_constructor.tower` at34aa7526 | ROOT resolved the earlier hardcoded string extent finding using exact strcmp. Existing distinct clone identity/order/teardown checks remain. No D2 production edit; current execution is pending. |
+| `compiler/language_query.tower`, `tests/generic_inspection_budget.tower` at8c4282576 (complete L2 bundle, fetched only) | The single initialized document owner invokes its existing inspection producer through language_document_inspect. A persistent resource receipt rejects replay before clearing text; the fixture fills the actual remaining scratch budget after successful checking, verifies Capacity at a source-derived expression offset, hides prior output and checks no new entities/components after pressure release. Legacy bound-budget scope excludes physical entity pages. No concurrent use of the query or separate evaluator is introduced. Source review only, awaiting complete ROOT integration and current runtime evidence. |
+| `tools/bootstrap_symbols.tower`, `tools/compiler_project_files.tower`; `compiler/units/semantics.tower`, `compiler/units/semantics_checks.tower`; `tests/lr_work_main.tower` and their existing CMake recipes at6332f6658, compared with8c4282576 | The new language_document_inspect definition and ordinary call are in the same semantic provider. The only external caller is the generic_inspection_budget fixture imported by the separate LR-main object. Neither of the seven bootstrap policy units imports that fixture. Source composition therefore predicts no new permission, rather than adding the export speculatively. Actual fresh native/WASI undefined reports remain the final check. The project packager already collects this provider's real depfile closure; no second API registry/provider is proposed. |
+
+Primary assigned coverage remains33tools+7benchmarks=40/40, with these additional
+owned-producer/caller reviews recorded separately. These are read-only review and
+documentation changes, so new runtime profiling is inapplicable. The prepared
+package_6332 OS runner explicitly requires a matching, not-yet-built6332 native
+package and its product hashes; old c037 assets cannot satisfy that gate. D1's
+current ed7 instrumentation freeze is respected. Final linker budget contracts,
+merged measurements/instrumentation and public-bootstrap/browser/generation/
+leased atomic publication remain open.
+
+### Current joined validation and exact Entities WASM table policy
+
+Complete ROOTc944 is integrated as c8019dc44; its four new Tower paths match the
+previously reviewed queue and inspection sources. Native/compiler packaging
+validation uses this frozen source. The later ROOT2252 interpreter-layout/parser
+join is queued, not covered by these receipts. Primary coverage remains40/40.
+
+| Reviewed path at c8019dc44 plus owned patch00682b68 | Ownership and measured disposition |
+| --- | --- |
+| `library/entity_stage.tower`, `tests/entity_mutation_results.tower` | Complete queue-alias source matches reviewed d75ab177/0b92be42. Live-prefix bounds and rebasing preserve input addresses across reserve; no extra allocation, payload representation or scheduler. Current registered mutation and allocation tests pass. Separate hold-counter exhaustion remains open. |
+| `compiler/language_query.tower`, `tests/generic_inspection_budget.tower` | Complete L2 phase is adopted. Current editor suite passes its actual late Capacity, source-offset, prior-output suppression, no-replay, recovery and teardown checks. All seven native and fresh semantics WASI policy reports pass without any new inspection-helper allowance. |
+| `library/work_budget.tower`, `library/work_budget_types.tower`, `compiler/units/entities.tower` | Supplemental provider audit: the Entities closure includes budget reserve/release with typed enter/leave callbacks. Gate/callback lifetime is fixed before admission and ends after borrowers drain. Actual WASI disassembly has call_indirect and R_WASM_TABLE_NUMBER_LEB relocations to __indirect_function_table. This target table is not a new native implementation dependency or an alias guarantee. |
+| `tools/bootstrap_symbols.tower`, `tools/verify_bootstrap_symbols.tower`, `tests/bootstrap_symbols_checks.tower` | Actual fresh Entities WASI policy failed1 while original/exported objects matched. Exact owned correction permits only the existing function-table name for WASM Entities; no table_base, native permission, broad prefix, new provider or inspection export. Two target-policy positives and six native/wrong-unit/truncation/suffix/table_base negatives pass. D1 independently reviewed exact patch00682b68 and actual relocation/report evidence. WASM64 is policy-string coverage, not runtime execution. |
+| `tools/compiler_project_files.tower`, `tests/compiler_project_units.tower` | Existing real-depfile exporter retains source/unit ownership and duplicate unit identity. All four native and all four WASI entities/evaluation/semantics/parser original-exported object pairs are byte-identical; changed source files match their exports. Ordinary known-value interpretation and canonical Foundation re-interpretation both output0. The first package policy failure remains preserved, followed by a separate continuation; no second compiler representation or fallback parser was added. |
+
+The new matcher condition is allocation-free and introduces no parallel work.
+Matched fixed-report measurements use identical time+timeout wrappers, unchanged
+report paths, three fresh-process samples per seven native and one WASI entry,
+warm filesystem state and CPU allowance0,2. All48 intended statuses/output checks
+pass. Wall/CPU are below0.01s resolution; every entry's peak-RSS median is1616KiB
+before and after. No speedup, whole-heap or concurrent-allocation claim follows.
+Expanded fixture normal/address/LeakSanitizer/thread runs pass with matching guest
+runtime and actual11 definitions/109 ASan report sites/11 TSan access hooks.
+This serial policy fixture does not sanitize the whole threaded compiler or add
+source-language UBSan coverage.
+
+Current compiler c3724363 and its complete50-resource tree are captured. Native
+three actions48.32wall/46.79CPU/752680KiB; focused12 actions71.97/69.83/755316.
+All14 registered cases, parser and allocation selectors pass. Explicit0-7
+correctness query/resources/editor/units/runtime-faults pass; actual clone width256
+has Cancel4 overlap1, not a resolution of the old two-CPU failure. Editor23.88wall/
+36.78CPU/875940KiB and units48.94/69.42/809088 are n1 validation costs. The lower
+unit RSS than the preceding883748 observation is retained without a causal
+improvement claim. Timed children report zero swaps. CPU allowance restored0,2;
+all owned work drained before actual13:11:39 lock release.
+
+The two semantic leaf checks alone cost30.38+31.11s before the48.32s coherent
+native rebuild. Future unchanged-closure validation should compile the smallest
+changed unit first and reuse the coherent semantic-unit check, rather than repeat
+both broad semantic leaf closures. This is an observed workflow cost, not a new
+compiler optimization. No CMake or shared harness change was made. Final explicit
+linker-world budgets, new interpreter ABI integration, complete current release
+instrumentation/public-bootstrap/browser/generation and leased hosted publication
+remain open.
+
+### Next complete ABI join — source review at2252b889, integrated6e7feea51
+
+After the prior freeze and actual13:11:39 release, verified D1's complete
+1beec/7160ccfd history/receipt. Its archived missing-provider link1 and original
+ASan units124/followup0 are directly inspected; no probe was executed. README
+conflicts were duplicate paragraph relocations, with all complete content kept.
+Moved journal metadata/affinity/policy sections remain present. Complete ROOT2252
+bundle3ae22ed0 is then reviewed and merged; only D2's committed exact WASM table
+policy/fixture differs from its production/build source. The c372 receipts remain
+c801 evidence, not acceptance for this new interpreter ABI.
+
+| Supplemental path/scope | Ownership and evidence disposition |
+| --- | --- |
+| `compiler/interpreter_types.tower`, `compiler/interpreter_storage.tower`, `compiler/interpreter.tower`, `compiler/fast_interpreter.tower` | Six sorted execution maps now use work_vector and the invocation's world budget; Foundation entities remain authoritative. Checked growth preserves prior storage and exact errors. Heap metadata is prepaid before committing a guest range so valid free/coalescing needs no allocation. All production map-set callers inspected use the new bool result; statement/address/value/return paths stop on failure rather than replay effects. Fast teardown uses matching work-vector disposal. IMFrame/IMState sizes change, requiring every actual depfile consumer to rebuild. Owner's costs/retention/instrumentation stay at6818; current joined native/browser execution is pending. Wide-call argument storage and other raw owners remain outside this change. |
+| `compiler/lr_api.tower`, `compiler/lr_work.tower`, `compiler/lr_runtime_work.tower`, `compiler/parser_workers.tower`, `compiler/parser_table.tower`; current parser contract | Per-call FIRST/state/LALR failures replace guessed Memory; worker causes are read after joins in source/frontier order. Pool slot and graph buffers borrow the world's stable budget, separately from lane grants; retained pool bytes live until cache/world teardown. Partial derived products remain caller-discard-owned and raw analysis vectors are still outside this accounting. The exact new external ParserNodes call is entity_attach_result in lr_work_node_result; failed attachment releases the creator reference, success transfers containment before releasing it. Other new LR result functions are internal to that provider. Fresh native/WASI reports are required before changing the owned allowlist. |
+| `compiler/semantic_context.tower`, `compiler/semantic_capture_work.tower`, `compiler/semantic_execution_work.tower`, `tests/semantic_executable_admission_checks.tower` | Shared internal sem_query_check preserves the existing first resource/cancellation/subject provenance path. Query/edge/access/seal admission precedes executable metadata, failed partial take discards undispatched private stages before cancellation, and observation/finish must succeed before ready input publication. Full238-line fixture reviewed: eight real selectors, actual graph-capacity pressure, terminal no-replay and world/ledger cleanup; budget variants are not overlap. Fixture imports production services itself and requires the existing aggregate-style provider deduplication. D1 owns the concrete registration and current validation; no D2 harness edit. Component/stage/dispatch/hold gaps remain explicitly separate. |
+
+This is read-only source/receipt review and integration, with no new runtime
+profiling claim. D1 now owns the Deck heavy slot for current leaves/native/manual
+baselines and registrations. D2 awaits its actual parser/provider reports and a
+free slot for fresh WASI/policy validation; no speculative API permission was
+added. Final linker budget contract and integrated release gates remain open.
+
+### Exact checked LR attachment import at9db1be18 +227bf39a
+
+The completed primary audit remains 40/40 paths; this change updates the owned
+`scaffolding/tools/bootstrap_symbols.tower` disposition and its existing
+`scaffolding/tests/bootstrap_symbols_checks.tower` fixture. B1's checked
+`lr_work_node_result` now imports `entity_attach_result` from the existing Entities
+provider. It releases the creator on failed attachment and after successful
+containment transfer. This adds no graph, allocator, world, scheduler or ABI.
+
+D1 exported immutable reports after its current2252 native build drained: parser
+object9928d135 has the exact undefined name and Entities e62f8520 exports it.
+D2 independently compiled the current public-bootstrap WASI parser entry and
+confirmed the same import. Before checker a19e878f rejects only that name for
+both targets. Exact patch227bf39a adds that single ParserNodes permission; eight
+cases cover Linux/Windows/WASI acceptance and truncation, suffix and three wrong
+units. String bounds still derive from actual text, and rejected spans remain
+borrowed from the captured input. Windows here is policy coverage only.
+
+On the same Deck/image4be584fb/public9653, CPU0,2, jobs1, fresh processes with
+warm filesystem, identical GNU-time/timeout wrappers and fixed report paths,
+three samples per target before/after all have the expected status and exact
+stdout/stderr. Wall/user/system times are below0.01s resolution; each target's
+RSS median is1616KiB on both sides (raw1488 outliers retained). No measurable
+speedup, regression bound, overlap or whole-heap retention claim follows. The
+allocation-free permission lookup adds no live storage; tool input ownership
+and serial error publication are unchanged. WASI compile is34.43wall/33.69CPU/
+773060KiB, zero swaps, n1; that is validation cost, not policy runtime cost.
+
+Smallest fixture compile/link/run, canonical selected-tool build, actual fixed
+reports and scoped ASan/LSan/TSan all pass. Retained public LLVM has11 definitions,
+109 ASan report sites and11 TSan access hooks, with the byte-matching guest runtime.
+These serial policy checks do not sanitize the threaded compiler, prove general
+race freedom or provide source UBSan coverage. New checker c8b98a2f and all raw
+statuses/profiles/source manifests are in `build/d2_ecs/parser_attach_2252`.
+Both controllers drained before lock release. Current joined compiler/native/
+browser/generation acceptance and the linker-world budget API remain open.
