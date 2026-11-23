@@ -88460,3 +88460,19 @@ This ROOT checkpoint changes documentation only; runtime before/after profiling
 is inapplicable. Publication reuses the verified existing Pages assets and cannot
 claim these newer compiler sources deployed. The preexisting todo.txt bytes
 remain unchanged.
+
+Merged validation: pull refused divergent fast-forward, so complete origin43fc7510
+history was merged as3b4e7cfd7d12da0c7acd7e4872e312ab58e6a78b, retaining L2's
+published-ID0/typed-label changes and B2's worker-grain changes without conflicts.
+Affected native and portable providers rebuilt through their dependency targets.
+Both native inspection worker modes pass with byte-identical normalized outputs;
+alias CTests pass8.22s/9.40s. Merged portable again passes the original hover and
+all completion/hover/candidate/session/execution sections, then exits1/code73 at
+the same package-denial boundary (11.59s wall/10.09s CPU/227484KiB). No later gate
+was claimed passed. Merged logs a1_inspection_merged_* retain frozen-source checks.
+Input-list hash01345a43bbcf0dda50e903f6d55a666b6bd25bdcee52cfbeefb1cb5c7d809eb0;
+native404502874dba30a5a1854471c30890e7cb39f5eb35195bc5a1cdbe4334f7f496;
+portable9bd93b903003d82883db986b4c98d816e276c3e8d7be1822246c6317960f9481.
+Earlier timings retain their earlier input identity. All jobs drained; todo hash
+remains e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Normal main publication follows; no runtime deployment is performed by this lane.
