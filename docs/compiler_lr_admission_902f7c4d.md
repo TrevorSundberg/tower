@@ -165,3 +165,12 @@ The preserved prior3ad7 profiler remains
 `f092a2aa9ef57e926f201c863f41405f5b0b4ba279d17827410130d0d413e3b5`.
 ROOT retains final adoption/publication. This task publishes a finite negative
 result and attribution correction, not a production optimization.
+
+Publication reconciliation: receipt `b34ce13b` merged complete published
+`c2c97058` history at `22ae1076cb57fb014a847a859cbf7896a3d893ac` after the
+required ff-only pull refused divergence. Both journal histories and the two
+B1 receipts remain intact. Incoming B2 browser, A2 malformed-shape and L2
+void-return changes are outside this measured/restored902 freeze. The three
+restored trial source files still match their902 blobs; cached baseline binary
+hashes are unchanged. This documentation-only result does not rebuild or claim
+validation of those later compiler inputs.

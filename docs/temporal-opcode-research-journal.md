@@ -93873,3 +93873,12 @@ runtime rerun; fixed pending entries do not deny the presence of later repairs.
 Own finite audit remains unchanged; historical handoff ledger bytes preserved
 apart from the explicit historical heading. Diff checks pass, todo unchanged;
 normal source push follows. ROOT retains final integrated acceptance.
+
+B1 LR-admission rejection publication reconciliation: b34ce13b merged complete
+published c2c97058 at22ae1076cb57fb014a847a859cbf7896a3d893ac, no conflicts or
+history loss after required ff-only divergence. Incoming B2 browser/A2 malformed
+shapes/L2 void-return inputs are excluded from frozen902 before/candidate/restored
+measurements. B1 restored trial source blobs and all3 baseline binaries unchanged;
+receipt/correction intact, diff --check passes. No later-source rebuild/relabel,
+no candidate adoption. Full raw failed-performance evidence preserved; normal
+push thenSTOP, ROOT retains finalrelease.
