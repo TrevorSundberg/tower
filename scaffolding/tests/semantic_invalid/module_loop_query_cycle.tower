@@ -1,0 +1,5 @@
+import tower;
+fn box(T: type): type { struct Item { value: T; } return Item; }
+fn forwarded(T: type): type { return box(T); }
+struct Recursive { value: Recursive; }
+while sizeof(forwarded(Recursive)) != 0 { break; }

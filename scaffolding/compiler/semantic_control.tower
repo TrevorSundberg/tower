@@ -1,5 +1,7 @@
 import tower;
 import semantic_context_types;
+import semantic_declaration_types;
+import semantic_declarations;
 import foundation_tags;
 import semantic_context;
 import semantic_expressions;
@@ -19,6 +21,22 @@ var FlowContinue: u32 = 4;
 var FlowReturn: u32 = 8;
 var MatchArmLimit: usize = 128;
 var ControlBlockNestingLimit: u32 = 128;
+
+// Immediate module control operands share one coordinator query boundary.
+// Workers retain their prepared operands or ordinary private checking path.
+// Preparation checks the expression once; its Foundation node still executes
+// at the control construct's original runtime position.
+fn sem_control_expression(c: SemanticContext*, source: void*, expected_type: FoundationType*, mode: SemanticExpressionMode): void* {
+    if !sem_ok(c) { return null; }
+    if c.current == c.program.root && c.declaration_subjects == null
+        && c.entity_stage == null && c.query_reads == null {
+        return sem_module_expression(c, source, expected_type, mode);
+    }
+    if mode == SemanticExpressionMode.Discard { return sem_surface_discard(c, source); }
+    if mode == SemanticExpressionMode.Operand { return sem_operand(c, source, expected_type); }
+    sem_require(mode == SemanticExpressionMode.Value);
+    return sem_expression(c, source, expected_type);
+}
 
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
@@ -370,7 +388,8 @@ fn sem_control_while_begin(c: SemanticContext*, n: void*, state: SemanticLoopCur
 
 fn sem_control_while_value(c: SemanticContext*, n: void*, state: SemanticLoopCursor*, condition: void*): bool {
     *state = default;
-    condition ??= sem_expression(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
+    condition ??= sem_control_expression(c, sem_member(n, "condition"),
+        sem_type_new(c, SBool, 0, null), SemanticExpressionMode.Value);
     if !sem_ok(c) {
         return false;
     }
@@ -471,7 +490,8 @@ fn sem_control_for_tail(c: SemanticContext*, n: void*, state: SemanticLoopCursor
     if sem_child_count(condition_syntax) == 0 {
         condition = sem_control_literal(c, n, 1);
     } else {
-        condition = sem_operand(c, sem_child(condition_syntax, 0), sem_type_new(c, SBool, 0, null));
+        condition = sem_control_expression(c, sem_child(condition_syntax, 0),
+            sem_type_new(c, SBool, 0, null), SemanticExpressionMode.Operand);
         if !sem_ok(c) { return; }
     }
     var step_syntax = sem_member(n, "step");
@@ -480,7 +500,7 @@ fn sem_control_for_tail(c: SemanticContext*, n: void*, state: SemanticLoopCursor
         c.surface_expressions = true;
         update = sem_control_node(c, n, SurfaceDiscard);
         if update == null { return; }
-        sem_get(update).value = sem_surface_discard(c, sem_child(step_syntax, 0));
+        sem_get(update).value = sem_control_expression(c, sem_child(step_syntax, 0), null, SemanticExpressionMode.Discard);
     }
     state.condition = condition;
     state.update = update;
