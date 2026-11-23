@@ -95458,3 +95458,41 @@ missing complete implementation history, not an independent approval. Incoming
 changes are documentation only; backend/compiler/library/host/CMake blobs match
 the validated gate adoption exactly. No runtime rerun. Todo SHA remainsb927852f,
 all owned jobs drained, source checks reused by identity; retry normal main push.
+### 2026-11-23 D1: published unsigned-overflow reconstruction review
+
+Prerequisite resolved: freezea06ec4b1f9f44419882477bc1a55b6ed39e2200b/tree057500a4a7e8a687ecdb383825709f19c7e2b676,
+backend e6f2cf5da2d358ddeab719d4b08098f81aa590bc. Same thread/PID3192336. Read
+publisheda5ffb99d plus3bc5f626 eight Tower paths, enclosing importer/API/SSA/stage
+and numeric/formatter/recheck consumers; reused earlier prerequisite tracing.
+Exact blobs/manifest in audit and build/d1_ecs/umul_review_a06ec4b1. No reread census.
+
+R1 source-confirmed, unexecuted: bi_multiply_overflow admits i1, then line51 emits
+OGt(bool,bool). bi_binary only legalizes boolean op<8; semantic_numeric_binary
+excludes bool and CoreBinary checking reports "This operation requires integer
+operands". Audit preserves exact retained-i1 LLVM trigger and smallest proposed
+Tower C-API probe, with false overflow for all four bool pairs. Owner ROOT/L2;
+active implementation/fixtures untouched. This is a recheck boundary defect, not
+a claim that current25's observed i32 allocation guard still fails.
+
+For widths8/16/32/64, actual bit-width maximum/masking and nonzero divisor before
+division are sound by source analysis; operands read existing SSA locals, distinct
+extract destinations assigned at dominating call, shared phi/loop order retained.
+Use iteration/index API preconditions verified against LLVM19 primary source.
+Private stage/error rollback unchanged; malformed normal inputs reach LLVM verify
+before raw operand access. No arbitrary poison/LLVM equivalence or race claim.
+
+Owner fresh-call evidence closes folded original-call gap: exact twelve u32/u64
+boundary outcomes executed at target32/64workers1/4 with unchanged b4e571ae module
+and a860f8e8 caller. These are owner receipts, not new D1 runs; source-service
+ledger counts are not CLI counters and unspecified CLI mode is not both Graph/Fast.
+Inline source-worlds tests compile/recheck/intrinsic presence; fresh mounting is
+README/manual evidence, C registration unrun. Finite gaps: R1 i1 repair, narrow8/16,
+explicit product0/duplicate/cross-block extracts, direct nonextract/index negatives
+with first-error/prior-output preservation. No new production defect claimed for
+those untested controls. Original current25 failure and native successes retained;
+new reactor/T8/Wasm-fit/release remain separate owner gates.
+
+Only audit/journal changed, no build/runtime/profile/sanitizer/release; docs-only
+performance inapplicable. No owned job/heavy lock; D2 compression untouched,
+disk127GiB/RAM9.7GiB, todo unchanged. Normal commit/history reconciliation/push next;
+source review closes this bounded task with the explicit R1 handoff.
