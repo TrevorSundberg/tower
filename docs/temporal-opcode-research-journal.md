@@ -89600,3 +89600,44 @@ instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
 
 B2 lowering publication reconciliation: receipt1f4a64ef merged complete5b9194e4 incoming history without conflict; both journal histories retained. Diff against incoming main is documentation only. Incoming semantic_statements/imported-alias/browser/occupancy work retains its own owner receipts; the7facb35f frozen samples and restored-cache binary do not validate those later sources. Reuse the unchanged runtime evidence, no new compiler matrix or deployment. Rejected patch and optional observer source/binaries remain reviewable in the receipt directory.
+
+### B2 current shared-browser adoption: retirement gate BLOCKED — 2026-11-23
+
+Frozen published f167c444b7a0e4b112ef20d34ffee0dd106252b2 includes96cd1eda,
+eac16533 and current observer ABI. Owned CPU12-23/quota12/24GiB container was idle;
+required pull was current. Verified public768 bootstrap; new owned shared profile
+completed30 dependency-aware actions (44.282wall/88.808 waited-child CPU seconds,
+1097276KiB peak). Preserved old Wasm. SDK34/Clang+LLD23.1.0, Release, jobs1/outer4.
+Initial PowerShell CMake quoting failed before build; literal Bash configuration
+fixed it. No duplicate native/public-leaf builds.
+
+Actual strict Chromium159.0.8154.6/Playwright1.65.1 run failed after pool4:
+children emitted close, coordinator retire probe answered, but coordinator target
+survived30s. Diagnostic copy confirmed four sleeping DedicatedWorker OS threads,
+closed children and unresponsive coordinator inspector; not a metadata-only claim.
+This happens before compiler Wasm loads. A READY-only cooperative retirement
+candidate passed once then failed compiler1 with zero Wasm spawns; fully rejected.
+Full Chromium headless channel control passed once then failed compiler4; also
+rejected. All original production/test sources restored. No threshold increase,
+ignored target, early page closure, compiler semantic change or claimed engine fix.
+
+Successful functional control: actual simultaneous distinct four-worker barrier,
+current query resume/cycle/cancel/resource and LR/world/budget/stage assertions,
+known0 Graph/Fast results and full canonical comparison1/4 passed. Actual closes
+5/2/5, targets0, spawns24/0/785. This does not waive the repeated retirement FAIL.
+Control9.472wall/2.867CPU/210904KiB; confirming failure39.122/4.855/211460.
+Final Wasm capacities33947648/90177536/97648640bytes are not allocation retention
+or RSS; profiler CPU/RSS are waited-child accounting, not aggregate browser-tree
+usage. Different initialization/fixtures prohibit scaling claims. Node follow-on
+pending; no broad matrix/deployment. All active owned jobs drained.
+
+Receipt docs/compiler_shared_browser_f167c444.md includes exact commands, hashes,
+limits and primary Chromium/Playwright references. Raw logs/reports/trace, rejected
+patches and frozen artifact package are in B2/shared_browser_f167c444. CompilerSHA
+8e7e3d637c6820c6d96204662dd4b6025722099e595ef3704f704125d7405eb4;
+workSHA6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c.
+Copyable shared_browser_f167c444_blocked.tar.gz SHA
+7382481192a567d0ecfdb8e019ec0ab10d9020934d12488849aa4fe9ea5e6aff contains original
+artifacts/resources/transport/provenance and verified per-file hashes. ROOT handoff:
+Chromium coordinator retirement remains blocking; internal engine cause unproven.
+Accepted older generation/grain/lowering receipts retain their own identities.
