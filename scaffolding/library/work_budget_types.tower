@@ -57,4 +57,3 @@ struct WorkBudgetSnapshot {
     live: usize;
     retained: usize;
 }
-

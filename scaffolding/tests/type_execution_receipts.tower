@@ -28,9 +28,9 @@ fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
     var world = compiler_world_create_workers(1);
     type_receipt_check(world != null, "Type request world");
     var root = entity_create(compiler_world_store(world));
-    var program: SemanticProgram;
+    var program: SemanticProgram = default;
     semantic_initialize(&program, root, width);
-    var context: SemanticContext;
+    var context: SemanticContext = default;
     sem_context_init(&context, &program);
     context.generics = generic_begin(root);
     sem_evaluation_begin(&context);

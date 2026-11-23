@@ -4,23 +4,16 @@ import foreign_reader;
 import foreign_symbol;
 import text;
 import target_registry_tool;
-import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .compiler.host_text;
+import .host.driver_files;
 
 // Build-time Foundation-to-Foundation expansion for bootstrap compilers which
 // predate foreign-symbol lowering. Implementation and CLI are both Tower.
-extern fn fopen(path: u8*, mode: u8*): void*;
-
-extern fn fclose(file: void*): i32;
-
-extern fn fread(bytes: u8*, size: usize, count: usize, file: void*): usize;
-
-extern fn fwrite(bytes: u8*, size: usize, count: usize, file: void*): usize;
-
-extern fn ferror(file: void*): i32;
-
 extern fn puts(text: u8*): i32;
 
-fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u8)*, wraps: vector(u8)*): bool {
+fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: ByteBuffer*, wraps: ByteBuffer*): bool {
     var i: usize = 0;
     loop {
         if i == length {
@@ -51,7 +44,7 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                 }
             }
             var count = i -start;
-            backend_text_append(out, &source[start], count);
+            if !bytes_append(out, &source[start], count) { return false; }
             continue;
         }
         if byte == 47 {
@@ -89,7 +82,7 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                         i++;
                     }
                     var count = i -start;
-                    backend_text_append(out, &source[start], count);
+                    if !bytes_append(out, &source[start], count) { return false; }
                     continue;
                 }
             }
@@ -127,52 +120,40 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                     puts(name);
                     puts(error);
                     foreign_name_close(result);
+                    source[i] = 96;
                     return false;
                 }
-                backend_text(out, "`");
                 var symbol = foreign_name_text(result);
-                backend_text(out, symbol);
-                if backend_prefix(symbol, "__wrap_") {
-                    backend_text(wraps, "--wrap=");
-                    backend_text(wraps, &symbol[7]);
-                    backend_text(wraps, "\n");
+                var ok = bytes_append(out, "`", 1) && bytes_append(out, symbol, backend_length(symbol));
+                if ok && backend_prefix(symbol, "__wrap_") {
+                    ok = bytes_append(wraps, "--wrap=", 7)
+                        && bytes_append(wraps, &symbol[7], backend_length(&symbol[7]))
+                        && bytes_append(wraps, "\n", 1);
                 }
-                backend_text(out, "`");
+                ok &&= bytes_append(out, "`", 1);
                 foreign_name_close(result);
+                if !ok { source[i] = 96; return false; }
             } else {
                 source[i] = 96;
                 var count = i -start;
                 count++;
-                backend_text_append(out, &source[start], count);
+                if !bytes_append(out, &source[start], count) { return false; }
             }
             source[i] = 96;
             i++;
             continue;
         }
-        backend_text_append(out, &source[i], 1);
+        if !bytes_append(out, &source[i], 1) { return false; }
         i++;
     }
     return true;
 }
 
-fn foreign_tool_read(path: u8*, source: vector(u8)*): bool {
-    var input = fopen(path, "rb");
-    if input == null {
-        puts("Cannot open foreign source");
-        return false;
-    }
-    defer fclose(input);
-    var buffer: u8[4096];
-    loop {
-        var count = fread(&buffer[0], 1, 4096, input);
-        if count == 0 {
-            break;
-        }
-        var previous = source.length;
-        backend_text_append(source, &buffer[0], count);
-        if source.length - previous != count { return false; }
-    }
-    return ferror(input) == 0;
+fn foreign_tool_read(path: u8*, source: ByteBuffer*): bool {
+    if driver_read_file(path, source) { return true; }
+    puts("Cannot read foreign source");
+    puts(path);
+    return false;
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
@@ -190,59 +171,31 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     var profile = foreign_profile_for_target(argv[1]);
     if profile == 0 { puts("Unsupported foreign target profile"); return 2; }
-    var source: vector(u8) = default;
-    if !foreign_tool_read(argv[2], &source) { vector_dispose(&source); return 1; }
-    var expanded: vector(u8);
-    vector_init(&expanded);
-    var wraps: vector(u8);
-    vector_init(&wraps);
+    var source: ByteBuffer = default;
+    var expanded: ByteBuffer = default;
+    var wraps: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&expanded); defer bytes_dispose(&wraps);
+    if !foreign_tool_read(argv[2], &source) { return 1; }
     var ok = foreign_expand_source(profile, source.data, source.length, &expanded, &wraps);
     // Extra modules contribute only wrap flags; their declarations continue to
     // compile through ordinary imports, with no generated source duplication.
     for (var at = base_arguments; at < argc && ok; at++) {
-        var extra: vector(u8) = default;
-        var scratch: vector(u8) = default;
-        defer vector_dispose(&extra); defer vector_dispose(&scratch);
+        var extra: ByteBuffer = default;
+        var scratch: ByteBuffer = default;
+        defer bytes_dispose(&extra); defer bytes_dispose(&scratch);
         ok = foreign_tool_read(argv[at], &extra) && foreign_expand_source(profile, extra.data, extra.length, &scratch, &wraps);
     }
-    if ok {
-        var output = fopen(argv[3], "wb");
-        if output == null {
-            ok = false;
-        }
-        else {
-            var written = fwrite(expanded.data, 1, expanded.length, output);
-            ok = written == expanded.length;
-            var status = fclose(output);
-            if status != 0 {
-                ok = false;
-            }
-        }
-    }
-    if ok {
-        var path: vector(u8);
-        vector_init(&path);
-        backend_text(&path, argv[3]);
-        backend_text(&path, ".wrap.rsp");
-        var output = fopen(path.data, "wb");
-        if output == null {
-            ok = false;
-        }
-        else {
-            var written = fwrite(wraps.data, 1, wraps.length, output);
-            ok = written == wraps.length;
-            var status = fclose(output);
-            if status != 0 {
-                ok = false;
-            }
-        }
-        vector_dispose(&path);
-    }
-    vector_dispose(&wraps);
-    vector_dispose(&source);
-    vector_dispose(&expanded);
+    if !ok { puts("Foreign source expansion failed"); return 1; }
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    // Finish allocating both output paths before opening either artifact.
+    ok = bytes_append(&path, argv[3], backend_length(argv[3]))
+        && bytes_append(&path, ".wrap.rsp", 9) && host_text_terminate(&path);
+    ok &&= driver_write_file(argv[3], expanded.data, expanded.length)
+        && driver_write_file(path.data, wraps.data, wraps.length);
     if ok {
         return 0;
     }
+    puts("Cannot publish foreign source and wrapper response");
     return 1;
 }

@@ -11,4 +11,3 @@ struct LanguageGrammar {
     category: vector(u8);
     matched: bool;
 }
-

@@ -1,0 +1,175 @@
+import tower;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.entity_types;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): EntityStore*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_module_root_world(world: void*, source: u8*, environment: void*): void*;
+extern fn frontend_module_session(module: void*): void*;
+extern fn frontend_module_finish(module: void*): void;
+extern fn frontend_module_count(module: void*): usize;
+extern fn frontend_module_destroy(module: void*): void;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn entity_release(entity: void*): usize;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn strlen(text: u8*): usize;
+extern fn puts(text: u8*): i32;
+extern fn abort(): void;
+
+// Observation boundary: Linux x64 timeval/timespec and rusage, not a portable ABI.
+struct CacheProfileTime { seconds: i64; fraction: i64; }
+struct CacheProfileUsage {
+    user: CacheProfileTime;
+    system: CacheProfileTime;
+    peak_rss: i64;
+    remaining: i64[13];
+}
+extern fn clock_gettime(clock: i32, time: CacheProfileTime*): i32;
+extern fn getrusage(who: i32, usage: CacheProfileUsage*): i32;
+var CacheProfileMonotonic: i32 = 1;
+var CacheProfileSelf: i32 = 0;
+var CacheProfileSamples: usize = 4;
+
+fn cache_profile_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn cache_profile_text(out: ByteBuffer*, text: u8*): void {
+    cache_profile_check(bytes_append(out, text, strlen(text)), "cache profile text");
+}
+
+fn cache_profile_number(out: ByteBuffer*, value: usize): void {
+    cache_profile_check(host_json_unsigned(out, convert(u64, value)), "cache profile number");
+}
+
+fn cache_profile_name(out: ByteBuffer*, index: usize): void {
+    cache_profile_text(out, "cache_node_");
+    cache_profile_number(out, index);
+}
+
+fn cache_profile_import(out: ByteBuffer*, index: usize): void {
+    cache_profile_text(out, "import ");
+    cache_profile_name(out, index);
+    cache_profile_text(out, "; ");
+}
+
+fn cache_profile_source(environment: void*, index: usize, source: u8*, length: usize): void {
+    var name: ByteBuffer = default;
+    defer bytes_dispose(&name);
+    cache_profile_name(&name, index);
+    cache_profile_text(&name, ".tower");
+    cache_profile_check(bytes_push(&name, 0), "cache profile source name");
+    cache_profile_check(frontend_modules_source(environment, name.data, source, length), "cache profile source snapshot");
+}
+
+fn cache_profile_parse(world: void*, environment: void*, source: u8*, count: usize, succeeds: bool): void {
+    var module = frontend_module_root_world(world, source, environment);
+    cache_profile_check(module != null, "cache profile explicit module world");
+    defer frontend_module_destroy(module);
+    var session = frontend_module_session(module);
+    cache_profile_check(session != null, "cache profile session");
+    loop {
+        var node = syntax_next(session);
+        if node == null { break; }
+        entity_release(node);
+    }
+    var clean = syntax_get_error(session)[0] == 0;
+    if clean != succeeds { puts(syntax_get_error(session)); }
+    cache_profile_check(clean == succeeds, "cache profile grammar result");
+    if clean {
+        frontend_module_finish(module);
+        cache_profile_check(frontend_module_count(module) == count, "cache profile unique diamond module count");
+    }
+}
+
+fn cache_profile_nanoseconds(time: CacheProfileTime*): usize {
+    return convert(usize, time.seconds) * 1000000000 + convert(usize, time.fraction);
+}
+
+fn cache_profile_microseconds(time: CacheProfileTime*): usize {
+    return convert(usize, time.seconds) * 1000000 + convert(usize, time.fraction);
+}
+
+fn cache_profile_trial(layers: usize, workers: usize): void {
+    var world = compiler_world_create_workers(workers);
+    cache_profile_check(world != null, "cache profile world");
+    var environment = frontend_modules_create();
+    cache_profile_check(environment != null && frontend_modules_bind_world(environment, world), "cache profile environment");
+    frontend_modules_configure(environment, "cache_entry.tower", "");
+    var first: u8* = "parse Statement = 'marker';";
+    cache_profile_source(environment, 0, first, strlen(first));
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    for(var index: usize = 1; index < layers * 2; index++) {
+        source.length = 0;
+        if index == 1 { cache_profile_import(&source, 0); }
+        else {
+            var previous = (index / 2 - 1) * 2;
+            cache_profile_import(&source, previous);
+            cache_profile_import(&source, previous + 1);
+        }
+        cache_profile_source(environment, index, source.data, source.length);
+    }
+    source.length = 0;
+    cache_profile_import(&source, layers * 2 - 2);
+    cache_profile_import(&source, layers * 2 - 1);
+    var prefix = source.length;
+    cache_profile_text(&source, "marker");
+    cache_profile_check(bytes_push(&source, 0), "cache profile entry");
+    var store = compiler_world_store(world);
+    for(var sample: usize = 0; sample < CacheProfileSamples; sample++) {
+        var before: CacheProfileUsage;
+        var after: CacheProfileUsage;
+        var start: CacheProfileTime;
+        var end: CacheProfileTime;
+        cache_profile_check(getrusage(CacheProfileSelf, &before) == 0
+            && clock_gettime(CacheProfileMonotonic, &start) == 0, "cache profile start clock");
+        cache_profile_parse(world, environment, source.data, layers * 2 + 1, true);
+        cache_profile_check(clock_gettime(CacheProfileMonotonic, &end) == 0
+            && getrusage(CacheProfileSelf, &after) == 0, "cache profile end clock");
+        var out: ByteBuffer = default;
+        cache_profile_text(&out, "{\"layers\":"); cache_profile_number(&out, layers);
+        cache_profile_text(&out, ",\"workers\":"); cache_profile_number(&out, workers);
+        cache_profile_text(&out, ",\"sample\":"); cache_profile_number(&out, sample);
+        cache_profile_text(&out, ",\"wall_ns\":");
+        cache_profile_number(&out, cache_profile_nanoseconds(&end) - cache_profile_nanoseconds(&start));
+        cache_profile_text(&out, ",\"cpu_us\":");
+        cache_profile_number(&out, cache_profile_microseconds(&after.user) + cache_profile_microseconds(&after.system)
+            - cache_profile_microseconds(&before.user) - cache_profile_microseconds(&before.system));
+        cache_profile_text(&out, ",\"peak_rss_kib\":"); cache_profile_number(&out, convert(usize, after.peak_rss));
+        cache_profile_text(&out, ",\"retained_entities\":"); cache_profile_number(&out, store.entity_count);
+        cache_profile_text(&out, ",\"retained_components\":"); cache_profile_number(&out, store.component_count);
+        cache_profile_text(&out, "}"); cache_profile_check(bytes_push(&out, 0), "cache profile report");
+        puts(out.data);
+        bytes_dispose(&out);
+    }
+    // Invalidate a shared leaf: every path must observe its new grammar.
+    var changed: u8* = "parse Statement = 'changed';";
+    cache_profile_source(environment, 0, changed, strlen(changed));
+    cache_profile_parse(world, environment, source.data, 0, false);
+    source.length = prefix;
+    cache_profile_text(&source, "changed");
+    cache_profile_check(bytes_push(&source, 0), "cache profile changed entry");
+    cache_profile_parse(world, environment, source.data, layers * 2 + 1, true);
+    frontend_modules_destroy(environment);
+    cache_profile_check(frontend_world_clear(world) && compiler_world_dispose(world), "cache profile releases world and caches");
+}
+
+export fn main(): i32 {
+    cache_profile_check(sizeof(usize) == 8 && sizeof(CacheProfileUsage) == 144, "cache profile Linux x64 layout");
+    cache_profile_trial(3, 1);
+    cache_profile_trial(18, 1);
+    cache_profile_trial(3, 4);
+    cache_profile_trial(18, 4);
+    puts("Cache diamond profile and shared-leaf invalidation passed.");
+    return 0;
+}

@@ -1,0 +1,16 @@
+import tower;
+
+extern fn frontend_modules_tests(): usize;
+extern fn puts(text: u8*): i32;
+
+// Focused entry over the existing module/cache/session regressions. Link with
+// the parser_modules profile and run with scaffolding as the working directory.
+export fn main(): i32 {
+    var result = frontend_modules_tests();
+    if result != 0 {
+        puts("Module cache regression failed; exit status is the fixture failure code.");
+        return convert(i32, result);
+    }
+    puts("Module cache, resolution, immutable grammar and session checks passed.");
+    return 0;
+}
