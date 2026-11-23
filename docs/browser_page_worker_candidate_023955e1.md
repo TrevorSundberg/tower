@@ -150,3 +150,9 @@ playground/scripts` passed. D2 diagnostic files, compiler/Tower sources, previou
 Node T5 evidence and todo remain unchanged. Final shipped change is this receipt
 and journal only. No production ownership fix, hosted adoption, browser gate
 closure, Node rerun, compiler generation or sanitizer claim.
+
+Publication reconciliation: receipt `82f20518` merged full incoming `a2bd2987`
+history as `18b441f3` after ff-only pull refused divergence. Both journal histories
+survive. The six restored candidate paths remain identical to the pre-experiment
+source; incoming D2 diagnostic and compiler/fixture changes are retained and
+excluded from the frozen f167 experiment. No repeated browser run or new candidate.

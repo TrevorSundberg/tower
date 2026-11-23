@@ -92965,3 +92965,9 @@ execution and remain separately owned/unadopted. Syntax/diff checks pass; no
 repeated browser run or source-identity relabel. Normal main publication only.
 
 A2 finalpushrace reconciliation: merged published260562f4 into284019bc preserving A1backendfallback/D2browserdiagnostic histories. All509 executedinputhash entries plusbootstrap/direct3files unchanged; session.tower is outside these imported providers, so reuse478353f9 focusedruntime evidence without morebuilds. Backend/browser owner receipts stayseparate. Firstpushnonfastforward preserved; secondnormalpush follows. No activejobs/instrumentation.
+B2 page-worker rejection reconciliation: receipt82f20518 merged completea2bd2987
+history as18b441f3 after required ff-only pull refused divergence. Both journals
+preserved; six restored candidate paths still match pre-experiment023955e1,
+new candidatefiles absent. Incoming D2 native-trace diagnostic and compiler/
+fixture work retained/excluded from frozenf167 evidence. No browser rerun or
+rejected-fix adoption; normal source publication only. All B2 jobs drained.
