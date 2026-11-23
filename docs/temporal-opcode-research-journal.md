@@ -92502,3 +92502,30 @@ actual module-input boundary without a repeat; added registry files are filtered
 out of that host's supplied baseline. New compiler sources are not baked into
 47433acf. Guarded lock acquisition/drain/release repeated correctly; no further
 group, implementation change or blanket merged compiler validation.
+
+### 2026-11-23 D1 — independent numeric-only wrapper review at 22e15d5b
+
+Pulled to fcaad5a64d9504fda35c4260204811d5458db0ef with a clean worktree;
+review deliberately freezes published22e15d5b8e459cd63417234cf2b8198a85dc283d,
+implementation0c1d24ddb7d08795746841def2c09e06a4b1f25a. Read all16 changed Tower
+files, CMake registration and immediate call/reference/module/stage consumers,
+reusing A1's unchanged9caa921c context. Exact changed blobs match implementation
+and publication. The path-specific map is in compiler_ecs_audit_d1.md.
+
+No concrete defect found: metadata leaves ordinary callable classification
+intact; declaration-resolved strict forwarding binds known integer arguments
+through existing queries; runtime calls/function references demand original
+bodies before stable root/generated pruning. Joined worker call publication,
+rescan and module/clone ownership were traced in source. Actual fixtures retain
+nominal mismatch, runtime unknown/written extent, initialization order, effect
+and cycle failures, plus ordered effects and untaken-branch positives.
+Source-reviewed export/extern guards and direct-call demand have no dedicated
+numeric-wrapper regression in this batch. L1's exact native/canonical/Graph/Fast
+and28-negative receipt remains owner evidence, not a new D1 execution or proof
+of race freedom; its failed probes and small-sample performance limits stand.
+
+Read-only git show/grep/diff/ls-tree checks; no compiler/test process or heavy lock
+acquired. Local manifests build/d1_ecs/numeric_review_22e15d5b/. Deck PID3155813,
+127GiB disk free,9.8GiB available RAM. Documentation-only profiling inapplicable.
+No production/test/todo edits, browser artifact adoption, sanitizer or generation
+claim. Later alias work is excluded; ROOT retains joined-release validation.
