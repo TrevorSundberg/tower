@@ -7,6 +7,7 @@ import .library.entities;
 import .library.entity_types;
 import .library.entity_stage;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
 
@@ -103,31 +104,30 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
 // Copies own their splice storage and retain shared immutable history. Prepare
 // all allocations before replacing destination state, including self-copy.
 export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination: Entity*): bool {
+    return syntax_origin_copy_result(world, source, destination) == WorkBudgetError.None;
+}
+
+export fn syntax_origin_copy_result(world: CompilerWorld*, source: Entity*, destination: Entity*): WorkBudgetError {
+    if world == null || source == null || destination == null
+        || source.store != world.store || destination.store != world.store { return WorkBudgetError.Invalid; }
+    if source == destination { return WorkBudgetError.None; }
+    if source.stage != null || destination.stage != null || world.store.views != 0 { return WorkBudgetError.Busy; }
     var prior = syntax_origin_get(world, source);
     var missing = prior == null;
     if missing {
-        return true;
-    }
-    if source == destination {
-        return true;
-    }
-    missing = destination == null;
-    if missing {
-        return false;
-    }
-    if destination.store != world.store {
-        return false;
+        return WorkBudgetError.None;
     }
     var pending: vector(SyntaxExpansion*);
     vector_init(&pending);
     if !vector_reserve(&pending, prior.splices.length) {
-        return false;
+        return WorkBudgetError.Memory;
     }
-    var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin));
+    var error = WorkBudgetError.None;
+    var target = bits(SyntaxOrigin*, compiler_world_component_result(world, destination, CompilerSyntaxOrigin, &error));
     missing = target == null;
     if missing {
         vector_dispose(&pending);
-        return false;
+        return error;
     }
     for(var index: usize = 0; index < prior.splices.length; index++) {
         var trace = prior.splices.data[index];
@@ -142,35 +142,43 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
     target.generated = prior.generated;
     target.expansion = prior.expansion;
     copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Worker copy into a new private node only. The source history is immutable and
 // pinned; shared reference counts transfer on the coordinator after join.
 // Allocate everything before queuing ownership, then install without failure.
 export fn syntax_origin_copy_staged(world: CompilerWorld*, source: Entity*, destination: Entity*, stage: EntityStage*): bool {
-    if world == null || destination == null || stage == null
+    return syntax_origin_copy_staged_result(world, source, destination, stage) == WorkBudgetError.None;
+}
+
+export fn syntax_origin_copy_staged_result(world: CompilerWorld*, source: Entity*, destination: Entity*, stage: EntityStage*): WorkBudgetError {
+    if world == null || source == null || destination == null || stage == null || stage.anchor == null
+        || source.store != world.store || stage.anchor.store != world.store
         || destination.store != world.store || destination.stage != bits(void*, stage)
-        || destination.id != 0 { return false; }
-    if syntax_origin_get(world, destination) != null { return false; }
+        || destination.id != 0 { return WorkBudgetError.Invalid; }
+    if syntax_origin_get(world, destination) != null { return WorkBudgetError.Invalid; }
     var prior = syntax_origin_get(world, source);
-    if prior == null { return true; }
-    if prior.splices.length == ~convert(usize, 0) { return false; }
+    if prior == null { return WorkBudgetError.None; }
+    if prior.splices.length >= ~convert(usize, 0) / sizeof(Entity*)
+        || prior.splices.length > ~convert(usize, 0) / sizeof(SyntaxExpansion*) { return WorkBudgetError.Invalid; }
     var pending: vector(SyntaxExpansion*) = default;
     defer vector_dispose(&pending);
     var references: vector(Entity*) = default;
     defer vector_dispose(&references);
     if !vector_reserve(&pending, prior.splices.length)
-        || !vector_reserve(&references, prior.splices.length + 1) { return false; }
-    var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin));
-    if target == null { return false; }
+        || !vector_reserve(&references, prior.splices.length + 1) { return WorkBudgetError.Memory; }
+    var error = WorkBudgetError.None;
+    var target = bits(SyntaxOrigin*, compiler_world_component_result(world, destination, CompilerSyntaxOrigin, &error));
+    if target == null { return error; }
     references.data[0] = prior.expansion == null ? null : provenance_owner(prior.expansion);
     for(var i: usize = 0; i < prior.splices.length; i++) {
         var trace = prior.splices.data[i];
         pending.data[i] = trace;
         references.data[i + 1] = trace == null ? null : provenance_owner(trace);
     }
-    if !entity_stage_references(stage, references.data, prior.splices.length + 1) { return false; }
+    error = entity_stage_references_result(stage, references.data, prior.splices.length + 1);
+    if error != WorkBudgetError.None { return error; }
     pending.length = prior.splices.length;
     target.template_start = prior.template_start;
     target.template_end = prior.template_end;
@@ -178,7 +186,7 @@ export fn syntax_origin_copy_staged(world: CompilerWorld*, source: Entity*, dest
     target.expansion = prior.expansion;
     copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
     pending = default;
-    return true;
+    return WorkBudgetError.None;
 }
 
 export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
