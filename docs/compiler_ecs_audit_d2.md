@@ -2413,3 +2413,53 @@ No old partial-stage/header/cache receipt is relabeled as this union. Root now
 owns the stopped B2 lane's remaining linker-budget contract; tool adoption waits
 its complete constructor/argument-order/lifetime coverage. Final release remains
 open. Documentation review/receipt additions themselves require no runtime profile.
+
+### Linux capacity owner extension — reviewed565cd436e, implementation pending
+
+ROOT assigns one additional host boundary to D2; the original33tools/7benchmarks
+remain fully audited. This is a supplemental production audit, not a claim that
+the host module is itself a tool or a new scheduler.
+
+| Path/callers | Storage, ownership, scheduling and disposition |
+| --- | --- |
+| `scaffolding/host/work_linux.tower` | Existing get_nprocs observes online machine CPUs, not the calling thread's actual affinity. Own container allows0,2 but reports8 online. Semaphores and pthread handles are private host allocations; close joins before releasing the handle. Proposed capacity query owns a temporary word mask, with checked growth and no global cache, and frees it before any dispatch. Preserve public signature and shared maximum. OS/allocation errors must not admit online-count threads. Direct before/after runtime evidence pending; cgroup quota/other platforms remain explicit gaps. |
+| `library/work_pool.tower`, `compiler/world.tower`, `compiler/worker_policy.tower`, `compiler/frontend_units.tower`, `backend/units.tower`, `backend/wasm_link_jobs.tower`, `host/driver_units.tower` | Reviewed all production capacity callers. Pool clamps before slots and rejects0; world rejects0/above maximum; unit ledgers reject0 after clamping. Worker policy intersects immutable world capacity; linker can stay serial. Driver default fallback still meets frontend admission. No second graph or resource registry is needed. Keeping a valid world does not make later affinity immutable; query remains per-call. Owners retain their existing drain/publication contracts. |
+| `tests/work_signal_observe.tower`, `tests/sanitizer_race_probe.tower`, fixed-four shared work/entity fixtures and explicit worker profiles | D1 coordination requested before any provider or registration edit. Transport-only signal observer will need existing memory provider if capacity imports compiler_buffer APIs. Fixed-four assertions require four allowed CPUs once admission is truthful; no silent relabeling, barrier weakening or repeated-until-pass oracle. Existing two-lane cost comparisons remain two-lane. |
+
+No code edits or runs belong to this review entry. ROOT565 changes interpreter
+layout; all older current-package checks retain their old source identity.
+Pending build_d2 package_b5 script is unrun/stale, not evidence. Primary Linux
+ABI references and exact next measurements are in the matching journal entry.
+
+### Affinity implementation and evidence —565cd436e plus owned patch
+
+| Path | Current review and disposition |
+| --- | --- |
+| host/work_linux.tower | Current thread mask replaces online-count admission. Stack-first native-word storage grows on documented size error, with checked doubling and compiler-buffer cleanup; count uses actual extent and shared maximum. No global cache/world or new scheduler. Errors return0 to existing admission. Public leaf/native build, actual restricted per-thread behavior, serial large-mask/failure oracle and real scoped sanitizers pass. OS quota/affinity changes after snapshot and non-x64 execution remain gaps. |
+| tests/work_linux_capacity_profile.tower | New D2 own profile, explicit numeric arguments, repeated checked query count and actual pool slots plus joined dispatch. Measures query interval separately from pool setup; no queue-width/overlap assertion. Public predecessor, baseline/after and paired timing pass; no new generic harness. |
+| tests/work_linux_affinity.tower | New real-host regression uses independent libc count, private stack masks/jobs, inherited production workers, entered/release handoff, parent isolation and restoration before join. All loops derive actual arrays/host capacity. glibc128-byte reference mask is an explicit fixture ABI extent and fails clearly if insufficient; larger production mask behavior is covered by the separate fault fixture. Actual two-CPU case and address/thread runs pass; one/unrestricted host cases pending. |
+| tests/work_linux_affinity_faults.tower | New ordinary Tower source with one single-owner borrowed local test-state pointer for foreign wrappers. Separate actual production transport uses the real compiler allocator. Sparse high IDs/64seeded libc comparisons/empty/full/shared cap/errors/allocation denial/retry/zero retained bytes pass.544B observed temporary peak. Serial counters never accompany concurrent workers. Exhaustive usize overflow/physical enormous masks are not executed. |
+| tests/work_signal_observe.tower | D1-approved one-import provider correction after exact changed-transport unresolved-symbol reproduction. Private signal ownership unchanged; baseline/after try/wait and both supported instrumented profiles pass. Extra compile/link cost is a necessary provider consequence, not an optimization. |
+| tests/compiler_work_profile.tower | Unchanged shared measurement entry reused for checked private graph/entity plans. Actual1/2overlap and complete owner retirement; after2workers remains slower than after1 despite overlap. Charged graph/component subtotal and variable concurrent peaks do not represent all raw-node heap storage. |
+| cmake/TowerWorkTests.cmake | OwnerD1. Exact source/composition sent for review and registration, no D2 edits. Public manual fixture execution is evidence; registration and integrated release remain pending. |
+
+Paired compiler medians, noisy serial regression and the running fixed-path
+followup are preserved in the matching journal. All32paired outputs/objects pass,
+all24scoped instrumented executions pass. No current whole-union/browser/generation
+or publication claim. New ROOTbff input waits until current freeze drains.
+
+Final host-fix followup: real one-CPU1/1 and unrestricted8/2 tests pass; normal/
+address/thread pool stress passes actual2and4workers with complete failure drain.
+Temporary full-host allowance restored0,2. Current instrumentation covers the
+actual host/fixture/guest code; source UBSan/foreign-library/AArch64 and final
+joined compiler/browser release remain explicit gaps.
+
+| Additional/current path | Review/disposition |
+| --- | --- |
+| tests/work_linux_capacity_profile.tower and unchanged host/driver_options.tower helper | D1 malformed review led to reuse of driver_unsigned_limit: capacity bounded by shared maximum, rounds by actual usize, no signed/overflow/trailing/empty acceptance. Frozen valid inputs retain the same repeated query checks; guarded microtiming and compile cost are recorded in journal. Imported CLI declarations introduce no new global resource owner. |
+| tests/work_linux_capacity_arguments.tower | New D2 process regression owns stack argv/table and borrows path/text until each existing tool_process reap. Array count derives from actual type; numeric overflow string is test data.16invalid fields+valid control; actual prior1/current0, both instrumented parent/children pass. No shell execution, new scheduler or generic harness. |
+
+Pinned single-CPU investigation leaves+3.2%small/+2.2%large serial wall medians;
+no broad speedup claim or timing-based acceptance weakening. D1 independently
+reviews/registers at its next coherence boundary. These source/evidence milestones
+do not close unrun final publication gates or L2's distinct calibration issue.
