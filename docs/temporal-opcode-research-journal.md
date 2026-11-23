@@ -85213,3 +85213,97 @@ this review, and its c20 budget defect does not deny a subsequent fix. Final
 checks are documentation/path/history checks only; no compiler input was rebuilt.
 
 B2 publication closure: complete ef40e4dc history (including D2 LR interning) merged and pushed normally as b210b449. Required affected parser-node rebuild/relink2 actions passes20.274wall/15.125CPU/740636KiB; inference CTest workers1/4 passes2/2. D2 does not change the diagnosed scratch lookup; the incomplete latest-main self-hosting check remains pending L2's efficient ownership lookup, with exact earlier b21c13c7 sample identity retained. No repeat of the slow check or the frozen complete generation matrix. All child jobs drained and working tree clean before this documentation receipt. Complete frozen packages/provenance remain unchanged; no public pin or Pages deployment.
+
+### B1 urgent scratch ownership identity lookup (2026-11-23)
+
+Base36fe44884eec2ab9db08f92bd8f2494cf41c2982; required pull advanced only docs,
+no surviving owned work. B2's b21c13c7 evidence above identified228s incomplete
+semantics self-compilation versus21.7s known-good. Audited all sem_push_checked
+call sites: sem_list arena vectors, c.scan, raw lexical/stack/component/program
+vectors and borrowed lexical lists all use the same API. Arbitrary vector
+headers cannot safely be cast to scratch descriptors. Audited sem_list,
+sem_scratch_private/snapshot, body/declaration/iteration scratch transfer and
+sem_scratch_append/dispose. Existing linked registration at the tail caused each
+push (even c.scan and nonmembers) to walk all retained lists and lexical parents.
+
+Implemented one intrusive digital search tree in the existing owned descriptors:
+SemanticScratchList adds two child pointers; SemanticScratch adds one root.
+Exact address equality establishes membership before any owned storage access.
+Each search level consumes one address bit, giving a pointer-width-plus-root
+bound per lexical owner, independent of live-list count or allocation order.
+Registration uses only the descriptor's existing checked arena grant. No hidden
+header, guessed membership, allocating hash resize, last-list cache, global
+state or semantic representation. Scan uses its explicit buffer immediately;
+nonmembers retain the original raw-vector path. WorkBuffer growth/typed first
+cause and all caller APIs remain unchanged. sem_scratch_find exposes a readonly
+lookup and optional caller-owned probe count, with no shared mutable metrics.
+
+Snapshot resets the private index and borrows parent indexes read-only. Existing
+workers mutate only their private descriptors; exclusive lexical pushes retain
+the original storage owner. After workers join, append validates arena/budget
+compatibility before relinking source descriptors into the receiving index. It
+allocates nothing, preserves vector addresses/buffers and empties source ownership;
+whole-owner transfer copies its root. Self-append is a no-op. Disposal still uses
+the independent ownership chain, frees WorkBuffers, then arena, then clears the
+index. Added metadata is charged by actual descriptor/component sizes, with no
+new allocator or budget bypass. L2 sem_node/sem_create admission region untouched.
+
+Preserved complete before compiler/resources and froze current scaffolding under
+/cache/scratch_identity/input before editing. Actual identical command for each
+compiler: compiler INPUT/compiler/units/semantics.tower --jobs 1 --library
+--target x86_64-pc-linux-gnu --bedrock INPUT/bedrock.tower --foundation
+INPUT/foundation.tower -o /cache/scratch_identity/semantics.o.
+INPUT is the same absolute frozen path throughout.
+One public-pin dependency cache, LLVM19.1.1, Linux x64 Ryzen AI MAX+395,
+CPU0-11/24GiB, compiler jobs1/object jobs<=6; warm filesystem, fresh processes.
+No public pin or complete-generation build. All units consuming changed metadata
+rebuilt through the existing dependency targets, not partial ABI object copies.
+
+| Compiler/control | Wall seconds | CPU user+system seconds | Peak RSS KiB | Result |
+| --- | --- | --- | --- | --- |
+| Own current before, jobs1 | 60.04 | 54.73 | 588924 | timeout124, no object |
+| Fixed, jobs1 | 22.61 | 17.35 | 999072 | complete, exact reference object |
+| Frozen known-good b5b585 package, jobs1 | 22.15 | 16.91 | 799972 | complete |
+| Fixed, jobs4 | 20.39 | 18.46 | 1040828 | exact same object |
+
+The before sample is a lower bound, not a completed timing/RSS comparison. It
+independently reproduces the stall without repeating B2's228s wait. The checked
+compiler recovers roughly the known-good self-compilation time while retaining
+new checked ownership. Higher completed RSS versus the older reference includes
+intervening ownership migrations; this does not isolate index overhead or claim
+a memory reduction. Metadata itself adds two pointers/list and one/root; no
+scaling claim from this one1/4-worker control.
+Before compiler6d1154752a21b90e9bc0016b6201de2c676f7ac7b0e4671abc7bcaf3ad7fc057;
+fixed05fed935698525b5fb7ecf796bf6a4106a0232365a6330e568e20d138f14fc1f;
+complete B2 reference5224b043d163713cd273d093eb0dafa7a3372b2fdbb5090931e20a49ca2cc6fc.
+All three successful object files compare byte-for-byte, SHA256
+ a431b0f5a1c3c94744caf19adc44409f492cb05c28e3f574d8e98b2dbc6ba4c1.
+
+Focused PASS: scratch1024 lists,2048 measured successful lookups total28452
+probes/max17, exact absent-vector lookup, parent pushes and joined transfer with
+allocator denial active and zero new allocation calls. Denied descriptor creation
+preserves old root/tail/endpoints; terminal retry retains first Memory without
+allocation. Live268956B/peak273084B, zero final buffer/byte/grant counts. Existing
+scratch Initialize/List/Table/Entry/Push/Clone fault sweeps derive counts from
+successful calls, include Capacity/Memory/source-offset/cleanup and table atomicity.
+Query-smoke passes native32/64-bit workers1/4 (0.32wall/0.34CPU/103748KiB).
+Control-smoke with cwd/work/scaffolding and root`.` passes canonical reparse,
+serial/threaded execution, ordered errors and cleanup (27.67/30.40/292036KiB).
+
+Preserved failures: initial fixture build lacked its direct storage/fixture
+imports; fixed before final checks. The absolute-root control variant failed
+Ambiguous imported type 'i32', signal6, not passed; local-root fixture succeeds
+without production changes. Two attempted CLI control setups were invalid
+(library top-level statements, unsupported --run), not runtime validation.
+Actual before/after semantics undefined-symbol reports are identical. Existing
+policy verifier rejects entity_stage_create_result and work_arena_append, already
+required by the frozen pre-change source; no import/policy changes in this batch.
+That existing policy gap and absolute-root module-identity issue remain explicit
+integration limits, not reasons to weaken the checked ownership implementation.
+
+Logs, frozen inputs/compiler packages, object comparisons and exact commands:
+build/ecs_b1/scratch_identity and /cache/scratch_identity. Original fullfrontend
+and later B2 incomplete-generation records remain failed/pending; this bounded
+semantics object succeeds, not an entire successor generation. ROOT owns final
+sanitizers/scaling/bootstrap/browser/hosted publication. No new agents/goals,
+public pin edit, foreign allocator replacement or unrelated support rewrite.
