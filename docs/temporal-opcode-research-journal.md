@@ -60555,3 +60555,109 @@ the v2-only build plan pending that result. Complete04589f snapshot patch review
 scratch replacement; existing semantics owns the export. No literal-provider
 imports are needed. Exact known_work patch context differs from root0c's older
 dispatch and must be reconciled without importing unvalidated surrounding changes.
+
+### D1 frozen registered-unit validation at 8f46c466
+
+D1 acquired the shared Deck heavy lock at 2026-11-23 02:42:29 UTC after D2's
+explicit drain. Source stayed at 8f46c4664cc0166e4d87b56b923e7d7ff72b652b through
+all builds, checks, profiles and instrumentation. This is root0c production plus
+B2's approved observer/calibrated fixture and D1's selector; later frame/task,
+constructor, pool/graph API and inspection fixes are excluded. Docker image
+4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6, Linux x64,
+LLVM19.1.1, public predecessor9653, Release, build jobs1, CPUs0/2, warm dependency
+cache. Normal container had no memory limit; sanitizer container had8GiB.
+
+Two smallest direct predecessor units passed before the canonical no-override
+native build. Removed redundant manual body/LR aggregate compilations: D2 had
+already validated the unchanged body entry, and the mandatory target build
+compiles the entire LR closure. This follows the earlier measured duplicate
+aggregate cost; it is not an unmeasured compiler optimization. Build56910:
+
+| Operation | Wall seconds | User+system seconds | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| backend_units public leaf | 6.10 | 5.90 | 210976 |
+| work_arena_linkage public leaf | 4.63 | 4.49 | 187656 |
+| Canonical native,6 changed steps | 93.00 | 90.35 | 794508 |
+| Affected targets,14 steps | 63.94 | 62.25 | 364656 |
+
+Every process exited0 with zero child swaps. Logs show fresh parser, semantics,
+query, entities, interpreter and LR objects; recorded input/output timestamps
+exclude the earlier preserved-mtime hazard. Final source and binary manifests
+match. Saved complete compiler1a9476d01b8b84e18f9c6c837c4cc8a4a100d2181e291eb643fc9359d0995f39
+plus49 resources, comparing every packaged Tower resource with source. Its hash
+exactly matches D2's independent406d compiler. The new LR runner is
+5e78fbed643bf736c508a22960e221f91462d7048c33f0c2fee0709d3351ec1d.
+
+Checks88458 pass: arena linkage (one actual CTest, all six unique provider/client
+symbols), type-errors, ordinary/calibrated overlap, query, storage, serial
+allocation denial, parser, executable index and full module-cache regression.
+Type-errors takes90.52wall/98.49CPU/250636KiB. Ordinary overlap17.63/26.13/522956;
+calibrated17.86/26.42/524548, with serial frontend8275375291ns and both bounds
+30000000000ns. Both retain exact serial/parallel objects and distinct native
+workers. Query.25wall/62596KiB includes all22 publication and24 resource cases;
+this successful clone run does not resolve D2's prior interval-overlap134.
+Storage.82s/98504KiB; allocations2.10/170620; parser.02/51264; index3.44/170140;
+module CTest.20/53964; arena CTest.08/18908. CTest figures include its wrapper.
+No full42 lifecycle rerun or current wholecompiler sanitizer pass is claimed.
+
+Paired hook measurement77175 uses D2's exact pre-observer runnerbe56164e and the
+new5e78fbed runner against the same source inputs and identical production
+compiler. One warmup plus three alternating pairs, CPU mask0/2, every object and
+thread assertion checked. Before/after medians: wall17.83/20.07s (+12.6%),
+CPU26.31/27.65 (+5.1%), RSS523140/522976KiB. Ranges17.72–22.51 and19.04–21.95s
+are wide. Snapshots show CPU0 around1.55GHz versus CPU2 around3.5GHz; these are
+not continuous in-work frequency measurements or proof of causation.
+
+Investigated that concern with one bounded CPU2-only control66125, preserving
+the exact two native threads, workload and all assertions. Native capacity uses
+get_nprocs; these remain supported threads on one processor, not multicore
+throughput evidence. Warmup plus three pairs all pass. Medians wall19.20/19.04s,
+CPU19.02/18.90, RSS533884/529504KiB; ranges19.09–20.18 and18.99–21.05s overlap.
+The larger apparent cost was not reproduced with fixed processor placement.
+Preserve both datasets; claim neither neutrality nor speedup, nor attribution
+solely to frequency. Private trace allocation counts were not separately measured;
+process RSS and existing exact retained-owner/output assertions bound this receipt.
+
+Positive arena instrumentation52371 passes in both modes after clearing the stale
+CMAKE_PROJECT_INCLUDE cache option. Address build15.36wall/14.91CPU/189124KiB;
+thread10.68/10.47/189184. Separate API client/provider, shared arena fixture and
+guest runtime have actual ASan/TSan object hooks, retained instrumented IR/hashes,
+and all six unique arena exports/imports. Both positive fixtures and ten extra
+shared runs per mode exit0 with empty stderr. No deliberate invalid-memory/race
+probe was used. Coverage is these Tower objects/runtime; source-level UBSan,
+wholecompiler, system LLVM, browser and universal race freedom are not established.
+
+All five sessions ended0; both Docker containers were init/sleep only. Final
+source/binary checks passed before releasing only D1's empty lock at
+02:57:06 UTC. Free disk138GiB, available RAM9.3GiB, preexisting host swap7.1GiB;
+all measured children report zero swaps. No cleanup was required.
+
+Exported registered_8f46_receipt.tar (45MiB), SHA256
+4fa778f6f669cbf394242ca375d36521c8f94bfaf74c8b4c46fe95f3838ef101,
+with archive-relative hashes verified. It includes complete compiler/resources,
+seven current test/profile binaries, the exact baseline runner, all raw logs and
+scripts, both profile datasets/frequency snapshots, instrumented arena binaries,
+objects and IR. Only two temporary direct-unit objects are omitted; their logs
+and measurements remain. Complete source bundle9bb3ecd2 contains8f46 history.
+Final clean public/native/browser/generation, supported coherent instrumentation,
+remaining owner fixes and leased atomic publication/hosted verification stay open.
+
+After drain, D1 verifies and fast-forwards the complete D2c4aa1713 bundlefa649d60.
+Only exact bootstrap-symbol policy, its tests and documentation extend8f46;
+compiler production is unchanged. Reviewed all24 observed import additions and
+new wrong-unit/prefix/check-only/native-versus-WASI negatives. Native interpreter
+rejects __indirect_function_table, WASI accepts that exact symbol but rejects
+__table_base; check-only allocator imports remain rejected. D2's12 actual
+production reports, definition checks and scoped ASan are its independent evidence,
+not a relabeled D1 run. Census stays1,084 tracked/499 direct; no todo change.
+
+New resource-growth proposal remains design-only with A1: gate Evaluation through
+the existing WorkGraph before ticket sealing, pump successful matching entry
+preparation, then install measured capacity pressure after the joined frontier.
+Typed per-job probe records can delegate to the ordinary production kernel and
+observe the exact nested-growth diagnostic before coordinator disposal. Both
+probes must report execution; no new evaluator, scheduler or global state. Exact
+successor pool/graph/frame API and A1 review are required before implementing it.
+The current peak-above-occupancy assertion alone cannot prove the intended phase
+once additional entry owners are charged. Do not call an early setup failure a
+successful nested-growth test or merely increase its arbitrary allowance.
