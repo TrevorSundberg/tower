@@ -59994,3 +59994,11 @@ The guard does not change the thin leaf import closure; joined native/runtime
 and equivalent before/after common CLI measurements are next. Current whole
 compiler ASan/TSan, supported concurrency stress and final public/native/browser/
 generation/atomic hosted release remain required; unsupported UBSan is not a pass.
+
+D2 then adopted D1's exact authorized registration patches49927ff7 (both Publish
+exports once under all/query),56f04300 (type-errors reuses unchanged remaining
+checks after separately validated lifecycle), and3ada5d30 (arena linkage through
+one separate provider in existing fixture recipe). The resolved resource helper
+SHA14e0d6db matches D1. Default/all/type-smoke behavior and every owner assertion
+remain intact. These source additions require their own public smallest/native
+build and runtime; no new pass is inferred from D1's earlier lifecycle42 receipt.
