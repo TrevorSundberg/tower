@@ -1,0 +1,102 @@
+import tower;
+import frontend_units;
+import frontend_units_memory;
+import .library.vector;
+import .library.work_budget;
+import .compiler.format_types;
+import .compiler.format_api;
+import .compiler.component_kinds;
+
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+
+// The dependency discovery prerequisite rejects ambiguous callable imports
+// before structural call discovery. Use actual parsed modules, not a fabricated
+// failed context or scan state that bypasses that prerequisite.
+fn declaration_call_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usize,
+    width: u32, failure: bool, output: vector(u8)*): void {
+    var source = failure
+        ? "import tower; import call_left; import call_right; var selected = function(i32);"
+        : "import tower;var Signature=function(i32);struct Box{value:i32;}var Alias:type=Box;fn identity(T:type,x:T):T{return x;}fn later():i32{return 42;}fn answer():i32{var value:decltype(identity(1))=comptime(later());var box:Alias;box.value=identity(value);return box.value;}";
+    var left = "import tower;fn function():i32{return 1;}";
+    var right = "import tower;fn function():i32{return 2;}";
+    var batch = frontend_units_create(1, workers, width, 1, 1, bedrock, foundation, root);
+    units_check(batch != null, "Declaration call batch");
+    defer frontend_units_close(batch);
+    units_check(frontend_units_source(batch, 1, "call_discovery.tower", source, strlen(source)), "Declaration call source");
+    var environment = frontend_units_environment(batch, 1);
+    units_check(frontend_modules_source(environment, "call_left.tower", left, strlen(left))
+        && frontend_modules_source(environment, "call_right.tower", right, strlen(right)), "Ordinary imported call declarations");
+    while !frontend_units_step(batch, true) {}
+    var snapshot: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
+        && snapshot.used_lanes == 0, "Declaration call jobs drain before publication");
+    if failure {
+        var wanted = "Ambiguous imported name 'function'; use an import alias";
+        var error = frontend_units_error(batch);
+        if strcmp(error, wanted) != 0 { puts(error); }
+        units_check(frontend_units_failed(batch) == 1 && strcmp(error, wanted) == 0
+            && frontend_units_program(batch, 1) == null, "Call discovery preserves the actual ambiguity and publishes no result");
+        var offset = frontend_units_error_offset(batch);
+        // This API retains the combined semantic-source offset, including the
+        // imported declarations; the driver maps it back to a source file.
+        units_check(offset != 0, "Call discovery retains the semantic-source offset");
+        units_check(frontend_units_step(batch, true) && frontend_units_step(batch, false)
+            && strcmp(frontend_units_error(batch), wanted) == 0 && frontend_units_error_offset(batch) == offset,
+            "Terminal call discovery retry keeps the first diagnostic");
+        var retried: WorkBudgetSnapshot = default;
+        units_check(work_budget_snapshot(frontend_units_work_budget(batch), &retried)
+            && retried.used_bytes == snapshot.used_bytes && retried.live == snapshot.live
+            && retried.used_lanes == 0, "Terminal retry retains no new budget owners");
+        for(var i: usize = 0; i < strlen(error); i++) { units_check(vector_push(output, error[i]), "Discovery diagnostic snapshot"); }
+        var receipt: FormatResult = default;
+        defer format_dispose(&receipt);
+        var formatter: FormatEngine = {result: &receipt, ..default};
+        format_unsigned(&formatter, convert(u64, offset));
+        units_check(!receipt.failed, "Discovery offset receipt");
+        foreach(var byte in &receipt.text) { units_check(vector_push(output, byte), "Discovery offset snapshot"); }
+    } else {
+        if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+        units_check(frontend_units_failed(batch) == 0, "Fresh nominal, decltype and comptime discovery succeeds");
+        var program = frontend_units_program(batch, 1);
+        units_check(program != null && program.resource.error == WorkBudgetError.None, "Healthy discovery publishes complete state");
+        units_memory_answer(program);
+        var formatted: FormatResult = default;
+        defer format_dispose(&formatted);
+        format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
+            compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
+        units_check(!formatted.failed, "Healthy discovery canonical Foundation");
+        foreach(var byte in &formatted.text) { units_check(vector_push(output, byte), "Discovery output snapshot"); }
+    }
+}
+
+fn declaration_call_checks(root: u8*, workers: usize): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var failures: bool[2];
+    failures[0] = true; failures[1] = false;
+    var cases = sizeof(decltype(failures)) / sizeof(bool);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var index: usize = 0; index < cases; index++) {
+            var failure = failures[index];
+            var first: vector(u8) = default;
+            var second: vector(u8) = default;
+            defer vector_dispose(&second);
+            defer vector_dispose(&first);
+            declaration_call_trial(root, bedrock.data, foundation.data, 1, width, failure, &first);
+            if workers > 1 {
+                declaration_call_trial(root, bedrock.data, foundation.data, workers, width, failure, &second);
+                units_check(first.length == second.length, "Discovery serial/parallel output length");
+                for(var i: usize = 0; i < first.length; i++) {
+                    units_check(first.data[i] == second.data[i], "Discovery serial/parallel canonical and diagnostic bytes");
+                }
+            }
+        }
+    }
+    puts("Declaration calls: exact ambiguity, terminal retry, fresh nominal/decltype/comptime and canonical output passed.");
+}

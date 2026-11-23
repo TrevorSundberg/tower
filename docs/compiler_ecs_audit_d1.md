@@ -3932,3 +3932,56 @@ ROOT's adoption into a new browser reactor remains pending. The above failures
 retain their exact old0b9 reactor identity. Node/fixture/artifact and imported
 language/type/example hashes are unchanged; later compiler providers are source
 data here, not new executable compiler validation.
+
+## Four-file language fixture follow-up at e0e3530b (2026-11-23)
+
+Source/resource freeze `e0e3530b84472be5ba1bc4e331b74bab4dba01bd`, scaffolding
+`7d5345143c04e7627892e77acfa9ad0548a5e2ed`. ROOT's portable b755fdc8 and LLVM
+ba517692 reactors are frozen **f7e764ab**, public768; no current-source executable
+closure is implied. Baseline7/22 and final20/22 pass, zero skips, errors retained.
+The entire remaining scope is these four Node files, not a new source census.
+
+- `forward-references.test.mjs`: seed programs now **define** absent Statement
+  with `=`, preserving two steps/revision1 and exact incomplete-dependency and
+  conflict assertions. Only executable snippets import Foundation. CoreCallArgument
+  is checked in its actual producer foundation_syntax, not the wrapper.
+- `foundation-storage.test.mjs` / `src/foundation-storage.mjs`: full legacy input
+  uses the preserved legacy lexical data and actual syntax declarations instead
+  of slicing an absent rule out of the wrapper. Confirmed UI migration defect:
+  no inline `parse` made edited lexer migration return obsolete text unchanged.
+  The known split wrapper now precedes preserved local overrides, supplying its
+  explicit grammar/type imports. Unknown bundles remain unchanged. The test
+  checks both the wrapper import and CoreFunction in that imported resource,
+  while retaining exact custom-token/comment preservation and idempotency checks.
+- `inference.test.mjs`: ordinary sources have explicit Foundation boundaries;
+  exact canonical expectations use the physical representation spellings already
+  checked independently by `format_expected.tower`. No widths, signedness, output,
+  round-trip, effect-order or target-width checks were relaxed. Reused the existing
+  nominal Item/Other invalid fixture (Expected Other, got Item), replacing the
+  retired assumption that all struct copies fail. Its known language prefix is
+  asserted before substituting the common Foundation prefix and pre-error effect.
+- `generic-inference.test.mjs`: original combined inputs/expected outputs remain;
+  existing compare/round-trip/backend consumer also runs the smaller Tower cases
+  below. No constructor substitution, added import workaround or compiler edit.
+
+| New Tower path / exact blob SHA256 | Substantive disposition |
+| --- | --- |
+| `scaffolding/tests/inference_bindings.tower` / `c2927565316e6106188484c56dad8edf0e6260159cdfdecdcc41da48a734c3aa` | Imports the unchanged real example; observes result storage and writes unsigned_result so exact inferred-binding checks do not require retaining discarded fixed values. Expected example output42/true/43/42 unchanged; canonical reparses and both reactors pass. Shallow pointer borrow is local; no ownership transfer. |
+| `scaffolding/tests/generic_stack_module.tower` / `98724503a54b2ea366cf838625f88ccb1e76708e6d4c18cb06c5c8e9855d108b` | Minimal valid-language/default-initialized stack with deferred disposal. Portable graph32 checking fails Unknown type constructor stack, instantiated by stack_dispose at5:7, before the expected42 output. Removing only defer passed the existing compare path through graph/fast32/64, canonical equality and LLVM, before the original combined source failed. Cleanup is expected exactly once; do not change it to direct disposal to hide the failure. |
+| `scaffolding/tests/generic_pointer_alias.tower` / `9111cfaba48e6ca1585602cbd8f6b5098ee403db58a68dd92492db25dd677774` | Minimal preexisting straight-return pointer-alias expectation: pointer(i32)=null should print true. Portable graph32 rejects T* as a value during type-producing body checking. Exact compatibility failure retained, not replaced with a different constructor/inference shape. |
+
+ROOT should route the two compiler cases to L2's type/generic producers with
+A1's defer/call preparation context as needed. Inspected generics registration
+(classifies TowerExpression returns for ordinary execution), sem_type_call /
+sem_constructor_arguments (prepared result, then constructor registry lookup),
+and semantic_defer's saved/restored checking context. These identify failure
+paths; they do **not** establish which dependency/capture edge is wrong. The
+first failing graph32 assertion prevents later64/fast/LLVM trials for those two
+cases; those are pending, not passed. No changes to their production methods,
+D2 LLVM tests/common wrappers, generic hover, native builds or release gates.
+Exact commands/hashes/failed logs: `build/d1_ecs/language_fixtures_e0e3530b/`.
+
+Publication merge7a1e2631 adopts complete upstreambfb47510 history. The actual
+language/library/example and Node inputs for this slice still match; unrelated
+new supplied compiler capabilities retain their separate owner receipts. The
+frozen-reactor failures above are not claims about the later compiled result.

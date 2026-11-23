@@ -1,0 +1,5 @@
+import tower;
+
+fn pointer(T: type): type { return T*; }
+var value: pointer(i32) = null;
+print(value == null);

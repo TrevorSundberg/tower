@@ -113,6 +113,18 @@ function(tower_lr_work_policy_test)
   endif()
 
   if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(generic-inspection-types-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_inspection_types_checks.tower" "${triple}")
+    add_executable(tower-generic-inspection-types-tests ${sources} "${generic-inspection-types-checks_OBJECT}")
+    set_target_properties(tower-generic-inspection-types-tests PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-generic-inspection-types-tests PRIVATE ${libraries})
+    target_link_options(tower-generic-inspection-types-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    foreach(workers IN ITEMS 1 4)
+      add_test(NAME tower-generic-inspection-types-${workers}
+        COMMAND tower-generic-inspection-types-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${workers} checks)
+      set_tests_properties(tower-generic-inspection-types-${workers} PROPERTIES TIMEOUT 60)
+    endforeach()
+
     tower_runtime_object(completion-alias-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/completion_alias_checks.tower" "${triple}")
     add_executable(tower-completion-alias-tests ${sources} "${completion-alias-checks_OBJECT}")
