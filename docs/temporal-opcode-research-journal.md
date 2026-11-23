@@ -85693,6 +85693,129 @@ inputs. Reuse the52 passing storage receipts without rebuilding unrelated compil
 work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
 
+### 2026-11-23 B2: explicit object code-generation optimization (in progress)
+
+Bounded task starts on main c13c2631, Docker tower-b2-work, LLVM/Clang19.1.1,
+cpuset12-23, quota12, memory24GiB. No semantic/scratch edits: B1/A1 retain those
+producers. Native driver, backend units and source-session/browser callers expose
+optimization before target creation. target.tower nevertheless always supplied
+LLVMCodeGenLevelDefault(2); pipeline.tower false disables IR passes only.
+LLVM19.1.1 TargetMachine.h and TargetMachineC.cpp confirm None(0)/Default(2)
+select machine-code pipelines at creation, independent of LLVMRunPasses:
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/llvm/lib/Target/TargetMachineC.cpp
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/llvm/include/llvm-c/TargetMachine.h
+Preserve generic CPU/features, PIC relocation, default code model, ABI/layout,
+strict floating behavior and existing target-machine/layout/module ownership.
+
+Interpreter normalization uses backend_optimize_interpreter and finally calls
+backend_optimize(false) even after its own optimized passes, with no object
+emission. Therefore changing that boolean to implicitly retarget machines is
+incorrect. The planned explicit constructor policy leaves that path and legacy
+backend_open at Default, and selects None only from actual unoptimized object
+requests. Native per-unit requests have fresh graph generations per batch;
+target/optimization are frozen batch fields, with no cross-policy object cache.
+Browser llvm-host passes explicit flag8 for unoptimized; source session resets
+owned results per request. Browser compiler-build profile1 remains optimized;
+interpreter Foundation/bytecode profiles do not describe machine-code generation.
+
+Baseline harness adds only an optimized control option to the existing Tower
+frontend_units_profile. Before compiler SHA256
+6d1154752a21b90e9bc0016b6201de2c676f7ac7b0e4671abc7bcaf3ad7fc057;
+original before profile76fa63d6ccf7f62b70dc6c53b8441b7324418fc35f02fdf6cf2e9ccfee882768
+preserved in /cache/b2_codegen_before_{towerc,profile}. Small8-body case passes.
+Original4096 baseline aborts134 before backend in sem_declaration_type calling
+sem_declaration_state_result and sem_require, 29.947wall/29.885CPU/647804KiB.
+Logs build/b2_codegen_before_abort.log and before_resource.log retained; the latter
+breakpoint missed an inlined resource recorder and is not a diagnosis of an
+error enum. Testing larger explicit benchmark headroom without changing any
+production semantic admission/diagnostic policy. No failed run counts as speed
+or correctness evidence.
+
+Implementation and focused evidence (same frozen c13c2631 production inputs):
+`backend_open_codegen(triple, BackendCodegen)` in backend/target.tower selects
+None(0) or Default(2), validates the enum, and preserves existing owner cleanup.
+The nominal declaration is backend/codegen_types.tower. Native driver and unit
+jobs select from their existing optimize flag. backend/session.tower provides
+`backend_session_begin_codegen`; backend/source_session.tower maps object flags
+there, retaining Default for IR-only imports. Legacy open/begin remain Default;
+backend_optimize's IR-only contract is unchanged. No semantic producers, public
+pin, syntax, worker budgets or cache formats changed.
+
+The original profile admitted only512MiB, but tracked scratch now retains
+619848818 bytes for4096 bodies. Benchmark-only transient headroom increased from
+one to four units: `(UNITS + UnitsProfileTransientUnits) * 268435456`, giving
+1.25GiB for a single unit. This resolves the original abort without changing
+production limits or hiding the failure. Paired before/after profiles use the
+same enlarged ceiling and byte-identical generated inputs. Headroom baseline
+profile SHA2561d874a4ffff6820e415c726b712f5bc139884643e1a0bceebb17e9bb2bd18383;
+after profilefa3fa2920d9bdcf8d42e634940f8fe2eb08a9b0e55cd2826f332a69831ef4fca;
+after compiler03c188784f602ef8443379de7f053b0f553d5567ac144c6b094bb1be116ff5f8.
+
+One4096 warmup per version followed by retained samples, fresh processes with
+warm filesystem caches. No overlapping B2 jobs. Command:
+`PROFILE /work/scaffolding UNITS WORKERS BODIES backend [spread] [optimized]`.
+Before PROFILE=/cache/b2_codegen_before_profile_headroom; after PROFILE=
+/cache/native/tower-frontend-units-profile. Target x86_64-pc-linux-gnu, exported
+library functions, retained IR disabled, optimization disabled except control.
+CPU/RSS are process observations through the timed join; phase observations are
+wall intervals, not per-phase CPU/RSS. Multi-unit phase sums are not elapsed time.
+
+| Case (units/workers/bodies) | wall seconds before/after | CPU seconds before/after | peak KiB before/after | emission ms before/after |
+| --- | --- | --- | --- | --- |
+| 1/1/4096 | 48.0714 / 49.1010 | 47.9518 / 48.9974 | 838280 / 835456 | 2282.079 / 180.673 |
+| 1/8/4096 | 21.6792 / 20.1796 | 48.2359 / 49.4395 | 860816 / 856212 | 2291.437 / 168.809 |
+| 1/1/8 | 1.0029 / 0.9612 | 0.9665 / 0.9258 | 204720 / 200784 | 7.331 / 1.393 |
+| 1/8/8 | 0.9243 / 0.8779 | 1.1136 / 1.0700 | 222932 / 219184 | 8.500 / 1.340 |
+| 12/8/16 spread | 5.2753 / 5.4609 | 27.3298 / 27.9251 | 1364844 / 1357704 | 103.820 / 16.887 |
+| 1/1/8 optimized | 0.9781 / 0.9761 | 0.9426 / 0.9398 | 208100 / 207096 | 2.241 / 2.294 |
+
+Emission improves12.6–13.6x for4096 bodies; full serial compilation did NOT improve
+in this pair. Its unchanged frontend grows45.566→48.696s, overwhelming the2.10s
+backend saving. No whole-compiler serial speedup or whole-machine scaling claim.
+Eight-worker total improves6.9%; that single sample is not a scaling distribution.
+The remaining dominant work is the separately owned semantic scratch path.
+Unoptimized objects grow843432→1105576 bytes (+31.1%); retained reservation grows
+262144 bytes, consistent with the larger output buffer. Single1 peak reservation
+716672988 bytes and ledger83886080 bytes are unchanged. Optimized control object
+hash1877806135902363689, size896, retention17940306 all remain identical.
+Every paired canonical hash matches;4096 canonical9448338333252003545,
+before object13213760278028976691, after11650509263964549553, each stable at
+workers1/8. Actual overlap/idle observations remain in the profile JSON logs;
+no new threaded kernel or pool was introduced.
+
+Validation: one dependency-aware incremental CMake build of towerc,
+tower-backend-tests, tower-lr-work-tests, tower-frontend-units-profile (parallel6,
+public bootstrap, compilerjobs1). Initial test compilation rejected foreach on a
+raw fixed array; replaced it with an array-size-derived for loop and rebuilt only
+failed/affected outputs. Full logs b2_codegen_after_build{,_retry}.log retained.
+Backend API tests PASS: explicit None/Default native/Wasm objects, decoded known
+answer42, unchanged IR/layout, exact Default/legacy bytes, invalid policy,
+invalid target, verifier failure and constructor capability diagnostics.
+Existing `tower-lr-work-tests /work/scaffolding backend-ir` PASS: exact serial/
+parallel objects for both policies, retained/discarded IR, cross-function/type/
+global references, ordered errors, cancellation/drain. Native driver differential
+filters backend_execution_roots, sequencing, wrapping, layout PASS for both
+optimization choices against interpreter, including known output45 then2.
+
+CLI backend_execution_roots objects: x86_64-pc-linux-gnu and
+aarch64-unknown-linux-gnu optimized before/after cmp PASS; unoptimized workers1/4
+cmp PASS. All four optimized/unoptimized native/ARM64 executables print45 then2;
+ARM64 executes via qemu-aarch64 -L /usr/aarch64-linux-gnu. First ARM64 executable
+attempt failed missing Scrt1.o; installed libc6-dev-arm64-cross2.39-0ubuntu8cross1
+and retried with explicit --sysroot /usr/aarch64-linux-gnu. One host orchestration
+attempt incorrectly splatted a singleton option into characters; preserved
+Unexpected argument: - log, corrected the PowerShell argument array, then passed.
+Floating_output native optimized/unoptimized matches the independent interpreter,
+including -0.0, infinities, NaN, minimum subnormal and maximum finite double.
+Changed backend_wasi/source-session unit compiled with the public bootstrap for
+wasm32 and passed LLVM19 opt -passes=verify. Browser runtime integration remains
+pending ROOT's milestone, not passed by that compile-only check.
+
+Artifacts/failed logs remain in build/b2_codegen_* and /cache/b2_codegen_*;
+no archives, pins, deployment or broad generation/browser/sanitizer matrix.
+ROOT portable-policy names: backend_open_codegen provided by backend_core via
+backend/target.tower; backend_session_begin_codegen provided by backend_wasi via
+backend/session.tower; nominal BackendCodegen in backend/codegen_types.tower.
 Publication integration: implementation1137b6ce; required pre-push pull found published c13c2631. The fast-forward-only pull correctly refused divergence; normal merge preserved both complete histories as4c01ec84c7d6300fd48a2e941c7bc706cd735ced, including both journal entries. Incoming production changes were B1 LR interning in lr_states/lr_state_work; no owned semantic code conflicted. node_merge0/session30753 rebuilt four dependency actions and passed storage/query (process0/source0, empty stderr). Build29.48s wall/22.34s CPU/734716KiB. A focused merged lifecycle5 run passed32/64-bit, workers1/4 and canonical recompiles with source0/empty stderr. Earlier control/type/pair evidence retains1137b6ce's frozen compiler identity and was not relabeled or repeated as a full matrix. All jobs are drained. Final evidence-only commit changes no compiler/provider inputs; normal main push follows. Runtime deployment remains ROOT-owned.
 L1 publication reconciliation: complete3dc3251 merged as5c4a7012677f, retaining
 L2 checked sem_node callers and ROOT instrumentation receipts. Merged denial and
@@ -85738,6 +85861,94 @@ ROOT/B2 retain complete-generation identity acceptance. Original exact reference
 comparison remains valid for3415d9c8. All owned jobs drained, todo unchanged;
 normal main push follows this receipt, with no pin/deployment change.
 
+### B1 parallel LR frozen-frontier measurement: no runtime change (2026-11-23)
+
+Source e3fc5766474c2df9f68bba7863c7d410910025a4, required pull already current,
+clean main and no surviving child jobs. Preserved current compiler/native LR
+executable before measurement. The prior B1 receipt noted that worker kernels
+still close eagerly; that observation alone did not establish a production
+bottleneck. This bounded follow-up measures that prerequisite and declines an
+unjustified worker rewrite.
+
+Audited lr_state_work dispatch/join and lr_states core/hash/index ownership.
+One wave borrows frozen analysis, source items, symbol order and state buckets;
+only the coordinator interns/reindexes and assigns identities after dispatch
+has drained. A future readonly membership test could skip closure for a core
+already in that frozen index. New duplicate cores within a wave must still join
+in source order; no worker may publish to the shared index. No implementation
+of that candidate was made, and no change to nullable/LALR/range/priority,
+propagation sentinel, grammar authority or D2 suffix-FIRST production occurred.
+
+Temporary Tower-only instrumentation summarizes actual dispatched state kernels
+and joined identities below the pre-join state count. It uses the existing join
+result, adding no second lookup or timing to the hot loop. A sparse world grammar
+observer reports the counts after construction. Native profile uses the same
+ordinary answer42 request as frontend_iteration_profile, cold and preinstalled,
+with production transport and a synchronized explicit 512MiB budget at workers
+1/4. It checks interpretation, canonical output and zero final bytes/lanes/grants.
+The initial four-worker fixture omitted its synchronization gate and correctly
+failed owner admission (signal6); that setup failure is retained and excluded.
+After using the existing work-signal/budget gate, all measured invocations pass.
+
+Decisive result: cold workers4 enters125 parallel-capable state builders and
+actually dispatches ZERO LR state closures. Preinstalled startup enters62 and
+its ordinary request123; both also dispatch ZERO. There are therefore zero
+frozen-state duplicates to avoid in either real workload. The serial path's
+existing core interning handles all these state transitions. This observation
+does not deny parallel FIRST/LALR/action work elsewhere in the same compilation.
+
+Positive control: the unchanged wide-admission/native LR fixture reports263169
+state kernels,261632 matches in the frozen index, repeated in three admitted
+cases. Thus the counter sees real worker work and distinguishes pre-wave hits
+from duplicates first created during a wave. The complete existing native LR
+check passes serial/threaded items, ordered transitions/actions/conflicts,
+nullable/range propagation, shared admission/denial, actual caller/worker overlap
+and lifetime cleanup (1.77wall/2.31CPU seconds/114780KiB). This synthetic512-way
+stress grammar is not evidence of material cold compiler latency. No independent
+oracle campaign was repeated because the construction algorithm is unchanged.
+
+Linux x64 Ryzen AI MAX+395, CPU0-11/24GiB, LLVM19.1.1, public bootstrap SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02; one native
+cache/dependency target, compiler jobs1/object jobs<=6. Instrumented build27.78wall/
+62.62CPU seconds/824428KiB; later positive-control parser unit/relink20.94/15.43/
+747900KiB. Fresh processes, warm filesystem, /usr/bin/time -v; two counterbalanced
+samples ordered cold1,cold4,installed4,installed1,installed1,installed4,cold4,cold1.
+Command from /work/scaffolding: measured . iteration-cold|iteration-installed 1|4.
+
+| Workload | Workers | Wall seconds a/b | CPU seconds a/b | Peak RSS KiB a/b |
+| --- | --- | --- | --- | --- |
+| Cold | 1 | 0.92 / 0.91 | 0.89 / 0.88 | 185280 / 185904 |
+| Cold | 4 | 0.83 / 0.83 | 1.01 / 1.01 | 202656 / 202536 |
+| Installed, including installation | 1 | 1.02 / 1.01 | 0.96 / 0.95 | 189252 / 188784 |
+| Installed, including installation | 4 | 0.94 / 0.93 | 1.11 / 1.10 | 205724 / 206188 |
+
+Every output has canonical976-byte hash13832670361687071853 and answer42;
+ordinary request185 lookups/155 builds/123 tables/36 reuses remains unchanged.
+Cold retained/peak: workers1 13313053/103628699B, workers4 13310229/103578243B.
+Installed retained/peak: workers1 16519217/106727567B, workers4 16516393/106677111B.
+Ledger metadata10485760B in all; teardown verifies zero grants. Foreign allocator,
+thread/runtime and legacy raw LR scratch are outside these payload receipts.
+These are existing worker-control measurements, not an optimization speedup.
+
+Preserved executable hashes: original native LR
+be54b0b185ebda483bb6cbc320244df53e8d6ead3616782938a225e9b881f9d3;
+original compiler6d1430861cc79ed564d3f163ba960a9ee5b3de8b339ae27e00b347f16a84d083;
+instrumented measurement741bf6408a1527d8f0c6c1bd71858dc8966688769cf016b74e34709e24d3ff78.
+Logs, exact patched Tower sources, measurement.patch and fixture are retained in
+build/ecs_b1/lr_frontier; binaries in /cache/lr_frontier. Measurement patch is based
+on e3fc5766; the extra fixture is saved in measurement_sources. Original sources
+were restored only after preserving and verifying these edits. Native cache may
+contain measurement objects until the next ordinary dependency rebuild; these
+are not a published successor. No measurement hooks or runtime changes ship.
+
+Decision: no production optimization in this batch. The concrete prerequisite
+is a representative production grammar that actually admits LRState waves and
+shows material redundant closure cost, not merely a high synthetic duplicate
+count. Keep existing thresholds and fast serial path; do not add speculative
+index probes or lower admission thresholds to manufacture a win. Published
+changes are this evidence only. D1 symbol/path investigations and D2 suffix
+reuse remain separate. No broad audit, sanitizer/platform/generation campaign,
+pin/deployment, new agent or continuing goal. All jobs drained; todo unchanged.
 L1 final complete-history merge: B1 e3fc576 integrated as78d22d11428f795e93a02f9caaf0c068fec70b7e.
 Only storage_main selector conflict required resolution; both scratch and
 diagnostic-faults remain. B1's descriptor/index ownership and all other production
@@ -85920,3 +86131,37 @@ The candidate requires its recorded development-host dynamic dependencies; no
 portable/restricted-host or universal race-freedom claim is made. The accepted
 unchanged storage sanitizer receipt c13c2631 remains reusable. All A2 jobs drained;
 no Pages deployment or other owner's unpublished source adoption was performed.
+
+Publication integration: implementation f626ed9e; requested ff-only pull fetched
+a241935e and correctly refused divergence. Normal merge f6d1f167 preserves both
+complete histories and all journal entries without conflicts. Incoming B1 scratch
+lookup, L2 checked node admission and L1 diagnostics/storage were not duplicated.
+Dependency-aware incremental rebuild PASS; merged backend API, backend-ir,
+backend_execution_roots native differential and exact optimized object comparison
+against the preserved before compiler PASS. Premerge IR-only interpreter controls
+also passed both optimization choices (45 then 2); no new interpreter policy.
+
+Merged 4096 integration samples: workers1 wall3.0395s/CPU3.0032s/RSS835724KiB,
+workers8 wall2.7143s/CPU4.1639s/RSS857972KiB; emission172.515/175.769ms.
+Both retain canonical9448338333252003545/object11650509263964549553. These are
+integration checks after B1's scratch recovery, NOT a matched speedup attributed
+to B2. Earlier frozen paired measurements remain the backend policy evidence.
+Merged compiler SHA256240e6fb9d7b769c05c54a44a2e3234e984a859c69639215e82dd94664e1a0750;
+profile58e3d8b0dc99420182cde89570967508bd3f09d882a121b31a24e2741935272a.
+Optimized object hashes (unchanged before/after policy): native
+408034f2890fa8916e6dcd9f956ea81330b0bb2a6306ef88a9880d776fe75600, ARM64
+efb08dea33cc09eaf6122090c3e0a4e00bc2eed24c3b0944b9c3e0083bed2f6a.
+Public-compiler wasm32 backend_wasi checked IR SHA256
+d748f3665a5e20075193b861a87ae3d79a7de2c4b40ebd848632c4dac8a71eca.
+Full release instrumentation, browser execution, whole-generation acceptance and
+public pin/Pages remain ROOT-owned pending gates; none are claimed by this task.
+The incoming journal contains non-UTF8 bytes; this ASCII receipt was appended
+without decoding or rewriting existing entries after apply_patch rejected them.
+
+B2 publication blocker: normal push failed resolving github.com. Two subsequent
+fetch/pull/push recovery sequences stopped at the same DNS failure; an explicit
+Resolve-DnsName check returned no address. Last successful remote integration
+was origin/main a241935e; local implementation f626ed9e, merge f6d1f167 and
+validation35a6f64b are committed with complete history. No force push, deployment
+or pin change. Publication remains PENDING; this bounded task stops after the
+three failed network attempts rather than polling. All owned jobs are drained.

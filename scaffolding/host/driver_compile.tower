@@ -95,11 +95,11 @@ fn driver_compile_program(state: DriverCompilation*): bool {
     return false;
 }
 
-fn driver_compile_backend(state: DriverCompilation*, target: u8*): bool {
+fn driver_compile_backend(state: DriverCompilation*, target: u8*, codegen: BackendCodegen): bool {
     if state.backend != null {
         backend_close(state.backend);
     }
-    state.backend = backend_open(target);
+    state.backend = backend_open_codegen(target, codegen);
     if state.backend == null {
         driver_error("Unable to allocate backend storage", "");
         return false;
@@ -142,7 +142,7 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
     if !driver_compile_program(state) {
         return false;
     }
-    if !driver_compile_backend(state, state.width == 4 ? "wasm32-unknown-unknown": "wasm64-unknown-unknown") {
+    if !driver_compile_backend(state, state.width == 4 ? "wasm32-unknown-unknown": "wasm64-unknown-unknown", BackendCodegen.Default) {
         return false;
     }
     var program = &state.execution.program;
@@ -443,7 +443,7 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
             }
             ++i;
         }
-        if !driver_compile_backend(state, options.target) {
+        if !driver_compile_backend(state, options.target, options.optimize ? BackendCodegen.Default : BackendCodegen.None) {
             return 1;
         }
         state.width = backend_pointer_bytes(state.backend);
