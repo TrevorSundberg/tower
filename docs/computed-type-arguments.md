@@ -38,6 +38,13 @@ typed operands such as `sizeof` constrain their literal peers. Typed values stil
 require explicit conversions. Existing bare integer argument spellings retain
 their previous contextual typing.
 
+Unary minus, including nested/parenthesized negation, is a computed expression.
+It uses the same integer-argument dependency and ordinary interpreter as other
+operators; literal-shaped syntax does not bypass preparation. For example,
+`buffer(i32, -(-2))` supplies2. For a `usize` parameter, `-1` wraps at the target
+width; using that result directly as an array extent fails the upper bound.
+Signed-minimum magnitude handling and normal wrapping negation remain unchanged.
+
 Expressions can call ordinary helpers, including recursive calls, typed indirect
 calls and helpers using aggregate values. They can capture ordinary `var` bindings
 when the compiler proves both immutability and a compile-time-known initializer.
