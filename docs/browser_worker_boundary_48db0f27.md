@@ -148,3 +148,76 @@ Raw inputs, reports, source revisions, identities and commands are in
 `C:\Sandbox\build\codex_ecs_20261122\B2\worker_boundary_48db0f27`.
 The original blocked archive/hash7382481192a567d0ecfdb8e019ec0ab10d9020934d12488849aa4fe9ea5e6aff
 and every earlier failed/rejected receipt remain intact.
+
+## D2 optional native-trace transport — c93ddaab source boundary
+
+`TOWER_WORKER_TRACE=/absolute/new-file.json` now requests browser-wide CDP JSON
+tracing in the existing diagnostic. It is optional; the strict acceptance script,
+worker adapters, boundary worker and30s retirement deadline are unchanged.
+For ROOT's next diagnostic, use a new trace/report path:
+
+```sh
+TOWER_WORKER_TRACE=/logs/retirement.trace.json \
+node playground/scripts/diagnose-worker-retirement.mjs tower-direct \
+  /cache/browser-shared/tower-work-tests.wasm /logs/retirement.json \
+  /cache/shared_browser_f167c444/package/source
+```
+
+Capture is requested before page/worker creation. Requested categories are
+`blink.worker`, `devtools.timeline`, `disabled-by-default-devtools.timeline` and
+`toplevel`. The report retains the advertised category inventory, unadvertised
+requested categories, actual `(category,name,count)` tuples, buffer usage,
+completion/data-loss flags, byte count, SHA256 and phase-specific errors. Category
+names are filters, not evidence of an observed shutdown transition. A CDP clock
+sync marker is bracketed by the existing epoch-time observations; trace timestamps
+must not be compared directly to epoch milliseconds without clock correlation.
+
+The buffer is4MiB, `recordUntilFull`; streamed JSON is capped at16MiB, read in64KiB
+chunks. Trace command startup and final flush each have a5s budget, separate from
+and without extending retirement. Full buffers/data loss and incomplete/oversize
+streams cannot establish the missing native interval. The trace uses exclusive
+file creation, preserving an existing file. Stop/drain/file-close precede browser
+close in the diagnostic's `finally`, including failed retirement. Trace errors
+cause nonzero exit and `passed:false`, independently of `retirementPassed`.
+Report writing also has browser/server cleanup in `finally`; teardown never makes
+a failed retirement pass. No GC/page-close/target-filter remedy was introduced.
+
+Source inspection used D2's previously fetched Chromium159 WorkerThread file,
+SHA256 `85f07dd1bfc18c7dcf6524b5b233bd31b4ad20106d0187d2cd75c7f85851cac8`,
+under `build/d2_ecs/browser_retirement/chromium_worker_thread.cc`. Its only explicit
+trace call is `TRACE_EVENT0("blink.worker", "WorkerThread::InitializeWorkerContext")`.
+`Terminate`, `PrepareForShutdownOnWorkerThread`, `PerformShutdownOnWorkerThread`
+and `ChildThreadTerminatedOnWorkerThread` contain no explicit trace calls in that
+file. Enclosing task events would not prove these methods completed. Fresh requests
+for both supplied raw Chromium sources returned HTTP429 and were not retried;
+no local `threaded_messaging_proxy_base.cc` copy was available. Its exact
+`WorkerThreadTerminated` event instrumentation remains unverified. Do not infer
+absence across the entire release binary from this one inspected source file.
+
+**Single Deck smoke: trace acceptance FAILED, native event capture unvalidated.**
+On Chromium159.0.8154.6/headless-shell1255 (executable SHA24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b),
+Playwright1.65.1/Node22.23.5, Docker CPU0,2/8GiB, the no-Wasm control closed all five
+workers and observed zero targets, with isolation true. However `getCategories`
+returned an empty array before renderer creation. The first diagnostic version
+incorrectly rejected that inventory and never called `Tracing.start`; it returned
+exit1, saved the explicit start error and an empty trace. This is not evidence
+that Chromium lacks tracing or the requested categories. The final transport
+removes that admission assumption and submits the requested filters, reporting
+what is actually returned. Only syntax/source review covers that correction;
+no second browser launch was made under this task's one-smoke bound.
+
+Consequently there are **zero captured native events**, no measured shutdown
+transition and no new release pass. Successful trace streaming, clock marker,
+size/data-loss/flush failure paths remain pending ROOT's actual trace run. The
+executed failure path did preserve the error/report/file and close the browser.
+The old strict Linux failure and rejected lifetime candidates remain unchanged.
+
+One fresh process, warm installed browser/fresh context, n1:1.34wall/1.38CPU
+(1.04user+.34system)s,128800KiB GNU-time peakRSS, zero swaps; report observation
+wall610.053ms. This is a failed transport-validation cost, not a performance
+comparison or aggregate browser-tree memory measurement. No Wasm was executed;
+the existing required work-path argument was only read/hashed. Original failed
+report SHA0aaa61b8614c2123a1eb78d2e55a3d83d472aca5d512ef0f50d67a0c7be8e870
+and all time/status/identity files remain in `build/d2_ecs/worker_trace_c93ddaab`.
+Smoke driver SHA164adb34af637ef9f7bc245f4146bc00b1da8f84eb70f126702b71195a2fdf84;
+final syntax-checked driver SHA023d1deee25bffeeb5ef938dd46689319ca287ef57db2f0961472e232e96401c.
