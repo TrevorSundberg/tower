@@ -83721,3 +83721,16 @@ incoming documentation and execution-runner type-staging selector. Its diff
 changes no production source or stage/lr-work fixture in this batch, so focused
 validation is reused. Rebased implementation is `0a958f27`; normal push is
 retried without force or deployment.
+
+B2 integration receipt: implementation202d50ca merged complete origin/main
+294194a0 asaa4fa203. Preserved both journal histories and resolved only worker
+selector overlap by retaining dependency-units AND backend-ir. Incoming parser
+structure reuse and semantic stage ownership required one23-action dependency
+build of native profile/worker/CLI targets; PASS. Merged backend-ir PASS
+3.252wall/3.141CPU/219792KiB; backend-overlap-calibrated PASS
+7.445wall/9.539CPU/522492KiB with distinct workers and exact default/omitted-text
+objects. Merged single4096/8 retains the same canonical/object hashes and known
+results (4.539wall/5.485CPU/680472KiB); this is merged acceptance, not a replacement
+for the frozen performance pair. Native CLI object matches the frozen fixture
+byte-for-byte. Logs build/b2_backend_merged_*.log. Jobs drained; no broad matrix,
+deployment or release claim. Normal main publication follows this receipt.
