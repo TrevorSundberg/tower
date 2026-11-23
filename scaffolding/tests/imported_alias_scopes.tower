@@ -1,0 +1,8 @@
+import tower;
+import tests.imported_alias_left as left;
+import tests.imported_alias_right as right;
+var a: left.stack(i32) = default;
+var b: right.stack(i32) = default;
+defer left.dispose(&a);
+defer right.dispose(i32, &b);
+print(0);

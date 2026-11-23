@@ -1738,3 +1738,11 @@ rejects callable ambiguity before structural call scanning. The same-node
 nominal re-push reuses the just-popped capacity; no artificial reserve-failure
 or manually failed scan is presented as a reachable production regression.
 See the journal's 2026-11-23 L2 declaration-call correction for exact evidence.
+`type-smoke` also registers `imported_alias_checks.tower`: ordinary imported
+stack aliases in inferred/explicit deferred calls, the complete vector/stack/queue
+browser control, vector reference behavior, once-only cleanup effects, qualified
+same-named module constructors and ordered nominal mismatch diagnostics. It
+compares serial/four-worker execution and canonical Foundation, including recompile,
+at32/64-bit widths. Use `imported-alias minimal|containers|controls|scopes 1|4`
+for a small checked process-cost sample; that selector runs only its named case
+at both widths and does not itself compare separate worker processes.

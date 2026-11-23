@@ -88653,3 +88653,84 @@ final serial storage2.95/2.64/179424 and native1/4 combined6.35/6.01/220732 pass
 including zero retained buffers. Unchanged merged query-smoke evidence is reused.
 Final manifests/logs are declaration_calls_final1*, with previous failed attempts
 preserved. No broad matrix repeated and no runtime optimization claimed.
+### L2 ordinary imported alias/deferred signature admission (2026-11-23)
+
+Bounded task starts at publishedbfb47510, required pull clean/up to date, no
+surviving owned build; CLI PID16580. Previous call-discovery audit correction is
+unchanged. First current-native test uses the existing CPU4-7 l2_ecs_native cache
+and public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138.
+No reactor/browser/generation/sanitizer build. A1 inspection methods and B2/L1
+backend work remain untouched.
+
+Real reproduction: the exact vector/stack/queue browser control fails before
+execution with Unknown type constructor 'stack', instantiated by stack_dispose(&s).
+Reduction is import tower; import library.stack; var s:stack(i32)=default;
+defer stack_dispose(&s); print(7);. Both native processes terminate134 on the
+expected compiler error and fixture assertion. Their before logs are preserved;
+GNU time's Exit status0 for a signal-terminated child is NOT a pass. Actual wrapper
+statuses and signal text are authoritative. The existing B2 ordinary-template
+lookup in sem_infer_match is already present and is not the missing step here.
+
+Root cause: sem_run admitted only its immediate call/expression statements
+through sem_module_expression. sem_defer_register checks the deferred prototype
+through sem_statement, outside that outer list. The legacy immediate call path
+then enters sem_call_specialization/sem_header with an unprepared substituted
+stack(T)* parameter. stack is an ordinary executed type-producing template, not
+a static type_functions entry; sem_type_call consequently reports Unknown type
+constructor. Module ownership was intact; changing name lookup or classifying
+stack as a static constructor would bypass the actual signature dependency.
+
+Implementation moves the existing module-expression dispatch from the outer
+list into sem_statement. It applies only to the root lexical coordinator with
+no active declaration subjects, entity stage or query-read collector. Workers
+and active query continuations keep their existing preparation/suspension path.
+Deferred prototype setup precedes the same expression query, so the lexical
+frame, deferring/loop state and scratch ownership survive the join. The ordinary
+query graph prepares the signature/constructor before the statement publishes;
+its expression is consumed once, and existing defer finish/clone/emit contracts
+retain execution order. No recursive worker completion, alternate alias registry,
+new constant evaluator or modified generic module identity.
+
+Initial dependency-aware target build: only semantics provider, test object and
+link (3 actions),32.42wall/33.65CPU seconds/1063472KiB max RSS. Reduced and complete
+controls now pass at32/64-bit, including exact10-line output
+true,true,true,42,true,true,7,true,true,9. Before binary is retained separately at
+/root/.cache/tower/l2_imported_alias/before/tower-lr-work-tests; sources/binary and
+failed receipts are imported_alias_before*. These failed-before and completed-after
+costs do not establish a speedup.
+
+New Tower fixtures use the existing body continuation execution/canonical oracle:
+minimal deferred alias; complete browser control; vector reference versus explicit
+and inferred stack specialization, direct and nested deferred disposal and once-only
+operand effect; two qualified same-named constructors from distinct modules.
+The existing native type-smoke registers this focused set, including canonical
+recompile and serial/four-worker byte comparison at32/64-bit. A mismatched nominal
+argument in a deferred call precedes a later missing-name error, publishes no
+program, and terminal retries retain the same diagnostic/offset/grants/bytes.
+Fresh healthy compiles follow. Unit close drains jobs, checks world retirement and
+requires an empty shared budget; these are owned-resource checks, not total-process
+heap or race-freedom claims. Full earlier48d791a8 frontend/body evidence is reused.
+At this entry type-smoke/query-smoke and final measurement remain pending.
+
+L2 frozen alias validation completed: type-smoke (existing full registered type
+selection plus28 focused new failed/successful/canonical trials) PASS0 in154.45wall/
+146.22CPU seconds/295128KiB; query-smoke PASS0 in0.38/0.37/104364. stderr empty,
+source manifests unchanged. Four successful fixture groups each cover original
+compilation at1/4 workers and canonical recompile at1 worker, at32/64-bit; four
+nominal failure trials precede the fresh compiles. Existing query tests retain
+actual production-allocator overlap separately from the imported-alias correctness
+matrix. No configured worker count is presented as proof of concurrency.
+
+Frozen minimal paired cost sample, n1 each, CPU4-7/warm resource cache, identical
+complete container input and unchanged Tower libraries. Before SHA256
+2fa4381af2dbac5e3771811cf52f99a1aaad1fc6586eadece3ebd7304f140b70;
+after f10f19acadd8bf0271b3f7dbc4e8d520674aadd9848cbc7a67e1106f80fa2bf2.
+Before workers1:1.43wall/.73CPU/177756KiB; workers4:1.62/.80/181176;
+both stop134 at the same stack_dispose diagnostic in their first32-bit compile.
+After workers1:1.34/1.12/192788; workers4:1.46/1.37/207736;
+both exit0 and check the full10-line output at both widths. The after process does
+more work; these costs cannot establish a before/after speedup or memory regression.
+On this small healthy input four-worker overhead exceeds the serial cost; no
+scaling claim. Exact statuses, signal errors, timings, manifests and immutable
+binaries remain in external L2 imported_alias* receipts and l2_imported_alias cache.
+All owned processes drained. Later merged-source adoption, if needed, is separate.

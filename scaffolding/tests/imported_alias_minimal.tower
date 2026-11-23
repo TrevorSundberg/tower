@@ -1,0 +1,5 @@
+import tower;
+import library.stack;
+var s: stack(i32) = default;
+defer stack_dispose(&s);
+print(7);
