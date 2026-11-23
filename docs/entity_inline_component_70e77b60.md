@@ -70,11 +70,17 @@ and zero new receipts**. Previously its four-pointer index alone requested104
 bytes,136 bytes including the native allocator header. Production overlap uses
 the ordinary allocator, never that single-owner injection state.
 
-Descriptor cost is included: x64 `sizeof(Entity)`184→192, payload stride192→200,
-descriptor-page capacity17→16. From the unchanged checked page formula, a full
-descriptor page requests4311→4199 physical bytes. A33-descriptor private group
-therefore needs three pages instead of two (12597 versus8622 bytes), a real cost
-of this layout; this is layout-derived, not a new measured compiler page census.
+Descriptor cost is included: x64 `sizeof(Entity)`184→192, payload stride192→208,
+and descriptor-page capacity17→16. The source uses
+`compiler_buffer_alignment() == 2 * sizeof(usize) == 16`, including for owned
+Entity descriptors. With `sizeof(EntityComponent)==48` and
+`sizeof(EntityComponentPage)==184`, the unchanged formula requests4319→4335
+physical bytes per full descriptor page, including the32-byte compiler allocator
+header. A33-descriptor private size class therefore needs three pages instead of
+two (13005 versus8638 bytes), a real layout cost. These are source-derived values,
+not a new measured compiler page census. L1's independent joined-source review
+corrected the earlier8-byte-alignment derivation (stride200; pages4311/4199;
+group8622/12597); the retained runtime measurements below are unchanged.
 Measured accounting fixture node bytes6256→6528 and component/instance index
 bytes1280→256; created-query physical bytes34857→34872 actually increase15 bytes,
 while ledger metadata2560→640. Private-stage physical bytes45567→45054 and its

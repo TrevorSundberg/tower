@@ -1,0 +1,101 @@
+import tower;
+import .library.entities;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_buffer_types;
+import .library.work_vector_types;
+import .host.memory;
+
+// Independent physical-owner census for the two serial fault fixtures. Call
+// only after fault injection is disabled. Roots are disjoint published trees;
+// private stage nodes are counted separately, leased nodes through their tree.
+struct EntityFaultCensus { bytes: usize; receipts: usize; }
+fn entity_fault_check(ok: bool): void {
+    if !ok { trap("Entity fault physical ownership/receipt mismatch", 0); }
+}
+fn entity_fault_allocation(sample: EntityFaultCensus*, budget: WorkBudget*, bytes: usize,
+    receipt: WorkReservation*): void {
+    entity_fault_check(work_budget_validate_result(budget, receipt) == WorkBudgetError.None
+        && receipt.lanes == 0 && receipt.bytes == bytes);
+    sample.bytes += bytes;
+    sample.receipts++;
+}
+fn entity_fault_buffer(sample: EntityFaultCensus*, budget: WorkBudget*, buffer: WorkBuffer*): void {
+    entity_fault_check(buffer.data != null);
+    entity_fault_allocation(sample, budget, compiler_buffer_allocation_size(buffer.capacity), &buffer.reservation);
+}
+fn entity_fault_index(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, data: T*): void {
+    if data == null { return; }
+    var header = bits(EntityBufferAllocation*, bits(u8*, data) - sizeof(EntityBufferAllocation));
+    entity_fault_buffer(sample, budget, &header.allocation);
+}
+fn entity_fault_owned(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, data: T*): void {
+    if data == null { return; }
+    var block = entity_component_from_data(bits(u8*, data));
+    if block.page == null {
+        entity_fault_buffer(sample, budget, &bits(EntityComponentAllocation*, block.allocation).allocation);
+    }
+}
+fn entity_fault_pages(sample: EntityFaultCensus*, budget: WorkBudget*, pool: EntityComponentPool*): void {
+    var page = pool.owned;
+    while page != null {
+        entity_fault_check(page.owner == pool && page.live != 0 && page.live <= page.capacity);
+        entity_fault_buffer(sample, budget, &page.allocation);
+        page = page.owned_next;
+    }
+}
+fn entity_fault_node(sample: EntityFaultCensus*, node: Entity*): void {
+    var budget = node.store.budget;
+    entity_fault_owned(sample, budget, node);
+    entity_fault_index(sample, budget, node.children);
+    entity_fault_index(sample, budget, node.instances);
+    if node.components != &node.inline_components[0] { entity_fault_index(sample, budget, node.components); }
+    for(var i: usize = 0; i < node.component_count; i++) {
+        entity_fault_owned(sample, budget, node.components[i].data);
+    }
+    for(var i: usize = 0; i < node.child_count; i++) {
+        entity_fault_owned(sample, budget, node.children[i].name);
+        entity_fault_node(sample, node.children[i].entity);
+    }
+}
+fn entity_fault_vector(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, values: work_vector(T)*): void {
+    if values.data != null {
+        entity_fault_allocation(sample, budget, compiler_buffer_allocation_size(values.capacity * sizeof(T)),
+            &values.reservation);
+    }
+}
+fn entity_fault_census(store: EntityStore*, roots: Entity**, count: usize, stage: EntityStage*): EntityFaultCensus {
+    var sample: EntityFaultCensus = default;
+    var budget = store.budget;
+    entity_fault_check(budget != null && store.views == 0);
+    entity_fault_buffer(&sample, budget, &store.allocation);
+    entity_fault_pages(&sample, budget, &store.storage);
+    entity_fault_pages(&sample, budget, &store.buffers);
+    for(var i: usize = 0; i < count; i++) { entity_fault_node(&sample, roots[i]); }
+    for(var i: usize = 0; i < sizeof(decltype(store.tables)) / sizeof(EntityTable*); i++) {
+        var table = store.tables[i];
+        while table != null {
+            entity_fault_check(table.pending == 0);
+            entity_fault_owned(&sample, budget, table);
+            entity_fault_owned(&sample, budget, table.types);
+            entity_fault_index(&sample, budget, table.rows);
+            table = table.next;
+        }
+    }
+    if stage != null {
+        entity_fault_owned(&sample, budget, stage);
+        entity_fault_pages(&sample, budget, &stage.storage);
+        entity_fault_pages(&sample, budget, &stage.buffers);
+        entity_fault_vector(&sample, budget, &stage.nodes);
+        entity_fault_vector(&sample, budget, &stage.references);
+        entity_fault_vector(&sample, budget, &stage.cancellations);
+        entity_fault_vector(&sample, budget, &stage.leases);
+        foreach(var &entry in &stage.nodes) {
+            entity_fault_node(&sample, entry.node);
+            entity_fault_owned(&sample, budget, entry.name);
+        }
+    }
+    entity_fault_check(sample.bytes == budget.used_bytes && sample.receipts == budget.live
+        && budget.used_lanes == 0);
+    return sample;
+}
