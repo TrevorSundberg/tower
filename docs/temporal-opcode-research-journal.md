@@ -89997,3 +89997,56 @@ explicitly in focused_fixtures.sha256. Reuse the checked evidence without a new
 compiler build or passing-case rerun; incoming page-policy implementation keeps
 its own source-specific owner receipt. Inspected negation producer chain still
 matches eac exactly. No complete current-main reactor or release claim.
+
+### A2 unary numeric type-argument preparation repair (2026-11-23)
+
+Frozen publishedb90b6f4e/tree f894cb5f. D1 exact unchanged type_numeric_negation
+native trace proves the actual chain: unbound two-child unary TowerExpression,
+sem_literal true -> IntegerArgument skipped -> ordinary KBinary/nonconstant ->
+Expected a compile-time integer argument. Failed healthy compile exits1 after
+cleanup (.494122wall/.438484CPU/176724KiB), preserved. sem_literal also controls
+contextual inference/peer typing, float recognition and leased expression checks;
+its meaning and signed-minimum lowering remain unchanged.
+
+Production fix is only semantic_type_values::sem_type_value_simple: transparent
+wrappers already unwrap; remaining unbound TowerExpression/TowerComma operators
+must demand the existing IntegerArgument/evaluation producer. Bound generic
+constants/bare literals retain the fast path. Existing contextual parameter type,
+lexical capture, suspend/resume, executed-branch dependencies, ordinary interpreter,
+joined literal publication and constant/exact-type/bound checks are reused. No
+folder, constant-flag change, recursive worker completion or scheduler/type registry.
+L1 generics/declarations and D1 fixtures/browser files are untouched.
+
+Smallest changed production object23.816wall/18.519CPU/1068108KiB, existing public
+768a0cdf dependency targets linked .992/.218/70776. Exact-source repaired compile
+PASS0 .492709/.436111/177020. Dedicated integer_argument_unary/checks registered
+in LR integer-arguments selector and type-smoke: direct minus/arrays/primitive
+widths, contextualusize at32/64, i8 wrapping/minima and i32/i64 minima, immutable/
+mutable captures, untaken print/trap, canonical serial/four-worker equality and
+re-execution, plus unchanged computed_type_arguments. Expected output8/2/0 and
+existing0. Focused22 compilation cases PASS10.265/9.842/250352; query-smoke PASS
+.356/.378/103936; complete type-smoke PASS123.897/117.481/294628.
+
+Preserved failures: temporary Tower print trace lacked tower_print at link; used
+existing libc output boundary instead, then removed all traces/providers. First
+type-smoke failed134 after its old type/alias portion and valid new cases because
+our expected negative-bound error omitted the real instantiation location:
+116.014wall/109.605CPU/293020KiB. Corrected the full exact expectation, no weakened
+assertion/compiler error, then focused and complete type-smoke passed.
+
+One paired n3 healthy8/512-body1/4-worker comparison, identical generated inputs,
+production allocation, CPU0-11/24GiB, existing native cache/2GiB shared ledger,
+LLVM19 Release, no instrumentation. Pure preserved baseline4ccdd459 has unchanged
+compiler/library/bootstrap blobs through b90. Candidate profilea48aadbe. Process
+wall medians -2.27..+0.89%, CPU -1.46..+0.92%; no material observed regression or
+speedup claim. All24 profile processes retain canonical/reference checksums and
+zero final byte/lane/live grants; peak ledger and metadata unchanged. Four workers
+still lose on these short grammar-heavy inputs. Individual samples/failed traces/
+patches/exit statuses and actual link/source manifests retained externally in
+A2/cache/logs/integer_argument_unary_b90b6f4e. Final runner95194f33, semanticsobj
+a15be3cd; exact identities/API handoff/limits in compiler_integer_arguments_b90b6f4e.md.
+
+No browser/generation/sanitizer/deployment claim. ROOT/D1 must adopt the changed
+producer in current reactors; L1 numeric-wrapper/nullary-alias work remains
+separate. Service-rejected instrumentation gate stays open, all3old stashes and
+todo preserved. Jobs drained; normal main reconciliation/publication follows.
