@@ -1406,3 +1406,38 @@ hashes stayed frozen. The before runner was unlinkable, so runtime profiling of
 this provider-only correction is inapplicable. See journal for logs/timing and
 exact identities. Whole-lane acceptance remains open; these results do not cover
 newer coordinator inputs or final browser/generation/publication gates.
+
+### Per-call entity result audit on90009cef plus owner delta, 2026-11-23
+
+| Path relative to scaffolding | Review, ownership and disposition |
+| --- | --- |
+| library/entities.tower | Complete changed creation/related paths reviewed; source SHA9f3d3e6cf36ddc4fad6944bda724de6262e45baee18ca12bbae3210cca481c2a. Per-call private fixed receipt distinguishes Invalid/Busy/Exhausted/Memory/None before identity/count publication. Legacy wrappers preserve one allocation and check order. No world/stage layout or shared diagnostic mutation. Normal/fault/lifetime and production ASan/TSan pass; node allocation remains physically unbudgeted. |
+| library/entity_api.tower | Complete declaration module reviewed; two new typed result signatures and missing legacy related declaration match the single provider. Explicit WorkBudgetError defining import; required private receipt/coordinator-only contract. Separate clients linked against implementation and checked symbol uniqueness. D2 policy and full compiler/provider checks remain pending. |
+| tests/entity_create_result.tower | New entire fixture reviewed. Declaration-only client verifies invalid/pinned/exhausted/success results, no mutation on denial, private receipt isolation, world identity and ordered named relation cleanup. Finite counter test has no fake payload/huge allocation. Three ASan and three TSan executions pass; fixture itself is serial, not overlap evidence. |
+| tests/entity_create_faults.tower | New entire fixture reviewed. Existing serial allocator injection verifies one failed allocation per API call, unchanged count/ID/live allocation, retry and zero retained ownership. One normal fault-harness execution passes. Deliberately separate from production concurrent instrumentation. |
+| tests/entity_views.tower | Rechecked all five registrations, each lifecycle0. Added a fail-fast unexpected-finalizer export to complete existing standalone link after missing-symbol failure; assertions unchanged. Fresh ordinary view/lifetime regression passes. No production lifecycle fallback. |
+| compiler/world.tower | Budget binding re-reviewed at90009cef: fresh-world/gate checks are sound, but only world.work_budget is assigned; store.budget stays null. Proposed page accounting must coordinate B2's constructor/binding integration. Do not claim a whole-world cap from shared library receipt tests. |
+
+All original library/scheduler rows retain their reviewed commits; these changed
+rows and the two newly discovered tests supplement them. Source review is not
+full lane acceptance. Stable sparse component pages and derived pointer columns
+remain the current implementation; no packed payload policy is claimed.
+
+Exact result-API before/after locality profile now recorded in the journal:
+three warm alternating pairs, checked identical1024/65536-row workloads. Small/
+large creation685.308us/10.696688ms ->573.350us/9.663307ms; total CPU140->126ms,
+peak RSS26844->26912KiB. All1024large pages/5873664usable bytes remain retained
+after one survivor/page for only32768useful bytes. Allocation policy is unchanged;
+the short window's unchanged traversal variance precludes a speedup attribution.
+The retention bottleneck remains a demonstrated reason to pursue explicit
+storage policy, not to label pointer tables as packed payloads.
+
+Updated receipt for the entity result rows: merged559b9ecc actual public entities,
+parser and semantic units, canonical native compiler and query/units/editor/
+calibrated-backend/parser plus four policy checks pass (zero skips). Same typed
+client/provider also executes successfully at wasm32 via the existing portable
+TowerWASI host, SHA0f9501ccbf15e8ef18dfd45f58a738eb07ff120cb8504ee312656d5f5e1c8b08.
+The first WASI entry rewrite targeted a no-main provider and failed; corrected
+OS composition targets the client only. Journal preserves exact logs/identities.
+Newer A1/L1/D1 changes, complete browser/compiler-generation instrumentation and
+publication remain outside this receipt. No further implementation changed.
