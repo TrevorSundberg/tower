@@ -21,9 +21,12 @@ import syntax_validation;
 import syntax_version;
 import syntax_version_types;
 import .library.vector;
+import .library.work_budget_types;
 
 extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
 extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable*;
+extern fn parser_table_open_result(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32, error: WorkBudgetError*): ParserHostTable*;
+extern fn parser_table_finish_result(table: ParserHostTable*, error: u8**, specialize: bool, resource_error: WorkBudgetError*): ParserHostTable*;
 extern fn compiler_buffer_free(memory: void*): void;
 
 export fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void {
@@ -103,6 +106,7 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
 }
 
 export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    diagnostic.resource_error = WorkBudgetError.None;
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
     var kind = compiler_world_type(world, CompilerSyntax);
@@ -127,9 +131,11 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     diagnostic.fallback = "Unable to build grammar";
     var error: u8* = null;
     defer compiler_buffer_free(bits(void*, error));
-    var table = parser_table_open(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax, convert(u32, ParserReadMode.Constructs));
+    var table = parser_table_open_result(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax,
+        convert(u32, ParserReadMode.Constructs), &diagnostic.resource_error);
+    if table is null { return null; }
     if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != lr_none(); }
-    value.table = bits(void*, parser_table_finish(table, &error, true));
+    value.table = bits(void*, parser_table_finish_result(table, &error, true, &diagnostic.resource_error));
     if value.table is null {
         if error is not null { node_text_set(&diagnostic.text, error); }
         return null;
@@ -142,6 +148,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
 }
 
 export fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool {
+    diagnostic.resource_error = WorkBudgetError.None;
     diagnostic.text.length = 0;
     var pending: SyntaxPendingRevision*;
     var ready = syntax_version_validate(module, kind, diagnostic, &pending);

@@ -1,4 +1,5 @@
 import tower;
+import .library.vector;
 import .compiler.format_types;
 import .compiler.frontend_revision_types;
 import .compiler.syntax_version_types;
@@ -91,6 +92,7 @@ fn world_session_prepare(world: void*, env: void*): void {
     defer format_dispose(&out);
     format_entity(&out, frontend_world_bedrock(world), compiler_world_type(world, CompilerSyntax), null, compiler_world_type(world, CompilerParserMatch));
     world_session_check(!out.failed, "seed formatting");
+    world_session_check(vector_push(&out.text, 0), "seed termination");
     world_session_install(world, env, out.text.data, false);
     world_session_install(world, env, "parse Statement = 'base';", true);
     frontend_modules_configure(env, "main.tower", "");

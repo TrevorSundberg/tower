@@ -1,5 +1,4 @@
 import tower;
-import .host.memory;
 import utility_checks;
 import .library.work_pool;
 

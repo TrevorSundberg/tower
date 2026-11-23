@@ -42,6 +42,7 @@ struct LRUnresolved {
 struct LRGrammar {
     storage: WorkBuffer;
     budget: WorkBudget*;
+    resource_error: WorkBudgetError;
     // Names and capture strings share this immutable grammar lifetime. The
     // arena keeps their addresses stable while derived index vectors grow.
     snapshots: WorkArena;
@@ -57,12 +58,23 @@ struct LRGrammar {
 }
 
 // Each snapshot is copied once and remains immutable until grammar retirement.
-fn lr_grammar_text(arena: WorkArena*, source: u8*): u8* {
+fn lr_grammar_allocate(value: LRGrammar*, bytes: usize, alignment: usize): u8* {
+    var result: u8* = null;
+    value.resource_error = work_arena_allocate_result(&value.snapshots, bytes, alignment, &result);
+    return result;
+}
+
+fn lr_grammar_ok(value: LRGrammar*, error: WorkBudgetError): bool {
+    value.resource_error = error;
+    return error == WorkBudgetError.None;
+}
+
+fn lr_grammar_text(value: LRGrammar*, source: u8*): u8* {
     var length: usize = 0;
     while source[length] != 0 { length++; }
     var bytes = length + 1;
     if bytes == 0 { return null; }
-    var text = work_arena_allocate(arena, bytes, alignof(u8));
+    var text = lr_grammar_allocate(value, bytes, alignof(u8));
     if text != null { copy(text, source, bytes); }
     return text;
 }
@@ -123,11 +135,11 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
     if *index != lr_none() {
         return true;
     }
-    var entry = bits(LRGrammarName*, work_arena_allocate(&value.snapshots, sizeof(LRGrammarName), alignof(LRGrammarName)));
+    var entry = bits(LRGrammarName*, lr_grammar_allocate(value, sizeof(LRGrammarName), alignof(LRGrammarName)));
     if entry == null { return false; }
-    *entry = {text: lr_grammar_text(&value.snapshots, name), hash: hash, ..default};
+    *entry = {text: lr_grammar_text(value, name), hash: hash, ..default};
     var ok = entry.text != null;
-    ok &&= work_vector_push(&value.names, value.budget, entry);
+    ok &&= lr_grammar_ok(value, work_vector_push_result(&value.names, value.budget, entry));
     if !ok {
         return false;
     }
@@ -194,7 +206,7 @@ fn lr_grammar_order(value: LRGrammar*): bool {
     if count > ~convert(usize, 0) / sizeof(usize) { return false; }
     var storage: WorkBuffer = default;
     defer work_buffer_dispose(&storage);
-    if work_buffer_resize(&storage, value.budget, count * sizeof(usize), 0) != WorkBudgetError.None { return false; }
+    if !lr_grammar_ok(value, work_buffer_resize(&storage, value.budget, count * sizeof(usize), 0)) { return false; }
     var order = bits(usize*, storage.data);
     var index: usize = 0;
     for(; index != count; index++) {
@@ -255,14 +267,14 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
     metadata.node = node;
     var ok = true;
     if *capture != 0 {
-        metadata.capture = lr_grammar_text(&value.snapshots, capture);
+        metadata.capture = lr_grammar_text(value, capture);
         ok = metadata.capture != null;
     }
-    ok &&= work_vector_push(&value.symbol_metadata, value.budget, metadata);
+    ok &&= lr_grammar_ok(value, work_vector_push_result(&value.symbol_metadata, value.budget, metadata));
     if !ok {
         return false;
     }
-    return work_vector_push(&value.symbols, value.budget, *symbol);
+    return lr_grammar_ok(value, work_vector_push_result(&value.symbols, value.budget, *symbol));
 }
 
 fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
@@ -273,14 +285,14 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var rule_count = count + 1;
     if rule_count > ~convert(usize, 0) / sizeof(LRProduction)
         || rule_count > ~convert(usize, 0) / sizeof(LRGrammarRule) { return false; }
-    if work_buffer_resize(&value.rule_storage, value.budget, rule_count * sizeof(LRProduction), 0) != WorkBudgetError.None
-        || work_buffer_resize(&value.rule_metadata_storage, value.budget,
-            rule_count * sizeof(LRGrammarRule), 0) != WorkBudgetError.None { return false; }
+    if !lr_grammar_ok(value, work_buffer_resize(&value.rule_storage, value.budget, rule_count * sizeof(LRProduction), 0))
+        || !lr_grammar_ok(value, work_buffer_resize(&value.rule_metadata_storage, value.budget,
+            rule_count * sizeof(LRGrammarRule), 0)) { return false; }
     value.rules = bits(LRProduction*, value.rule_storage.data);
     value.rule_metadata = bits(LRGrammarRule*, value.rule_metadata_storage.data);
     var size = count *2;
     size++;
-    var ok = work_vector_reserve(&value.buckets, value.budget, size);
+    var ok = lr_grammar_ok(value, work_vector_reserve_result(&value.buckets, value.budget, size));
     if !ok {
         return false;
     }
@@ -361,7 +373,7 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                     var pending: LRUnresolved;
                     pending.name = name;
                     pending.symbol = value.symbols.length;
-                    var ok = work_vector_push(&value.unresolved, value.budget, pending);
+                    var ok = lr_grammar_ok(value, work_vector_push_result(&value.unresolved, value.budget, pending));
                     if !ok {
                         return false;
                     }
@@ -416,13 +428,21 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
 }
 
 export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*, string_kind: void*, range_kind: void*): LRGrammar* {
+    var error = WorkBudgetError.None;
+    return lr_grammar_create_result(root, rule_kind, reference_kind, string_kind, range_kind, &error);
+}
+
+export fn lr_grammar_create_result(root: void*, rule_kind: void*, reference_kind: void*, string_kind: void*,
+    range_kind: void*, error: WorkBudgetError*): LRGrammar* {
     var budget = compiler_world_work_budget(compiler_node_world(root));
     var storage: WorkBuffer = default;
-    if work_buffer_resize(&storage, budget, sizeof(LRGrammar), 0) != WorkBudgetError.None { return null; }
+    *error = work_buffer_resize(&storage, budget, sizeof(LRGrammar), 0);
+    if *error != WorkBudgetError.None { return null; }
     var value = bits(LRGrammar*, storage.data);
     *value = {storage: storage, budget: budget, ..default};
     var chunk_bytes = sizeof(WorkArenaChunk) + WorkBufferInitialElements * sizeof(LRGrammarName);
     if !work_arena_init(&value.snapshots, budget, chunk_bytes) {
+        *error = WorkBudgetError.Invalid;
         lr_grammar_destroy(value);
         return null;
     }
@@ -433,6 +453,7 @@ export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*
         work_vector_dispose(&value.buckets);
         return value;
     }
+    *error = value.resource_error == WorkBudgetError.None ? WorkBudgetError.Invalid : value.resource_error;
     lr_grammar_destroy(value);
     return null;
 }

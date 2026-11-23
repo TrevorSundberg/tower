@@ -1019,3 +1019,13 @@ separately compiled implementation and the ordinary guest runtime. It exercises
 all six exported operations, physical retention, alignment, denial and ownership
 transfer. The existing native work-test object rules apply supported sanitizer
 instrumentation to both client and provider; no compiler entity unit is linked.
+
+`tower-lr-work-tests RESOURCE_ROOT backend-overlap-calibrated` uses the same
+four-unit serial baseline, source programs, exact object comparison and distinct
+worker overlap assertions as `backend-overlap`. It measures the existing serial
+frontend batch once and freezes `max(30 seconds, measured batch duration)` for
+frontend unit2 awaiting backend unit1; the backend acknowledgement stays30seconds.
+It prints the calibration and monotonic event timeline. Ordinary `backend-overlap`
+and the full backend suite retain their30-second bound. Name the selected variant
+in instrumentation receipts; a successful calibrated run does not erase an older
+ordinary timeout or establish a performance improvement.
