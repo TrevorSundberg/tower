@@ -1163,16 +1163,18 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
-`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread]`
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread] [optimized]`
 uses the production native compiler closure. `spread` repeats four body counts
 from one quarter through the requested maximum across units; without it, only
 the final unit has the extra bodies. `backend` exports the generated functions
-and emits unoptimized x86_64-pc-linux-gnu library objects. The older backend
+and emits unoptimized x86_64-pc-linux-gnu library objects; `optimized` selects
+the existing O2 pipeline and default code-generation policy as a control. The older backend
 workload did not export its functions and could emit empty objects; those
 measurements are not useful code-generation evidence. The profile checks exported
 names, known interpreter results (answer and loop body return42), canonical
 Foundation and object hashes. Compare each workload's hashes across worker counts.
-Its explicit byte ceiling is `(UNITS + 1) * DriverUnitRetainedByteLimit`; the
+Its explicit byte ceiling is `(UNITS + UnitsProfileTransientUnits) * DriverUnitRetainedByteLimit`
+(four transient units accommodate tracked scratch for4096 bodies); the
 production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
 are supported, with workers bounded by the current host transport capacity.
 

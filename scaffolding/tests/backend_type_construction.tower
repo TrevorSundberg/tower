@@ -44,7 +44,7 @@ fn backend_constructor_target(target: u8*, width: u32, optimize: bool): bool {
     var root = entity_create(compiler_world_store(world));
     if root == null { return false; }
     defer entity_release(root);
-    var b = backend_open(target);
+    var b = backend_open_codegen(target, optimize ? BackendCodegen.Default : BackendCodegen.None);
     if b == null { return false; }
     defer backend_close(b);
     if b.error.length != 0 || b.pointer_bytes != width { return false; }

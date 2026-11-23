@@ -74,8 +74,11 @@ control word. This is explicit platform object storage, separate from ordinary
 Tower module initialization and uninitialized Foundation variables. Each backend
 context/module still has one owner. Link services use separate request worlds.
 
-1. `backend_open(triple)` returns an owned `Backend*`. Check for null, then check
-   `backend_error`; a target error still returns a disposable result.
+1. `backend_open_codegen(triple, BackendCodegen)` returns an owned `Backend*`.
+   `None` selects LLVM19's unoptimized machine-code pipeline; `Default` keeps
+   its default optimized pipeline. Check for null, then check `backend_error`;
+   invalid policies and target errors still return disposable results.
+   Legacy `backend_open(triple)` deliberately retains `Default`.
 2. Query `backend_pointer_bytes` **before semantic compilation**. The explicit
    target must match the Foundation layout. Only little-endian layouts with
    4/8-byte pointers, natural pointer alignment, i32 alignment 4 and i64 alignment
@@ -91,10 +94,22 @@ context/module still has one owner. Link services use separate request worlds.
    with verification at the lowering/optimization boundaries. Set the Tower
    `BackendVerifyEach` constant in `pipeline.tower` to `1` when debugging passes
    to additionally verify after every pass (including interpreter optimization).
-   With optimization disabled it retains unoptimized IR.
+   With optimization disabled it retains unoptimized IR. This does not change
+   the machine-code policy fixed at backend creation. Production native,
+   per-unit and source-session object requests select `None` for explicit
+   unoptimized output and `Default` otherwise, including cross targets.
 5. `backend_emit(backend)` produces target object bytes in memory.
 6. Read `backend_raw`, `backend_optimized`, `backend_bytes`, `backend_size`,
    `backend_error` and `backend_error_offset`. Call `backend_close` once.
+
+Policy belongs to the backend/job; no target machine or LLVM context is shared
+between workers. CPU/features, PIC relocation, code model, layout and strict
+numeric behavior are unchanged. Each unit batch uses a fresh graph generation
+with frozen target/optimization inputs; sessions reset owned outputs on begin.
+There is no object cache shared across policies. Interpreter reconstruction
+continues using its separate IR-only optimization profiles, with no machine-code
+emission. `backend_session_begin_codegen` selects the explicit policy while
+legacy `backend_session_begin` retains `Default`.
 
 Object-only consumers can call `backend_retain_ir(backend, false)` before
 lowering to skip both LLVM text snapshots. It rejects a result that has already

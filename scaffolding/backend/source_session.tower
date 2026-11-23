@@ -126,7 +126,10 @@ export fn backend_source_compile(source: BackendSource*, text: u8*, length: usiz
 
 export fn backend_source_compile_world(source: BackendSource*, world: void*, text: u8*, length: usize, flags: u32, environment: void*, foundation_error: u8*): u8* {
     var backend = source.backend;
-    var width = backend_session_begin(backend, text, length);
+    // Foundation import has its own IR-only policy and emits no machine code.
+    var codegen = (flags & BackendSourceImport) != 0 || (flags & BackendSourceUnoptimized) == 0
+        ? BackendCodegen.Default : BackendCodegen.None;
+    var width = backend_session_begin_codegen(backend, text, length, codegen);
     if width == 0 {
         return backend_session_response(backend);
     }

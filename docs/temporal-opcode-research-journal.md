@@ -85314,3 +85314,127 @@ are unchanged; both corrected fixture SHA256s still exactly match the instrument
 inputs. Reuse the52 passing storage receipts without rebuilding unrelated compiler
 work. `incoming_paths.txt` records that comparison; current-main compiler/query
 instrumentation remains ROOT's gate. All owned jobs remain drained.
+
+### 2026-11-23 B2: explicit object code-generation optimization (in progress)
+
+Bounded task starts on main c13c2631, Docker tower-b2-work, LLVM/Clang19.1.1,
+cpuset12-23, quota12, memory24GiB. No semantic/scratch edits: B1/A1 retain those
+producers. Native driver, backend units and source-session/browser callers expose
+optimization before target creation. target.tower nevertheless always supplied
+LLVMCodeGenLevelDefault(2); pipeline.tower false disables IR passes only.
+LLVM19.1.1 TargetMachine.h and TargetMachineC.cpp confirm None(0)/Default(2)
+select machine-code pipelines at creation, independent of LLVMRunPasses:
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/llvm/lib/Target/TargetMachineC.cpp
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/llvm/include/llvm-c/TargetMachine.h
+Preserve generic CPU/features, PIC relocation, default code model, ABI/layout,
+strict floating behavior and existing target-machine/layout/module ownership.
+
+Interpreter normalization uses backend_optimize_interpreter and finally calls
+backend_optimize(false) even after its own optimized passes, with no object
+emission. Therefore changing that boolean to implicitly retarget machines is
+incorrect. The planned explicit constructor policy leaves that path and legacy
+backend_open at Default, and selects None only from actual unoptimized object
+requests. Native per-unit requests have fresh graph generations per batch;
+target/optimization are frozen batch fields, with no cross-policy object cache.
+Browser llvm-host passes explicit flag8 for unoptimized; source session resets
+owned results per request. Browser compiler-build profile1 remains optimized;
+interpreter Foundation/bytecode profiles do not describe machine-code generation.
+
+Baseline harness adds only an optimized control option to the existing Tower
+frontend_units_profile. Before compiler SHA256
+6d1154752a21b90e9bc0016b6201de2c676f7ac7b0e4671abc7bcaf3ad7fc057;
+original before profile76fa63d6ccf7f62b70dc6c53b8441b7324418fc35f02fdf6cf2e9ccfee882768
+preserved in /cache/b2_codegen_before_{towerc,profile}. Small8-body case passes.
+Original4096 baseline aborts134 before backend in sem_declaration_type calling
+sem_declaration_state_result and sem_require, 29.947wall/29.885CPU/647804KiB.
+Logs build/b2_codegen_before_abort.log and before_resource.log retained; the latter
+breakpoint missed an inlined resource recorder and is not a diagnosis of an
+error enum. Testing larger explicit benchmark headroom without changing any
+production semantic admission/diagnostic policy. No failed run counts as speed
+or correctness evidence.
+
+Implementation and focused evidence (same frozen c13c2631 production inputs):
+`backend_open_codegen(triple, BackendCodegen)` in backend/target.tower selects
+None(0) or Default(2), validates the enum, and preserves existing owner cleanup.
+The nominal declaration is backend/codegen_types.tower. Native driver and unit
+jobs select from their existing optimize flag. backend/session.tower provides
+`backend_session_begin_codegen`; backend/source_session.tower maps object flags
+there, retaining Default for IR-only imports. Legacy open/begin remain Default;
+backend_optimize's IR-only contract is unchanged. No semantic producers, public
+pin, syntax, worker budgets or cache formats changed.
+
+The original profile admitted only512MiB, but tracked scratch now retains
+619848818 bytes for4096 bodies. Benchmark-only transient headroom increased from
+one to four units: `(UNITS + UnitsProfileTransientUnits) * 268435456`, giving
+1.25GiB for a single unit. This resolves the original abort without changing
+production limits or hiding the failure. Paired before/after profiles use the
+same enlarged ceiling and byte-identical generated inputs. Headroom baseline
+profile SHA2561d874a4ffff6820e415c726b712f5bc139884643e1a0bceebb17e9bb2bd18383;
+after profilefa3fa2920d9bdcf8d42e634940f8fe2eb08a9b0e55cd2826f332a69831ef4fca;
+after compiler03c188784f602ef8443379de7f053b0f553d5567ac144c6b094bb1be116ff5f8.
+
+One4096 warmup per version followed by retained samples, fresh processes with
+warm filesystem caches. No overlapping B2 jobs. Command:
+`PROFILE /work/scaffolding UNITS WORKERS BODIES backend [spread] [optimized]`.
+Before PROFILE=/cache/b2_codegen_before_profile_headroom; after PROFILE=
+/cache/native/tower-frontend-units-profile. Target x86_64-pc-linux-gnu, exported
+library functions, retained IR disabled, optimization disabled except control.
+CPU/RSS are process observations through the timed join; phase observations are
+wall intervals, not per-phase CPU/RSS. Multi-unit phase sums are not elapsed time.
+
+| Case (units/workers/bodies) | wall seconds before/after | CPU seconds before/after | peak KiB before/after | emission ms before/after |
+| --- | --- | --- | --- | --- |
+| 1/1/4096 | 48.0714 / 49.1010 | 47.9518 / 48.9974 | 838280 / 835456 | 2282.079 / 180.673 |
+| 1/8/4096 | 21.6792 / 20.1796 | 48.2359 / 49.4395 | 860816 / 856212 | 2291.437 / 168.809 |
+| 1/1/8 | 1.0029 / 0.9612 | 0.9665 / 0.9258 | 204720 / 200784 | 7.331 / 1.393 |
+| 1/8/8 | 0.9243 / 0.8779 | 1.1136 / 1.0700 | 222932 / 219184 | 8.500 / 1.340 |
+| 12/8/16 spread | 5.2753 / 5.4609 | 27.3298 / 27.9251 | 1364844 / 1357704 | 103.820 / 16.887 |
+| 1/1/8 optimized | 0.9781 / 0.9761 | 0.9426 / 0.9398 | 208100 / 207096 | 2.241 / 2.294 |
+
+Emission improves12.6–13.6x for4096 bodies; full serial compilation did NOT improve
+in this pair. Its unchanged frontend grows45.566→48.696s, overwhelming the2.10s
+backend saving. No whole-compiler serial speedup or whole-machine scaling claim.
+Eight-worker total improves6.9%; that single sample is not a scaling distribution.
+The remaining dominant work is the separately owned semantic scratch path.
+Unoptimized objects grow843432→1105576 bytes (+31.1%); retained reservation grows
+262144 bytes, consistent with the larger output buffer. Single1 peak reservation
+716672988 bytes and ledger83886080 bytes are unchanged. Optimized control object
+hash1877806135902363689, size896, retention17940306 all remain identical.
+Every paired canonical hash matches;4096 canonical9448338333252003545,
+before object13213760278028976691, after11650509263964549553, each stable at
+workers1/8. Actual overlap/idle observations remain in the profile JSON logs;
+no new threaded kernel or pool was introduced.
+
+Validation: one dependency-aware incremental CMake build of towerc,
+tower-backend-tests, tower-lr-work-tests, tower-frontend-units-profile (parallel6,
+public bootstrap, compilerjobs1). Initial test compilation rejected foreach on a
+raw fixed array; replaced it with an array-size-derived for loop and rebuilt only
+failed/affected outputs. Full logs b2_codegen_after_build{,_retry}.log retained.
+Backend API tests PASS: explicit None/Default native/Wasm objects, decoded known
+answer42, unchanged IR/layout, exact Default/legacy bytes, invalid policy,
+invalid target, verifier failure and constructor capability diagnostics.
+Existing `tower-lr-work-tests /work/scaffolding backend-ir` PASS: exact serial/
+parallel objects for both policies, retained/discarded IR, cross-function/type/
+global references, ordered errors, cancellation/drain. Native driver differential
+filters backend_execution_roots, sequencing, wrapping, layout PASS for both
+optimization choices against interpreter, including known output45 then2.
+
+CLI backend_execution_roots objects: x86_64-pc-linux-gnu and
+aarch64-unknown-linux-gnu optimized before/after cmp PASS; unoptimized workers1/4
+cmp PASS. All four optimized/unoptimized native/ARM64 executables print45 then2;
+ARM64 executes via qemu-aarch64 -L /usr/aarch64-linux-gnu. First ARM64 executable
+attempt failed missing Scrt1.o; installed libc6-dev-arm64-cross2.39-0ubuntu8cross1
+and retried with explicit --sysroot /usr/aarch64-linux-gnu. One host orchestration
+attempt incorrectly splatted a singleton option into characters; preserved
+Unexpected argument: - log, corrected the PowerShell argument array, then passed.
+Floating_output native optimized/unoptimized matches the independent interpreter,
+including -0.0, infinities, NaN, minimum subnormal and maximum finite double.
+Changed backend_wasi/source-session unit compiled with the public bootstrap for
+wasm32 and passed LLVM19 opt -passes=verify. Browser runtime integration remains
+pending ROOT's milestone, not passed by that compile-only check.
+
+Artifacts/failed logs remain in build/b2_codegen_* and /cache/b2_codegen_*;
+no archives, pins, deployment or broad generation/browser/sanitizer matrix.
+ROOT portable-policy names: backend_open_codegen provided by backend_core via
+backend/target.tower; backend_session_begin_codegen provided by backend_wasi via
+backend/session.tower; nominal BackendCodegen in backend/codegen_types.tower.

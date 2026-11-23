@@ -22,6 +22,35 @@ fn backend_test_target(triple: u8*, width: u32): bool {
     return ok;
 }
 
+fn backend_test_codegen(triple: u8*, width: u32, optimize: bool): bool {
+    var selected = backend_open_codegen(triple, optimize ? BackendCodegen.Default : BackendCodegen.None);
+    var legacy = backend_open(triple);
+    defer { backend_close(selected); backend_close(legacy); }
+    if selected == null || legacy == null { return false; }
+    var backends: Backend*[2]; backends[0] = selected; backends[1] = legacy;
+    for(var index: usize = 0; index < sizeof(decltype(backends)) / sizeof(Backend*); index++) {
+        var b = backends[index];
+        if b.error.length != 0 || b.pointer_bytes != width { return false; }
+        var function = LLVMAddFunction(b.module, "answer", LLVMFunctionType(b.i32, null, 0, 0));
+        LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, function, "entry"));
+        LLVMBuildRet(b.builder, LLVMConstInt(b.i32, 42, 0));
+        if !backend_optimize(b, optimize) || !backend_emit(b) || backend_size(b) == 0 { return false; }
+        var decoded = backend_disassemble(backend_bytes(b), backend_size(b), triple);
+        var ok = !decoded.failed && backend_contains(backend_disassembly_text(decoded), "answer");
+        backend_disassembly_close(decoded);
+        if !ok { return false; }
+    }
+    // Selecting emission policy changes neither layout nor the IR-pass contract.
+    if !backend_equal(backend_optimized(selected), backend_optimized(legacy)) { return false; }
+    if optimize {
+        if backend_size(selected) != backend_size(legacy) { return false; }
+        for(var i: usize = 0; i < backend_size(selected); i++) {
+            if backend_bytes(selected)[i] != backend_bytes(legacy)[i] { return false; }
+        }
+    }
+    return true;
+}
+
 fn backend_test_wasm_plan(): bool {
     var link = backend_link_create();
     if link == null { return false; }
@@ -84,6 +113,17 @@ fn backend_test_macho_plan(): bool {
 }
 
 export fn backend_tests(): i32 {
+    var policy_failure: i32 = 93;
+    if !backend_test_codegen("x86_64-unknown-linux-gnu", 8, false)
+        || !backend_test_codegen("x86_64-unknown-linux-gnu", 8, true)
+        || !backend_test_codegen("wasm32-unknown-unknown", 4, false)
+        || !backend_test_codegen("wasm32-unknown-unknown", 4, true) { return policy_failure; }
+    var invalid_policy = backend_open_codegen("x86_64-unknown-linux-gnu", bits(BackendCodegen, ~convert(u32, 0)));
+    if invalid_policy == null { return policy_failure; }
+    var rejected = backend_contains(backend_error(invalid_policy), "Unsupported backend code-generation policy")
+        && !backend_emit(invalid_policy) && backend_bytes(invalid_policy) == null;
+    backend_close(invalid_policy);
+    if !rejected { return policy_failure; }
     var construction_failure: i32 = 92;
     if !backend_type_construction_tests() { return construction_failure; }
     var plan_failure: i32 = 91;
