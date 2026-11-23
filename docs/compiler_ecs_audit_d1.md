@@ -5535,3 +5535,105 @@ Local eight-path blobs/SHA256 manifest: `build/d1_ecs/umul_review_a06ec4b1/`.
 Only audit/journal documentation changed. No build, runtime repeat, profile,
 sanitizer or release operation; documentation-only profiling is inapplicable.
 No blanket race-freedom claim, new census or change to another owner's code.
+
+### D1 admitted i1 overflow repair — e637ba38 plus focused delta (2026-11-23)
+
+This implements the concrete R1 from `8ff77438`; the preceding source-only and
+L2/a06 receipts remain historical. Freeze
+`e637ba384037a6305fd945dd1e7c6296f5a98635` (tree `7c436acebec71d92c46736a49f2d173f5b0524d3`),
+compiler tree `1830db721a8d96a54a2e38a5d2ef20ece56561f3`, library tree
+`c6fed2e3602a422e120bfcafa67d5a31f18e4a0b`, plus the following tested blobs.
+L2's frozen reactor/current25 fixtures and A2's source-native census are untouched.
+
+| Path under scaffolding | Tested blob; implementation and coverage |
+| --- | --- |
+| `backend/import_instructions.tower` | `057d57de2b64f1958ce1d3a0d5e82df0cd6ea025`. `bi_multiply_overflow` branches on actual LLVM width1 before constructing arithmetic: existing `bi_binary(OAnd)` and `bi_const(SBool,0)`. The shared bool binary builder legalizes AND through u8; no bool multiply/divide/ordered comparison is constructed. Wider guarded divisor/max/product path, SSA lookup, dominating call placement, per-extract locals and checked stage ownership are unchanged. |
+| `tests/backend_overflow_fixture.tower` | `d5b7bde6d47c81f6a3b612dfa70862aaf34ae1c8`. LLVM C-API boundary, verified without optimization. Intrinsic operands are parameters of an ordinary called probe, so the check is not an O2-folded print. i1's four-row truth table; i8/i16/i32/i64 ten-row oracle covers both zero sides,1,max/max*1, first out-of-range products and wrapped results. Factor identities `(2^(w/2)-1)(2^(w/2)+1)=max`, `(2^(w/2))^2=2^w`, `max^2 mod 2^w=1` are independent of the importer quotient algorithm. Both/product-only/flag-only modes each have distinct extracts in entry and two successor blocks, exercising both branches and call dominance. Valid aggregate-store, vector and i128 modules reach exact rejection; no malformed LLVM/index is used to evade verification. |
+| `tests/backend_import_fixture.tower` | `71ec8c886404b3124c80722e3411834cbea56389`. Imports the new exported fixture into the existing native backend-check unit; original bytes/admission fixture remains intact. No duplicate backend implementation in the storage provider. |
+| `tests/backend_import_overflow.tower` | `e9b2a9694bf892228fc0dfa45767959e3d696643`. Thirty verified/imported/formatted programs, independently reparsed and executed in Graph/Fast at target32/64:60 configurations,528 dynamic probe calls. Exact `0\n` output, bounded steps and success required. Eight negative trials assert exact text/resource/offset, prior-error preservation and unchanged entity/component census/no partial stage. Original LLVM world closes before recheck; every session/world, budget grant and instrumented buffer count drains. Failed rechecks refuse both execution starts with zero steps, then cleanly return1. |
+| `tests/storage_main.tower` | `39a0edc990a5e2dc3c331174476649d44a10cd14`. Existing `backend-import` selector runs its original admission/fault suite then all overflow trials once. Two narrow selectors permit i1/wider comparisons. Existing CTest `tower-storage-backend-import`, labels and120s timeout are reused; no new runner or all-selector duplication. |
+
+Actual baseline before editing the helper: all12 i1 configurations passed LLVM
+verification/import/formatting, then rejected Foundation recheck with exact
+`This operation requires integer operands`; Graph/Fast could not start, owners
+drained, exit1. After the fix all12 pass, including all four boolean pairs.
+Wider48 configurations and eight rejection/first-error controls pass both before
+and after. The final actual registered CTest also passes the original allocation
+sweep (140 healthy reconstruction allocations,298595 peak budget bytes; zero
+retained owners after cleanup) plus all60 configurations. No skips or timeouts.
+
+Deck Docker `tower-d1-ecs`, CPU0,2/8GiB, Release native x64 LLVM19, canonical public
+bootstrap768a0cdf, `TOWER_COMPILER_JOBS=1`; only dependency-aware
+`cmake --build .../native-coherent-127ca98 --target tower-storage-tests --parallel 1`.
+One fresh-process sample each; warm filesystem, no warmup, single-owner work host.
+Values below are wall / user+system CPU seconds / peak RSS KiB:
+
+| Check | Before | After |
+| --- | --- | --- |
+| i1 selector | 1.64 /1.60 /118268; failed recheck | 1.56 /1.54 /122372; executed successfully |
+| Wider selector, same fixture/resources | 5.72 /5.67 /127000; pass | 5.65 /5.60 /126692; pass |
+| Full existing backend-import CTest | not repeated as baseline | 7.91 /7.65 /127068; pass, CTest7.88s |
+
+Candidate incremental build:12.51wall/12.23CPU/496932KiB; only backend native
+object and link rebuilt. Fixture development errors (missing `strcmp`, missing
+`sem_attach` import, reserved `expected` local) were drained, corrected and their
+three failed build logs retained. Successful fixture/provider build17.08s;
+these differing build steps are validation costs, not compiler speed comparisons.
+Candidate storage executable SHA256
+`219736c8770a7a0368a19f9758e4e552c680dfbfb74eab99bc6aeafacddf8020`.
+Exact before/after inputs, binaries, commands, logs/time and receipt hashes are
+preserved in `build/d1_ecs/umul_fix_e637ba38/`.
+
+The wider one-sample comparison shows no material regression in this focused
+path; it is not scaling evidence. The exact saved608636-byte optimized
+`entity_views` request was not available in the assigned/shared paths inspected,
+and its source-request runner was absent from this cache. No unrelated input or
+new broad build substitutes for that serial/four-worker benchmark; ROOT/L2 retain
+that integrated performance gate if needed. This importer stage is serial and
+its worker admission did not change. These checks execute reconstructed Foundation
+in native Graph/Fast, not LLVM machine code or Wasm. Valid indices0/1 are exercised;
+invalid aggregate indices cannot pass LLVM verification. Poison/undef totalization
+and other unsupported intrinsic families are unchanged, not newly validated.
+Threaded instrumentation, sanitizers, final reactor/generation/hosted adoption stay
+with ROOT's frozen milestone; neither old a06 nor its passing tests include this
+future fix. No race-freedom or whole-compiler completion claim.
+
+### D1 seeded dependency/cancellation interaction — 1e428ede (2026-11-23)
+
+Initial freeze `1e428ede6c33cba159b753247affd8d5cf3ed67d` plus the following fixture delta;
+no D1 compiler/library/host change. Existing unit/profile tests cover forward
+imports and overlap, module-body/header fixtures cover frames, and work_observe
+covers stale revision/profile tickets separately. The missing composition was
+admitted cancellation followed by changed seeded inputs under identical virtual
+paths, with independent body captures and imported dynamic query branches.
+
+| Path | Tested blob and disposition |
+| --- | --- |
+| `scaffolding/tests/compiler_dependency_seeded.tower` | `de906ee60abdda62a9ab205285f1c11a150c358c`: fixed seeds2/17/101, three units/two bodies. Existing observer gates only cancellation; two admitted jobs drain, third remains unstarted, no cancelled result escapes. New seed/revision uses fresh worlds, not an invented in-place invalidation API. Each body combines owning-frame known capture despite shadow writes, imported nominal alias, forward type/value producers, untaken cycle and left-to-right pointer effects. Ordinary invocation answers derive from explicit small arithmetic plus trace12/returns3, independent of compiler output. Real ungated distinct-thread overlap, exact canonical/error bytes and raw offsets, earliest cycle unit2 versus invalid unit3 are asserted. Close checks lanes0 and uses production world/budget disposal assertions; no unsafe global threaded allocation counter. |
+| `scaffolding/tests/lr_work_main.tower` | `6dc0d79df7ead0a9c543d46ddb921f5a62e08cba`: four explicit selectors; `all` invokes correct paired fixture once. Wrong-result control returns1 after cleanup, never suppresses a compiler diagnostic. |
+| `cmake/TowerWorkPolicyTests.cmake` | `3d335340a03639abdf8be2411b0bb2de70910fcb`: two focused existing-binary registrations, normal native180s convention; only deliberate wrong-result oracle uses `WILL_FAIL`. |
+
+Actual paired CTest:15 batches (3 cancellations,6 successful compilations,
+6 deterministic cycle controls),36 independent body answers; pass29.61s.
+Wrong oracle: unit1/first actual1215 versus wanted1216, logged exact seeded
+sources/request/workers, checked cleanup then required nonzero result; pass2.50s.
+Both registered tests pass, zero skips/timeouts. Two earlier fixture build errors
+(missing direct vector/observer imports) are retained and corrected, not passed.
+Deck Docker CPU0,2/8GiB, public768, LLVM19 Release jobs1; only dependency-aware
+`tower-lr-work-tests` target. Successful build31.20wall/30.29CPU/453152KiB.
+Equivalent fresh-process six-batch samples (warm filesystem, n1): serial
+11.74wall/11.52CPU/207840KiB; two workers10.76/17.61/427952. Modest latency reduction
+costs more CPU/RSS; this small functional workload is not a scaling benchmark.
+Full paired+negative CTest32.13wall/39.74CPU/575096KiB; no memory pressure.
+Test executable SHA256 `6622c5b0f15d03f2706b865f727f59d65434445ac833a6af20bf78e2681340ab`.
+Raw commands/failures/time, source/resource hashes and preserved prior binary:
+`build/d1_ecs/dependency_stress_1e428ede/`. No production change: before/after
+production profiling is inapplicable. Target64 ordinary interpreter only;
+32-bit/Fast/browser/sanitizer/release remain ROOT's separate frozen gates.
+
+Final adoption at `325db64171cb1f864858b0dd0e5bac66e91792b5` includes L2's
+`semantic_lowering_work` registration guard: semantics+link rebuild39.40wall/
+38.35CPU/1082740KiB, same two CTests pass30.62wall/38.13CPU/574704KiB with the
+same15 batches/negative1215vs1216. Binary SHA256
+`93cf2e288735aa1284a45fee473caaf2ada142c1f482769880adb7069b8ab00e`;
+`merged_*` logs retain this boundary; initial serial/two timings are not relabeled.

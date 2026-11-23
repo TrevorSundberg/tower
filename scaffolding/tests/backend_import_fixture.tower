@@ -1,4 +1,5 @@
 import tower;
+import backend_overflow_fixture;
 import .backend.bindings;
 import .backend.context;
 import .backend.target;

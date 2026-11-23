@@ -25,6 +25,7 @@ export function foreignResult(value, type) {
 export function invokeForeign(imports, name, context, args) {
   if (!Object.hasOwn(imports, name) || typeof imports[name] !== 'function' && typeof imports[name]?.wasm !== 'function')
     throw new Error(`No implementation registered for external function '${name}'`);
+  imports[name]?.validate?.(context,args);
   const result = imports[name]?.wasm ? imports[name].wasm(...args) : imports[name](context, ...args);
   if (result?.then) throw new Error('External functions must return synchronously');
   return result ?? 0;
