@@ -84729,3 +84729,39 @@ comparison. Original frozen paired evidence remains valid for4bc51044.
 All owned jobs drained, git diff checks clean, todo unchanged. Normal main push
 follows this documentation receipt; ROOT sanitizer/bootstrap/browser/deployment
 gates and the historical timeout remain pending. No runtime deployment claimed.
+
+## 2026-11-23 D1 frozen c20 integration review and fixed completion ledger
+
+Required pull fast-forwarded d75a39ee to published
+c20dc56ac5344834a95e8de1f505abe9aea515ac; that source stays frozen for this review.
+Same thread01a2046a-4644-7ab1-a0ae-abd80210f013, Codex PID3075962, Deck; own
+container idle, no child build to drain,129GiB free disk. No heavy lock acquisition,
+compiler/test/cache mutation, new experiment or source implementation change.
+
+Reviewed B1 4bc51044/ff6820e2 checked provenance/format/session producer-callers,
+B2 6081ceb4 layout and0e9db271 ordinary wrapper inference, D2 d9e1b348 sort using
+owner receipts and actual composed sources. D1 audit records54 scoped paths,
+exact matching blobs and the frontend/symbol/body compositions. Checked first
+cause, detached grants, failure versus empty success, original diagnostic/offset
+preservation, module-null admission, ordinary binding/checking/effects, private
+LR sorting and structural publication. No new confirmed defect; existing raw
+Entity allocation beyond exhausted ledger remains concrete and unresolved here.
+Unpushed memory/body work is in progress, excluded from this published freeze.
+
+Replaced handoff current status with a fixed twelve-row implementation/evidence/
+remaining-action ledger for the original goal; preserved historical sections.
+B1 merged focused receipts match c20 runtime inputs (ff6820e2->c20 is journal
+only); B2 actual generation2 semantics object success is not whole generation2/3.
+Earlier full frontend300s failure and later5b05 328.14s/900s pass retain both
+identities. No percentages or queue-width speedup: B1's n1 accounting cost,
+D2's paired modest improvement, outstanding representative serial/scaling/memory
+and final-source instrumentation/bootstrap/browser/hosted gates stay explicit.
+
+Checks: exact blob and composed-hunk comparisons, actual producer/disposal/caller
+and CMake selector reads, scoped path-receipt equality, diff whitespace and
+unchanged todo SHA e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Read-only guessed semantic paths were corrected using the real changed paths.
+Metadata retained in build/d1_ecs/review_c20dc56/. Documentation-only profiling is
+inapplicable; no runtime evidence generated or relabeled. ROOT owns final atomic
+hosted publication. Normal documentation commit/push follows; later merges do
+not expand this review boundary.

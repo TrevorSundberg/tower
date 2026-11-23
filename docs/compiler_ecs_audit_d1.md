@@ -3463,3 +3463,142 @@ ran and neither was rebuilt. Current-source runtime acceptance remains pending
 ROOT's frozen milestone. Performance/sanitizer/browser measurements are
 inapplicable to registration-only configuration. The frozen51 source review,
 prior execution receipts, known accounting defect and todo remain unchanged.
+
+## Frozen integration review at c20dc56 (2026-11-23)
+
+Independent source checkpoint: published main
+`c20dc56ac5344834a95e8de1f505abe9aea515ac`, compiler tree
+`42eb931b70b90c778ba1c4d0f92b1e0a1ea2ee63`, scaffolding tree
+`533c8426231a39369570b308918a91f9b7b85571`, CMake tree
+`71edf52d2e5b3adfcf44bd6c1a28e66b5ef0ba36`. This is the requested B1
+4bc51044/ff6820e2, B2 6081ceb4/0e9db271 and D2 d9e1b348 integration review,
+not a new repository census. Prior unchanged reviews remain adopted. The union
+of these changes contains54 Tower paths; the following receipts identify their
+exact contents by frozen commit plus path. Changed hunks were read with their
+owning producers, callers, disposal/publication and dependency contracts.
+
+Blob comparison:44 of B1's47 Tower paths exactly match4bc51044. The three
+compositions are frontend_main (D2 lr-order and ROOT default progress labels),
+bootstrap_symbols and its checks (Semantics-only entity_stage_lease_result).
+Both B2 inference paths exactly match0e9db271; the layout fixture matches6081ceb4.
+semantic_body_work additionally contains3e9ba56's checked joined completion:
+a cancelled graph suppresses later query observation/alias publication/finish,
+while joined scratch/evaluation ownership still transfers for cleanup. Its
+stage wave completes before those publications; the layout reset remains only
+at the root-body boundary, not between incomplete declaration frontiers.
+D2's production sort/comparison/profile SHA256s exactly match its full-file
+receipt:80ee516d379d27b4bd16c7e38dcf8062a0f83fb1c5748ebfb2b9c388c321db2a,
+2af0a0246fab3fb54fa2995a563490218d6260e775731461264047b9b907d5a2,
+66af3f223dbe1ffdc7e55b022edcd42e0dc19367bb49168c789d52831b8b12c2 respectively.
+The composed frontend_main hash is
+`dbc1a5ef6d2020d76b09049b20f62b4ccb26224b11247da33d4273ee08905f7d`;
+its old D2 hash is not silently adopted. All branches/default assertions remain;
+presentation-budget and lr-order are explicit selectors, not implicit all cases.
+
+| Frozen path | Substantive disposition |
+| --- | --- |
+| `scaffolding/compiler/format_storage.tower` | New owner separates borrowed text/spans from WorkBuffer grants. Growth checks overflow/self-alias offsets; first failure sticks. Finish reserves the terminator before moving ownership, leaving destination unchanged on failure. |
+| `scaffolding/compiler/format_types.tower` | Checked flag, budget and two receipts distinguish checked output from standalone legacy vectors; struct copies alone do not transfer ownership. |
+| `scaffolding/compiler/format.tower` | Writes/repeats/spans route through checked growth; disposal follows the ownership mode and releases both grants. Retry requires fresh initialization, as documented. |
+| `scaffolding/compiler/format_dependent.tower` | Temporary decoded names inherit the parent's budget; child failure propagates before emission and child storage is disposed. |
+| `scaffolding/compiler/format_foundation.tower` | Original identifier scratch uses a child owner, preserves source-name matching and releases on both early-return and fallback paths. |
+| `scaffolding/compiler/format_grammar.tower` | Alternative-width preview inherits budget; errors cannot become a successful empty preview, and the temporary owner is released. |
+| `scaffolding/compiler/format_parser.tower` | Tree traversal uses a private checked work vector. Legacy host-text conversion still copies to compiler_buffer ownership and disposes its input; it is an explicit standalone boundary. |
+| `scaffolding/compiler/format_parser_table_types.tower` | Request descriptor has its own receipt; traversal frames are private work-vector storage, table pointer remains borrowed. |
+| `scaffolding/compiler/format_parser_table.tower` | Result constructor allocates descriptor before initialization; frames report exact failures. Replies copy labels synchronously. Destroy releases frames/output then the saved descriptor receipt, including cancellation. |
+| `scaffolding/compiler/format_source.tower` | Token/comment ordering unchanged; request-local token scratch uses the output budget and is disposed after statement formatting. |
+| `scaffolding/compiler/format_syntax_preview.tower` | Nested preview output inherits budget. Tree comparison distinguishes mismatch from typed allocation failure; private pair stack is disposed. |
+| `scaffolding/compiler/syntax_nodes.tower` | Checked comparison adds buffer-backed pending pairs without changing equality/location rules. Null-budget compatibility retains vector disposal; budgeted path releases its receipt. |
+| `scaffolding/compiler/syntax_types.tower` | Trace rule and ordered splice payloads become owning work vectors; immutable history identity and source coordinates remain shared. |
+| `scaffolding/compiler/syntax_provenance.tower` | Copy allocates before destination replacement and retains shared traces before releasing old history. Staged copy queues cancellable references, never increments shared refcounts on workers; cancellation nulls borrowed trace slots. |
+| `scaffolding/compiler/host_provenance.tower` | Result wrappers select the node's actual compiler world and preserve per-call typed errors; no ambient registry or alternate provenance model. |
+| `scaffolding/compiler/syntax_expansion_types.tower` | Expansion result carries a separate resource cause alongside syntax error/root/counters; default initialization preserves None. |
+| `scaffolding/compiler/syntax_expansion.tower` | Trace/copy/mark errors pass through first-cause handling; failed expansion retains the existing cleanup protocol. General expansion scratch is not claimed fully budgeted. |
+| `scaffolding/compiler/syntax_emission_lexical.tower` | Into-result token labels preserve prefix/text/suffix order and avoid raw intermediate ownership for checked callers. Absent spelling remains distinguishable from failed output. |
+| `scaffolding/compiler/syntax_version_presentation.tower` | Into-result description/token APIs preserve missing-description fallback. A found but failed description stays failed; it cannot be silently replaced by an empty success. Raw wrappers retain host-text disposal contract. |
+| `scaffolding/compiler/syntax_version_types.tower` | Optional text_storage owns detached diagnostic bytes; text is only its view. Consumers must move/reset both together. |
+| `scaffolding/compiler/syntax_version_build.tower` | Table failure text moves before table teardown; diagnostic disposal handles checked and legacy variants. Text-termination failure preserves an earlier typed cause. |
+| `scaffolding/compiler/syntax_version_cache.tower` | Disposes an old detached diagnostic before reusing its descriptor; revision/cache publication ordering and owned pins remain unchanged. |
+| `scaffolding/compiler/syntax_template_build.tower` | Template parsing uses the supplied world and checked session/table/diagnostic APIs. Deferred destruction releases sessions and temporary text after copying replacement errors. |
+| `scaffolding/compiler/syntax_session_types.tower` | Descriptor/error have independent receipts; fallback is explicitly static. World/environment remain borrowed and must outlive session destruction. |
+| `scaffolding/compiler/syntax_session_state.tower` | Allocate_result returns exact denial without partial owner. Reset clears stale fallback/cause; destroy retires completion before borrowed version, then cache/pins/error/descriptor. |
+| `scaffolding/compiler/syntax_session_setup.tower` | Diagnostic transfer moves grant with bytes before producer teardown. Self-alias assignment handles growth. Null descriptor admission propagates; baseline transfer resets the source to prevent double release. |
+| `scaffolding/compiler/syntax_session_next.tower` | Failed late diagnostic formatting moves the recognizer's original error without another allocation. Success moves the new grant; static failures preserve text without requiring storage. Expansion errors retain typed cause. |
+| `scaffolding/compiler/syntax_session_diagnostic.tower` | Overlay, descriptions and final text complete before insertion offsets commit. Detached result can outlive session/world only while budget remains alive; compatibility-copy failure restores prior offsets. |
+| `scaffolding/compiler/syntax_session_format.tower` | Retains original roots while cloning/reparsing; checked root/comment/comparison scratch is disposed. Output allocation/verification failure returns false with a cause, distinct from valid empty source; structural mismatch rejects publication. |
+| `scaffolding/compiler/parser_presentation.tower` | Descriptor, frames, labels and final result share the explicit budget; callback replies copy before temporary labels die. Failed formatting never triggers successful fallback; numeric/missing-name behavior remains explicit. |
+| `scaffolding/compiler/parser_integration.tower` | Buffer-result finish transfers error before failed table destruction. Existing table cause wins over presentation error; successful empty conflict text is NUL-terminated before inspection. Raw API remains a copying compatibility boundary. |
+| `scaffolding/compiler/parser_state.tower` | Unexpected-input text moves into request ownership; labels are scoped until tree shift copies them. Denial marks request failure instead of asserting or borrowing freed bytes. |
+| `scaffolding/compiler/frontend_world.tower` | Pattern error output binds to the actual world's budget before cached/cold construction; exact producer failure is preserved. |
+| `scaffolding/compiler/frontend_pattern.tower` | Validates compiler/input/output, initializes checked diagnostics, and only supplies a formatting cause when no earlier producer error exists. |
+| `scaffolding/compiler/frontend_modules.tower` | Imported and top-level session admission now guards null, records graph failure, and balances import depth. Graph errors remain sticky; retry requires a fresh graph. Idle sessions remain graph/environment-owned. |
+| `scaffolding/compiler/frontend_compilation.tower` | Guards denied session before syntax_next; module is already in the cleanup owner list. Records resource cause and stops without publishing partial compilation. |
+| `scaffolding/tools/bootstrap_symbols.tower` | ParserNodes/ParserFormat/TemplateBuild permissions match the changed callers exactly; composed entity_stage_lease_result remains Semantics-only. No prefix-family widening or platform execution claim. |
+| `scaffolding/tests/bootstrap_symbols_checks.tower` | Checks actual names, wrong units and suffix rejection, including merged lease API; native symbol policy is distinct from running every target platform. |
+| `scaffolding/tests/frontend_main.tower` | Full composed entry read: both new selectors, existing resource argument and default progress labels coexist. No double inclusion of either focused fixture in default flow. |
+| `scaffolding/tests/presentation_budget.tower` | Uses production trace/session/format APIs. Capacity rollback, staged discard, measured late allocation denial, original offsets/error, retry, detached-world lifetime and final zero grants checked. Serial fault hooks are not thread sanitization. |
+| `scaffolding/tests/frontend_session_format.tower` | Failure expectation now requires nonempty diagnostic and exact Memory; dispose/default before retry avoids reusing a sticky failed owner. |
+| `scaffolding/tests/frontend_session_state.tower` | Error setup uses the new work-vector ABI; reset/disposal expectations preserve explicit standalone test ownership. |
+| `scaffolding/tests/generic_pump_publication.tower` | Aliased/null trace slots use budgeted splice storage, retaining each real reference explicitly; existing hold-before-unpin fixture semantics preserved. |
+| `scaffolding/tests/parser_table_budget.tower` | Distinguishes descriptor denial (null/Capacity) from live-session control denial/static message; retries sticky module failure with a fresh graph. |
+| `scaffolding/tests/regex.tower` | Fresh FormatResult after each disposal isolates fault cases; cached/cold Capacity, Busy and allocation failures keep their existing exact checks. |
+| `scaffolding/tests/syntax_live_replacements.tower` | Retained trace rule comparison uses its NUL-terminated work-vector data after session destruction; lifetime assertion remains substantive. |
+| `scaffolding/tests/world_constructor.tower` | Metadata fixture charges splice setup to its actual world; existing serial/staged denial/copy/discard assertions retain their ownership intent. |
+| `scaffolding/compiler/semantic_body_work.tower` | Safe module-root boundary resets the derived layout cursor only if early helpers created the pipeline. Existing sem_layout_all discovers graph queries; composed checked stage publication still precedes source-ordered continuation transfer. |
+| `scaffolding/tests/generation_layout_frontier.tower` | Imports actual frontend_units producer and interprets42, covering the WorkBatch omission behind old abort134. No copied ABI or synthetic replacement; workers1/4 registered in TowerWorkTests.cmake. |
+| `scaffolding/compiler/semantic_call_inference.tower` | Adds ordinary-template lookup through sem_resolve (owner/import/alias binding), restricted to type-returning wrappers. Straight-return syntax supplies constraints only; nominal identity, full substituted signature checks and ordinary execution remain authoritative. |
+| `scaffolding/tests/generic_cast_inference.tower` | Actual stack/vector disposal, nested pointer wrappers and inferred type value check42; address helper must execute once. Workers1/4 registered. Does not itself cover an effectful callee expression or arbitrary inversion of type programs. |
+| `scaffolding/compiler/lr_analysis.tower` | Closure-owned array sorted with unchanged rule/position/first/last comparator. Smaller-side recursion, size-derived depth and heap fallback bound work/stack; no allocation/shared mutable scratch. Sorting precedes state intern/propagation consumption, including failure return. |
+| `scaffolding/tests/lr_analysis_comparisons.tower` |33 boundary/order cases use independent insertion order oracle plus existing150 grammar cases. Terminal/completed dots prevent extra closure items from obscuring sort comparison; cleanup returns allocation count to baseline. |
+| `scaffolding/tests/frontend_iteration_profile.tower` | Explicit serial counter transport and pre-entity budget binding; checked answer/canonical hash, phase counts and final zero grants. Observed allocation/RSS do not imply a comprehensive world cap or worker overlap. |
+
+B2 inference caller review includes semantic_values::sem_call_arguments/instance,
+semantic_declarations::sem_declaration_infer, generic_register_result and
+semantic_modules::sem_resolve_from. Query workers copy inferred types privately;
+coordinator interning/specialization and ordinary parameter checking still occur.
+The new lookup neither executes a helper to infer its inverse nor reclassifies
+an executed wrapper as a static constructor. generic_type_result_read's supported
+straight-return subset remains a limit; unsupported inference is not evidence of
+lost effects. Existing argument and query checks remain, but this source review
+makes no new universal callable-effect or race-freedom claim. LR caller review
+includes lr_states_begin_result/intern, lr_kernel_closure_result and close-before-
+advance: sorted arrays are consumed only after private construction returns.
+
+Evidence adoption is scoped. B1's merged ff6820e2 native presentation-budget,
+parser, grammar-equivalence, exact three native symbol closures and three-unit
+canonical controls are recorded by c20dc56, whose only subsequent change is that
+journal receipt. They therefore cover the matching frozen inputs for those cases.
+Diagnostic peak597595 bytes and zero final grants are accounting evidence for
+migrated owners, not total RSS. B2 6081/0e9/5b16 receipts cover saved-before
+layout failure, workers1/4 fixtures, inference canonical/object equality,
+negative mismatch, type-smoke and actual generation2 semantics object; they do
+not establish whole generation2/3 or the later B1 union. D2 d9e/1906/577d receipts
+cover sort oracle/native LR and affected merged checks; its paired cold median
+2.05->1.93s (three pairs) retains its original input identity. B1's adjacent
+serial sample3.34->3.51s is about5% slower (n1); the mixed merged control is not
+a substitute performance comparison. Full final-source scaling remains pending.
+
+No new confirmed production defect found in this bounded closure. The already
+confirmed entity_create_result raw allocation bypass remains at this freeze:
+with the store ledger exhausted, it still allocates/publishes an Entity and
+returns None; D2's entity_accounting cap case fails after cleanup (6b04a149,
+2232-byte ledger plus184-byte descriptor on its Linux x64 host). B1's checked
+provenance uses this producer, so its text/splice budget migration cannot close
+that underlying world-bound defect. General raw revision/cache/expansion and
+other documented containers remain outside its scope. A2's unpushed memory work
+and other unpushed body work are in progress, not adopted here.
+
+The handoff now has a fixed twelve-row implementation/evidence/acceptance ledger.
+The earlier full frontend300s timeout remains failed; ROOT's later full5b05 suite
+passed328.14s under an explicit900s diagnostic deadline. Neither is a c20 full-
+suite pass. Current-source sanitizer/whole-generation/browser/atomic hosted
+acceptance belongs to ROOT, not this source review. The three d75 CTest
+registrations remain closed as configuration, with final-source execution pending.
+
+Validation here: exact owner-blob/composed-source comparisons, actual registration
+and caller lookup, path-specific receipt coverage, whitespace, preserved todo.
+Read-only path lookups initially used nonexistent semantic filenames; corrected
+against the actual changed-path lists, with no missing-source inference. Metadata
+is build/d1_ecs/review_c20dc56/. No compiler/test/profiling job or cache mutation;
+D2's heavy resources untouched. Documentation-only runtime profiling is
+inapplicable. Earlier journal/owner receipts and pinned resources stay intact.
