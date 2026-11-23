@@ -86720,6 +86720,93 @@ L2 module/inspection admission and final current-source performance,
 instrumentation, complete generations, browser and hosted release remain pending.
 
 L2 integration receipt: implementation5b4a587b merged complete published252b424a history as97b8b1c3. Required ff-only pull reported divergence; ordinary merge preserved both histories and all journal entries. Only runner-selector conflict, resolved by retaining both editor-sample and resource-roots; published scratch identity, diagnostic, interpreter, backend and LR changes preserved. Changed providers rebuilt once through the same dependency target: module_merge0/session58966 build+storage+query passed (76.01wall/113.53CPU seconds, peakRSS831368KiB), drained0. module_registry_merged/session40234 editor and lifecycle5/24 passed at32/64-bit workers1/4; normalized editor worker1/6 equivalence/cancellation and exact failure cleanup retained. Both frozen-source receipts0, empty stderr, no owned job left. Control smoke and matched before/after measurements retain the explicit5b4a587b pre-merge source identity; they are not relabeled as measurements of concurrent provider changes. No further source changes after these checks. Normal push follows; ROOT deployment and broader milestone gates remain pending.
+## 2026-11-23 D1 final source delta and fixed acceptance ledger at6767cd30
+
+Bounded task, thread01a2046a-4644-7ab1-a0ae-abd80210f013, CodexPID3094539,
+/home/deck/tower-agent-1 main. No surviving owned build before changing inputs.
+Required git pull --rebase=merges --autostash --ff-only advanced9ab43b9 to frozen
+6767cd301c7c0b08e6df3ff5894ba251143f0191. No new goal/agent/inbox polling. Initial
+129GiB free disk/9.7GiB available RAM; D2 retains the heavy slot. No D2 clone,
+cache, build or lock was modified. Existing todo hash remains
+e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+
+Compared only c20dc56..6767cd30:122 Tower paths (7 additions/115 modifications,
+no retirements), two browser transport/test paths, README updates and no build/
+CMake/bootstrap pin delta. The appended D1 audit maps every Tower path to its
+owner/caller/ownership finding and scoped receipts; checked set comparison finds
+no omitted delta path (syntax_session_setup is additional unchanged provider
+context). Changed guards adopt the owner closure with direct source inspection;
+this is not exhaustive independent runtime failure injection. The handoff now
+has one CURRENT fixed12-row ledger, preserving c20/finite51/history below it.
+Implementation, source review, executed tests, performance, instrumentation,
+generation and hosted identities are separate. No percentage or ETA.
+
+Inspected composed entity physical owners, private stage/pool transfer and query/
+removal admission; semantic scratch/index, node/error/worker join and dynamic
+readiness consumers; module/inspection/owned clone; counted interpreter/package
+ownership and host release; LR core/suffix and explicit backend codegen policy.
+The old exhausted entity ledger and blanket module/inspection assertion blockers
+are closed by their exact producers and receipts, not copied forward as open.
+Library/storage inputs from42c1e142 remain unchanged except new work_text outside
+the instrumented storage closure. Both corrected sanitizer fixture hashes match
+compiler_sanitizer_checks.md; adopt only its14 executables/26 processes per mode.
+All six D2 suffix source hashes match its full-file receipt.97b8b1c3..6767cd30 has
+no scaffolding/build/bootstrap/browser runtime delta, so L2's merged selected
+storage/query/editor/lifecycle checks apply within scope. Other measured/test
+receipts retain their original identities. Whole native gen2/gen3 identity on
+b5b585fb is passed historically; current public executable remains9653f818...
+(base98ade8cc), and A2 a0ffc67c successor package is not yet a published pin at
+this freeze. No deployed/current whole-generation claim.
+
+Concrete P1: actual Semantics consumers generic_expression_check, sem_module_scope
+and completion_session now call compiler_clone_tree_owned_result,
+frontend_module_cyclic_result and syntax_session_open_result. Read their real
+exports in generics/frontend_modules/syntax_session_setup and clone metadata/
+provenance owner propagation. The existing preserved verifier rejects each exact
+one-symbol nm input exit1 with its actual name. Added only these three names to
+Semantics' existing exact contract, plus symbol_admission_cases for Linux/Windows/
+Wasm/macOS spellings and truncated/suffixed/wrong-unit negatives. Target spellings
+are policy tests, not execution on those platforms. The two previous D1 stage/
+arena additions and all unexpected-import cases remain. No wildcard, foreign
+classification or concurrent L1 backend-import admission edit.
+
+Validation: reused standalone rule from the existing dependency-aware focused
+Ninja recipe, new owned output directory; compiled only bootstrap_symbols_checks
+through public9653f818 with jobs1 and linked the existing guest-host provider.
+Docker tower-d1-ecs, Linux x64 Steam Deck, LLVM19; two actions3.77wall/3.68CPU
+seconds/179584KiB peak. Native policy fixture exits0, wall/CPU below time's0.01s
+resolution, peak1224KiB; SHA256
+d8b1c323b2f35d9241fb756c4ef5117bf02d86086d4eae14c4e1e7c734061ba4.
+Policy source aa7b10c91ac4a1ab6a50e0262ab4a712b5b8a5c364def38960f4349339963fca;
+fixture source35e2d2c03d6a3d6638ec6a482a7b1b71884fc7cc101e96220b8914e74c35f911.
+Logs/commands/depfile/hashes/baseline failures live in
+build/d1_ecs/review_6767cd30/. Ninja's newly created root .ninja_log was moved
+into that owned log directory, preserving it. Read-only lookup misses and
+truncated large diff output were followed by narrower actual-path reads; no
+failed lookup was treated as missing production functionality. No compiler/test
+closure or sanitizer/browser matrix ran. Policy-table/test data changes do not
+change production path cost; documentation profiling is inapplicable. D2's live
+browser acceptance heavy lock remained untouched.
+
+Concrete K1, source-confirmed but NOT runtime reproduced: sem_known_infer line181
+returns after a failed sem_push_checked into its scratch candidate-node list
+without disposing already joined scans. Adjacent failure exits dispose them;
+sem_known_kind registers lifecycle0, sem_context_dispose has no transient scan
+sweep, and sem_query_cancel_failure only cancels graph work. Trigger: deny node-
+list growth after successful KnownScan/registration. Lost explicit cleanup covers
+scan-pointer/candidate/mutation/patch/read/storage vectors; worker jobs are already
+joined. Hand L2 the exact edge and targeted zero-buffer/grant regression action,
+not a speculative race or a claimed observed leak. No production repair made
+across concurrent ownership and no broad fixture build started.
+
+Final-source adoption remains finite: L2 K1/dependency slice; ROOT pin then A1
+body startup batch; L1 backend import admission; B1 serial/performance evidence;
+A2 affected sanitizer slice; D2 browser/normal/shared slice; ROOT exact actual-
+object import policy, final full generations and atomic hosted acceptance. These
+are pending changed inputs/acceptance gates, not absent implemented staging or
+parallel services. Existing three CTest registrations remain correctly wired;
+registration and older focused execution are not final-source release evidence.
+Source publication is normal main only; ROOT retains gh-pages/deployment.
 ### 2026-11-23 L2 integrated decltype/comptime/dependency slice (plan and source boundary)
 
 CLI PID20744; first successful work confirmed no surviving L2 child job, clean main and required ff-only pull current at6767cd301c7c0b08e6df3ff5894ba251143f0191. This bounded acceptance slice is not final whole-compiler acceptance and does not adopt A1's preserved86843700 body-admission batch or L1's later backend-import work. Existing registry receipts remain exact.
@@ -87027,6 +87114,23 @@ runtime profiling is inapplicable. Final current-source normal/shared/LLVM/cross
 two edited generations, supported instrumentation, useful scaling and hosted
 release still require affected-source adoption and fixing actual failures.
 Publication reconciliation: f04c3e91 (this evidence only) merged b0f507c6 as782cdd46, preserving all journal histories. Concurrent2013ad28 publishes the new public capacity compiler/resources; ROOT's b0f507c6 records its clean adoption. Thus that bootstrap prerequisite is now published, superseding the pending-publication wording above, but A1 body86843700 and L1 backend-import adoption remain separate. `git diff 6767cd30 HEAD -- scaffolding CMakeLists.txt cmake` is empty: compiler/test sources are identical. The bootstrap binary/resources changed, so this acceptance remains explicitly the6767 build/run, not a test of newly generated binaries under the adopted bootstrap. ROOT's clean-pin receipt is preserved as its own evidence. This turn contributes only journal evidence relative to published main; merged-document diff/receipt boundaries checked, no new runtime inputs or rerun claimed. No owned jobs remain; normal push follows.
+D1 publication reconciliation: commit4c2bd3b met publishedcbaa8c0; required
+ff-only pull refused divergence, normal merge9322f9f preserved complete histories
+and journal bytes. Incoming changes are bootstrap/provenance and owner evidence;
+all project compiler/test/build/browser inputs versus4c2bd3b are unchanged.
+Policy source/test/binary hashes and all eight project depfile inputs still match,
+todo unchanged. Existing policy evidence remains predecessor-built; no relabeling
+to new public768a0cdf. The tiny native policy test is not rerun without changed
+inputs. L2 f04c3e91's selected integration checks explicitly use our exact6767
+source and are adopted at their stated selection/observed overlap; K1 denial
+remains untested. ROOT2013ad28/b0f507c6 closes public capacity pin/clean adoption;
+B2's newly published whole-generation receipt is scoped252b424a, before L2 module
+admission. ROOT196a2d0 records passed portable/LLVM/cross builds but FAILED browser
+generation1 candidate completion; generation2 unrun, monitor's0 invalid. Ledger
+updates those exact receipts and A1 completion ownership without moving source
+review freeze or starting another audit. Final body/import implementation,
+affected instruments/performance, browser generations and hosted release remain
+ROOT's finite acceptance gates. No D1 heavy job or deployment; normal push follows.
 Final reconciliation: merged public cbaa8c05 as 56b1527da901fe53b1cca9e1627519ea45fd205e, preserving new
 generation/browser/dependency receipts. The delta since2013ad28 contains only
 documentation; the full frozen scaffolding/build/bootstrap SHA256 list still
