@@ -6,6 +6,8 @@ import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_graph;
+import .library.vector;
 import .library.entity_types;
 import generic_clone_fixture;
 import storage_api;
@@ -30,6 +32,8 @@ extern fn sem_context_dispose(context: SemanticContext*): void;
 extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
 extern fn sem_create_result(parent: void*, error: WorkBudgetError*): void*;
 extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn sem_layout_discover(context: SemanticContext*, node: void*): usize;
+extern fn sem_layout_execute(context: SemanticContext*): usize;
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
 enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
@@ -148,6 +152,10 @@ fn generic_result_storage_tests(): void {
         semantic_create_storage_trial(allowed);
     }
     semantic_attach_storage_trial();
+    var layout_calls = semantic_layout_storage_trial(unlimited);
+    for(var allowed: usize = 0; allowed < layout_calls; allowed++) {
+        semantic_layout_storage_trial(allowed);
+    }
     for(var tag = convert(u32, GenericResultOperation.Begin); tag < convert(u32, GenericResultOperation.Count); tag++) {
         var operation = convert(GenericResultOperation, tag);
         var calls = generic_result_storage_trial(operation, unlimited, false);
@@ -257,6 +265,67 @@ fn semantic_create_storage_trial(allowed: usize): usize {
     entity_release(root);
     utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
         "Semantic create result releases all owners");
+    return calls;
+}
+
+// Sweep actual production allocator calls across a dependent layout frontier.
+// Fault injection is serial and ends before any healthy kernel execution.
+fn semantic_layout_storage_trial(allowed: usize): usize {
+    var buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Layout storage world");
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, 8);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var error: WorkBudgetError;
+    var record = sem_create_result(root, &error);
+    var base = sem_attach_result(record, KType, &error);
+    base.type = { scalar: SStruct, pointer_bytes: program.pointer_bytes, record: record, ..default };
+    base.start = 41;
+    var field_node = sem_create_result(record, &error);
+    var field = sem_attach_result(field_node, KDeclare, &error);
+    field.type = { scalar: SI32, pointer_bytes: program.pointer_bytes, ..default };
+    utility_check(vector_push(&base.items, field_node), "Layout storage field");
+    var subject = sem_create_result(root, &error);
+    var array = sem_attach_result(subject, KType, &error);
+    array.type = { scalar: SArray, pointer_bytes: program.pointer_bytes, record: subject, ..default };
+    array.element = base.type;
+    array.length = 3;
+    array.start = 37;
+    var unlimited = ~convert(usize, 0);
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var query = sem_layout_discover(&context, subject);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if allowed == unlimited {
+        utility_check(query != 0 && program.resource.error == WorkBudgetError.None
+            && work_task(&context.queries, query).state != WorkState.Succeeded,
+            "Layout discovery suspends without recursively executing its dependencies");
+        var jobs = context.layout_jobs.length;
+        utility_check(sem_layout_discover(&context, subject) == query && context.layout_jobs.length == jobs
+            && sem_layout_execute(&context) == jobs && work_task(&context.queries, query).state == WorkState.Succeeded
+            && base.size == sizeof(i32) && array.size == array.length * base.size && field.byte_offset == 0,
+            "Dependent layouts publish once and preserve canonical query identity");
+    } else {
+        utility_check(query == 0 && program.resource.error == WorkBudgetError.Memory
+            && (program.resource.offset == array.start || program.resource.offset == base.start)
+            && array.size == 0 && base.size == 0 && context.workers.running == 0,
+            "Layout allocation denial preserves its producer and publishes no sizes");
+        var tasks = context.queries.tasks.length;
+        var before = tower_test_buffer_allocations();
+        utility_check(sem_layout_discover(&context, subject) == 0 && sem_layout_execute(&context) == 0
+            && context.queries.tasks.length == tasks && tower_test_buffer_allocations() == before,
+            "Failed dependent layout admission cannot replay storage or execute a partial frontier");
+    }
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Layout admission retires every partial payload, offset vector and graph owner");
     return calls;
 }
 
