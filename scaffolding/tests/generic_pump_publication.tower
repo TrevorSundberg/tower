@@ -1,0 +1,89 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.semantic_generic_body_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import generic_clone_fixture;
+import utility_checks;
+
+// Share the actual work declaration; never infer a private component offset.
+extern fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork*;
+extern fn sem_generic_copies_execute(c: SemanticContext*): bool;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+
+var GenericPumpBudgetBytes: usize = 1048576;
+var GenericPumpBranches: usize = 4;
+var GenericPumpDepth: usize = 2;
+// A second live input view is legal. It prevents structural publication even
+// after this phase closes its own pin; a successful clone must not mark the
+// instance ready or report this Busy rejection as allocator failure.
+fn generic_pump_publication_trial(width: u32, busy: bool): void {
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, GenericPumpBudgetBytes, 1), "Generic pump budget");
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, GenericPumpBranches, GenericPumpDepth, 1, &budget);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    utility_check(work_pool_open(&context.workers, 1), "Generic pump production transport");
+    var instance = generic_clone_fixture_instance(&fixture);
+    var registered = sem_generic_body_request(&context, instance, 0);
+    utility_check(registered != null, "Generic pump actual registration");
+    var query = work_find(&context.queries, instance, convert(u32, SemanticQuery.GenericBody), 0);
+    utility_check(query != 0, "Generic pump actual query identity");
+    var entities = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    var view: void* = null;
+    if busy {
+        view = entity_view_open(fixture.root);
+        utility_check(view != null, "Generic pump independent caller pin");
+    }
+    var progress = sem_generic_copies_execute(&context);
+    utility_check(registered.request.success
+        && registered.request.copied == fixture.width * fixture.depth
+        && registered.request.stage == null
+        && context.workers.running == 0 && context.queries.running == 0,
+        "Generic pump completes the real clone and retires its stage before returning");
+    if busy {
+        utility_check(!progress && program.resource.error == WorkBudgetError.Busy
+            && context.queries.cancelled && generic_body_pending(fixture.context, instance)
+            && entity_child_count(generic_clone_fixture_body(instance)) == 0
+            && entity_store_count(fixture.store) == entities
+            && entity_store_component_count(fixture.store) == components,
+            "Pinned publication preserves the empty instance and exact Busy receipt");
+        entity_view_close(view);
+        utility_check(!sem_generic_copies_execute(&context)
+            && program.resource.error == WorkBudgetError.Busy,
+            "Releasing the foreign pin cannot revive a failed pump");
+    } else {
+        utility_check(progress && program.resource.error == WorkBudgetError.None
+            && work_task(&context.queries, query).state == WorkState.Succeeded,
+            "Unpinned production publication succeeds");
+        generic_clone_fixture_check(&fixture, instance);
+    }
+    work_pool_close(&context.workers);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    var final: WorkBudgetSnapshot = default;
+    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0
+        && final.used_bytes == 0 && final.used_lanes == 0 && work_budget_dispose(&budget),
+        "Generic pump failure retires every world and budget owner");
+}
+
+export fn generic_pump_publication_tests(): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        generic_pump_publication_trial(width, false);
+        generic_pump_publication_trial(width, true);
+    }
+}
