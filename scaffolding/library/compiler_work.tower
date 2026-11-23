@@ -88,8 +88,9 @@ export fn compiler_work_create_result(units: usize, workers: usize, revision: u6
         var attached = entity_attach(node, work.owner, null);
         entity_release(node);
         if !attached { return compiler_work_create_failed(work); }
-        var unit = bits(CompilerWorkUnit*, entity_component_data(entity_component_add(node, work.kind)));
-        if unit is null { return compiler_work_create_failed(work); }
+        var component = entity_component_add_result(node, work.kind, &result);
+        if component is null { compiler_work_close(work); return result; }
+        var unit = bits(CompilerWorkUnit*, entity_component_data(component));
         unit.ordinal = i + 1;
         var task = work_request(&work.graph, bits(void*, node), convert(u32, CompilerQuery.Unit), convert(u64, i));
         unit.task = task;

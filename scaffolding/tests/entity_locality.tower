@@ -6,7 +6,12 @@ import .library.entity_types;
 // Linux x64 measurement boundaries; ownership, workload and references are Tower.
 extern fn clock_gettime(clock: i32, result: i64*): i32;
 extern fn getrusage(who: i32, result: i64*): i32;
-extern fn malloc_usable_size(allocation: void*): usize;
+
+// Physical bytes requested from the allocator, including the compiler header.
+// This is an ownership metric, not allocator-private usable bytes or process RSS.
+fn locality_page_bytes(page: EntityComponentPage*, kind: Entity*): usize {
+    return compiler_buffer_allocation_size(page.allocation.capacity);
+}
 
 struct LocalityValue { a: u64; b: u64; c: u64; d: u64; }
 fn locality_check(ok: bool): void { if !ok { trap("Entity locality reference mismatch", 0); } }
@@ -107,7 +112,7 @@ fn locality_case(count: usize): void {
         reference += value * 16 + 6;
         if page_count == 0 || pages[page_count - 1] != component.page {
             pages[page_count++] = component.page;
-            page_bytes += malloc_usable_size(bits(void*, component.page));
+            page_bytes += locality_page_bytes(component.page, kind);
         }
     }
     print(count); print(locality_time() - start); print(page_count); print(page_bytes);
@@ -136,7 +141,7 @@ fn locality_case(count: usize): void {
     var retained: usize = 0;
     for(var i: usize = 0; i < page_count; i++) {
         locality_check(pages[i].live == 1);
-        retained += malloc_usable_size(bits(void*, pages[i]));
+        retained += locality_page_bytes(pages[i], kind);
     }
     locality_check(retained == page_bytes && entity_query_count(kind) == survivors);
     print(survivors); print(locality_time() - start); print(retained); print(survivors * sizeof(LocalityValue));
