@@ -95,6 +95,9 @@ test('LLVM scalar idioms retain high-bit semantics after reconstruction',{timeou
   const cases=JSON.parse(await text('scaffolding/tests/llvm-scalar-idioms.json'));
   for(const [name,source,expected] of cases)
     assert.equal(await runBrightScript(compile(source,true)),expected,name);
+});
+
+test('LLVM population count retains bounded full-width patterns after reconstruction',{timeout:180000},async()=>{
   // Retain zero, partial patterns, sign bits and full-width masks while keeping
   // the simulator run bounded; the complete fixture runs in the main LLVM suite.
   const population=(await text('scaffolding/tests/backend_popcount.tower')).replace('while i < 256','while i < 8');

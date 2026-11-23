@@ -159,15 +159,19 @@ request graphs remain live. Existing `frontend_modules_destroy` requires that
 same drained state.
 
 Lease bookkeeping, input changes and source/diagnostic publication remain
-coordinator-owned. This is not permission to mutate an environment concurrently.
-Native grammar baselines and component registries still prevent full independent
-compiler worlds within one native instance; browser workers remain isolated.
+coordinator-owned. An environment is bound to one explicit compiler world;
+independent unit worlds can run concurrently through the shared unit executor.
+One writer owns each environment. Legacy default-world entry points retain their
+single-coordinator contract; browser backends use isolated reactors.
 
-Declaration-only module caches are bounded to 16 snapshots. Reuse checks source
-bytes and current dependency resolution, including newly added nearer files.
-The compilation environment also reuses the bounded parser-table cache. Ordinary
-parse trees acquire program-specific semantic components and are never reused
-across compilations. Source inputs and dependency paths are available
+Module caches are bounded to 16 snapshots of grammar-bearing modules and import
+wrappers. Reuse checks root source bytes and every dependency edge's current path
+and source bytes, including newly added nearer files. The snapshot's unique module
+index prevents repeated traversal through shared diamond dependencies. Grammar
+declarations are immutable; ordinary roots and import syntax are copied before
+acquiring program-specific semantic components. The environment also reuses its
+bounded parser-table cache. These caches belong to that environment/world and are
+not cross-unit semantic caches. Source inputs and dependency paths are available
 independently of CLI or browser transport.
 
 `towerc entry.tower --depfile output.o.d --library -o output.o` writes the

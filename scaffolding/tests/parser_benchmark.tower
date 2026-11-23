@@ -69,8 +69,8 @@ struct BenchmarkRetention {
     buffers: usize; entities: usize; components: usize; pages: usize;
     requested: usize; live_bytes: usize; unused_bytes: usize; page_bound: usize;
     individual: usize; individual_bytes: usize; cached: usize; versions: usize;
-    revisions: FrontendRevision*[64];
-    compiled: SyntaxVersion*[64];
+    revisions: FrontendRevision*[BenchmarkCacheCapacity];
+    compiled: SyntaxVersion*[BenchmarkCacheCapacity];
 }
 
 // Linux x64 integer-only diagnostic ABI. Preserve the original four-column

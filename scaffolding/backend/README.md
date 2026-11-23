@@ -55,11 +55,14 @@ Original graph execution stays available as the reference/debug path. The
 internal foundation/cache encoder also remains necessary for portable package
 loading and differential checks. Loading `.towerbc` needs no LLVM or executable
 memory. Foundation text is authoritative; the loader rebuilds and verifies the
-private cache before execution. Container revision 1 now uses semantic/cache
-revisions 2; optimization profile 0 denotes an internal reference cache, 1 the
+private cache before execution. Container revision 1 uses semantic revision 9
+and execution-cache revision 6; optimization profile 0 denotes an internal reference cache, 1 the
 scalar LLVM profile, and 2 LLVM lowering/reconstruction without passes. Unknown
-versions/profiles are rejected. Earlier semantic/cache revision 1 packages must
-be regenerated from their foundation source.
+versions/profiles are rejected. Older semantic/cache revisions must be regenerated
+from their Foundation source. Type-bearing programs retain the canonical type
+construction operation and use reference profile 0. A reached constructor in
+ordinary execution reports the explicit compile-stage capability diagnostic
+after its operands; an untaken operation does not fail merely by existing.
 
 ## Object generation
 

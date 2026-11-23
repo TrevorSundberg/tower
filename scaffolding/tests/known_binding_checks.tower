@@ -9,6 +9,28 @@ import .compiler.execution_session;
 import .compiler.foundation_tags;
 import .library.vector;
 
+fn known_initialization_order_case(modules: void*, root: u8*, bedrock: u8*, foundation: u8*, source: u8*, wanted: u8*): void {
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        execution_compile(&graph, source, width, modules);
+        execution_compile(&fast, source, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Known initialization order engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, wanted), "Known initialization order preserves runtime observations");
+        execution_roundtrip(&graph, modules, false);
+        execution_session_close(&graph);
+        execution_session_close(&fast);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial_output(source, workers, width, bedrock, foundation, root, &canonical, wanted);
+        }
+    }
+}
+
 fn known_binding_tests(modules: void*, root: u8*): void {
     var source: vector(u8) = default;
     var bedrock: vector(u8) = default;
@@ -69,7 +91,25 @@ fn known_binding_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var count=0;fn effect():i32{count++;return 4;}var fixed=effect();print(comptime(fixed));", "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer");
     struct_value_reject(modules, "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
     struct_value_reject(modules, "import tower;fn equal():bool{var a=1;var b=2;return &a == &b;}var fixed=equal();print(comptime(fixed));", "Automatic compile-time value depends on an address representation");
-    struct_value_reject(modules, "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", "cannot capture runtime storage");
+    // Failed optional staging admits the original runtime initializer. Its raw
+    // forward read has no portable value, so do not execute it for comparison.
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var admitted: ExecutionSession = default;
+        defer execution_session_close(&admitted);
+        execution_compile(&admitted,
+            "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", width, modules);
+    }
+    // Fully initialized state gives a defined oracle for exactly-once effects
+    // and source order across engines, canonical reparsing and worker counts.
+    known_initialization_order_case(modules, root, bedrock.data, foundation.data,
+        "import tower;var state:i32=0;fn read():i32{state++;return state;}var earlier=read();var later=7;print(earlier);print(state);print(comptime(later));", "1\n1\n7\n");
+    // Required staging still diagnoses the executed before-initialization read.
+    var demanded = "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(earlier));";
+    var diagnostic = "Compile-time initializer reads a module binding before its initialization";
+    struct_value_reject(modules, demanded, diagnostic);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        named_initialization_diagnostic_width(demanded, diagnostic, bedrock.data, foundation.data, root, width);
+    }
     struct_value_reject(modules, "import tower;var a:i32=comptime(b);var b:i32=a;print(a);", "dependency cycle");
     struct_value_reject(modules, "import tower;fn taken(value:i32):i32{return comptime(true?value:42);}print(taken(9));", "cannot capture runtime storage");
     struct_value_reject(modules, "import tower;fn collision(value:i32):i32{return comptime((40+2)+value);}print(collision(9));", "cannot capture runtime storage");

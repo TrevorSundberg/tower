@@ -1,5 +1,6 @@
 import tower;
 import frontend_units;
+import frontend_units_memory;
 import work_named;
 import .library.vector;
 import .library.work_pool;
@@ -23,6 +24,7 @@ extern fn frontend_units_observer(frontend: void*, context: void*,
     event: function(void, void*, CompilerQuery, usize, bool)): bool;
 extern fn frontend_units_peak(frontend: void*): usize;
 extern fn frontend_units_pending(frontend: void*): bool;
+extern fn frontend_units_input_bytes(frontend: void*): usize;
 extern fn pthread_self(): usize;
 extern fn sched_yield(): i32;
 extern fn fflush(stream: void*): i32;
@@ -94,6 +96,8 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     var streaming = frontend_units_pending(frontend);
     var before: WorkBudgetSnapshot;
     units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &before), "backend input accounting");
+    var input_bytes = frontend_units_input_bytes(frontend);
+    var output_bytes = units_memory_span_bytes(strlen(target));
     units_check(backend_units_create(frontend, ~convert(usize, 0), budget, target, true, true) == null,
         "backend rejects invalid count before allocating or walking units");
     var batch = backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true);
@@ -108,6 +112,7 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     for(var ordinal: usize = 1; ordinal <= BackendFixtureUnits; ordinal++) {
         var backend = backend_units_result(batch, ordinal);
         units_check(backend != null && backend_size(backend) != 0, "backend object produced");
+        output_bytes += backend_size(backend);
         var bytes = backend_bytes(backend);
         for(var i: usize = 0; i < backend_size(backend); i++) {
             units_check(vector_push(output, bytes[i]), "backend object snapshot");
@@ -116,30 +121,42 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
     units_check(backend_units_result(batch, BackendFixtureUnits + 1) == null, "backend invalid result ordinal");
     var retained: WorkBudgetSnapshot;
     units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &retained)
-        && retained.used_lanes == 0 && retained.peak_lanes <= retained.lanes,
+        && retained.used_lanes == 0 && retained.peak_lanes <= retained.lanes
+        && retained.peak_bytes <= retained.bytes && frontend_units_input_bytes(frontend) == input_bytes,
         "backend joins all shared execution grants");
     if streaming {
-        units_check(retained.used_bytes > before.used_bytes && retained.live == before.live + BackendFixtureUnits + 1,
+        units_check(retained.used_bytes >= before.used_bytes + output_bytes,
             "streaming objects retain their byte reservations after join");
     }
-    // A streaming backend borrows the frontend ledger; a later target owns its
-    // own ledger. Either way releasing it must restore the frontend baseline.
+    // Streaming compilation also creates retained frontend tables. Measure the
+    // exact backend release against the joined frontend baseline, not its
+    // earlier state before parsing. Later targets use a separate backend ledger.
     backend_units_close(batch);
     batch = null;
-    units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &retained)
-        && retained.used_lanes == 0 && retained.used_bytes == before.used_bytes
-        && retained.live == before.live, "backend disposal releases retained output receipts");
+    var released: WorkBudgetSnapshot;
+    units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &released)
+        && released.used_lanes == 0 && released.peak_bytes <= released.bytes
+        && frontend_units_input_bytes(frontend) == input_bytes, "Backend disposal preserves retained inputs and cap");
+    if streaming {
+        units_check(retained.used_bytes == released.used_bytes + output_bytes
+            && retained.live == released.live + BackendFixtureUnits + 1
+            && released.used_bytes >= before.used_bytes && released.live >= before.live,
+            "Backend disposal releases exactly target and object receipts beside retained frontend owners");
+    } else {
+        units_check(released.used_bytes == before.used_bytes && released.live == before.live,
+            "Separate backend ledger leaves frontend accounting unchanged");
+    }
 }
 
 fn backend_units_memory(frontend: void*, target: u8*): void {
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, 0, target, true, true) == null
         && backend_units_create_bounded(frontend, BackendFixtureUnits, 1, ~convert(usize, 0), target, true, true) == null,
         "bounded backend rejects missing or unbounded policy");
-    var bytes = strlen(target) + 1;
+    var bytes = units_memory_span_bytes(strlen(target));
     units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes - 1, target, true, true) == null,
         "target cap rejection leaves frontend graph usable");
     var batch = backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes, target, true, true);
-    units_check(batch != null, "exact target bytes admitted before allocation");
+    units_check(batch != null, "exact target payload and allocator header admitted before allocation");
     defer backend_units_close(batch);
     while !backend_units_step(batch, true) {}
     units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 1

@@ -133,7 +133,7 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     vector_dispose(&context.token_text);
     foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
     vector_dispose(&context.lists);
-    foreach(var allocation in &context.allocations) { free(allocation); }
+    foreach(var allocation in &context.allocations) { compiler_buffer_free(allocation); }
     vector_dispose(&context.allocations);
 }
 

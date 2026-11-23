@@ -49,8 +49,9 @@ uses code pointers; Wasm uses its function table. The portable interpreter uses 
 private deterministic reference table, with entity handles kept outside guest
 memory and the execution cache. These representations are not interchangeable
 numeric addresses. Module functions live for the loaded program's lifetime.
-Portable storage/interchange is canonical Foundation; `.towerbc` semantics/cache
-version 5 reconstructs and verifies that Foundation before running its cache.
+Portable storage/interchange is canonical Foundation. Function values introduced
+`.towerbc` semantics/cache version 5; see the [current package contract](../playground/README.md)
+for later versions. Loading reconstructs and verifies Foundation before execution.
 
 At runtime, explicit equal-width `bits` casts support low-level representation
 round trips through integers or raw pointers. They do not make an incompatible
