@@ -14,8 +14,7 @@ import semantic_aggregates;
 import semantic_known_bindings;
 import semantic_capture_work;
 import semantic_evaluation;
-
-extern fn sem_float_one(type: FoundationType*): u64;
+import .library.float_bits;
 
 // Expressions are normalized on the shared ECS entities into ordinary bound
 // locals, calls, loads/stores and control flow. No backend sees surface tags.
@@ -479,7 +478,7 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
             }
             next = sem_surface_constant(c, block, type, 1);
               if semantic_float(type) {
-                  sem_get(next).bits = sem_float_one(type);
+                  sem_get(next).bits = tower_float_from_integer(1, Float32Width, false, semantic_width(type));
               }
         } else {
             next = sem_lift_value(c, block, value.value);

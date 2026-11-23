@@ -40,7 +40,8 @@ struct SemanticEvaluationWork {
 // hidden producer expressions belong to different jobs. Enum conversions belong
 // to the consuming expression and lower around those same pending literals.
 fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
-    var context = *result.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
     context.editor = null;
@@ -166,7 +167,8 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
-        var context = *c;
+        var context: SemanticContext;
+        sem_context_snapshot(&context, c);
         for(var i: usize = 0; i < count; i++) { batch.data[i].context = &context; }
         var receipt: WorkReservation;
         var extra = sem_workers_admit(c, count, &receipt);

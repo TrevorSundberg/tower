@@ -19,6 +19,14 @@ extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
 extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*): WorkBudgetError;
 
+// Capture the descriptor once at the existing frozen-input boundary. The
+// destination is private; graph, pool and shared payload ownership stay borrowed.
+// Keep one ordinary fieldwise copy here rather than expanding it in every
+// worker/coordinator caller. Each worker still replaces its private scratch.
+export fn sem_context_snapshot(destination: SemanticContext*, source: SemanticContext*): void {
+    *destination = *source;
+}
+
 // Each dispatched work component owns this read log. Only the coordinator
 // updates the dependency graph, after joining readers of its immutable indexes.
 fn sem_query_read(c: SemanticContext*, query: usize): void {

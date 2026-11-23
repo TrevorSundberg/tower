@@ -60793,3 +60793,44 @@ source evaluation/snapshot timing, padding and shallow borrowed ownership;
 raw byte copying and general copy-policy changes are excluded. Compare this
 helper alone with the same API/constructor inputs before retaining numeric
 module splits. Runtime outputs and matched profiles remain required.
+
+### Typed context snapshot restores public aggregate closure (2026-11-23)
+
+ROOT and A2 approved the ordinary typed helper, excluding raw copies. The exact
+11-file delta is A1_semantic_context_snapshot.patch SHA256
+04589f9cdb863f998e2e6ec81a7f2f20c4414d4e188c779e2c185d858662732d.
+One sem_context_snapshot definition retains *destination = *source;16 A1 worker
+and coordinator sites use fresh locals and call it at their original snapshot
+point. Graph/pool descriptors remain shallow borrows. Every private scratch
+replacement, stage pin/lease, join and disposal remains at its existing site.
+The thin Publish client uses the existing query API declaration; the existing
+semantic unit owns the export. No new provider, layout or semantic copy rule.
+
+On frozen A2 API v2/constructor inputs and the A1 checked-known draft, with ALL
+original numeric callers restored, public9653 before fails at semantic_values523:
+13.67wall/7.92user/1.10sys/739744KiB (semantic_context_before1).
+After only the typed snapshot delta, semantics_checks PASSES
+19.90wall/14.25user/1.06sys/706836KiB (semantic_context_after1).
+A failed compile and a completed compile cannot establish a speedup ratio.
+The thin Publish leaf also passes3.10wall/2.32user/.16sys/193860KiB.
+Linux x64, LLVM19, jobs1,4CPU8GiB, single build receipts; no runtime speed claim.
+All child processes are reaped before further source edits.
+
+The numeric-boundary candidate is retired: original semantic_support/values/
+expression_lowering code is restored, and semantic_literals.tower is removed
+from production sources. Its full55th-path audit remains historical above;
+the actual experiment is retained in Git and the owned cache's
+semantic_literals_experiment.tower. Current assigned-file census returns to54.
+No literal-provider import or numeric library change is needed.
+
+Per-file review of the snapshot delta: semantic_context owns the sole ordinary
+copy; semantic_query_api only declares it. semantic_body_work (three sites),
+semantic_declarations (one), semantic_evaluation_work (two),
+semantic_execution_work (two), semantic_iteration_work (two),
+semantic_known_work (two), semantic_lowering_work (two),
+semantic_source_bindings (one), and semantic_known_publish (one) preserve their
+original source expression, capture timing and private destination. The source
+expressions contain no effects and are evaluated once. No type/generic owner
+site is changed. Current-ABI runtime, supported instrumentation, canonical
+outputs and matched profiles remain open. A2 is asked to test the smaller
+nominal graph variant without the provisional graph/pool API split.

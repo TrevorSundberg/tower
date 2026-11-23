@@ -10,6 +10,7 @@ import semantic_lifecycle;
 import semantic_modules;
 import .library.stack;
 import .library.vector;
+import .library.float_text;
 import .library.work_arena_api;
 import .library.work_arena_types;
 import .library.work_budget_types;
@@ -67,7 +68,16 @@ fn semantic_numeric_binary(t: FoundationType*, operation: u32): bool {
     return semantic_float(t) && (operation <= ODiv || operation >= OEq && operation <= OGe);
 }
 
-extern fn sem_float_literal(c: SemanticContext*, node: void*): bool;
+fn sem_float_literal(c: SemanticContext*, node: void*): bool {
+    if !sem_literal(c, node) { return false; }
+    var text = sem_token_text(c, node);
+    var start: usize = text[0] == FloatDecimalMinus ? 1 : 0;
+    if !float_decimal_digit(text[start]) { return false; }
+    for (var i: usize = 0; text[i] != 0; i++) {
+        if text[i] == FloatDecimalPoint || text[i] == FloatDecimalExponent || text[i] == FloatDecimalUpperExponent { return true; }
+    }
+    return false;
+}
 
 export fn semantic_signed(t: FoundationType*): bool {
     return t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SI64 || t.scalar == SI8 || t.scalar == SI16);
@@ -340,7 +350,7 @@ fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
 
 // Borrow until the next token query on this private context. Callers that retain
 // or decode text must use sem_tokens instead.
-export fn sem_token_text(c: SemanticContext*, n: void*): u8* {
+fn sem_token_text(c: SemanticContext*, n: void*): u8* {
     c.token_text.length = 0;
     if n != null {
         sem_require(stack_push(&c.scan, n));
@@ -374,7 +384,7 @@ fn sem_identifier(c: SemanticContext*, n: void*): u8* {
     return text;
 }
 
-export fn sem_literal(c: SemanticContext*, n: void*): bool {
+fn sem_literal(c: SemanticContext*, n: void*): bool {
     // Rich expressions can start with digits or '-'; that does not make the
     // whole expression an untyped literal. Only unwrap transparent/group nodes.
     loop {
@@ -650,7 +660,7 @@ fn sem_instantiation_use(c: SemanticContext*, n: void*): void* {
     return use;
 }
 
-export fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
+fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     if !sem_ok(c) {
         return;
     }

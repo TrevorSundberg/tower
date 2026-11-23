@@ -20,8 +20,7 @@ import semantic_constructor_work;
 import .library.vector;
 import .library.work_graph_api;
 import .library.work_graph_types;
-
-extern fn sem_float_parse(c: SemanticContext*, node: void*, text: u8*, value: FoundationNode*): void;
+import .library.float_text;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -443,7 +442,12 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                         sem_set_type(&value.type, step80);
                     }
                     if semantic_float(&value.type) {
-                        sem_float_parse(c, n, text, value);
+                        var status: FloatParseStatus;
+                        value.bits = float_parse(text, semantic_width(&value.type), &status);
+                        if status != FloatParseStatus.Valid {
+                            sem_fail(c, n, status == FloatParseStatus.Overflow ? "Floating literal out of range" :
+                                (status == FloatParseStatus.DigitLimit ? "Floating literal exceeds decimal digit budget" : "Invalid floating literal"));
+                        }
                         return n;
                     }
                     if sem_float_literal(c, n) {
@@ -691,8 +695,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         var literal_type: FoundationType* = null;
                         if kind == KBits && semantic_float(&value.type) && sem_literal(c, args.data[1]) && !sem_float_literal(c, args.data[1]) {
                             var text = sem_tokens(c, args.data[1]);
-                            var sign = "-";
-                            var negative = text[0] == sign[0];
+                            var negative = text[0] == FloatDecimalMinus;
                             var integer = value.type.scalar == SF32 ? (negative ? SI32 : SU32) : (negative ? SI64 : SU64);
                             literal_type = sem_type_new(c, integer, 0, null);
                         }

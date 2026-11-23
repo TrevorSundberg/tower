@@ -150,7 +150,8 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
 var SourceBindingDepthLimit: usize = 1024;
 
 fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
-    var context = *job.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, job.context);
     var program = *context.program;
     context.program = &program;
     program.error = default;

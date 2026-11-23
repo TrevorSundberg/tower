@@ -511,7 +511,8 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
 // Admission inspects immutable syntax and published names. Its node/boundary
 // indexes belong to the existing body component; no semantic nodes are created.
 fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
-    var context = *result.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
     context.editor = null;
@@ -560,7 +561,8 @@ fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork**, coun
         sem_require(vector_push(&ready, result));
     }
     if ready.length == 0 { return 0; }
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     foreach(var result in &ready) { result.context = &context; }
@@ -1872,7 +1874,8 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
         running.data[active++] = result;
     }
     if active == 0 { return 0; }
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     for(var i: usize = 0; i < active; i++) { running.data[i].context = &context; }

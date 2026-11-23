@@ -80,7 +80,8 @@ fn sem_iteration_resolution_check(c: SemanticContext*, result: SemanticIteration
 }
 
 fn semantic_iteration_kernel(result: SemanticIterationResolution*): void {
-    var context = *result.context;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, result.context);
     var program = *context.program;
     context.program = &program;
     context.editor = null;
@@ -179,7 +180,8 @@ fn sem_iteration_resolutions(c: SemanticContext*, batch: SemanticBodyWork**, cou
         var id = work_find(&c.queries, result.owner.expression_header, convert(u32, SemanticQuery.IterationResolution), convert(u64, role));
         sem_require(work_take_task(&c.queries, &result.ticket, id));
     }
-    var context = *c;
+    var context: SemanticContext;
+    sem_context_snapshot(&context, c);
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     foreach(var result in &jobs) { result.context = &context; }
