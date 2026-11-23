@@ -49197,3 +49197,38 @@ fixtures import it; normal fixture also imports work_vector_types. This follows
 modules194–211 (no implicit re-exports), preserving one nominal definition and
 all tests/ownership. Export D2/buffer_type_imports.patch SHAa4eb447703eba60802941dae6f0143ce8152bc534443ab90e2d9837bf8fe6591.
 Corrected compile/runtime still pending; no failed result relabeled.
+
+D2 corrected split import units91369 pass at d672270: public pin9653 compiles
+work_vector plus all four buffer fixtures, unchanged frozen source hashes;
+original93271 failure retained. Runtime evidence remains pending. Drained before
+integrating one coherent owner closure: parser9e4d+cfd3, frontendc654+6e961,
+backend retained-ledger93b9, interpreter9228. Source reviewed, not yet runtime
+accepted. Parser object's physical header/storage, states and contexts have
+world-ledger owners. Frontend snapshots use physical buffers, exact subtotal,
+finite64MiB test compilation allowance, strict replacement/denial preservation.
+Backend fixture measures exact target/object release against joined retained
+frontend baseline rather than preparse live counts. Interpreter memory,
+initialization and captured-input metadata share the root-world budget and
+retain receipts until actual disposal; this is three vectors, not all heap use.
+IMState/IMContext layout changes require a complete dependent rebuild.
+
+Minimal explicit imports follow the previously reproduced no-reexport boundary:
+parser_table/frontend_units direct WorkBuffer users import work_buffer_types;
+query fixture's new IMState signature imports interpreter_types. Exported
+D2/joint_defining_imports.patch separately for owners; no duplicated nominal
+identities or changed owner algorithms. First hand-authored narrow patch failed
+reverse-check, regenerated standard-context patch and reverse-check passed.
+New parser_table_budget source is80 lines, fully reviewed: explicit world,
+exact direct-byte subtotal, blocked creation/growth preserving previous owners,
+release/retry/reuse, exact final ledger and serial allocator cleanup.
+Runtime validation still pending.
+
+Applied D1-authorized production profile registration41d2bc06 after full source
+review. Initial whole-patch check rejected README context (newer local layout
+profile documentation); no partial mutation. Applied exact CMake and intended
+new README paragraphs preserving newer prose. Existing LR/backend sources and
+libraries plus dedicated Tower main/three production callbacks, Linux x64
+opt-in, no default/CTest or serial/fault transport. Entry sources remain
+D2guard57e392d9/B2cache0930654a. Local build, actual overlap, paired costs and
+current ABI instrumentation are next; older API passes are not relabeled.
+No new vendor build or publication lease.

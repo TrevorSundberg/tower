@@ -8,8 +8,14 @@ import interpreter_storage;
 import interpreter_context;
 import interpreter_context_types;
 import .library.vector;
+import .library.work_vector;
+import .library.work_budget_types;
+
 import .library.float_bits;
 import .library.float_text;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 var InterpreterFinishValuePhase: usize = 4;
 var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
@@ -593,7 +599,7 @@ fn ix_input_storage(m: IMExecution*, n: FoundationNode*, producer: void*, offset
         if !ix_ok(m) { return 0; }
     }
     var storage: IMValueStorage = { producer: producer, address: base, bytes: bytes, frame: m.state.frame_count };
-    if !vector_push(&m.context.input_storage, storage) {
+    if !work_vector_push(&m.context.input_storage, m.state.budget, storage) {
         ix_fail(m, "Cannot retain private compile-time input storage", offset);
         return 0;
     }
@@ -1174,6 +1180,7 @@ export fn ix_init(m: IMExecution*): void {
         return;
     }
     var root = ix_root(m);
+    m.state.budget = compiler_world_work_budget(compiler_node_world(root));
     var n = im_cached_node(m.state, root);
     var base = m.state.stack;
     var size = im_align(n.frame_size);
@@ -1751,9 +1758,9 @@ export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     interpreter_storage_dispose(&invocation.state);
     vector_dispose(u8, &invocation.context.error);
     vector_dispose(u8, &invocation.context.output);
-    vector_dispose(u8, &invocation.context.initialized);
+    work_vector_dispose(&invocation.context.initialized);
     vector_dispose(&invocation.context.type_construction.error);
-    vector_dispose(&invocation.context.input_storage);
+    work_vector_dispose(&invocation.context.input_storage);
     *invocation = default;
 }
 

@@ -2,6 +2,7 @@ import interpreter_types;
 import tower;
 import interpreter_abi;
 import .library.vector;
+import .library.work_vector;
 
 // Owned execution-space bytes. Target addresses are offsets into this buffer;
 // this is host containment, not foundation object/lifetime safety metadata.
@@ -14,7 +15,7 @@ export fn im_memory(m: IMState*): u8* {
 }
 
 export fn im_memory_resize(m: IMState*, count: usize): bool {
-    var ok = vector_reserve(&m.memory, count);
+    var ok = work_vector_reserve(&m.memory, m.budget, count);
     if ok {
         if count > m.memory.length {
             var start = m.memory.data + m.memory.length;
@@ -42,7 +43,8 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     vector_dispose(&m.free_blocks);
     vector_dispose(&m.strings);
     vector_dispose(&m.sequenced);
-    vector_dispose(&m.memory);
+    work_vector_dispose(&m.memory);
+    m.budget = null;
 }
 
 // Internal container allocation failure retains the previous fatal host policy.

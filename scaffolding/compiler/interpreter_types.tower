@@ -1,5 +1,7 @@
 import tower;
 import .library.vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
 import foundation_types;
 
 // Execution storage only; entity keys refer to the existing foundation nodes.
@@ -39,7 +41,7 @@ struct IMState {
     frame_count: usize;
     task_count: usize;
     cached: bool;
-    memory: vector(u8);
+    memory: work_vector(u8);
     allocations: vector(IMEntry);
     free_blocks: vector(IMEntry);
     strings: vector(IMEntry);
@@ -48,4 +50,7 @@ struct IMState {
     node_cache: vector(IMEntry);
     function_values: vector(void*);
     type_values: vector(FoundationType);
+    // Borrowed from the root world before dispatch; outlives retained storage.
+    // Null is the explicit standalone execution boundary.
+    budget: WorkBudget*;
 }

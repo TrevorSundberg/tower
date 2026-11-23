@@ -1,5 +1,6 @@
 import tower;
 import parser_trace_failures;
+import parser_table_budget;
 import frontend_world;
 import frontend_table_owner;
 import .compiler.parser_table_types;
@@ -31,6 +32,7 @@ extern fn tower_test_buffer_fail_after(count: usize): void;
 
 fn parser_failure_tests(): void {
     parser_trace_failure_tests();
+    parser_table_budget_tests();
     var before = tower_test_buffer_count();
     var world = compiler_world_create();
     var kinds: FrontendKinds;

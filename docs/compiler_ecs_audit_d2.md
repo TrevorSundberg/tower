@@ -1473,3 +1473,24 @@ work_buffer_types to implementation/four fixtures and work_vector_types to the
 normal fixture; no implementation/layout/oracle change. This supersedes any
 inference that importing the old implementation exposes moved types. Corrected
 local compilation/runtime remains a distinct required check.
+
+#### Joint physical-owner integration boundary
+
+Corrected five public units pass at d672270; raw failed predecessor compile
+remains recorded above. Incoming parser9e4d/cfd3, frontendc654/6e961 and backend
+retention93b9 are source-reviewed/adopted together with interpreter9228; no
+runtime claim until every shared-ABI dependent rebuilds. Direct WorkBuffer and
+IMState users receive explicit defining imports, exported separately to owners.
+New parser_table_budget80-line fixture uses explicit world-owned table/context
+buffers, retained exact direct-byte subtotal, denial/retry/reuse and final zero
+ledger plus serial allocator balance. It is correctness coverage, not a timing
+or concurrency workload. Interpreter query measurement now also compares exact
+physical reservations across interleaved invocations, width4/8 and8/65536-byte
+inputs with/without budget; denied growth preserves payload and receipt. This
+supersedes earlier source39366 for current builds, preserving historical
+evidence. Neither change establishes a complete compiler memory cap.
+
+D1 registration41d2bc06 inspected/applied without competing manifest logic:
+production LR/backend closure, three real callback exports, Linux x64 opt-in,
+no default heavy test or serial allocator. Existing frontend/cache full source
+reviews remain applicable; measurement runtime/current ABI proof is pending.
