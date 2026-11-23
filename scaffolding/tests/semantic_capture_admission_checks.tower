@@ -1,0 +1,134 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(a: u8*, b: u8*): i32;
+
+enum CaptureAdmissionMode: u32 { Healthy, Cancelled, Capacity, Failed }
+var CaptureAdmissionBytes: usize = 1048576;
+var CaptureAdmissionRevision: u64 = 96;
+
+fn capture_admission_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn capture_admission_trial(width: u32, workers: usize, mode: CaptureAdmissionMode): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var subject = sem_create(root);
+    sem_attach(subject, KDeclare).start = 83;
+    var peer = sem_create(root);
+    sem_attach(peer, KDeclare).start = 11;
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, CaptureAdmissionBytes, CaptureAdmissionRevision));
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    var pressure: WorkReservation = default;
+    if mode == CaptureAdmissionMode.Capacity {
+        var query = convert(u32, SemanticQuery.BodyInputs);
+        var argument: u64 = 1;
+        sem_require(work_request(&context.queries, root, query, argument++) != 0);
+        while context.queries.tasks.length < context.queries.tasks.capacity {
+            sem_require(work_request(&context.queries, root, query, argument++) != 0);
+        }
+        sem_require(work_request(&context.queries, root, query, argument - 1) != 0);
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot)
+            && snapshot.used_bytes < snapshot.bytes
+            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &pressure)
+                == WorkBudgetError.None);
+    }
+    if mode == CaptureAdmissionMode.Cancelled { work_cancel(&context.queries); }
+    if mode == CaptureAdmissionMode.Failed { sem_resource_record(&program, WorkBudgetError.Memory, 27); }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var tasks = context.queries.tasks.length;
+    var admitted = sem_capture_request(&context, subject);
+    if mode == CaptureAdmissionMode.Healthy {
+        capture_admission_check(admitted != 0 && work_ok(&context.queries)
+            && work_task(&context.queries, admitted).state == WorkState.Waiting
+            && sem_capture_pump(&context) == SemanticPumpResult.Complete,
+            "Undemanded capture admission remains healthy without executing effects", &failures);
+        nodes = entity_store_count(store);
+        components = entity_store_component_count(store);
+        tasks = context.queries.tasks.length;
+    } else {
+        var wanted_error = mode == CaptureAdmissionMode.Capacity ? WorkBudgetError.Capacity
+            : mode == CaptureAdmissionMode.Failed ? WorkBudgetError.Memory : WorkBudgetError.None;
+        var offset: usize = mode == CaptureAdmissionMode.Capacity ? 83
+            : mode == CaptureAdmissionMode.Failed ? 27 : 0;
+        capture_admission_check(admitted == 0 && program.resource.error == wanted_error
+            && program.resource.offset == offset && context.queries.running == 0
+            && context.workers.running == 0,
+            "Failed capture admission retains its actual cause and owning declaration", &failures);
+        capture_admission_check(entity_store_count(store) == nodes
+            && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks,
+            "Closed or denied capture admission adds no partial metadata", &failures);
+        if pressure.active { sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None); }
+    }
+    var retained = program.resource;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        var again = sem_capture_request(&context, subject);
+        if mode != CaptureAdmissionMode.Healthy {
+            capture_admission_check(sem_capture_request(&context, peer) == 0,
+                "A later declaration cannot replace a terminal capture failure", &failures);
+        }
+        capture_admission_check(again == admitted && entity_store_count(store) == nodes
+            && entity_store_component_count(store) == components && context.queries.tasks.length == tasks
+            && program.resource.error == retained.error && program.resource.offset == retained.offset,
+            "Repeated capture requests preserve identity without replay or metadata growth", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    capture_admission_check(compiler_world_dispose(world), "Capture admission releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    capture_admission_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Capture admission releases every graph reservation", &failures);
+    return failures;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var mode = CaptureAdmissionMode.Healthy;
+    if argc > 1 {
+        if strcmp(argv[1], "capacity") == 0 { mode = CaptureAdmissionMode.Capacity; }
+        else {
+            if strcmp(argv[1], "cancelled") == 0 { mode = CaptureAdmissionMode.Cancelled; }
+            else {
+                if strcmp(argv[1], "failed") == 0 { mode = CaptureAdmissionMode.Failed; }
+                else { if strcmp(argv[1], "healthy") != 0 { puts("Unknown capture admission selector"); return 1; } }
+            }
+        }
+    }
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += capture_admission_trial(width, workers, mode);
+        }
+    }
+    if failures == 0 { puts("Capture admission preserves terminal receipts and exactly-once metadata."); }
+    return failures == 0 ? 0 : 1;
+}
