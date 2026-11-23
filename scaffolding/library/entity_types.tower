@@ -70,6 +70,10 @@ struct Entity {
     instance_capacity: usize;
     registered: bool;
     queued: bool;
+    // Immutable after kind registration. Zero selects the default; otherwise
+    // limit newly allocated private-stage pages only. Published pages keep
+    // their capacity and may be reused by the coordinator without relocation.
+    stage_page_rows: u8;
     data_size: usize;
     data_alignment: usize;
     lifecycle: usize;

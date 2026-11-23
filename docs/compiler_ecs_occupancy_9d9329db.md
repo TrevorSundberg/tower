@@ -272,3 +272,7 @@ attribution. All owned jobs drained; no additional performance campaign,
 instrumentation, generation, browser check or deployment occurred. Twenty-eight
 ordinary processes across the original/final/merged observer boundaries passed;
 these are not twenty-eight independent samples of one identical binary.
+
+The bounded follow-up implemented and retained the four-slot policy after matched
+measurements: [declaration page experiment](compiler_ecs_declaration_pages_5b9194e4.md).
+This receipt's original source/evidence boundary remains unchanged.

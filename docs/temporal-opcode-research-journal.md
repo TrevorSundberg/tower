@@ -89591,3 +89591,47 @@ their own exact success boundary. Final current-source complete artifacts,
 remaining Node/LLVM resource failures, hosted release and the service-blocked
 instrumentation gate remain open. No retry/bypass of that rejected operation,
 new contexts or sanitizer claim occurred.
+
+### A2 four-slot declaration stage pages: measured policy retained (2026-11-23)
+
+Bounded follow-up to e9fd7aa5/578437af occupancy, frozen published5b9194e4
+(tree815869aa). No per-kind page policy existed: shared allocator fixed64rows/
+16KiB. Added immutable entity_register_stage_result with exact Invalid/Busy,
+legacy registration compatibility, and u8 policy in existing Entity padding
+(still184B native). Only SemanticDeclaration requests four stage rows, at kind
+creation before dispatch; store/default kinds retain existing policy. Stage
+pool transfer/reuse, stable addresses, joins/leases/queued refs/finalizers and
+first resource causes remain unchanged. No scheduler or early-disposal rewrite.
+
+Same8/512 bodies and new8x256-local fuller stream at1/4workers, production
+allocator, CPU0-11/24GiB, public768a0cdf/LLVM19/native Release, explicit2GiB ledger.
+Smallest component-layout build/test passed, then one dependency build22actions
+48.095wall/76.298CPU seconds/1066272KiB. Focused page reuse (default/four), finite
+cap/invalid/Busy/retry/stable publication/zero grants, concurrent stages,48 real
+2/4worker component-budget publication/cancellation/denial trials, stage-result
+normal/default, query-smoke and declaration-calls all pass. No compilation or
+runtime test failure. No instrumentation/rejected-operation retry occurred.
+
+Large declarations retain2096 records and579pages:9264->3120slots,
+9101301->3153909B, exactly5947392B saved, occupancy22.63->67.18%. World live
+93825589->87878197B (6.34% lower), same grants. Fuller stream140->524pages,
+384 extra allocations/grants,88704B extra headers/alignment,92928B fewer unused
+slots: net4224B saved, not a universal dense-stream saving. Default record lifetime
+and post-program/module/cache retention unchanged; all84 profile processes assert
+zero final byte/lane/live grants, then dispose separate ledger metadata.
+
+Initial separate n3 cohorts suggested large speedup; one bounded paired n3 repeat
+with preserved baseline and reversed sample2 order removed that claim. Process
+median changes -1.39..+1.34%, CPU -1.55..+1.54%; large RSS -1920/-1784KiB at1/4.
+Fuller4worker process637.700->646.219ms, CPU650.723->660.328ms, RSS209900->210588KiB.
+Four workers still lose on these inputs. Kept material retained-byte benefit with
+small observed cost; n3 is not a statistical bound. No foreign/allocator bytes
+are turned into a fake process cap; dense pointer indexes are not packed payloads.
+
+Exact source/link/tool hashes, commands, individual samples, outputs, API and
+limits: docs/compiler_ecs_declaration_pages_5b9194e4.md and external
+A2/cache/logs/declaration_stage_pages_5b9194e4. Baseline exe fd3892a5, candidate
+4ccdd459, identical profile971fd1c5. Original canonical/reference checksums match;
+fuller canonical8211171274327935316/260424B, reference42. All three old stashes and
+todo untouched. ROOT retains later merged-source/release and open service-blocked
+instrumentation requirements. Normal main reconciliation/publication follows.

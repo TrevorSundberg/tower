@@ -217,6 +217,7 @@ extern fn entity_component_add(node: void*, type: void*): void*;
 extern fn entity_component_add_result(node: void*, type: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_register_stage_result(type: void*, size: usize, alignment: usize, lifecycle: usize, stage_rows: u8): WorkBudgetError;
 
 extern fn tower_node_create(): void*;
 extern fn entity_create_related(node: void*): void*;
@@ -356,10 +357,14 @@ export fn sem_create_result(parent: void*, error: WorkBudgetError*): void* {
 
 // Dynamic kinds share containment admission and retire an unregistered node.
 fn sem_kind_result(parent: void*, size: usize, alignment: usize, error: WorkBudgetError*): void* {
+    return sem_kind_stage_result(parent, size, alignment, 0, error);
+}
+
+fn sem_kind_stage_result(parent: void*, size: usize, alignment: usize, stage_rows: u8, error: WorkBudgetError*): void* {
     var kind = sem_create_result(parent, error);
     if kind == null { return null; }
-    if entity_register(kind, size, alignment, 0) { return kind; }
-    *error = WorkBudgetError.Invalid;
+    *error = entity_register_stage_result(kind, size, alignment, 0, stage_rows);
+    if *error == WorkBudgetError.None { return kind; }
     sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
     return null;
 }
