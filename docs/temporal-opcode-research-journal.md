@@ -82632,3 +82632,17 @@ OS wrappers are root_ownership_sanitizers.sh and root_thread_supported.sh.
 No project runtime code changed in this receipt; new runtime profiling is
 inapplicable. Current-source final integration, full native/browser/generation,
 remaining scaling/implementation gates and atomic hosted publication remain open.
+
+Merged completion: implementation5230b5d7 preserved alongside complete incoming
+b83eeca7 history in6929004f, with both journals and no source conflicts. ROOT's
+immediate sem_ok guards after executable/capture begin in constructor/type-value
+consumers are present; its checked executable metadata and A1's executed-stage
+frontier are integrated, not remaining L2 implementation. L1 Fast storage and
+parser providers changed, so one affected dependency rebuild was necessary.
+known_capture_merged0/session72833 passed20 actions, storage/query-smoke and
+constructor1/4 exact0 outputs, empty stderr and frozen-source checks. Build
+86.25wall/128.16CPU seconds/779460KiB; storage.29/.23/99612; query.20/.23/75556.
+Owned jobs drained. Earlier timing receipts keep their measured compiler identity;
+no repeated profiling or broad gates. The remaining scratch/synthesis and legacy
+caller admissions above remain pending; stage leases stay A2-owned. Normal main
+push follows this receipt; final lane status records the verified remote commit.
