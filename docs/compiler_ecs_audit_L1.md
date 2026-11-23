@@ -18,8 +18,11 @@ separately by the production unit/backend controls. Paired 1f37-to-452f measurem
 preserve every output and show small timing changes: serial effects 1.43 to 1.40s,
 serial aggregates 1.41 to 1.44s, four-worker cases 1.19/1.21 to 1.17/1.18s.
 No large regression appears in these two workloads; the serial aggregate cost
-and all samples remain recorded. Final joined instrumentation/public bootstrap/
-browser/publication remain open.
+and all samples remain recorded. On this snapshot, TSan query checks pass three
+times, production units pass, and the separately instrumented resource fixture
+passes three times. Backend overlap fails its existing deadline under TSan;
+the later aggregate/type/known checks did not run. This remains a coverage gap,
+alongside final union instrumentation/public bootstrap/browser/publication.
 
 Read the compiler services and ECS/threading handoff with the journal's newer
 type-value continuation. Production helper readiness uses `IMFunctionInput`;

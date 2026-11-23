@@ -48561,3 +48561,68 @@ separately covered by exact grant assertions; process RSS is not that ledger.
 Raw storage_error_profile_* logs preserve all samples, including warmups.
 All jobs drained before host release; no concurrent sibling compilation ran
 during the comparison. Final union/instrumentation/release work remains open.
+
+### L1 supported thread instrumentation on the resource milestone
+
+Committed source 01e0dadf17dee20e15c75bc8718928b21452b038 matches the earlier
+452f runtime source manifest exactly after pull/rebase. Its complete bundle
+L1_complete_01e0dad_from_60741.bundle has SHA256
+05399565ac490b4a78758e34b18b77506dd3f0a155dbfe1dcc2131a9f096e991,
+with only published 60741 as prerequisite. No publication lease or source push.
+
+The owned l1_ecs_tsan_20261123 cache uses the verified public bootstrap, installed
+Clang/LLVM 19, the existing Tower instrument_llvm tool and TOWER_SANITIZER=thread.
+The first external configure recipe omitted CMAKE_PROJECT_scaffolding_INCLUDE
+for TowerBackend.cmake. Configuration succeeded, but Ninja had no requested LR
+runner and exited 1 before compilation. Session 1624 drained; its configure/build
+logs remain. The corrected recipe supplies the same backend include and driver
+test flag as the normal native cache. It changes no project source or system
+configuration. The resulting 69-step build passes in 119.99s wall/194.36s CPU,
+791596KiB peak RSS, with frozen input manifests. It uses two outer build jobs
+and one worker per bootstrap invocation. No new sensitivity probes were run.
+
+The instrumented LR executable is
+c603a0dad3c8e5c00fcdaa8ecd2d69367fbd6af651a2723d60c8a336c69adae6;
+the built execution runner is
+18666afb9af971ed5fa77466fcabd47343e1d9fc0ea759a289b14fb347a6803d.
+The instrumentation tool hash is 2ae3dab3bf8ff7d8327a1c9783cde1226b0190534077f3e5d3f295e40f14fa12.
+The configured-object manifest is recorded separately and is not an execution
+receipt. Generated Tower objects are instrumented; prebuilt system/LLVM libraries
+remain outside that coverage. Native Tower source UBSan is unsupported here.
+
+With TSAN_OPTIONS=halt_on_error=1:exitcode=66, query-smoke passes three times:
+wall 2.25/1.57/1.47s, CPU 1.51/1.60/1.49s, RSS118148/118000/117744KiB.
+Production units also pass: 564.00s wall, 938.09s CPU, RSS1370508KiB. There are
+no TSan reports in these passing receipts. A single read-only gdb stack sample
+during the long unit run found __tsan_unaligned_read8 through lr_items_sift,
+lr_items_close and parser_table_build; it does not quantify time by function.
+The debugger detached normally. L2 subsequently used an explicit subordinate
+one-job slot for its separate-cache serial clone checks. The diagnostic pause
+and that overlap mean these costs are validation observations, not controlled
+compiler performance comparisons.
+
+The next backend-overlap check FAILS with native status134/SIGABRT after its
+serial baseline, at the existing deadline: frontend unit2 awaits backend unit1.
+It takes167.85s wall/198.16s CPU/RSS680060KiB. stderr contains no TSan report;
+that absence does not turn the failed overlap check into a pass. GNU time's
+trailing Exit status0 after its signal6 line is not the native success status;
+the shell status file and abort diagnostic retain the failure. The later
+aggregate-stages/types/known commands did NOT RUN. Session94012 drained before
+any follow-up. No deadline/assertion was weakened. Root/D1/B2 have the exact
+receipt for a scoped instrumented-deadline policy and merged-source attribution.
+
+After L2's subordinate22028 check explicitly drained, L1 separately emitted and
+instrumented the unchanged resource fixture plus its existing host imports, then
+linked the frozen instrumented production objects. Original IR390883ee,
+instrumented IRbcb57a1f, object2af27928 and executable9757c6ad have full hashes in
+semantic_resource_tsan_binaries.sha256. All three runs pass with empty stderr:
+wall0.04/0.04/0.05s, CPU0.03/0.03/0.04s, RSS86132/85952/85888KiB. These retain
+the ordinary required/inferred/isolated, target-width, failed-ticket, no-replay
+and zero-grant assertions. Production objects hash identically before/after.
+This is targeted ownership evidence, not proof of universal race freedom.
+
+All L1 and subordinate L2 jobs drained before releasing the primary host lock.
+The all-eight-source root3915 union is next; this evidence remains tied to 01e
+and is not relabelled validation of that unbuilt union. Backend instrumentation
+coverage, final joined ASan/TSan, clean public bootstrap/browser and coordinated
+atomic publication remain open. This documentation changes no runtime path.
