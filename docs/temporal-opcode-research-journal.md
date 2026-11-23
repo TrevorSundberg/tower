@@ -95042,3 +95042,16 @@ changed createCompilerWorker page-owned path is not invoked by these ordinary
 Node fixtures (compilerThreads takes the non-shared module return or Node worker
 factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
 hosts, compilerThreads and Tower providers still match the measured freeze.
+
+B1 gate publication reconciliation: implementation05780abb merged complete
+published0fe314ef atf416c52a0991715d4a3af64fdbf56f4b65b5f652 after required
+ff-onlydivergence, no conflicts/historyloss. Incomingbrowser/backendfixtures
+preserved; compilerproduction/budget/host/library unchanged, B2Entityexcluded.
+Fixturedependency rebuiltonebackendprovider +relinked2runners. Separate merged
+profilered52532c148269628694b7122fee4d6e6b5e85ee0324172a8e7fc76d6c879717,
+LR02c90e957f662c97a9550fbbd9986edc1da5857c8efde8eb9dc20241dc413fc0.
+MergedLR1.72/2.24CPU/123804KiB andFULLunits12.64/20.21/796112 PASS;
+small1 .4202/.3845/177548,multi4 3.4133/11.0911/1127792 exactfullcanonical/source
+andzerograntteardown PASS. Currentresource-rootpath16bytesshorter accountsfor
+16bytelowerretention; controls separate from original16matchedpairs. No source/
+binary relabel. Diffchecks/source/manifests pass; normalpush,ROOTownsrelease.

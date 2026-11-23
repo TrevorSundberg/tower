@@ -182,3 +182,21 @@ handoff: `C:/Sandbox/build/codex_ecs_20261122/B1/budget_gate_70e77b60`.
 `budget_gate_{freeze,build,checks,samples,host_checks,profiles}.sh` in the owned
 build directory retain exact commands. `todo.txt`, public pin, old attribution
 and rejected LR receipts are unchanged. ROOT owns release/adoption/deployment.
+
+Publication reconciliation: implementation `05780abb` merged complete published
+`0fe314ef` at `f416c52a0991715d4a3af64fdbf56f4b65b5f652` after the required
+ff-only pull refused divergence. Incoming browser transport/backend fixtures
+are preserved; budget/host/library and compiler production sources are unchanged.
+B2's Entity candidate is still excluded. The fixture dependency rebuilt one
+backend provider and relinked both runners; this is a separate merged composition.
+
+Merged profiler SHA256
+`ed52532c148269628694b7122fee4d6e6b5e85ee0324172a8e7fc76d6c879717`,
+LR runner `02c90e957f662c97a9550fbbd9986edc1da5857c8efde8eb9dc20241dc413fc0`.
+LR passes1.72s/2.24s CPU/123804KiB and full units12.64s/20.21s/796112KiB.
+Small1 and multi4 output controls pass0.4202s/0.3845CPU/177548KiB and
+3.4133s/11.0911CPU/1127792KiB, with exact original canonical/source bytes and
+zero owners. These controls use `/work/scaffolding`; its library-root snapshot
+is16 bytes shorter than the original frozen root, matching their16-byte lower
+retention. They are not additions to the matched performance pairs. Original
+input/binary identities stay unchanged; merged manifests/logs live under `merged`.
