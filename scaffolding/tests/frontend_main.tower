@@ -17,6 +17,9 @@ import regex;
 import syntax_lexer;
 import frontend_iteration_profile;
 import parser_structure_reuse;
+import presentation_budget;
+import parser_diagnostic_budget;
+import frontend_diagnostic_text;
 
 extern fn parser_tests(): void;
 extern fn syntax_tests(): void;
@@ -30,6 +33,16 @@ extern fn puts(text: u8*): i32;
 // Focused production-API checks, including allocation-failure cleanup.
 // This entry does not walk or reformat the repository's source files.
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 3 && strcmp(argv[2], "presentation-budget") == 0 {
+        presentation_budget_tests();
+        presentation_diagnostic_lifetime();
+        parser_diagnostic_budget_tests();
+        frontend_diagnostic_text_tests();
+        frontend_diagnostic_revision_tests();
+        frontend_session_format_tests();
+        regex_test_pattern_resources();
+        return 0;
+    }
     if argc == 3 && strcmp(argv[2], "structure-reuse") == 0 {
         parser_structure_reuse_tests();
         return 0;

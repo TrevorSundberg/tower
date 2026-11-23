@@ -1,4 +1,7 @@
 import tower;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_vector;
 import lr_parser;
 import parser_nodes;
 import syntax_highlights;
@@ -10,11 +13,20 @@ import .library.vector;
 import .library.work_budget_types;
 
 extern fn compiler_buffer_free(memory: void*): void;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 
 export fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession* {
-    var value = alloc(SyntaxSession, 1);
-    if value is null { return null; }
+    var error = WorkBudgetError.None;
+    return syntax_session_allocate_result(world, environment, &error);
+}
+
+export fn syntax_session_allocate_result(world: void*, environment: void*, error: WorkBudgetError*): SyntaxSession* {
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, compiler_world_work_budget(world), sizeof(SyntaxSession), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var value = bits(SyntaxSession*, storage.data);
     *value = default;
+    value.storage = storage;
     value.inputs.world = world;
     value.inputs.environment = environment;
     value.declarations_only = true;
@@ -48,6 +60,7 @@ export fn syntax_session_progress(value: SyntaxSession*): void {
     value.comment_cursor = 0;
     value.declaration = false;
     value.error.length = 0;
+    value.error_fallback = null;
     if value.error.data is not null { value.error.data[0] = 0; }
     syntax_highlights_clear(&value.highlights);
     syntax_session_pin_revision(&value.pins.grammar, value.pins.baseline);
@@ -63,6 +76,7 @@ export fn syntax_destroy(opaque: void*): void {
     syntax_session_inputs_dispose(&value.inputs);
     syntax_session_pins_dispose(&value.pins);
     syntax_highlights_dispose(&value.highlights);
-    vector_dispose(&value.error);
-    free(value);
+    work_vector_dispose(&value.error);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }

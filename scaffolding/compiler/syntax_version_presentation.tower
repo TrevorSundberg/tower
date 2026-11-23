@@ -1,4 +1,7 @@
 import tower;
+import format_types;
+import format_api;
+import format_storage;
 import frontend_revision_types;
 import lr_tree;
 import parser_nodes;
@@ -14,6 +17,8 @@ import .library.work_budget_types;
 
 extern fn syntax_description_text(entity: void*, name: u8*, name_only: bool, syntax: void*, kind: void*): u8*;
 extern fn syntax_origin_text(entity: void*, prefix: u8*, syntax: void*, kind: void*): u8*;
+extern fn format_syntax_description(result: FormatResult*, entity: void*, name: u8*, name_only: bool, syntax: void*, kind: void*): void;
+extern fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*, syntax: void*, kind: void*): void;
 extern fn compiler_buffer_allocate(size: usize): void*;
 extern fn compiler_buffer_free(memory: void*): void;
 
@@ -25,26 +30,40 @@ fn syntax_version_text(text: u8*): u8* {
 }
 
 export fn syntax_version_description(value: SyntaxVersion*, definitions: FrontendRevision*, index: usize, name_only: bool): u8* {
+    var output: FormatResult = default;
+    if !syntax_version_description_into(value, definitions, index, name_only, &output) { return null; }
+    return format_parser_host_text(&output);
+}
+
+export fn syntax_version_description_into(value: SyntaxVersion*, definitions: FrontendRevision*, index: usize, name_only: bool,
+    output: FormatResult*): bool {
     var found = syntax_emission_find_index(bits(SyntaxEmission*, value.emission), index);
-    if found is null { return null; }
+    if found is null { return false; }
     var rule = syntax_revision_rule(definitions, found.name, syntax_text_length(found.name));
-    if rule is null || found.alternative >= rule.count { return null; }
-    return syntax_description_text(rule.alternatives[name_only ? 0 : found.alternative], found.name, name_only, value.kinds.syntax, value.kinds.`match`);
+    if rule is null || found.alternative >= rule.count { return false; }
+    format_syntax_description(output, rule.alternatives[name_only ? 0 : found.alternative], found.name, name_only, value.kinds.syntax, value.kinds.`match`);
+    return true;
 }
 
 export fn syntax_parser_describe(context: void*, index: usize): u8* {
+    var output: FormatResult = default;
+    syntax_parser_describe_into(context, index, &output);
+    return format_parser_host_text(&output);
+}
+
+export fn syntax_parser_describe_into(context: void*, index: usize, output: FormatResult*): void {
     var value = bits(SyntaxVersion*, context);
-    var text = syntax_version_description(value, value.grammar, index, false);
-    if text is not null && text[0] != 0 { return text; }
-    compiler_buffer_free(bits(void*, text));
+    if syntax_version_description_into(value, value.grammar, index, false, output) { return; }
+    var f: FormatEngine = {result: output, ..default};
     var node = index == 0 ? null : entity_child_at(value.rules, index - 1);
-    if node is null { return syntax_version_text("start of input"); }
+    if node is null { format_text(&f, "start of input"); return; }
     var rule = bits(ParserRuleData*, entity_component_data(entity_component_get(node, value.kinds.rule)));
     var helper = syntax_emission_find_helper(bits(SyntaxEmission*, value.emission), node_rule_name(rule));
     if helper is not null {
-        return syntax_origin_text(helper.source, helper.capture ? "capture " : "repetition ", value.kinds.syntax, value.kinds.`match`);
+        format_syntax_origin(output, helper.source, helper.capture ? "capture " : "repetition ", value.kinds.syntax, value.kinds.`match`);
+        return;
     }
-    return syntax_version_text("start of a statement or grammar declaration");
+    format_text(&f, "start of a statement or grammar declaration");
 }
 
 export fn syntax_parser_resolve(context: void*, name: u8*): u32 {
@@ -60,4 +79,9 @@ export fn syntax_parser_token_name(context: void*, id: u32): u8* {
 export fn syntax_parser_token_name_result(context: void*, id: u32, error: WorkBudgetError*): u8* {
     var value = bits(SyntaxVersion*, context);
     return syntax_emission_token_text_result(bits(SyntaxEmission*, value.emission), id, error);
+}
+
+export fn syntax_parser_token_name_into(context: void*, id: u32, output: FormatResult*): void {
+    var value = bits(SyntaxVersion*, context);
+    syntax_emission_token_into(bits(SyntaxEmission*, value.emission), id, output);
 }

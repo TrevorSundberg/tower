@@ -6,6 +6,7 @@ import entity_require;
 import syntax_types;
 import .library.entities;
 import .library.entity_types;
+import .library.work_budget_types;
 
 export fn syntax_get_origin(node: Entity*): SyntaxOrigin* {
     return syntax_origin_get(compiler_node_world(node), node);
@@ -17,6 +18,10 @@ export fn syntax_copy_origin(source: Entity*, destination: Entity*): void {
 
 export fn syntax_expansion_copy_origin(source: Entity*, destination: Entity*): bool {
     return syntax_origin_copy(compiler_node_world(source), source, destination);
+}
+
+export fn syntax_expansion_copy_origin_result(source: Entity*, destination: Entity*): WorkBudgetError {
+    return syntax_origin_copy_result(compiler_node_world(source), source, destination);
 }
 
 export fn syntax_expansion_history(node: Entity*): SyntaxExpansion* {
@@ -35,6 +40,14 @@ export fn syntax_expansion_trace(rule: u8*, start: usize, end: usize, invocation
     return syntax_trace_create(compiler_node_world(invocation), invocation, rule, start, end);
 }
 
+export fn syntax_expansion_trace_result(rule: u8*, start: usize, end: usize, invocation: Entity*, error: WorkBudgetError*): SyntaxExpansion* {
+    return syntax_trace_create_result(compiler_node_world(invocation), invocation, rule, start, end, error);
+}
+
 export fn syntax_expansion_origin(trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
     return syntax_origin_mark(compiler_node_world(node), trace, node, source, generated);
+}
+
+export fn syntax_expansion_origin_result(trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): WorkBudgetError {
+    return syntax_origin_mark_result(compiler_node_world(node), trace, node, source, generated);
 }

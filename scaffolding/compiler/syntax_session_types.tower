@@ -4,6 +4,8 @@ import syntax_version_types;
 import syntax_types;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_buffer_types;
+import .library.work_vector_types;
 
 // Session-owned input leases. World/environment and a supplied module are
 // borrowed; an internally opened module, source snapshot and document are owned.
@@ -47,6 +49,7 @@ struct SyntaxSessionExpansionStats {
 }
 
 struct SyntaxSession {
+    storage: WorkBuffer;
     inputs: SyntaxSessionInputs;
     source: u8*;
     source_length: usize;
@@ -66,7 +69,8 @@ struct SyntaxSession {
     comment_cursor: usize;
     cache: SyntaxVersionCache;
     expansion_stats: SyntaxSessionExpansionStats;
-    error: vector(u8);
+    error: work_vector(u8);
+    error_fallback: u8*; // Static diagnostic only; never a borrowed temporary.
     resource_error: WorkBudgetError;
     error_offset: usize;
     error_insertion: bool;

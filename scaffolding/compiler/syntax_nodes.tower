@@ -1,4 +1,7 @@
 import tower;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
 import syntax_types;
 import lexer_table;
 import lr_tree;
@@ -165,12 +168,17 @@ struct SyntaxComparison {
     right: void*;
 }
 
-fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right: void*): bool {
+fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right: void*, storage: WorkBuffer*, budget: WorkBudget*, error: WorkBudgetError*): bool {
     var count = pending.length + 1;
-    if count == 0 {
-        return false;
+    if count == 0 { *error = WorkBudgetError.Invalid; return false; }
+    if count > pending.capacity {
+        if budget == null { if !vector_reserve(pending, count) { *error = WorkBudgetError.Memory; } }
+        else {
+            *error = work_buffer_grow_elements(storage, budget, pending.length, pending.capacity, count, sizeof(SyntaxComparison), alignof(SyntaxComparison));
+            if *error == WorkBudgetError.None { pending.data = bits(SyntaxComparison*, storage.data); pending.capacity = storage.capacity / sizeof(SyntaxComparison); }
+        }
     }
-    var ok = vector_reserve(pending, count);
+    var ok = *error == WorkBudgetError.None;
     if ok {
         pending.data[pending.length].left = left;
         pending.data[pending.length].right = right;
@@ -182,12 +190,19 @@ fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right
 // 1 equal, 0 different, -1 allocation failure. Metadata and cache addresses do
 // not affect parser identity. Template coordinates matter only when requested.
 export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: bool): i32 {
+    var error = WorkBudgetError.None;
+    return syntax_nodes_equal_result(left, right, kind, locations, null, &error);
+}
+
+export fn syntax_nodes_equal_result(left: void*, right: void*, kind: void*, locations: bool, budget: WorkBudget*, error: WorkBudgetError*): i32 {
+    *error = WorkBudgetError.None;
+    var storage: WorkBuffer = default;
     if left == right {
         return 1;
     }
     var pending: vector(SyntaxComparison);
     vector_init(&pending);
-    var ok = syntax_comparison_push(&pending, left, right);
+    var ok = syntax_comparison_push(&pending, left, right, &storage, budget, error);
     var result: i32 = 1;
     loop {
         if !ok {
@@ -254,17 +269,17 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         }
         var index: usize = 0;
         for(; index != x.items.length; index++) {
-            ok = syntax_comparison_push(&pending, x.items.data[index], y.items.data[index]);
+            ok = syntax_comparison_push(&pending, x.items.data[index], y.items.data[index], &storage, budget, error);
             if !ok {
                 break;
             }
         }
-        ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement);
+        ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement, &storage, budget, error);
         for(var index: usize = 0; index < x.attributes.length && ok; index++) {
-            ok = syntax_comparison_push(&pending, x.attributes.data[index], y.attributes.data[index]);
+            ok = syntax_comparison_push(&pending, x.attributes.data[index], y.attributes.data[index], &storage, budget, error);
         }
     }
-    vector_dispose(&pending);
+    if budget == null { vector_dispose(&pending); } else { work_buffer_dispose(&storage); }
     return result;
 }
 

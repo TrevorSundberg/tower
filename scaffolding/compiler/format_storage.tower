@@ -1,0 +1,88 @@
+import tower;
+import format_types;
+import .library.vector;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+
+fn format_storage_error(result: FormatResult*): WorkBudgetError {
+    if result.resource_error != WorkBudgetError.None { return result.resource_error; }
+    return result.failed ? WorkBudgetError.Invalid : WorkBudgetError.None;
+}
+
+fn format_storage_fail(result: FormatResult*, error: WorkBudgetError): void {
+    if error == WorkBudgetError.None { return; }
+    if !result.failed && result.resource_error == WorkBudgetError.None { result.resource_error = error; }
+    result.failed = true;
+}
+
+// Initialize an empty owner before any emission. The budget must outlive every
+// detached output receipt. Null is the explicit standalone boundary.
+fn format_storage_begin(result: FormatResult*, budget: WorkBudget*): void {
+    if result.checked { if result.budget != budget { format_storage_fail(result, WorkBudgetError.Invalid); } return; }
+    if result.text.data != null || result.spans.data != null { format_storage_fail(result, WorkBudgetError.Invalid); return; }
+    result.checked = true;
+    result.budget = budget;
+}
+
+fn format_storage_child(result: FormatResult*, parent: FormatResult*): void {
+    if parent.checked { format_storage_begin(result, parent.budget); }
+}
+
+fn format_storage_reserve(result: FormatResult*, needed: usize, spans: bool): bool {
+    if result.failed { return false; }
+    var length = spans ? result.spans.length : result.text.length;
+    var capacity = spans ? result.spans.capacity : result.text.capacity;
+    var size = spans ? sizeof(FormatSpan) : sizeof(u8);
+    var alignment = spans ? alignof(FormatSpan) : alignof(u8);
+    if needed < length || needed > ~convert(usize, 0) / size {
+        format_storage_fail(result, WorkBudgetError.Invalid); return false;
+    }
+    if needed <= capacity { return true; }
+    if !result.checked {
+        var ready = spans ? vector_reserve(&result.spans, needed) : vector_reserve(&result.text, needed);
+        if ready { return true; }
+        format_storage_fail(result, WorkBudgetError.Memory); return false;
+    }
+    var storage = spans ? &result.span_storage : &result.text_storage;
+    var error = work_buffer_grow_elements(storage, result.budget, length, capacity, needed, size, alignment);
+    if error != WorkBudgetError.None { format_storage_fail(result, error); return false; }
+    if spans {
+        result.spans.data = bits(FormatSpan*, storage.data);
+        result.spans.capacity = storage.capacity / size;
+    } else {
+        result.text.data = storage.data;
+        result.text.capacity = storage.capacity;
+    }
+    return true;
+}
+fn format_storage_append(result: FormatResult*, bytes: u8*, count: usize): void {
+    if result.failed { return; }
+    if count > ~convert(usize, 0) - result.text.length || (count != 0 && bytes == null) {
+        format_storage_fail(result, WorkBudgetError.Invalid); return;
+    }
+    var length = result.text.length + count;
+    var offset = bits(usize, bytes) - bits(usize, result.text.data);
+    var inside = offset < result.text.capacity;
+    if inside && (offset > result.text.length || count > result.text.length - offset) {
+        format_storage_fail(result, WorkBudgetError.Invalid); return;
+    }
+    if !format_storage_reserve(result, length, false) { return; }
+    if inside { bytes = &result.text.data[offset]; }
+    if count != 0 { copy(&result.text.data[result.text.length], bytes, count); }
+    result.text.length = length;
+}
+
+// Move the final allocation and its grant; there is no second final-text copy.
+// Failure leaves the destination and the existing first cause untouched.
+fn format_storage_finish(result: FormatResult*, output: WorkBuffer*): WorkBudgetError {
+    if !result.checked || output == null { return WorkBudgetError.Invalid; }
+    var needed = result.text.length + 1;
+    if needed == 0 { format_storage_fail(result, WorkBudgetError.Invalid); }
+    if format_storage_reserve(result, needed, false) { result.text.data[result.text.length] = 0; }
+    var error = format_storage_error(result);
+    if error != WorkBudgetError.None { return error; }
+    work_buffer_move(output, &result.text_storage);
+    result.text = default;
+    return WorkBudgetError.None;
+}

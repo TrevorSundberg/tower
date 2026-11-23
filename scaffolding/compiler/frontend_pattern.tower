@@ -1,4 +1,5 @@
 import tower;
+import format_storage;
 import format_types;
 import format;
 import frontend_table;
@@ -79,10 +80,12 @@ export fn frontend_pattern_read_result(compiler: FrontendPatternCompiler*, sourc
     error: FormatResult*, resource_error: WorkBudgetError*): SyntaxPattern* {
     if resource_error == null { return null; }
     *resource_error = WorkBudgetError.Invalid;
-    if error == null || (source == null && length != 0) { return null; }
+    if compiler == null || error == null || (source == null && length != 0) { return null; }
+    format_storage_begin(error, compiler.table.runtime.budget);
+    if error.failed { *resource_error = format_storage_error(error); return null; }
     *resource_error = WorkBudgetError.None;
     // Diagnostic allocation cannot overwrite an earlier producer's exact cause.
-    defer { if error.failed && *resource_error == WorkBudgetError.None { *resource_error = WorkBudgetError.Memory; } }
+    defer { if error.failed && *resource_error == WorkBudgetError.None { *resource_error = format_storage_error(error); } }
     var formatter: FormatEngine = default;
     formatter.result = error;
     if length > FrontendPatternMaximumBytes {

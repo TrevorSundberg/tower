@@ -83033,3 +83033,96 @@ Refreshed native ParserNodes nm closure passes. Session25753 drained0, only
 container init remains. Logs/identities: build/ecs_b1/lr_reuse/merged_*.
 This receipt is documentation-only; no additional runtime measurements apply.
 Normal main push follows; historical timeout and ROOT release gates stay pending.
+
+## B1 checked provenance/presentation ownership (2026-11-23)
+
+Bounded successor to9d98c95f; no LR rewrite, scheduler or emitter changes. Audited
+actual producers and consumers before changing ownership. syntax_provenance's
+rule/splice and staged-reference vectors were ordinary allocations; formatter
+requests, frames, nested previews and final strings likewise bypassed request
+budgets. Final text was then copied into another unbudgeted session vector, and
+label allocation failure could assert. Diagnostic insertion state committed
+before description/final-text allocation succeeded.
+
+Implemented existing WorkBuffer/work_vector ownership through provenance,
+format text/spans/traversal/verification, parser labels/table errors, session
+admission, final diagnostics and their immediate consumers. Checked formats expose
+borrowed vector views; disposal/transfers carry the physical receipts. Static
+failure messages need no allocation. Typed failures preserve the first cause;
+late formatting failure preserves original text/source/insertion state. Staged
+copies retain the existing A2 hold/discard protocol. Session/version diagnostic
+ownership moves before producer teardown. Immediate module/compiler callers guard
+null admission and preserve its exact cause; module failures stay sticky and retry
+uses a fresh graph. No changes to frontend_units scheduling or backend emitters.
+The public wrappers remain. Canonical grammar activation/order, revision/source
+identity and9d98c95f immutable LR reuse are preserved.
+
+Contract: docs/parser.md, checked provenance/presentation section. Legacy raw
+host/debug text and unbound FormatResult callers remain standalone. This does not
+migrate general revision/cache/semantic containers or impose a default-world cap.
+Physical receipts include known compiler headers, not total RSS/foreign allocator
+metadata/stdio; ledger retained storage is separately reported. No new allocator,
+semantic representation or syntax adoption/bootstrap replacement was introduced.
+
+Environment: existing tower_ecs_b1, Linuxx64/LLVM19.1.1, CPU0-11,25769803776-byte
+Docker cap (24GiB); at most6 independent object jobs, each public towerc jobs1.
+Public bootstrap SHA256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02.
+One dependency-aware native cache/targets tower-frontend-tests and
+ tower-frontend-units-profile; inputs frozen per build. Initial compile/type/import
+errors and a65536-node bootstrap template-expansion failure are preserved in
+build/ecs_b1/checked_presentation/build*.log. Nongeneric buffer-backed views avoid
+additional template expansion without raising the bootstrap limit. Old regression
+expectations assumed unbudgeted session admission; new checks require null with
+Capacity and a fresh-graph retry. A later check caught empty static fallback
+masking a resource diagnostic; corrected and rerun. No failed check was counted
+as passed. The nm TemplateBuild check first rejected newly observed tower_trap;
+its exact reviewed admission and negative suffix fixture now pass.
+
+Final focused native checks (checked_*.log/time): parser .04wall/.03CPU seconds,
+53572KiB peak RSS; presentation-budget .03/.02,52940KiB; grammar-equivalence
+.28/.21,59844KiB. The presentation selector includes actual late diagnostic
+allocation failure (index derived from measured required allocations), original
+error/offset preservation, deterministic retry, detached diagnostics after world
+retirement, splice Capacity rollback, staged cancellation, canonical source
+formatting, parser option faults and focused regex resource tests. Provenance
+fixture live/production peak32575 bytes; real-session diagnostic production
+peak597595 bytes. Both finish with zero live grants/used bytes; the provenance
+ledger retains640 bytes before its own disposal, then releases all instrumentation
+buffers. Exact nm closure and bootstrap_symbols_checks pass for ParserNodes,
+ParserFormat and TemplateBuild; target spellings are policy tests, not target runs.
+
+Frozen before executables are /cache/checked_presentation/before_frontend and
+before_units from9d98c95f. Inputs: iteration-cold /work/scaffolding; normal3-unit
+request /cache/parser_memory_profile/request_6fd430af/resources/scaffolding,
+bodies0/backend0, workers1/4. Fresh processes, warm filesystem, one sample per
+comparison. GNU time whole-process wall/CPU seconds/peak KiB:
+
+| Workload | Before | Checked batch |
+| --- | --- | --- |
+| Ordinary cold observer |1.02/.98/164968|1.09/1.05/164972|
+| Three normal units, workers1 |3.14/3.04/196568|3.51/3.41/196324|
+| Three normal units, workers4 |1.28/3.79/460088|1.41/4.17/462700|
+
+The observed slowdown warranted one adjacent unchanged-baseline control:
+3.34wall/3.24CPU/196268KiB, versus the changed3.51/3.41/196324. Thus the original
+baseline itself drifted; the adjacent checked sample is still about5% slower.
+No speedup or regression bound is claimed from these n1 samples. This ownership
+batch has additional accounting cost; wider integrated performance remains ROOT's
+gate. Memory is comparable. Parser requests still build155 versions/123 LR tables
+and reuse36 structures; cold canonical976 bytes/hash13832670361687071853.
+Serial/parallel canonicalhash1173729914654460811, entities48240/components55014;
+parallel outer/kernel peak3 demonstrates actual overlap. Serial accounted retained
+bytes15160786->15162546; peak76704074->76707098 (newly charged owners), ledger
+index5242880 unchanged. Parallel retained15152426->15154186; peak198638541->
+198404768 with20971520 ledger bytes. These are physical grants, not RSS.
+
+Commands use cmake --build /cache/native --target tower-frontend-tests
+ tower-frontend-units-profile --parallel6, then selectors from /work/scaffolding;
+all command output, timing, old failures and exact nm are retained under
+build/ecs_b1/checked_presentation. All owned jobs drained before publication.
+Known historical full-frontend300s timeout remains failed/unresolved. Full native
+sanitizers/scaling/bootstrap/browser/hosted release checks are pending ROOT's
+integrated milestone, not passed by this batch. todo.txt is unchanged at
+ e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
+Production/integration commit receipt follows after normal main publication.

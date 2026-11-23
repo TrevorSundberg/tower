@@ -1,4 +1,8 @@
 import tower;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget_types;
+import format_storage;
 import component_kinds;
 import .library.vector;
 import format_types;
@@ -16,7 +20,7 @@ extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, found
 
 extern fn syntax_source_location(source: SyntaxSource*, offset: usize, line: usize*, column: usize*): void;
 
-extern fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: bool): i32;
+extern fn syntax_nodes_equal_result(left: void*, right: void*, kind: void*, locations: bool, budget: WorkBudget*, error: WorkBudgetError*): i32;
 
 // Diagnostic previews borrow the same components as canonical formatting.
 // They are presentation only; never serialized as grammar or foundation source.
@@ -65,6 +69,7 @@ name_only: bool, syntax: void*, kind: void*): void {
         format_text(&f, " = ");
         var begin = result.text.length;
         var part: FormatResult = default;
+        format_storage_child(&part, result);
         foreach(var & item in &node.items) {
             if result.text.length != begin {
                 format_char(&f, 32);
@@ -74,7 +79,7 @@ name_only: bool, syntax: void*, kind: void*): void {
             part.spans.length = 0;
             format_entity(&part, *item, syntax, null, kind);
             if part.failed {
-                result.failed = true;
+                format_storage_fail(result, format_storage_error(&part));
                 break;
             }
             format_bytes(&f, &part.text);
@@ -153,7 +158,7 @@ fn format_preview_bytes(left: u8*, left_size: usize, right: u8*, right_size: usi
 }
 
 fn format_preview_pair(pair: FormatTreePair*, source_a: u8*, size_a: usize,
-source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(FormatTreePair)*): bool {
+source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: work_vector(FormatTreePair)*, budget: WorkBudget*, error: WorkBudgetError*): bool {
     var a = pair.left;
     var b = pair.right;
     var x_syntax = format_preview_node(a, syntax);
@@ -163,7 +168,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
         grammar = true;
     }
     if grammar {
-        var same = syntax_nodes_equal(a, b, syntax, false) == 1;
+        var same = syntax_nodes_equal_result(a, b, syntax, false, budget, error) == 1;
         return same;
     }
     var x = bits(ParserMatchData*, entity_component_data(entity_component_get(a, kind)));
@@ -209,9 +214,11 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     }
     var needed = pending.length + count;
     if needed < pending.length {
+        *error = WorkBudgetError.Invalid;
         return false;
     }
-    if !vector_reserve(pending, needed) {
+    *error = work_vector_reserve_result(pending, budget, needed);
+    if *error != WorkBudgetError.None {
         return false;
     }
     // Reverse push preserves source order while avoiding host recursion.
@@ -229,12 +236,19 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
 // conservative: a formatter must not publish text it could not verify.
 export fn format_same_tree(a: void*, b: void*, source_a: u8*, size_a: usize,
 source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
-    var pending: vector(FormatTreePair);
-    vector_init(&pending);
+    var error = WorkBudgetError.None;
+    return format_same_tree_result(a, b, source_a, size_a, source_b, size_b, syntax, kind, null, &error);
+}
+
+export fn format_same_tree_result(a: void*, b: void*, source_a: u8*, size_a: usize,
+source_b: u8*, size_b: usize, syntax: void*, kind: void*, budget: WorkBudget*, error: WorkBudgetError*): bool {
+    *error = WorkBudgetError.None;
+    var pending: work_vector(FormatTreePair);
+    work_vector_init(&pending);
     var pair: FormatTreePair;
     pair.left = a;
     pair.right = b;
-    var same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
+    var same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending, budget, error);
     while same {
         if pending.length == 0 {
             break;
@@ -242,8 +256,8 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
         pending.length--;
         pair.left = pending.data[pending.length].left;
         pair.right = pending.data[pending.length].right;
-        same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
+        same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending, budget, error);
     }
-    vector_dispose(&pending);
+    work_vector_dispose(&pending);
     return same;
 }

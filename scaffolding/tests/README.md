@@ -1356,3 +1356,21 @@ the production window size. All cover budgets1/4 and teardown; budget variants
 alone do not prove concurrent execution. Lowering/evaluation windows still join
 before cross-phase publication. Integrated sanitizers/platform checks remain
 separate release gates.
+
+The B1 checked provenance/presentation selector uses the production native target:
+
+```sh
+cmake --build build/native --target tower-frontend-tests --parallel 6
+(cd scaffolding && ../build/native/tower-frontend-tests . presentation-budget)
+```
+
+It covers splice denial/copy retry, cancelled staged reference ownership, first
+formatter failure, late real-session diagnostic allocation failure with unchanged
+source/insertion positions, deterministic diagnostic retry, source formatting,
+regex resource errors, and detached text after world teardown. The measured last
+required diagnostic allocation drives the late-failure case; no allocation index
+is guessed. Printed production peaks exclude deliberately exhaustive reservations.
+Every owned receipt is gone before ledger teardown. Run `parser` for immediate
+request/admission callers and `grammar-equivalence` for canonical live grammar and
+replacement coverage. These focused checks do not replace integrated sanitizers,
+bootstrap, browser or release verification.
