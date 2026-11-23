@@ -64460,3 +64460,90 @@ supersedes444c rather than stacking on it. L2's subordinate new-fixture leaf fai
 on unsupported else-if before any runtime; that grant closed with no surviving
 children. Quiet paired performance is next, followed by current focused supported
 instrumentation; no current performance or final release acceptance yet.
+
+### 2026-11-23 L1: execution receipt paired measurements
+
+Quiet98514 drained0:64 processes (16 warmups,48 retained), one warmup plus three
+alternating pairs per workload. Before is the complete7e06 package; after ise3c5,
+public9653/LLVM19.1.1 Release/native x64 on the same Ryzen5900HX/WSL host. Explicit
+common7e06 resources, jobs1/no-optimize/timings, graph/fast modes. Existing Tower
+workloads yield exact5000/500000; frontend profiles use256 bodies or four units,
+budgets1/4. All64 statuses, independent outputs, canonical hashes, source/binary/
+resource manifests pass. Logs were ext4-local until complete drain; no other
+compiler/profiling/probe launches overlapped this timing window.
+
+Median wall/CPU/RSSKiB before -> after:
+- graph small1.53/1.52/175832 ->1.53/1.54/179788;
+  large1.76/1.74/180024 ->1.69/1.73/180400;
+- fast small1.63/1.64/176336 ->1.63/1.61/180280;
+  large1.72/1.70/180556 ->1.68/1.70/180948;
+- bodies budget1:1.63/1.60/186008 ->1.66/1.64/186044;
+  budget4:1.37/1.73/209072 ->1.40/1.80/209084;
+- four units budget1:6.00/5.98/211708 ->6.06/6.06/211676;
+  budget4:2.12/7.89/560680 ->2.14/7.92/560776.
+Actual outer peak4 in every four-unit parallel trial, matching canonical
+17697577322696030917 (units) and12683198132697182263 (bodies). Reported retained,
+ledger and serial peak bytes are identical between versions. Body retained
+1917841/1914761 and unit retained7573884/7561564 depend on serial/parallel mode;
+ledger5242880/20971520. Parallel peaks vary232739292-234365252. These are charged
+families, not whole-heap accounting or cache locality evidence. Retain~1-2% frontend
+median wall costs, rather than claiming neutral performance or universal speedup.
+
+Phase timing exposed a separate cost: fast large execution73.965->83.008ms
+(about12%), even though compilation1486.138->1449.595ms makes end-to-end shorter.
+Small graph execution3.755->5.646ms and small fast preparation1.159->3.123ms also
+increase; small peak RSS rises about4MiB, large about0.4MiB. These observations
+are not hidden by the end-to-end medians. After the timing window, inspected the
+actual before/after interpreter objects and linked binaries. fast_interpreter_step
+has the same0xad4-byte size and identical normalized disassembly except two
+immediates feeding tower_trap, confirmed by relocation entries. Its linked start
+moves0x151350->0x152230, changing cache-line placement; this is a possible layout
+influence, not demonstrated causation. The new session guard is outside the CLI's
+direct fast stepping loop. The changed SemanticProgram layout and removal of an
+empty success-diagnostic allocation also alter surrounding allocation behavior;
+no attribution of the RSS increase to one cause is established. Raw samples,
+object/text hashes, symbols and disassembly are retained. Current evidence does
+not establish a retained-owner leak, nor eliminate the measured costs.
+
+Primary lock was released after drain for L2's corrected bounded compiler checks.
+Current e3c5 supported address/thread core/query/real-four-unit checks are next;
+no final combined producer/browser/bootstrap/publication acceptance is claimed.
+
+### 2026-11-23 L1: counted diagnostic regression found in independent review
+
+ROOT's full afb3 review found a real regression: frontend_compile_error appends
+exactly program.error.length bytes without a terminator. Both new session and
+package paths incorrectly used strlen on this counted buffer. Prior native gates
+covered only NUL-terminated fixtures, so their passes do not establish this
+contract. e3 remains a reviewed-failed checkpoint; it was not published or accepted
+by ROOT. Original profile/correctness receipts retain that source identity.
+
+After all owned jobs drained, extended the two existing fixtures with allocated
+non-NUL trailing bytes and a later terminator entirely inside the valid buffer.
+The expected message stays exactly its declared length. No invalid-memory probe.
+Archived the complete original e3 native cache before rebuilding the fixtures.
+Actual93666 built the two affected test/link steps, then BOTH core-static and core
+failed with status1 at their exact-diagnostic assertions. Retained all raw logs and
+matching source manifests under counted_diagnostic_before; wrapper also exits1.
+
+After that actual drain, added execution_session_fail_counted(text,length,offset)
+and kept the prior first-failure latch in it. The NUL-terminated host wrapper
+computes strlen only for its existing contract; program.error passes its explicit
+length. Package encoding likewise uses the declared length and scans only static
+fallback messages. Same valid trailing-buffer tests and the complete native gate
+set are now running. The frontend profile executable is expected unchanged by
+this correction; verify its hash before reusing those specific samples. CLI pairs
+will rerun on corrected source, preserving e3's measured regressions separately.
+Current supported instrumentation is deferred to the corrected frozen candidate.
+
+Counted after35677 drained0. Four public leaves and six-step coherent rebuild
+20.65wall/22.07CPU/353636KiB pass, followed by all six native gates, including both
+previously failing counted-buffer assertions. Final source manifests agree.
+Compiler25b110cd983f45df1015521f0b64621fcb436a94735139c91104f6ec2a2a3c25;
+execution8868758ab2472e5c701a2ce3c5e32044cf0a48085a273a8352deaff2ee0457ca.
+LR70012cb8 and frontend profile98125e35 are exactly unchanged from the e3 profile
+window, so their measured executable/resource observations remain reusable with
+that identity. Repeating those unchanged measurements would add no coverage.
+Full final four-path consumer patchfac2742091115a23eafaab911ad030aca64d9901b3c9e2fd4eea190b84056882
+supersedes afb3. Thirty-two CLI processes will measure corrected before/after;
+supported current instrumentation remains next, not yet passed.

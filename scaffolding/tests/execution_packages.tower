@@ -31,8 +31,11 @@ fn execution_package_resource_tests(modules: void*, width: u32): void {
         "empty semantic diagnostic cannot authorize package encoding");
     var diagnostic = "Retained package resource diagnostic";
     var length = strlen(diagnostic);
-    execution_check(vector_reserve(&session.program.error, length + 1), "package diagnostic fixture");
-    copy(session.program.error.data, diagnostic, length + 1);
+    var trailing = " ignored trailing bytes";
+    var extra = strlen(trailing) + 1;
+    execution_check(vector_reserve(&session.program.error, length + extra), "package diagnostic fixture");
+    copy(session.program.error.data, diagnostic, length);
+    copy(session.program.error.data + length, trailing, extra);
     session.program.error.length = length;
     execution_check(!execution_package_encode(&session.program, modules, 0, &output, &error)
         && output.length == 0 && execution_text(&error, diagnostic)

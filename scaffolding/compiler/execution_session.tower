@@ -67,6 +67,10 @@ fn execution_session_close(execution: ExecutionSession*): void {
 }
 
 fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize): void {
+    execution_session_fail_counted(execution, text, strlen(text), offset);
+}
+
+fn execution_session_fail_counted(execution: ExecutionSession*, text: u8*, length: usize, offset: usize): void {
     // Failure does not depend on allocating its presentation. Preserve the first
     // offset even if diagnostic storage is unavailable on every later attempt.
     execution.machine.done = true;
@@ -74,17 +78,19 @@ fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize
     execution.machine.failed = true;
     if execution.error.length == 0 {
         execution.machine.error_offset = offset;
-        bytes_assign_text(&execution.error, text, strlen(text));
+        bytes_assign_text(&execution.error, text, length);
     }
 }
 
 fn execution_session_program_failed(execution: ExecutionSession*): bool {
     var resource = execution.program.resource;
     if resource.error == WorkBudgetError.None && execution.program.error.length == 0 { return false; }
-    var text = execution.program.error.length != 0 ? execution.program.error.data
-        : sem_resource_message(resource.error);
     var offset = resource.error != WorkBudgetError.None ? resource.offset : execution.program.error_offset;
-    execution_session_fail(execution, text, offset);
+    if execution.program.error.length != 0 {
+        execution_session_fail_counted(execution, execution.program.error.data, execution.program.error.length, offset);
+    } else {
+        execution_session_fail(execution, sem_resource_message(resource.error), offset);
+    }
     return true;
 }
 

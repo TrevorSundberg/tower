@@ -36,8 +36,11 @@ fn execution_resource_trial(modules: void*, width: u32, boundary: ExecutionResou
     var cache = session.fast;
     if diagnostic != null {
         var length = strlen(diagnostic);
-        execution_check(vector_reserve(&session.program.error, length + 1), "resource fixture diagnostic");
-        copy(session.program.error.data, diagnostic, length + 1);
+        var trailing = " ignored trailing bytes";
+        var extra = strlen(trailing) + 1;
+        execution_check(vector_reserve(&session.program.error, length + extra), "resource fixture diagnostic");
+        copy(session.program.error.data, diagnostic, length);
+        copy(session.program.error.data + length, trailing, extra);
         session.program.error.length = length;
     }
     sem_resource_record(&session.program, resource, offset);

@@ -69,8 +69,9 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
     error.length = 0;
     if program.resource.error != WorkBudgetError.None || program.error.length != 0 {
         var text = program.error.length != 0 ? program.error.data : sem_resource_message(program.resource.error);
+        var length = program.error.length != 0 ? program.error.length : strlen(text);
         // A false result and empty output survive diagnostic allocation failure.
-        bytes_assign_text(error, text, strlen(text));
+        bytes_assign_text(error, text, length);
         return false;
     }
     var formatted: FormatResult = default;

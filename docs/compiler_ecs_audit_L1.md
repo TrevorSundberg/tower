@@ -1,13 +1,22 @@
 # L1 execution ownership audit
 
-Current owned checkpoint f46b3e2 uses the shared budgeted TypeObjectIndex in graph
-and fast execution. Four public-bootstrap leaves, five coherent native gates and
-the ten new caller cases pass. All100 profile/control processes retain their
-reference results; four-unit runs show actual overlap4 and matching canonical
-output. Narrow fast controls retain about2%/1% small/large wall-time cost; broader
-variance and occasional non-CPU gaps outside the compilation interval remain
-explicit in the journal. Current address/thread checks are pending. New shared
-semantic receipts, remaining allocation owners and final release gates stay open.
+Current counted-diagnostic correction after e3c5f00 rejects fixed semantic resource failures at
+execution and package boundaries even when presentation text is absent. Public
+leaves, coherent rebuild and six native gates pass, including first-error/replay
+and canonical-package regressions at both pointer widths. Current paired
+performance and supported instrumentation are pending; frontend producer
+integration, remaining allocation owners and final release gates stay open.
+Independent ROOT review rejected e3's assumption that frontend diagnostics are
+NUL-terminated. Both valid counted-buffer regressions reproduce that failure on
+e3 and pass after the explicit-length correction. Earlier e3 passes/profiles keep
+their original source identity and do not establish this corrected contract.
+
+Earlier f46b3e2 uses the shared budgeted TypeObjectIndex in graph and fast execution.
+Four public-bootstrap leaves, five native gates, ten new caller cases,100 checked
+profile/control processes, six address/leak gates and six thread gates pass on
+that frozen source. Actual four-unit overlap4 and canonical output agree. Narrow
+fast controls retain about2%/1% small/large wall-time cost; broader variance and
+occasional non-CPU gaps outside compilation remain explicit in the journal.
 
 Earlier frame/task checkpoint: main15ff plus the six-file WorkVector change
 passes a coherent native rebuild and query/storage/control/units/backend-overlap/
