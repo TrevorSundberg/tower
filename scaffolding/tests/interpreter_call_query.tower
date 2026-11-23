@@ -2,6 +2,7 @@ import tower;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.interpreter_context_types;
+import .compiler.interpreter_types;
 import .compiler.format_api;
 import .library.vector;
 import .library.work_budget;
@@ -289,6 +290,7 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     var b: IMInvocation = default;
     call_query_require(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     call_query_require(interpreter_invocation_init(&b, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    var startup_memory_bytes = a.state.memory.reservation.bytes;
     a.context.value_inputs = inputs;
     b.context.value_inputs = inputs;
     a.context.type_arguments = true;
@@ -452,19 +454,30 @@ fn input_query_tests(width: u32, input_bytes: usize, budgeted: bool): u32 {
     if budgeted {
         var charged: WorkBudgetSnapshot = default;
         call_query_require(work_budget_snapshot(&budget, &charged));
-        var occupied: WorkReservation = default;
-        call_query_require(work_budget_reserve_result(&budget, 0, 0,
-            charged.bytes - charged.used_bytes, &occupied) == WorkBudgetError.None);
-        call_query_check(!interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
-            && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
-            && a.state.memory.data == null && a.context.initialized.data == null,
-            "Denied startup retains a typed resource failure without publishing private storage", &failures);
-        interpreter_invocation_dispose(&a);
-        call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
-        var released: WorkBudgetSnapshot = default;
-        call_query_require(work_budget_snapshot(&budget, &released));
-        call_query_check(released.used_bytes == charged.used_bytes && released.live == charged.live,
-            "Failed startup releases every partial receipt before its world", &failures);
+        // Deny the first buffer, then permit exactly that buffer and deny the
+        // initialization map. Both failures must retire partially owned state.
+        for(var attempt: usize = 0; attempt < 2; attempt++) {
+            var allowed = attempt == 0 ? 0 : startup_memory_bytes;
+            var occupied: WorkReservation = default;
+            call_query_require(work_budget_reserve_result(&budget, 0, 0,
+                charged.bytes - charged.used_bytes - allowed, &occupied) == WorkBudgetError.None);
+            call_query_check(!interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
+                && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
+                && (a.state.memory.data != null) == (attempt != 0)
+                && a.context.initialized.data == null && a.context.input_storage.data == null
+                && input_query_owned_bytes(&a) == allowed,
+                "Denied startup retains its typed error and only the permitted private buffer", &failures);
+            var message = attempt == 0 ? "Cannot allocate interpreter memory"
+                : "Cannot allocate strict evaluation initialization state";
+            call_query_check(a.context.error.data != null && strcmp(a.context.error.data, message) == 0,
+                "Startup denial identifies the actual failed buffer", &failures);
+            interpreter_invocation_dispose(&a);
+            call_query_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+            var released: WorkBudgetSnapshot = default;
+            call_query_require(work_budget_snapshot(&budget, &released));
+            call_query_check(released.used_bytes == charged.used_bytes && released.live == charged.live,
+                "Failed startup releases every partial receipt before its world", &failures);
+        }
     }
     entity_release(root);
     call_query_check(compiler_world_dispose(world), "Aggregate input consumers release their world", &failures);

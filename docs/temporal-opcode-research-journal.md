@@ -48443,3 +48443,50 @@ The joined parser/frontend/interpreter source builds46.43s wall/68.14s CPU/64055
 Backend overlap reaches both its serial baseline and two-worker streaming case, then fails134 at streaming objects retain their byte reservations after join (13.60s wall/13.97s CPU/498796 KiB). Its old assertion counts all ledger owners as backend owners, omitting newly retained frontend parser tables. Owner B2_backend_retained_joint.patch SHA93b99934bc2217fea1cf6dd6bb4541fb47f44838e858ffac70cec129d2bc808c now preserves exact input subtotal, finite shared cap and separate-ledger behavior, and checks exact target/object bytes and receipt count released against the joined frontend baseline. It is source-reviewed/applied after drain, not yet locally rerun. The serial parser check scheduled after the failure did not run. All39302 jobs drained and L1 released the host to L2's requested clone baseline before any further build. No runtime or publication step is inferred from a source patch or skipped command.
 
 A subsequent semantic integration audit found another unfinished resource-failure contract: semantic_evaluation currently permits any failed inferred invocation to remain a runtime expression. That is valid for unsupported optional staging, but would also swallow a newly enforced buffer-cap failure. L1 drafted IMState.storage_error:WorkBudgetError, latched from the result APIs on the three migrated buffer families without allocating diagnostic state. Patchbad3e4f1f24b25ea8e514b40bb196ca6eda74528d34364fc6040b7e3429d2938 follows9228+a8ec; smallest interpreter/query units pass. New assertions cover typed denied growth/startup and partial-owner cleanup. This shared ABI addition has not yet run in a complete compiler. A1 owns the coordinator/retained producer hook: resource failures must remain fatal for inferred stages, survive invocation disposal and declaration-isolated error selection, use a non-null diagnostic fallback, and drain before cleanup. The existing error receipt is preferable to another error graph. No semantic file was edited by L1; full resource-failure acceptance awaits the matched owner handoff. Header-only allocation accounting or the previous passing success cases do not close this error path.
+
+### L1 source integration while the resource-failure caller is pending
+
+Checkpoint83832b0838b4448919dfcde090eff4156f5d72fb preserves the interpreter
+ownership/error work and reviewed joint parser/frontend patches. The verified
+incremental bundle has SHA256
+6f9d6f872fd24a8288ec18fc7874c21689e039181a0f85fb1ee377bad8a2cf59.
+No deployment or hosted acceptance is inferred from that source checkpoint.
+
+The reviewed A2v5 archive b8b0c9b7 matches the existing four buffer/vector
+modules except an extra final blank line; those local files stay unchanged.
+Only the two WorkArena library modules are added for the agreed semantic
+scratch interface. Their explicit defining imports preserve the single nominal
+owners. They have no caller in this L1 snapshot yet, so adoption itself changes
+no runtime allocation path. A2's reported library instrumentation/WASI receipts
+remain source-specific owner evidence, not whole-compiler coverage here.
+
+Root-routed D1 known-order8ee87576 retains the original raw source as a compile
+admission check and compares defined state increments with exact1,1,7 through
+graph/cache/canonical and worker1/2/4/8 cases. Required comptime(earlier) retains
+the exact before-initialization diagnostic. Numeric importsf9187ba5 only add
+explicit Foundation imports; numeric assertions are unchanged. Defining-import
+patchad306d0a adds the three direct nominal imports. Snapshot registrationc6ad
+plus selectordfb2 needs wrapper0cdc: the fixture body is preserved, with its
+two imports and existing root wrapper added. The README selector hunk did not
+apply because the local README lacks its surrounding newer text; the same
+five-line paragraph is appended without replacing that document. The failure
+is not treated as a complete patch application.
+
+Five smallest public-pin units pass on the same WSL Linux x64/LLVM19 host with
+one compile worker and frozen source manifests: arena2.08wall/1.83CPU/178744KiB,
+snapshot3.62/3.15/202896, known4.97/4.02/251068, narrow5.15/4.14/252212,
+negation4.58/3.89/247664. These are compilation costs for changed tests and an
+unused library module, not production performance comparisons. All55592 jobs
+drained before releasing the host. Runtime remains pending the matched A1
+resource-error hook and dependent rebuild. The saved1f37 compiler and three
+runners retain their exact prior identities for subsequent comparisons.
+
+The owned startup regression now denies each of the first two buffers in turn.
+Its second case permits exactly the observed initial memory receipt, then
+requires Capacity from the initialization-map allocation, its precise diagnostic,
+one partial owner and complete disposal. No header-size guess or alternate
+allocator is introduced. This extra query source compiles with the public pin;
+its runtime assertion is not yet claimed passing. The shared helper-growth
+draftae819 is reviewed but remains unapplied pending A2's library-owner review.
+Final joined runtime, supported instrumentation, public bootstrap/browser and
+coordinated atomic publication remain open.

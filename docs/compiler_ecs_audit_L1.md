@@ -7,6 +7,15 @@ existing coverage identified by reading; fresh results are recorded separately.
 
 ## Contracts and sources
 
+The 83832b0 checkpoint contains the three physical interpreter buffer owners and
+typed storage-failure receipt. The receipt's smallest units pass; the matching
+A1 semantic coordinator hook remains pending, so this is not full runtime
+acceptance. Subsequent source integration adds D1's defined initialization-order
+oracle, numeric fixture imports and serial snapshot selector/root wrapper, plus
+A2's two arena modules and explicit nominal imports. Five smallest public-pin
+units pass with frozen inputs. Startup denial now also covers the second buffer
+and its partial owner; that extra query unit compiles but has not run yet.
+
 Read the compiler services and ECS/threading handoff with the journal's newer
 type-value continuation. Production helper readiness uses `IMFunctionInput`;
 the handoff's earlier missing-producer experiment is historical.
