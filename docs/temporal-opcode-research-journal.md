@@ -82945,3 +82945,92 @@ L1/logs/shared_wasm_merged/browser.json and status0 retain current-source eviden
 No compiler changes by L1, no new performance claim; prior failures remain logged.
 All owned jobs drained. Normal main publication follows; ROOT release/deployment
 limits above remain pending.
+
+L1 bounded successor checkpoint in progress on publishedc7ad4f423ad6 (2026-11-23):
+canonical WSL public-pin build-native completed5 affected actions; four selected
+Tower tools built once. Native build36.05wall/42.94CPU seconds/778404KiB. Complete
+external candidate successor_c7ad4f4 has66 members/12803306bytes,1150 source hashes,
+source basec7ad4f4 and no source patch. ExecutableSHA256
+be521b36b92d5e8060d6886a539a4b37c042cec37318615c1ac8e7455f6781cd;
+manifest9a7eff3c25fcb4aa427f6ad9624730c5a7b530b57cfeec6c674c7067218a205a;
+SHA256SUMS4376994a053e59402aa463055ad7d06f6743c263f98304ed24f27403ee31d3ea.
+Both Linux candidate and external copy pass all member checksums. Public pin
+9653f818 unchanged; no private syntax predecessor or pin installation.
+
+Setup receipts preserve two pre-build failures: interrupted slow vendor-submodule
+status traversal, then WSL Git CRLF policy differing from the Windows checkout.
+Process-local autocrlf=true/fileMode=false and scoped status reconcile actual
+bytes without source/config edits. package_bootstrap's direct NTFS-mounted output
+failed complete-directory publication; the same tool passed on Linux storage,
+then its entire verified directory was copied externally. No claim about the
+precise failing syscall beyond that tool diagnostic; no unsafe publication
+fallback added. Original logs remain in L1/logs/successor_checkpoint*, including
+package.time exit1 and package_linux.time exit0.
+
+Required verify_bootstrap_symbols --compare actually ran on all seven default
+units until fail-fast at Linux x64 entities. UTF8/bytes four-target pairs passed;
+entities predecessor/successor IR and object differ, with no symbol rejection.
+Logs/artifacts in L1/logs/successor_compare/comparison.ues576. IR labels change
+control-value ordinal prefixes; vector_reserve(WorkBudgetEntry) and
+work_vector_push_result(ParseChild) definitions move, changing call offsets.
+LLVM19 llvm-diff returns0 (diagnostic function equivalence only), while raw IR
+hashes3332a404/644e7121 and objectc08f2d04/6e0b1f3f differ. The exact comparison
+remains FAILED, not normalized into a pass. Subsequent entities targets and
+parser/host/interpreter/semantic comparison pairs are unrun. This exceeds a
+narrow import/symbol-policy correction; no lifecycle ordering rewrite adopted.
+Full generation2/3 compiler identity remains pending, distinct from this check.
+Comparison35.09wall/37.15CPU seconds/342380KiB, two allowed CPUs0/1.
+
+verify_compiler --development-package passed on the external adjacent-resource
+package: diagnostics, interpretation, three identical object emissions, separate
+library/link/execution and expected missing-Clang restricted result.24.23wall/
+25.67CPU seconds/197976KiB. Restricted standalone release verification has NOT
+passed. Logs L1/logs/successor_relocation/relocation.yCBELx. Existing check_core
+wasi now runs on the same frozen inputs/public pin, SDK34 and two build lanes;
+result still pending. Native/browser release matrices and pin/Pages remain ROOT.
+
+L1 checkpoint completion boundary: WASI parser compilation exposed one stale test
+consumer at tests/parser_state.tower:214, passing work_vector(u8)* to the old
+vector-only format_name_is. Reuse existing counted format_equal(data,length,text);
+no production layout/ownership or diagnostic migration. Initial portable core
+stopped at action24,61.30wall/81.60CPU seconds/527384KiB; preserved as failed.
+Dependency retry built the remaining21 actions and ran both existing core commands.
+The Windows Node timing bridge initially returned a missing exit code despite
+successful fixture logs. That transport receipt is NOT sufficient acceptance:
+retain its null-exit JSON, then rerun only the two already-built executables with
+an explicit retained Process handle and mandatory actual exit code. Both now
+return0 with empty stderr: parser5.856wall/6.453CPU seconds/132689920byte peak
+working set; interpreter6.352/7.578/175636480. Existing Node21.7.3 Windows host,
+WSL-built SDK34 wasm32-wasip1 artifacts; no Linux Node installation was present.
+WASI is the serial portable profile, not additional browser threading evidence.
+Retry build/check driver79.86wall/102.30CPU/824608KiB excludes Windows child CPU/RSS;
+separate Node reports above measure that boundary. Parser wasm5113cbd191d6f1f8f5b7e73384f3e0874dc222ecbbad3b20a424581c3f5f224a;
+interpreter4382785a5c324ccce161bb0834898c2bf9002b1a9e8bb96e30ff5b2476da323e.
+
+Actual prebuilt native consumer audit (no recompilation) found exactly one policy
+rejection after the other six units passed: Semantics entity_stage_lease_result.
+Read semantic_execution_work's typed admission call and entity_stage's exported
+WorkBudgetError provider; captured its defined native symbol. Admit that exact
+name only in Semantics. Existing Tower symbol fixture adds four target-policy
+positives plus wrong Interpreter/Entities unit, truncated and suffixed negatives.
+Rebuilt only checker and fixture once; expanded fixture and all seven complete
+original native nm reports PASS. A filtered diagnostic report only isolated the
+known rejection; the accepted final audit uses unfiltered reports. Same semantic
+report old/new checker: both below.01wall/CPU seconds, peak1300/1296KiB, expected
+old1/new0. No runtime algorithm changed, so runtime throughput comparisons are
+inapplicable. This policy fix does not resolve raw entities generation identity.
+
+Final candidate remains the exact complete c7ad4f4 build, original public bootstrap
+unchanged. All66 member checksums reverified. The only source delta for this task
+is the three Tower verifier/test files, retained separately as
+L1/successor_checkpoint_changes.patch SHA256
+94182e4ce9b85eea1a8fe3887fedfbb78e9bc36b5a9329ee6281ff9e0adaac15;
+source.final.sha256 records the complete resulting inputs. Native implementation
+and packaged resource bytes are unchanged; no redundant native build/packaging,
+no normalized generation comparison and no new pin. Final supported WASI receipts
+are logs/successor_wasi_host_checked; policy logs/successor_symbols_after. All
+owned jobs drained. Checkpoint is BLOCKED for exact predecessor/successor entities
+IR/object agreement; remaining default component pairs and generation2/3 whole
+compiler identity stay pending. ROOT can adopt the candidate/evidence subject to
+that unresolved gate. Final publication will preserve complete incoming history
+without relabeling this frozen-source artifact as a newer implementation.

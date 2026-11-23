@@ -211,7 +211,7 @@ fn parser_test_buffered(table: FrontendTable*, kinds: FrontendKinds*): usize {
     parser_recognizer_read_id(request);
     ok &&= request.read_node_or_null == borrowed;
     ok &&= request.read_start == 17;
-    ok &&= format_name_is(&request.lookahead_error, "injected stream error");
+    ok &&= format_equal(request.lookahead_error.data, request.lookahead_error.length, "injected stream error");
     parser_return_lookahead(request);
     ok &&= request.read_node_or_null == null;
     ok &&= !request.has_lookahead;
