@@ -88624,6 +88624,52 @@ evidence remain at f7; none is relabeled as validation of the merged compiler.
 Our changes relative to incoming main are documentation only; ROOT's later
 composition remains pending. Archive hash/recorded comparisons rechecked,
 owned jobs drained, todo unchanged; normal source/report push follows.
+### B1 remaining serial frontend: measured candidate rejected (2026-11-23)
+
+Frozen12722151cc16daab46bb328cdd2dd1626880f2c0/tree3f7480e26a21a9d6614c4132a150ec62e8f41601,
+including range union and current grain policy. Own KinmenB CPU0-11/24GiB,
+public768a/LLVM19.1.1 native Release, smallest dependency targets only. Existing
+f7 generation receipt/package unchanged. No B2 scheduling/counters or A1/L2 edits.
+Current cold observer still performs155 builds/123 tables/36 reuses:289.15ms
+version build,220.44ms tables,137.94ms lookahead (nested). Installed baseline
+60 tables does not eliminate request123 tables. Lookup remains sub-millisecond.
+CLI baseline/bootstrap99.56/96.72ms and parse-check357.22/445.51ms dominate
+small/large; backend optimization2.04/39.43ms, emission1.48/1.62ms. Temporary
+Tower phase/counter hooks separate graph build70.66ms/solve118.03ms/actions18.05ms
+on small, with353408 edges traversed815967 times and25.27M incoming ranges.
+Instrumentation perturbs full CLI timing (700ms vs473ms); these finer slices
+are producer evidence, not relabeled uninstrumented latency. Final semantic
+pass5.52/72.42ms is separate from staged semantic preparation inside parse/import.
+
+One nine-line candidate orders the initial serial worklist by insertion, keeping
+later LIFO updates and all existing storage/owners/errors. Traversals fall39%,
+range visits22%, but it FAILS the useful end-to-end performance gate. Alternating
+n3 before/candidate wall medians: small1 .51/.50, large1 .68/.69, small4 .57/.57,
+large4 .74/.74s. CPU .44/.43,.60/.62,.52/.53,.71/.71; RSS and all noisy/regressing
+samples retained in times.csv. Production-unit single observation1.23/1.22s is
+not a speedup claim. Cold/installed whole-process .41/.49s unchanged.
+Cold allocation calls2144035->2127214 (-0.8%), installed2562308->2544357;
+charged live1893528/peak58035248/metadata5242880 and buffers36677/48979 unchanged,
+zero teardown grants/buffers checked. All24 executions15/999,24 objects and2
+unit objects exact;976-byte canonicalhash13832670361687071853 unchanged.
+Independent150-grammar oracle, denial/retry, parser/regex, grammar/revision/cache,
+owner lifetime and native serial/threaded LR pass. Clang19 -O2 -fwrapv native
+object controls .04/.09s, checked15/999; single observations separate from prior
+ROOT paired controls. Full wall/CPU/RSS/phase/retention receipt:
+docs/compiler_serial_remaining_12722151.md.
+
+Rejected candidate, both compiler/runners, exact frozen inputs, counters and
+patches/logs remain /cache/serial_remaining_1272. Before compiler3fd9460b54b5eac604cc35d52a2a8ee4e5abe51b1c0294b04f371b68087c96f5;
+rejected92da60bc1e1cbdc649e89b0981f777a7de7db4b42e50d8cc19b33d939b513f69.
+Restored-file timestamps initially left stale measurement objects; caught before
+matched timings, touched/rebuilt affected inputs, retained the setup logs. After
+rejection, original source restored and dependency rebuild byte-matched compiler
+and both runners to baseline; original source manifest verified. No runtime or
+profiling hook ships, no second candidate, no broad matrix or private bootstrap.
+Finite next producer is exact-range membership/union in lr_propagation_solve_result:
+19.7M entries remain even with reduced traversal. A graph-owned budgeted derived
+membership representation would need sparse bounds/conversion evidence before
+adoption; it is only a proposal. Status/report publication follows, then stop.
 ### ROOT f7 browser artifact checkpoint and eight-lane continuation (2026-11-23)
 
 Implementation/evidence boundaries remain explicit. ROOT's existing public-pin
@@ -88810,3 +88856,69 @@ comparison. No production performance conclusion is drawn from these n1 samples.
 All owned jobs drained; todo hash remains
 e97d67a6ad878f3714e24d34c94d61846397d1ddbc882d482e97302342405327.
 Normal source push follows; final generation/hosted release remains ROOT-owned.
+
+### ROOT two edited browser generations passed at 9d9329db (2026-11-23)
+
+Frozen source9d9329db3606cbe74c544271ad4b9bb1912a0eec includes A1 hover repair
+64450fc1 and the published alias, metadata and LR-grain changes. ROOT reviewed
+the inspection binding-stage publication, query-owned constructor/layout
+preparation, subsequent annotation leases and failed-receipt gate. Existing
+array interning assertions remain intact; canonical type identity is still
+coordinator-owned. A1's 32/64-bit serial/four-worker, nested annotation,
+denial/retry, retained diagnostic and zero-ownership receipts remain owner-run
+evidence. Full portable completion/hover passed, but its later package code73
+remained failed. It was not skipped or claimed passed by this ROOT build.
+
+Local WSL Orchestral-Revng public768 build, CPU8-15/jobs4/compiler1, completed
+portable11 actions at42.74s wall/77.77s CPU/1094784KiB peak RSS; LLVM/cross at
+74.21s/123.74s/1095152KiB. Source hashes match before/after, logs have no
+warning/error diagnostics, status0, all owned build jobs drained. Receipt:
+root_release_9d9329db in the existing WSL cache. Exact unedited reactor hashes:
+tower13de39490fbdf176eac580b5dbac95daa6c8cddc1e80835fc3dacca4f2589738,
+LLVMbd26f079e59b8807ed733f7d3da30d7b83b0a919dc8d784943e9c0ee22a210ac,
+crossaac59781c854427ff3a51dc2101ebfe955541923d9ce3cece965112842e9f91d;
+compiler-project1236cf83969f40b452e8ef9c1baa62b5d52cb55fbf55c17e8e37a27fee4906e5.
+All thirty prior f7 artifact files were copied and hash-verified before replacement.
+
+With source, recipe, runtime inputs and host scripts still frozen at9d, ROOT ran
+the unchanged test-compiler-project.mjs through both actual edited generations.
+The script changes a semantic diagnostic, compiles with workers2 then4, validates
+each candidate and edited behavior, and requires complete reactor byte equality.
+Generation1 passed in110.248s; generation2 passed in94.796s. Both hashes:
+tower356f7240ad0beadb54f459914547e26ba3bf94c0c3bc3382733a17bd1166e1e1,
+LLVMbe9d9e8c2e8c2d7a0006f40f8c0412c386a60ff6a457601bfc7500df6b544f10,
+crossa644590948f68d0146cba19474003362d3dd3d555d81d8c4610f9caf6d7f486d.
+The candidate parser/module visibility, qualified/typed completion, hover,
+Graph/Fast, Foundation and LLVM/native checks and changed semantic diagnostic
+all passed. Complete raw outputs remain under build/root_ecs_generations_9d9329db.
+The corrected Windows native-process wrapper captured actual exit0,205.541s
+wall/617.719s CPU/2441039872B observed peak working set; stderr is empty.
+This is the process and worker threads, not separately spawned descendants.
+Do not infer a2-vs4 scaling ratio from generations built by different compilers.
+The original failed b0 candidate receipt and uncaptured old native exit remain
+preserved. New success is a new executed source boundary, not a rewritten failure.
+
+ROOT then drained the Node process before pulling c299b862. Later source changes
+are outside this result. The Deck received matching9d portable/LLVM bytes with
+independent remote SHA256 checks for its next bounded fixture batch; active f7
+runs retain their own artifacts. L2's bfb47510 audit disproved the suspected
+nominal-call write through the current producer chain; production is unchanged.
+Ordinary module failure/retry and healthy serial/parallel tests preserve this
+finding. The remaining imported-stack defer and pointer-alias cases have exact
+Tower fixtures and separate native owners; they are not passed here.
+
+This closes the two edited-browser-generation gate at9d. It does not close full
+Node/IDE/shared-current-source acceptance, later-source generations, the
+service-blocked compiler instrumentation or final hosted release. B1's nativef7
+candidate and public768 pin retain their exact scope. ROOT's documentation-only
+publication preserves the verified old Pages runtime; no new runtime deployment
+is claimed, and documentation itself needs no runtime performance comparison.
+All original todo.txt bytes remain unchanged.
+B1 rejected-candidate publication reconciliation: required ff-only pull refused
+divergence, normal merge221c68dea09f7e84448f7a750b35f0131f0d4220 preserves complete
+c299b862 history without conflict. Serial LR/grammar inputs byte-identical to
+12722151; incoming generic-semantic/backend-test/browser changes have separate
+owner evidence and are not validated by the frozen timing/compiler artifacts.
+B1 diff against incoming main is receipt/journal only. No runtime delta, second
+candidate or unnecessary merged compiler build. Original source/binary/check
+receipts stay exact; owned jobs drained, todo preserved. Normal push follows.
