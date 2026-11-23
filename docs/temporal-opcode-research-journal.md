@@ -63308,3 +63308,89 @@ Merged source is not yet validated: rebuild native affected closure, run focused
 parser/resource/query/editor/cache/units, then documented public WASI+IDE checks.
 Earlier66f985 profiles/sanitizers stay scoped to that immutable source, with the
 new union requiring its own applicable checks before final publication.
+B1 merged native evidence 2026-11-23T07:54:51.5502011Z : main38ca7a335e38b895412d046a6343b4a59d936616,
+tree97600afede337b5e9eb68659a9de99b2388a4222. Public-bootstrap affected26-step
+native build43.71wall/115.57user/17.06system,771980KiB passed. Parser0.04s/54240,
+grammar-resource1.34s/52912, query0.11s/60728, editor10.86s/948236,
+module-cache0.06s/54488 and nativeunits19.36s/918868 all exit0; actualmixedjobs,
+nestedbudgets, deterministic output/failures and cancellation oracles retained.
+Editor includes root's added physical-denial inspection fixture, so its duration
+is not comparable to the older66 paired editor workload. No new performanceclaim.
+All children drained. Starting documented WASI build with public pin, SDK34,
+IDE_TESTS=ON, jobs4 in ownedbuild/browser-wasi; no privateoverride orcapchange.
+File-level next audit: syntax_revision_declare still has untyped overlay/diagnostic
+failure; syntax_reader has a storage-only syntax_reader_ok failure path and typed
+receipt can be introduced without classifying text. syntax_session_next early
+read/declaration and error-byte helpers remain untyped/abort on diagnostic copying.
+Pattern chain crosses B2 frontend_world/frontend_pattern/frontend_table and B1
+regex_lowering; requires coordinated producer result before session adoption.
+B1 merged WASI evidence 2026-11-23T07:57:24.8153966Z : documented default public-bootstrap build passed
+50.31wall/102.22user/15.01system,848328KiB (28 affected steps, SDK34, jobs4,
+IDE_TESTS=ON). Reactor SHA12a932a792eba43698f1a23ddbcd45d1771f3f6ee3cdd55f5546062505f4a984.
+Existing Tower IDE assertions passed, Node runner exit0/27.5919543s. Eight raw
+portable fixture observations completed exit0/1.7512887s: comptime_capture executes,
+and inference_alias_invalid/decltype_aggregate_operator/aggregate_inferred_copy
+produce their expected distinct errors at offsets146/95/103 for both4/8-byte
+pointer targets. Observation transport reports values, not an independent oracle.
+No browser sanitizer, all-core browser scaling or hosted publication claim.
+Currentroot adds shared graph/store ownership, so a matching scoped native
+ASan/LSan and TSan rebuild/run will precede the next source edits. Earlier66
+instrumentation remains separately identified; no relabeling old checks.
+B1 merged instrumentation checkpoint (2026-11-23T08:02:44.5929691Z).
+On source38ca7a33, ASan/LSan build passed in85.13s wall,203.58s user,
+28.13s system and770304KiB peak RSS. Parser passed0.27s/148696KiB,
+grammar resource cases11.72s/662600KiB, editor81.48s/1191280KiB and
+three-unit/four-worker profile9.83s/1118212KiB. The profile observed three
+simultaneous units and canonical hash1173729914654460811. No findings with
+ASAN_OPTIONS=detect_leaks=1:abort_on_error=1. The editor now includes root's
+physical denial case, so compare neither its wall time nor CPU directly to66.
+Matching TSan build passed57.75s wall,145.13s user,21.70s system,771172KiB.
+All build/ASan children drained before the B2 quiet grant at08:01:58 UTC
+(use the exact grant timestamp in status). TSan runtime remains pending.
+
+Read-only follow-on audit found that syntax_session_error and its byte variant
+abort on diagnostic-copy denial. syntax_baseline_install and syntax_format_into
+then gate publication by error.length alone. A nonallocating session diagnostic
+must be accompanied by resource-aware checks at these consumers; replacing only
+the setter would be incomplete. syntax_session_next also has explicit allocation
+aborts for comments and declaration-index storage. Preserve the first existing
+WorkBudgetError, stop before publication, retain ordinary source diagnostics,
+and dispose every private parse tree on failure. Pattern compilation remains a
+separate cross-owner result chain; B2 has the concrete proposal. No new production
+changes are made while the current merged sanitizer closure remains frozen.
+B1 merged TSan runtime passed (2026-11-23T08:06:52.0203006Z). All five children drained with exit0:
+parser0.353s, grammar-resource19.618s, query1.123s, and two three-unit/four-worker
+runs24.649/25.038s wall,77.767/79.655s processCPU,1428860/1435684KiB peak RSS.
+Both observed outer_peak3 and canonical1173729914654460811 with identical
+entities/components/retained bytes. No findings with halt_on_error=1, same
+bounded180second cases, supported isolated container configuration. No UBSan or
+browser instrumentation capability has been added. Root38 sharedownership now
+has matching native focused, ASan/LSan, TSan and public WASI/IDE evidence.
+A final current parser-only reader/emission run is queued after its rebuild;
+the existing bounded lifecycle0..1 selector will localize the earlier fullfrontend
+300second timeout without changing that deadline or claiming the fullsuite passed.
+Source remains frozen. B2 quiet grant was consumed by its original watcher and
+released08:03:14.8326980+00:00 after four successful children; no duplicate watcher.
+B1 frozen38 closure completed (2026-11-23T08:08:38.6094171Z). Parser-only affected build passed32.99s
+wall/83.52s user/11.94s system,770400KiB. Existing independent reader oracle
+(1000 byte fixtures, exact trees/errors, malformed spans and failure cleanup)
+passed0.20s/50096KiB; emission's400 generated/template/failure cases passed
+0.30s/5540KiB. Existing lifecycle cases0 and1 both passed32/64-bit and1/4-worker
+checks, including valid Foundation reconstruction and deterministic failure, in
+8.67s wall/8.86s user/.54s system,224212KiB under the unchanged60second case bound.
+This rules out an immediate stall in those first two cases on38; it does not
+explain or erase the earlier fullfrontend300s timeout. The full lifecycle has42
+cases, two target widths, two worker budgets and additional valid serial round
+trips before the rest of body_runs begins. No fullsuite acceptance claim.
+All children drained. Current C free134619910144bytes; todo remains untouched.
+
+New root75fdf0bf receipt/pages union arrived only after this freeze completed.
+Its semantic receipt/frame/page ownership changes have not been adopted or tested
+here. Keep these38 native/sanitizer/WASI receipts immutable, publish their complete
+history to the coordinator, then review/adopt the next coherent owner history
+before using the new component-result API in declaration work. Do not rerun these
+unchanged38 matrices or copy only new getters. Final release/publication remains
+open and no publication lease has been granted.
+This commit only records already-completed checks and findings; runtime inputs
+are exactly source38ca7a33, so no new runtime performance measurement is applicable
+to the documentation delta itself.
