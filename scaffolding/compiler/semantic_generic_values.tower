@@ -16,7 +16,7 @@ import .library.work_budget_types;
 extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
 
 fn generic_step(a: GenericAnalysis*, depth: usize): bool {
-    if a.storage_error != WorkBudgetError.None { return false; }
+    if a.context.program.resource.error != WorkBudgetError.None { return false; }
     if depth >= InspectionDepthLimit {
         a.truncated = true;
         return false;
@@ -213,6 +213,7 @@ fn generic_primitive(a: GenericAnalysis*, node: void*): void* {
     var name = sem_member(node, "name");
     var found = sem_resolve(a.context, a.context.types, name, sem_identifier(a.context, name));
     a.context.program.error.length = 0;
+    if a.context.program.resource.error != WorkBudgetError.None { return null; }
     var value = sem_get(found);
     if value == null {
         return null;
@@ -306,6 +307,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
     if sem_child_count(node) > 1 {
         var definition = sem_resolve(a.context, a.context.type_functions, name, sem_identifier(a.context, name));
         a.context.program.error.length = 0;
+        if a.context.program.resource.error != WorkBudgetError.None { return null; }
         if definition == null {
             return null;
         }
@@ -337,6 +339,7 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
     }
     var record = sem_resolve(a.context, a.context.types, name, sem_identifier(a.context, name));
     a.context.program.error.length = 0;
+    if a.context.program.resource.error != WorkBudgetError.None { return null; }
     if sem_is(record, "CoreStruct") {
         return generic_view(a, record, view.bindings);
     }
@@ -368,6 +371,7 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
     info.annotation = sem_member(field, "type");
     info.bindings = record.bindings;
     generic_resolve_view(a, info, depth);
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     generic_info_bind(a, sem_member(node, "field"), node);
 }
 
@@ -469,7 +473,7 @@ fn generic_expression_result(a: GenericAnalysis*, source: void*, copy: void*, de
 }
 
 fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: void*, depth: usize): void {
-    if a.storage_error != WorkBudgetError.None { return; }
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     node = generic_unwrap(node);
     var eligible = sem_is(node, "CoreBinary");
     if sem_is(node, "TowerExpression") {
@@ -485,10 +489,12 @@ fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: voi
         return;
     }
     var copied: usize = 0;
-    var clone = compiler_clone_tree_result(node, a.budget, &copied, &a.storage_error);
+    var storage_error = WorkBudgetError.None;
+    var clone = compiler_clone_tree_result(node, a.budget, &copied, &storage_error);
     a.budget = a.budget - copied;
     if clone == null {
-        if a.storage_error == WorkBudgetError.None { a.truncated = true; }
+        if storage_error == WorkBudgetError.None { a.truncated = true; }
+        else { sem_resource_record(a.context.program, storage_error, sem_offset(a.context, node)); }
         return;
     }
     if generic_expression_seed(a, node, clone, depth) {
@@ -526,10 +532,10 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         return;
     }
     var next = depth + 1;
-    for(var i: usize = 0; i < sem_child_count(node) && a.storage_error == WorkBudgetError.None; i++) {
+    for(var i: usize = 0; i < sem_child_count(node) && a.context.program.resource.error == WorkBudgetError.None; i++) {
         generic_value_walk(a, sem_child(node, i), next);
     }
-    if a.storage_error != WorkBudgetError.None { return; }
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     var info = generic_info(node, a.component);
     if info != null {
         var reference = info.kind == GenericInfoKind.Variable;
@@ -558,6 +564,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         info = generic_info_add(a, node, node, GenericInfoKind.Load);
         generic_element(a, info, generic_info(sem_member(node, "name"), a.component), next);
     }
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     if sem_is(node, "CoreBinary") {
         generic_info_add(a, node, node, GenericInfoKind.Binary);
         generic_expression_check(a, node, null, next);
@@ -588,6 +595,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             }
         }
     }
+    if a.context.program.resource.error != WorkBudgetError.None { return; }
     var wrapper = sem_is(node, "CoreOperand");
     if sem_is(node, "TowerExpression") {
         wrapper = true;
@@ -603,6 +611,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             var bare = generic_unwrap(node);
             generic_info_add(a, bare, bare, GenericInfoKind.Value);
             generic_expression_check(a, bare, null, next);
+            if a.context.program.resource.error != WorkBudgetError.None { return; }
             if bare != node {
                 generic_info_bind(a, node, bare);
             }
@@ -631,6 +640,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         var value = sem_member(node, "value");
         info = generic_info(node, a.component);
         generic_expression_check(a, value, info.resolved, next);
+        if a.context.program.resource.error != WorkBudgetError.None { return; }
         if info.annotation == null {
             generic_view_copy(info, generic_info(generic_unwrap(value), a.component));
             generic_info_bind(a, sem_member(node, "name"), node);

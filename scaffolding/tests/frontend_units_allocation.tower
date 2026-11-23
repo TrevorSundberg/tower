@@ -1,6 +1,7 @@
 import tower;
 import frontend_units_memory;
 import frontend_units;
+import world_constructor;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
@@ -18,7 +19,8 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
     var path = "allocation.tower";
     var resources = units_memory_resource_bytes(bedrock, foundation, root);
     var input = units_memory_input_bytes(path, strlen(source));
-    var batch = frontend_units_create_bounded(1, 1, resources + input * 2 + UnitCompilationAllowance, 8, 1, 1,
+    var reference = units_memory_measure(bedrock, foundation, root, path, source);
+    var batch = frontend_units_create_bounded(1, 1, reference.peak + input, 8, 1, 1,
         bedrock, foundation, root);
     units_memory_check(batch != null && frontend_units_source(batch, 1, path, source, strlen(source)),
         "Allocation regression owns its initial source");
@@ -30,7 +32,7 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
         && work_budget_release_result(budget, &receipt) == WorkBudgetError.None, "Replacement receipt slot");
     var before = units_memory_snapshot(batch);
     var buffers = tower_test_buffer_count();
-    for(var allowed: usize = 0; allowed < 2; allowed++) {
+    for(var allowed: usize = 0; allowed < UnitSourceSnapshotBuffers; allowed++) {
         tower_test_buffer_fail_after(allowed);
         var replaced = frontend_units_source(batch, 1, "invalid.tower", "@", 1);
         tower_test_buffer_fail_after(~convert(usize, 0));
@@ -42,13 +44,14 @@ export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u
             "Failed first/second snapshot allocation restores buffers and receipts");
     }
     while !frontend_units_step(batch, true) {}
-    units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
+    units_memory_compiled(batch,
         "Old source remains configured after partial replacement allocation failure");
     frontend_units_close(batch);
     units_memory_check(tower_test_buffer_count() == baseline, "Snapshot allocation fixture releases ownership");
 }
 
 export fn frontend_units_allocation_root_tests(root: u8*): void {
+    world_constructor_tests();
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     defer vector_dispose(&bedrock);

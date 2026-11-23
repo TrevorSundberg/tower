@@ -18,8 +18,10 @@ extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
 extern fn completion_dispose(query: CompletionQuery*): void;
 extern fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, pointer_bytes: u32): CompletionQuery*;
 extern fn language_document_result(query: CompletionQuery*): u8*;
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
-extern fn compiler_work_create(count: usize, workers: usize, revision: u64, profile: u64): void*;
+extern fn compiler_work_create_result(count: usize, workers: usize, revision: u64, profile: u64,
+    budget: WorkBudget*, output: void**): WorkBudgetError;
 
 extern fn compiler_work_close(work: void*): void;
 
@@ -53,8 +55,7 @@ extern fn entity_component_get(node: void*, kind: void*): void*;
 
 extern fn entity_component_data(component: void*): void*;
 
-extern fn compiler_world_create_workers(limit: usize): void*;
-extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
 
 extern fn compiler_world_store(world: void*): void*;
 
@@ -228,8 +229,8 @@ fn frontend_unit_compile(job: FrontendUnit*): void {
     source.data = job.source.storage.data;
     source.length = job.source.length;
     frontend_compile_sources(&job.program, &source, 1, job.modules);
-    job.success = job.program.error.length == 0;
-    if !job.success {
+    job.success = job.program.resource.error == WorkBudgetError.None && job.program.error.length == 0;
+    if !job.success && job.program.resource.error == WorkBudgetError.None {
         if vector_reserve(&job.program.error, job.program.error.length + 1) {
             job.program.error.data[job.program.error.length] = 0;
         } else {
@@ -350,13 +351,12 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
         }
     }
     var lanes = count < budget ? count: budget;
-    if !work_pool_open_kernel(&batch.pool, lanes, compiler_work_kernel_execute) {
+    if !work_pool_open_kernel_budget(&batch.pool, lanes, compiler_work_kernel_execute, &batch.budget) {
         frontend_units_close(batch);
         return null;
     }
     batch.count = count;
-    batch.work = compiler_work_create(count, batch.pool.count, revision, profile);
-    if batch.work is null {
+    if compiler_work_create_result(count, batch.pool.count, revision, profile, &batch.budget, &batch.work) != WorkBudgetError.None {
         frontend_units_close(batch);
         return null;
     }
@@ -385,9 +385,12 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
         job.kernel.payload = bits(void*, job);
         job.kernel.execute = compiler_unit_kernel;
         job.kernel.receive = frontend_unit_receive;
-        job.world = compiler_world_create_workers(budget);
+        if compiler_world_create_result(budget, &batch.budget, &job.world) != WorkBudgetError.None {
+            frontend_units_close(batch);
+            return null;
+        }
         job.modules = frontend_modules_create();
-        if job.world is null || job.modules is null || !compiler_world_bind_budget(job.world, &batch.budget)
+        if job.modules is null
             || !frontend_modules_bind_world(job.modules, job.world) {
             frontend_units_close(batch);
             return null;
@@ -533,6 +536,7 @@ export fn frontend_units_error_offset(batch: FrontendUnits*): usize {
     if !batch.started && batch.resource_error != null { return batch.resource_offset; }
     if !batch.finished || batch.cancelled || frontend_units_failed(batch) == 0 { return 0; }
     var job = frontend_units_job(batch, frontend_units_failed(batch));
+    if job.program.resource.error != WorkBudgetError.None { return job.program.resource.offset; }
     return job.program.error.length == 0 ? job.diagnostic.offset : job.program.error_offset;
 }
 
@@ -638,6 +642,9 @@ export fn frontend_units_error(batch: FrontendUnits*): u8* {
         return "";
     }
     var job = frontend_units_job(batch, compiler_work_failed(batch.work));
+    if job.program.resource.error != WorkBudgetError.None {
+        return sem_resource_message(job.program.resource.error);
+    }
     if job.program.error.length != 0 {
         return job.program.error.data;
     }

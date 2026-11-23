@@ -56,11 +56,13 @@ fn sem_executables_begin(c: SemanticContext*): void {
 }
 
 fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
+    if !sem_ok(c) || !work_ok(&c.queries) { return 0; }
     sem_executables_begin(c);
     var query = convert(u32, SemanticQuery.ExecutableFunction);
     var existing = work_find(&c.queries, subject, query, 0);
     if existing != 0 { return existing; }
     var body = sem_body_request(c, subject);
+    if body == null || !sem_ok(c) || !work_ok(&c.queries) { return 0; }
     var result = bits(SemanticExecutable*, entity_component_data(entity_component_add(subject, c.executable_functions)));
     sem_require(result != null);
     *result = default;
