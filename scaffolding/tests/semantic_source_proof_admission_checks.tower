@@ -1,0 +1,165 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+enum SourceProofAdmissionMode: u32 { Healthy, Query, Edge, Cancelled, Failed, Finish }
+var SourceProofAdmissionBytes: usize = 1048576;
+var SourceProofAdmissionRevision: u64 = 118;
+
+fn source_proof_check(ok: bool, text: u8*, failures: u32*): void {
+    if !ok { puts(text); (*failures)++; }
+}
+
+fn source_proof_trial(width: u32, workers: usize, mode: SourceProofAdmissionMode): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 83;
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    var subject = sem_create(root);
+    sem_attach(subject, KDeclare).start = 7;
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, SourceProofAdmissionBytes, SourceProofAdmissionRevision));
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    var pressure: WorkReservation = default;
+    if mode == SourceProofAdmissionMode.Query || mode == SourceProofAdmissionMode.Edge {
+        // Prewarm the actual graph's shared access/ready/dispatch buffers, then
+        // retire this preparation task before creating the real proof jobs.
+        var warm = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), 0);
+        sem_require(warm != 0);
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        sem_require(work_access(&context.queries, warm, domain, convert(u64, SemanticAccess.KnownAnalysis), 0, 1, WorkAccessMode.Read)
+            && work_access(&context.queries, warm, domain, convert(u64, SemanticAccess.Body), 0, 1, WorkAccessMode.Read)
+            && work_access(&context.queries, warm, domain, convert(u64, SemanticAccess.KnownBinding), 0, 1, WorkAccessMode.Read)
+            && work_access(&context.queries, warm, domain, convert(u64, SemanticAccess.Expression), 0, 1, WorkAccessMode.Read)
+            && work_access(&context.queries, warm, domain, convert(u64, SemanticAccess.Evaluation), 0, 1, WorkAccessMode.Read));
+        sem_require(work_seal(&context.queries, warm) && work_demand(&context.queries, warm));
+        var ticket: WorkTicket = default;
+        sem_require(work_take(&context.queries, &ticket) && work_finish(&context.queries, &ticket, true));
+        sem_require(work_reset(&context.queries, 2, convert(u64, width)));
+        if mode == SourceProofAdmissionMode.Query {
+            var argument: u64 = 1;
+            while context.queries.tasks.length + program.functions.length < context.queries.tasks.capacity {
+                sem_require(work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+            }
+            sem_require(work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), argument - 1) != 0);
+        }
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+        sem_require(work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &pressure) == WorkBudgetError.None);
+    }
+    if mode == SourceProofAdmissionMode.Cancelled { work_cancel(&context.queries); }
+    if mode == SourceProofAdmissionMode.Failed { sem_resource_record(&program, WorkBudgetError.Memory, 37); }
+    var query = sem_source_binding_request(&context, subject);
+    if mode == SourceProofAdmissionMode.Finish {
+        sem_require(query != 0);
+        var consumers = context.queries.ready.capacity + 1;
+        for(var index: usize = 0; index < consumers; index++) {
+            var consumer = work_request(&context.queries, subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+            sem_require(consumer != 0 && work_depend(&context.queries, consumer, query)
+                && work_seal(&context.queries, consumer) && work_demand(&context.queries, consumer));
+        }
+        var state = sem_source_bindings_pump(&context);
+        sem_require(state == SemanticPumpResult.Progress && work_task(&context.queries, query).state == WorkState.Ready);
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+        sem_require(work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &pressure) == WorkBudgetError.None);
+        state = sem_source_bindings_pump(&context);
+        source_proof_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Capacity
+            && program.resource.offset == 83 && context.queries.cancelled && context.workers.running == 0,
+            "Joined source proof retains capacity failure while waking consumers", &failures);
+        for(var index: usize = 0; index < consumers; index++) {
+            var consumer = work_find(&context.queries, subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+            source_proof_check(consumer != 0 && work_task(&context.queries, consumer).state == WorkState.Cancelled,
+                "Partial ready publication never executes or succeeds a dependent consumer", &failures);
+        }
+        query = 0;
+    }
+    if mode == SourceProofAdmissionMode.Healthy {
+        sem_require(query != 0 && work_demand(&context.queries, query));
+        var state = sem_source_bindings_pump(&context);
+        while state == SemanticPumpResult.Progress { state = sem_source_bindings_pump(&context); }
+        source_proof_check(state == SemanticPumpResult.Complete && work_task(&context.queries, query).state == WorkState.Succeeded,
+            "Healthy source proof publishes after its scan joins", &failures);
+    } else {
+        var wanted_error = mode == SourceProofAdmissionMode.Failed ? WorkBudgetError.Memory
+            : mode == SourceProofAdmissionMode.Cancelled ? WorkBudgetError.None : WorkBudgetError.Capacity;
+        var offset: usize = mode == SourceProofAdmissionMode.Failed ? 37
+            : mode == SourceProofAdmissionMode.Cancelled ? 0 : 83;
+        source_proof_check(query == 0 && (mode == SourceProofAdmissionMode.Finish || context.source_binding_proof == 0)
+            && program.resource.error == wanted_error && program.resource.offset == offset
+            && context.queries.running == 0 && context.workers.running == 0,
+            "Source proof denial retains exact owning receipt and publishes no ready proof", &failures);
+    }
+    if mode == SourceProofAdmissionMode.Query || mode == SourceProofAdmissionMode.Edge {
+        var scan = work_find(&context.queries, root, convert(u32, SemanticQuery.SourceBindings), 0);
+        var proof = work_find(&context.queries, root, convert(u32, SemanticQuery.SourceBindingProof), 0);
+        source_proof_check(scan != 0 && work_task(&context.queries, scan).state == WorkState.Cancelled
+            && (mode == SourceProofAdmissionMode.Query ? proof == 0 : proof != 0),
+            "Denial occurs after scan admission at the selected proof query or edge boundary", &failures);
+    }
+    if pressure.active { sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None); }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var tasks = context.queries.tasks.length;
+    var retained = program.resource;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        source_proof_check(sem_source_binding_request(&context, subject) == query
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks && program.resource.error == retained.error
+            && program.resource.offset == retained.offset,
+            "Repeated source proof request does not replay jobs or replace a terminal receipt", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    source_proof_check(compiler_world_dispose(world), "Source proof releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    source_proof_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Source proof releases graph reservations", &failures);
+    return failures;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var mode = SourceProofAdmissionMode.Healthy;
+    if argc > 1 {
+        if strcmp(argv[1], "finish") == 0 { mode = SourceProofAdmissionMode.Finish; }
+        else { if strcmp(argv[1], "query") == 0 { mode = SourceProofAdmissionMode.Query; }
+        else { if strcmp(argv[1], "edge") == 0 { mode = SourceProofAdmissionMode.Edge; }
+        else { if strcmp(argv[1], "cancelled") == 0 { mode = SourceProofAdmissionMode.Cancelled; }
+        else { if strcmp(argv[1], "failed") == 0 { mode = SourceProofAdmissionMode.Failed; }
+        else { if strcmp(argv[1], "healthy") != 0 { puts("Unknown source proof admission selector"); return 1; } } } } } }
+    }
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            failures += source_proof_trial(width, workers, mode);
+        }
+    }
+    return failures == 0 ? 0 : 1;
+}

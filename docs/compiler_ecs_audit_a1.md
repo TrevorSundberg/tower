@@ -1607,3 +1607,108 @@ control/capture-policy passed as recorded above. Clean public bootstrap, browser
 generation, whole integrated release and leased publication remain outstanding.
 Documentation records actual receipts and adds no runtime behavior, so separate
 runtime profiling for these documentation edits is inapplicable.
+
+### A1 proof admission and failed callback publication (2026-11-23)
+
+Reviewed b4e09673 plus the owned two-file production delta. Actual new failures
+were reproduced before edits; this is implementation/evidence, not a proposal.
+semantic_source_bindings created scan jobs through checked shared work helpers,
+then asserted its aggregate proof query/dependencies/seal. It also asserted
+completion after publishing joined facts, although waking dependent consumers
+can grow the shared ready index. Those operations now use existing
+sem_known_query_check: retain exact resource cause/owning source offset, cancel
+only after workers joined, and return failure. An empty take on a healthy graph
+remains waiting; graph failure is no longer silently waiting. Facts already
+published are not replayed or rolled back: mark the pipeline published and retire
+its private job vectors before reporting completion failure. Canonical payloads
+remain world-owned. This changes no query layout, scheduler or type policy.
+
+semantic_aggregates.sem_aggregate_prepare called sem_lower_transform and then
+rewrote shared callback parameter/result signatures even after failure or graph
+cancellation. It now requires both semantic and graph health before that ordered
+publication. The global signature barrier remains intentional: later lowering
+workers consume shared callback identities. No disjointness/noalias is inferred.
+
+| New assigned file; review b4e09673 plus this draft | Ownership, storage, scheduling and evidence |
+| --- | --- |
+| scaffolding/tests/semantic_source_proof_admission_checks.tower |24 cases at widths4/8 and worker budgets1/4. Own world/context plus separate real bounded graph ledger isolate query allocation from component allocation. Preparation uses actual access/ready/dispatch operations and retained capacities; pressure reserves measured remaining bytes. Query/edge denial occurs after real scan admission, and finish denial wakes more consumers than the retained ready capacity. Before2 query/edge/finish abort134; after3 retains Capacity at root83, cancels waiting consumers, preserves first receipt after pressure release/retries, adds no repeated metadata/tasks, and tears down to zero graph grants. Healthy proof, prior Memory receipt and cancellation remain checked. Root-only scan is not claimed parallel overlap; ordinary query tests cover real workers. |
+| scaffolding/tests/semantic_aggregate_admission_checks.tower |16 cases with own initialized world/context, ordinary Foundation callback/aggregate entities and actual production lowering. Healthy callback parameters/result lower once; prior Memory, graph cancellation and a real lowering-worker component-limit failure preserve callback identity across repeated calls. Before2 negative cases exit1; after3 all pass. Full semantic services/kernels are imported, so this fixture object REPLACES the production semantic provider in its link; other production providers appear once. No copied implementation or test-only exported semantic ABI. Worker-budget4 with one eligible job is not claimed useful overlap. |
+
+Assigned census61 now includes both new files; L2 constructor reservation and
+excluded type/generic families are unchanged. Existing source-proof/capture
+fixtures in query smoke continue to cover lexical owners, alias invalidation,
+executed/untaken reads and repeated suspended effects; these new tests isolate
+admission/publication rather than replacing those semantic oracles.
+
+First aggregate probe omitted generic_begin, so its synthetic worker error
+crashed139 in generic_origin via sem_fail. GDB localized this test setup defect;
+production generic/source initialization fixes probe2. The failed log remains.
+GDB independently locates the source-proof finish abort inside the actual
+sem_source_bindings_pump, not the fixture's precondition. Collector exit0 only
+means expected BEFORE failure codes matched; the failing oracles remain failures.
+
+Public9653 smallest aggregate closure (also imports changed source proof) passes
+16.78wall/12.23user/.79sys/687544KiB. Source-proof fixture3 passes3.11wall/2.39user/
+.13sys/214008KiB; full semantic-provider aggregate fixture3 passes21.15wall/
+15.57user/1.01sys/750416KiB. Coherent native4-action refresh passes22.54wall/
+15.70user/1.22sys/748212KiB. All40 new cases, registered12 caller failures, query,
+control and capture-policy pass. Control33.22wall/36.12CPU/271668KiB includes the
+existing nested aggregate callback signature_invokes(41)==42 at runtime/comptime,
+serial/worker canonical equality and reparse; this supplies an independent
+ordinary-language reference beyond direct metadata assertions. Capture-policy
+53.17wall/57.15CPU/222880KiB passes executed/untaken dependency/effect cases.
+
+Before compiler0f8f226d79388195969e113cccd52a941065b5cedf296c5d502d0158c53837b7
+and after376fa7da6ccf6713b1be5ffe7a4311a14041c07f4415a59786a0ac87800eb75a
+are saved with identical ROOT76d resources for the pending fixed-path control.
+Current ASan/TSan refresh is also pending; preceding954955 receipts are not
+relabeled for this delta. D1 registration proposal describes the aggregate
+provider replacement explicitly. No shared harness, type/generic/constructor,
+SemanticContext layout or node producer was edited. General graph/entity
+allocation closure and final integrated release remain open; no publication lease.
+
+A1 proof/publication matched control now passes32 checked executions plus
+canonical serial/parallel equality, Foundation reparse and unchanged full
+resource hashes. Frozen0f8f226d/376fa7da pair uses SAME actual
+/cache/semantic_proof_publication_fixed/towerc path/cwd; atomic installed copy,
+byte/hash checks are outside timing after each child drains. Fresh A2 reciprocal
+window10:36:20; automatic release follows all canonical children. Same native
+Linux x64/Clang19.1.1 environment, interpreted wasm32 target, CPU0-11/24GiB,
+explicit jobs1/4, one excluded warmup and three alternating pairs per cell.
+Resource manifest SHA256bcb931ded43b503a69a73c9b166ba4faba6cf00e81c5477e240c01c222ba52ec.
+
+| Input/workers | Before median wall/CPU/RSS KiB | After median wall/CPU/RSS KiB |
+| --- | --- | --- |
+| small/1 | 1.16/1.07/179684 | 1.17/1.08/178732 |
+| small/4 | 1.07/1.20/194716 | 1.07/1.21/197412 |
+| large/1 | 1.19/1.10/178476 | 1.17/1.08/178548 |
+| large/4 | 1.08/1.22/197412 | 1.07/1.21/197348 |
+
+CPU sums user+system per sample before selecting its median. The small/4 RSS
+median rises2696KiB(1.38%); after samples span194140-197520KiB, while large/4
+is nearly unchanged. Normal-path checks add no new owned allocation and the
+focused repeated-failure fixtures verify stable metadata/zero graph grants;
+this does not establish whole-heap neutrality. Short three-pair differences
+(up to0.01s wall increase) and noisy RSS are not a precise cost or broad speedup
+claim. No scheduling-idle/critical-path or cross-language superiority claim is
+made. Current ASan/TSan validation remains separate from these timing samples.
+
+A1 proof/publication instrumentation after the frozen two-file delta now passes.
+ASan+LSan coherent4-action refresh64.19wall/31.62user/6.52sys/748044KiB;
+TSan coherent4-action refresh37.77wall/21.42user/3.01sys/747760KiB. Both run
+source-proof24+aggregate16, registered12caller, query/resource24, then ten full
+40-case/query repetitions (400 focused cases per mode plus query repetitions).
+All exit0 with halt-on-error and no sanitizer report. The unchanged public
+LLVM fixture inputs generated for ASan were hash-verified and reused for TSan;
+only the supported instrumentation/lowering/link step differs. The aggregate
+fixture replaces the semantic provider exactly once in both modes.
+
+Sessions44129/91392 fully drained; TSan ephemeral tower-a1-proof-thread1 reaped.
+Same own CPU0-11/24GiB/job1, source read-only TSan container, no-network and the
+previously documented personality startup exception. Raw logs/recipes are
+semantic_proof_publication_{address,thread}1 and corresponding fixture
+*_publication1; original LLVM hashes are retained separately. No production
+allocator fault injection substitutes for these real worker runs. Full-control
+TSan timeout, source UBSan/systemLLVM/browser coverage, graph/entity allocation
+closure and integrated release/publication remain explicit gaps. Last disk
+free349245087744bytes. No sibling cache edits, todo changes or publication lease.
