@@ -91895,3 +91895,72 @@ has its own native receipt; the old-eac failures remain final-artifact adoption,
 not evidence that the newer implementation fails. Preserve resource mismatch
 logs and original measured identity; no entire merged-registry runtime claim or
 passing-case rerun. Current actual selected fixture/language closure unchanged.
+
+### D2 body-continuation LLVM target-bound canonical repair (2026-11-23)
+
+Frozen published main18384965d21ee5f710b05db3623f13668d68c993; reviewed the
+complete compiletime transport, its actual loaders, body fixture, D1's43LLVM
+receipt and A1's compiler-entities same-target correction. This closes one
+caller-contract failure, not a backend or reconstruction-memory repair.
+Original test SHA b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d;
+final SHA9d6abf4592c3b57f5b3fe091aaeb073644d238fb1ae01e30e7dfdf580a0fdb1b.
+Body source22147bytes/771lines SHA6369f2d9aab1bfa2f3efb6496a247b487adbd5c155a51f9f9efff23ae3689fed
+matches D1; control decltype_layout1242bytes SHAef7470a9a7d946a8d7856c066866ba269606b39f0d41358988ca8e56f7fd0f66.
+Neither Tower fixture changed. Compiler source remains eac16533ad7169988c53af934ece62e083b39bad,
+not current main: public768-built portable df541c16c626453fae94553cae2e6d1285b6879bfe7778be363fe537a0d8fd99
+and LLVM87c8fbc90a9e0e56a3399155c5d63bcab9dcd57e4de5d89996f40c0238230472,
+verified before/after via the existing semantic_backend_45db5aa9/reactors copies.
+
+Added optional TOWER_TEST_PHASES/TOWER_TEST_ARTIFACTS transport labels and exact
+source/canonical/compiled-Wasm/result captures before changing width. Baseline
+Graph64 returns0; original source -> default wasm32 compiles, finishes done,
+empty diagnostic, output0. Canonical64 -> wasm32 also compiles/finishes done
+but outputs1: assertion failure retained, exit1. Captured canonical178354bytes
+SHAe151e38631b08c9c61bf1f3a80953b13a6dd498a38c874d80c313ed6bdea3bef.
+The canonical query_type_layout compares baked alignment8 with the retained
+alignof(pointer_type(empty_type())) expression, evaluated as4 on wasm32;
+its folded size is16. This is the explicit target-profile contract in
+foundation.md, not evidence that original Tower body execution is broken.
+
+The LLVM-positive caller now generates/checks canonical with pointerBytes4 and
+explicit wasm32-unknown-unknown (existing optimize=true/emit=wasm defaults).
+Matching canonical178353bytes SHA7c8d40ebda176adee662b17b32425986480c17b9fcc329d13dd35445f11c0e1d
+has alignment4/size8. Original and canonical both compile and execute to exact0,
+done, empty error, no truncation; source captures identical. Assertions now label
+both inputs and explicitly check terminal status/error/truncation. No changed
+semantic expected values, ignored errors, new compiler logic or producer edits.
+Separate portable32/64 Graph/Fast/canonical registrations are byte-unchanged;
+their prior evidence is retained, not rerun or relabeled by this LLVM selection.
+The existing decltype_layout control (dependent layout and pointer stride) also
+passes original+matching-canonical execution with identical required output0.
+
+One fresh Node22.23.5 process per anchored selection, concurrency1, Docker
+image4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6,
+Deck AMD Custom APU0932/Linux x64, CPU0,2,8GiB memory+swap limit. Warm filesystem,
+fresh reactor instances, n1 each, no frequency pin/no scaling inference. Ran:
+`env -u TOWER_INTERPRETER_ONLY TOWER_TEST_WASM=.../reactors/tower.wasm TOWER_TEST_LLVM_WASM=.../reactors/tower-llvm.wasm TOWER_TEST_PHASES=1 TOWER_TEST_ARTIFACTS=.../PHASE /usr/bin/time -v -o PHASE.time timeout --foreground --signal=KILL 120s node --test --experimental-test-isolation=none --test-concurrency=1 --test-name-pattern='^body_continuation preserves types and behavior through Foundation and LLVM \(LLVM\)$' playground/tests/compiletime.test.mjs`.
+Control substitutes decltype_layout; full absolute commands retained in logs.
+Each TAP selected exactly1, zero skips/cancellations/timeouts. Before FAILED:
+10.34wall/15.47CPU(14.57user+0.90system)s,500156KiB peakRSS. After PASS:
+11.03wall/15.93CPU(15.02+0.91)s,497636KiB. Control PASS:5.66wall/7.51CPU
+(6.98+0.53)s,361952KiB. Zero swaps in all three. Validation cost with optional
+captures, not an optimization comparison/speedup; process RSS is not Wasm
+capacity/retained allocator bytes. No compiler/runtime code changed.
+
+Evidence: build/d2_ecs/body_llvm_18384965 contains original failed log, all three
+TAP/time/status files, exact inputs/results/Wasm, source and transport snapshots,
+commands and SHA manifests. Mounted Tower resource manifest
+3d17462f4d5d8bd7b4c385b8a70dcd0bdd870c68ff02f94bbfe38c0ec927d592,
+final host manifest f28e88eafbf319af9b556cef6d06fac92b6e22f4374678284de4fd8dbd1fb22f,
+output manifest a0b55827d59b70a4186e680c1c7b73e246803f750e51ede99bbd2d886fe084f7.
+All resource/reactor checks matched after runs. Initial edit syntax check caught
+an extra closing brace, corrected before execution. Initial lock mkdir lost a
+race with D1; an unguarded owner-file write briefly overwrote its record. Restored
+D1 ownership from live process/status and notified D1 once; no heavy process
+started until its normal release and successful atomic acquisition. No overlap;
+all owned jobs drained, own lock released,128GiB disk/9.8GiB RAM available.
+Full changed-file review, Node syntax and git diff --check pass. D1 can adopt
+this exact target-bound caller delta; its old body failure remains historical.
+No43case aggregate, portable matrix, compiler build, generation, sanitizer,
+browser retirement or deployment repeated. Other aliases/newer reactor and
+reconstruction failures retain their owners/evidence; ROOT owns final adoption.
