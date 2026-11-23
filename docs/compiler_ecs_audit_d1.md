@@ -5175,3 +5175,112 @@ acceptance expansion. Local14-path manifest is in
 `build/d1_ecs/joined_correctness_review_ea606d32/`. No build/test/profile/sanitizer
 or release action was run; documentation-only profiling is inapplicable and
 passing owner tests do not establish general race freedom.
+
+### 2026-11-23 D1: module-local declaration queries at 0ffba950
+
+Frozen published main `0ffba950ae4b7e583531f5eb88aa608c6c2bb380`, tree
+`71c6bd706f5f277f3c180b6032bc7e11f5a17cfb`, compiler
+`b90a997e29d4d30547a026b5b5d1481bf6a41579`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. Independent review of A2's
+125efb11 repair integrated through e932b546. All six authored Tower blobs below
+still match125efb11; earlier unchanged producer reviews remain adopted.
+No production/fixture edits or runtime execution in this review.
+
+| Path under scaffolding/ | Exact reviewed Git blob |
+| --- | --- |
+| compiler/semantic_declarations.tower | a17d92575e516952cabdd0487df0728d5c69ce73 |
+| compiler/semantic_statements.tower | 9381f563d1f3175a47d8e14873105f2ece00829d |
+| tests/module_body_type_minimal.tower | aef47ca51051b156c71ca65b794dacb6aba85b67 |
+| tests/module_body_type_queries.tower | 336c1424856b01c3e9ad9a567eba71fc3256ecd3 |
+| tests/module_body_type_checks.tower | 5f54416bafc88a7625b2d3633b6e8c80a9d36675 |
+| tests/execution_main.tower | 6051438d971a4d6ae3e63641b088336fe56f28f2 |
+
+**Boundary and ownership.** `sem_statement_impl` binds CoreDeclare once, then
+selects `sem_module_declaration` only for a nonglobal local with current=root,
+no active declaration frontier, no entity stage and no query-read set. Function
+body/header continuations still suspend through `sem_body_run` and consume their
+prepared statement; worker discovery/checking installs query_reads even when no
+stage is needed, so it cannot enter this new coordinator pump. Module for-header,
+loop-body and nested block locals retain their actual scope/current in the
+world-owned declaration component. `sem_body_save/restore` also preserves loop,
+label, defer, control-name and flow-dependency state. Queries are keyed by node
+identity/kind in the existing graph, not source offsets or spelling; this change
+adds no type/function registry, alias identity or cross-world storage.
+
+The helper saves/restores declaration_subjects/isolation with defer, owns only a
+temporary subject vector, and uses the existing declaration state/admission and
+shared discovery/execution pumps. Registration installs declaration/type-index
+access and root-body write access for local storage; discovery seals/demands its
+producer. The shared pump obtains tickets/leases and lane/byte admission before
+dispatch, joins and publishes stages before structural continuations, and imports
+retained worker scratch through `sem_declaration_error` before restoring lexical
+pointers. It yields/suspends for missing type/call/layout producers; the coordinator
+alternates declaration and shared query pumps while progress exists, then reports
+the owning declaration's retained failure or unresolved/cyclic dependency. The
+new helper does not force completion from a worker or add recursive type checking.
+Its raw subject vector retains the existing coordinator allocation contract;
+this does not extend the world budget to every raw/foreign allocation.
+
+**Storage and effects.** The helper reports type completion before initializer
+admission. `sem_declaration_type` consumes prepared ordinary type results and
+records completion on the declaration; inferred initializers retain their checked
+`value.value`. The declaration continuation waits for constructed layouts, then
+readmits storage allocation with subject/current leases and its Body write claim.
+`storage_ready` prevents duplicate frame slots. Only an explicit initializer still
+missing its checked value receives an Initializer expression query with an edge
+to the completed declaration. After success its lexical state/value are restored;
+`sem_declaration_finish` sees existing storage/value and cannot recheck that
+initializer. Runtime operations stay on the same Foundation nodes at their
+lexical execution positions. Unknown type and by-value cycle errors stop before
+initialization; cleanup restores the outer frontier and clears temporary generic
+errors without replacing the retained producer diagnostic. No additional concrete
+producer defect or interleaving was found in this delta.
+
+**Actual fixture/registration scope.** The seven-line minimal source preserves
+uninitialized raw Foundation storage and takes the earlier local's address after
+`box(decltype(header))` and its ordinary `forwarded` alias resolve identically.
+The initialized fixture checks aliased mutation42/43, target usize layout4/8,
+inner i16 shadow7/layout2, two loop entries and two `once()` effects. A separate
+function/nested-scope source checks the unchanged body path. Unknown-constructor
+and recursive-layout sources retain exact diagnostic text, including the existing
+instantiation trace, reject Graph/Fast start with zero machine steps, and compare
+raw error offsets between engines/workers within each target width.
+
+The suite is **44 compile-session configurations**: five sources ×two widths
+×two worker counts ×two engines =40, plus two width-specific canonical reparses
+at workers4 ×two engines =4. Of these,28 compile/execute positives and16 exact
+negative sessions; they are not44 independent processes or an overlap measure.
+Each trial's two sessions close before module/world/ledger teardown; final bytes,
+lanes and live grants must be zero. Per-source canonical text agrees between
+engines/workers. Reparsed canonical text executes the same oracle; this does not
+assert byte-idempotence against the original text. `body-type-reproduce` selects
+only the minimal32-bit/one-worker Graph/Fast pair; `body-type-queries` returns
+before the unrelated suite, and default `all` calls it once. Existing CMake
+`tower-execution` invokes that default runner; there is no new runner/model.
+
+Two bounded coverage limits remain explicit, without turning them into defects:
+
+- The effect counter is incremented by an assignment's `once()` call, while the
+  new explicit declaration initializer is `&original`. An effectful initializer
+  taking its **own** already-allocated address is not directly exercised. A small
+  proposed Tower control is `var self:decltype(header)=address_once(&self)` with
+  `address_once(usize*)` incrementing an effect counter and returning the address
+  bits; compare that value with `&self` and the exact loop effect count. This was
+  neither added nor executed here.
+- Negative mapped line/column are printed, not compared with an independent
+  expected file/position in this harness. Exact text and stable offsets are
+  asserted; the owner's observed1:69/1:37 locations remain log evidence. No
+  negative is silently relaxed or relabeled as checking an independent location.
+
+The [owner receipt](compiler_module_body_types_78d675c4.md) retains the original
+unknown-forwarded failure and candidate44/query/type/header checks. Its merged
+27fcab01 adoption reran44/query/expanded-header checks with semantics SHA256
+`16f13e9f461f26947b67dca4356c08ea1a4ccf25dbc354feb64b02b00c253cee` and execution
+`9a347ea2e14fce578f1e6ae9405ff137b4965c38c26473cf5794e1f62701f648`; older type-smoke
+and paired measurements keep their earlier identities. Minimal/source SHA256s
+6020b38c…f7df /67a2daf1…dd1 match that receipt. This review read the code and
+published receipt, not inaccessible raw logs, and did not rerun those checks.
+Later B1/B2 performance/browser changes, current generations and hosted release
+are excluded. No build/test/profile/sanitizer or rejected operation was attempted;
+documentation-only profiling is inapplicable, with no general race-freedom claim.
+Local frozen six-path evidence: `build/d1_ecs/module_declaration_review_0ffba950/`.

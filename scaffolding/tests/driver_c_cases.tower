@@ -43,7 +43,7 @@ fn driver_c_file(context: DriverCValidation*, directory: u8*, name: u8*): void {
 fn driver_c_cases(context: DriverCValidation*): void {
     driver_c_file(context, "/tests/", "language_enums");
     driver_c_file(context, "/tests/", "backend_import_constants");
-    driver_c_file(context, "/tests/", "backend_void_returns");
+    driver_c_file(context, "/tests/", "backend_void_returns_direct");
     driver_c_file(context, "/tests/", "backend_unsigned_overflow");
     driver_c_file(context, "/examples/", "execution");
     driver_c_file(context, "/examples/", "functions");

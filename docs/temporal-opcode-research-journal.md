@@ -94224,6 +94224,108 @@ matrix or private bootstrap adoption, todo/history preserved; normal push follow
 
 A1 normal push raced3211cb1e; merged complete history without conflicts. Incoming changes are documentation only; all scaffolding/cmake/bootstrap/build inputs match validated c98d64f2 exactly, so its focused receipts are reused without another runtime invocation. No deployment claim.
 
+### B1 bounded shared-budget synchronization attribution (ef59b0aa)
+
+Frozen published ef59b0aa2400676a2f76ea20588e3e273a7bbba3, tree
+0c193f76c2d23d0e74cb9b765ca329740bf19133; current production remains unchanged.
+Required pull succeeded, owned jobs drained, CPU0-11/24GiB and about113GiB free.
+Public768 dependency target rebuilt backend/semantics/profile only (33.96wall,
+26.10CPU,1073872KiB), then reused those providers for the current LR runner.
+No private override, agent, generation or publication adoption.
+
+One bounded ordinary GDB child snapshot caught six active outer threads in
+sem_post/futex_wake after WorkBudget reserve/release and two waiting on the SAME
+budget semaphore0x61e37ea69810. Resize/disposal/entity_reclaim callers are visible;
+60 retained pool threads sleep on separate signals and the coordinator waits on
+completion0x61e37ea69840. Other active stacks allocate or construct grammar.
+Optimized unwind gaps and missing-glibc-source warning preserved; perf/strace/
+bpftrace unavailable. No privilege/security changes. Snapshot resumed, passed
+known42/canonical/cleanup and exited normally; its timing is NOT throughput.
+
+Existing Tower outer thread clocks independently account for44.9057/42.8614s of
+44.9152/42.8703s uninstrumented12-worker processCPU. The CPU amplification runs
+inside active compilation callbacks, not idle retained pools. This is actual
+shared outer-budget receipt contention, not established pool wake/refill
+starvation or an allocator lock diagnosis; no sampled time fraction is claimed.
+WorkBuffer replacement must charge old+new during copy; releases validate ledger
+owner/generation, entity pages free only at last component, private arena bump
+already avoids the gate. No safely redundant transaction was established. No
+speculative mutex/cache, batching contract or LR algorithm implemented.
+
+Same existing uniform source and flags, fresh processes/warm filesystem, n2:
+small1 wall.5589/.4040,CPU.5183/.3690; multi1 wall8.1662/5.7191,
+CPU7.8119/5.3611; multi4 wall4.9393/4.4349,CPU15.9779/14.2049;
+multi12 wall5.4289/5.2208,CPU44.9152/42.8703. Retain serial variation;
+no before/after or prior-source speedup claim. Multi12 wholeprocess system
+28.27/25.78s,voluntary1113380/1109175,readyvacancy1.456/1.299lane-ms.
+All8 controls exactfull canonical/source +known42/42, bounded lanes/bytes,
+zero joined lanes and checked zero-grant owner teardown. Multi1/4/12 retained
+633110235/633076515/633077027bytes; ledger separate, allocator RSS distinct.
+No production allocation-call count claimed. Full source/binary manifests pass.
+
+Current LR and fullunits gates pass:1.74wall/2.26CPU/117324KiB and
+13.71wall/23.39CPU/846216KiB; shared budget, original finite-memory error/retry,
+independent worlds, deterministic failures/dependencies/cancellation/cleanup.
+Current test-entry build8.87wall/6.02CPU/443156KiB reused providers; no matrix.
+Receipt docs/compiler_budget_sync_ef59b0aa.md; raw build/ecs_b1/cache/budget_sync_ef59;
+concise handoff C:/Sandbox/build/codex_ecs_20261122/B1/budget_sync_ef59b0aa.
+Finite next boundary is work_budget_reserve_result/release_result byte-receipt
+synchronization, requiring exact admission/first-cause/lifetime contracts. No
+implementation is justified by a point sample alone. Prior3211cb1e rejection
+remains restored; wrapper events are not removed graphs. Todo/publicpin unchanged.
+Normal receipt reconciliation/push follows; ROOT owns final release.
+### B2 lowering stage attribution, frozen ef59b0aa (2026-11-23)
+
+Pulled published ef59b0aa2400676a2f76ea20588e3e273a7bbba3 after transientDNS
+recovery with fresh per-command resolution/TLS unchanged. Ownedjobsidle,
+CPU12-23/quota12/24GiB; compilerjobs1/buildjobs6;923GiBcache/112GiBhostfree.
+Preserved accepted b8dist fd79fc4b and prior rejected fast-append. One existing
+profile target/dependency build, same16/4096ordinaryloop/decltype/dependency
+inputs, productionallocator. Baseline wall/CPU/RSSKiB:16w1 .357359/.355897/177876,
+16w4 .431233/.472183/180856;4096w1 1.987156/1.985475/812672,
+4096w4 1.940013/2.700806/816624. Coarse lowering4105jobs,actualpeak1/4,
+summedkernelCPU117.553/317.013ms(2.70x). No scaling sweep or speedup claim.
+
+Temporary Tower diagnostic samples one function ordinal in128, private result/
+stage counters, existing worldobserver read afterjoin.1056timednodes/33kernels
+out of135194 generatednodes;16896fineclockcalls, not every-node timing. Exact
+selectedindexallocations1056x104requestedbytes. Serial/four CPUms:stagecreate
+.874489/1.440467,semanticattach3.573878/5.191415,payloadallocation.664801/.813793,
+componentlistbudgetreserve.511376/1.448382,physicalheap.579928/.707038.
+ReserveCPU2.83x/wall3.65x versus heap/payloadCPU1.22x; about58%ofsampledattachCPU
+increase lies in sharedreserveinterval. Nestedtimes not additive/production
+percentages. Probe overhead remains material: serialkernelCPU191.503ms,
+parallel352.306ms; no absolute extrapolation. Diagnosticcorrectoutputs pass.
+
+Bothwidths identical135194nodes,8198descriptorpages(135194/139366slots,97.0%),
+4102payloadpages(135194/164080slots,82.4%). No duplicatednodecreation/different
+pageoccupancy; not a hardwarecache/wholeworldfragmentation measurement. Retained
+largebytes566923302/566920478,peak656513170/656475698 below1.25GiB;
+ledger83,886,080bytes separately. No unchargedpool or changed admission.
+
+First amplified boundary: entity_component_add_result -> entity_reserve_components
+-> entity_buffer_resize_result -> work_buffer_resize -> work_budget_reserve_result.
+Freshcomponentlists take separate physicalbytegrants despite private descriptor/
+payloadpages. Interval includes gate,ledgerupdates/growth; it does not isolate
+mutexwait versus cache/criticalsection cost or prove whole2.70x cause. B1 owns
+this exact commonbudgetfollowup. No duplicate synchronization implementation or
+unjustified local allocation change; no production candidate shipped.
+
+Two temporarybuild failures retained: stageopaqueforeignsignature and clock
+nominalparameter mismatches. Drained jobs before correcting only probes. Then
+canonical/ordinarysource/importsources exactlymatch acrossbaseline/probe1/4.
+Known42/42 and resourcecleanup pass. All10probe files restored, dependency
+rebuild produces BYTEIDENTICAL baseline486996f61cc242fb7c61e6477949729a38f1b42ff3ff5a32d1c135bfc6bb2b77.
+Restored16w1/4096w4 outputs match but times .646078/3.199438s exceed initial
+baseline despite identicalbinary/inputs; hostcause unmeasured, retained honestly,
+not a source regression or reason to repeat tuning. No new alias/defer/error/
+object/sanitizer/browser/generation matrix claimed; rejected operation not retried.
+
+Fullsources,patch,binaries,failures,commands,measurements: B2/lowering_stage_ef59b0aa
+and /cache/lowering_stage_ef59b0aa. Receipt docs/compiler_lowering_stage_ef59b0aa.md.
+ProbeSHA655b50408b54b60beee70342bb828a12485fa594a0ed88bd312cd29084830f31.
+Allownedjobsdrained; sourcecode restored, evidence-only publication follows.
+ROOT runtime/Pages ownership unchanged, B1 sharedlibrary attribution retained.
 
 D2 second push-race recovery:792adde3 lost another main advance. Full merge
 5fc375e87bfd99840a714c7f8630e331df04438a preserves25dddd04 and A1 executable
@@ -94253,6 +94355,42 @@ excluded from that frozen run and await ROOT's final integrated adoption; no
 rebuild/repetition or claim that a prior binary tests newer source. All complete
 histories and original failures remain preserved. Diff checks pass; normal push.
 
+## 2026-11-23 A1: independent page-owned browser lifetime review
+
+Frozen published source f0485e83c8a91d355466236a4f3105d29a9f6783;
+implementation 5aff643a against parent ba52a932. Read whole changed transport
+methods, page Engine/LanguageService and execution/build callers, static entry
+bundling, default Node path, separate LLVM unit pool and selected fault/ownership
+controls. Source map and exact receipt limits:
+[review](browser_worker_lifetime_review_a1.md). No production edits or new tests.
+
+Concrete remaining boundary for ROOT: compiler-worker-group suppresses queued
+messages after closure but its error listener only calls idempotent close.
+A coordinator startup error queued before cancellation can reach its old caller
+after replacement. Engine and LanguageService unconditionally stop their current
+worker in that old callback, terminating the replacement and rejecting its work.
+The HTML worker-processing/termination algorithms support this outside-global
+error-task interleaving; this review did not reproduce it in Chromium. Caller
+weakness predates the helper. Smallest proposed control retires A, installs B,
+then delivers an ErrorEvent to A and checks that B survives. That checks the
+transport boundary, not native task timing. Preserve active errors: the helper
+intentionally closes before forwarding child failure, so an unconditional closed
+error filter would hide a real failure. No overlapping transport patch made.
+
+Direct git comparisons confirm the reviewed repair/controls/build entry bytes
+are unchanged from 5aff643a and B2's 78d675c4 host; the four recorded provider
+SHA256 values match. Historical candidate archives were not reopened by A1.
+B2's f167 and b8 receipts remain source/binary/resource-bound owner evidence:
+strict close events plus zero CDP targets precede browser cleanup; the four
+static-app tests do not assert retirement. Node and separate LLVM pool contracts
+remain unchanged. No b8 test is relabeled as ROOT's running 25dddd04 compiler
+acceptance, nor as coverage of the stale-error finding. Proposed regression unrun.
+
+Documentation-only: profiling, compiler builds and runtime reruns inapplicable;
+no prior selectors repeated. KinmenA/A1 PID32896, same session
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7; assigned cache idle, no active build/test
+jobs; initial disk free339785383936B. Todo unchanged. Normal main publication
+only; ROOT retains runtime deployment and the narrow transport follow-up.
 ### 2026-11-23 L2: four remaining T9 native reconstruction requests pass
 
 Frozen published main f0485e83c8a91d355466236a4f3105d29a9f6783,
@@ -94343,6 +94481,159 @@ merge unchanged. Source-only C incompatibility remains on unchanged producers.
 Diff checks pass; no owned test/build/lock, todo unchanged. Normal push follows;
 ROOT owns final runtime acceptance and release.
 
+## 2026-11-23 ROOT: joined 25dddd04 browser compiler build
+
+The exact published source25dddd0420258bc5174a3039293c447fd60ef367 builds
+through the documented public bootstrap768a0cdf with no private compiler
+override. This joins A1 executable alias publication, L1 module capture,
+A2 malformed type captures, L2 void-pointer return/reconstruction, B1 scoped
+grammar reuse and B2 page-owned browser transport. The later A2 module-body
+forwarding query fix125efb11 and later test-only changes are excluded.
+
+Environment: Windows host/Orchestral-Revng WSL Linux; existing LLVM1e57ee22
+and WASI SDK34; CPU8-15, build jobs4, compiler jobs1, existing warm caches.
+Command: root_release_joined.sh25dddd0420258bc5174a3039293c447fd60ef367
+(the external boundary passes source as its separate argument).
+It invokes build-wasm.sh, build-llvm.sh and build-threads.sh in order, release
+IDE tests off. Each phase verifies a frozen tracked-input hash manifest.
+No overlapping ROOT build owned these caches. All three exit0; no matched
+warning/error/FAILED diagnostics. No runtime implementation changed in this
+ROOT receipt, so these are build costs, not before/after compiler speedups.
+
+| Phase | Wall seconds | User+system CPU seconds | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable |48.33|82.18|1108048|
+| LLVM/cross |72.24|122.71|1108008|
+| Shared |45.71|77.64|1107888|
+
+Source-bound output SHA256:
+- portable35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb
+- LLVMc1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa
+- cross2be6f98bfa84742aa8e1a4c498a45c2a8bc415e350d300b634c91a448e9565a2
+- projectb2f9154b233f1c4fcf6f1197c9a0b86161c6c12efb5e34a63ac04f6c55fc9e01
+- shared671fb95d38cc1374f26c8b8563c6009806d3351f02141584a96b61bbf0fc402a
+- work fixture6411c389b9610c293b98dcc844e00195fcfeecbf0b4e53b8c84189ef78d4e32c
+
+Raw logs/time/source/artifact manifests remain in
+/root/.cache/tower/root_release_25dddd04. The immutable external snapshot
+C:/Sandbox/build/codex_ecs_20261122/ROOT_browser_inputs_25dddd04 retains
+32 files/168207359 bytes plus files.json and SOURCE.txt. Every copied file
+was rehashed against its source. An initial summary-only Measure-Object call
+could not read ordered-dictionary properties; reading the written JSON gave
+the correct32-file/byte total. No artifact validation was skipped.
+The preceding b8 snapshot remains unchanged.
+
+This closes the build step only. Actual large WebAssembly reconstruction,
+current shared/browser acceptance, successor generations/public pin and final
+hosted release remain open. Native large-request success cannot establish
+wasm32 fit. ROOT is executing the unchanged entity_pages Node test with this
+pair; A2 receives the same hash-verified pair for the full struct-values Node
+contract. Source/resources and exclusions are recorded independently.
+No rejected instrumentation operation was retried. The protected todo.txt hash
+remains8C39608BCE025104ED1FE00CCC131F8EE242EB142E8CE5AB50E1B223CC473DBC.
+
+### ROOT: actual entity_pages WebAssembly failure on the joined build
+
+The unchanged anchored test in playground/tests/semantic-port.test.mjs ran with
+the25dddd04 portable/LLVM pair above and host/resources frozen at
+ea606d329b. Command: node --test --test-concurrency=1 --test-timeout=600000
+"--test-name-pattern=^Tower entity_pages agrees across graph, fast, LLVM and Foundation text$"
+playground/tests/semantic-port.test.mjs. Node21.7.3, Windows x64; fresh process,
+warm filesystem, one selected case. All tracked scaffolding/host/test input hashes
+were rechecked unchanged after the process drained.
+
+Result: exit1, selected case failed after248.394s; full command249.392s, no timeout.
+The original32-bit Graph and Fast executions and their canonical reparses/execution
+passed. The FIRST LLVM Foundation32-bit unoptimized compile returned:
+{"status":"error","error":"Cannot allocate semantic storage","errorOffset":2303454,"resourceError":"Memory","errorFile":".tower/tests/entity_pages.tower"}
+No reconstructed Foundation was returned. Later reconstructed execution, optimized,
+64-bit and executable-LLVM phases remain UNSTARTED. The other18 top-level cases
+were intentionally filtered out, not passing coverage.
+
+Exact submitted canonical:965691bytes,
+SHA256 fadb0568535010d954cafde4ce9559e5636829c81e181be66b14e27f187b08d5.
+The reported offset exceeds that submitted byte length; it does not identify
+the allocating internal operation. The typed Memory cause is now preserved;
+do not substitute an old generic capacity response or call this a successful
+wasm32 fit based on L2's separate native success.
+
+Evidence under C:/Sandbox/build/codex_ecs_20261122/ROOT_wasm25_entity_pages
+and ROOT_wasm25_entity_pages_artifacts includes logs, error JSON, exact input,
+host hashes and process observations. Existing OS measurement wrapper reports
+parent-only0.109375CPU seconds/36306944B peak; those are NOT compiler CPU/RSS.
+A sampled actual test child at22:26:59UTC had304.453125 cumulativeCPU seconds
+and2080923648B OS working-set high-water. These are observed values, not final
+whole-run totals or Wasm linear-memory capacity. A later attempt to attach a
+retained process handle found the child already exited; preserve that missing
+final metric rather than inventing a peak. The original600s guard was not hit.
+No source/cap/assertion was weakened and no automatic rerun was started.
+
+L2 is exercising the distinct current entity_views/generic_registry requests and
+owns backend/package producer fixes; A2 owns actual fullstruct acceptance.
+ROOT will use the exact failed request to narrow current retention/allocation.
+The final current runtime and sanitizer/release gates remain open.
+
+### 2026-11-23 D2 — separate direct C returns from LLVM callback coverage
+
+Followed D1 b694761386's concrete registration finding on source ea606d32.
+One existing native compiler raw `--emit c --no-optimize --jobs 1` request for
+unchanged backend_void_returns fails exit1 with exactly: `This source backend
+does not yet implement function values; use LLVM native/Wasm output`. This is
+ce_collect's intentional function-value/indirect-call contract, reached by the
+exported select_callback and apply; not an importer or void-pointer defect.
+Original error/artifact logs retained, not reclassified as a positive check.
+
+Replaced only that positive Native C list entry with the new ordinary Tower
+backend_void_returns_direct fixture. It preserves exported opaque/forwarded
+void* returns, local direct wrapper, void** depth, null/non-null identities,
+42-to-7 read/store, deferred free and true-void notify. The two opaque calls,
+two deeper calls and notify require effects122; a nonzero check traps before
+printing, so shared wrong output cannot silently satisfy the C reference.
+Registered the complete original callback fixture through existing native
+`driver_execution_file(..., "backend_void_returns", "0\n")`: graph independent
+expected output plus raw/optimized LLVM native execution. Full fixture remains
+byte-identical, including callback-valued return, indirect apply and effects123.
+No changes to importer/C emitter/counted-byte fixtures, language or harness APIs.
+
+Reviewed the complete new fixture and changed registration callers. Heap ownership
+stays inside check with deferred free on all post-allocation returns; void**
+borrows a live local slot, with no borrow escaping. Driver file buffers/capture
+results retain their existing synchronous child/reap/dispose ownership. Native
+filter excludes the full callback from package/C execution; C's named subset
+uses the existing emission and four-tool comparison loops. No new framework,
+ECS storage or scheduler. README now states this capability boundary.
+
+Validation: smallest new fixture through existing exact-zero CLI boundary passes.
+ONE jobs1 dependency-aware tower-driver-tests target rebuild, three actions;
+compiler/reactor unchanged. Selected --c-backend backend_void_returns_direct
+passes16 comparisons: raw/optimized Tower C, each Clang/GCC C89 and Clang++/G++
+C++98 at O0/O2, existing LP64 native target and strict warning flags. Graph and
+corresponding LLVM native references agree; both expected.json rows record
+exact stdout0/newline, empty stderr, code0. Selected --native-differential
+backend_void_returns passes both raw/optimized executables with independent0.
+No full backend, Node, generation, sanitizer or 32-bit C profile sweep. L2's
+prior reconstructed32/64/worker evidence is preserved, not rerun or relabeled.
+
+Deck CPU0,2/8GiB Docker tower-d2-ecs, native x86_64 Linux, production allocator,
+fresh child processes/warm files, n1/group, existing180s outer bounds. G++ was
+absent; installed four standard G++ packages in this lane's container with no
+upgrades. Actual GCC/G++13.3.0, Clang/Clang++19.1.1, CMake3.28.3; install log kept.
+Public bootstrap768 compiled only the runner. Wall/CPU seconds/peakRSS KiB:
+original rejection1.37/1.31/170436 exit1; direct independent check1.06/1.03/178492;
+runner build13.27/12.88/330668; C selected12.47/11.86/182516; LLVM selected
+7.38/7.21/183232. All post-fix checks exit0. These are validation costs, not a
+production optimization comparison; no production performance change claimed.
+
+Receipt root build/d2_ecs/void_return_c_ea606d32 preserves commands in time logs,
+source snapshots, generated C/executables/expected.json and failures. Complete
+Tower source manifest193835a2c6a0637dcb787924faa4e1e7e2288dd218b39337b531229fbbbdeef7 matches before/after.
+Full fixture dcbe40e2c48df1e7b093cb1a9655c0d2960d28543383f59765e39063df54f588;
+direct subset653d75f32edaeef9346ff8e246c6c699cbd29bff73f1de1a4f71c18c2e1fd0ae;
+runner373e18d81dfc42e2f138c9e2875b98423ac961a7cddb09f9398c75603a5b766b.
+Compiler96ed3119a9fa47883f261cc3fc2740390185ea822719aa11e2da66cebe94796b unchanged,
+with the prior source-matched native closure; exact changed-file hashes recorded.
+All owned children drained, heavy lock released,127GiB disk/9.7GiB RAM available;
+todo preserved. ROOT retains later joined-source and release acceptance.
 ### 2026-11-23 D1: independent three-fix source adoption at ea606d32
 
 Required pull was current; frozeea606d329b989378df15fdc58bf5165456bb0cb7,
@@ -94371,6 +94662,61 @@ build/d1_ecs/joined_correctness_review_ea606d32/{paths,blobs}.txt. Publish norma
 history reconciliation only; ROOT retains integrated runtime/release acceptance.
 L1 lifecycle receipt56cfc85f reconciliation: normal merge1b7ba13c1d362d42ce5097475e48452a27d12dfd preserves all incoming history through ea606d32. Incoming A1 alias-publication repairb78d606b, semantic_execution_work, admission/alias tests and exact-output CMake gates are explicitly excluded from frozen3211cb1e acceptance. No matrix restart, later-binary relabel or production edits. Requested42/42 lifecycle and dependency checkpoint remains complete at its exact recorded inputs; joined later compiler acceptance remains separate.
 
+## 2026-11-23 L1 — executed counted LLVM initializer reconstruction
+
+Implemented test coverage on published e932b54673930a8651261f79ace9da7583c318d8;
+production importer/formatter/interpreter code is unchanged. The existing LLVM
+fixture retains its original admission module and callback/phi result42. An
+opt-in execution variant adds reads of the exact ConstantDataArray65,0,128,255,0,67
+(dontNullTerminate=1), plus0,0,128,128,255,255,0,0. Each counted copy targets a fully
+initialized buffer with91/93 guards installed first; every payload byte and both
+guards are printed. The independent literal oracle includes all19 lines. Guard
+coverage concerns those destination ranges; it is not a general overflow proof.
+
+The new existing-storage selector formats through shared Foundation, destroys the
+LLVM/import world, snapshots text into a fresh frontend, frees formatting grants,
+then parses/checks/executes at explicit32/64-bit profiles. No importer logic is
+replicated. Wrong-byte129 and wrong-guard94 controls first assert correct output,
+then return1 only after interpreter/frontend teardown and buffer-baseline checks.
+They are registered WILL_FAIL; assertion crashes still fail CTest. Original
+backend-import failure/retained-output/first-error checks were not weakened.
+
+VALIDATED: the one dependency-aware tower-storage-tests build passed, then all4
+selected CTests passed: backend-import, backend-import-bytes, and both wrong-oracle
+controls. Six fresh parse/execution trials cover both widths across the3 byte
+selectors. Original admission observed407/406 healthy allocation boundaries,
+330300 peak/270389 retained budget bytes; all813 denied reconstruction boundaries,
+24 diagnostic boundaries, Capacity/Busy, earlier-error, terminal retry and final
+zero-grant checks passed. Fresh import budget bytes/lanes/live grants reach0 before
+recheck; frontend close enforces joined work/world/budget disposal, and final
+instrumented buffer count returns to baseline. No native test failure or importer
+bug was exposed. No parallel, optimized LLVM execution, browser or sanitizer claim.
+
+Environment: WSL Orchestral-Revng Ubuntu24.04 Linux x64, LLVM19.1.1, CMake3.28.3,
+Release existing /root/.cache/tower/l1_ecs_native, public bootstrap768a0cdf,
+CPU0-3,24GiB address ceiling, existing single-owner storage host. Build40.53s wall,
+48.72s CPU,1075312KiB peak RSS; four checks1.95s wall,1.61s CPU,176420KiB peak RSS.
+These are validation costs; unchanged production needs no throughput comparison.
+Exact runner SHA256 ae19632ade6df1c9c2b98482e93244ea57b15d57c09bf00a292b9b5b7b48bbcb;
+Tower/CMake input-manifest SHA25661baedbddfc0baefb0bbc4b81d9926dec9dfff1d85588ec2f241d23ce60b155e.
+Full source/provider/bootstrap/resource provenance, commands, timing and CTest
+logs are external in L1/logs/counted_bytes_build, counted_bytes_checks and
+counted_bytes_receipt.json. A receipt-only lookup of nonexistent manifest.json
+exited1, corrected to actual development.json/SHA256SUMS; native results unchanged.
+A slow WSL git status child of diff --check was stopped/drained; native Windows
+Git diff --check passed. No rebuild/repeated suite followed documentation edits.
+ROOT retains final integrated/platform publication; prior lifecycle3211cb1e and
+other owner receipts retain their separate frozen identities. Jobs drained;
+committing scoped test/registration/docs, then required main reconciliation.
+## 2026-11-23 A2: complete struct-values reconstruction/package on joined25dddd04 Wasm
+
+Ran the exact existing llvm-execution.test.mjs selector once, Node21.7.3 Windows11 CPU0-11, normal allocation, both verified ROOT reactors35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb/c1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa. Compiled source25dddd0420258bc5174a3039293c447fd60ef367 is separate from frozen host/resources e932b54673930a8651261f79ace9da7583c318d8/tree5d6f45c168796dc7aa89a475d0aa7df405a50feb; reactors exclude125efb11. All1234 mounted host/resource hashes and both reactor hashes checked unchanged after execution. No compiler/test implementation, cap, output or fixture edits; no build, native substitution or instrumentation.
+
+TAP1pass/0fail/0cancelled,50 name-filter exclusions. Full4152B struct_values source2ce1c260 passes original Graph/Fast, both unoptimized/optimized reconstruction→prepare→Fast→independent-load→execute chains, profile assertions, canonical roundtrip and emitted-Wasm decode/execution with exact0 newline. Complete/released phases present, no first production error or unstarted selected phase. Canonical112287B/e5b67088; unoptimized826172B/fc16d06b matches L2 native emitted bytes exactly; optimized42165B/43897a5e. L2's old retained canonical138853B remains a distinct input, not silently equated to this current canonical.
+
+Actual compiler childPID7968 phase metrics through release26.343s CPU (22.890user+3.453system), cumulative peak912784KiB; selected TAP12.047501s. Portable capacity grows32,702,464->410,845,184B, remains391.8125MiB at release. Separate parentPID24760 sampled0.046875CPU/35,475,456B peak working set is not total compiler cost. OS elapsed12.712728s. Preserved transport limitation: parent Process.ExitCode was null after exit, exit.status empty; wrapper0 is NOT a captured Node status. Complete TAP assertions and phases establish this selected pass; no rerun to mask the gap. Final portable nodes16160 versus initial5383 remains host-lifetime retention, not a zero-world/leak-freedom claim; no attribution of that delta. Copied package and executable-Wasm bytes are not saved by the existing selector, so no hash of those is invented; package counter0 reflects release after copying.
+
+Exact command/phase table/hashes/limits: docs/wasm_struct_values_25dddd04.md. Durable logs/artifacts: A2/cache/logs/struct_values_25dddd04_e932b546. All owned processes drained; three stashes/todo unchanged. Documentation-only receipt; runtime before/after change profiling inapplicable. ROOT later compiler adoption/hosted release and separately service-blocked instrumentation remain pending. No broad Node suite or overall compiler completion claimed.
 T9 publication reconciliation: complete-history merge9127d12842fe129409f88803ae4e3c86437ffdc7
 preserves publishede932b546 without losing either journal. Read the only later
 production deltas:125efb11 adds coordinator sem_module_declaration using existing
@@ -94515,3 +94861,369 @@ unstarted generic registry, remain pending ROOT's reactor/release gates. Actual
 Wasm fit, other framework/fullstruct/generation/hosted/instrumentation acceptance
 is not claimed. No other-owner method, todo, goal/context/agent or service retry;
 all owned jobs drained. Normal commit/reconcile/push follows.
+D2 C-registration reconciliation: implementation31bd0359, complete-history
+merge96c207e1f06aeca85cb3341da797e905972b964b retains fd1725d8 and both README/
+journal additions. Incoming A2 module-body preparation changed the native
+semantic provider; only two affected towerc actions refreshed (40.34wall/39.18CPU/
+1074488KiB). The unchanged runner and fixture bytes were reused. Selected direct
+C16/16 passes13.90/13.39/182800; complete LLVM callback2/2 passes6.30/6.12/182916,
+all exit0. No full compiler/reactor matrix or repeated unsupported-C request.
+Merged source manifest7d90a9bd91d754361635c20de93cdad84730d79bb25f54e50a67108a453b2fb7 matches after checks; compiler48a58fa3ce64947e3dbb739cd34731b0aea6c66b806012ec252ed37538d8bb8b.
+Original and merged measurements retain separate directories/identities; all
+owned jobs drained and lock released. No producer edits or new performance claim.
+B2 lowering attribution reconciliation: evidence6a6faded merged completefd1725d8
+history asee371edd after required ff-only divergence. Both journal histories
+preserved. All10restoredprobe paths still match ef59b0aa; cachedprofile still
+byte-identical to baseline486996f6. Incoming module-body/header query producers,
+fixtures and CMake changes remain preserved but excluded from frozenef59
+measurements. Evidence-only delta needs no new compilerbuild/runtime test;
+no relabel of later source, no deployment. Normalpush follows, task ends.
+A1 review publication reconciliation: commit a5b6ea07 merged complete published
+fd1725d8 as8c1206605a70d697ffad7507620adc7343786097 after the required ff-only
+pull reported divergence. No conflicts; both journals and all source history
+preserved. Direct comparison of the 24 reviewed transport/caller/control paths
+against frozen f0485e83 is empty. Incoming Tower body/type producers, fixtures,
+CMake registrations and other-owner audits are preserved but excluded from this
+review. No new audit pass or runtime invocation. Todo hash unchanged; container
+has only its idle sleep process, no owned jobs; disk339441037312B free. Diff checks
+pass, ROOT retains deployment and the stated stale-error follow-up.
+
+### 2026-11-23 D1: independent module-local declaration query review
+
+Freeze0ffba950ae4b7e583531f5eb88aa608c6c2bb380/tree71c6bd706f5f277f3c180b6032bc7e11f5a17cfb,
+compilerb90a997e29d4d30547a026b5b5d1481bf6a41579/library62350befa8df3e261fd184a23a64e6bb7263204a.
+Same D1 thread01a2046a-4644-7ab1-a0ae-abd80210f013, PID3179907. Required pull
+fast-forwarded documentation only. Reviewed125efb11/e932b546 two producers and
+four fixtures/registration files with bind/type/storage/finish, lexical save/
+restore, declaration discovery/admission/pump/report, body continuations and
+execution-session consumers. Six blobs remain exactly125efb11; D1 audit records
+them, local manifest build/d1_ecs/module_declaration_review_0ffba950/.
+
+No new concrete defect. The nonglobal-root/no-frontier/no-stage/no-query-read
+guard confines the new pump to the coordinator; identity remains entity-based.
+Type/layout completion and once-only frame storage precede explicit initializer
+admission; an edge binds that initializer to its declaration, and finish reuses
+its checked value. Shared joins/leases/scratch ownership and quiescent reporting
+remain intact. Read actual44 session scope (28 positives,16 negatives), all/default
+registration and owner27fcab01 adopted44/query/header evidence. These are owner-run
+receipts, not D1 executions or race proof. Coverage limits: effects counted in an
+assignment rather than the new declaration initializer; taking one's own address
+in an effectful initializer is not tested. Negative line/column are printed;
+exact text and stable per-width engine/worker offsets, not independent mapped
+locations, are asserted. Audit proposes only a small future Tower control; no
+fixture/expectation was changed. Historical candidate type-smoke/performance and
+merged-source checks retain distinct identities.
+
+No production edit/build/runtime/profile/sanitizer/hosted operation; docs-only
+profiling inapplicable. D2 active heavy lock untouched; no owned child job,
+disk127GiB/RAM8.8GiB at startup, todo preserved. Later B1/B2/browser work excluded;
+normal commit/history reconciliation/push closes only this finite source review.
+B1 budget synchronization receipt publication reconciliation: c4660ec0 merged
+complete published8f9bb924 at550cac6e after required ff-only divergence, no
+conflicts/history loss. Incoming semantic declaration/statement and fixture
+changes are excluded from frozenef59 attribution/control/test evidence. Audited
+shared budget/buffer/arena/entity/pool/native-gate source bytes unchanged;
+frozen inputs/binaries and todo hashes rechecked. Documentation-only merged
+validation retains both journal histories, no runtime rebuild/relabel or
+integrated acceptance claim. ROOT owns final publication; normal push follows.
+
+### B2 inline first-component storage — frozen70e77b60, accepted candidate
+
+Implemented one descriptor-owned component pointer; pending inline-to-heap promotion preserves failed-growth payload/index/charges. Reclaim and stage discard never free inline storage. Audited both zero-init constructors, stable pages, all reserve/free/copy consumers, leases/removal/publication; updated two physical census readers. No WorkBudget/gate/scheduler edits (B1 owns those).
+
+Receipt: [entity_inline_component_70e77b60.md](entity_inline_component_70e77b60.md). CPU12-23/quota12/24GiB, public768/LLVM19 Release, own native cache, one dependency build. Frozen16/4096 inputs, n2 alternating before/after, production allocator, observeroff: process wall small1 .402272→.367961s; large1 2.414117→2.302414; large4 2.375276→2.207618. Large retained grants566923301→521369980bytes; live receipts948686→432300; ledger80→40MiB; RSS812630→734012KiB serial. Descriptor184→192bytes/capacity17→16 explicitly charged; small created-query census is15bytes worse while ledger shrinks. Separate observer retains4105 lowering jobs and actualpeak4, loweringCPU368.800→224.610ms. Full source/import/Foundation bytes, known42/42 and teardown pass.
+
+Focused first/second/fifth, old+new cap, every inline-promotion allocation failure/retry, remove/re-add, published lifetime, exclusive lease cancel, accounting/census, concurrent production publish/cancel/failure/drain checks PASS. Two older default fault matrices already abort on untouched baseline (component_fault_trial/stage_fault_publish); retained FAILED and not weakened. New inline fault mode is separate. No sanitizer/platform/generation claims. Evidence/binaries under B2/entity_inline_70e77b60 and /cache/entity_inline_70e77b60; before f89f1e3b, after53186f76. B1 gate candidate excluded; ROOT owns final integrated runtime/publication. Prior rejected changes and b8 browser assets unchanged.
+## 2026-11-23 A1: retire browser coordinator errors before replacement callbacks
+
+Implemented the concrete8f9bb924 review finding in the existing generic browser
+worker group. Frozen host/resources3e355d9e, reused b8 compiler/work reactors;
+[receipt](browser_retired_error_repair_3e355d9e.md) records exact identities,
+controls and measurement limits. Browser DOM glue only; no compiler rebuild or
+semantic changes. Engine/LanguageService, default Node and separate LLVM pool
+remain unchanged because their production factory enforces the corrected gate.
+
+Previously retired error callbacks could call stop() on replacement B. Now the
+first error listener closes the group before owner delivery; retired errors stop
+there. Synthesized failures dispatch while active through that same listener,
+so the former close-before-dispatch sequence cannot swallow a valid first error.
+Raw messageerror is consumed and forwarded once as error. Closed/reentrant
+failures cannot reach the old owner. Close still requests termination, not join.
+
+Added two selectors to the existing ownership fixture: retired-errors and
+coordinator-messageerror. Original final control fails with two stale errors and
+two stale messageerrors reaching A's callbacks and stopping B; six actual workers
+close and zero CDP targets remain. Initial development log also preserved: used
+onmessageerror property, then corrected the observer to addEventListener for real
+EventTarget delivery. Repaired nine controls all pass, including startup/partial
+startup/busy cancellation, active coordinator/child/message errors exactly once,
+real shared guest trap and actual posted old-generation reply. Replacement B runs
+the existing Tower pool twice,24 spawns,4 endpoints opened/closed; ten actual close
+events and zero targets. Controlled event delivery is not native queued-error
+race reproduction or full Engine/LanguageService UI execution.
+
+Healthy pool/serial/four before and after pass exact reference/Graph/Fast/full
+canonical comparisons; binary/resource hashes and all output/hash records match.
+Windows11, installed Chromium159/build1255, Node21.7.3/Playwright1.65.1;
+CPU12-23/Windows job24GiB, n1 fresh browser/warm files. Before4.187254wall/
+6.140625jobCPU s/589152KiB sampled aggregate RSS; after4.259422/6.031250/571672.
+Nine controls4.966186/4.687500/556260; final expected before failure1.041469/
+1.468750/413464. Job peak commit is recorded separately; every tree drains to
+zero active OS processes. Sampled RSS is not an exact aggregate maximum, can
+count shared pages repeatedly, and excludes the OS measuring parent. No speedup
+claim: healthy wall+1.7% in one sample; parallel trial includes extra checks.
+Wasm capacity unchanged: pool33947648B/serial90374144B/four97976320B, not RSS or
+retained allocation counts. Actual close events and zero CDP targets precede
+browser cleanup; original180s/30s bounds retained, outer240s guard unused.
+
+Full inputs/commands/reports/failures/OS-only measurement launcher preserved at
+C:/Sandbox/build/codex_ecs_20261122/A1/retired_errors_3e355d9e. Browser tests use
+served source modules, not a rebuilt app bundle. No broad UI/Node/generation or
+instrumentation run. ROOT25 reactor/LLVM memory work and final deployment remain
+separate. Syntax/diff checks pass; no active jobs, todo unchanged; normal publish.
+A2 Wasm struct receipt publication reconciliation: first normal push raced. Complete upstream70e77b60 merged, retaining unrelated later C/native void-return registrations (driver_c_cases/driver_differentials/new backend_void_returns_direct). Those new mounted test-resource bytes are outside the measured e932b546 freeze; the reactor, selected Node test/transport, primitive resources and full struct fixture are unchanged. Receipt remains source-bound; no runtime rerun or current-registry acceptance inferred. No compiler implementation changed in this documentation task.
+
+
+## 2026-11-23 D2: four T8 Node files adopt the 25dddd04 reactor pair
+
+Bounded adoption completed: **15/15 top-level cases pass**, c-source6,
+compiler-bytes3, compiler-utf83, formatter-port3. All four complete files ran
+unchanged, once each, in that order; exit0, zero failed/skipped/cancelled/todo,
+timeout or unstarted cases. Literal registrations were extracted from each file
+and compared exactly against completed TAP names, not inferred from a substring.
+This is new-pair execution evidence, separate from the older accepted 78650118
+receipt. No compiler, host, fixture, expected output or test registration changed.
+
+Frozen published host/resource source:
+`3a0b5e416aec006c3191880a8ac8378e4aae6740`; scaffolding tree
+`645cd442fedf1f14c710310b9b0301a4cd08aec3`, playground/src tree
+`5021aff854f4156ea2ee1425e045ed5b219c8aef`.
+Compiled reactor source is separately
+`25dddd0420258bc5174a3039293c447fd60ef367`, **excluding A2's later125efb11
+body-query fix**. Mounted current source does not rebuild that compiler.
+Both supplied immutable files were verified before/after and mounted read-only
+at their exact override paths under
+`/home/deck/tower_coord_ecs_20261122/root_release_25dddd04/`:
+
+- `tower.wasm`: `35379f42d09a199c1f2ff83327b861fcc50f65d0c70f57006ba5065adfd773fb`.
+- `tower-llvm.wasm`: `c1280ba15b9d529acf45f5165d83e47b7f233b2273a982767ec80ab87e63ecfa`.
+
+Fixture SHA256 identities (all four byte-unchanged from78650118):
+
+| File under playground/tests | SHA256 |
+| --- | --- |
+| c-source.test.mjs | `5abe45986533f1f45f59bf0f1067df41f42b7b06140053cd6ec8e11b08cf7668` |
+| compiler-bytes.test.mjs | `b527138e1a97315bbef1e83fffe02a3be6fa0e9d7b1bc93787655bcffd15b6ff` |
+| compiler-utf8.test.mjs | `3ddee343ed2f3e17164cb08c85c8f867e3b63c94b7d2b84a25a12e441f233c7c` |
+| formatter-port.test.mjs | `306944e2132ebd59bb73ab6ee27578dc9762ce10ad719a74705ea8a109bf9703` |
+
+Loader compiler-fixtures.mjs SHA256
+`495cb14e25e700c8b41710a79423d75310a361039e7486f24c5f0f9a212605fd`;
+it recursively supplies the actual1185 scaffolding Tower files. Retained sorted
+per-file manifests: resources.sha256 digest
+`7d90a9bd91d754361635c20de93cdad84730d79bb25f54e50a67108a453b2fb7`,
+47-file host.sha256 digest
+`24cbafee4a7f8c7c0f8650332a0590764232d3dd3ec3413aeb12f98b4fffc520`,
+tests.sha256 digest
+`af4a296df05af1f1703276612b73c727e17761428c293c401a4bc54d57fa4fdc`.
+All manifest entries verified unchanged after execution.
+
+Deck Linux6.16.12-valve24.5, Ubuntu24.04.5 Docker image
+`sha256:4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`;
+Node22.23.5/V8 12.4.254.21-node.57, CPU affinity0,2, memory8589934592B,
+cgroup swap0, one heavy job under the acquired D2 lock. Fresh finite container
+and Node process per file, filesystem cache not flushed, n1 per file; no compiler
+worker-count or useful-overlap claim. Existing container's Node executable
+SHA256 `2f822d544601dfff107f57d945b649d15c5bf6302595735a6bd9cdc7ee9669bd`
+and GNU time SHA256
+`3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10`
+were mounted read-only into the same base image; no install/build. First transport
+preflight exited127 because the base image lacks /usr/bin/time, **before any test
+started**. That log remains in preflight_missing_time; mounting the existing
+timing binary resolved the prerequisite. GNU time reports version UNKNOWN
+(copyright2018); timeout is coreutils9.4. No interpreter-only mode was set.
+
+From repo root, with TOWER_TEST_WASM/TOWER_TEST_LLVM_WASM set to the exact supplied
+paths, each invocation was `/usr/bin/time -v -o FILE.time timeout --foreground
+--signal=KILL 180s node --test --test-concurrency=1 --test-timeout=180000
+playground/tests/FILE.test.mjs`, with complete stdout/stderr retained separately.
+
+| File | Pass / exit | Wall s | CPU s (user + system) | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: |
+| c-source | 6 / 0 | 6.65 | 8.38 (7.78 + 0.60) | 284936 |
+| compiler-bytes | 3 / 0 | 9.41 | 12.38 (11.66 + 0.72) | 412936 |
+| compiler-utf8 | 3 / 0 | 14.29 | 20.53 (19.68 + 0.85) | 431192 |
+| formatter-port | 3 / 0 | 5.45 | 6.23 (5.87 + 0.36) | 171920 |
+
+Unchanged assertions checked C comments/raw+optimized Foundation/canonical order,
+C capability rejection and ABI widths; byte-buffer32/64 layouts, exact interpreter
+and actual LLVM results, failed-reserve preservation/disposal and100 source resets;
+UTF-8 reference/malformed input, no-import generated Wasm, truncated memory-boundary
+reads, repeated Wasm byte equality, interpreter/canonical/LLVM agreement; exact
+UTF-8 source mappings, numeric/type formatting and100 spacing round trips. Warm
+node/allocation equality remains its existing scoped assertion, not proof that
+all allocation instrumentation is enabled.
+
+Logs/manifests/expected-completed names/exit files/runtime identity are retained
+at `build/d2_ecs/t8_four_25dddd04_3a0b5e41/`; evidence.sha256 digest
+`c1f9e7ba79c952bd4f721adf2078b76a303f14b0942761967985a1fcfe0b60aa`.
+All four cgroup memory.events report zero max/oom/oom_kill; GNU time reports zero
+swaps. Peak RSS is process residency including Node/V8/reactors/host data, not
+Wasm capacity or live ECS ownership. These are validation costs, not a production
+performance comparison. No runtime changes require new profiling. After drain,
+D2 released its lock; disk127GiB free, available RAM9.7GiB. No compiler/reactor
+build, compiler-entities/entity_pages/fullstruct, unrelated Node, browser,
+generation or sanitizer check ran. Later producer adoption and real hosted
+release remain ROOT/owners' separate gates; no deployment claimed.
+D1 module-declaration review publication: required ff-only pull refused concurrent
+divergence; normal merge preserved completeb8f6c743 history. All six reviewed
+Tower blobs and the audit text remain unchanged. Incoming D2 C/LLVM fixture
+split31bd0359 and synchronization/Wasm/build receipts are retained outside0ffba950;
+no source/runtime adoption of those unrelated changes is claimed. Diff checks
+pass; no owned test/build or lock, todo unchanged. Normal main push follows.
+
+A1 retired-error publication reconciliation: implementation f2c35cb8 merged
+complete4354581c asae2ceeb9f5d78eedc76efe7f779d8142a0f94caf without conflicts.
+All playground sources/fixtures and selected Tower language/prelude inputs match
+the validated batch; merged syntax/diff checks pass. Incoming backend-void/driver
+fixture additions are outside these executed controls and preserved. They change
+the all-files resource inventory, so frozen3e355d9e measurements are not relabeled
+as that later inventory. No transport dependency changed or rerun needed. Full
+history, raw failures, receipts and todo preserved; normal main push, no deployment.
+L1 counted-byte coverage publication reconciliation: implementation95167e53 and
+complete incoming history through4354581c merged asd1f9298a855f64e689f9f893b0d1217596464106.
+Required ff-only pull refused concurrent divergence; normal merge preserved all
+histories. Incoming D2 C/LLVM driver fixture registrations and independent owner
+receipts do not change this storage selector or its compiler/backend/library/host
+producers; exact scoped blob comparison is empty. Journal and README retain both
+owners' entries. Reuse the four passing CTests at the recorded frozen inputs;
+new unrelated driver cases are not claimed tested here. Diff checks pass, no
+owned build/test remains, todo unchanged. No broad rerun or deployment; normal
+main push follows.
+D2 publication reconciliation: preserved complete upstream history through
+ad0a0c34 after one normal push race. That later counted-byte batch changes
+scaffolding/tests/backend_import_fixture.tower and storage_main.tower and adds
+backend_import_bytes.tower (plus registration/docs); these are outside this
+four-file execution's imports and are **not adopted by this receipt**. The
+measured complete resource snapshot remains3a0b5e41, not later merged main.
+All four tests, loader, host files, reactors and their language/compiler/library
+providers remain byte-unchanged; their hashes were checked again. No unaffected
+runtime check was repeated and no later resource change was silently relabeled.
+
+
+A second push race joined30e60c94's browser retirement-error transport. Its
+compiler-worker-group.mjs error handlers and strict shared-browser script are
+also outside this receipt's3a0b5e41 host snapshot. Source inspection confirms the
+changed createCompilerWorker page-owned path is not invoked by these ordinary
+Node fixtures (compilerThreads takes the non-shared module return or Node worker
+factory). No adoption of that browser remedy is claimed. Selected tests, ordinary
+hosts, compilerThreads and Tower providers still match the measured freeze.
+
+
+## 2026-11-23 D2: four selected T4 cases adopt 25dddd04
+
+**4/4 selected cases pass**, exit0; zero failures, skips, cancellations, timeouts
+or selected unstarted cases. Name-filter exclusions are not passed coverage.
+Frozen host/resources main `0fe314efe1b8d740a1be3fa829124e92d2cf1f6c`;
+compiler source remains `25dddd0420258bc5174a3039293c447fd60ef367`, excluding
+later A2 body-query, B1 gate, B2 storage and L2 overflow changes. Reverified the
+same immutable root_release_25dddd04 pair/full hashes from the preceding T8
+receipt, using its identical Docker image, Node22.23.5/time binaries and mounts;
+no copies, builds, runtime/fixture edits or private compiler override.
+Unchanged llvm-execution.test.mjs SHA256
+`b6f495a509865a1d9db038be32828ed8b96ddf7148064210b64ab71b4274e779`;
+selected.sha256, host.sha256 and resources.sha256 record all frozen input hashes
+locally, verified before/after. TOWER_TEST_PHASES=1 and fresh TOWER_TEST_ARTIFACTS
+were enabled; both exact supplied reactor overrides set, interpreter-only unset.
+From repo root: `node --test --test-concurrency=1 --test-timeout=180000
+"--test-name-pattern=^LLVM matches interpreter: (narrow integers|narrow floating conversions|resumable control bodies|division zero)$"
+playground/tests/llvm-execution.test.mjs`, under GNU time and unchanged180s outer guard.
+Expected/completed names match exactly: narrow integers, narrow floating
+conversions, resumable control bodies, division zero. Every case reached complete
+and released. Graph/Fast, both unoptimized/optimized LLVM Foundation preparation,
+Fast execution, independent package loading/execution, canonical equality and
+actual LLVM Wasm assertions passed. Positives return exact `0\n`; division zero
+retains error status, `Division by zero`, empty output and source offset31 in all
+seven result paths. No diagnostics, fuel, capacities or profiles relaxed.
+One fresh process, filesystem cache not flushed, CPU0,2/8GiB/swap0 after D1's
+bounded lock-release wait: **34.13s wall, 44.88s CPU (43.14+1.74), 970636KiB peak RSS**.
+Portable Wasm capacity peaked at196935680B for the first two cases,422117376B
+for body/division; all four released phases report16160 live nodes. Capacity is
+retained linear memory, not RSS/live ownership; legacy allocation counters0 do
+not prove complete accounting. All cgroup max/oom/kill counters and swaps0.
+Raw `check.log` SHA256 `30565a3572f2e3eb5a96e6dee6f70aa78036f83c0f0fa46e2200a8d4529445e9`,
+GNU `check.time`, phase summaries, manifests and24 exact source/Foundation/response
+artifacts: `build/d2_ecs/t4_25dddd04_0fe314ef/`. Validation cost only, no speedup claim.
+D2 jobs drained/lock released; disk127GiB free/RAM9.7GiB available. No full-file,
+native/browser/generation/sanitizer sweep or deployment; ROOT owns final release.
+B2 publication reconciliation: storage implementation f9565c46 preserved through280429f6 with origin0fe314ef; no producer overlap with B1. Incoming counted-byte backend fixture changes rebuild only native backend/check binding and relink profile f170b5f2; original measured after53186f76 retained. Merged16w1/4096w4 outputs/canonical/cleanup and inline transition/fault checks PASS. Browser/test histories retained, excluded from frozen performance evidence. No deployment; ROOT retains final integration. See the receipt's reconciliation section.
+## 2026-11-23 L1 — T6/T7 acceptance of immutable25dddd04 reactors
+
+Complete unchanged compiler-workers8/8 then cross-compilation7/7 PASS, actual
+Node exits0, no skips/cancellations/unstarted coverage. All32 bundle sizes/hashes
+verified before install and after; own ignored build defaults had no predecessors.
+ROOT snapshot untouched. Compiledsource25dddd0420258bc5174a3039293c447fd60ef367 is
+separate from mountedhost/tests0fe314efe1b8d740a1be3fa829124e92d2cf1f6c and excludes
+A2's later125efb11. No compiler/reactor/test-source edits or build. Historical
+b797/c95/eac evidence is not reused as this run. Both complete files ran in fresh
+Node22.23.5 Windows processes, concurrency1/TAP, CPU0-3,300s outer guards, phases
+and fresh artifact directories; no generic artifact overrides.
+
+Original worker object/publication/overlap/world/dependency/cancel/first-error/
+vectorization assertions passed. Six cross targets retain repeat-byte/link/object
+checks, Wasm reference execution and recoverable linker/invalid-target diagnostics.
+All1332 mounted input hashes remain identical;88 checked phase/object/IR/cross
+outputs preserved. No production defect or owner overlap arose. T6 costs26.990wall,
+83.063 observedtreeCPU,684600KiB Nodechildpeak; T7 3.489/8.734/346544. Child CPU is
+82.891/8.641s; parent-only metrics are not substituted. Sampled aggregate working
+sets are lower bounds; phase JSON is a separate scope. No throughput claim.
+
+First T6 had8/8 passing assertions but the OS receipt wrapper failed metric
+summation before preserving Node exit; exact logs/artifacts/error retained, T7
+unstarted then. Corrected only receipt summation/early exit persistence and repeated
+T6 once, capturing exit0; T7 ran once. No hidden failed check or compiler retry.
+Detailed source/hash/command/cost/scope receipt: docs/compiler_workers_cross_25dddd04.md;
+external L1/logs/t6_t7_25dddd04. Jobs drained, todo unchanged; committing and normal
+main reconciliation. ROOT retains deployment/full release ownership.
+## 2026-11-23 A1: joined25 Node T5 adoption
+
+The complete unchanged compiler-threads.test.mjs runs once: PASS3/3, exit0,
+no skips/cancellations/timeouts/unstarted cases.128 pool lifecycles, real injected
+worker trap and full1/2/4/8 matrix finish with original30/10/120s deadlines and
+unused180s outer guard. Exact identities/command/coverage/limits in
+[node_threads_25dddd04.md](node_threads_25dddd04.md). No production/fixture edit,
+compiler build or browser rerun. Previous b8 eager files and receipts preserved.
+
+Supplied compiled25 compiler671fb95d...fc402a/work6411c389...4e32c verified before
+installation and after execution; both absolute overrides and eager paths match.
+Mounted host/resources0fe314efe1b8d740a1be3fa829124e92d2cf1f6c, tree5f01ec03,
+remain separate from compiled providers and newer browser transport. A2new125efb11
+and in-flight B1/B2 producers excluded from compiled25 acceptance. All1186 Tower,
+47 host,3 selected test/helper and2 artifact checksum checks pass after the run.
+
+Phase evidence:128 pool completions; capacities1/2/4/8;272 dependency executions,
+16 worker/16 generic/16 imported executions,80 negative cases,8 world checks and
+all window/iteration/LR/closure controls.23 created/terminated/actual-end worker
+IDs match exactly. Natural Node exit and idle-only Docker inventory prove this
+run drained; requested lane counts/terminate calls alone do not. No browser or
+universal race-freedom inference. No expected error or known output diluted.
+
+GNUtime116.80wall/180.84CPU(47.51user+133.33system)s/518316KiB peakRSS, zero swaps.
+TAP pool5.295210s/trap.161854s/matrix111.190725s; matrix stays below120s with8.81s
+margin. One fresh process tree/hash-warmed files, phase/debug overhead included;
+CPU covers waited descendants, RSS is process high-water, not aggregate memory
+or live guest owners. Acceptance cost only, not speedup versus different b8 inputs.
+KinmenA/WSL2 Linux6.18.54.1, Node22.23.5, CPU12-23/24GiB own container/cache.
+Same UUID01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, Codex PID34720; all owned work
+exited. Raw source/environment/logs/phase counts/timing/artifacts/process evidence:
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/a1_t5_25dddd04. Disk339099279360B
+before/339077795840B after, todo unchanged. Normal source-bound documentation
+publication follows; ROOT retains later-provider builds/generations/hosted release.
+
+
+L1 T6/T7 receipt1eb3adc0 reconciliation: required ff-only pull refused ordinary divergence; complete-history merge 97ee02fe825bc20081f158f35fd0c2eed37db615 preserves incoming52b2640e T5 documentation. No mounted host, Tower fixture, compiler or installed artifact changed; frozen15-registration evidence and all hashes remain applicable. No test repetition for docs. Diff check passes; normal main push follows.
+
+D2 reconciliation preserves upstream4a8694da and its later inline entity-index
+producer/tests. Those are not adopted here; the measured resource snapshot stays
+0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
+remain unchanged after merge; existing evidence is reused without another run.
