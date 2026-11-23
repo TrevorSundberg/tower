@@ -1805,7 +1805,7 @@ extern fn generic_error_clear(context: void*): void;
 // A module expression has the same producer frontier as a body operand. The
 // coordinator waits only at this source-order boundary and consumes the checked
 // result once; lexical storage and subsequent statements retain their owner.
-fn sem_module_expression(c: SemanticContext*, source: void*, mode: SemanticExpressionMode): void* {
+fn sem_module_expression(c: SemanticContext*, source: void*, expected_type: FoundationType*, mode: SemanticExpressionMode): void* {
     var saved_subjects = c.declaration_subjects;
     var saved_isolated = c.declaration_isolated;
     var subjects: vector(void*) = default;
@@ -1819,7 +1819,7 @@ fn sem_module_expression(c: SemanticContext*, source: void*, mode: SemanticExpre
     }
     var lexical: SemanticBodyScope;
     sem_body_save(c, &lexical);
-    var result = sem_expression_add(c, source, null, &lexical, mode);
+    var result = sem_expression_add(c, source, expected_type, &lexical, mode);
     if result == null { return null; }
     sem_declaration_discover(c);
     sem_declarations_execute(c, &subjects);

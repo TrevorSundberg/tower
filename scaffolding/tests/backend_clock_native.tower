@@ -1,0 +1,16 @@
+import tower;
+
+struct BackendTestClock { seconds: i64; nanoseconds: i64; }
+extern fn clock_gettime(clock: i32, value: BackendTestClock*): i32;
+
+// Linux transport for the existing session's WASI monotonic timing boundary.
+export fn __wasi_clock_time_get(clock: u32, precision: u64, out: u64*): u32 {
+    var monotonic: u32 = 1;
+    var unsupported: u32 = 28;
+    if clock != monotonic || out == null { return unsupported; }
+    var value: BackendTestClock = default;
+    if clock_gettime(convert(i32, monotonic), &value) != 0 { return unsupported; }
+    var nanoseconds_per_second: u64 = 1000000000;
+    *out = convert(u64, value.seconds) * nanoseconds_per_second + convert(u64, value.nanoseconds);
+    return 0;
+}
