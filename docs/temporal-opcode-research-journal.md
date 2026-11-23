@@ -95182,3 +95182,36 @@ D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
 remain unchanged after merge; existing evidence is reused without another run.
+
+## 2026-11-23 L1 — independent joined Entity / exclusive-gate review
+
+Reviewed frozen6019450c23be2453987351d4847de37a78fab7b9, containing Entity
+f9565c463effdc82c54eeede6cc703ba041ea31a and gate05780abb953c63fe7dfd7805ed0d71dedb486cf5.
+Read actual constructors/reset/reuse, pending promotion, table prepare/commit,
+remove, private/leased stage publish/discard and reclaim/free paths; traced all
+budget enter/wake callbacks, raw ledger allocation, pool claim ordering, shared
+world ledger binding, frontend partial-construction/cancellation/drain/close,
+changed fixture lifetimes and host ABI/build contracts. No production defect
+found in this bounded closure. Inline storage never enters heap free; cancelled
+lease promotion retains a legitimate live heap capacity, not stage-owned storage.
+Pinned views do not grant payload/index mutation permission. Native lock entry
+is nonrecursive, wake callbacks notify only, claim locks release before kernels.
+
+Concrete documentation defect corrected: B2's page-cost paragraph assumed8-byte
+alignment despite unchanged compiler_buffer_alignment()==16 on x64. Actual source
+formula yields Entity184->192, stride192->208, capacity17->16, full physical page
+4319->4335 bytes,33-descriptor private size class8638->13005 bytes. Original wrong
+derivation remains explicitly identified; measured tables/binaries/logs unchanged.
+This is a source-derived correction, not a new census or production fix.
+
+Exact mapping, callback inventory, platform contracts, existing evidence and
+limits: docs/entity_budget_gate_review_6019450c.md. External66-file blob/SHA256
+manifest in L1/logs/entity_gate_review_6019450c, digest98c7a7fde605a352bfc12d3c79334ef1d2ba5e9a1787343b3a7d46eb9dda5d39.
+Existing B2 inline/production concurrency evidence and B1 joinedba8816e4
+LR/units/strict-symbol/known-output cleanup controls keep their source scopes;
+separate performance improvements are not combined. Two pre-existing default
+fault-suite failures remain B2-owned, Windows runtime A1-owned; other nonLinux
+runtime/joined browser/instrumentation acceptance remains pending. Old25dddd04
+reactors do not validate either new producer. No builds/tests/profile/sanitizers;
+documentation-only review has no runtime performance requirement. Owned jobs
+were drained, observed L2 job untouched, todo unchanged. Commit/reconcile/push.
