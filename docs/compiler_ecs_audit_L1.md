@@ -40,11 +40,30 @@ a root return after its operand failed. Its native and fixed-path performance
 receipts are preserved separately; L2's coherent 2e3 address/thread runs include
 that correction, and do not validate these newer map changes.
 
-One remaining graph-interpreter owner is the temporary argument array for calls
-larger than `InterpreterInlineArgumentStorage`; it still uses ordinary alloc/free.
-A later checked private-buffer change must preserve already evaluated argument
-effects, the foreign-call boundary and exact failure before entering the callee.
-This is an identified open item, not part of the accepted map implementation.
+The next candidate on merged `79dc9e6` admits wide-call arguments through a
+private work_vector and the invocation's explicit budget. Inline calls retain
+their existing stack storage. Before controls expose uncharged admission after
+argument effects in runtime and staged execution; the candidate preserves the
+first typed cause and source offset before callee entry. New fixtures derive
+the boundary from the shared inline-storage type and verify ordered argument
+effects, terminal failure and cleanup. Current candidate validation is pending;
+these changes are outside the accepted map milestone above.
+
+The source-owner audit found that the counted frontend already copies bytes into
+SyntaxSource. The candidate removes redundant ExecutionSession byte snapshots,
+preflights every span before frontend work, and borrows immutable inputs through
+the synchronous call. Only the existing null-plus-zero-length compatibility path
+needs a checked descriptor copy. Tests cover caller-buffer replacement after
+compilation, both execution engines/target widths, late embedded NULs before
+environment binding, and exact admission cleanup. Root creation now preserves
+entity_create_result's typed receipt. The separate unchecked semantic_initialize
+component admission remains a shared lifecycle gap, reported to ROOT; neither
+root descriptor result propagation nor these source changes close that gap.
+
+IMContext diagnostics/output, type-construction diagnostics, Fast arrays/opaque
+owners, remaining session output and the separate package source copy remain
+open. The next diagnostic proposal has L2's scoped producer coordination, but no
+IMContext layout or producer changes have been adopted in this candidate.
 
 Historical checkpoints follow.
 
@@ -562,3 +581,19 @@ with graphlarge execution217.627->218.626ms and variable small wall/CPU costs
 preserved in the journal. Joined L2 address/thread evidence is still pending;
 no prior-source pass is transferred to this change. No new syntax or effect
 policy is introduced: an already-failed invocation retains its frame for cleanup.
+
+### Execution-owner batch on 79dc: native evidence and remaining chain
+
+interpreter.tower/interpreter_types.tower now derive the inline call boundary
+from its existing type and check wide-call temporary admission using the owning
+budget. execution_session.tower preserves root producer errors and borrows
+validated counted inputs until frontend-owned copies exist; only empty-null
+compatibility needs a checked descriptor owner. Native24167 query/core/functions/
+units/type-construction and four graph/Fast exact-output controls pass. Minimal6
+paired n1 serial/parallel observations and limitations are in the journal; they
+show exact output/identity and actual outer1/4, not statistical performance proof.
+The real waiting constructor still unnecessarily grows a failed producer's
+message to append NUL; counted propagation is next. Shared semantic_initialize
+root attachment failure belongs to the coordinated L2 producer/consumer chain.
+Current instruments and integrated bootstrap/browser/publication are pending;
+earlier map receipts retain their original source scope.

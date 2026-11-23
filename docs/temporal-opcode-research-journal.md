@@ -77123,3 +77123,119 @@ Later metadata/child APIs and L1 maps have been verified read-only but are not
 covered by these results. The full type/generic resource caller migration,
 restricted-host clone overlap investigation, clean integrated public bootstrap,
 browser/generation and atomic hosted publication remain open under ROOT's lease.
+
+### L1 execution owners follow-up on merged 79dc - proposal and before controls
+
+The completed map milestone remains code6818/evidence918. Complete ROOTc944
+was verified by bundle SHA7b28e024 and merged without conflicts into
+79dc9e6c67cebf174acc77f77b1934dd33330418. No prior runtime receipt is
+transferred to that merge. Same session PID26880, gpt-6-astra/xhigh/default;
+no new contexts, agents, publication lease or todo changes.
+
+Coherent native BEFORE32674 actually drained0: public-pin14-step build
+51.22s wall/73.13s CPU/749516KiB RSS. Query, core, functions and type-construction
+all passed, as did four existing graph/Fast small/large workload output controls.
+Compiler/build source manifests match before/after/final. Selected binaries,
+resources and source identity are preserved in l1_execution_owners_before_native_milestone
+and l1_resources_execution_owners_union; unchanged generated intermediate caches
+were not copied. These single runs are validation controls, not performance
+comparisons. The shared host was then released to L2's queued regression-only run.
+
+Caller audit: the wide-call temporary in ix_call is reached through both ordinary
+runtime and actual staged IMInvocation execution. It currently uses uncharged
+alloc/free once the call exceeds InterpreterInlineArgumentStorage. The proposal
+uses a temporary shared work_vector with the explicit invocation budget, preserves
+its first typed failure and source offset, and denies before stack mutation or
+foreign/callee entry. Inline calls keep their existing allocation-free path.
+The existing inline storage type declaration moves to interpreter_types so tests
+derive the boundary from the actual type; no layout or semantic limit changes.
+
+Execution-session source snapshots are a distinct boundary used by driver_execution
+and canonical execution_package reconstruction. Their ordinary raw arrays and
+ByteBuffers are not evidence that frontend_compilation's separate scratch is
+budgeted. The external proposal uses checked work_vector descriptors/owners and
+WorkBuffer counted copies, exact first typed denial, ordinary embedded-NUL
+rejection and lexical cleanup after synchronous frontend borrowers drain. Root
+creation uses existing entity_create_result and keeps Invalid/Busy/Exhausted/Memory
+rather than a generic allocation message. It does not invent a Capacity result
+for the producer's raw entity descriptor. Diagnostic/output storage remains open.
+
+New regression fixtures are now in the checkout, but the allocation fixes remain
+external/uncompiled. A real queued FinishValue wide call is reached after every
+argument has incremented a caller counter. Successful controls independently
+weight each argument by its ordinal; pressure must preserve those effects, skip
+the callee's distinct mutation and prevent replay after allowance returns, at
+both widths and runtime/staged modes. Source-copy pressure derives four allowances
+from actual physical descriptor/owner/first-snapshot receipts. A counted embedded
+NUL forces deterministic rejection before parsing, allowing partial-owner cleanup
+to be checked independently of frontend admission. Root tests retain exact
+Invalid/Busy receipts and terminal execution state. Actual before/after executions
+and paired measurements are still pending; source review is not a test pass.
+
+BEFORE36794 ACTUALDRAIN1 at execution_world publicleaf: positional array literal is unsupported predecessor syntax (Unexpected120). Interpreter-call-query publicleaf PASS; no coherent build/runtime ran. After actualdrain changed only arrays to supported default plus element assignment, preserved exact data/count derivation. Retry1 checks only failed leaf then build/query/core with distinct logs; no allocation fix adopted.
+
+BEFORE retry1 completed1 at leaf: work_vector type constructor needs direct work_vector_types import in execution_world. No build/runtime ran. Added explicit vector/buffer type modules to test and external session draft, preserving original failure logs; retry2 distinct. Owned jobs drained before edit.
+
+RELEASED L1 BEFORE31799 ACTUALDRAIN1: corrected worldleaf +coherent16stepbuild PASS; query134 reproduces runtime wide-call admission/no-replay failures, then new unpressured STRICT weighted-call control fails (fixture diagnostic pending, not attributed to allocation fix). Core1 after existing156/semantic/package passes reproduces missing root typed receipt; snapshot cases unreached. Sourcebefore/after/final equal. No allocation fix adopted yet. L2 requested bounded AFTER max2build/oneexclusive runtime incl editor6 maystart; no L1WSL untilactualrelease.
+
+Strict wide-call control diagnosis by source review: all generated parameters retained default index0, but ix_local_binding requires function.locals[local.index] == binding. Runtime ignores this identity index; strict correctly rejects it. Fixture now assigns each parameter.index from actual locals.length before append, preserving production checks. Failure-only exact diagnostic/result/step output added. Core fixture order now exercises snapshot denial first; prior31799 already reproduces nullworld root receipt loss. New corrected BEFORE stillUNRUN; no allocation fix yet. L2 retainsAFTER host slot.
+L1 source-owner review changed the unadopted proposal: frontend_compile_sources already validates counted spans, frontend_module_root_world_size calls syntax_source_create, and that constructor copies exactly length bytes plus its own NUL. DriverCompilation keeps original request inputs pinned; package canonical formatter stays alive across synchronous compilation. Existing L1 audit had identified session copies as potential simplification. Therefore do not migrate redundant byte snapshots. Revised external draft preflights every input before any frontend work, borrows counted spans synchronously, and uses one checked descriptor copy ONLY to preserve existing null+zero-length compatibility. No frontend/B2 file changes. New tests cover explicit-length nonterminated inputs, immutable caller descriptors, frontend ownership after caller bytes are overwritten/freed, graph/Fast and both widths, late NUL rejection before environment binding, exact normalization Capacity/cleanup against a foreign bound environment, and typed root Invalid/Busy. Previous larger snapshot-owner proposal/tests archived externally as unadopted history. Corrected BEFORE on unchanged production is next after L2 actualdrain; native/performance/instrument acceptance still pending. Package's separate redundant source copy is identified but not touched in this milestone.
+
+BEFORE93725 ACTUALDRAIN1: both corrected publicleaves +5stepbuild21.62wall24.10CPU372880KiB PASS. Query134 now reports only expected wide-call admission/no-replay assertions; both positive runtime/staged weighted controls reached normally atwidth4, no local-index fixture failure. Harness stops beforewidth8. Core134 before input assertion: fixture closed its warm root, and entities.tower releases componentpage when live reaches0; zeroallowance then denied fresh root-component allocation inside legacy semantic_initialize. Keep actual warm row alive through trial, dispose beforeworld; no budget enlargement or production weakening. Original coreabort retained; next narrow worldleaf/execution/core only.
+
+RELEASED L1 BEFORE38456 ACTUALDRAIN1/innercore1: corrected worldleaf+2stepbuild PASS, existing156/semantic/package cases pass then intended empty-descriptor Capacity assertion fails on old uncharged implementation, stderrEMPTY/sourceequal. Prior93725 query134 now only intended runtime/staged width4 wide-call denial assertions; positive weighted controls pass, width8 not reached. RootInvalid loss separately reproduced31799. Warm fixture row stays alive, isolating normalization from shared root-component gap sentROOT. L2 quiet32 exclusive now granted, NO L1WSL untilactualrelease. Adopt reviewed2file allocation/source-copy delta onWindows duringquiet slot, then own nativeAFTER.
+
+AFTER source adopted after38456 actualdrain: interpreter temporary uses checked private work_vector; root preserves existing entity_create_result receipt; redundant execution-session byte snapshots removed after counted frontend/SyntaxSource/caller lifetime audit. Only null+zero-length compatibility admits a checked descriptor copy. Production3files incl moved unchanged inline-type declaration; twoownedtestfiles. New tests derive runtime/staged and graph/Fast iteration from actual bool arrays and name fuel/step limits. Previous before receipts retain prior equivalent two-mode fixture spelling; no claimnewspellingexecuted. No sharedIMlayout change. Current after leaves/native/profile/instruments UNRUN while L2 quiet32 owns host.
+
+AFTER52093 ACTUALDRAIN1 at interpreter publicleaf: new local work_vector constructor needs explicit work_vector_types import, like the earlier fixture. execution_session publicleafPASS; no native build/runtime. Added only missingdirectimport afterdrain; retry1 preserves logs and skips unchanged passed session leaf. Sourcecandidate otherwiseunchanged, currentinstrument/profileUNRUN.
+
+AFTER28070 ACTUALDRAIN1 after allthree remaining publicleavesPASS. Combinednative stopped at tower-driver: driver_compile:153 relies on transitively imported legacy entity_create declaration. New typedroot consumer had replaced that declaration; restore legacy declaration alongside typed API (no runtime behavior/fallback change). Compiler-interpreter siblingobject drained; no runtime ran. Retry2 checks revisedsessionleaf then resumescoherentbuild, preserves failurelogs; allcompilerinputs frozen again.
+
+RELEASED L1 AFTER24167 ACTUALDRAIN0: revisedsessionleaf +9stepbuild22.46wall30.87CPU374732KiB, all5native query/core/functions/units/type-construction PASS, all4newwide graph/Fast small/large exactoraclesPASS (136 plus8627500/85012750000). Sourcebefore/after/final and postgate Windows fullhashes0. Existing beforefailure receipts preserved; no currentprofile/instrumentclaim. L2 queued2252joined affectednative/instruments max2build/oneexclusive runtime granted now; L1 NO WSL untilactualrelease. Own quiet64 samepath widecall+units/bodies budgets1/4 queued after yournextdrain; can use earlier slot if you prefer during source-onlyintegration. Native code frozen79dc+owned5Towerfiles.
+L1 acceleration applied at safe boundary; no owned job active. Native current79dc+5Towerfiles passed allselectedgates/4neworacles beforedirective. Top measured sinks: prior map ASan/TSan build+7gates each totals about17minutes; two latest L2 fulltype-smoke runs294.13+293.98=588.11seconds underexclusivehost delayed useful compilation byabout10minutes. Immediate improvement: cancel queuedquiet64/newper-helper instruments, preserve one79dc immutablebefore, run only6 checked comparison processes (wideCLIlarge1 before/after; real4unit1/4 before/after), then commit/integrate complete histories and batch context diagnostics/counting plus typed root initialization consumers. No repeatedpublicleaf+CMake doublecompiles; oneaffectedCMake target andfocusedquery/core only whenchanged. Disjointcaches canuse2lanes each withcombinedmemorybudget; only the shortcomparison needsquiet. L2please make yournextactualdrain available for ~30s comparison, then concurrentdevelopment. Final integrated ASan/TSan/browser/bootstrap/generation/publication pending, notpassed. Scoped sem_type_execution_error coordination received; no helpercampaign willstart.
+L1 critical-path clarification under acceleration: current native batch closes measured wide-call admission and typed root-descriptor loss, and removes redundant session copies. Remaining confirmed compiler blocker is unchecked semantic_initialize->sem_attach root-component admission (shared typed helpers now assigned L2). A second concrete staged path is ix_construct_type's asserting reserve solely to add NUL after a real failed constructor; I will replace it with counted context diagnostic propagation and retain producer storage unchanged, with a real waiting-constructor counted-span regression. This needs no IMContext layout migration. Full IMContext/Fast/output budget-vector conversion is currently optional blanket allocation coverage, not a demonstrated scheduler/decltype/capture race; defer that expansion while shared failure chains and final integration remain critical. Existing private ownership/drain/roundtrip evidence remains scoped. L2's reserved sem_type_execution_error migration hunk is not being edited in this smaller counted-path batch; no overlap with your structural admissions. Keep the approved producer-result work moving; semantic_initialize consumer should use that shared producer once available.
+
+### L1 execution-owner native milestone and minimal comparison
+
+Current implementation on 79dc removes redundant session byte copies, retaining
+only checked empty-null descriptor normalization, uses exact root entity results,
+and admits wide interpreter arguments through the owning invocation budget.
+Native24167 completed: revised session leaf and coherent nine-step build
+22.46s wall/30.87s CPU/374732KiB, then query/core/functions/units/type-construction
+all pass. Four graph/Fast small/large controls produce independently expected
+136 and 8627500/85012750000. The five Tower sources and complete 1119-file
+compiler/build closure remained frozen. Prior failed attempts above remain evidence.
+
+The coordinated acceleration directive cancels the queued64-sample sweep and
+per-helper instruments. The completed minimal6 receipt is in
+L1/logs/execution_owners_minimal. Same actual executable/resource path, immutable
+79dc before and current after, native Linux x64 WSL Orchestral-Revng, public-pin
+optimized build; wide CLI uses --jobs1 --no-optimize --interpret. One observation
+per variant, no warmup: wide100000 wall2.78->2.60s, CPU2.71->2.58s,
+RSS180100->179428KiB, execute1092.637->1109.588ms (+1.55%). The before CLI had
+32 major faults/232600 filesystem-input units; after had none. Therefore the
+end-to-end reduction is not a warm-cache speedup claim. Four-unit compilation:
+serial wall6.02->5.98s/CPU6.01->5.96/RSS211352->211412KiB; four-lane
+wall2.09->2.09s/CPU7.77->7.78/RSS560492->568944KiB. Measured outer peak1/4,
+identical canonical hash17697577322696030917, entities64320/components73352.
+Retained bytes20201787 serial/20189635 parallel unchanged. Parallel reserved peak
+269002113->267747587 is schedule-dependent, not attributed to this patch.
+All six exit0, expected text and exact integer canonical comparisons pass;
+resource/binary/source manifests match. No statistical or broad scaling claim.
+
+After the user-authorized same-session restart, actual CLI PID1332 replaces26880.
+Handle48164 is absent, no matching native process survives, and final receipts
+exist because the script's terminal source/binary comparisons and copy completed.
+No job was restarted. Plain pull --rebase initially attempted to flatten merged
+history and conflicted; rebase --abort restored autostash71c8464, then
+pull --rebase=merges --autostash --ff-only reports up-to-date. All seven edits
+and todo's prior hash remain intact. The owned quiet lock was archived, releasing
+L2; independent native caches now permit two build lanes each. Shell inspection
+with incorrectly nested quoting failed once; the direct ps command corrected it.
+
+Next: merge complete ROOT2252/L2 generic result histories; close actual counted
+constructor diagnostic failure and shared root initialization admission. Optional
+blanket Fast/context allocation migration is not substituted for these compiler
+failure chains. Current native evidence is not integrated release acceptance;
+supported final instrumentation/stress, public bootstrap/browser/generation and
+leased atomic publication/host verification remain pending.
