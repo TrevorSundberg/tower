@@ -93325,4 +93325,8 @@ A1 T5 publication reconciliation:46638558 merged complete05edbfb3 as06263a68,
 without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
-compiler build or relabeled current-source validation. All jobs remain drained.
+compiler build or relabeled current-source validation. All jobs remain drained.Final publication delta: complete-history mergebc231982 adopts e6be70d5's
+ROOT/D2 documentation-only receipts. All `merged_source.sha256` Tower/CMake inputs
+still match exactly; reuse the scoped merged checks without another runtime run.
+Implementation d16c8f6e and byte-boundary correction1a9c3296 remain intact; normal
+main push follows. No historical failure or later artifact is relabeled passed.
