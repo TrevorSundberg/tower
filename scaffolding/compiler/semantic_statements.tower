@@ -688,7 +688,13 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     var kind: u8* = sem_label(n);
     if sem_equal(kind, "CoreDeclare") {
-        if !sem_declaration_bind(c, n) || !sem_declaration_type(c, n) { return FlowNext; }
+        if !sem_declaration_bind(c, n) { return FlowNext; }
+        if c.current == c.program.root && !sem_get(n).global && c.declaration_subjects == null
+            && c.entity_stage == null && c.query_reads == null {
+            sem_module_declaration(c, n);
+            return FlowNext;
+        }
+        if !sem_declaration_type(c, n) { return FlowNext; }
         sem_declaration_finish(c, n);
     } else {
         if sem_equal(kind, "CoreAssign") {

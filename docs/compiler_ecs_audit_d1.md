@@ -4991,3 +4991,187 @@ measurement. Current generations, public pin, atomic hosted release and
 service-rejected instrumentation remain OPEN; no rejected operation was retried.
 Documentation-only profiling is inapplicable. No build/test/profile rerun,
 implementation change or new audit loop.
+
+### 2026-11-23 D1: finite pending-source review at 1e60c511
+
+Frozen published main **`1e60c51167c6cc0438d10fe2366614ad872fa85b`**, tree
+`72820a3b863adc36e29ef382c532708c5b2b40ae`, compiler
+`21b00de919403346f3f852a387a2b50b07b667d2`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. This closes the independent **review
+work** for the preceding nineteen Tower paths and two CMake contracts, plus the
+five explicitly requested composition deltas. It does not close runtime/release
+acceptance. Final functions, immediate consumers and registrations were read;
+unchanged earlier reviews remain adopted. No production or fixture edits.
+
+Of the original nineteen, sixteen still match7890; `malformed_call_checks`,
+`lr_work_main` and `module_loop_query_checks` changed. Of its two contracts,
+`TowerWorkTests.cmake` changed. Those final versions are reviewed below, including
+A2 ee91c300 and the already-published L1 capture registrations through4bbde387.
+The five additional files adopt L2's void-result repair through74ccfb00 and A2's
+shape guard. Later incoming inputs are outside this fixed review. Exact Git blobs
+are recoverable at the freeze; local `build/d1_ecs/source_review_1e60c511/{paths,blobs}.txt`
+records all24 Tower plus2 CMake paths. Paths in the table are under scaffolding/
+except cmake/.
+
+| Reviewed group / exact paths | Source disposition and acceptance boundary |
+| --- | --- |
+| A1 fallback: `backend/session.tower`; `tests/backend_clock_native.tower`, `backend_response_checks.tower`, `backend_response_native.tower`; `cmake/TowerBackendSourceTests.cmake` | `backend_session_create` reserves the fallback tail with its descriptor. Capacity covers the longest typed prefix, a conservative usize digit bound, closing brace and NUL. Failure uses that tail and a stack digit array; zero/max offsets and the first stored backend cause survive without a second allocation. Reset/close retain the original allocation owner. Tests cover all six non-None causes, four offsets, both allocation-denial boundaries, prior ordinary error, two independent sessions and recovery, then zero tracked buffers. The extracted clock is real Linux `clock_gettime`: monotonic-only WASI adapter, nonnull result, checked status and ns conversion. CMake's native/Linux guard matches its ABI; response uses the existing serial instrumented allocator and one backend provider (30s); real source-world/recheck retain guest-runtime dependency, lexical `.tower` mount and180s. Neither serial fault injection nor this review proves threaded allocation safety. |
+| L2 counted initialization: `backend/import_module.tower`; `tests/backend_import_constants.tower`, `backend_import_fixture.tower`, `backend_import_storage.tower` | `bi_initializer` checks ConstantDataArray before the string API, reads counted bytes and emits maximal nonzero ASCII copies or equal-byte u8 fills. Counts exclude string terminators; explicit zero/high-byte runs and offsets preserve original initialization order. No signed-char conversion or NUL-terminated scan; ordinary aggregates keep layout-derived offsets. Partial nodes remain in the existing private import stage and fail/discard through its owner. Constants fixture preserves large/narrow/nominal results, escapes and UTF-8 byte values195/169/0. Raw fixture is exactly65/0/128/255/0/67. Storage checks admission failures, pinned Busy/Capacity, old output/comments, first cause, no-allocation terminal retry, ASCII canonical text and final world/ledger/buffer cleanup. **Limit:** the six raw bytes are imported/formatted, not independently executed/read with surrounding guard-byte assertions; existing retained-output sentinels test publication ownership, not initializer bounds. No wrong-byte producer defect found by this source review. |
+| L2 native probe: `tests/backend_source_native.tower` | Final clock extraction, getrusage ABI, joined census and deny-recheck paths reviewed. Census counts actual store pages/component records; its temporary histogram is budgeted and disposed. Native RSS, charged payload, descriptor bytes and grammar labels are distinct measurements, not a universal memory census. The synchronous observer borrows its stack context/world only through the joined request; deny-recheck saves prior output, reserves the remaining budget at the second parse, releases it on exit and checks exact Capacity plus retained output before recovery. Observer removal, backend/world shutdown and resource/budget disposal preserve borrow order. Native Linux probe success does not establish wasm32 guest fit. |
+| B2 profiler/B1 measurements: `tests/frontend_units_profile.tower` | `uniform` and `spread` are mutually exclusive; both source admission and saved-source/result validation derive the same per-unit body prefix. Uniform means `count × bodies`, not one shared body count. Each answer and representative ordinary body executes42; canonical/object bytes are saved/hashed after join. Backend closes before frontend; all observers/scratch outlive their joined owners. Worker slots are private by ordinal; coordinator aggregates after joins. Timed wall/CPU/RSS ends before oracle/format/save work. Optional grammar observers add separately reported collection cost; enclosing times include it. Vacancy is explicitly an outer-slot upper bound, not demonstrated idle shared capacity; requested lanes are not overlap. Equal zero-body units require observed overlap/distinct threads. Adopt [B1's source-bound measured receipt](compiler_uniform_reuse_3ad7d5f0.md), not a new timing result or proof that every generated body executes. |
+| A2 required captures: `compiler/semantic_types.tower`; `tests/malformed_call_checks.tower`; shared `tests/lr_work_main.tower` | `sem_type_binding_header` requires name before publishing a type record. `sem_type_name_shape` follows the ordinary name chain, checks bare CoreTypeName only, and runs before prepared constructor/type consumption. Qualified/base alternatives, pointer types and editor holes retain their existing paths. Eight exact table cases distinguish mandatory captures from optional declaration/return/call alternatives; marker-derived source coordinates, UTF-8 moved-call control, earlier live answer42, valid override recovery and zero final grants are checked. Three-unit failed and early-cancelled batches drain, expose no program and preserve first error/offset. `malformed-call shapes` runs32 width/worker configurations; main `all` includes shapes once, while `all`/query-smoke's older call group remains distinct. Named reproductions deliberately run a smaller scope. [A2's executed receipt](compiler_malformed_shapes_ba52a932.md) is attributed evidence, not rerun here. |
+| L1 loop query composition: `compiler/semantic_control.tower`, `semantic_statements.tower`; `tests/lr_work_main.tower`, `module_loop_queries.tower`, `module_loop_query_checks.tower`, `semantic_invalid/module_for_condition_scalar.tower`, `semantic_invalid/module_loop_query_cycle.tower`, `semantic_invalid/module_loop_update_capture.tower`; `cmake/TowerWorkTests.cmake` | `sem_control_expression` uses the shared module-expression query only for coordinator-owned immediate module operands; worker/prepared contexts keep ordinary private checking. `sem_module_expression` saves lexical context, demands/discovers shared producers, restores the result context and disposes its temporary subjects on exit. If/while/for preserve bool checking and value/operand/discard modes. For-header scope survives initializer suspension; condition/update bind before body shadows. Lowering retains original repeated condition/update positions, continue ordering and break omission, rather than executing a runtime condition during preparation. Positive fixture checks forward/computed types, nominal usize, exact reference trace12342342342, shadowing and lazy untaken dependencies. Three requested negatives retain bool, capture and layout-cycle diagnostics. Current checker now reads nine actual fixtures: the five added L1 capture sources and positive `module_header_capture_controls` were also read as direct registration context (update/body writes, escape, block write, shadow; immutable/type-only/untaken controls). Exact mapped offsets, no partial program, drained terminal retry/no new owners are checked32/64 ×1/4. Selector and control-smoke call the provider; workers1/4 CTests register the positives. Their regex `0` remains a substring check at this freeze; D2's separate pending registration repair is not adopted. L1's2a5477be/4bbde387 runtime receipts stay source-bound; this is not a new full capture-producer review. |
+| L2 void-result composition: `backend/import_instructions.tower`; `tests/backend_source.tower`, `backend_void_returns.tower`, `driver_c_cases.tower` | `bi_call` drops a result only for SVoid **and zero pointer depth**. Direct preserved signatures and reconstructed indirect signatures keep pointer/nominal types; real values flow through checked temporary/cast and `bi_function`'s already-declared LLVM destination. True-void calls are still appended once for effects. Source-service test requires assigned opaque/forwarded calls (text assertion only). The ordinary fixture independently checks direct/exported/callback void*, deeper void**, null/non-null identity, read/store/free and exact effect count123, printing0. L2 reports actual original/reconstructed32/64 execution and the full entity_pages request execution0 at workers1/4; these are distinct from source proof and remain native evidence. **One concrete C-registration incompatibility remains below.** |
+
+**Source-proven registration defect, not a newly executed failure — ROOT/L2:**
+`tests/driver_c_cases.tower:driver_c_cases` adds `backend_void_returns` to the
+Native C differential list. `driver_c_file` → `driver_c_case` → `driver_c_variant`
+requires successful raw and optimized `--emit c` before comparison. However the
+fixture's `select_callback` is an exported function-valued return and `apply`
+contains an indirect callback. `compiler/c_emitter.tower:ce_collect` explicitly
+rejects KFunctionReference, indirect KCall, or SFunction result/element with:
+`This source backend does not yet implement function values; use LLVM native/Wasm output`.
+The exported selector cannot be justified away as an unused private function.
+This is an incompatible test registration, not another void* importer defect.
+Smallest source trigger, using the fixture's existing supported constructs:
+
+```tower
+import foundation;
+fn opaque(value: void*): void* { return value; }
+export fn select_callback(): function(void*, void*) { return opaque; }
+```
+
+Owner reproduction command (not executed in this review):
+`tower-driver-tests --c-backend TOWERC RESOURCE_ROOT clang gcc clang++ g++ backend_void_returns`.
+Keep the complete LLVM callback fixture and its successful receipts. Route that
+fixture through a supported LLVM execution contract; if adding C regression
+coverage, use a separate direct-pointer subset or assert the intentional C
+capability rejection. Do not relax the C emitter or report its positive matrix
+passed. No concurrent producer/fixture change was made by D1.
+
+The counted-byte boundary above has a smaller **coverage** follow-up: extend the
+existing LLVM-owned constant fixture with executed reads of65/0/128/255/0/67
+and guard bytes after Foundation reparse; it needs no second initializer model.
+This is a proposed L2/ROOT regression, not a confirmed overflow or new test result.
+Existing D2 regex/alias-negative registration work and A1/A2/B1 producer changes
+remain separately owned. The finite requested review is complete with the
+C-registration defect and these explicit acceptance limits retained. No build,
+test, profiler, sanitizer or hosted operation was run; documentation-only runtime
+profiling is inapplicable. Native3.2GiB RSS is not a wasm32 linear-memory result.
+
+### 2026-11-23 D1: three correctness fixes at ea606d32
+
+Frozen published main `ea606d329b989378df15fdc58bf5165456bb0cb7`, tree
+`7f41401d3078e46331bcd55a2b58c329750cfaf0`, compiler
+`306ac3a3e67ef73790eb7fdc9878534b8c5df259`, library
+`62350befa8df3e261fd184a23a64e6bb7263204a`. Independent source review of A1
+b78d606b/ef59b0aa, L1 3bc0a726 and D2's composition through451bea0c; no new
+implementation or execution. These close the three exclusions in the preceding
+finite review, not the whole compiler acceptance ledger. Unchanged context and
+fixtures from that review remain adopted. Actual changed functions, immediate
+consumers and final registrations were inspected; the following blobs match
+those owner publications (the shared Work registration is the final composition).
+
+| Path (under scaffolding/ except cmake/) | Reviewed Git blob |
+| --- | --- |
+| compiler/semantic_execution_work.tower | b3fd8b1cde1144f7e715d3f6be9d570a8d10b87b |
+| tests/semantic_executable_admission_checks.tower | daeef03f1db23097800f52de8a7e04f29feb5f32 |
+| cmake/TowerWorkPolicyTests.cmake | 60b1cfaea06478a381b70d62d0e133b42e344eeb |
+| compiler/semantic_source_bindings.tower | beb2c036eb52e2c6a6db80ef8a4c318f58c0b4f1 |
+| tests/module_header_capture_controls.tower | d33244b05a90955f428e76ad03845360f8403ee4 |
+| tests/module_loop_query_checks.tower | a21dbeda2f67c733e2576fcecc70f164406792a1 |
+| tests/semantic_invalid/module_header_capture_update.tower | f0cba4ed545daef1e318f63367f33c7cbe471f47 |
+| tests/semantic_invalid/module_header_capture_body.tower | 6604b287e3bf0800da04192927f2a3036526a2cc |
+| tests/semantic_invalid/module_header_capture_escape.tower | 87947693e11750a23b17b1482671b6d4b3a22939 |
+| tests/semantic_invalid/module_block_capture_write.tower | 4dee26ea4ec0e67bf55e66b2d064b062a0e2e8d2 |
+| tests/semantic_invalid/module_header_capture_shadow.tower | 38213cf7854395f25f495978b61b5f2201617370 |
+| cmake/TowerTestZeroOutput.cmake | e28d422a8b4d2b6bfc67e6ff6a9bd530ba59bd65 |
+| cmake/TowerWorkTests.cmake | aa5f0deabe4c1fef85bb7fa1937acc73535cc543 |
+| tests/alias_type_query_checks.tower | fe98c5a3d4927632364401ee235d62f7665e43b6 |
+
+**A1 — joined executable readiness.** `sem_executables_pump` reserves the batch,
+stages/leases and lanes before synchronous dispatch. Joins precede stage holds;
+holds precede closing the input view; stage publication precedes coordinator
+alias mutation. The new pass validates each ticket/observed dependency, skips
+aliases from a worker with a retained ordinary/resource error, and stops on
+`sem_evaluation_aliases` Invalid or Memory. Only after all eligible aliases are
+accepted does the completion pass set `IMFunctionInput.ready`. The interpreter
+checks ready before consuming the function; the shared query pipeline returns
+Failed, and declaration failure walking restores retained worker diagnostics.
+Thus a worker's own malformed alias cannot replace its signature Capacity cause,
+and a later rejected alias cannot expose an earlier successful ready prefix.
+A valid alias prefix and published nodes may remain owned until context teardown:
+this is readiness ordering, not whole-wave structural rollback. Deferred cleanup
+cancels unsettled tickets, drains/returns lane ownership and disposes the charged
+batch; no worker borrows the coordinator's stack context after return.
+
+`executable_alias_trial` uses real worker-generated aliases plus a missing-producer
+injection at offset17 or29. It checks no ready input/function pointer in either
+failed wave, cancelled invalid tickets, no live stage/context/jobs, exact prefix
+length, stable terminal retries and a fresh semantic-context recovery in the same
+world with producer/original/clone identity and final zero grants. The signature
+trial preserves its genuine Capacity failure ahead of its injected bad alias.
+`batch-growth` derives extent from WorkBufferInitialElements, measures admitted
+leases, denies replacement storage, and verifies counts/grants before recovery.
+The existing provider is linked once and all17 selectors retain60s deadlines.
+Source SHA256s `bc8a64e0…4591e` / `a4df18ae…9d4b` match the full hashes in
+[A1's repair/merged receipt](compiler_executable_budget_review_a1.md#implemented-alias-publication-follow-up-2026-11-23).
+That receipt reports17 selectors, query-smoke and lifecycle0 at c98d64f2, not a
+D1 rerun. Alias-vector physical Memory denial and mid-pump stale-ticket injection
+remain unexecuted there. Existing per-result `work_finish` failure semantics are
+unchanged; this patch does not promise atomic completion of every graph ticket.
+
+**L1 — module lexical capture identity.** `sem_source_scan` now binds a declaration
+when `job.owner != null || c.scope.parent != null`. The private scan always starts
+with a root scope; block/for/foreach scopes retain their parent and restore it on
+exit. Module-top names still resolve through module-qualified globals. Header
+initializers bind before test/update/body scanning, so mutation/address escape
+records the actual declaration entity, not a same-named global. Body shadows get
+a child scope; function scans bind their own parameters and do not recurse into
+other function bodies. Candidate owner, ordinal and query identities are unchanged.
+Preparation reserves metadata; proof completion precedes publishing immutability,
+and capture consumers suspend/observe that proof before rejecting a mutated,
+escaped or uninitialized declaration. Interpreter `ix_value_input`/`ix_local_binding`
+still check owner/current-frame declaration membership, not coincident offsets.
+The scan conservatively records writes; only executed staged reads demand captures,
+so the lazy untaken tests do not require an eager evaluation of both branches.
+
+Read all five new negatives and the positive controls: header update/body write,
+address escape, block-local write, shadowed header versus immutable outer value,
+known immutable header/block values, type-only mutable queries and untaken staged
+calls. The nine-case checker retains the original four negatives, exact mapped
+file/line/column and cross-width/worker error offsets, no partial program, drained
+terminal retries and unchanged owner counts. Selector/control-smoke and final
+positive CTests still call the existing providers. L1's journal records actual
+32/64 ×1/4 checks at2a5477be, then only affected Fast canonical checks after
+4bbde387's backend adoption (native `4835472a…f5d2e2`, semantics `c131e34c…309f`).
+Those execution identities remain separate; no new runtime or race claim here.
+
+**D2 — exact process and negative contracts.** The CMake wrapper supplies the
+original interpreter/jobs/resources arguments, requires every input variable,
+and captures stdout/stderr without stripping. It accepts only child result0,
+complete stdout matching `^0\r?\n$`, and empty stderr; a nonzero/signal/launch
+failure becomes a failing CMake result with the original status/output retained.
+It does not return the child's numeric exit code unchanged, but cannot turn that
+failure into a pass. Four fixtures ×workers1/4 now use this boundary without a
+PASS_REGULAR_EXPRESSION override: decltype_type_fields, alias_type_query_controls,
+module_loop_queries and module_header_capture_controls. Other successful values
+and tests remain unchanged. The alias provider's extracted helper retains the
+original inference-negative exact message at `read(actual)` and adds the unchanged
+scalar-condition fixture's exact `An integer literal needs an integer type` at
+`1 {` (2:4). Both check public source mapping, no partial program, failed count1,
+stable offset and repeated nonwaiting/waiting terminal calls at32/64 ×1/4; source
+and resource buffers outlive each batch. Existing `all`/type-smoke/type-errors and
+explicit alias selector retain this coverage; no duplicate runner/model.
+
+D2's journal distinguishes initial six positives and intentional output10/exit7
+rejection controls from the final joined eight positives plus both negatives at
+5fc375e8/eb673364 (compiler `96ed3119…94796b`, runner `e65cbdaa…6000`). Adoption
+of those receipts is source-bound; filtered cases, builds and negative-control
+aggregate exit8 are not additional passes. **No additional concrete defect found**
+in these three deltas. Prior C-registration repair stays D2-owned. Later A2
+body-local forwarding and B1/B2 performance work are excluded; no new census or
+acceptance expansion. Local14-path manifest is in
+`build/d1_ecs/joined_correctness_review_ea606d32/`. No build/test/profile/sanitizer
+or release action was run; documentation-only profiling is inapplicable and
+passing owner tests do not establish general race freedom.
