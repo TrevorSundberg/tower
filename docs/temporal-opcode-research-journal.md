@@ -93170,3 +93170,40 @@ without conflicts/history loss. New grammar ownership/cause, parser fixture and
 symbol-policy sources are excluded from the frozen b8d executable/08d mounted
 receipt. Selected test and host bytes remain unchanged. No second T5 invocation,
 compiler build or relabeled current-source validation. All jobs remain drained.
+
+### 2026-11-23 D2 — independent b8 alias/inference source review
+
+Reviewed L1 implementation b78af3aa67000baf06e985f845733b788fa34a13 against
+parent22e15d5b8e459cd63417234cf2b8198a85dc283d, final published freeze
+b8d65c37d9dd4ef691d700d0d0a52c81e01b593a. Checkout e6be70d5 has identical
+bytes for the nine scoped paths and inspected immediate contracts. Per-file
+identities and findings: [alias/inference audit](compiler_alias_inference_audit_b8d65c37.md).
+No concrete production defect found in the scoped change. Traced both shared
+module-expression callers, expected bool, lexical/query ownership, explicit
+demand/suspend/resume, private diagnostics/scratch and joined stage publication;
+condition is consumed once. Read-only non-invertible alias syntax leaves the
+constraint unresolved without swallowing resource failures; sem_infer_finish
+still selects the required missing-T diagnostic at the actual first call.
+A2's capture guards, failure-preserving module list and malformed selector survive.
+
+Coverage limits retained: scalar-condition negative has L1's recorded manual
+predecessor/successor check at2:4, but is absent from the reviewed explicit
+registration lists. Existing two-line alias_condition_scalar.tower is the exact
+small regression for L1/D1 to register. The new CTest "0" regex is a substring
+check; retain stronger exact-output Tower/Graph/Fast evidence. No fixture or
+expected error was removed. The native32/64 workers1/4 and canonical/offset
+checks are L1's source-bound receipts, not rerun by D2. D2's accepted145b93db
+b8 portable/LLVM three-case evidence remains separate, including its exact
+width/canonical limits and artifact/resource hashes; no matrix repeated.
+
+L1's subsequent while/for headers and separately reported mutable comptime
+loop-header capture limitation are excluded and remain open. No producer edits,
+new scheduling claim, observed-overlap claim, sanitizer or release acceptance.
+ROOT retains later joined-source/hosted gates. This documentation-only task needs
+no before/after runtime profiling. Validation was source/parent diffs, caller and
+registration inspection, SHA checks and git diff --check. Local evidence root:
+build/d2_ecs/alias_review_b8d65c37; sources.sha256 manifest digest
+5623fafbeccf4a5d4ef8356043e15b10a177e8e7a236e9645b1f032e68245021.
+Deck PID3165358/thread01a2046a-45eb-7452-8fb0-6d924bb320a6; no owned build/test
+jobs or heavy lock used,127GiB disk/9.8GiB RAM available, existing swap5.9GiB.
+todo unchanged; full published history preserved through normal main publication.
