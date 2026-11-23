@@ -84236,3 +84236,18 @@ frontend_main and executable-admission fixture). Normal push succeeded
 33 paths/15 D1, with51 unique paths in its union with the frozen26 actions.
 Whitespace, exact inventory and preserved todo hash pass. This final receipt
 changes documentation only and does not reopen the bounded5b05 source review.
+
+A1 merged receipt: implementation3e9ba568 merged complete publishedec01291e
+history asa1e63abc, preserving ROOT196d93c7 executable-signature admission,
+backend retention and D1/D2 receipts. README append conflict retained both entries.
+Nine affected dependency actions passed. All86 focused trials, query/control smoke,
+workers1/4 checked execution/captures, exact canonical bytes, roundtrip output0 and
+ordered cycle exit1/diagnostic passed again. Merged compiler SHA256
+382dfc545c1d1b82bd28a1127fc44c10a1418cd5d895de04155febce75aa5040.
+Merged n1 same-input samples: workers1 wall1.15s/CPU1.09s/RSS178252KiB;
+workers4 wall0.99s/CPU1.16s/RSS195448KiB. This includes concurrent owners' changes;
+no isolated attribution or significant speed/scaling claim. Logs
+A1/cache/a1_checked_merged_*. Sessions93620/7372 reaped0, no owned active jobs.
+Actual process chain: codex.exe12060, node launcher28232, PowerShell36308;
+startup status's PID28232 was the launcher, now corrected. Normal main push
+follows. Shared allocator/diagnostic and integrated release limits above remain.
