@@ -59648,3 +59648,43 @@ build/b2_clone_units_validation.log. All owned jobs and quiet holds are drained.
 Root separately requested timestamp evidence for L1's current TSan overlap
 30-second timeout. That failure is preserved; a test-only observer timeline is
 next, with no deadline or production behavior change inferred from the timeout.
+### Coordinator: matched public clone failure propagation, 2026-11-23
+
+Integrated complete L2 `018d68c2`, B2 `a2644884`, and D2 `9c167caa`
+histories on main at `6164c9e7`. Verified bundle hashes and the sole published
+`60741c51` prerequisite, preserved the eight-lane union, and checked that the
+merged clone implementation/fixtures exactly match L2 while module/cache/query
+consumers exactly match B2. Merge checks pass; no source conflict required a
+behavioral resolution. The user's existing todo.txt remains unchanged and unstaged.
+
+Public clone results now distinguish node quota from storage failure, including
+node/attachment allocation failures that previously returned None. Optional
+inspection stops on resource failure. Module snapshots retain the old cache
+until private cloning and publication-slot reservation succeed; failed requests
+retain an error and cannot reuse partial output. L2's three serial storage/query
+pairs cover exact frame sizes, allocation denial, cleanup and native clone work.
+B2's own closure passes actual full-cache read/write denial and ordinary editor,
+query and cancellation checks. Its 28 paired profile processes preserve canonical
+outputs, counts and retained accounting; two pairs do not establish a speedup.
+These receipts keep their original source identities. The combined caller and
+blackbox inspection-denial checks are still running on the local owners; no final
+merged runtime, sanitizer or publication acceptance is inferred from a merge.
+
+The old L1 TSan closure passes query, units and the independently instrumented
+resource fixture, but backend-overlap aborts at its existing 30-second rendezvous
+deadline without a TSan diagnostic. Later gates were not run. B2's reviewed
+observer patch records monotonic frontend/backend enter/leave/timeout events
+without changing that deadline or its overlap oracle. L1 owns the diagnostic run
+against frozen matching objects; this remains an unresolved coverage failure.
+Instrumented timings and sleep-straddling runs are not performance comparisons.
+
+B1's new grammar accounting has qualified two-pair measurements suggesting a
+small 1–2% cost, with identical outputs and newly charged storage distinguished
+from physical RSS. Its current ASan/LSan passes; TSan and full history export are
+pending. A1's thin Publish declaration boundary now compiles with the unchanged
+public predecessor's component limit. Existing evaluation-unit placement is under
+D2 review, not yet an accepted native/WASI provider. Constructor/page/payload
+accounting, checked dispatch and interpreter frame/task ownership remain active
+owner work. Final clean bootstrap/browser builds, scaling, sanitizers and atomic
+main/Pages publication are still required.
+
