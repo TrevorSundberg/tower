@@ -84602,3 +84602,9 @@ build/d1_ecs/registration_three/. Same thread, actual Codex PID3070892; own
 container idle before configure, D2 heavy lock/cache untouched,130GiB free disk.
 No performance, instrumentation, bootstrap/browser or deployment campaign applies
 to this registration delta. Prior51-path adoption/history and todo preserved.
+
+D2 LR push-race retry1: merged complete publishedd75a39ee as577d750a. Upstream
+adds documentation and CTest registrations only; build/link recipes and all428
+actual imported source hashes, frozen resources and preserved todo hash match.
+Reuse merged focused runtime evidence without recompilation. Both owners' journal
+and README additions retained. Normal main push retried; no deployment claimed.
